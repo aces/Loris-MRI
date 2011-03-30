@@ -1,0 +1,135 @@
+=pod
+# -----------------------------------------------------------------------------------------------
+  WHAT THIS IS:
+  Although someone might argue that this is not a config file anymore... this is in fact a config
+  WHAT THIS IS FOR:
+  For users of the neurodb system... or actually the ones that believe in tarchiving their universe
+  WHAT THIS IS NOT:
+  A solution for an extant lack of productivity in writing papers
+# -----------------------------------------------------------------------------------------------
+=cut
+
+=pod
+# SECTION I
+# -----------------------------------------------------------------------------------------------
+  DATABASE settings 
+  for database instance you are connecting to
+  required: db_name, $db_user, $db_pass, $db_host
+# -----------------------------------------------------------------------------------------------
+=cut
+
+@db = ('DBNAME','DBUSER', 'DBPASS', 'DBHOST');
+
+=pod
+# SECTION II
+# -----------------------------------------------------------------------------------------------
+  tarchiveloader settings
+  Do not use a trailing / for data_dir
+# -----------------------------------------------------------------------------------------------
+=cut
+
+$data_dir       = '/your/inepuisable/diskspace/location';       # where the data goes
+$prefix         = "project";                                    # study prefix or study name
+$mail_user      = "yourname\@gmail.com";                        # who will be notified
+$get_dicom_info = "/wherever/you/put/this/get_dicom_info.pl";
+$horizontalPics = 1;
+
+# if converter is set to dcm2mnc, the c-version of dcm2mnc will be used. If however you want 
+# to use any of the various versions of the perl converter dicom_to_minc of mydcm2mnc you will have 
+# to specify what it is called and the uploader will try to invoke it. 
+$converter      = "dcm2mnc";
+
+# where to store the library of used tarchives
+# if this is not set they will not be moved
+# $tarchiveLibraryDir = '/path/to/dicomlib'; 
+$tarchiveLibraryDir = undef;
+
+# which element of the tarchive table should be used to getPSC(), being either PatientID or PatientName
+$lookupCenterNameUsing = 'PatientID';
+
+# should the upload create candidates when needed? 0/1
+$createCandidates = 1;
+
+=pod
+# SECTION III
+# -----------------------------------------------------------------------------------------------
+  custom settings
+  these functions are very specific for any given study. Using them seems to be the only way of
+  having one system that rules them all...
+# -----------------------------------------------------------------------------------------------
+=cut
+
+# extracts the subject and timepoint identifiers from the patient name and/or patient id
+# assumes identifers are stored as <PSCID><visit> in PatientID field, where <visit> is 3 digits.
+sub getSubjectIDs {
+    my ($patientName, $patientID, $scannerID, $dbhr) = @_;
+    my %subjectID;
+    # create a phantom specific visit label
+    my $phantomVisit;
+    
+    # PSCID stored in patientID
+    $subjectID{'PSCID'} = $patientID;
+    $phantomVisit = $patientID;
+    
+    # The visit label is stored as last three numbers of patientID
+    $subjectID{'PSCID'} =~ s/((\d){3})$//;
+    print "\nData found for : $subjectID{'PSCID'} \n";
+    $subjectID{'visitLabel'} = int($1);
+
+    # the phantom visit label should contain the site name (The first 3 letters of the PSCID and the visit label
+    $phantomVisit =~ s/^((\D){3})(.)*/\1/;
+    $phantomVisit .= "_".$subjectID{'visitLabel'};
+
+    if(isPhantom(\%subjectID)) {
+        $subjectID{'CandID'} = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $dbhr));
+        # in that case we want the visit label to look like: PSCID_SITE_Visit
+        $subjectID{'visitLabel'} = $subjectID{'PSCID'}."_".$phantomVisit;
+        $subjectID{'isPhantom'} = 1;
+    } else {
+        # CandID not stored in DICOM...  must look up from DB given PSCID
+        $subjectID{'CandID'} = NeuroDB::MRI::lookupCandIDFromPSCID($subjectID{'PSCID'}, $dbhr);
+        $subjectID{'isPhantom'} = 0;
+    }
+    # This is needed for any study. You may set it to 0 or 1 or actually use MRI.pm
+    $subjectID{'subprojectID'} = 1;
+    # $subjectID{'subprojectID'} = NeuroDB::MRI::getObjective(\$subjectID, $dbhr);
+    
+    return \%subjectID;
+}
+
+# determines if a given subjectID is a phantom or not
+# returns 1 if a phantom, 0 for non-phantom
+sub isPhantom {
+    my $subjectIDref = shift;
+    if($subjectIDref->{'PSCID'} =~ /PHA/i) {
+        return 1;
+    }
+    return 0;
+}
+
+# ----------- OPTIONAL SUBROUTINE
+# If you don't want to upload all types of images you can specify the complete protocol 
+# for all types and limit the upload using the protocol names
+sub isFileToBeRegisteredGivenProtocol {
+    my $acquisitionProtocol = shift;
+    if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'pd' or $acquisitionProtocol eq 'mrs' or $acquisitionProtocol =~ /despot/) {
+        return 1;
+    }
+    return 0;
+}
+
+# ----------- OPTIONAL SUBROUTINE
+# Takes a NeuroDB::File object, and manipulates its parameters
+# in this case, removes all parameters of length > 1000
+sub filterParameters {
+    my $fileRef = shift;
+    my $file = $$fileRef;
+    my $parametersRef = $file->getParameters();
+
+    foreach my $key (keys %{$parametersRef}) {
+        if(($key ne 'header') && (length($parametersRef->{$key}) > 1000)) {
+            #print "\n\tFilter active on: $key with length ".length($parametersRef->{$key})."\n"; 
+            $file->removeParameter($key);
+        }
+    }
+}
