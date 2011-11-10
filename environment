@@ -1,0 +1,4 @@
+source /data/ibis/bin/quarantine/Linux-x86_64/init-sge.sh
+export PATH=/data/ibis/bin/mri:$PATH
+export PERL5LIB=/data/ibis/bin/mri/uploadNeuroDB:$PERL5LIB
+export TMPDIR=/tmp

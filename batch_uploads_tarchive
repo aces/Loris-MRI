@@ -1,0 +1,60 @@
+#!/usr/bin/perl -w
+use strict;
+
+# define project space
+my $data_dir = '/data/ibis/data';
+
+my ($debug, $verbose) = (0,0);
+my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/tarstdout.log", "$data_dir/batch_output/tarstderr.log");
+my $stdout = '';
+my $stderr = '';
+
+while($_ = $ARGV[0], /^-/) {
+    shift;
+    last if /^--$/; ## -- ends argument processing
+    if (/^-D/) { $debug++ } ## debug level
+    if (/^-v/) { $verbose++ } ## verbosity
+}
+
+## read input from STDIN, store into array @inputs (`find ....... | this_script`)
+my @inputs = ();
+my @submitted = ();
+while(<STDIN>)
+{
+    chomp;
+    push @inputs, $_;
+}
+close STDIN;
+
+my $counter = 0;
+
+## foreach series, batch magic
+foreach my $input (@inputs)
+{
+    $counter++;
+    $stdout = $stdoutbase.$counter;
+    $stderr = $stderrbase.$counter;
+
+    #$stdout = '/dev/null';
+    #$stderr = '/dev/null';
+
+    ## this is where the subprocesses are created...  should basically run processor script with study directory as argument.
+    ## processor will do all the real magic
+
+    $input =~ s/\t/ /;
+    my $command = "/data/ibis/bin/mri/copy_and_process_tarchive $input";
+
+	 open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
+	 print QSUB $command;
+	 close QSUB;
+
+    push @submitted, $input;
+}
+
+open MAIL, "|mail samir\@bic.mni.mcgill.ca";
+print MAIL "Subject: BATCH_UPLOADS_TARCHIVE: ".scalar(@submitted)." studies submitted.\n";
+print MAIL join("\n", @submitted)."\n";
+close MAIL;
+
+## exit 0 for find to consider this -cmd true (in case we ever run it that way...)
+exit(0);
