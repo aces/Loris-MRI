@@ -507,7 +507,7 @@ sub registerScanIntoDB{
     my ($acquisitionProtocol,$minc,$file,$data_dir) = @_;
     if (!defined(&Settings::isFileToBeRegisteredGivenProtocol) 
         || $reckless 
-        || (defined(&Settings::isFileToBeRegisteredGivenProtocol) && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol))) {
+        || (defined(&Settings::isFileToBeRegisteredGivenProtocol) && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol))) && $checks[0] !~ /exclude/) {
         
         # convert the textual scan_type into the scan_type id
         my $acquisitionProtocolID = &NeuroDB::MRI::scan_type_text_to_id($acquisitionProtocol, \$dbh);
@@ -806,4 +806,34 @@ sub registerProgs() {
         print "the present $present for porgram is $prog"; 
         if (!$present) { die("$prog not found") };
     }
+}
+
+# Returns list of checks that failed, we can't directly insert here because
+# the file isn't registered in the database yet
+sub extra_file_checks() {
+    my $scan_type = shift;
+    my $file = shift;
+    my $query = "SELECT * FROM mri_protocol_checks WHERE Scan_type=?";
+    my $worst_warning = 0;
+    my @faillist;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($scan_type);
+    while(my $check = $sth->fetchrow_hashref()) {
+        my $value = $file->getParameter($check->{'Header'});
+        if(($check->{'ValidRange'} && (!NeuroDB::MRI::in_range($value, $check->{'ValidRange'})))
+            || ($check->{'ValidRegex'} && $value !~ /$check->{'ValidRegex'}/)) {
+                if($check->{'Severity'} =~ /exclude/) {
+                    $worst_warning = 2;
+                } elsif($check->{'Severity'} =~ /warning/ && $worst_warning < 2) {
+                    $worst_warning = 1;
+                }
+                push(@faillist, $check->{'ID'});
+        }
+    }
+    if($worst_warning == 1) {
+        return ('warn', \@faillist);
+    } elsif($worst_warning == 2) {
+        return ('exclude', \@faillist);
+    }
+    return ('pass', \@faillist);
 }
