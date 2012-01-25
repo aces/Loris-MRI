@@ -1,1 +1,1 @@
-/data/ibis/bin/mri/uploadNeuroDB/bin/minc2jiv.pl
+uploadNeuroDB/bin/minc2jiv.pl
