@@ -370,7 +370,7 @@ foreach my $minc (@minc_files)  {
     if($acquisitionProtocol !~ /unknown/) {
         my $acquisitionProtocolID = &NeuroDB::MRI::scan_type_text_to_id($acquisitionProtocol, \$dbh);
 
-        @checks = extra_file_checks($acquisitionProtocolID, $file);
+        @checks = extra_file_checks($acquisitionProtocolID, $file, $subjectIDsref->{'CandID'}, $subjectIDsref->{'visitLabel'}, $tarchiveInfo{'PatientName'});
         print LOG "Worst error: $checks[0]\n" if $debug;
     }
     
@@ -731,10 +731,16 @@ sub registerProgs() {
 sub extra_file_checks() {
     my $scan_type = shift;
     my $file = shift;
+    my $CandID = shift;
+    my $Visit_Label = shift;
+    my $PatientName = shift;
+
     my $query = "SELECT * FROM mri_protocol_checks WHERE Scan_type=?";
+    my $log_query = "INSERT INTO mri_violations_log (SeriesUID, TarchiveID, MincFile, PatientName, CandID, Visit_label, CheckID, Scan_type, Severity, Header, Value, ValidRange, ValidRegex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     my $worst_warning = 0;
     my @faillist;
     my $sth = $dbh->prepare($query);
+    my $logsth = $dbh->prepare($log_query);
     $sth->execute($scan_type);
     while(my $check = $sth->fetchrow_hashref()) {
         my $value = $file->getParameter($check->{'Header'});
@@ -746,7 +752,22 @@ sub extra_file_checks() {
                     $worst_warning = 1;
                     $file->setFileData('Caveat', 1);
                 }
+                $logsth->execute($file->getFileDatum('SeriesUID'),
+                        $file->getFileDatum('TarchiveSource'),
+                        $file->getFileDatum('File'),
+                        $PatientName,
+                        $CandID,
+                        $Visit_Label,
+                        $check->{'ID'},
+                        $check->{'Scan_type'},
+                        $check->{'Severity'},
+                        $check->{'Header'},
+                        $value,
+                        $check->{'ValidRange'},
+                        $check->{'ValidRegex'}
+                );
                 push(@faillist, $check->{'ID'});
+
         }
     }
     if($worst_warning == 1) {
