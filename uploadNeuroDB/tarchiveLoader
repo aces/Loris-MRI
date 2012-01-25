@@ -498,23 +498,7 @@ sub loadAndCreateObjectFile{
 
     return $file;
 
-<<<<<<< HEAD
 }
-=======
-# at this point things will appear in the database. 
-# Set some file information
-    $file->setParameter('ScannerID', $scannerID);
-    $file->setFileData('SessionID', $sessionID);
-    $file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
-    $file->setFileData('EchoTime', $file->getParameter('echo_time'));
-    $file->setFileData('PendingStaging', $requiresStaging);
-    $file->setFileData('CoordinateSpace', 'native');
-    $file->setFileData('OutputType', 'native');
-    $file->setFileData('FileType', 'mnc');
-    $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
-    $file->setFileData('Caveat', 0);
->>>>>>> Add Caveat, TarchiveSource, and SeriesUID to files table
-
 
 sub registerScanIntoDB{
 
@@ -827,10 +811,16 @@ sub registerProgs() {
 sub extra_file_checks() {
     my $scan_type = shift;
     my $file = shift;
+    my $CandID = shift;
+    my $Visit_Label = shift;
+    my $PatientName = shift;
+
     my $query = "SELECT * FROM mri_protocol_checks WHERE Scan_type=?";
+    my $log_query = "INSERT INTO mri_violations_log (SeriesUID, TarchiveID, MincFile, PatientName, CandID, Visit_label, CheckID, Scan_type, Severity, Header, Value, ValidRange, ValidRegex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     my $worst_warning = 0;
     my @faillist;
     my $sth = $dbh->prepare($query);
+    my $logsth = $dbh->prepare($log_query);
     $sth->execute($scan_type);
     while(my $check = $sth->fetchrow_hashref()) {
         my $value = $file->getParameter($check->{'Header'});
@@ -842,7 +832,22 @@ sub extra_file_checks() {
                     $worst_warning = 1;
                     $file->setFileData('Caveat', 1);
                 }
+                $logsth->execute($file->getFileDatum('SeriesUID'),
+                        $file->getFileDatum('TarchiveSource'),
+                        $file->getFileDatum('File'),
+                        $PatientName,
+                        $CandID,
+                        $Visit_Label,
+                        $check->{'ID'},
+                        $check->{'Scan_type'},
+                        $check->{'Severity'},
+                        $check->{'Header'},
+                        $value,
+                        $check->{'ValidRange'},
+                        $check->{'ValidRegex'}
+                );
                 push(@faillist, $check->{'ID'});
+
         }
     }
     if($worst_warning == 1) {
