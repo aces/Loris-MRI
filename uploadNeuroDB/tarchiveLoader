@@ -368,7 +368,7 @@ foreach my $minc (@minc_files)  {
     my @checks = ();
     my $acquisitionProtocolID;
     if($acquisitionProtocol !~ /unknown/) {
-        my $acquisitionProtocolID = &NeuroDB::MRI::scan_type_text_to_id($acquisitionProtocol, \$dbh);
+        $acquisitionProtocolID = &NeuroDB::MRI::scan_type_text_to_id($acquisitionProtocol, \$dbh);
 
         @checks = extra_file_checks($acquisitionProtocolID, $file, $subjectIDsref->{'CandID'}, $subjectIDsref->{'visitLabel'}, $tarchiveInfo{'PatientName'});
         print LOG "Worst error: $checks[0]\n" if $debug;
