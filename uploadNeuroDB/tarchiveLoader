@@ -159,12 +159,11 @@ my $where = "ArchiveLocation='$tarchive'";
 if($globArchiveLocation) {
     $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
-my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive, DateAcquired, DicomArchiveID, PatientGender, ScannerManufacturer, ScannerModel, ScannerSerialNumber, ScannerSoftwareVersion, neurodbCenterName FROM tarchive WHERE $where";
+my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive, DateAcquired, DicomArchiveID, PatientGender, ScannerManufacturer, ScannerModel, ScannerSerialNumber, ScannerSoftwareVersion, neurodbCenterName, TarchiveID FROM tarchive WHERE $where";
 my $sth = $dbh->prepare($query); $sth->execute();
 my %tarchiveInfo;
 
 my ($patientName);
-
 if ($sth->rows > 0) {
     my $tarchiveInfoRef = $sth->fetchrow_hashref();
     %tarchiveInfo = %$tarchiveInfoRef;
@@ -360,6 +359,8 @@ foreach my $minc (@minc_files)  {
     $file->setFileData('CoordinateSpace', 'native');
     $file->setFileData('OutputType', 'native');
     $file->setFileData('FileType', 'mnc');
+    $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
+    $file->setFileData('Caveat', 0);
 
 # get acquisition protocol (identify the volume)
     print LOG "==> verifying acquisition protocol\n" if $verbose;
@@ -743,6 +744,7 @@ sub extra_file_checks() {
                     $worst_warning = 2;
                 } elsif($check->{'Severity'} =~ /warning/ && $worst_warning < 2) {
                     $worst_warning = 1;
+                    $file->setFileData('Caveat', 1);
                 }
                 push(@faillist, $check->{'ID'});
         }
