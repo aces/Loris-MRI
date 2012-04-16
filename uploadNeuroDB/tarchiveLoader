@@ -113,12 +113,13 @@ my $prefix           = $Settings::prefix;
 my $converter        = $Settings::converter;
 my $mail_user        = $Settings::mail_user;
 my $get_dicom_info   = $Settings::get_dicom_info;
-my $exclude          = "localizer"; # case insensitive
+my $exclude          = "'localizer\|scout'"; # case insensitive
 
 my $User             = `whoami`; # fixme
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 
 # fixme there are better ways 
+
 my @progs = ("convert", "Mincinfo", "mincpik", $converter);
 &registerProgs(@progs);
 
@@ -141,6 +142,10 @@ my $childPID; if ($xlog) { $childPID = fork(); if($childPID == 0) { exec("xterm 
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
+
+
+
+
 #####################################################################################################
 #
 # get useful information from the tarchive table  - The regex is very study specific... !!!!!! fixme
@@ -156,11 +161,10 @@ if($globArchiveLocation) {
     $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
 my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive, DateAcquired, DicomArchiveID, PatientGender, ScannerManufacturer, ScannerModel, ScannerSerialNumber, ScannerSoftwareVersion, neurodbCenterName FROM tarchive WHERE $where";
-my $sth = $dbh->prepare($query); $sth->execute();
+ my $sth = $dbh->prepare($query); $sth->execute();
 my %tarchiveInfo;
 
 my ($patientName);
-
 if ($sth->rows > 0) {
     my $tarchiveInfoRef = $sth->fetchrow_hashref();
     %tarchiveInfo = %$tarchiveInfoRef;
@@ -174,17 +178,21 @@ print LOG  "\n==> verifying dicom archive md5sum (checksum)\n";
 my $md5_check = `md5sum $tarchive`;
 my ($md5_real, $real) = split(' ', $md5_check);
 my ($md5_db  , $db)   = split(' ', $tarchiveInfo{'md5sumArchive'});
+
 print LOG " -> Checksum for target        :  $md5_real\n -> Checksum from database     :  $md5_db\n";
 if ($md5_real ne $md5_db) { 
     $message =  "\nERROR: Archive seems to be corrupted or modified. Upload will exit now.\nPlease read the creation logs for more information!\n\n"; 
     &writeErrorLog($logfile, $message, 77); exit 77; 
 } 
 
+print 'step 1 is done' ;
 # ----- STEP 2: Verify PSC information using whatever field contains the site string
 my ($center_name, $centerID) = NeuroDB::MRI::getPSC($tarchiveInfo{$Settings::lookupCenterNameUsing}, \$dbh);
+
 my $psc = $center_name;
 if (!$psc) { print LOG "\nERROR: No center found for this candidate \n\n"; exit 77; }
 print LOG  "\n==> Verifying acquisition center\n -> Center Name  : $center_name\n -> CenterID     : $centerID\n";
+
 
 # ----- STEP 3: Determine the ScannerID (optionally create a new one if necessary)
 print LOG "\n\n==> Trying to determine scanner ID\n";
@@ -268,6 +276,7 @@ if ($sessionID) {
     $dbh->do($query);
 }
 
+print "\n STEP 6 is done \n";
 # ----- STEP 7: extract the tarchive and feed the dicom data dir to the uploader
 my $study_dir = $TmpDir . "/" . extract_tarchive($tarchive, $TmpDir);
 my $ExtractSuffix  = basename($tarchive, ".tar");
@@ -275,6 +284,7 @@ my $ExtractSuffix  = basename($tarchive, ".tar");
 $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
 my $info      = "head -n 12 ${TmpDir}/${ExtractSuffix}.meta";
 my $header    = `$info`;
+print "Step 7 is done\n";
 print LOG "\n$header\n";
 
 # ----- STEP 8: Now we know that we actually have data and more things have to happen so let get started:
@@ -311,7 +321,7 @@ if ($mcount < 1) {
     $message = "\nNo data could be converted into valid MINC files. Localizers will not be considered! \n" ; 
     &writeErrorLog($logfile, $message, 99); print $message; exit 99; 
 }
-
+print "\nstep 8 is done \n";
 ############################################### LOOP through MINCs ###########################################
 
 # ----- STEP 9: At this step we actually have (multiple) MINC files so we loop  
@@ -357,13 +367,12 @@ foreach my $minc (@minc_files)  {
 
 # get acquisition protocol (identify the volume)
     print LOG "==> verifying acquisition protocol\n" if $verbose;
-    my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name, $subjectIDsref->{'subprojectID'}, \$file, \$dbh);
+    my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name, $subjectIDsref->{'subprojectID'}, \$file, \$dbh,$minc);
     
 # Register scans into the database.  Which protocols to keep optionally controlled by the config file.
-
     if (!defined(&Settings::isFileToBeRegisteredGivenProtocol) 
         || $reckless 
-        || (defined(&Settings::isFileToBeRegisteredGivenProtocol) && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol))) {
+        || (defined(&Settings::isFileToBeRegisteredGivenProtocol) && Settings::isFileToBeRegisteredGivenProtocol($minc,$acquisitionProtocol))) {
         
     # convert the textual scan_type into the scan_type id
         my $acquisitionProtocolID = &NeuroDB::MRI::scan_type_text_to_id($acquisitionProtocol, \$dbh);
@@ -493,6 +502,8 @@ if ($xlog) {
 #    kill 1, $childPID;
 }
 
+
+print "\nstep 9 is done\n";
 ##############################################################################
 #### FUNCTIONS USED BY ABOVE EVENTUALLY MOVE TO SEPARATE LIBRARY #############
 ##############################################################################
@@ -644,7 +655,7 @@ sub concat_mri {
     mkdir("$TmpDir/concat", 0700);
 
     my $cmd = "cat $TmpDir/concatfilelist.txt | concat_mri.pl -maxslicesep 3.1 -compress -postfix _concat -targetdir $TmpDir/concat -stdin";
-    my $log = `$cmd`;
+     my $log = `$cmd`;
     `rm -f $TmpDir/concatfilelist.txt`;
 
     # fixme print LOG "Concat:\n $cmd\n$log\n" if $verbose;
