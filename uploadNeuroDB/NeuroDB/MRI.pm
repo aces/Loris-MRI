@@ -403,7 +403,9 @@ sub identify_scan_db {
     my $xstep = $${fileref}->getParameter('xstep');
     my $ystep = $${fileref}->getParameter('ystep');
     my $zstep = $${fileref}->getParameter('zstep');
-    
+
+    my $time = $${fileref}->getParameter('time');    
+
     my $xspace = $${fileref}->getParameter('xspace');
     my $yspace = $${fileref}->getParameter('yspace');
     my $zspace = $${fileref}->getParameter('zspace');
@@ -414,6 +416,7 @@ sub identify_scan_db {
     if(0) {
         print "\ntr:\t$tr\nte:\t$te\nti:\t$ti\nst:\t$slice_thickness\n";
         print "xspace:\t$xspace\nyspace:\t$yspace\nzspace:\t$zspace\n";
+	print "time;\t$time\n";
         print "xstep:\t$xstep\nystep:\t$ystep\nzstep:\t$zstep\n";
     }
     
@@ -444,7 +447,7 @@ sub identify_scan_db {
     
     # get the list of protocols for a site their scanner and subproject
     $query = "SELECT Scan_type, Objective, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
-              xstep_range, ystep_range, zstep_range, series_description_regex
+              xstep_range, ystep_range, zstep_range, time_range, series_description_regex
               FROM mri_protocol
               WHERE
              (Center_name='$psc' AND ScannerID='$ScannerID' AND Objective='$objective')
@@ -475,6 +478,7 @@ sub identify_scan_db {
             print &in_range($xstep, $rowref->{'xstep_range'}) ? "xstep\t" : '';
             print &in_range($ystep, $rowref->{'ystep_range'}) ? "ystep\t" : '';
             print &in_range($zstep, $rowref->{'zstep_range'}) ? "zstep\t" : '';
+            print &in_range($time, $rowref->{'time_range'}) ? "time\t" : '';
             print "\n";
         }
         
@@ -490,7 +494,8 @@ sub identify_scan_db {
 	    
 	    && (!$rowref->{'xstep_range'} || &in_range($xstep, $rowref->{'xstep_range'}))
 	    && (!$rowref->{'ystep_range'} || &in_range($ystep, $rowref->{'ystep_range'}))
-	    && (!$rowref->{'zstep_range'} || &in_range($zstep, $rowref->{'zstep_range'})))) {
+	    && (!$rowref->{'zstep_range'} || &in_range($zstep, $rowref->{'zstep_range'}))
+	    && (!$rowref->{'time_range'} || &in_range($time, $rowref->{'time_range'})))) {
             return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
         }
     }
