@@ -43,6 +43,7 @@ use Data::Dumper;
 use Carp;
 use Time::Local;
 use FindBin;
+use POSIX qw(strftime);
 
 $VERSION = 0.2;
 @ISA = qw(Exporter);
@@ -390,7 +391,7 @@ Returns: Textual name of scan type
 =cut
 
 sub identify_scan_db {
-    my ($psc, $objective, $fileref, $dbhr) = @_;
+    my ($psc, $objective, $fileref, $dbhr,$minc_location) = @_;
 
     # get parameters from minc header
     my $tr = $${fileref}->getParameter('repetition_time');
@@ -500,9 +501,40 @@ sub identify_scan_db {
         }
     }
     # if we got here, we're really clueless...
+    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace);
+
     return 'unknown';
 }    
 
+
+sub insert_violated_scans {
+
+   my ($dbhr,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace) = @_;
+  ####Insert the info into the database...
+   my $sth = $${dbhr}->prepare($query);
+   my $date = strftime "%Y-%m-%e", gmtime;
+   my  ($pscid,$candid,$visit) = split /_/,$patient_name;   #extract the pscid and candid
+   my $query;
+    $series_description = '"'. $series_description . '"';
+   my $query = "SELECT count(*) from mri_protocol_violated_scans where minc_location like '%$minc_location%'";
+   my $sth = $${dbhr}->prepare($query);
+    $sth->execute();
+   my @results = $sth->fetchrow_array();
+
+    ####if the patient name is already inserted updated####################
+   if (($results[0]) > 0) {
+   
+     $query = "UPDATE mri_protocol_violated_scans set CandID ='$candid' ,PSCID = '$pscid' , Last_inserted = '$date', series_description = '$series_description', minc_location = '$minc_location' , PatientName = '$patient_name' , TR_range = '$tr' , TE_range = '$te', TI_range = '$ti', slice_thickness_range = '$slice_thickness' , xspace_range ='$xspace' ,yspace_range ='$yspace' , zspace_range ='$zspace',  xstep_range ='$xstep' ,ystep_range ='$ystep' , zstep_range ='$zstep' where PatientName  like '%$patient_name%'";
+    }
+    
+   else{
+
+       $query = "Insert INTO mri_protocol_violated_scans value ('','$candid','$pscid','$date',$series_description,'$minc_location','$patient_name','$tr','$te','$ti','$slice_thickness','$xspace','$yspace','$zspace','$xstep','$ystep','$zstep')";
+    }
+    $sth = $${dbhr}->prepare($query);
+    my $success = $sth->execute();
+
+}
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : debug_inrange
 #@INPUT      : scalar value, scalar range string
