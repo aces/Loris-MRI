@@ -37,7 +37,6 @@ package NeuroDB::MRI;
 use Exporter();
 use Math::Round;
 use Time::JulianDay;
-use File::Temp qw(tempdir);
 use File::Basename;
 use Data::Dumper;
 use Carp;
@@ -511,28 +510,37 @@ sub insert_violated_scans {
 
    my ($dbhr,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace) = @_;
   ####Insert the info into the database...
-   my $sth = $${dbhr}->prepare($query);
-   my $date = strftime "%Y-%m-%e", gmtime;
    my  ($pscid,$candid,$visit) = split /_/,$patient_name;   #extract the pscid and candid
    my $query;
     $series_description = '"'. $series_description . '"';
-   my $query = "SELECT count(*) from mri_protocol_violated_scans where minc_location like '%$minc_location%'";
-   my $sth = $${dbhr}->prepare($query);
+   my $query;
+   my $sth;
+    
+   ##Get the date-time field
+   $query = "SELECT now()";
+   $sth = $${dbhr}->prepare($query);
+   my @results = $sth->fetchrow_array();
+   $date = $results[0];
+
+
+   $query = "SELECT count(*) from mri_protocol_violated_scans where minc_location like '%$minc_location%'";
+   $sth = $${dbhr}->prepare($query);
     $sth->execute();
    my @results = $sth->fetchrow_array();
+
 
     ####if the patient name is already inserted updated####################
    if (($results[0]) > 0) {
    
-     $query = "UPDATE mri_protocol_violated_scans set CandID ='$candid' ,PSCID = '$pscid' , Last_inserted = '$date', series_description = '$series_description', minc_location = '$minc_location' , PatientName = '$patient_name' , TR_range = '$tr' , TE_range = '$te', TI_range = '$ti', slice_thickness_range = '$slice_thickness' , xspace_range ='$xspace' ,yspace_range ='$yspace' , zspace_range ='$zspace',  xstep_range ='$xstep' ,ystep_range ='$ystep' , zstep_range ='$zstep' where PatientName  like '%$patient_name%'";
+     $query = "UPDATE mri_protocol_violated_scans set CandID = ? ,PSCID = ? , Last_inserted = ?,   series_description = ? , minc_location = ? , PatientName = ? , TR_range = ? , TE_range = ?, TI_range = ? , slice_thickness_range = ? , xspace_range = ? ,yspace_range = ? , zspace_range = ? ,  xstep_range = ? ,ystep_range = ? , zstep_range = ? where PatientName  like concat('%', ?, '%')";
     }
     
    else{
 
-       $query = "Insert INTO mri_protocol_violated_scans value ('','$candid','$pscid','$date',$series_description,'$minc_location','$patient_name','$tr','$te','$ti','$slice_thickness','$xspace','$yspace','$zspace','$xstep','$ystep','$zstep')";
+       $query = "Insert INTO mri_protocol_violated_scans (CandID,PSCID,Last_inserted,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     }
     $sth = $${dbhr}->prepare($query);
-    my $success = $sth->execute();
+    my $success = $sth->execute($candid,$pscid,$date,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$patient_name);
 
 }
 # ------------------------------ MNI Header ----------------------------------
