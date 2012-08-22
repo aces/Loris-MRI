@@ -390,7 +390,13 @@ Returns: Textual name of scan type
 =cut
 
 sub identify_scan_db {
-    my ($psc, $objective, $fileref, $dbhr,$minc_location) = @_;
+
+
+    my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
+
+    $candid = $${subjectref}->{'CandID'};
+    $pscid = $${subjectref}->{'PSCID'};
+    $visit = $${subjectref}->{'visitLabel'};
 
     # get parameters from minc header
     my $tr = $${fileref}->getParameter('repetition_time');
@@ -500,7 +506,7 @@ sub identify_scan_db {
         }
     }
     # if we got here, we're really clueless...
-    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time);
+    insert_violated_scans($dbhr,$series_description,$minc_location, $candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time);
 
     return 'unknown';
 }    
@@ -508,8 +514,7 @@ sub identify_scan_db {
 
 sub insert_violated_scans {
 
-   my ($dbhr,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace) = @_;
-   my  ($pscid,$candid,$visit) = split /_/,$patient_name;   #extract the pscid and candid
+   my ($dbhr,$series_description,$minc_location,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time) = @_;
    my $query;
    my $sth;
     
