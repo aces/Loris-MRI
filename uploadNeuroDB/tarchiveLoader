@@ -357,8 +357,7 @@ foreach my $minc (@minc_files)  {
 
 # get acquisition protocol (identify the volume)
     print LOG "==> verifying acquisition protocol\n" if $verbose;
-    my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name, $subjectIDsref->{'subprojectID'}, \$file, \$dbh);
-    
+    my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name, \$subjectIDsref, \$file, \$dbh,$minc);
 # Register scans into the database.  Which protocols to keep optionally controlled by the config file.
 
     if (!defined(&Settings::isFileToBeRegisteredGivenProtocol) 
