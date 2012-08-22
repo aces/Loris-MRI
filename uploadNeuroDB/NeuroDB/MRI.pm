@@ -509,38 +509,13 @@ sub identify_scan_db {
 sub insert_violated_scans {
 
    my ($dbhr,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace) = @_;
-  ####Insert the info into the database...
    my  ($pscid,$candid,$visit) = split /_/,$patient_name;   #extract the pscid and candid
-   my $query;
-    $series_description = '"'. $series_description . '"';
    my $query;
    my $sth;
     
-   ##Get the date-time field
-   $query = "SELECT now()";
+   $query = "INSERT INTO mri_protocol_violated_scans (CandID,PSCID,Last_inserted,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?)";
    $sth = $${dbhr}->prepare($query);
-   my @results = $sth->fetchrow_array();
-   $date = $results[0];
-
-
-   $query = "SELECT count(*) from mri_protocol_violated_scans where minc_location like '%$minc_location%'";
-   $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-   my @results = $sth->fetchrow_array();
-
-
-    ####if the patient name is already inserted updated####################
-   if (($results[0]) > 0) {
-   
-     $query = "UPDATE mri_protocol_violated_scans set CandID = ? ,PSCID = ? , Last_inserted = ?,   series_description = ? , minc_location = ? , PatientName = ? , TR_range = ? , TE_range = ?, TI_range = ? , slice_thickness_range = ? , xspace_range = ? ,yspace_range = ? , zspace_range = ? ,  xstep_range = ? ,ystep_range = ? , zstep_range = ? where PatientName  like concat('%', ?, '%')";
-    }
-    
-   else{
-
-       $query = "Insert INTO mri_protocol_violated_scans (CandID,PSCID,Last_inserted,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-    }
-    $sth = $${dbhr}->prepare($query);
-    my $success = $sth->execute($candid,$pscid,$date,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$patient_name);
+   my $success = $sth->execute($candid,$pscid,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep);
 
 }
 # ------------------------------ MNI Header ----------------------------------
