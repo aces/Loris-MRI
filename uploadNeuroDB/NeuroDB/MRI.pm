@@ -402,6 +402,7 @@ sub identify_scan_db {
     my $tr = $${fileref}->getParameter('repetition_time');
     my $te = $${fileref}->getParameter('echo_time');
     my $ti = $${fileref}->getParameter('inversion_time');
+    my $patient_name =  $${fileref}->getParameter('patient_name');
     if (defined($tr)) {  $tr = &Math::Round::nearest(0.01, $tr*1000);  }
     if (defined($te)) {  $te = &Math::Round::nearest(0.01, $te*1000);  }
     if (defined($ti)) {  $ti = &Math::Round::nearest(0.01, $ti*1000);  }
@@ -506,7 +507,7 @@ sub identify_scan_db {
         }
     }
     # if we got here, we're really clueless...
-    insert_violated_scans($dbhr,$series_description,$minc_location, $candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time);
+    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time);
 
     return 'unknown';
 }    
@@ -514,7 +515,7 @@ sub identify_scan_db {
 
 sub insert_violated_scans {
 
-   my ($dbhr,$series_description,$minc_location,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time) = @_;
+   my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time) = @_;
    my $query;
    my $sth;
     
