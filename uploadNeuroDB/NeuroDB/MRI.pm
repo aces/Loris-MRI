@@ -394,10 +394,10 @@ sub identify_scan_db {
 
     my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
 
-    $candid = $${subjectref}->{'CandID'};
-    $pscid = $${subjectref}->{'PSCID'};
-    $visit = $${subjectref}->{'visitLabel'};
-
+    my $candid = $${subjectref}->{'CandID'};
+    my $pscid = $${subjectref}->{'PSCID'};
+    my $visit = $${subjectref}->{'visitLabel'};
+    my $objective = $${subjectref}->{'subprojectID'};
     # get parameters from minc header
     my $tr = $${fileref}->getParameter('repetition_time');
     my $te = $${fileref}->getParameter('echo_time');
