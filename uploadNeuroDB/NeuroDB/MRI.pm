@@ -390,12 +390,19 @@ Returns: Textual name of scan type
 =cut
 
 sub identify_scan_db {
-    my ($psc, $objective, $fileref, $dbhr) = @_;
 
+
+    my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
+
+    my $candid = $${subjectref}->{'CandID'};
+    my $pscid = $${subjectref}->{'PSCID'};
+    my $visit = $${subjectref}->{'visitLabel'};
+    my $objective = $${subjectref}->{'subprojectID'};
     # get parameters from minc header
     my $tr = $${fileref}->getParameter('repetition_time');
     my $te = $${fileref}->getParameter('echo_time');
     my $ti = $${fileref}->getParameter('inversion_time');
+    my $patient_name =  $${fileref}->getParameter('patient_name');
     if (defined($tr)) {  $tr = &Math::Round::nearest(0.01, $tr*1000);  }
     if (defined($te)) {  $te = &Math::Round::nearest(0.01, $te*1000);  }
     if (defined($ti)) {  $ti = &Math::Round::nearest(0.01, $ti*1000);  }
@@ -500,9 +507,22 @@ sub identify_scan_db {
         }
     }
     # if we got here, we're really clueless...
+    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time);
+
     return 'unknown';
 }    
 
+
+sub insert_violated_scans {
+
+   my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time) = @_;
+   my $query;
+   my $sth;
+    
+   $sth = $${dbhr}->prepare("INSERT INTO mri_protocol_violated_scans (CandID,PSCID,time_run,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range,time_range) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+   my $success = $sth->execute($candid,$pscid,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$time);
+
+}
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : debug_inrange
 #@INPUT      : scalar value, scalar range string
