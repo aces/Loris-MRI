@@ -9,23 +9,32 @@ echo "Usage: $0 <site> <tarchive>"
 exit 1
 fi
 
+
+#####Get config setting#######################################################
+{ package Settings; do "$ENV{HOME}/.neurodb/prod" }
+my $prefix         = $Settings::prefix;
+my $mail_user      = $Settings::mail_user;
+#######################################################################################
+
+
+
 tempdir=$TMPDIR/load_tarchive_db.$$
 mkdir -p $tempdir
 
 # copy the tarchive from the study workstation to here
-if cp /data/incoming/${site}IBIS/incoming/$tarchive $tempdir/
+if cp /data/incoming/${site}$prefix/incoming/$tarchive $tempdir/
 
 # if the copy succeeded
 then
 
 # process the tarchive
-/data/ibis/bin/mri/uploadNeuroDB/tarchiveLoader -globLocation -profile prod $tempdir/`basename $tarchive`
+uploadNeuroDB/tarchiveLoader -globLocation -profile prod $tempdir/`basename $tarchive`
 
 # if the copy failed
 else
 
-# email samir
-echo "Subject: SCP TARCHIVE FAILURE\nFailed to scp ${site} ${tarchive}"  | mail samir@bic.mni.mcgill.ca
+# email the user
+echo "Subject: SCP TARCHIVE FAILURE\nFailed to scp ${site} ${tarchive}"  | mail $mail_user
 
 fi
 
