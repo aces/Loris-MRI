@@ -1,9 +1,14 @@
 #!/usr/bin/perl -w
 use strict;
 
-# define project space
-my $data_dir = '/data/ibis/data';
 
+#####Get config setting#######################################################
+{ package Settings; do "$ENV{HOME}/.neurodb/prod" }
+my $data_dir         = $Settings::data_dir;
+my $mail_user      =  $Settings::mail_user; 
+#######################################################################################
+
+# define project space
 my ($debug, $verbose) = (0,0);
 my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/tarstdout.log", "$data_dir/batch_output/tarstderr.log");
 my $stdout = '';
@@ -42,7 +47,7 @@ foreach my $input (@inputs)
     ## processor will do all the real magic
 
     $input =~ s/\t/ /;
-    my $command = "/data/ibis/bin/mri/copy_and_process_tarchive $input";
+    my $command = "copy_and_process_tarchive $input";
 
 	 open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
 	 print QSUB $command;
@@ -51,7 +56,7 @@ foreach my $input (@inputs)
     push @submitted, $input;
 }
 
-open MAIL, "|mail samir\@bic.mni.mcgill.ca";
+open MAIL, "|mail $mail_user";
 print MAIL "Subject: BATCH_UPLOADS_TARCHIVE: ".scalar(@submitted)." studies submitted.\n";
 print MAIL join("\n", @submitted)."\n";
 close MAIL;
