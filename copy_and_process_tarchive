@@ -4,7 +4,8 @@
 
 site=$1
 tarchive=$2
-
+proj=$3
+mail_user=$4
 if [ -z "$site" -o -z "$tarchive" ]
 then
 echo "Usage: $0 <site> <tarchive>"
@@ -12,19 +13,11 @@ exit 1
 fi
 
 
-#####Get config setting#######################################################
-if(-f "$ENV{HOME}/.neurodb/prod") {
-    { package Settings; do "$ENV{HOME}/.neurodb/prod" }
-}
-#######################################################################################
-
-
-
 tempdir=$TMPDIR/load_tarchive_db.$$
 mkdir -p $tempdir
 
 # copy the tarchive from the study workstation to here
-if cp /data/incoming/${site}$Settings::prefix/incoming/$tarchive $tempdir/
+if cp /data/incoming/${site}$proj/incoming/$tarchive $tempdir/
 
 # if the copy succeeded
 then
@@ -36,7 +29,7 @@ uploadNeuroDB/tarchiveLoader -globLocation -profile prod $tempdir/`basename $tar
 else
 
 # email the user
-echo "Subject: SCP TARCHIVE FAILURE\nFailed to scp ${site} ${tarchive}"  | mail $Settings::mail_user
+echo "Subject: SCP TARCHIVE FAILURE\nFailed to scp ${site} ${tarchive}"  | mail $mail_user
 
 fi
 
