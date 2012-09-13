@@ -1,14 +1,24 @@
 #!/bin/bash
 
 
+ if [ $# -ne 5 ]  ##if site is not included
 
-site=$1
-tarchive=$2
-proj=$3
-mail_user=$4
-if [ -z "$site" -o -z "$tarchive" ]
+  then
+        tarchive=$1
+        proj=$2
+        mail_user=$3
+        tarchive_location=$4
+  else
+       site=$1
+       tarchive=$2
+       proj=$3
+       mail_user=$4
+       tarchive_location=$5
+  fi
+
+if [ -z "$tarchive" -o -z "$proj" -o -z "$mail_user" ]
 then
-echo "Usage: $0 <site> <tarchive>"
+echo "Usage: $0 <tarchive> <project-name> <mail_user>"
 exit 1
 fi
 
@@ -16,9 +26,18 @@ fi
 tempdir=$TMPDIR/load_tarchive_db.$$
 mkdir -p $tempdir
 
-# copy the tarchive from the study workstation to here
-if cp /data/incoming/${site}$proj/incoming/$tarchive $tempdir/
 
+##Set the tarchive_location to a proper location
+if [ -z $tarchive_location -o $tarchive_location=undef ]
+
+then
+  tarchive_location=/data/$proj/data/tarchive/
+fi
+
+
+# copy the tarchive from the study workstation to here
+if
+    cp $tarchive_location/$tarchive $tempdir/
 # if the copy succeeded
 then
 
