@@ -68,6 +68,10 @@ $if_site = 1
 # -----------------------------------------------------------------------------------------------
 =cut
 
+sub getIncomingDir {
+    my $site = shift;
+    return $tarchiveLibraryDir;
+}
 # extracts the subject and timepoint identifiers from the patient name and/or patient id
 # assumes identifers are stored as <PSCID><visit> in PatientID field, where <visit> is 3 digits.
 sub getSubjectIDs {
