@@ -1,14 +1,18 @@
 #!/usr/bin/perl -w
 use strict;
 
-# define project space
-my $data_dir = '/data/ibis/data';
 
+#####Get config setting#######################################################
+# checking for profile settings
+if(-f "$ENV{HOME}/.neurodb/prod") {
+    { package Settings; do "$ENV{HOME}/.neurodb/prod" }
+} ##Possibly the script can exit if the prod doesn't exist
+#######################################################################################
+# define project space
 my ($debug, $verbose) = (0,0);
-my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/tarstdout.log", "$data_dir/batch_output/tarstderr.log");
+my ($stdoutbase, $stderrbase) = ("$Settings::data_dir/batch_output/tarstdout.log", "$Settings::data_dir/batch_output/tarstderr.log");
 my $stdout = '';
 my $stderr = '';
-
 while($_ = $ARGV[0], /^-/) {
     shift;
     last if /^--$/; ## -- ends argument processing
@@ -42,16 +46,21 @@ foreach my $input (@inputs)
     ## processor will do all the real magic
 
     $input =~ s/\t/ /;
-    my $command = "/data/ibis/bin/mri/copy_and_process_tarchive $input";
+    my $command = "copy_and_process_tarchive $input $Settings::prefix $Settings::mail_user " .  $Setting::getIncomingDir($input, $Setting::tarchiveLibraryDir);
+    ##if qsub is enabled use it
+    if ($Settings::is_qsub) {
+	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
+    	 print QSUB $command;
+    	 close QSUB;
+    }
+    ##if qsub is not enabled
+    else {
+         system($command);
+    }
 
-	 open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
-	 print QSUB $command;
-	 close QSUB;
-
-    push @submitted, $input;
+     push @submitted, $input;
 }
-
-open MAIL, "|mail samir\@bic.mni.mcgill.ca";
+open MAIL, "|mail $Settings::mail_user";
 print MAIL "Subject: BATCH_UPLOADS_TARCHIVE: ".scalar(@submitted)." studies submitted.\n";
 print MAIL join("\n", @submitted)."\n";
 close MAIL;

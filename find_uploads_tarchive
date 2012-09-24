@@ -23,6 +23,14 @@ my $dbh = NeuroDB::DBI::connect_to_db('dbname', 'dbuser', 'dbpass', 'dbhost');
 my $update = 1;
 my @studies = ();
 
+
+#####Get config setting#######################################################
+if(-f "$ENV{HOME}/.neurodb/prod") {
+{ package Settings; do "$ENV{HOME}/.neurodb/prod" }
+}
+#######################################################################################
+
+
 my @args_list = grep /-noupdate/, @ARGV;
 if(scalar(@args_list) > 0) { $update=0; }
 
@@ -30,6 +38,8 @@ if(scalar(@args_list) > 0) { $update=0; }
 my $query = "SELECT CenterName, LastRan FROM tarchive_find_new_uploads";
 my $sth = $dbh->prepare($query);
 $sth->execute();
+
+
 
 if($sth->rows > 0) {
     # make the query to find the new LastRan
@@ -75,7 +85,7 @@ if($sth->rows > 0) {
 
 # print out which ones were queued
 if($update && (scalar(@studies) > 0)) {
-    open MAIL, "|mail samir\@bic.mni.mcgill.ca";
+    open MAIL, "|mail $Settings::mail_user";
     print MAIL "Subject: FIND_UPLOADS_TARCHIVE: ".scalar(@studies)." studies found.\n";
     foreach my $study (@studies) {
         print MAIL "$study->[0]    $study->[1]\n";
