@@ -4,6 +4,7 @@
 ####WHAT WILL NOT DO#############
 ###1)It doesn't set up the SGE
 ###2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place it in h
+###3)It doesn't change the config.xml
 
 read -p "what is the database name? " mysqldb
 read -p "What is the databse host? " mysqlhost
@@ -13,7 +14,7 @@ read -p "what is the project Name " PROJ   ##this will be used to create all the
 read -p "what is your email address " email
 read -p "Enter the list of Site names (space separated) " site
 read -p "Enter Full MRI-code directory path "   mridir
-
+read -p "Enter Full Loris-code directory path "   lorisdir
 
 #################################################################################################
 ########################################MINC TOOL###############################################
@@ -32,10 +33,10 @@ sudo -S cpan install Math::Round
 ##echo $rootpass | sudo -S cpan install Bundle::CPAN
 sudo -S cpan install Getopt::Tabular
 sudo -S cpan install Time::JulianDay
-##########################################################################################
-###########################3##Create directories########################################
-#########################################################################################
 
+##########################################################################################
+#############################Create directories########################################
+#########################################################################################
   sudo -S mkdir -p /data/$PROJ/bin/ 
   sudo -S mkdir -p /data/$PROJ/data/
   sudo -S mkdir -p /data/$PROJ/data/trashbin   ##holds mincs that didn't match protocol
@@ -82,7 +83,7 @@ sed -e "s#project#$PROJ#g" -e "s#/your/inepuisable/diskspace/location#/data/$PRO
 
 
 ####################################################################################
-######################chyange permissions ##########################################
+######################change permissions ##########################################
 ####################################################################################
 sudo chown $USER:$USER /home/$USER/.neurodb/prod
 sudo chmod 775 /home/$USER/.neurodb/prod
@@ -92,5 +93,4 @@ sudo chmod -R 775 /data/$PROJ/
 ######################################################################
 ###########Modify the config.xml########################################
 ######################################################################
-##sed -i "s#%/PATH/TO/MINC/DATA/ROOT/mri-data/minc/%#/data/$PROJ/data#g" -i "s#LORISROOT%#/data/$PROJ/data#g" ../project/config.xml
-##mincpath
+##sed -i "s#SAME AS imagePath#/data/$PROJ/data#g" -i "s#/PATH/TO/MINC/DATA/ROOT/mri-data/minc/#data/$PROJ/data#g" $lorisdir/project/config.xml
