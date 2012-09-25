@@ -14,7 +14,7 @@ read -p "what is the project Name " PROJ   ##this will be used to create all the
 read -p "what is your email address " email
 read -p "Enter the list of Site names (space separated) " site
 read -p "Enter Full MRI-code directory path "   mridir
-read -p "Enter Full Loris-code directory path "   lorisdir
+##read -p "Enter Full Loris-code directory path "   lorisdir
 
 #################################################################################################
 ########################################MINC TOOL###############################################
