@@ -52,11 +52,11 @@ $createCandidates = 1;
 
 ###1 if the qsub/sge is used 0 otherwise##
 ##set true by default##
-$if_sge = 1
+$if_sge = 1;
 
 ###1 if site is used or 0 otherwise####
 ###It is used by default
-$if_site = 1
+$if_site = 1;
 
 
 =pod
