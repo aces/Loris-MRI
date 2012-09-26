@@ -9,11 +9,15 @@
 read -p "what is the database name? " mysqldb
 read -p "What is the databse host? " mysqlhost
 read -p "What is the Mysql user? " mysqluser
+stty -echo ##this disables the password to show up on the commandline
+read -p "What is the mysql password? " mysqlpass; echo
+stty echo
+
 read -p "what is the linux user which the intallation will be based on? " USER
 read -p "what is the project Name " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
 read -p "what is your email address " email
 read -p "Enter the list of Site names (space separated) " site
-read -p "Enter Full MRI-code directory path "   mridir
+mridir=`pwd`
 ##read -p "Enter Full Loris-code directory path "   lorisdir
 
 #################################################################################################
@@ -21,9 +25,11 @@ read -p "Enter Full MRI-code directory path "   mridir
 ##################################################################################################
 echo "installing Minc toolkit (May prompt for sudo password)"
 sudo -S apt-get install minc-tools
+echo
 
 echo "installing dicom toolkit (May prompt for sudo password)"
 sudo -S apt-get install dcmtk
+echo
 #################################################################################################
 ############################INSTALL THE PERL LIBRARIES############################################
 #################################################################################################
@@ -33,10 +39,11 @@ sudo -S cpan install Math::Round
 ##echo $rootpass | sudo -S cpan install Bundle::CPAN
 sudo -S cpan install Getopt::Tabular
 sudo -S cpan install Time::JulianDay
-
+echo
 ##########################################################################################
 #############################Create directories########################################
 #########################################################################################
+ echo "Creating the data directories"
   sudo -S mkdir -p /data/$PROJ/bin/ 
   sudo -S mkdir -p /data/$PROJ/data/
   sudo -S mkdir -p /data/$PROJ/data/trashbin   ##holds mincs that didn't match protocol
@@ -47,48 +54,45 @@ sudo -S cpan install Time::JulianDay
   sudo -S mkdir -p /data/$PROJ/data/assembly ## holds the MINC files
   sudo -S mkdir -p /data/$PROJ/data/batch_output  ##contains the result of the SGE (queue
   sudo -S mkdir -p /home/$USER/.neurodb
-
-##################################################################
- ###############incoming directory using sites################
-##################################################################
+echo
+#######################################################################################
+ ###############incoming directory using sites########################################
+#######################################################################################
+ echo "Creating incoming director(y/ies)"
   for s in $site; do 
    sudo -S mkdir -p /data/incoming/$s/incoming;
   done;
-##################################################################
-################Get the code#######################################
-##################################################################
-cd  $mri /data/$PROJ/bin/
-git clone git@github.com:aces/Loris-MRI.git $mridir
-cd $mridir
-git submodule init
-git submodule sync
-git submodule update
+ echo
 
 ####################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
 ##export $HOME=/home/lorisdev/  Do it only if neccessary
+echo "Modifying environment script"
 sed -i "s#ibis#$PROJ#g" $mridir/environment
 ##Make sure that CIVET stuff are placed in the right place
 ##source  /data/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
+echo
 
-
+####################################################################################
+######################change permissions ##########################################
+####################################################################################
+echo "Changing permissions"
+sudo chown $USER:$USER /home/$USER/.neurodb/
+sudo chmod -R  750 /home/$USER/.neurodb/
+sudo chown $USER:$USER /data/$PROJ/
+sudo chmod -R 750 /data/$PROJ/
+echo
 ######################################################################################
 ##########################change the prod file#######################################
 #####################################################################################
 echo "Creating MRI config file"
 
-sed -e "s#project#$PROJ#g" -e "s#/your/inepuisable/diskspace/location#/data/$PROJ/data#g" -e "s#yourname\@gmail.com#$email#g" -e "s#\/wherever\/you\/put\/this\/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/profileTemplate > /home/$USER/.neurodb/prod
-
-
-####################################################################################
-######################change permissions ##########################################
-####################################################################################
-sudo chown $USER:$USER /home/$USER/.neurodb/prod
-sudo chmod 775 /home/$USER/.neurodb/prod
-sudo chmod -R 775 /data/$PROJ/
-##tarchiveLibraryDir = '/data/$PROJ/data/tarchive';
+cp $mridir/dicom-archive/profileTemplate /home/$USER/.neurodb/prod
+sudo chmod 640 /home/$USER/.neurodb/prod
+sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@gmail.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/profileTemplate > /home/$USER/.neurodb/prod
+echo
 
 ######################################################################
 ###########Modify the config.xml########################################
