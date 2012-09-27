@@ -17,8 +17,8 @@ read -p "what is the linux user which the intallation will be based on? " USER
 read -p "what is the project Name " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
 
 read -p "what is your email address " email
-email=${email/@/\\@}  ##adds a back slash before the @
-##echo "email is $email" 
+email=${email/@/\\\\@}  ##adds a back slash before the @
+echo "email is $email" 
 read -p "Enter the list of Site names (space separated) " site
 mridir=`pwd`
 ##read -p "Enter Full Loris-code directory path "   lorisdir
