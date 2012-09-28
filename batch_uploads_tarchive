@@ -46,7 +46,7 @@ foreach my $input (@inputs)
     ## processor will do all the real magic
 
     $input =~ s/\t/ /;
-    my $command = "copy_and_process_tarchive $input $Settings::prefix $Settings::mail_user " .  Settings::getIncomingDir($input, $Settings::tarchiveLibraryDir);
+    my $command = "copy_and_process_tarchive $input $Settings::mail_user " .  Settings::getIncomingDir($input, $Settings::tarchiveLibraryDir);
     ##if qsub is enabled use it
     if ($Settings::is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
