@@ -98,9 +98,8 @@ echo "Creating MRI config file"
 
 cp $mridir/dicom-archive/profileTemplate /home/$USER/.neurodb/prod
 sudo chmod 640 /home/$USER/.neurodb/prod
-sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@gmail.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/tarchiveLibrary/location#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > /home/$USER/.neurodb/prod
+sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@gmail.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > /home/$USER/.neurodb/prod
 echo
-
 ######################################################################
 ###########Modify the config.xml########################################
 ######################################################################
