@@ -41,8 +41,7 @@ $converter      = "dcm2mnc";
 
 # where to store the library of used tarchives
 # if this is not set they will not be moved
-# $tarchiveLibraryDir = '/path/to/dicomlib'; 
-$tarchiveLibraryDir = '/PATH/TO/tarchiveLibrary/location';
+$tarchiveLibraryDir = '/PATH/TO/dicomlib/'; 
 
 # which element of the tarchive table should be used to getPSC(), being either PatientID or PatientName
 $lookupCenterNameUsing = 'PatientID';
