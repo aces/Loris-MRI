@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
- if [ $# -ne 5 ]  ##if site is not included
+ if [ $# -ne 4 ]  ##if site is not included
 
   then
         tarchive=$1
@@ -22,6 +22,7 @@ fi
 
 
 tempdir=$TMPDIR/load_tarchive_db.$$
+
 mkdir -p $tempdir
 
 # copy the tarchive from the study workstation to here
@@ -35,7 +36,6 @@ uploadNeuroDB/tarchiveLoader -globLocation -profile prod $tempdir/`basename $tar
 
 # if the copy failed
 else
-
 # email the user
 echo "Subject: SCP TARCHIVE FAILURE\nFailed to scp ${site} ${tarchive}"  | mail $mail_user
 
