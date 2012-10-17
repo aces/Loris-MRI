@@ -13,7 +13,7 @@ stty -echo ##this disables the password to show up on the commandline
 read -p "What is the mysql password? " mysqlpass; echo
 stty echo
 
-read -p "what is the linux user which the intallation will be based on? " USER
+read -p "what is the linux user which the installation will be based on? " USER
 read -p "what is the project Name " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
 
 read -p "what is your email address " email
