@@ -1,0 +1,218 @@
+#! /usr/bin/perl
+
+=pod
+
+This script is very useful if the MRI pipeline needs to be re-run on the whole study dataset.
+
+What this script does:
+- renaming the assembly, jiv, pic folders as assembly_bkp`date`
+- deleting all MRI data in the database from the files, parameter_file and mri_acquisition_dates
+- updating the ArchiveLocation in the tarchive table
+
+This script interacts with the NeuroDB database system. It will connect to/deal with/ modify contents of the following tables:
+parameter_file, files, 
+
+=cut
+
+use strict;
+use Carp;
+use Getopt::Tabular;
+use FileHandle;
+use File::Basename;
+use File::Temp qw/ tempdir /;
+use Data::Dumper;
+use FindBin;
+use Cwd qw/ abs_path /;
+
+# These are the NeuroDB modules to be used
+use lib "$FindBin::Bin";
+use uploadNeuroDB::NeuroDB::File;
+use uploadNeuroDB::NeuroDB::DBI;
+use uploadNeuroDB::NeuroDB::Notify;
+
+## Starting the program
+my $versionInfo     = sprintf "%d revision %2d", q$Revision: 1.2 $ =~ /: (\d+)\.(\d+)/;
+# needed to rename the assembly,pic and jiv folders
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =localtime(time);
+my $logDate         = sprintf("%4d-%02d-%02d %02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
+my $archiveDate     = sprintf("%4d-%02d-%02d",$year+1900,$mon+1,$mday);
+my $message         = '';
+my $profile         = undef;    # this should never be set unless you are in a stable production environment
+my $archiveData     = 0;        # default should be 0
+my $updateTarchive  = 0;        # default should be 0
+my $deleteMRItables = 0;        # default should be 0
+my $all             = 0;        # default should be 0
+my $list            = '';
+my $xlog            = 0;        # default should be 0
+
+my @opt_table = (
+            ["Basic options","section"],
+            ["-profile","string",1,\$profile,"name of config file in ~/.neurodb."],
+            ["-archive","boolean",1,\$archiveData,"Will archive the data stored in assembly, jiv, pic and tarchive/year folders"],
+            ["-update","boolean",1,\$updateTarchive ,"Will update the ArchiveLocation in the tarchive table"],
+            ["-delete","boolean",1,\$deleteMRItables ,"Will delete all the data stored in assembly, jiv, pic and tarchive/year folders, as well as all data stored in the files, parameter_file and mri_acquisition_dates tables"],
+            ["-all","boolean",1,\$all,"Will perform the -update and -delete options on all MRI data. If not running the script on all data, specify the list in the -list argument."],
+            ["-list","boolean",1,\$list,"List of tarchives stored in a text file."],
+            ["Fancy options","section"],
+            ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on the current log file."],
+);
+
+my $Help = <<HELP;
+*****************************************************************************
+UNLOAD TARCHIVE
+*****************************************************************************
+
+Author  :   Cecile Madjar using the NeuroDB lib
+Date    :   2012/10/17
+Version :   $versionInfo
+
+This looks for all tarchives stored in $Settings::tarchiveLibraryDir and performs a lot of magic:
+
+- archive the assembly, jiv and pic folders to MRIPipelineData_bkp`date`.tar
+- archive the folders found in $Settings::tarchiveLibraryDir to UploadedTarchive_bk`date`.tar
+- delete all entries in the files, parameter_file and mri_acquisition_dates tables
+- update the ArchiveLocation in the tarchive table to the tarchives's location
+
+HELP
+my $Usage = <<USAGE;
+usage: $0 </path/to/DICOM-tarchive> [options]
+       $0 -help to list options
+USAGE
+&Getopt::Tabular::SetHelp($Help, $Usage);
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+
+# input option error checking
+{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+if(!$profile) { print $Help; print "$Usage\n\tERROR: You must specify an existing profile.\n\n";  exit 33;  }
+if($list && $list==''){print $Help; print "$Usage\n\tERROR: You must specify a file with the tarchives list.\n\n";  exit 33;  };
+if($updateTarchive && !$all && !$list){ print $Help; print "$Usage\n\tERROR: You must specify either a list of tarchives (using -list) or -all.\n\n";  exit 33;  }
+if($deleteMRItables && !$all && !$list){ print $Help; print "$Usage\n\tERROR: You must specify either a list of tarchives (using -list) or -all.\n\n";  exit 33;  }
+############################################################################################
+# These settings are in a config file (profile)
+my $data_dir        = $Settings::data_dir;
+my $assembly_dir    = $data_dir.'/assembly'; 
+my $pic_dir         = $data_dir.'/pic';
+my $jiv_dir         = $data_dir.'/jiv';
+my $tarchive_dir    = $Settings::tarchiveLibraryDir;
+my $archives_dir    = $data_dir."/ARCHIVES";
+
+my $User             = `whoami`; # fixme
+my $template         = "ArchiveLocationUpdate-$hour-$min-XXXXXX"; # for tempdir
+
+# create the temp dir
+my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+
+# create logdir(if !exists) and logfile
+my @temp     = split(/\//, $TmpDir);
+my $templog  = $temp[$#temp];
+my $LogDir   = "$data_dir/logs"; if (!-d $LogDir) { mkdir($LogDir, 0700); }
+my $logfile  = "$LogDir/$templog.log";
+open LOG, ">$logfile";
+LOG->autoflush(1);
+&logHeader();
+
+# if xlog is set, fork a tail on log file.
+my $childPID; if ($xlog) { $childPID = fork(); if($childPID == 0) { exec("xterm -geometry 130x70 -e tail -f $logfile"); exit(0); } }
+
+# establish database connection
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+print LOG "\n\t==> Successfully connected to database \n";
+
+
+########################################
+# Archive the MRI pipeline directories #
+########################################
+if($archiveData==1){
+    chdir(dirname($data_dir));
+
+    my @tmp=glob("data/tarchive/1* data/tarchive/2*");
+    my $tarchive_folder_list=join(' ',@tmp);
+    my $totar="data/".basename($assembly_dir)." data/".basename($pic_dir)." data/".basename($jiv_dir)." ".$tarchive_folder_list;
+    
+    unless (-e "$archives_dir" or mkdir $archives_dir){$message = "\n ERROR: Unable to create directory $archives_dir!\n\n"; &writeErrorLog($logfile, $message, 77); exit 77;} 
+    
+    my $tar_file=$archives_dir."/MRIPipelineData_bkp$archiveDate.tar";
+    if (-e $tar_file){
+        $message = "\n ERROR: $tar_file already exist!\n\n"; 
+        &writeErrorLog($logfile, $message, 77); exit 77;
+    }else{
+        print LOG "\n\t==> Archiving the assembly, jiv and pic folders in $tar_file \n";
+        `tar -cf $tar_file $totar`;
+    }
+}
+
+
+################################################################
+# Get the list of tarchive files and update the tarchive table #
+################################################################
+my @tarchive_list;
+
+if($updateTarchive && $all){
+    @tarchive_list=glob("$tarchive_dir/*.tar");
+}elsif($updateTarchive && $list!=''){
+    open(TARCHIVES,"<$list");
+    @tarchive_list=<TARCHIVES>;
+    close(TARCHIVES);
+}elsif(!$updateTarchive){ print LOG "*** The tarchive table won't be updated";}
+
+foreach my $tarchive(@tarchive_list){
+    chomp($tarchive);
+    my $tarchive_name=substr(basename($tarchive),0,-4);
+    print LOG "\n\n*** Location of source data    : $tarchive \n";
+
+    my $sth = $dbh->prepare("SELECT TarchiveID FROM tarchive WHERE ArchiveLocation LIKE '%".substr(basename($tarchive),0,-4)."%'");
+    $sth->execute();
+
+    my $tarchiveID;
+    if ($sth->rows > 0) {
+        my $row = $sth->fetchrow_hashref();
+        $tarchiveID = $row->{'TarchiveID'};
+    } else { 
+        $message = "\n ERROR: Only archived data can be updated. This seems not to be a valid archive for this study!\n\n"; 
+        &writeErrorLog($logfile, $message, 77); exit 77;
+    }
+
+    print LOG "\t==> updating ArchiveLocation of tarchive $tarchiveID to $tarchive_name \n";
+    my $sth = $dbh->prepare("UPDATE tarchive SET ArchiveLocation='".$tarchive."' WHERE TarchiveID=$tarchiveID");
+    $sth->execute();
+}
+
+
+#############################################################################
+# Delete all entries in the files, parameter_file and mri_acquisition_dates #
+#############################################################################
+
+
+
+
+##################################
+# Functions called in the script #
+##################################
+sub logHeader () {
+        print LOG "
+--------------------------------------------------------------------------------------------
+                                             AUTOMATED DICOM DATA UPLOAD
+--------------------------------------------------------------------------------------------
+*** Date and time of update    : $logDate
+*** tmp dir location           : $TmpDir
+";
+}
+
+# this is a useful function that will close the log and write error messages in case of abnormal program termination
+sub writeErrorLog {
+    my ($logfile, $message, $failStatus, ) = @_;
+    print LOG $message;
+    print LOG "program exit status: $failStatus";
+    `cat $logfile >> $LogDir/error.log`;
+    close LOG;
+    `rm -f $logfile`;
+}
+
+
+
+
+
+
+
+
