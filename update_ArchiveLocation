@@ -69,7 +69,7 @@ Version :   $versionInfo
 
 This looks for all tarchives stored in $Settings::tarchiveLibraryDir and performs a lot of magic:
 
-- archive the assembly, jiv and pic folders to MRIPipelineData_bkp`date`.tar
+- archive the assembly, jiv, pic and tarchive/year folders to MRIPipelineData_bkp`date`.tar
 - archive the folders found in $Settings::tarchiveLibraryDir to UploadedTarchive_bk`date`.tar
 - delete all entries in the files, parameter_file and mri_acquisition_dates tables
 - update the ArchiveLocation in the tarchive table to the tarchives's location
@@ -117,7 +117,7 @@ my $childPID; if ($xlog) { $childPID = fork(); if($childPID == 0) { exec("xterm 
 
 # establish database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n\t==> Successfully connected to database \n";
+print LOG "\t==> Successfully connected to database.\n";
 
 
 ########################################
@@ -125,7 +125,7 @@ print LOG "\n\t==> Successfully connected to database \n";
 ########################################
 if($archiveData==1){
     chdir(dirname($data_dir));
-
+    print LOG "\n*** MRI data will be archived.\n";
     my @tmp=glob("data/tarchive/1* data/tarchive/2*");
     my $tarchive_folder_list=join(' ',@tmp);
     my $totar="data/".basename($assembly_dir)." data/".basename($pic_dir)." data/".basename($jiv_dir)." ".$tarchive_folder_list;
@@ -137,10 +137,10 @@ if($archiveData==1){
         $message = "\n ERROR: $tar_file already exist!\n\n"; 
         &writeErrorLog($logfile, $message, 77); exit 77;
     }else{
-        print LOG "\n\t==> Archiving the assembly, jiv and pic folders in $tar_file \n";
-        `tar -cf $tar_file $totar`;
+        print LOG "\t==> Archiving the assembly, jiv and pic folders in $tar_file.\n";
+        `tar -czf $tar_file $totar`;
     }
-}
+}else{ print LOG "\n*** MRI data won't be archived.\n";}
 
 
 ################################################################
@@ -154,12 +154,12 @@ if($updateTarchive && $all){
     open(TARCHIVES,"<$list");
     @tarchive_list=<TARCHIVES>;
     close(TARCHIVES);
-}elsif(!$updateTarchive){ print LOG "\n*** The tarchive table won't be updated";}
+}elsif(!$updateTarchive){ print LOG "\n*** The tarchive table won't be updated.\n";}
 
 foreach my $tarchive(@tarchive_list){
     chomp($tarchive);
     my $tarchive_name=substr(basename($tarchive),0,-4);
-    print LOG "\n\n*** Location of source data    : $tarchive \n";
+    print LOG "\n*** Location of source data    : $tarchive \n";
 
     my $sth = $dbh->prepare("SELECT TarchiveID FROM tarchive WHERE ArchiveLocation LIKE '%".substr(basename($tarchive),0,-4)."%'");
     $sth->execute();
@@ -173,7 +173,7 @@ foreach my $tarchive(@tarchive_list){
         &writeErrorLog($logfile, $message, 77); exit 77;
     }
 
-    print LOG "\t==> updating ArchiveLocation of tarchive $tarchiveID to $tarchive_name \n";
+    print LOG "\t==> Updating ArchiveLocation of tarchive $tarchiveID to $tarchive_name.\n";
     my $sth = $dbh->prepare("UPDATE tarchive SET ArchiveLocation='".$tarchive."' WHERE TarchiveID=$tarchiveID");
     $sth->execute();
 }
@@ -185,22 +185,24 @@ foreach my $tarchive(@tarchive_list){
 my @delete_list;
 
 if($deleteMRItables && $all){
-    print "*** All files and tables' content will be deleted.";
+    print LOG "\n*** All files and tables' content will be deleted.\n";
     
     # delete the content of the assembly, jiv, pic and tarchive/year folders
-    print "rm -r $assembly_dir/* $jiv_dir/* $pic_dir/* $tarchive_dir/1* $tarchive_dir/2*";
+    my @remove_list=glob "$assembly_dir $jiv_dir $pic_dir $tarchive_dir/1* $tarchive_dir/2*";
+    remove_tree(@remove_list, {keep_root => 1, result => \my $res_list});
+    if (@$res_list==0){
+        print LOG "\t==> No files were deleted.\n";
+    }else{
+        print LOG "\t==> Removed all MRI data stored in the assembly, jiv, pic and tarchive/year folders.\n";
+    }
     
     # delete the content of the files, parameter_file and mri_acquisition_dates
     my $query = "DELETE f, pf, mad FROM files AS f LEFT JOIN parameter_file as pf ON f.FileID=pf.FileID LEFT JOIN mri_acquisition_dates AS mad ON f.SessionID=mad.SessionID";
     my $sth = $dbh->prepare($query);
-#    $sth->execute;
+    $sth->execute;
     
-#    if($sth->rows == 0){ print LOG "\n\t==> No entries were deleted.";}
-#    else{ my $row = $sth->rows; print LOG "\n\t==> $row entries were deleted."}
-    print $query."\n";
-
-    
-
+    if($sth->rows == 0){ print LOG "\t==> No entries were deleted.\n";}
+    else{ my $row = $sth->rows; print LOG "\t==> $row entries were deleted.\n"}
 
 }elsif($deleteMRItables && $list){
     
@@ -211,7 +213,7 @@ if($deleteMRItables && $all){
     foreach my $tarchive(@tarchive_list){
         chomp($tarchive);
         my $tarchive_name=substr(basename($tarchive),0,-4);
-        print LOG "\n\n*** Deleting files and tables' entries of $tarchive \n";
+        print LOG "\n*** Deleting files and tables' entries of $tarchive.\n";
 
         my $sth = $dbh->prepare("SELECT SessionID FROM tarchive WHERE ArchiveLocation LIKE '%$tarchive_name%'");
         $sth->execute();
@@ -242,20 +244,20 @@ if($deleteMRItables && $all){
         my @remove_list=glob "$assembly_dir/$CandID/$Visit_label $jiv_dir/$CandID/*$Visit_label* $pic_dir/$CandID/*$Visit_label* $tarchive_dir/1*/$tarchive_name* $tarchive_dir/2*/$tarchive_name*";
         remove_tree(@remove_list, {result => \my $res_list});
         if (@$res_list==0){
-            print LOG "\n\t==> No files were deleted.\n";
+            print LOG "\t==> No files were deleted.\n";
         }else{
-            print LOG "\n\t==> List of removed files:\n";
+            print LOG "\t==> List of removed files:\n";
             print LOG "$_\n" for @$res_list;
         }
 
         my $sth=$dbh->prepare("DELETE f, pf, mad FROM files AS f LEFT JOIN parameter_file as pf ON f.FileID=pf.FileID LEFT JOIN mri_acquisition_dates AS mad ON f.SessionID=mad.SessionID WHERE f.SessionID=$SessionID");
         $sth->execute;
         
-        if($sth->rows == 0){ print LOG "\n\t==> No entries for session $SessionID were found.";}
-        else{ my $row = $sth->rows; print LOG "\n\t==> $row entries were deleted for session $SessionID."}
+        if($sth->rows == 0){ print LOG "\t==> No entries for session $SessionID were found.\n";}
+        else{ my $row = $sth->rows; print LOG "\t==> $row entries were deleted for session $SessionID.\n"}
     }
 
-}elsif(!$deleteMRItables){  print LOG "*** Files and contents of tables won't be deleted";}
+}elsif(!$deleteMRItables){  print LOG "\n*** Files and contents of tables won't be deleted.\n";}
 
 
 
@@ -271,7 +273,7 @@ sub logHeader () {
 --------------------------------------------------------------------------------------------
 *** Date and time of update    : $logDate
 *** tmp dir location           : $TmpDir
-";
+\n";
 }
 
 # this is a useful function that will close the log and write error messages in case of abnormal program termination
@@ -283,11 +285,4 @@ sub writeErrorLog {
     close LOG;
     `rm -f $logfile`;
 }
-
-
-
-
-
-
-
 
