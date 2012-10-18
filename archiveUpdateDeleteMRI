@@ -70,9 +70,12 @@ Version :   $versionInfo
 This looks for all tarchives stored in $Settings::tarchiveLibraryDir and performs a lot of magic:
 
 - archive the assembly, jiv, pic and tarchive/year folders to MRIPipelineData_bkp`date`.tar
-- archive the folders found in $Settings::tarchiveLibraryDir to UploadedTarchive_bk`date`.tar
-- delete all entries in the files, parameter_file and mri_acquisition_dates tables
 - update the ArchiveLocation in the tarchive table to the tarchives's location
+- delete all entries in the files, parameter_file and mri_acquisition_dates tables AND delete contents of the assembly, jiv, pic and tarchive/year folders.
+
+When running the update or delete section, you can choose to run it on the entire dataset or a subset of tarchives that will be listed in a text file (one tarchive per line without the full path). 
+
+Enjoy!!
 
 HELP
 my $Usage = <<USAGE;
