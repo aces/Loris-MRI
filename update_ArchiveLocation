@@ -20,6 +20,7 @@ use Getopt::Tabular;
 use FileHandle;
 use File::Basename;
 use File::Temp qw/ tempdir /;
+use File::Path 'remove_tree';
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
@@ -42,7 +43,7 @@ my $archiveData     = 0;        # default should be 0
 my $updateTarchive  = 0;        # default should be 0
 my $deleteMRItables = 0;        # default should be 0
 my $all             = 0;        # default should be 0
-my $list            = '';
+my $list            = undef;
 my $xlog            = 0;        # default should be 0
 
 my @opt_table = (
@@ -52,7 +53,7 @@ my @opt_table = (
             ["-update","boolean",1,\$updateTarchive ,"Will update the ArchiveLocation in the tarchive table"],
             ["-delete","boolean",1,\$deleteMRItables ,"Will delete all the data stored in assembly, jiv, pic and tarchive/year folders, as well as all data stored in the files, parameter_file and mri_acquisition_dates tables"],
             ["-all","boolean",1,\$all,"Will perform the -update and -delete options on all MRI data. If not running the script on all data, specify the list in the -list argument."],
-            ["-list","boolean",1,\$list,"List of tarchives stored in a text file."],
+            ["-list","string",1,\$list,"List of tarchives stored in a text file."],
             ["Fancy options","section"],
             ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on the current log file."],
 );
@@ -85,7 +86,6 @@ USAGE
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
 if(!$profile) { print $Help; print "$Usage\n\tERROR: You must specify an existing profile.\n\n";  exit 33;  }
-if($list && $list==''){print $Help; print "$Usage\n\tERROR: You must specify a file with the tarchives list.\n\n";  exit 33;  };
 if($updateTarchive && !$all && !$list){ print $Help; print "$Usage\n\tERROR: You must specify either a list of tarchives (using -list) or -all.\n\n";  exit 33;  }
 if($deleteMRItables && !$all && !$list){ print $Help; print "$Usage\n\tERROR: You must specify either a list of tarchives (using -list) or -all.\n\n";  exit 33;  }
 ############################################################################################
@@ -150,11 +150,11 @@ my @tarchive_list;
 
 if($updateTarchive && $all){
     @tarchive_list=glob("$tarchive_dir/*.tar");
-}elsif($updateTarchive && $list!=''){
+}elsif($updateTarchive && $list){
     open(TARCHIVES,"<$list");
     @tarchive_list=<TARCHIVES>;
     close(TARCHIVES);
-}elsif(!$updateTarchive){ print LOG "*** The tarchive table won't be updated";}
+}elsif(!$updateTarchive){ print LOG "\n*** The tarchive table won't be updated";}
 
 foreach my $tarchive(@tarchive_list){
     chomp($tarchive);
@@ -182,6 +182,81 @@ foreach my $tarchive(@tarchive_list){
 #############################################################################
 # Delete all entries in the files, parameter_file and mri_acquisition_dates #
 #############################################################################
+my @delete_list;
+
+if($deleteMRItables && $all){
+    print "*** All files and tables' content will be deleted.";
+    
+    # delete the content of the assembly, jiv, pic and tarchive/year folders
+    print "rm -r $assembly_dir/* $jiv_dir/* $pic_dir/* $tarchive_dir/1* $tarchive_dir/2*";
+    
+    # delete the content of the files, parameter_file and mri_acquisition_dates
+    my $query = "DELETE f, pf, mad FROM files AS f LEFT JOIN parameter_file as pf ON f.FileID=pf.FileID LEFT JOIN mri_acquisition_dates AS mad ON f.SessionID=mad.SessionID";
+    my $sth = $dbh->prepare($query);
+#    $sth->execute;
+    
+#    if($sth->rows == 0){ print LOG "\n\t==> No entries were deleted.";}
+#    else{ my $row = $sth->rows; print LOG "\n\t==> $row entries were deleted."}
+    print $query."\n";
+
+    
+
+
+}elsif($deleteMRItables && $list){
+    
+    open(TARCHIVES,"<$list");
+    my @tarchive_list=<TARCHIVES>;
+    close(TARCHIVES);
+
+    foreach my $tarchive(@tarchive_list){
+        chomp($tarchive);
+        my $tarchive_name=substr(basename($tarchive),0,-4);
+        print LOG "\n\n*** Deleting files and tables' entries of $tarchive \n";
+
+        my $sth = $dbh->prepare("SELECT SessionID FROM tarchive WHERE ArchiveLocation LIKE '%$tarchive_name%'");
+        $sth->execute();
+
+        my $SessionID;
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            $SessionID = $row->{'SessionID'};
+        } else {
+            $message = "\n ERROR: No SessionID is associated to the Archive $tarchive_name or the Archive is not a valid archive for this study!\n\n";
+            &writeErrorLog($logfile, $message, 77); exit 77;
+        }
+        
+        my $sth = $dbh->prepare("SELECT s.CandID, s.Visit_label FROM tarchive AS t LEFT JOIN session AS s ON s.ID=t.SessionID WHERE ArchiveLocation LIKE '%$tarchive_name%'");
+        $sth->execute();
+        
+        my $CandID;
+        my $Visit_label;
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            $CandID = $row->{'CandID'};
+            $Visit_label = $row->{'Visit_label'};
+        } else {
+            $message = "\n ERROR: No CandID and Visit_label are associated to the Archive $tarchive_name or the Archive is not a valid archive for this study!\n\n";
+            &writeErrorLog($logfile, $message, 77); exit 77;
+        }
+
+        my @remove_list=glob "$assembly_dir/$CandID/$Visit_label $jiv_dir/$CandID/*$Visit_label* $pic_dir/$CandID/*$Visit_label* $tarchive_dir/1*/$tarchive_name* $tarchive_dir/2*/$tarchive_name*";
+        remove_tree(@remove_list, {result => \my $res_list});
+        if (@$res_list==0){
+            print LOG "\n\t==> No files were deleted.\n";
+        }else{
+            print LOG "\n\t==> List of removed files:\n";
+            print LOG "$_\n" for @$res_list;
+        }
+
+        my $sth=$dbh->prepare("DELETE f, pf, mad FROM files AS f LEFT JOIN parameter_file as pf ON f.FileID=pf.FileID LEFT JOIN mri_acquisition_dates AS mad ON f.SessionID=mad.SessionID WHERE f.SessionID=$SessionID");
+        $sth->execute;
+        
+        if($sth->rows == 0){ print LOG "\n\t==> No entries for session $SessionID were found.";}
+        else{ my $row = $sth->rows; print LOG "\n\t==> $row entries were deleted for session $SessionID."}
+    }
+
+}elsif(!$deleteMRItables){  print LOG "*** Files and contents of tables won't be deleted";}
+
 
 
 
