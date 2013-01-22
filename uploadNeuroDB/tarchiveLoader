@@ -350,6 +350,8 @@ foreach my $minc (@minc_files)  {
 # Set some file information
     $file->setParameter('ScannerID', $scannerID);
     $file->setFileData('SessionID', $sessionID);
+    $file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
+    $file->setFileData('EchoTime', $file->getParameter('echo_time'));
     $file->setFileData('PendingStaging', $requiresStaging);
     $file->setFileData('CoordinateSpace', 'native');
     $file->setFileData('OutputType', 'native');
