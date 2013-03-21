@@ -89,8 +89,7 @@ USAGE
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
 if(!$profile) { print $Help; print "$Usage\n\tERROR: You must specify an existing profile.\n\n";  exit 33;  }
-if($updateTarchive && !$all && !$list){ print $Help; print "$Usage\n\tERROR: You must specify either a list of tarchives (using -list) or -all.\n\n";  exit 33;  }
-if($deleteMRItables && !$all && !$list){ print $Help; print "$Usage\n\tERROR: You must specify either a list of tarchives (using -list) or -all.\n\n";  exit 33;  }
+if(!$all && !$list){ print $Help; print "$Usage\n\tERROR: You must specify either a list of tarchives (using -list) or -all.\n\n";  exit 33;  }
 ############################################################################################
 # These settings are in a config file (profile)
 my $data_dir        = $Settings::data_dir;
@@ -134,8 +133,6 @@ if($all){
     open(TARCHIVES,"<$list");
     @tarchive_list=<TARCHIVES>;
     close(TARCHIVES);
-}elsif(!$updateTarchive){ 
-    print LOG "\n*** The tarchive table won't be updated.\n";
 }
 
 
@@ -227,15 +224,14 @@ if($deleteMRItables && $all){
     my $sth = $dbh->prepare($query);
     $sth->execute;
     
-    if($sth->rows == 0){ print LOG "\t==> No entries were deleted.\n";}
-    else{ my $row = $sth->rows; print LOG "\t==> $row entries were deleted.\n"}
+    if($sth->rows == 0){ 
+        print LOG "\t==> No entries were deleted.\n";
+    }else{ 
+        my $row = $sth->rows; print LOG "\t==> $row entries were deleted.\n";
+    }
 
 }elsif($deleteMRItables && $list){
     
-    open(TARCHIVES,"<$list");
-    my @tarchive_list=<TARCHIVES>;
-    close(TARCHIVES);
-
     foreach my $tarchive(@tarchive_list){
         chomp($tarchive);
         my $tarchive_name=substr(basename($tarchive),0,-4);
@@ -252,14 +248,22 @@ if($deleteMRItables && $all){
             print LOG "$_\n" for @$res_list;
         }
 
-        my $sth=$dbh->prepare("DELETE f, pf, mad FROM files AS f LEFT JOIN parameter_file as pf ON f.FileID=pf.FileID LEFT JOIN mri_acquisition_dates AS mad ON f.SessionID=mad.SessionID WHERE f.SessionID=$SessionID");
-        $sth->execute;
+        my $query   =   "DELETE f, pf, mad FROM files AS f LEFT JOIN parameter_file as pf ON f.FileID=pf.FileID LEFT JOIN mri_acquisition_dates AS mad ON f.SessionID=mad.SessionID WHERE f.SessionID=?";
+        my $sth=$dbh->prepare($query);
+        $sth->execute($SessionID);
         
-        if($sth->rows == 0){ print LOG "\t==> No entries for session $SessionID were found.\n";}
-        else{ my $row = $sth->rows; print LOG "\t==> $row entries were deleted for session $SessionID.\n"}
+        if($sth->rows == 0){ 
+            print LOG "\t==> No entries for session $SessionID were deleted.\n";
+        }else{ 
+            my $row = $sth->rows; print LOG "\t==> $row entries were deleted for session $SessionID.\n";
+        }
     }
 
-}elsif(!$deleteMRItables){  print LOG "\n*** Files and contents of tables won't be deleted.\n";}
+}elsif(!$deleteMRItables){  
+    
+    print LOG "\n*** Files and contents of tables won't be deleted.\n";
+
+}
 
 
 
@@ -319,7 +323,7 @@ Fetches TarchiveID from the tarchive table based on $tarchive_name.
 sub getTarchiveID {
     my ($tarchive_name,$dbh) = @_;
 
-    my $like    =   "%$tarchive_name%"
+    my $like    =   "%$tarchive_name%";
     my $query   =   "SELECT TarchiveID FROM tarchive WHERE ArchiveLocation LIKE ?";
     my $sth     =   $dbh->prepare($query);
     $sth->execute($like);
@@ -336,7 +340,7 @@ sub getTarchiveID {
     return ($tarchiveID);
 }
 
-sub udpateArchiveLocation {
+sub updateArchiveLocation {
     my ($tarchive,$tarchiveID,$dbh) =   @_;
 
     my $query   =   "UPDATE tarchive SET ArchiveLocation=? WHERE TarchiveID=?";
