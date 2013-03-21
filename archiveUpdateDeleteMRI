@@ -53,7 +53,7 @@ my @opt_table = (
             ["-update","boolean",1,\$updateTarchive ,"Will update the ArchiveLocation in the tarchive table"],
             ["-delete","boolean",1,\$deleteMRItables ,"Will delete all the data stored in assembly, jiv, pic and tarchive/year folders, as well as all data stored in the files, parameter_file and mri_acquisition_dates tables"],
             ["-all","boolean",1,\$all,"Will perform the -update and -delete options on all MRI data. If not running the script on all data, specify the list in the -list argument."],
-            ["-list","string",1,\$list,"List of tarchives stored in a text file."],
+            ["-list","string",1,\$list,"List of tarchives (with full path) stored in a text file."],
             ["Fancy options","section"],
             ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on the current log file."],
 );
@@ -109,7 +109,7 @@ my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 # create logdir(if !exists) and logfile
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
-my $LogDir   = "$data_dir/logs"; if (!-d $LogDir) { mkdir($LogDir, 0700); }
+my $LogDir   = "$data_dir/logs/archiveUpdateDeleteMRI"; if (!-d $LogDir) { mkdir($LogDir, 0700); }
 my $logfile  = "$LogDir/$templog.log";
 open LOG, ">$logfile";
 LOG->autoflush(1);
@@ -123,19 +123,52 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\t==> Successfully connected to database.\n";
 
 
+##################################
+# Get the list of tarchive files #
+##################################
+my @tarchive_list;
+
+if($all){
+    @tarchive_list=glob("$tarchive_dir/*.tar");
+}elsif($list){
+    open(TARCHIVES,"<$list");
+    @tarchive_list=<TARCHIVES>;
+    close(TARCHIVES);
+}elsif(!$updateTarchive){ 
+    print LOG "\n*** The tarchive table won't be updated.\n";
+}
+
+
 ########################################
 # Archive the MRI pipeline directories #
 ########################################
 if($archiveData==1){
-    chdir(dirname($data_dir));
-    print LOG "\n*** MRI data will be archived.\n";
-    my @tmp=glob("data/tarchive/1* data/tarchive/2*");
-    my $tarchive_folder_list=join(' ',@tmp);
-    my $totar="data/".basename($assembly_dir)." data/".basename($pic_dir)." data/".basename($jiv_dir)." ".$tarchive_folder_list;
-    
+
+    my ($totar);
+    chdir($data_dir);
+    if ($all){
+
+        my @tmp=glob(basename($tarchive_dir)."/1* ".basename($tarchive_dir)."/2* ".basename($assembly_dir)." ".basename($pic_dir)." ".basename($jiv_dir));
+        $totar=join(' ',@tmp);
+        print LOG "\n*** All MRI ($totar) data will be archived.\n";
+
+    }elsif ($list){
+
+        my (@list_totar);
+        foreach my $tarchive(@tarchive_list){
+            chomp($tarchive);
+            my $tarchive_name=substr(basename($tarchive),0,-4);
+            my ($SessionID,$CandID,$Visit_label) = getSessionInfo($tarchive_name,$dbh); 
+
+            my @tmp=glob(basename($assembly_dir)."/$CandID/$Visit_label ".basename($jiv_dir)."/$CandID/*$Visit_label* ".basename($pic_dir)."/$CandID/*$Visit_label* ".basename($tarchive_dir)."/1*/$tarchive_name* ".basename($tarchive_dir)."/2*/$tarchive_name*");
+            push(@list_totar,@tmp);
+        }
+        $totar=join(' ',@list_totar);
+    }
+
     unless (-e "$archives_dir" or mkdir $archives_dir){$message = "\n ERROR: Unable to create directory $archives_dir!\n\n"; &writeErrorLog($logfile, $message, 77); exit 77;} 
     
-    my $tar_file=$archives_dir."/MRIPipelineData_bkp$archiveDate.tar";
+    my $tar_file=$archives_dir."/MRIPipelineData_bkp_$archiveDate.tar.gz";
     if (-e $tar_file){
         $message = "\n ERROR: $tar_file already exist!\n\n"; 
         &writeErrorLog($logfile, $message, 77); exit 77;
@@ -143,42 +176,32 @@ if($archiveData==1){
         print LOG "\t==> Archiving the assembly, jiv and pic folders in $tar_file.\n";
         `tar -czf $tar_file $totar`;
     }
-}else{ print LOG "\n*** MRI data won't be archived.\n";}
+
+}else{ 
+    
+    print LOG "\n*** MRI data won't be archived.\n";
+    
+}
 
 
 ################################################################
 # Get the list of tarchive files and update the tarchive table #
 ################################################################
-my @tarchive_list;
-
-if($updateTarchive && $all){
-    @tarchive_list=glob("$tarchive_dir/*.tar");
-}elsif($updateTarchive && $list){
-    open(TARCHIVES,"<$list");
-    @tarchive_list=<TARCHIVES>;
-    close(TARCHIVES);
-}elsif(!$updateTarchive){ print LOG "\n*** The tarchive table won't be updated.\n";}
-
 foreach my $tarchive(@tarchive_list){
     chomp($tarchive);
-    my $tarchive_name=substr(basename($tarchive),0,-4);
+    my $tarchive_name   =   substr(basename($tarchive),0,-4);
     print LOG "\n*** Location of source data    : $tarchive \n";
 
-    my $sth = $dbh->prepare("SELECT TarchiveID FROM tarchive WHERE ArchiveLocation LIKE '%".substr(basename($tarchive),0,-4)."%'");
-    $sth->execute();
-
-    my $tarchiveID;
-    if ($sth->rows > 0) {
-        my $row = $sth->fetchrow_hashref();
-        $tarchiveID = $row->{'TarchiveID'};
-    } else { 
-        $message = "\n ERROR: Only archived data can be updated. This seems not to be a valid archive for this study!\n\n"; 
-        &writeErrorLog($logfile, $message, 77); exit 77;
-    }
+    my ($tarchiveID)    =   getTarchiveID($tarchive_name,$dbh);
 
     print LOG "\t==> Updating ArchiveLocation of tarchive $tarchiveID to $tarchive_name.\n";
-    my $sth = $dbh->prepare("UPDATE tarchive SET ArchiveLocation='".$tarchive."' WHERE TarchiveID=$tarchiveID");
-    $sth->execute();
+    
+    my ($success)       =   updateArchiveLocation($tarchive,$tarchiveID,$dbh);
+    if ($success){
+        print LOG "\t==> Updated ArchiveLocation of tarchive $tarchiveID to $tarchive_name.\n";
+    } else {
+        print LOG "\n ERROR: Could not update ArchiveLocation of tarchive $tarchiveID to $tarchive_name.\n";
+    }
 }
 
 
@@ -218,31 +241,7 @@ if($deleteMRItables && $all){
         my $tarchive_name=substr(basename($tarchive),0,-4);
         print LOG "\n*** Deleting files and tables' entries of $tarchive.\n";
 
-        my $sth = $dbh->prepare("SELECT SessionID FROM tarchive WHERE ArchiveLocation LIKE '%$tarchive_name%'");
-        $sth->execute();
-
-        my $SessionID;
-        if ($sth->rows > 0) {
-            my $row = $sth->fetchrow_hashref();
-            $SessionID = $row->{'SessionID'};
-        } else {
-            $message = "\n ERROR: No SessionID is associated to the Archive $tarchive_name or the Archive is not a valid archive for this study!\n\n";
-            &writeErrorLog($logfile, $message, 77); exit 77;
-        }
-        
-        my $sth = $dbh->prepare("SELECT s.CandID, s.Visit_label FROM tarchive AS t LEFT JOIN session AS s ON s.ID=t.SessionID WHERE ArchiveLocation LIKE '%$tarchive_name%'");
-        $sth->execute();
-        
-        my $CandID;
-        my $Visit_label;
-        if ($sth->rows > 0) {
-            my $row = $sth->fetchrow_hashref();
-            $CandID = $row->{'CandID'};
-            $Visit_label = $row->{'Visit_label'};
-        } else {
-            $message = "\n ERROR: No CandID and Visit_label are associated to the Archive $tarchive_name or the Archive is not a valid archive for this study!\n\n";
-            &writeErrorLog($logfile, $message, 77); exit 77;
-        }
+        my ($SessionID,$CandID,$Visit_label) = getSessionInfo($tarchive_name,$dbh); 
 
         my @remove_list=glob "$assembly_dir/$CandID/$Visit_label $jiv_dir/$CandID/*$Visit_label* $pic_dir/$CandID/*$Visit_label* $tarchive_dir/1*/$tarchive_name* $tarchive_dir/2*/$tarchive_name*";
         remove_tree(@remove_list, {result => \my $res_list});
@@ -289,3 +288,60 @@ sub writeErrorLog {
     `rm -f $logfile`;
 }
 
+=pod
+Fetches SessionID, CandID and Visit_label from the tarchive/session tables based on $tarchive_name.
+=cut
+sub getSessionInfo {
+    my ($tarchive_name,$dbh) = @_;
+
+    my $like = "%$tarchive_name%";
+    my $query = "SELECT t.SessionID, s.CandID, s.Visit_label FROM tarchive AS t LEFT JOIN session AS s ON s.ID=t.SessionID WHERE ArchiveLocation LIKE ?";
+    my $sth = $dbh->prepare($query);
+    $sth->execute($like);
+
+    my ($SessionID,$CandID,$Visit_label);
+    if ($sth->rows > 0) {
+        my $row = $sth->fetchrow_hashref();
+        $SessionID  =   $row->{'SessionID'};
+        $CandID     =   $row->{'CandID'};
+        $Visit_label=   $row->{'Visit_label'};
+    } else {
+        $message = "\n ERROR: No SessionID, CandID and Visit_label are associated to the Archive $tarchive_name or the Archive is not a valid archive for this study!\n\n";
+        &writeErrorLog($logfile, $message, 77); exit 77;
+    }
+
+    return ($SessionID,$CandID,$Visit_label);
+}
+
+=pod
+Fetches TarchiveID from the tarchive table based on $tarchive_name.
+=cut
+sub getTarchiveID {
+    my ($tarchive_name,$dbh) = @_;
+
+    my $like    =   "%$tarchive_name%"
+    my $query   =   "SELECT TarchiveID FROM tarchive WHERE ArchiveLocation LIKE ?";
+    my $sth     =   $dbh->prepare($query);
+    $sth->execute($like);
+
+    my $tarchiveID;
+    if ($sth->rows > 0) {
+        my $row = $sth->fetchrow_hashref();
+        $tarchiveID = $row->{'TarchiveID'};
+    } else { 
+        $message = "\n ERROR: Only archived data can be updated. This seems not to be a valid archive for this study!\n\n"; 
+        &writeErrorLog($logfile, $message, 77); exit 77;
+    }
+
+    return ($tarchiveID);
+}
+
+sub udpateArchiveLocation {
+    my ($tarchive,$tarchiveID,$dbh) =   @_;
+
+    my $query   =   "UPDATE tarchive SET ArchiveLocation=? WHERE TarchiveID=?";
+    my $sth     =   $dbh->prepare($query);
+    $sth->execute($tarchive,$tarchiveID) or return 0;
+
+    return 1;
+}
