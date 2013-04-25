@@ -12,7 +12,7 @@ my $Usage   =   <<USAGE;
 
 This script updates the path stored in the files and parameter_file tables to remove the \$data_dir part of the path for security improvements.
 
-Usage: perl register_processed_data.pl [options]
+Usage: perl database_files_update.pl [options]
 
 -help for options
 
