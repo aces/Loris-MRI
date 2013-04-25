@@ -73,7 +73,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
     my $file = NeuroDB::File->new(\$dbh);
     $file->loadFile($rowhr->{'FileID'});
 
-    unless(&NeuroDB::MRI::make_jiv(\$file, $jiv_dir)) {
+    unless(&NeuroDB::MRI::make_jiv(\$file, $Settings::data_dir, $jiv_dir)) {
 	print "FAILURE!\t$rowhr->{'FileID'}\n";
     }
 }

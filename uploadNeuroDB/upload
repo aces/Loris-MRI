@@ -326,11 +326,11 @@ foreach $minc (@minc_files)  {
 	
 	# jivify
 	print "Making JIV\n" if $Debug;
-	&NeuroDB::MRI::make_jiv(\$file, $jiv_dir);
+	&NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
 
 	# make the browser pics
 	print "Making browser pics\n" if $Debug;
-	&NeuroDB::MRI::make_pics(\$file, $pic_dir);
+	&NeuroDB::MRI::make_pics(\$file,$data_dir, $pic_dir);
 	
 	# mark the study as valid because at least one volume converted successfully.
 	$valid_study = 1;

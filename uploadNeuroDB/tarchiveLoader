@@ -374,8 +374,10 @@ foreach my $minc (@minc_files)  {
         my $Date_taken = (stat($minc))[9];
     # rename and move files
         my $minc_protocol_identified = &move_minc(\$minc, $subjectIDsref, $acquisitionProtocol, \$file);
+        my $file_path   =   $minc; 
+        $file_path      =~  s/$data_dir\///i;
         print "new NAME: ".$minc_protocol_identified ."\n" if $debug;
-        $file->setFileData('File', $minc);
+        $file->setFileData('File', $file_path);
 
     # move the tarchive from the inbox into the tarchive library
     # only if the library dir is defined and the tarchive has not yet been moved
@@ -413,7 +415,9 @@ foreach my $minc (@minc_files)  {
         if(!defined($Settings::tarchiveLibraryDir)) { $newTarchiveLocation = $tarchive; }
 
     # record which tarchive was used to make this file
-        $file->setParameter('tarchiveLocation', $newTarchiveLocation);
+        my $tarchive_path   =   $newTarchiveLocation;
+        $tarchive_path      =~  s/$data_dir\///i;
+        $file->setParameter('tarchiveLocation', $tarchive_path);
         $file->setParameter('tarchiveMD5', $tarchiveInfo{'md5sumArchive'});
 
     # mark the study as valid because at least one volume will be inserted into the DB
@@ -428,10 +432,10 @@ foreach my $minc (@minc_files)  {
         &update_mri_acquisition_dates($sessionID, $tarchiveInfo{'DateAcquired'}, \$dbh);
     # jivify
         print "Making JIV\n" if $verbose;
-        &NeuroDB::MRI::make_jiv(\$file, $jiv_dir);
+        &NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
     # make the browser pics
         print "Making browser pics\n" if $verbose;
-        &NeuroDB::MRI::make_pics(\$file, $pic_dir, $Settings::horizontalPics);
+        &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $Settings::horizontalPics);
         
     } ## end if clause to exclude non identified scans ##
     else {

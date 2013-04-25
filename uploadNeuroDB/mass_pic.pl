@@ -67,7 +67,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
     my $file = NeuroDB::File->new(\$dbh);
     $file->loadFile($rowhr->{'FileID'});
 
-    unless(&NeuroDB::MRI::make_pics(\$file, $pic_dir, $Settings::horizontalPics)) {
+    unless(&NeuroDB::MRI::make_pics(\$file, $Settings::data_dir, $pic_dir, $Settings::horizontalPics)) {
 	print "FAILURE!\n";
     }
 }
