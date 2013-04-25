@@ -52,9 +52,9 @@ print LOG "\n==> Successfully connected to database \n";
 
 
 #### Updating minc location in files table ####
-my  ($minc_location_refs, $fileIDs) =   get_minc_files($data_dir, $dbh);    # list all mincs with 'File'=~$data_dir in files table.
+my  ($minc_location_refs, $fileIDs_minc) =   get_minc_files($data_dir, $dbh);    # list all mincs with 'File'=~$data_dir in files table.
 if  ($minc_location_refs) {
-    foreach my $fileID (@$fileIDs) {
+    foreach my $fileID (@$fileIDs_minc) {
         my  $new_minc_location  =   $minc_location_refs->{$fileID};
         $new_minc_location      =~  s/$data_dir\///i;
         my  ($rows_affected)    =   update_minc_location($fileID, $new_minc_location, $dbh); # update minc location in files table.
@@ -69,10 +69,10 @@ if  ($minc_location_refs) {
 }
 
 #### Updating jiv location in parameter_file table ####
-my  ($jiv_location_refs, $fileIDs)  =   get_parameter_files($data_dir, 'jiv_path', $dbh);
+my  ($jiv_location_refs, $fileIDs_jiv)  =   get_parameter_files($data_dir, 'jiv_path', $dbh);
 
 if  ($jiv_location_refs) {
-    foreach my $fileID (@$fileIDs) {
+    foreach my $fileID (@$fileIDs_jiv) {
         my  $new_jiv_location  =   $jiv_location_refs->{$fileID};
         $new_jiv_location      =~  s/$data_dir\///i;
         my  ($rows_affected)   =   update_parameter_file_location($fileID, $new_jiv_location, 'jiv_path', $dbh); # update jiv location in parameter_file table.
@@ -87,10 +87,10 @@ if  ($jiv_location_refs) {
 }
 
 #### Updating pic location in parameter_file table ####
-my  ($pic_location_refs, $fileIDs)  =   get_parameter_files($data_dir, 'check_pic_filename', $dbh);
+my  ($pic_location_refs, $fileIDs_pic)  =   get_parameter_files($data_dir, 'check_pic_filename', $dbh);
 
 if  ($pic_location_refs) {
-    foreach my $fileID (@$fileIDs) {
+    foreach my $fileID (@$fileIDs_pic) {
         my  $new_pic_location  =   $pic_location_refs->{$fileID};
         $new_pic_location      =~  s/$data_dir\///i;
         my  ($rows_affected)   =   update_parameter_file_location($fileID, $new_pic_location, 'check_pic_filename', $dbh); # update pic location in parameter_file table.
@@ -106,10 +106,10 @@ if  ($pic_location_refs) {
 
 
 #### Updating tarchive location in parameter_file table ####
-my  ($tarchive_location_refs, $fileIDs)  =   get_parameter_files($data_dir, 'tarchiveLocation', $dbh);
+my  ($tarchive_location_refs, $fileIDs_tar)  =   get_parameter_files($data_dir, 'tarchiveLocation', $dbh);
 
 if  ($tarchive_location_refs) {
-    foreach my $fileID (@$fileIDs) {
+    foreach my $fileID (@$fileIDs_tar) {
         my  $new_tarchive_location  =   $tarchive_location_refs->{$fileID};
         $new_tarchive_location      =~  s/$data_dir\///i;
         my  ($rows_affected)   =   update_parameter_file_location($fileID, $new_tarchive_location, 'tarchiveLocation', $dbh); # update tarchive location in parameter_file table.
@@ -162,9 +162,10 @@ sub update_minc_location {
     my  ($fileID, $new_minc_location, $dbh) =   @_;                # update minc location in files table.
 
     my  $query          =   "UPDATE files " .
-                            "SET File='$new_minc_location' " .
-                            "WHERE FileID=$fileID";
-    my  $rows_affected  =   $dbh->do($query);
+                            "SET File=? " .
+                            "WHERE FileID=?";
+    my  $sth            =   $dbh->prepare($query);
+    my  $rows_affected  =   $sth->execute($new_minc_location,$fileID);
 
     return  ($rows_affected);
 }
@@ -219,19 +220,12 @@ sub update_parameter_file_location {
     }
 
     my  $query          =   "UPDATE parameter_file AS pf, parameter_type AS pt " .
-                            "SET pf.Value='$new_file_location' " .
-                            "WHERE pf.FileID=$fileID " .
-                            "AND pf.ParameterTypeID=$ParameterTypeID";
-    my  $rows_affected  =   $dbh->do($query);
+                            "SET pf.Value=? " .
+                            "WHERE pf.FileID=? " .
+                            "AND pf.ParameterTypeID=?";
+    my  $sth_update     =   $dbh->prepare($query);
+    my  $rows_affected  =   $sth_update->execute($new_file_location,$fileID,$ParameterTypeID);
 
     return  ($rows_affected);   
 }
-
-#SELECT FileID,File FROM files;
-#SELECT FileID,Value FROM parameter_file AS pf JOIN parameter_type AS pt ON (pt.ParameterTypeID=pf.ParameterTypeID) WHERE pt.Name='tarchiveLocation';
-#SELECT FileID,Value FROM parameter_file AS pf JOIN parameter_type AS pt ON (pt.ParameterTypeID=pf.ParameterTypeID) WHERE pt.Name='check_pic_filename';
-#SELECT FileID,Value FROM parameter_file AS pf JOIN parameter_type AS pt ON (pt.ParameterTypeID=pf.ParameterTypeID) WHERE pt.Name='jiv_path';
-
-
-
 
