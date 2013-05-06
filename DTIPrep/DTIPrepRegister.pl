@@ -138,7 +138,7 @@ sub register_minc {
     }else   {
         $src_pipeline     =   $pipelineName;
         # insert pipelineName into the mincheader.
-        DTI::modify_header("processing:pipeline", 
+        DTI::modify_header('processing:pipeline', 
                            $src_pipeline, 
                            $minc);
     }
@@ -159,7 +159,31 @@ sub register_minc {
     
     my $outputType  =   "qc";
 
-    registerFile($minc, $src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType); 
+    if  (($minc)            &&  ($src_fileID)      && 
+         ($src_pipeline)    &&  ($pipelineDate)    && 
+         ($coordinateSpace) &&  ($scanType)        && 
+         ($outputType))     { 
+
+        registerFile($minc, 
+                     $src_fileID, 
+                     $src_pipeline, 
+                     $pipelineDate, 
+                     $coordinateSpace, 
+                     $scanType, 
+                     $outputType); 
+
+    } else {
+
+        print LOG "\nERROR: a required option for register_processed_data.pl is not set!!\n";
+        print LOG "sourceFileID:    $src_fileID\n"      .
+                  "sourcePipeline:  $src_pipeline\n"    .
+                  "pipelineDate:    $pipelineDate\n"    .
+                  "coordinateSpace: $coordinateSpace\n" .
+                  "scanType:        $scanType\n"        .
+                  "outputType:      $outputType\n";
+
+    }    
+
 }   
 
 =pod
@@ -191,7 +215,30 @@ sub register_XMLReport {
     my $scanType        =   "XMLQCReport";
     my $outputType      =   "qcreport";
 
-    registerFile($XMLReport, $src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType); 
+    if  (($XMLReport)       &&  ($src_fileID)      &&
+         ($src_pipeline)    &&  ($pipelineDate)    &&
+         ($coordinateSpace) &&  ($scanType)        &&
+         ($outputType))     {
+
+        registerFile($XMLReport,
+                     $src_fileID,
+                     $src_pipeline,
+                     $pipelineDate,
+                     $coordinateSpace,
+                     $scanType,
+                     $outputType);
+
+    } else {
+
+        print LOG "\nERROR: a required option for register_processed_data.pl is not set!!\n";
+        print LOG "sourceFileID:    $src_fileID\n"      .
+                  "sourcePipeline:  $src_pipeline\n"    .
+                  "pipelineDate:    $pipelineDate\n"    .
+                  "coordinateSpace: $coordinateSpace\n" .
+                  "scanType:        $scanType\n"        .
+                  "outputType:      $outputType\n";
+
+    }
 }        
 
 =pod
@@ -223,7 +270,31 @@ sub register_QCReport {
     my $scanType        =   "TxtQCReport";
     my $outputType      =   "qcreport";
 
-    registerFile($QCReport, $src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType); 
+    if  (($QCReport)        &&  ($src_fileID)      &&
+         ($src_pipeline)    &&  ($pipelineDate)    &&
+         ($coordinateSpace) &&  ($scanType)        &&
+         ($outputType))     {
+
+        registerFile($QCReport,
+                     $src_fileID,
+                     $src_pipeline,
+                     $pipelineDate,
+                     $coordinateSpace,
+                     $scanType,
+                     $outputType);
+    
+    } else {
+    
+        print LOG "\nERROR: a required option for register_processed_data.pl is not set!!\n";
+        print LOG "sourceFileID:    $src_fileID\n"      .
+                  "sourcePipeline:  $src_pipeline\n"    .
+                  "pipelineDate:    $pipelineDate\n"    . 
+                  "coordinateSpace: $coordinateSpace\n" .
+                  "scanType:        $scanType\n"        .                                     
+                  "outputType:      $outputType\n";
+        
+    }
+
 }        
         
 =pod
@@ -253,18 +324,18 @@ sub getFiles {
 This function gathers informations about the source file (i.e. raw dataset that was used to obtain the minc file)
 =cut
 sub getSourceFileName {
-    my  ($file,$dbh)    =   @_;
+    my  ($file, $dbh)   =   @_;
 
-    my $src     = $file;
+    my  $src    =  $file;
     if ($file=~/\.mnc/)    {
-        my $headersrc   =  `mincheader $file | grep processing:sourceFile|awk '{print \$3}'|tr '\n' ' '`;
-        $src    = $headersrc if $headersrc !~ /^\s*"*\s*"*\s*$/;
-        $src    =~s/^\s+//; 
-        $src    =~s/\s+$//; 
-        $src    =~s/"//g;
+        my $val =   DTI::fetch_header_info('processing:sourceFile',
+                                           $file,
+                                           '$3');
+        $val    =~  s/"//g  unless (!$val);
+        $src    =   $val    unless (!$val);
     }
-    $src =~ s/(_QCReport\.txt|_XMLQCResult\.xml|_QCed\.mnc|_QCed_rgb\.mnc)$//;
-    my $src_name= basename($src,'.mnc');
+    $src        =~  s/(_QCReport\.txt|_XMLQCResult\.xml|_QCed\.mnc|_QCed_rgb\.mnc)$//;
+    my $src_name=   basename($src,'.mnc');
 
     return ($src_name);
 }
@@ -302,15 +373,14 @@ Fetches pipeline informations in the header of the minc files or in the QCReport
 sub getPipelineName {    
     my  ($file)     =   @_;
 
-    my  $src_pipeline   =   `mincheader $file | grep processing:pipeline|awk '{print \$3}'|tr '\n' ' '`;
-    
+    my  $src_pipeline   =   DTI::fetch_header_info('processing:pipeline',
+                                                   $file,
+                                                   '$3');
     if  (!$src_pipeline)  {
         print LOG "ERROR: no pipeline have been found in mincheader of $file. Check that the processing:pipeline field exits or specify which pipeline was used manually with the option -pipelineName as input of the script DTIPrepRegister.pl."; 
         exit 33;
     }else   {
         #remove leading spaces, trailing spaces and all instances of "
-        $src_pipeline   =~s/^\s+//; 
-        $src_pipeline   =~s/\s+$//; 
         $src_pipeline   =~s/"//g;
     }
     
@@ -326,7 +396,9 @@ sub getPipelineDate {
     my  $pipelineDate;
     
     if  ($file=~/\.mnc/)    {
-        $pipelineDate   =   `mincheader $file | grep processing:processing_date|awk '{print \$3}'|tr '\n' ' '`;
+        $pipelineDate   =   DTI::fetch_header_info('processing:processing_date',
+                                                   $file,
+                                                   '$3');
     }
     
     if  ((!$pipelineDate) || ($file=~/XMLQCResult\.xml/) || ($file=~/QCReport\.txt/))   {
@@ -340,7 +412,7 @@ sub getPipelineDate {
         
         if ($file=~/\.mnc/) {
             # insert pipelineDate into mincheader if not already in the mincheader. 
-            DTI::modify_header("processing:processing_date", 
+            DTI::modify_header('processing:processing_date', 
                                $pipelineDate, 
                                $file);
         }
@@ -349,8 +421,6 @@ sub getPipelineDate {
         
         print LOG "\n> Fetching date of processing in the mincheader of $file";
         #remove leading spaces, trailing spaces and all instances of "
-        $pipelineDate   =~s/^\s+//; 
-        $pipelineDate   =~s/\s+$//; 
         $pipelineDate   =~s/"//g;
     
     }
@@ -371,7 +441,7 @@ sub insertPipelineSummary   {
     my $count_gradient  =   insertHeader($minc, $rm_intergradient,  "processing:intergradient_rejected");
 
     my $total           =   $count_slice + $count_inter + $count_gradient;
-    DTI::modify_header("processing:total_rejected",
+    DTI::modify_header('processing:total_rejected',
                        $total,
                        $minc);
 }
