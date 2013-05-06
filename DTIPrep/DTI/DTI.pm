@@ -153,7 +153,7 @@ sub sortTimeDimension {
 Function that convert minc files to nrrd, then run DTIPrep and convert the QCed files back into minc files (with updated headers). 
 =cut
 sub runQCtools {
-    my  ($dti_file, $QC_out, $protocol, $DTIPrepVersion)    =   @_;
+    my  ($dti_file, $data_dir, $QC_out, $protocol, $DTIPrepVersion)    =   @_;
 
     my  ($dti_name, $nrrd, $QCed_nrrd, $QC_report, $QCed_minc)  =   getOutputNames ($dti_file, $QC_out);
  
@@ -171,6 +171,7 @@ sub runQCtools {
         unless (-e $QCed_minc) {
             DTI::convert_DTI($QCed_nrrd, $QCed_minc, '--nrrd-to-minc');
             ($insert_header)    =   DTI::insertMincHeader($dti_file, 
+                                                          $data_dir,
                                                           $QCed_minc, 
                                                           $QC_report, 
                                                           $DTIPrepVersion);
@@ -234,11 +235,13 @@ Takes the raw DTI file and the QCed minc file as input and modify the QCed minc 
 
 =cut
 sub insertMincHeader {
-    my  ($raw_dti, $processed_minc, $QC_report, $DTIPrepVersion)    =   @_;
+    my  ($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion)    =   @_;
 
     ### insert processing information in a mincheader field called processing:
     # 1) processing:sourceFile
-    DTI::modify_header('processing:sourceFile', $raw_dti, $processed_minc);
+    my  $sourceFile     =   $raw_dti;
+    $sourceFile         =~  s/$data_dir//i;
+    DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc);
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
     my  ($seriesUID)    =   DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
@@ -318,7 +321,8 @@ sub modify_header {
 sub DTI::fetch_header_info {
     my  ($field, $minc, $awk, $keep_semicolon)  =   @_;
 
-    my $value   =   `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
+    my  $val    =   `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
+    my  $value  =   $val    if  $val !~ /^\s*"*\s*"*\s*$/;
     $value      =~  s/^\s+//;                           # remove leading spaces
     $value      =~  s/\s+$//;                           # remove trailing spaces
     $value      =~  s/;//   unless ($keep_semicolon);   # remove ";" unless $keep_semicolon is defined

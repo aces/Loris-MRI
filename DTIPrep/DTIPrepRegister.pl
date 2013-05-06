@@ -9,6 +9,7 @@ use Date::Parse;
 use lib "$FindBin::Bin";
 
 use DB::DBI;
+use DTI::DTI;
 
 my  $profile = undef;
 my  $pipelineName;
@@ -137,7 +138,9 @@ sub register_minc {
     }else   {
         $src_pipeline     =   $pipelineName;
         # insert pipelineName into the mincheader.
-        `minc_modify_header -sinsert processing:pipeline=$src_pipeline $minc`;
+        DTI::modify_header("processing:pipeline", 
+                           $src_pipeline, 
+                           $minc);
     }
     
     my  ($pipelineDate) =   getPipelineDate($minc,$QCReport); # if date not in $minc, use QC report and insert it into the mincheader.
@@ -337,7 +340,9 @@ sub getPipelineDate {
         
         if ($file=~/\.mnc/) {
             # insert pipelineDate into mincheader if not already in the mincheader. 
-            `minc_modify_header -sinsert processing:processing_date=$pipelineDate $file`;
+            DTI::modify_header("processing:processing_date", 
+                               $pipelineDate, 
+                               $file);
         }
     
     } else  {
@@ -366,7 +371,9 @@ sub insertPipelineSummary   {
     my $count_gradient  =   insertHeader($minc, $rm_intergradient,  "processing:intergradient_rejected");
 
     my $total           =   $count_slice + $count_inter + $count_gradient;
-    `minc_modify_header -sinsert processing:total_rejected=$total $minc`;
+    DTI::modify_header("processing:total_rejected",
+                       $total,
+                       $minc);
 }
 
 =pod
@@ -394,11 +401,15 @@ sub insertHeader    {
     my @rm_dirs     =   split(',',$rm_directions);
     my $count_dirs  =   scalar(@rm_dirs);
 
+    my  $value;
     if  ($count_dirs==0)    {
-        `minc_modify_header -sinsert $minc_field="@rm_dirs ($count_dirs)" $minc`;
+        $value  =   "@rm_dirs ($count_dirs)";
     } else  {
-        `minc_modify_header -sinsert $minc_field="Directions @rm_dirs ($count_dirs)" $minc`;
+        $value  =   "Directions @rm_dirs ($count_dirs)";
     }    
+    DTI::modify_header($minc_field,
+                       $value,
+                       $minc);
 
     return  ($count_dirs);
 }
@@ -415,7 +426,7 @@ sub registerFile  {
     print LOG "\t- coordinateSpace is: $coordinateSpace\n";
     print LOG "\t- scanType is: $scanType\n";
     print LOG "\t- outputType is: $outputType\n";
-    my $cmd =   "perl register_processed_data.pl " .
+    my $cmd =   "perl ../uploadNeuroDB/register_processed_data.pl " .
                     "-profile $profile " .
                     "-file $file " .
                     "-sourceFileID $src_fileID " .
