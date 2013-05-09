@@ -40,12 +40,16 @@ Create DTIPrep pipeline output folders.
 sub createOutputFolders{
     my  ($outdir, $subjID, $visit, $protocol) = @_;   
     
-    my  $QC_out =   $outdir . "/" .
-                    $subjID . "/" .
-                    $visit  . "/mri/processed/" .
-                    substr(basename($protocol),0,-4);
+    my  $QC_out     =   $outdir . "/" .
+                        $subjID . "/" .
+                        $visit  . "/mri/processed/" .
+                        substr(basename($protocol),0,-4);
 
     make_path($QC_out,{verbose => 0, mode => 0755})   unless -e $QC_out;
+
+    my  $copied_prot=   $QC_out."/".basename($protocol);
+    my  $command    =   "cp $protocol $copied_prot";
+    system($command)    unless (-e $copied_prot);
                                                          
     return  ($QC_out);
 }
