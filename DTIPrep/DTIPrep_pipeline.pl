@@ -25,15 +25,11 @@ USAGE
 my $profile         =   undef;
 my $DTIPrepVersion  =   undef;
 my $notes           =   'notes';
-my $bcheck_prot     =   '/data/preventAD/data/bin/mri/dti_pipeline/diffusion_protocols/DTIPrep_PreventAD_bcheck_prot.xml';
-my $nobcheck_prot   =   '/data/preventAD/data/bin/mri/dti_pipeline/diffusion_protocols/DTIPrep_PreventAD_NObcheck_prot.xml';
 my ($list, @args);
 
 my @args_table      =   (["-profile",       "string",   1,      \$profile,       "name of config file in ~/.neurodb."],
                          ["-version",       "string",   1,      \$DTIPrepVersion,"DTIPrep version used if cannot be found in DTIPrep binary path"],
-                         ["-list",          "string",   1,      \$list,          "list of directories to look in for diffusion files (i.e. assembly/DCCID/Visit/mri/native)"    ],
-                         ["-bcheck_prot",   "string",   1,      \$bcheck_prot,   "stringent diffusion protocol file (b-check option ON)" ],
-                         ["-nobcheck_prot", "string",   1,      \$nobcheck_prot, "non-stringent diffusion protocol file (no b-check)"    ],
+                         ["-list",          "string",   1,      \$list,          "file with the list of directories to look into for diffusion files (e.g. assembly/DCCID/Visit/mri/native)"    ],
                          ["-n",             "string",   1,      \$notes,         "name of notes file in each subject dir (i.e. no path)" ]
                         );
 
@@ -67,6 +63,8 @@ my  $data_dir       =   $Settings::data_dir;
 my  $t1_scan_type   =   $Settings::t1_scan_type;
 my  $DTI_volumes    =   $Settings::DTI_volumes;
 my  $reject_thresh  =   $Settings::reject_thresh;
+my  $bcheck_prot    =   $Settings::bcheck_prot;
+my  $nobcheck_prot  =   $Settings::nobcheck_prot;
 
 # needed for log file
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)   =   localtime(time);
@@ -87,8 +85,8 @@ foreach my $d (@dirs)   {
     chomp ($d);
 
     ####### Step 1: Get Site, SubjectID and Visit #######
-    my  ($site, $subjID, $visit)    =   DTI::getSiteSubjectVisitIDs($d); 
-    if  (!($site))  {
+    my  ($site, $subjID, $visit)    =   &Settings::get_DTI_Site_CandID_Visit($d); 
+    if  ((!$site) || (!$subjID) || (!$visit))  {
         print LOG "\n#############################\n";
         print LOG "\n#############################\n";
         print LOG "\nERROR:Cannot find site,ID,visit for $d\n";
@@ -138,6 +136,7 @@ foreach my $d (@dirs)   {
     ####### Step 4: Run DTIPrep without bcheck option #######
         print LOG "==> DTIPrep protocol used:   $nobcheck_prot\n";
         my ($QCed_minc, $QC_report, $insert_hdr)    =   DTI::runQCtools($dti_file,
+                                                                        $data_dir,
                                                                         $nobcheckQC_out,
                                                                         $nobcheck_prot,
                                                                         $DTIPrepVersion);
@@ -155,6 +154,7 @@ foreach my $d (@dirs)   {
     ####### Step 5: Run DTIPrep with bcheck option (Stringent DTIPrep protocol) #######
         print LOG "==> DTIPrep protocol used:   $bcheck_prot\n";
         my ($bcheckQCed_minc, $bcheckQC_report, $bcheck_insert_hdr) =   DTI::runQCtools($dti_file,
+                                                                                        $data_dir,
                                                                                         $bcheckQC_out,
                                                                                         $bcheck_prot,
                                                                                         $DTIPrepVersion);

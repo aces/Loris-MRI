@@ -32,27 +32,7 @@ use MNI::FileUtilities  qw(check_output_dirs);
 @ISA        = qw(Exporter);
 
 @EXPORT     = qw();
-@EXPORT_OK  = qw(getSiteSubjectVisitIDs createOutputFolders getFiles sortParam insertMincHeader create_FA_RGB_maps createNoteFile);
-
-=pod
-Get Site, Subject and Session names based on directory where native MRI files are stored.
-=cut
-sub getSiteSubjectVisitIDs {
-    my ($d) =   @_;
-#    if($d=~/\/*([A-Za-z0-9]+)_([0-9]+)_(v\d+)/i){          # if several sites
-    if  ($d =~  /\/*([0-9]+)\/([N,P][A,R][P,E]EN00)/i)  {   # when only one site
-#        $site   =  $1;                                          # if several sites
-#        $subjID =  $2;
-#        $visit  =  $3;
-        $site   =   "PreventAD";                                  # when only one site
-        $subjID =   $1;
-        $visit  =   $2;
-        return  ($site,$subjID,$visit);
-    }else{
-        return  undef;
-    }
-  
-}
+@EXPORT_OK  = qw(createOutputFolders getFiles sortParam insertMincHeader create_FA_RGB_maps createNoteFile);
 
 =pod
 Create DTIPrep pipeline output folders.
@@ -318,7 +298,7 @@ sub modify_header {
 =pod
 
 =cut
-sub DTI::fetch_header_info {
+sub fetch_header_info {
     my  ($field, $minc, $awk, $keep_semicolon)  =   @_;
 
     my  $val    =   `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
