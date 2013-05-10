@@ -182,6 +182,7 @@ foreach my $d (@dirs)   {
                           "FA map is:       $FA\n" .
                           "RGB map is:      $RGB\n";
                 my  ($FA_insert_hdr)    =   DTI::insertMincHeader($dti_file, 
+                                                                  $data_dir,
                                                                   $FA,  
                                                                   $QC_report, 
                                                                   $DTIPrepVersion);
@@ -190,6 +191,7 @@ foreach my $d (@dirs)   {
                               "Number of arguments not equal to number of values to insert in FA QCed minc header.\n\n";
                 }
                 my  ($RGB_insert_hdr)   =   DTI::insertMincHeader($dti_file, 
+                                                                  $data_dir,
                                                                   $RGB, 
                                                                   $QC_report, 
                                                                   $DTIPrepVersion);
