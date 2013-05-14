@@ -260,6 +260,10 @@ sub loadFileFromDisk {
         $fileType = 'xfm';
     } elsif($file =~ /\.imp$/) {
         $fileType = 'imp';
+    } elsif($file =~ /\.xml$/) {
+        $fileType = 'xml';
+    } elsif($file =~ /\.txt$/) {
+        $fileType = 'txt';
     }
     $this->setFileData('FileType', $fileType) if defined $fileType;
     
