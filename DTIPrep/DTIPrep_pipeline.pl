@@ -99,6 +99,7 @@ foreach my $d (@dirs)   {
         print     $site . "\t" . $subjID . "\t" . $visit . "\n";
     }
 
+    ########################## Merge step 2, 3, 4 and 5 into one function called ProcessingPipeline ###########################################
     ####### Step 2: Create output folders #######
         ## for nobcheck_protocol ##
     my ($nobcheckQC_out)=   DTI::createOutputFolders($outdir,

@@ -45,12 +45,8 @@ sub createOutputFolders{
                         $visit  . "/mri/processed/" .
                         substr(basename($protocol),0,-4);
 
-    make_path($QC_out,{verbose => 0, mode => 0755})   unless -e $QC_out;
+    system("mkdir -p -m 755 $QC_out")   unless -e $QC_out;
 
-    my  $copied_prot=   $QC_out."/".basename($protocol);
-    my  $command    =   "cp $protocol $copied_prot";
-    system($command)    unless (-e $copied_prot);
-                                                         
     return  ($QC_out);
 }
 
@@ -139,7 +135,7 @@ Function that convert minc files to nrrd, then run DTIPrep and convert the QCed 
 sub runQCtools {
     my  ($dti_file, $data_dir, $QC_out, $protocol, $DTIPrepVersion)    =   @_;
 
-    my  ($dti_name, $nrrd, $QCed_nrrd, $QC_report, $QCed_minc)  =   getOutputNames ($dti_file, $QC_out);
+    my  ($dti_name, $nrrd, $QCed_nrrd, $QC_report, $QCed_minc, $copiedProtocol)  =   getOutputNames ($dti_file, $QC_out, $protocol);
  
     # Convert minc DTI file to nrrd 
     DTI::convert_DTI($dti_file, $nrrd, '--short --minc-to-nrrd')    unless (-e $nrrd);
@@ -147,6 +143,8 @@ sub runQCtools {
     # Run DTIPrep
     if  (-e $nrrd)  {
         DTI::runDTIPrep($nrrd, $protocol, $QCed_nrrd)   unless (-e $QCed_nrrd);
+        print "\n\ncp $protocol $copiedProtocol\n\n";
+        system("cp $protocol $copiedProtocol")  unless (-e $copiedProtocol);
     }
 
     # Convert QCed nrrd file back into minc file (with updated header)
@@ -168,15 +166,24 @@ sub runQCtools {
 =pod
 =cut
 sub getOutputNames {
-    my  ($dti_file, $QC_out)    =   @_;
+    my  ($dti_file, $QC_out, $protocol)    =   @_;
 
-    my  $dti_name   =   substr(basename($dti_file),0,-4);
-    my  $nrrd       =   $QC_out . "/" . $dti_name . ".nrrd"        ;
-    my  $QCed_nrrd  =   $QC_out . "/" . $dti_name . "_QCed.nrrd"   ;
-    my  $QC_report  =   $QC_out . "/" . $dti_name . "_QCReport.txt";
-    my  $QCed_minc  =   $QC_out . "/" . $dti_name . "_QCed.mnc"    ;
+    my $protocol_name;
+    print "Protocol is: $protocol\n\n";
+    if  ($protocol =~ m/XMLbcheck/i) {
+        $protocol_name  =   "XMLbcheck_prot.xml";
+    } elsif ($protocol =~ m/XMLnobcheck/i) {
+        $protocol_name  =   "XMLnobcheck_prot.xml";
+    }
 
-    return  ($dti_name, $nrrd, $QCed_nrrd, $QC_report, $QCed_minc);
+    my  $dti_name       =   substr(basename($dti_file),0,-4);
+    my  $nrrd           =   $QC_out . "/" . $dti_name . ".nrrd"        ;
+    my  $QCed_nrrd      =   $QC_out . "/" . $dti_name . "_QCed.nrrd"   ;
+    my  $QC_report      =   $QC_out . "/" . $dti_name . "_QCReport.txt";
+    my  $QCed_minc      =   $QC_out . "/" . $dti_name . "_QCed.mnc"    ;
+    my  $copiedProtocol =   $QC_out . "/" . $dti_name . "_" . $protocol_name ;
+
+    return  ($dti_name, $nrrd, $QCed_nrrd, $QC_report, $QCed_minc, $copiedProtocol);
 }
 
 =pod
