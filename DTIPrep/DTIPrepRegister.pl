@@ -15,6 +15,7 @@ my  $profile = undef;
 my  $pipelineName;
 my  $xml=0;
 my  $txt=0;
+my  $prot=0;
 my  @args;
 
 
@@ -45,6 +46,7 @@ my  @args_table = (
     ["-pipelineName",   "string",   1,      \$pipelineName, "PipelineName_version of the pipeline used (i.e. DTIPrep_v1.1.6). This option should be set if the pipelineName is not stored in the mincheader field processing:src_pipeline of the processed file"],
     ["-xml",            "boolean",  undef,  \$xml,          "insert DTIPrep .xml QC report in the database"],
     ["-txt",            "boolean",  undef,  \$txt,          "insert the DTIPrep .txt QC report in the database"],
+    ["-prot",           "boolean",  undef,  \$prot,         "insert the DTIPrep XML protocol used to run DTIPrep in the database"]
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
@@ -90,15 +92,15 @@ foreach my  $DTIPrep_subdir  (@DTIPrep_subdirs)   {
     print LOG "\n==> DTI outputs directory: $DTIPrep_subdir\n";
 
     # Get the DTI output files (i.e. QCed.mnc, QCReport.txt and RGB.mnc)
-    my  ($QCReport,$XMLReport,$RGB,$QCed)   =   getFiles($DTIPrep_subdir);
-    my  ($registeredXMLFile, $registeredQCReportFile);
+    my  ($QCReport,$XMLReport,$XMLprotocol,$RGB,$QCed)   =   getFiles($DTIPrep_subdir);
+    my  ($registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile);
     
     # What to do with the XML when -xml option is set
     if      (($xml == 1) && (!$XMLReport))  {
         print LOG "WARNING: No XML Report was found in $DTIPrep_subdir\n\n\n";
     }elsif  (($xml == 1) && ($XMLReport))   {
-        $registeredXMLFile      = register_XMLReport($XMLReport,$QCReport,$pipelineName);
-        print "\nRegistered XML report = $registeredXMLFile.\n";
+        $registeredXMLReportFile      = register_XMLFile($XMLReport,$QCReport,$pipelineName);
+        print "\nRegistered XML report = $registeredXMLReportFile.\n";
     }
 
     # What to do with the QCReport when -txt option is set
@@ -108,20 +110,17 @@ foreach my  $DTIPrep_subdir  (@DTIPrep_subdirs)   {
         $registeredQCReportFile = register_QCReport($QCReport,$pipelineName);
         print "\nRegistered QC report = $registeredQCReportFile.\n";
     }
-
-    if  ($registeredXMLFile && $registeredQCReportFile) {
-        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile)   if ($RGB  && -e $RGB) ;
-        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile)   if ($QCed && -e $QCed);
-    } elsif ($registeredXMLFile && !$registeredQCReportFile) {
-        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, $registeredXMLFile, undef)   if ($RGB  && -e $RGB) ;
-        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, $registeredXMLFile, undef)   if ($QCed && -e $QCed);
-    } elsif (!$registeredXMLFile && $registeredQCReportFile) {  
-        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, undef, $registeredQCReportFile)   if ($RGB  && -e $RGB) ;
-        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, undef, $registeredQCReportFile)   if ($QCed && -e $QCed);
-    } else {
-        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, undef, undef)   if ($RGB  && -e $RGB) ;
-        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, undef, undef)   if ($QCed && -e $QCed);
+    
+    # What to do with the Protocol used to run DTIPrep when -prot option is set
+    if      (($prot == 1) && (!$XMLprotocol))   {
+        print LOG "WARNING: No XML protocol file was found in $DTIPrep_subdir\n\n\n";
+    }elsif  (($prot == 1) && ($XMLprotocol))    {
+        $registeredXMLprotocolFile = register_XMLFile($XMLprotocol, $QCReport, $pipelineName);
+        print "\nRegistered XML protocol = $registeredXMLprotocolFile.\n";
     }
+
+    my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile)   if ($RGB  && -e $RGB) ;
+    my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile)   if ($QCed && -e $QCed);
 }
 
 # Program is finished
@@ -137,7 +136,7 @@ This set the different parameters needed to be able to register minc files.
 Once set, this function will call registerFile which will run the script register_processed_data.pl.
 =cut
 sub register_minc {
-    my ($minc, $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile)  =   @_;
+    my ($minc, $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile)  =   @_;
 
     print LOG "\n==> File to register is:\n$minc\n";
     print "\n==>File: $minc\n";
@@ -159,7 +158,7 @@ sub register_minc {
     
     my  ($pipelineDate) =   getPipelineDate($minc,$QCReport); # if date not in $minc, use QC report and insert it into the mincheader.
     
-    insertPipelineReports($minc, $registeredXMLFile, $registeredQCReportFile);
+    insertPipelineReports($minc, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile);
     insertPipelineSummary($minc, $QCReport);
 
     my  ($coordinateSpace);
@@ -204,40 +203,45 @@ sub register_minc {
 }   
 
 =pod
-This set the different parameters needed to be able to register XMLReports of DTIPrep. 
+This set the different parameters needed to be able to register XML Report and protocol of DTIPrep. 
 Once set, this function will call registerFile which will run register_processed_data.pl.
 =cut
-sub register_XMLReport {
-    my ($XMLReport,$QCReport,$pipelineName) =   @_;
+sub register_XMLFile {
+    my ($XMLFile,$QCReport,$pipelineName) =   @_;
 
-    print LOG "\n==> File to register is:\n$XMLReport\n";
-    print "\n==>File: $XMLReport\n";
+    print LOG "\n==> File to register is:\n$XMLFile\n";
+    print "\n==>File: $XMLFile\n";
 
-    my  $src_name   =   getSourceFileName($XMLReport,$dbh);
-    my  $src_fileID =   getSourceFileID($XMLReport,$src_name,$dbh);
+    my  $src_name   =   getSourceFileName($XMLFile,$dbh);
+    my  $src_fileID =   getSourceFileID($XMLFile,$src_name,$dbh);
 
     my  $src_pipeline;
     if  (!$pipelineName)    {
         print "WARNING: This should not happen as long as the pipeline versioning of DTIPrep is not fixed!"; 
         exit 33; 
         # Will need to program this part once DTIPrep fixed!
-        #($src_pipeline)=getPipelineName($XMLReport);
+        #($src_pipeline)=getPipelineName($XMLFile);
     }else   {
         $src_pipeline   =   $pipelineName;
     }
 
-    my ($pipelineDate)  =   getPipelineDate($XMLReport,$QCReport);
+    my ($pipelineDate)  =   getPipelineDate($XMLFile,$QCReport);
 
     my $coordinateSpace =   "native";
-    my $scanType        =   "XMLQCReport";
-    my $outputType      =   "qcreport";
-
-    if  (($XMLReport)       &&  ($src_fileID)      &&
+    my ($scanType, $outputType);
+    if ($XMLFile =~ /XMLQCResult\.xml$/i) {
+        $scanType       =   "XMLQCReport";
+        $outputType     =   "qcreport";
+    } elsif ($XMLFile =~ /XMLnobcheck_prot\.xml$/i) {
+        $scanType       =   "ProcessingProtocol";
+        $outputType     =   "protocol";
+    }
+    if  (($XMLFile)         &&  ($src_fileID)      &&
          ($src_pipeline)    &&  ($pipelineDate)    &&
          ($coordinateSpace) &&  ($scanType)        &&
          ($outputType))     {
 
-        my  ($registeredXMLFile)  = registerFile($XMLReport,
+        my  ($registeredXMLFile)  = registerFile($XMLFile,
                                         $src_fileID,
                                         $src_pipeline,
                                         $pipelineDate,
@@ -331,14 +335,16 @@ sub getFiles {
     my  ($RGB_name)         = grep( /rgb\.mnc$/i,           @entries);
     my  ($QCed_name)        = grep( /QCed\.mnc$/i,          @entries);
     my  ($XMLReport_name)   = grep( /XMLQCResult\.xml$/i,   @entries);
+    my  ($XMLProtocol_name) = grep( /XMLnobcheck_prot\.xml$/i,   @entries);
     my  ($QCReport_name)    = grep( /QCReport\.txt$/i,      @entries);
     
     my  $RGB        =   $DTIPrep_subdir."/".$RGB_name;
     my  $QCed       =   $DTIPrep_subdir."/".$QCed_name;
     my  $XMLReport  =   $DTIPrep_subdir."/".$XMLReport_name;
     my  $QCReport   =   $DTIPrep_subdir."/".$QCReport_name;
+    my  $XMLProtocol=   $DTIPrep_subdir."/".$XMLProtocol_name;
 
-    return  ($QCReport,$XMLReport,$RGB,$QCed);
+    return  ($QCReport,$XMLReport,$XMLProtocol,$RGB,$QCed);
 }
 
 =pod
@@ -355,7 +361,7 @@ sub getSourceFileName {
         $val    =~  s/"//g  unless (!$val);
         $src    =   $val    unless (!$val);
     }
-    $src        =~  s/(_QCReport\.txt|_XMLQCResult\.xml|_QCed\.mnc|_QCed_rgb\.mnc)$//;
+    $src        =~  s/(_QCReport\.txt|_XMLQCResult\.xml|_XMLnobcheck_prot\.xml|_QCed\.mnc|_QCed_rgb\.mnc)$//;
     my $src_name=   basename($src,'.mnc');
 
     return ($src_name);
@@ -453,11 +459,12 @@ sub getPipelineDate {
 Insert in the mincheader the path to DTIPrep QC txt and xml reports.
 =cut
 sub insertPipelineReports {
-    my ($minc, $registeredXMLFile, $registeredQCReportFile) = @_;
+    my ($minc, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile) = @_;
 
-    DTI::modify_header('processing:DTIPrepTxtReport', $registeredQCReportFile, $minc) if ($registeredQCReportFile);
+    DTI::modify_header('processing:DTIPrepTxtReport',   $registeredQCReportFile, $minc) if ($registeredQCReportFile);
 
-    DTI::modify_header('processing:DTIPrepXmlReport', $registeredXMLFile, $minc)      if ($registeredXMLFile);
+    DTI::modify_header('processing:DTIPrepXmlReport',   $registeredXMLFile, $minc)      if ($registeredXMLFile);
+    DTI::modify_header('processing:DTIPrepXmlProtocol', $registeredXMLprotocolFile, $minc)      if ($registeredXMLFile);
 
 }
 
