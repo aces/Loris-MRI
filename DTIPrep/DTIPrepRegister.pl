@@ -91,22 +91,36 @@ foreach my  $DTIPrep_subdir  (@DTIPrep_subdirs)   {
 
     # Get the DTI output files (i.e. QCed.mnc, QCReport.txt and RGB.mnc)
     my  ($QCReport,$XMLReport,$RGB,$QCed)   =   getFiles($DTIPrep_subdir);
-
-    register_minc($RGB,$QCReport,$pipelineName)   if ($RGB  && -e $RGB) ;
-    register_minc($QCed,$QCReport,$pipelineName)  if ($QCed && -e $QCed);
-
+    my  ($registeredXMLFile, $registeredQCReportFile);
+    
     # What to do with the XML when -xml option is set
     if      (($xml == 1) && (!$XMLReport))  {
         print LOG "WARNING: No XML Report was found in $DTIPrep_subdir\n\n\n";
     }elsif  (($xml == 1) && ($XMLReport))   {
-        register_XMLReport($XMLReport,$QCReport,$pipelineName);
+        $registeredXMLFile      = register_XMLReport($XMLReport,$QCReport,$pipelineName);
+        print "\nRegistered XML report = $registeredXMLFile.\n";
     }
 
     # What to do with the QCReport when -txt option is set
     if      (($txt == 1) && (!$QCReport))   {
         print LOG "WARNING: No QCReport file was found in $DTIPrep_subdir\n\n\n";
     }elsif  (($txt == 1) && ($QCReport))    {
-        register_QCReport($QCReport,$pipelineName);
+        $registeredQCReportFile = register_QCReport($QCReport,$pipelineName);
+        print "\nRegistered QC report = $registeredQCReportFile.\n";
+    }
+
+    if  ($registeredXMLFile && $registeredQCReportFile) {
+        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile)   if ($RGB  && -e $RGB) ;
+        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile)   if ($QCed && -e $QCed);
+    } elsif ($registeredXMLFile && !$registeredQCReportFile) {
+        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, $registeredXMLFile, undef)   if ($RGB  && -e $RGB) ;
+        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, $registeredXMLFile, undef)   if ($QCed && -e $QCed);
+    } elsif (!$registeredXMLFile && $registeredQCReportFile) {  
+        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, undef, $registeredQCReportFile)   if ($RGB  && -e $RGB) ;
+        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, undef, $registeredQCReportFile)   if ($QCed && -e $QCed);
+    } else {
+        my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, undef, undef)   if ($RGB  && -e $RGB) ;
+        my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, undef, undef)   if ($QCed && -e $QCed);
     }
 }
 
@@ -123,7 +137,7 @@ This set the different parameters needed to be able to register minc files.
 Once set, this function will call registerFile which will run the script register_processed_data.pl.
 =cut
 sub register_minc {
-    my ($minc,$QCReport,$pipelineName)  =   @_;
+    my ($minc, $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile)  =   @_;
 
     print LOG "\n==> File to register is:\n$minc\n";
     print "\n==>File: $minc\n";
@@ -145,7 +159,8 @@ sub register_minc {
     
     my  ($pipelineDate) =   getPipelineDate($minc,$QCReport); # if date not in $minc, use QC report and insert it into the mincheader.
     
-    insertPipelineSummary($minc,$QCReport);
+    insertPipelineReports($minc, $registeredXMLFile, $registeredQCReportFile);
+    insertPipelineSummary($minc, $QCReport);
 
     my  ($coordinateSpace);
     my  ($scanType);
@@ -164,13 +179,15 @@ sub register_minc {
          ($coordinateSpace) &&  ($scanType)        && 
          ($outputType))     { 
 
-        registerFile($minc, 
-                     $src_fileID, 
-                     $src_pipeline, 
-                     $pipelineDate, 
-                     $coordinateSpace, 
-                     $scanType, 
-                     $outputType); 
+        my  ($registeredMincFile)   = registerFile($minc, 
+                                        $src_fileID, 
+                                        $src_pipeline, 
+                                        $pipelineDate, 
+                                        $coordinateSpace, 
+                                        $scanType, 
+                                        $outputType); 
+        
+        return ($registeredMincFile);
 
     } else {
 
@@ -220,13 +237,15 @@ sub register_XMLReport {
          ($coordinateSpace) &&  ($scanType)        &&
          ($outputType))     {
 
-        registerFile($XMLReport,
-                     $src_fileID,
-                     $src_pipeline,
-                     $pipelineDate,
-                     $coordinateSpace,
-                     $scanType,
-                     $outputType);
+        my  ($registeredXMLFile)  = registerFile($XMLReport,
+                                        $src_fileID,
+                                        $src_pipeline,
+                                        $pipelineDate,
+                                        $coordinateSpace,
+                                        $scanType,
+                                        $outputType);
+
+        return ($registeredXMLFile);
 
     } else {
 
@@ -275,13 +294,15 @@ sub register_QCReport {
          ($coordinateSpace) &&  ($scanType)        &&
          ($outputType))     {
 
-        registerFile($QCReport,
-                     $src_fileID,
-                     $src_pipeline,
-                     $pipelineDate,
-                     $coordinateSpace,
-                     $scanType,
-                     $outputType);
+        my  ($registeredQCReportFile) = registerFile($QCReport,
+                                            $src_fileID,
+                                            $src_pipeline,
+                                            $pipelineDate,
+                                            $coordinateSpace,
+                                            $scanType,
+                                            $outputType);
+
+        return ($registeredQCReportFile);
     
     } else {
     
@@ -429,6 +450,18 @@ sub getPipelineDate {
 }
 
 =pod
+Insert in the mincheader the path to DTIPrep QC txt and xml reports.
+=cut
+sub insertPipelineReports {
+    my ($minc, $registeredXMLFile, $registeredQCReportFile) = @_;
+
+    DTI::modify_header('processing:DTIPrepTxtReport', $registeredQCReportFile, $minc) if ($registeredQCReportFile);
+
+    DTI::modify_header('processing:DTIPrepXmlReport', $registeredXMLFile, $minc)      if ($registeredXMLFile);
+
+}
+
+=pod
 Insert in the mincheader the summary of DTIPrep reports.
 =cut
 sub insertPipelineSummary   {
@@ -507,4 +540,42 @@ sub registerFile  {
                     "-outputType $outputType";
     system($cmd);
     print LOG "\n==> Command sent:\n$cmd\n";
+    
+    my  ($registeredFile) = fetchRegisteredFile($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType);
+
+    return ($registeredFile);
 }        
+
+=pod
+Fetch the registered report fileID to link it to the minc files
+=cut
+sub fetchRegisteredFile {
+    my ($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType) = @_;
+
+    my $registeredFile;
+
+    # fetch the FileID of the raw dataset
+    my $query   =   "SELECT f.File "          .
+                    "FROM files f "             .
+                    "JOIN mri_scan_type mst "   .
+                        "ON mst.ID=f.AcquisitionProtocolID ".
+                    "WHERE f.SourceFileID=? "   .
+                        "AND f.SourcePipeline=? "   .
+                        "AND f.PipelineDate=? "     .
+                        "AND f.CoordinateSpace=? "  .
+                        "AND mst.Scan_type=? "      .
+                        "AND OutputType=?";
+
+    my $sth     =   $dbh->prepare($query);
+    $sth->execute($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType);
+
+    if  ($sth->rows > 0)    {
+        my $row =   $sth->fetchrow_hashref();
+        $registeredFile =   $row->{'File'};
+    }else   {
+        print LOG "WARNING: No fileID found for SourceFileID=$src_fileID, SourcePipeline=$src_pipeline, PipelineDate=$pipelineDate, CoordinateSpace=$coordinateSpace, ScanType=$scanType and OutputType=$outputType.\n\n\n";
+    }
+
+    return  ($registeredFile);
+
+}
