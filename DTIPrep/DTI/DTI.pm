@@ -38,114 +38,83 @@ use MNI::FileUtilities  qw(check_output_dirs);
 Create DTIPrep pipeline output folders.
 =cut
 sub createOutputFolders{
-    my  ($outdir, $subjID, $visit, $protocol) = @_;   
+    my  ($outdir, $subjID, $visit, $protocol, $runDTIPrep) = @_;   
     
     my  $QC_out     =   $outdir . "/" .
                         $subjID . "/" .
                         $visit  . "/mri/processed/" .
                         substr(basename($protocol),0,-4);
 
-    system("mkdir -p -m 755 $QC_out")   unless -e $QC_out;
+    system("mkdir -p -m 755 $QC_out")   unless (-e $QC_out || !$runDTIPrep);
 
-    return  ($QC_out);
+
+    return  ($QC_out) if (-e $QC_out);
+}
+
+=pod
+Subroutine that will read the content of a directory and return a list of files matching the string given in argument with $match.
+=cut
+sub getFilesList {
+    my ($dir, $match)   = @_;
+    my (@files_list)    = ();
+
+    ## Read directory $dir and stored its content in @entries 
+    opendir  (DIR,"$dir")   ||  die "cannot open $dir\n";
+    my @entries = readdir(DIR);
+    closedir (DIR);
+
+    ## Keep only files that match string stored in $match
+    @files_list = grep(/$match/i, @entries);
+    ## Add directory path to each element (file) of the array 
+    @files_list = map  {"$dir/" . $_} @files_list;    
+
+    return  (\@files_list);
 }
 
 =pod
 Function that parses files in native MRI directories and fetch only T1 structural and DTI files. This function will also concatenate together multipleDTI files if DTI acquisition performed accross several DTI scans.
 =cut
-sub getFiles{
-    my  ($d, $QC_out, $site, $subjID, $visit, $t1_scan_type, $DTI_volumes)  =   @_;
-
-    my  (@keep, @keep_concat, @afiles)    =   ();
-    my  $anat;
-
-    # Get all files contained in input directory without . and ..
-    opendir   (DIR,"$d")   ||  die "cannot open $d\n";
-    rewinddir (DIR);
-    while   (my $f  =   readdir(DIR)) {
-        if  ($f     =~  /\.mnc$/){
-            push    (@afiles, "$d/$f"); # @afiles contains files' full path
-        }
-    }
-
-    ## Grab the ones we want
-    my  @DTI_frames     =   split(',',$DTI_volumes);
-    my  $afiles_size    =   $#afiles;
-    foreach my $f (@afiles) {
-        if  (`mincinfo -dimnames $f`   =~  m/time/)    {
-            my $time    =   `mincinfo -dimlength time $f`;
-            chomp($time);
-            if  ($time  ~~ \@DTI_frames) {
-                push    (@keep, $f);
-            }
-        } elsif ($f    =~  m/adniT1/i) {
-            $anat   =   $f;
-        }
-    }
-
-    # !!!!!!!!!!! If multiple DTI needs to be concatenated. Need to test it. 
-    my  $sorted         =   '';
-    my  $concat;
-    if  ($#DTI_frames > 0) {
-        ($sorted,my $t) =   DTI::sortTimeDimension($files);
-        ($concat)       =   $QC_out . "/" . $site . "_" . $subjID . "_" . $visit . "_concat.mnc";    
-        my  $cmd        =   "concat-diff-header.pl @sorted $concat";
-        system($cmd)    unless (-e $concat);
-        push    (@keep_concat, $concat);
-        return  ($anat,\@keep_concat);
-    }
+sub getRawDTIFiles{
+    my ($nativedir, $DTI_volumes)   = @_;
     
-    return  ($anat,\@keep);
-}
+    ## Get all mincs contained in native directory
+    my ($mincs_list)    = DTI::getFilesList($nativedir, 'mnc$');
 
-
-=pod
-Sorts the files according to parameter specified in param 
-($sort,$t) = sort_param($files, $param)
-$sort = reference to array containing sorted files
-$t     = list of sorted param
-$files = reference to array containing name of files
-$param = which attribute to sort with (ie command to pass to mincinfo without "-attvalue"
-    ex: -attvalue $param where $param: acquisition:echo_time
-    or $param where $param: -dimlength zspace
-=cut
-sub sortTimeDimension {
-    my  ($files)     =   @_;
-
-    #get param for each file
-    my  %tmp    =   ();
-    foreach my $f (@$files){
-        my  $key    =   sprintf("%.3f", `mincinfo -dimlength time $f`);  # only keep 3 decimals 
-        push    (@{$tmp{$key}},$f);
+    ## Grab the mincs I want, a.k.a. with minc file with $DTI_volumes 
+    my @DTI_frames  = split(',',$DTI_volumes);
+    my @DTIs_list   = (); 
+    foreach my $mnc (@$mincs_list) {
+        if  (`mincinfo -dimnames $mnc` =~ m/time/)    {
+            my $time    = `mincinfo -dimlength time $mnc`;
+            chomp($time);
+            if  ($time ~~ \@DTI_frames) {
+                push (@DTIs_list, $mnc);
+            }
+        }
     }
 
-    #sort in ascending order and store in a list
-    my  ($sort, $t);
-    foreach my $k (sort keys %tmp){
-        push    (@$sort,@{$tmp{$k}});
-        push    (@$t,$k); # keep sorted keys
-    }
-
-    return  ($sort,$t);
+    ## Return list of DTIs with the right volume numbers
+    return  (\@DTIs_list);
 }
 
 =pod
-Function that convert minc files to nrrd, then run DTIPrep and convert the QCed files back into minc files (with updated headers). 
+Function that will copy the DTIPrep protocol used to the output directory of DTIPrep. 
 =cut
-sub runQCtools {
-    my  ($dti_file, $data_dir, $QC_out, $protocol, $DTIPrepVersion)    =   @_;
+sub copyDTIPrepProtocol {
+    my ($DTIPrepProtocol, $QCProt)    =   @_;
 
-    my  ($dti_name, $nrrd, $QCed_nrrd, $QC_report, $QCed_minc, $copiedProtocol)  =   getOutputNames ($dti_file, $QC_out, $protocol);
- 
-    # Convert minc DTI file to nrrd 
-    DTI::convert_DTI($dti_file, $nrrd, '--short --minc-to-nrrd')    unless (-e $nrrd);
+    my $cmd = "cp $DTIPrepProtocol $QCProt";
+    system($cmd)    unless (-e $QCProt);
 
-    # Run DTIPrep
-    if  (-e $nrrd)  {
-        DTI::runDTIPrep($nrrd, $protocol, $QCed_nrrd)   unless (-e $QCed_nrrd);
-        print "\n\ncp $protocol $copiedProtocol\n\n";
-        system("cp $protocol $copiedProtocol")  unless (-e $copiedProtocol);
+    if (-e $QCProt) {
+        return 1;
+    } else {
+        return undef;
     }
+}
+
+######################
+sub Convert2mnc {
 
     # Convert QCed nrrd file back into minc file (with updated header)
     my  $insert_header;
@@ -164,26 +133,32 @@ sub runQCtools {
 }
 
 =pod
+Function that will determine output names based on each DTI file dataset and return a hash of DTIref:
+       dti_file_1  -> Raw_nrrd     => outputname
+                   -> QCed_nrrd    => outputname
+                   -> QCTxtReport  => outputname
+                   -> QCXmlReport  => outputname
+                   -> QCed_minc    => outputname
+                   -> QCProt       => outputname
+       dti_file_2  -> Raw_nrrd     => outputname etc...
 =cut
-sub getOutputNames {
-    my  ($dti_file, $QC_out, $protocol)    =   @_;
+sub createDTIhashref {
+    my  ($DTIs_list, $QCoutdir, $DTIPrepProtocol)    =   @_;
+    my %DTIrefs;
 
-    my $protocol_name;
-    print "Protocol is: $protocol\n\n";
-    if  ($protocol =~ m/XMLbcheck/i) {
-        $protocol_name  =   "XMLbcheck_prot.xml";
-    } elsif ($protocol =~ m/XMLnobcheck/i) {
-        $protocol_name  =   "XMLnobcheck_prot.xml";
+    foreach my $dti_file (@$DTIs_list) {
+        my $prot_name       = basename($DTIPrepProtocol);
+        my $dti_name        = substr(basename($dti_file),0,-4);
+
+        $DTIrefs{$dti_file}{'Raw_nrrd'}     = $QCoutdir . "/" . $dti_name . ".nrrd"           ;
+        $DTIrefs{$dti_file}{'QCed_nrrd'}   = $QCoutdir . "/" . $dti_name . "_QCed.nrrd"      ;
+        $DTIrefs{$dti_file}{'QCTxtReport'} = $QCoutdir . "/" . $dti_name . "_QCReport.txt"   ;
+        $DTIrefs{$dti_file}{'QCXmlReport'} = $QCoutdir . "/" . $dti_name . "_XMLQCResult.xml";
+        $DTIrefs{$dti_file}{'QCed_minc'}   = $QCoutdir . "/" . $dti_name . "_QCed.mnc"       ;
+        $DTIrefs{$dti_file}{'QCProt'}      = $QCoutdir . "/" . $dti_name . "_" . $prot_name  ;
     }
-
-    my  $dti_name       =   substr(basename($dti_file),0,-4);
-    my  $nrrd           =   $QC_out . "/" . $dti_name . ".nrrd"        ;
-    my  $QCed_nrrd      =   $QC_out . "/" . $dti_name . "_QCed.nrrd"   ;
-    my  $QC_report      =   $QC_out . "/" . $dti_name . "_QCReport.txt";
-    my  $QCed_minc      =   $QC_out . "/" . $dti_name . "_QCed.mnc"    ;
-    my  $copiedProtocol =   $QC_out . "/" . $dti_name . "_" . $protocol_name ;
-
-    return  ($dti_name, $nrrd, $QCed_nrrd, $QC_report, $QCed_minc, $copiedProtocol);
+    
+    return  (\%DTIrefs);
 }
 
 =pod
@@ -200,17 +175,29 @@ sub convert_DTI {
     my  $cmd        =   "itk_convert $options --dwi $file_in $file_out";
     print "\n\tConverting $file_in to $file_out (...)\n$cmd\n";
     system($cmd)    unless (-e $file_out);
+
+    if (-e $file_out) {
+        return 1;   # successfully converted
+    } else {
+        return undef;   # failed during conversion
+    }
 }
 
 =pod
 Function that run DTIPrep on nrrd file
 =cut
 sub runDTIPrep {
-    my  ($nrrd, $protocol, $QCed_nrrd)  =   @_;    
+    my  ($raw_nrrd, $protocol, $QCed_nrrd)  =   @_;    
 
-    my  $cmd        =   "DTIPrep --DWINrrdFile $nrrd --xmlProtocol $protocol";
+    my  $cmd        =   "DTIPrep --DWINrrdFile $raw_nrrd --xmlProtocol $protocol";
     print   "\n\tRunning DTIPrep (...)\n$cmd\n";
     system($cmd)    unless (-e $QCed_nrrd);
+
+    if (-e $QCed_nrrd) {
+        return 1;
+    } else {
+        return undef;
+    }
 }
 
 =pod
