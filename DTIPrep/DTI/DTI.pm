@@ -72,7 +72,27 @@ sub getFilesList {
 }
 
 =pod
-Function that parses files in native MRI directories and fetch only T1 structural and DTI files. This function will also concatenate together multipleDTI files if DTI acquisition performed accross several DTI scans.
+Functionthat parses files in native MRI directory and grab the T1 acquisition based on $t1_scan_type.
+If no anat was found, will return undef.
+If multiple anat were found, will return the first anat of the list.
+=cut
+sub getAnatFile {
+    my ($nativedir, $t1_scan_type)  = @_;
+
+    # Fetch files in native directory that matched t1_scan_type
+    my $anat_list   = DTI::getFilesList($nativedir, $t1_scan_type);
+
+    # Return undef if no anat found, first anat otherwise
+    if (@$anat_list == 0) { 
+        return undef; 
+    } else { 
+        my $anat    = @$anat_list[0];
+        return $anat;
+    }
+}
+
+=pod
+Function that parses files in native MRI directories and fetch DTI files. This function will also concatenate together multipleDTI files if DTI acquisition performed accross several DTI scans.
 =cut
 sub getRawDTIFiles{
     my ($nativedir, $DTI_volumes)   = @_;
@@ -143,19 +163,26 @@ Function that will determine output names based on each DTI file dataset and ret
        dti_file_2  -> Raw_nrrd     => outputname etc...
 =cut
 sub createDTIhashref {
-    my  ($DTIs_list, $QCoutdir, $DTIPrepProtocol)    =   @_;
+    my ($DTIs_list, $anat, $QCoutdir, $DTIPrepProtocol)    =   @_;
     my %DTIrefs;
 
     foreach my $dti_file (@$DTIs_list) {
         my $prot_name       = basename($DTIPrepProtocol);
         my $dti_name        = substr(basename($dti_file),0,-4);
+        my $anat_name       = substr(basename($anat),0,-4);
 
-        $DTIrefs{$dti_file}{'Raw_nrrd'}     = $QCoutdir . "/" . $dti_name . ".nrrd"           ;
-        $DTIrefs{$dti_file}{'QCed_nrrd'}   = $QCoutdir . "/" . $dti_name . "_QCed.nrrd"      ;
-        $DTIrefs{$dti_file}{'QCTxtReport'} = $QCoutdir . "/" . $dti_name . "_QCReport.txt"   ;
-        $DTIrefs{$dti_file}{'QCXmlReport'} = $QCoutdir . "/" . $dti_name . "_XMLQCResult.xml";
-        $DTIrefs{$dti_file}{'QCed_minc'}   = $QCoutdir . "/" . $dti_name . "_QCed.mnc"       ;
-        $DTIrefs{$dti_file}{'QCProt'}      = $QCoutdir . "/" . $dti_name . "_" . $prot_name  ;
+        $DTIrefs{$dti_file}{'Raw_nrrd'}     = $QCoutdir . "/" . $dti_name  . ".nrrd"             ;
+        $DTIrefs{$dti_file}{'QCed_nrrd'}    = $QCoutdir . "/" . $dti_name  . "_QCed.nrrd"        ;
+        $DTIrefs{$dti_file}{'QCTxtReport'}  = $QCoutdir . "/" . $dti_name  . "_QCReport.txt"     ;
+        $DTIrefs{$dti_file}{'QCXmlReport'}  = $QCoutdir . "/" . $dti_name  . "_XMLQCResult.xml"  ;
+        $DTIrefs{$dti_file}{'QCed_minc'}    = $QCoutdir . "/" . $dti_name  . "_QCed.mnc"         ;
+        $DTIrefs{$dti_file}{'QCProt'}       = $QCoutdir . "/" . $dti_name  . "_" . $prot_name    ;
+        $DTIrefs{$dti_file}{'FA'}           = $QCoutdir . "/" . $dti_name  . "QCed_FA.mnc"       ;
+        $DTIrefs{$dti_file}{'RGB'}          = $QCoutdir . "/" . $dti_name  . "QCed_rgb.mnc"      ;
+        $DTIrefs{$dti_file}{'rgb_pic'}      = $QCoutdir . "/" . $dti_name  . "QCed_RGB.png"      ;   
+        $DTIrefs{$dti_file}{'anat'}         = $anat                                              ;
+        $DTIrefs{$dti_file}{'anat_mask'}    = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
+        $DTIrefs{$dti_file}{'preproc_minc'} = $QCoutdir . "/" . $anat_name . "-preprocessed.mnc" ;
     }
     
     return  (\%DTIrefs);
@@ -332,40 +359,47 @@ sub get_header_list {
 Function that created FA and RGB maps as well as the triplanar pic of the RGB map. 
 =cut
 sub create_FA_RGB_maps {
-    my ($QCed_minc,$anat,$QC_out)   =   @_;
+    my ($dti_file, $DTIrefs, $QCoutdir)   =   @_;
 
-    my $anat_basename               =   substr(basename($anat),0,-4);
-    my $QCed_minc_basename          =   substr(basename($QCed_minc),0,-4);
-    my $preprocessed_minc           =   $QC_out . "/" . $anat_basename      . "-preprocessed.mnc";
-    my $anat_mask                   =   $QC_out . "/" . $anat_basename      . "-n3-bet_mask.mnc";
-    my $FA                          =   $QC_out . "/" . $QCed_minc_basename . "_FA.mnc";
-    my $RGB                         =   $QC_out . "/" . $QCed_minc_basename . "_rgb.mnc";
-    my $rgb_pic                     =   $QC_out . "/" . $QCed_minc_basename . "_RGB.png";   
-    
-    if  (-e $rgb_pic    &&  $RGB    &&  $anat_mask  &&  $preprocessed_minc) {
+    # Initialize variables
+    my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
+    my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
+    my $FA            = $DTIrefs->{$dti_file}{'FA'}           ;
+    my $RGB           = $DTIrefs->{$dti_file}{'RGB'}          ;
+    my $rgb_pic       = $DTIrefs->{$dti_file}{'rgb_pic'}      ;
+    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
+    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
+    my $anat          = $DTIrefs->{$dti_file}{'anat'}         ;
+
+    # Check if output files already exists
+    if (-e $rgb_pic && $RGB && $anat_mask && $preproc_minc) {
         return  0;
     }
 
-    if  (-e $anat       &&  $QCed_minc) {
-        `diff_preprocess.pl -anat $anat $QCed_minc $preprocessed_minc -outdir $QC_out`   unless (-e $preprocessed_minc);
+    # Run diff_preprocess.pl pipeline if anat and QCed dti exists. Return 1 otherwise
+    if (-e $anat && $QCed_minc) {
+        `diff_preprocess.pl -anat $anat $QCed_minc $preproc_minc -outdir $QCoutdir`   unless (-e $preproc_minc);
     } else {
         return  1;
     } 
 
-    if  (-e $anat_mask  &&  $preprocessed_minc) {
-        `minctensor.pl -mask $anat_mask $preprocessed_minc -niakdir /opt/niak-0.6.4.1/ -outputdir $QC_out -octave $QCed_minc_basename`  unless (-e $FA);
+    # Run minctensor.pl if anat mask and preprocessed minc exist
+    if (-e $anat_mask && $preproc_minc) {
+        `minctensor.pl -mask $anat_mask $preproc_minc -niakdir /opt/niak-0.6.4.1/ -outputdir $QCoutdir -octave $QCed_basename`  unless (-e $FA);
     } else {
         return  2;
     }
 
-    if  (-e $RGB)   {
+    # Run mincpik if RGB map exists. Should remove this since it will be created once pipeline finalized
+    if (-e $RGB) {
         `mincpik -triplanar -horizontal $RGB $rgb_pic`  unless (-e $rgb_pic);
     } else {
         return  3;
     }
-                                                                                      
-    $success    =   "yes";
-    return  ($success, $FA, $RGB, $rgb_pic);
+    
+    # Return yes if everything was successful
+    $success    = "yes";
+    return  ($success);
 }
 
 =pod
