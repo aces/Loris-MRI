@@ -32,7 +32,7 @@ use MNI::FileUtilities  qw(check_output_dirs);
 @ISA        = qw(Exporter);
 
 @EXPORT     = qw();
-@EXPORT_OK  = qw(createOutputFolders getFiles sortParam insertMincHeader create_FA_RGB_maps createNoteFile);
+@EXPORT_OK  = qw(createOutputFolders getFiles sortParam insertMincHeader create_processed_maps createNoteFile);
 
 =pod
 Create DTIPrep pipeline output folders.
@@ -358,7 +358,7 @@ sub get_header_list {
 =pod
 Function that created FA and RGB maps as well as the triplanar pic of the RGB map. 
 =cut
-sub create_FA_RGB_maps {
+sub create_processed_maps {
     my ($dti_file, $DTIrefs, $QCoutdir)   =   @_;
 
     # Initialize variables
