@@ -242,7 +242,31 @@ Takes the raw DTI file and the QCed minc file as input and modify the QCed minc 
 sub insertMincHeader {
     my  ($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion)    =   @_;
 
-    ### insert processing information in a mincheader field called processing:
+    # insertion of processed information into $processed_minc
+    my ($procInsert)    =   DTI::insertProcessInfo($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion);
+
+    # insert old acquisition, patient and study arguments except for the one modified by DTIPrep (i.e. acquisition:bvalues, acquisition:b_matrix and all acquisition:direction*)
+    my  ($acqInsert)    =   DTI::insertAcqInfo($raw_dti, $processed_minc)   if ($processed_minc =~ /_QCed\.mnc$/i);
+
+    # insert patient information from the raw dataset into the processed files
+    my  ($patientInsert)=   DTI::insertFieldList($raw_dti, $processed_minc, 'patient:');
+
+    # insert study information from the raw dataset into the processed files
+    my  ($studyInsert)  =   DTI::insertFieldList($raw_dti, $processed_minc, 'study:');
+
+    if ((!$procInsert) || (!$acqInsert) || (!$patientInsert) || (!$studyInsert)) {
+        return undef;
+    } else {
+        return 1;
+    }
+}
+
+=pod
+This will insert in the header of the processed file processing information.
+=cut
+sub insertProcessInfo {
+    my ($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion) = @_;
+
     # 1) processing:sourceFile
     my  $sourceFile     =   $raw_dti;
     $sourceFile         =~  s/$data_dir//i;
@@ -255,46 +279,56 @@ sub insertMincHeader {
     # 3) processing:pipeline used
     DTI::modify_header('processing:pipeline', $DTIPrepVersion, $processed_minc);
 
-
-#    # 1) EchoTime in the minc file
-#    my  ($SourceEchoTime)   =   DTI::fetch_header_info('acquisition:echo_time',$raw_dti,'$3, $4, $5, $6');
-#    DTI::modify_header('processing:sourceEchoTime', $SourceEchoTime, $QCed_minc);
-
     # 4) processing:processing_date (when DTIPrep was run)
     my  $check_line     =   `cat $QC_report | grep "Check Time"`;
     $check_line         =~  s/Check Time://;      # Only keep date info in $check_line.
     my ($ss,$mm,$hh,$day,$month,$year,$zone)    =   strptime($check_line);
-    my $processingDate  =  sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
+    my $processingDate  =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
     DTI::modify_header('processing:processing_date', $processingDate, $processed_minc);
 
-    ### reinsert old acquisition, patient and study arguments except for the one modified by DTIPrep (i.e. acquisition:bvalues, acquisition:b_matrix and all acquisition:direction*)
-    # 1) acquisition:b_value insertion
-    my  ($b_value)  =   DTI::fetch_header_info('acquisition:b_value',$raw_dti,'$3, $4, $5, $6');
+    if (($sourceFile =~ /$data_dir/m) || (!$seriesUID) || (!$DTIPrepVersion) || (!$processingDate)) {
+        return undef;
+    } else {
+        return 1;
+    }
+}
+
+=pod
+Insert acquisition information extracted from raw DTI dataset and insert it in the processed file. 
+If one of the value to insert is not defined, return undef, otherwise return 1.
+=cut
+sub insertAcqInfo {
+    my  ($raw_dti, $processed_minc) = @_;
+
+    # 1) insertion of acquisition:b_value 
+    my  ($b_value)      =   DTI::fetch_header_info('acquisition:b_value',$raw_dti,'$3, $4, $5, $6');
     DTI::modify_header('acquisition:b_value', $b_value, $processed_minc);
 
-    # 2) acquisition:delay_in_TR insertion
+    # 2) insertion of acquisition:delay_in_TR 
     my  ($delay_in_tr)  =   DTI::fetch_header_info('acquisition:delay_in_TR',$raw_dti,'$3, $4, $5, $6');
     DTI::modify_header('acquisition:delay_in_TR', $delay_in_TR, $processed_minc);
 
-    # 3) all the remaining acquisition:* arguments 
+    # 3) insertion of all the remaining acquisition:* arguments 
     #    [except acquisition:bvalues, acquisition:b_matrix and acquisition:direction* (already in header from nrrd2minc conversion)]
-    my  ($acquisition_args) =   DTI::fetch_header_info('acquisition:[^dbv]',$raw_dti,'$1, $2');
-    my  ($patient_args)     =   DTI::fetch_header_info('patient:',$raw_dti,'$1, $2');
-    my  ($study_args)       =   DTI::fetch_header_info('study:',$raw_dti,'$1, $2');
+    my  ($acqInsert)    =   DTI::insertFieldList($raw_dti, $processed_minc, 'acquisition:[^dbv]');   
 
-    # fetches header info and don't remove semi_colon (last option of fetch_header_info).
-    my  ($acquisition_vals) =   DTI::fetch_header_info('acquisition:[^dbv]',$raw_dti,'$3, $4, $5, $6',1);
-    my  ($patient_vals)     =   DTI::fetch_header_info('patient:',$raw_dti,'$3, $4, $5, $6',1);
-    my  ($study_vals)       =   DTI::fetch_header_info('study:',$raw_dti,'$3, $4, $5, $6',1);
-
-    my  ($arguments,$values);
-    if  ($processed_minc=~/(_FA\.mnc|_rgb\.mnc)$/i) {
-        $arguments  =   $patient_args . $study_args;
-        $values     =   $patient_vals . $study_vals;
-    } elsif ($processed_minc=~/_QCed\.mnc/i) {
-        $arguments  =   $acquisition_args . $patient_args . $study_args;
-        $values     =   $acquisition_vals . $patient_vals . $study_vals;
+    if  ((!$b_value) || (!$delay_in_tr) || (!$acqInsert)) {
+        return undef;
+    } else {
+        return 1;
     }
+}
+
+
+sub insertFieldList {
+    my  ($raw_dti, $processed_minc, $minc_field) = @_;
+
+    # fetches list of arguments starting with $minc_field (i.e. 'patient:'; 'study:' ...)
+    my  ($arguments) =   DTI::fetch_header_info($minc_field, $raw_dti, '$1, $2');
+
+    # fetches list of values with arguments starting with $minc_field. Don't remove semi_colon (last option of fetch_header_info).
+    my  ($values) =   DTI::fetch_header_info($minc_field, $raw_dti, '$3, $4, $5, $6', 1);
+
     my  ($arguments_list, $arguments_list_size) =   get_header_list('=', $arguments);
     my  ($values_list, $values_list_size)       =   get_header_list(';', $values);
 
@@ -308,7 +342,7 @@ sub insertMincHeader {
     }else {
         return  undef;
     }
-}
+}    
 
 =pod
 Function that runs minc_modify_header.
