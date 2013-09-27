@@ -43,6 +43,8 @@ print "connected";
 ##################Open the file to log the tarchives###########################
 ###########################################################################
 open (MYFILE, '>/data/gusto/data/logs/tarchive_files.txt');
+open (MY_PATIENT_LOG, '>/data/gusto/data/logs/tarchive_patient_log.txt');
+
 open (MYLOG, ">>$log");
 open (MYLOG2, ">>$log2");
 
@@ -160,7 +162,7 @@ sub Execute {
      		}
             $file_name = basename($finalTarget) ;
 	    	print MYFILE "$file_name \n";
-            
+	    	print MY_PATIENT_LOG "$patient_name \n";
 ####################################################################################
 ########################Move the mri-file to the mri_processed location#############
 #################################################################################### 					
