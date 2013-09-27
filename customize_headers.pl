@@ -42,7 +42,7 @@ print "connected";
 ###########################################################################
 ##################Open the file to log the tarchives###########################
 ###########################################################################
-open (MYFILE, '>/data/gusto/bin/mri/tarchive_files.txt');
+open (MYFILE, '>/data/gusto/data/logs/tarchive_files.txt');
 open (MYLOG, ">>$log");
 open (MYLOG2, ">>$log2");
 
