@@ -9,6 +9,7 @@
 ####This will create all the neccessary tarchive files###
 #########################################################
 
+source /data/gusto/bin/mri/environment
 /data/gusto/bin/mri/customize_headers.pl
 
 
