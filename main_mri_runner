@@ -1,0 +1,28 @@
+####Initial setup############################################
+
+####Modify the names##############
+##perl /data/gusto/bin/mri/modify_names.pl NUH /home/zia/Desktop/gusto_mri_transition /home/zia/Desktop/gusto_mri
+##perl /data/gusto/bin/mri/modify_names.pl KKH /home/zia/Desktop/gusto_mri_transition /home/zia/Desktop/gusto_mri
+####Modify the names##############
+
+#########################################################
+####This will create all the neccessary tarchive files###
+#########################################################
+
+/data/gusto/bin/mri/customize_headers.pl
+
+
+#################################################################
+############This script process each tarchive file using the qsub
+############NOTE: Make sure that the errors are logged########
+#################################################################
+
+##find /data/incoming/3GUSTO/incoming > tarchive_files.txt
+/data/gusto/bin/mri/batch_uploads_tarchive < tarchive_files.txt
+
+cd /var/www/loris/project/scripts
+####Populate the output_type column using the files table
+php populate_outputtype.php
+
+#####scan done################
+php scan_done.php
