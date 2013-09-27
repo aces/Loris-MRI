@@ -18,7 +18,7 @@
 #################################################################
 
 ##find /data/incoming/3GUSTO/incoming > tarchive_files.txt
-/data/gusto/bin/mri/batch_uploads_tarchive < tarchive_files.txt
+/data/gusto/bin/mri/batch_uploads_tarchive < /data/gusto/data/logs/tarchive_files.txt
 
 cd /var/www/loris/project/scripts
 ####Populate the output_type column using the files table
