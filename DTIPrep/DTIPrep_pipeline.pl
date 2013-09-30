@@ -130,6 +130,7 @@ foreach my $nativedir (@nativedirs)   {
     if ($runDTIPrep) {
         print LOG "Running DTIPrep (...)\n";
         my ($pre_success)   = &preprocessingPipeline($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
+        # if no preprocessing pipeline was successful for this visit, go to the next one.
         next if (!$pre_success);
     } else {
         print LOG "DTIPrep won't be run for this dataset. (-runDTIPrep option was not set)\n";
@@ -137,7 +138,17 @@ foreach my $nativedir (@nativedirs)   {
     }
 
     #######################
-    ####### Step 5: ####### Run post processing pipeline: 
+    ####### Step 5: ####### Check if DTIPrep outputs are available and will convert nrrd files to mnc. 
+    ####################### These outputs are:
+    #                          - QCed.nrrd
+    #                          - QCReport.txt
+    #                          - XMLQCResult.xml
+    my ($convert_success)   = &check_and_convertPreprocessedFiles($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion);
+    # if no preprocessed files were found or conversion was not successful for this visit, go to the next one.
+    next if (!$convert_success);
+
+    #######################
+    ####### Step 6: ####### Run post processing pipeline: 
     #######################    - will convert QCed file to minc
     #                          - will insert mincheader information from raw DTI into QCed minc DTI
     #                          - will create FA and RGB maps
@@ -156,6 +167,19 @@ foreach my $nativedir (@nativedirs)   {
     
 
 }
+
+        # Create a default notes file for QC summary and manual notes
+ #       my $note_file   =   $QCoutdir."/".$notes;
+#        DTI::createNoteFile($QCoutdir, $note_file, $QCTxtReport, $reject_thresh)  unless (-e $note_file);
+
+
+
+
+
+
+
+
+
 
 ###############
 ## Functions ##
@@ -186,6 +210,10 @@ sub getIdentifiers {
     }
 }
 
+
+
+
+
 =pod
 Determine pipeline output directory, based on the root outdir, DTIPrep protocol, candID and visit label:
 (outdir/ProtocolName/CandID/VisitLabel).
@@ -209,6 +237,11 @@ sub getOutputDirectories {
         return ($QCoutdir);
     }
 }
+
+
+
+
+
 
 =pod
 Fetch the raw DTIs and foreach DTI, determine output names and store them into a hash ($DTIrefs).
@@ -240,56 +273,166 @@ sub fetchData {
     return ($DTIs_list, $DTIrefs);
 }
 
+
+
+
+
+
 =pod
 Function that creates the output folders, get the raw DTI files, convert them to nrrd and run DTIPrep using a bcheck protocol and a nobcheck protocol.
 =cut
 sub preprocessingPipeline {
     my ($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol)  = @_;
 
+    my $at_least_one_success    = 0;
     foreach my $dti_file (@$DTIs_list) {
 
         my $raw_nrrd    = $DTIrefs->{$dti_file}{'Raw_nrrd'};
         my $QCed_nrrd   = $DTIrefs->{$dti_file}{'QCed_nrrd'};
         my $QCProt      = $DTIrefs->{$dti_file}{'QCProt'};
 
-        my ($convert_status, $DTIPrep_status, $copyProt_status);
-        if (-e $raw_nrrd) {
-            print LOG "Raw DTI already converted to nrrd.\n";
-            # set $convert_status to 1 as converted file already exists.
-            $convert_status     = 1;
-        } else {
-            ($convert_status)   = DTI::convert_DTI($dti_file, $raw_nrrd, '--short --minc-to-nrrd');
-            print LOG "Raw DTI successfully converted to nrrd!\n"       if ($convert_status);
-            print LOG "ERROR: Raw DTI mnc2nrrd conversion failed!\n"    if (!$convert_status);
-        }
+        # Run Preprocessing pipeline
+        # 1. convert raw DTI minc file to nrrd
+        my ($convert_status)    = &preproc_mnc2nrrd($raw_nrrd, $dti_file);
+        # 2. run DTIPrep pipeline on the raw nrrd file
+        my ($DTIPrep_status)    = &preproc_DTIPrep($QCed_nrrd, $raw_nrrd, $DTIPrepProtocol, $QCed_nrrd);
+        # 3. copy DTIPrep XML protocol used
+        my ($copyProt_status)   = &copyXMLprotocol($QCProt, $QCoutdir, $DTIPrepProtocol, $QCProt);
 
-        if (-e $QCed_nrrd) {
-            print LOG "QCed nrrd file already exists (DTIPrep was already run).\n";
-            # set DTIPrep_status to 1 as it was already run.
-            $DTIPrep_status     = 1;
-        } else {
-            ($DTIPrep_status)   = DTI::runDTIPrep($raw_nrrd, $DTIPrepProtocol, $QCed_nrrd)  if (-e $raw_nrrd);
-            print LOG "DTIPrep was successfully run. QCed nrrd is $QCed_nrrd.\n"            if ($DTIPrep_status);
-            print LOG "ERROR: DTIPrep failed. \n"                                           if (!$DTIPrep_status);
-        }
-
-        if (-e $QCProt) {
-            print LOG "DTIPrep protocol was already copied in output directory $QCoutdir.\n";
-            # set $copyProt_status to 1 as DTIPrep protocol was already converted.
-            $copyProt_status    = 1;
-        } else {
-            ($copyProt_status)  = DTI::copyDTIPrepProtocol($DTIPrepProtocol, $QCProt);
-            print LOG "DTIPrep protocol successfully copied in output directory $QCoutdir.\n"   if ($copyProt_status);
-            print LOG "ERROR: Failed to copy DTIPrep protocol in output directory. \n\t Protocol to copy is: $DTIPrepProtocol. \n\tOutput directory is $QCoutdir.\n"   if (!$copyProt_status);
-        }
-        
+        # If one of the steps above failed, preprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
         if ((!$convert_status) || (!$DTIPrep_status) || (!$copyProt_status)) {
-            return undef;
+            $DTIrefs->{$dti_file}{'preproc_status'} = "failed";
         } else {
-            return 1;
+            $DTIrefs->{$dti_file}{'preproc_status'} = "success";
+            # add 1 to varaible $at_least_one_success
+            $at_least_one_success++;
         }
     }
+
+    #Return undef if variable $at_least_one success is null, otherwise return 1.
+    if ($at_least_one_success == 0) {
+        return undef;
+    } else {
+        return 1;
+    }
 }                                                  
+
+
+
+
+
+
+
+=pod
+Function that convert minc raw DTI file to nrrd and print in the LOG conversion status.
+Will return undef if conversion failed, 1 if conversion is a success.
+=cut
+sub preproc_mnc2nrrd {
+    my ($raw_nrrd, $dti_file) = @_;
+    
+    if (-e $raw_nrrd) {
+        print LOG "Raw DTI already converted to nrrd.\n";
+        # set $convert_status to 1 as converted file already exists.
+        return 1;
+    } else {
+        my ($convert_status)   = DTI::convert_DTI($dti_file, $raw_nrrd, '--short --minc-to-nrrd');
+        print LOG "Raw DTI successfully converted to nrrd!\n"       if ($convert_status);
+        print LOG "ERROR: Raw DTI mnc2nrrd conversion failed!\n"    if (!$convert_status);
+        return $convert_status;
+    }
+}
+
+
+
+
+
+
+=pod
+This function will call DTI::runDTIPrep and run DTIPrep on the raw nrrd file.
+It will return 1 if QCed nrrd already exist or $DTIPrep_status if DTIPrep is run. (DTIPrep_status can be equal to 1 if DTIPrep ran successfully, or undef if something went bad while running DTIPrep.
+=cut
+sub preproc_DTIPrep {
+    my ($QCed_nrrd, $raw_nrrd, $DTIPrepProtocol, $QCed_nrrd) = @_;
+
+    if (-e $QCed_nrrd) {
+        print LOG "QCed nrrd file already exists (DTIPrep was already run).\n";
+        return 1;
+    } else {
+        my ($DTIPrep_status)   = DTI::runDTIPrep($raw_nrrd, $DTIPrepProtocol, $QCed_nrrd)  if (-e $raw_nrrd);
+        print LOG "DTIPrep was successfully run. QCed nrrd is $QCed_nrrd.\n"            if ($DTIPrep_status);
+        print LOG "ERROR: DTIPrep failed. \n"                                           if (!$DTIPrep_status);
+        return $DTIPrep_status;
+    }
+}
+
+
+
+
+
+
+
+=pod
+Function that will call DTI::copyDTIPrepProtocol if the XML protocol has not already been copied in DTIPrep QC outdir.
+Will return 1 is XML protocol has already been copied or $copyProt_status from DTI::copyDTIPrepProtocol, which will be either equals to 1 if copy was successful or undef if copy failed.
+=cut
+sub copyXMLprotocol {
+    my ($QCProt, $QCoutdir, $DTIPrepProtocol, $QCProt) = @_;
+
+    if (-e $QCProt) {
+        print LOG "DTIPrep protocol was already copied in output directory $QCoutdir.\n";
+        return 1;
+    } else {
+        my ($copyProt_status)  = DTI::copyDTIPrepProtocol($DTIPrepProtocol, $QCProt);
+        print LOG "DTIPrep protocol successfully copied in output directory $QCoutdir.\n"   if ($copyProt_status);
+        print LOG "ERROR: Failed to copy DTIPrep protocol in output directory. \n\t Protocol to copy is: $DTIPrepProtocol. \n\tOutput directory is $QCoutdir.\n"   if (!$copyProt_status);
+        return $copyProt_status;
+    }
+}        
+
+
+
+
+
+
+
+=pod
+This function will check preprocessing outputs and call convert2mnc, which will convert and reinsert headers into minc file.
+Will return undef if could not find preprocessed files or convert it to minc. Will return 1 if conversion was a success and all preprocessing files were found in QC outdir.
+=cut
+sub check_and_convertPreprocessedFiles {
+    my ($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion)  = @_;
+
+
+    my $at_least_one_success    = 0;
+    foreach my $dti_file (@$DTIs_list) {
+
+        # Check if all DTIPrep preprocessing outputs are available
+        my ($foundPreprocessed) = &checkPreprocessOutputs($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
+
+        # Convert QCed_nrrd DTI to minc   
+        my ($convert_status)    = &convert2mnc($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion) if ($foundPreprocessed);
+
+        # If one of the steps above failed, postprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
+        if ($convert_status && $foundPreprocessed) {
+            $DTIrefs->{$dti_file}{'convert_status'}    = "success";
+            $at_least_one_success++;
+        } else {
+            $DTIrefs->{$dti_file}{'convert_status'}    = "failed";
+        }
+    }
+
+    #Return undef if variable $at_least_one success is null, otherwise return 1.
+    if ($at_least_one_success == 0) {
+        return undef;
+    } else {
+        return 1;    
+    }
+}
+
+
+
+
+
 
 =pod
 Post processing pipeline will:
@@ -299,31 +442,46 @@ Post processing pipeline will:
 =cut
 sub postProcessingPipeline {
     my ($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion)  = @_;    
-
-    my ($convert_status, $postproc_status);
+    my $at_least_one_success    = 0;
     foreach my $dti_file (@$DTIs_list) {
 
-        # Check if all DTIPrep preprocessing outputs are available
-        my ($QCTxtReport)       = &checkPreprocessOutputs($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
-        return undef    if (!$QCTxtReport);  
+        # Check that QCed minc file exists first!
+        if (!$DTIrefs->{$dti_file}{'QCed_minc'}) {
+            $DTIrefs->{$dti_file}{'postproc_status'}   = "failed";
+            next;
+        }
 
-        # Convert QCed_nrrd DTI to minc   
-        ($convert_status)    = &convert2mnc($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion);
-        # Create FA and RGB maps
-        ($postproc_status)   = &runPostProcessing($dti_file, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion);
+        # Create FA and RGB maps if $runMincdiffusion is set
+        my $postproc_status;
+        if ($runMincdiffusion) {
+            ($postproc_status)   = &runPostProcessing($dti_file, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion);
+        } else {
+            ($postproc_status)   = &fetchPostProcessing($dti_file, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion); 
+        }
 
-        # Create a default notes file for QC summary and manual notes
-        my $note_file   =   $QCoutdir."/".$notes;
-        DTI::createNoteFile($QCoutdir, $note_file, $QCTxtReport, $reject_thresh)  unless (-e $note_file);
 
+        # If one of the steps above failed, postprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
+        if ($postproc_status) {
+            $DTIrefs->{$dti_file}{'postproc_status'}    = "success";
+            $at_least_one_success++;
+        } else {
+            $DTIrefs->{$dti_file}{'postproc_status'}    = "failed";
+        }
     }
-#### return part still need to be worked out
-    if ($convert_status && $postproc_status) {
-        return 1;
-    } else {
+
+    #Return undef if variable $at_least_one success is null, otherwise return 1.
+    if ($at_least_one_success == 0) {
         return undef;
+    } else {
+        return 1;    
     }
 }
+
+
+
+
+
+
 
 =pod
 Check if all Preprocessing DTIPrep files are in the output folder.
@@ -343,7 +501,7 @@ sub checkPreprocessOutputs {
 
     if ((-e $QCed_nrrd) && (-e $QCTxtReport) && (-e $QCXmlReport) && (-e $QCProt)) {
         print LOG "All DTIPrep preprocessing outputs were found in $outdir.\n";
-        return $QCTxtReport;
+        return 1;
     } else {
         print LOG "\nERROR: Could not find all DTIPrep preprocessing outputs in $outdir.\n" .
                     "\tQCed nrrd:   $QCed_nrrd\n"   .
@@ -353,6 +511,12 @@ sub checkPreprocessOutputs {
         return undef;
     }
 }    
+
+
+
+
+
+
 
 =pod
 This function will convert to minc DTI QCed nrrd file from DTIPrep and reinsert all mincheader informations.
@@ -384,6 +548,12 @@ sub convert2mnc {
         return undef;
     }
 }
+
+
+
+
+
+
 
 =pod
 Will create FA and RGB map + insert mincheader information.
