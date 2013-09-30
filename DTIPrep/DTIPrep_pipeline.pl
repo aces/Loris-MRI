@@ -255,6 +255,8 @@ sub preprocessingPipeline {
         my ($convert_status, $DTIPrep_status, $copyProt_status);
         if (-e $raw_nrrd) {
             print LOG "Raw DTI already converted to nrrd.\n";
+            # set $convert_status to 1 as converted file already exists.
+            $convert_status     = 1;
         } else {
             ($convert_status)   = DTI::convert_DTI($dti_file, $raw_nrrd, '--short --minc-to-nrrd');
             print LOG "Raw DTI successfully converted to nrrd!\n"       if ($convert_status);
@@ -263,6 +265,8 @@ sub preprocessingPipeline {
 
         if (-e $QCed_nrrd) {
             print LOG "QCed nrrd file already exists (DTIPrep was already run).\n";
+            # set DTIPrep_status to 1 as it was already run.
+            $DTIPrep_status     = 1;
         } else {
             ($DTIPrep_status)   = DTI::runDTIPrep($raw_nrrd, $DTIPrepProtocol, $QCed_nrrd)  if (-e $raw_nrrd);
             print LOG "DTIPrep was successfully run. QCed nrrd is $QCed_nrrd.\n"            if ($DTIPrep_status);
@@ -271,6 +275,8 @@ sub preprocessingPipeline {
 
         if (-e $QCProt) {
             print LOG "DTIPrep protocol was already copied in output directory $QCoutdir.\n";
+            # set $copyProt_status to 1 as DTIPrep protocol was already converted.
+            $copyProt_status    = 1;
         } else {
             ($copyProt_status)  = DTI::copyDTIPrepProtocol($DTIPrepProtocol, $QCProt);
             print LOG "DTIPrep protocol successfully copied in output directory $QCoutdir.\n"   if ($copyProt_status);
