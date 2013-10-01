@@ -179,10 +179,12 @@ sub createDTIhashref {
         $DTIrefs{$dti_file}{'QCProt'}       = $QCoutdir . "/" . $dti_name  . "_" . $prot_name    ;
         $DTIrefs{$dti_file}{'FA'}           = $QCoutdir . "/" . $dti_name  . "QCed_FA.mnc"       ;
         $DTIrefs{$dti_file}{'RGB'}          = $QCoutdir . "/" . $dti_name  . "QCed_rgb.mnc"      ;
+        $DTIrefs{$dti_file}{'MD'}           = $QCoutdir . "/" . $dti_name  . "QCed_MD.mnc"      ;
         $DTIrefs{$dti_file}{'rgb_pic'}      = $QCoutdir . "/" . $dti_name  . "QCed_RGB.png"      ;   
         $DTIrefs{$dti_file}{'anat'}         = $anat                                              ;
         $DTIrefs{$dti_file}{'anat_mask'}    = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
         $DTIrefs{$dti_file}{'preproc_minc'} = $QCoutdir . "/" . $anat_name . "-preprocessed.mnc" ;
+        $DTIrefs{$dti_file}{'baseline'}     = $QCoutdir . "/" . $anat_name . "-frame0.mnc" ;
     }
     
     return  (\%DTIrefs);
@@ -399,14 +401,16 @@ sub create_processed_maps {
     my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
     my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
     my $FA            = $DTIrefs->{$dti_file}{'FA'}           ;
+    my $MD            = $DTIrefs->{$dti_file}{'MD'}           ;
     my $RGB           = $DTIrefs->{$dti_file}{'RGB'}          ;
     my $rgb_pic       = $DTIrefs->{$dti_file}{'rgb_pic'}      ;
+    my $baseline      = $DTIrefs->{$dti_file}{'baseline'}     ;
     my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
     my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
     my $anat          = $DTIrefs->{$dti_file}{'anat'}         ;
 
     # Check if output files already exists
-    if (-e $rgb_pic && $RGB && $anat_mask && $preproc_minc) {
+    if (-e $rgb_pic && $RGB && $MD && $baseline && $anat_mask && $preproc_minc) {
         return  0;
     }
 
