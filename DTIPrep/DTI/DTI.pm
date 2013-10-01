@@ -391,54 +391,180 @@ sub get_header_list {
     return  ($list, $list_size);
 }
 
-=pod
-Function that created FA and RGB maps as well as the triplanar pic of the RGB map. 
-=cut
-sub create_processed_maps {
-    my ($dti_file, $DTIrefs, $QCoutdir)   =   @_;
 
+
+
+
+
+
+
+
+=pod
+Function that runs diff_preprocess.pl script from the mincdiffusion tools on the QCed minc and raw anat dataset.
+- Arguments:- $dti_file: hash key to use to fetch file names (a.k.a. Raw DTI file) 
+            - $DTIrefs: hash storing file names to be used
+            - $QCoutdir: directory used to create outputs from QC pipeline
+- Returns:  - 1 if all outputs were created
+            - undef if outputs were not created
+=cut
+sub mincdiff_preprocess {
+    my ($dti_file, $DTIrefs, $QCoutdir) = @_;    
+    
     # Initialize variables
+        # 1. input data
     my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
     my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
+    my $raw_anat      = $DTIrefs->{$dti_file}{'anat'}         ;
+        # 2. output data
+    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
+    my $baseline      = $DTIrefs->{$dti_file}{'baseline'}     ;
+    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
+
+
+    # Run diff_preprocess.pl script 
+    `diff_preprocess.pl -anat $raw_anat $QCed_minc $preproc_minc -outdir $QCoutdir`;
+
+    # Check that all output files were created
+    if ((-e $preproc_minc) && (-e $anat_mask) && (-e $baseline)) {
+        return 1;
+    } else {
+        return undef;
+    }
+}
+
+
+
+
+
+
+
+
+
+=pod
+Function that runs minctensor.pl script from the mincdiffusion tools on the mincdiff preprocessed minc and anatomical mask images.
+- Arguments:- $dti_file: hash key to use to fetch file names (a.k.a. Raw DTI file) 
+            - $DTIrefs: hash storing file names to be used
+            - $QCoutdir: directory used to create outputs from QC pipeline
+- Returns:  - 1 if all outputs were created
+            - undef if outputs were not created
+=cut
+sub mincdiff_minctensor {
+    my ($dti_file, $DTIrefs, $QCoutdir) = @_;
+
+    # Initialize variables
+        # 1. input data
+    my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
+    my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
+    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
+    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
+        # 2. output data
     my $FA            = $DTIrefs->{$dti_file}{'FA'}           ;
     my $MD            = $DTIrefs->{$dti_file}{'MD'}           ;
     my $RGB           = $DTIrefs->{$dti_file}{'RGB'}          ;
-    my $rgb_pic       = $DTIrefs->{$dti_file}{'rgb_pic'}      ;
-    my $baseline      = $DTIrefs->{$dti_file}{'baseline'}     ;
-    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
-    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
-    my $anat          = $DTIrefs->{$dti_file}{'anat'}         ;
 
-    # Check if output files already exists
-    if (-e $rgb_pic && $RGB && $MD && $baseline && $anat_mask && $preproc_minc) {
-        return  0;
-    }
+    # Run minctensor.pl script
+    `minctensor.pl -mask $anat_mask $preproc_minc -niakdir /opt/niak-0.6.4.1/ -outputdir $QCoutdir -octave $QCed_basename`;
 
-    # Run diff_preprocess.pl pipeline if anat and QCed dti exists. Return 1 otherwise
-    if (-e $anat && $QCed_minc) {
-        `diff_preprocess.pl -anat $anat $QCed_minc $preproc_minc -outdir $QCoutdir`   unless (-e $preproc_minc);
+    # Check that all output files were created
+    if ((-e $FA) && (-e $RGB) && (-e $MD)) {
+        return 1;
     } else {
-        return  1;
-    } 
-
-    # Run minctensor.pl if anat mask and preprocessed minc exist
-    if (-e $anat_mask && $preproc_minc) {
-        `minctensor.pl -mask $anat_mask $preproc_minc -niakdir /opt/niak-0.6.4.1/ -outputdir $QCoutdir -octave $QCed_basename`  unless (-e $FA);
-    } else {
-        return  2;
+        return undef;
     }
-
-    # Run mincpik if RGB map exists. Should remove this since it will be created once pipeline finalized
-    if (-e $RGB) {
-        `mincpik -triplanar -horizontal $RGB $rgb_pic`  unless (-e $rgb_pic);
-    } else {
-        return  3;
-    }
-    
-    # Return yes if everything was successful
-    $success    = "yes";
-    return  ($success);
 }
+
+
+
+
+
+
+
+
+
+=pod
+Function that runs mincpik on the RGB map.
+- Arguments:- $dti_file: hash key to use to fetch file names (a.k.a. Raw DTI file) 
+            - $DTIrefs: hash storing file names to be used
+- Returns:  - 1 if rgb_pic was created
+            - undef if rgb_pic was not created
+=cut
+sub RGBpik_creation {
+    my ($dti_file, $DTIrefs) = @_;
+
+    # Initialize variables
+        # 1. input file
+    my $RGB     = $DTIrefs->{$dti_file}{'RGB'};
+        # 2. output file
+    my $rgb_pic = $DTIrefs->{$dti_file}{'rgb_pic'};   
+
+    # Run mincpik on the RGB map
+    `mincpik -triplanar -horizontal $RGB $rgb_pic`;
+
+    # Check that the RGB pik was created
+    if (-e $rgb_pic) {
+        return 1;
+    } else {
+        return undef;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+=pod
+Function that created FA and RGB maps as well as the triplanar pic of the RGB map. 
+=cut
+#sub create_processed_maps {
+#    my ($dti_file, $DTIrefs, $QCoutdir)   =   @_;
+#
+#    # Initialize variables
+#    my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
+#    my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
+#    my $FA            = $DTIrefs->{$dti_file}{'FA'}           ;
+#    my $MD            = $DTIrefs->{$dti_file}{'MD'}           ;
+#    my $RGB           = $DTIrefs->{$dti_file}{'RGB'}          ;
+#    my $rgb_pic       = $DTIrefs->{$dti_file}{'rgb_pic'}      ;
+#    my $baseline      = $DTIrefs->{$dti_file}{'baseline'}     ;
+#    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
+#    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
+#    my $anat          = $DTIrefs->{$dti_file}{'anat'}         ;
+#
+#    # Check if output files already exists
+#    if (-e $rgb_pic && $RGB && $MD && $baseline && $anat_mask && $preproc_minc) {
+#        return  0;
+#    }
+#
+#    # Run diff_preprocess.pl pipeline if anat and QCed dti exists. Return 1 otherwise
+#    if (-e $anat && $QCed_minc) {
+#        `diff_preprocess.pl -anat $anat $QCed_minc $preproc_minc -outdir $QCoutdir`   unless (-e $preproc_minc);
+#    } else {
+#        return  1;
+#    } 
+#
+#    # Run minctensor.pl if anat mask and preprocessed minc exist
+#    if (-e $anat_mask && $preproc_minc) {
+#        `minctensor.pl -mask $anat_mask $preproc_minc -niakdir /opt/niak-0.6.4.1/ -outputdir $QCoutdir -octave $QCed_basename`  unless (-e $FA);
+#    } else {
+#        return  2;
+#    }
+#
+#    # Run mincpik if RGB map exists. Should remove this since it will be created once pipeline finalized
+#    if (-e $RGB) {
+#        `mincpik -triplanar -horizontal $RGB $rgb_pic`  unless (-e $rgb_pic);
+#    } else {
+#        return  3;
+#    }
+#    
+#    # Return yes if everything was successful
+#    $success    = "yes";
+#    return  ($success);
+#}
 
 =pod
 Create a default notes file for QC summary and manual notes.

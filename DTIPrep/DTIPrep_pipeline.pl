@@ -533,28 +533,37 @@ sub mincdiffusionPipeline {
 
     my $at_least_one_success    = 0;
     foreach my $dti_file (@$DTIs_list) {
+        # Initialize variables
+        my $QCed_minc   = $DTIrefs->{$dti_file}{'QCed_minc'};
 
         # Check that FA, MD, RGB, RGB pic, baseline frame are not already created
         my ($already_created)   = &checkPostProcessedOutputs($dti_file, $DTIrefs, $QCoutdir);
-
-        # Check that QCed minc file exists first!
-        if (!$DTIrefs->{$dti_file}{'QCed_minc'}) {
-            $DTIrefs->{$dti_file}{'postproc_status'}   = "failed";
+        if ($already_created) {
+            print LOG "Mincdiffusion tools were already run on $QCed_minc\n";
+            $DTIrefs->{$dti_file}{'mincdiff_status'}   = "already_done";
+            $at_least_one_success++;
             next;
         }
 
-        # Create FA and RGB maps if they don't exist already
-        print LOG "Running mincdiffusion tools on $dti_file (...)\n";
-        my ($postproc_status)   = &runPostProcessing($dti_file, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion);
+        # Check that QCed minc file exists first!
+        if (!$QCed_minc) {
+            print LOG "ERROR: could not find any QCed minc to run mincdiffusion tools\n";
+            $DTIrefs->{$dti_file}{'mincdiff_status'}   = "failed";
+            next;
+        }
 
-        # If one of the steps above failed, postprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
-        if ($postproc_status) {
-            print LOG " => Successfully ran mincdiffusion tools on $dti_file!\n";
-            $DTIrefs->{$dti_file}{'postproc_status'}    = "success";
+        # Run mincdiffusion tools 
+        print LOG "Running mincdiffusion tools on $QCed_minc (...)\n";
+        my ($mincdiff_status)   = &runMincdiffusion($dti_file, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion);
+
+        # If mincdiff_status is undef (mincdiffusion failed to create output files), mincdiff_status will be set to failed for this dti_file, otherwise it will be set to success.
+        if ($mincdiff_status) {
+            print LOG " => Successfully ran mincdiffusion tools for $dti_file!\n";
+            $DTIrefs->{$dti_file}{'mincdiff_status'}    = "success";
             $at_least_one_success++;
         } else {
             print LOG " => Something went wrong while running mincdiffusion tools on $dti_file.\n";
-            $DTIrefs->{$dti_file}{'postproc_status'}    = "failed";
+            $DTIrefs->{$dti_file}{'mincdiff_status'}    = "failed";
         }
     }
 
@@ -577,52 +586,88 @@ sub mincdiffusionPipeline {
 =pod
 Will create FA and RGB map + insert mincheader information.
 =cut
-sub runPostProcessing {
+sub runMincdiffusion {
     my ($dti_file, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion) = @_;
 
-    # Initialize variables
-    my $QCed_minc   = $DTIrefs->{$dti_file}{'QCed_minc'};
-    my $QCTxtReport = $DTIrefs->{$dti_file}{'QCTxtReport'};
-    my $FA          = $DTIrefs->{$dti_file}{'FA'};
-    my $RGB         = $DTIrefs->{$dti_file}{'RGB'};
-    my ($postProc_success, $FA_insert, $RGB_insert);
+    # 1. Initialize variables
+        # Raw anatomical
+    my $raw_anat    = $DTIrefs->{$dti_file}{'anat'}        ; 
+        # DTIPrep outputs
+    my $QCed_minc   = $DTIrefs->{$dti_file}{'QCed_minc'}     ;
+    my $QCTxtReport = $DTIrefs->{$dti_file}{'QCTxtReport'}   ;
+        # diff_preprocess.pl outputs
+    my $baseline    = $DTIrefs->{$dti_file}{'baseline'}      ;
+    my $preproc_minc= $DTIrefs->{$dti_file}{'preproc_minc'};
+    my $anat_mask   = $DTIrefs->{$dti_file}{'anat_mask'}   ;
+        # minctensor.pl outputs
+    my $FA          = $DTIrefs->{$dti_file}{'FA'}            ;
+    my $MD          = $DTIrefs->{$dti_file}{'MD'}            ;
+    my $RGB         = $DTIrefs->{$dti_file}{'RGB'}           ;
 
-    # If QCed minc file does not exist, print LOG and stop
-    unless (-e $QCed_minc) { 
-       print LOG "ERROR: could not find QCed minc DTI file.\n";
-       return undef;
-    }
-
-    # Create processed maps (FA, MD, RGB maps...)
-    ($postProc_success) = DTI::create_processed_maps($dti_file, $DTIrefs, $QCoutdir);
-
-    # If FA and RGB were successfully created, insert mincheader information
-    if ($postProc_success eq "yes") {
-        print LOG "==> FA and RGB maps successfully created!!\n  FA map:\t$FA\n  RGB map:\t $RGB\n";
-
-        # Insert mincheader information into FA minc
-        ($FA_insert)    =   DTI::insertMincHeader($dti_file, $data_dir, $FA, $QCTxtReport, $DTIPrepVersion);
-
-        # Insert mincheader information into RGB minc
-        ($RGB_insert)   =   DTI::insertMincHeader($dti_file, $data_dir, $RGB, $QCTxtReport, $DTIPrepVersion);
-    }
-
-    # Print in LOG file
-    if ($postProc_success == 0)    { print LOG "FA and RGB maps already created\n";                }
-    elsif ($postProc_success == 1) { print LOG "ERROR: anat or QCed minc not found in $QCoutdir\n\n";} 
-    elsif ($postProc_success == 2) { print LOG "ERROR: preprocessed anat or QCed dti not found in $QCoutdir\n\n";}
-    elsif ($postProc_success == 3) { print LOG "ERROR: RGB map not found in $QCoutdir\n\n";   }
-
-    if (!$FA_insert)  { print LOG "ERROR: FA mincheader insertion failed: # arguments != # values to insert.\n\n"; }
-    if (!$RGB_insert) { print LOG "ERROR: RGB mincheader insertion failed: # arguments != # values to insert.\n\n"; }
-
-    # Return 1 if map already existed or if FA and RBG map successfully created. Return undef otherwise.
-    if (($postProc_success == 0) || (($FA_insert) && ($RGB_insert))) {
-        return 1;
+    # 2. Run mincdiffusion tools
+    my ($mincdiff_preproc_status);
+        # a. run diff_preprocess.pl via function mincdiff_preprocess
+    if ((-e $baseline) && (-e $preproc_minc) && ($anat_mask)) {
+        $mincdiff_preproc_status    = 1;
     } else {
-        return undef;
+        ($mincdiff_preproc_status)  = &DTI::mincdiff_preprocess($dti_file, $DTIrefs, $QCoutdir);
     }
+        # b. run minctensor.pl via function mincdiff_minctensor
+    if ((-e $FA) && (-e $MD) && (-e $RGB)) {
+        $minctensor_status      = 1;
+    } else {
+        ($minctensor_status)    = &DTI::mincdiff_minctensor($dti_file, $DTIrefs, $QCoutdir);
+    }
+
+    # Write return statement
+    if (($mincdiff_preproc_status) && ($minctensor_status) 
+         WOUHOU
+       
 }
+
+
+
+
+
+
+
+# mincheader insertion for FA and RGB maps
+
+#    # If FA and RGB were successfully created, insert mincheader information
+#    if ($postProc_success eq "yes") {
+#        print LOG "==> FA and RGB maps successfully created!!\n  FA map:\t$FA\n  RGB map:\t $RGB\n";
+#
+#        # Insert mincheader information into FA minc
+#        ($FA_insert)    =   DTI::insertMincHeader($dti_file, $data_dir, $FA, $QCTxtReport, $DTIPrepVersion);
+
+#        # Insert mincheader information into RGB minc
+#        ($RGB_insert)   =   DTI::insertMincHeader($dti_file, $data_dir, $RGB, $QCTxtReport, $DTIPrepVersion);
+#    }
+
+#   # Print in LOG file
+#    if ($postProc_success == 0)    { print LOG "FA and RGB maps already created\n";                }
+#    elsif ($postProc_success == 1) { print LOG "ERROR: anat or QCed minc not found in $QCoutdir\n\n";} 
+#    elsif ($postProc_success == 2) { print LOG "ERROR: preprocessed anat or QCed dti not found in $QCoutdir\n\n";}
+#    elsif ($postProc_success == 3) { print LOG "ERROR: RGB map not found in $QCoutdir\n\n";   }
+#
+#    if (!$FA_insert)  { print LOG "ERROR: FA mincheader insertion failed: # arguments != # values to insert.\n\n"; }
+#    if (!$RGB_insert) { print LOG "ERROR: RGB mincheader insertion failed: # arguments != # values to insert.\n\n"; }
+#
+#    # Return 1 if map already existed or if FA and RBG map successfully created. Return undef otherwise.
+#    if (($postProc_success == 0) || (($FA_insert) && ($RGB_insert))) {
+#        return 1;
+#    } else {
+#        return undef;
+#    }
+#}
+
+
+
+
+
+
+
+
 #    foreach my $dti_file (@$DTIs_list) {
 #        print "DTI file: $dti_file\n";
 #        print "DTI raw nrrd: $DTIrefs->{$dti_file}{'Raw_nrrd'}\n";
