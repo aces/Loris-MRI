@@ -96,9 +96,18 @@ sub Execute {
 ######################################################################################
 #######file path############
     my $file_path = shift;
+    print "file path is $file_path \n"    ;
 	chomp $file_path;
     my ($file_target,$visit_label,$candid,$pscid_from_folder,$patient_name,$archive_location,$cmd,
-        $result,$file_name)='';
+        $result,$file_name,$folder_name)='';
+
+    #####Check to see if the file is of type tgz before untarring it############
+    ##$foldername = dirname($file_path)##folder name
+    ##$basename = basename($file_path);
+    ##find  $foldername -name $basename  -exec /bin/tar -xzvf {} \; -exec rm {} \;
+    ##tar -cvzf $file_path
+
+
 #####Get the file-name######
 	my @temp_files = split(/\//,$file_path);
     $file_target = $temp_files[4];
