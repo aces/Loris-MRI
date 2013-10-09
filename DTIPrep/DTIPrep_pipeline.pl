@@ -558,11 +558,12 @@ sub mincdiffusionPipeline {
 
         # If mincdiff_status is undef (mincdiffusion failed to create output files), mincdiff_status will be set to failed for this dti_file, otherwise it will be set to success.
         if ($mincdiff_status) {
-            print LOG " => Successfully ran mincdiffusion tools for $dti_file!\n";
+            print LOG " => Successfully ran mincdiffusion tools on $QCed_minc!\n";
             $DTIrefs->{$dti_file}{'mincdiff_status'}    = "success";
             $at_least_one_success++;
         } else {
-            print LOG " => Something went wrong while running mincdiffusion tools on $dti_file.\n";
+            print LOG " => diff_preprocess.pl failed on $QCed_minc.\n"         if (!$DTIrefs->{$dti_file}{'mincdiff_preprocess_status'});
+            print LOG " => minctensor.pl failed on preprocessed $QCed_minc.\n" if (!$DTIrefs->{$dti_file}{'minctensor_status'});
             $DTIrefs->{$dti_file}{'mincdiff_status'}    = "failed";
         }
     }
@@ -605,7 +606,7 @@ sub runMincdiffusion {
     my $RGB         = $DTIrefs->{$dti_file}{'RGB'}           ;
 
     # 2. Run mincdiffusion tools
-    my ($mincdiff_preproc_status);
+    my ($mincdiff_preproc_status, $minctensor_status);
         # a. run diff_preprocess.pl via function mincdiff_preprocess
     if ((-e $baseline) && (-e $preproc_minc) && ($anat_mask)) {
         $mincdiff_preproc_status    = 1;
@@ -620,9 +621,13 @@ sub runMincdiffusion {
     }
 
     # Write return statement
-    if (($mincdiff_preproc_status) && ($minctensor_status) 
-         WOUHOU
-       
+    if (($mincdiff_preproc_status) && ($minctensor_status)) { 
+        return 1;
+    } else {
+        $DTIrefs->{$dti_file}{'mincdiff_preproc_status'}= $mincdiff_preproc_status;
+        $DTIrefs->{$dti_file}{'minctensor_status'}      = $minctensor_status;
+        return undef;
+    }
 }
 
 
