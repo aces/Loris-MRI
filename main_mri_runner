@@ -1,9 +1,24 @@
-####Initial setup############################################
 
-####Modify the names##############
-##perl /data/gusto/bin/mri/modify_names.pl NUH /home/zia/Desktop/gusto_mri_transition /home/zia/Desktop/gusto_mri
-##perl /data/gusto/bin/mri/modify_names.pl KKH /home/zia/Desktop/gusto_mri_transition /home/zia/Desktop/gusto_mri
-####Modify the names##############
+#!/bin/bash
+
+
+##TODO :SPECIFY THE USERID AS A PARAMETER
+
+#password: $1
+#location of the files $2 and $3
+#echo "enter the password location and db"
+password=$1
+location=$2
+db=$3
+##script_location='/home/gustodatabaseuser/scripts'
+##script_location='/home/zia/Desktop/Gusto_Project/scripts'
+
+if [ "$#" != "3"  ];
+then
+echo "please enter the password ,location ,db"
+exit 1
+fi
+
 
 #########################################################
 ####This will create all the neccessary tarchive files###
@@ -21,9 +36,11 @@ source /data/gusto/bin/mri/environment
 ##find /data/incoming/3GUSTO/incoming > tarchive_files.txt
 /data/gusto/bin/mri/batch_uploads_tarchive < /data/gusto/data/logs/tarchive_files.txt
 
-cd /var/www/loris/project/scripts
+cd /var/www/$location/project/scripts
 ####Populate the output_type column using the files table
 php populate_outputtype.php
 
-#####scan done################
-php scan_done.php
+######Scan done#####
+mysql -h localhost -u root -p$password $db  < 2013-10-10_scan_done.sql ##updates the scan_done column based on the files table
+
+
