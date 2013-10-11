@@ -102,6 +102,10 @@ if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a con
 if(!$ARGV[0] || !$profile) { print $Help; print "$Usage\n\tERROR: You must specify a valid tarchive and an existing profile.\n\n";  exit 33;  }
 
 my $tarchive = abs_path($ARGV[0]);
+unless (-e $tarchive) {
+    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the path to the archive is correct. Upload will exit now.\n\n\n";
+    exit 33;
+}
 
 #####################################################################################################
 # These settings are in a config file (profile)
@@ -379,9 +383,14 @@ foreach my $minc (@minc_files)  {
         print "new NAME: ".$minc_protocol_identified ."\n" if $debug;
         $file->setFileData('File', $file_path);
 
-    # move the tarchive from the inbox into the tarchive library
-    # only if the library dir is defined and the tarchive has not yet been moved
-        if(defined($Settings::tarchiveLibraryDir) && !$valid_study) {
+    # If tarchive library dir is not defined,
+    # Or if tarchive library is defined and the tarchive is in a year subfolder of the tarchive library dir
+    #   -> the new tarchive location is $tarchive.   
+        if ((!defined($Settings::tarchiveLibraryDir)) || ((defined($Settings::tarchiveLibraryDir))&&($tarchive =~ m/$Settings::tarchiveLibraryDir\/\d\d\d\d\//i))) { 
+            $newTarchiveLocation = $tarchive; 
+    # if the tarchive has not been moved yet ($valid_study undefined) 
+    #   -> move the tarchive from the inbox into the tarchive library
+        } elsif (!$valid_study) {
             print "Moving tarchive into library\n" if $debug;
             $newTarchiveLocation = $Settings::tarchiveLibraryDir."/".substr($tarchiveInfo{'DateAcquired'}, 0, 4);
 
@@ -389,30 +398,16 @@ foreach my $minc (@minc_files)  {
             unless(-e $newTarchiveLocation) { mkdir($newTarchiveLocation, 0755); }
 
         # determine the new name of the tarchive
-            my $newTarchiveFilename = basename($tarchive, ".tar");
-            my $newTarchiveFilenameSuffix = 1;
-            my $doNotMoveTarchive = 0;
-          TARCHIVEHASHCHECK:
-            while(-e $newTarchiveLocation."/".$newTarchiveFilename."_".$newTarchiveFilenameSuffix.".tar") {
-                my $md5cmd = "md5sum ".$newTarchiveLocation."/".$newTarchiveFilename."_".$newTarchiveFilenameSuffix.".tar";
-                my @bits = split(' ', `$md5cmd`);
-                if($bits[0] eq $md5_real) {
-                    $doNotMoveTarchive = 1;
-                    last TARCHIVEHASHCHECK;
-                }
-                $newTarchiveFilenameSuffix++;
-            }
-            $newTarchiveLocation .= "/".$newTarchiveFilename."_".$newTarchiveFilenameSuffix.".tar";
+            my $newTarchiveFilename = basename($tarchive);
+            $newTarchiveLocation .= "/".$newTarchiveFilename;
 
-         # move the tarchive
-            unless($doNotMoveTarchive) {
-                my $mvTarchiveCmd = "mv $tarchive $newTarchiveLocation";
-                `$mvTarchiveCmd`;
-            # now update tarchive table to store correct location
-                $dbh->do("UPDATE tarchive SET ArchiveLocation=".$dbh->quote($newTarchiveLocation)." WHERE DicomArchiveID=".$dbh->quote($tarchiveInfo{'DicomArchiveID'}));
-            }
+        # move the tarchive
+            my $mvTarchiveCmd = "mv $tarchive $newTarchiveLocation";
+            `$mvTarchiveCmd`;
+
+        # now update tarchive table to store correct location
+            $dbh->do("UPDATE tarchive SET ArchiveLocation=".$dbh->quote($newTarchiveLocation)." WHERE DicomArchiveID=".$dbh->quote($tarchiveInfo{'DicomArchiveID'}));
         }
-        if(!defined($Settings::tarchiveLibraryDir)) { $newTarchiveLocation = $tarchive; }
 
     # record which tarchive was used to make this file
         my $tarchive_path   =   $newTarchiveLocation;
