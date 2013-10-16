@@ -265,7 +265,7 @@ sub getVisitLabel{
       $visit_label = '6month';
   }
   if (index($mri_visit_label,'6wk')!=-1) {
-      $visit_label = '6week';
+      $visit_label = '6week_mri';
   }
   if (index($mri_visit_label, 'Neonatal') !=-1) {
       $visit_label = 'MRIday';
