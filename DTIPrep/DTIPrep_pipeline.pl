@@ -188,9 +188,10 @@ exit 0;
 ###############
 
 =pod
-Fetches site, candID and visit label from the native directory given in input.
-Will return undef if could not find the site, candID or the visit label.
-Will return the site, candID and visit label if they exist.
+Fetches site, candID and visit label from the native directory of the dataset to process.
+Input:  - $nativedir: native directory of the dataset to process
+Output: - undef if could not find the site, candID or visit label.
+        - $site, $candID and $visit_label informations if they were found.
 Relevant information will also be printed in the log file.
 =cut
 sub getIdentifiers {
@@ -216,11 +217,23 @@ sub getIdentifiers {
 
 
 
+
+
+
+
+
 =pod
-Determine pipeline output directory, based on the root outdir, DTIPrep protocol, candID and visit label:
-(outdir/ProtocolName/CandID/VisitLabel).
-If $runDTIPrep is set, the function will create the output folders.
-If $runDTIPrep is not set, will check that the directory exists.
+Determine pipeline's output directory, based on the root outdir, DTIPrep protocol, candID and visit label: (outdir/ProtocolName/CandID/VisitLabel).
+If $runDTIPrep is defined, the function will create the output folders.
+If $runDTIPrep is not defined, will check that the directory exists.
+
+- Inputs: -$outdir  = output directory where DTIPrep results for all datasets for all subjects will be stored (in /data/project/data/pipelines/DTIPrep/DTIPrep_version)
+          - $subjID = candidate ID of the DTI dataset to be processed
+          - $visit  = visit label of the DTI dataset to be processed
+          - $DTIPrepProtocol= XML file with the DTIPrep protocol to be used for analyses
+          - $runDTIPrep = a boolean which will determine if OutputFolders should be created in the filesystem (before processing data through DTIPrep) if they don't exist
+
+- Ouput:  - $QCoutdir   = directory where processed files for the candidate, visit label and DTIPrep protocol will be stored. 
 =cut
 sub getOutputDirectories {
     my ($outdir, $subjID, $visit, $DTIPrepProtocol, $runDTIPrep)    = @_;    
@@ -245,11 +258,23 @@ sub getOutputDirectories {
 
 
 
+
+
+
+
+
 =pod
-Fetch the raw DTIs and foreach DTI, determine output names and store them into a hash ($DTIrefs).
-Will return undef if could not find any raw DTI dataset. 
-Will return the list of raw DTIs found and a hash with the preprocessing output names.
-Will also print relevant information in the log file.
+Fetch the raw DWI datasets and foreach DWI, determine output names to be used and store them into a hash ($DTIrefs).
+
+- Inputs:   - $nativedir    = native directory to look for native DWI dataset.
+            - $DTI_volumes  = number of volumes expected in the DWI dataset.
+            - $t1_scan_type = the scan type name of the T1 weighted dataset.
+            - $QCoutdir     = directory to save processed files.
+            - $DTIPrepProtocol= XML DTIPrep protocol to be used to process DWI datasets.
+
+- Outputs:  - Will return undef if could not find any raw DWI dataset. 
+            - Will return the list of raw DTIs found and a hash with the preprocessing output names and paths if raw DWI dataset was found.
+            - Will also print relevant information in the log file.
 =cut
 sub fetchData {
     my ($nativedir, $DTI_volumes, $t1_scan_type, $QCoutdir, $DTIPrepProtocol)  = @_;
@@ -282,6 +307,13 @@ sub fetchData {
 
 =pod
 Function that creates the output folders, get the raw DTI files, convert them to nrrd and run DTIPrep using a bcheck protocol and a nobcheck protocol.
+
+Inputs: - $DTIs_list    = list of DWI datasets to preprocess through DTIPrep for a given candidate and visit.
+        - $DTIrefs      = hash where all output file names and paths for the different DWI are stored.
+        - $QCoutdir     = output directory to use to save preprocessed files.
+        - $DTIPrepProtocol= XML DTIPrep protocol to be used to preprocess the DWI dataset.
+
+Outputs: -
 =cut
 sub preprocessingPipeline {
     my ($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol)  = @_;
@@ -409,7 +441,6 @@ Will return undef if could not find preprocessed files or convert it to minc. Wi
 =cut
 sub check_and_convertPreprocessedFiles {
     my ($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion)  = @_;
-
 
     my $at_least_one_success    = 0;
     foreach my $dti_file (@$DTIs_list) {
@@ -584,6 +615,50 @@ sub mincdiffusionPipeline {
 
 
 
+sub checkPostProcessedOutputs {
+    my ($dti_file, $DTIrefs, $QCoutdir)  = @_;
+
+        # diff_preprocess.pl outputs
+    my $baseline    = $DTIrefs->{$dti_file}{'baseline'}    ;
+    my $preproc_minc= $DTIrefs->{$dti_file}{'preproc_minc'};
+    my $anat_mask   = $DTIrefs->{$dti_file}{'anat_mask'}   ;
+        # minctensor.pl outputs
+    my $FA          = $DTIrefs->{$dti_file}{'FA'}          ;
+    my $MD          = $DTIrefs->{$dti_file}{'MD'}          ;
+    my $RGB         = $DTIrefs->{$dti_file}{'RGB'}         ;
+
+    if ((-e $baseline) 
+            && (-e $preproc_minc) 
+            && (-e $anat_mask) 
+            && (-e $FA)
+            && (-e $MD)
+            && (-e $RGB)) {
+        print LOG "All DTIPrep postprocessing outputs were found in $outdir.\n";
+        return 1;
+    } else {
+        print LOG "\nERROR: Could not find all DTIPrep postprocessing outputs in $outdir.\n" .
+                    "\tbaseline (frame 0):         $baseline\n"    .
+                    "\tmincdiffusion preprocessed: $preproc_minc\n".
+                    "\tmincdiffusion anat mask:    $anat_mask\n"   .
+                    "\tFA file:     $FA\n"   .
+                    "\tMD file:     $MD\n"   .
+                    "\tRGB file:    $RGB\n";
+        return undef;
+    }
+}    
+
+
+
+
+
+
+
+
+
+
+
+
+
 =pod
 Will create FA and RGB map + insert mincheader information.
 =cut
@@ -594,16 +669,16 @@ sub runMincdiffusion {
         # Raw anatomical
     my $raw_anat    = $DTIrefs->{$dti_file}{'anat'}        ; 
         # DTIPrep outputs
-    my $QCed_minc   = $DTIrefs->{$dti_file}{'QCed_minc'}     ;
-    my $QCTxtReport = $DTIrefs->{$dti_file}{'QCTxtReport'}   ;
+    my $QCed_minc   = $DTIrefs->{$dti_file}{'QCed_minc'}   ;
+    my $QCTxtReport = $DTIrefs->{$dti_file}{'QCTxtReport'} ;
         # diff_preprocess.pl outputs
-    my $baseline    = $DTIrefs->{$dti_file}{'baseline'}      ;
+    my $baseline    = $DTIrefs->{$dti_file}{'baseline'}    ;
     my $preproc_minc= $DTIrefs->{$dti_file}{'preproc_minc'};
     my $anat_mask   = $DTIrefs->{$dti_file}{'anat_mask'}   ;
         # minctensor.pl outputs
-    my $FA          = $DTIrefs->{$dti_file}{'FA'}            ;
-    my $MD          = $DTIrefs->{$dti_file}{'MD'}            ;
-    my $RGB         = $DTIrefs->{$dti_file}{'RGB'}           ;
+    my $FA          = $DTIrefs->{$dti_file}{'FA'}          ;
+    my $MD          = $DTIrefs->{$dti_file}{'MD'}          ;
+    my $RGB         = $DTIrefs->{$dti_file}{'RGB'}         ;
 
     # 2. Run mincdiffusion tools
     my ($mincdiff_preproc_status, $minctensor_status);
