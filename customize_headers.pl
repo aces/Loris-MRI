@@ -65,14 +65,12 @@ my $the_file;
 #########Execute DICOM tar and update headers for each file...#############
 ###########################################################################
 if (!($file eq '')){
-   open (FILE, $file); 
-   while (<FILE>) {
-       chomp;
-       s/\s*$//;
-       s/\s+$//;
-       Execute($_);
- 
-   }
+   ##open (FILE, $file); 
+   ## while (<FILE>) {
+   ##    chomp;
+   ##   s/\s*$//;
+   ##  s/\s+$//;
+   Execute($file);
 } else {
     my @files = <$mri_location/*>;
     foreach $file (@files) {
