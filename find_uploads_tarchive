@@ -18,8 +18,6 @@ use NeuroDB::DBI;
 
 use Data::Dumper;
 
-my $dbh = NeuroDB::DBI::connect_to_db('dbname', 'dbuser', 'dbpass', 'dbhost');
-
 my $update = 1;
 my @studies = ();
 
@@ -30,6 +28,7 @@ if(-f "$ENV{HOME}/.neurodb/prod") {
 }
 #######################################################################################
 
+my $dbh = NeuroDB::DBI::connect_to_db(@Settings::db);
 
 my @args_list = grep /-noupdate/, @ARGV;
 if(scalar(@args_list) > 0) { $update=0; }
