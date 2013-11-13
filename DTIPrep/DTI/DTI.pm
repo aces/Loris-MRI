@@ -177,14 +177,14 @@ sub createDTIhashref {
         $DTIrefs{$dti_file}{'QCXmlReport'}  = $QCoutdir . "/" . $dti_name  . "_XMLQCResult.xml"  ;
         $DTIrefs{$dti_file}{'QCed_minc'}    = $QCoutdir . "/" . $dti_name  . "_QCed.mnc"         ;
         $DTIrefs{$dti_file}{'QCProt'}       = $QCoutdir . "/" . $dti_name  . "_" . $prot_name    ;
-        $DTIrefs{$dti_file}{'FA'}           = $QCoutdir . "/" . $dti_name  . "QCed_FA.mnc"       ;
-        $DTIrefs{$dti_file}{'RGB'}          = $QCoutdir . "/" . $dti_name  . "QCed_rgb.mnc"      ;
-        $DTIrefs{$dti_file}{'MD'}           = $QCoutdir . "/" . $dti_name  . "QCed_MD.mnc"      ;
-        $DTIrefs{$dti_file}{'rgb_pic'}      = $QCoutdir . "/" . $dti_name  . "QCed_RGB.png"      ;   
+        $DTIrefs{$dti_file}{'FA'}           = $QCoutdir . "/" . $dti_name  . "_QCed_FA.mnc"      ;
+        $DTIrefs{$dti_file}{'RGB'}          = $QCoutdir . "/" . $dti_name  . "_QCed_rgb.mnc"     ;
+        $DTIrefs{$dti_file}{'MD'}           = $QCoutdir . "/" . $dti_name  . "_QCed_MD.mnc"      ;
+        $DTIrefs{$dti_file}{'rgb_pic'}      = $QCoutdir . "/" . $dti_name  . "_QCed_RGB.png"     ;   
+        $DTIrefs{$dti_file}{'baseline'}     = $QCoutdir . "/" . $dti_name  . "_QCed-frame0.mnc"  ;
         $DTIrefs{$dti_file}{'anat'}         = $anat                                              ;
         $DTIrefs{$dti_file}{'anat_mask'}    = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
         $DTIrefs{$dti_file}{'preproc_minc'} = $QCoutdir . "/" . $anat_name . "-preprocessed.mnc" ;
-        $DTIrefs{$dti_file}{'baseline'}     = $QCoutdir . "/" . $anat_name . "-frame0.mnc" ;
     }
     
     return  (\%DTIrefs);
@@ -272,21 +272,21 @@ sub insertProcessInfo {
     # 1) processing:sourceFile
     my  $sourceFile     =   $raw_dti;
     $sourceFile         =~  s/$data_dir//i;
-    DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc);
+    DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
     my  ($seriesUID)    =   DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
-    DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc);
+    DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
 
     # 3) processing:pipeline used
-    DTI::modify_header('processing:pipeline', $DTIPrepVersion, $processed_minc);
+    DTI::modify_header('processing:pipeline', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
 
     # 4) processing:processing_date (when DTIPrep was run)
     my  $check_line     =   `cat $QC_report | grep "Check Time"`;
     $check_line         =~  s/Check Time://;      # Only keep date info in $check_line.
     my ($ss,$mm,$hh,$day,$month,$year,$zone)    =   strptime($check_line);
     my $processingDate  =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
-    DTI::modify_header('processing:processing_date', $processingDate, $processed_minc);
+    DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
 
     if (($sourceFile =~ /$data_dir/m) || (!$seriesUID) || (!$DTIPrepVersion) || (!$processingDate)) {
         return undef;
@@ -304,11 +304,11 @@ sub insertAcqInfo {
 
     # 1) insertion of acquisition:b_value 
     my  ($b_value)      =   DTI::fetch_header_info('acquisition:b_value',$raw_dti,'$3, $4, $5, $6');
-    DTI::modify_header('acquisition:b_value', $b_value, $processed_minc);
+    DTI::modify_header('acquisition:b_value', $b_value, $processed_minc, '$3, $4, $5, $6');
 
     # 2) insertion of acquisition:delay_in_TR 
     my  ($delay_in_tr)  =   DTI::fetch_header_info('acquisition:delay_in_TR',$raw_dti,'$3, $4, $5, $6');
-    DTI::modify_header('acquisition:delay_in_TR', $delay_in_TR, $processed_minc);
+    DTI::modify_header('acquisition:delay_in_TR', $delay_in_TR, $processed_minc, '$3, $4, $5, $6');
 
     # 3) insertion of all the remaining acquisition:* arguments 
     #    [except acquisition:bvalues, acquisition:b_matrix and acquisition:direction* (already in header from nrrd2minc conversion)]
@@ -338,7 +338,7 @@ sub insertFieldList {
         for (my $i=0;   $i<$arguments_list_size;    $i++)   {
             my  $argument   =   @$arguments_list[$i];
             my  $value      =   @$values_list[$i];
-            DTI::modify_header($argument, $value, $processed_minc);
+            DTI::modify_header($argument, $value, $processed_minc, '$3, $4, $5, $6');
         }
         return  1;
     }else {
@@ -350,10 +350,14 @@ sub insertFieldList {
 Function that runs minc_modify_header.
 =cut
 sub modify_header {
-    my  ($argument, $value, $minc) =   @_;
+    my  ($argument, $value, $minc, $awk) =   @_;
     
+    # check if header information not already in minc file
+    my $hdr_val =   &DTI::fetch_header_info($argument, $minc, $awk);
+
+    # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
     my  $cmd    =   "minc_modify_header -sinsert $argument=$value $minc";
-    system($cmd);
+    system($cmd)    unless ($value eq $hdr_val);
 }
 
 =pod
@@ -449,7 +453,7 @@ Function that runs minctensor.pl script from the mincdiffusion tools on the minc
             - undef if outputs were not created
 =cut
 sub mincdiff_minctensor {
-    my ($dti_file, $DTIrefs, $QCoutdir) = @_;
+    my ($dti_file, $DTIrefs, $QCoutdir, $niak_path) = @_;
 
     # Initialize variables
         # 1. input data
@@ -462,8 +466,8 @@ sub mincdiff_minctensor {
     my $MD            = $DTIrefs->{$dti_file}{'MD'}           ;
     my $RGB           = $DTIrefs->{$dti_file}{'RGB'}          ;
 
-    # Run minctensor.pl script
-    `minctensor.pl -mask $anat_mask $preproc_minc -niakdir /opt/niak-0.6.4.1/ -outputdir $QCoutdir -octave $QCed_basename`;
+    # Run minctensor.pl script  
+    `minctensor.pl -mask $anat_mask $preproc_minc -niakdir $niak_path -outputdir $QCoutdir -octave $QCed_basename`;
 
     # Check that all output files were created
     if ((-e $FA) && (-e $RGB) && (-e $MD)) {
