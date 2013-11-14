@@ -11,11 +11,9 @@ use lib "$FindBin::Bin";
 use DB::DBI;
 use DTI::DTI;
 
-my  $profile = undef;
+my  $profile        = undef;
 my  $pipelineName;
-my  $xml=0;
-my  $txt=0;
-my  $prot=0;
+my  $DTIPrep_subdir = undef;
 my  @args;
 
 
@@ -44,9 +42,7 @@ USAGE
 my  @args_table = (
     ["-profile",        "string",   1,      \$profile,      "name of config file in ~/.neurodb."],
     ["-pipelineName",   "string",   1,      \$pipelineName, "PipelineName_version of the pipeline used (i.e. DTIPrep_v1.1.6). This option should be set if the pipelineName is not stored in the mincheader field processing:src_pipeline of the processed file"],
-    ["-xml",            "boolean",  undef,  \$xml,          "insert DTIPrep .xml QC report in the database"],
-    ["-txt",            "boolean",  undef,  \$txt,          "insert the DTIPrep .txt QC report in the database"],
-    ["-prot",           "boolean",  undef,  \$prot,         "insert the DTIPrep XML protocol used to run DTIPrep in the database"]
+    ["-DTIPrep_subdir", "string",   1,      \$DTIPrep_subdir,"DTIPrep subdirectory where processed files to be registered in the database are stored"],
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
@@ -69,6 +65,11 @@ if  (!$pipelineName)    {
     exit 33;
 }
 
+if  (!$DTIPrep_subdir)    {
+    print "$Usage\n\tERROR: You must specify a DTIPrep subdirectory with processed files to be registered in the database.\n\n";
+    exit 33;
+}
+
 # needed for log file
 my  $data_dir    =  $Settings::data_dir;
 my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
@@ -78,50 +79,70 @@ my  $log         =  "$log_dir/DTIregister$date.log";
 open(LOG,">>$log");
 print LOG "Log file, $date\n\n";
 
+# Suffix used in DTIPrep protocol to create secondary output like a DWI file without motion correction, eddy current correction etc... If defined in the config file, will insert this dataset in addition to the default QCed one. Otherwise, will just insert the default QCed file in the database.
+my  $QCed2_suffix=  $Settings::QCed2_suffix;
+
 # establish database connection
 my  $dbh    =   &DB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
 
-## read input from STDIN, store into array @DTIPrep_subdirs (`find ....... | this_script`)
-my @DTIPrep_subdirs = <STDIN>; chomp @DTIPrep_subdirs;
+print LOG "\n==> DTI output directory is: $DTIPrep_subdir\n";
 
-## foreach directory, get the files needed and register them in the database
-foreach my  $DTIPrep_subdir  (@DTIPrep_subdirs)   {
-
-    print LOG "\n==> DTI outputs directory: $DTIPrep_subdir\n";
-
-    # Get the DTI output files (i.e. QCed.mnc, QCReport.txt and RGB.mnc)
-    my  ($QCReport,$XMLReport,$XMLprotocol,$RGB,$QCed)   =   getFiles($DTIPrep_subdir);
-    my  ($registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile);
-    
-    # What to do with the XML when -xml option is set
-    if      (($xml == 1) && (!$XMLReport))  {
-        print LOG "WARNING: No XML Report was found in $DTIPrep_subdir\n\n\n";
-    }elsif  (($xml == 1) && ($XMLReport))   {
-        $registeredXMLReportFile      = register_XMLFile($XMLReport,$QCReport,$pipelineName);
-        print "\nRegistered XML report = $registeredXMLReportFile.\n";
-    }
-
-    # What to do with the QCReport when -txt option is set
-    if      (($txt == 1) && (!$QCReport))   {
-        print LOG "WARNING: No QCReport file was found in $DTIPrep_subdir\n\n\n";
-    }elsif  (($txt == 1) && ($QCReport))    {
-        $registeredQCReportFile = register_QCReport($QCReport,$pipelineName);
-        print "\nRegistered QC report = $registeredQCReportFile.\n";
-    }
-    
-    # What to do with the Protocol used to run DTIPrep when -prot option is set
-    if      (($prot == 1) && (!$XMLprotocol))   {
-        print LOG "WARNING: No XML protocol file was found in $DTIPrep_subdir\n\n\n";
-    }elsif  (($prot == 1) && ($XMLprotocol))    {
-        $registeredXMLprotocolFile = register_XMLFile($XMLprotocol, $QCReport, $pipelineName);
-        print "\nRegistered XML protocol = $registeredXMLprotocolFile.\n";
-    }
-
-    my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile)   if ($RGB  && -e $RGB) ;
-    my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile)   if ($QCed && -e $QCed);
+    #######################
+    ####### Step 1: #######  Get output files to be registered in the database
+    #######################
+    # (QCed2 is an optional second file produced by DTIPrep without, for example, motion correction done)
+my  ($QCed, $RGB, $FA, $MD, $baseline, $brain_mask, $QCReport, $XMLReport, $XMLProtocol, $QCed2)   =   getFiles($DTIPrep_subdir, $QCed2_suffix);
+# $QCed will be undefined if one of the expected output filed was not found
+if  (!$QCed) {
+    print LOG "\nERROR:\n\tCould not find all outputs to be registered in the database. Exit now.\n print LOG ";
+    exit 0;
 }
+
+    #######################
+    ####### Step 2: #######  Register the XML report
+    #######################
+    # $registeredXMLReportFile will store the path to the registered XMLReportFile
+my ($registeredXMLReportFile) = register_XMLFile($XMLReport,$QCReport,$pipelineName) if ($XMLReport);
+if (!$registeredXMLReportFile) {
+    print LOG "\nERROR: no XML report file was registered in the database\n";
+    exit 0;
+} else {
+    print LOG "\nRegistered XML report $registeredXMLReportFile.\n";
+}
+
+    #######################
+    ####### Step 3: #######  Register the QC report
+    #######################
+    # $registeredQCReportFile will store the path to the registered QCReportFile
+my ($registeredQCReportFile)  = register_QCReport($QCReport,$pipelineName)    if ($QCReport);
+if (!$registeredQCReportFile) {
+    print LOG "\nERROR: no QC report file was registered in the database\n";
+    exit 0;
+} else {
+    print LOG "\nRegistered QC report $registeredQCReportFile.\n";
+}
+    
+    #######################
+    ####### Step 4: #######  Register the XML protocol file used by DTIPrep
+    #######################
+    # $registeredXMLprotocolFile will store the path to the registered XMLprotocolFile
+my ($registeredXMLprotocolFile)   = register_XMLFile($XMLprotocol, $QCReport, $pipelineName) if ($XMLprotocol);
+if (!$registeredXMLprotocolFile) {
+    print LOG "\nERROR: no XML protocol file was registered in the database\n";
+    exit 0;
+} else {
+    print LOG "\nRegistered XML protocol $registeredXMLprotocolFile.\n";
+}
+
+    #######################
+    ####### Step 5: #######  Register QCed minc files with associated reports and nrrd files
+    #######################
+    
+my  ($registeredQCedFile)   = register_minc($QCed, $QCReport, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile)   if ($QCed && -e $QCed);
+
+my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile)   if ($RGB  && -e $RGB) ;
 
 # Program is finished
 exit 0;
@@ -207,13 +228,13 @@ This set the different parameters needed to be able to register XML Report and p
 Once set, this function will call registerFile which will run register_processed_data.pl.
 =cut
 sub register_XMLFile {
-    my ($XMLFile,$QCReport,$pipelineName) =   @_;
+    my ($XMLFile, $QCReport, $pipelineName) =   @_;
 
     print LOG "\n==> File to register is:\n$XMLFile\n";
     print "\n==>File: $XMLFile\n";
 
-    my  $src_name   =   getSourceFileName($XMLFile,$dbh);
-    my  $src_fileID =   getSourceFileID($XMLFile,$src_name,$dbh);
+    my  $src_name   =   getSourceFileName($XMLFile, $dbh);
+    my  $src_fileID =   getSourceFileID($XMLFile, $src_name, $dbh);
 
     my  $src_pipeline;
     if  (!$pipelineName)    {
@@ -225,7 +246,7 @@ sub register_XMLFile {
         $src_pipeline   =   $pipelineName;
     }
 
-    my ($pipelineDate)  =   getPipelineDate($XMLFile,$QCReport);
+    my ($pipelineDate)  =   getPipelineDate($XMLFile, $QCReport);
 
     my $coordinateSpace =   "native";
     my ($scanType, $outputType);
@@ -236,6 +257,7 @@ sub register_XMLFile {
         $scanType       =   "ProcessingProtocol";
         $outputType     =   "protocol";
     }
+    # register file if all information are available
     if  (($XMLFile)         &&  ($src_fileID)      &&
          ($src_pipeline)    &&  ($pipelineDate)    &&
          ($coordinateSpace) &&  ($scanType)        &&
@@ -326,25 +348,45 @@ sub register_QCReport {
 This function fetches the files to be inserted in the database.
 =cut
 sub getFiles {
-    my  ($DTIPrep_subdir)   =   @_;
+    my  ($DTIPrep_subdir, $QCed2_suffix)   =   @_;
 
     opendir(DIR,$DTIPrep_subdir) || die "Cannot open $DTIPrep_subdir\n";
     my  @entries = readdir(DIR);
     closedir(DIR);
 
-    my  ($RGB_name)         = grep( /rgb\.mnc$/i,           @entries);
-    my  ($QCed_name)        = grep( /QCed\.mnc$/i,          @entries);
-    my  ($XMLReport_name)   = grep( /XMLQCResult\.xml$/i,   @entries);
-    my  ($XMLProtocol_name) = grep( /XMLnobcheck_prot\.xml$/i,   @entries);
-    my  ($QCReport_name)    = grep( /QCReport\.txt$/i,      @entries);
+    my  ($QCed_name)        = grep( /QCed\.mnc$/i,              @entries);
+    my  ($RGB_name)         = grep( /rgb\.mnc$/i,               @entries);
+    my  ($FA_name)          = grep( /FA\.mnc$/i,                @entries);
+    my  ($MD_name)          = grep( /MD\.mnc$/i,                @entries);
+    my  ($baseline_name)    = grep( /frame0\.mnc$/i,            @entries);
+    my  ($brain_mask_name)  = grep( /mask-diffspace\.mnc$/i,    @entries);
+    my  ($QCReport_name)    = grep( /QCReport\.txt$/i,          @entries);
+    my  ($XMLReport_name)   = grep( /XMLQCResult\.xml$/i,       @entries);
+    my  ($XMLProtocol_name) = grep( /XMLnobcheck_prot\.xml$/i,  @entries);
+    # optionaly inserts a secondary file produced by DTIPrep without, for example, motion correction.
+    my  ($QCed2_name)       = grep( /$QCed2_suffix\.mnc$/i,     @entries)   if ($QCed2_suffix);
     
-    my  $RGB        =   $DTIPrep_subdir."/".$RGB_name;
     my  $QCed       =   $DTIPrep_subdir."/".$QCed_name;
-    my  $XMLReport  =   $DTIPrep_subdir."/".$XMLReport_name;
+    my  $RGB        =   $DTIPrep_subdir."/".$RGB_name;
+    my  $FA         =   $DTIPrep_subdir."/".$FA_name;
+    my  $MD         =   $DTIPrep_subdir."/".$MD_name;
+    my  $baseline   =   $DTIPrep_subdir."/".$baseline_name;
+    my  $brain_mask =   $DTIPrep_subdir."/".$brain_mask_name;
     my  $QCReport   =   $DTIPrep_subdir."/".$QCReport_name;
+    my  $XMLReport  =   $DTIPrep_subdir."/".$XMLReport_name;
     my  $XMLProtocol=   $DTIPrep_subdir."/".$XMLProtocol_name;
+    my  $QCed2      =   $DTIPrep_subdir."/".$QCed2_name     if ($QCed2_suffix);
 
-    return  ($QCReport,$XMLReport,$XMLProtocol,$RGB,$QCed);
+    # return undef if could not find $QCed2 (when $QCed2_suffix was defined) 
+    return undef if (($QCed2_suffix) && (!$QCed2));
+
+    # return all output files if could all be found, undef otherwise
+    if (($QCed) && ($RGB) && ($FA) && ($MD) && ($baseline) && ($brain_mask) 
+             && ($QCReport) && ($XMLReport) && ($XMLProtocol)))
+        return  ($QCed, $RGB, $FA, $MD, $baseline, $brain_mask, $QCReport, $XMLReport, $XMLProtocol, $QCed2);
+    } else {
+        return undef;
+    }
 }
 
 =pod
