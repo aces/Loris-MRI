@@ -163,7 +163,7 @@ Function that will determine output names based on each DTI file dataset and ret
        dti_file_2  -> Raw_nrrd     => outputname etc...
 =cut
 sub createDTIhashref {
-    my ($DTIs_list, $anat, $QCoutdir, $DTIPrepProtocol)    =   @_;
+    my ($DTIs_list, $anat, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix)    =   @_;
     my %DTIrefs;
 
     foreach my $dti_file (@$DTIs_list) {
@@ -185,6 +185,10 @@ sub createDTIhashref {
         $DTIrefs{$dti_file}{'anat'}         = $anat                                              ;
         $DTIrefs{$dti_file}{'anat_mask'}    = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
         $DTIrefs{$dti_file}{'preproc_minc'} = $QCoutdir . "/" . $anat_name . "-preprocessed.mnc" ;
+        if ($QCed2_suffix) {
+            $DTIrefs{$dti_file}{'QCed2_nrrd'}   = $QCoutdir . "/" . $dti_name  . $QCed2_suffix . ".nrrd";
+            $DTIrefs{$dti_file}{'QCed2_minc'}    = $QCoutdir . "/" . $dti_name  . $QCed2_suffix . ".mnc" ;
+        }
     }
     
     return  (\%DTIrefs);
@@ -213,16 +217,20 @@ sub convert_DTI {
 }
 
 =pod
-Function that run DTIPrep on nrrd file
+Function that run DTIPrep on nrrd file. 
+If QCed file found and secondary QCed file (if defined) is found, will return 1.
+Will return undef otherwise
 =cut
 sub runDTIPrep {
-    my  ($raw_nrrd, $protocol, $QCed_nrrd)  =   @_;    
+    my  ($raw_nrrd, $protocol, $QCed_nrrd, $QCed2_nrrd)  =   @_;    
 
     my  $cmd        =   "DTIPrep --DWINrrdFile $raw_nrrd --xmlProtocol $protocol";
     print   "\n\tRunning DTIPrep (...)\n$cmd\n";
     system($cmd)    unless (-e $QCed_nrrd);
 
-    if (-e $QCed_nrrd) {
+    if (($QCed2_nrrd) && ((-e $QCed_nrrd) && (-e $QCed2_nrrd))) {
+        return 1;
+    } elsif ((!$QCed2_nrrd) && (-e $QCed_nrrd)) {
         return 1;
     } else {
         return undef;

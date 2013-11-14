@@ -34,7 +34,6 @@ Usage: $0 [options]
 
 USAGE
 my $profile         = undef;
-my $concat          = 0;
 my $DTIPrepVersion  = undef;
 my $runDTIPrep      = 0;
 my $DTIPrepProtocol = undef;
@@ -44,7 +43,6 @@ my ($list, @args);
 
 my @args_table      = (["-profile",         "string",   1,      \$profile,          "name of config file in ~/.neurodb."                             ],
                        ["-list",            "string",   1,      \$list,             "file with the list of raw diffusion files (in assembly/DCCID/Visit/mri/native)."    ],
-                       ["-concat",          "boolean",  1,      \$concat,           "specify this option if you need to concatenate several DTI scans to obtain a complete DTI dataset. Note that you would need to a function in your config file to concatenate the DTIs."    ],
                        ["-DTIPrepVersion",  "string",   1,      \$DTIPrepVersion,   "DTIPrep version used if cannot be found in DTIPrep binary path."],
                        ["-runDTIPrep",      "boolean",  1,      \$runDTIPrep,       "if set, run DTIPrep tool on raw DTI data."                      ],
                        ["-DTIPrepProtocol", "string",   1,      \$DTIPrepProtocol,  "DTIPrep protocol to use or that was used to run DTIPrep."       ],
@@ -58,7 +56,7 @@ GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 # input option error checking
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    print "\n\tERROR: You don't have a configuration file named \"$profile\" in:  $ENV{HOME}/.neurodb/ \n\n"; 
     exit 33;
 }
 
@@ -88,10 +86,11 @@ my  $t1_scan_type   =   $Settings::t1_scan_type;
 my  $DTI_volumes    =   $Settings::DTI_volumes;
 my  $reject_thresh  =   $Settings::reject_thresh;
 my  $niak_path      =   $Settings::niak_path;
+my  $QCed2_suffix   =   $Settings::QCed2_suffix;
 
 # Exit program if runMincdiffusion is set and $niak_path is not set as minctensor needs Niak to run
 if  (($runMincdiffusion == 1) && (!$niak_path)) {
-    print "$Usage\n\tERROR: variable $niak_path need to be set in the config file if -runMincdiffusion is set.\n\n";
+    print "$Usage\n\tERROR: variable niak_path need to be set in the config file if -runMincdiffusion is set.\n\n";
     exit 33;
 }
 
@@ -128,14 +127,14 @@ foreach my $nativedir (@nativedirs)   {
     #######################
     ####### Step 3: ####### - Get raw DTI file to process (later may need to develop concatenation of several DTI files into one dataset when a DTI dataset is acquired in several smaller DTI scans). 
     ####################### - & determine output names based on raw DTI file names and organize them into a hash ($DTIrefs). 
-    my ($DTIs_list, $DTIrefs)   = &fetchData($nativedir, $DTI_volumes, $t1_scan_type, $QCoutdir, $DTIPrepProtocol);
+    my ($DTIs_list, $DTIrefs)   = &fetchData($nativedir, $DTI_volumes, $t1_scan_type, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix);
     next if ((!$DTIs_list) || (!$DTIrefs));
 
     #######################
     ####### Step 4: ####### - Run preprocessing pipeline (mnc2nrrd + DTIPrep) if $runDTIPrep is set. 
     #######################
     if ($runDTIPrep) {
-        my ($pre_success)   = &preprocessingPipeline($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
+        my ($pre_success)   = &preprocessingPipeline($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix);
         # if no preprocessing pipeline was successful for this visit, go to the next one.
         next if (!$pre_success);
     } else {
@@ -149,7 +148,7 @@ foreach my $nativedir (@nativedirs)   {
     #                          - QCed.nrrd
     #                          - QCReport.txt
     #                          - XMLQCResult.xml
-    my ($convert_success)   = &check_and_convertPreprocessedFiles($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion);
+    my ($convert_success)   = &check_and_convertPreprocessedFiles($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion, $QCed2_suffix);
     # if no preprocessed files were found or conversion was not successful for this visit, go to the next one.
     next if (!$convert_success);
 
@@ -284,7 +283,7 @@ Fetch the raw DWI datasets and foreach DWI, determine output names to be used an
             - Will also print relevant information in the log file.
 =cut
 sub fetchData {
-    my ($nativedir, $DTI_volumes, $t1_scan_type, $QCoutdir, $DTIPrepProtocol)  = @_;
+    my ($nativedir, $DTI_volumes, $t1_scan_type, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix)  = @_;
 
     # Get DTI datasets
     my ($DTIs_list)    = DTI::getRawDTIFiles($nativedir, $DTI_volumes);   
@@ -302,7 +301,7 @@ sub fetchData {
     #   dti_file_1  -> Raw_nrrd     => outputname
     #               -> QCed_nrrd    => outputname etc... (QCTxtReport, QCXmlReport, QCed_minc, QCProt)
     #   dti_file_2  -> Raw_nrrd     => outputname etc...
-    my ($DTIrefs)   = DTI::createDTIhashref($DTIs_list, $anat, $QCoutdir, $DTIPrepProtocol); 
+    my ($DTIrefs)   = DTI::createDTIhashref($DTIs_list, $anat, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix); 
 
     return ($DTIs_list, $DTIrefs);
 }
@@ -324,7 +323,7 @@ Outputs: - Will return undef if preprocessing was not successful on a least one 
          - Will return 1 if at least one raw DWI dataset was successfully preprocessed
 =cut
 sub preprocessingPipeline {
-    my ($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol)  = @_;
+    my ($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix)  = @_;
 
     my $at_least_one_success    = 0;
     foreach my $dti_file (@$DTIs_list) {
@@ -332,6 +331,7 @@ sub preprocessingPipeline {
         my $raw_nrrd    = $DTIrefs->{$dti_file}{'Raw_nrrd'};
         my $QCed_nrrd   = $DTIrefs->{$dti_file}{'QCed_nrrd'};
         my $QCProt      = $DTIrefs->{$dti_file}{'QCProt'};
+        my $QCed2_nrrd  = $DTIrefs->{$dti_file}{'QCed2_nrrd'} if ($QCed2_suffix);
 
         # Run Preprocessing pipeline
         print LOG "Running preprocessing pipeline on $dti_file (...)\n";
@@ -340,7 +340,7 @@ sub preprocessingPipeline {
         my ($convert_status)    = &preproc_mnc2nrrd($raw_nrrd, $dti_file);
         # 2. run DTIPrep pipeline on the raw nrrd file
         print LOG "\t2. Run DTIPrep.\n"; 
-        my ($DTIPrep_status)    = &preproc_DTIPrep($QCed_nrrd, $raw_nrrd, $DTIPrepProtocol);
+        my ($DTIPrep_status)    = &preproc_DTIPrep($QCed_nrrd, $raw_nrrd, $DTIPrepProtocol, $QCed2_nrrd);
         # 3. copy DTIPrep XML protocol used
         print LOG "\t3. Copy XML protocol used in output directory\n";
         my ($copyProt_status)   = &preproc_copyXMLprotocol($QCProt, $QCoutdir, $DTIPrepProtocol);
@@ -407,15 +407,15 @@ Output: - Will return 1 if QCed nrrd already exist
         - Will return $DTIPrep_status if DTIPrep is run. (DTIPrep_status can be equal to 1 if DTIPrep ran successfully, or undef if something went bad while running DTIPrep).
 =cut
 sub preproc_DTIPrep {
-    my ($QCed_nrrd, $raw_nrrd, $DTIPrepProtocol) = @_;
+    my ($QCed_nrrd, $raw_nrrd, $DTIPrepProtocol, $QCed2_nrrd) = @_;
 
     if (-e $QCed_nrrd) {
         print LOG "\t\t -> QCed nrrd file already exists (DTIPrep was already run).\n";
         return 1;
     } else {
-        my ($DTIPrep_status)   = DTI::runDTIPrep($raw_nrrd, $DTIPrepProtocol, $QCed_nrrd)  if (-e $raw_nrrd);
-        print LOG "\t\t -> DTIPrep was successfully run. QCed nrrd is $QCed_nrrd.\n"       if ($DTIPrep_status);
-        print LOG "\t\t -> ERROR: DTIPrep failed. \n"                                      if (!$DTIPrep_status);
+        my ($DTIPrep_status)   = DTI::runDTIPrep($raw_nrrd, $DTIPrepProtocol, $QCed_nrrd, $QCed2_nrrd)  if (-e $raw_nrrd);
+        print LOG "\t\t -> DTIPrep was successfully run. QCed nrrd is $QCed_nrrd.\n"                    if ($DTIPrep_status);
+        print LOG "\t\t -> ERROR: DTIPrep failed. \n"                                                   if (!$DTIPrep_status);
         return $DTIPrep_status;
     }
 }
@@ -466,16 +466,16 @@ Output: - Will return undef if could not find preprocessed files or convert it t
         - Will return 1 if conversion was a success and all preprocessing files were found in QC outdir.
 =cut
 sub check_and_convertPreprocessedFiles {
-    my ($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion)  = @_;
+    my ($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion, $QCed2_suffix)  = @_;
 
     my $at_least_one_success    = 0;
     foreach my $dti_file (@$DTIs_list) {
 
         # Check if all DTIPrep preprocessing outputs are available
-        my ($foundPreprocessed) = &checkPreprocessOutputs($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
+        my ($foundPreprocessed) = &checkPreprocessOutputs($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix);
 
         # Convert QCed_nrrd DTI to minc   
-        my ($convert_status)    = &convert2mnc($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion) if ($foundPreprocessed);
+        my ($convert_status)    = &convert2mnc($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion, $QCed2_suffix) if ($foundPreprocessed);
 
         # If one of the steps above failed, postprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
         if ($convert_status && $foundPreprocessed) {
@@ -520,22 +520,32 @@ Output: - Will return 1 if all output files could be found
 Relevant information will also be printed in the log file.
 =cut
 sub checkPreprocessOutputs {
-    my ($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol)  = @_;
+    my ($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix)  = @_;
 
     my $QCed_nrrd   = $DTIrefs->{$dti_file}{'QCed_nrrd'};
     my $QCTxtReport = $DTIrefs->{$dti_file}{'QCTxtReport'};
     my $QCXmlReport = $DTIrefs->{$dti_file}{'QCXmlReport'};
     my $QCProt      = $DTIrefs->{$dti_file}{'QCProt'};
+    my $QCed2_nrrd  = $DTIrefs->{$dti_file}{'QCed2_nrrd'} if ($QCed2_suffix);
 
+    my $err_message = "\nERROR: Could not find all DTIPrep preprocessing outputs in $outdir.\n" .
+                        "\tQCed nrrd:   $QCed_nrrd\n"   .
+                        "\tQCTxtReport: $QCTxtReport\n" .
+                        "\tQCXmlReport: $QCXmlReport"   .
+                        "\tQCProt:      $QCProt\n"      ;
+
+    # if all outputs exists return 1, otherwise return undef
     if ((-e $QCed_nrrd) && (-e $QCTxtReport) && (-e $QCXmlReport) && (-e $QCProt)) {
-        print LOG "All DTIPrep preprocessing outputs were found in $outdir.\n";
-        return 1;
+        # additional check of output existence depending on whether $QCed2_suffix is defined (secondary output produced by DTIPrep)
+        if ((($QCed2_suffix) && (-e $QCed2_nrrd)) || (!$QCed2_suffix)) {
+            print LOG "All DTIPrep preprocessing outputs were found in $outdir.\n";
+            return 1;
+        } else {
+            print LOG $err_message;
+            return undef;
+        }
     } else {
-        print LOG "\nERROR: Could not find all DTIPrep preprocessing outputs in $outdir.\n" .
-                    "\tQCed nrrd:   $QCed_nrrd\n"   .
-                    "\tQCTxtReport: $QCTxtReport\n" .
-                    "\tQCXmlReport: $QCXmlReport"   .
-                    "\tQCProt:      $QCProt\n"      ;
+        print LOG $err_message;
         return undef;
     }
 }    
@@ -556,11 +566,13 @@ Output: - Will return 1 if QCed minc file has been created or already exists
         - Will return undef if QCed DWI was not successfully converted to minc
 =cut
 sub convert2mnc {
-    my ($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion)   = @_;
+    my ($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion, $QCed2_suffix)   = @_;
 
     my $QCed_nrrd   = $DTIrefs->{$dti_file}{'QCed_nrrd'};
     my $QCed_minc   = $DTIrefs->{$dti_file}{'QCed_minc'};
     my $QCTxtReport = $DTIrefs->{$dti_file}{'QCTxtReport'};
+    my $QCed2_nrrd  = $DTIrefs->{$dti_file}{'QCed2_nrrd'} if ($QCed2_suffix);
+    my $QCed2_minc  = $DTIrefs->{$dti_file}{'QCed2_minc'} if ($QCed2_suffix);
 
     # Convert QCed nrrd file back into minc file (with updated header)
     my  ($insert_header, $convert_status);
@@ -570,13 +582,15 @@ sub convert2mnc {
             return 1;
         } else {
             # convert QCed file to minc
-            ($convert_status)   = DTI::convert_DTI($QCed_nrrd, $QCed_minc, '--nrrd-to-minc');
+            ($convert_status)   = DTI::convert_DTI($QCed_nrrd,  $QCed_minc,  '--nrrd-to-minc');
+            ($convert_status)   = DTI::convert_DTI($QCed2_nrrd, $QCed2_minc, '--nrrd-to-minc') if (($QCed2_suffix) && ($convert_status));
             # insert mincheader fields stored in raw dti_file (aside from the fields with direction information) into QCed minc file
             ($insert_header)    = DTI::insertMincHeader($dti_file, $data_dir, $QCed_minc, $QCTxtReport, $DTIPrepVersion);
+            ($insert_header)    = DTI::insertMincHeader($dti_file, $data_dir, $QCed2_minc, $QCTxtReport, $DTIPrepVersion) if (($QCed2_suffix) && ($insert_header));
         }
     }
     
-    if ($convert_status) {
+    if (($convert_status) && ($insert_header)) {
         print LOG "QCed DTI successfully converted to minc.\n";
         return 1;
     } else {
