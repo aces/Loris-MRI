@@ -152,6 +152,46 @@ sub Convert2mnc {
     return  ($QCed_minc,$QC_report,$insert_header);
 }
 
+
+=pod
+Read DTIPrep XML protocol and return information into a hash.
+- Inputs: - $DTIPrepProtocol    = XML protocol used (or that has been used) to run DTIPrep
+- Output: - $protXMLrefs        = dereferenced hash containing DTIPrep protocol as follows:
+                entry   => 'QC_QCOutputDirectory'       => {}
+                        => 'QC_QCedDWIFileNameSuffix'   => { 
+                                                            'value' => '_QCed.nrrd'
+                                                                                                                                                                  },
+                        => 'IMAGE_bCheck' => {
+                                        'entry' => {
+                                                  'IMAGE_size' => {
+                                                                  'value' => [
+                                                                             '96',
+                                                                             '96',
+                                                                             '65'
+                                                                           ]
+                                                                },
+                                                  'IMAGE_reportFileMode' => {
+                                                                            'value' => '1'
+                                                                          }, 
+                                        ...                
+                                        'value' => 'Yes'
+                                        },
+                        => 'QC_badGradientPercentageTolerance' => {
+                                    etc...
+=cut
+sub readDTIPrepXMLprot {
+    my ($DTIPrepProtocol)   = @_;
+
+    my $xml             = new XML::Simple;
+    my ($protXMLrefs)   = $xml->XMLin(  $DTIPrepProtocol,
+                                        KeyAttr => {entry => 'parameter'},
+                                        ForceArray => ['parameter']
+                                     );
+
+    return ($protXMLrefs);
+}
+
+
 =pod
 Function that will determine output names based on each DTI file dataset and return a hash of DTIref:
        dti_file_1  -> Raw_nrrd     => outputname
@@ -163,36 +203,184 @@ Function that will determine output names based on each DTI file dataset and ret
        dti_file_2  -> Raw_nrrd     => outputname etc...
 =cut
 sub createDTIhashref {
-    my ($DTIs_list, $anat, $QCoutdir, $DTIPrepProtocol, $QCed2_suffix)    =   @_;
+    my ($DTIs_list, $anat, $QCoutdir, $DTIPrepProtocol, $protXMLrefs, $QCed2_step)    =   @_;
     my %DTIrefs;
 
     foreach my $dti_file (@$DTIs_list) {
-        my $prot_name       = basename($DTIPrepProtocol);
-        my $dti_name        = substr(basename($dti_file),0,-4);
-        my $anat_name       = substr(basename($anat),0,-4);
 
-        $DTIrefs{$dti_file}{'Raw_nrrd'}     = $QCoutdir . "/" . $dti_name  . ".nrrd"             ;
-        $DTIrefs{$dti_file}{'QCed_nrrd'}    = $QCoutdir . "/" . $dti_name  . "_QCed.nrrd"        ;
-        $DTIrefs{$dti_file}{'QCTxtReport'}  = $QCoutdir . "/" . $dti_name  . "_QCReport.txt"     ;
-        $DTIrefs{$dti_file}{'QCXmlReport'}  = $QCoutdir . "/" . $dti_name  . "_XMLQCResult.xml"  ;
-        $DTIrefs{$dti_file}{'QCed_minc'}    = $QCoutdir . "/" . $dti_name  . "_QCed.mnc"         ;
-        $DTIrefs{$dti_file}{'QCProt'}       = $QCoutdir . "/" . $dti_name  . "_" . $prot_name    ;
-        $DTIrefs{$dti_file}{'FA'}           = $QCoutdir . "/" . $dti_name  . "_QCed_FA.mnc"      ;
-        $DTIrefs{$dti_file}{'RGB'}          = $QCoutdir . "/" . $dti_name  . "_QCed_rgb.mnc"     ;
-        $DTIrefs{$dti_file}{'MD'}           = $QCoutdir . "/" . $dti_name  . "_QCed_MD.mnc"      ;
-        $DTIrefs{$dti_file}{'rgb_pic'}      = $QCoutdir . "/" . $dti_name  . "_QCed_RGB.png"     ;   
-        $DTIrefs{$dti_file}{'baseline'}     = $QCoutdir . "/" . $dti_name  . "_QCed-frame0.mnc"  ;
-        $DTIrefs{$dti_file}{'anat'}         = $anat                                              ;
-        $DTIrefs{$dti_file}{'anat_mask'}    = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
-        $DTIrefs{$dti_file}{'preproc_minc'} = $QCoutdir . "/" . $anat_name . "-preprocessed.mnc" ;
-        if ($QCed2_suffix) {
-            $DTIrefs{$dti_file}{'QCed2_nrrd'}   = $QCoutdir . "/" . $dti_name  . $QCed2_suffix . ".nrrd";
-            $DTIrefs{$dti_file}{'QCed2_minc'}    = $QCoutdir . "/" . $dti_name  . $QCed2_suffix . ".mnc" ;
-        }
+        # Raw nrrd file to be processed
+        my $dti_name        = substr(basename($dti_file), 0, -4);
+        $DTIrefs->{$dti_file}->{'Raw_nrrd'}                 = $QCoutdir . "/" . $dti_name  . ".nrrd"           ;
+
+        # Determine preprocess outputs
+        DTI::determinePreprocOutputs($QCoutdir, $dti_file, $DTIPrepProtocol, $protXMLrefs, $QCed2_step);
+
+        # If DTI_bCompute is set to yes, DTIPrep will create FA, RGB, MD, and other output files that we will want to insert in datase
+        DTI::determinePostprocOutputs($QCoutdir, $dti_file, $anat, $protXMLrefs);
+            
     }
     
-    return  (\%DTIrefs);
+    return  ($DTIrefs);
 }
+
+=pod
+Function that will determine post processing output names (for either DTIPrep or mincdiffusion postprocessing) and append them to $DTIrefs.
+- Inputs:   - $QCoutdir         = directory that will contain output files
+            - $dti_file         = raw DWI file to be processed
+            - $DTIPrepProtocol  = DTIPrepProtocol to copy into output directory
+            - $protXMLrefs      = hash containing informations stored in DTIPrep XML protocol (with suffix for the different outputs, among other things) 
+- Outputs:  - $DTIrefs{$dti_file}{'Preproc'}{'Output'} fields for DTIPrep preprocessing
+=cut
+sub determinePreprocOutputs {
+    my ($QCoutdir, $dti_file, $DTIPrepProtocol, $protXMLrefs, $QCed2_step)   = @_;
+
+    my $prot_name       = basename($DTIPrepProtocol);
+    my $dti_name        = substr(basename($dti_file), 0, -4);
+
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCProt'}      = $QCoutdir . "/" . $dti_name  . "_" . $prot_name  ;
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCXmlReport'} = $QCoutdir . "/" . $dti_name  . "_XMLQCResult.xml";
+       
+    # These are determined in DTIPrep's XML protocol 
+    my $QCTxtReport = $protXMLrefs->{entry}->{QC_reportFileNameSuffix}->{value};
+    my $QCed_suffix = $protXMLrefs->{entry}->{QC_QCedDWIFileNameSuffix}->{value};
+    $QCed_suffix    = substr($QCed_suffix, 0, -5); # remove .nrrd from QCed suffix
+
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCTxtReport'}   = $QCoutdir . "/" . $dti_name  . $QCTxtReport          ;
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_nrrd'}     = $QCoutdir . "/" . $dti_name  . $QCed_suffix . ".nrrd"; 
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_minc'}     = $QCoutdir . "/" . $dti_name  . $QCed_suffix . ".mnc" ;
+
+    # if a secondary QC file is written during INTERLACE_bCheck step (before motion and eddy curent corrections)
+    my $QCed2_suffix= $protXMLrefs->{entry}->{INTERLACE_bCheck}->{entry}->{$QCed2_step}->{value};
+    if ($QCed2_suffix) {
+        $QCed2_suffix   = substr($QCed2_suffix, 0, -5); # remove .nrrd from QCed2 suffix
+        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_nrrd'}= $QCoutdir . "/" . $dti_name . $QCed2_suffix . ".nrrd";
+        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_minc'}= $QCoutdir . "/" . $dti_name . $QCed2_suffix . ".mnc" ;
+    }
+}
+
+
+=pod
+Function that will determine post processing output names (for either DTIPrep or mincdiffusion postprocessing) and append them to $DTIrefs.
+- Inputs:   - $QCoutdir     = directory that will contain output files
+            - $dti_file     = raw DWI file to be processed
+            - $anat         = anatomic T1 image to be used for mincdiffusion postprocessing
+            - $protXMLrefs  = hash containing informations stored in DTIPrep XML protocol (with suffix for the different outputs, among other things) 
+- Outputs:  - $DTIrefs{$dti_file}{'Postproc'}{'Tool'} field storing which postprocessing pipeline was used
+            - $DTIrefs{$dti_file}{'Postproc'}{'Output'} fields for DTIPrep postprocessing
+=cut
+sub determinePostprocOutputs {
+    my ($QCoutdir, $dti_file, $anat, $protXMLrefs) = @_;
+
+    # Determine QCed file suffix to be used for postprocess output files
+    my $QCed_suffix = $protXMLrefs->{entry}->{QC_QCedDWIFileNameSuffix}->{value};
+    $QCed_suffix    = substr($QCed_suffix, 0, -5); # remove .nrrd from QCed suffix
+
+    # Check whether DTIPrep will create FA, RGB and other postprocessing outputs (DTI_bCompute == Yes)
+    my $bCompute    = $protXMLrefs->{entry}->{DTI_bCompute}->{value};
+
+    if ($bCompute eq 'Yes') {
+        
+        $DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} = 'DTIPrep';
+        DTI::determineDTIPrepPostprocOutputs($QCoutdir, $dti_file, $QCed_suffix, $protXMLrefs);
+
+    } elsif ($bCompute eq 'No') {
+    
+        $DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} = 'mincdiffusion';
+        DTI::determineMincdiffusionPostprocOutputs($QCoutdir, $dti_file, $QCed_suffix, $anat);
+
+    }
+}
+
+=pod
+Function that will determine DTIPrep's postprocessing output names (based on the XML protocol) and append them to $DTIrefs
+- Inputs:   - $QCoutdir     = directory that will contain output files
+            - $dti_file     = raw DWI file to be processed
+            - $protXMLrefs  = hash containing informations stored in DTIPrep XML protocol (with suffix for the different outputs, among other things) 
+- Outputs:  - $DTIrefs{$dti_file}{'Postproc'}{'Output'} fields for DTIPrep postprocessing
+=cut
+sub determineDTIPrepPostprocOutputs {
+    my ($QCoutdir, $dti_file, $QCed_suffix, $protXMLrefs) = @_;
+    
+    # Determine basename of the dti file to be processed
+    my $dti_name        = substr(basename($dti_file), 0, -4);
+
+    # 1. Tensor
+    # Determine suffix to used for the output
+    my $tensor_suffix   = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_tensor}->{value};    
+    $tensor_suffix      = $QCed_suffix . substr($tensor_suffix, 0, -5); # remove .nrrd from tensor suffix
+    # Determine nrrd and minc names
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_nrrd'}  = $QCoutdir . "/" . $dti_name  . $tensor_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_minc'}  = $QCoutdir . "/" . $dti_name  . $tensor_suffix . ".mnc" ;
+
+    # 2. Baseline DTI image (bvalue = 0) {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
+    # Determine suffix to used for the output
+    my $baseline_suffix = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_baseline}->{value}[1];    
+    $baseline_suffix    = $QCed_suffix . substr($baseline_suffix, 0, -5); # remove .nrrd from baseline suffix
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_nrrd'}  = $QCoutdir . "/" . $dti_name  . $baseline_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'}  = $QCoutdir . "/" . $dti_name  . $baseline_suffix . ".mnc" ;
+
+    # 3. RGB map {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
+    # Determine suffix to used for the output
+    my $RGB_suffix      = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_colorfa}->{value}[1];
+    $RGB_suffix         = $tensor_suffix . substr($RGB_suffix, 0, -5); # remove .nrrd from rgb suffix
+    # Determine nrrd and minc names
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_nrrd'}  = $QCoutdir . "/" . $dti_name  . $RGB_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_minc'}  = $QCoutdir . "/" . $dti_name  . $RGB_suffix . ".mnc" ;
+
+    # 4. FA map {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
+    # Determine suffix to used for the output
+    my $FA_suffix       = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_fa}->{value}[1];
+    $FA_suffix          = $tensor_suffix . substr($FA_suffix, 0, -5); # remove .nrrd from FA suffix
+    # Determine nrrd and minc names
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_nrrd'}  = $QCoutdir . "/" . $dti_name  . $FA_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_minc'}  = $QCoutdir . "/" . $dti_name  . $FA_suffix . ".mnc" ;
+
+    # 5. MD map {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
+    # Determine suffix to used for the output
+    my $MD_suffix       = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_md}->{value}[1];
+    $MD_suffix          = $tensor_suffix . substr($MD_suffix, 0, -5); # remove .nrrd from MD suffix
+    # Determine nrrd and minc names
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_nrrd'}  = $QCoutdir . "/" . $dti_name  . $MD_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_minc'}  = $QCoutdir . "/" . $dti_name  . $MD_suffix . ".mnc" ;
+
+    # 6. Isotropic DWI {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
+    # Determine suffix to used for the output
+    my $IDWI_suffix     = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_idwi}->{value}[1];
+    $IDWI_suffix        = substr($IDWI_suffix, 0, -5); # remove .nrrd from isotropic DWI suffix
+    # Determine nrrd and minc names
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_nrrd'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_minc'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".mnc" ;
+
+}    
+
+=pod
+Function that will determine mincdiffusion postprocessing output names and append them to $DTIrefs
+- Inputs:   - $QCoutdir     = directory that will contain output files
+            - $dti_file     = raw DWI file to be processed
+            - $QCed_suffix  = QCed suffix used to create QCed nrrd and determine postprocessing file names
+            - $anat         = anatomic T1 file to use for DWI-anat registration
+- Outputs:  - $DTIrefs{$dti_file}{'Postproc'} for mincdiffusion postprocessing
+=cut
+sub determineMincdiffusionPostprocOutputs {
+    my ($QCoutdir, $dti_file, $QCed_suffix, $anat) = @_;
+    
+    # Determine basename of the dti file to be processed
+    my $dti_name        = substr(basename($dti_file), 0, -4);
+
+    # Determine basename of the anat file to be processed
+    my $anat_name       = substr(basename($anat), 0, -4);
+
+    # Determine mincdiffusion output names    
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_minc'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_FA.mnc"      ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_minc'}       = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_rgb.mnc"     ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_minc'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_MD.mnc"      ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'rgb_pic'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_RGB.png"     ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'}  = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "-frame0.mnc"  ;
+    $DTIrefs->{$dti_file}->{'raw_anat_minc'}                = $anat                                              ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_minc'} = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'preproc_minc'}   = $QCoutdir . "/" . $anat_name . "-preprocessed.mnc" ;
+
+}    
 
 =pod
 Function that convert minc file to nrrd or nrrd file to minc. 
@@ -424,13 +612,13 @@ sub mincdiff_preprocess {
     
     # Initialize variables
         # 1. input data
-    my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
-    my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
-    my $raw_anat      = $DTIrefs->{$dti_file}{'anat'}         ;
+    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
+    my $QCed_basename = substr(basename($QCed_minc),0,-4);
+    my $raw_anat      = $DTIrefs->{$dti_file}{'raw_anat_minc'};
         # 2. output data
-    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
-    my $baseline      = $DTIrefs->{$dti_file}{'baseline'}     ;
-    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
+    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
+    my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'};
+    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
 
 
     # Run diff_preprocess.pl script 
@@ -465,14 +653,14 @@ sub mincdiff_minctensor {
 
     # Initialize variables
         # 1. input data
-    my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
-    my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
-    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
-    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
+    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
+    my $QCed_basename = substr(basename($QCed_minc), 0, -4);
+    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
+    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
         # 2. output data
-    my $FA            = $DTIrefs->{$dti_file}{'FA'}           ;
-    my $MD            = $DTIrefs->{$dti_file}{'MD'}           ;
-    my $RGB           = $DTIrefs->{$dti_file}{'RGB'}          ;
+    my $FA            = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'};
+    my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'};
+    my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
 
     # Run minctensor.pl script  
     `minctensor.pl -mask $anat_mask $preproc_minc -niakdir $niak_path -outputdir $QCoutdir -octave $QCed_basename`;
@@ -505,9 +693,9 @@ sub RGBpik_creation {
 
     # Initialize variables
         # 1. input file
-    my $RGB     = $DTIrefs->{$dti_file}{'RGB'};
+    my $RGB     = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
         # 2. output file
-    my $rgb_pic = $DTIrefs->{$dti_file}{'rgb_pic'};   
+    my $rgb_pic = $DTIrefs->{$dti_file}{'Postproc'}{'rgb_pic'};   
 
     # Run mincpik on the RGB map
     `mincpik -triplanar -horizontal $RGB $rgb_pic`;
@@ -536,16 +724,16 @@ Function that created FA and RGB maps as well as the triplanar pic of the RGB ma
 #    my ($dti_file, $DTIrefs, $QCoutdir)   =   @_;
 #
 #    # Initialize variables
-#    my $QCed_minc     = $DTIrefs->{$dti_file}{'QCed_minc'}    ;
-#    my $QCed_basename = substr(basename($QCed_minc),0,-4)     ;
-#    my $FA            = $DTIrefs->{$dti_file}{'FA'}           ;
-#    my $MD            = $DTIrefs->{$dti_file}{'MD'}           ;
-#    my $RGB           = $DTIrefs->{$dti_file}{'RGB'}          ;
-#    my $rgb_pic       = $DTIrefs->{$dti_file}{'rgb_pic'}      ;
-#    my $baseline      = $DTIrefs->{$dti_file}{'baseline'}     ;
-#    my $preproc_minc  = $DTIrefs->{$dti_file}{'preproc_minc'} ;
-#    my $anat_mask     = $DTIrefs->{$dti_file}{'anat_mask'}    ;
-#    my $anat          = $DTIrefs->{$dti_file}{'anat'}         ;
+#    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
+#    my $QCed_basename = substr(basename($QCed_minc),0,-4);
+#    my $FA            = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'};
+#    my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'}; 
+#    my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
+#    my $rgb_pic       = $DTIrefs->{$dti_file}{'Postproc'}{'rgb_pic'};
+#    my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'};
+#    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
+#    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
+#    my $anat          = $DTIrefs->{$dti_file}{'raw_anat_minc'};
 #
 #    # Check if output files already exists
 #    if (-e $rgb_pic && $RGB && $MD && $baseline && $anat_mask && $preproc_minc) {
