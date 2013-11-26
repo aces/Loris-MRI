@@ -444,7 +444,7 @@ sub insertMincHeader {
     my ($procInsert)    =   DTI::insertProcessInfo($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion);
 
     # insert old acquisition, patient and study arguments except for the one modified by DTIPrep (i.e. acquisition:bvalues, acquisition:b_matrix and all acquisition:direction*)
-    my  ($acqInsert)    =   DTI::insertAcqInfo($raw_dti, $processed_minc)   if ($processed_minc =~ /_QCed\.mnc$/i);
+    my  ($acqInsert)    =   DTI::insertAcqInfo($raw_dti, $processed_minc);
 
     # insert patient information from the raw dataset into the processed files
     my  ($patientInsert)=   DTI::insertFieldList($raw_dti, $processed_minc, 'patient:');

@@ -463,7 +463,7 @@ sub preproc_copyXMLprotocol {
 
 
 =pod
-This function will check preprocessing outputs and call convert2mnc, which will convert and reinsert headers into minc file.
+This function will check preprocessing outputs and call convertPreproc2mnc, which will convert and reinsert headers into minc file.
 Inputs: - $DTIs_list        = list of raw DWI that were processed
         - $DTIrefs          = hash with list of raw DTIs as a key and corresponding output names as values
         - $data_dir         = directory containing raw DWI dataset
@@ -483,7 +483,7 @@ sub check_and_convertPreprocessedFiles {
         my ($foundPreprocessed) = &checkPreprocessOutputs($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
 
         # Convert QCed_nrrd DTI to minc   
-        my ($convert_status)    = &convert2mnc($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion) if ($foundPreprocessed);
+        my ($convert_status)    = &convertPreproc2mnc($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion) if ($foundPreprocessed);
 
         # If one of the steps above failed, postprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
         if ($convert_status && $foundPreprocessed) {
@@ -573,7 +573,7 @@ Inputs: - $dti_file         = Raw DWI file to be processed
 Output: - Will return 1 if QCed minc file has been created or already exists
         - Will return undef if QCed DWI was not successfully converted to minc
 =cut
-sub convert2mnc {
+sub convertPreproc2mnc {
     my ($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion)   = @_;
 
     my $QCed_nrrd   = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_nrrd'};
@@ -585,7 +585,7 @@ sub convert2mnc {
     # Convert QCed nrrd file back into minc file (with updated header)
     my  ($insert_header, $convert_status);
     if  (-e $QCed_nrrd) {
-        if ( ((!$QCed_minc) && (-e $QCed_minc)) 
+        if ( ((!$QCed2_minc) && (-e $QCed_minc)) 
                 || (($QCed2_minc) && (-e $QCed_minc) && (-e $QCed2_minc))) {
             print LOG "QCed minc(s) already exist(s).\n";
             return 1;
