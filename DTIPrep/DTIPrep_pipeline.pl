@@ -8,6 +8,7 @@ use MNI::Spawn;
 use MNI::FileUtilities  qw(check_output_dirs);
 use File::Basename;
 use XML::Simple;
+use Cwd 'abs_path';
 
 # These are to load the DTI modules to be used
 # use lib "$FindBin::Bin";
@@ -36,19 +37,17 @@ Usage: $0 [options]
 USAGE
 my $profile         = undef;
 my $DTIPrepVersion  = undef;
+my $mincdiffVersion = undef;
 my $runDTIPrep      = 0;
 my $DTIPrepProtocol = undef;
-my $runMincdiffusion= 0;
-my $notes           = 'notes';
 my ($list, @args);
 
-my @args_table      = (["-profile",         "string",   1,      \$profile,          "name of config file in ~/.neurodb."                             ],
-                       ["-list",            "string",   1,      \$list,             "file with the list of raw diffusion files (in assembly/DCCID/Visit/mri/native)."    ],
-                       ["-DTIPrepVersion",  "string",   1,      \$DTIPrepVersion,   "DTIPrep version used if cannot be found in DTIPrep binary path."],
-                       ["-runDTIPrep",      "boolean",  1,      \$runDTIPrep,       "if set, run DTIPrep tool on raw DTI data."                      ],
-                       ["-DTIPrepProtocol", "string",   1,      \$DTIPrepProtocol,  "DTIPrep protocol to use or that was used to run DTIPrep."       ],
-                       ["-n",              "string",    1,      \$notes,            "name of notes file in each subject dir (i.e. no path)."         ],
-                       ["-runMincdiffusion","boolean",  1,      \$runMincdiffusion, "if set, run mincdiffusion tools on QCed DTI dataset."           ]
+my @args_table      = (["-profile",             "string",   1,      \$profile,          "name of config file in ~/.neurodb."                             ],
+                       ["-list",                "string",   1,      \$list,             "file with the list of raw diffusion files (in assembly/DCCID/Visit/mri/native)."    ],
+                       ["-DTIPrepVersion",      "string",   1,      \$DTIPrepVersion,   "DTIPrep version used if cannot be found in DTIPrep binary path."],
+                       ["-mincdiffusionVersion","string",   1,      \$mincdiffVersion,  "mincdiffusion release version used if cannot be found in mincdiffusion scripts path."],
+                       ["-runDTIPrep",          "boolean",  1,      \$runDTIPrep,       "if set, run DTIPrep tool on raw DTI data."                      ],
+                       ["-DTIPrepProtocol",     "string",   1,      \$DTIPrepProtocol,  "DTIPrep protocol to use or that was used to run DTIPrep."       ]
                       );
 
 Getopt::Tabular::SetHelp ($Usage, '');
@@ -66,20 +65,15 @@ if (!$profile) {
     exit 33;
 }
 
+# Determine DTIPrepVersion from its absolute path if DTIPrepVersion is not given as an argument when calling the script
+($DTIPrepVersion)   = &identify_tool_version("DTIPrep", '\/(DTIPrep[A-Z0-9._]+)\/DTIPrep$')     if (!$DTIPrepVersion);
+# Exit with error message if $DTIPrepVersion was not set or found based on its absolute path
 if (!$DTIPrepVersion) {
-    my  $binary =   `which DTIPrep`;
-    if  ($binary=~  m/\/(DTIPrep[A-Z0-9._]+)\/DTIPrep$/i) {
-        $DTIPrepVersion =   $1;
-    } else {
-        print "$Usage\n\t ERROR: Pipeline version could not been determined via the path to DTIPrep binary. You need to specify which version of DTIPrep you will be using with -version option.\n\n";  
-        exit 33;
-    }
-}
-
-if (!$DTIPrepProtocol) {
-    print "$Usage\n\tERROR: You need to specify a DTIPrep protocol to run DTIPrep or that was used to run DTIPrep.\n\n";
+    print "$Usage\n\t ERROR: Pipeline version could not been determined via the path to DTIPrep binary. You need to specify which version of DTIPrep you will be using with -version option.\n\n";  
     exit 33;
 }
+
+
 
 # These settings are in a config file (profile)
 my  $data_dir       =   $Settings::data_dir;
@@ -89,11 +83,6 @@ my  $reject_thresh  =   $Settings::reject_thresh;
 my  $niak_path      =   $Settings::niak_path;
 my  $QCed2_step     =   $Settings::QCed2_step;
 
-# Exit program if runMincdiffusion is set and $niak_path is not set as minctensor needs Niak to run
-if  (($runMincdiffusion == 1) && (!$niak_path)) {
-    print "$Usage\n\tERROR: variable niak_path need to be set in the config file if -runMincdiffusion is set.\n\n";
-    exit 33;
-}
 
 # needed for log file
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)   =   localtime(time);
@@ -130,6 +119,17 @@ foreach my $nativedir (@nativedirs)   {
     #######################
     my ($protXMLrefs)        = &DTI::readDTIPrepXMLprot($DTIPrepProtocol);
     next if (!$protXMLrefs);
+    # Additional checks to check whether DTIPrep or mincdiffusion tools will run post-processing. If the mincdiffusion tools will be used, then we should be able to have a version of the tool and the path to niak! 
+    my $bCompute    = $protXMLrefs->{entry}->{DTI_bCompute}->{value};
+    if (($bCompute eq 'No') && (!$mincdiffVersion)) {
+        ($mincdiffVersion)  = &identify_tool_version("minctensor.pl", '\/(mincdiffusion-[A-Z0-9._-]+)\/');
+        # Exit program if $niak_path or mincdiffVersion is not set (needed to run minctensor)
+        if  (!$niak_path) {
+            print "\n\tERROR: variable niak_path need to be set in the config file if you plan to use mincdiffusion tools to process the DTI files.\n\n"    if (!$niak_path);
+            print "\n\tERROR: mincdiffusion tool's version could not be determined.\n\n"    if (!$mincdiffVersion);
+            exit 33;
+        }
+    }
 
     #######################
     ####### Step 4: ####### - Get raw DTI file to process (later may need to develop concatenation of several DTI files into one dataset when a DTI dataset is acquired in several smaller DTI scans). 
@@ -160,15 +160,18 @@ foreach my $nativedir (@nativedirs)   {
     next if (!$convert_success);
 
     #######################
-    ####### Step 7: ####### Run post processing pipeline: 
-    #######################    - will convert QCed file to minc
-    #                          - will insert mincheader information from raw DTI into QCed minc DTI
-    #                          - will create FA and RGB maps
-    if ($runMincdiffusion) {
+    ####### Step 7: #######    
+    ####################### 
+    # - If bCompute is not set in DTIPrep protocol will run mincdiffusion tools and create FA, MD, RGB... maps
+    # - If bCompute is set in DTIPrep protocol, will convert DTIPrep processed nrrd file into minc files and reinsert relevant header information
+    if ($bCompute eq 'No') {
         my ($post_success)  = &mincdiffusionPipeline($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion, $niak_path);
         next if (!$post_success);
+    } elsif ($bCompute eq 'Yes') {
+        my ($DTIPrep_post_success)  = &check_and_convert_DTIPrep_postproc_outputs($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion); 
+        next if (!$DTIPrep_post_success);
     } else {
-        print LOG "mincdiffusion tools won't be run for this dataset. (-runMincdiffusion option was not set)\n";
+        print LOG "\n\tERROR: No post processing tools won't be run for this dataset. \n";
         print LOG "--------------------------------\n";
         exit;
     }
@@ -199,6 +202,32 @@ exit 0;
 ###############
 ## Functions ##
 ###############
+
+=pod
+Function that determine tool version used for processing.
+- Inputs:   - $tool = tool to search absolute path containing version information
+            - $match= string to match to determine tool version
+- Output:   - Version of the tool found or undef if version could not be determined based on the path
+=cut
+sub identify_tool_version {
+    my ($tool, $match) = @_;
+
+    my $executable          = `which $tool`;
+    my $executable_abspath  = abs_path("$executable");
+    if ($executable_abspath =~ m/$match/i) {
+        return $1;
+    } else {
+        return undef;
+    }
+}
+
+
+
+
+
+
+
+
 
 =pod
 Fetches site, candID and visit label from the native directory of the dataset to process.
@@ -638,7 +667,7 @@ sub mincdiffusionPipeline {
         my $QCed_minc   = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
 
         # Check that FA, MD, RGB, RGB pic, baseline frame are not already created
-        my ($already_created)   = &checkPostProcessedOutputs($dti_file, $DTIrefs, $QCoutdir);
+        my ($already_created)   = &checkMincdiffusionPostProcessedOutputs($dti_file, $DTIrefs, $QCoutdir);
         if ($already_created) {
             print LOG "Mincdiffusion tools were already run on $QCed_minc\n";
             $DTIrefs->{$dti_file}{'mincdiff_status'}   = "already_done";
@@ -648,7 +677,7 @@ sub mincdiffusionPipeline {
 
         # Check that QCed minc file exists first!
         if (!$QCed_minc) {
-            print LOG "ERROR: could not find any QCed minc to run mincdiffusion tools\n";
+            print LOG "ERROR: could not find any QCed minc to run mincdiffusion tools for $dti_file\n";
             $DTIrefs->{$dti_file}{'mincdiff_status'}   = "failed";
             next;
         }
@@ -692,7 +721,7 @@ Inputs: - $dti_file = raw DWI dataset to use as a key in $DTIrefs
 Output: - return 1 if all post processing outputs were found
         - return undef if could not find all post processing outputs
 =cut
-sub checkPostProcessedOutputs {
+sub checkMincdiffusionPostProcessedOutputs {
     my ($dti_file, $DTIrefs, $QCoutdir)  = @_;
 
         # diff_preprocess.pl outputs
@@ -710,10 +739,10 @@ sub checkPostProcessedOutputs {
             && (-e $FA)
             && (-e $MD)
             && (-e $RGB)) {
-        print LOG "All DTIPrep postprocessing outputs were found in $outdir.\n";
+        print LOG "All mincdiffusion postprocessing outputs were found in $outdir.\n";
         return 1;
     } else {
-        print LOG "\nERROR: Could not find all DTIPrep postprocessing outputs in $outdir.\n" .
+        print LOG "\nERROR: Could not find all mincdiffusion postprocessing outputs in $outdir.\n" .
                     "\tbaseline (frame 0):         $baseline\n"    .
                     "\tmincdiffusion preprocessed: $preproc_minc\n".
                     "\tmincdiffusion anat mask:    $anat_mask\n"   .
@@ -751,23 +780,24 @@ sub runMincdiffusionTools {
 
     # 1. Initialize variables
         # Raw anatomical
-    my $raw_anat    = $DTIrefs->{$dti_file}{'raw_anat_minc'}; 
+    my $raw_anat        = $DTIrefs->{$dti_file}{'raw_anat_minc'}; 
         # DTIPrep preprocessing outputs
-    my $QCed_minc   = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'}      ;
-    my $QCTxtReport = $DTIrefs->{$dti_file}{'Preproc'}{'QCTxtReport'}    ;
+    my $QCed_minc       = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
+    my $QCTxtReport     = $DTIrefs->{$dti_file}{'Preproc'}{'QCTxtReport'};
         # diff_preprocess.pl outputs
-    my $baseline    = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'} ;
-    my $preproc_minc= $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'}  ;
-    my $anat_mask   = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
+    my $baseline        = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'};
+    my $preproc_minc    = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
+    my $anat_mask       = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
+    my $anat_mask_diff  = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_diff_minc'};
         # minctensor.pl outputs
-    my $FA          = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'}       ;
-    my $MD          = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'}       ;
-    my $RGB         = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'}      ;
+    my $FA              = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'};
+    my $MD              = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'};
+    my $RGB             = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
 
     # 2. Run mincdiffusion tools
-    my ($mincdiff_preproc_status, $minctensor_status);
+    my ($mincdiff_preproc_status, $minctensor_status, $insert_header);
         # a. run diff_preprocess.pl via function mincdiff_preprocess
-    if ((-e $baseline) && (-e $preproc_minc) && ($anat_mask)) {
+    if ((-e $baseline) && (-e $preproc_minc) && ($anat_mask) && ($anat_mask_diff)) {
         $mincdiff_preproc_status    = 1;
     } else {
         ($mincdiff_preproc_status)  = &DTI::mincdiff_preprocess($dti_file, $DTIrefs, $QCoutdir);
@@ -778,21 +808,71 @@ sub runMincdiffusionTools {
     } else {
         ($minctensor_status)    = &DTI::mincdiff_minctensor($dti_file, $DTIrefs, $QCoutdir, $niak_path);
     }
+        # c. Insert missing header information in the output minc files
+    my $insert_success;
+    if ((-e $baseline) && (-e $preproc_minc) && ($anat_mask) && ($anat_mask_diff)
+            && (-e $FA) && (-e $MD) && (-e $RGB)) {
 
+        my ($baseline_insert)       = &DTI::insertMincHeader($dti_file, $data_dir, $baseline,       $QCTxtReport, $mincdiffVersion);
+        my ($preproc_insert)        = &DTI::insertMincHeader($dti_file, $data_dir, $preproc_minc,   $QCTxtReport, $mincdiffVersion);
+        my ($anat_mask_insert)      = &DTI::insertMincHeader($dti_file, $data_dir, $anat_mask,      $QCTxtReport, $mincdiffVersion);
+        my ($anat_mask_diff_insert) = &DTI::insertMincHeader($dti_file, $data_dir, $anat_mask_diff, $QCTxtReport, $mincdiffVersion);
+        # if all minc header information are in post-processed files, set $insert_success to 1
+        if (($baseline_insert) && ($preproc_insert) && ($anat_mask_insert) && ($anat_mask_diff_insert)) {
+            $DTIrefs->{$dti_file}{'postproc_hdr_success'}   = "success";
+            $insert_success = 1;
+        } else {
+            $DTIrefs->{$dti_file}{'postproc_hdr_success'}   = "failed";
+        }
+    }
+    
     # Write return statement
-    if (($mincdiff_preproc_status) && ($minctensor_status)) { 
+    if (($mincdiff_preproc_status) && ($minctensor_status) && ($insert_success)) { 
         return 1;
     } else {
-        $DTIrefs->{$dti_file}{'mincdiff_preproc_status'}= $mincdiff_preproc_status;
-        $DTIrefs->{$dti_file}{'minctensor_status'}      = $minctensor_status;
         return undef;
     }
 }
 
+=pod
+Function that loop through DTI files acquired for the candID and session to check if DTIPrep post processed nrrd files have been created and convert them to minc files with relevant header information.
+- Inputs:   - $DTIs_list        = list of DTI files for the session and candidate
+            - $DTIrefs          = hash containing all the reference for output naming for all DTIs
+            - $data_dir         = directory containing the raw DTI dataset
+            - $QCoutdir         = directory containing the processed data
+            - $DTIPrepVersion   = Version of DTIPrep used to process the data
+- Outputs:  - Return 1 if nrrd files were found and converted to minc with the relevant minc header information
+            - Return undef otherwise with the error written to the log file
+=cut
+sub check_and_convert_DTIPrep_postproc_outputs {
+    my ($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion) = @_;
 
+    my $at_least_one_success    = 0;
+    foreach my $dti_file (@$DTIs_list) {
+        
+        # Check if all DTIPrep post-processing output were created
+        my ($nrrds_found, $mincs_created, $hdrs_inserted)   = &DTI::convert_DTIPrep_postproc_outputs ($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion);
+        
+        if (($nrrds_found) && ($mincs_created) && ($hdrs_inserted)) {
+            print LOG "All DTIPrep post-processed data were found and successfuly converted to minc fiels with header information.\n";
+            $DTIrefs->{$dti_file}{'postproc_convert_status'}= "success";
+            $at_least_one_success++;
+        } else {
+            print LOG "DTIPrep post processing outputs could not be found in $QCoutdir.\n"  if (!$nrrds_found);
+            print LOG "DTIPrep post processing outputs could not be converted in minc.\n"   if (!$mincs_created);
+            print LOG "DTIPrep post processing minc files do not have complete header information. \n"  if (!$hdrs_inserted);
+            next;
+        }
+    }
+    
+    #Return undef if variable $at_least_one success is null, otherwise return 1.
+    if ($at_least_one_success == 0) {
+        return undef;
+    } else {
+        return 1;    
+    }
 
-
-
+}
 
 
 #    foreach my $dti_file (@$DTIs_list) {

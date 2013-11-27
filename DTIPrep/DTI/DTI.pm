@@ -133,24 +133,8 @@ sub copyDTIPrepProtocol {
     }
 }
 
-######################
-sub Convert2mnc {
 
-    # Convert QCed nrrd file back into minc file (with updated header)
-    my  $insert_header;
-    if  (-e $QCed_nrrd) {
-        unless (-e $QCed_minc) {
-            DTI::convert_DTI($QCed_nrrd, $QCed_minc, '--nrrd-to-minc');
-            ($insert_header)    =   DTI::insertMincHeader($dti_file, 
-                                                          $data_dir,
-                                                          $QCed_minc, 
-                                                          $QC_report, 
-                                                          $DTIPrepVersion);
-        }
-    } 
 
-    return  ($QCed_minc,$QC_report,$insert_header);
-}
 
 
 =pod
@@ -378,7 +362,8 @@ sub determineMincdiffusionPostprocOutputs {
     $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'}  = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "-frame0.mnc"  ;
     $DTIrefs->{$dti_file}->{'raw_anat_minc'}                = $anat                                              ;
     $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_minc'} = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'preproc_minc'}   = $QCoutdir . "/" . $anat_name . "-preprocessed.mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_diff_minc'} = $QCoutdir . "/" . $anat_name . "-n3-bet_mask-diffspace.mnc"  ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'preproc_minc'}   = $QCoutdir . "/" . $dti_name . $QCed_suffix . "-preprocessed.mnc" ;
 
 }    
 
@@ -452,10 +437,10 @@ sub insertMincHeader {
     # insert study information from the raw dataset into the processed files
     my  ($studyInsert)  =   DTI::insertFieldList($raw_dti, $processed_minc, 'study:');
 
-    if ((!$procInsert) || (!$acqInsert) || (!$patientInsert) || (!$studyInsert)) {
-        return undef;
-    } else {
+    if (($procInsert) && ($acqInsert) && ($patientInsert) && ($studyInsert)) {
         return 1;
+    } else {
+        return undef;
     }
 }
 
@@ -466,28 +451,28 @@ sub insertProcessInfo {
     my ($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion) = @_;
 
     # 1) processing:sourceFile
-    my  $sourceFile     =   $raw_dti;
-    $sourceFile         =~  s/$data_dir//i;
-    DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
+    my  $sourceFile         =   $raw_dti;
+    $sourceFile             =~  s/$data_dir//i;
+    my ($sourceFile_insert) = DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
-    my  ($seriesUID)    =   DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
-    DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
+    my  ($seriesUID)        = DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
+    my ($seriesUID_insert)  = DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
 
     # 3) processing:pipeline used
-    DTI::modify_header('processing:pipeline', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
+    my ($pipeline_insert)   = DTI::modify_header('processing:pipeline', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
 
     # 4) processing:processing_date (when DTIPrep was run)
-    my  $check_line     =   `cat $QC_report | grep "Check Time"`;
-    $check_line         =~  s/Check Time://;      # Only keep date info in $check_line.
+    my  $check_line         =   `cat $QC_report | grep "Check Time"`;
+    $check_line             =~  s/Check Time://;  # Only keep date info in $check_line.
     my ($ss,$mm,$hh,$day,$month,$year,$zone)    =   strptime($check_line);
-    my $processingDate  =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
-    DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
+    my $processingDate      =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
+    my ($date_insert)       = DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
 
-    if (($sourceFile =~ /$data_dir/m) || (!$seriesUID) || (!$DTIPrepVersion) || (!$processingDate)) {
-        return undef;
-    } else {
+    if (($sourceFile_insert) && ($seriesUID_insert) && ($pipeline_insert) && ($date_insert)) {
         return 1;
+    } else {
+        return undef;
     }
 }
 
@@ -499,21 +484,21 @@ sub insertAcqInfo {
     my  ($raw_dti, $processed_minc) = @_;
 
     # 1) insertion of acquisition:b_value 
-    my  ($b_value)      =   DTI::fetch_header_info('acquisition:b_value',$raw_dti,'$3, $4, $5, $6');
-    DTI::modify_header('acquisition:b_value', $b_value, $processed_minc, '$3, $4, $5, $6');
+    my ($b_value)       = DTI::fetch_header_info('acquisition:b_value',$raw_dti,'$3, $4, $5, $6');
+    my ($bvalue_insert) = DTI::modify_header('acquisition:b_value', $b_value, $processed_minc, '$3, $4, $5, $6');
 
     # 2) insertion of acquisition:delay_in_TR 
-    my  ($delay_in_tr)  =   DTI::fetch_header_info('acquisition:delay_in_TR',$raw_dti,'$3, $4, $5, $6');
-    DTI::modify_header('acquisition:delay_in_TR', $delay_in_TR, $processed_minc, '$3, $4, $5, $6');
+    my ($delay_in_tr)   = DTI::fetch_header_info('acquisition:delay_in_TR',$raw_dti,'$3, $4, $5, $6');
+    my ($delaytr_insert)= DTI::modify_header('acquisition:delay_in_TR', $delay_in_tr, $processed_minc, '$3, $4, $5, $6');
 
     # 3) insertion of all the remaining acquisition:* arguments 
     #    [except acquisition:bvalues, acquisition:b_matrix and acquisition:direction* (already in header from nrrd2minc conversion)]
     my  ($acqInsert)    =   DTI::insertFieldList($raw_dti, $processed_minc, 'acquisition:[^dbv]');   
 
-    if  ((!$b_value) || (!$delay_in_tr) || (!$acqInsert)) {
-        return undef;
-    } else {
+    if  (($bvalue_insert) && ($delaytr_insert) && ($acqInsert)) {
         return 1;
+    } else {
+        return undef;
     }
 }
 
@@ -530,13 +515,22 @@ sub insertFieldList {
     my  ($arguments_list, $arguments_list_size) =   get_header_list('=', $arguments);
     my  ($values_list, $values_list_size)       =   get_header_list(';', $values);
 
+    my  @insert_failure;
     if  ($arguments_list_size   ==  $values_list_size)  {
         for (my $i=0;   $i<$arguments_list_size;    $i++)   {
             my  $argument   =   @$arguments_list[$i];
             my  $value      =   @$values_list[$i];
-            DTI::modify_header($argument, $value, $processed_minc, '$3, $4, $5, $6');
+            my ($insert)    = DTI::modify_header($argument, $value, $processed_minc, '$3, $4, $5, $6');
+            # store in array @insert_failure the arguments that were not successfully inserted in the mincheader
+            push (@insert_failure, $argument) if (!$insert);
         }
-        return  1;
+        # if at least one insertion failed, will return undef, otherwise 1.
+        if ($#insert_failure >= 0) {
+            return  undef;
+        } else {
+            return 1;
+        }
+    # if arguments_list and values_list do not have the same size, will return undef    
     }else {
         return  undef;
     }
@@ -554,6 +548,14 @@ sub modify_header {
     # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
     my  $cmd    =   "minc_modify_header -sinsert $argument=$value $minc";
     system($cmd)    unless ($value eq $hdr_val);
+
+    # check if header information was indeed inserted in minc file
+    my $hdr_val2 =   &DTI::fetch_header_info($argument, $minc, $awk);
+    if ($hdr_val2) {
+        return 1;
+    } else {
+        return undef;
+    }
 }
 
 =pod
@@ -619,15 +621,17 @@ sub mincdiff_preprocess {
     my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
     my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'};
     my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
-
+    my $anat_mask_diff= $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_diff_minc'};
 
     # Run diff_preprocess.pl script 
     `diff_preprocess.pl -anat $raw_anat $QCed_minc $preproc_minc -outdir $QCoutdir`;
 
     # Check that all output files were created
-    if ((-e $preproc_minc) && (-e $anat_mask) && (-e $baseline)) {
+    if ((-e $preproc_minc) && (-e $anat_mask) && ($anat_mask_diff) && (-e $baseline)) {
+        $DTIrefs->{$dti_file}{'mincdiff_preproc_status'}    = "success";
         return 1;
     } else {
+        $DTIrefs->{$dti_file}{'mincdiff_preproc_status'}    = "failed";
         return undef;
     }
 }
@@ -667,8 +671,10 @@ sub mincdiff_minctensor {
 
     # Check that all output files were created
     if ((-e $FA) && (-e $RGB) && (-e $MD)) {
+        $DTIrefs->{$dti_file}{'minctensor_status'}  = "success";
         return 1;
     } else {
+        $DTIrefs->{$dti_file}{'minctensor_status'}  = "failed";
         return undef;
     }
 }
@@ -821,3 +827,73 @@ sub insertNote    {
 
     return  ($count_dirs);
 }
+
+
+
+=pod
+This function will check if all DTIPrep nrrd files were created and convert them into minc files with relevant header information inserted.
+- Inputs:   - $dti_file         = raw DTI dataset that was processed through DTIPrep
+            - $DTIrefs          = hash containing information about output names for all DWI datasets
+            - $data_dir         = directory containing raw DTI dataset
+            - $DTIPrepVersion   = DTIPrep version that was used to post process the DTI dataset
+- Outputs:  - $nrrds_found set to 1 if all nrrd outputs were found. If not, $nrrds_found is not defined
+            - $mincs_created set to 1 if all nrrd files were successfully converted to minc files. If not, $mincs_
+created is not defined.
+            - $hdrs_inserted set to 1 if all relevant header information were successfully inserted into the minc files. If not, $hdrs_inserted is not defined.
+=cut
+sub convert_DTIPrep_postproc_outputs {
+    my ($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion);
+
+    # 1. Initialize variables
+    my $tensor_nrdd     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_nrrd'};
+    my $tensor_minc     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_minc'};
+    my $baseline_nrrd   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_nrrd'};
+    my $baseline_minc   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'};
+    my $rgb_nrrd        = $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_nrrd'};
+    my $rgb_minc        = $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_minc'};
+    my $fa_nrrd         = $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_nrrd'};
+    my $fa_minc         = $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_minc'};
+    my $md_nrrd         = $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_nrrd'};
+    my $md_minc         = $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_minc'};
+    my $idwi_nrrd       = $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_nrrd'};
+    my $idwi_minc       = $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_minc'};
+
+    # 2. Check that all processed outputs were created
+    my $nrrds_found;
+    if ((-e $tensor_nrdd) && ($baseline_nrrd) && ($rgb_nrrd) && ($fa_nrrd) && ($md_nrrd) && ($idwi_nrrd)) {
+        $nrrds_found = 1;
+    } else {
+        $nrrds_found = undef;
+    }
+
+    # 3. Check if minc processed files were already created
+    my ($mincs_created, $hdrs_inserted);
+    if ((-e $tensor_minc) && ($baseline_minc) && ($rgb_minc) && ($fa_minc) && ($md_minc) && ($idwi_minc)) {
+        $mincs_created   = 1;
+    } else {
+
+        # convert processed files
+        my ($tensor_convert_status)  = DTI::convert_DTI($tensor_nrrd,   $tensor_minc,   'nrrd-to-minc');
+        my ($baseline_convert_status)= DTI::convert_DTI($baseline_nrrd, $baseline_minc, 'nrrd-to-minc');
+        my ($rgb_convert_status)     = DTI::convert_DTI($rgb_nrrd,      $rgb_minc,      'nrrd-to-minc');
+        my ($fa_convert_status)      = DTI::convert_DTI($fa_nrrd,       $fa_minc,       'nrrd-to-minc');
+        my ($md_convert_status)      = DTI::convert_DTI($md_nrrd,       $md_minc,       'nrrd-to-minc');
+        my ($idwi_convert_status)    = DTI::convert_DTI($idwi_nrrd,     $idwi_minc,     'nrrd-to-minc');
+        $mincs_created  = 1     if (($tensor_convert_status) && ($baseline_convert_status) && ($rgb_convert_status) && ($fa_convert_status) && ($md_convert_status) && ($idwi_convert_status));
+
+        # insert mincheader information stored in raw DWI dataset (except fields with direction informations)
+        my ($tensor_insert_status)   = DTI::insertMincHeader($dti_file, $data_dir, $tensor_minc,    $QCTxtReport, $DTIPrepVersion);
+        my ($baseline_insert_status) = DTI::insertMincHeader($dti_file, $data_dir, $baseline_minc,  $QCTxtReport, $DTIPrepVersion);
+        my ($rgb_insert_status)      = DTI::insertMincHeader($dti_file, $data_dir, $rgb_minc,       $QCTxtReport, $DTIPrepVersion);
+        my ($fa_insert_status)       = DTI::insertMincHeader($dti_file, $data_dir, $fa_minc,        $QCTxtReport, $DTIPrepVersion);
+        my ($md_insert_status)       = DTI::insertMincHeader($dti_file, $data_dir, $md_minc,        $QCTxtReport, $DTIPrepVersion);
+        my ($idwi_insert_status)     = DTI::insertMincHeader($dti_file, $data_dir, $idwi_minc,      $QCTxtReport, $DTIPrepVersion);
+        $hdrs_inserted  = 1     if (($tensor_insert_status) && ($baseline_insert_status) && ($rgb_insert_status) && ($fa_insert_status) && ($md_insert_status) && ($idwi_insert_status));
+
+    }
+
+    # 4. Return statements
+    return ($nrrds_found, $mincs_created, $hdrs_inserted);
+
+}
+
