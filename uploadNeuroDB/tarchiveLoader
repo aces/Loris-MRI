@@ -189,6 +189,43 @@ my $subjectIDsref = determinSubjectID($scannerID,%tarchiveInfo);
 # Standardize gender (DICOM uses M/F, DB uses Male/Female)
 CreateMRICandidates($subjectIDsref,$gender,\%tarchiveInfo);
 
+# ----- STEP 5a: Check the CandID/PSCID Match
+# It's possible that the CandID exists, but doesn't match the PSCID. This will fail further down silently, so we explicitly
+# check that the data is correct here.
+$query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
+my $logQuery = "INSERT INTO MRICandidateErrors (SeriesUID, TarchiveID, MincFile, PatientName, Reason) VALUES (?, ?, ?, ?, ?)";
+my $candlogSth = $dbh->prepare($logQuery);
+$sth = $dbh->prepare($query);
+$sth->execute($subjectIDsref->{'CandID'});
+my @CandIDCheck = $sth->fetchrow_array;
+my $CandMismatchError;
+if($sth->rows == 0) {
+    print LOG  "\n\n => No candID";
+    $CandMismatchError = 'CandID does not exist';
+}
+
+
+$query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
+$sth = $dbh->prepare($query);
+$sth->execute($subjectIDsref->{'PSCID'});
+if ($sth->rows == 0) {
+    print LOG  "\n\n => No PSCID";
+    $CandMismatchError= 'PSCID does not exist';
+}
+
+my @PSCIDCheck = $sth->fetchrow_array;
+
+if($PSCIDCheck[0] != $CandIDCheck[0] || $PSCIDCheck[1] != $CandIDCheck[1]) {
+    print LOG  "\n\n => CandID and PSCID mismatch";
+    $CandMismatchError = 'CandID and PSCID do not match database';
+}
+
+if ($subjectIDsref->{'isPhantom'}) { 
+	# CandID/PSCID errors don't apply to phantoms, so we don't want to trigger
+	# the check which aborts the insertion
+	$CandMismatchError = undef;
+}
+
 # ----- STEP 6: Get the SessionID
 my ($sessionID, $requiresStaging) = setMRISession($subjectIDsref, %tarchiveInfo);
 
