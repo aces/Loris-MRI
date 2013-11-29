@@ -108,6 +108,8 @@ print LOG "\n==> Successfully connected to database \n";
 
 print LOG "\n==> DTI output directory is: $DTIPrep_subdir\n";
 
+
+
     #######################
     ####### Step 1: #######  Get list of output files
     #######################
@@ -118,7 +120,13 @@ if (!$protXMLrefs) {
     exit 33;
 }
 # 1.b Create a hash containing names of all outputs created by DTIPrep/mincdiffusion pipeline
-my ($DTIrefs)   = &DTI::createDTIhashref($dti_file, $anat, $DTIPrep_subdir, $DTIPrepProtocol, $protXMLrefs, $QCed2_step);
+my ($DTIrefs)   = &DTI::createDTIhashref($dti_file, 
+                                         $anat, 
+                                         $DTIPrep_subdir, 
+                                         $DTIPrepProtocol, 
+                                         $protXMLrefs, 
+                                         $QCed2_step
+                                        );
 if  (!$DTIrefs) {
     print LOG "\nERROR:\n\tCould not determine list of outputs for $dti_file.\n";
     exit 33;
@@ -128,24 +136,35 @@ if ((!$mincdiffVersion) && ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "mi
     exit 33;
 }
 
+
     #######################
     ####### Step 2: #######  Extract files that we want to register in the database
     #######################
-my  ($XMLProtocol, $QCReport, $XMLReport, $QCed_minc, $RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc, $QCed2_minc) = &getFiles($dti_file, $DTIrefs, $protXMLrefs);
+# 2.a Fetch output path stored in $DTIrefs
+my  ($XMLProtocol,      $QCReport, 
+     $XMLReport,        $QCed_minc, 
+     $RGB_minc,         $FA_minc, 
+     $MD_minc,          $baseline_minc, 
+     $brain_mask_minc,  $QCed2_minc)    = &getFiles($dti_file, $DTIrefs, $protXMLrefs);
+# 2.b Checks that all required outputs were found (there are already a good level of checking in getFiles)     
+# If $QCed_minc is not defined, means that getFiles returned undef for all output files => ERROR.
 if  (!$QCed_minc) {
     print LOG "\nERROR:\n\tSome process files are missing in $DTIPrep_subdir.\n";
     exit 33;
 }
+# If $QCed2_step is set, $QCed2_minc should be defined! 
 if  (($QCed2_step) && (!$QCed2_minc)) {
     print LOG "\nERROR:\n\tSecondary QCed DTIPrep nrrd & minc outputs are missing in $DTIPrep_subdir.\n"
     exit 33;
 }
+# => If we could pass step 2, then all the files to be registered were found in the filesystem!
+
 
     #######################
     ####### Step 3: #######  Register the XML report
     #######################
     # $registeredXMLReportFile will store the path to the registered XMLReportFile
-my ($registeredXMLReportFile) = register_XMLFile($XMLReport, $QCReport, $DTIPrepVersion);
+my ($registeredXMLReportFile)   = &register_XMLFile($XMLReport, $QCReport, $DTIPrepVersion);
 if (!$registeredXMLReportFile) {
     print LOG "\nERROR: no XML report file was registered in the database\n";
     exit 0;
@@ -153,23 +172,25 @@ if (!$registeredXMLReportFile) {
     print LOG "\nRegistered XML report $registeredXMLReportFile.\n";
 }
 
+
     #######################
     ####### Step 4: #######  Register the QC report
     #######################
     # $registeredQCReportFile will store the path to the registered QCReportFile
-my ($registeredQCReportFile)  = register_QCReport($QCReport,$DTIPrepVersion);
+my ($registeredQCReportFile)    = &register_QCReport($QCReport, $DTIPrepVersion);
 if (!$registeredQCReportFile) {
     print LOG "\nERROR: no QC report file was registered in the database\n";
     exit 0;
 } else {
     print LOG "\nRegistered QC report $registeredQCReportFile.\n";
 }
-    
+
+
     #######################
     ####### Step 5: #######  Register the XML protocol file used by DTIPrep
     #######################
     # $registeredXMLprotocolFile will store the path to the registered XMLprotocolFile
-my ($registeredXMLprotocolFile)   = register_XMLFile($XMLProtocol, $QCReport, $DTIPrepVersion);
+my ($registeredXMLprotocolFile) = &register_XMLFile($XMLProtocol, $QCReport, $DTIPrepVersion);
 if (!$registeredXMLprotocolFile) {
     print LOG "\nERROR: no XML protocol file was registered in the database\n";
     exit 0;
@@ -177,18 +198,62 @@ if (!$registeredXMLprotocolFile) {
     print LOG "\nRegistered XML protocol $registeredXMLprotocolFile.\n";
 }
 
+
     #######################
     ####### Step 6: #######  Register DTIPrep preprocessed minc files with associated reports and nrrd files
     #######################
-my  ($registeredQCedFile)   = register_DTIPrep_QCed_files($QCed, $QCReport, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile);
+# Register QCed nrrd followed by QCed minc file (with a link to the QCed nrrd file)
+my  ($QCed_nrrd)        = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_nrrd'}; 
+my  ($registeredQCed)   = &register_DTIPrep_files($QCed_minc, 
+                                                  $QCed_nrrd,
+                                                  $DTIPrepVersion, 
+                                                  $registeredXMLReportFile, 
+                                                  $registeredQCReportFile, 
+                                                  $registeredXMLprotocolFile,
+                                                  'QCedDTI' 
+                                                 );
+
+# If $QCed2_step is set, register QCed2 nrrd followed by QCed2 minc file (with a link to the QCed2 nrrd file)
+my  ($QCed2_nrrd)       = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_nrrd'}; 
+my  ($registeredQCed2)  = &register_DTIPrep_files($QCed2_minc, 
+                                                  $QCed2_nrrd,
+                                                  $DTIPrepVersion, 
+                                                  $registeredXMLReportFile, 
+                                                  $registeredQCReportFile, 
+                                                  $registeredXMLprotocolFile 
+                                                  'noRegQCedDTI' 
+                                                 );
+
+
 
     #######################
-    ####### Step 7: #######  Register post processed minc files
+    ####### Step 7: #######  Register post processed files
     #######################
+# If mincdiffusion tools were used to create post processed files, register $RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc files into the database    
+my ($registeredRGB, $registeredFA, $registeredMD, $registeredBaseline, $registeredBainMask);    
 if ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "mincdiffusion") {
-    my  ($registeredRGBFile)    = register_minc($RGB,  $QCReport, $mincdiffVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile);
+
+    my ($registeredRGB, 
+        $registeredFA, 
+        $registeredMD, 
+        $registeredBaseline, 
+        $registeredBainMask)    = &register_mincdiff_files($RGB_minc, 
+                                                          $FA_minc, 
+                                                          $MD_minc, 
+                                                          $baseline_minc, 
+                                                          $brain_mask_minc, 
+                                                          $mincdiffVersion, 
+                                                          $registeredXMLReportFile, 
+                                                          $registeredQCReportFile, 
+                                                          $registeredXMLprotocolFile
+                                                         );
+    
+
+# If DTIPrep was used to post-process files, register 
 } elsif ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "DTIPrep") {
-my  ($registeredQCedFile)   = register_DTIPrep_QCed_files($QCed, $QCReport, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile);
+
+#    my  ($registeredQCedFile)   = &register_DTIPrep_QCed_files($QCed, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile);
+
 }
 
 # Program is finished
@@ -204,47 +269,64 @@ This set the different parameters needed to be able to register minc files.
 Once set, this function will call registerFile which will run the script register_processed_data.pl.
 =cut
 sub register_minc {
-    my ($minc, $QCReport, $pipelineName, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile)  =   @_;
+    my ($minc, $pipelineName, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile, $scanType, $registered_nrrd)  =   @_;
 
     print LOG "\n==> File to register is:\n$minc\n";
     print "\n==>File: $minc\n";
 
-    my  $src_name   =   getSourceFileName($minc, $dbh);
-    my  $src_fileID =   getSourceFileID($minc, $src_name, $dbh);
+    # Determine source file name and source file ID
+    my ($src_name )     =   &getSourceFileName($minc, $dbh);
+    my ($src_fileID)    =   &getSourceFileID($minc, $src_name, $dbh);
     
+    # Determine pipeline used to create processed data 
     my  $src_pipeline;
     if  (!$pipelineName)    {
         # need to develop this later once DTIPrep versioning will be reported into QC reports.
-        ($src_pipeline)   =   getPipelineName($minc);
+        ($src_pipeline)   =   &getPipelineName($minc);
     } else   {
         $src_pipeline     =   $pipelineName;
         # insert pipelineName into the mincheader if not already in.
-        my ($pipelineName_insert)   = DTI::modify_header('processing:pipeline', $src_pipeline, $minc);
+        my ($pipelineName_insert)   = &DTI::modify_header('processing:pipeline', $src_pipeline, $minc);
+        return undef    if (!$pipelineName_insert);
     }
     
-    my  ($pipelineDate) =   getPipelineDate($minc,$QCReport); # if date not in $minc, use QC report and insert it into the mincheader.
+    # Determine date at which pipeline was run based on registered QC report file
+    my  ($pipelineDate) =   &getPipelineDate($minc, $registeredQCReportFile); # if date not in $minc, use QC report and insert it into the mincheader.
     
-    insertPipelineReports($minc, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile);
-    insertPipelineSummary($minc, $QCReport);
+    # Insert into the mincheader the QC reports (txt & xml), DTIPrep protocol
+    my ($Txtreport_insert, 
+        $XMLreport_insert, 
+        $protocol_insert)   = &insertReports($minc, 
+                                             $registeredXMLFile, 
+                                             $registeredQCReportFile, 
+                                             $registeredXMLprotocolFile);
 
-    my  ($coordinateSpace);
-    my  ($scanType);
-    if      ($minc=~/rgb\.mnc$/i) {
-        $coordinateSpace    =   "nativeT1";
-        $scanType           =   "RGBqc";
-    } elsif ($minc=~/QCed\.mnc$/i) {
-        $coordinateSpace    =   "native";
-        $scanType           =   "QCedDTI";
-    }        
+    # Insert pipeline summary (how many rejected directions...) into the mincheader
+    my ($summary_insert)    = &insertPipelineSummary($minc, $registeredQCReportFile);
+
+    # Insert nrrd file into minc file if $registered_nrrd is defined
+    my ($nrrd_insert)       = &DTI::modify_header('processing:nrrd_file', $registered_nrrd, $minc)  if ($registered_nrrd);
     
+    # Determine coordinate space
+    my $coordinateSpace    = "native"      if ($pipelineName =~ /DTIPrep/i);
+    my $coordinateSpace    = "nativeT1"    if ($pipelineName =~ /mincdiffusion/i);
+
+    # Determine output type
     my $outputType  =   "qc";
 
+    # Check is all information was correctly inserted into the minc file
+    return undef    if ((!$Txtreport_insert) && (!$XMLreport_insert) 
+                     && (!$protocol_insert)) && (!$nrrd_insert)
+                     && (!$summary_insert));
+    return undef    if (($registered_nrrd) && (!$nrrd_insert));
+
+    # If all necessary information are defined, register the file. Return undef otherwise
     if  (($minc)            &&  ($src_fileID)      && 
          ($src_pipeline)    &&  ($pipelineDate)    && 
          ($coordinateSpace) &&  ($scanType)        && 
          ($outputType))     { 
 
-        my  ($registeredMincFile)   = registerFile($minc, 
+        my  ($registeredMincFile)   = &registerFile($minc, 
                                         $src_fileID, 
                                         $src_pipeline, 
                                         $pipelineDate, 
@@ -264,6 +346,7 @@ sub register_minc {
                   "scanType:        $scanType\n"        .
                   "outputType:      $outputType\n";
 
+        return undef;
     }    
 
 }   
@@ -632,14 +715,18 @@ sub getPipelineDate {
 =pod
 Insert in the mincheader the path to DTIPrep QC txt and xml reports.
 =cut
-sub insertPipelineReports {
+sub insertReports {
     my ($minc, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile) = @_;
 
-    DTI::modify_header('processing:DTIPrepTxtReport',   $registeredQCReportFile, $minc) if ($registeredQCReportFile);
+    # Return undef if there is at least one missing function argument
+    return undef    if ((!$minc) && (!$registeredXMLFile) && (!$registeredQCReportFile) && (!$registeredXMLprotocolFile));
 
-    DTI::modify_header('processing:DTIPrepXmlReport',   $registeredXMLFile, $minc)      if ($registeredXMLFile);
-    DTI::modify_header('processing:DTIPrepXmlProtocol', $registeredXMLprotocolFile, $minc)      if ($registeredXMLFile);
+    # Insert files into the mincheader
+    my ($Txtreport_insert)  = &DTI::modify_header('processing:DTIPrepTxtReport',   $registeredQCReportFile,     $minc);
+    my ($XMLreport_insert)  = &DTI::modify_header('processing:DTIPrepXmlReport',   $registeredXMLFile,          $minc);
+    my ($protocol_insert)   = &DTI::modify_header('processing:DTIPrepXmlProtocol', $registeredXMLprotocolFile,  $minc);
 
+    return ($Txtreport_insert, $XMLreport_insert, $protocol_insert);
 }
 
 =pod
@@ -650,14 +737,12 @@ sub insertPipelineSummary   {
 
     my ($rm_slicewise,$rm_interlace,$rm_intergradient)  =   getRejectedDirections($QCReport);
     
-    my $count_slice     =   insertHeader($minc, $rm_slicewise,      "processing:slicewise_rejected");
-    my $count_inter     =   insertHeader($minc, $rm_interlace,      "processing:interlace_rejected");
-    my $count_gradient  =   insertHeader($minc, $rm_intergradient,  "processing:intergradient_rejected");
+    my ($count_slice)   = &insertHeader($minc, $rm_slicewise,      "processing:slicewise_rejected");
+    my ($count_inter)   = &insertHeader($minc, $rm_interlace,      "processing:interlace_rejected");
+    my ($count_gradient)= &insertHeader($minc, $rm_intergradient,  "processing:intergradient_rejected");
 
-    my $total           =   $count_slice + $count_inter + $count_gradient;
-    DTI::modify_header('processing:total_rejected',
-                       $total,
-                       $minc);
+    my ($total)         = $count_slice + $count_inter + $count_gradient;
+    my ($total_insert)  = &DTI::modify_header('processing:total_rejected', $total, $minc);
 }
 
 =pod
@@ -691,11 +776,14 @@ sub insertHeader    {
     } else  {
         $value  =   "Directions @rm_dirs ($count_dirs)";
     }    
-    DTI::modify_header($minc_field,
-                       $value,
-                       $minc);
+    
+    my ($insert)    = &DTI::modify_header($minc_field, $value, $minc);
 
-    return  ($count_dirs);
+    if ($insert) {
+        return  ($count_dirs);
+    } else {
+        return undef;
+    }
 }
 
 =pod
@@ -760,3 +848,184 @@ sub fetchRegisteredFile {
     return  ($registeredFile);
 
 }
+
+
+
+
+
+
+
+=pod
+Register mincdiffusion outputs (RGB, FA, MD, Baseline and Brain mask files) into the database with links to DTIPrep QC reports (Txt & XML) and DTIPrep XML protocol used.
+- Inputs:   - files to be registered ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc and $brain_mask_minc)
+            - QC report files registered in the database ($registeredXMLReportFile, $registeredQCReportFile)
+            - XML protocol used by DTIPrep ($registeredXMLprotocolFile)
+            - Txt report
+=cut
+sub register_mincdiff_files {
+    my ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc, $mincdiffVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile) = @_;
+
+    # Return undef if variables given as arguments are not defined
+    return undef    if ((!$RGB_minc)                && (!$FA_minc)  
+                     && (!$MD_minc)                 && (!$baseline_minc)
+                     && (!$brain_mask_minc)         && (!$mincdiffVersion) 
+                     && (!$registeredXMLReportFile) && (!$registeredQCReportFile)  
+                     && (!$registeredXMLprotocolFile));
+
+    # Register RGB map
+    my ($registeredRGB)        = &register_minc($RGB_minc,        
+                                                $mincdiffVersion, 
+                                                $registeredXMLReportFile, 
+                                                $registeredQCReportFile, 
+                                                $registeredXMLprotocolFile,
+                                                'RGBqc'
+                                               );
+    # Register FA map
+    my ($registeredFA)         = &register_minc($FA_minc,         
+                                                $mincdiffVersion, 
+                                                $registeredXMLReportFile, 
+                                                $registeredQCReportFile, 
+                                                $registeredXMLprotocolFile,
+                                                'FAqc'
+                                               );
+    # Register MD map
+    my ($registeredMD)         = &register_minc($MD_minc,         
+                                                $mincdiffVersion, 
+                                                $registeredXMLReportFile, 
+                                                $registeredQCReportFile, 
+                                                $registeredXMLprotocolFile,
+                                                'MDqc'
+                                               );
+    # Register Baseline (-frame0) map 
+    my ($registeredBaseline)   = &register_minc($baseline_minc,   
+                                                $mincdiffVersion, 
+                                                $registeredXMLReportFile, 
+                                                $registeredQCReportFile, 
+                                                $registeredXMLprotocolFile,
+                                                'DTIb0qc'
+                                               );
+    # Register Brain mask
+    my ($registeredBainMask)   = &register_minc($brain_mask_minc, 
+                                                $mincdiffVersion, 
+                                                $registeredXMLReportFile, 
+                                                $registeredQCReportFile, 
+                                                $registeredXMLprotocolFile,
+                                                'DTImaskqc'
+                                               );
+
+    # Return registered files
+    return ($registeredRGB, $registeredFA, $registeredMD, $registeredBaseline, $registeredBainMask);
+
+}
+
+
+
+
+
+
+
+
+
+=pod
+Register DTIPrep nrrd and minc files. The minc file will have a link to the registered nrrd file (register_minc function will modify mincheader to include this information) in addition to the links toward QC reports and protocol.
+- Inputs:   - files to be registered ($minc, $nrrd)
+            - registered QC report files ($registeredXMLReportFile, $registeredQCReportFile)
+            - registered DTIPrep XML protocol ($registeredXMLprotocolFile)
+            - $DTIPrepVersion used to produce the files
+- Outputs:  - registered minc files if the nrrd and minc files were successfully registered in the database
+            - undef if one argument of the function if missing or if nrrd file could not be registered
+=cut
+sub register_DTIPrep_files {
+    my  ($minc, $nrrd, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile, $scanType) = @_;
+
+    # Return undef if variables given as arguments are not defined
+    return undef    if ((!$minc)                    && (!$nrrd)                  
+                     && (!$DTIPrepVersion)          && (!$registeredXMLReportFile) 
+                     && (!$registeredQCReportFile)  && (!$registeredXMLprotocolFile));
+
+    # Register nrrd file into the database
+    my ($registered_nrrd)   = &register_nrrd($nrrd,
+                                             $registeredQCReportFile,
+                                             $DTIPrepVersion,
+                                             $scanType
+                                            );
+    return undef    if (!$registered_nrrd);
+
+    # Register minc file into the database with link to the QC reports, protocol and registered nrrd
+    my ($registered_minc)   = &register_minc($minc,
+                                             $DTIPrepVersion,
+                                             $registeredXMLReportFile,
+                                             $registeredQCReportFile,
+                                             $registeredXMLprotocolFile,
+                                             $scanType,
+                                             $registered_nrrd
+                                            );
+
+    # Return registered minc file
+    return $registered_minc;
+}
+
+
+
+=pod
+This set the different parameters needed to be able to register XML Report and protocol of DTIPrep. 
+Once set, this function will call registerFile which will run register_processed_data.pl.
+=cut
+sub register_nrrd {
+    my ($nrrd, $QCReport, $pipelineName, $scanType) =   @_;
+
+    print LOG "\n==> File to register is:\n$nrrd\n";
+    print "\n==>File: $nrrd\n";
+
+    my  $src_name   =   &getSourceFileName($nrrd, $dbh);
+    my  $src_fileID =   &getSourceFileID($nrrd, $src_name, $dbh);
+
+    my  $src_pipeline;
+    if  (!$pipelineName)    {
+        print "WARNING: This should not happen as long as the pipeline versioning of DTIPrep is not fixed!";
+        exit 33;
+        # Will need to program this part once DTIPrep fixed!
+        #($src_pipeline)=getPipelineName($XMLFile);
+    }else   {
+        $src_pipeline   =   $pipelineName;
+    }
+
+    my ($pipelineDate)  =   &getPipelineDate($nrrd, $QCReport);
+
+    my $coordinateSpace = "native"      if ($pipelineName =~ /DTIPrep/i);
+    my $coordinateSpace = "nativeT1"    if ($pipelineName =~ /mincdiffusion/i);
+
+    my $outputType      =   "qc";
+
+    # register file if all information are available
+    if  (($nrrd)            &&  ($src_fileID)      &&
+         ($src_pipeline)    &&  ($pipelineDate)    &&
+         ($coordinateSpace) &&  ($scanType)        &&
+         ($outputType))     {
+
+        my  ($registeredNrrdFile)  = registerFile($nrrd,
+                                        $src_fileID,
+                                        $src_pipeline,
+                                        $pipelineDate,
+                                        $coordinateSpace,
+                                        $scanType,
+                                        $outputType);
+
+        return ($registeredNrrdFile);
+
+    } else {
+
+        print LOG "\nERROR: a required option for register_processed_data.pl is not set!!\n";
+        print LOG "sourceFileID:    $src_fileID\n"      .
+                  "sourcePipeline:  $src_pipeline\n"    .
+                  "pipelineDate:    $pipelineDate\n"    .
+                  "coordinateSpace: $coordinateSpace\n" .
+                  "scanType:        $scanType\n"        .
+                  "outputType:      $outputType\n";
+
+        return undef;
+
+    }
+}   
+
+
