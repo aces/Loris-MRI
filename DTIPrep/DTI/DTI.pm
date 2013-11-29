@@ -36,6 +36,12 @@ use MNI::FileUtilities  qw(check_output_dirs);
 
 =pod
 Create DTIPrep pipeline output folders.
+- Inputs:   - $outdir       = base output folder (folder where all candidate's DTIPrep outputs will be saved)
+            - $subjID       = candidate ID stored in dataset's basename
+            - $visit        = visit label stored in dataset's basename
+            - $protocol     = DTIPrep XML protocol that will be used (or has been used) to run DTIPrep
+            - $runDTIPrep   = boolean variable. If set to 1, DTIPrep will be run and need to create output folders. If set to undef, DTIPrep has already been run and folder already exists
+- Outputs:  - $QC_out       = candidate/visit/protocol folder that was created and that will store DTIPrep outputs. This will be return only if $QC_out exists in the file system.
 =cut
 sub createOutputFolders{
     my  ($outdir, $subjID, $visit, $protocol, $runDTIPrep) = @_;   
@@ -50,6 +56,16 @@ sub createOutputFolders{
 
     return  ($QC_out) if (-e $QC_out);
 }
+
+
+
+
+
+
+
+
+
+
 
 =pod
 Subroutine that will read the content of a directory and return a list of files matching the string given in argument with $match.
@@ -330,7 +346,7 @@ sub determineDTIPrepPostprocOutputs {
     # 6. Isotropic DWI {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
     # Determine suffix to used for the output
     my $IDWI_suffix     = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_idwi}->{value}[1];
-    $IDWI_suffix        = substr($IDWI_suffix, 0, -5); # remove .nrrd from isotropic DWI suffix
+    $IDWI_suffix        = $QCed_suffix . substr($IDWI_suffix, 0, -5); # remove .nrrd from isotropic DWI suffix
     # Determine nrrd and minc names
     $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_nrrd'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".nrrd";
     $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_minc'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".mnc" ;
@@ -378,7 +394,7 @@ sub convert_DTI {
         print LOG "---DIED--- No options were define for conversion mnc2nrrd or nrrd2mnc.\n\n\n"; 
     }
 
-    my  $cmd        =   "itk_convert $options --dwi $file_in $file_out";
+    my  $cmd        =   "itk_convert $options $file_in $file_out";
     print "\n\tConverting $file_in to $file_out (...)\n$cmd\n";
     system($cmd)    unless (-e $file_out);
 
@@ -842,10 +858,10 @@ created is not defined.
             - $hdrs_inserted set to 1 if all relevant header information were successfully inserted into the minc files. If not, $hdrs_inserted is not defined.
 =cut
 sub convert_DTIPrep_postproc_outputs {
-    my ($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion);
+    my ($dti_file, $DTIrefs, $data_dir, $QCTxtReport, $DTIPrepVersion) = @_;
 
     # 1. Initialize variables
-    my $tensor_nrdd     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_nrrd'};
+    my $tensor_nrrd     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_nrrd'};
     my $tensor_minc     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_minc'};
     my $baseline_nrrd   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_nrrd'};
     my $baseline_minc   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'};
@@ -860,39 +876,37 @@ sub convert_DTIPrep_postproc_outputs {
 
     # 2. Check that all processed outputs were created
     my $nrrds_found;
-    if ((-e $tensor_nrdd) && ($baseline_nrrd) && ($rgb_nrrd) && ($fa_nrrd) && ($md_nrrd) && ($idwi_nrrd)) {
+    if ((-e $tensor_nrrd) && (-e $baseline_nrrd) && (-e $rgb_nrrd) && (-e $fa_nrrd) && (-e $md_nrrd) && (-e $idwi_nrrd)) {
         $nrrds_found = 1;
     } else {
         $nrrds_found = undef;
     }
 
-    # 3. Check if minc processed files were already created
+    # 3. Check if minc processed files were already created and create them
     my ($mincs_created, $hdrs_inserted);
-    if ((-e $tensor_minc) && ($baseline_minc) && ($rgb_minc) && ($fa_minc) && ($md_minc) && ($idwi_minc)) {
+    if ((-e $tensor_minc) && (-e $baseline_minc) && (-e $rgb_minc) && (-e $fa_minc) && (-e $md_minc) && (-e $idwi_minc)) {
         $mincs_created   = 1;
     } else {
-
         # convert processed files
-        my ($tensor_convert_status)  = DTI::convert_DTI($tensor_nrrd,   $tensor_minc,   'nrrd-to-minc');
-        my ($baseline_convert_status)= DTI::convert_DTI($baseline_nrrd, $baseline_minc, 'nrrd-to-minc');
-        my ($rgb_convert_status)     = DTI::convert_DTI($rgb_nrrd,      $rgb_minc,      'nrrd-to-minc');
-        my ($fa_convert_status)      = DTI::convert_DTI($fa_nrrd,       $fa_minc,       'nrrd-to-minc');
-        my ($md_convert_status)      = DTI::convert_DTI($md_nrrd,       $md_minc,       'nrrd-to-minc');
-        my ($idwi_convert_status)    = DTI::convert_DTI($idwi_nrrd,     $idwi_minc,     'nrrd-to-minc');
+        my ($tensor_convert_status)  = DTI::convert_DTI($tensor_nrrd,   $tensor_minc,   '--nrrd-to-minc --dti');
+        my ($baseline_convert_status)= DTI::convert_DTI($baseline_nrrd, $baseline_minc, '--nrrd-to-minc');
+        my ($rgb_convert_status)     = DTI::convert_DTI($rgb_nrrd,      $rgb_minc,      '--nrrd-to-minc');
+        my ($fa_convert_status)      = DTI::convert_DTI($fa_nrrd,       $fa_minc,       '--nrrd-to-minc');
+        my ($md_convert_status)      = DTI::convert_DTI($md_nrrd,       $md_minc,       '--nrrd-to-minc');
+        my ($idwi_convert_status)    = DTI::convert_DTI($idwi_nrrd,     $idwi_minc,     '--nrrd-to-minc');
         $mincs_created  = 1     if (($tensor_convert_status) && ($baseline_convert_status) && ($rgb_convert_status) && ($fa_convert_status) && ($md_convert_status) && ($idwi_convert_status));
-
-        # insert mincheader information stored in raw DWI dataset (except fields with direction informations)
-        my ($tensor_insert_status)   = DTI::insertMincHeader($dti_file, $data_dir, $tensor_minc,    $QCTxtReport, $DTIPrepVersion);
-        my ($baseline_insert_status) = DTI::insertMincHeader($dti_file, $data_dir, $baseline_minc,  $QCTxtReport, $DTIPrepVersion);
-        my ($rgb_insert_status)      = DTI::insertMincHeader($dti_file, $data_dir, $rgb_minc,       $QCTxtReport, $DTIPrepVersion);
-        my ($fa_insert_status)       = DTI::insertMincHeader($dti_file, $data_dir, $fa_minc,        $QCTxtReport, $DTIPrepVersion);
-        my ($md_insert_status)       = DTI::insertMincHeader($dti_file, $data_dir, $md_minc,        $QCTxtReport, $DTIPrepVersion);
-        my ($idwi_insert_status)     = DTI::insertMincHeader($dti_file, $data_dir, $idwi_minc,      $QCTxtReport, $DTIPrepVersion);
-        $hdrs_inserted  = 1     if (($tensor_insert_status) && ($baseline_insert_status) && ($rgb_insert_status) && ($fa_insert_status) && ($md_insert_status) && ($idwi_insert_status));
-
     }
 
-    # 4. Return statements
+    # 4. insert mincheader information stored in raw DWI dataset (except fields with direction informations)
+    my ($tensor_insert_status)   = DTI::insertMincHeader($dti_file, $data_dir, $tensor_minc,    $QCTxtReport, $DTIPrepVersion);
+    my ($baseline_insert_status) = DTI::insertMincHeader($dti_file, $data_dir, $baseline_minc,  $QCTxtReport, $DTIPrepVersion);
+    my ($rgb_insert_status)      = DTI::insertMincHeader($dti_file, $data_dir, $rgb_minc,       $QCTxtReport, $DTIPrepVersion);
+    my ($fa_insert_status)       = DTI::insertMincHeader($dti_file, $data_dir, $fa_minc,        $QCTxtReport, $DTIPrepVersion);
+    my ($md_insert_status)       = DTI::insertMincHeader($dti_file, $data_dir, $md_minc,        $QCTxtReport, $DTIPrepVersion);
+    my ($idwi_insert_status)     = DTI::insertMincHeader($dti_file, $data_dir, $idwi_minc,      $QCTxtReport, $DTIPrepVersion);
+    $hdrs_inserted  = 1     if (($tensor_insert_status) && ($baseline_insert_status) && ($rgb_insert_status) && ($fa_insert_status) && ($md_insert_status) && ($idwi_insert_status));
+
+    # 5. Return statements
     return ($nrrds_found, $mincs_created, $hdrs_inserted);
 
 }

@@ -40,6 +40,7 @@ my $DTIPrepVersion  = undef;
 my $mincdiffVersion = undef;
 my $runDTIPrep      = 0;
 my $DTIPrepProtocol = undef;
+my $RegisterFiles   = undef;
 my ($list, @args);
 
 my @args_table      = (["-profile",             "string",   1,      \$profile,          "name of config file in ~/.neurodb."                             ],
@@ -47,7 +48,8 @@ my @args_table      = (["-profile",             "string",   1,      \$profile,  
                        ["-DTIPrepVersion",      "string",   1,      \$DTIPrepVersion,   "DTIPrep version used if cannot be found in DTIPrep binary path."],
                        ["-mincdiffusionVersion","string",   1,      \$mincdiffVersion,  "mincdiffusion release version used if cannot be found in mincdiffusion scripts path."],
                        ["-runDTIPrep",          "boolean",  1,      \$runDTIPrep,       "if set, run DTIPrep tool on raw DTI data."                      ],
-                       ["-DTIPrepProtocol",     "string",   1,      \$DTIPrepProtocol,  "DTIPrep protocol to use or that was used to run DTIPrep."       ]
+                       ["-DTIPrepProtocol",     "string",   1,      \$DTIPrepProtocol,  "DTIPrep protocol to use or that was used to run DTIPrep."       ],
+                       ["-registerFilesInDB",   "boolean",  1,      \$RegisterFiles,  "Register processed outputs into the DB."                          ]
                       );
 
 Getopt::Tabular::SetHelp ($Usage, '');
@@ -177,13 +179,44 @@ foreach my $nativedir (@nativedirs)   {
     }
 
     #######################
-    ####### Step 8: ####### Register files into the DB
+    ####### Step 8: ####### Register files into the DB if $RegisterFiles is defined
     #######################
-    
+    if ($RegisterFiles) {
+        &register_processed_files_in_DB($DTIs_list, $profile, $QCoutdir, );
+    } else {
+        print LOG "Processed files won't be registered in the database.\n";
+        next;
+    }
 
 }
 
 exit 0;
+
+sub register_processed_files_in_DB {
+    my ($DTIs_list, $profile, $QCoutdir) = @_;
+
+    # Loop through raw DTIs list 
+    foreach my $dti_file (@$DTIs_list) {
+        
+        # If post processing pipeline used was mincdiffusion, we need to know which raw anatomical file was used to generate brain masks.
+        # If post processing pipeline used was DTIPrep, no need to specify an anatomical raw dataset when calling DTIPrepRegister.pl
+        my $postprocessingtool  = $DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'};
+        my $register_cmd;
+        if ($postprocessingtool eq "DTIPrep") {
+
+            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol $DTIPrepProtocol -raw_dti $dti_file";
+
+        } elsif ($postprocessingtool eq "mincdiffusion") {
+
+            # Extract the raw anat file used by mincdiffusion
+            my $anat    = $DTIrefs->{$dti_file}->{'raw_anat_minc'};
+            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol $DTIPrepProtocol -raw_dti $dti_file -raw_anat $anat";
+
+        }
+        print LOG "Registering files using the following command: $register_cmd";
+#        system($register_cmd);
+    }
+}
 
 
         # Create a default notes file for QC summary and manual notes
@@ -423,7 +456,7 @@ sub preproc_mnc2nrrd {
         # set $convert_status to 1 as converted file already exists.
         return 1;
     } else {
-        my ($convert_status)   = &DTI::convert_DTI($dti_file, $raw_nrrd, '--short --minc-to-nrrd');
+        my ($convert_status)   = &DTI::convert_DTI($dti_file, $raw_nrrd, '--short --minc-to-nrrd --dwi');
         print LOG "\t\t -> Raw DTI successfully converted to nrrd!\n"       if ($convert_status);
         print LOG "\t\t -> ERROR: Raw DTI mnc2nrrd conversion failed!\n"    if (!$convert_status);
         return $convert_status;
@@ -620,8 +653,8 @@ sub convertPreproc2mnc {
             return 1;
         } else {
             # convert QCed file to minc
-            ($convert_status)   = &DTI::convert_DTI($QCed_nrrd,  $QCed_minc,  '--nrrd-to-minc');
-            ($convert_status)   = &DTI::convert_DTI($QCed2_nrrd, $QCed2_minc, '--nrrd-to-minc') if (($QCed2_minc) && ($convert_status));
+            ($convert_status)   = &DTI::convert_DTI($QCed_nrrd,  $QCed_minc,  '--nrrd-to-minc --dwi');
+            ($convert_status)   = &DTI::convert_DTI($QCed2_nrrd, $QCed2_minc, '--nrrd-to-minc --dwi') if (($QCed2_minc) && ($convert_status));
             # insert mincheader fields stored in raw dti_file (aside from the fields with direction information) into QCed minc file
             ($insert_header)    = &DTI::insertMincHeader($dti_file, $data_dir, $QCed_minc, $QCTxtReport, $DTIPrepVersion);
             ($insert_header)    = &DTI::insertMincHeader($dti_file, $data_dir, $QCed2_minc, $QCTxtReport, $DTIPrepVersion) if (($QCed2_minc) && ($insert_header));
@@ -725,17 +758,19 @@ sub checkMincdiffusionPostProcessedOutputs {
     my ($dti_file, $DTIrefs, $QCoutdir)  = @_;
 
         # diff_preprocess.pl outputs
-    my $baseline    = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'}    ;
-    my $preproc_minc= $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
-    my $anat_mask   = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'}   ;
+    my $baseline        = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'};
+    my $preproc_minc    = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
+    my $anat_mask       = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
+    my $anat_mask_diff  = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_diff_minc'};
         # minctensor.pl outputs
-    my $FA          = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'}          ;
-    my $MD          = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'}          ;
-    my $RGB         = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'}         ;
+    my $FA              = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'};
+    my $MD              = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'};
+    my $RGB             = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
 
     if ((-e $baseline) 
             && (-e $preproc_minc) 
             && (-e $anat_mask) 
+            && (-e $anat_mask_diff) 
             && (-e $FA)
             && (-e $MD)
             && (-e $RGB)) {
@@ -815,8 +850,11 @@ sub runMincdiffusionTools {
 
         my ($baseline_insert)       = &DTI::insertMincHeader($dti_file, $data_dir, $baseline,       $QCTxtReport, $mincdiffVersion);
         my ($preproc_insert)        = &DTI::insertMincHeader($dti_file, $data_dir, $preproc_minc,   $QCTxtReport, $mincdiffVersion);
-        my ($anat_mask_insert)      = &DTI::insertMincHeader($dti_file, $data_dir, $anat_mask,      $QCTxtReport, $mincdiffVersion);
-        my ($anat_mask_diff_insert) = &DTI::insertMincHeader($dti_file, $data_dir, $anat_mask_diff, $QCTxtReport, $mincdiffVersion);
+        my ($anat_mask_insert)      = &DTI::insertMincHeader($raw_anat, $data_dir, $anat_mask,      $QCTxtReport, $mincdiffVersion);
+        my ($anat_mask_diff_insert) = &DTI::insertMincHeader($raw_anat, $data_dir, $anat_mask_diff, $QCTxtReport, $mincdiffVersion);
+        my ($fa_insert)             = &DTI::insertMincHeader($dti_file, $data_dir, $FA,             $QCTxtReport, $mincdiffVersion);
+        my ($md_insert)             = &DTI::insertMincHeader($dti_file, $data_dir, $MD,             $QCTxtReport, $mincdiffVersion);
+        my ($rgb_insert)            = &DTI::insertMincHeader($dti_file, $data_dir, $RGB,            $QCTxtReport, $mincdiffVersion);
         # if all minc header information are in post-processed files, set $insert_success to 1
         if (($baseline_insert) && ($preproc_insert) && ($anat_mask_insert) && ($anat_mask_diff_insert)) {
             $DTIrefs->{$dti_file}{'postproc_hdr_success'}   = "success";
@@ -851,10 +889,11 @@ sub check_and_convert_DTIPrep_postproc_outputs {
     foreach my $dti_file (@$DTIs_list) {
         
         # Check if all DTIPrep post-processing output were created
-        my ($nrrds_found, $mincs_created, $hdrs_inserted)   = &DTI::convert_DTIPrep_postproc_outputs ($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion);
+        my $QCTxtReport = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCTxtReport'};
+        my ($nrrds_found, $mincs_created, $hdrs_inserted)   = &DTI::convert_DTIPrep_postproc_outputs($dti_file, $DTIrefs, $data_dir, $QCTxtReport, $DTIPrepVersion);
         
         if (($nrrds_found) && ($mincs_created) && ($hdrs_inserted)) {
-            print LOG "All DTIPrep post-processed data were found and successfuly converted to minc fiels with header information.\n";
+            print LOG "All DTIPrep post-processed data were found and successfuly converted to minc files with header information.\n";
             $DTIrefs->{$dti_file}{'postproc_convert_status'}= "success";
             $at_least_one_success++;
         } else {
