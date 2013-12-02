@@ -49,10 +49,9 @@ my  @args_table = (
     ["-DTIPrep_subdir",       "string", 1,  \$DTIPrep_subdir,   "DTIPrep subdirectory where processed files to be registered in the database are stored"],
     ["-DTIPrepProtocol",      "string", 1,  \$DTIPrepProtocol,  "DTIPrep that was used to process the DTI dataset"],
     ["-DTI_file",             "string", 1,  \$dti_file,         "Raw DTI dataset that was processed through DTIPrep"],
-    ["-anat_file",            "string", 1,  \$anat,             "Raw anatomical dataset that was used to create FA, RGB and other post-processed maps using mincdiffusion tools"]
+    ["-anat_file",            "string", 1,  \$anat,             "Raw anatomical dataset that was used to create FA, RGB and other post-processed maps using mincdiffusion tools"],
     ["-DTIPrepVersion",       "string", 1,  \$DTIPrepVersion,   "DTIPrep version used if cannot be found in minc files's processing:pipeline header field."],
-    ["-mincdiffusionVersion", "string", 1,  \$mincdiffVersion,  "mincdiffusion release version used if cannot be found in minc files's processing:pipeline header field."],
-
+    ["-mincdiffusionVersion", "string", 1,  \$mincdiffVersion,  "mincdiffusion release version used if cannot be found in minc files's processing:pipeline header field."]
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
@@ -80,7 +79,7 @@ if (!$dti_file) {
     exit 33;
 }
 
-if (!$DTIPrepProcotol) {
+if (!$DTIPrepProtocol) {
     print "$Usage\n\tERROR: You must specify the XML DTIPrep protocol used by DTIPrep.\n\n";
     exit 33;
 }
@@ -120,7 +119,8 @@ if (!$protXMLrefs) {
     exit 33;
 }
 # 1.b Create a hash containing names of all outputs created by DTIPrep/mincdiffusion pipeline
-my ($DTIrefs)   = &DTI::createDTIhashref($dti_file, 
+my @dti_files   = [$dti_file];  # createDTIhashref needs an array with dti_files
+my ($DTIrefs)   = &DTI::createDTIhashref(@dti_files, 
                                          $anat, 
                                          $DTIPrep_subdir, 
                                          $DTIPrepProtocol, 
@@ -141,20 +141,16 @@ if ((!$mincdiffVersion) && ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "mi
     ####### Step 2: #######  Extract files that we want to register in the database
     #######################
 # 2.a Fetch output path stored in $DTIrefs
-my  ($XMLProtocol,      $QCReport, 
-     $XMLReport,        $QCed_minc, 
-     $RGB_minc,         $FA_minc, 
-     $MD_minc,          $baseline_minc, 
-     $brain_mask_minc,  $QCed2_minc)    = &getFiles($dti_file, $DTIrefs, $protXMLrefs);
+my  ($XMLProtocol, $QCReport, $XMLReport, $mri_files)   = &getFiles($dti_file, $DTIrefs, $protXMLrefs);
 # 2.b Checks that all required outputs were found (there are already a good level of checking in getFiles)     
 # If $QCed_minc is not defined, means that getFiles returned undef for all output files => ERROR.
-if  (!$QCed_minc) {
+if  (!$QCReport) {
     print LOG "\nERROR:\n\tSome process files are missing in $DTIPrep_subdir.\n";
     exit 33;
 }
-# If $QCed2_step is set, $QCed2_minc should be defined! 
-if  (($QCed2_step) && (!$QCed2_minc)) {
-    print LOG "\nERROR:\n\tSecondary QCed DTIPrep nrrd & minc outputs are missing in $DTIPrep_subdir.\n"
+# If $QCed2_step is set, QCed2_minc should be defined in %mri_files hash! 
+if  (($QCed2_step) && (!$mri_files->{'Preproc'}{'QCed2'}{'minc'})) {
+    print LOG "\nERROR:\n\tSecondary QCed DTIPrep nrrd & minc outputs are missing in $DTIPrep_subdir.\n";
     exit 33;
 }
 # => If we could pass step 2, then all the files to be registered were found in the filesystem!
@@ -203,26 +199,14 @@ if (!$registeredXMLprotocolFile) {
     ####### Step 6: #######  Register DTIPrep preprocessed minc files with associated reports and nrrd files
     #######################
 # Register QCed nrrd followed by QCed minc file (with a link to the QCed nrrd file)
-my  ($QCed_nrrd)        = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_nrrd'}; 
-my  ($registeredQCed)   = &register_DTIPrep_files($QCed_minc, 
-                                                  $QCed_nrrd,
-                                                  $DTIPrepVersion, 
-                                                  $registeredXMLReportFile, 
-                                                  $registeredQCReportFile, 
-                                                  $registeredXMLprotocolFile,
-                                                  'QCedDTI' 
-                                                 );
-
-# If $QCed2_step is set, register QCed2 nrrd followed by QCed2 minc file (with a link to the QCed2 nrrd file)
-my  ($QCed2_nrrd)       = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_nrrd'}; 
-my  ($registeredQCed2)  = &register_DTIPrep_files($QCed2_minc, 
-                                                  $QCed2_nrrd,
-                                                  $DTIPrepVersion, 
-                                                  $registeredXMLReportFile, 
-                                                  $registeredQCReportFile, 
-                                                  $registeredXMLprotocolFile 
-                                                  'noRegQCedDTI' 
-                                                 );
+my  ($preproc_registered, 
+     $preproc_failed_to_register)   = &register_images($mri_files, 
+                                                       $DTIPrepVersion, 
+                                                       $registeredXMLReportFile, 
+                                                       $registeredQCReportFile, 
+                                                       $registeredXMLprotocolFile,
+                                                       'Preproc'
+                                                      );
 
 
 
@@ -230,31 +214,21 @@ my  ($registeredQCed2)  = &register_DTIPrep_files($QCed2_minc,
     ####### Step 7: #######  Register post processed files
     #######################
 # If mincdiffusion tools were used to create post processed files, register $RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc files into the database    
-my ($registeredRGB, $registeredFA, $registeredMD, $registeredBaseline, $registeredBainMask);    
-if ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "mincdiffusion") {
-
-    my ($registeredRGB, 
-        $registeredFA, 
-        $registeredMD, 
-        $registeredBaseline, 
-        $registeredBainMask)    = &register_mincdiff_files($RGB_minc, 
-                                                          $FA_minc, 
-                                                          $MD_minc, 
-                                                          $baseline_minc, 
-                                                          $brain_mask_minc, 
-                                                          $mincdiffVersion, 
-                                                          $registeredXMLReportFile, 
-                                                          $registeredQCReportFile, 
-                                                          $registeredXMLprotocolFile
-                                                         );
-    
-
-# If DTIPrep was used to post-process files, register 
-} elsif ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "DTIPrep") {
-
-#    my  ($registeredQCedFile)   = &register_DTIPrep_QCed_files($QCed, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile);
-
+my ($pipelineName);
+if ($mri_files->{'Postproc'}{'Tool'} eq "mincdiffusion") {
+    $pipelineName   = $mincdiffVersion;
+} elsif ($mri_files->{'Postproc'}{'Tool'} eq "DTIPrep") {
+    $pipelineName   = $DTIPrepVersion;
 }
+
+my ($postproc_registered, 
+    $postproc_failed_to_register)   = &register_images($mri_files, 
+                                                       $pipelineName, 
+                                                       $registeredXMLReportFile, 
+                                                       $registeredQCReportFile, 
+                                                       $registeredXMLprotocolFile,
+                                                       'Postproc'
+                                                      );
 
 # Program is finished
 exit 0;
@@ -308,16 +282,17 @@ sub register_minc {
     my ($nrrd_insert)       = &DTI::modify_header('processing:nrrd_file', $registered_nrrd, $minc)  if ($registered_nrrd);
     
     # Determine coordinate space
-    my $coordinateSpace    = "native"      if ($pipelineName =~ /DTIPrep/i);
-    my $coordinateSpace    = "nativeT1"    if ($pipelineName =~ /mincdiffusion/i);
+    my ($coordinateSpace);
+    $coordinateSpace    = "native"      if ($pipelineName =~ /DTIPrep/i);
+    $coordinateSpace    = "nativeT1"    if ($pipelineName =~ /mincdiffusion/i);
 
     # Determine output type
     my $outputType  =   "qc";
 
     # Check is all information was correctly inserted into the minc file
-    return undef    if ((!$Txtreport_insert) && (!$XMLreport_insert) 
-                     && (!$protocol_insert)) && (!$nrrd_insert)
-                     && (!$summary_insert));
+    return undef    unless (($Txtreport_insert) && ($XMLreport_insert) 
+                     && ($protocol_insert) && ($nrrd_insert)
+                     && ($summary_insert));
     return undef    if (($registered_nrrd) && (!$nrrd_insert));
 
     # If all necessary information are defined, register the file. Return undef otherwise
@@ -379,10 +354,10 @@ sub register_XMLFile {
     my $coordinateSpace =   "native";
     my ($scanType, $outputType);
     if ($XMLFile =~ /XMLQCResult\.xml$/i) {
-        $scanType       =   "XMLQCReport";
+        $scanType       =   "DTIPrepXMLReport";
         $outputType     =   "qcreport";
     } elsif ($XMLFile =~ /XMLnobcheck_prot\.xml$/i) {
-        $scanType       =   "ProcessingProtocol";
+        $scanType       =   "DTIPrepProtocol";
         $outputType     =   "protocol";
     }
     # register file if all information are available
@@ -440,7 +415,7 @@ sub register_QCReport {
     my ($pipelineDate)  =   getPipelineDate($QCReport,$QCReport);
 
     my $coordinateSpace =   "native";
-    my $scanType        =   "TxtQCReport";
+    my $scanType        =   "DTIPrepTxtReport";
     my $outputType      =   "qcreport";
 
     if  (($QCReport)        &&  ($src_fileID)      &&
@@ -483,14 +458,15 @@ This function checks that all the processing files exist on the filesystem and r
 sub getFiles {
     my ($dti_file, $DTIrefs)   =   @_;
 
+    my (%mri_files);
     # DTIPrep preprocessing files to be registered
-    my ($XMLProtocol, $QCReport, $XMLReport, $QCed_minc, $QCed2_minc)   = checkPreprocessFiles($dti_file, $DTIrefs);
+    my ($XMLProtocol, $QCReport, $XMLReport)= &checkPreprocessFiles($dti_file, $DTIrefs, \%mri_files);
     # Post processing files to be registered
-    my ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc)= checkPostprocessFiles($dti_file, $DTIrefs);
+    my ($all_processed_found)               = &checkPostprocessFiles($dti_file, $DTIrefs, \%mri_files);
 
     # return all output files if one preprocessed output and one postprocess output are defined. Will return undef otherwise
-    if (($QCed_minc) && ($RGB_minc)) {
-        return  ($XMLProtocol, $QCReport, $XMLReport, $QCed_minc, $RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc, $QCed2_minc);
+    if (($QCReport) && ($all_processed_found)) {
+        return  ($XMLProtocol, $QCReport, $XMLReport, \%mri_files);
     } else {
         return undef;
     }
@@ -508,23 +484,36 @@ Function that checks if all DTIPrep preprocessing files are present in the file 
             - return undef if one of the file listed above is missing (except for QCed2_minc which is optional)
 =cut
 sub checkPreprocessFiles {
-    my  ($dti_file, $DTIrefs) = @_;
+    my  ($dti_file, $DTIrefs, $mri_files) = @_;
+
+    # Store tool used for Preprocessing in %mri_files
+    $mri_files->{'Preproc'}{'Tool'}    = "DTIPrep";
 
     # Determine file path of each output
     my  $XMLProtocol=   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCProt'};
     my  $QCReport   =   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCTxtReport'};
     my  $XMLReport  =   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCXmlReport'};
-    my  $QCed_nrdd  =   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_nrrd'};
+    my  $QCed_nrrd  =   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_nrrd'};
     my  $QCed_minc  =   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_minc'};
     my  $QCed2_nrrd =   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_nrrd'};
     my  $QCed2_minc =   $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_minc'};
 
     # Check that all outputs exist in the filesystem and return them (except the nrrd ones).
-    if ((-e $XMLProtocol) && (-e $QCReport) && (-e $XMLReport) && (-e $QCed_nrdd) && (-e $QCed_minc)) {
-        return ($XMLProtocol, $QCReport, $XMLReport, $QCed_minc, $QCed2_minc);
+    if ((-e $XMLProtocol) && (-e $QCReport) && (-e $XMLReport) && (-e $QCed_nrrd) && (-e $QCed_minc)) {
+
+        $mri_files->{'Preproc'}{'QCed'}{'nrrd'}      = $QCed_nrrd;
+        $mri_files->{'Preproc'}{'QCed'}{'minc'}      = $QCed_minc;
+        $mri_files->{'Preproc'}{'QCed'}{'scanType'}  = 'QCedDTI';
+        $mri_files->{'Preproc'}{'QCed2'}{'nrrd'}     = $QCed2_nrrd;
+        $mri_files->{'Preproc'}{'QCed2'}{'minc'}     = $QCed2_minc;
+        $mri_files->{'Preproc'}{'QCed2'}{'scanType'} = 'noRegQCedDTI';
+        return ($XMLProtocol, $QCReport, $XMLReport);
+
     } else {
+
         print LOG "DTIPrep preprocessing outputs were not all found in the filesystem.\n";
         return undef;
+
     }
 }
 
@@ -551,7 +540,7 @@ Function that checks if all postprocessing files (from DTIPrep or mincdiffusion)
             - will return undef and print messages into the LOG file otherwise 
 =cut
 sub checkPostprocessFiles {
-    my ($dti_file, $DTIrefs) = @_;
+    my ($dti_file, $DTIrefs, $mri_files) = @_;
 
     # Determine file path of each postprocessed outputs common to the two tools (DTIPrep & mincdiffusion)
     my  $RGB_minc       =   $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_minc'}; 
@@ -559,31 +548,59 @@ sub checkPostprocessFiles {
     my  $MD_minc        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_minc'};
     my  $baseline_minc  =   $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'};
 
+    if ((-e $RGB_minc) && (-e $FA_minc) && (-e $MD_minc) && (-e $baseline_minc)) {
+        $mri_files->{'Postproc'}{'RGB'}{'minc'}         = $RGB_minc;
+        $mri_files->{'Postproc'}{'RGB'}{'scanType'}     = 'RGBqc';
+        $mri_files->{'Postproc'}{'FA'}{'minc'}          = $FA_minc;
+        $mri_files->{'Postproc'}{'FA'}{'scanType'}      = 'FAqc';
+        $mri_files->{'Postproc'}{'MD'}{'minc'}          = $MD_minc;
+        $mri_files->{'Postproc'}{'MD'}{'scanType'}      = 'MDqc';
+        $mri_files->{'Postproc'}{'baseline'}{'minc'}    = $baseline_minc;
+        $mri_files->{'Postproc'}{'baseline'}{'scanType'}= 'DTIb0qc';
+    } else {
+        print LOG "Could not find postprocessing minc files on the filesystem.\n";
+        return undef;
+    }
+
     # Check which tool has been used to post process DTI dataset to validate that all outputs are found in the filsystem
     my  ($RGB_nrrd, $FA_nrrd, $MD_nrrd, $baseline_nrrd, $brain_mask_minc);
     if ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "DTIPrep") {
 
+        # Store tool used for Postprocessing in %mri_files
+        $mri_files->{'Postproc'}{'Tool'}    = "DTIPrep";
+
+        # Fetches info about DTIPrep nrrd post processing files
         $RGB_nrrd       =   $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_nrrd'}; 
         $FA_nrrd        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_nrrd'};
         $MD_nrrd        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_nrrd'};
         $baseline_nrrd  =   $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_nrrd'};
+
         # Return minc files if all nrrd and minc outputs exist on the filesystem
-        if ((-e $RGB_minc) && (-e $FA_minc) && (-e $MD_minc) && (-e $baseline_minc) 
-            && (-e $RGB_nrrd) && (-e $FA_nrrd) && (-e $MD_nrrd) && (-e $baseline_nrrd)) {
-            return ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc);
+        if ((-e $RGB_nrrd) && (-e $FA_nrrd) && (-e $MD_nrrd) && (-e $baseline_nrrd)) {
+            $mri_files->{'Postproc'}{'RGB'}{'nrrd'}         = $RGB_nrrd;
+            $mri_files->{'Postproc'}{'FA'}{'nrrd'}          = $FA_nrrd;
+            $mri_files->{'Postproc'}{'MD'}{'nrrd'}          = $MD_nrrd;
+            $mri_files->{'Postproc'}{'baseline'}{'nrrd'}    = $baseline_nrrd;
+            return 1;
         } else {
-            print LOG "Could not find all DTIPrep postprocessing outputs on the filesystem\n.";
+            print LOG "Could not find all DTIPrep postprocessing outputs on the filesystem.\n";
             return undef;
         }
 
     } elsif ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "mincdiffusion") {
 
+        # Store tool used for Postprocessing in %mri_files
+        $mri_files->{'Postproc'}{'Tool'}    = "mincdiffusion";
+
+        # Extract brain mask used by the diffusion tools
         $brain_mask_minc=   $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_diff_minc'};
         # Return minc files if all minc outputs exist on the filesystem
-        if ((-e $RGB_minc) && (-e $FA_minc) && (-e $MD_minc) && (-e $baseline_minc) && (-e $brain_mask_minc)) {
-            return ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc);
+        if (-e $brain_mask_minc) {
+            $mri_files->{'Postproc'}{'mask'}{'minc'}    = $brain_mask_minc;
+            $mri_files->{'Postproc'}{'mask'}{'scanType'}= 'DTImaskqc';
+            return 1;
         } else {
-            print LOG "Could not find all mincdiffusion outputs on the filesystem\n.";
+            print LOG "Could not find all mincdiffusion outputs on the filesystem.\n";
             return undef;
         }
 
@@ -719,7 +736,7 @@ sub insertReports {
     my ($minc, $registeredXMLFile, $registeredQCReportFile, $registeredXMLprotocolFile) = @_;
 
     # Return undef if there is at least one missing function argument
-    return undef    if ((!$minc) && (!$registeredXMLFile) && (!$registeredQCReportFile) && (!$registeredXMLprotocolFile));
+    return undef    unless (($minc) && ($registeredXMLFile) && ($registeredQCReportFile) && ($registeredXMLprotocolFile));
 
     # Insert files into the mincheader
     my ($Txtreport_insert)  = &DTI::modify_header('processing:DTIPrepTxtReport',   $registeredQCReportFile,     $minc);
@@ -802,7 +819,7 @@ sub registerFile  {
                     "-profile $profile " .
                     "-file $file " .
                     "-sourceFileID $src_fileID " .
-                    "-sourcePipeline $pipelineName " .
+                    "-sourcePipeline $src_pipeline " .
                     "-pipelineDate $pipelineDate " .
                     "-coordinateSpace $coordinateSpace " .
                     "-scanType $scanType " .
@@ -855,68 +872,44 @@ sub fetchRegisteredFile {
 
 
 
-=pod
-Register mincdiffusion outputs (RGB, FA, MD, Baseline and Brain mask files) into the database with links to DTIPrep QC reports (Txt & XML) and DTIPrep XML protocol used.
-- Inputs:   - files to be registered ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc and $brain_mask_minc)
-            - QC report files registered in the database ($registeredXMLReportFile, $registeredQCReportFile)
-            - XML protocol used by DTIPrep ($registeredXMLprotocolFile)
-            - Txt report
-=cut
-sub register_mincdiff_files {
-    my ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc, $mincdiffVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile) = @_;
-
-    # Return undef if variables given as arguments are not defined
-    return undef    if ((!$RGB_minc)                && (!$FA_minc)  
-                     && (!$MD_minc)                 && (!$baseline_minc)
-                     && (!$brain_mask_minc)         && (!$mincdiffVersion) 
-                     && (!$registeredXMLReportFile) && (!$registeredQCReportFile)  
-                     && (!$registeredXMLprotocolFile));
-
-    # Register RGB map
-    my ($registeredRGB)        = &register_minc($RGB_minc,        
-                                                $mincdiffVersion, 
-                                                $registeredXMLReportFile, 
-                                                $registeredQCReportFile, 
-                                                $registeredXMLprotocolFile,
-                                                'RGBqc'
-                                               );
-    # Register FA map
-    my ($registeredFA)         = &register_minc($FA_minc,         
-                                                $mincdiffVersion, 
-                                                $registeredXMLReportFile, 
-                                                $registeredQCReportFile, 
-                                                $registeredXMLprotocolFile,
-                                                'FAqc'
-                                               );
-    # Register MD map
-    my ($registeredMD)         = &register_minc($MD_minc,         
-                                                $mincdiffVersion, 
-                                                $registeredXMLReportFile, 
-                                                $registeredQCReportFile, 
-                                                $registeredXMLprotocolFile,
-                                                'MDqc'
-                                               );
-    # Register Baseline (-frame0) map 
-    my ($registeredBaseline)   = &register_minc($baseline_minc,   
-                                                $mincdiffVersion, 
-                                                $registeredXMLReportFile, 
-                                                $registeredQCReportFile, 
-                                                $registeredXMLprotocolFile,
-                                                'DTIb0qc'
-                                               );
-    # Register Brain mask
-    my ($registeredBainMask)   = &register_minc($brain_mask_minc, 
-                                                $mincdiffVersion, 
-                                                $registeredXMLReportFile, 
-                                                $registeredQCReportFile, 
-                                                $registeredXMLprotocolFile,
-                                                'DTImaskqc'
-                                               );
-
-    # Return registered files
-    return ($registeredRGB, $registeredFA, $registeredMD, $registeredBaseline, $registeredBainMask);
-
-}
+#=pod
+#Register mincdiffusion outputs (RGB, FA, MD, Baseline and Brain mask files) into the database with links to DTIPrep QC reports (Txt & XML) and DTIPrep XML protocol used.
+#- Inputs:   - files to be registered ($RGB_minc, $FA_minc, $MD_minc, $baseline_minc and $brain_mask_minc)
+#            - QC report files registered in the database ($registeredXMLReportFile, $registeredQCReportFile)
+#            - XML protocol used by DTIPrep ($registeredXMLprotocolFile)
+#            - Txt report
+#=cut
+#sub register_mincdiff_files {
+#    my ($mri_files, $mincdiffVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile) = @_;
+#
+#    # Return undef if variables given as arguments are not defined
+#    return undef    unless (($mri_files)                && ($mincdiffVersion) 
+#                         && ($registeredXMLReportFile)  && ($registeredQCReportFile)  
+#                         && ($registeredXMLprotocolFile));
+#
+#    foreach my $preproc_file (keys($mri_files->{$process_step})) {
+#
+#        # register file into the database
+#        my $minc    = $mri_files->{$process_step}{$preproc_file}{'minc'};
+#        my $scanType= $mri_files->{$process_step}{$preproc_file}{'scanType'};
+#        my ($registered_file)   = &register_minc($minc,
+#                                                 $mincdiffVersion, 
+#                                                 $registeredXMLReportFile,
+#                                                 $registeredQCReportFile,
+#                                                 $registeredXMLprotocolFile,
+#                                                 $scanType
+#                                                );
+#
+#        # push into array registered the registered file
+#        push(@registered, $registered_file)         if ($registered_file);
+#        push(@failed_to_register, $registered_file) if (!$registered_file);
+#    
+#    }
+#
+#    # Return registered files and unregistered files
+#    return (\@registered, \@failed_to_register);
+#
+#}
 
 
 
@@ -939,9 +932,9 @@ sub register_DTIPrep_files {
     my  ($minc, $nrrd, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile, $scanType) = @_;
 
     # Return undef if variables given as arguments are not defined
-    return undef    if ((!$minc)                    && (!$nrrd)                  
-                     && (!$DTIPrepVersion)          && (!$registeredXMLReportFile) 
-                     && (!$registeredQCReportFile)  && (!$registeredXMLprotocolFile));
+    return undef    unless (($minc)                    && ($nrrd)                  
+                         && ($DTIPrepVersion)          && ($registeredXMLReportFile) 
+                         && ($registeredQCReportFile)  && ($registeredXMLprotocolFile));
 
     # Register nrrd file into the database
     my ($registered_nrrd)   = &register_nrrd($nrrd,
@@ -992,8 +985,9 @@ sub register_nrrd {
 
     my ($pipelineDate)  =   &getPipelineDate($nrrd, $QCReport);
 
-    my $coordinateSpace = "native"      if ($pipelineName =~ /DTIPrep/i);
-    my $coordinateSpace = "nativeT1"    if ($pipelineName =~ /mincdiffusion/i);
+    my ($coordinateSpace);
+    $coordinateSpace = "native"      if ($pipelineName =~ /DTIPrep/i);
+    $coordinateSpace = "nativeT1"    if ($pipelineName =~ /mincdiffusion/i);
 
     my $outputType      =   "qc";
 
@@ -1029,3 +1023,105 @@ sub register_nrrd {
 }   
 
 
+#sub register_DTIPrep_postproc {
+#    my ($mri_files, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile) = @_;
+#
+#    return undef    unless (($mri_files)                && ($DTIPrepVersion)           
+#                         && ($registeredXMLReportFile)  && ($registeredQCReportFile)   
+#                         && ($registeredXMLprotocolFile));
+#
+#
+#    # register DTIPrep RGB map
+#    my  ($registeredRGB)    = &register_DTIPrep_files($mri_files->{'RGB'}{'minc'}, 
+#                                                      $mri_files->{'RGB'}{'nrrd'},
+#                                                      $DTIPrepVersion, 
+#                                                      $registeredXMLReportFile, 
+#                                                      $registeredQCReportFile, 
+#                                                      $registeredXMLprotocolFile,
+#                                                      'RGBqc' 
+#                                                     );
+#
+#    # register DTIPrep FA map 
+#    my  ($registeredFA)     = &register_DTIPrep_files($mri_files->{'FA'}{'minc'}, 
+#                                                      $mri_files->{'FA'}{'nrrd'},
+#                                                      $DTIPrepVersion, 
+#                                                      $registeredXMLReportFile, 
+#                                                      $registeredQCReportFile, 
+#                                                      $registeredXMLprotocolFile,
+#                                                      'FAqc' 
+#                                                     );
+#
+#    # register DTIPrep MD map 
+#    my  ($registeredMD)     = &register_DTIPrep_files($mri_files->{'MD'}{'minc'}, 
+#                                                      $mri_files->{'MD'}{'nrrd'},
+#                                                      $DTIPrepVersion, 
+#                                                      $registeredXMLReportFile, 
+#                                                      $registeredQCReportFile, 
+#                                                      $registeredXMLprotocolFile,
+#                                                      'MDqc' 
+#                                                     );
+#
+#
+#    # register DTIPrep baseline (or b0, frame-0) map 
+#    my  ($registered_b0)    = &register_DTIPrep_files($mri_files->{'baseline'}{'minc'}, 
+#                                                      $mri_files->{'baseline'}{'nrrd'},
+#                                                      $DTIPrepVersion, 
+#                                                      $registeredXMLReportFile, 
+#                                                      $registeredQCReportFile, 
+#                                                      $registeredXMLprotocolFile,
+#                                                      'DTIb0qc' 
+#                                                     );
+#
+#    return ($registeredRGB, $registeredFA, $registeredMD, $registered_b0);
+#
+#}
+
+
+
+
+
+
+sub register_images {
+    my ($mri_files, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $process_step) = @_;
+
+    my (@registered, @failed_to_register, $registered_file);
+    foreach my $preproc_file (keys($mri_files->{$process_step})) {
+
+        # Don't register key that is Tool (stores tool used for processing)
+        next    if ($preproc_file eq "Tool");
+
+        # register file into the database
+        my $minc    = $mri_files->{$process_step}{$preproc_file}{'minc'};
+        my $scanType= $mri_files->{$process_step}{$preproc_file}{'scanType'};
+        if ($mri_files->{$process_step}{'Tool'} eq "DTIPrep") {
+
+            my $nrrd    = $mri_files->{$process_step}{$preproc_file}{'nrrd'};
+            ($registered_file)   = &register_DTIPrep_files($minc,
+                                                           $nrrd,
+                                                           $pipelineName, 
+                                                           $registeredXMLReportFile, 
+                                                           $registeredQCReportFile, 
+                                                           $registeredXMLprotocolFile, 
+                                                           $scanType
+                                                          );
+
+        } elsif ($mri_files->{$process_step}{'Tool'} eq "mincdiffusion") {
+
+            ($registered_file)   = &register_minc($minc,
+                                                  $pipelineName,
+                                                  $registeredXMLReportFile,
+                                                  $registeredQCReportFile,
+                                                  $registeredXMLprotocolFile,
+                                                  $scanType
+                                                 );
+
+
+        }
+
+        # push into array registered the registered file
+        push(@registered, $registered_file)         if ($registered_file);
+        push(@failed_to_register, $registered_file) if (!$registered_file);
+    }
+    
+    return (\@registered, \@failed_to_register);
+}
