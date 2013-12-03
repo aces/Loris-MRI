@@ -467,8 +467,8 @@ sub insertProcessInfo {
     my ($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion) = @_;
 
     # 1) processing:sourceFile
-    my  $sourceFile         =   $raw_dti;
-    $sourceFile             =~  s/$data_dir//i;
+    my  $sourceFile         = $raw_dti;
+    $sourceFile             =~ s/$data_dir//i;
     my ($sourceFile_insert) = DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
@@ -479,10 +479,10 @@ sub insertProcessInfo {
     my ($pipeline_insert)   = DTI::modify_header('processing:pipeline', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
 
     # 4) processing:processing_date (when DTIPrep was run)
-    my  $check_line         =   `cat $QC_report | grep "Check Time"`;
-    $check_line             =~  s/Check Time://;  # Only keep date info in $check_line.
+    my  $check_line         = `cat $QC_report | grep "Check Time"`;
+    $check_line             =~ s/Check Time://;  # Only keep date info in $check_line.
     my ($ss,$mm,$hh,$day,$month,$year,$zone)    =   strptime($check_line);
-    my $processingDate      =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
+    my $processingDate      = sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
     my ($date_insert)       = DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
 
     if (($sourceFile_insert) && ($seriesUID_insert) && ($pipeline_insert) && ($date_insert)) {
