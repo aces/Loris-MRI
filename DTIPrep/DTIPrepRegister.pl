@@ -356,7 +356,7 @@ sub register_XMLFile {
     if ($XMLFile =~ /XMLQCResult\.xml$/i) {
         $scanType       =   "DTIPrepXMLReport";
         $outputType     =   "qcreport";
-    } elsif ($XMLFile =~ /XMLnobcheck_prot\.xml$/i) {
+    } elsif ($XMLFile =~ /DTIPrepProtocol\.xml$/i) {
         $scanType       =   "DTIPrepProtocol";
         $outputType     =   "protocol";
     }
@@ -385,6 +385,7 @@ sub register_XMLFile {
                   "coordinateSpace: $coordinateSpace\n" .
                   "scanType:        $scanType\n"        .
                   "outputType:      $outputType\n";
+        return undef;
 
     }
 }        
@@ -440,8 +441,9 @@ sub register_QCReport {
                   "sourcePipeline:  $src_pipeline\n"    .
                   "pipelineDate:    $pipelineDate\n"    . 
                   "coordinateSpace: $coordinateSpace\n" .
-                  "scanType:        $scanType\n"        .                                     
+                  "scanType:        $scanType\n"        . 
                   "outputType:      $outputType\n";
+        return undef;
         
     }
 
@@ -635,7 +637,7 @@ sub getSourceFileName {
         $val    =~  s/"//g  unless (!$val);
         $src    =   $val    unless (!$val);
     }
-    $src        =~  s/(_QCReport\.txt|_XMLQCResult\.xml|_XMLnobcheck_prot\.xml|_QCed\.mnc|_QCed_rgb\.mnc)$//;
+    $src        =~  s/(_QCReport\.txt|_XMLQCResult\.xml|_DTIPrepProtocol\.xml|_QCed\.mnc|_QCed_rgb\.mnc)$//;
     my $src_name=   basename($src,'.mnc');
 
     return ($src_name);
@@ -1082,7 +1084,7 @@ sub register_nrrd {
 
 
 sub register_images {
-    my ($mri_files, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $process_step) = @_;
+    my ($mri_files, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile, $process_step) = @_;
 
     my (@registered, @failed_to_register, $registered_file);
     foreach my $preproc_file (keys($mri_files->{$process_step})) {
