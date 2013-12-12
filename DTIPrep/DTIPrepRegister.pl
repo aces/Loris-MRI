@@ -315,10 +315,9 @@ sub register_minc {
     my $outputType  =   "qc";
 
     # Check is all information was correctly inserted into the minc file
-    return undef    unless (($Txtreport_insert) && ($XMLreport_insert) 
-                         && ($protocol_insert)  && ($nrrd_insert)
-                         && ($summary_insert)   && ($pipelineName_insert)
-                         && ($procdir_insert));
+    return undef    unless (($Txtreport_insert)     && ($XMLreport_insert) 
+                         && ($protocol_insert)      && ($summary_insert)   
+                         && ($pipelineName_insert)  && ($procdir_insert));
     # Return undef if a nrrd file was registered but not inserted into the mincheader of the associated minc
     return undef    if (($registered_nrrd) && (!$nrrd_insert));
 
@@ -999,7 +998,7 @@ sub register_DTIPrep_files {
                                             );
 
     # Return registered minc file
-    return $registered_minc;
+    return ($registered_minc);
 }
 
 
@@ -1033,7 +1032,7 @@ sub register_nrrd {
     $coordinateSpace = "native"      if ($pipelineName =~ /DTIPrep/i);
     $coordinateSpace = "nativeT1"    if ($pipelineName =~ /mincdiffusion/i);
 
-    my $outputType      =   "qc";
+    my $outputType      =   "qcnrrd";
 
     # register file if all information are available
     if  (($nrrd)            &&  ($src_fileID)      &&
@@ -1128,7 +1127,7 @@ sub register_nrrd {
 sub register_images {
     my ($mri_files, $raw_file, $data_dir, $pipelineName, $registeredXMLReportFile, $registeredQCReportFile, $registeredXMLprotocolFile, $process_step) = @_;
 
-    my (@registered, @failed_to_register, $registered_file);
+    my (@registered, @failed_to_register, $registered_minc);
     foreach my $preproc_file (keys($mri_files->{$process_step})) {
 
         # Don't register key that is Tool (stores tool used for processing)
@@ -1140,7 +1139,7 @@ sub register_images {
         if ($mri_files->{$process_step}{'Tool'} eq "DTIPrep") {
 
             my $nrrd    = $mri_files->{$process_step}{$preproc_file}{'nrrd'};
-            ($registered_file)   = &register_DTIPrep_files($minc,
+            ($registered_minc)   = &register_DTIPrep_files($minc,
                                                            $nrrd,
                                                            $raw_file,
                                                            $data_dir,
@@ -1153,7 +1152,7 @@ sub register_images {
 
         } elsif ($mri_files->{$process_step}{'Tool'} eq "mincdiffusion") {
 
-            ($registered_file)   = &register_minc($minc,
+            ($registered_minc)   = &register_minc($minc,
                                                   $raw_file,
                                                   $data_dir,
                                                   $pipelineName,
@@ -1167,8 +1166,8 @@ sub register_images {
         }
 
         # push into array registered the registered file
-        push(@registered, $registered_file)         if ($registered_file);
-        push(@failed_to_register, $registered_file) if (!$registered_file);
+        push(@registered, $registered_minc) if ($registered_minc);
+        push(@failed_to_register, $minc)    if (!$registered_minc);
     }
     
     return (\@registered, \@failed_to_register);

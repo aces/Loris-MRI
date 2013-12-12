@@ -182,7 +182,7 @@ foreach my $nativedir (@nativedirs)   {
     ####### Step 8: ####### Register files into the DB if $RegisterFiles is defined
     #######################
     if ($RegisterFiles) {
-        &register_processed_files_in_DB($DTIs_list, $profile, $QCoutdir, );
+        &register_processed_files_in_DB($DTIs_list, $DTIrefs, $profile, $QCoutdir, );
     } else {
         print LOG "Processed files won't be registered in the database.\n";
         next;
@@ -193,7 +193,7 @@ foreach my $nativedir (@nativedirs)   {
 exit 0;
 
 sub register_processed_files_in_DB {
-    my ($DTIs_list, $profile, $QCoutdir) = @_;
+    my ($DTIs_list, $DTIrefs, $profile, $QCoutdir) = @_;
 
     # Loop through raw DTIs list 
     foreach my $dti_file (@$DTIs_list) {
