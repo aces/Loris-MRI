@@ -210,7 +210,7 @@ sub createDTIhashref {
 
         # Raw nrrd file to be processed
         my $dti_name        = substr(basename($dti_file), 0, -4);
-        $DTIrefs->{$dti_file}->{'Raw_nrrd'}                 = $QCoutdir . "/" . $dti_name  . ".nrrd"           ;
+        $DTIrefs->{$dti_file}->{'Raw'}->{'nrrd'} = $QCoutdir . "/" . $dti_name  . ".nrrd";
 
         # Determine preprocess outputs
         DTI::determinePreprocOutputs($QCoutdir, $dti_file, $DTIPrepProtocol, $protXMLrefs, $QCed2_step);
@@ -237,24 +237,30 @@ sub determinePreprocOutputs {
     my $prot_name       = basename($DTIPrepProtocol);
     my $dti_name        = substr(basename($dti_file), 0, -4);
 
-    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCProt'}      = $QCoutdir . "/" . $dti_name  . "_DTIPrepProtocol.xml";
-    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCXmlReport'} = $QCoutdir . "/" . $dti_name  . "_XMLQCResult.xml";
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCProt'}->{'xml'}     = $QCoutdir . "/" . $dti_name  . "_DTIPrepProtocol.xml";
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCReport'}->{'xml'}   = $QCoutdir . "/" . $dti_name  . "_XMLQCResult.xml";
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCReport'}->{'input1'}= "Raw_DWI";
        
     # These are determined in DTIPrep's XML protocol 
     my $QCTxtReport = $protXMLrefs->{entry}->{QC_reportFileNameSuffix}->{value};
     my $QCed_suffix = $protXMLrefs->{entry}->{QC_QCedDWIFileNameSuffix}->{value};
     $QCed_suffix    = substr($QCed_suffix, 0, -5); # remove .nrrd from QCed suffix
 
-    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCTxtReport'}   = $QCoutdir . "/" . $dti_name  . $QCTxtReport          ;
-    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_nrrd'}     = $QCoutdir . "/" . $dti_name  . $QCed_suffix . ".nrrd"; 
-    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed_minc'}     = $QCoutdir . "/" . $dti_name  . $QCed_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCReport'}->{'txt' }  = $QCoutdir . "/" . $dti_name  . $QCTxtReport          ;
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed'}->{'nrrd'}      = $QCoutdir . "/" . $dti_name  . $QCed_suffix . ".nrrd"; 
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed'}->{'minc'}      = $QCoutdir . "/" . $dti_name  . $QCed_suffix . ".mnc" ;
 
     # if a secondary QC file is written during INTERLACE_bCheck step (before motion and eddy curent corrections)
     my $QCed2_suffix= $protXMLrefs->{entry}->{INTERLACE_bCheck}->{entry}->{$QCed2_step}->{value};
     if ($QCed2_suffix) {
         $QCed2_suffix   = substr($QCed2_suffix, 0, -5); # remove .nrrd from QCed2 suffix
-        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_nrrd'}= $QCoutdir . "/" . $dti_name . $QCed2_suffix . ".nrrd";
-        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2_minc'}= $QCoutdir . "/" . $dti_name . $QCed2_suffix . ".mnc" ;
+        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2'}->{'nrrd'}     = $QCoutdir . "/" . $dti_name . $QCed2_suffix . ".nrrd";
+        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2'}->{'minc'}     = $QCoutdir . "/" . $dti_name . $QCed2_suffix . ".mnc" ;
+        # {'input*'} corresponds to the files used as inputs to create the Preproc file
+        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2'}->{'input1'}   = "Raw_DWI";
+        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed'}->{'input1'}    = "QCed2";
+    } else {
+        $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed'}->{'input1'}    = "Raw_DWI";
     }
 }
 
@@ -309,47 +315,54 @@ sub determineDTIPrepPostprocOutputs {
     my $tensor_suffix   = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_tensor}->{value};    
     $tensor_suffix      = $QCed_suffix . substr($tensor_suffix, 0, -5); # remove .nrrd from tensor suffix
     # Determine nrrd and minc names
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_nrrd'}  = $QCoutdir . "/" . $dti_name  . $tensor_suffix . ".nrrd";
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_minc'}  = $QCoutdir . "/" . $dti_name  . $tensor_suffix . ".mnc" ;
+    # {'input*'} corresponds to the files used as inputs to create the Preproc file
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'nrrd'}  = $QCoutdir . "/" . $dti_name  . $tensor_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'minc'}  = $QCoutdir . "/" . $dti_name  . $tensor_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'input1'}= "QCed";
 
     # 2. Baseline DTI image (bvalue = 0) {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
     # Determine suffix to used for the output
     my $baseline_suffix = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_baseline}->{value}[1];    
     $baseline_suffix    = $QCed_suffix . substr($baseline_suffix, 0, -5); # remove .nrrd from baseline suffix
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_nrrd'}  = $QCoutdir . "/" . $dti_name  . $baseline_suffix . ".nrrd";
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'}  = $QCoutdir . "/" . $dti_name  . $baseline_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'nrrd'}  = $QCoutdir . "/" . $dti_name  . $baseline_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'minc'}  = $QCoutdir . "/" . $dti_name  . $baseline_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'input1'}= "QCed";
 
     # 3. RGB map {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
     # Determine suffix to used for the output
     my $RGB_suffix      = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_colorfa}->{value}[1];
     $RGB_suffix         = $tensor_suffix . substr($RGB_suffix, 0, -5); # remove .nrrd from rgb suffix
     # Determine nrrd and minc names
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_nrrd'}  = $QCoutdir . "/" . $dti_name  . $RGB_suffix . ".nrrd";
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_minc'}  = $QCoutdir . "/" . $dti_name  . $RGB_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'nrrd'}  = $QCoutdir . "/" . $dti_name  . $RGB_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'minc'}  = $QCoutdir . "/" . $dti_name  . $RGB_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'input1'}= "QCed";
 
     # 4. FA map {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
     # Determine suffix to used for the output
     my $FA_suffix       = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_fa}->{value}[1];
     $FA_suffix          = $tensor_suffix . substr($FA_suffix, 0, -5); # remove .nrrd from FA suffix
     # Determine nrrd and minc names
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_nrrd'}  = $QCoutdir . "/" . $dti_name  . $FA_suffix . ".nrrd";
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_minc'}  = $QCoutdir . "/" . $dti_name  . $FA_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'nrrd'}  = $QCoutdir . "/" . $dti_name  . $FA_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'minc'}  = $QCoutdir . "/" . $dti_name  . $FA_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'input1'}= "QCed";
 
     # 5. MD map {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
     # Determine suffix to used for the output
     my $MD_suffix       = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_md}->{value}[1];
     $MD_suffix          = $tensor_suffix . substr($MD_suffix, 0, -5); # remove .nrrd from MD suffix
     # Determine nrrd and minc names
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_nrrd'}  = $QCoutdir . "/" . $dti_name  . $MD_suffix . ".nrrd";
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_minc'}  = $QCoutdir . "/" . $dti_name  . $MD_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'nrrd'}  = $QCoutdir . "/" . $dti_name  . $MD_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'minc'}  = $QCoutdir . "/" . $dti_name  . $MD_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'input1'}= "QCed";
 
     # 6. Isotropic DWI {value} key returns an array with 0 -> Yes/No; 1 -> output suffix to append to DTI tensor suffix
     # Determine suffix to used for the output
     my $IDWI_suffix     = $protXMLrefs->{entry}->{DTI_bCompute}->{entry}->{DTI_idwi}->{value}[1];
     $IDWI_suffix        = $QCed_suffix . substr($IDWI_suffix, 0, -5); # remove .nrrd from isotropic DWI suffix
     # Determine nrrd and minc names
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_nrrd'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".nrrd";
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_minc'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'nrrd'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".nrrd";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'minc'}  = $QCoutdir . "/" . $dti_name  . $IDWI_suffix . ".mnc" ;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'input1'}= "QCed";
 
 }    
 
@@ -370,16 +383,30 @@ sub determineMincdiffusionPostprocOutputs {
     # Determine basename of the anat file to be processed
     my $anat_name       = substr(basename($anat), 0, -4);
 
-    # Determine mincdiffusion output names    
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_minc'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_FA.mnc"      ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_minc'}       = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_rgb.mnc"     ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_minc'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_MD.mnc"      ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'rgb_pic'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_RGB.png"     ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'}  = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "-frame0.mnc"  ;
-    $DTIrefs->{$dti_file}->{'raw_anat_minc'}                = $anat                                              ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_minc'} = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc"  ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_diff_minc'} = $QCoutdir . "/" . $anat_name . "-n3-bet_mask-diffspace.mnc"  ;
-    $DTIrefs->{$dti_file}->{'Postproc'}->{'preproc_minc'}   = $QCoutdir . "/" . $dti_name . $QCed_suffix . "-preprocessed.mnc" ;
+    # Determine mincdiffusion output names     
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'minc'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_FA.mnc";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'input1'}      = "QCed";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'input2'}      = "Raw_anat";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'minc'}       = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_rgb.mnc";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'input1'}     = "QCed";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'input2'}     = "Raw_anat";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'minc'}        = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_MD.mnc";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'input1'}      = "QCed";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'input2'}      = "Raw_anat";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'rgb_pic'}             = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "_RGB.png";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'minc'}  = $QCoutdir . "/" . $dti_name  . $QCed_suffix . "-frame0.mnc";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'input1'}= "QCed";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'input2'}= "Raw_anat";
+    $DTIrefs->{$dti_file}->{'raw_anat'}->{'minc'}                = $anat;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask'}->{'minc'} = $QCoutdir . "/" . $anat_name . "-n3-bet_mask.mnc";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask'}->{'input1'}= "Raw_anat";
+    $DTIrefs->{$dti_file}->{'raw_anat'}->{'minc'}                 = $anat;
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_diff'}->{'minc'}  = $QCoutdir . "/" . $anat_name . "-n3-bet_mask-diffspace.mnc";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_diff'}->{'input1'}= "QCed";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'anat_mask_diff'}->{'input2'}= "Raw_anat";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'preproc'}->{'minc'}   = $QCoutdir . "/" . $dti_name . $QCed_suffix . "-preprocessed.mnc";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'preproc'}->{'input1'} = "QCed";
+    $DTIrefs->{$dti_file}->{'Postproc'}->{'preproc'}->{'input2'} = "Raw_anat";
 
 }    
 
@@ -469,23 +496,30 @@ sub insertProcessInfo {
     # 1) processing:sourceFile
     my  $sourceFile         =   $raw_dti;
     $sourceFile             =~  s/$data_dir//i;
-    my ($sourceFile_insert) = DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
+    my ($sourceFile_insert) = &DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
-    my  ($seriesUID)        = DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
-    my ($seriesUID_insert)  = DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
+    my  ($seriesUID)        = &DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
+    my ($seriesUID_insert)  = &DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
 
     # 3) processing:pipeline used
-    my ($pipeline_insert)   = DTI::modify_header('processing:pipeline', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
+    my ($pipeline_insert)   = &DTI::modify_header('processing:pipeline', 'DTIPrepPipeline', $processed_minc, '$3, $4, $5, $6');
+    
+    # 4) processing:tool used
+    my ($tool_insert)       = &DTI::modify_header('processing:tool', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
 
-    # 4) processing:processing_date (when DTIPrep was run)
+    # 5) processing:processing_date (when DTIPrep was run)
     my  $check_line         =   `cat $QC_report | grep "Check Time"`;
     $check_line             =~  s/Check Time://;  # Only keep date info in $check_line.
     my ($ss,$mm,$hh,$day,$month,$year,$zone)    =   strptime($check_line);
     my $processingDate      =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
-    my ($date_insert)       = DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
+    my ($date_insert)       = &DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
 
-    if (($sourceFile_insert) && ($seriesUID_insert) && ($pipeline_insert) && ($date_insert)) {
+    if (($sourceFile_insert) 
+     && ($seriesUID_insert) 
+     && ($pipeline_insert) 
+     && ($tool_insert) 
+     && ($date_insert)) {
         return 1;
     } else {
         return undef;
@@ -630,14 +664,14 @@ sub mincdiff_preprocess {
     
     # Initialize variables
         # 1. input data
-    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
+    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed'}{'minc'};
     my $QCed_basename = substr(basename($QCed_minc),0,-4);
-    my $raw_anat      = $DTIrefs->{$dti_file}{'raw_anat_minc'};
+    my $raw_anat      = $DTIrefs->{$dti_file}{'raw_anat'}{'minc'};
         # 2. output data
-    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
-    my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'};
-    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
-    my $anat_mask_diff= $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_diff_minc'};
+    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc'}{'minc'};
+    my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline'}{'minc'};
+    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask'}{'minc'};
+    my $anat_mask_diff= $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_diff'}{'minc'};
 
     # Run diff_preprocess.pl script 
     `diff_preprocess.pl -anat $raw_anat $QCed_minc $preproc_minc -outdir $QCoutdir`;
@@ -673,14 +707,14 @@ sub mincdiff_minctensor {
 
     # Initialize variables
         # 1. input data
-    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
+    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed'}{'minc'};
     my $QCed_basename = substr(basename($QCed_minc), 0, -4);
-    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
-    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
+    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc'}{'minc'};
+    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask'}{'minc'};
         # 2. output data
-    my $FA            = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'};
-    my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'};
-    my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
+    my $FA            = $DTIrefs->{$dti_file}{'Postproc'}{'FA'}{'minc'};
+    my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD'}{'minc'};
+    my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB'}{'minc'};
 
     # Run minctensor.pl script  
     `minctensor.pl -mask $anat_mask $preproc_minc -niakdir $niak_path -outputdir $QCoutdir -octave $QCed_basename`;
@@ -715,7 +749,7 @@ sub RGBpik_creation {
 
     # Initialize variables
         # 1. input file
-    my $RGB     = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
+    my $RGB     = $DTIrefs->{$dti_file}{'Postproc'}{'RGB'}{'minc'};
         # 2. output file
     my $rgb_pic = $DTIrefs->{$dti_file}{'Postproc'}{'rgb_pic'};   
 
@@ -746,16 +780,16 @@ Function that created FA and RGB maps as well as the triplanar pic of the RGB ma
 #    my ($dti_file, $DTIrefs, $QCoutdir)   =   @_;
 #
 #    # Initialize variables
-#    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed_minc'};
+#    my $QCed_minc     = $DTIrefs->{$dti_file}{'Preproc'}{'QCed'}{'minc'};
 #    my $QCed_basename = substr(basename($QCed_minc),0,-4);
-#    my $FA            = $DTIrefs->{$dti_file}{'Postproc'}{'FA_minc'};
-#    my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD_minc'}; 
-#    my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB_minc'};
+#    my $FA            = $DTIrefs->{$dti_file}{'Postproc'}{'FA'}{'minc'};
+#    my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD'}{'minc'}; 
+#    my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB'}{'minc'};
 #    my $rgb_pic       = $DTIrefs->{$dti_file}{'Postproc'}{'rgb_pic'};
-#    my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline_minc'};
-#    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc_minc'};
-#    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_minc'};
-#    my $anat          = $DTIrefs->{$dti_file}{'raw_anat_minc'};
+#    my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline'}{'minc'};
+#    my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc'}{'minc'};
+#    my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask'}{'minc'};
+#    my $anat          = $DTIrefs->{$dti_file}{'raw_anat'}{'minc'};
 #
 #    # Check if output files already exists
 #    if (-e $rgb_pic && $RGB && $MD && $baseline && $anat_mask && $preproc_minc) {
@@ -861,18 +895,18 @@ sub convert_DTIPrep_postproc_outputs {
     my ($dti_file, $DTIrefs, $data_dir, $QCTxtReport, $DTIPrepVersion) = @_;
 
     # 1. Initialize variables
-    my $tensor_nrrd     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_nrrd'};
-    my $tensor_minc     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor_minc'};
-    my $baseline_nrrd   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_nrrd'};
-    my $baseline_minc   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline_minc'};
-    my $rgb_nrrd        = $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_nrrd'};
-    my $rgb_minc        = $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB_minc'};
-    my $fa_nrrd         = $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_nrrd'};
-    my $fa_minc         = $DTIrefs->{$dti_file}->{'Postproc'}->{'FA_minc'};
-    my $md_nrrd         = $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_nrrd'};
-    my $md_minc         = $DTIrefs->{$dti_file}->{'Postproc'}->{'MD_minc'};
-    my $idwi_nrrd       = $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_nrrd'};
-    my $idwi_minc       = $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI_minc'};
+    my $tensor_nrrd     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'nrrd'};
+    my $tensor_minc     = $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'minc'};
+    my $baseline_nrrd   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'nrrd'};
+    my $baseline_minc   = $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'minc'};
+    my $rgb_nrrd        = $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'nrrd'};
+    my $rgb_minc        = $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'minc'};
+    my $fa_nrrd         = $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'nrrd'};
+    my $fa_minc         = $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'minc'};
+    my $md_nrrd         = $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'nrrd'};
+    my $md_minc         = $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'minc'};
+    my $idwi_nrrd       = $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'nrrd'};
+    my $idwi_minc       = $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'minc'};
 
     # 2. Check that all processed outputs were created
     my $nrrds_found;
