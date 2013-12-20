@@ -182,7 +182,13 @@ foreach my $nativedir (@nativedirs)   {
     ####### Step 8: ####### Register files into the DB if $RegisterFiles is defined
     #######################
     if ($RegisterFiles) {
-        &register_processed_files_in_DB($DTIs_list, $DTIrefs, $profile, $QCoutdir, );
+        &register_processed_files_in_DB($DTIs_list, 
+                                        $DTIrefs, 
+                                        $profile, 
+                                        $QCoutdir, 
+                                        $DTIPrepVersion, 
+                                        $mincdiffVersion
+                                       );
     } else {
         print LOG "Processed files won't be registered in the database.\n";
         next;
@@ -191,37 +197,6 @@ foreach my $nativedir (@nativedirs)   {
 }
 
 exit 0;
-
-sub register_processed_files_in_DB {
-    my ($DTIs_list, $DTIrefs, $profile, $QCoutdir) = @_;
-
-    # Loop through raw DTIs list 
-    foreach my $dti_file (@$DTIs_list) {
-        
-        # If post processing pipeline used was mincdiffusion, we need to know which raw anatomical file was used to generate brain masks.
-        # If post processing pipeline used was DTIPrep, no need to specify an anatomical raw dataset when calling DTIPrepRegister.pl
-        my $postprocessingtool  = $DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'};
-        my $register_cmd;
-        if ($postprocessingtool eq "DTIPrep") {
-
-            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol $DTIPrepProtocol -raw_dti $dti_file";
-
-        } elsif ($postprocessingtool eq "mincdiffusion") {
-
-            # Extract the raw anat file used by mincdiffusion
-            my $anat    = $DTIrefs->{$dti_file}->{'raw_anat_minc'};
-            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol $DTIPrepProtocol -raw_dti $dti_file -raw_anat $anat";
-
-        }
-        print LOG "Registering files using the following command: $register_cmd";
-#        system($register_cmd);
-    }
-}
-
-
-        # Create a default notes file for QC summary and manual notes
- #       my $note_file   =   $QCoutdir."/".$notes;
-#        DTI::createNoteFile($QCoutdir, $note_file, $QCTxtReport, $reject_thresh)  unless (-e $note_file);
 
 
 
@@ -815,7 +790,7 @@ sub runMincdiffusionTools {
 
     # 1. Initialize variables
         # Raw anatomical
-    my $raw_anat        = $DTIrefs->{$dti_file}{'raw_anat_minc'}; 
+    my $raw_anat        = $DTIrefs->{$dti_file}{'raw_anat'}{'minc'}; 
         # DTIPrep preprocessing outputs
     my $QCed_minc       = $DTIrefs->{$dti_file}{'Preproc'}{'QCed'}{'minc'};
     my $QCTxtReport     = $DTIrefs->{$dti_file}{'Preproc'}{'QCReport'}{'txt'};
@@ -850,8 +825,8 @@ sub runMincdiffusionTools {
 
         my ($baseline_insert)       = &DTI::insertMincHeader($dti_file, $data_dir, $baseline,       $QCTxtReport, $mincdiffVersion);
         my ($preproc_insert)        = &DTI::insertMincHeader($dti_file, $data_dir, $preproc_minc,   $QCTxtReport, $mincdiffVersion);
-        my ($anat_mask_insert)      = &DTI::insertMincHeader($raw_anat, $data_dir, $anat_mask,      $QCTxtReport, $mincdiffVersion);
-        my ($anat_mask_diff_insert) = &DTI::insertMincHeader($raw_anat, $data_dir, $anat_mask_diff, $QCTxtReport, $mincdiffVersion);
+        my ($anat_mask_insert)      = &DTI::insertMincHeader($raw_anat, $data_dir, $anat_mask,      $QCTxtReport, $mincdiffVersion, 1);
+        my ($anat_mask_diff_insert) = &DTI::insertMincHeader($raw_anat, $data_dir, $anat_mask_diff, $QCTxtReport, $mincdiffVersion, 1);
         my ($fa_insert)             = &DTI::insertMincHeader($dti_file, $data_dir, $FA,             $QCTxtReport, $mincdiffVersion);
         my ($md_insert)             = &DTI::insertMincHeader($dti_file, $data_dir, $MD,             $QCTxtReport, $mincdiffVersion);
         my ($rgb_insert)            = &DTI::insertMincHeader($dti_file, $data_dir, $RGB,            $QCTxtReport, $mincdiffVersion);
@@ -912,6 +887,41 @@ sub check_and_convert_DTIPrep_postproc_outputs {
     }
 
 }
+
+
+
+
+
+
+
+=pod
+=cut
+sub register_processed_files_in_DB {
+    my ($DTIs_list, $DTIrefs, $profile, $QCoutdir, $DTIPrepVersion, $mincdiffVersion) = @_;
+
+    # Loop through raw DTIs list 
+    foreach my $dti_file (@$DTIs_list) {
+        
+        # If post processing pipeline used was mincdiffusion, we need to know which raw anatomical file was used to generate brain masks.
+        # If post processing pipeline used was DTIPrep, no need to specify an anatomical raw dataset when calling DTIPrepRegister.pl
+        my $postprocessingtool  = $DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'};
+        my $register_cmd;
+        if ($postprocessingtool eq "DTIPrep") {
+
+            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -DTIPrepVersion \"$DTIPrepVersion\"";
+
+        } elsif ($postprocessingtool eq "mincdiffusion") {
+
+            # Extract the raw anat file used by mincdiffusion
+            my $anat_file    = $DTIrefs->{$dti_file}->{'raw_anat'}{'minc'};
+            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -anat_file $anat_file -DTIPrepVersion \"$DTIPrepVersion\" -mincdiffusionVersion \"$mincdiffVersion\"";
+
+        }
+        print LOG "Registering files using the following command: $register_cmd";
+        system($register_cmd);
+    }
+}
+
 
 
 #    foreach my $dti_file (@$DTIs_list) {

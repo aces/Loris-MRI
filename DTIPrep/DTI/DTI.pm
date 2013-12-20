@@ -462,21 +462,21 @@ Takes the raw DTI file and the QCed minc file as input and modify the QCed minc 
 
 =cut
 sub insertMincHeader {
-    my  ($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion)    =   @_;
+    my  ($raw_file, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion, $is_anat)    =   @_;
 
     # insertion of processed information into $processed_minc
-    my ($procInsert)    =   DTI::insertProcessInfo($raw_dti, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion);
+    my ($procInsert)    =   DTI::insertProcessInfo($raw_file, $data_dir, $processed_minc, $QC_report, $DTIPrepVersion);
 
-    # insert old acquisition, patient and study arguments except for the one modified by DTIPrep (i.e. acquisition:bvalues, acquisition:b_matrix and all acquisition:direction*)
-    my  ($acqInsert)    =   DTI::insertAcqInfo($raw_dti, $processed_minc);
+    # insert old acquisition, patient and study arguments except for the one modified by DTIPrep (i.e. acquisition:bvalues, acquisition:b_matrix and all acquisition:direction*) unless $is_anat is set (raw_file is anat file)
+    my  ($acqInsert)    =   DTI::insertAcqInfo($raw_file, $processed_minc) unless ($is_anat);
 
     # insert patient information from the raw dataset into the processed files
-    my  ($patientInsert)=   DTI::insertFieldList($raw_dti, $processed_minc, 'patient:');
+    my  ($patientInsert)=   DTI::insertFieldList($raw_file, $processed_minc, 'patient:');
 
     # insert study information from the raw dataset into the processed files
-    my  ($studyInsert)  =   DTI::insertFieldList($raw_dti, $processed_minc, 'study:');
+    my  ($studyInsert)  =   DTI::insertFieldList($raw_file, $processed_minc, 'study:');
 
-    if (($procInsert) && ($acqInsert) && ($patientInsert) && ($studyInsert)) {
+    if (($procInsert) && (($acqInsert)||($is_anat)) && ($patientInsert) && ($studyInsert)) {
         return 1;
     } else {
         return undef;
