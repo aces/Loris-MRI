@@ -35,6 +35,8 @@ Usage: $0 [options]
 -help for options
 
 USAGE
+
+# Set default option values
 my $profile         = undef;
 my $DTIPrepVersion  = undef;
 my $mincdiffVersion = undef;
@@ -43,25 +45,26 @@ my $DTIPrepProtocol = undef;
 my $RegisterFiles   = undef;
 my ($list, @args);
 
-my @args_table      = (["-profile",             "string",   1,      \$profile,          "name of config file in ~/.neurodb."                             ],
-                       ["-list",                "string",   1,      \$list,             "file with the list of raw diffusion files (in assembly/DCCID/Visit/mri/native)."    ],
-                       ["-DTIPrepVersion",      "string",   1,      \$DTIPrepVersion,   "DTIPrep version used if cannot be found in DTIPrep binary path."],
-                       ["-mincdiffusionVersion","string",   1,      \$mincdiffVersion,  "mincdiffusion release version used if cannot be found in mincdiffusion scripts path."],
-                       ["-runDTIPrep",          "boolean",  1,      \$runDTIPrep,       "if set, run DTIPrep tool on raw DTI data."                      ],
-                       ["-DTIPrepProtocol",     "string",   1,      \$DTIPrepProtocol,  "DTIPrep protocol to use or that was used to run DTIPrep."       ],
-                       ["-registerFilesInDB",   "boolean",  1,      \$RegisterFiles,  "Register processed outputs into the DB."                          ]
+# Define the table describing the command-line options
+my @args_table      = (["-profile",             "string",   1,      \$profile,          "name of config file in ~/.neurodb."                               ],
+                       ["-list",                "string",   1,      \$list,             "file containing the list of raw diffusion minc files (in assembly/DCCID/Visit/mri/native)."    ],
+                       ["-DTIPrepVersion",      "string",   1,      \$DTIPrepVersion,   "DTIPrep version used (if cannot be found in DTIPrep binary path)."],
+                       ["-mincdiffusionVersion","string",   1,      \$mincdiffVersion,  "mincdiffusion release version used (if cannot be found in mincdiffusion scripts path.)"],
+                       ["-runDTIPrep",          "boolean",  1,      \$runDTIPrep,       "if set, run DTIPrep tool on the raw minc DTI data."               ],
+                       ["-DTIPrepProtocol",     "string",   1,      \$DTIPrepProtocol,  "DTIPrep protocol to use or that was used to run DTIPrep tool."    ],
+                       ["-registerFilesInDB",   "boolean",  1,      \$RegisterFiles,    "If set, it will register processed outputs into the database."    ]
                       );
 
 Getopt::Tabular::SetHelp ($Usage, '');
 GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
-# input option error checking
+
+# input options error checking
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) {
     print "\n\tERROR: You don't have a configuration file named \"$profile\" in:  $ENV{HOME}/.neurodb/ \n\n"; 
     exit 33;
 }
-
 if (!$profile) {
     print "$Usage\n\tERROR: You must specify a profile.\n\n";  
     exit 33;
@@ -86,7 +89,7 @@ my  $niak_path      =   $Settings::niak_path;
 my  $QCed2_step     =   $Settings::QCed2_step;
 
 
-# needed for log file
+# Needed for log file
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)   =   localtime(time);
 my  $date   =   sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log    =   $data_dir . "/logs/DTIPrep_pipeline/DTI_QC" . $date . ".log";
@@ -94,15 +97,20 @@ open(LOG,">>$log");
 print LOG "Log file, $date\n";
 print LOG "DTIPrep version: $DTIPrepVersion\n\n";
 
-# determine DTIPrep output directory
+
+# Determine DTIPrep output directory
 my $outdir  =   $data_dir . "/pipelines/DTIPrep/" . $DTIPrepVersion;
 
-# parse through list of directories containing DTI data (i.e. $data_dir/assembly/DCCID/Visit/mri/native)
+
+# Parse through list of directories containing native DTI data (i.e. $data_dir/assembly/DCCID/Visit/mri/native)
 open(DIRS,"<$list");
 my  @nativedirs   =   <DIRS>;
 close(DIRS);
+
+# Loop through native directories
 foreach my $nativedir (@nativedirs)   {
     chomp ($nativedir);
+
     
     #######################
     ####### Step 1: #######  Get Site, SubjectID and Visit label
@@ -110,17 +118,20 @@ foreach my $nativedir (@nativedirs)   {
     my ($site, $subjID, $visit) = &getIdentifiers($nativedir);
     next if ((!$site) || (!$subjID) || !($visit));
 
+
     #######################
     ####### Step 2: ####### - If $runDTIPrep is set,     create out directories. 
     ####################### - If $runDTIPrep is not set, fetche out directories.
     my ($QCoutdir)  = &getOutputDirectories($outdir, $subjID, $visit, $DTIPrepProtocol, $runDTIPrep);
     next if (!$QCoutdir);
 
+
     #######################
     ####### Step 3: ####### - Read DTIPrep XML protocol (will help to determine output names). 
     #######################
     my ($protXMLrefs)        = &DTI::readDTIPrepXMLprot($DTIPrepProtocol);
     next if (!$protXMLrefs);
+
     # Additional checks to check whether DTIPrep or mincdiffusion tools will run post-processing. If the mincdiffusion tools will be used, then we should be able to have a version of the tool and the path to niak! 
     my $bCompute    = $protXMLrefs->{entry}->{DTI_bCompute}->{value};
     if (($bCompute eq 'No') && (!$mincdiffVersion)) {
@@ -133,33 +144,37 @@ foreach my $nativedir (@nativedirs)   {
         }
     }
 
+
     #######################
-    ####### Step 4: ####### - Get raw DTI file to process (later may need to develop concatenation of several DTI files into one dataset when a DTI dataset is acquired in several smaller DTI scans). 
-    ####################### - & determine output names based on raw DTI file names and organize them into a hash ($DTIrefs). 
+    ####### Step 4: ####### - Fetch raw DTI files to process. 
+    ####################### - Determine output names based on raw DTI file names and organize them into a hash ($DTIrefs). 
     my ($DTIs_list, $DTIrefs)= &fetchData($nativedir, $DTI_volumes, $t1_scan_type, $QCoutdir, $DTIPrepProtocol, $protXMLrefs, $QCed2_step);
     next if ((!$DTIs_list) || (!$DTIrefs));
 
+
     #######################
-    ####### Step 5: ####### - Run preprocessing pipeline (mnc2nrrd + DTIPrep) if $runDTIPrep is set. 
+    ####### Step 5: ####### - Run preprocessing pipeline (mnc2nrrd + DTIPrep) if $runDTIPrep option is set. 
     #######################
     if ($runDTIPrep) {
         my ($pre_success)   = &preprocessingPipeline($DTIs_list, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
-        # if no preprocessing pipeline was successful for this visit, go to the next one.
+        # if no preprocessing pipeline was successful for this visit, go to the next directory.
         next if (!$pre_success);
     } else {
         print LOG "DTIPrep won't be run on this dataset. (-runDTIPrep option was not set)\n";
         print LOG "--------------------------------\n";
     }
 
+
     #######################
-    ####### Step 6: ####### Check if DTIPrep outputs are available and will convert nrrd files to mnc. 
+    ####### Step 6: ####### Check if DTIPrep outputs are available and convert nrrd files to mnc. 
     ####################### These outputs are:
     #                          - QCed.nrrd
     #                          - QCReport.txt
     #                          - XMLQCResult.xml
     my ($convert_success)   = &check_and_convertPreprocessedFiles($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $DTIPrepVersion);
-    # if no preprocessed files were found or conversion was not successful for this visit, go to the next one.
+    # if no preprocessed files were found or conversion was not successful for this visit, go to the next directory.
     next if (!$convert_success);
+
 
     #######################
     ####### Step 7: #######    
@@ -178,8 +193,9 @@ foreach my $nativedir (@nativedirs)   {
         exit;
     }
 
+
     #######################
-    ####### Step 8: ####### Register files into the DB if $RegisterFiles is defined
+    ####### Step 8: ####### Register files into the DB if $RegisterFiles option is defined
     #######################
     if ($RegisterFiles) {
         &register_processed_files_in_DB($DTIs_list, 
@@ -895,6 +911,13 @@ sub check_and_convert_DTIPrep_postproc_outputs {
 
 
 =pod
+Calls the script DTIPrepRegister.pl to register processed files into the database.
+Inputs:  - $DTIs_list:  list of native DTI files processed
+         - $DTIrefs:    hash containing the processed filenames
+         - $profile:    config file (a.k.a ~/.neurodb/prod)
+         - $QCoutdir:   output directory containing the processed files
+         - $DTIPrepVersion:  DTIPrep version used to obtain QCed files
+         - $mincdiffVersion: mincdiffusion tool version used to obtain post-processing files
 =cut
 sub register_processed_files_in_DB {
     my ($DTIs_list, $DTIrefs, $profile, $QCoutdir, $DTIPrepVersion, $mincdiffVersion) = @_;
@@ -922,15 +945,4 @@ sub register_processed_files_in_DB {
     }
 }
 
-
-
-#    foreach my $dti_file (@$DTIs_list) {
-#        print "DTI file: $dti_file\n";
-#        print "DTI raw nrrd: $DTIrefs->{$dti_file}{'Raw'}{'nrrd'}\n";
-#        print "DTI QCed nrrd: $DTIrefs->{$dti_file}{'QCed'}{'nrrd'}\n";
-#        print "DTI QCProt: $DTIrefs->{$dti_file}{'QCProt'}{'xml'}\n";
-#        print "DTI QCTxtReport: $DTIrefs->{$dti_file}{'QCReport'}{'txt'}\n";
-#        print "DTI QCXmlReport: $DTIrefs{$dti_file}{'QCReport'}{'xml'}\n";
-#        print "DTI QCed minc: $DTIrefs{$dti_file}{'QCed'}{'minc'}\n";
-#    }
 
