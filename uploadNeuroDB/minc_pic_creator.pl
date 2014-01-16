@@ -34,28 +34,35 @@ my $minc_path     = undef;       # the path/location of minc
 
 my @opt_table = (
                  ["Basic options","section"],
-                 ["-profile     ","string",1, \$profile, "name of config file in ~/.neurodb."],
-                 ["-mincPath     ","string",1, \$minc_path, "name of config file in ~/.neurodb."],
+                 ["-profile     ","string",1, \$profile, 
+                  "name of config file in ~/.neurodb."],
+                 ["-mincPath     ","string",1, \$minc_path, "The absolute path 
+                  to minc-file"],
                  ["Advanced options","section"],
-                 ["-globLocation", "boolean", 1, \$globArchiveLocation,"Loosen the validity check of the tarchive allowing for the possibility that the tarchive was moved to a different directory."],
+                 ["-globLocation", "boolean", 1, \$globArchiveLocation,"Loosen 
+                  the validity check of the tarchive allowing for the 
+                  possibility that the tarchive was moved to a different
+                  directory."],
                  ["Fancy options","section"],
-# fixme      ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if have infinite space on your server."],
-                 ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on the current log file."],
+                 ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on
+                   the current log file."],
                  );
+
 
 
 
 my $Help = <<HELP;
 ***************************************************************************************
-Dicom Validator 
+minc_pic creator 
 ***************************************************************************************
 
-Author  :   
+Author  :   Zia Mohades
 Date    :   
 Version :   $versionInfo
 
 
-The program does the following validation
+The program creates a pic using either the tarchive or minc path/location
+
 ====explain====
 
 HELP
@@ -83,18 +90,6 @@ if(!$ARGV[0] || !$profile) {
           and an existing profile.\n\n";
     exit 33;  }
 
-my $tarchive = abs_path($ARGV[0]);
-unless ((-e $tarchive) || (-e $minc_path)) {
-    print "\nERROR: Either supply the path of the existing minc or the
-             location of the tar to create the mincs.\n\n\n";
-    exit 33;
-}
-
-if ($tarchive && $minc_path) {
-    print "\n Cannot Supply both tarchive location and minc_path , choose one";
-    exit 33;
-}
-
 
 ################################################################
 #######################initialization###########################
@@ -102,6 +97,7 @@ if ($tarchive && $minc_path) {
 ################################################################
 ###########Create the Specific Log File#########################
 ################################################################
+my $tarchive = $ARGV[0];
 my $data_dir         = $Settings::data_dir;
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
@@ -163,7 +159,7 @@ my ($sessionID, $requiresStaging) =
 ##############Extract the list of mincs from database##########
 ################Using tarchive path############################
 ###############################################################
-@minc_files = getMincs($tarchive,\$dbh);
+@minc_files = getMincs($tarchiveInfo{'TarchiveID'},$minc_path,\$dbh);
 
 ###############################################################
 #####################Otherwise add the current minc path#######
@@ -272,20 +268,26 @@ sub determinSubjectID {
 
 
 sub getMincs {
-    my ($tarchive, $dbhr) = @_;
+    my ($tarchive,$minc_path, $dbhr) = @_;
     $dbh = $$dbhr;
     my @mincLocations;
+    my $where = '';
+    ############################################################
+    ###########If tarchive path is set use it###################
+    ############################################################
+    $where = "TarchiveSource='$tarchive'";
 
-    
-    my $where = "ArchiveLocation='$tarchive'";
-    if ($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
+    ############################################################
+    ###########If minc-path is set use it#######################
+    ############################################################
+    if ($minc_path) {
+        $where = "File='$minc_path'";
+        if ($globArchiveLocation) {
+            $where = "File LIKE '%/".basename($minc_path)."'";
+        }
     }
-    
-    ##This needs to be changed to using sourcearchive once it is added
-    my $query = "SELECT f.File FROM files f 
-                 JOIN tarchive t on (t.SessionID = f.SessionID)
-                 WHERE $where";
+ 
+    my $query = "SELECT f.File FROM files f WHERE $where";
 
     print $query. "\n";
     my $sth = $dbh->prepare($query); 
@@ -341,8 +343,8 @@ sub determinSubjectID {
 
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
-            $message =  "\nERROR: Profile does not contain getSubjectIDs routine.
-                         Upload will exit now.\n\n";
+            $message =  "\nERROR: Profile does not contain getSubjectIDs
+                         routine. Upload will exit now.\n\n";
             &writeErrorLog($logfile, $message, 66); exit 66;
         }
     }
@@ -351,7 +353,8 @@ sub determinSubjectID {
                                             $scannerID,
                                             \$dbh);
     if ($to_log) {
-        print LOG "\n==> Data found for candidate   : $subjectIDsref->{'CandID'} 
+        print LOG "\n==> Data found for candidate   : 
+                   $subjectIDsref->{'CandID'} 
                   - $subjectIDsref->{'PSCID'} - Visit: 
                   $subjectIDsref->{'visitLabel'} - Acquired :
                   $tarchiveInfo{'DateAcquired'}\n";
@@ -408,9 +411,9 @@ sub determinScannerID {
                     );
     if ($scannerID == 0) {
         if ($to_log) {
-            $message = "\n ERROR: The ScannerID for this particular scanner does
-                         not exist. Enable creating new ScannerIDs in your profile
-                         or this archive can not be uploaded.\n\n";
+            $message = "\n ERROR: The ScannerID for this particular scanner
+                        does not exist. Enable creating new ScannerIDs in 
+                        your profile or this archive can not be uploaded.\n\n";
             &writeErrorLog($logfile, $message, 88); 
             exit 88;
             &writeErrorLog($logfile, $message, 88); 
@@ -444,3 +447,16 @@ sub determinPSC {
     }
     return ($psc,$center_name, $centerID);
 }
+
+
+# this is a useful function that will close the log and write error messages
+# in case of abnormal program termination
+sub writeErrorLog {
+    my ($logfile, $message, $failStatus, ) = @_;
+    print LOG $message;
+    print LOG "program exit status: $failStatus";
+    `cat $logfile >> $LogDir/error.log`;
+    close LOG;
+    `rm -f $logfile`;
+}
+
