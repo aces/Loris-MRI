@@ -14,21 +14,24 @@ use Cwd 'abs_path';
 # use lib "$FindBin::Bin";
 use DTI::DTI;
 
+
+
+
+#Set the help section
 my $Usage   =   <<USAGE;
 
-NEED TO WRITE UP DESCRIPTION ONCE PIPELINE OVER.
+DTIPrep_pipeline.pl can be used to run DTIPrep on native DWI datasets, organize, convert and register the outputs of DTIPrep in the database.
 
-DTIPrep_pipeline can be used to run DTIPrep on raw DTI datasets stored in native folder and convert outputs back to minc, create QC report and RGB maps to finally register them in the database. 
-If the option -runDTIPrep is not set, it will skip the DTIPrep processing portion of the pipeline and fetch DTIPrep outputs based on the DTIPrep protocol name that was used to create them and convert the outputs to minc etc...
+If -runDTIPrep is not set, DTIPrep processing will be skipped (DTIPrep outputs being already available, as well as the DTIPrep protocol that was used).
 
 This pipeline will:
-    - get the raw DTI file in the native from the list given as input (-list option)
-    - create (or fetch if -runDTIPrep not set) output directories based on DTIPrep version and protocol
-    - convert raw minc file to nrrd and run DTIPrep if -runDTIPrep is set
-    - fetch DTIPrep outputs (QCed.nrrd, QCReport.txt, QCXMLResults.xml and protocol.xml)
-    - convert QCed.nrrd back to minc with all the header information (based on native minc)
-    - create FA and RGB maps with all the header information
-    - register the files in the database
+    - fetch the native DWI files from the list of native directories given as input (-list option)
+    - create (or fetch if -runDTIPrep not set) output directories based on the DTIPrep version and protocol that are to be (or were) used for DTIPrep processing.
+    - convert native DWI minc file to nrrd and run DTIPrep if -runDTIPrep is set
+    - fetch DTIPrep preprocessing outputs (QCed.nrrd, QCReport.txt, QCXMLResults.xml and protocol.xml)
+    - convert pre-processed nrrd back to minc with all the header information (based on native minc)
+    - create post-processing files (FA, RGB maps...) with all the header information
+    - call DTIPrepRegister.pl to register the files in the database if -registerFilesInDB is set
 
 Usage: $0 [options]
 
