@@ -243,7 +243,7 @@ unless  ($fileID)   {
     exit 1;
 }
 
-# Insert into intermediary_files the intermediary inputs stored in inputFileIDs.
+# Insert into files_intermediary the intermediary inputs stored in inputFileIDs.
 my $intermediary_insert = &insert_intermedFiles($fileID, $inputFileIDs, $tool);
 print LOG "\n==> FAILED TO INSERT INTERMEDIARY FILES FOR $fileID!\n\n" if (!$intermediary_insert);
 
@@ -426,7 +426,7 @@ sub which_directory {
 
 
 =pod
-Function that will insert into the intermediary_files table of the database, intermediary outputs that were used to obtain the processed file.
+Function that will insert into the files_intermediary table of the database, intermediary outputs that were used to obtain the processed file.
 - Input:  - fileID : fileID of the registered processed file
           - inputFileIDs : array containing the list of input files that were used to obtain the processed file
           - tool : tool that was used to obtain the processed file
@@ -438,12 +438,14 @@ sub insert_intermedFiles {
 
     return undef if ((!$fileID) || (!$inputFileIDs) || (!$tool));
 
+    # Prepare query to execute in the for loop 
+    my $query   = "INSERT INTO files_intermediary " .
+                  "(Output_FileID, Input_FileID, Tool) " .
+                  "Values (?, ?, ?)";
+    my $sth     = $dbh->prepare($query);
+
     my (@inputIDs)  = split(';', $inputFileIDs);
     foreach my $inID (@inputIDs) {
-        my $query   = "INSERT INTO intermediary_files " .
-                      "(Output_FileID, Input_FileID, Tool) " .
-                      "Values (?, ?, ?)";
-        my $sth     = $dbh->prepare($query);
         my $success = $sth->execute($fileID, $inID, $tool);
         return undef if (!$success);
     }
