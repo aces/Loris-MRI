@@ -1246,6 +1246,22 @@ sub register_nrrd {
 }   
 
 
+
+
+
+=pod
+Gather all DTIPrep preprocessed files to be registered in the database
+and call register_DTIPrep_files on all of them. Will register first the 
+nrrd file and then the minc file for each scan type.
+Inputs:  - $mri_files       = hash containing all DTI output information
+         - $dti_file        = native DTI file that was processed (that will be used as a key for $mri_files)
+         - $data_dir        = data_dir defined in the config file
+         - $pipelineName    = name of the pipeline used to preprocess data (DTIPrepPipeline)
+         - $toolName        = name and version of the tool used to preprocess data
+         - $process_step    = processing step ('Preproc' or 'Postproc') depending on the processed file
+         - $proc_file       = key to the processed file to be registered ('QCed', 'QCed2'...)
+Outputs: - $registered_minc = path to the minc file that was registered
+=cut
 sub register_Preproc {
     my ($mri_files, $dti_file, $data_dir, $pipelineName, $toolName, $process_step, $proc_file) = @_;
 
@@ -1280,6 +1296,11 @@ sub register_Preproc {
 
 
 
+
+
+=pod
+
+=cut
 sub register_images {
     my ($mri_files, $raw_file, $data_dir, $pipelineName, $toolName, $process_step) = @_;
 
