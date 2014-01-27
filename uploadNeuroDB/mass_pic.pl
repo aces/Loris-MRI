@@ -14,6 +14,7 @@ my $profile    = undef;
 my $minFileID  = undef;
 my $maxFileID  = undef;
 my $query;
+my $debug       = 1;
 my $Usage = "mass_pic.pl generates check pic images for NeuroDB for those
              files that are missing pics.
              \n\n See $0 -help for more info\n\n";
@@ -62,18 +63,30 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 $query = "SELECT \@checkPicID:=ParameterTypeID FROM parameter_type WHERE
           Name='check_pic_filename'";
 $dbh->do($query);
-print $query . "\n";
+if ($debug) {
+    print $query . "\n";
+}
+
 
 $query = "CREATE TEMPORARY TABLE check_pic_filenames (FileID int(10) unsigned
           NOT NULL, Value text, PRIMARY KEY (FileID))";
 $dbh->do($query);
-print $query . "\n";
+
+if ($debug) {
+    print $query . "\n";
+}
+
+
+
 
 $query = "INSERT INTO check_pic_filenames SELECT FileID, Value FROM 
           parameter_file WHERE ParameterTypeID=\@checkPicID AND     
           Value IS NOT NULL";
 $dbh->do($query);
-print $query . "\n";
+
+if ($debug) {
+    print $query . "\n";
+}
 
 my $extraWhere = "";
 $extraWhere .= " AND f.FileID >= $minFileID" if defined $minFileID;
@@ -82,7 +95,10 @@ $extraWhere .= " AND f.FileID <= $maxFileID" if defined $maxFileID;
 $query = "SELECT f.FileID FROM files AS f LEFT OUTER JOIN check_pic_filenames
           AS c USING (FileID) WHERE c.FileID IS NULL AND f.FileType='mnc'
           $extraWhere";
-print $query . "\n";
+if ($debug) {
+    print $query . "\n";
+}
+
 my $sth = $dbh->prepare("SELECT f.FileID FROM files AS f LEFT OUTER JOIN 
                         check_pic_filenames AS c USING (FileID) WHERE c.FileID
                         IS NULL AND f.FileType='mnc' $extraWhere"
