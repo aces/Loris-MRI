@@ -53,7 +53,7 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                      $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 0;  
+my $debug       = 1;  
 my $message     = '';
 my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a
@@ -70,6 +70,11 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $CandMismatchError;
 my $is_valid;
+my $valid_study = 0;
+my $newTarchiveLocation = undef;
+my $min;
+my $max;
+
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -222,12 +227,11 @@ my ($PSCID, $md5sumArchive, $visitLabel, $gender);
 #######################Construct the tarchiveinfo Array#########
 ################################################################
 my %tarchiveInfo = createTarchiveArray($tarchive,\$dbh,0);
-print "tarchive is $tarchive";
 
 ################################################################
 ####################Call the validation script##################
 ################################################################
-my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/mri_validation.pl $tarchive -profile prod";
+my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/tarchive_validation.pl $tarchive -profile prod";
 ##my $script = "mri_validation.pl $tarchive -profile prod";
 
 print "\n $script \n";
@@ -283,7 +287,6 @@ my $scannerID = determinScannerID(%tarchiveInfo,0);
 ################################################################
 ################################################################
 my $subjectIDsref = determinSubjectID($scannerID,%tarchiveInfo,0);
- print Dumper($subjectIDsref);
 
 ################################################################
 ################################################################
@@ -319,7 +322,6 @@ my ($sessionID, $requiresStaging) =
 
 # ----- STEP 7: extract the tarchive and feed the dicom data 
 ##dir to the uploader
-print "\n tarchive is $tarchive \n";
 my ($ExtractSuffix,$study_dir,$header) = extractAndParseTarchive($tarchive);
 
 # ----- STEP 8: Now we know that we actually have data and more things have
@@ -335,7 +337,7 @@ my @minc_files = ();
 &get_mincs(\@minc_files);
 
 # this is necessary for interleaved acquisitions
-&concat_mri(\@minc_files);
+##&concat_mri(\@minc_files);
 
 ## optionally do extra filtering on a given set of files, if needed
 #if( defined( $Settings::postConversionFilter )) {
@@ -343,7 +345,7 @@ my @minc_files = ();
 #}
 
 # refresh list of mincs
-&get_mincs(\@minc_files);
+##&get_mincs(\@minc_files);
 
 my $mcount = $#minc_files + 1;
 print "\nNumber of MINC files that will be considered for inserting 
@@ -357,52 +359,115 @@ if ($mcount < 1) {
     &writeErrorLog($logfile, $message, 99); print $message; exit 99; 
 }
 
+
+
+################################################################
+#################### insert into the files_tracking table ######
+#################### to the new one#############################
+################################################################
+$dbh->do("truncate files_tracking");
+$query = "INSERT INTO files_tracking (TempFilePath) VALUES (?)";
+my $insert_query = $dbh->prepare($query);
+
+
+
 ################################################################
 #################### LOOP through MINCs ########################
 #At this step we actually have (multiple) MINC files so we loop#
 # a valid study has at least one file that can be uploaded######
 ################################################################
-my $valid_study = 0;
-my $newTarchiveLocation = undef;
 
 foreach my $minc (@minc_files) {
     print "============================================================\n";
     print "minc is $minc \n";
     print "=============================================================\n";
+ 
+    ############################################################
+    ###################Insert the current file path ############
+    ####################into the temp table#####################
+    $insert_query->execute($minc);
     
+    ############################################################
+    # if the tarchive has not been moved yet####################
+    #($valid_study undefined)-> move the tarchive from the######
+    ## inbox into the tarchive library##########################
+    ############################################################
 
+    if ((!defined($Settings::tarchiveLibraryDir)) || 
+        ((defined($Settings::tarchiveLibraryDir)) &&    
+        ($tarchive =~ m/$Settings::tarchiveLibraryDir\/\d\d\d\d\//i))) { 
+            $newTarchiveLocation = $tarchive; 
+    }
+    elsif (!$valid_study) {
+        print "tarchive before the function call $tarchive \n";
+        $newTarchiveLocation = moveAndUpdateTarchive($tarchive,%tarchiveInfo);
+    }
+
+    $tarchive = $newTarchiveLocation;
     ###########################################################
-    #############################Call the script###############
+    ####################Call the minc_insertion script#########
     ###########################################################
 
-    ##my $script = "minc_processing.pl $minc $tarchive -profile prod";
     my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"   
-                 . "minc_processing.pl $tarchive $minc -profile prod";
+               . "minc_insertion.pl -tarchivePath $tarchive"
+               . " -mincPath $minc -profile prod";
+    if ($force) {
+        $script .= " -force";
+    }
     print $script . "\n";
     $output = system($script);
+    print "new minc is $minc \n";    
+    print "output: $output \n" ;
+    ########################################################
+    ####if the return code of the script is 0###############
+    # mark the study as valid because this means at least### 
+    ##one volume will be nserted into the DB################
+    ########################################################
+    if ($output==0) {
+    
+      ##########################################################
+      ########################Call mass_pic.pl##################
+      ##########################################################
 
-    ############################################################
-    ################create File object##########################
-    ############################################################
-    my $file = NeuroDB::File->new(\$dbh);
-    $file->loadFileFromDisk($minc);
+      ##########################################################
+      ##get the new file_path using the temp mapping table######
+      ##########################################################
+      $query = "SELECT  NewFilePath FROM files_tracking WHERE 
+              tempFilePath = '$minc'"; 
+      print "query: $query";  
+      my $new_minc_path =  $dbh->selectrow_array($query);
+      ##########################################################
+      ##get the range of the file-ids to pass as parameter######
+      ##########################################################
+    
 
+      my $where = "WHERE File = '$new_minc_path'";
+      $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
+      $query = $query . $where;
+      print $query. "\n";
+      my @row = $dbh->selectrow_array($query);
+      if(@row) {
+        $min = $row[0];
+        $max = $row[1];
+        print "min is $min max is $max \n";
+        my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
+            . "mass_pic.pl -minFileID $min -maxFileID $max -profile prod ";
 
-    #####################################################
-    ### add series notification##########################
-    #####################################################
-    $notifier->spool(
-        'mri new series', $subjectIDsref->{'CandID'} . " " .
-        $subjectIDsref->{'PSCID'} ." " .
-        $subjectIDsref->{'visitLabel'} .
-        "\tacquired " . $file->getParameter('acquisition_date')
-        . "\t" . $file->getParameter('series_description'),
-        $centerID
-    );
-    print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
+        print $script . "\n";
+        $output = system($script);
+        print "output: $output \n" ;
+      }
+        ##use the new location of the minc-pic
+        ##my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
+        ##           . "minc_pic_creator.pl $tarchive -mincPath $minc -profile prod";
+
+       $valid_study = 1;
+    }
+    
 
 } # end foreach $minc
 
+ 
 if ($valid_study) {
     ############################################################
     # spool a new study message#################################
@@ -436,7 +501,9 @@ if ($subjectIDsref->{'isPhantom'}) {
     $final_logfile = $subjectIDsref->{'PSCID'}."_".
     $tarchiveInfo{'DateAcquired'}.'_'.$subjectIDsref->{'CandID'}; 
 }
+
 ################################################################
+###tarchiveLocation#############################################
 ###if something went wrong and there is no acq date and CandID##
 ################################################################
 unless($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) { 
@@ -712,38 +779,6 @@ sub lookupNextVisitLabel {
     return $visitLabel;
 }
 
-#
-sub update_mri_acquisition_dates {
-    my ($sessionID, $acq_date, $dbhr) = @_;
-    $dbh = $$dbhr;
-    
-    # get the registered acquisition date for this session
-    my $query = "SELECT s.ID, m.AcquisitionDate from session AS s left outer 
-                join mri_acquisition_dates AS m on (s.ID=m.SessionID) 
-                WHERE s.ID='$sessionID' and (m.AcquisitionDate > '$acq_date' 
-                OR m.AcquisitionDate is null) AND '$acq_date'>0";
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-	
-    # if we found a session, it needs updating or inserting, 
-    #so we use replace into.
-    if($sth->rows > 0) {
-        my $query = "REPLACE INTO mri_acquisition_dates SET AcquisitionDate=
-                    '$acq_date', SessionID='$sessionID'";
-        $dbh->do($query);
-    }
-}
-
-# determines where the mincs will go...
-sub which_directory {
-    my ($subjectIDsref) = @_;
-    my %subjectIDs = %$subjectIDsref;
-    my $dir = $data_dir;
-    
-    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}/mri";
-    $dir =~ s/ //;
-    return $dir;
-}
 
 ## get_acqusitions($study_dir, \@acquisitions) -> puts list of
 ## acq dirs in @acquisitions
@@ -911,7 +946,11 @@ sub logHeader () {
 ";
 }
 
-# There is better ways to do this
+
+################################################################
+########################registerProgs#####################
+################################################################
+#### There is better ways to do this
 # yes.  there is.
 sub registerProgs() {
     my @toregister = @_;
@@ -922,6 +961,10 @@ sub registerProgs() {
 }
 
 
+
+################################################################
+########################createTarchiveArray#####################
+################################################################
 
 sub createTarchiveArray {
     my ($tarchive, $dbhr) = @_;
@@ -937,7 +980,8 @@ sub createTarchiveArray {
                  ScannerSoftwareVersion, neurodbCenterName, TarchiveID FROM 
                  tarchive WHERE $where";
     print $query. "\n";
-    my $sth = $dbh->prepare($query); $sth->execute();
+    my $sth = $dbh->prepare($query); 
+    $sth->execute();
     my %tarchiveInfo;
 
     if ($sth->rows > 0) {
@@ -952,6 +996,10 @@ sub createTarchiveArray {
     return %tarchiveInfo;
 
 }
+
+################################################################
+########################determinPSC#############################
+################################################################
 
 sub determinPSC {
    
@@ -974,6 +1022,9 @@ sub determinPSC {
     return ($psc,$center_name, $centerID);
 }
 
+################################################################
+########################determinScannerID#######################
+################################################################
 sub determinScannerID {
     my (%tarchiveinfo,$to_log) = @_;
     $to_log = 1 unless defined $to_log;
@@ -1006,7 +1057,9 @@ sub determinScannerID {
     return $scannerID;
 }
 
-
+################################################################
+#####################determinSubjectID##########################
+################################################################
 sub determinSubjectID {
     my ($scannerID,%tarchiveinfo,$to_log) = @_;
     $to_log = 1 unless defined $to_log;
@@ -1031,6 +1084,10 @@ sub determinSubjectID {
     return $subjectIDsref;
 }
 
+################################################################
+############sub extractAndParseTarchive#########################
+################################################################
+
 sub extractAndParseTarchive{
     my ($tarchive) = @_;
 
@@ -1044,5 +1101,53 @@ sub extractAndParseTarchive{
     print LOG "\n$header\n";
     return ($ExtractSuffix,$study_dir,$header);
 }
+
+
+################################################################
+############moveAndUpdateTarchive###############################
+################################################################
+sub moveAndUpdateTarchive {
+    my ($tarchive_location,%tarchiveInfo) = @_;
+    print "Moving tarchive into library\n" if $debug;
+    $newTarchiveLocation = $Settings::tarchiveLibraryDir."/".
+    substr($tarchiveInfo{'DateAcquired'}, 0, 4);
+
+    ########################################################
+    #####make the directory if it does not yet exist########
+    ########################################################
+    unless(-e $newTarchiveLocation) { 
+        mkdir($newTarchiveLocation, 0755); 
+    }
+    ########################################################
+    #######determine the new name of the tarchive###########
+    ########################################################
+    
+    my $newTarchiveFilename = basename($tarchive_location);
+    print "newtarchivefilename is $newTarchiveFilename \n";
+    $newTarchiveLocation .= "/".$newTarchiveFilename;
+       
+    print "new tarchivelocation is $newTarchiveLocation";
+    ########################################################
+    ######move the tarchive#################################
+    ########################################################
+    my $mvTarchiveCmd = "mv $tarchive_location $newTarchiveLocation";
+    `$mvTarchiveCmd`;   
+    
+    ########################################################
+    # now update tarchive table to store correct location###
+    ########################################################
+    $query = "UPDATE tarchive SET ArchiveLocation=".
+              $dbh->quote($newTarchiveLocation)." WHERE DicomArchiveID="
+             .$dbh->quote($tarchiveInfo{'DicomArchiveID'});
+    print $query . "\n"  if $debug;
+
+    $dbh->do("UPDATE tarchive SET ArchiveLocation=".
+              $dbh->quote($newTarchiveLocation)." WHERE DicomArchiveID="
+             .$dbh->quote($tarchiveInfo{'DicomArchiveID'})
+            );
+
+  return $newTarchiveLocation;
+}
+ 
 
 
