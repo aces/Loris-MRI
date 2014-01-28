@@ -165,7 +165,7 @@ my ($psc,$center_name, $centerID) =determinPSC(%tarchiveInfo);
 ################################################################
 ################################################################
 
-my $scannerID = determinScannerID(%tarchiveInfo);
+my $scannerID = determinScannerID(%tarchiveInfo,0,$centerID,$NewScanner);
 
 
 ################################################################
@@ -183,7 +183,7 @@ my $subjectIDsref = determinSubjectID($scannerID,%tarchiveInfo);
 ################################################################
 ################################################################
 
-CreateMRICandidates($subjectIDsref,$gender,\%tarchiveInfo);
+CreateMRICandidates($subjectIDsref,$gender,\%tarchiveInfo,$User,$centerID);
 
 ################################################################
 ################################################################
@@ -268,141 +268,6 @@ $query = $query . $where;
 $dbh->do($query);
 
 
-sub determinPSC {
-    my (%tarchiveinfo) = @_;
-    my ($center_name, $centerID) = 
-    NeuroDB::MRI::getPSC(
-        $tarchiveInfo{$Settings::lookupCenterNameUsing},
-        \$dbh
-    );
-    my $psc = $center_name;
-    if (!$psc) { 
-        print LOG "\nERROR: No center found for this candidate \n\n"; 
-        exit 77; 
-    }
-    print LOG  "\n==> Verifying acquisition center\n -> Center Name  : 
-                $center_name\n -> CenterID     : $centerID\n";
-    return ($psc,$center_name, $centerID);
-}
-
-sub validateArchive{
-    my ($tarchive,%tarchiveinfo) = @_;
-      ##my (%tarchiveinfo) = %{$_[0]};
-    print LOG  "\n==> verifying dicom archive md5sum (checksum)\n";
-    my $md5_check = `md5sum $tarchive`;
-    my ($md5_real, $real) = split(' ', $md5_check);
-    my ($md5_db  , $db)   = split(' ', $tarchiveinfo{'md5sumArchive'});
-    print LOG " -> checksum for target        :  $md5_real\n -> checksum 
-                from database     :  $md5_db\n";
-    
-    if ($md5_real ne $md5_db) {
-        $message =  "\nerror: archive seems to be corrupted or modified. upload
-                     will exit now.\nplease read the creation logs for more
-                     information!\n\n";
-        &writeErrorLog($logfile, $message, 77); exit 77;
-    }
-}
-
-
-sub determinScannerID {
-    my (%tarchiveinfo,$to_log) = @_;
-    $to_log = 1 unless defined $to_log;
-    if ($to_log) {
-        print LOG "\n\n==> Trying to determine scanner ID\n";
-    }
-    my $scannerID = NeuroDB::MRI::findScannerID(
-                        $tarchiveInfo{
-                            'ScannerManufacturer'
-                        },
-                        $tarchiveInfo{'ScannerModel'},
-                        $tarchiveInfo{'ScannerSerialNumber'},
-                        $tarchiveInfo{
-                            'ScannerSoftwareVersion'
-                        },
-                        $centerID,\$dbh,$NewScanner
-                     );
-
-    if ($scannerID == 0) {
-        if ($to_log) {
-            $message = "\n ERROR: The ScannerID for this particular scanner does
-                         not exist. Enable creating new ScannerIDs in your profile
-                         or this archive can not be uploaded.\n\n";
-            &writeErrorLog($logfile, $message, 88); exit 88;
-            &writeErrorLog($logfile, $message, 88); exit 88;
-        }
-    }
-    if ($to_log) {
-        print LOG "==> scanner ID : $scannerID\n\n";
-    }
-    return $scannerID;
-}
-
-
-sub determinSubjectID {
-    my ($scannerID,%tarchiveinfo) = @_;
-
-    if(!defined(&Settings::getSubjectIDs)) {
-        $message =  "\nERROR: Profile does not contain getSubjectIDs routine.
-                     Upload will exit now.\n\n";
-        &writeErrorLog($logfile, $message, 66); exit 66;
-    }
-    my $subjectIDsref = Settings::getSubjectIDs($tarchiveInfo{'PatientName'},
-                                            $tarchiveInfo{'PatientID'},
-                                            $scannerID,
-                                            \$dbh);
-    print LOG "\n==> Data found for candidate   : $subjectIDsref->{'CandID'} 
-              - $subjectIDsref->{'PSCID'} - Visit: 
-              $subjectIDsref->{'visitLabel'} - Acquired :
-              $tarchiveInfo{'DateAcquired'}\n";
-    return $subjectIDsref;
-}
-
-sub extractAndParseTarchive{
-    my ($tarchive) = @_;
-
-    my $study_dir = $TmpDir . "/" . extract_tarchive($tarchive, $TmpDir);
-    my $ExtractSuffix  = basename($tarchive, ".tar");
-    # get rid of the tarchive Prefix 
-    $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
-    my $info      = "head -n 12 ${TmpDir}/${ExtractSuffix}.meta";
-    my $header    = `$info`;
-    print LOG "\n$header\n";
-    return ($ExtractSuffix,$study_dir,$header);
-}
-
-
-
-
-# Most important function now. Gets the tarchive and extracts it so data can
-## actually be uploaded
-sub setMRISession {
-    my ($subjectIDsref, %tarchiveInfo) = @_;
-    # This will actually create a visit count if it is not provided through the
-    # IDs in the dicom header
-    # The count starts with 1 if there is none.
-    if(!defined($subjectIDsref->{'visitLabel'})) { 
-        $subjectIDsref->{'visitLabel'} = 
-        lookupNextVisitLabel($$subjectIDsref->{'CandID'}, \$dbh); 
-    }
-
-    # get session ID
-    print LOG "\n\n==> Getting session ID\n";
-    my ($sessionID, $requiresStaging) = 
-        NeuroDB::MRI::getSessionID(
-            $subjectIDsref, $tarchiveInfo{'DateAcquired'
-            }, \$dbh, $subjectIDsref->{'subprojectID'}
-        );
-
-    # Retain session ID for tarchive table    
-    print LOG "    SessionID: $sessionID\n";    # Staging: $requiresStaging\n";
-
-    # Make sure MRI Scan Done is set to yes, because now there is data.
-    if ($sessionID) {
-        $query = "UPDATE session SET Scan_done='Y' WHERE ID=$sessionID";
-        $dbh->do($query);
-    }
-    return ($sessionID, $requiresStaging);
-}
 
 
 sub logHeader () {
@@ -417,117 +282,4 @@ sub logHeader () {
 
 }
 
-
-sub createTarchiveArray {
-    my ($tarchive, $dbhr) = @_;
-    $dbh = $$dbhr;
-
-    my $where = "ArchiveLocation='$tarchive'";
-    if($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
-    }
-    my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive, 
-                 DateAcquired, DicomArchiveID, PatientGender, 
-                 ScannerManufacturer, ScannerModel, ScannerSerialNumber,
-                 ScannerSoftwareVersion, neurodbCenterName, TarchiveID FROM 
-                 tarchive WHERE $where";
-    my $sth = $dbh->prepare($query); $sth->execute();
-    my %tarchiveInfo;
-
-    if ($sth->rows > 0) {
-        my $tarchiveInfoRef = $sth->fetchrow_hashref();
-        %tarchiveInfo = %$tarchiveInfoRef;
-    } else {
-        $message = "\n ERROR: Only archived data can be uploaded. This seems
-                    not to be a valid archive for this study!\n\n";
-        &writeErrorLog($logfile, $message, 77); exit 77;
-    }
-
-    return %tarchiveInfo;
-
-}
-
-# Most important function now. Gets the tarchive and extracts it so data can
-## actually be uploaded
-sub extract_tarchive {
-    my ($tarchive, $tempdir) = @_;
-    print "Extracting tarchive\n" if $verbose;
-    `cd $tempdir ; tar -xf $tarchive`;
-    opendir TMPDIR, $tempdir;
-    my @tars = grep { /\.tar\.gz$/ && -f "$tempdir/$_" } readdir(TMPDIR);
-    closedir TMPDIR;
-    if(scalar(@tars) != 1) {
-        print "Error: Could not find inner tar in $tarchive!\n";
-        print @tars . "\n";
-        exit(1);
-    }
-    my $dcmtar = $tars[0];
-    my $dcmdir = $dcmtar;
-    $dcmdir =~ s/\.tar\.gz$//;
-    
-    `cd $tempdir ; tar -xzf $dcmtar`;
-    return $dcmdir;
-}
-
-
-
-# this is a useful function that will close the log and write error messages
-# in case of abnormal program termination
-sub writeErrorLog {
-    my ($logfile, $message, $failStatus, ) = @_;
-    print LOG $message;
-    print LOG "program exit status: $failStatus";
-    `cat $logfile >> $LogDir/error.log`;
-    close LOG;
-    `rm -f $logfile`;
-}
-
-
-sub CreateMRICandidates {
-    # Standardize gender (DICOM uses M/F, DB uses Male/Female)
-
-    my ($subjectIDsref,$gender,%tarchiveinfo) = @_;
-
-    if ($tarchiveInfo{'PatientGender'} eq 'F') {
-            $gender = "Female";
-    } elsif ($tarchiveInfo{'PatientGender'} eq 'M') {
-        $gender = "Male";
-    }
-
-    # Create non-existent candidate if the profile allows for candidate creation
-    if (!NeuroDB::MRI::subjectIDExists($subjectIDsref->{'CandID'}, \$dbh)
-        && $Settings::createCandidates) {
-            chomp($User);
-            $subjectIDsref->{'CandID'} = NeuroDB::MRI::createNewCandID(\$dbh);
-            $query = "INSERT INTO candidate (CandID, PSCID, DoB, Gender,
-                      CenterID, Date_active, Date_registered, UserID,
-                      Entity_type) VALUES (" .
-            $dbh->quote(
-                $subjectIDsref->{'CandID'}
-            ).",".
-            $dbh->quote(
-                $subjectIDsref->{'PSCID'}
-            ).",".
-            $dbh->quote(
-                $tarchiveInfo{'PatientDoB'}
-            ) ."," .
-            $dbh->quote($gender).",". $dbh->quote($centerID). ", NOW(), NOW(),
-               '$User', 'Human')";
-            $dbh->do($query);
-            print LOG  "\n==> CREATED NEW CANDIDATE :
-            $subjectIDsref->{'CandID'}";
-    } elsif ($subjectIDsref->{'CandID'}) {# if the candidate exis
-        print LOG  "\n==> getSubjectIDs returned this CandID/DCCID :
-        $subjectIDsref->{'CandID'}\n";
-    } else {
-        $message = "\n ERROR: The candidate could not be considered for 
-                    uploading, since s/he is not registered in your database.
-                     \n" .
-                    " The dicom header PatientID is   : 
-                    $tarchiveInfo{'PatientID'}\n".
-                    " The dicom header PatientName is : 
-                    $tarchiveInfo{'PatientName'}\n\n";
-        &writeErrorLog($logfile, $message, 66); exit 66;
-    }
-}
 
