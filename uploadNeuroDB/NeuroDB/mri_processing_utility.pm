@@ -473,9 +473,7 @@ sub registerScanIntoDB() {
     my $this = shift;
     my ($acquisitionProtocol,$minc,$file,$data_dir,@checks,$prefix,
     $reckless,%tarchiveInfo,$subjectIDsref,$tarchive,$sessionID) = @_;
-    my $updatesth = ${$this->{'dbhr'}}->prepare("UPDATE files_tracking SET NewFilePath=?
-                                  WHERE TempFilePath=?");
-    my $current_minc_path = $minc;
+        
         ########################################################
         # Register scans into the database.  Which protocols to#
         # keep optionally controlled by the config file.########
@@ -524,11 +522,6 @@ sub registerScanIntoDB() {
         $tarchive_path      =~  s/$data_dir\///i;
         $file->setParameter('tarchiveLocation', $tarchive_path);
         $file->setParameter('tarchiveMD5', $tarchiveInfo{'md5sumArchive'});
-
-        ########################################################
-        #####################insert the new path in the temp####
-        ####################table###############################
-        $updatesth->execute($file_path,$current_minc_path);
 
         ########################################################
         # register into the db fixme if I ever want a dry run## 
