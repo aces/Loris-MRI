@@ -1,0 +1,528 @@
+#! /usr/bin/perl
+# $Id: tarchiveLoader,v 1.24 2007/12/18 16:00:21 sebas Exp $
+
+=pod
+
+TODO
+
+- dicom_to_minc: change converter back to perl (or make configurable)
+- add a check for all programms that will be used (exists, but could 
+- be better....)
+- consider whether to add a check for registered protocols against the
+- tarchive db to save a few minutes of converting
+- also add an option to make it interactively query user to learn new protocols
+- this should be a separate program
+- add to config file whether or not to autocreate scanners
+
+This script interacts with the NeuroDB database system. It will connect to/deal
+with/ modify contents of the
+following tables:
+session, parameter_file, parameter_type, parameter_type_category, files, 
+mri_staging, notification_spool
+
+=cut
+
+use strict;
+use Carp;
+use Getopt::Tabular;
+use FileHandle;
+use File::Basename;
+use File::Temp qw/ tempdir /;
+use Data::Dumper;
+use FindBin;
+use Cwd qw/ abs_path /;
+
+# These are the NeuroDB modules to be used
+use lib "$FindBin::Bin";
+use NeuroDB::File;
+use NeuroDB::MRI;
+use NeuroDB::DBI;
+use NeuroDB::Notify;
+use NeuroDB::MRIProcessingUtility;
+# Turn on autoflush for standard output buffer so that we immediately see 
+#the results of print statements.
+$|++;
+
+## Starting the program
+my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
+=~ /: (\d+)\.(\d+)/;
+## needed for log and template
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) 
+    =localtime(time);
+my $date        = sprintf(
+                    "%4d-%02d-%02d %02d:%02d:%02d",
+                     $year+1900,$mon+1,$mday,$hour,$min,$sec
+                  );
+my $debug       = 1;  
+my $message     = '';
+my $verbose     = 1;           # default for now
+my $profile     = undef;       # this should never be set unless you are in a
+                               # stable production environment
+my $reckless    = 0;           # this is only for playing and testing. Don't 
+                               #set it to 1!!!
+my $force       = 0;           # This is a flag to force the script to run  
+                               # Even if the validation has failed
+
+my $NewScanner  = 1;           # This should be the default unless you are a 
+                               #control freak
+my $xlog        = 0;           # default should be 0
+my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
+                               # or to glob them (like '%Loc')
+my $is_valid;
+my $valid_study = 0;
+my $newTarchiveLocation = undef;
+my $min;
+my $max;
+
+my @opt_table = (
+                 ["Basic options","section"],
+                 ["-profile     ","string",1, \$profile,
+                  "name of config file in ~/.neurodb."
+                 ],
+                 ["-force", "boolean", 1, \$force,"Forces the script to run 
+                 even if the validation has failed."],
+                 ["Advanced options","section"],
+
+                 ["-reckless", "boolean", 1, \$reckless,"Upload data to 
+                  database even if study protocol is not defined or violated."
+                 ],
+                 ["-globLocation", "boolean", 1, \$globArchiveLocation,
+                  "Loosen the validity check of the tarchive allowing for the
+                   possibility that the tarchive was moved to a different 
+                   directory."
+                 ],
+                 ["-newScanner", "boolean", 1, \$NewScanner, "By default a
+                   new scanner will be registered if the data you upload 
+                   requires it. You can risk turning it off."
+                 ],
+
+                 ["Fancy options","section"],
+# fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
+# have infinite space on your server."],
+                 ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on
+                  the current log file."
+                 ],
+                 );
+
+my $Help = <<HELP;
+******************************************************************************
+TARCHIVE LOADER 
+******************************************************************************
+
+Author  :   J-Sebastian Muehlboeck based on Jonathan Harlap\'s process_uploads 
+            using the all singing and dancing (eierlegende Wollmilchsau) 
+            NeuroDB lib
+Date    :   2006/12/20
+Version :   $versionInfo
+
+This takes a [dicom{T(ar}]chive) as an argument and 
+performs a lot of magic on the acquisitions within it.  
+
+- archive verification
+- candidate id extraction and/or neurodb candidate creation
+- study site determination
+- scanner identity check  
+- dicom to minc conversion
+- miscellaneous header data extraction
+- file relocation (to the MRI repository)
+- neuroDB mri database registration and JIVification.
+
+HELP
+my $Usage = <<USAGE;
+usage: $0 </path/to/DICOM-tarchive> [options]
+       $0 -help to list options
+
+USAGE
+&Getopt::Tabular::SetHelp($Help, $Usage);
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+
+# input option error checking
+{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+if ($profile && !defined @Settings::db) { 
+    print "\n\tERROR: You don't have a configuration file named 
+          '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    exit 33; 
+}
+if(!$ARGV[0] || !$profile) { 
+    print $Help; 
+    print "$Usage\n\tERROR: You must specify a valid tarchive and an
+            existing profile.\n\n";
+    exit 33;  
+}
+
+my $tarchive = abs_path($ARGV[0]);
+unless (-e $tarchive) {
+    print "\nERROR: Could not find archive $tarchive. \n
+          Please, make sure the path to the archive is correct. 
+         Upload will exit now.\n\n\n";
+    exit 33;
+}
+
+################################################################
+#### These settings are in a config file (profile)##############
+################################################################
+my $data_dir         = $Settings::data_dir;
+my $pic_dir = $data_dir.'/pic';
+my $jiv_dir = $data_dir.'/jiv';
+my $prefix           = $Settings::prefix;
+my $converter        = $Settings::converter;
+my $mail_user        = $Settings::mail_user;
+my $get_dicom_info   = $Settings::get_dicom_info;
+my $exclude          = "localizer"; # case insensitive
+my $User             = `whoami`; # fixme
+my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
+# fixme there are better ways 
+my @progs = ("convert", "Mincinfo", "mincpik", $converter);
+&registerProgs(@progs);
+# create the temp dir
+my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+# create logdir(if !exists) and logfile
+my @temp     = split(/\//, $TmpDir); 
+my $templog  = $temp[$#temp];
+my $LogDir   = "$data_dir/logs"; 
+if (!-d $LogDir) { 
+    mkdir($LogDir, 0700); 
+}
+my $logfile  = "$LogDir/$templog.log";
+open LOG, ">$logfile";
+LOG->autoflush(1);
+&logHeader();
+
+# if xlog is set, fork a tail on log file.
+my $childPID; 
+if ($xlog) { 
+    $childPID = fork(); 
+    if($childPID == 0) { 
+        exec("xterm -geometry 130x70 -e tail -f $logfile"); 
+        exit(0); 
+    } 
+}
+
+# establish database connection
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+print LOG "\n==> Successfully connected to database \n";
+
+=pod
+################################################################
+################################################################
+ get useful information from the tarchive table  - The regex is 
+very study specific... !!!!!! fixme
+ Fixme figure out a way to get rid of study specific ways of 
+extracting information ... if there is 
+ This will query the tarchive and retrieve (hopefully) enough
+ information to continue the upload.
+# fixme documentation needed
+=cut
+
+my ($PSCID, $md5sumArchive, $visitLabel, $gender);
+
+################################################################
+#######################instantiate Construct the tarchiveinfo Array#########
+################################################################
+my $utility = MRIProcessingUtility->new($dbh,$globArchiveLocation,
+            $debug,Settings,$TmpDir,$logfile,
+            $LogDir,$verbose);
+
+################################################################
+#######################Construct the tarchiveinfo Array#########
+################################################################
+my %tarchiveInfo = $utility->createTarchiveArray($tarchive,\$dbh,0);
+
+################################################################
+####################Call the validation script##################
+################################################################
+my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
+             ."tarchive_validation.pl $tarchive -profile prod";
+print "\n $script \n";
+my $output = system($script); 
+print "output is $output \n";
+
+################################################################
+#######################is_valid column##########################
+################################################################
+
+my $where = "WHERE ArchiveLocation='$tarchive'";
+if($globArchiveLocation) {
+    $where = "WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
+}
+my $query = "SELECT IsValidated FROM tarchive ";
+$query = $query . $where;
+print $query. "\n";
+
+my $is_valid = $dbh->selectrow_array($query);
+print "is_valid is $is_valid \n";
+=pod
+Exit if the is_valid is false and $force is not
+=cut
+if (($is_valid == 0) && ($force==0)) {
+ $message = "\n ERROR: The validation has failed.
+                       Either run the validation again and fix 
+                       the problem. Or use -force to force the 
+                       execution.\n\n";
+ print $message;
+ $utility->writeErrorLog($logfile, $message, 77); 
+ exit 77;
+}
+
+################################################################
+#################eGet the $psc,$center_name, $centerID##########
+################################################################
+my ($psc,$center_name, $centerID) = $utility->determinPSC(%tarchiveInfo,0);
+
+################################################################
+################################################################
+####determin the ScannerID ##################################### 
+################################################################
+################################################################
+my $scannerID = $utility->determinScannerID(%tarchiveInfo,0,$centerID,$NewScanner);
+
+################################################################
+################################################################
+######Construct the $subjectIDsref array########################
+################################################################
+################################################################
+my $subjectIDsref = $utility->determinSubjectID($scannerID,%tarchiveInfo,0);
+
+
+###################################################
+# ----- STEP 6: Get the SessionID
+###################################################
+if(!defined($subjectIDsref->{'visitLabel'})) { 
+    $subjectIDsref->{'visitLabel'} = 
+    $utility->lookupNextVisitLabel($$subjectIDsref->{'CandID'}, \$dbh); 
+}
+my ($sessionID, $requiresStaging) =
+    NeuroDB::MRI::getSessionID(
+        $subjectIDsref, $tarchiveInfo{'DateAcquired'},
+         \$dbh, $subjectIDsref->{'subprojectID'}
+    );
+
+
+# ----- STEP 7: extract the tarchive and feed the dicom data 
+##dir to the uploader
+my ($ExtractSuffix,$study_dir,$header) = 
+    $utility->extractAndParseTarchive($tarchive);
+
+# ----- STEP 8: Now we know that we actually have data and more things have
+# to happen so let get started:
+# make the notifier object
+my $notifier = NeuroDB::Notify->new(\$dbh);
+
+# convert the dicom data to minc
+$utility->dicom_to_minc($study_dir,$converter,$get_dicom_info,
+                        $exclude,$mail_user);
+
+# get list of mincs
+my @minc_files = ();
+$utility->get_mincs(\@minc_files);
+
+# this is necessary for interleaved acquisitions
+$utility->concat_mri(\@minc_files);
+
+## optionally do extra filtering on a given set of files, if needed
+#if( defined( $Settings::postConversionFilter )) {
+#    $Settings::postConversionFilter(\@minc_files);
+#}
+
+# refresh list of mincs
+$utility->get_mincs(\@minc_files);
+
+my $mcount = $#minc_files + 1;
+print "\nNumber of MINC files that will be considered for inserting 
+      into the database: $mcount\n";
+################################################################
+# If no good data was found stop processing and write error log.
+################################################################
+if ($mcount < 1) { 
+    $message = "\nNo data could be converted into valid MINC files. 
+                Localizers will not be considered! \n" ; 
+    $utility->writeErrorLog($logfile, $message, 99); 
+    print $message; 
+    exit 99; 
+}
+
+################################################################
+#################### insert into the files_tracking table ######
+#################### to the new one#############################
+################################################################
+$dbh->do("truncate files_tracking");
+$query = "INSERT INTO files_tracking (TempFilePath) VALUES (?)";
+my $insert_query = $dbh->prepare($query);
+
+################################################################
+#################### LOOP through MINCs ########################
+#At this step we actually have (multiple) MINC files so we loop#
+# a valid study has at least one file that can be uploaded######
+################################################################
+
+foreach my $minc (@minc_files) {
+    print "============================================================\n";
+    print "minc is $minc \n";
+    print "=============================================================\n";
+ 
+    ############################################################
+    ###################Insert the current file path ############
+    ####################into the temp table#####################
+    $insert_query->execute($minc);
+    
+    ############################################################
+    # if the tarchive has not been moved yet####################
+    #($valid_study undefined)-> move the tarchive from the######
+    ## inbox into the tarchive library##########################
+    ############################################################
+    if ((!defined($Settings::tarchiveLibraryDir)) || 
+        ((defined($Settings::tarchiveLibraryDir)) &&    
+        ($tarchive =~ m/$Settings::tarchiveLibraryDir\/\d\d\d\d\//i))) { 
+            $newTarchiveLocation = $tarchive; 
+    }
+    elsif (!$valid_study) {
+        print "tarchive before the function call $tarchive \n";
+        $newTarchiveLocation = $utility->moveAndUpdateTarchive($tarchive,%tarchiveInfo);
+    }
+
+    $tarchive = $newTarchiveLocation;
+    ###########################################################
+    ####################Call the minc_insertion script#########
+    ###########################################################
+
+    my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"   
+               . "minc_insertion.pl -tarchivePath $tarchive"
+               . " -mincPath $minc -profile prod";
+    if ($force) {
+        $script .= " -force";
+    }
+    print $script . "\n";
+    $output = system($script);
+    print "new minc is $minc \n";    
+    print "output: $output \n" ;
+    ########################################################
+    ####if the return code of the script is 0###############
+    # mark the study as valid because this means at least### 
+    ##one volume will be nserted into the DB################
+    ########################################################
+    if ($output==0) {
+    
+       $valid_study = 1;
+    }
+    
+
+} # end foreach $minc
+
+##########################################################
+########################Call mass_pic.pl##################
+##########################################################
+ 
+if ($valid_study) {
+    
+    ##########################################################
+    ##Calls the mass_picget the new file_path using the temp mapping table######
+    ##########################################################
+    $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
+    my $where = "WHERE TarchiveSource = '$tarchiveInfo{'TarchiveID'}'";
+    $query = $query . $where;
+    my $sth = $dbh->prepare($stmt);
+    $sth->execute();
+    $row = mysql_fetch_array($query);
+    my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
+        . "mass_pic.pl -minFileID $row{min} -maxFileID $row{max} -profile prod ";
+    print $script . "\n";
+    $output = system($script);
+    print "output: $output \n" ;
+    ############################################################
+    # spool a new study message#################################
+    ############################################################
+    $notifier->spool('mri new study', $subjectIDsref->{'CandID'} . 
+    " " . $subjectIDsref->{'PSCID'} . " " . $subjectIDsref->{'visitLabel'} .
+    "\tacquired ". $tarchiveInfo{'DateAcquired'});
+    ############################################################
+    ####link the tarchive with session##########################
+    ############################################################
+    my $query = "UPDATE tarchive SET SessionID=\'$sessionID\' 
+    WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
+    $dbh->do($query);
+} else {
+    ############################################################
+    # spool a failure message This has been changed to tarchive# 
+    ###instead of using patientName#############################
+    ############################################################
+    $notifier->spool(
+        'mri invalid study', $tarchive. " acquired ". 
+        $tarchiveInfo{'DateAcquired'} ." was deemed invalid\n\n". $study_dir
+    );
+}
+
+################################################################
+# make final logfile name without overwriting phantom logs
+################################################################
+my $final_logfile = $psc."_".$tarchiveInfo{'DateAcquired'}.
+                    '_'.$subjectIDsref->{'CandID'};
+if ($subjectIDsref->{'isPhantom'}) { 
+    $final_logfile = $subjectIDsref->{'PSCID'}."_".
+    $tarchiveInfo{'DateAcquired'}.'_'.$subjectIDsref->{'CandID'}; 
+}
+
+################################################################
+###tarchiveLocation#############################################
+###if something went wrong and there is no acq date and CandID##
+################################################################
+unless($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) { 
+    $final_logfile .= '_'.$temp[$#temp]; 
+}
+$final_logfile .= '.log.gz';
+
+################################################################
+# fixme for now we assume that extracted data will not be kept##
+################################################################
+my $cleanup = "rm -rf ${TmpDir}/${ExtractSuffix}*"; 
+print "\nCleaning up temp files: $cleanup\n" if $verbose;
+`$cleanup`;
+
+################################################################
+#######if there are leftovers, dump them in the trashbin########
+################################################################
+my @leftovers = `\\ls -1 $TmpDir`;
+if(scalar(@leftovers) > 0) {
+    my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
+    print LOG "\n==> LEFTOVERS: ".scalar(@leftovers).
+    "\n --> Moving leftovers to $trashdir\n";
+    `mkdir -p -m 755 $trashdir`;
+    `chmod -R u+w $TmpDir/*`;
+    `mv $TmpDir/* $trashdir`;
+    open MAIL, "| mail $mail_user";
+    print MAIL "Subject: [URGENT Automated] upload NeuroDB leftovers!\n";
+    print MAIL "Moved some leftovers to $trashdir\n";
+    print MAIL "Log of process in $data_dir/logs/$final_logfile\n";
+    print MAIL "Files left over:\n".join("", @leftovers)."\n";
+    close MAIL;
+}
+
+print LOG "\n==> Done!  Removing $TmpDir.\n";
+close LOG;
+`gzip -9 $logfile`;
+my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
+`$cmd`;
+
+################################################################
+####################kill the xterm with the tail on log#########
+################################################################
+if ($xlog) {
+    `kill -9 $childPID`;
+#    kill 1, $childPID;
+}
+
+
+
+sub logHeader () {
+    print LOG "
+----------------------------------------------------------------
+            AUTOMATED DICOM DATA UPLOAD
+----------------------------------------------------------------
+*** Date and time of upload    : $date
+*** Location of source data    : $tarchive
+*** tmp dir location           : $TmpDir
+";
+}
+
+
+
+
