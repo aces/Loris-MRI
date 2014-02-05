@@ -31,14 +31,14 @@ use File::Temp qw/ tempdir /;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
-
 # These are the NeuroDB modules to be used
 use lib "$FindBin::Bin";
+
 use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
-use NeuroDB::MRIProcessingUtility;
+use MRIProcessingUtility;
 # Turn on autoflush for standard output buffer so that we immediately see 
 #the results of print statements.
 $|++;
@@ -62,7 +62,6 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                #set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
-
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                #control freak
 my $xlog        = 0;           # default should be 0
@@ -95,7 +94,6 @@ my @opt_table = (
                    new scanner will be registered if the data you upload 
                    requires it. You can risk turning it off."
                  ],
-
                  ["Fancy options","section"],
 # fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
 # have infinite space on your server."],
@@ -173,7 +171,6 @@ my $User             = `whoami`; # fixme
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo", "mincpik", $converter);
-&registerProgs(@progs);
 # create the temp dir
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 # create logdir(if !exists) and logfile
@@ -217,43 +214,43 @@ extracting information ... if there is
 my ($PSCID, $md5sumArchive, $visitLabel, $gender);
 
 ################################################################
-#######################instantiate Construct the tarchiveinfo Array#########
+#######################instantiate MRIProcessingUtility#########
 ################################################################
-my $utility = MRIProcessingUtility->new($dbh,$globArchiveLocation,
-            $debug,Settings,$TmpDir,$logfile,
+my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
             $LogDir,$verbose);
 
 ################################################################
+################Register programs###############################
+################################################################
+
+$utility->registerProgs(@progs);
+################################################################
 #######################Construct the tarchiveinfo Array#########
 ################################################################
-my %tarchiveInfo = $utility->createTarchiveArray($tarchive,\$dbh,0);
+my %tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
 
 ################################################################
 ####################Call the validation script##################
 ################################################################
 my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
              ."tarchive_validation.pl $tarchive -profile prod";
-print "\n $script \n";
 my $output = system($script); 
-print "output is $output \n";
 
 ################################################################
 #######################is_valid column##########################
 ################################################################
-
 my $where = "WHERE ArchiveLocation='$tarchive'";
 if($globArchiveLocation) {
     $where = "WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
 my $query = "SELECT IsValidated FROM tarchive ";
 $query = $query . $where;
-print $query. "\n";
 
 my $is_valid = $dbh->selectrow_array($query);
-print "is_valid is $is_valid \n";
-=pod
-Exit if the is_valid is false and $force is not
-=cut
+
+################################################################
+#############Exit if the is_valid is false and $force is not####
+################################################################
 if (($is_valid == 0) && ($force==0)) {
  $message = "\n ERROR: The validation has failed.
                        Either run the validation again and fix 
@@ -267,64 +264,60 @@ if (($is_valid == 0) && ($force==0)) {
 ################################################################
 #################eGet the $psc,$center_name, $centerID##########
 ################################################################
-my ($psc,$center_name, $centerID) = $utility->determinPSC(%tarchiveInfo,0);
+my ($psc,$center_name, $centerID) = $utility->determinPSC(\%tarchiveInfo,0);
 
 ################################################################
 ################################################################
 ####determin the ScannerID ##################################### 
 ################################################################
 ################################################################
-my $scannerID = $utility->determinScannerID(%tarchiveInfo,0,$centerID,$NewScanner);
+my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,$centerID,$NewScanner);
 
 ################################################################
 ################################################################
 ######Construct the $subjectIDsref array########################
 ################################################################
 ################################################################
-my $subjectIDsref = $utility->determinSubjectID($scannerID,%tarchiveInfo,0);
 
+my $subjectIDsref = $utility->determinSubjectID($scannerID,\%tarchiveInfo,0);
 
-###################################################
-# ----- STEP 6: Get the SessionID
-###################################################
+################################################################
+###############Get the SessionID################################
+################################################################
 if(!defined($subjectIDsref->{'visitLabel'})) { 
     $subjectIDsref->{'visitLabel'} = 
-    $utility->lookupNextVisitLabel($$subjectIDsref->{'CandID'}, \$dbh); 
+    $utility->lookupNextVisitLabel($subjectIDsref->{'CandID'}, \$dbh); 
 }
 my ($sessionID, $requiresStaging) =
     NeuroDB::MRI::getSessionID(
-        $subjectIDsref, $tarchiveInfo{'DateAcquired'},
+         $subjectIDsref, $tarchiveInfo{'DateAcquired'},
          \$dbh, $subjectIDsref->{'subprojectID'}
     );
 
-
-# ----- STEP 7: extract the tarchive and feed the dicom data 
-##dir to the uploader
+################################################################
+################extract the tarchive and feed the dicom data####
+######dir to the uploader#######################################
+################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive($tarchive);
 
-# ----- STEP 8: Now we know that we actually have data and more things have
-# to happen so let get started:
-# make the notifier object
+################################################################
+#########Now we know that we actually have data and############# 
+###############more things have#################################
+# to happen so let get started:#################################
+# make the notifier object######################################
+################################################################
 my $notifier = NeuroDB::Notify->new(\$dbh);
 
+################################################################
 # convert the dicom data to minc
+################################################################
 $utility->dicom_to_minc($study_dir,$converter,$get_dicom_info,
                         $exclude,$mail_user);
-
+################################################################
 # get list of mincs
+################################################################
 my @minc_files = ();
-$utility->get_mincs(\@minc_files);
-
-# this is necessary for interleaved acquisitions
-$utility->concat_mri(\@minc_files);
-
-## optionally do extra filtering on a given set of files, if needed
-#if( defined( $Settings::postConversionFilter )) {
-#    $Settings::postConversionFilter(\@minc_files);
-#}
-
-# refresh list of mincs
 $utility->get_mincs(\@minc_files);
 
 my $mcount = $#minc_files + 1;
@@ -342,29 +335,13 @@ if ($mcount < 1) {
 }
 
 ################################################################
-#################### insert into the files_tracking table ######
-#################### to the new one#############################
-################################################################
-$dbh->do("truncate files_tracking");
-$query = "INSERT INTO files_tracking (TempFilePath) VALUES (?)";
-my $insert_query = $dbh->prepare($query);
-
-################################################################
 #################### LOOP through MINCs ########################
 #At this step we actually have (multiple) MINC files so we loop#
 # a valid study has at least one file that can be uploaded######
 ################################################################
 
 foreach my $minc (@minc_files) {
-    print "============================================================\n";
-    print "minc is $minc \n";
-    print "=============================================================\n";
- 
-    ############################################################
-    ###################Insert the current file path ############
-    ####################into the temp table#####################
-    $insert_query->execute($minc);
-    
+
     ############################################################
     # if the tarchive has not been moved yet####################
     #($valid_study undefined)-> move the tarchive from the######
@@ -376,8 +353,7 @@ foreach my $minc (@minc_files) {
             $newTarchiveLocation = $tarchive; 
     }
     elsif (!$valid_study) {
-        print "tarchive before the function call $tarchive \n";
-        $newTarchiveLocation = $utility->moveAndUpdateTarchive($tarchive,%tarchiveInfo);
+        $newTarchiveLocation = $utility->moveAndUpdateTarchive($tarchive,\%tarchiveInfo);
     }
 
     $tarchive = $newTarchiveLocation;
@@ -385,49 +361,42 @@ foreach my $minc (@minc_files) {
     ####################Call the minc_insertion script#########
     ###########################################################
 
-    my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"   
+    $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"   
                . "minc_insertion.pl -tarchivePath $tarchive"
                . " -mincPath $minc -profile prod";
     if ($force) {
         $script .= " -force";
     }
-    print $script . "\n";
     $output = system($script);
-    print "new minc is $minc \n";    
-    print "output: $output \n" ;
+    
     ########################################################
     ####if the return code of the script is 0###############
     # mark the study as valid because this means at least### 
     ##one volume will be nserted into the DB################
     ########################################################
     if ($output==0) {
-    
        $valid_study = 1;
     }
-    
-
 } # end foreach $minc
 
 ##########################################################
 ########################Call mass_pic.pl##################
 ##########################################################
- 
 if ($valid_study) {
-    
     ##########################################################
     ##Calls the mass_picget the new file_path using the temp mapping table######
     ##########################################################
     $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
     my $where = "WHERE TarchiveSource = '$tarchiveInfo{'TarchiveID'}'";
     $query = $query . $where;
-    my $sth = $dbh->prepare($stmt);
+    my $sth = $dbh->prepare($query);
     $sth->execute();
-    $row = mysql_fetch_array($query);
-    my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
-        . "mass_pic.pl -minFileID $row{min} -maxFileID $row{max} -profile prod ";
-    print $script . "\n";
-    $output = system($script);
-    print "output: $output \n" ;
+    my @row = $sth->fetchrow_array();
+    if (@row) {
+        my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
+        . "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] -profile prod ";
+        $output = system($script);
+    }
     ############################################################
     # spool a new study message#################################
     ############################################################
@@ -501,7 +470,6 @@ close LOG;
 `gzip -9 $logfile`;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
 `$cmd`;
-
 ################################################################
 ####################kill the xterm with the tail on log#########
 ################################################################
@@ -525,4 +493,15 @@ sub logHeader () {
 
 
 
-
+################################################################
+################### determines where the mincs will go...#######
+################################################################
+sub which_directory {
+    my ($subjectIDsref) = @_;
+    my %subjectIDs = %$subjectIDsref;
+    my $dir = $data_dir;
+    
+    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}/mri";
+    $dir =~ s/ //;
+    return $dir;
+}
