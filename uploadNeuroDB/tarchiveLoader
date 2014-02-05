@@ -159,12 +159,11 @@ my $where = "ArchiveLocation='$tarchive'";
 if($globArchiveLocation) {
     $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
-my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive, DateAcquired, DicomArchiveID, PatientGender, ScannerManufacturer, ScannerModel, ScannerSerialNumber, ScannerSoftwareVersion, neurodbCenterName FROM tarchive WHERE $where";
+my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive, DateAcquired, DicomArchiveID, PatientGender, ScannerManufacturer, ScannerModel, ScannerSerialNumber, ScannerSoftwareVersion, neurodbCenterName, TarchiveID FROM tarchive WHERE $where";
 my $sth = $dbh->prepare($query); $sth->execute();
 my %tarchiveInfo;
 
 my ($patientName);
-
 if ($sth->rows > 0) {
     my $tarchiveInfoRef = $sth->fetchrow_hashref();
     %tarchiveInfo = %$tarchiveInfoRef;
@@ -238,6 +237,43 @@ else {
         " The dicom header PatientID is   : $tarchiveInfo{'PatientID'}\n".
         " The dicom header PatientName is : $tarchiveInfo{'PatientName'}\n\n";
     &writeErrorLog($logfile, $message, 66); exit 66; 
+}
+
+# ----- STEP 5a: Check the CandID/PSCID Match
+# It's possible that the CandID exists, but doesn't match the PSCID. This will fail further down silently, so we explicitly
+# check that the data is correct here.
+$query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
+my $logQuery = "INSERT INTO MRICandidateErrors (SeriesUID, TarchiveID, MincFile, PatientName, Reason) VALUES (?, ?, ?, ?, ?)";
+my $candlogSth = $dbh->prepare($logQuery);
+$sth = $dbh->prepare($query);
+$sth->execute($subjectIDsref->{'CandID'});
+my @CandIDCheck = $sth->fetchrow_array;
+my $CandMismatchError;
+if($sth->rows == 0) {
+    print LOG  "\n\n => No candID";
+    $CandMismatchError = 'CandID does not exist';
+}
+
+
+$query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
+$sth = $dbh->prepare($query);
+$sth->execute($subjectIDsref->{'PSCID'});
+if ($sth->rows == 0) {
+    print LOG  "\n\n => No PSCID";
+    $CandMismatchError= 'PSCID does not exist';
+}
+
+my @PSCIDCheck = $sth->fetchrow_array;
+
+if($PSCIDCheck[0] != $CandIDCheck[0] || $PSCIDCheck[1] != $CandIDCheck[1]) {
+    print LOG  "\n\n => CandID and PSCID mismatch";
+    $CandMismatchError = 'CandID and PSCID do not match database';
+}
+
+if ($subjectIDsref->{'isPhantom'}) { 
+	# CandID/PSCID errors don't apply to phantoms, so we don't want to trigger
+	# the check which aborts the insertion
+	$CandMismatchError = undef;
 }
 
 # ----- STEP 6: Get the SessionID
@@ -342,7 +378,21 @@ foreach my $minc (@minc_files)  {
         Settings::filterParameters(\$file);
     }
 
-# compute the md5 hash
+# We already know the PatientName is bad from step 5a, but had to wait until this
+# point so that we have the SeriesUID and MincFile name
+# compute the md5 hash. Do it before computing the hash because there's no point
+# in going that far if we already know it's fault.
+
+print LOG "Candidate Mismatch Error is $CandMismatchError\n";
+    if(defined($CandMismatchError)) {
+        print LOG " -> WARNING: This candidate was invalid. Logging to MRICandidateErrors table with reason $CandMismatchError";
+        $candlogSth->execute($file->getParameter('series_instance_uid'),
+            $tarchiveInfo{'TarchiveID'},
+            $minc,
+            $tarchiveInfo{'PatientName'},
+            $CandMismatchError);
+        next;
+    }
     print LOG "==> computing md5 hash for MINC body.\n" if $verbose;
     my $md5hash = &NeuroDB::MRI::compute_hash(\$file);
     print LOG " --> md5: $md5hash\n" if $verbose;
@@ -360,18 +410,29 @@ foreach my $minc (@minc_files)  {
     $file->setFileData('CoordinateSpace', 'native');
     $file->setFileData('OutputType', 'native');
     $file->setFileData('FileType', 'mnc');
+    $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
+    $file->setFileData('Caveat', 0);
 
 # get acquisition protocol (identify the volume)
     print LOG "==> verifying acquisition protocol\n" if $verbose;
-    my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name, \$subjectIDsref, \$file, \$dbh,$minc);
-# Register scans into the database.  Which protocols to keep optionally controlled by the config file.
+    my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name, \$subjectIDsref, \$file, \$dbh, $minc);
+print LOG "Acquisition protocol is $acquisitionProtocol\n";
+    my @checks = ();
+    my $acquisitionProtocolID;
+    if($acquisitionProtocol !~ /unknown/) {
+        $acquisitionProtocolID = &NeuroDB::MRI::scan_type_text_to_id($acquisitionProtocol, \$dbh);
 
-    if (!defined(&Settings::isFileToBeRegisteredGivenProtocol) 
+        @checks = extra_file_checks($acquisitionProtocolID, $file, $subjectIDsref->{'CandID'}, $subjectIDsref->{'visitLabel'}, $tarchiveInfo{'PatientName'});
+        print LOG "Worst error: $checks[0]\n" if $debug;
+    }
+print LOG "Checking if to be registered\n";
+    
+# Register scans into the database.  Which protocols to keep optionally controlled by the config file.
+    if ((!defined(&Settings::isFileToBeRegisteredGivenProtocol)
         || $reckless 
-        || (defined(&Settings::isFileToBeRegisteredGivenProtocol) && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol))) {
+        || (defined(&Settings::isFileToBeRegisteredGivenProtocol) && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol))) && $checks[0] !~ /exclude/) {
         
     # convert the textual scan_type into the scan_type id
-        my $acquisitionProtocolID = &NeuroDB::MRI::scan_type_text_to_id($acquisitionProtocol, \$dbh);
         $file->setFileData('AcquisitionProtocolID', $acquisitionProtocolID);
         print "Acq protocol: $acquisitionProtocol ID: $acquisitionProtocolID\n" if $debug;
     # set Date_taken = last modification timestamp (can't seem to get creation timestamp)
@@ -717,4 +778,56 @@ sub registerProgs() {
         my $present = `which $prog`;
         if (!$present) { die("$prog not found") };
     }
+}
+
+# Returns list of checks that failed, we can't directly insert here because
+# the file isn't registered in the database yet
+sub extra_file_checks() {
+    my $scan_type = shift;
+    my $file = shift;
+    my $CandID = shift;
+    my $Visit_Label = shift;
+    my $PatientName = shift;
+
+    my $query = "SELECT * FROM mri_protocol_checks WHERE Scan_type=?";
+    my $log_query = "INSERT INTO mri_violations_log (SeriesUID, TarchiveID, MincFile, PatientName, CandID, Visit_label, CheckID, Scan_type, Severity, Header, Value, ValidRange, ValidRegex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    my $worst_warning = 0;
+    my @faillist;
+    my $sth = $dbh->prepare($query);
+    my $logsth = $dbh->prepare($log_query);
+    $sth->execute($scan_type);
+    while(my $check = $sth->fetchrow_hashref()) {
+        my $value = $file->getParameter($check->{'Header'});
+        if(($check->{'ValidRange'} && (!NeuroDB::MRI::in_range($value, $check->{'ValidRange'})))
+            || ($check->{'ValidRegex'} && $value !~ /$check->{'ValidRegex'}/)) {
+                if($check->{'Severity'} =~ /exclude/) {
+                    $worst_warning = 2;
+                } elsif($check->{'Severity'} =~ /warning/ && $worst_warning < 2) {
+                    $worst_warning = 1;
+                    $file->setFileData('Caveat', 1);
+                }
+                $logsth->execute($file->getFileDatum('SeriesUID'),
+                        $file->getFileDatum('TarchiveSource'),
+                        $file->getFileDatum('File'),
+                        $PatientName,
+                        $CandID,
+                        $Visit_Label,
+                        $check->{'ID'},
+                        $check->{'Scan_type'},
+                        $check->{'Severity'},
+                        $check->{'Header'},
+                        $value,
+                        $check->{'ValidRange'},
+                        $check->{'ValidRegex'}
+                );
+                push(@faillist, $check->{'ID'});
+
+        }
+    }
+    if($worst_warning == 1) {
+        return ('warn', \@faillist);
+    } elsif($worst_warning == 2) {
+        return ('exclude', \@faillist);
+    }
+    return ('pass', \@faillist);
 }
