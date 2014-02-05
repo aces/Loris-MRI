@@ -31,7 +31,6 @@ sub new {
     {  
      package Settings; 
         do "$ENV{HOME}/.neurodb/$profile";
-        ##$self->{'Settings'}  = Settings;
     }
     $self->{'LOG'} = $LOG;
     $self->{'verbose'} = $verbose;
@@ -40,8 +39,6 @@ sub new {
     $self->{'debug'} = $debug;
     $self->{'TmpDir'} = $TmpDir;
     $self->{'logfile'} = $logfile;
-
-
     return bless $self, $params;
 }
 
@@ -125,7 +122,6 @@ sub extractAndParseTarchive{
     
     my $this = shift;
     my ($tarchive) = @_;
-
     my $study_dir = $this->{TmpDir}  . "/" .  
         $this->extract_tarchive($tarchive);
     my $ExtractSuffix  = basename($tarchive, ".tar");
@@ -146,7 +142,6 @@ sub determinSubjectID {
     my ($scannerID,$tarchiveInfo,$to_log) = @_;
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)){
-    ##if (!defined($getSubjectIDs)) {
         if ($to_log) {
             my $message =  "\nERROR: Profile does not contain getSubjectIDs
                              routine. Upload will exit now.\n\n";
@@ -154,7 +149,6 @@ sub determinSubjectID {
             exit 2;
         }
     }
-    
     my $subjectIDsref = Settings::getSubjectIDs($tarchiveInfo->{'PatientName'},
                                                 $tarchiveInfo->{'PatientID'},
                                                 $scannerID,
@@ -178,8 +172,8 @@ sub determinSubjectID {
 sub createTarchiveArray {
     
     my $this = shift;
+    my %tarchiveInfo;
     my ($tarchive,$globArchiveLocation) = @_;
-
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
         $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
@@ -194,8 +188,7 @@ sub createTarchiveArray {
     }
     my $sth = ${$this->{'dbhr'}}->prepare($query); 
     $sth->execute();
-    my %tarchiveInfo;
-
+   
     if ($sth->rows > 0) {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();
         %tarchiveInfo = %$tarchiveInfoRef;
@@ -229,7 +222,8 @@ sub determinPSC {
             exit 4;
         }
         $this->{LOG}->print("\n==> Verifying acquisition center\n -> Center Name  : 
-                    $center_name\n -> CenterID     : $centerID\n");
+                            $center_name\n -> CenterID     : $centerID\n"
+                           );
     }
     return ($psc,$center_name, $centerID);
 }
@@ -265,8 +259,6 @@ sub determinScannerID {
                           uploaded.\n\n";
             $this->writeErrorLog($message, 5); 
             exit 5;
-            $this->writeErrorLog($message, 5); 
-            exit 5;
         }
     }
     if ($to_log)  {
@@ -285,7 +277,6 @@ sub get_acquisitions {
     @$acquisitions = split("\n", `find $study_dir -type d -name \\*.ACQ`);
     $this->{LOG}->print("Acquisitions: ".join("\n", @$acquisitions)."\n");
 }
-
 
 ################################################################
 #####################compute the md5 hash#######################
@@ -310,9 +301,9 @@ sub getAcquisitionProtocol {
     my $this = shift;
     my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc) = @_;
     
-    ####################################################
-    ##get acquisition protocol (identify the volume)####
-    ####################################################
+    ############################################################
+    ##get acquisition protocol (identify the volume)############
+    ############################################################
     $this->{LOG}->print("==> verifying acquisition protocol\n") 
         if $this->{verbose};
     my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name,
@@ -331,7 +322,8 @@ sub getAcquisitionProtocol {
                                            $subjectIDsref->{'visitLabel'},
                                            $tarchiveInfo->{'PatientName'}
                                           );
-        $this->{LOG}->print("Worst error: $checks[0]\n") if $this->{debug};
+        $this->{LOG}->print("Worst error: $checks[0]\n") 
+            if $this->{debug};
     }
     return ($acquisitionProtocol,$acquisitionProtocolID,@checks);
 }
@@ -423,9 +415,10 @@ sub update_mri_acquisition_dates {
 
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute();
-
-    # if we found a session, it needs updating or inserting, 
-    #so we use replace into.
+    ############################################################
+    # if we found a session, it needs updating or inserting,####
+    ###so we use replace into.##################################
+    ############################################################
     if($sth->rows > 0) {
         my $query = "REPLACE INTO mri_acquisition_dates SET AcquisitionDate="
                     ."'$acq_date', SessionID='$sessionID'";
@@ -441,19 +434,16 @@ sub loadAndCreateObjectFile{
 
     my $this = shift;
     my ($minc) = @_;
-
     ############################################################
     ################create File object##########################
     ############################################################
     my $file = NeuroDB::File->new($this->{dbhr});
-
     ############################################################
     ##########load File object##################################
     ############################################################
     $this->{LOG}->print("\n==> Loading file from disk $minc\n") 
         if $this->{verbose};
     $file->loadFileFromDisk($minc);
-   
     ############################################################
     ############# map dicom fields##############################
     ############################################################
@@ -468,28 +458,27 @@ sub loadAndCreateObjectFile{
 ################################################################
 =pod
  move_minc(\$minc, \%minc_ids, $minc_type) -> renames and moves $minc
-
 =cut
 sub move_minc {
     
     my $this = shift;
     my ($minc,$subjectIDsref, $minc_type, $fileref,$prefix,$data_dir) = @_;
-    my ($new_name, $version);
-
-    my %subjectIDs = $subjectIDsref;
-    # figure out where to put the files
-
-    my $dir = $this->which_directory($subjectIDsref,$data_dir);
-    `mkdir -p -m 755 $dir/native`;
-
-    # figure out what to call files
-    my @exts = split(/\./, basename($$minc));
-    shift @exts;
-    my $extension = join('.', @exts);
-
+    my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
     my $concat = "";
+    my %subjectIDs = $subjectIDsref;
+    ############################################################
+    ###figure out where to put the files########################
+    ############################################################
+    $dir = $this->which_directory($subjectIDsref,$data_dir);
+    `mkdir -p -m 755 $dir/native`;
+    ############################################################
+    #######figure out what to call files########################
+    ############################################################
+    @exts = split(/\./, basename($$minc));
+    shift @exts;
+    $extension = join('.', @exts);
     $concat = '_concat' if $$minc =~ /_concat/;
-    my $new_dir = "$dir/native";
+    $new_dir = "$dir/native";
     $version = 1;
     $new_name = $prefix."_".$subjectIDs{'CandID'}."_".$subjectIDs{'visitLabel'}
                 ."_".$minc_type."_".sprintf("%03d",$version).
@@ -505,10 +494,9 @@ sub move_minc {
         $new_name =~ s/__+/_/g;
     }
     $new_name = "$new_dir/$new_name";
-    my $cmd = "mv $$minc $new_name";
+    $cmd = "mv $$minc $new_name";
     `$cmd`;
     $this->{LOG}->print("File $$minc \n moved to:\n $new_name\n");
-
     $$minc = $new_name;
     return $new_name;
 }
@@ -524,7 +512,8 @@ sub registerScanIntoDB {
       $reckless, $tarchive, $sessionID) = @_;
     my $data_dir = $Settings::data_dir;
     my $prefix   = $Settings::prefix;
-
+    my ($acquisitionProtocolID,$Date_taken,$minc_protocol_identified,$file_path,
+        $tarchive_path,$fileID);
     ############################################################
     # Register scans into the database.  Which protocols to#####
     # keep optionally controlled by the config file.############
@@ -539,7 +528,7 @@ sub registerScanIntoDB {
         ########################################################
         # convert the textual scan_type into the scan_type id###
         ########################################################
-        my $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
+        $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
                                         $acquisitionProtocol, 
                                         $this->{dbhr});
         $${file}->setFileData('AcquisitionProtocolID', $acquisitionProtocolID);
@@ -550,15 +539,23 @@ sub registerScanIntoDB {
         # set Date_taken = last modification timestamp########## 
         #(can't seem to get creation timestamp)#################
         ########################################################
-        my $Date_taken = (stat($minc))[9];
-        # rename and move files
-        my $minc_protocol_identified = $this->move_minc(\$minc,$subjectIDsref,
-                            $acquisitionProtocol,$file,$prefix,$data_dir);
+        $Date_taken = (stat($minc))[9];
+        
+        ########################################################
+        #####Erename and move files#############################
+        ########################################################
+        $minc_protocol_identified = $this->move_minc(\$minc,
+                                                      $subjectIDsref,
+                                                      $acquisitionProtocol,
+                                                      $file,
+                                                      $prefix,
+                                                      $data_dir
+                                                    );
 
         ########################################################
         #####################set the new file_path##############
         ######################################################## 
-        my $file_path   =   $minc;
+        $file_path   =   $minc;
         $file_path      =~  s/$data_dir\///i;
             if $this->{debug};
         $${file}->setFileData('File', $file_path);
@@ -566,7 +563,7 @@ sub registerScanIntoDB {
         #######################################################
         ###record which tarchive was used to make this file#####
         ########################################################
-        my $tarchive_path   =   $tarchive;
+        $tarchive_path   =   $tarchive;
         $tarchive_path      =~  s/$data_dir\///i;
         $${file}->setParameter('tarchiveLocation', $tarchive_path);
         $${file}->setParameter('tarchiveMD5', $tarchiveInfo->{'md5sumArchive'});
@@ -575,46 +572,37 @@ sub registerScanIntoDB {
         # register into the db fixme if I ever want a dry run## 
         ########################################################
         print "Registering file into db\n" if $this->{debug};
-        my $fileID;
+        $fileID;
         $fileID = &NeuroDB::MRI::register_db($file);
         print "FileID: $fileID\n" if $this->{debug}
 
         ########################################################
         ###update mri_acquisition_dates table###################
         ########################################################
-        &$this->update_mri_acquisition_dates($sessionID, $tarchiveInfo->{'DateAcquired'}
-                                      , $this->{dbhr}
-                                     );
+        &$this->update_mri_acquisition_dates($sessionID, 
+                                             $tarchiveInfo->{'DateAcquired'},
+                                             $this->{dbhr}
+                                            );
     }
 }
 
 ################################################################
 #######################dicom_to_minc############################
 ################################################################
-=pod
- dicom_to_minc($study_dir) -> converts the dicoms to mincs
- the old version of this was :
- my $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series
- -echo -image -file -stdin | sort -n -k1 -k2 -k3 -k4 | cut -f 5 | dcm2mnc 
--dname
- \'\' -stdin -clobber -cmd \"gzip\"  $this->TmpDir ";
- you can do it either way. I found it to be more useful to exclude scouts
- and localizers since they get discarded anyhow... and there was the Kupio
- problem with localizers having the same series number
- as the subsequent series which would cause the converter to fail or overwrite
-=cut
-################################################################
 
 sub dicom_to_minc {
 
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,$exclude,$mail_user) = @_;
+    my ($d2m_cmd,$d2m_log,$exit_code);
     # info :   1        2      3      4     5          6          7
-    my $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series"
+    $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series"
                   . " -echo -image -file -series_descr -attvalue 0018 0024"
                   . " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 | grep -iv"
                   . " $exclude | cut -f 5 | ";
-    # use some other converter if specified in the config
+    ############################################################
+    ####use some other converter if specified in the config#####
+    ############################################################
 
     if ($converter ne 'dcm2mnc') {
         $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
@@ -622,18 +610,17 @@ sub dicom_to_minc {
         $d2m_cmd .= "dcm2mnc -dname '' -stdin -clobber $this->{TmpDir} ";
       }
     print "\n" . $d2m_cmd . "\n";
-    my $d2m_log = `$d2m_cmd`;
+    $d2m_log = `$d2m_cmd`;
 
     if($? > 0) {
 
-        my $exit_code = $? >> 8;
+        $exit_code = $? >> 8;
         # dicom_to_minc failed...  don't keep going, just email.
         open MAIL, "| mail $mail_user";
         print MAIL "Subject: [URGENT Automated] uploadNeuroDB: 
                     dicom->minc failed\n";
         print MAIL "Exit code $exit_code received from:\n$d2m_cmd\n";
         close MAIL;
-
         croak("dicom_to_minc failure, exit code $exit_code");
    }
    $this->{LOG}->print("### Dicom to MINC:\n$d2m_log");
@@ -654,7 +641,8 @@ sub get_mincs {
     my @files_list;
     foreach my $file (@files) {
         next unless $file =~ /\.mnc(\.gz)?$/;
-        push @files_list, `Mincinfo -quiet -tab -file -date $this->{TmpDir}/$file`;
+        push @files_list, `Mincinfo -quiet -tab -file -date 
+             $this->{TmpDir}/$file`;
     }
     open SORTER, "|sort -nk2 | cut -f1 > $this->{TmpDir}/sortlist";
     print SORTER join("", @files_list);
@@ -681,7 +669,7 @@ sub concat_mri {
   
     my $this = shift;
     my ($minc_files) = @_;
-
+    my ($cmd,$log,$concat_count)
     # make a list of the mincs to concat (avoid arg list too long errors)
     open CONCATFILES, ">$this->{TmpDir} /concatfilelist.txt";
     foreach my $file (@$minc_files) {
@@ -691,23 +679,25 @@ sub concat_mri {
 
     mkdir("$this->{TmpDir} /concat", 0700);
 
-    my $cmd = "cat $this->{TmpDir} /concatfilelist.txt | concat_mri.pl -maxslicesep 3.1
-               -compress -postfix _concat -targetdir $this->{TmpDir} /concat -stdin";
+    $cmd = "cat $this->{TmpDir} /concatfilelist.txt | concat_mri.pl
+            -maxslicesep 3.1 -compress -postfix _concat -targetdir 
+            $this->{TmpDir} /concat -stdin";
     if ($this->{debug}) {
         print $cmd . "\n";
     }
 
-    my $log = `$cmd`;
+    $log = `$cmd`;
     `rm -f $this->{TmpDir} /concatfilelist.txt`;
 
     # fixme print LOG "Concat:\n $cmd\n$log\n" if $this->{verbose};
-    my $concat_count = `\\ls -1 $this->{TmpDir} /concat | wc -l`+0;
+    $concat_count = `\\ls -1 $this->{TmpDir} /concat | wc -l`+0;
     if($concat_count > 0) {
         `mv $this->{TmpDir} /concat/*.mnc.gz $this->{TmpDir} `;
     }
     `rmdir $this->{TmpDir} /concat`;
     $this->{LOG}->print("### Count for concatenated MINCs: 
-              $concat_count new files created\n");
+                        $concat_count new files created\n"
+                       );
 }
 
 
@@ -715,10 +705,7 @@ sub concat_mri {
 ################################################################
 ########################registerProgs#####################
 ################################################################
-#### There is better ways to do this
-# yes.  there is.
 sub registerProgs() {
- 
     my $this = shift;
     my @toregister = @_;
     foreach my $prog (@toregister) {
@@ -735,8 +722,9 @@ sub moveAndUpdateTarchive {
     my $this = shift;
     my ($tarchive_location,$tarchiveInfo) = @_;
     my $query = '';
+    my ($newTarchiveLocation, $newTarchiveFilename,$mvTarchiveCmd);
     print "Moving tarchive into library\n" if $this->{debug};
-    my $newTarchiveLocation = $Settings::tarchiveLibraryDir."/".
+    $newTarchiveLocation = $Settings::tarchiveLibraryDir."/".
     substr($tarchiveInfo->{'DateAcquired'}, 0, 4);
     ########################################################
     #####make the directory if it does not yet exist########
@@ -748,13 +736,13 @@ sub moveAndUpdateTarchive {
     #######determine the new name of the tarchive###########
     ########################################################
 
-    my $newTarchiveFilename = basename($tarchive_location);
+    $newTarchiveFilename = basename($tarchive_location);
     $newTarchiveLocation .= "/".$newTarchiveFilename;
 
     ########################################################
     ######move the tarchive#################################
     ########################################################
-    my $mvTarchiveCmd = "mv $tarchive_location $newTarchiveLocation";
+    $mvTarchiveCmd = "mv $tarchive_location $newTarchiveLocation";
     `$mvTarchiveCmd`;
 
     ########################################################
@@ -766,10 +754,9 @@ sub moveAndUpdateTarchive {
     print $query . "\n"  if $this->{debug};
 
     ${$this->{'dbhr'}}->do("UPDATE tarchive SET ArchiveLocation=".
-              ${$this->{'dbhr'}}->quote($newTarchiveLocation)." WHERE DicomArchiveID="
-             .${$this->{'dbhr'}}->quote($tarchiveInfo->{'DicomArchiveID'})
-            );
-
+                            ${$this->{'dbhr'}}->quote($newTarchiveLocation)." WHERE DicomArchiveID="
+                            .${$this->{'dbhr'}}->quote($tarchiveInfo->{'DicomArchiveID'})
+                          );
   return $newTarchiveLocation;
 }
 
@@ -777,17 +764,22 @@ sub moveAndUpdateTarchive {
 ######################CreateMRICandidates#######################
 ################################################################
 sub CreateMRICandidates {
-    # Standardize gender (DICOM uses M/F, DB uses Male/Female)
+    ############################################################
+    ###Standardize gender (DICOM uses M/F, DB uses Male/Female)#
+    ############################################################
     my $this = shift;
     my $query = '';
     my ($subjectIDsref,$gender,$tarchiveInfo,$User,$centerID) = @_;
-
+    my ($message);
     if ($tarchiveInfo->{'PatientGender'} eq 'F') {
             $gender = "Female";
     } elsif ($tarchiveInfo->{'PatientGender'} eq 'M') {
         $gender = "Male";
     }
-    # Create non-existent candidate if the profile allows for candidate creation
+    ################################################################
+    ####Create non-existent candidate if the profile allows for#####
+    #############candidate creation#################################
+    ################################################################
     if (!NeuroDB::MRI::subjectIDExists($subjectIDsref->{'CandID'},$this->{dbhr})
         && $Settings::createCandidates) {
             chomp($User);
@@ -817,7 +809,7 @@ sub CreateMRICandidates {
         $this->{LOG}->print("\n==> getSubjectIDs returned this CandID/DCCID :
         $subjectIDsref->{'CandID'}\n");
     } else {
-        my $message = "\n ERROR: The candidate could not be considered for 
+        $message = "\n ERROR: The candidate could not be considered for 
                     uploading, since s/he is not registered in your database.
                      \n" .
                     " The dicom header PatientID is   : 
@@ -831,35 +823,42 @@ sub CreateMRICandidates {
 ################################################################
 ###############################setMRISession####################
 ################################################################
-# Most important function now. Gets the tarchive and extracts it so data can
-## actually be uploaded
-################################################################
 sub setMRISession {
 
     my $this = shift;
     my $query = '';
     my ($subjectIDsref, $tarchiveInfo) = @_;
-    # This will actually create a visit count if it is not provided through the
-    # IDs in the dicom header
-    # The count starts with 1 if there is none.
+    ############################################################
+    # This will actually create a visit count if it is not###### 
+    #####provided through the IDs in the dicom header The count# 
+    ####starts with 1 if there is none.#########################
+    ############################################################
     if(!defined($subjectIDsref->{'visitLabel'})) {
         $subjectIDsref->{'visitLabel'} =
         lookupNextVisitLabel($subjectIDsref->{'CandID'}, $this->{dbhr});
     }
-
-    # get session ID
+    ###########################################################
+    ########################### get session ID#################
+    ###########################################################
     $this->{LOG}->print("\n\n==> Getting session ID\n");
     my ($sessionID, $requiresStaging) =
         NeuroDB::MRI::getSessionID(
-            $subjectIDsref, $tarchiveInfo->{'DateAcquired'}, $this->{dbhr}, $subjectIDsref->{'subprojectID'}
+            $subjectIDsref, 
+            $tarchiveInfo->{'DateAcquired'}, 
+            $this->{dbhr}, 
+            $subjectIDsref->{'subprojectID'}
         );
-    # Retain session ID for tarchive table    
-    $this->{LOG}->print("    SessionID: $sessionID\n");    # Staging: $requiresStaging\n";
-
-    # Make sure MRI Scan Done is set to yes, because now there is data.
+    ############################################################
+    ##############Retain session ID for tarchive table##########      
+    ############################################################
+    $this->{LOG}->print("    SessionID: $sessionID\n");    
+    # Staging: $requiresStaging\n";
+    ############################################################
+    # Make sure MRI Scan Done is set to yes, because now######## 
+    ########there is data.######################################
+    ############################################################
     if ($sessionID) {
         $query = "UPDATE session SET Scan_done='Y' WHERE ID=$sessionID";
-    
         if ($this->{debug}) {
             print $query . "\n";
         }
@@ -885,7 +884,6 @@ sub validateArchive {
     my ($md5_db  , $db)   = split(' ', $tarchiveInfo->{'md5sumArchive'});
     $this->{LOG}->print(" -> checksum for target        :  $md5_real\n -> checksum " 
                         . "from database     :  $md5_db\n");
-
     if ($md5_real ne $md5_db) {
         my $message =  "\nerror: archive seems to be corrupted or modified. upload
                      will exit now.\nplease read the creation logs for more
@@ -907,7 +905,5 @@ sub which_directory {
     $dir =~ s/ //;
     return $dir;
 }
-
-
 
 1;
