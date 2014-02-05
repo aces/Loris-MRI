@@ -15,6 +15,7 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
+use MRIProcessingUtility;
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -23,7 +24,7 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                     $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 0;  
+my $debug       = 1 ;  
 my $message     = '';
 my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a
@@ -37,16 +38,13 @@ my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my ($PSCID, $md5sumArchive, $visitLabel, $gender);
-my ($tarchive,%tarchiveInfo);
+my ($PSCID, $md5sumArchive, $visitLabel, $gender, $tarchive,%tarchiveInfo);
 my $User             = `whoami`; 
-
 
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
                   "name of config file in ~/.neurodb."],
-
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not
@@ -58,15 +56,10 @@ my @opt_table = (
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a new 
                   scanner will be registered if the data you upload requires 
                   it. You can risk turning it off."],
-
                  ["Fancy options","section"],
-# fixme      ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
-## have infinite space on your server."],
                  ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on
                   the current log file."],
                  );
-
-
 
 my $Help = <<HELP;
 ******************************************************************************
@@ -85,24 +78,25 @@ HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/DICOM-tarchive> [options]
        $0 -help to list options
-
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
 
-
-# input option error checking
+################################################################
+############### input option error checking#####################
+################################################################
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; 
+    configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    exit 33; 
 }
 if(!$ARGV[0] || !$profile) { 
     print $Help; 
     print "$Usage\n\tERROR: You must specify a valid tarchive and an existing
-     profile.\n\n";  exit 33;  
+     profile.\n\n";  
+    exit 33;  
 }
-
 my $tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
     print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the
@@ -129,33 +123,35 @@ my $logfile  = "$LogDir/$templog.log";
 open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
 
-print LOG "testing";
-# establish database connection
+################################################################
+################ establish database connection##################
+################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
 
-%tarchiveInfo = createTarchiveArray($tarchive,\$dbh);
 ################################################################
+##################instantiate Construct MRIProcessingUtility####
+#########################object#################################
 ################################################################
+my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
+            $verbose);
+
+%tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
+#################################################################
 ####STEP 1: Verify the archive using the checksum from database#
 ################################################################
 ################################################################
-validateArchive($tarchive,%tarchiveInfo);
-    
-################################################################
-################################################################
-#######STEP 2: Verify PSC information using whatever field###### 
-####contains####################################################
-################################################################
-################################################################
+
+$utility->validateArchive($tarchive,\%tarchiveInfo);
 
 ################################################################
 ################################################################
-######the site string########################################### 
+#######STEP 2: Verify PSC information using whatever field###### 
+####contains site string########################################
 ################################################################
 ################################################################
-my ($psc,$center_name, $centerID) =determinPSC(%tarchiveInfo);
+my ($psc,$center_name, $centerID) =$utility->determinPSC(\%tarchiveInfo,1);
 
 
 ################################################################
@@ -165,16 +161,14 @@ my ($psc,$center_name, $centerID) =determinPSC(%tarchiveInfo);
 ################################################################
 ################################################################
 
-my $scannerID = determinScannerID(%tarchiveInfo,0,$centerID,$NewScanner);
-
+my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,$centerID,$NewScanner);
 
 ################################################################
 ################################################################
 ######STEP 4: Determine the subject identifiers#################
 ################################################################
 ################################################################
-
-my $subjectIDsref = determinSubjectID($scannerID,%tarchiveInfo);
+my $subjectIDsref = $utility->determinSubjectID($scannerID,\%tarchiveInfo,1);
 
 ################################################################
 ################################################################
@@ -183,7 +177,7 @@ my $subjectIDsref = determinSubjectID($scannerID,%tarchiveInfo);
 ################################################################
 ################################################################
 
-CreateMRICandidates($subjectIDsref,$gender,\%tarchiveInfo,$User,$centerID);
+$utility->CreateMRICandidates($subjectIDsref,$gender,\%tarchiveInfo,$User,$centerID);
 
 ################################################################
 ################################################################
@@ -202,12 +196,11 @@ my $sth = $dbh->prepare($query);
 $sth->execute($subjectIDsref->{'CandID'});
 my @CandIDCheck = $sth->fetchrow_array;
 my $CandMismatchError;
-if($sth->rows == 0) {
+if ($sth->rows == 0) {
     print LOG  "\n\n => No candID";
     $CandMismatchError = 'CandID does not exist';
     exit 77;
 }
-
 
 $query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
 $sth = $dbh->prepare($query);
@@ -216,16 +209,13 @@ if ($sth->rows == 0) {
     print LOG  "\n\n => No PSCID";
     $CandMismatchError= 'PSCID does not exist';
     exit 77;
-
 }   
 
 my @PSCIDCheck = $sth->fetchrow_array;
-
-if($PSCIDCheck[0] != $CandIDCheck[0] || $PSCIDCheck[1] != $CandIDCheck[1]) {
+if ($PSCIDCheck[0] != $CandIDCheck[0] || $PSCIDCheck[1] != $CandIDCheck[1]) {
     print LOG  "\n\n => CandID and PSCID mismatch";
     $CandMismatchError = 'CandID and PSCID do not match database';
      exit 77;
-
 }
 
 if ($subjectIDsref->{'isPhantom'}) {
@@ -234,26 +224,25 @@ if ($subjectIDsref->{'isPhantom'}) {
     $CandMismatchError = undef;
 }
 
-# ----- STEP 6: Get the SessionID
+################################################################
+###################Get the SessionID############################
+################################################################
+
 my ($sessionID, $requiresStaging) = 
-    setMRISession($subjectIDsref, %tarchiveInfo);
+    $utility->setMRISession($subjectIDsref, \%tarchiveInfo);
+################################################################
+###extract the tarchive and feed the dicom data dir to########## 
+###########3the uploader########################################
+################################################################
 
-# ----- STEP 7: extract the tarchive and feed the dicom data 
-##dir to the uploader
-my ($ExtractSuffix,$header,$study_dir) = extractAndParseTarchive($tarchive);
-
-# optionally do extra filtering on the dicom data, if needed
+my ($ExtractSuffix,$header,$study_dir) = 
+    $utility->extractAndParseTarchive($tarchive);
+################################################################
+# optionally do extra filtering on the dicom data, if needed####
+################################################################
 if( defined( &Settings::dicomFilter )) {
     Settings::dicomFilter($study_dir, \%tarchiveInfo);
 }
-
-# ----- STEP 8: Now we know that we actually have data and more things have to
-## happen so let get started:
-
-# make the notifier object
-my $notifier = NeuroDB::Notify->new(\$dbh);
-
-
 ################################################################
 ################################################################
 ##############Set the isValid to true###########################
@@ -262,24 +251,7 @@ my $where = "WHERE ArchiveLocation='$tarchive'";
 if($globArchiveLocation) {
      $where = "WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
-
 $query = "UPDATE tarchive SET IsValidated='1' ";
 $query = $query . $where;
 $dbh->do($query);
-
-
-
-
-sub logHeader () {
-    print LOG "
--------------------------------------------------------------------------------
-                                     AUTOMATED DICOM DATA UPLOAD
--------------------------------------------------------------------------------
-*** Date and time of upload    : $date
-*** Location of source data    : $tarchive
-*** tmp dir location           : $TmpDir
-";
-
-}
-
-
+exit 0;
