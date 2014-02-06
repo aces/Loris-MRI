@@ -67,12 +67,10 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $is_valid;
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
 my $min;
 my $max;
-
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -134,18 +132,20 @@ USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
 
-# input option error checking
+################################################################
+###################input option error checking##################
+################################################################
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named 
           '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
-    exit 33; 
+    exit 2; 
 }
 if(!$ARGV[0] || !$profile) { 
     print $Help; 
     print "$Usage\n\tERROR: You must specify a valid tarchive and an
             existing profile.\n\n";
-    exit 33;  
+    exit 3;  
 }
 
 my $tarchive = abs_path($ARGV[0]);
@@ -153,7 +153,7 @@ unless (-e $tarchive) {
     print "\nERROR: Could not find archive $tarchive. \n
           Please, make sure the path to the archive is correct. 
          Upload will exit now.\n\n\n";
-    exit 33;
+    exit 4;
 }
 
 ################################################################
@@ -167,7 +167,6 @@ my $converter        = $Settings::converter;
 my $mail_user        = $Settings::mail_user;
 my $get_dicom_info   = $Settings::get_dicom_info;
 my $exclude          = "localizer"; # case insensitive
-my $User             = `whoami`; # fixme
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo", "mincpik", $converter);
@@ -185,7 +184,9 @@ open LOG, ">$logfile";
 LOG->autoflush(1);
 &logHeader();
 
-# if xlog is set, fork a tail on log file.
+################################################################
+###############if xlog is set, fork a tail on log file.#########
+################################################################
 my $childPID; 
 if ($xlog) { 
     $childPID = fork(); 
@@ -195,7 +196,9 @@ if ($xlog) {
     } 
 }
 
-# establish database connection
+################################################################
+#########establish database connection##########################
+################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
@@ -211,8 +214,6 @@ extracting information ... if there is
 # fixme documentation needed
 =cut
 
-my ($PSCID, $md5sumArchive, $visitLabel, $gender);
-
 ################################################################
 #######################instantiate MRIProcessingUtility#########
 ################################################################
@@ -222,12 +223,14 @@ my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
 ################################################################
 ################Register programs###############################
 ################################################################
-
 $utility->registerProgs(@progs);
+
 ################################################################
 #######################Construct the tarchiveinfo Array#########
 ################################################################
-my %tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
+my %tarchiveInfo = $utility->createTarchiveArray($tarchive,
+                                                 $globArchiveLocation
+                                                );
 
 ################################################################
 ####################Call the validation script##################
@@ -237,48 +240,33 @@ my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
 my $output = system($script); 
 
 ################################################################
-#######################is_valid column##########################
-################################################################
-my $where = "WHERE ArchiveLocation='$tarchive'";
-if($globArchiveLocation) {
-    $where = "WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
-}
-my $query = "SELECT IsValidated FROM tarchive ";
-$query = $query . $where;
-
-my $is_valid = $dbh->selectrow_array($query);
-
-################################################################
 #############Exit if the is_valid is false and $force is not####
 ################################################################
-if (($is_valid == 0) && ($force==0)) {
+if (($output == 0) && ($force==0)) {
  $message = "\n ERROR: The validation has failed.
                        Either run the validation again and fix 
                        the problem. Or use -force to force the 
                        execution.\n\n";
  print $message;
- $utility->writeErrorLog($logfile, $message, 77); 
- exit 77;
+ $utility->writeErrorLog($logfile, $message, 5); 
+ exit 5;
 }
 
 ################################################################
-#################eGet the $psc,$center_name, $centerID##########
+#################Get the $psc,$center_name, $centerID###########
 ################################################################
 my ($psc,$center_name, $centerID) = $utility->determinPSC(\%tarchiveInfo,0);
 
 ################################################################
+#############################determin the ScannerID ############
 ################################################################
-####determin the ScannerID ##################################### 
-################################################################
-################################################################
-my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,$centerID,$NewScanner);
+my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,
+                                            $centerID,$NewScanner
+                                           );
 
-################################################################
 ################################################################
 ######Construct the $subjectIDsref array########################
 ################################################################
-################################################################
-
 my $subjectIDsref = $utility->determinSubjectID($scannerID,\%tarchiveInfo,0);
 
 ################################################################
@@ -302,24 +290,21 @@ my ($ExtractSuffix,$study_dir,$header) =
     $utility->extractAndParseTarchive($tarchive);
 
 ################################################################
-#########Now we know that we actually have data and############# 
-###############more things have#################################
-# to happen so let get started:#################################
 # make the notifier object######################################
 ################################################################
 my $notifier = NeuroDB::Notify->new(\$dbh);
 
 ################################################################
-# convert the dicom data to minc
+##################### convert the dicom data to minc############
 ################################################################
 $utility->dicom_to_minc($study_dir,$converter,$get_dicom_info,
                         $exclude,$mail_user);
+
 ################################################################
-# get list of mincs
+###################get list of mincs############################
 ################################################################
 my @minc_files = ();
 $utility->get_mincs(\@minc_files);
-
 my $mcount = $#minc_files + 1;
 print "\nNumber of MINC files that will be considered for inserting 
       into the database: $mcount\n";
@@ -329,9 +314,9 @@ print "\nNumber of MINC files that will be considered for inserting
 if ($mcount < 1) { 
     $message = "\nNo data could be converted into valid MINC files. 
                 Localizers will not be considered! \n" ; 
-    $utility->writeErrorLog($logfile, $message, 99); 
+    $utility->writeErrorLog($logfile, $message, 6); 
     print $message; 
-    exit 99; 
+    exit 6; 
 }
 
 ################################################################
@@ -355,8 +340,8 @@ foreach my $minc (@minc_files) {
     elsif (!$valid_study) {
         $newTarchiveLocation = $utility->moveAndUpdateTarchive($tarchive,\%tarchiveInfo);
     }
-
     $tarchive = $newTarchiveLocation;
+
     ###########################################################
     ####################Call the minc_insertion script#########
     ###########################################################
@@ -379,13 +364,11 @@ foreach my $minc (@minc_files) {
     }
 } # end foreach $minc
 
-##########################################################
-########################Call mass_pic.pl##################
-##########################################################
+################################################################
+########################Create minc-pics########################
+################################################################
+
 if ($valid_study) {
-    ##########################################################
-    ##Calls the mass_picget the new file_path using the temp mapping table######
-    ##########################################################
     $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
     my $where = "WHERE TarchiveSource = '$tarchiveInfo{'TarchiveID'}'";
     $query = $query . $where;
@@ -397,12 +380,16 @@ if ($valid_study) {
         . "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] -profile prod ";
         $output = system($script);
     }
+
     ############################################################
     # spool a new study message#################################
     ############################################################
-    $notifier->spool('mri new study', $subjectIDsref->{'CandID'} . 
-    " " . $subjectIDsref->{'PSCID'} . " " . $subjectIDsref->{'visitLabel'} .
-    "\tacquired ". $tarchiveInfo{'DateAcquired'});
+    $notifier->spool('mri new study', 
+                      $subjectIDsref->{'CandID'} . 
+                      " " . $subjectIDsref->{'PSCID'} .
+                      " " . $subjectIDsref->{'visitLabel'} .
+                      "\tacquired ". $tarchiveInfo{'DateAcquired'}
+                    );
     ############################################################
     ####link the tarchive with session##########################
     ############################################################
@@ -414,10 +401,10 @@ if ($valid_study) {
     # spool a failure message This has been changed to tarchive# 
     ###instead of using patientName#############################
     ############################################################
-    $notifier->spool(
-        'mri invalid study', $tarchive. " acquired ". 
-        $tarchiveInfo{'DateAcquired'} ." was deemed invalid\n\n". $study_dir
-    );
+    $notifier->spool('mri invalid study', $tarchive. " acquired ". 
+                      $tarchiveInfo{'DateAcquired'} .
+                     " was deemed invalid\n\n". $study_dir
+                    );
 }
 
 ################################################################
@@ -475,9 +462,7 @@ my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
 ################################################################
 if ($xlog) {
     `kill -9 $childPID`;
-#    kill 1, $childPID;
 }
-
 
 
 sub logHeader () {
@@ -491,17 +476,3 @@ sub logHeader () {
 ";
 }
 
-
-
-################################################################
-################### determines where the mincs will go...#######
-################################################################
-sub which_directory {
-    my ($subjectIDsref) = @_;
-    my %subjectIDs = %$subjectIDsref;
-    my $dir = $data_dir;
-    
-    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}/mri";
-    $dir =~ s/ //;
-    return $dir;
-}
