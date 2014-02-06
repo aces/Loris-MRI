@@ -640,8 +640,8 @@ sub get_mincs {
     my @files_list;
     foreach my $file (@files) {
         next unless $file =~ /\.mnc(\.gz)?$/;
-        push @files_list, `Mincinfo -quiet -tab -file -date 
-             $this->{TmpDir}/$file`;
+        my $cmd= "Mincinfo -quiet -tab -file -date $this->{TmpDir}/$file";
+        push @files_list, `$cmd`;
     }
     open SORTER, "|sort -nk2 | cut -f1 > $this->{TmpDir}/sortlist";
     print SORTER join("", @files_list);
