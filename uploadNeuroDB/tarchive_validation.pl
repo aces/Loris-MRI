@@ -55,9 +55,7 @@ my @opt_table = (
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a new 
                   scanner will be registered if the data you upload requires 
                   it. You can risk turning it off."],
-                 ["Fancy options","section"],
-                 ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on
-                  the current log file."],
+                 ["Fancy options","section"]
                  );
 
 my $Help = <<HELP;
@@ -292,3 +290,17 @@ $query = $query . $where;
 $dbh->do($query);
 
 exit 0;
+
+
+sub logHeader () {
+    print LOG "
+----------------------------------------------------------------
+            AUTOMATED DICOM DATA UPLOAD
+----------------------------------------------------------------
+*** Date and time of upload    : $date
+*** Location of source data    : $tarchive
+*** tmp dir location           : $TmpDir
+";
+}
+
+
