@@ -238,11 +238,10 @@ my %tarchiveInfo = $utility->createTarchiveArray($tarchive,
 my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
              ."tarchive_validation.pl $tarchive -profile prod";
 my $output = system($script); 
-
 ################################################################
 #############Exit if the is_valid is false and $force is not####
 ################################################################
-if (($output == 0) && ($force==0)) {
+if (($output != 0) && ($force==0)) {
  $message = "\n ERROR: The validation has failed.
                        Either run the validation again and fix 
                        the problem. Or use -force to force the 
@@ -369,7 +368,7 @@ foreach my $minc (@minc_files) {
 ################################################################
 
 if ($valid_study) {
-    $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
+    my $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
     my $where = "WHERE TarchiveSource = '$tarchiveInfo{'TarchiveID'}'";
     $query = $query . $where;
     my $sth = $dbh->prepare($query);
