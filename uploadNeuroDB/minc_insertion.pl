@@ -162,6 +162,13 @@ LOG->autoflush(1);
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
+
+################################################################
+################## MRIProcessingUtility object##################
+################################################################
+my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
+            $verbose);
+
 ################################################################
 #######################is_valid column##########################
 ################################################################
@@ -169,9 +176,9 @@ my $where = "WHERE t.ArchiveLocation='$tarchive'";
 if ($globArchiveLocation) {
     $where = "WHERE t.ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
-my $query = "SELECT IsValidated FROM mri_upload m
-             JOIN tarchive t on (t.TarchiveID = m.TarchiveID)";
-$query = $query . $where;
+my $query = "SELECT m.IsValidated FROM mri_upload m
+             JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
+print $query . "\n";
 my $is_valid = $dbh->selectrow_array($query);
 
 if (($is_valid == 0) && ($force==0)) {
@@ -180,16 +187,10 @@ if (($is_valid == 0) && ($force==0)) {
                        the problem. Or use -force to force the 
                        execution.\n\n";
     print $message;
-    &writeErrorLog($logfile, $message, 6); 
+    $utility->writeErrorLog($logfile, $message, 6); 
     exit 6;
 }
 
-
-################################################################
-################## MRIProcessingUtility object##################
-################################################################
-my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
-            $verbose);
 
 ################################################################
 #######################Construct the tarchiveinfo Array#########
@@ -346,7 +347,22 @@ $notifier->spool(
 
 print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
 
+
 ################################################################
 ##############################succesfully completed#############
 ################################################################
 exit 0;
+
+
+sub logHeader () {
+    print LOG "
+----------------------------------------------------------------
+            AUTOMATED DICOM DATA UPLOAD
+----------------------------------------------------------------
+*** Date and time of upload    : $date
+*** Location of source data    : $tarchive
+*** tmp dir location           : $TmpDir
+";
+}
+
+
