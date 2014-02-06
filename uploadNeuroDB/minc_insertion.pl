@@ -41,13 +41,11 @@ my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my ($PSCID, $md5sumArchive, $visitLabel, $gender);
 my ($tarchive,%tarchiveInfo,$minc);
 
 ################################################################
 #### These settings are in a config file (profile)##############
 ################################################################
-my %tarchiveInfo;
 my @opt_table = (
                  ["casic options","section"],
                  ["-profile","string",1, \$profile, "name of config file 
@@ -83,7 +81,7 @@ my @opt_table = (
 
 my $Help = <<HELP;
 *******************************************************************************
-Dicom Validator 
+Minc Insertion 
 *******************************************************************************
 
 Author  :   
@@ -91,7 +89,17 @@ Date    :
 Version :   $versionInfo
 
 
-The program does the following validation
+The program does the following:
+
+- Loads the created minc file and then the set the appropriate parameter for 
+  the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
+                     PendingStaging, CoordinateSpace , OutputType , FileType
+                     ,TarchiveSource and Caveat)
+- Extracts teh correct acquitionprotocol
+- Registers the scaninto db by first changing the minc-path and setting extra
+  parameters
+- Finally sets the series notification
+
 ====explain====
 
 HELP
@@ -113,7 +121,7 @@ if ($profile && !defined @Settings::db) {
     exit 2; 
 }
 
-if(!$profile) { 
+if (!$profile) { 
     print $Help; print "$Usage\n\tERROR: You must specify a valid 
     and an existing profile.\n\n";  
     exit 3; 
@@ -144,10 +152,9 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0700); 
 }
 my $logfile  = "$LogDir/$templog.log";
-    
 open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
-print LOG "testing";
+&logHeader();
 
 ################################################################
 ###################establish database connection################
@@ -155,36 +162,34 @@ print LOG "testing";
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
-
-################################################################
-##################instantiate Construct MRIProcessingUtility####
-#########################object#################################
-################################################################
-my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
-            $verbose);
-
-
 ################################################################
 #######################is_valid column##########################
 ################################################################
-
-my $where = "WHERE ArchiveLocation='$tarchive'";
-if($globArchiveLocation) {
-    $where = "WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
+my $where = "WHERE t.ArchiveLocation='$tarchive'";
+if ($globArchiveLocation) {
+    $where = "WHERE t.ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
-my $query = "SELECT IsValidated FROM tarchive ";
+my $query = "SELECT IsValidated FROM mri_upload m
+             JOIN tarchive t on (t.TarchiveID = m.TarchiveID)";
 $query = $query . $where;
 my $is_valid = $dbh->selectrow_array($query);
 
 if (($is_valid == 0) && ($force==0)) {
- $message = "\n ERROR: The validation has failed.
+    $message = "\n ERROR: The validation has failed.
                        Either run the validation again and fix 
                        the problem. Or use -force to force the 
                        execution.\n\n";
- print $message;
- &writeErrorLog($logfile, $message, 6); exit 6;
+    print $message;
+    &writeErrorLog($logfile, $message, 6); 
+    exit 6;
 }
 
+
+################################################################
+################## MRIProcessingUtility object##################
+################################################################
+my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
+            $verbose);
 
 ################################################################
 #######################Construct the tarchiveinfo Array#########
@@ -201,7 +206,9 @@ my ($psc,$center_name, $centerID) = $utility->determinPSC(\%tarchiveInfo,0);
 ####determin the ScannerID ##################################### 
 ################################################################
 ################################################################
-my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,$centerID,$NewScanner);
+my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,$centerID,
+                                            $NewScanner
+                                           );
 
 ################################################################
 ################################################################
@@ -231,20 +238,19 @@ if (($is_valid) and !($force)){
     $CandMismatchError = undef;
 }
 
-
 ################################################################
-# ----- STEP 6: Get the SessionID###############################
+################Get the SessionID###############################
 ################################################################
 my ($sessionID, $requiresStaging) =
-    NeuroDB::MRI::getSessionID( $subjectIDsref, $tarchiveInfo{'DateAcquired'},
-         \$dbh, $subjectIDsref->{'subprojectID'});
+    NeuroDB::MRI::getSessionID( $subjectIDsref, 
+                                $tarchiveInfo{'DateAcquired'},
+                                \$dbh, $subjectIDsref->{'subprojectID'}
+                              );
 
 ################################################################
-############make the notifier object############################
+############Construct the notifier object#######################
 ################################################################
 my $notifier = NeuroDB::Notify->new(\$dbh);
-
-
 
 ################################################################
 #### Load/Create create File object#############################
@@ -255,7 +261,7 @@ my $file = $utility->loadAndCreateObjectFile($minc);
 ################################################################
 ##optionally do extra filtering, if needed######################
 ################################################################
-if( defined( &Settings::filterParameters )) {
+if (defined(&Settings::filterParameters)) {
     print LOG " --> using user-defined filterParameters for $minc\n"
     if $verbose;
     Settings::filterParameters(\$file);
@@ -270,8 +276,7 @@ if( defined( &Settings::filterParameters )) {
 ################################################################
 
 print LOG "Candidate Mismatch Error is $CandMismatchError\n";
-
-if(defined($CandMismatchError)) {
+if (defined($CandMismatchError)) {
     print LOG " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
     $candlogSth->execute(
@@ -287,10 +292,8 @@ if(defined($CandMismatchError)) {
 ################################################################
 ##############compute the md5 hash##############################
 ################################################################
-
 my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
-
     print "--> WARNING: This file has already been uploaded! \n"  if $debug;
     print LOG " --> WARNING: This file has already been uploaded!"; 
     exit 8; 
@@ -302,28 +305,32 @@ if (!$unique) {
 ################################################################
 $file->setParameter('ScannerID', $scannerID);
 $file->setFileData('SessionID', $sessionID);
-
 $file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
 $file->setFileData('EchoTime', $file->getParameter('echo_time'));
-
 $file->setFileData('PendingStaging', $requiresStaging);
 $file->setFileData('CoordinateSpace', 'native');
 $file->setFileData('OutputType', 'native');
 $file->setFileData('FileType', 'mnc');
 $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
 $file->setFileData('Caveat', 0);
+
 ################################################################
 ##get acquisition protocol (identify the volume)################
 ################################################################
 my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
-  = $utility->getAcquisitionProtocol(\$file,$subjectIDsref,\%tarchiveInfo,$center_name,$minc);
+  = $utility->getAcquisitionProtocol(\$file,$subjectIDsref,
+                                     \%tarchiveInfo,$center_name,
+                                     $minc
+                                    );
 
 ################################################################
 # Register scans into the database.  Which protocols############
 ###to keep optionally controlled by the config file#############
 ################################################################
-
-$utility->registerScanIntoDB(\$file, \%tarchiveInfo,$subjectIDsref, $acquisitionProtocol, $minc, @checks, $reckless, $tarchive, $sessionID);
+$utility->registerScanIntoDB(\$file, \%tarchiveInfo,$subjectIDsref, 
+                             $acquisitionProtocol, $minc, @checks, 
+                             $reckless, $tarchive, $sessionID
+                            );
 
 ################################################################
 ### add series notification#####################################
@@ -343,4 +350,3 @@ print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
 ##############################succesfully completed#############
 ################################################################
 exit 0;
-
