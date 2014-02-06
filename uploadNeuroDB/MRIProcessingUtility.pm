@@ -557,7 +557,6 @@ sub registerScanIntoDB {
         ######################################################## 
         $file_path   =   $minc;
         $file_path      =~  s/$data_dir\///i;
-            if $this->{debug};
         $${file}->setFileData('File', $file_path);
 
         #######################################################
@@ -595,27 +594,28 @@ sub dicom_to_minc {
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,$exclude,$mail_user) = @_;
     my ($d2m_cmd,$d2m_log,$exit_code);
-    # info :   1        2      3      4     5          6          7
     $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series"
                   . " -echo -image -file -series_descr -attvalue 0018 0024"
                   . " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 | grep -iv"
                   . " $exclude | cut -f 5 | ";
+    
     ############################################################
     ####use some other converter if specified in the config#####
     ############################################################
-
     if ($converter ne 'dcm2mnc') {
         $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
     } else {
         $d2m_cmd .= "dcm2mnc -dname '' -stdin -clobber $this->{TmpDir} ";
-      }
+    }
     print "\n" . $d2m_cmd . "\n";
     $d2m_log = `$d2m_cmd`;
 
     if($? > 0) {
-
         $exit_code = $? >> 8;
-        # dicom_to_minc failed...  don't keep going, just email.
+        ########################################################
+        # dicom_to_minc failed...  don't keep going,############ 
+        #####just email.########################################
+        ########################################################
         open MAIL, "| mail $mail_user";
         print MAIL "Subject: [URGENT Automated] uploadNeuroDB: 
                     dicom->minc failed\n";
@@ -637,7 +637,6 @@ sub get_mincs {
     opendir TMPDIR, $this->{TmpDir} ;
     my @files = readdir TMPDIR;
     closedir TMPDIR;
-
     my @files_list;
     foreach my $file (@files) {
         next unless $file =~ /\.mnc(\.gz)?$/;
@@ -656,8 +655,9 @@ sub get_mincs {
     close SORTLIST;
     `rm -f $this->{TmpDir}/sortlist`;
     $this->{LOG}->print("\n### These MINC files have been created: \n".
-              join("\n", @$minc_files)."\n");
-}
+                         join("\n", @$minc_files)."\n"
+                       );
+}  
 
 ################################################################
 ##########################concat_mri############################
@@ -669,16 +669,17 @@ sub concat_mri {
   
     my $this = shift;
     my ($minc_files) = @_;
-    my ($cmd,$log,$concat_count)
-    # make a list of the mincs to concat (avoid arg list too long errors)
+    my ($cmd,$log,$concat_count);
+    ################################################################
+    # make a list of the mincs to concat (avoid arg list too long### 
+    #########errors)################################################
+    ################################################################
     open CONCATFILES, ">$this->{TmpDir} /concatfilelist.txt";
     foreach my $file (@$minc_files) {
         print CONCATFILES "$file\n";
     }
     close CONCATFILES;
-
     mkdir("$this->{TmpDir} /concat", 0700);
-
     $cmd = "cat $this->{TmpDir} /concatfilelist.txt | concat_mri.pl
             -maxslicesep 3.1 -compress -postfix _concat -targetdir 
             $this->{TmpDir} /concat -stdin";
@@ -688,8 +689,9 @@ sub concat_mri {
 
     $log = `$cmd`;
     `rm -f $this->{TmpDir} /concatfilelist.txt`;
-
+    ############################################################
     # fixme print LOG "Concat:\n $cmd\n$log\n" if $this->{verbose};
+    ############################################################
     $concat_count = `\\ls -1 $this->{TmpDir} /concat | wc -l`+0;
     if($concat_count > 0) {
         `mv $this->{TmpDir} /concat/*.mnc.gz $this->{TmpDir} `;
@@ -700,8 +702,6 @@ sub concat_mri {
                        );
 }
 
-
-
 ################################################################
 ########################registerProgs#####################
 ################################################################
@@ -710,7 +710,9 @@ sub registerProgs() {
     my @toregister = @_;
     foreach my $prog (@toregister) {
         my $present = `which $prog`;
-        if (!$present) { die("$prog not found") };
+        if (!$present) { 
+            die("$prog not found")
+        };
     }
 }
 
@@ -735,7 +737,6 @@ sub moveAndUpdateTarchive {
     ########################################################
     #######determine the new name of the tarchive###########
     ########################################################
-
     $newTarchiveFilename = basename($tarchive_location);
     $newTarchiveLocation .= "/".$newTarchiveFilename;
 
@@ -752,7 +753,6 @@ sub moveAndUpdateTarchive {
               ${$this->{'dbhr'}}->quote($newTarchiveLocation)." WHERE DicomArchiveID="
              .${$this->{'dbhr'}}->quote($tarchiveInfo->{'DicomArchiveID'});
     print $query . "\n"  if $this->{debug};
-
     ${$this->{'dbhr'}}->do("UPDATE tarchive SET ArchiveLocation=".
                             ${$this->{'dbhr'}}->quote($newTarchiveLocation)." WHERE DicomArchiveID="
                             .${$this->{'dbhr'}}->quote($tarchiveInfo->{'DicomArchiveID'})
@@ -824,7 +824,6 @@ sub CreateMRICandidates {
 ###############################setMRISession####################
 ################################################################
 sub setMRISession {
-
     my $this = shift;
     my $query = '';
     my ($subjectIDsref, $tarchiveInfo) = @_;
