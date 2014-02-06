@@ -34,11 +34,10 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
 
 my $NewScanner  = 1;           # This should be the default unless you are a
                                # control freak
-my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my ($PSCID, $md5sumArchive, $visitLabel, $gender, $tarchive,%tarchiveInfo);
+my ($gender, $tarchive,%tarchiveInfo);
 my $User             = `whoami`; 
 
 my @opt_table = (
@@ -70,9 +69,27 @@ Author  :
 Date    :   
 Version :   $versionInfo
 
-
 The program does the following validation
-====explain====
+
+
+- Verify the archive using the checksum from database
+
+- Verify PSC information using whatever field contains site string
+
+- Verify/Determine the ScannerID (optionally create a new one if necessary)
+
+- Optionally create candidates as needed Standardize gender (DICOM uses M/F, 
+  DB uses Male/Female)
+
+- Check the CandID/PSCID Match It's possible that the CandID exists, but 
+  doesn't match the PSCID. This will fail further
+  down silently, so we explicitly check that the data is correct here.
+
+- Validate/Get the SessionID
+
+- Optionally do extra filtering on the dicom data, if needed
+
+- Finally the isValid is set true in the MRI_Upload table
 
 HELP
 my $Usage = <<USAGE;
@@ -89,19 +106,19 @@ USAGE
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a 
     configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
-    exit 33; 
+    exit 2; 
 }
 if(!$ARGV[0] || !$profile) { 
     print $Help; 
     print "$Usage\n\tERROR: You must specify a valid tarchive and an existing
      profile.\n\n";  
-    exit 33;  
+    exit 3;  
 }
-my $tarchive = abs_path($ARGV[0]);
+$tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
     print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the
      path to the archive is correct. Upload will exit now.\n\n\n";
-    exit 33;
+    exit 4;
 }
 
 ################################################################
@@ -110,7 +127,6 @@ unless (-e $tarchive) {
 ################################################################
 ###########Create the Specific Log File#########################
 ################################################################
-
 my $data_dir         = $Settings::data_dir;
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
@@ -122,6 +138,7 @@ if (!-d $LogDir) {
 my $logfile  = "$LogDir/$templog.log";
 open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
+&logHeader();
 
 ################################################################
 ################ establish database connection##################
@@ -131,15 +148,21 @@ print LOG "\n==> Successfully connected to database \n";
 
 
 ################################################################
-##################instantiate Construct MRIProcessingUtility####
-#########################object#################################
+################MRIProcessingUtility object#####################
 ################################################################
 my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
             $verbose);
 
+
+################################################################
+############################Create tarchive array ##############
+################################################################
+################################################################
 %tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
-#################################################################
-####STEP 1: Verify the archive using the checksum from database#
+
+
+################################################################
+####Verify the archive using the checksum from database#########
 ################################################################
 ################################################################
 
@@ -147,47 +170,53 @@ $utility->validateArchive($tarchive,\%tarchiveInfo);
 
 ################################################################
 ################################################################
-#######STEP 2: Verify PSC information using whatever field###### 
+####### Verify PSC information using whatever field############# 
 ####contains site string########################################
 ################################################################
 ################################################################
 my ($psc,$center_name, $centerID) =$utility->determinPSC(\%tarchiveInfo,1);
 
-
 ################################################################
 ################################################################
-####STEP 3: Determine the ScannerID (optionally create a######## 
+####Determine the ScannerID (optionally create a################ 
 ####new one if necessary)#######################################
 ################################################################
 ################################################################
 
-my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,$centerID,$NewScanner);
+my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,
+                                            $centerID,$NewScanner
+                                           );
 
 ################################################################
 ################################################################
-######STEP 4: Determine the subject identifiers#################
+######Determine the subject identifiers#########################
 ################################################################
 ################################################################
 my $subjectIDsref = $utility->determinSubjectID($scannerID,\%tarchiveInfo,1);
 
 ################################################################
 ################################################################
-# ----- STEP 5: Optionally create candidates as needed##########
-# Standardize gender (DICOM uses M/F, DB uses Male/Female)######
+#Optionally create candidates as needed Standardize gender######
+#### (DICOM uses M/F, DB uses Male/Female)######################
+################################################################
+################################################################
+$utility->CreateMRICandidates($subjectIDsref,$gender,
+                              \%tarchiveInfo,$User,
+                              $centerID
+                             );
+
+################################################################
+################################################################
+#Check the CandID/PSCID Match It's possible that the CandID##### 
+##exists, but doesn't match the PSCID. This will fail further###
+### down silently, so we explicitly check that the data is######
+### correct here.###############################################
 ################################################################
 ################################################################
 
-$utility->CreateMRICandidates($subjectIDsref,$gender,\%tarchiveInfo,$User,$centerID);
-
 ################################################################
+##################Check if CandID exists########################
 ################################################################
-# ----- STEP 5a: Check the CandID/PSCID Match###################
-# It's possible that the CandID exists, but doesn't match the### 
-##PSCID. This will fail further down silently, so we explicitly#
-# check that the data is correct here.##########################
-################################################################
-################################################################
-
 my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
 my $logQuery = "INSERT INTO MRICandidateErrors (SeriesUID, TarchiveID, MincFile,
                  PatientName, Reason) VALUES (?, ?, ?, ?, ?)";
@@ -199,8 +228,12 @@ my $CandMismatchError;
 if ($sth->rows == 0) {
     print LOG  "\n\n => No candID";
     $CandMismatchError = 'CandID does not exist';
-    exit 77;
+    exit 5;
 }
+
+################################################################
+##################Check if PSCID exists#########################
+################################################################
 
 $query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
 $sth = $dbh->prepare($query);
@@ -208,16 +241,22 @@ $sth->execute($subjectIDsref->{'PSCID'});
 if ($sth->rows == 0) {
     print LOG  "\n\n => No PSCID";
     $CandMismatchError= 'PSCID does not exist';
-    exit 77;
+    exit 6;
 }   
 
+################################################################
+##################Check if both PSCID and CandID match##########
+################################################################
 my @PSCIDCheck = $sth->fetchrow_array;
 if ($PSCIDCheck[0] != $CandIDCheck[0] || $PSCIDCheck[1] != $CandIDCheck[1]) {
     print LOG  "\n\n => CandID and PSCID mismatch";
     $CandMismatchError = 'CandID and PSCID do not match database';
-     exit 77;
+     exit 7;
 }
 
+################################################################
+##################No Checking if the subject is Phantom#########
+################################################################
 if ($subjectIDsref->{'isPhantom'}) {
     # CandID/PSCID errors don't apply to phantoms, so we don't want to trigger
     # the check which aborts the insertion
@@ -227,12 +266,12 @@ if ($subjectIDsref->{'isPhantom'}) {
 ################################################################
 ###################Get the SessionID############################
 ################################################################
-
 my ($sessionID, $requiresStaging) = 
     $utility->setMRISession($subjectIDsref, \%tarchiveInfo);
+
 ################################################################
 ###extract the tarchive and feed the dicom data dir to########## 
-###########3the uploader########################################
+###########the uploader########################################
 ################################################################
 
 my ($ExtractSuffix,$header,$study_dir) = 
@@ -247,11 +286,9 @@ if( defined( &Settings::dicomFilter )) {
 ################################################################
 ##############Set the isValid to true###########################
 ################################################################
-my $where = "WHERE ArchiveLocation='$tarchive'";
-if($globArchiveLocation) {
-     $where = "WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
-}
-$query = "UPDATE tarchive SET IsValidated='1' ";
+my $where = "WHERE TarchiveID='$tarchiveInfo{TarchiveID}'";
+$query = "UPDATE mri_upload SET IsValidated='1' ";
 $query = $query . $where;
 $dbh->do($query);
+
 exit 0;
