@@ -140,7 +140,7 @@ sub Execute {
 #####################################################################################
 ###############create the archive files##############################################
 ######################################################################################
-        $cmd = "$DICOMTAR $file_path $tarchive_location -clobber -database -profile $profile ";
+        $cmd = "$DICOMTAR $file_path $tarchive_location -mri_upload_update -clobber -database -profile $profile ";
         print $cmd . "\n";
         system($cmd);
 

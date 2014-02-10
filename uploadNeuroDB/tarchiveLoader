@@ -236,7 +236,9 @@ my %tarchiveInfo = $utility->createTarchiveArray($tarchive,
 ####################Call the validation script##################
 ################################################################
 my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
-             ."tarchive_validation.pl $tarchive -profile prod";
+             ."tarchive_validation.pl $tarchive -profile prod " 
+             . "-globLocation";
+print $script . "\n";
 my $output = system($script); 
 ################################################################
 #############Exit if the is_valid is false and $force is not####
