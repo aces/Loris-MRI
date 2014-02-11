@@ -1,3 +1,0 @@
-export PATH=/data/PROJECT/bin/mri:/data/PROJECT/bin/mri/uploadNeuroDB:$PATH
-export PERL5LIB=/data/PROJECT/bin/mri/uploadNeuroDB:/data/PROJECT/bin/mri:$PERL5LIB
-export TMPDIR=/tmp
