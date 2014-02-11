@@ -1,0 +1,3 @@
+export PATH=/data/ibis/bin/mri:/data/ibis/bin/mri/uploadNeuroDB:$PATH
+export PERL5LIB=/data/ibis/bin/mri/uploadNeuroDB:$PERL5LIB
+export TMPDIR=/tmp
