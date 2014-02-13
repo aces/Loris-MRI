@@ -325,7 +325,7 @@ if ($mcount < 1) {
 #At this step we actually have (multiple) MINC files so we loop#
 # a valid study has at least one file that can be uploaded######
 ################################################################
-
+$minc_inserted = 0;
 foreach my $minc (@minc_files) {
 
     ############################################################
@@ -361,15 +361,28 @@ foreach my $minc (@minc_files) {
     ##one volume will be nserted into the DB################
     ########################################################
     if ($output==0) {
+       $minc_inserted++
        $valid_study = 1;
     }
 } # end foreach $minc
 
-################################################################
-########################Create minc-pics########################
-################################################################
-
 if ($valid_study) {
+
+
+    ############################################################
+    # update the number_of_mincCreated##########################
+    ### and number_of_mincInserted##############################
+    ############################################################
+
+    my $query = "UPDATE mri_upload SET number_of_mincInserted=\'$minc_inserted\' 
+    , number_of_mincCreated =\'$mcount\'
+    WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
+    $dbh->do($query);
+ 
+    ############################################################
+    ###############Create minc-pics#############################
+    ############################################################
+
     my $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
     my $where = "WHERE TarchiveSource = '$tarchiveInfo{'TarchiveID'}'";
     $query = $query . $where;
@@ -382,6 +395,7 @@ if ($valid_study) {
         $output = system($script);
     }
 
+    
     ############################################################
     # spool a new study message#################################
     ############################################################
