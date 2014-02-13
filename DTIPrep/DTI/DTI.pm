@@ -667,13 +667,12 @@ sub mincdiff_preprocess {
     my $preproc_minc  = $DTIrefs->{$dti_file}{'Postproc'}{'preproc'}{'minc'};
     my $baseline      = $DTIrefs->{$dti_file}{'Postproc'}{'baseline'}{'minc'};
     my $anat_mask     = $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask'}{'minc'};
-    my $anat_mask_diff= $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_diff'}{'minc'};
 
     # Run diff_preprocess.pl script 
     `diff_preprocess.pl -anat $raw_anat $QCed_minc $preproc_minc -outdir $QCoutdir`;
 
     # Check that all output files were created
-    if ((-e $preproc_minc) && (-e $anat_mask) && ($anat_mask_diff) && (-e $baseline)) {
+    if ((-e $preproc_minc) && (-e $anat_mask) && (-e $baseline)) {
         $DTIrefs->{$dti_file}{'mincdiff_preproc_status'}    = "success";
         return 1;
     } else {
@@ -711,6 +710,7 @@ sub mincdiff_minctensor {
     my $FA            = $DTIrefs->{$dti_file}{'Postproc'}{'FA'}{'minc'};
     my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD'}{'minc'};
     my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB'}{'minc'};
+    my $anat_mask_diff= $DTIrefs->{$dti_file}{'Postproc'}{'anat_mask_diff'}{'minc'};
 
     # Change directory to make sure outputs 
 
@@ -718,7 +718,7 @@ sub mincdiff_minctensor {
     `minctensor.pl -mask $anat_mask $preproc_minc -niakdir $niak_path -outputdir $QCoutdir -octave $QCoutdir/$QCed_basename`;
 
     # Check that all output files were created
-    if ((-e $FA) && (-e $RGB) && (-e $MD)) {
+    if ((-e $FA) && (-e $RGB) && (-e $MD) && (-e $anat_mask_diff)) {
         $DTIrefs->{$dti_file}{'minctensor_status'}  = "success";
         return 1;
     } else {
