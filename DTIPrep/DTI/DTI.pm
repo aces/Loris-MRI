@@ -712,8 +712,10 @@ sub mincdiff_minctensor {
     my $MD            = $DTIrefs->{$dti_file}{'Postproc'}{'MD'}{'minc'};
     my $RGB           = $DTIrefs->{$dti_file}{'Postproc'}{'RGB'}{'minc'};
 
+    # Change directory to make sure outputs 
+
     # Run minctensor.pl script  
-    `minctensor.pl -mask $anat_mask $preproc_minc -niakdir $niak_path -outputdir $QCoutdir -octave $QCed_basename`;
+    `minctensor.pl -mask $anat_mask $preproc_minc -niakdir $niak_path -outputdir $QCoutdir -octave $QCoutdir/$QCed_basename`;
 
     # Check that all output files were created
     if ((-e $FA) && (-e $RGB) && (-e $MD)) {
