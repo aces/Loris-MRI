@@ -200,6 +200,9 @@ foreach my $nativedir (@nativedirs)   {
     #######################
     ####### Step 8: ####### Register files into the DB if $RegisterFiles option is defined
     #######################
+    print LOG "\n##################\n";
+    print LOG "# Register files into database.";
+    print LOG "\n##################\n";
     if ($RegisterFiles) {
         &register_processed_files_in_DB($DTIs_list, 
                                         $DTIrefs, 
@@ -209,7 +212,7 @@ foreach my $nativedir (@nativedirs)   {
                                         $mincdiffVersion
                                        );
     } else {
-        print LOG "Processed files won't be registered in the database.\n";
+        print LOG "\t==> Processed files won't be registered in the database.\n";
         next;
     }
 
@@ -269,7 +272,7 @@ sub getIdentifiers {
     my ($site, $subjID, $visit) = &Settings::get_DTI_Site_CandID_Visit($nativedir); 
     if ((!$site) || (!$subjID) || (!$visit))  {
         print LOG "\n#############################\n";
-        print LOG "\nWARNING:Cannot find site,ID,visit for $nativedir\n";
+        print LOG "WARNING:Cannot find site,ID,visit for $nativedir\n";
         print LOG "\n#############################\n";
         return undef;
     }else{
@@ -312,7 +315,7 @@ sub getOutputDirectories {
         my $verb_message = "create" if ($runDTIPrep );
         my $verb_message = "find"   if (!$runDTIPrep);
         print LOG "\n#############################\n";
-        print LOG "\nWARNING:Could not $verb_message QC out directory in $outdir for candidate $subjID, visit $visit and DTIPrep protocol $DTIPrepProtocol. \n";
+        print LOG "WARNING:Could not $verb_message QC out directory in $outdir for candidate $subjID, visit $visit and DTIPrep protocol $DTIPrepProtocol. \n";
         print LOG "\n#############################\n";
         return undef;
     } else {
@@ -353,7 +356,7 @@ sub fetchData {
     my ($DTIs_list)    = &DTI::getRawDTIFiles($nativedir, $DTI_volumes);   
     if  (@$DTIs_list == 0) {
         print LOG "\n#############################\n";
-        print LOG "\nWARNING: Could not find DTI files with $DTI_volumes volumes for in $nativedir.\n";
+        print LOG "WARNING: Could not find DTI files with $DTI_volumes volumes for in $nativedir.\n";
         print LOG "\n#############################\n";
         return undef;
     }
@@ -398,7 +401,9 @@ sub preprocessingPipeline {
         my $QCed2_nrrd  = $DTIrefs->{$dti_file}{'Preproc'}{'QCed2'}{'nrrd'};
 
         # Run Preprocessing pipeline
-        print LOG "Running preprocessing pipeline on $dti_file (...)\n";
+        print LOG "\n##################\n";
+        print LOG "#Running preprocessing pipeline on $dti_file (...)\n";
+        print LOG "\n##################\n";
         # 1. convert raw DTI minc file to nrrd
         print LOG "\t1. Convert raw minc DTI to nrrd.\n";
         my ($convert_status)    = &preproc_mnc2nrrd($raw_nrrd, $dti_file);
@@ -411,10 +416,10 @@ sub preprocessingPipeline {
 
         # If one of the steps above failed, preprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
         if ((!$convert_status) || (!$DTIPrep_status) || (!$copyProt_status)) {
-            print LOG " => Preprocessing DTIPrep pipeline failed on $dti_file\n";
+            print LOG " \t==> Preprocessing DTIPrep pipeline failed on $dti_file\n";
             $DTIrefs->{$dti_file}{'preproc_status'} = "failed";
         } else {
-            print LOG " => DTIPrep was successfully run on $dti_file!\n";
+            print LOG " \t==> DTIPrep was successfully run on $dti_file!\n";
             $DTIrefs->{$dti_file}{'preproc_status'} = "success";
             # add 1 to varaible $at_least_one_success
             $at_least_one_success++;
@@ -536,6 +541,9 @@ sub check_and_convertPreprocessedFiles {
     foreach my $dti_file (@$DTIs_list) {
 
         # Check if all DTIPrep preprocessing (and postprocessing) outputs are available
+        print LOG "\n##################\n";
+        print LOG "# Check and convert preprocessed files.";
+        print LOG "\n##################\n";
         my ($foundPreprocessed) = &checkPreprocessOutputs($dti_file, $DTIrefs, $QCoutdir, $DTIPrepProtocol);
 
         # Convert QCed_nrrd DTI to minc   
@@ -543,12 +551,12 @@ sub check_and_convertPreprocessedFiles {
 
         # If one of the steps above failed, postprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
         if ($convert_status && $foundPreprocessed) {
-            print LOG "QCed data was found and successfuly converted to minc for $dti_file\n";
+            print LOG "\t\t-> QCed data was found and successfuly converted to minc for $dti_file\n";
             $DTIrefs->{$dti_file}{'preproc_convert_status'}    = "success";
             $at_least_one_success++;
         } else {
-            print LOG "Failed to find QCed data for $dti_file\n"            if (!$foundPreprocessed);
-            print LOG "Failed to convert QCed data to minc for $dti_file\n" if (!$convert_status);
+            print LOG "\t\t-> Failed to find QCed data for $dti_file\n"            if (!$foundPreprocessed);
+            print LOG "\t\t-> Failed to convert QCed data to minc for $dti_file\n" if (!$convert_status);
             $DTIrefs->{$dti_file}{'preproc_convert_status'}    = "failed";
         }
     }
@@ -598,11 +606,12 @@ sub checkPreprocessOutputs {
                         "\tQCXmlReport: $QCXmlReport"   .
                         "\tQCProt:      $QCProt\n"      ;
 
+    print LOG "\t 1. Check that preprocessed files exist\n";
     # if all outputs exists return 1, otherwise return undef
     if ((-e $QCed_nrrd) && (-e $QCTxtReport) && (-e $QCXmlReport) && (-e $QCProt)) {
         # additional check of output existence depending on whether $QCed2_minc is defined (secondary output produced by DTIPrep)
         if ((($QCed2_nrrd) && (-e $QCed2_nrrd)) || (!$QCed2_nrrd)) {
-            print LOG "All DTIPrep preprocessing outputs were found in $outdir.\n";
+            print LOG "\t\t-> All DTIPrep preprocessing outputs were found in $outdir.\n";
             return 1;
         } else {
             print LOG $err_message;
@@ -638,12 +647,14 @@ sub convertPreproc2mnc {
     my $QCed2_nrrd  = $DTIrefs->{$dti_file}{'Preproc'}{'QCed2'}{'nrrd'};
     my $QCed2_minc  = $DTIrefs->{$dti_file}{'Preproc'}{'QCed2'}{'minc'};
 
+    print LOG "\t 2. Convert preprocessed files to minc\n";
+
     # Convert QCed nrrd file back into minc file (with updated header)
     my  ($insert_header, $convert_status);
     if  (-e $QCed_nrrd) {
         if ( ((!$QCed2_minc) && (-e $QCed_minc)) 
                 || (($QCed2_minc) && (-e $QCed_minc) && (-e $QCed2_minc))) {
-            print LOG "QCed minc(s) already exist(s).\n";
+            print LOG "\t\t-> QCed minc(s) already exist(s).\n";
             return 1;
         } else {
             # convert QCed file to minc
@@ -656,7 +667,7 @@ sub convertPreproc2mnc {
     }
     
     if (($convert_status) && ($insert_header)) {
-        print LOG "QCed DTI successfully converted to minc.\n";
+        print LOG "\t\t-> QCed DTI successfully converted to minc.\n";
         return 1;
     } else {
         return undef;
@@ -694,9 +705,10 @@ sub mincdiffusionPipeline {
         my $QCed_minc   = $DTIrefs->{$dti_file}{'Preproc'}{'QCed'}{'minc'};
 
         # Check that FA, MD, RGB, RGB pic, baseline frame are not already created
+        print LOG "\t1. Check if mincdiffusion outputs already exist\n";
         my ($already_created)   = &checkMincdiffusionPostProcessedOutputs($dti_file, $DTIrefs, $QCoutdir);
         if ($already_created) {
-            print LOG "Mincdiffusion tools were already run on $QCed_minc\n";
+            print LOG "\t\t-> Mincdiffusion tools were already run on $QCed_minc\n";
             $DTIrefs->{$dti_file}{'mincdiff_status'}   = "already_done";
             $at_least_one_success++;
             next;
@@ -710,17 +722,17 @@ sub mincdiffusionPipeline {
         }
 
         # Run mincdiffusion tools 
-        print LOG "Running mincdiffusion tools on $QCed_minc (...)\n";
+        print LOG "\t2. Running mincdiffusion tools on $QCed_minc (...)\n";
         my ($mincdiff_status)   = &runMincdiffusionTools($dti_file, $DTIrefs, $data_dir, $QCoutdir, $mincdiffVersion, $niak_path);
 
         # If mincdiff_status is undef (mincdiffusion failed to create output files), mincdiff_status will be set to failed for this dti_file, otherwise it will be set to success.
         if ($mincdiff_status) {
-            print LOG " => Successfully ran mincdiffusion tools on $QCed_minc!\n";
+            print LOG "\t\t-> Successfully ran mincdiffusion tools on $QCed_minc!\n";
             $DTIrefs->{$dti_file}{'mincdiff_status'}    = "success";
             $at_least_one_success++;
         } else {
-            print LOG " => diff_preprocess.pl failed on $QCed_minc.\n"         if (!$DTIrefs->{$dti_file}{'mincdiff_preprocess_status'});
-            print LOG " => minctensor.pl failed on preprocessed $QCed_minc.\n" if (!$DTIrefs->{$dti_file}{'minctensor_status'});
+            print LOG "\t\t-> diff_preprocess.pl failed on $QCed_minc.\n"         if (!$DTIrefs->{$dti_file}{'mincdiff_preprocess_status'});
+            print LOG "\t\t-> minctensor.pl failed on preprocessed $QCed_minc.\n" if (!$DTIrefs->{$dti_file}{'minctensor_status'});
             $DTIrefs->{$dti_file}{'mincdiff_status'}    = "failed";
         }
     }
@@ -768,7 +780,7 @@ sub checkMincdiffusionPostProcessedOutputs {
             && (-e $FA)
             && (-e $MD)
             && (-e $RGB)) {
-        print LOG "All mincdiffusion postprocessing outputs were found in $outdir.\n";
+        print LOG "\t\t-> All mincdiffusion postprocessing outputs were found in $outdir.\n";
         return 1;
     } else {
         print LOG "\nERROR: Could not find all mincdiffusion postprocessing outputs in $outdir.\n" .
@@ -943,7 +955,8 @@ sub register_processed_files_in_DB {
             $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -anat_file $anat_file -DTIPrepVersion \"$DTIPrepVersion\" -mincdiffusionVersion \"$mincdiffVersion\"";
 
         }
-        print LOG "Registering files using the following command: $register_cmd";
+        print LOG "\t1. Registering files.\n" 
+        print LOG "\t\t-> Executed command: $register_cmd\n";
         system($register_cmd);
     }
 }
