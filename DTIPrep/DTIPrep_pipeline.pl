@@ -185,6 +185,9 @@ foreach my $nativedir (@nativedirs)   {
     # - If bCompute is not set in DTIPrep protocol will run mincdiffusion tools and create FA, MD, RGB... maps
     # - If bCompute is set in DTIPrep protocol, will convert DTIPrep processed nrrd file into minc files and reinsert relevant header information
     if ($bCompute eq 'No') {
+        print LOG "\n##################\n";
+        print LOG "# Run mincdiffusion on QCed file.";
+        print LOG "\n##################\n";
         my ($post_success)  = &mincdiffusionPipeline($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $mincdiffVersion, $niak_path);
         next if (!$post_success);
     } elsif ($bCompute eq 'Yes') {
@@ -402,7 +405,7 @@ sub preprocessingPipeline {
 
         # Run Preprocessing pipeline
         print LOG "\n##################\n";
-        print LOG "#Running preprocessing pipeline on $dti_file (...)\n";
+        print LOG "#Running preprocessing pipeline on $dti_file (...)";
         print LOG "\n##################\n";
         # 1. convert raw DTI minc file to nrrd
         print LOG "\t1. Convert raw minc DTI to nrrd.\n";
@@ -419,7 +422,7 @@ sub preprocessingPipeline {
             print LOG " \t==> Preprocessing DTIPrep pipeline failed on $dti_file\n";
             $DTIrefs->{$dti_file}{'preproc_status'} = "failed";
         } else {
-            print LOG " \t==> DTIPrep was successfully run on $dti_file!\n";
+            print LOG " \t==> All DTIPrep were found for $dti_file!\n";
             $DTIrefs->{$dti_file}{'preproc_status'} = "success";
             # add 1 to varaible $at_least_one_success
             $at_least_one_success++;
@@ -551,12 +554,12 @@ sub check_and_convertPreprocessedFiles {
 
         # If one of the steps above failed, postprocessing status will be set to failed for this dti_file, otherwise it will be set to success.
         if ($convert_status && $foundPreprocessed) {
-            print LOG "\t\t-> QCed data was found and successfuly converted to minc for $dti_file\n";
+            print LOG "\t==> QCed data was found and converted to minc for $dti_file\n";
             $DTIrefs->{$dti_file}{'preproc_convert_status'}    = "success";
             $at_least_one_success++;
         } else {
-            print LOG "\t\t-> Failed to find QCed data for $dti_file\n"            if (!$foundPreprocessed);
-            print LOG "\t\t-> Failed to convert QCed data to minc for $dti_file\n" if (!$convert_status);
+            print LOG "\t==> WARNING: Failed to find QCed data for $dti_file\n"            if (!$foundPreprocessed);
+            print LOG "\t==> WARNING: Failed to convert QCed data to minc for $dti_file\n" if (!$convert_status);
             $DTIrefs->{$dti_file}{'preproc_convert_status'}    = "failed";
         }
     }
