@@ -237,7 +237,7 @@ sub determinePreprocOutputs {
     my $prot_name       = basename($DTIPrepProtocol);
     my $dti_name        = substr(basename($dti_file), 0, -4);
 
-    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCProt'}->{'xml'}     = $QCoutdir . "/" . $dti_name  . "_DTIPrepProtocol.xml";
+    $DTIrefs->{$dti_file}->{'Preproc'}->{'QCProt'}->{'xml'}     = $QCoutdir . "/" . $prot_name;
     $DTIrefs->{$dti_file}->{'Preproc'}->{'QCReport'}->{'xml'}   = $QCoutdir . "/" . $dti_name  . "_XMLQCResult.xml";
     $DTIrefs->{$dti_file}->{'Preproc'}->{'QCReport'}->{'inputs'}->{'Raw_DWI'}   = $dti_file;
        
