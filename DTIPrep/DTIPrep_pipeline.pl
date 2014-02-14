@@ -189,12 +189,13 @@ foreach my $nativedir (@nativedirs)   {
         print LOG "# Run mincdiffusion on QCed file.";
         print LOG "\n##################\n";
         my ($post_success)  = &mincdiffusionPipeline($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepProtocol, $mincdiffVersion, $niak_path);
+        print LOG "\t==> Mincdiffusion outputs were found.\n";
         next if (!$post_success);
     } elsif ($bCompute eq 'Yes') {
         my ($DTIPrep_post_success)  = &check_and_convert_DTIPrep_postproc_outputs($DTIs_list, $DTIrefs, $data_dir, $QCoutdir, $DTIPrepVersion); 
         next if (!$DTIPrep_post_success);
     } else {
-        print LOG "\n\tERROR: No post processing tools won't be run for this dataset. \n";
+        print LOG "\n\tERROR: Post processing tools won't be run for this dataset. \n";
         print LOG "--------------------------------\n";
         exit;
     }
