@@ -955,7 +955,7 @@ sub register_processed_files_in_DB {
             $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -anat_file $anat_file -DTIPrepVersion \"$DTIPrepVersion\" -mincdiffusionVersion \"$mincdiffVersion\"";
 
         }
-        print LOG "\t1. Registering files.\n" 
+        print LOG "\t1. Registering files.\n";
         print LOG "\t\t-> Executed command: $register_cmd\n";
         system($register_cmd);
     }
