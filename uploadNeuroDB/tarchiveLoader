@@ -374,16 +374,17 @@ if ($valid_study) {
     ### and number_of_mincInserted##############################
     ############################################################
 
-    my $query = "UPDATE mri_upload SET number_of_mincInserted=\'$minc_inserted\' 
-    , number_of_mincCreated =\'$mcount\'
-    WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
+    my $query = "UPDATE mri_upload SET ".
+                "number_of_mincInserted=\'$minc_inserted\'".
+                ", number_of_mincCreated =\'$mcount\' ".
+                "WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
     $dbh->do($query);
  
     ############################################################
     ###############Create minc-pics#############################
     ############################################################
 
-    my $query = "SELECT Min(FileID) as min, Max(FileID) as max FROM files ";
+    my $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
     my $where = "WHERE TarchiveSource = '$tarchiveInfo{'TarchiveID'}'";
     $query = $query . $where;
     my $sth = $dbh->prepare($query);
@@ -408,8 +409,8 @@ if ($valid_study) {
     ############################################################
     ####link the tarchive with session##########################
     ############################################################
-    my $query = "UPDATE tarchive SET SessionID=\'$sessionID\' 
-    WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
+    my $query = "UPDATE tarchive SET SessionID=\'$sessionID\' ".
+                "WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
     $dbh->do($query);
 } else {
     ############################################################
