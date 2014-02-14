@@ -38,7 +38,7 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
-use MRIProcessingUtility;
+use NeuroDB::MRIProcessingUtility;
 # Turn on autoflush for standard output buffer so that we immediately see 
 #the results of print statements.
 $|++;
@@ -217,7 +217,7 @@ extracting information ... if there is
 ################################################################
 #######################instantiate MRIProcessingUtility#########
 ################################################################
-my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
+my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
             $LogDir,$verbose);
 
 ################################################################
@@ -235,7 +235,7 @@ my %tarchiveInfo = $utility->createTarchiveArray($tarchive,
 ################################################################
 ####################Call the validation script##################
 ################################################################
-my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
+my $script = "/data/$prefix/bin/mri/uploadNeuroDB/"
              ."tarchive_validation.pl $tarchive -profile prod " 
              . "-globLocation";
 print $script . "\n";
@@ -325,7 +325,7 @@ if ($mcount < 1) {
 #At this step we actually have (multiple) MINC files so we loop#
 # a valid study has at least one file that can be uploaded######
 ################################################################
-$minc_inserted = 0;
+my $minc_inserted = 0;
 foreach my $minc (@minc_files) {
 
     ############################################################
@@ -347,7 +347,7 @@ foreach my $minc (@minc_files) {
     ####################Call the minc_insertion script#########
     ###########################################################
 
-    $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"   
+    $script = "/data/$prefix/bin/mri/uploadNeuroDB/"   
                . "minc_insertion.pl -tarchivePath $tarchive"
                . " -mincPath $minc -profile prod";
     if ($force) {
@@ -361,7 +361,7 @@ foreach my $minc (@minc_files) {
     ##one volume will be nserted into the DB################
     ########################################################
     if ($output==0) {
-       $minc_inserted++
+       $minc_inserted++;
        $valid_study = 1;
     }
 } # end foreach $minc
@@ -390,7 +390,7 @@ if ($valid_study) {
     $sth->execute();
     my @row = $sth->fetchrow_array();
     if (@row) {
-        my $script = "/data/$Settings::prefix/bin/mri/uploadNeuroDB/"
+        my $script = "/data/$prefix/bin/mri/uploadNeuroDB/"
         . "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] -profile prod ";
         $output = system($script);
     }

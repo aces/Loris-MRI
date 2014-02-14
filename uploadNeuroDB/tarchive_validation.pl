@@ -15,7 +15,7 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
-use MRIProcessingUtility;
+use NeuroDB::MRIProcessingUtility;
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -148,7 +148,7 @@ print LOG "\n==> Successfully connected to database \n";
 ################################################################
 ################MRIProcessingUtility object#####################
 ################################################################
-my $utility = MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
+my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
             $verbose);
 
 
