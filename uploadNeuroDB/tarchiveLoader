@@ -377,7 +377,7 @@ if ($valid_study) {
     my $query = "UPDATE mri_upload SET ".
                 "number_of_mincInserted=\'$minc_inserted\'".
                 ", number_of_mincCreated =\'$mcount\' ".
-                "WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
+                "WHERE TarchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
     $dbh->do($query);
  
     ############################################################
