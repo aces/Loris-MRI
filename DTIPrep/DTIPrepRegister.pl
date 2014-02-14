@@ -1181,6 +1181,10 @@ sub registerFile  {
     
     my  ($registeredFile) = &fetchRegisteredFile($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType);
 
+    if (!$registeredFile) {
+        print LOG "> WARNING: No fileID found for SourceFileID=$src_fileID, SourcePipeline=$src_pipeline, PipelineDate=$pipelineDate, CoordinateSpace=$coordinateSpace, ScanType=$scanType and OutputType=$outputType.\n\n\n";
+    }    
+
     return ($registeredFile);
 }        
 
@@ -1221,8 +1225,6 @@ sub fetchRegisteredFile {
     if  ($sth->rows > 0)    {
         my $row =   $sth->fetchrow_hashref();
         $registeredFile =   $row->{'File'};
-    }else   {
-        print LOG "WARNING: No fileID found for SourceFileID=$src_fileID, SourcePipeline=$src_pipeline, PipelineDate=$pipelineDate, CoordinateSpace=$coordinateSpace, ScanType=$scanType and OutputType=$outputType.\n\n\n";
     }
 
     return  ($registeredFile);
