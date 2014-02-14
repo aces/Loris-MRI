@@ -308,7 +308,7 @@ sub getAcquisitionProtocol {
     $this->{LOG}->print("==> verifying acquisition protocol\n") 
         if $this->{verbose};
     my $acquisitionProtocol = &NeuroDB::MRI::identify_scan_db($center_name,
-                              \$subjectIDsref,$file, $this->{dbhr}, $minc);
+                              $subjectIDsref,$file, $this->{dbhr}, $minc);
     $this->{LOG}->print("Acquisition protocol is $acquisitionProtocol\n");
     my @checks = ();
     my $acquisitionProtocolID;
