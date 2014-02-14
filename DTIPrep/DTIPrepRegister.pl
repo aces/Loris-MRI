@@ -1146,7 +1146,7 @@ sub registerFile  {
 
     # Check if File has already been registered into the database. Return File registered if that is the case.
     my $md5_check           = `md5sum $file`;
-    my ($md5sum, $file)     = split(' ', $md5_check);
+    my ($md5sum, $filesum)  = split(' ', $md5_check);
     my ($alreadyRegistered) = &fetchRegisteredFile($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType);
     if ($alreadyRegistered) {
         print LOG "> File $file already registered into the database.\n";
@@ -1389,7 +1389,6 @@ sub register_Preproc {
     # Get the registered reports and protocol
     my $registeredXMLReportFile     = $mri_files->{'Preproc'}{'QCReport'}{'xml'};
     my $registeredQCReportFile      = $mri_files->{'Preproc'}{'QCReport'}{'txt'};
-    my $registeredXMLprotocolID     = $mri_files->{'Preproc'}{'QCProt'}{'xml'};
 
     # register file into the database
     my $minc        = $mri_files->{$process_step}{$proc_file}{'minc'};
