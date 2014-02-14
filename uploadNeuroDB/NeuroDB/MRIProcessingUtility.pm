@@ -66,8 +66,9 @@ sub lookupNextVisitLabel {
     my $this = shift;
     my ($CandID, $dbhr) = @_;
     my $visitLabel = 1;
-    my $query = "SELECT Visit_label FROM session WHERE 
-         CandID=$CandID ORDER BY ID DESC LIMIT 1"; 
+    my $query = "SELECT Visit_label FROM session".
+                " WHERE CandID=$CandID".
+                " ORDER BY ID DESC LIMIT 1"; 
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -178,11 +179,11 @@ sub createTarchiveArray {
     if ($globArchiveLocation) {
         $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
     }
-    my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive, 
-                 DateAcquired, DicomArchiveID, PatientGender, 
-                 ScannerManufacturer, ScannerModel, ScannerSerialNumber,
-                 ScannerSoftwareVersion, neurodbCenterName, TarchiveID FROM 
-                 tarchive WHERE $where";
+    my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
+                " DateAcquired, DicomArchiveID, PatientGender,".
+                " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
+                " ScannerSoftwareVersion, neurodbCenterName, TarchiveID".
+                " FROM tarchive WHERE $where";
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -317,7 +318,7 @@ sub getAcquisitionProtocol {
         $acquisitionProtocol, $this->{dbhr}
         );
         @checks = $this->extra_file_checks($acquisitionProtocolID, 
-                                            \$file, 
+                                           $file, 
                                            $subjectIDsref->{'CandID'}, 
                                            $subjectIDsref->{'visitLabel'},
                                            $tarchiveInfo->{'PatientName'}
@@ -345,10 +346,11 @@ sub extra_file_checks() {
     my $PatientName = shift;
 
     my $query = "SELECT * FROM mri_protocol_checks WHERE Scan_type=?";
-    my $log_query = "INSERT INTO mri_violations_log (SeriesUID, TarchiveID,"
-                ." MincFile, PatientName, CandID, Visit_label, CheckID, "
-                ." Scan_type, Severity, Header, Value, ValidRange, "
-                . "ValidRegex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    my $log_query = "INSERT INTO mri_violations_log".
+                    "(SeriesUID, TarchiveID, MincFile, PatientName,".
+                    " CandID, Visit_label, CheckID,  Scan_type,".
+                    " Severity, Header, Value, ValidRange,ValidRegex)".
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -404,10 +406,10 @@ sub update_mri_acquisition_dates {
     my ($sessionID, $acq_date) = @_;
 
     # get the registered acquisition date for this session
-    my $query = "SELECT s.ID, m.AcquisitionDate from session AS s left outer 
-                join mri_acquisition_dates AS m on (s.ID=m.SessionID) 
-                WHERE s.ID='$sessionID' and (m.AcquisitionDate > '$acq_date' 
-                OR m.AcquisitionDate is null) AND '$acq_date'>0";
+    my $query = "SELECT s.ID, m.AcquisitionDate FROM session AS s LEFT OUTER".
+                " JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)". 
+                " WHERE s.ID='$sessionID' AND (m.AcquisitionDate > '$acq_date'". 
+                " OR m.AcquisitionDate IS NULL) AND '$acq_date'>0";
     
     if ($this->{debug}) {
         print $query . "\n";
@@ -420,8 +422,8 @@ sub update_mri_acquisition_dates {
     ###so we use replace into.##################################
     ############################################################
     if($sth->rows > 0) {
-        my $query = "REPLACE INTO mri_acquisition_dates SET AcquisitionDate="
-                    ."'$acq_date', SessionID='$sessionID'";
+        my $query = "REPLACE INTO mri_acquisition_dates".
+                    " SET AcquisitionDate='$acq_date', SessionID='$sessionID'";
         ${$this->{'dbhr'}}->do($query);
     }
 }
@@ -749,14 +751,11 @@ sub moveAndUpdateTarchive {
     ########################################################
     # now update tarchive table to store correct location###
     ########################################################
-    $query = "UPDATE tarchive SET ArchiveLocation=".
-              ${$this->{'dbhr'}}->quote($newTarchiveLocation)." WHERE DicomArchiveID="
-             .${$this->{'dbhr'}}->quote($tarchiveInfo->{'DicomArchiveID'});
+    $query = "UPDATE tarchive ".
+             " SET ArchiveLocation=" . ${$this->{'dbhr'}}->quote($newTarchiveLocation) .
+             " WHERE DicomArchiveID=". ${$this->{'dbhr'}}->quote($tarchiveInfo->{'DicomArchiveID'});
     print $query . "\n"  if $this->{debug};
-    ${$this->{'dbhr'}}->do("UPDATE tarchive SET ArchiveLocation=".
-                            ${$this->{'dbhr'}}->quote($newTarchiveLocation)." WHERE DicomArchiveID="
-                            .${$this->{'dbhr'}}->quote($tarchiveInfo->{'DicomArchiveID'})
-                          );
+    ${$this->{'dbhr'}}->do($query);
   return $newTarchiveLocation;
 }
 
@@ -780,25 +779,22 @@ sub CreateMRICandidates {
     ####Create non-existent candidate if the profile allows for#####
     #############candidate creation#################################
     ################################################################
-    if (!NeuroDB::MRI::subjectIDExists($subjectIDsref->{'CandID'},$this->{dbhr})
-        && $Settings::createCandidates) {
+    if (!NeuroDB::MRI::subjectIDExists($subjectIDsref->{'CandID'},
+        $this->{dbhr}) && $Settings::createCandidates) {
             chomp($User);
-            $subjectIDsref->{'CandID'} = NeuroDB::MRI::createNewCandID($this->{dbhr});
-            $query = "INSERT INTO candidate (CandID, PSCID, DoB, Gender,
-                      CenterID, Date_active, Date_registered, UserID,
-                      Entity_type) VALUES (" .
-            ${$this->{'dbhr'}}->quote(
-                $subjectIDsref->{'CandID'}
-            ).",".
-            ${$this->{'dbhr'}}->quote(
-                $subjectIDsref->{'PSCID'}
-            ).",".
-            ${$this->{'dbhr'}}->quote(
-                $tarchiveInfo->{'PatientDoB'}
-            ) ."," .
-            ${$this->{'dbhr'}}->quote($gender).",". ${$this->{'dbhr'}}->quote($centerID). ", NOW(), NOW(),
-               '$User', 'Human')";
-   
+            $subjectIDsref->{'CandID'} = 
+                NeuroDB::MRI::createNewCandID($this->{dbhr});
+            $query = "INSERT INTO candidate ".
+                     "(CandID, PSCID, DoB, Gender,CenterID, Date_active,".
+                     " Date_registered, UserID,Entity_type) ".
+                     "VALUES(" . 
+                     ${$this->{'dbhr'}}->quote($subjectIDsref->{'CandID'}).",".
+                     ${$this->{'dbhr'}}->quote($subjectIDsref->{'PSCID'}).",".
+                     ${$this->{'dbhr'}}->quote($tarchiveInfo->{'PatientDoB'}) ."," .
+                     ${$this->{'dbhr'}}->quote($gender).",". 
+                     ${$this->{'dbhr'}}->quote($centerID). 
+                     ", NOW(), NOW(), '$User', 'Human')";
+            
             if ($this->{debug}) {
                 print $query . "\n";
             }
