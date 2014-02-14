@@ -176,8 +176,8 @@ my $where = "WHERE t.ArchiveLocation='$tarchive'";
 if ($globArchiveLocation) {
     $where = "WHERE t.ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
-my $query = "SELECT m.IsValidated FROM mri_upload m
-             JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
+my $query = "SELECT m.IsValidated FROM mri_upload m " .
+            "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
 print $query . "\n";
 my $is_valid = $dbh->selectrow_array($query);
 
@@ -224,8 +224,9 @@ my $subjectIDsref = $utility->determinSubjectID($scannerID,\%tarchiveInfo,0);
 ################################################################
 ################################################################
 my $CandMismatchError;
-my $logQuery = "INSERT INTO MRICandidateErrors (SeriesUID, TarchiveID," .
-                "MincFile, PatientName, Reason) VALUES (?, ?, ?, ?, ?)";
+my $logQuery = "INSERT INTO MRICandidateErrors".
+              "(SeriesUID, TarchiveID,MincFile, PatientName, Reason)".
+              " VALUES (?, ?, ?, ?, ?)";
 my $candlogSth = $dbh->prepare($logQuery);
 
 if ($subjectIDsref->{'isPhantom'}) {
@@ -276,8 +277,8 @@ if (defined(&Settings::filterParameters)) {
 ##going that far if we already know it's fault.#################
 ################################################################
 
-print LOG "Candidate Mismatch Error is $CandMismatchError\n";
 if (defined($CandMismatchError)) {
+    print LOG "Candidate Mismatch Error is $CandMismatchError\n";
     print LOG " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
     $candlogSth->execute(
