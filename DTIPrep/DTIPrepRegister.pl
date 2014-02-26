@@ -1421,7 +1421,17 @@ sub register_Preproc {
 
 
 =pod
-
+Function to register processed images in the database depending on the tool used to obtain them. 
+Will call register_DTIPrep_files if files to be registered are obtained via DTIPrep
+or register_minc if files to be registered are obtained using mincdiffusion tools.
+Inputs:  - $mri_files: hash containing information about the files to be registered
+         - $raw_file: source raw image used to obtain processed files to be registered
+         - $data_dir: data directory where all images are stored (set in the prod file)
+         - $pipelineName: name of the pipeline used (a.k.a DTIPrep)
+         - $toolName: version and name of the tool used to produce the images to be registered
+         - $process_step: processing step (preprocessing, post-processing)
+Outputs: - @registered: list of registered files
+         - @failed_to_register: list of files that failed to be registered in the database
 =cut
 sub register_images {
     my ($mri_files, $raw_file, $data_dir, $pipelineName, $toolName, $process_step) = @_;
