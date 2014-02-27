@@ -23,6 +23,7 @@ my  $scanType;
 my  $outputType;
 my  $inputFileIDs;
 my  $classifyAlgorithm;
+my  $protocolID;
 my  @args;
 
 my  $Usage  =   <<USAGE;
@@ -47,6 +48,7 @@ my  @args_table = (
     ["-outputType",         "string",   1,  \$outputType,       "The type of output that will be registered in the database (i.e. QCed, processed, QCReport)"],
     ["-inputFileIDs",       "string",   1,  \$inputFileIDs,       "List of input fileIDs used to obtain the file to be registered (each entries being separated by ';')"],
     ["-classifyAlgorithm",  "string",   1,  \$classifyAlgorithm,"The algorithm used to classify brain tissue in CIVET"],
+    ["-protocolID",         "string",   1,  \$protocolID,       "ID of the registered protocol that was used to process data"]
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
@@ -206,6 +208,10 @@ $file->setFileData('PipelineDate',$pipelineDate);
 print LOG "\t -> Set PipelineDate to $pipelineDate.\n";
 $file->setFileData('OutputType',$outputType);
 print LOG "\t -> Set OutputType to $outputType.\n";
+if ($protocolID) {
+    $file->setFileData('ProcessProtocolID', $protocolID);
+    print LOG "\t -> Set ProcessProtocolID to $protocolID.\n";
+}
 
 if  (defined($classifyAlgorithm))   {
     $file->setFileData('ClassifyAlgorithm',$classifyAlgorithm);
