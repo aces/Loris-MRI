@@ -325,6 +325,12 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
                                      $minc
                                     );
 
+if($acquisitionProtocol =~ /unknown/) {
+   print LOG " --> The minc file cannot be registered since the 
+              AcquisitionProtocol IS unknown";
+   exit 9;
+}
+
 ################################################################
 # Register scans into the database.  Which protocols############
 ###to keep optionally controlled by the config file#############
