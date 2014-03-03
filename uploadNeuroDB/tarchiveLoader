@@ -377,7 +377,7 @@ if ($valid_study) {
     my $query = "UPDATE mri_upload SET ".
                 "number_of_mincInserted=\'$minc_inserted\'".
                 ", number_of_mincCreated =\'$mcount\' ".
-                "WHERE TarchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
+                "WHERE TarchiveID=\'$tarchiveInfo{'TarchiveID'}\'";
     $dbh->do($query);
  
     ############################################################
@@ -410,7 +410,7 @@ if ($valid_study) {
     ####link the tarchive with session##########################
     ############################################################
     my $query = "UPDATE tarchive SET SessionID=\'$sessionID\' ".
-                "WHERE DicomArchiveID=\'$tarchiveInfo{'DicomArchiveID'}\'";
+                "WHERE DicomArchiveID=\'$tarchiveInfo{'TarchiveID'}\'";
     $dbh->do($query);
 } else {
     ############################################################
