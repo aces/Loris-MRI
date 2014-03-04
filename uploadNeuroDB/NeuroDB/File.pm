@@ -264,6 +264,8 @@ sub loadFileFromDisk {
         $fileType = 'xml';
     } elsif($file =~ /\.txt$/) {
         $fileType = 'txt';
+    } elsif($file =~ /\.nrrd$/) {
+        $fileType = 'nrrd';
     }
     $this->setFileData('FileType', $fileType) if defined $fileType;
     

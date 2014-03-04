@@ -700,7 +700,7 @@ sub register_db {
     # build the insert query
     my $query = "INSERT INTO files SET ";
 
-    foreach my $key ('File', 'SeriesUID', 'EchoTime','SessionID', 'CoordinateSpace', 'ClassifyAlgorithm', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID','SourcePipeline','PipelineDate','SourceFileID') {
+    foreach my $key ('File', 'SeriesUID', 'EchoTime','SessionID', 'CoordinateSpace', 'ClassifyAlgorithm', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID','SourcePipeline','PipelineDate','SourceFileID','ProcessProtocolID') {
         # add the key=value pair to the query
         $query .= "$key=".$dbh->quote($${fileData{$key}}).", ";
     }
