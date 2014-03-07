@@ -320,7 +320,7 @@ $file->setFileData('Caveat', 0);
 ##get acquisition protocol (identify the volume)################
 ################################################################
 my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
-  = $utility->getAcquisitionProtocol(\$file,$subjectIDsref,
+  = $utility->getAcquisitionProtocol($file,$subjectIDsref,
                                      \%tarchiveInfo,$center_name,
                                      $minc
                                     );
