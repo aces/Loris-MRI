@@ -662,7 +662,7 @@ sub insertFieldList {
     my  ($arguments) =   DTI::fetch_header_info($minc_field, $raw_dti, '$1, $2');
 
     # fetches list of values with arguments starting with $minc_field. Don't remove semi_colon (last option of fetch_header_info).
-    my  ($values) =   DTI::fetch_header_info($minc_field, $raw_dti, '$3, $4, $5, $6 $7', 1);
+    my  ($values) =   DTI::fetch_header_info($minc_field, $raw_dti, '$3, $4, $5, $6, $7', 1);
 
     my  ($arguments_list, $arguments_list_size) =   get_header_list('=', $arguments);
     my  ($values_list, $values_list_size)       =   get_header_list(';', $values);
