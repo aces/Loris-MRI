@@ -145,6 +145,9 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
 
+
+
+
 ################################################################
 ################MRIProcessingUtility object#####################
 ################################################################
@@ -157,6 +160,23 @@ my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
 ################################################################
 ################################################################
 %tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
+
+
+
+################################################################
+###################Check to see if the tarchiveID exists########
+#################in the mri_upload table########################
+################################################################
+my $query = "SELECT * FROM mri_upload WHERE TarchiveID=?";
+
+my $sth = $dbh->prepare($query);
+$sth->execute($tarchiveInfo{TarchiveID});
+if ($sth->rows == 0) {
+    print LOG  "\n\n => The tarchiveID doesn't exist in the mri_upload table";
+    print "The tarchiveID doesn't exist in the mri_upload table".
+          " Please re-Run the Dicomtar.pl with -mri_upload_update option\n";
+    exit 5;
+}
 
 
 ################################################################
@@ -227,7 +247,7 @@ my $CandMismatchError;
 if ($sth->rows == 0) {
     print LOG  "\n\n => No candID";
     $CandMismatchError = 'CandID does not exist';
-    exit 5;
+    exit 6;
 }
 
 ################################################################
@@ -240,7 +260,7 @@ $sth->execute($subjectIDsref->{'PSCID'});
 if ($sth->rows == 0) {
     print LOG  "\n\n => No PSCID";
     $CandMismatchError= 'PSCID does not exist';
-    exit 6;
+    exit 7;
 }   
 
 ################################################################
@@ -250,7 +270,7 @@ my @PSCIDCheck = $sth->fetchrow_array;
 if ($PSCIDCheck[0] != $CandIDCheck[0] || $PSCIDCheck[1] != $CandIDCheck[1]) {
     print LOG  "\n\n => CandID and PSCID mismatch";
     $CandMismatchError = 'CandID and PSCID do not match database';
-     exit 7;
+     exit 8;
 }
 
 ################################################################
