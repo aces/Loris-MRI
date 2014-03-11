@@ -95,7 +95,9 @@ my  $QCed2_step     =   $Settings::QCed2_step;
 # Needed for log file
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)   =   localtime(time);
 my  $date   =   sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
-my  $log    =   $data_dir . "/logs/DTIPrep_pipeline/DTI_QC" . $date . ".log";
+my  $logdir =   $data_dir . "/logs/DTIPrep_pipeline/";
+system("mkdir -p -m 755 $logdir") unless (-e $logdir);
+my  $log    =   $logdir . "DTI_QC" . $date . ".log";
 open(LOG,">>$log");
 print LOG "Log file, $date\n";
 print LOG "DTIPrep version: $DTIPrepVersion\n\n";

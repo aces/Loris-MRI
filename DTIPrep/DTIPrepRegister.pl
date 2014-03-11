@@ -90,6 +90,7 @@ if (!$DTIPrepVersion) {
 # Needed for log file
 my  $data_dir    =  $Settings::data_dir;
 my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
+system("mkdir -p -m 755 $log_dir") unless (-e $log_dir);
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 my  $date        =  sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log         =  "$log_dir/DTIregister$date.log";
@@ -804,24 +805,41 @@ sub checkPostprocessFiles {
     }
 
     # Check which tool has been used to post process DTI dataset to validate that all outputs are found in the filsystem
-    my  ($RGB_nrrd, $FA_nrrd, $MD_nrrd, $baseline_nrrd, $brain_mask_minc);
+    my  ($RGB_nrrd, $FA_nrrd, $MD_nrrd, $baseline_nrrd, $brain_mask_minc, $idwi_nrrd, $tensor_nrrd);
     if ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "DTIPrep") {
 
         # Store tool used for Postprocessing in %mri_files
         $mri_files->{'Postproc'}{'Tool'}    = "DTIPrep";
+
+        # File specific to DTIPrep post-processing
+        my  $IDWI_minc      =   $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'minc'};
+        my  $tensor_minc    =   $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'minc'};
+        if ((-e $IDWI_minc) && (-e $tensor_minc)) {
+            $mri_files->{'Postproc'}{'IDWI'}{'minc'}        = $IDWI_minc; 
+            $mri_files->{'Postproc'}{'IDWI'}{'scanType'}    = 'IDWIqc'; 
+            $mri_files->{'Postproc'}{'tensor'}{'minc'}      = $tensor_minc; 
+            $mri_files->{'Postproc'}{'tensor'}{'scanType'}  = 'tensorqc'; 
+        } else {
+            print LOG "Could not find post processing isotropic minc files on the filesystem.\n";
+            return undef;
+        }
 
         # Fetches info about DTIPrep nrrd post processing files
         $RGB_nrrd       =   $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'nrrd'}; 
         $FA_nrrd        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'nrrd'};
         $MD_nrrd        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'nrrd'};
         $baseline_nrrd  =   $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'nrrd'};
+        $IDWI_nrrd      =   $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'nrrd'};
+        $tensor_nrrd    =   $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'nrrd'};
 
         # Return minc files if all nrrd and minc outputs exist on the filesystem
-        if ((-e $RGB_nrrd) && (-e $FA_nrrd) && (-e $MD_nrrd) && (-e $baseline_nrrd)) {
+        if ((-e $RGB_nrrd) && (-e $FA_nrrd) && (-e $MD_nrrd) && (-e $baseline_nrrd) && (-e $IDWI_nrrd) && (-e $tensor_nrrd)) {
             $mri_files->{'Postproc'}{'RGB'}{'nrrd'}         = $RGB_nrrd;
             $mri_files->{'Postproc'}{'FA'}{'nrrd'}          = $FA_nrrd;
             $mri_files->{'Postproc'}{'MD'}{'nrrd'}          = $MD_nrrd;
             $mri_files->{'Postproc'}{'baseline'}{'nrrd'}    = $baseline_nrrd;
+            $mri_files->{'Postproc'}{'IDWI'}{'nrrd'}        = $IDWI_nrrd;
+            $mri_files->{'Postproc'}{'tensor'}{'nrrd'}      = $tensor_nrrd;
             foreach my $proc (keys ($mri_files->{'Postproc'})) {
                 next if ($proc eq "Tool");
                 $mri_files->{'Postproc'}{$proc}{'inputs'}   = $DTIrefs->{$dti_file}{'Postproc'}{$proc}{'inputs'};
