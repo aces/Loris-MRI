@@ -60,7 +60,6 @@ my @arg_table =
      ["-clobber", "boolean", 1,   \$clobber, "Use this option only if you want to replace the resulting tarball!"],
      ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
      ["-centerName","string",1, \$neurodbCenterName, "Specify the symbolic center name to be stored alongside the DICOM institution."],
-     	 
      ["General options", "section"],
      ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
      ["-version", "boolean", 1,   \$version, "Print cvs version number and exit."],
