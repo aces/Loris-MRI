@@ -355,11 +355,11 @@ foreach my $minc (@minc_files) {
     }
     $output = system($script);
     
-    ########################################################
-    ####if the return code of the script is 0###############
-    # mark the study as valid because this means at least### 
-    ##one volume will be nserted into the DB################
-    ########################################################
+    ############################################################
+    ####if the return code of the script is 0###################
+    # mark the study as valid because this means at least#######
+    ##one volume will be nserted into the DB####################
+    ############################################################
     if ($output==0) {
        $minc_inserted++;
        $valid_study = 1;
@@ -424,7 +424,7 @@ if ($valid_study) {
 }
 
 ################################################################
-# make final logfile name without overwriting phantom logs
+# make final logfile name without overwriting phantom logs######
 ################################################################
 my $final_logfile = $psc."_".$tarchiveInfo{'DateAcquired'}.
                     '_'.$subjectIDsref->{'CandID'};
