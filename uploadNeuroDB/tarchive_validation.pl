@@ -24,7 +24,7 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                     $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 1 ;  
+my $debug       = 0 ;  
 my $message     = '';
 my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a
