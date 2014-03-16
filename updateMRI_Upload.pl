@@ -113,8 +113,9 @@ unless (-e $tarchive) {
 ################# if source locatio is not set##################
 ################################################################
 unless (-e $source_location) {
-    print "\nERROR: Could not find sourcelocation $source_location \nPlease, make sure the 
-            to the sourcelocation is correct. Upload will exit now.\n\n\n";
+    print "\nERROR: Could not find sourcelocation $source_location \nPlease,
+           make sure the to the sourcelocation is correct. Upload will 
+           exit now.\n\n\n";
     exit 5;
 }
 
@@ -151,26 +152,16 @@ if ($globArchiveLocation) {
     $where = " WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }   
 $query = "SELECT TarchiveID FROM tarchive $where ";
-###print $query . "\n";
 my $tarchiveID = $dbh->selectrow_array($query);
 
 
 ################################################################
 #####populate the mri_upload with the correct values############
 ################################################################
-####Get the file-type:
-
-##my $type_from_file = $ft->checktype_filename($file);
-###and then insert it
-
 
 $query = "INSERT INTO mri_upload SET UploadedBy='$User', UploadDate=NOW() , 
           TarchiveID ='$tarchiveID' , SourceLocation='$source_location'";
-print $query . "\n";
 $dbh->do($query);
-
-
 
 print "Done!\n";
 exit 0;
-
