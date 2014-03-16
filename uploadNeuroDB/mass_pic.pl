@@ -14,7 +14,7 @@ my $profile    = undef;
 my $minFileID  = undef;
 my $maxFileID  = undef;
 my $query;
-my $debug       = 1;
+my $debug       = 0;
 my $Usage = "mass_pic.pl generates check pic images for NeuroDB for those
              files that are missing pics.
              \n\n See $0 -help for more info\n\n";
