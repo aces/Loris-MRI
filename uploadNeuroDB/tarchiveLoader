@@ -358,7 +358,7 @@ foreach my $minc (@minc_files) {
     ############################################################
     ####if the return code of the script is 0###################
     # mark the study as valid because this means at least#######
-    ##one volume will be nserted into the DB####################
+    ##one volume will be inserted into the DB###################
     ############################################################
     if ($output==0) {
        $minc_inserted++;
