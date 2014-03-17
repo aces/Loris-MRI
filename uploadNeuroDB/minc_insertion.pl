@@ -48,34 +48,34 @@ my ($tarchive,%tarchiveInfo,$minc);
 ################################################################
 my @opt_table = (
                  ["casic options","section"],
-                 ["-profile","string",1, \$profile, "name of config file 
-                 in ~/.neurodb."],
+                 ["-profile","string",1, \$profile, "name of config file". 
+                 " in ~/.neurodb."],
                  ["Advanced options","section"],
 
-                 ["-reckless", "boolean", 1, \$reckless,"Upload data to 
-                 database even if study protocol is not defined or violated."],
+                 ["-reckless", "boolean", 1, \$reckless,"Upload data to". 
+                 " database even if study protocol is not defined or violated."],
 
-                 ["-force", "boolean", 1, \$force,"Forces the script to run 
-                 even if the validation has failed."],
+                 ["-force", "boolean", 1, \$force,"Forces the script to run". 
+                 " even if the validation has failed."],
             
-                 ["-mincPath","string",1, \$minc, "The absolute path 
-                  to minc-file"],
+                 ["-mincPath","string",1, \$minc, "The absolute path". 
+                  " to minc-file"],
 
-                 ["-tarchivePath","string",1, \$tarchive, "The absolute path 
-                      to tarchive-file"],
+                 ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
+                  " to tarchive-file"],
 
-                 ["-globLocation", "boolean", 1, \$globArchiveLocation,"Loosen 
-                  the validity check of the tarchive allowing for the 
-                  possibility that the tarchive was moved to a different 
-                  directory."],
+                 ["-globLocation", "boolean", 1, \$globArchiveLocation,
+                  "Loosen the validity check of the tarchive allowing for the". 
+                  " possibility that the tarchive was moved to a different". 
+                  " directory."],
 
                  ["-newScanner", "boolean", 1, \$NewScanner,
-                  "By default a new scanner will be registered if the data you 
-                   upload requires it. You can risk turning it off."],
+                  "By default a new scanner will be registered if the data".
+                  " you upload requires it. You can risk turning it off."],
 
                  ["Fancy options","section"],
-                 ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail on
-                  the current log file."],
+                 ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail".
+                  " on the current log file."],
                  );
 
 
