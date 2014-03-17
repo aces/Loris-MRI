@@ -240,7 +240,8 @@ $sth->execute($subjectIDsref->{'CandID'});
 my @CandIDCheck = $sth->fetchrow_array;
 my $CandMismatchError;
 if ($sth->rows == 0) {
-    print LOG  "\n\n => No candID";
+    print LOG  "\n\n => Could not find candidate with CandID =".
+    " $subjectIDsref->{'CandID'} in database";
     $CandMismatchError = 'CandID does not exist';
     exit 6;
 }
