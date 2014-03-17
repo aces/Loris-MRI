@@ -74,7 +74,7 @@ The program does the following validation
 
 - Verify PSC information using whatever field contains site string
 
-- Verify/Determine the ScannerID (optionally create a new one if necessary)
+- Verify/determine the ScannerID (optionally create a new one if necessary)
 
 - Optionally create candidates as needed Standardize gender (DICOM uses M/F, 
   DB uses Male/Female)
@@ -192,25 +192,25 @@ $utility->validateArchive($tarchive,\%tarchiveInfo);
 ####contains site string########################################
 ################################################################
 ################################################################
-my ($psc,$center_name, $centerID) =$utility->determinPSC(\%tarchiveInfo,1);
+my ($psc,$center_name, $centerID) =$utility->determinePSC(\%tarchiveInfo,1);
 
 ################################################################
 ################################################################
-####Determine the ScannerID (optionally create a################ 
+####determine the ScannerID (optionally create a################ 
 ####new one if necessary)#######################################
 ################################################################
 ################################################################
 
-my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,
+my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,
                                             $centerID,$NewScanner
                                            );
 
 ################################################################
 ################################################################
-######Determine the subject identifiers#########################
+######determine the subject identifiers#########################
 ################################################################
 ################################################################
-my $subjectIDsref = $utility->determinSubjectID($scannerID,\%tarchiveInfo,1);
+my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,1);
 
 ################################################################
 ################################################################

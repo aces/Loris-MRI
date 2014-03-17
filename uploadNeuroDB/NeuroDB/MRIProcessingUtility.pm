@@ -135,9 +135,9 @@ sub extractAndParseTarchive{
 }
 
 ################################################################
-#####################determinSubjectID##########################
+#####################determineSubjectID##########################
 ################################################################
-sub determinSubjectID {
+sub determineSubjectID {
     
     my $this = shift;   
     my ($scannerID,$tarchiveInfo,$to_log) = @_;
@@ -167,7 +167,7 @@ sub determinSubjectID {
 
 
 ################################################################
-#####################determinSubjectID##########################
+#####################determineSubjectID##########################
 ################################################################
 
 sub createTarchiveArray {
@@ -203,10 +203,10 @@ sub createTarchiveArray {
 }
 
 ################################################################
-########################determinPSC#############################
+########################determinePSC#############################
 ################################################################
 
-sub determinPSC {
+sub determinePSC {
 
     my $this = shift;
     my ($tarchiveInfo,$to_log) = @_;
@@ -230,9 +230,9 @@ sub determinPSC {
 }
 
 ################################################################
-########################determinScannerID#######################
+########################determineScannerID#######################
 ################################################################
-sub determinScannerID {
+sub determineScannerID {
     
     my $this = shift;
     my ($tarchiveInfo,$to_log,$centerID,$NewScanner) = @_;
