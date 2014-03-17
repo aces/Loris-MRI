@@ -271,7 +271,7 @@ if (defined(&Settings::filterParameters)) {
 ################################################################
 # We already know the PatientName is bad from step 5a, but######
 ## had to wait until this point so that we have the#############
-##SeriesUID and MincFile name compute the md5 hash. Do it#######
+##SeriesUID and MincFile name to compute the md5 hash. Do it####
 ## before computing the hash because there's no point in########
 ##going that far if we already know it's fault.#################
 ################################################################
