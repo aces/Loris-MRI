@@ -255,8 +255,7 @@ my ($sessionID, $requiresStaging) =
 my $notifier = NeuroDB::Notify->new(\$dbh);
 
 ################################################################
-#### Load/Create create File object#############################
-#####And map dicom fields#######################################
+#### Loads/Creates File object and maps dicom fields############
 ################################################################
 my $file = $utility->loadAndCreateObjectFile($minc);
 
