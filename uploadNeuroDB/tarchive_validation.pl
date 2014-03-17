@@ -46,15 +46,15 @@ my @opt_table = (
                   "name of config file in ~/.neurodb."],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,
-                  "Upload data to database even if study protocol is not
-                   defined or violated."],
+                  "Upload data to database even if study protocol is not".
+                  " defined or violated."],
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                  "Loosen the validity check of the tarchive allowing for
-                  the possibility that the tarchive was moved to a
-                  different directory."],
-                 ["-newScanner", "boolean", 1, \$NewScanner, "By default a new 
-                  scanner will be registered if the data you upload requires 
-                  it. You can risk turning it off."],
+                  "Loosen the validity check of the tarchive allowing for".
+                  " the possibility that the tarchive was moved to a". 
+                  " different directory."],
+                 ["-newScanner", "boolean", 1, \$NewScanner, "By default a". 
+                  " new scanner will be registered if the data you upload".
+                  " requires it. You can risk turning it off."],
                  ["Fancy options","section"]
                  );
 
