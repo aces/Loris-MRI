@@ -242,16 +242,12 @@ sub determineScannerID {
     }   
 
     my $scannerID = NeuroDB::MRI::findScannerID(
-                                         $tarchiveInfo->{
-                                            'ScannerManufacturer'
-                                         },
-                                         $tarchiveInfo->{'ScannerModel'},
-                                         $tarchiveInfo->{'ScannerSerialNumber'},
-                                         $tarchiveInfo->{
-                                            'ScannerSoftwareVersion'
-                                         },
-                                         $centerID,$this->{dbhr},$NewScanner
-                                         );
+        $tarchiveInfo->{'ScannerManufacturer'},
+        $tarchiveInfo->{'ScannerModel'},
+        $tarchiveInfo->{'ScannerSerialNumber'},
+        $tarchiveInfo->{'ScannerSoftwareVersion'},
+        $centerID,$this->{dbhr},$NewScanner 
+   );
     if($scannerID == 0) {
         if ($to_log) {
             my $message = "\n ERROR: The ScannerID for this particular scanner
