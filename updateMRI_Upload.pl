@@ -38,9 +38,11 @@ Date    :
 Version :   $versionInfo
 
 
-The program does the following:
+This program does the following:
 
-- updates the mri_upload table to populate the fields
+- Updates the mri_upload table to populate the fields/columns:
+   UploadedBy,UploadDate,TarchiveID and SourceLocation
+
 ====explain====
 
 HELP
@@ -62,8 +64,8 @@ my @arg_table =
                    possibility that the tarchive was moved to a different 
                    directory."
       ],
-      ["-sourceLocation", "string", 1, \$source_location, "The location of 
-        where the uploaded file existse."],
+      ["-sourceLocation", "string", 1, \$source_location, "The location
+        where the uploaded file exists."],
       ["-tarchivePath","string",1, \$tarchive, "The absolute path to
          tarchive-file"]
     );
@@ -105,11 +107,11 @@ unless (-e $tarchive) {
 }
 
 ################################################################
-################# if source locatio is not set##################
+#################if the sourcelocation is not set###############
 ################################################################
 unless (-e $source_location) {
     print "\nERROR: Could not find sourcelocation $source_location \nPlease,
-           make sure the to the sourcelocation is correct. Upload will 
+           make sure the sourcelocation is correct. Upload will 
            exit now.\n\n\n";
     exit 5;
 }
@@ -120,14 +122,14 @@ my $dbh = &DB::DBI::connect_to_db(@Settings::db);
 print "Connecting to database.\n" if $verbose;
 
 ################################################################
-#####Check to see if the tarchiveid is already set or not#######
+#####check to see if the tarchiveid is already set or not#######
 ################################################################
 my $where = " WHERE t.ArchiveLocation = '$tarchive'";
 if ($globArchiveLocation) {
     $where = " WHERE t.ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
 $query  = "SELECT COUNT(*) FROM mri_upload m
-                         JOIN tarchive t on (t.TarchiveID=m.TarchiveID) $where";
+                        JOIN tarchive t on (t.TarchiveID=m.TarchiveID) $where";
 my $count = $dbh->selectrow_array($query);
 if($count>0) {
    print "\n\tERROR: the tarchive is already uploaded \n\n"; 
@@ -146,7 +148,7 @@ my $tarchiveID = $dbh->selectrow_array($query);
 
 
 ################################################################
-#####populate the mri_upload with the correct values############
+#####populate the mri_upload columns with the correct values####
 ################################################################
 $query = "INSERT INTO mri_upload SET UploadedBy='$User', UploadDate=NOW() , 
           TarchiveID ='$tarchiveID' , SourceLocation='$source_location'";
