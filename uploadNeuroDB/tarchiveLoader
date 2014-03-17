@@ -256,19 +256,19 @@ if (($output != 0) && ($force==0)) {
 ################################################################
 #################Get the $psc,$center_name, $centerID###########
 ################################################################
-my ($psc,$center_name, $centerID) = $utility->determinPSC(\%tarchiveInfo,0);
+my ($psc,$center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
 ################################################################
-#############################determin the ScannerID ############
+#############################determine the ScannerID ############
 ################################################################
-my $scannerID = $utility->determinScannerID(\%tarchiveInfo,0,
+my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,
                                             $centerID,$NewScanner
                                            );
 
 ################################################################
 ######Construct the $subjectIDsref array########################
 ################################################################
-my $subjectIDsref = $utility->determinSubjectID($scannerID,\%tarchiveInfo,0);
+my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,0);
 
 ################################################################
 ###############Get the SessionID################################
