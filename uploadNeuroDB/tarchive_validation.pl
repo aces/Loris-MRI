@@ -235,11 +235,6 @@ $utility->CreateMRICandidates($subjectIDsref,$gender,
 ################################################################
 ##################Check if CandID exists########################
 ################################################################
-my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
-my $logQuery = "INSERT INTO MRICandidateErrors".
-               "(SeriesUID, TarchiveID, MincFile,PatientName, Reason)".
-               " VALUES (?, ?, ?, ?, ?)";
-my $candlogSth = $dbh->prepare($logQuery);
 my $sth = $dbh->prepare($query);
 $sth->execute($subjectIDsref->{'CandID'});
 my @CandIDCheck = $sth->fetchrow_array;
