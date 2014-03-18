@@ -133,17 +133,7 @@ if($count>0) {
    exit 6;
 } 
 
-###############################################################
-#####Determin the file type#####################################
-################################################################
 
-my @exts = qw(tar.gz tgz zip);   
-my ($dir, $name, $ext) = fileparse($source_location, @exts);
-if (($ext eq '') || !($ext)) {
-   print "\n\tERROR: the source file is not of type .tar.gz,".
-         " .tgz or .zip \n\n";
-   exit 7;
-}
 ################################################################
 #####get the tarchiveid from tarchive table#####################
 ################################################################
@@ -159,8 +149,7 @@ my $tarchiveID = $dbh->selectrow_array($query);
  #####populate the mri_upload columns with the correct values####
 ################################################################
 $query = "INSERT INTO mri_upload SET UploadedBy='$User', UploadDate=NOW() ,". 
-         " TarchiveID ='$tarchiveID' , SourceLocation='$source_location',".
-         "FileType='$ext'";
+         " TarchiveID ='$tarchiveID' , SourceLocation='$source_location'";
 $dbh->do($query);
 
 print "Done!\n";
