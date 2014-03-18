@@ -57,6 +57,20 @@ $if_sge = 0;
 ###It is used by default
 $if_site = 1;
 
+### DTIPrep pipeline options
+## If DTI acquisitions are performed, specify
+# 1. Number of volumes in native DTI acquisitions
+$DTI_volumes    =   '65';
+# 2. Scan type of native T1 acquisition (as in mri_scan_type table)
+$t1_scan_type   =   'adniT1';
+# 3. Max number of directions that can be rejected to PASS QC
+$reject_thresh  =   19;
+## Optionaly, set this two options:
+# 4a. path to niak quarantine to use if mincdiffusion will be run (option -runMincdiffusion set when calling DTIPrep_pipeline.pl) 
+$niak_path      =   '/opt/niak-0.6.4.1/';
+# 4b. DTIPrep protocol step at which a secondary QCed dataset is produced (for example one without motion correction and eddy current correction would be saved at INTERLACE_outputDWIFileNameSuffix step of DTIPrep)
+$QCed2_step   =   'INTERLACE_outputDWIFileNameSuffix';
+
 
 =pod
 # SECTION III
@@ -144,4 +158,21 @@ sub filterParameters {
             $file->removeParameter($key);
         }
     }
+}
+
+
+# ----------- OPTIONAL SUBROUTINE
+# Fetch site, CandID and Visit info from DTI folder.
+sub  get_DTI_Site_CandID_Visit {
+    my ($d) =   @_;
+
+    if  ($d =~  /\/*([0-9]+)\/([N,P][A,R][P,E]EN00)/i)  {   # when only one site
+        my  $site   =   "PreventAD";                                  # when only one site
+        my  $subjID =   $1;
+        my  $visit  =   $2;
+        return  ($site,$subjID,$visit);
+    }else{
+        return  undef;
+    }
+                                                              194,6         98%
 }
