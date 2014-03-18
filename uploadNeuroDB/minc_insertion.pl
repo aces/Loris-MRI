@@ -91,16 +91,15 @@ Version :   $versionInfo
 
 The program does the following:
 
-- Loads the created minc file and then the set the appropriate parameter for 
+- Loads the created minc file and then sets the appropriate parameter for 
   the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
                      PendingStaging, CoordinateSpace , OutputType , FileType
                      ,TarchiveSource and Caveat)
-- Extracts teh correct acquitionprotocol
-- Registers the scaninto db by first changing the minc-path and setting extra
+- Extracts the correct acquitionprotocol
+- Registers the scan into db by first changing the minc-path and setting extra
   parameters
 - Finally sets the series notification
 
-====explain====
 
 HELP
 my $Usage = <<USAGE;
@@ -123,7 +122,7 @@ if ($profile && !defined @Settings::db) {
 
 if (!$profile) { 
     print $Help; print "$Usage\n\tERROR: You must specify a valid 
-    and an existing profile.\n\n";  
+    and existing profile.\n\n";  
     exit 3; 
 }
 
