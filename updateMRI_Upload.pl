@@ -21,6 +21,7 @@ my $profile    = undef;
 my $source_location = '';
 my $tarchive = '';
 my $query = '';
+my $sth = undef;
 my $tarchiveID = 0;
 my $User             = `whoami`;
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
@@ -120,14 +121,23 @@ print "Connecting to database.\n" if $verbose;
 
 ################################################################
 #####check to see if the tarchiveid is already set or not#######
+######if it's already in the mri_upload table then it will######
+######generate an error#########################################
 ################################################################
-my $where = " WHERE t.ArchiveLocation = '$tarchive'";
+
+my $tarchive_path = $tarchive;
+my $where = " WHERE t.ArchiveLocation =?";
+
 if ($globArchiveLocation) {
-    $where = " WHERE t.ArchiveLocation LIKE '%/".basename($tarchive)."'";
+    $where = " WHERE t.ArchiveLocation LIKE ?";
+    $tarchive_path = basename($tarchive);
 }
-$query  = "SELECT COUNT(*) FROM mri_upload m
-                        JOIN tarchive t on (t.TarchiveID=m.TarchiveID) $where";
-my $count = $dbh->selectrow_array($query);
+
+$query  = "SELECT COUNT(*) FROM mri_upload m JOIN tarchive t ON".
+          " (t.TarchiveID=m.TarchiveID) $where";
+$sth = $dbh->prepare($query);
+$sth->execute($tarchive_path);
+my $count = $sth->fetchrow_array;
 if($count>0) {
    print "\n\tERROR: the tarchive is already uploaded \n\n"; 
    exit 6;
@@ -137,20 +147,19 @@ if($count>0) {
 ################################################################
 #####get the tarchiveid from tarchive table#####################
 ################################################################
-my $where = " WHERE ArchiveLocation = '$tarchive'";
-if ($globArchiveLocation) {
-    $where = " WHERE ArchiveLocation LIKE '%/".basename($tarchive)."'";
-}   
-$query = "SELECT TarchiveID FROM tarchive $where ";
-my $tarchiveID = $dbh->selectrow_array($query);
+$query = "SELECT t.TarchiveID FROM tarchive t $where ";
+$sth = $dbh->prepare($query);
+$sth->execute("%".$tarchive_path."%");
+my $tarchiveID = $sth->fetchrow_array;
 
 
 ################################################################
  #####populate the mri_upload columns with the correct values####
 ################################################################
-$query = "INSERT INTO mri_upload SET UploadedBy='$User', UploadDate=NOW() ,". 
-         " TarchiveID ='$tarchiveID' , SourceLocation='$source_location'";
-$dbh->do($query);
+$query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
+         "SourceLocation) VALUES(?,now(),?,?)";
+my $mri_upload_insert = $dbh->prepare($query);
+$mri_upload_insert->execute($User,$tarchiveID,$source_location);
 
 print "Done!\n";
 exit 0;
