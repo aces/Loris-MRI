@@ -24,14 +24,20 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                     $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 0 ;  
+my $debug       = 1 ;  
+my $where       = '';
+my $sth         = undef;
+my $query       = '';
 my $message     = '';
 my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
-
+my $force       = 0;           # This is a flag to allow the values to be 
+                               # inserted into the mri_upload table if 
+                               # dicomtar.pl hasn't been ran using the option
+                               # -mri_upload_update
 my $NewScanner  = 1;           # This should be the default unless you are a
                                # control freak
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
@@ -44,6 +50,8 @@ my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
                   "name of config file in ~/.neurodb."],
+                 ["-force", "boolean", 1, \$force,"Forces the script to run ".
+                 "even if the validation has failed."],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not".
@@ -164,17 +172,29 @@ my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
 
 
 ################################################################
-###################Check to see if the tarchiveID exists########
-#################in the mri_upload table########################
+#######################get the tarchive-id######################
 ################################################################
-my $query = "SELECT * FROM mri_upload WHERE TarchiveID=?";
 
-my $sth = $dbh->prepare($query);
+$where = "WHERE TarchiveID=?";
+$query = "SELECT COUNT(*) FROM mri_upload $where ";
+$sth = $dbh->prepare($query);
 $sth->execute($tarchiveInfo{TarchiveID});
-if ($sth->rows == 0) {
-    print LOG  "\n\n => The tarchiveID doesn't exist in the mri_upload table";
-    print "The tarchiveID doesn't exist in the mri_upload table".
-          " Please re-Run the Dicomtar.pl with -mri_upload_update option\n";
+print $query . "\n";
+my $tarchiveid_count = $sth->fetchrow_array;
+
+
+################################################################
+#######################if tarchiveid is not inserted into ######
+### the mri_upload table or if the $force option is null"#######
+####then fail###################################################
+################################################################
+
+if (($tarchiveid_count==0) && ($force==0)) {
+    $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
+               "doesn't exist in the mri_upload table either re-run the".
+               " dicomTar.pl using -mri_upload_update or use -force to ".
+               "force the execution.\n\n";
+    $utility->writeErrorLog($logfile, $message, 5);
     exit 5;
 }
 
@@ -297,14 +317,35 @@ my ($ExtractSuffix,$study_dir,$header) =
 if( defined( &Settings::dicomFilter )) {
     Settings::dicomFilter($study_dir, \%tarchiveInfo);
 }
+
+
 ################################################################
+#####update the mri_upload table with the correct tarchiveID##
+### only if the $tarchive_id exists and the -force is not used##
 ################################################################
-##############Set the isValid to true###########################
+
+if (($tarchiveid_count!=0) && ($force==0)) {
+    $where = "WHERE TarchiveID=?";
+    $query = "UPDATE mri_upload SET IsValidated='1' ";
+    $query = $query . $where;
+    my $mri_upload_update = $dbh->prepare($query);
+    $mri_upload_update->execute($tarchiveInfo{TarchiveID});
+}
+
 ################################################################
-my $where = "WHERE TarchiveID='$tarchiveInfo{TarchiveID}'";
-$query = "UPDATE mri_upload SET IsValidated='1' ";
-$query = $query . $where;
-$dbh->do($query);
+#####insert into the mri_upload table correct values############
+### only if the $tarchive_id doesn't exists and the -force###### 
+####is used#####################################################
+################################################################
+
+if (($tarchiveid_count==0) && ($force)) {
+    $query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
+         "SourceLocation, IsValidated) VALUES (?,now(),?,?,'1')";
+    my $mri_upload_insert = $dbh->prepare($query);
+    $mri_upload_insert->execute($User,$tarchiveInfo{TarchiveID},$tarchiveInfo{'SourceLocation'});
+}
+
+
 
 exit 0;
 
