@@ -43,7 +43,6 @@ This program does the following:
 - Updates the mri_upload table to populate the fields/columns:
    UploadedBy,UploadDate,TarchiveID and SourceLocation
 
-====explain====
 
 HELP
 
@@ -59,15 +58,13 @@ my @arg_table =
 	  ["-profile","string",1, \$profile, "Specify the name of the config file
           which resides in .neurodb in your home directory."],
 	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
-      ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                  "Loosen the validity check of the tarchive allowing for the
-                   possibility that the tarchive was moved to a different 
-                   directory."
-      ],
-      ["-sourceLocation", "string", 1, \$source_location, "The location
-        where the uploaded file exists."],
-      ["-tarchivePath","string",1, \$tarchive, "The absolute path to
-         tarchive-file"]
+      ["-globLocation", "boolean", 1, \$globArchiveLocation, "Loosen the".
+       " validity check of the tarchive allowing for the possibility that".
+       " the tarchive was moved to a different directory."],
+      ["-sourceLocation", "string", 1, \$source_location, "The location".
+       " where the uploaded file exists."],
+      ["-tarchivePath","string",1, \$tarchive, "The absolute path to".
+       " tarchive-file"]
     );
 
 # Parse arguments
@@ -136,6 +133,17 @@ if($count>0) {
    exit 6;
 } 
 
+###############################################################
+#####Determin the file type#####################################
+################################################################
+
+my @exts = qw(tar.gz tgz zip);   
+my ($dir, $name, $ext) = fileparse($source_location, @exts);
+if (($ext eq '') || !($ext)) {
+   print "\n\tERROR: the source file is not of type .tar.gz,".
+         " .tgz or .zip \n\n";
+   exit 7;
+}
 ################################################################
 #####get the tarchiveid from tarchive table#####################
 ################################################################
@@ -148,10 +156,11 @@ my $tarchiveID = $dbh->selectrow_array($query);
 
 
 ################################################################
-#####populate the mri_upload columns with the correct values####
+ #####populate the mri_upload columns with the correct values####
 ################################################################
-$query = "INSERT INTO mri_upload SET UploadedBy='$User', UploadDate=NOW() , 
-          TarchiveID ='$tarchiveID' , SourceLocation='$source_location'";
+$query = "INSERT INTO mri_upload SET UploadedBy='$User', UploadDate=NOW() ,". 
+         " TarchiveID ='$tarchiveID' , SourceLocation='$source_location',".
+         "FileType='$ext'";
 $dbh->do($query);
 
 print "Done!\n";
