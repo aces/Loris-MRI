@@ -49,6 +49,7 @@ sub new {
 sub writeErrorLog {
     my $this = shift;
     my ($message, $failStatus,$LogDir) = @_;
+    print $message;
     $this->{LOG}->print($message);
     $this->{LOG}->print("program exit status: $failStatus");
     `cat $this->{logfile}  >> $this->{LogDir}/error.log`;
@@ -182,8 +183,8 @@ sub createTarchiveArray {
     my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
                 " DateAcquired, DicomArchiveID, PatientGender,".
                 " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
-                " ScannerSoftwareVersion, neurodbCenterName, TarchiveID".
-                " FROM tarchive WHERE $where";
+                " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,".
+                " SourceLocation FROM tarchive WHERE $where";
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -199,6 +200,7 @@ sub createTarchiveArray {
         $this->writeErrorLog($message, 3);
         exit 3;
     }
+
     return %tarchiveInfo;
 }
 
@@ -808,7 +810,8 @@ sub CreateMRICandidates {
                     $tarchiveInfo->{'PatientID'}\n".
                     " The dicom header PatientName is : 
                     $tarchiveInfo->{'PatientName'}\n\n";
-        $this->writeErrorLog($message, 6); exit 6;
+        $this->writeErrorLog($message, 6); 
+        exit 6;
     }
 }
 
@@ -896,5 +899,66 @@ sub which_directory {
     $dir =~ s/ //;
     return $dir;
 }
+################################################################
+###############################validateCandidate################
+################################################################
+
+sub validateCandidate {
+    my $this = shift;
+    my ($subjectIDsref)= @_;
+    my $CandMismatchError = undef;
+
+    
+    ############################################################
+    ##################Check if CandID exists####################
+    ############################################################
+    my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($subjectIDsref->{'CandID'});
+    print "candidate id " . $subjectIDsref->{'CandID'} . "\n";
+    my @CandIDCheck = $sth->fetchrow_array;
+    my $CandMismatchError;
+    if ($sth->rows == 0) {
+        print LOG  "\n\n => Could not find candidate with CandID =".
+        " $subjectIDsref->{'CandID'} in database";
+        
+        $CandMismatchError = 'CandID does not exist';
+        return $CandMismatchError;
+    }
+   
+    
+    ############################################################
+    ##################Check if PSCID exists#####################
+    ############################################################
+
+    $query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
+    $sth =  ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($subjectIDsref->{'PSCID'});
+    if ($sth->rows == 0) {
+        print LOG  "\n\n => No PSCID";
+        $CandMismatchError= 'PSCID does not exist';
+        return $CandMismatchError;
+    } 
+
+    ############################################################
+    ##################No Checking if the subject is Phantom#####
+    ############################################################
+    if ($subjectIDsref->{'isPhantom'}) {
+        # CandID/PSCID errors don't apply to phantoms, so we don't
+        # want to trigger
+        # the check which aborts the insertion
+        $CandMismatchError = undef;
+        return $CandMismatchError;
+    }
+   return $CandMismatchError;
+
+}
+
+
+
+
+
+
+
 
 1;
