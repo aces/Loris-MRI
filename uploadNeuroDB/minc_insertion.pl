@@ -54,7 +54,6 @@ my @opt_table = (
 
                  ["-reckless", "boolean", 1, \$reckless,"Upload data to". 
                  " database even if study protocol is not defined or violated."],
-
                  ["-force", "boolean", 1, \$force,"Forces the script to run". 
                  " even if the validation has failed."],
             
@@ -186,7 +185,7 @@ if (($is_valid == 0) && ($force==0)) {
                        the problem. Or use -force to force the 
                        execution.\n\n";
     print $message;
-    $utility->writeErrorLog($logfile, $message, 6); 
+    $utility->writeErrorLog($message,6,$logfile); 
     exit 6;
 }
 
@@ -218,26 +217,22 @@ my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,$centerID,
 my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,0);
 
 ################################################################
+#################Define the $CandMismatchError##################
 ################################################################
-#####Define the $CandMismatchError##############################
+#Check the CandID/PSCID Match It's possible that the CandID##### 
+##exists, but doesn't match the PSCID. This will fail further###
+### down silently, so we explicitly check that the data is######
+### correct here.###############################################
 ################################################################
 ################################################################
-my $CandMismatchError;
+
+my $CandMismatchError = undef;
+$CandMismatchError= $utility->validateCandidate($subjectIDsref);
+
 my $logQuery = "INSERT INTO MRICandidateErrors".
               "(SeriesUID, TarchiveID,MincFile, PatientName, Reason)".
               " VALUES (?, ?, ?, ?, ?)";
 my $candlogSth = $dbh->prepare($logQuery);
-
-if ($subjectIDsref->{'isPhantom'}) {
-    # CandID/PSCID errors don't apply to phantoms, so we don't want to trigger
-    # the check which aborts the insertion
-    $CandMismatchError = undef;
-}
-   ##if the validation has passed and force is false###
-   ###Then the CandMismatchError is null or undef
-if (($is_valid) and !($force)){
-    $CandMismatchError = undef;
-}
 
 ################################################################
 ################Get the SessionID###############################
