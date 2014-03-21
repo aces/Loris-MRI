@@ -190,9 +190,9 @@ my $tarchiveid_count = $sth->fetchrow_array;
 
 if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
     $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               " doesn't exist in the mri_upload table either \n".
-               " re-run the dicomTar.pl using -mri_upload_insert ".
-               "or use -mri_upload_insert to insert the missing values.\n\n";
+               " doesn't exist in the mri_upload table. Either: \n".
+               "-re-run the dicomTar.pl using -mri_upload_insert ".
+               "-or use -mri_upload_insert to insert the missing values.\n\n";
     $utility->writeErrorLog($message,5,$logfile);
     exit 5;
 
