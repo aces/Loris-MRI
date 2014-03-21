@@ -184,19 +184,35 @@ my $tarchiveid_count = $sth->fetchrow_array;
 
 ################################################################
 #######################if tarchiveid is not inserted into ######
-### the mri_upload table or if the $force option is null"#######
-####then fail###################################################
+### the mri_upload table and if the -mri_upload_insert option###
+####is null then fail##########################################
 ################################################################
 
 if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
     $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               "doesn't exist in the mri_upload table either \n".
+               " doesn't exist in the mri_upload table either \n".
                " re-run the dicomTar.pl using -mri_upload_insert ".
                "or use -mri_upload_insert to insert the missing values.\n\n";
     $utility->writeErrorLog($message,5,$logfile);
     exit 5;
 
 }
+
+################################################################
+##########if tarchiveid is already inserted into################
+### the mri_upload table and -mri_upload_insert#################
+################################################################
+
+if (($tarchiveid_count>0) && ($mri_upload_insert)) {
+    $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
+               " already in the mri_upload table therefore cannot use ".
+               " -mri_upload_insert option.\n\n";
+    $utility->writeErrorLog($message,6,$logfile);
+    exit 6;
+
+}
+
+
 
 
 ################################################################
@@ -254,7 +270,7 @@ $utility->CreateMRICandidates($subjectIDsref,$gender,
 my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
 if (defined $CandMismatchError) {
     print $CandMismatchError;
-    exit 6;   
+    exit 7;   
 }
 ################################################################
 ###################Get the SessionID############################
