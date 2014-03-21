@@ -34,7 +34,7 @@ my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
-my $force       = 0;           # This is a flag to allow the values to be 
+my $mri_upload_insert  = 0;           # This is a flag to allow the values to be 
                                # inserted into the mri_upload table if 
                                # dicomtar.pl hasn't been ran using the option
                                # -mri_upload_update
@@ -50,8 +50,9 @@ my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
                   "name of config file in ~/.neurodb."],
-                 ["-force", "boolean", 1, \$force,"Forces the script to run ".
-                 "even if the validation has failed."],
+                 ["-mri_upload_insert", "boolean", 1, \$mri_upload_insert,"Populates" .
+                 " the mri_upload columns with the missing values if the ".
+                 " dicomtar.pl -mri_upload_update was not ran"],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not".
@@ -179,9 +180,7 @@ $where = "WHERE TarchiveID=?";
 $query = "SELECT COUNT(*) FROM mri_upload $where ";
 $sth = $dbh->prepare($query);
 $sth->execute($tarchiveInfo{TarchiveID});
-print $query . "\n";
 my $tarchiveid_count = $sth->fetchrow_array;
-
 
 ################################################################
 #######################if tarchiveid is not inserted into ######
@@ -189,13 +188,14 @@ my $tarchiveid_count = $sth->fetchrow_array;
 ####then fail###################################################
 ################################################################
 
-if (($tarchiveid_count==0) && ($force==0)) {
+if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
     $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               "doesn't exist in the mri_upload table either re-run the".
-               " dicomTar.pl using -mri_upload_update or use -force to ".
-               "force the execution.\n\n";
-    $utility->writeErrorLog($logfile, $message, 5);
+               "doesn't exist in the mri_upload table either \n".
+               " re-run the dicomTar.pl using -mri_upload_insert ".
+               "or use -mri_upload_insert to insert the missing values.\n\n";
+    $utility->writeErrorLog($message,5,$logfile);
     exit 5;
+
 }
 
 
@@ -251,53 +251,11 @@ $utility->CreateMRICandidates($subjectIDsref,$gender,
 ### correct here.###############################################
 ################################################################
 ################################################################
-
-################################################################
-##################Check if CandID exists########################
-################################################################
-my $sth = $dbh->prepare($query);
-$sth->execute($subjectIDsref->{'CandID'});
-my @CandIDCheck = $sth->fetchrow_array;
-my $CandMismatchError;
-if ($sth->rows == 0) {
-    print LOG  "\n\n => Could not find candidate with CandID =".
-    " $subjectIDsref->{'CandID'} in database";
-    $CandMismatchError = 'CandID does not exist';
-    exit 6;
+my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
+if (defined $CandMismatchError) {
+    print $CandMismatchError;
+    exit 6;   
 }
-
-################################################################
-##################Check if PSCID exists#########################
-################################################################
-
-$query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
-$sth = $dbh->prepare($query);
-$sth->execute($subjectIDsref->{'PSCID'});
-if ($sth->rows == 0) {
-    print LOG  "\n\n => No PSCID";
-    $CandMismatchError= 'PSCID does not exist';
-    exit 7;
-}   
-
-################################################################
-##################Check if both PSCID and CandID match##########
-################################################################
-my @PSCIDCheck = $sth->fetchrow_array;
-if ($PSCIDCheck[0] != $CandIDCheck[0] || $PSCIDCheck[1] != $CandIDCheck[1]) {
-    print LOG  "\n\n => CandID and PSCID mismatch";
-    $CandMismatchError = 'CandID and PSCID do not match database';
-     exit 8;
-}
-
-################################################################
-##################No Checking if the subject is Phantom#########
-################################################################
-if ($subjectIDsref->{'isPhantom'}) {
-    # CandID/PSCID errors don't apply to phantoms, so we don't want to trigger
-    # the check which aborts the insertion
-    $CandMismatchError = undef;
-}
-
 ################################################################
 ###################Get the SessionID############################
 ################################################################
@@ -320,11 +278,11 @@ if( defined( &Settings::dicomFilter )) {
 
 
 ################################################################
-#####update the mri_upload table with the correct tarchiveID##
-### only if the $tarchive_id exists and the -force is not used##
+#####update the mri_upload table with the correct tarchiveID####
+####only if the $tarchive_id exists and -mri_upload is not used#
 ################################################################
 
-if (($tarchiveid_count!=0) && ($force==0)) {
+if (($tarchiveid_count!=0) && ($mri_upload_insert==0)) {
     $where = "WHERE TarchiveID=?";
     $query = "UPDATE mri_upload SET IsValidated='1' ";
     $query = $query . $where;
@@ -334,18 +292,16 @@ if (($tarchiveid_count!=0) && ($force==0)) {
 
 ################################################################
 #####insert into the mri_upload table correct values############
-### only if the $tarchive_id doesn't exists and the -force###### 
+### only if the $tarchive_id doesn't exists and the -mri_upload# 
 ####is used#####################################################
 ################################################################
 
-if (($tarchiveid_count==0) && ($force)) {
+if (($tarchiveid_count==0) && ($mri_upload_insert)) {
     $query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
          "SourceLocation, IsValidated) VALUES (?,now(),?,?,'1')";
-    my $mri_upload_insert = $dbh->prepare($query);
-    $mri_upload_insert->execute($User,$tarchiveInfo{TarchiveID},$tarchiveInfo{'SourceLocation'});
+    my $mri_upload_inserts = $dbh->prepare($query);
+    $mri_upload_inserts->execute($User,$tarchiveInfo{TarchiveID},$tarchiveInfo{'SourceLocation'});
 }
-
-
 
 exit 0;
 
