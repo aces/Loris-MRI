@@ -53,7 +53,7 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                      $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 0;  
+my $debug       = 1;  
 my $message     = '';
 my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a
@@ -264,11 +264,25 @@ $output = $output >> 8;
 if (($output== 5) && ($mri_upload_insert==0)) {
 
   $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               "doesn't exist in the mri_upload table    \n".
+               " doesn't exist in the mri_upload table    \n".
                " re-run the tarchiveLoader script using ".
                " -mri_upload_insert to insert the missing values.\n\n";
  $utility->writeErrorLog($message,5,$logfile); 
  exit 5;
+}
+
+################################################################
+##########if tarchiveid is already inserted into################
+### the mri_upload table and -mri_upload_insert is set##########
+################################################################
+
+if (($output==6) && ($mri_upload_insert)) {
+    $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
+               " already in the mri_upload table therefore cannot use ".
+               " -mri_upload_insert option.\n\n";
+    $utility->writeErrorLog($message,6,$logfile);
+    exit 6;
+
 }
 
 ################################################################
@@ -279,7 +293,7 @@ if (($output != 0) && ($output!= 5) && ($force==0)) {
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog($message,5,$logfile); 
- exit 6;
+ exit 7;
 }
 
 ################################################################
@@ -345,7 +359,7 @@ if ($mcount < 1) {
     $message = "\nNo data could be converted into valid MINC files. 
                 Localizers will not be considered! \n" ; 
     $utility->writeErrorLog($message,6,$logfile); 
-    exit 7; 
+    exit 8; 
 }
 
 ################################################################
@@ -388,7 +402,6 @@ foreach my $minc (@minc_files) {
 
     $output = system($script);
     $output = $output >> 8;
-
     ############################################################
     ####if the return code of the script is 0###################
     # mark the study as valid because this means at least#######
@@ -401,7 +414,6 @@ foreach my $minc (@minc_files) {
 } # end foreach $minc
 
 if ($valid_study) {
-
 
     ############################################################
     # update the number_of_mincCreated##########################
@@ -466,7 +478,7 @@ if ($valid_study) {
     ############################################################
     ####link the tarchive and mri_upload tabel  with session####
     ############################################################
-     $where = "WHERE TarchiveID=?";
+     $where = "WHERE t.TarchiveID=?";
      $query = "UPDATE tarchive t ".
             "JOIN mri_upload m ON (m.tarchiveID=t.tarchiveID)".
             "SET t.SessionID =?, m.sessionID=?";
