@@ -419,33 +419,14 @@ if ($valid_study) {
     # update the number_of_mincCreated##########################
     ### and number_of_mincInserted##############################
     ############################################################
-    if (!($mri_upload_insert)) {
-        my $where = "WHERE TarchiveID=?";
-        my $query = "UPDATE mri_upload SET number_of_mincInserted=? ".
-        "number_of_mincCreated=?";
-        $query = $query . $where;
-        my $mri_upload_update = $dbh->prepare($query);
-        $mri_upload_update->execute(
-                 $minc_inserted,$mcount,$tarchiveInfo{TarchiveID}
-        );
-
-    
-    ############################################################
-    ####insert the correct values into the the mri_upload####### 
-    ####If the -mri_upload_insert option is used################
-    ############################################################
-
-    } else {
-        my $query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
-         "SourceLocation,number_of_mincInserted,number_of_mincCreated) ".
-         "VALUES(?,now(),?,?,?,?)";
-        my $mri_upload_inserts = $dbh->prepare($query);
-        $mri_upload_inserts->execute(
-            $User,$tarchiveInfo{TarchiveID},$tarchiveInfo{'SourceLocation'}
-            ,$minc_inserted,$mcount
-        );
-    }
-
+    my $where = "WHERE TarchiveID=?";
+    my $query = "UPDATE mri_upload SET number_of_mincInserted=? ".
+                 "number_of_mincCreated=?";
+    $query = $query . $where;
+    my $mri_upload_update = $dbh->prepare($query);
+    $mri_upload_update->execute(
+               $minc_inserted,$mcount,$tarchiveInfo{TarchiveID}
+    );
  
     ############################################################
     ###############Create minc-pics#############################
