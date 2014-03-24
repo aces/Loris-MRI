@@ -420,9 +420,13 @@ if ($valid_study) {
     ### and number_of_mincInserted##############################
     ############################################################
     my $where = "WHERE TarchiveID=?";
-    my $query = "UPDATE mri_upload SET number_of_mincInserted=? ".
-                 "number_of_mincCreated=?";
+    my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
+                 "number_of_mincCreated=? ";
     $query = $query . $where;
+    if ($debug) {
+        print $query . "\n";
+    }
+
     my $mri_upload_update = $dbh->prepare($query);
     $mri_upload_update->execute(
                $minc_inserted,$mcount,$tarchiveInfo{TarchiveID}
@@ -432,9 +436,12 @@ if ($valid_study) {
     ###############Create minc-pics#############################
     ############################################################
     
+    my $where = "WHERE TarchiveSource =? ";
     my $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
-    my $where = "WHERE TarchiveSource =?";
     $query = $query . $where;
+    if ($debug) {
+        print $query . "\n";
+    }
     my $sth = $dbh->prepare($query);
     $sth->execute($tarchiveInfo{TarchiveID});
     my @row = $sth->fetchrow_array();
@@ -461,9 +468,12 @@ if ($valid_study) {
     ############################################################
      $where = "WHERE t.TarchiveID=?";
      $query = "UPDATE tarchive t ".
-            "JOIN mri_upload m ON (m.tarchiveID=t.tarchiveID)".
-            "SET t.SessionID =?, m.sessionID=?";
+            "JOIN mri_upload m ON (m.tarchiveID=t.tarchiveID) ".
+            "SET t.SessionID =?, m.sessionID=? ";
      $query = $query . $where;
+     if ($debug) {
+        print $query . "\n";
+     }
      my $session_update = $dbh->prepare($query);
      $session_update->execute(
               $sessionID,$sessionID,$tarchiveInfo{'TarchiveID'}
