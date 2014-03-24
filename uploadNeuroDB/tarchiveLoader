@@ -400,6 +400,10 @@ foreach my $minc (@minc_files) {
         $script .= " -globLocation";
     }
 
+    if ($debug) {
+        print $script . "\n";
+    }
+ 
     $output = system($script);
     $output = $output >> 8;
     ############################################################
