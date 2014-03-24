@@ -46,7 +46,8 @@ foreach my $input (@inputs)
     ## processor will do all the real magic
 
     $input =~ s/\t/ /;
-    my $command = "tarchiveLoader -globLocation -profile prod $Settings::tarchiveLibraryDir/$input";
+    $input =~ s/$Settings::tarchiveLibraryDir//;
+    my $command = "uploadNeuroDB/tarchiveLoader -globLocation -profile prod $Settings::tarchiveLibraryDir/$input";
     ##if qsub is enabled use it
     if ($Settings::is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
