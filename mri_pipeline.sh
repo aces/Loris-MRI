@@ -31,7 +31,7 @@ fi
 
 
 read -p "what is the database name? " mysqldb
-read -p "What is the databse host? " mysqlhost
+read -p "What is the database host? " mysqlhost
 read -p "What is the Mysql user? " mysqluser
 stty -echo ##this disables the password to show up on the commandline
 read -p "What is the mysql password? " mysqlpass; echo
