@@ -99,6 +99,13 @@ my $today           = sprintf("%4d-%02d-%02d",$year+1900,$mon+1,$mday);
 my $hostname        = inet_ntoa(scalar(gethostbyname(hostname() || 'localhost'))); #`hostname -f`; # fixme specify -f for fully qualified if you need it.
 my $system          = `uname`;
 
+
+# Remove .DS_Store from dcm_source directory if exist
+if (-e $dcm_source . "/.DS_Store") {
+    my $cmd = "rm $dcm_source/.DS_Store";
+    system($cmd);
+}
+
 # create new summary object
 my $summary = DICOM::DCMSUM->new($dcm_source,$targetlocation);
 # determine the name for the summary file
