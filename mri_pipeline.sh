@@ -1,10 +1,34 @@
-#! /bin/bash
+#!/bin/bash
 
 ################################
 ####WHAT WILL NOT DO#############
 ###1)It doesn't set up the SGE
 ###2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place it in h
 ###3)It doesn't change the config.xml
+
+## First, check that all required modules are installed.
+## Check if cpan module installed
+CPANCHECK=`which cpan`
+if [ ! -f "$CPANCHECK" ]; then
+    echo "\nERROR: Unable to find cpan"
+    echo "Please, ask your sysadmin to install CPAN\n"
+    exit
+fi
+## Check if make is installed
+MAKECHECK=`which make`
+if [ ! -f "$MAKECHECK" ]; then
+    echo "\nERROR: Unable to find make"
+    echo "Please, ask your sysadmin to install MAKE\n"
+    exit
+fi
+## Check if apt-get is install
+APTGETCHECK=`which apt-get`
+if [ ! -f "$APTGETCHECK" ]; then
+    echo "\nERROR: Unable to find apt-get"
+    echo "Please, ask your sysadmin to install APT-GET\n"
+    exit
+fi
+
 
 read -p "what is the database name? " mysqldb
 read -p "What is the databse host? " mysqlhost
@@ -47,23 +71,22 @@ echo
 #############################Create directories########################################
 #########################################################################################
  echo "Creating the data directories"
-  sudo -S mkdir -p /data/$PROJ/bin/ 
-  sudo -S mkdir -p /data/$PROJ/data/
-  sudo -S mkdir -p /data/$PROJ/data/trashbin   ##holds mincs that didn't match protocol
-  sudo -S mkdir -p /data/$PROJ/data/tarchive   ##holds tared dicom-folder
-  sudo -S mkdir -p /data/$PROJ/data/pic           ##holds jpegs generated for the MRI-browser
-  sudo -S mkdir -p /data/$PROJ/data/logs         ## holds logs from pipeline script
-  sudo -S mkdir -p /data/$PROJ/data/jiv            ## holds JIVs used for JIV viewer
-  sudo -S mkdir -p /data/$PROJ/data/assembly ## holds the MINC files
-  sudo -S mkdir -p /data/$PROJ/data/batch_output  ##contains the result of the SGE (queue
-  sudo -S mkdir -p /home/$USER/.neurodb
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/"
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/trashbin"   ##holds mincs that didn't match protocol
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/tarchive"   ##holds tared dicom-folder
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/pic"           ##holds jpegs generated for the MRI-browser
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/logs"         ## holds logs from pipeline script
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/jiv"            ## holds JIVs used for JIV viewer
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/assembly" ## holds the MINC files
+  sudo -S su $USER "mkdir -p /data/$PROJ/data/batch_output"  ##contains the result of the SGE (queue
+  sudo -S su $USER "mkdir -p /home/$USER/.neurodb"
 echo
 #######################################################################################
  ###############incoming directory using sites########################################
 #######################################################################################
  echo "Creating incoming director(y/ies)"
   for s in $site; do 
-   sudo -S mkdir -p /data/incoming/$s/incoming;
+   sudo -S su $USER "mkdir -p /data/incoming/$s/incoming";
   done;
  echo
 
@@ -81,10 +104,9 @@ echo
 ####################################################################################
 ######################change permissions ##########################################
 ####################################################################################
-echo "Changing permissions"
-sudo chown -R $USER:$USER /home/$USER/.neurodb/
-sudo chown -R $USER:$USER /data/$PROJ/
-sudo chown -R $USER:$USER /data/incoming/
+#echo "Changing permissions"
+#sudo chown -R $USER:$USER /home/$USER/.neurodb/
+#sudo chown -R $USER:$USER /data/incoming/
 
 sudo chmod -R 750 /home/$USER/.neurodb/
 sudo chmod -R 750 /data/$PROJ/
@@ -100,6 +122,7 @@ cp $mridir/dicom-archive/profileTemplate /home/$USER/.neurodb/prod
 sudo chmod 640 /home/$USER/.neurodb/prod
 sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@gmail.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > /home/$USER/.neurodb/prod
 echo
+
 ######################################################################
 ###########Modify the config.xml########################################
 ######################################################################
