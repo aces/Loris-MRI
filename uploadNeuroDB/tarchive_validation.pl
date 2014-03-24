@@ -270,7 +270,8 @@ $utility->CreateMRICandidates($subjectIDsref,$gender,
 my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
 if (defined $CandMismatchError) {
     print $CandMismatchError;
-    exit 7;   
+    ##Note that the script will not exit, so that further down
+    ##it can be inserted per minc into the MRICandidateErrors
 }
 ################################################################
 ###################Get the SessionID############################
