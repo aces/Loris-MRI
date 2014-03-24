@@ -14,13 +14,6 @@ if [ ! -f "$CPANCHECK" ]; then
     echo "Please, ask your sysadmin to install CPAN\n"
     exit
 fi
-## Check if make is installed
-MAKECHECK=`which make`
-if [ ! -f "$MAKECHECK" ]; then
-    echo "\nERROR: Unable to find make"
-    echo "Please, ask your sysadmin to install MAKE\n"
-    exit
-fi
 ## Check if apt-get is install
 APTGETCHECK=`which apt-get`
 if [ ! -f "$APTGETCHECK" ]; then
