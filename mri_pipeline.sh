@@ -95,7 +95,7 @@ echo
 ###################################################################################
 ##export $HOME=/home/lorisdev/  Do it only if neccessary
 echo "Modifying environment script"
-sed -i "s#ibis#$PROJ#g" $mridir/environment
+sed -i "s#PROJECT#$PROJ#g" $mridir/environment
 ##Make sure that CIVET stuff are placed in the right place
 ##source  /data/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
