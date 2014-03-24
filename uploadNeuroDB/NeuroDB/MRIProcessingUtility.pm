@@ -744,6 +744,8 @@ sub moveAndUpdateTarchive {
     ######move the tarchive#################################
     ########################################################
     $mvTarchiveCmd = "mv $tarchive_location $newTarchiveLocation";
+    print $mvTarchiveCmd . "\n"  if $this->{debug};
+ 
     `$mvTarchiveCmd`;
 
     ########################################################
