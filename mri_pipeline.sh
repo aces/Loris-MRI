@@ -71,22 +71,22 @@ echo
 #############################Create directories########################################
 #########################################################################################
  echo "Creating the data directories"
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/"
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/trashbin"   ##holds mincs that didn't match protocol
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/tarchive"   ##holds tared dicom-folder
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/pic"           ##holds jpegs generated for the MRI-browser
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/logs"         ## holds logs from pipeline script
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/jiv"            ## holds JIVs used for JIV viewer
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/assembly" ## holds the MINC files
-  sudo -S su $USER "mkdir -p /data/$PROJ/data/batch_output"  ##contains the result of the SGE (queue
-  sudo -S su $USER "mkdir -p /home/$USER/.neurodb"
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/"
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/trashbin"   ##holds mincs that didn't match protocol
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/tarchive"   ##holds tared dicom-folder
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/pic"           ##holds jpegs generated for the MRI-browser
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/logs"         ## holds logs from pipeline script
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/jiv"            ## holds JIVs used for JIV viewer
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/assembly" ## holds the MINC files
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/batch_output"  ##contains the result of the SGE (queue
+  sudo -S su $USER -c "mkdir -p /home/$USER/.neurodb"
 echo
 #######################################################################################
  ###############incoming directory using sites########################################
 #######################################################################################
  echo "Creating incoming director(y/ies)"
   for s in $site; do 
-   sudo -S su $USER "mkdir -p /data/incoming/$s/incoming";
+   sudo -S su $USER -c "mkdir -p /data/incoming/$s/incoming";
   done;
  echo
 
