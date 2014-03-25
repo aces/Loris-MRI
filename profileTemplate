@@ -164,9 +164,9 @@ sub filterParameters {
 # ----------- OPTIONAL SUBROUTINE
 # Fetch site, CandID and Visit info from DTI folder.
 sub  get_DTI_Site_CandID_Visit {
-    my ($d) =   @_;
+    my ($dir) =   @_;
 
-    if  ($d =~  /\/*([0-9]+)\/([N,P][A,R][P,E]EN00)/i)  {   # when only one site
+    if  ($dir =~  /\/*([0-9]+)\/([N,P][A,R][P,E]EN00)/i)  {   # when only one site
         my  $site   =   "PreventAD";                                  # when only one site
         my  $subjID =   $1;
         my  $visit  =   $2;
