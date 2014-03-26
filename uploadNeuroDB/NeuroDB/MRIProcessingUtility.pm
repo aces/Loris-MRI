@@ -782,8 +782,10 @@ sub CreateMRICandidates {
     if (!NeuroDB::MRI::subjectIDExists($subjectIDsref->{'CandID'},
         $this->{dbhr}) && $Settings::createCandidates) {
             chomp($User);
-            $subjectIDsref->{'CandID'} = 
-                NeuroDB::MRI::createNewCandID($this->{dbhr});
+            unless ($subjectIDsref->{'CandID'}) {
+                $subjectIDsref->{'CandID'} = 
+                    NeuroDB::MRI::createNewCandID($this->{dbhr});
+            }
             $query = "INSERT INTO candidate ".
                      "(CandID, PSCID, DoB, Gender,CenterID, Date_active,".
                      " Date_registered, UserID,Entity_type) ".
