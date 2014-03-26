@@ -44,7 +44,7 @@ $converter      = "dcm2mnc";
 $tarchiveLibraryDir = '/PATH/TO/dicomlib/'; 
 
 # which element of the tarchive table should be used to getPSC(), being either PatientID or PatientName
-$lookupCenterNameUsing = 'PatientID';
+$lookupCenterNameUsing = 'PatientName';
 
 # should the upload create candidates when needed? 0/1
 $createCandidates = 1;
@@ -85,41 +85,36 @@ sub getIncomingDir {
     my $site = shift;
     return $tarchiveLibraryDir;
 }
-# extracts the subject and timepoint identifiers from the patient name and/or patient id
-# assumes identifers are stored as <PSCID><visit> in PatientID field, where <visit> is 3 digits.
+# extracts the subject and timepoint identifiers from the patient name 
+# assumes identifers are stored as <PSCID>_<DCCID>_<visit> in PatientName field, where <visit> is 3 digits.
 sub getSubjectIDs {
-    my ($patientName, $patientID, $scannerID, $dbhr) = @_;
-    my %subjectID;
-    # create a phantom specific visit label
-    my $phantomVisit;
-    
-    # PSCID stored in patientID
-    $subjectID{'PSCID'} = $patientID;
-    $phantomVisit = $patientID;
-    
-    # The visit label is stored as last three numbers of patientID
-    $subjectID{'PSCID'} =~ s/((\d){3})$//;
-    print "\nData found for : $subjectID{'PSCID'} \n";
-    $subjectID{'visitLabel'} = int($1);
+    my ($patientName, $scannerID, $dbhr) = @_;
 
-    # the phantom visit label should contain the site name (The first 3 letters of the PSCID and the visit label
-    $phantomVisit =~ s/^((\D){3})(.)*/\1/;
-    $phantomVisit .= "_".$subjectID{'visitLabel'};
+    my %subjectID; # Will stored subject IDs.
+    
+     # If patientName is phantom scan or test scan
+     # CandID is scanner DCCID (based on site alias)
+     # visitLabel is scan patient name
+    if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
 
-    if(isPhantom(\%subjectID)) {
-        $subjectID{'CandID'} = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $dbhr));
-        # in that case we want the visit label to look like: PSCID_SITE_Visit
-        $subjectID{'visitLabel'} = $subjectID{'PSCID'}."_".$phantomVisit;
-        $subjectID{'isPhantom'} = 1;
-    } else {
-        # CandID not stored in DICOM...  must look up from DB given PSCID
-        $subjectID{'CandID'} = NeuroDB::MRI::lookupCandIDFromPSCID($subjectID{'PSCID'}, $dbhr);
-        $subjectID{'isPhantom'} = 0;
+        $subjectID{'CandID'}    = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $dbhr));
+        $subjectID{'visitLabel'}= NeuroDB::MRI::my_trim($patientName);
+
+     # If patient match PSCID_DCCID_VisitLabel
+     # Determine PSCID, DCCID and visitLabel based on patient name
+    } elsif ($patientName =~ /([^_]+)_(\d+)_([^_]+)/) {
+
+        $subjectID{'PSCID'}         = NeuroDB::MRI::my_trim($1);
+        $subjectID{'CandID'}        = NeuroDB::MRI::my_trim($2);
+        $subjectID{'visitLabel'}    = NeuroDB::MRI::my_trim($3);
+
+        print "PSCID is: "            . $subjectID{'PSCID'}      . 
+                "\n CandID id: "      . $subjectID{'CandID'}     . 
+                "\n visit_label is: " . $subjectID{'visitLabel'} . "\n";
+
     }
-    # This is needed for any study. You may set it to 0 or 1 or actually use MRI.pm
-    $subjectID{'subprojectID'} = 1;
-    # $subjectID{'subprojectID'} = NeuroDB::MRI::getObjective(\$subjectID, $dbhr);
-    
+   
+    # Return subjectIDs
     return \%subjectID;
 }
 
