@@ -23,8 +23,8 @@ my @studies = ();
 
 
 #####Get config setting#######################################################
-if(-f "$ENV{HOME}/.neurodb/prod") {
-{ package Settings; do "$ENV{HOME}/.neurodb/prod" }
+if(-f "$ENV{CONFIG}/.neurodb/prod") {
+{ package Settings; do "$ENV{CONFIG}/.neurodb/prod" }
 }
 #######################################################################################
 
