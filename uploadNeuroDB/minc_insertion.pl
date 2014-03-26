@@ -234,29 +234,6 @@ my $logQuery = "INSERT INTO MRICandidateErrors".
               " VALUES (?, ?, ?, ?, ?)";
 my $candlogSth = $dbh->prepare($logQuery);
 
-if (defined($CandMismatchError)) {
-    print LOG "Candidate Mismatch Error is $CandMismatchError\n";
-    print LOG " -> WARNING: This candidate was invalid. Logging to
-              MRICandidateErrors table with reason $CandMismatchError";
-    $candlogSth->execute(
-        $file->getParameter('series_instance_uid'),
-        $tarchiveInfo{'TarchiveID'},
-        $minc,
-        $tarchiveInfo{'PatientName'},
-        $CandMismatchError
-    );
-    exit 7 ;  
-}
-
-################################################################
-################Get the SessionID###############################
-################################################################
-my ($sessionID, $requiresStaging) =
-    NeuroDB::MRI::getSessionID( $subjectIDsref, 
-                                $tarchiveInfo{'DateAcquired'},
-                                \$dbh, $subjectIDsref->{'subprojectID'}
-                              );
-
 ################################################################
 ############Construct the notifier object#######################
 ################################################################
@@ -275,6 +252,39 @@ if (defined(&Settings::filterParameters)) {
     if $verbose;
     Settings::filterParameters(\$file);
 }
+
+
+
+################################################################
+# We already know the PatientName is bad from step 5a, but######
+## had to wait until this point so that we have the#############
+##SeriesUID and MincFile name to compute the md5 hash. Do it####
+## before computing the hash because there's no point in########
+##going that far if we already know it's fault.#################
+################################################################
+
+if (defined($CandMismatchError)) {
+    print LOG "Candidate Mismatch Error is $CandMismatchError\n";
+    print LOG " -> WARNING: This candidate was invalid. Logging to
+              MRICandidateErrors table with reason $CandMismatchError";
+    $candlogSth->execute(
+        $file->getParameter('series_instance_uid'),
+        $tarchiveInfo{'TarchiveID'},
+        $minc,
+        $tarchiveInfo{'PatientName'},
+        $CandMismatchError
+    );
+    exit 7 ;  ##replaces next
+}
+
+################################################################
+################Get the SessionID###############################
+################################################################
+my ($sessionID, $requiresStaging) =
+    NeuroDB::MRI::getSessionID( $subjectIDsref, 
+                                $tarchiveInfo{'DateAcquired'},
+                                \$dbh, $subjectIDsref->{'subprojectID'}
+                              );
 
 
 
