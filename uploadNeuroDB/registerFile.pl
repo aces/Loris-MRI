@@ -87,8 +87,8 @@ my @arg_table =
 ($filename, $outputType) = @args;
 
 # input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
-if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+{ package Settings; do "$ENV{CONFIG}/.neurodb/$profile" }
+if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{CONFIG}/.neurodb/ \n\n"; exit 33; }
 if(!$profile) { print "$Usage\n\tERROR: You must specify a profile.\n\n";  exit 33;  }
 
 # make sure we have all the arguments we need

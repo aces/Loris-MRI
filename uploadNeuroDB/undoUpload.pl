@@ -52,8 +52,8 @@ USAGE
 
 # input option error checking
 if(!defined($profile)) { print "\n\tERROR: You must specify a profile \n\n"; exit 33; }
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
-if (!defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+{ package Settings; do "$ENV{CONFIG}/.neurodb/$profile" }
+if (!defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{CONFIG}/.neurodb/ \n\n"; exit 33; }
 if (!$visit) { print "\n\tThe flag : \'-visit\' is not optional!\n\n"; exit 1; }
 
 if(scalar(@ARGV) != 1) { print $Usage; exit 1; }
