@@ -31,16 +31,15 @@ my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
-                               #set it to 1!!!
+                               # set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
 my $NewScanner  = 1;           # This should be the default unless you are a 
-                               #control freak
-                               # Even if the validation has failed
+                               # control freak
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
+my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
 ################################################################
