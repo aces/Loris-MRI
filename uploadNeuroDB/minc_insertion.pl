@@ -332,7 +332,7 @@ if($acquisitionProtocol =~ /unknown/) {
 ###to keep optionally controlled by the config file#############
 ################################################################
 $utility->registerScanIntoDB(\$file, \%tarchiveInfo,$subjectIDsref, 
-                             $acquisitionProtocol, $minc, @checks, 
+                             $acquisitionProtocol, $minc, \@checks, 
                              $reckless, $tarchive, $sessionID
                             );
 
