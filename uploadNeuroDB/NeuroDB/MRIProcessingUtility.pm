@@ -480,15 +480,15 @@ sub move_minc {
     $concat = '_concat' if $$minc =~ /_concat/;
     $new_dir = "$dir/native";
     $version = 1;
-    $new_name = $prefix."_".$subjectIDs{'CandID'}."_".$subjectIDs{'visitLabel'}
+    $new_name = $prefix."_".$subjectIDsref->{'CandID'}."_".$subjectIDsref->{'visitLabel'}
                 ."_".$minc_type."_".sprintf("%03d",$version).
                 $concat.".$extension";
     $new_name =~ s/ //;
     $new_name =~ s/__+/_/g;
     while(-e "$new_dir/$new_name") {
         $version = $version + 1;
-        $new_name =  $prefix."_".$subjectIDs{'CandID'}."_".
-                     $subjectIDs{'visitLabel'}."_".$minc_type."_".
+        $new_name =  $prefix."_".$subjectIDsref->{'CandID'}."_".
+                     $subjectIDsref->{'visitLabel'}."_".$minc_type."_".
                      sprintf("%03d",$version).$concat.".$extension";
         $new_name =~ s/ //;
         $new_name =~ s/__+/_/g;
