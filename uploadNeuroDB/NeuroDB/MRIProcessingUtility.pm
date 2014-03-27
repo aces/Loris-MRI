@@ -465,7 +465,6 @@ sub move_minc {
     my ($minc,$subjectIDsref, $minc_type, $fileref,$prefix,$data_dir) = @_;
     my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
     my $concat = "";
-    my %subjectIDs = $subjectIDsref;
     ############################################################
     ###figure out where to put the files########################
     ############################################################
