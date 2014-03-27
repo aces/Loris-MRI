@@ -508,7 +508,7 @@ sub move_minc {
 sub registerScanIntoDB {
 
     my $this = shift;
-    my ($file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, $minc, @checks,
+    my ($file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, $minc, $checks,
       $reckless, $tarchive, $sessionID) = @_;
     my $data_dir = $Settings::data_dir;
     my $prefix   = $Settings::prefix;
@@ -523,7 +523,7 @@ sub registerScanIntoDB {
         || (defined(&Settings::isFileToBeRegisteredGivenProtocol)
             && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol)
            )
-        ) && $checks[0] !~ /exclude/) {
+        ) && $checks->[0] !~ /exclude/) {
 
         ########################################################
         # convert the textual scan_type into the scan_type id###
@@ -571,7 +571,6 @@ sub registerScanIntoDB {
         # register into the db fixme if I ever want a dry run## 
         ########################################################
         print "Registering file into db\n" if $this->{debug};
-        $fileID;
         $fileID = &NeuroDB::MRI::register_db($file);
         print "FileID: $fileID\n" if $this->{debug}
 
@@ -579,8 +578,7 @@ sub registerScanIntoDB {
         ###update mri_acquisition_dates table###################
         ########################################################
         &$this->update_mri_acquisition_dates($sessionID, 
-                                             $tarchiveInfo->{'DateAcquired'},
-                                             $this->{dbhr}
+                                             $tarchiveInfo->{'DateAcquired'}
                                             );
     }
 }
