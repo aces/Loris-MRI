@@ -1,0 +1,30 @@
+# Index created by AutoSplit for blib/lib/MNI/MincUtilities.pm
+#    (file acts as timestamp)
+package MNI::MincUtilities;
+sub volume_min 
+;
+sub volume_max 
+;
+sub volume_minmax 
+;
+sub percent_threshold 
+;
+sub auto_threshold 
+;
+sub get_history 
+;
+sub put_history 
+;
+sub update_history 
+;
+sub volume_cog 
+;
+sub volume_params 
+;
+sub get_dimension_order 
+;
+sub compute_resample_args 
+;
+sub compute_reshape_args 
+;
+1;
