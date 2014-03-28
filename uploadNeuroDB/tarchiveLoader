@@ -71,6 +71,8 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
+my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be 
+                               # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
 my $min;
@@ -93,6 +95,8 @@ my @opt_table = (
                   "the possibility that the tarchive was moved to a different".
                   " directory."
                  ],
+                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from been".
+                  "created."],
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
@@ -402,6 +406,9 @@ foreach my $minc (@minc_files) {
 
     if ($debug) {
         print $script . "\n";
+    }
+    if ($no_jiv) {
+        $script .= " -noJIV";
     }
  
     $output = system($script);
