@@ -34,6 +34,8 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
+my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be 
+                               # created
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                # control freak
 my $xlog        = 0;           # default should be 0
@@ -55,7 +57,10 @@ my @opt_table = (
                  " database even if study protocol is not defined or violated."],
                  ["-force", "boolean", 1, \$force,"Forces the script to run". 
                  " even if the validation has failed."],
-            
+  
+                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from been".
+                  "created."],
+  
                  ["-mincPath","string",1, \$minc, "The absolute path". 
                   " to minc-file"],
 
@@ -98,7 +103,6 @@ The program does the following:
   parameters
 - Finally sets the series notification
 
-
 HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/DICOM-tarchive> [options]
@@ -140,6 +144,7 @@ unless (-e $minc) {
 ###########Create the Specific Log File#########################
 ################################################################
 my $data_dir = $Settings::data_dir;
+my $jiv_dir = $data_dir.'/jiv';
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
@@ -188,7 +193,6 @@ if (($is_valid == 0) && ($force==0)) {
     exit 6;
 }
 
-
 ################################################################
 #######################Construct the tarchiveinfo Array#########
 ################################################################
@@ -205,7 +209,7 @@ my ($psc,$center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 ################################################################
 ################################################################
 my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,$centerID,
-                                            $NewScanner
+                                                $NewScanner
                                            );
 
 ################################################################
@@ -252,8 +256,6 @@ if (defined(&Settings::filterParameters)) {
     Settings::filterParameters(\$file);
 }
 
-
-
 ################################################################
 # We already know the PatientName is bad from step 5a, but######
 ## had to wait until this point so that we have the#############
@@ -284,8 +286,6 @@ my ($sessionID, $requiresStaging) =
                                 $tarchiveInfo{'DateAcquired'},
                                 \$dbh, $subjectIDsref->{'subprojectID'}
                               );
-
-
 
 ################################################################
 ##############compute the md5 hash##############################
@@ -352,10 +352,16 @@ print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
 
 
 ################################################################
+######################Creating of Jivs##########################
+################################################################
+if (!$no_jiv) {
+    print "Making JIV\n" if $verbose;
+    NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
+}
+################################################################
 ##############################succesfully completed#############
 ################################################################
 exit 0;
-
 
 sub logHeader () {
     print LOG "
@@ -367,5 +373,3 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
-
-
