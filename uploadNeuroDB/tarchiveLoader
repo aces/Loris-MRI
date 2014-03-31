@@ -95,7 +95,7 @@ my @opt_table = (
                   "the possibility that the tarchive was moved to a different".
                   " directory."
                  ],
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from been".
+                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being".
                   "created."],
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
                    " new scanner will be registered if the data you upload".
@@ -404,13 +404,14 @@ foreach my $minc (@minc_files) {
         $script .= " -globLocation";
     }
 
-    if ($debug) {
-        print $script . "\n";
-    }
     if ($no_jiv) {
         $script .= " -noJIV";
     }
  
+    if ($debug) {
+        print $script . "\n";
+    }
+
     $output = system($script);
     $output = $output >> 8;
     ############################################################
