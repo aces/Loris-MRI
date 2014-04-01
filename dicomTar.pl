@@ -31,7 +31,7 @@ my $neurodbCenterName = undef;
 my $clobber    = 0;
 my $dbase      = 0;
 my $todayDate  = 0;
-
+my $mri_upload_update =0;
 my $Usage = "------------------------------------------
 
 
@@ -56,10 +56,10 @@ my @arg_table =
      ["Input and database options", "section"],
      ["-today", "boolean", 1,     \$todayDate, "Use today's date for archive name instead of using acquisition date."],
      ["-database", "boolean", 1,  \$dbase, "Use a database if you have one set up for you. Just trying will fail miserably"],
+     ["-mri_upload_update", "boolean", 1,  \$mri_upload_update, "update the mri_upload table by inserting the correct tarchiveID"],
      ["-clobber", "boolean", 1,   \$clobber, "Use this option only if you want to replace the resulting tarball!"],
      ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
      ["-centerName","string",1, \$neurodbCenterName, "Specify the symbolic center name to be stored alongside the DICOM institution."],
-	 
      ["General options", "section"],
      ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
      ["-version", "boolean", 1,   \$version, "Print cvs version number and exit."],
@@ -187,6 +187,20 @@ if ($dbase) {
     if ($success) { print "\nDone\n" if $verbose; }
     else { print "the database command failed\n"; exit 22; }
 }
+
+# call the updateMRI_upload script###
+if ($mri_upload_update) {
+    my $script = "/data/$Settings::prefix/bin/mri/dicom-archive/"
+                 . "updateMRI_Upload.pl"
+                 . " -profile prod -globLocation -tarchivePath $finalTarget"
+                 . " -sourceLocation $dcm_source";
+    my $output = system($script);
+    if ($output!=0)  {
+        print "\n\tERROR: the script updateMRI_Upload.pl has failed \n\n"; 
+        exit 33;
+    }
+}
+
 
 # **************************************************************************************************************************  
 =pod 
