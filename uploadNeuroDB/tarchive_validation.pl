@@ -117,14 +117,14 @@ if ($profile && !defined @Settings::db) {
 }
 if(!$ARGV[0] || !$profile) { 
     print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid tarchive and an existing
-     profile.\n\n";  
+    print "$Usage\n\tERROR: You must specify a valid tarchive and an existing ".
+          "profile.\n\n";  
     exit 3;  
 }
 $tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the
-     path to the archive is correct. Upload will exit now.\n\n\n";
+    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
+           "the path to the archive is correct. Upload will exit now.\n\n\n";
     exit 4;
 }
 
