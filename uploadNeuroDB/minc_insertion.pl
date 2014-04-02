@@ -58,7 +58,7 @@ my @opt_table = (
                  ["-force", "boolean", 1, \$force,"Forces the script to run". 
                  " even if the validation has failed."],
   
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from been".
+                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being ".
                   "created."],
   
                  ["-mincPath","string",1, \$minc, "The absolute path". 
@@ -117,25 +117,26 @@ USAGE
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 
 if ($profile && !defined @Settings::db) { 
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n";
+    print "\n\tERROR: You don't have a ".
+    "configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n";
     exit 2; 
 }
 
 if (!$profile) { 
-    print $Help; print "$Usage\n\tERROR: You must specify a valid 
-    and existing profile.\n\n";  
+    print $Help; 
+    print "$Usage\n\tERROR: You must specify a valid ".
+    "and existing profile.\n\n";  
     exit 3; 
 }
 
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the 
-            path to the archive is correct. Upload will exit now.\n\n\n";
+    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
+          " the path to the archive is correct. Upload will exit now.\n\n\n";
     exit 4;
 }
 unless (-e $minc) {
-    print "\nERROR: Could not find minc $minc. \nPlease, make sure the 
-            path to the minc is correct. Upload will exit now.\n\n\n";
+    print "\nERROR: Could not find minc $minc. \nPlease, make sure the ".
+          "path to the minc is correct. Upload will exit now.\n\n\n";
     exit 5;
 }
 
@@ -184,10 +185,10 @@ print $query . "\n";
 my $is_valid = $dbh->selectrow_array($query);
 
 if (($is_valid == 0) && ($force==0)) {
-    $message = "\n ERROR: The validation has failed.
-                       Either run the validation again and fix 
-                       the problem. Or use -force to force the 
-                       execution.\n\n";
+    $message = "\n ERROR: The validation has failed. ".
+               "Either run the validation again and fix ".
+               "the problem. Or use -force to force the ".
+               "execution.\n\n";
     print $message;
     $utility->writeErrorLog($message,6,$logfile); 
     exit 6;
@@ -233,8 +234,8 @@ my $CandMismatchError = undef;
 $CandMismatchError= $utility->validateCandidate($subjectIDsref);
 
 my $logQuery = "INSERT INTO MRICandidateErrors".
-              "(SeriesUID, TarchiveID,MincFile, PatientName, Reason)".
-              " VALUES (?, ?, ?, ?, ?)";
+              "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
+              "VALUES (?, ?, ?, ?, ?)";
 my $candlogSth = $dbh->prepare($logQuery);
 
 ################################################################
@@ -322,8 +323,8 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
                                     );
 
 if($acquisitionProtocol =~ /unknown/) {
-   print LOG " --> The minc file cannot be registered since the 
-              AcquisitionProtocol IS unknown";
+   print LOG " --> The minc file cannot be registered since the ".
+             "AcquisitionProtocol IS unknown";
    exit 9;
 }
 
