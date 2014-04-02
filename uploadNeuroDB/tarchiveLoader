@@ -146,22 +146,22 @@ USAGE
 ################################################################
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) { 
-    print "\n\tERROR: You don't have a configuration file named 
-          '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    print "\n\tERROR: You don't have a configuration file named ". 
+          "'$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
     exit 2; 
 }
 if(!$ARGV[0] || !$profile) { 
     print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid tarchive and an
-            existing profile.\n\n";
+    print "$Usage\n\tERROR: You must specify a valid tarchive and an ".
+          "existing profile.\n\n";
     exit 3;  
 }
 
 my $tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \n
-          Please, make sure the path to the archive is correct. 
-         Upload will exit now.\n\n\n";
+    print "\nERROR: Could not find archive $tarchive. \n ".
+          "Please, make sure the path to the archive is correct. ". 
+          "Upload will exit now.\n\n\n";
     exit 4;
 }
 
@@ -246,8 +246,7 @@ my %tarchiveInfo = $utility->createTarchiveArray($tarchive,
 ################################################################
 ####################Call the validation script##################
 ################################################################
-my $script = "/data/$prefix/bin/mri/uploadNeuroDB/"
-             ."tarchive_validation.pl $tarchive -profile prod ";
+my $script = "tarchive_validation.pl $tarchive -profile prod ";
 
 if ($mri_upload_insert) {
     $script .= " -mri_upload_insert";
@@ -255,7 +254,10 @@ if ($mri_upload_insert) {
 if ($globArchiveLocation) {
     $script .= " -globLocation";
 }
-
+################################################################
+############note: system call returns the process ID############
+##To the actual exit value, shift right by eight as done below##
+################################################################
 my $output = system($script); 
 $output = $output >> 8;
 
@@ -354,14 +356,14 @@ $utility->dicom_to_minc($study_dir,$converter,$get_dicom_info,
 my @minc_files = ();
 $utility->get_mincs(\@minc_files);
 my $mcount = $#minc_files + 1;
-print "\nNumber of MINC files that will be considered for inserting 
-      into the database: $mcount\n";
+print "\nNumber of MINC files that will be considered for inserting ".
+      "into the database: $mcount\n";
 ################################################################
 # If no good data was found stop processing and write error log.
 ################################################################
 if ($mcount < 1) { 
-    $message = "\nNo data could be converted into valid MINC files. 
-                Localizers will not be considered! \n" ; 
+    $message = "\nNo data could be converted into valid MINC files. ".
+               "Localizers will not be considered! \n" ; 
     $utility->writeErrorLog($message,6,$logfile); 
     exit 8; 
 }
@@ -393,9 +395,8 @@ foreach my $minc (@minc_files) {
     ####################Call the minc_insertion script#########
     ###########################################################
 
-    $script = "/data/$prefix/bin/mri/uploadNeuroDB/"   
-               . "minc_insertion.pl -tarchivePath $tarchive"
-               . " -mincPath $minc -profile prod";
+    $script = "minc_insertion.pl -tarchivePath $tarchive ".
+              "-mincPath $minc -profile prod";
     if ($force) {
         $script .= " -force";
     }
@@ -458,8 +459,8 @@ if ($valid_study) {
     $sth->execute($tarchiveInfo{TarchiveID});
     my @row = $sth->fetchrow_array();
     if (@row) {
-        my $script = "/data/$prefix/bin/mri/uploadNeuroDB/"
-        . "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] -profile prod ";
+        my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
+                     "-profile prod ";
         $output = system($script);
         $output = $output >> 8;
 
@@ -476,7 +477,7 @@ if ($valid_study) {
                       "\tacquired ". $tarchiveInfo{'DateAcquired'}
                     );
     ############################################################
-    ####link the tarchive and mri_upload tabel  with session####
+    ####link the tarchive and mri_upload table  with session####
     ############################################################
      $where = "WHERE t.TarchiveID=?";
      $query = "UPDATE tarchive t ".
