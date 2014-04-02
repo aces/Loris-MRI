@@ -473,7 +473,7 @@ sub register_minc {
     # Insert pipeline summary (how many rejected directions...) into the mincheader
     my ($summary_insert)    = &insertPipelineSummary($minc, 
                                                      $data_dir, 
-                                                     $registeredQCReportFile,
+                                                     $registeredXMLFile, 
                                                      $scanType);
 
     # Insert into the mincheader processed directory of the minc to register
@@ -1060,7 +1060,7 @@ Outputs: - 1 if all information has been successfully inserted
 sub insertPipelineSummary   {
     my ($minc, $data_dir, $XMLReport, $scanType)   =   @_;
 
-    my ($summary)   =   &getRejectedDirections($data_dir, $QCReport);
+    my ($summary)   =   &getRejectedDirections($data_dir, $XMLReport);
     
     # insert slice wise excluded gradients in mincheader
     my $rm_slicewise        = $summary->{'EXCLUDED'}{'slice'}{'txt'};
