@@ -412,6 +412,11 @@ foreach my $minc (@minc_files) {
     if ($debug) {
         print $script . "\n";
     }
+    ###########################################################
+    ############note: system call returns the process ID#######
+    ##To the actual exit value, shift right by eight as######## 
+    ##done below###############################################
+    ###########################################################
 
     $output = system($script);
     $output = $output >> 8;
@@ -461,6 +466,11 @@ if ($valid_study) {
     if (@row) {
         my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
                      "-profile prod ";
+    ############################################################
+    ############note: system call returns the process ID########
+    ##To the actual exit value, shift right by eight as######### 
+    ##done below################################################
+    ############################################################
         $output = system($script);
         $output = $output >> 8;
 
