@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/perl -w
 
 require 5.001;
 use strict;
@@ -115,6 +115,9 @@ close(DIRS);
 # Loop through native directories
 foreach my $nativedir (@nativedirs)   {
     chomp ($nativedir);
+    # Remove double / and last / character from nativedir
+    $nativedir  =~ s/\/\//\//;
+    $nativedir  =~ s/\/$//;
 
     
     #######################
