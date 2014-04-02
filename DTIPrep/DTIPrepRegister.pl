@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#!/usr/bin/perl -w
 
 use strict;
 use warnings;
@@ -471,7 +471,10 @@ sub register_minc {
                                              );
 
     # Insert pipeline summary (how many rejected directions...) into the mincheader
-    my ($summary_insert)    = &insertPipelineSummary($minc, $data_dir, $registeredQCReportFile);
+    my ($summary_insert)    = &insertPipelineSummary($minc, 
+                                                     $data_dir, 
+                                                     $registeredQCReportFile,
+                                                     $scanType);
 
     # Insert into the mincheader processed directory of the minc to register
     my $procdir             = dirname($minc);
@@ -1055,23 +1058,52 @@ Outputs: - 1 if all information has been successfully inserted
          - undef if at least one information has not been inserted
 =cut
 sub insertPipelineSummary   {
-    my ($minc, $data_dir, $QCReport)   =   @_;
+    my ($minc, $data_dir, $XMLReport, $scanType)   =   @_;
 
-    my ($rm_slicewise,
-        $rm_interlace,
-        $rm_intergradient)  =   &getRejectedDirections($data_dir, $QCReport);
+    my ($summary)   =   &getRejectedDirections($data_dir, $QCReport);
     
-    my ($count_slice, $insert_slice)        = &insertHeader($minc, $rm_slicewise,      "processing:slicewise_rejected");
-    my ($count_inter, $insert_inter)        = &insertHeader($minc, $rm_interlace,      "processing:interlace_rejected");
-    my ($count_gradient, $insert_gradient)  = &insertHeader($minc, $rm_intergradient,  "processing:intergradient_rejected");
+    # insert slice wise excluded gradients in mincheader
+    my $rm_slicewise        = $summary->{'EXCLUDED'}{'slice'}{'txt'};
+    my $count_slice         = $summary->{'EXCLUDED'}{'slice'}{'nb'};
+    my ($insert_slice)      = &DTI::modify_header('processing:slicewise_rejected',
+                                                  $rm_slicewise,
+                                                  $minc,
+                                                  '$3, $4, $5, $6');
 
-    my ($total)         = $count_slice + $count_inter + $count_gradient;
-    my ($total_insert)  = &DTI::modify_header('processing:total_rejected', 
-                                              $total, 
-                                              $minc,
-                                              '$3, $4, $5, $6');
+    # insert interlace wise excluded gradients in mincheader
+    my $rm_interlace        = $summary->{'EXCLUDED'}{'interlace'}{'txt'};
+    my $count_interlace     = $summary->{'EXCLUDED'}{'interlace'}{'nb'};
+    my ($insert_inter)      = &DTI::modify_header('processing:interlace_rejected',
+                                                  $rm_interlace,
+                                                  $minc, 
+                                                  '$3, $4, $5, $6');
+
+    # insert total count (and intergradient count except if scanType is noRegQCedDTI
+    my $count_intergradient = $summary->{'EXCLUDED'}{'intergrad'}{'nb'};
+    my $count_total         = $summary->{'EXCLUDED'}{'total'}{'nb'};
+    my ($rm_intergradient, $insert_gradient, $total);
+    if ($scanType =~ /noRegQCedDTI/i) {
+        # compute total number of excluded gradients and insert it in mincheader
+        $total  = $count_total - $count_intergradient;
+    } else {
+        # insert intergradient wise excluded gradients in mincheader
+        $rm_intergradient   = $summary->{'EXCLUDED'}{'intergrad'}{'txt'};
+        ($insert_gradient)  = &DTI::modify_header('processing:intergradient_rejected',
+                                                  $rm_intergradient,
+                                                  $minc,
+                                                  '$3, $4, $5, $6');
+        # total is equal to count_total
+        $total  = $count_total;
+    }
+    # compute total number of excluded gradients and insert it in mincheader
+    my ($total_insert)     = &DTI::modify_header('processing:total_rejected', 
+                                                 $total, 
+                                                 $minc,
+                                                 '$3, $4, $5, $6');
+
     # If all insertions went well, return 1, otherwise return undef
-    if (($total_insert) && ($insert_slice) && ($insert_inter) && ($insert_gradient)) {
+    if (($total_insert) && ($insert_slice) && ($insert_inter) 
+            && (($insert_gradient) || ($scanType =~ /noRegQCedDTI/i))) {
         return 1;
     } else {
         return undef;
@@ -1092,55 +1124,76 @@ Outputs: - $rm_slicewise        = directions rejected due to slice wise correlat
          - $rm_intergradient    = directions rejected due to inter-gradient artifacts (number)
 =cut
 sub getRejectedDirections   {
-    my ($data_dir, $QCReport)  =   @_;
+    my ($data_dir, $XMLReport)  =   @_;
 
     # Remove $data_dir path from $QCReport in the case it is included in the path
-    $QCReport =~ s/$data_dir//i;
+    $XMLReport =~ s/$data_dir//i;
 
-    ## these are the unique directions that were rejected due to slice-wise correlations
-    my $rm_slicewise    =   `cat $data_dir/$QCReport | grep whole | sort -k 2,2 -u | awk '{print \$2}'|tr '\n' ','`;
-    ## these are the unique directions that were rejected due to inter-lace artifacts
-    my $rm_interlace    =   `cat $data_dir/$QCReport | sed -n -e '/Interlace-wise Check Artifacts/,/================================/p' | grep '[0-9]' | sort -k 1,1 -u | awk '{print \$1}'|tr '\n' ','`;
-    ## these are the unique directions that were rejected due to inter-gradient artifacts
-    my $rm_intergradient=   `cat $data_dir/$QCReport | sed -n -e '/Inter-gradient check Artifacts::/,/================================/p' | grep '[0-9]'| sort -k 1,1 -u  | awk '{print \$1}'|tr '\n' ','`;
-    
-    return ($rm_slicewise,$rm_interlace,$rm_intergradient);
-}
+    # Read XML report into a hash
+    my ($outXMLrefs)    = &DTI::readDTIPrepXMLprot("$data_dir/$XMLReport");
 
+    # Initialize variables
+    my ($tot_grads, $slice_excl, $grads_excl, $lace_excl, $tot_excl);
+    $tot_grads  = $slice_excl = $grads_excl = $lace_excl = $tot_excl = 0;
+    my (@rm_slice, @rm_interlace, @rm_intergrads);
 
+    foreach my $key (keys $outXMLrefs->{"entry"}{"DWI Check"}{'entry'}) {
+        # Next unless this is a gradient
+        next unless ($key =~ /^gradient_/);
 
+        # Grep gradient number
+        my $grad_nb = $key;
+        $grad_nb    =~ s/gradient_[0]+//i;
 
+         # Grep processing status for the gradient
+        my $status  = $outXMLrefs->{"entry"}{"DWI Check"}{'entry'}{$key}{'processing'};
 
-=sub
-Insert into the minc header the directions rejected due to a specific artifact.
-Inputs:  - $minc          = minc file in which rejected directions will be inserted
-         - $rm_directions = string with the directions rejected due to a specific artifact
-         - $minc_field    = specific artifact to use as a field to insert into the mincheader
-Outputs: - if insertion succeeded: $count_dirs  = number of directions rejected
-                                   "success"
-         - else, return undef 
-=cut
-sub insertHeader    {
-    my ($minc, $rm_directions, $minc_field)    =   @_;
-
-    my @rm_dirs     =   split(',',$rm_directions);
-    my $count_dirs  =   scalar(@rm_dirs);
-
-    my  $value;
-    if  ($count_dirs==0)    {
-        $value  =   "\"@rm_dirs ($count_dirs)\"";
-    } else  {
-        $value  =   "\"Directions @rm_dirs ($count_dirs)\"";
-    }    
-    
-    my ($insert)    = &DTI::modify_header($minc_field, $value, $minc, '$3, $4, $5, $6');
-
-    if ($insert) {
-        return  ($count_dirs, "success");
-    } else {
-        return undef;
+        # Count number of gradients with different exclusion status
+        if ($status =~ /EXCLUDE_SLICECHECK/i) {
+            $slice_excl = $slice_excl + 1;
+            push (@rm_slice, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        } elsif ($status =~ /EXCLUDE_GRADIENTCHECK/i) {
+            $grads_excl = $grads_excl + 1;
+            push (@rm_intergrads, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        } elsif ($status =~ /EXCLUDE_INTERLACECHECK/i) {
+            $lace_excl  = $lace_excl + 1;
+            push (@rm_interlace, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        }
+        $tot_grads  = $tot_grads + 1;
     }
+
+    # Summary hash storing all DTIPrep gradient exclusion information
+    my (%summary);
+    # Total number of gradients in native DTI
+    $summary{'total'}{'nb'}                  = $tot_grads;
+    # Total number of gradients excluded from QCed DTI
+    $summary{'EXCLUDED'}{'total'}{'nb'}      = $tot_excl;
+    # Total number of gradients included in QCed DTI
+    $summary{'INCLUDED'}{'total'}{'nb'}      = $tot_grads - $tot_excl;
+    # Summary of artifact exclusions
+    $summary{'EXCLUDED'}{'slice'}{'nb'}      = $slice_excl;
+    $summary{'EXCLUDED'}{'slice'}{'txt'}     = "\'Directions "
+                                                    . join(',', @rm_slice)
+                                                    . "(" . $slice_excl . ")\'";
+    $summary{'EXCLUDED'}{'intergrad'}{'nb'}  = $grads_excl;
+    $summary{'EXCLUDED'}{'intergrad'}{'txt'} = "\'Directions "
+                                                    . join(',', @rm_intergrads)
+                                                    . "(" . $grads_excl . ")\'";
+    $summary{'EXCLUDED'}{'interlace'}{'nb'}  = $lace_excl;
+    $summary{'EXCLUDED'}{'interlace'}{'txt'} = "\'Directions "
+                                                    . join(',', @rm_interlace)
+                                                    . "(" . $lace_excl . ")\'";
+
+    return (\%summary);    
 }
+
+
+
+
+
 
 
 
@@ -1163,8 +1216,6 @@ sub registerFile  {
     my  ($file, $src_fileID, $src_pipeline, $src_tool, $pipelineDate, $coordinateSpace, $scanType, $outputType, $inputs, $registeredXMLprotocolID)    =   @_;
 
     # Check if File has already been registered into the database. Return File registered if that is the case.
-    my $md5_check           = `md5sum $file`;
-    my ($md5sum, $filesum)  = split(' ', $md5_check);
     my ($alreadyRegistered) = &fetchRegisteredFile($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType);
     if ($alreadyRegistered) {
         print LOG "> File $file already registered into the database.\n";
@@ -1273,7 +1324,18 @@ sub register_DTIPrep_files {
                          && ($pipelineName)            && ($inputs));
 
     # Register nrrd file into the database
-    my ($registered_nrrd)   = &register_nrrd($nrrd,
+    # First checks if QCedDTI file exists in DB (could be identical to $noRegQCedDTI)
+    my ($registeredFile, $registeredScanType, $registered_nrrd);
+    if ($scanType eq "QCedDTI") {
+        my $md5_check       = `md5sum $nrrd`; 
+        my ($md5sum, $file) = split(' ', $md5_check);
+        ($registeredFile, 
+        $registeredScanType)= &fetchRegisteredMD5($md5sum);
+        $registered_nrrd    = $registeredFile if ($registeredScanType eq 'noRegQCedDTI');
+    }
+    # Register nrrd file unless already registered
+    unless ($registered_nrrd) {
+        ($registered_nrrd)  = &register_nrrd($nrrd,
                                              $raw_file,
                                              $data_dir,
                                              $registeredQCReportFile,
@@ -1283,6 +1345,7 @@ sub register_DTIPrep_files {
                                              $DTIPrepVersion,
                                              $scanType
                                             );
+    }
     return undef    if (!$registered_nrrd);
 
     # Register minc file into the database with link to the QC reports, protocol and registered nrrd
@@ -1553,3 +1616,36 @@ sub getInputList {
 
     return ($input_list);
 }    
+
+
+
+
+
+
+
+=pod
+Will check if md5sum has already been registered into the database.
+Input:  - $md5sum: md5sum of the file
+Output: - $registeredFileID: registered FileID matching md5sum
+        - $registeredScanType: scan type of the registered FileID matching md5sum
+=cut
+sub fetchRegisteredMD5 {
+    my ($md5sum) = @_;
+
+    my $query   = "SELECT File, Scan_type" .
+                    " FROM files f" .
+                    " JOIN parameter_file pf ON (pf.FileID = f.FileID)" .
+                    " JOIN parameter_type pt ON (pt.ParameterTypeID = pf.ParameterTypeID)" .
+                    " JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID)" .
+                    " WHERE pt.Name = ? AND pf.Value = ?";
+    my $sth     = $dbh->prepare($query);
+    $sth->execute('md5hash', $md5sum);
+    my ($registeredFile, $registeredScanType);
+    if  ($sth->rows > 0)    {
+        my $row =   $sth->fetchrow_hashref();
+        $registeredFile   = $row->{'File'};
+        $registeredScanType = $row->{'Scan_type'}
+    }
+
+    return ($registeredFile, $registeredScanType);
+}

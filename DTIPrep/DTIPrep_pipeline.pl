@@ -1,4 +1,4 @@
-#! /usr/bin/env perl
+#!/usr/bin/env perl -w
 
 require 5.001;
 use strict;

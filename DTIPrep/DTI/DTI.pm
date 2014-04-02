@@ -706,7 +706,7 @@ sub modify_header {
 
     # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
     my  $cmd    =   "minc_modify_header -sinsert $argument=$value $minc";
-    system($cmd)    unless ($value eq $hdr_val);
+    system($cmd)    unless (($hdr_val) && ($value eq $hdr_val));
 
     # check if header information was indeed inserted in minc file
     my $hdr_val2 =   &DTI::fetch_header_info($argument, $minc, $awk);
@@ -733,9 +733,13 @@ sub fetch_header_info {
 
     my  $val    =   `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
     my  $value  =   $val    if  $val !~ /^\s*"*\s*"*\s*$/;
-    $value      =~  s/^\s+//;                           # remove leading spaces
-    $value      =~  s/\s+$//;                           # remove trailing spaces
-    $value      =~  s/;//   unless ($keep_semicolon);   # remove ";" unless $keep_semicolon is defined
+    if ($value) {
+        $value  =~  s/^\s+//;                           # remove leading spaces
+        $value  =~  s/\s+$//;                           # remove trailing spaces
+        $value  =~  s/;//   unless ($keep_semicolon);   # remove ";" unless $keep_semicolon is defined
+    } else {
+        return undef;
+    }
 
     return  ($value);
 }
