@@ -4,8 +4,8 @@ use strict;
 
 #####Get config setting#######################################################
 # checking for profile settings
-if(-f "$ENV{HOME}/.neurodb/prod") {
-    { package Settings; do "$ENV{HOME}/.neurodb/prod" }
+if(-f "$ENV{CONFIG}/.neurodb/prod") {
+    { package Settings; do "$ENV{CONFIG}/.neurodb/prod" }
 } ##Possibly the script can exit if the prod doesn't exist
 #######################################################################################
 # define project space

@@ -63,9 +63,9 @@ GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
 
 # input options error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{CONFIG}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named \"$profile\" in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    print "\n\tERROR: You don't have a configuration file named \"$profile\" in:  $ENV{CONFIG}/.neurodb/ \n\n"; 
     exit 33;
 }
 if (!$profile) {
