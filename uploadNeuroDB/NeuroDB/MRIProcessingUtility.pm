@@ -145,8 +145,8 @@ sub determineSubjectID {
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)){
         if ($to_log) {
-            my $message =  "\nERROR: Profile does not contain getSubjectIDs
-                             routine. Upload will exit now.\n\n";
+            my $message =  "\nERROR: Profile does not contain getSubjectIDs ".
+                           "routine. Upload will exit now.\n\n";
             $this->writeErrorLog($message, 2); 
             exit 2;
         }
@@ -157,11 +157,12 @@ sub determineSubjectID {
                                                 $this->{dbhr}
                                                 );
     if ($to_log) {
-        $this->{LOG}->print("\n==> Data found for candidate   : 
-                            $subjectIDsref->{'CandID'} 
-                            - $subjectIDsref->{'PSCID'} - Visit: 
-                            $subjectIDsref->{'visitLabel'} - Acquired :
-                            $tarchiveInfo->{'DateAcquired'}\n");
+        $this->{LOG}->print("\n==> Data found for candidate   : ".
+                            $subjectIDsref->{'CandID'} .
+                            "- ". $subjectIDsref->{'PSCID'} . "- Visit: ".
+                            $subjectIDsref->{'visitLabel'} . "- Acquired : ".
+                            $tarchiveInfo->{'DateAcquired'} . "\n"
+        );
     }
     return $subjectIDsref;
 }
@@ -195,8 +196,8 @@ sub createTarchiveArray {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();
         %tarchiveInfo = %$tarchiveInfoRef;
     } else {
-        my $message = "\n ERROR: Only archived data can be uploaded. This seems
-                    not to be a valid archive for this study!\n\n";
+        my $message = "\n ERROR: Only archived data can be uploaded. This seems ".
+                      "not to be a valid archive for this study!\n\n";
         $this->writeErrorLog($message, 3);
         exit 3;
     }
@@ -224,8 +225,9 @@ sub determinePSC {
             $this->{LOG}->print("\nERROR: No center found for this candidate \n\n");
             exit 4;
         }
-        $this->{LOG}->print("\n==> Verifying acquisition center\n -> Center Name  : 
-                            $center_name\n -> CenterID     : $centerID\n"
+        $this->{LOG}->print("\n==> Verifying acquisition center\n -> " .
+                            "Center Name : $center_name\n -> CenterID ".
+                            " : $centerID\n"
                            );
     }
     return ($psc,$center_name, $centerID);
@@ -252,10 +254,10 @@ sub determineScannerID {
    );
     if($scannerID == 0) {
         if ($to_log) {
-            my $message = "\n ERROR: The ScannerID for this particular scanner
-                          does not exist. Enable creating new ScannerIDs in 
-                          your profile or this archive can not be 
-                          uploaded.\n\n";
+            my $message = "\n ERROR: The ScannerID for this particular scanner ".
+                          "does not exist. Enable creating new ScannerIDs in ".
+                          "your profile or this archive can not be ".
+                          "uploaded.\n\n";
             $this->writeErrorLog($message, 5); 
             exit 5;
         }
@@ -591,10 +593,10 @@ sub dicom_to_minc {
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,$exclude,$mail_user) = @_;
     my ($d2m_cmd,$d2m_log,$exit_code);
-    $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series"
-                  . " -echo -image -file -series_descr -attvalue 0018 0024"
-                  . " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 | grep -iv"
-                  . " $exclude | cut -f 5 | ";
+    $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series".
+               " -echo -image -file -series_descr -attvalue 0018 0024".
+               " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 | grep -iv".
+               " $exclude | cut -f 5 | ";
     
     ############################################################
     ####use some other converter if specified in the config#####
@@ -614,8 +616,8 @@ sub dicom_to_minc {
         #####just email.########################################
         ########################################################
         open MAIL, "| mail $mail_user";
-        print MAIL "Subject: [URGENT Automated] uploadNeuroDB: 
-                    dicom->minc failed\n";
+        print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
+                   "dicom->minc failed\n";
         print MAIL "Exit code $exit_code received from:\n$d2m_cmd\n";
         close MAIL;
         croak("dicom_to_minc failure, exit code $exit_code");
@@ -677,9 +679,9 @@ sub concat_mri {
     }
     close CONCATFILES;
     mkdir("$this->{TmpDir} /concat", 0700);
-    $cmd = "cat $this->{TmpDir} /concatfilelist.txt | concat_mri.pl
-            -maxslicesep 3.1 -compress -postfix _concat -targetdir 
-            $this->{TmpDir} /concat -stdin";
+    $cmd = "cat $this->{TmpDir} /concatfilelist.txt | concat_mri.pl ".
+           "-maxslicesep 3.1 -compress -postfix _concat -targetdir ".
+           "$this->{TmpDir} /concat -stdin";
     if ($this->{debug}) {
         print $cmd . "\n";
     }
@@ -694,8 +696,8 @@ sub concat_mri {
         `mv $this->{TmpDir} /concat/*.mnc.gz $this->{TmpDir} `;
     }
     `rmdir $this->{TmpDir} /concat`;
-    $this->{LOG}->print("### Count for concatenated MINCs: 
-                        $concat_count new files created\n"
+    $this->{LOG}->print("### Count for concatenated MINCs: ".
+                        "$concat_count new files created\n"
                        );
 }
 
@@ -801,16 +803,16 @@ sub CreateMRICandidates {
             $this->{LOG}->print( "\n==> CREATED NEW CANDIDATE :
             $subjectIDsref->{'CandID'}");
     } elsif ($subjectIDsref->{'CandID'}) {# if the candidate exis
-        $this->{LOG}->print("\n==> getSubjectIDs returned this CandID/DCCID :
-        $subjectIDsref->{'CandID'}\n");
+        $this->{LOG}->print("\n==> getSubjectIDs returned this CandID/DCCID : ".
+                            "$subjectIDsref->{'CandID'}\n"
+        );
     } else {
-        $message = "\n ERROR: The candidate could not be considered for 
-                    uploading, since s/he is not registered in your database.
-                     \n" .
-                    " The dicom header PatientID is   : 
-                    $tarchiveInfo->{'PatientID'}\n".
-                    " The dicom header PatientName is : 
-                    $tarchiveInfo->{'PatientName'}\n\n";
+        $message = "\n ERROR: The candidate could not be considered for ". 
+                   "uploading, since s/he is not registered in your database.".
+                    "\n The dicom header PatientID is :". 
+                    $tarchiveInfo->{'PatientID'}. "\n ".
+                    "The dicom header PatientName is : ". 
+                    $tarchiveInfo->{'PatientName'}. "\n\n";
         $this->writeErrorLog($message, 6); 
         exit 6;
     }
@@ -877,12 +879,13 @@ sub validateArchive {
     my $md5_check = `$cmd`;
     my ($md5_real, $real) = split(' ', $md5_check);
     my ($md5_db  , $db)   = split(' ', $tarchiveInfo->{'md5sumArchive'});
-    $this->{LOG}->print(" -> checksum for target        :  $md5_real\n -> checksum " 
-                        . "from database     :  $md5_db\n");
+    $this->{LOG}->print(" -> checksum for target        :  ".
+                        "$md5_real\n -> checksum from database :  $md5_db\n"
+    );
     if ($md5_real ne $md5_db) {
-        my $message =  "\nerror: archive seems to be corrupted or modified. upload
-                     will exit now.\nplease read the creation logs for more
-                     information!\n\n";
+        my $message =  "\nerror: archive seems to be corrupted or modified. ".
+                       "upload will exit now.\nplease read the creation logs ".
+                       " for more  information!\n\n";
         $this->writeErrorLog($message, 7); 
         exit 7;
     }
@@ -954,12 +957,5 @@ sub validateCandidate {
    return $CandMismatchError;
 
 }
-
-
-
-
-
-
-
 
 1;
