@@ -470,7 +470,8 @@ sub convert_DTI {
     my  ($file_in, $file_out, $options)    =   @_;
 
     if  (!$options) { 
-        print LOG "---DIED--- No options were define for conversion mnc2nrrd or nrrd2mnc.\n\n\n"; 
+        print "No options were define for conversion mnc2nrrd or nrrd2mnc.\n\n\n"; 
+        return undef;
     }
 
     my  $cmd        =   "itk_convert $options $file_in $file_out";

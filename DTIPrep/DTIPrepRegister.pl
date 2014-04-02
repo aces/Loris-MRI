@@ -808,7 +808,7 @@ sub checkPostprocessFiles {
     }
 
     # Check which tool has been used to post process DTI dataset to validate that all outputs are found in the filsystem
-    my  ($RGB_nrrd, $FA_nrrd, $MD_nrrd, $baseline_nrrd, $brain_mask_minc, $idwi_nrrd, $tensor_nrrd);
+    my  ($RGB_nrrd, $FA_nrrd, $MD_nrrd, $baseline_nrrd, $brain_mask_minc, $IDWI_nrrd, $tensor_nrrd);
     if ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "DTIPrep") {
 
         # Store tool used for Postprocessing in %mri_files
@@ -1233,7 +1233,7 @@ sub registerFile  {
     print LOG "\t- inputFileIDs is: $inputs\n";
 
     # Register the file into the database using command $cmd
-    my $cmd =   "perl ../uploadNeuroDB/register_processed_data.pl " .
+    my $cmd =   "register_processed_data.pl " .
                     "-profile $profile " .
                     "-file $file " .
                     "-sourceFileID $src_fileID " .
