@@ -142,7 +142,7 @@ USAGE
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
 
 ################################################################
-###################input option error checking##################
+################### input option error checking ################
 ################################################################
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) { 
@@ -166,7 +166,7 @@ unless (-e $tarchive) {
 }
 
 ################################################################
-#### These settings are in a config file (profile)##############
+#### These settings are in a config file (profile) #############
 ################################################################
 my $data_dir         = $Settings::data_dir;
 my $pic_dir = $data_dir.'/pic';
@@ -196,7 +196,7 @@ LOG->autoflush(1);
 &logHeader();
 
 ################################################################
-###############if xlog is set, fork a tail on log file.#########
+############### If xlog is set, fork a tail on log file. #######
 ################################################################
 my $childPID; 
 if ($xlog) { 
@@ -208,7 +208,7 @@ if ($xlog) {
 }
 
 ################################################################
-#########establish database connection##########################
+######### Establish database connection ########################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
@@ -226,25 +226,25 @@ extracting information ... if there is
 =cut
 
 ################################################################
-#######################instantiate MRIProcessingUtility#########
+################## Instantiate MRIProcessingUtility ############
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
             $LogDir,$verbose);
 
 ################################################################
-################Register programs###############################
+################ Register programs #############################
 ################################################################
 $utility->registerProgs(@progs);
 
 ################################################################
-#######################Construct the tarchiveinfo Array#########
+################## Construct the tarchiveInfo Array ############
 ################################################################
 my %tarchiveInfo = $utility->createTarchiveArray($tarchive,
                                                  $globArchiveLocation
                                                 );
 
 ################################################################
-####################Call the validation script##################
+#################### Call the validation script ################
 ################################################################
 my $script = "tarchive_validation.pl $tarchive -profile prod ";
 
@@ -255,18 +255,19 @@ if ($globArchiveLocation) {
     $script .= " -globLocation";
 }
 ################################################################
-############note: system call returns the process ID############
-##To the actual exit value, shift right by eight as done below##
+###### Note: system call returns the process ID ################
+###### To the actual exit value, shift right by ################
+###### eight as done below #####################################
 ################################################################
 my $output = system($script); 
 $output = $output >> 8;
 
 ################################################################
-########Exit if the return value is 5 meaning the tarchiveid####
-#########is not inserted in the mri_upload table################
-######### and -mri_upload_insert################################
-####is not used#################################################
+# Exit if the return value is 5 meaning the tarchiveid #########
+# is not inserted in the mri_upload table ######################
+# and -mri_upload_insert is not used ###########################
 ################################################################
+
 if (($output== 5) && ($mri_upload_insert==0)) {
 
   $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
@@ -278,8 +279,8 @@ if (($output== 5) && ($mri_upload_insert==0)) {
 }
 
 ################################################################
-##########if tarchiveid is already inserted into################
-### the mri_upload table and -mri_upload_insert is set##########
+### If tarchiveid is already inserted into #####################
+### The mri_upload table and -mri_upload_insert is set #########
 ################################################################
 
 if (($output==6) && ($mri_upload_insert)) {
@@ -303,24 +304,24 @@ if (($output != 0) && ($output!= 5) && ($force==0)) {
 }
 
 ################################################################
-#################Get the $psc,$center_name, $centerID###########
+########## Get the $psc,$center_name, $centerID ################
 ################################################################
 my ($psc,$center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
 ################################################################
-#############################determine the ScannerID ############
+######### Determine the ScannerID ##############################
 ################################################################
 my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,
                                             $centerID,$NewScanner
                                            );
 
 ################################################################
-######Construct the $subjectIDsref array########################
+###### Construct the $subjectIDsref array ######################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,0);
 
 ################################################################
-###############Get the SessionID################################
+###### Get the SessionID #######################################
 ################################################################
 if(!defined($subjectIDsref->{'visitLabel'})) { 
     $subjectIDsref->{'visitLabel'} = 
@@ -333,25 +334,25 @@ my ($sessionID, $requiresStaging) =
     );
 
 ################################################################
-################extract the tarchive and feed the dicom data####
-######dir to the uploader#######################################
+###### Extract the tarchive and feed the dicom data ############
+###### Dir to the uploader #####################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive($tarchive);
 
 ################################################################
-# make the notifier object######################################
+##### make the notifier object #################################
 ################################################################
 my $notifier = NeuroDB::Notify->new(\$dbh);
 
 ################################################################
-##################### convert the dicom data to minc############
+##################### convert the dicom data to minc ###########
 ################################################################
 $utility->dicom_to_minc($study_dir,$converter,$get_dicom_info,
                         $exclude,$mail_user);
 
 ################################################################
-###################get list of mincs############################
+############### get a list of mincs ############################
 ################################################################
 my @minc_files = ();
 $utility->get_mincs(\@minc_files);
@@ -370,16 +371,16 @@ if ($mcount < 1) {
 
 ################################################################
 #################### LOOP through MINCs ########################
-#At this step we actually have (multiple) MINC files so we loop#
-# a valid study has at least one file that can be uploaded######
+# At this step we actually have (multiple) MINC files so we loop
+# a valid study has at least one file that can be uploaded #####
 ################################################################
 my $minc_inserted = 0;
 foreach my $minc (@minc_files) {
 
     ############################################################
-    # if the tarchive has not been moved yet####################
-    #($valid_study undefined)-> move the tarchive from the######
-    ## inbox into the tarchive library##########################
+    # if the tarchive has not been moved yet ###################
+    # ($valid_study undefined)-> move the tarchive from the ####
+    # inbox into the tarchive library ##########################
     ############################################################
     if ((!defined($Settings::tarchiveLibraryDir)) || 
         ((defined($Settings::tarchiveLibraryDir)) &&    
@@ -392,7 +393,7 @@ foreach my $minc (@minc_files) {
     $tarchive = $newTarchiveLocation;
 
     ###########################################################
-    ####################Call the minc_insertion script#########
+    ############# Call the minc_insertion script ##############
     ###########################################################
 
     $script = "minc_insertion.pl -tarchivePath $tarchive ".
@@ -413,18 +414,18 @@ foreach my $minc (@minc_files) {
         print $script . "\n";
     }
     ###########################################################
-    ############note: system call returns the process ID#######
-    ##To the actual exit value, shift right by eight as######## 
-    ##done below###############################################
+    ## Note: system call returns the process ID ###############
+    ## To get the actual exit value, shift right by eight as ##
+    ## done below #############################################
     ###########################################################
 
     $output = system($script);
     $output = $output >> 8;
-    ############################################################
-    ####if the return code of the script is 0###################
-    # mark the study as valid because this means at least#######
-    ##one volume will be inserted into the DB###################
-    ############################################################
+    ###########################################################
+    #### if the return code of the script is 0 ################
+    #### mark the study as valid because this means at least ##
+    #### one volume will be inserted into the DB ##############
+    ###########################################################
     if ($output==0) {
        $minc_inserted++;
        $valid_study = 1;
@@ -434,8 +435,8 @@ foreach my $minc (@minc_files) {
 if ($valid_study) {
 
     ############################################################
-    # update the number_of_mincCreated##########################
-    ### and number_of_mincInserted##############################
+    ### Update the number_of_mincCreated #######################
+    ### And number_of_mincInserted #############################
     ############################################################
     my $where = "WHERE TarchiveID=?";
     my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
@@ -451,7 +452,7 @@ if ($valid_study) {
     );
  
     ############################################################
-    ###############Create minc-pics#############################
+    ############# Create minc-pics #############################
     ############################################################
     
     my $where = "WHERE TarchiveSource =? ";
@@ -467,9 +468,9 @@ if ($valid_study) {
         my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
                      "-profile prod ";
     ############################################################
-    ############note: system call returns the process ID########
-    ##To the actual exit value, shift right by eight as######### 
-    ##done below################################################
+    ## Note: system call returns the process ID ################
+    ## To get the actual exit value, shift right by eight as ### 
+    ## done below ##############################################
     ############################################################
         $output = system($script);
         $output = $output >> 8;
@@ -478,7 +479,7 @@ if ($valid_study) {
 
     
     ############################################################
-    # spool a new study message#################################
+    # spool a new study message ################################
     ############################################################
     $notifier->spool('mri new study', 
                       $subjectIDsref->{'CandID'} . 
@@ -487,7 +488,7 @@ if ($valid_study) {
                       "\tacquired ". $tarchiveInfo{'DateAcquired'}
                     );
     ############################################################
-    ####link the tarchive and mri_upload table  with session####
+    #### link the tarchive and mri_upload table  with session ##
     ############################################################
      $where = "WHERE t.TarchiveID=?";
      $query = "UPDATE tarchive t ".
@@ -504,8 +505,8 @@ if ($valid_study) {
 
 } else {
     ############################################################
-    # spool a failure message This has been changed to tarchive# 
-    ###instead of using patientName#############################
+    ## spool a failure message This has been changed to tarchive
+    ## instead of using patientName ############################
     ############################################################
     $notifier->spool('mri invalid study', $tarchive. " acquired ". 
                       $tarchiveInfo{'DateAcquired'} .
@@ -514,7 +515,7 @@ if ($valid_study) {
 }
 
 ################################################################
-# make final logfile name without overwriting phantom logs######
+# make final logfile name without overwriting phantom logs #####
 ################################################################
 my $final_logfile = $psc."_".$tarchiveInfo{'DateAcquired'}.
                     '_'.$subjectIDsref->{'CandID'};
@@ -524,8 +525,8 @@ if ($subjectIDsref->{'isPhantom'}) {
 }
 
 ################################################################
-###tarchiveLocation#############################################
-###if something went wrong and there is no acq date and CandID##
+### tarchiveLocation ###########################################
+### if something went wrong and there is no acq date and CandID 
 ################################################################
 unless($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) { 
     $final_logfile .= '_'.$temp[$#temp]; 
@@ -533,14 +534,14 @@ unless($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) {
 $final_logfile .= '.log.gz';
 
 ################################################################
-# fixme for now we assume that extracted data will not be kept##
+# fixme for now we assume that extracted data will not be kept #
 ################################################################
 my $cleanup = "rm -rf ${TmpDir}/${ExtractSuffix}*"; 
 print "\nCleaning up temp files: $cleanup\n" if $verbose;
 `$cleanup`;
 
 ################################################################
-#######if there are leftovers, dump them in the trashbin########
+## if there are leftovers, dump them in the trashbin ###########
 ################################################################
 my @leftovers = `\\ls -1 $TmpDir`;
 if(scalar(@leftovers) > 0) {
@@ -564,7 +565,7 @@ close LOG;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
 `$cmd`;
 ################################################################
-####################kill the xterm with the tail on log#########
+############# kill the xterm with the tail on log ##############
 ################################################################
 if ($xlog) {
     `kill -9 $childPID`;
