@@ -903,60 +903,6 @@ sub RGBpik_creation {
 
 
 
-=pod
-Create a default notes file for QC summary and manual notes.
-Inputs:  - $QC_out: output DTI(Prep) minc file
-         - $note_file: note file to insert rejected information into
-         - $QC_report: DTIPrep $QC_report containing rejected directions information
-         - $reject_thresh: threshold after which too many directions were rejected (a.k.a. QC fail)
-=cut
-sub createNoteFile {
-    my ($QC_out, $note_file, $QC_report, $reject_thresh)    =   @_;
-
-    my ($rm_slicewise, $rm_interlace, $rm_intergradient)    =   getRejectedDirections($QC_report);
-
-    my $count_slice     =   insertNote($note_file, $rm_slicewise,      "slicewise correlations");
-    my $count_inter     =   insertNote($note_file, $rm_interlace,      "interlace correlations");
-    my $count_gradient  =   insertNote($note_file, $rm_intergradient,  "gradient-wise correlations");
-
-    my $total           =   $count_slice + $count_inter + $count_gradient;
-    open    (NOTES, ">>$note_file");
-    print   NOTES   "Total number of directions rejected by auto QC= $total\n";
-    close   (NOTES);
-    if  ($total >=  $reject_thresh) {   
-        print NOTES "FAIL\n";
-    } else {
-        print NOTES "PASS\n";
-    }
-
-}
-
-
-
-
-
-
-=pod
-Get the list of directions rejected by DTI per type 
-(i.e. slice-wise correlations, inter-lace artifacts, inter-gradient artifacts).
-Inputs:  - $QCReport: DTIPrep QC report
-Outputs: - $rm_slicewise: list of removed directions due to slice wise correlations
-         - $rm_interlace: list of removed directions due to interlace correlations
-         - $rm_intergradient: list of removed directions due to intergradient correlations
-=cut
-sub getRejectedDirections   {
-    my ($QCReport)  =   @_;
-
-    ## these are the unique directions that were rejected due to slice-wise correlations
-    my $rm_slicewise    =   `cat $QCReport | grep whole | sort -k 2,2 -u | awk '{print \$2}'|tr '\n' ','`;
-    ## these are the unique directions that were rejected due to inter-lace artifacts
-    my $rm_interlace    =   `cat $QCReport | sed -n -e '/Interlace-wise Check Artifacts/,/================================/p' | grep '[0-9]' | sort -k 1,1 -u | awk '{print \$1}'|tr '\n' ','`;
-    ## these are the unique directions that were rejected due to inter-gradient artifacts
-    my $rm_intergradient=   `cat $QCReport | sed -n -e '/Inter-gradient check Artifacts::/,/================================/p' | grep '[0-9]'| sort -k 1,1 -u  | awk '{print \$1}'|tr '\n' ','`;
-    
-    return ($rm_slicewise, $rm_interlace, $rm_intergradient);
-}
-
 
 
 
