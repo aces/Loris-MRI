@@ -30,7 +30,7 @@ use MNI::FileUtilities  qw(check_output_dirs);
 @ISA        = qw(Exporter);
 
 @EXPORT     = qw();
-@EXPORT_OK  = qw(createOutputFolders getFiles sortParam insertMincHeader create_processed_maps createNoteFile);
+@EXPORT_OK  = qw(createOutputFolders getFiles sortParam insertMincHeader create_processed_maps);
 
 
 
@@ -909,25 +909,10 @@ sub RGBpik_creation {
 
 
 
-=sub
-Insert into notes file the directions rejected due to a specific artifact.
-Inputs:  - $note_file: note file in which to insert rejected directions information
-         - $rm_directions: removed directions to be inserted in the note file
-         - $note_field: field (or reason) of rejected directions
-Outputs: - $count_dirs: number of directions rejected due to *field* artifact
-=cut
-sub insertNote    {
-    my ($note_file, $rm_directions, $note_field)    =   @_;
 
-    my @rm_dirs     =   split(',',$rm_directions);
-    my $count_dirs  =   scalar(@rm_dirs);
 
-    open    (NOTES, ">>$note_file");
-    print   NOTES   "Directions rejected due to $note_field: @rm_dirs ($count_dirs)\n";
-    close   (NOTES);
 
-    return  ($count_dirs);
-}
+
 
 
 
@@ -995,4 +980,78 @@ sub convert_DTIPrep_postproc_outputs {
     return ($nrrds_found, $mincs_created, $hdrs_inserted);
 
 }
+=pod
+Summarize which directions were rejected by DTIPrep for slice-wise correlations, 
+inter-lace artifacts, inter-gradient artifacts.
+Inputs:  - $data_dir = data_dir defined in the config file
+         - $QCReport = DTIPrep's QC txt report to extract rejected directions
+Outputs: - $rm_slicewise        = directions rejected due to slice wise correlations (number)
+         - $rm_interlace        = directions rejected due to interlace artifacts (number)
+         - $rm_intergradient    = directions rejected due to inter-gradient artifacts (number)
+=cut
+sub getRejectedDirections   {
+    my ($data_dir, $XMLReport)  =   @_;
 
+    # Remove $data_dir path from $QCReport in the case it is included in the path
+    $XMLReport =~ s/$data_dir//i;
+
+    # Read XML report into a hash
+    my ($outXMLrefs)    = &DTI::readDTIPrepXMLprot("$data_dir/$XMLReport");
+
+    # Initialize variables
+    my ($tot_grads, $slice_excl, $grads_excl, $lace_excl, $tot_excl);
+    $tot_grads  = $slice_excl = $grads_excl = $lace_excl = $tot_excl = 0;
+    my (@rm_slice, @rm_interlace, @rm_intergrads);
+
+    foreach my $key (keys $outXMLrefs->{"entry"}{"DWI Check"}{'entry'}) {
+        # Next unless this is a gradient
+        next unless ($key =~ /^gradient_/);
+
+        # Grep gradient number
+        my $grad_nb = $key;
+        $grad_nb    =~ s/gradient_[0]+//i;
+
+         # Grep processing status for the gradient
+        my $status  = $outXMLrefs->{"entry"}{"DWI Check"}{'entry'}{$key}{'processing'};
+
+        # Count number of gradients with different exclusion status
+        if ($status =~ /EXCLUDE_SLICECHECK/i) {
+            $slice_excl = $slice_excl + 1;
+            push (@rm_slice, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        } elsif ($status =~ /EXCLUDE_GRADIENTCHECK/i) {
+            $grads_excl = $grads_excl + 1;
+            push (@rm_intergrads, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        } elsif ($status =~ /EXCLUDE_INTERLACECHECK/i) {
+            $lace_excl  = $lace_excl + 1;
+            push (@rm_interlace, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        }
+        $tot_grads  = $tot_grads + 1;
+    }
+
+    # Summary hash storing all DTIPrep gradient exclusion information
+    my (%summary);
+    # Total number of gradients in native DTI
+    $summary{'total'}{'nb'}                  = $tot_grads;
+    # Total number of gradients excluded from QCed DTI
+    $summary{'EXCLUDED'}{'total'}{'nb'}      = $tot_excl;
+    # Total number of gradients included in QCed DTI
+    $summary{'INCLUDED'}{'total'}{'nb'}      = $tot_grads - $tot_excl;
+    # Summary of artifact exclusions
+    $summary{'EXCLUDED'}{'slice'}{'nb'}      = $slice_excl;
+    $summary{'EXCLUDED'}{'slice'}{'txt'}     = "\'Directions "
+                                                    . join(',', @rm_slice)
+                                                    . "(" . $slice_excl . ")\'";
+    $summary{'EXCLUDED'}{'intergrad'}{'nb'}  = $grads_excl;
+    $summary{'EXCLUDED'}{'intergrad'}{'txt'} = "\'Directions "
+                                                    . join(',', @rm_intergrads)
+                                                    . "(" . $grads_excl . ")\'";
+    $summary{'EXCLUDED'}{'interlace'}{'nb'}  = $lace_excl;
+    $summary{'EXCLUDED'}{'interlace'}{'txt'} = "\'Directions "
+                                                    . join(',', @rm_interlace)
+                                                    . "(" . $lace_excl . ")\'";
+
+    return (\%summary);
+}
