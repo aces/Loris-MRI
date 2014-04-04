@@ -7,8 +7,9 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
-
-# Set stuff for GETOPT
+################################################################
+################## Set stuff for GETOPT ########################
+################################################################
 my $verbose    = 1;
 my $profile    = undef;
 my $minFileID  = undef;
@@ -21,21 +22,23 @@ my $Usage = "mass_pic.pl generates check pic images for NeuroDB for those ".
 
 my @arg_table =
     (
-     ["Database options", "section"],
-     ["-profile","string",1, \$profile, "Specify the name of the ".   
-      "config file which resides in .neurodb in your home directory."],
-     ["File control", "section"],
-     ["-minFileID", "integer", 1, \$minFileID, "Specify the minimum FileID ".
-      "to operate on."], 
-     ["-maxFileID", "integer", 1, \$maxFileID, "Specify the maximum FileID ".
-      "to operate on."], 
-     ["General options", "section"],
-     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
-     );
+         ["Database options", "section"],
+         ["-profile","string",1, \$profile, "Specify the name of the ".   
+          "config file which resides in .neurodb in your home directory."],
+         ["File control", "section"],
+         ["-minFileID", "integer", 1, \$minFileID, "Specify the minimum FileID ".
+          "to operate on."], 
+         ["-maxFileID", "integer", 1, \$maxFileID, "Specify the maximum FileID ".
+          "to operate on."], 
+         ["General options", "section"],
+         ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
+    );
 
 GetOptions(\@arg_table, \@ARGV) ||  exit 1;
 
-# checking for profile settings
+################################################################
+################ checking for profile settings #################
+################################################################
 if (-f "$ENV{HOME}/.neurodb/$profile") {
 	{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 }
@@ -51,14 +54,20 @@ if (!$profile) {
     exit 33;  
 }
 
-# where the pics should go
+################################################################
+# where the pics should go #####################################
+################################################################
 my $pic_dir = $Settings::data_dir . '/pic';
 
-# establish database connection if database option is set
+################################################################
+# establish database connection if database option is set ######
+################################################################
 print "Connecting to database.\n" if $verbose;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-## now go make the pics
+################################################################
+############ now go make the pics ##############################
+################################################################
 $query = "SELECT \@checkPicID:=ParameterTypeID FROM parameter_type WHERE ".
           "Name='check_pic_filename'";
 $dbh->do($query);
