@@ -45,7 +45,7 @@ my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
 ################################################################
-#### These settings are in a config file (profile)##############
+#### These settings are in a config file (profile) #############
 ################################################################
 my @opt_table = (
                  ["casic options","section"],
@@ -141,8 +141,7 @@ unless (-e $minc) {
 }
 
 ################################################################
-################################################################
-###########Create the Specific Log File#########################
+########### Create the Specific Log File #######################
 ################################################################
 my $data_dir = $Settings::data_dir;
 my $jiv_dir = $data_dir.'/jiv';
@@ -160,20 +159,20 @@ LOG->autoflush(1);
 &logHeader();
 
 ################################################################
-###################establish database connection################
+############### Establish database connection ##################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
 
 ################################################################
-################## MRIProcessingUtility object##################
+################## MRIProcessingUtility object #################
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
             $verbose);
 
 ################################################################
-#######################is_valid column##########################
+#################### Check is_valid column #####################
 ################################################################
 my $where = "WHERE t.ArchiveLocation='$tarchive'";
 if ($globArchiveLocation) {
@@ -195,39 +194,34 @@ if (($is_valid == 0) && ($force==0)) {
 }
 
 ################################################################
-#######################Construct the tarchiveinfo Array#########
+############## Construct the tarchiveinfo Array ################
 ################################################################
 %tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
 
 ################################################################
-##################Get the $psc,$center_name, $centerID##########
+############ Get the $psc,$center_name, $centerID ##############
 ################################################################
 my ($psc,$center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
 ################################################################
-################################################################
-####determine the ScannerID ##################################### 
-################################################################
+#### Determine the ScannerID ###################################
 ################################################################
 my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,$centerID,
                                                 $NewScanner
                                            );
 
 ################################################################
-################################################################
-######Construct the $subjectIDsref array########################
-################################################################
+###### Construct the $subjectIDsref array ######################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,0);
 
 ################################################################
-#################Define the $CandMismatchError##################
+################# Define the $CandMismatchError ################
 ################################################################
-#Check the CandID/PSCID Match It's possible that the CandID##### 
-##exists, but doesn't match the PSCID. This will fail further###
-### down silently, so we explicitly check that the data is######
-### correct here.###############################################
-################################################################
+# Check the CandID/PSCID Match It's possible that the CandID ### 
+# exists, but doesn't match the PSCID. This will fail further ##
+# down silently, so we explicitly check that the data is #######
+# correct here #################################################
 ################################################################
 
 my $CandMismatchError = undef;
@@ -239,17 +233,17 @@ my $logQuery = "INSERT INTO MRICandidateErrors".
 my $candlogSth = $dbh->prepare($logQuery);
 
 ################################################################
-############Construct the notifier object#######################
+############ Construct the notifier object #####################
 ################################################################
 my $notifier = NeuroDB::Notify->new(\$dbh);
 
 ################################################################
-#### Loads/Creates File object and maps dicom fields############
+#### Loads/Creates File object and maps dicom fields ###########
 ################################################################
 my $file = $utility->loadAndCreateObjectFile($minc);
 
 ################################################################
-##optionally do extra filtering, if needed######################
+##### Optionally do extra filtering, if needed #################
 ################################################################
 if (defined(&Settings::filterParameters)) {
     print LOG " --> using user-defined filterParameters for $minc\n"
@@ -258,11 +252,11 @@ if (defined(&Settings::filterParameters)) {
 }
 
 ################################################################
-# We already know the PatientName is bad from step 5a, but######
-## had to wait until this point so that we have the#############
-##SeriesUID and MincFile name to compute the md5 hash. Do it####
-## before computing the hash because there's no point in########
-##going that far if we already know it's fault.#################
+# We already know the PatientName is bad from step 5a, but #####
+# had to wait until this point so that we have the #############
+# SeriesUID and MincFile name to compute the md5 hash. Do it ###
+# before computing the hash because there's no point in ########
+# going that far if we already know it's fault. ################
 ################################################################
 
 if (defined($CandMismatchError)) {
@@ -276,11 +270,11 @@ if (defined($CandMismatchError)) {
         $tarchiveInfo{'PatientName'},
         $CandMismatchError
     );
-    exit 7 ;  ##replaces next
+    exit 7 ;
 }
 
 ################################################################
-################Get the SessionID###############################
+################ Get the $sessionID and $requiresStaging #######
 ################################################################
 my ($sessionID, $requiresStaging) =
     NeuroDB::MRI::getSessionID( $subjectIDsref, 
@@ -289,7 +283,7 @@ my ($sessionID, $requiresStaging) =
                               );
 
 ################################################################
-##############compute the md5 hash##############################
+############ Compute the md5 hash ##############################
 ################################################################
 my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
@@ -299,8 +293,8 @@ if (!$unique) {
 } 
 
 ################################################################
-###at this point things will appear in the database# ###########
-#####Set some file information##################################
+## at this point things will appear in the database ############
+## Set some file information ###################################
 ################################################################
 $file->setParameter('ScannerID', $scannerID);
 $file->setFileData('SessionID', $sessionID);
@@ -314,7 +308,7 @@ $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
 $file->setFileData('Caveat', 0);
 
 ################################################################
-##get acquisition protocol (identify the volume)################
+## Get acquisition protocol (identify the volume) ##############
 ################################################################
 my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
   = $utility->getAcquisitionProtocol($file,$subjectIDsref,
@@ -329,16 +323,17 @@ if($acquisitionProtocol =~ /unknown/) {
 }
 
 ################################################################
-# Register scans into the database.  Which protocols############
-###to keep optionally controlled by the config file#############
+# Register scans into the database.  Which protocols ###########
+# to keep optionally controlled by the config file #############
 ################################################################
+
 $utility->registerScanIntoDB(\$file, \%tarchiveInfo,$subjectIDsref, 
                              $acquisitionProtocol, $minc, \@checks, 
                              $reckless, $tarchive, $sessionID
                             );
 
 ################################################################
-### add series notification#####################################
+### Add series notification ####################################
 ################################################################
 $notifier->spool(
     'mri new series', $subjectIDsref->{'CandID'} . " " .
@@ -353,14 +348,15 @@ print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
 
 
 ################################################################
-######################Creating of Jivs##########################
+###################### Creating of Jivs ########################
 ################################################################
 if (!$no_jiv) {
     print "Making JIV\n" if $verbose;
     NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
 }
+
 ################################################################
-##############################succesfully completed#############
+################## Succesfully completed #######################
 ################################################################
 exit 0;
 
