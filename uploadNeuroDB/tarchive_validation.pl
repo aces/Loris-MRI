@@ -1,5 +1,6 @@
 #! /usr/bin/perl
 use strict;
+use warnings;
 use Carp;
 use Getopt::Tabular;
 use FileHandle;
@@ -8,8 +9,9 @@ use File::Temp qw/ tempdir /;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
-
-# These are the NeuroDB modules to be used
+################################################################
+# These are the NeuroDB modules to be used #####################
+################################################################
 use lib "$FindBin::Bin";
 use NeuroDB::File;
 use NeuroDB::MRI;
@@ -48,11 +50,11 @@ my $User             = `whoami`;
 
 my @opt_table = (
                  ["Basic options","section"],
-                 ["-profile     ","string",1, \$profile,
+                 ["-profile","string",1, \$profile,
                   "name of config file in ~/.neurodb."],
-                 ["-mri_upload_insert", "boolean", 1, \$mri_upload_insert,"Populates" .
-                 " the mri_upload columns with the missing values if the ".
-                 " dicomtar.pl -mri_upload_update was not ran"],
+                 ["-mri_upload_insert", "boolean", 1, \$mri_upload_insert,
+                  "Populates the mri_upload columns with the missing ". 
+                  "values if the dicomtar.pl -mri_upload_update was not ran"],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not".
@@ -107,7 +109,7 @@ USAGE
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
 
 ################################################################
-############### input option error checking#####################
+############### input option error checking ####################
 ################################################################
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 if ($profile && !defined @Settings::db) { 
@@ -115,7 +117,7 @@ if ($profile && !defined @Settings::db) {
     configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
     exit 2; 
 }
-if(!$ARGV[0] || !$profile) { 
+if (!$ARGV[0] || !$profile) { 
     print $Help; 
     print "$Usage\n\tERROR: You must specify a valid tarchive and an existing ".
           "profile.\n\n";  
@@ -129,10 +131,9 @@ unless (-e $tarchive) {
 }
 
 ################################################################
-#######################initialization###########################
+########## initialization ######################################
 ################################################################
-################################################################
-###########Create the Specific Log File#########################
+########## Create the Specific Log File ########################
 ################################################################
 my $data_dir         = $Settings::data_dir;
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
@@ -148,34 +149,31 @@ LOG->autoflush(1);
 &logHeader();
 
 ################################################################
-################ establish database connection##################
+################ Establish database connection #################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n";
 
-
-
-
+################################################################
+################ MRIProcessingUtility object ###################
+################################################################
+my $utility = NeuroDB::MRIProcessingUtility->new(
+                  \$dbh,$debug,$TmpDir,$logfile,
+                  $verbose
+              );
 
 ################################################################
-################MRIProcessingUtility object#####################
-################################################################
-my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
-            $verbose);
-
-
-################################################################
-############################Create tarchive array ##############
+############### Create tarchive array ##########################
 ################################################################
 ################################################################
-%tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
-
-
+%tarchiveInfo = $utility->createTarchiveArray(
+                    $tarchive,
+                    $globArchiveLocation
+                );
 
 ################################################################
-#######################get the tarchive-id######################
+############### Get the tarchive-id ############################
 ################################################################
-
 $where = "WHERE TarchiveID=?";
 $query = "SELECT COUNT(*) FROM mri_upload $where ";
 $sth = $dbh->prepare($query);
@@ -183,9 +181,9 @@ $sth->execute($tarchiveInfo{TarchiveID});
 my $tarchiveid_count = $sth->fetchrow_array;
 
 ################################################################
-#######################if tarchiveid is not inserted into ######
-### the mri_upload table and if the -mri_upload_insert option###
-####is null then fail##########################################
+#### if tarchiveid is not inserted into ########################
+#### the mri_upload table and if the -mri_upload_insert option #
+#### is null then fail #########################################
 ################################################################
 
 if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
@@ -195,12 +193,11 @@ if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
                "-or use -mri_upload_insert to insert the missing values.\n\n";
     $utility->writeErrorLog($message,5,$logfile);
     exit 5;
-
 }
 
 ################################################################
-##########if tarchiveid is already inserted into################
-### the mri_upload table and -mri_upload_insert#################
+#### If tarchiveid is already inserted into ####################
+#### The mri_upload table and -mri_upload_insert ###############
 ################################################################
 
 if (($tarchiveid_count>0) && ($mri_upload_insert)) {
@@ -209,62 +206,59 @@ if (($tarchiveid_count>0) && ($mri_upload_insert)) {
                " -mri_upload_insert option.\n\n";
     $utility->writeErrorLog($message,6,$logfile);
     exit 6;
-
 }
 
-
-
-
 ################################################################
-####Verify the archive using the checksum from database#########
+#### Verify the archive using the checksum from database #######
 ################################################################
 ################################################################
-
 $utility->validateArchive($tarchive,\%tarchiveInfo);
 
 ################################################################
+### Verify PSC information using whatever field ################ 
+### contains site string #######################################
 ################################################################
-####### Verify PSC information using whatever field############# 
-####contains site string########################################
-################################################################
-################################################################
-my ($psc,$center_name, $centerID) =$utility->determinePSC(\%tarchiveInfo,1);
+my ($psc,$center_name, $centerID) =
+    $utility->determinePSC(\%tarchiveInfo,1);
 
 ################################################################
 ################################################################
-####determine the ScannerID (optionally create a################ 
-####new one if necessary)#######################################
+### Determine the ScannerID (optionally create a ############### 
+### new one if necessary) ######################################
 ################################################################
 ################################################################
-
-my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,
-                                            $centerID,$NewScanner
-                                           );
-
-################################################################
-################################################################
-######determine the subject identifiers#########################
-################################################################
-################################################################
-my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,1);
+my $scannerID = $utility->determineScannerID(
+                    \%tarchiveInfo,0,
+                    $centerID,$NewScanner
+                );
 
 ################################################################
 ################################################################
-#Optionally create candidates as needed Standardize gender######
-#### (DICOM uses M/F, DB uses Male/Female)######################
+##### Determine the subject identifiers ########################
 ################################################################
 ################################################################
-$utility->CreateMRICandidates($subjectIDsref,$gender,
-                              \%tarchiveInfo,$User,
-                              $centerID
-                             );
+my $subjectIDsref = $utility->determineSubjectID(
+                        $scannerID,\%tarchiveInfo,1
+                    );
 
 ################################################################
 ################################################################
-#Check the CandID/PSCID Match It's possible that the CandID##### 
-##exists, but doesn't match the PSCID. This will fail further###
-### down silently, so we explicitly check that the data is######
-### correct here.###############################################
+## Optionally create candidates as needed Standardize gender ###
+## (DICOM uses M/F, DB uses Male/Female) #######################
+################################################################
+################################################################
+$utility->CreateMRICandidates(
+    $subjectIDsref,$gender,
+    \%tarchiveInfo,$User,
+    $centerID
+);
+
+################################################################
+################################################################
+## Check the CandID/PSCID Match It's possible that the CandID ## 
+## exists, but doesn't match the PSCID. This will fail further #
+## down silently, so we explicitly check that the data is ######
+## correct here. ###############################################
 ################################################################
 ################################################################
 my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
@@ -274,31 +268,29 @@ if (defined $CandMismatchError) {
     ##it can be inserted per minc into the MRICandidateErrors
 }
 ################################################################
-###################Get the SessionID############################
+############ Get the SessionID #################################
 ################################################################
 my ($sessionID, $requiresStaging) = 
     $utility->setMRISession($subjectIDsref, \%tarchiveInfo);
 
 ################################################################
-###extract the tarchive and feed the dicom data dir to########## 
-###########the uploader########################################
+### Extract the tarchive and feed the dicom data dir to ######## 
+### The uploader ###############################################
 ################################################################
-
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive($tarchive);
+
 ################################################################
-# optionally do extra filtering on the dicom data, if needed####
+# Optionally do extra filtering on the dicom data, if needed ###
 ################################################################
-if( defined( &Settings::dicomFilter )) {
+if ( defined( &Settings::dicomFilter )) {
     Settings::dicomFilter($study_dir, \%tarchiveInfo);
 }
 
-
 ################################################################
-#####update the mri_upload table with the correct tarchiveID####
-####only if the $tarchive_id exists and -mri_upload is not used#
+### Update the mri_upload table with the correct tarchiveID ####
+### only if the $tarchive_id exists and -mri_upload is not used 
 ################################################################
-
 if (($tarchiveid_count!=0) && ($mri_upload_insert==0)) {
     $where = "WHERE TarchiveID=?";
     $query = "UPDATE mri_upload SET IsValidated='1' ";
@@ -308,20 +300,22 @@ if (($tarchiveid_count!=0) && ($mri_upload_insert==0)) {
 }
 
 ################################################################
-#####insert into the mri_upload table correct values############
-### only if the $tarchive_id doesn't exists and the -mri_upload# 
-####is used#####################################################
+### Insert into the mri_upload table correct values ############
+### only if the $tarchive_id doesn't exists and the -mri_upload
+### is used ####################################################
 ################################################################
-
 if (($tarchiveid_count==0) && ($mri_upload_insert)) {
     $query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
          "SourceLocation, IsValidated) VALUES (?,now(),?,?,'1')";
     my $mri_upload_inserts = $dbh->prepare($query);
-    $mri_upload_inserts->execute($User,$tarchiveInfo{TarchiveID},$tarchiveInfo{'SourceLocation'});
+    $mri_upload_inserts->execute(
+        $User,
+        $tarchiveInfo{TarchiveID},
+        $tarchiveInfo{'SourceLocation'}
+    );
 }
 
 exit 0;
-
 
 sub logHeader () {
     print LOG "
@@ -333,5 +327,3 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
-
-
