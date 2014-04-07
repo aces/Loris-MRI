@@ -1,5 +1,6 @@
 #! /usr/bin/perl
 use strict;
+use warnings;
 use Carp;
 use Getopt::Tabular;
 use FileHandle;
@@ -49,15 +50,19 @@ my ($tarchive,%tarchiveInfo,$minc);
 ################################################################
 my @opt_table = (
                  ["casic options","section"],
+
                  ["-profile","string",1, \$profile, "name of config file". 
                  " in ~/.neurodb."],
+
                  ["Advanced options","section"],
 
                  ["-reckless", "boolean", 1, \$reckless,"Upload data to". 
-                 " database even if study protocol is not defined or violated."],
+                 " database even if study protocol is not ".
+                 "defined or violated."],
+
                  ["-force", "boolean", 1, \$force,"Forces the script to run". 
                  " even if the validation has failed."],
-  
+
                  ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being ".
                   "created."],
   
@@ -77,9 +82,11 @@ my @opt_table = (
                   " you upload requires it. You can risk turning it off."],
 
                  ["Fancy options","section"],
+
                  ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail".
                   " on the current log file."],
-                 );
+
+);
 
 
 my $Help = <<HELP;
@@ -116,6 +123,7 @@ USAGE
 # input option error checking
 { package Settings; do "$ENV{HOME}/.neurodb/$profile" }
 
+
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a ".
     "configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n";
@@ -128,6 +136,7 @@ if (!$profile) {
     "and existing profile.\n\n";  
     exit 3; 
 }
+
 
 unless (-e $tarchive) {
     print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
@@ -168,8 +177,10 @@ print LOG "\n==> Successfully connected to database \n";
 ################################################################
 ################## MRIProcessingUtility object #################
 ################################################################
-my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
-            $verbose);
+my $utility = NeuroDB::MRIProcessingUtility->new(
+                  \$dbh,$debug,$TmpDir,$logfile,
+                  $verbose
+              );
 
 ################################################################
 #################### Check is_valid column #####################
@@ -196,7 +207,9 @@ if (($is_valid == 0) && ($force==0)) {
 ################################################################
 ############## Construct the tarchiveinfo Array ################
 ################################################################
-%tarchiveInfo = $utility->createTarchiveArray($tarchive,$globArchiveLocation);
+%tarchiveInfo = $utility->createTarchiveArray(
+                    $tarchive,$globArchiveLocation
+                );
 
 ################################################################
 ############ Get the $psc,$center_name, $centerID ##############
@@ -206,14 +219,17 @@ my ($psc,$center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 ################################################################
 #### Determine the ScannerID ###################################
 ################################################################
-my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,$centerID,
-                                                $NewScanner
-                                           );
+my $scannerID = $utility->determineScannerID(
+                    \%tarchiveInfo,0,$centerID,
+                    $NewScanner
+                );
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
-my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,0);
+my $subjectIDsref = $utility->determineSubjectID(
+                        $scannerID,\%tarchiveInfo,0
+                    );
 
 ################################################################
 ################# Define the $CandMismatchError ################
@@ -274,13 +290,14 @@ if (defined($CandMismatchError)) {
 }
 
 ################################################################
-################ Get the $sessionID and $requiresStaging #######
+####### Get the $sessionID and $requiresStaging ################
 ################################################################
 my ($sessionID, $requiresStaging) =
-    NeuroDB::MRI::getSessionID( $subjectIDsref, 
-                                $tarchiveInfo{'DateAcquired'},
-                                \$dbh, $subjectIDsref->{'subprojectID'}
-                              );
+    NeuroDB::MRI::getSessionID( 
+        $subjectIDsref, 
+        $tarchiveInfo{'DateAcquired'},
+        \$dbh, $subjectIDsref->{'subprojectID'}
+   );
 
 ################################################################
 ############ Compute the md5 hash ##############################
@@ -311,10 +328,12 @@ $file->setFileData('Caveat', 0);
 ## Get acquisition protocol (identify the volume) ##############
 ################################################################
 my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
-  = $utility->getAcquisitionProtocol($file,$subjectIDsref,
-                                     \%tarchiveInfo,$center_name,
-                                     $minc
-                                    );
+  = $utility->getAcquisitionProtocol(
+        $file,
+        $subjectIDsref,
+        \%tarchiveInfo,$center_name,
+        $minc
+    );
 
 if($acquisitionProtocol =~ /unknown/) {
    print LOG " --> The minc file cannot be registered since the ".
@@ -327,10 +346,11 @@ if($acquisitionProtocol =~ /unknown/) {
 # to keep optionally controlled by the config file #############
 ################################################################
 
-$utility->registerScanIntoDB(\$file, \%tarchiveInfo,$subjectIDsref, 
-                             $acquisitionProtocol, $minc, \@checks, 
-                             $reckless, $tarchive, $sessionID
-                            );
+$utility->registerScanIntoDB(
+    \$file, \%tarchiveInfo,$subjectIDsref, 
+    $acquisitionProtocol, $minc, \@checks, 
+    $reckless, $tarchive, $sessionID
+);
 
 ################################################################
 ### Add series notification ####################################
