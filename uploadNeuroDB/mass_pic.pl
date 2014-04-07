@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
 use FindBin;
 use lib "$FindBin::Bin";
 use Getopt::Tabular;
@@ -26,10 +27,10 @@ my @arg_table =
          ["-profile","string",1, \$profile, "Specify the name of the ".   
           "config file which resides in .neurodb in your home directory."],
          ["File control", "section"],
-         ["-minFileID", "integer", 1, \$minFileID, "Specify the minimum FileID ".
-          "to operate on."], 
-         ["-maxFileID", "integer", 1, \$maxFileID, "Specify the maximum FileID ".
-          "to operate on."], 
+         ["-minFileID", "integer", 1, \$minFileID, 
+          "Specify the minimum FileID to operate on."], 
+         ["-maxFileID", "integer", 1, \$maxFileID, 
+          "Specify the maximum FileID to operate on."], 
          ["General options", "section"],
          ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     );
@@ -55,18 +56,18 @@ if (!$profile) {
 }
 
 ################################################################
-# where the pics should go #####################################
+# Where the pics should go #####################################
 ################################################################
 my $pic_dir = $Settings::data_dir . '/pic';
 
 ################################################################
-# establish database connection if database option is set ######
+# Establish database connection if database option is set ######
 ################################################################
 print "Connecting to database.\n" if $verbose;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 ################################################################
-############ now go make the pics ##############################
+##### Now go make the pics #####################################
 ################################################################
 $query = "SELECT \@checkPicID:=ParameterTypeID FROM parameter_type WHERE ".
           "Name='check_pic_filename'";
@@ -111,8 +112,12 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
     my $file = NeuroDB::File->new(\$dbh);
     $file->loadFile($rowhr->{'FileID'});
 
-    unless(&NeuroDB::MRI::make_pics(\$file, $Settings::data_dir, 
-          $pic_dir, $Settings::horizontalPics)) {
+    unless(
+        &NeuroDB::MRI::make_pics(
+            \$file, $Settings::data_dir, 
+            $pic_dir, $Settings::horizontalPics
+        )
+    ) {
         print "FAILURE!\n";
     }
 }
