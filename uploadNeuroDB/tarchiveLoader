@@ -150,7 +150,7 @@ if ($profile && !defined @Settings::db) {
           "'$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
     exit 2; 
 }
-if(!$ARGV[0] || !$profile) { 
+if (!$ARGV[0] || !$profile) { 
     print $Help; 
     print "$Usage\n\tERROR: You must specify a valid tarchive and an ".
           "existing profile.\n\n";
@@ -182,7 +182,9 @@ my $User             = `whoami`;
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo", "mincpik", $converter);
 # create the temp dir
-my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+my $TmpDir = tempdir(
+                 $template, TMPDIR => 1, CLEANUP => 1 
+             );
 # create logdir(if !exists) and logfile
 my @temp     = split(/\//, $TmpDir); 
 my $templog  = $temp[$#temp];
@@ -201,7 +203,7 @@ LOG->autoflush(1);
 my $childPID; 
 if ($xlog) { 
     $childPID = fork(); 
-    if($childPID == 0) { 
+    if ($childPID == 0) { 
         exec("xterm -geometry 130x70 -e tail -f $logfile"); 
         exit(0); 
     } 
@@ -228,8 +230,10 @@ extracting information ... if there is
 ################################################################
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
-my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
-            $LogDir,$verbose);
+my $utility = NeuroDB::MRIProcessingUtility->new(
+                  \$dbh,$debug,$TmpDir,$logfile,
+                  $LogDir,$verbose
+              );
 
 ################################################################
 ################ Register programs #############################
@@ -237,14 +241,15 @@ my $utility = NeuroDB::MRIProcessingUtility->new(\$dbh,$debug,$TmpDir,$logfile,
 $utility->registerProgs(@progs);
 
 ################################################################
-################## Construct the tarchiveInfo Array ############
+################ Construct the tarchiveInfo Array ##############
 ################################################################
-my %tarchiveInfo = $utility->createTarchiveArray($tarchive,
-                                                 $globArchiveLocation
-                                                );
+my %tarchiveInfo = $utility->createTarchiveArray(
+                       $tarchive,
+                       $globArchiveLocation
+                   );
 
 ################################################################
-#################### Call the validation script ################
+################## Call the validation script ##################
 ################################################################
 my $script = "tarchive_validation.pl $tarchive -profile prod ";
 
@@ -306,26 +311,35 @@ if (($output != 0) && ($output!= 5) && ($force==0)) {
 ################################################################
 ########## Get the $psc,$center_name, $centerID ################
 ################################################################
-my ($psc,$center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+my ($psc,$center_name, $centerID) =
+     $utility->determinePSC(\%tarchiveInfo,0);
 
 ################################################################
 ######### Determine the ScannerID ##############################
 ################################################################
-my $scannerID = $utility->determineScannerID(\%tarchiveInfo,0,
-                                            $centerID,$NewScanner
-                                           );
+my $scannerID = $utility->determineScannerID(
+                    \%tarchiveInfo,0,
+                    $centerID,
+                    $NewScanner
+                );
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
-my $subjectIDsref = $utility->determineSubjectID($scannerID,\%tarchiveInfo,0);
+my $subjectIDsref = $utility->determineSubjectID(
+                        $scannerID,
+                        \%tarchiveInfo,0
+                    );
 
 ################################################################
 ###### Get the SessionID #######################################
 ################################################################
-if(!defined($subjectIDsref->{'visitLabel'})) { 
+if (!defined($subjectIDsref->{'visitLabel'})) { 
     $subjectIDsref->{'visitLabel'} = 
-    $utility->lookupNextVisitLabel($subjectIDsref->{'CandID'}, \$dbh); 
+    $utility->lookupNextVisitLabel(
+        $subjectIDsref->{'CandID'}, 
+        \$dbh
+    ); 
 }
 my ($sessionID, $requiresStaging) =
     NeuroDB::MRI::getSessionID(
@@ -348,8 +362,10 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 ################################################################
 ##################### convert the dicom data to minc ###########
 ################################################################
-$utility->dicom_to_minc($study_dir,$converter,$get_dicom_info,
-                        $exclude,$mail_user);
+$utility->dicom_to_minc(
+    $study_dir,$converter,$get_dicom_info,
+    $exclude,$mail_user
+);
 
 ################################################################
 ############### get a list of mincs ############################
@@ -388,7 +404,8 @@ foreach my $minc (@minc_files) {
             $newTarchiveLocation = $tarchive; 
     }
     elsif (!$valid_study) {
-        $newTarchiveLocation = $utility->moveAndUpdateTarchive($tarchive,\%tarchiveInfo);
+        $newTarchiveLocation = 
+            $utility->moveAndUpdateTarchive($tarchive,\%tarchiveInfo);
     }
     $tarchive = $newTarchiveLocation;
 
@@ -476,17 +493,17 @@ if ($valid_study) {
         $output = $output >> 8;
 
     }
-
     
     ############################################################
     # spool a new study message ################################
     ############################################################
-    $notifier->spool('mri new study', 
-                      $subjectIDsref->{'CandID'} . 
-                      " " . $subjectIDsref->{'PSCID'} .
-                      " " . $subjectIDsref->{'visitLabel'} .
-                      "\tacquired ". $tarchiveInfo{'DateAcquired'}
-                    );
+    $notifier->spool(
+        'mri new study', 
+        $subjectIDsref->{'CandID'} . 
+        " " . $subjectIDsref->{'PSCID'} .
+        " " . $subjectIDsref->{'visitLabel'} .
+        "\tacquired ". $tarchiveInfo{'DateAcquired'}
+    );
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
@@ -500,7 +517,9 @@ if ($valid_study) {
      }
      my $session_update = $dbh->prepare($query);
      $session_update->execute(
-              $sessionID,$sessionID,$tarchiveInfo{'TarchiveID'}
+              $sessionID,
+              $sessionID,
+              $tarchiveInfo{'TarchiveID'}
      );
 
 } else {
@@ -508,10 +527,11 @@ if ($valid_study) {
     ## spool a failure message This has been changed to tarchive
     ## instead of using patientName ############################
     ############################################################
-    $notifier->spool('mri invalid study', $tarchive. " acquired ". 
-                      $tarchiveInfo{'DateAcquired'} .
-                     " was deemed invalid\n\n". $study_dir
-                    );
+    $notifier->spool(
+        'mri invalid study', $tarchive. " acquired ". 
+        $tarchiveInfo{'DateAcquired'} .
+        " was deemed invalid\n\n". $study_dir
+    );
 }
 
 ################################################################
@@ -544,7 +564,8 @@ print "\nCleaning up temp files: $cleanup\n" if $verbose;
 ## if there are leftovers, dump them in the trashbin ###########
 ################################################################
 my @leftovers = `\\ls -1 $TmpDir`;
-if(scalar(@leftovers) > 0) {
+
+if (scalar(@leftovers) > 0) {
     my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
     print LOG "\n==> LEFTOVERS: ".scalar(@leftovers).
     "\n --> Moving leftovers to $trashdir\n";
@@ -571,15 +592,13 @@ if ($xlog) {
     `kill -9 $childPID`;
 }
 
-
 sub logHeader () {
     print LOG "
-----------------------------------------------------------------
+    ----------------------------------------------------------------
             AUTOMATED DICOM DATA UPLOAD
-----------------------------------------------------------------
-*** Date and time of upload    : $date
-*** Location of source data    : $tarchive
-*** tmp dir location           : $TmpDir
-";
+    ----------------------------------------------------------------
+    *** Date and time of upload    : $date
+    *** Location of source data    : $tarchive
+    *** tmp dir location           : $TmpDir
+    ";
 }
-
