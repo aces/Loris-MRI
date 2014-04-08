@@ -39,7 +39,7 @@ Usage:\n\t $0 </PATH/TO/DCMFolder>
 my @arg_table =
     (
      ["The only option", "section"],
-     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
+     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
      ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
      ["-dryrun", "boolean", 1, \$dryrun, "Don't do anything just tell me what would happen."],
      );
@@ -55,7 +55,7 @@ if (-d $ldzf && $ldzf =~ /LDZ/) { print "\nSelected study folder:\t $ldzf\n" }
 else { print "\n\tERROR: The target is not a directory or does not contain LDZ data!\n"; exit 33; }
 
 # 1.
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" || exit}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" || exit}
 my $get_dicom_info   = $Settings::get_dicom_info;
 my $series = `find $ldzf -type f | $get_dicom_info -stdin -series -te -echo -slice_thickness | sort -u | grep 80 | cut -f 1\n`;
 # fixme this is really dirty

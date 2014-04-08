@@ -43,7 +43,7 @@ Usage:\n\t $0 </PATH/TO/TARCHIVE.tar> [options]
 my @arg_table =
     (
      ["Main options","section"],
-     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
+     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
 
      ["General options", "section"],
      ["-verbose","boolean",1,  \$verbose, "Be verbose."],
@@ -56,8 +56,8 @@ GetOptions(\@arg_table, \@ARGV) || exit 1;
 if ($version) { print "$versionInfo\n"; exit; }
 
 # checking for profile settings
-if($profile && -f "$ENV{HOME}/.neurodb/$profile") { { package Settings; do "$ENV{HOME}/.neurodb/$profile" } }    
-if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+if($profile && -f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") { { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" } }    
+if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
 
 
 # basic error checking on tarchive

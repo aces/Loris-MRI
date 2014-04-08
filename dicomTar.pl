@@ -58,7 +58,7 @@ my @arg_table =
      ["-database", "boolean", 1,  \$dbase, "Use a database if you have one set up for you. Just trying will fail miserably"],
      ["-mri_upload_update", "boolean", 1,  \$mri_upload_update, "update the mri_upload table by inserting the correct tarchiveID"],
      ["-clobber", "boolean", 1,   \$clobber, "Use this option only if you want to replace the resulting tarball!"],
-     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
+     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
      ["-centerName","string",1, \$neurodbCenterName, "Specify the symbolic center name to be stored alongside the DICOM institution."],
      ["General options", "section"],
      ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
@@ -70,11 +70,11 @@ GetOptions(\@arg_table, \@ARGV) ||  exit 1;
 if ($version) { print "Version: $versionInfo\n"; exit; }
 
 # checking for profile settings
-if(-f "$ENV{HOME}/.neurodb/$profile") {
-	{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
 if ($profile && !defined @Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33;
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33;
 } 
 # The source and the target dir have to be present and must be directories. The absolute path will be supplied if necessary
 if(scalar(@ARGV) != 2) { print "\nError: Missing source and/or target\n\n".$Usage; exit 1; } $dcm_source = abs_path($ARGV[0]); $targetlocation = abs_path($ARGV[1]);

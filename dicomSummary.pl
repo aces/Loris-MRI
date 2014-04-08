@@ -58,7 +58,7 @@ my @arg_table =
      ["-dbcompare","boolean",1, \$databasecomp, "Compare with database. Will only work if you actually archived your data using a database."],
      ["-database","boolean", 1, \$dbase, "Use a database if you have one set up for you. Just trying will fail miserably"],
      ["-dbreplace","boolean",1, \$dbreplace, "Use this option only if your dicom data changed and you want to re-insert the new summary"],
-     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
+     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
 
      
      ["Output options", "section"],
@@ -80,8 +80,8 @@ GetOptions(\@arg_table, \@ARGV) || exit 1;
 if ($version) { print "$versionInfo\n"; exit; }
 
 # checking for profile settings
-if($profile && -f "$ENV{HOME}/.neurodb/$profile") { { package Settings; do "$ENV{HOME}/.neurodb/$profile" } }    
-if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+if($profile && -f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") { { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" } }    
+if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
 
 
 # basic error checking on dcm dir
