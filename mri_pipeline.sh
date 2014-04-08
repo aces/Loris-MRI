@@ -79,7 +79,7 @@ echo
   sudo -S su $USER -c "mkdir -p /data/$PROJ/data/jiv"            ## holds JIVs used for JIV viewer
   sudo -S su $USER -c "mkdir -p /data/$PROJ/data/assembly" ## holds the MINC files
   sudo -S su $USER -c "mkdir -p /data/$PROJ/data/batch_output"  ##contains the result of the SGE (queue
-  sudo -S su $USER -c "mkdir -p /home/$USER/.neurodb"
+  sudo -S su $USER -c "mkdir -p $mridir/.loris_mri"
 echo
 #######################################################################################
  ###############incoming directory using sites########################################
@@ -93,7 +93,6 @@ echo
 ####################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
-##export $HOME=/home/lorisdev/  Do it only if neccessary
 echo "Modifying environment script"
 sed -i "s#PROJECT#$PROJ#g" $mridir/environment
 ##Make sure that CIVET stuff are placed in the right place
@@ -105,10 +104,8 @@ echo
 ######################change permissions ##########################################
 ####################################################################################
 #echo "Changing permissions"
-#sudo chown -R $USER:$USER /home/$USER/.neurodb/
-#sudo chown -R $USER:$USER /data/incoming/
 
-sudo chmod -R 750 /home/$USER/.neurodb/
+sudo chmod -R 750 $mridir/.loris_mri/
 sudo chmod -R 750 /data/$PROJ/
 sudo chmod -R 750 /data/incoming/
 
@@ -118,9 +115,9 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $mridir/dicom-archive/profileTemplate /home/$USER/.neurodb/prod
-sudo chmod 640 /home/$USER/.neurodb/prod
-sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@gmail.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > /home/$USER/.neurodb/prod
+cp $mridir/dicom-archive/profileTemplate $mridir/.loris_mri/prod
+sudo chmod 640 $mridir/.loris_mri/prod
+sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/.loris_mri/prod
 echo
 
 ######################################################################

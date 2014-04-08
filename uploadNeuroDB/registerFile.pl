@@ -76,7 +76,7 @@ my @arg_table =
       "A comment to be attached to the file"],
 
      ["General options", "section"],
-     ["-profile     ","string",1, \$profile, "name of config file in ~/.neurodb."],
+     ["-profile     ","string",1, \$profile, "name of config file in ../dicom-archive/.loris_mri"],
      ["-verbose|-quiet", "boolean", 1, \$verbose,
       "Be verbose"],
      ["-version", "eval", undef, 'print "Version $VERSION\n"; exit 0',
@@ -87,8 +87,8 @@ my @arg_table =
 ($filename, $outputType) = @args;
 
 # input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
-if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
 if(!$profile) { print "$Usage\n\tERROR: You must specify a profile.\n\n";  exit 33;  }
 
 # make sure we have all the arguments we need

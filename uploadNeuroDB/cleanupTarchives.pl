@@ -34,7 +34,7 @@ my $date    = sprintf("%4d-%02d-%02d %02d:%02d:%02d",$year+1900,$mon+1,$mday,$ho
 my $profile = undef;
 
 my @opt_table   =  (
-                    ["-profile     ","string",1, \$profile, "name of config file in ~/.neurodb."]
+                    ["-profile     ","string",1, \$profile, "name of config file in ../dicom-archive/.loris_mri"]
                    );
 
 my $Help        = <<HELP;
@@ -50,9 +50,9 @@ USAGE
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
 
 # input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !defined @Settings::db) { 
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 33; 
 }
 
