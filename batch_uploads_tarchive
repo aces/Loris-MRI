@@ -46,6 +46,7 @@ foreach my $input (@inputs)
     ## processor will do all the real magic
 
     $input =~ s/\t/ /;
+    $input =~ s/$Settings::tarchiveLibraryDir//;
     my $command = "tarchiveLoader -globLocation -profile prod $Settings::tarchiveLibraryDir/$input";
     ##if qsub is enabled use it
     if ($Settings::is_qsub) {
