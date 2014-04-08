@@ -30,7 +30,7 @@ use MNI::FileUtilities  qw(check_output_dirs);
 @ISA        = qw(Exporter);
 
 @EXPORT     = qw();
-@EXPORT_OK  = qw(createOutputFolders getFiles sortParam insertMincHeader create_processed_maps createNoteFile);
+@EXPORT_OK  = qw(createOutputFolders getFiles sortParam insertMincHeader create_processed_maps);
 
 
 
@@ -470,7 +470,8 @@ sub convert_DTI {
     my  ($file_in, $file_out, $options)    =   @_;
 
     if  (!$options) { 
-        print LOG "---DIED--- No options were define for conversion mnc2nrrd or nrrd2mnc.\n\n\n"; 
+        print "No options were define for conversion mnc2nrrd or nrrd2mnc.\n\n\n"; 
+        return undef;
     }
 
     my  $cmd        =   "itk_convert $options $file_in $file_out";
@@ -706,7 +707,7 @@ sub modify_header {
 
     # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
     my  $cmd    =   "minc_modify_header -sinsert $argument=$value $minc";
-    system($cmd)    unless ($value eq $hdr_val);
+    system($cmd)    unless (($hdr_val) && ($value eq $hdr_val));
 
     # check if header information was indeed inserted in minc file
     my $hdr_val2 =   &DTI::fetch_header_info($argument, $minc, $awk);
@@ -733,9 +734,13 @@ sub fetch_header_info {
 
     my  $val    =   `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
     my  $value  =   $val    if  $val !~ /^\s*"*\s*"*\s*$/;
-    $value      =~  s/^\s+//;                           # remove leading spaces
-    $value      =~  s/\s+$//;                           # remove trailing spaces
-    $value      =~  s/;//   unless ($keep_semicolon);   # remove ";" unless $keep_semicolon is defined
+    if ($value) {
+        $value  =~  s/^\s+//;                           # remove leading spaces
+        $value  =~  s/\s+$//;                           # remove trailing spaces
+        $value  =~  s/;//   unless ($keep_semicolon);   # remove ";" unless $keep_semicolon is defined
+    } else {
+        return undef;
+    }
 
     return  ($value);
 }
@@ -898,59 +903,6 @@ sub RGBpik_creation {
 
 
 
-=pod
-Create a default notes file for QC summary and manual notes.
-Inputs:  - $QC_out: output DTI(Prep) minc file
-         - $note_file: note file to insert rejected information into
-         - $QC_report: DTIPrep $QC_report containing rejected directions information
-         - $reject_thresh: threshold after which too many directions were rejected (a.k.a. QC fail)
-=cut
-sub createNoteFile {
-    my ($QC_out, $note_file, $QC_report, $reject_thresh)    =   @_;
-
-    my ($rm_slicewise, $rm_interlace, $rm_intergradient)    =   getRejectedDirections($QC_report);
-
-    my $count_slice     =   insertNote($note_file, $rm_slicewise,      "slicewise correlations");
-    my $count_inter     =   insertNote($note_file, $rm_interlace,      "interlace correlations");
-    my $count_gradient  =   insertNote($note_file, $rm_intergradient,  "gradient-wise correlations");
-
-    my $total           =   $count_slice + $count_inter + $count_gradient;
-    open    (NOTES, ">>$note_file");
-    print   NOTES   "Total number of directions rejected by auto QC= $total\n";
-    close   (NOTES);
-    if  ($total >=  $reject_thresh) {   
-        print NOTES "FAIL\n";
-    } else {
-        print NOTES "PASS\n";
-    }
-
-}
-
-
-
-
-
-
-=pod
-Get the list of directions rejected by DTI per type 
-(i.e. slice-wise correlations, inter-lace artifacts, inter-gradient artifacts).
-Inputs:  - $QCReport: DTIPrep QC report
-Outputs: - $rm_slicewise: list of removed directions due to slice wise correlations
-         - $rm_interlace: list of removed directions due to interlace correlations
-         - $rm_intergradient: list of removed directions due to intergradient correlations
-=cut
-sub getRejectedDirections   {
-    my ($QCReport)  =   @_;
-
-    ## these are the unique directions that were rejected due to slice-wise correlations
-    my $rm_slicewise    =   `cat $QCReport | grep whole | sort -k 2,2 -u | awk '{print \$2}'|tr '\n' ','`;
-    ## these are the unique directions that were rejected due to inter-lace artifacts
-    my $rm_interlace    =   `cat $QCReport | sed -n -e '/Interlace-wise Check Artifacts/,/================================/p' | grep '[0-9]' | sort -k 1,1 -u | awk '{print \$1}'|tr '\n' ','`;
-    ## these are the unique directions that were rejected due to inter-gradient artifacts
-    my $rm_intergradient=   `cat $QCReport | sed -n -e '/Inter-gradient check Artifacts::/,/================================/p' | grep '[0-9]'| sort -k 1,1 -u  | awk '{print \$1}'|tr '\n' ','`;
-    
-    return ($rm_slicewise, $rm_interlace, $rm_intergradient);
-}
 
 
 
@@ -958,25 +910,9 @@ sub getRejectedDirections   {
 
 
 
-=sub
-Insert into notes file the directions rejected due to a specific artifact.
-Inputs:  - $note_file: note file in which to insert rejected directions information
-         - $rm_directions: removed directions to be inserted in the note file
-         - $note_field: field (or reason) of rejected directions
-Outputs: - $count_dirs: number of directions rejected due to *field* artifact
-=cut
-sub insertNote    {
-    my ($note_file, $rm_directions, $note_field)    =   @_;
 
-    my @rm_dirs     =   split(',',$rm_directions);
-    my $count_dirs  =   scalar(@rm_dirs);
 
-    open    (NOTES, ">>$note_file");
-    print   NOTES   "Directions rejected due to $note_field: @rm_dirs ($count_dirs)\n";
-    close   (NOTES);
 
-    return  ($count_dirs);
-}
 
 
 
@@ -1044,4 +980,78 @@ sub convert_DTIPrep_postproc_outputs {
     return ($nrrds_found, $mincs_created, $hdrs_inserted);
 
 }
+=pod
+Summarize which directions were rejected by DTIPrep for slice-wise correlations, 
+inter-lace artifacts, inter-gradient artifacts.
+Inputs:  - $data_dir = data_dir defined in the config file
+         - $QCReport = DTIPrep's QC txt report to extract rejected directions
+Outputs: - $rm_slicewise        = directions rejected due to slice wise correlations (number)
+         - $rm_interlace        = directions rejected due to interlace artifacts (number)
+         - $rm_intergradient    = directions rejected due to inter-gradient artifacts (number)
+=cut
+sub getRejectedDirections   {
+    my ($data_dir, $XMLReport)  =   @_;
 
+    # Remove $data_dir path from $QCReport in the case it is included in the path
+    $XMLReport =~ s/$data_dir//i;
+
+    # Read XML report into a hash
+    my ($outXMLrefs)    = &DTI::readDTIPrepXMLprot("$data_dir/$XMLReport");
+
+    # Initialize variables
+    my ($tot_grads, $slice_excl, $grads_excl, $lace_excl, $tot_excl);
+    $tot_grads  = $slice_excl = $grads_excl = $lace_excl = $tot_excl = 0;
+    my (@rm_slice, @rm_interlace, @rm_intergrads);
+
+    foreach my $key (keys $outXMLrefs->{"entry"}{"DWI Check"}{'entry'}) {
+        # Next unless this is a gradient
+        next unless ($key =~ /^gradient_/);
+
+        # Grep gradient number
+        my $grad_nb = $key;
+        $grad_nb    =~ s/gradient_[0]+//i;
+
+         # Grep processing status for the gradient
+        my $status  = $outXMLrefs->{"entry"}{"DWI Check"}{'entry'}{$key}{'processing'};
+
+        # Count number of gradients with different exclusion status
+        if ($status =~ /EXCLUDE_SLICECHECK/i) {
+            $slice_excl = $slice_excl + 1;
+            push (@rm_slice, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        } elsif ($status =~ /EXCLUDE_GRADIENTCHECK/i) {
+            $grads_excl = $grads_excl + 1;
+            push (@rm_intergrads, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        } elsif ($status =~ /EXCLUDE_INTERLACECHECK/i) {
+            $lace_excl  = $lace_excl + 1;
+            push (@rm_interlace, $grad_nb);
+            $tot_excl   = $tot_excl + 1;
+        }
+        $tot_grads  = $tot_grads + 1;
+    }
+
+    # Summary hash storing all DTIPrep gradient exclusion information
+    my (%summary);
+    # Total number of gradients in native DTI
+    $summary{'total'}{'nb'}                  = $tot_grads;
+    # Total number of gradients excluded from QCed DTI
+    $summary{'EXCLUDED'}{'total'}{'nb'}      = $tot_excl;
+    # Total number of gradients included in QCed DTI
+    $summary{'INCLUDED'}{'total'}{'nb'}      = $tot_grads - $tot_excl;
+    # Summary of artifact exclusions
+    $summary{'EXCLUDED'}{'slice'}{'nb'}      = $slice_excl;
+    $summary{'EXCLUDED'}{'slice'}{'txt'}     = "\'Directions "
+                                                    . join(',', @rm_slice)
+                                                    . "(" . $slice_excl . ")\'";
+    $summary{'EXCLUDED'}{'intergrad'}{'nb'}  = $grads_excl;
+    $summary{'EXCLUDED'}{'intergrad'}{'txt'} = "\'Directions "
+                                                    . join(',', @rm_intergrads)
+                                                    . "(" . $grads_excl . ")\'";
+    $summary{'EXCLUDED'}{'interlace'}{'nb'}  = $lace_excl;
+    $summary{'EXCLUDED'}{'interlace'}{'txt'} = "\'Directions "
+                                                    . join(',', @rm_interlace)
+                                                    . "(" . $lace_excl . ")\'";
+
+    return (\%summary);
+}

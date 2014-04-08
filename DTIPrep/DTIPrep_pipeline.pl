@@ -1,4 +1,4 @@
-#! /usr/bin/env perl
+#!/usr/bin/perl -w
 
 require 5.001;
 use strict;
@@ -115,6 +115,9 @@ close(DIRS);
 # Loop through native directories
 foreach my $nativedir (@nativedirs)   {
     chomp ($nativedir);
+    # Remove double / and last / character from nativedir
+    $nativedir  =~ s/\/\//\//;
+    $nativedir  =~ s/\/$//;
 
     
     #######################
@@ -952,13 +955,13 @@ sub register_processed_files_in_DB {
         my $register_cmd;
         if ($postprocessingtool eq "DTIPrep") {
 
-            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -DTIPrepVersion \"$DTIPrepVersion\"";
+            $register_cmd    = "DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -DTIPrepVersion \"$DTIPrepVersion\"";
 
         } elsif ($postprocessingtool eq "mincdiffusion") {
 
             # Extract the raw anat file used by mincdiffusion
             my $anat_file    = $DTIrefs->{$dti_file}->{'raw_anat'}{'minc'};
-            $register_cmd    = "perl DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -anat_file $anat_file -DTIPrepVersion \"$DTIPrepVersion\" -mincdiffusionVersion \"$mincdiffVersion\"";
+            $register_cmd    = "DTIPrepRegister.pl -profile $profile -DTIPrep_subdir $QCoutdir -DTIPrepProtocol \"$DTIPrepProtocol\" -DTI_file $dti_file -anat_file $anat_file -DTIPrepVersion \"$DTIPrepVersion\" -mincdiffusionVersion \"$mincdiffVersion\"";
 
         }
         print LOG "\t1. Registering files.\n";
