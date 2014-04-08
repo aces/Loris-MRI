@@ -57,7 +57,7 @@ my @arg_table =
 	 (
 	  ["Main options", "section"],
 	  ["-profile","string",1, \$profile, "Specify the name of the config file
-          which resides in .neurodb in your home directory."],
+          which resides in .loris_mri in the current directory."],
 	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
       ["-globLocation", "boolean", 1, \$globArchiveLocation, "Loosen the".
        " validity check of the tarchive allowing for the possibility that".
@@ -75,15 +75,15 @@ my @arg_table =
 ################################################################
 ################# checking for profile settings#################
 ################################################################
-if (-f "$ENV{HOME}/.neurodb/$profile") {
+if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ 
-        package Settings; do "$ENV{HOME}/.neurodb/$profile" 
+        package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" 
     }
 }
 
 if ($profile && !defined @Settings::db) {
     print "\n\tERROR: You don't have a configuration file named '$profile' in:
-            $ENV{HOME}/.neurodb/ \n\n"; 
+            $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 2;
 } 
 
