@@ -94,7 +94,7 @@ echo
 #######set environment variables under .bashrc#####################################
 ###################################################################################
 echo "Modifying environment script"
-sed -i "s#PROJECT#$PROJ#g" $mridir/environment
+sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 ##Make sure that CIVET stuff are placed in the right place
 ##source  /data/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
