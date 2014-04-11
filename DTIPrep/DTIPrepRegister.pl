@@ -46,7 +46,7 @@ USAGE
 
 # Define the table describing the command-line options
 my  @args_table = (
-    ["-profile",              "string", 1,  \$profile,          "name of the config file in ~/.neurodb."],
+    ["-profile",              "string", 1,  \$profile,          "name of the config file in ../dicom-archive/.loris_mri."],
     ["-DTIPrep_subdir",       "string", 1,  \$DTIPrep_subdir,   "DTIPrep subdirectory storing the processed files to be registered"],
     ["-DTIPrepProtocol",      "string", 1,  \$DTIPrepProtocol,  "DTIPrep protocol used to obtain the output files"],
     ["-DTI_file",             "string", 1,  \$dti_file,         "Native DWI dataset used to obtain the output files"],
@@ -59,9 +59,9 @@ Getopt::Tabular::SetHelp ($Usage, '');
 GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
 # input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ($profile && !defined @Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 33;
 }
 if (!$profile) {

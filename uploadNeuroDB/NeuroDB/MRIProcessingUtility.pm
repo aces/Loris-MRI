@@ -37,7 +37,7 @@ sub new {
     my $profile = "prod";
     {  
      package Settings; 
-     do "$ENV{HOME}/.neurodb/$profile";
+     do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
     $self->{'LOG'} = $LOG;
     $self->{'verbose'} = $verbose;

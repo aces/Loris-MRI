@@ -47,7 +47,7 @@ my $xlog       = 0;           # default should be 0
 my @opt_table = (
                  @DefaultArgs,
 		 ["Basic options", "section"],
-		 ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
+		 ["-profile","string",1, \$profile, "Specify the name of the config file which resides in ../dicom-archive/.loris_mri"],
 
                  ["Advanced options", "section"],
                  ["-reckless", "boolean", 1, \$reckless,"Put everything in DB without caring about protocols"],
@@ -78,8 +78,8 @@ USAGE
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
 
 # input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
-if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
 if(!$ARGV[0] || !$profile) { print "\n\tERROR: You must specify a study directory and a valid profile.\n\n"; exit 33;  }
 
 my $study_dir = abs_path($ARGV[0]);

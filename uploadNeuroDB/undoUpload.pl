@@ -34,7 +34,7 @@ HELP
 my @arg_table =
     (
      ["Main options","section"],
-     ["-profile","string",1, \$profile, "name of config file in ~/.neurodb."],
+     ["-profile","string",1, \$profile, "name of config file in ../dicom-archive/.loris_mri"],
      ["-visit","string",1, \$visit, "Visit number. You have to specify it!"],
      ["General options", "section"],
      ["-verbose","boolean",1, \$verbose, "Be verbose."],
@@ -52,8 +52,8 @@ USAGE
 
 # input option error checking
 if(!defined($profile)) { print "\n\tERROR: You must specify a profile \n\n"; exit 33; }
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
-if (!defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; exit 33; }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if (!defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
 if (!$visit) { print "\n\tThe flag : \'-visit\' is not optional!\n\n"; exit 1; }
 
 if(scalar(@ARGV) != 1) { print $Usage; exit 1; }

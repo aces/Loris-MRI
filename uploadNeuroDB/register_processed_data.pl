@@ -37,7 +37,7 @@ Usage: perl register_processed_data.pl [options]
 USAGE
 
 my  @args_table = (
-    ["-profile",            "string",   1,  \$profile,          "name of config file in ~/.neurodb."],
+    ["-profile",            "string",   1,  \$profile,          "name of config file in ../dicom-archive/.loris_mri."],
     ["-file",               "string",   1,  \$filename,         "file that will be registered in the database (full path from the root directory is required)"],
     ["-sourceFileID",       "string",   1,  \$sourceFileID,     "FileID of the raw input dataset that was processed to obtain the file to be registered in the database"],
     ["-sourcePipeline",     "string",   1,  \$sourcePipeline,   "Pipeline name that was used to obtain the file to be registered (example: DTIPrep_pipeline)"],
@@ -55,9 +55,9 @@ Getopt::Tabular::SetHelp ($Usage, '');
 GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
 # Input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ($profile && !defined @Settings::db)    { 
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 33; 
 }
 if  (!$profile) { 

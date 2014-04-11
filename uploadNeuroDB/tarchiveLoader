@@ -80,7 +80,7 @@ my $max;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
-                  "name of config file in ~/.neurodb."
+                  "name of config file in ../dicom-archive/.loris_mri"
                  ],
                  ["-force", "boolean", 1, \$force,"Forces the script to run ". 
                  "even if the validation has failed."],
@@ -144,10 +144,10 @@ USAGE
 ################################################################
 ################### input option error checking ################
 ################################################################
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named ". 
-          "'$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 2; 
 }
 if (!$ARGV[0] || !$profile) { 

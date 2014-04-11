@@ -24,7 +24,7 @@ my @arg_table =
     (
          ["Database options", "section"],
          ["-profile","string",1, \$profile, "Specify the name of the ".   
-          "config file which resides in .neurodb in your home directory."],
+          "config file which resides in ../dicom-archive/.loris_mri"],
          ["File control", "section"],
          ["-minFileID", "integer", 1, \$minFileID, 
           "Specify the minimum FileID to operate on."], 
@@ -39,12 +39,12 @@ GetOptions(\@arg_table, \@ARGV) ||  exit 1;
 ################################################################
 ################ checking for profile settings #################
 ################################################################
-if (-f "$ENV{HOME}/.neurodb/$profile") {
-	{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
 if ($profile && !defined @Settings::db) {
     print "\n\tERROR: You don't have a configuration file named '$profile' ". 
-          "in:  $ENV{HOME}/.neurodb/ \n\n"; 
+          "in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 33;
 } 
 

@@ -10,8 +10,8 @@ fi
 
 
 #####Get config setting#######################################################
-if(-f "$ENV{HOME}/.neurodb/prod") {
-{ package Settings; do "$ENV{HOME}/.neurodb/prod" }
+if(-f "$ENV{LORIS_CONFIG}/.loris_mri/prod") {
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
 }
 #######################################################################################
 

@@ -51,7 +51,7 @@ my @opt_table = (
                  ["casic options","section"],
 
                  ["-profile","string",1, \$profile, "name of config file". 
-                 " in ~/.neurodb."],
+                 " in ../dicom-archive/.loris_mri"],
 
                  ["Advanced options","section"],
 
@@ -120,12 +120,12 @@ USAGE
 
 
 # input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 
 
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a ".
-    "configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n";
+    "configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
     exit 2; 
 }
 

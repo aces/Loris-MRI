@@ -18,16 +18,16 @@ Usage: perl database_files_update.pl [options]
 
 USAGE
 
-my @args_table  =   (["-profile",   "string",   1,  \$profile,  "name of config file in ~/.neurodb."]
+my @args_table  =   (["-profile",   "string",   1,  \$profile,  "name of config file in ../dicom-archive/.loris_mri."]
                     );
 
 Getopt::Tabular::SetHelp ($Usage, '');
 GetOptions(\@args_table, \@ARGV, \@args)    ||  exit 1;
 
 # Input option error checking
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ($profile && !defined @Settings::db)    { 
-        print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+        print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
             exit 33; 
 }
 if  (!$profile) { 

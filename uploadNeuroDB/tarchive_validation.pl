@@ -50,7 +50,7 @@ my $User             = `whoami`;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile","string",1, \$profile,
-                  "name of config file in ~/.neurodb."],
+                  "name of config file in ../dicom-archive/.loris_mri"],
                  ["-mri_upload_insert", "boolean", 1, \$mri_upload_insert,
                   "Populates the mri_upload columns with the missing ". 
                   "values if the dicomtar.pl -mri_upload_update was not ran"],
@@ -110,10 +110,10 @@ USAGE
 ################################################################
 ############### input option error checking ####################
 ################################################################
-{ package Settings; do "$ENV{HOME}/.neurodb/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  $ENV{HOME}/.neurodb/ \n\n"; 
+    configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 2; 
 }
 if (!$ARGV[0] || !$profile) { 
