@@ -32,7 +32,7 @@ my @arg_table =
 	 (
 	  ["General options", "section"],
 	  ["-database", "boolean", 1, \$database, "Enable dicomTar's database features"],
-	  ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .neurodb in your home directory."],
+	  ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory"],
 	 
 	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
 	  ["-version", "call", undef, \&handle_version_option, "Print version and revision number and exit"],
