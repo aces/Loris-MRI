@@ -66,6 +66,8 @@ sudo -S cpan install Math::Round
 ##echo $rootpass | sudo -S cpan install Bundle::CPAN
 sudo -S cpan install Getopt::Tabular
 sudo -S cpan install Time::JulianDay
+sudo -S cpan install Path::Class
+
 echo
 ##########################################################################################
 #############################Create directories########################################
