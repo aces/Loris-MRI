@@ -23,6 +23,7 @@ mri_staging, notification_spool
 =cut
 
 use strict;
+use warnings;
 use Carp;
 use Getopt::Tabular;
 use FileHandle;
@@ -75,8 +76,6 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
                                # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
-my $min;
-my $max;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -472,8 +471,8 @@ if ($valid_study) {
     ############# Create minc-pics #############################
     ############################################################
     
-    my $where = "WHERE TarchiveSource =? ";
-    my $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
+    $where = "WHERE TarchiveSource =? ";
+    $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
     $query = $query . $where;
     if ($debug) {
         print $query . "\n";
