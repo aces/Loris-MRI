@@ -2,6 +2,7 @@ package NeuroDB::MRIProcessingUtility;
 use English;
 use Carp;
 use strict;
+use warnings;
 use Data::Dumper;
 use File::Basename;
 use NeuroDB::File;
@@ -564,7 +565,7 @@ sub registerScanIntoDB {
 
     my $this = shift;
     my (
-        $file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
+        $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
         $minc, $checks,$reckless, $tarchive, $sessionID
     ) = @_;
     my $data_dir = $Settings::data_dir;
@@ -591,7 +592,7 @@ sub registerScanIntoDB {
                                         $acquisitionProtocol, 
                                         $this->{dbhr}
                                  );
-        $${file}->setFileData(
+        $${minc_file}->setFileData(
             'AcquisitionProtocolID', 
              $acquisitionProtocolID
         );
@@ -611,7 +612,7 @@ sub registerScanIntoDB {
                                         \$minc,
                                         $subjectIDsref,
                                         $acquisitionProtocol,
-                                        $file,
+                                        $minc_file,
                                         $prefix,
                                         $data_dir
                                      );
@@ -621,7 +622,7 @@ sub registerScanIntoDB {
         ######################################################## 
         $file_path   =   $minc;
         $file_path      =~  s/$data_dir\///i;
-        $${file}->setFileData(
+        $${minc_file}->setFileData(
             'File', 
             $file_path
         );
@@ -631,11 +632,11 @@ sub registerScanIntoDB {
         ########################################################
         $tarchive_path   =   $tarchive;
         $tarchive_path      =~  s/$data_dir\///i;
-        $${file}->setParameter(
+        $${minc_file}->setParameter(
             'tarchiveLocation', 
             $tarchive_path
         );
-        $${file}->setParameter(
+        $${minc_file}->setParameter(
             'tarchiveMD5', 
             $tarchiveInfo->{'md5sumArchive'}
         );
@@ -644,7 +645,7 @@ sub registerScanIntoDB {
         # register into the db fixme if I ever want a dry run ## 
         ########################################################
         print "Registering file into db\n" if $this->{debug};
-        $fileID = &NeuroDB::MRI::register_db($file);
+        $fileID = &NeuroDB::MRI::register_db($minc_file);
         print "FileID: $fileID\n" if $this->{debug}
 
         ########################################################
@@ -1008,7 +1009,6 @@ sub validateCandidate {
     $sth->execute($subjectIDsref->{'CandID'});
     print "candidate id " . $subjectIDsref->{'CandID'} . "\n";
     my @CandIDCheck = $sth->fetchrow_array;
-    my $CandMismatchError;
     if ($sth->rows == 0) {
         print LOG  "\n\n => Could not find candidate with CandID =".
                    " $subjectIDsref->{'CandID'} in database";
