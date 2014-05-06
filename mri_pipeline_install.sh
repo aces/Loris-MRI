@@ -108,6 +108,13 @@ echo
 sudo chmod -R 750 $mridir/.loris_mri/
 sudo chmod -R 750 /data/$PROJ/
 sudo chmod -R 750 /data/incoming/
+echo
+
+####################################################################################
+######################Add the proper Apache group user #############################
+####################################################################################
+sudo chgrp www-data -R /data/$PROJ/data/
+sudo chgrp www-data -R /data/incoming/
 
 echo
 ######################################################################################
