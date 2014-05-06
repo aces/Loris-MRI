@@ -197,8 +197,7 @@ if ($dbase) {
 
 # call the updateMRI_upload script###
 if ($mri_upload_update) {
-    my $script = "/data/$Settings::prefix/bin/mri/dicom-archive/"
-                 . "updateMRI_Upload.pl"
+    my $script =  "updateMRI_Upload.pl"
                  . " -profile prod -globLocation -tarchivePath $finalTarget"
                  . " -sourceLocation $dcm_source";
     my $output = system($script);
