@@ -152,6 +152,18 @@ else
     echo
 fi
 
+if [ "$PACKAGEMANAGER" == "ZYPPER" ];
+then
+    echo "installing libmysqlclient-devel"
+    sudo -S zypper --non-interactive install libmysqlclient-devel
+    echo    
+    echo "installing perl-DBD-mysql "
+    sudo -S zypper --non-interactive install perl-DBD-mysql 
+    echo
+
+fi
+
+
 #################################################################################################
 ############################INSTALL THE PERL LIBRARIES############################################
 #################################################################################################
