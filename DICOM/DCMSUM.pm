@@ -183,8 +183,14 @@ print "Failed running query: $query\n\n\n" unless $success;
     # now create the tarchive_series records
     my $insert_series = $dbh->prepare("INSERT INTO tarchive_series (TarchiveID, SeriesNumber, SeriesDescription, SequenceName, EchoTime, RepetitionTime, InversionTime, SliceThickness, PhaseEncoding, NumberOfFiles, SeriesUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     foreach my $acq (@{$self->{acqu_List}}) {
+
         # insert the series
         my ($seriesNum, $sequName,  $echoT, $repT, $invT, $seriesName, $sl_thickness, $phaseEncode, $seriesUID, $num) = split(':::',$acq);
+        
+        #InversionTime may not be set during certain sequence acquisitions  
+        if($invT eq ''){
+            $invT = undef;
+        }
         $insert_series->execute($tarchiveID, $seriesNum, $seriesName, $sequName,  $echoT, $repT, $invT, $sl_thickness, $phaseEncode, $num, $seriesUID);
     }
 
@@ -201,7 +207,6 @@ print "Failed running query: $query\n\n\n" unless $success;
             $insert_file->execute($tarchiveID, undef, undef, undef, undef, $file->[20], $filename);
         }
     }
-
     return $success; # if query worked this will return 1;
 }
 
