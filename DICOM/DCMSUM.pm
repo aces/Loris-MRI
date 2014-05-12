@@ -187,9 +187,9 @@ print "Failed running query: $query\n\n\n" unless $success;
         # insert the series
         my ($seriesNum, $sequName,  $echoT, $repT, $invT, $seriesName, $sl_thickness, $phaseEncode, $seriesUID, $num) = split(':::',$acq);
         
-        #InversionTime may not be set during certain sequence acquisitions  
+        #InversionTime may not be insert in the DICOM Header under certain sequences acquisitions  
         if($invT eq ''){
-            $invT = undef;
+            $invT = 0;
         }
         $insert_series->execute($tarchiveID, $seriesNum, $seriesName, $sequName,  $echoT, $repT, $invT, $sl_thickness, $phaseEncode, $num, $seriesUID);
     }
