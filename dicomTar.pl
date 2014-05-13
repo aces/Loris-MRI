@@ -198,7 +198,7 @@ if ($dbase) {
 # call the updateMRI_upload script###
 if ($mri_upload_update) {
     my $script =  "updateMRI_Upload.pl"
-                 . " -profile prod -globLocation -tarchivePath $finalTarget"
+                 . " -profile $profile -globLocation -tarchivePath $finalTarget"
                  . " -sourceLocation $dcm_source";
     my $output = system($script);
     if ($output!=0)  {
@@ -244,6 +244,7 @@ format FORMAT_HEADER =
 * md5sum for complete archive      :    @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                                       $ARCHIVEmd5sum,
 .
+
 
 =pod 
 ################################################
