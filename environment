@@ -1,4 +1,4 @@
 export PATH=/data/%PROJECT%/bin/mri:/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/dicom-archive:$PATH
 export PERL5LIB=/data/%PROJECT%/bin/mri/uploadNeuroDB:$PERL5LIB
 export TMPDIR=/tmp
-export LORIS_CONFIG=/data/%PROJECT%/bin/mri/dicom-archive
+export LORIS_CONFIG=/data/%PROJECT%/bin/mri
