@@ -1,44 +1,67 @@
-#!/usr/bin/perl
-
-#
-# Finds newly received tarchives that need processing into NeuroDB
-#
-# Assumes DB contains a table as follows:
-#
-#
-# CREATE TABLE tarchive_find_new_uploads (
-#   CenterName varchar(255) NOT NULL PRIMARY KEY,
-#   LastRan datetime DEFAULT NULL
-# );
-#
-#
-
+#!/usr/bin/perl -w
 use strict;
+use warnings;
+use Getopt::Tabular;
 use NeuroDB::DBI;
-
 use Data::Dumper;
 
+my $version    = 0;
+my $profile    = "prod";
+my $verbose    = 0;
 my $update = 1;
+my $noupdate =0;
 my @studies = ();
 
 
+my $Usage = "------------------------------------------
+
+WHAT THIS IS:
+
+ Finds newly received tarchives that need processing into NeuroDB
+
+ Assumes DB contains a table as follows:
+
+
+ CREATE TABLE tarchive_find_new_uploads (
+   CenterName varchar(255) NOT NULL PRIMARY KEY,
+   LastRan datetime DEFAULT NULL
+ );
+
+Usage:\n\t $0 [options]
+\n\n See $0 -help for more info\n\n";
+
+my @arg_table =
+    (
+     ["Input and database options", "section"],
+     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
+     ["-noupdate","boolean",0, \$noupdate, "Do not repopulate the tarchive table."],
+     ["General options", "section"],
+     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
+     ["-version", "boolean", 1,   \$version, "Print cvs version number and exit."],
+     );
+
+GetOptions(\@arg_table, \@ARGV) ||  exit 1;
+
+if ($version) { print "Version: $version\n"; exit; }
+
 #####Get config setting#######################################################
-if(-f "$ENV{LORIS_CONFIG}/.loris_mri/prod") {
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
+# checking for profile settings
+if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+    { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
+else{
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33;
+}
+ ##Possibly the script can exit if the prod doesn't exist
 #######################################################################################
 
 my $dbh = NeuroDB::DBI::connect_to_db(@Settings::db);
-
-my @args_list = grep /-noupdate/, @ARGV;
-if(scalar(@args_list) > 0) { $update=0; }
-
 # get the sites using this transfer system and when each of them was last processed for new data
 my $query = "SELECT CenterName, LastRan FROM tarchive_find_new_uploads";
 my $sth = $dbh->prepare($query);
 $sth->execute();
 
-
+$update = 0 if $noupdate == 1;
 
 if($sth->rows > 0) {
     # make the query to find the new LastRan
