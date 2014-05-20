@@ -47,6 +47,12 @@ fi
 rootdir=$(readlink -m $rootdir) 
 projdir=$(readlink -m $rootdir/$PROJ)
 
+read -p "what is the linux user which the installation will be based on, default: $USER? " username
+if [ -z "$username" ]; 
+then
+    username=$USER
+fi 
+
 while true; do
     read -p "I will attempt to create folder $projdir, is that what you want? [y,n]:" yn
     case $yn in
@@ -98,19 +104,19 @@ echo
 #############################Create directories########################################
 #########################################################################################
 
- sudo -S su $USER -c "mkdir -p $projdir/"
- sudo -S su $USER -c "mkdir -p $projdir/trashbin"   ##holds mincs that didn't match protocol
- sudo -S su $USER -c "mkdir -p $projdir/tarchive"   ##holds tared dicom-folder
- sudo -S su $USER -c "mkdir -p $projdir/pic"           ##holds jpegs generated for the MRI-browser
- sudo -S su $USER -c "mkdir -p $projdir/logs"         ## holds logs from pipeline script
- sudo -S su $USER -c "mkdir -p $projdir/jiv"            ## holds JIVs used for JIV viewer
- sudo -S su $USER -c "mkdir -p $projdir/assembly" ## holds the MINC files
- sudo -S su $USER -c "mkdir -p $projdir/batch_output"  ##contains the result of the SGE (queue
+ sudo -S su $username -c "mkdir -p $projdir/"
+ sudo -S su $username -c "mkdir -p $projdir/trashbin"   ##holds mincs that didn't match protocol
+ sudo -S su $username -c "mkdir -p $projdir/tarchive"   ##holds tared dicom-folder
+ sudo -S su $username -c "mkdir -p $projdir/pic"           ##holds jpegs generated for the MRI-browser
+ sudo -S su $username -c "mkdir -p $projdir/logs"         ## holds logs from pipeline script
+ sudo -S su $username -c "mkdir -p $projdir/jiv"            ## holds JIVs used for JIV viewer
+ sudo -S su $username -c "mkdir -p $projdir/assembly" ## holds the MINC files
+ sudo -S su $username -c "mkdir -p $projdir/batch_output"  ##contains the result of the SGE (queue
  
  #create .loris_mri directory only if it do not exists
  if [ ! -d "$mridir/dicom-archive/.loris_mri" ];
  then
-     sudo -S su $USER -c "mkdir -p $mridir/dicom-archive/.loris_mri"
+     sudo -S su $username -c "mkdir -p $mridir/dicom-archive/.loris_mri"
  else
     echo "Warning: directory .loris_mri already exists, Skipping creation."
     echo
@@ -123,12 +129,12 @@ echo "Creating incoming director(y/ies)"
  
  if [ ! -d "$rootdir/incoming" ];
  then
-     sudo -S su $USER -c "mkdir -p $rootdir/incoming/"
+     sudo -S su $username -c "mkdir -p $rootdir/incoming/"
  fi
  
  echo "Creating incoming director(y/ies) for each Site(s)"
  for s in $site; do 
-     sudo -S su $USER -c "mkdir -p $rootdir/incoming/$s/incoming";
+     sudo -S su $username -c "mkdir -p $rootdir/incoming/$s/incoming";
  done;
  echo
 ####################################################################################
