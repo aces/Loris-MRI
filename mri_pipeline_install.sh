@@ -29,6 +29,34 @@ if [ ! -f "$APTGETCHECK" ]; then
     exit
 fi
 
+read -p "what is the project Name?" PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
+read -p "Please specify the directory where the project should be install or press ENTER, default: /data/? " rootdir
+if [ -z "$rootdir" ]; then
+    rootdir="/data/"
+fi
+  
+ #make sure that root directory exists
+ if [ ! -d "$rootdir" ];
+ then
+    echo "ERROR: root directory $rootdir do not exists."
+    echo
+    exit
+ fi
+ 
+#clean up extra slash
+rootdir=$(readlink -m $rootdir) 
+projdir=$(readlink -m $rootdir/$PROJ)
+
+while true; do
+    read -p "I will attempt to create folder $projdir, is that what you want? [y,n]:" yn
+    case $yn in
+        [Yy]* ) sudo -S mkdir -p $projdir; 
+                sudo chown $username $projdir; 
+                 break;;
+         [Nn]* ) exit;;
+         * ) echo "Please answer yes or no.";;
+     esac
+done
 
 read -p "what is the database name? " mysqldb
 read -p "What is the database host? " mysqlhost
@@ -38,7 +66,6 @@ read -p "What is the mysql password? " mysqlpass; echo
 stty echo
 
 read -p "what is the linux user which the installation will be based on? " USER
-read -p "what is the project Name " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
 
 read -p "what is your email address " email
 email=${email/@/\\\\@}  ##adds a back slash before the @
@@ -70,26 +97,40 @@ echo
 ##########################################################################################
 #############################Create directories########################################
 #########################################################################################
- echo "Creating the data directories"
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/"
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/trashbin"   ##holds mincs that didn't match protocol
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/tarchive"   ##holds tared dicom-folder
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/pic"           ##holds jpegs generated for the MRI-browser
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/logs"         ## holds logs from pipeline script
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/jiv"            ## holds JIVs used for JIV viewer
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/assembly" ## holds the MINC files
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/batch_output"  ##contains the result of the SGE (queue
-  sudo -S su $USER -c "mkdir -p $mridir/.loris_mri"
-echo
+
+ sudo -S su $USER -c "mkdir -p $projdir/"
+ sudo -S su $USER -c "mkdir -p $projdir/trashbin"   ##holds mincs that didn't match protocol
+ sudo -S su $USER -c "mkdir -p $projdir/tarchive"   ##holds tared dicom-folder
+ sudo -S su $USER -c "mkdir -p $projdir/pic"           ##holds jpegs generated for the MRI-browser
+ sudo -S su $USER -c "mkdir -p $projdir/logs"         ## holds logs from pipeline script
+ sudo -S su $USER -c "mkdir -p $projdir/jiv"            ## holds JIVs used for JIV viewer
+ sudo -S su $USER -c "mkdir -p $projdir/assembly" ## holds the MINC files
+ sudo -S su $USER -c "mkdir -p $projdir/batch_output"  ##contains the result of the SGE (queue
+ 
+ #create .loris_mri directory only if it do not exists
+ if [ ! -d "$mridir/dicom-archive/.loris_mri" ];
+ then
+     sudo -S su $USER -c "mkdir -p $mridir/dicom-archive/.loris_mri"
+ else
+    echo "Warning: directory .loris_mri already exists, Skipping creation."
+    echo
+ fi
+   
 #######################################################################################
  ###############incoming directory using sites########################################
 #######################################################################################
- echo "Creating incoming director(y/ies)"
-  for s in $site; do 
-   sudo -S su $USER -c "mkdir -p /data/incoming/$s/incoming";
-  done;
+echo "Creating incoming director(y/ies)"
+ 
+ if [ ! -d "$rootdir/incoming" ];
+ then
+     sudo -S su $USER -c "mkdir -p $rootdir/incoming/"
+ fi
+ 
+ echo "Creating incoming director(y/ies) for each Site(s)"
+ for s in $site; do 
+     sudo -S su $USER -c "mkdir -p $rootdir/incoming/$s/incoming";
+ done;
  echo
-
 ####################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
@@ -104,17 +145,16 @@ echo
 ######################change permissions ##########################################
 ####################################################################################
 #echo "Changing permissions"
-
-sudo chmod -R 750 $mridir/.loris_mri/
-sudo chmod -R 750 /data/$PROJ/
-sudo chmod -R 750 /data/incoming/
+sudo chmod -R 750 $mridir/dicom-archive/.loris_mri/
+sudo chmod -R 750 $projdir
+sudo chmod -R 750 $rootdir/incoming
 echo
 
 ####################################################################################
 ######################Add the proper Apache group user #############################
 ####################################################################################
-sudo chgrp www-data -R /data/$PROJ/data/
-sudo chgrp www-data -R /data/incoming/
+sudo chgrp www-data -R $projdir/data/
+sudo chgrp www-data -R $rootdir/incoming/
 
 echo
 ######################################################################################
@@ -123,6 +163,7 @@ echo
 echo "Creating MRI config file"
 
 cp $mridir/dicom-archive/profileTemplate $mridir/.loris_mri/prod
+#this call is buggus
 sudo chmod 640 $mridir/.loris_mri/prod
 sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/.loris_mri/prod
 echo
