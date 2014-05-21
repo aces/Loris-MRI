@@ -8,6 +8,22 @@
 
 ## First, check that all required modules are installed.
 ## Check if cpan module installed
+
+if [ ! -f "$(basename $0)" ];
+then
+    echo "You must be in Loris-MRI trunk directory to launch installation script."
+    echo
+    exit
+fi
+ 
+#make sure that dicom-archive trunk project is available
+if [ ! -f "dicom-archive/profileTemplate" ];
+then
+    echo "Could not find dicom-archive trunk, do the intall prior to run this script."
+    echo
+    exit
+fi
+
 CPANCHECK=`which cpan`
 if [ ! -f "$CPANCHECK" ]; then
     echo "\nERROR: Unable to find cpan"
