@@ -1,65 +1,108 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl 
 use strict;
 use warnings;
+use Getopt::Tabular;
+use File::Spec;
+
+my $version    = 0;
+my $profile    = "prod";
+my $verbose    = 0;
+my $inputTarListfileName = undef;
+my @submitted = undef;
+
+
+my $Usage = "------------------------------------------
+
+WHAT THIS IS:
+
+A wrapper for uploading one or multiple tarfiles via tarchiveLoader
+
+- submit task over a grid engine if it is properly configure 
+- send a notification via email
+
+Usage:\n\t $0 [options] <tarName1> [tarName2...]
+\n\n See $0 -help for more info\n\n";
+
+my @arg_table =
+    (
+     ["Input and database options", "section"],
+     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
+     ["General options", "section"],
+     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
+     ["-version", "boolean", 1,   \$version, "Print cvs version number and exit."],
+     );
+
+GetOptions(\@arg_table, \@ARGV) ||  exit 1;
+
+if ($version) { print "Version: $version\n"; exit; }
+
+if((scalar(@ARGV) == 0) && ($inputTarListfileName == undef)) { print "\nError: Please provide tar files to process\n\n".$Usage; exit 1; } 
+
 
 #####Get config setting#######################################################
 # checking for profile settings
-if(-f "$ENV{LORIS_CONFIG}/.loris_mri/prod") {
-    { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
-} ##Possibly the script can exit if the prod doesn't exist
+if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+    { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+}
+else{
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33;
+}
+ ##Possibly the script can exit if the prod doesn't exist
 #######################################################################################
-# define project space
-my ($debug, $verbose) = (0,0);
+
 my ($stdoutbase, $stderrbase) = ("$Settings::data_dir/batch_output/tarstdout.log", "$Settings::data_dir/batch_output/tarstderr.log");
 my $stdout = '';
 my $stderr = '';
-while($_ = $ARGV[0], /^-/) {
-    shift;
-    last if /^--$/; ## -- ends argument processing
-    if (/^-D/) { $debug++ } ## debug level
-    if (/^-v/) { $verbose++ } ## verbosity
-}
-
-## read input from STDIN, store into array @inputs (`find ....... | this_script`)
-my @inputs = ();
-my @submitted = ();
-while(<STDIN>)
-{
-    chomp;
-    push @inputs, $_;
-}
-close STDIN;
 
 my $counter = 0;
 
 ## foreach series, batch magic
-foreach my $input (@inputs)
+foreach my $input (@ARGV)
 {
+    my $process = 0;
     $counter++;
     $stdout = $stdoutbase.$counter;
     $stderr = $stderrbase.$counter;
 
-    #$stdout = '/dev/null';
-    #$stderr = '/dev/null';
+    chomp($input);
+    #replace all occurrences of tab by space if found
+    $input =~ s/\t/ /g;
 
-    ## this is where the subprocesses are created...  should basically run processor script with study directory as argument.
-    ## processor will do all the real magic
-
-    $input =~ s/\t/ /;
-    $input =~ s/$Settings::tarchiveLibraryDir//;
-    my $command = "tarchiveLoader -globLocation -profile prod $Settings::tarchiveLibraryDir/$input";
-    ##if qsub is enabled use it
-    if ($Settings::is_qsub) {
-	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
-    	 print QSUB $command;
-    	 close QSUB;
+    #look for existence of the tarchive file
+    if (-e $input) {
+        $process =1;
     }
-    ##if qsub is not enabled
-    else {
-         system($command);
+    elsif(-e File::Spec->catfile($Settings::tarchiveLibraryDir,$input)){
+        $input = File::Spec->catfile($Settings::tarchiveLibraryDir,$input);
+        $process =1;
+        
+    }
+    elsif(-e File::Spec->catfile($Settings::tarchiveLibraryDir,$input,".tar")){
+        $input = File::Spec->catfile($Settings::tarchiveLibraryDir,$input,".tar");
+        $process =1;
+    }
+    else{
+        print "Cannot find any tarchive with name: $input\n";
+        $process =0;
     }
 
-     push @submitted, $input;
+    if($process){
+        print "tarchive $input exists and will be process\n" if $verbose;
+        my $command = "tarchiveLoader -globLocation -profile $profile $input";
+        print "Command= $command\n" if $verbose;
+
+        ##if qsub is enabled use it
+        if ($Settings::is_qsub) {
+                 open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
+             print QSUB $command;
+             close QSUB;
+        }
+        ##if qsub is not enabled
+        else {
+             system($command);
+        }
+        push @submitted, $input;
+    }
 }
 open MAIL, "|mail $Settings::mail_user";
 print MAIL "Subject: BATCH_UPLOADS_TARCHIVE: ".scalar(@submitted)." studies submitted.\n";
