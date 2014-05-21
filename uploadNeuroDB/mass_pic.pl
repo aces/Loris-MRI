@@ -11,7 +11,7 @@ use NeuroDB::MRI;
 ################## Set stuff for GETOPT ########################
 ################################################################
 my $verbose    = 1;
-my $profile    = undef;
+my $profile    = 'prod';
 my $minFileID  = undef;
 my $maxFileID  = undef;
 my $query;
@@ -38,7 +38,7 @@ GetOptions(\@arg_table, \@ARGV) ||  exit 1;
 
 ################################################################
 ################ checking for profile settings #################
-################################################################
+#o###############################################################
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
