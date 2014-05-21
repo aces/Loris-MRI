@@ -29,7 +29,7 @@ my $date = sprintf(
 my $debug       = 1;  
 my $message     = '';
 my $verbose     = 1;           # default for now
-my $profile     = undef;       # this should never be set unless you are in a 
+my $profile     = 'prod';       # this should never be set unless you are in a 
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                # set it to 1!!!
