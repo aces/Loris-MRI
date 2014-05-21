@@ -32,6 +32,24 @@ then
     exit
 fi
 
+#If MRI and TRUNK use the same user/database. Propose to specify config.xml
+# to speed up the installation process
+while getopts ":c:" opt; do
+  case $opt in
+    c)
+      configFile="$OPTARG";
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
 CPANCHECK=`which cpan`
 if [ ! -f "$CPANCHECK" ]; then
     echo "\nERROR: Unable to find cpan"
@@ -88,14 +106,40 @@ while true; do
      esac
 done
 
-read -p "what is the database name? " mysqldb
-read -p "What is the database host? " mysqlhost
-read -p "What is the Mysql user? " mysqluser
-stty -echo ##this disables the password to show up on the commandline
-read -p "What is the mysql password? " mysqlpass; echo
-stty echo
-
-read -p "what is the linux user which the installation will be based on? " USER
+if [ ! -z "$configFile" ] && [ -f "$configFile" ]; 
+then
+    mysqlhost=`grep -oPm1 "(?<=<host>)[^<]+" $configFile`;
+    mysqluser=`grep -oPm1 "(?<=<username>)[^<]+" $configFile`;
+    mysqlpass=`grep -oPm1 "(?<=<password>)[^<]+" $configFile`;
+    mysqldb=`grep -oPm1 "(?<=<database>)[^<]+" $configFile`;
+    while true; do
+        echo "Thoses values have been found in the config.xml?";
+        echo "Hostname=> $mysqlhost";
+        echo "Database=> $mysqldb";
+        echo "Username=> $mysqluser";
+        read -p "Would you like to keep those setting? [y,n]:" yn
+        echo
+        case $yn in
+            [Yy]* ) break;;
+            [Nn]* ) 
+                    read -p "what is the database name? " mysqldb
+                    read -p "What is the database host? " mysqlhost
+                    read -p "What is the Mysql user? " mysqluser
+                    stty -echo ##this disables the password to show up on the commandline
+                    read -p "What is the mysql password? " mysqlpass;
+                    echo
+                    stty echo;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+else
+    read -p "what is the database name? " mysqldb
+    read -p "What is the database host? " mysqlhost
+    read -p "What is the Mysql user? " mysqluser
+    stty -echo ##this disables the password to show up on the commandline
+    read -p "What is the mysql password? " mysqlpass; echo
+    stty echo  
+fi
 
 read -p "what is your email address " email
 email=${email/@/\\\\@}  ##adds a back slash before the @
@@ -226,7 +270,6 @@ sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#$projdir/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#$projdir/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
-
 
 ######################################################################
 ###########Modify the config.xml########################################
