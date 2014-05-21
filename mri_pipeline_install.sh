@@ -42,7 +42,14 @@ read -p "what is the project Name " PROJ   ##this will be used to create all the
 
 read -p "what is your email address " email
 email=${email/@/\\\\@}  ##adds a back slash before the @
-echo "email is $email" 
+echo "email is $email"
+
+
+read -p "what prod file name whould you like to use? default: prod? " prodfilename
+if [ -z "$prodfilename" ]; then
+    prodfilename="prod"
+fi 
+ 
 read -p "Enter the list of Site names (space separated) " site
 mridir=`pwd`
 ##read -p "Enter Full Loris-code directory path "   lorisdir
@@ -122,10 +129,14 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $mridir/dicom-archive/profileTemplate $mridir/.loris_mri/prod
-sudo chmod 640 $mridir/.loris_mri/prod
-sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/.loris_mri/prod
+cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodfilename
+sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
+
+#variable  $projdir should be declare from previous pull requests addRelativeInInstallationScript
+sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#$projdir/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#$projdir/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
+echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
+
 
 ######################################################################
 ###########Modify the config.xml########################################
