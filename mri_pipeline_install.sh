@@ -6,6 +6,14 @@
 ###2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place it in h
 ###3)It doesn't change the config.xml
 
+
+#Create a temporary log for installation and delete it on completion 
+#@TODO make sure that /tmp is writable
+LOGFILE="/tmp/$(basename $0).$$.tmp"
+touch $LOGFILE
+trap "rm  $LOGFILE" EXIT
+ 
+
 ## First, check that all required modules are installed.
 ## Check if cpan module installed
 
@@ -175,8 +183,23 @@ echo
 ####################################################################################
 ######################Add the proper Apache group user #############################
 ####################################################################################
-sudo chgrp www-data -R $projdir/data/
-sudo chgrp www-data -R $rootdir/incoming/
+
+if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
+then 
+    group=www-data
+elif egrep ^www: /etc/group  > $LOGFILE 2>&1;
+then
+    group=www
+elif egrep -e ^apache: /etc/group  > $LOGFILE 2>&1;
+then
+    group=apache
+else
+    read -p "Cannot find the apache group name for your installation. Please provide? " group
+fi
+
+#$rootDir and $projdir will be defined in pull request addRelativeInInstallationScript
+sudo chgrp $group -R $projdir
+sudo chgrp $group -R $rootdir/incoming/
 
 echo
 ######################################################################################
