@@ -414,7 +414,7 @@ foreach my $minc (@minc_files) {
     ###########################################################
 
     $script = "minc_insertion.pl -tarchivePath $tarchive ".
-              "-mincPath $minc -profile prod";
+              "-mincPath $minc -profile $profile";
     if ($force) {
         $script .= " -force";
     }
@@ -483,7 +483,7 @@ if ($valid_study) {
     my @row = $sth->fetchrow_array();
     if (@row) {
         my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
-                     "-profile prod ";
+                     "-profile $profile ";
     ############################################################
     ## Note: system call returns the process ID ################
     ## To get the actual exit value, shift right by eight as ### 
