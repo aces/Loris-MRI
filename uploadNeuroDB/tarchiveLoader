@@ -57,7 +57,7 @@ my $date        = sprintf(
 my $debug       = 1;  
 my $message     = '';
 my $verbose     = 1;           # default for now
-my $profile     = undef;       # this should never be set unless you are in a
+my $profile     = 'prod';       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                #set it to 1!!!
@@ -143,6 +143,7 @@ USAGE
 ################################################################
 ################### input option error checking ################
 ################################################################
+
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named ". 
@@ -250,7 +251,7 @@ my %tarchiveInfo = $utility->createTarchiveArray(
 ################################################################
 ################## Call the validation script ##################
 ################################################################
-my $script = "tarchive_validation.pl $tarchive -profile prod ";
+my $script = "tarchive_validation.pl $tarchive -profile $profile ";
 
 if ($mri_upload_insert) {
     $script .= " -mri_upload_insert";
