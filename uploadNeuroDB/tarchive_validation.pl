@@ -113,8 +113,7 @@ USAGE
 ################################################################
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !defined @Settings::db) { 
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 2; 
 }
 if (!$ARGV[0] || !$profile) { 
@@ -125,8 +124,7 @@ if (!$ARGV[0] || !$profile) {
 }
 $tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
-           "the path to the archive is correct. Upload will exit now.\n\n\n";
+    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the path to the archive is correct. Upload will exit now.\n\n\n";
     exit 4;
 }
 
