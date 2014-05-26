@@ -364,25 +364,11 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 ################################################################
 ##################### convert the dicom data to minc ###########
 ################################################################
-#$utility->dicom_to_minc(
-#    $study_dir,$converter,$get_dicom_info,
-#    $exclude,$mail_user
-#);
-
-################################################################
-##################### convert the dicom data to nifti ###########
-################################################################
-
-print "study_dir = $study_dir\n";
-print "converter = $converter\n";
-print "get_dicom_info = $get_dicom_info\n";
-print "exclude = $exclude\n";
-
-$utility->dicom_to_nifti(
+$utility->dicom_to_minc(
     $study_dir,$converter,$get_dicom_info,
     $exclude,$mail_user
 );
-exit();
+
 
 ################################################################
 ############### get a list of mincs ############################
