@@ -7,9 +7,9 @@ use FileHandle;
 use File::Basename;
 use File::Temp qw/ tempdir /;
 use Data::Dumper;
+use Time::Piece;
 use FindBin;
 use Cwd qw/ abs_path /;
-
 # These are the NeuroDB modules to be used
 use lib "$FindBin::Bin";
 use NeuroDB::File;
@@ -28,9 +28,10 @@ my $date = sprintf(
            );
 my $debug       = 1;  
 my $message     = '';
-my $verbose     = 1;           # default for now
+my $verbose     = 0;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
+my $nifti = undef;             # if nifti file is provide
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                # set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
@@ -45,11 +46,12 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
+
 ################################################################
 #### These settings are in a config file (profile) #############
 ################################################################
 my @opt_table = (
-                 ["casic options","section"],
+                 ["basic options","section"],
 
                  ["-profile","string",1, \$profile, "name of config file". 
                  " in ../dicom-archive/.loris_mri"],
@@ -68,6 +70,9 @@ my @opt_table = (
   
                  ["-mincPath","string",1, \$minc, "The absolute path". 
                   " to minc-file"],
+                 
+                 ["-niftiPath","string",1, \$nifti, "The absolute path". 
+                  " to nifti-file"],
 
                  ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
                   " to tarchive-file"],
@@ -82,6 +87,8 @@ my @opt_table = (
                   " you upload requires it. You can risk turning it off."],
 
                  ["Fancy options","section"],
+                 
+                 ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
 
                  ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail".
                   " on the current log file."],
@@ -149,6 +156,13 @@ unless (-e $minc) {
     exit 5;
 }
 
+if  ($nifti) {
+    unless (-e $nifti) {
+        print "\nERROR: Could not find nifti $nifti. \nPlease, make sure the ".
+              "path to the nifti is correct. Upload will exit now.\n\n\n";
+        exit 6;
+    }
+}
 ################################################################
 ########### Create the Specific Log File #######################
 ################################################################
@@ -302,6 +316,8 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
+
+
 my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
     print "--> WARNING: This file has already been uploaded! \n"  if $debug;
@@ -345,12 +361,29 @@ if($acquisitionProtocol =~ /unknown/) {
 # Register scans into the database.  Which protocols ###########
 # to keep optionally controlled by the config file #############
 ################################################################
-
-$utility->registerScanIntoDB(
+my $mincFileID = $utility->registerScanIntoDB(
     \$file, \%tarchiveInfo,$subjectIDsref, 
     $acquisitionProtocol, $minc, \@checks, 
     $reckless, $tarchive, $sessionID
 );
+
+################################################################
+# register the nifti file to the database if provide       #####
+################################################################
+
+if($nifti){
+    my $today = localtime->strftime('%Y-%m-%d');
+    my $command = "register_processed_data.pl -profile $profile -sourceFileID $mincFileID ".
+        "-sourcePipeline Nifti_Conversion -tool dcm2nii -pipelineDate $today" .
+        " -coordinateSpace native -scanType $acquisitionProtocol  -outputType native".
+        " -inputFileIDs  $mincFileID -protocolID $acquisitionProtocolID -file $nifti";
+   
+    print LOG "Command = $command \n";
+    my $log = `$command`;
+    print LOG "return value = $log\n";
+
+}
+
 
 ################################################################
 ### Add series notification ####################################

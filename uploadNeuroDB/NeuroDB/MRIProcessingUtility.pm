@@ -656,6 +656,7 @@ sub registerScanIntoDB {
             $tarchiveInfo->{'DateAcquired'}
         );
     }
+    return $fileID;
 }
 
 ################################################################
@@ -700,6 +701,82 @@ sub dicom_to_minc {
        "### Dicom to MINC:\n$d2m_log"
    );
 }
+
+################################################################
+################## minc_to_nifti ##############################
+################################################################
+
+sub minc_to_nifti {
+
+    my $this = shift;
+    my ($inputFilename, $converter, $compressor, $mail_user) = undef;
+    if(@_ == 3 ){
+        ($inputFilename, $converter, $mail_user) = @_;
+    }
+    elsif(@_ == 4){
+        ($inputFilename, $converter, $compressor, $mail_user) = @_;
+    }
+    else{
+        croak("wrong number of arguments");
+    }
+    unless(-e $inputFilename){
+        croak("file $inputFilename do not exist, minc_to_nifti failure");
+    }
+    my ($m2n_cmd, $m2n_log, $exit_code, $filename, $path, $ext, $ouputFileName);
+
+    ($filename,$path,$ext) = fileparse($inputFilename,qr{\.mnc});
+
+    $ouputFileName = "$path/$filename.nii";
+    $m2n_cmd = "$converter $inputFilename $ouputFileName";
+    print "\n" . $m2n_cmd . "\n";
+ 
+    $m2n_log = `$m2n_cmd`;
+    if ($? > 0) {
+        $exit_code = $? >> 8;
+        ########################################################
+        # dicom_to_nifti failed...  don't keep going, ########### 
+        # just email. ##########################################
+        ########################################################
+        open MAIL, "| mail $mail_user";
+        print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
+                   "mnc->nifti failed\n";
+        print MAIL "Exit code $exit_code received from:\n$m2n_cmd\n";
+        close MAIL;
+        croak("dicom_to_nifti failure, exit code $exit_code");
+    }
+    if($compressor){
+        if($compressor eq 'gzip'){
+            my $compressor_cmd = "$compressor $ouputFileName";
+            print "\n" . $compressor_cmd . "\n";
+            my $compressor_log = `$compressor_cmd`;
+            if ($? > 0) {
+                $exit_code = $? >> 8;
+                ########################################################
+                # gzip conversion failed...  don't keep going, ########### 
+                # just email. ##########################################
+                ########################################################
+                open MAIL, "| mail $mail_user";
+                print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
+                           "nifti compression failed\n";
+                print MAIL "Exit code $exit_code received from:\n$compressor_cmd\n";
+                close MAIL;
+                croak("dicom_to_nifti failure, exit code $exit_code");
+           }
+
+           #do not forget to update the filename
+           $ouputFileName = "$ouputFileName.gz";
+        }
+        else{
+            croak("$compressor not implemented yet");
+        }
+    }
+   $this->{LOG}->print(
+       "### MINC to Nifti:\n$m2n_cmd"
+   );
+   return $ouputFileName;
+}
+
+
 ################################################################
 ####### get_mincs ##############################################
 ######## returns a sorted list of mincfiles ####################

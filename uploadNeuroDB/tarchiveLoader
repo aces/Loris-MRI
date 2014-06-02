@@ -54,10 +54,12 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                      $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 1;  
+my $debug       = 1;
+my $nifti       = 0;
+my $niftiz      = 0;  
 my $message     = '';
 my $verbose     = 1;           # default for now
-my $profile     = undef;       # this should never be set unless you are in a
+my $profile     = 'prod';       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                #set it to 1!!!
@@ -100,6 +102,8 @@ my @opt_table = (
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
                  ],
+                 ["-nii", "boolean", 1, \$nifti, "Create nifti files (.nii) at the same time."],
+                 ["-niigz", "boolean", 1, \$niftiz, "Create compressed nifti file (.nii.gz) at the same time."],
                  ["Fancy options","section"],
 # fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
 # have infinite space on your server."],
@@ -143,6 +147,7 @@ USAGE
 ################################################################
 ################### input option error checking ################
 ################################################################
+
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named ". 
@@ -180,10 +185,15 @@ my $User             = `whoami`;
 
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo", "mincpik", $converter);
-# create the temp dir
+if($nifti || $niftiz){
+    # nifti conveter should be implement in .loris configuration files
+    push (@progs, "mnc2nii");
+}
+
 my $TmpDir = tempdir(
                  $template, TMPDIR => 1, CLEANUP => 1 
              );
+
 # create logdir(if !exists) and logfile
 my @temp     = split(/\//, $TmpDir); 
 my $templog  = $temp[$#temp];
@@ -250,7 +260,7 @@ my %tarchiveInfo = $utility->createTarchiveArray(
 ################################################################
 ################## Call the validation script ##################
 ################################################################
-my $script = "tarchive_validation.pl $tarchive -profile prod ";
+my $script = "tarchive_validation.pl $tarchive -profile $profile ";
 
 if ($mri_upload_insert) {
     $script .= " -mri_upload_insert";
@@ -384,12 +394,15 @@ if ($mcount < 1) {
     exit 8; 
 }
 
+
 ################################################################
 #################### LOOP through MINCs ########################
 # At this step we actually have (multiple) MINC files so we loop
 # a valid study has at least one file that can be uploaded #####
 ################################################################
 my $minc_inserted = 0;
+my $niftiFileName;
+
 foreach my $minc (@minc_files) {
 
     ############################################################
@@ -408,12 +421,25 @@ foreach my $minc (@minc_files) {
     }
     $tarchive = $newTarchiveLocation;
 
+    ################################################################
+    # convert the minc files to nifti                           ####
+    #We should only convert file that have been properly create ####
+    # in  minc which is tha case in that loop ######################
+    ################################################################
+
+    if ($nifti) {
+        $niftiFileName = $utility->minc_to_nifti($minc, "mnc2nii", $mail_user);
+    }
+    elsif($niftiz){
+        $niftiFileName = $utility->minc_to_nifti($minc, "mnc2nii", "gzip", $mail_user);
+    }
+
     ###########################################################
     ############# Call the minc_insertion script ##############
     ###########################################################
 
     $script = "minc_insertion.pl -tarchivePath $tarchive ".
-              "-mincPath $minc -profile prod";
+              "-mincPath $minc -profile $profile";
     if ($force) {
         $script .= " -force";
     }
@@ -425,10 +451,13 @@ foreach my $minc (@minc_files) {
     if ($no_jiv) {
         $script .= " -noJIV";
     }
- 
+    if ($nifti || $niftiz) {
+        $script .= " -niftiPath $niftiFileName";
+    }
+
     if ($debug) {
         print $script . "\n";
-    }
+    }        
     ###########################################################
     ## Note: system call returns the process ID ###############
     ## To get the actual exit value, shift right by eight as ##
@@ -445,7 +474,8 @@ foreach my $minc (@minc_files) {
     if ($output==0) {
        $minc_inserted++;
        $valid_study = 1;
-    }
+    } 
+
 } # end foreach $minc
 
 if ($valid_study) {
@@ -455,7 +485,7 @@ if ($valid_study) {
     ### And number_of_mincInserted #############################
     ############################################################
     my $where = "WHERE TarchiveID=?";
-    my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
+    my $query = "UPDATE ¢ SET number_of_mincInserted=?, ".
                  "number_of_mincCreated=? ";
     $query = $query . $where;
     if ($debug) {
@@ -482,7 +512,7 @@ if ($valid_study) {
     my @row = $sth->fetchrow_array();
     if (@row) {
         my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
-                     "-profile prod ";
+                     "-profile $profile ";
     ############################################################
     ## Note: system call returns the process ID ################
     ## To get the actual exit value, shift right by eight as ### 

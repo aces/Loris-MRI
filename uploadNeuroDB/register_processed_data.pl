@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Getopt::Tabular;
+use File::Path;
 use File::Basename;
 use FindBin;
 use lib "$FindBin::Bin";
@@ -108,7 +109,6 @@ my $file    =   NeuroDB::File->new(\$dbh);
 
 # Load File object
 $file->loadFileFromDisk($filename);
-
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     
     # Map dicom fields
@@ -172,6 +172,7 @@ if  (!defined($scannerID))  {
 }
 $file->setParameter('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
+
 
 
 # ----- STEP 4: Determine using sourceFileID: 
@@ -376,12 +377,17 @@ Move files to assembly folder.
 sub copy_file {
     my ($filename, $subjectIDsref, $scan_type, $fileref)    =   @_;
 
-    my ($new_name, $version);
+    my ($new_name, $version, $new_dir);
     my %subjectIDs  =   %$subjectIDsref;
-
-    # figure out where to put the files
     my $dir =   which_directory($subjectIDsref);
-    `mkdir -p -m 755 $dir/processed/$sourcePipeline`;
+
+    if($outputType eq 'native'){
+        $new_dir =  "$dir/native";
+    }
+    else{
+        $new_dir =   "$dir/processed/$sourcePipeline";
+    }
+    mkpath($new_dir,1,'0755');	
 
     # figure out what to call files
     my @exts    =   split(/\./, basename($$filename));
@@ -390,9 +396,7 @@ sub copy_file {
 
     my $concat  =   "";
     $concat     =   '_concat' if $filename =~ /_concat/;
-
-    my $new_dir =   "$dir/processed/$sourcePipeline";
-
+ 
     $version    =   1;
     $new_name   =   $prefix."_".$subjectIDs{'CandID'}."_".$subjectIDs{'visitLabel'}."_".$scan_type."_".sprintf("%03d",$version).$concat.".$extension";
     $new_name   =~  s/ //;
