@@ -100,11 +100,16 @@ echo
 ####################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
-echo "Modifying environment script"
-sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
-##Make sure that CIVET stuff are placed in the right place
+echo "Create init.sh script"
+##Make sure that CIVET stuff are placed at the right place
 ##source  /data/$PROJ/bin/$mridirname/environment
-export TMPDIR=/tmp
+
+TEXT="export LORIS_MRI_HOME=$mridir"
+TEXT="$TEXT\nexport PATH=\$LORIS_MRI_HOME:\$LORIS_MRI_HOME/uploadNeuroDB:\$LORIS_MRI_HOME/dicom-archive:\$PATH "
+TEXT="$TEXT\nexport PERL5LIB=\$LORIS_MRI_HOME/uploadNeuroDB:\$PERL5LIB "
+TEXT="$TEXT\nexport LORIS_CONFIG=\$LORIS_MRI_HOME/dicom-archive "
+TEXT="$TEXT\nexport TMPDIR=/tmp"
+echo -e $TEXT > init.sh
 echo
 
 ####################################################################################
