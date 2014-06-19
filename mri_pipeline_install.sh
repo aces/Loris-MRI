@@ -45,7 +45,7 @@ email=${email/@/\\\\@}  ##adds a back slash before the @
 echo "email is $email"
 
 
-read -p "what prod file name whould you like to use? default: prod? " prodfilename
+read -p "what prod file name would you like to use? default: prod? " prodfilename
 if [ -z "$prodfilename" ]; then
     prodfilename="prod"
 fi 
