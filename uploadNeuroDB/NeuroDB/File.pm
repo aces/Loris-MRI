@@ -267,6 +267,12 @@ sub loadFileFromDisk {
     } elsif($file =~ /\.nrrd$/) {
         $fileType = 'nrrd';
     }
+    elsif($file =~ /\.nii$/) {
+        $fileType = 'nii';
+    }
+    elsif($file =~ /\.nii.gz$/) {
+        $fileType = 'nii.gz';
+    }
     $this->setFileData('FileType', $fileType) if defined $fileType;
     
     # if the file is not a minc, then just we've done as much as we can...
