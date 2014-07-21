@@ -1029,6 +1029,19 @@ sub validateCandidate {
         $CandMismatchError= 'PSCID does not exist';
         return $CandMismatchError;
     } 
+    
+    ############################################################
+    ################ Check if visitLabel exists #####################
+    ############################################################
+
+    $query = "SELECT Visit_label FROM Visit_Windows WHERE Visit_label=?";
+    $sth =  ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($subjectIDsref->{'visitLabel'});
+    if ($sth->rows == 0) {
+        print LOG  "\n\n => No Visit label";
+        $CandMismatchError= 'Visit label does not exist';
+        return $CandMismatchError;
+    } 
 
     ############################################################
     ################ No Checking if the subject is Phantom #####

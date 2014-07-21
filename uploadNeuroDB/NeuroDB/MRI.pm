@@ -70,9 +70,10 @@ sub getSubjectIDs {
 	$subjectID{'PSCID'} = my_trim($1);
 	$subjectID{'CandID'} = my_trim($2);
 	$subjectID{'visitLabel'} = my_trim($3);
-	if(!subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $dbhr)) {
+	if(!subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subject{'visitLabel'}, $dbhr)) {
 	    return undef;
 	}
+        
     }
     my $sth = $${dbhr}->prepare("SELECT VisitNo FROM session WHERE CandID='$subjectID{'CandID'}' AND Visit_label='$subjectID{'visitLabel'}' AND Active='Y'");
     $sth->execute();
@@ -88,13 +89,21 @@ B<subjectIDIsValid( C<$CandID>, C<$PSCID>, C<$dbhr> )>
     Returns: 1 if the ID pair matches, 0 otherwise
 =cut
 sub subjectIDIsValid {
-    my ($candID, $pscid, $dbhr) = @_;
+    my ($candID, $pscid, $visit_label, $dbhr) = @_;
     
     my $query = "SELECT COUNT(*) AS isValid FROM candidate WHERE CandID=".$${dbhr}->quote($candID)." AND PSCID=".$${dbhr}->quote($pscid);
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
     
     my $rowhr = $sth->fetchrow_hashref();
+    
+    if ($rowhr->{'isValid'} == 1) {
+        $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE Visit_label=".$${dbhr}->quote($visit_label);
+        $sth = $${dbhr}->prepare($query);
+        $sth->execute();
+    
+        $rowhr = $sth->fetchrow_hashref();
+    }
     return $rowhr->{'isValid'} == 1;
 }
 
