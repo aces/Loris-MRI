@@ -56,8 +56,8 @@ my $date        = sprintf(
                   );
 my $debug       = 1;  
 my $message     = '';
-my $verbose     = 1;           # default for now
-my $profile     = undef;       # this should never be set unless you are in a
+my $verbose     = 0;           # default for now
+my $profile     = 'prod';       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                #set it to 1!!!
@@ -106,6 +106,8 @@ my @opt_table = (
                  ["-xlog", "boolean", 1, \$xlog,"Open an xterm with a tail on".
                   "the current log file."
                  ],
+                 ["General options", "section"],
+                 ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
                  );
 
 my $Help = <<HELP;
@@ -143,6 +145,7 @@ USAGE
 ################################################################
 ################### input option error checking ################
 ################################################################
+
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !defined @Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named ". 
@@ -250,7 +253,7 @@ my %tarchiveInfo = $utility->createTarchiveArray(
 ################################################################
 ################## Call the validation script ##################
 ################################################################
-my $script = "tarchive_validation.pl $tarchive -profile prod ";
+my $script = "tarchive_validation.pl $tarchive -profile $profile ";
 
 if ($mri_upload_insert) {
     $script .= " -mri_upload_insert";
@@ -366,6 +369,7 @@ $utility->dicom_to_minc(
     $exclude,$mail_user
 );
 
+
 ################################################################
 ############### get a list of mincs ############################
 ################################################################
@@ -413,7 +417,7 @@ foreach my $minc (@minc_files) {
     ###########################################################
 
     $script = "minc_insertion.pl -tarchivePath $tarchive ".
-              "-mincPath $minc -profile prod";
+              "-mincPath $minc -profile $profile";
     if ($force) {
         $script .= " -force";
     }
@@ -482,7 +486,7 @@ if ($valid_study) {
     my @row = $sth->fetchrow_array();
     if (@row) {
         my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
-                     "-profile prod ";
+                     "-profile $profile ";
     ############################################################
     ## Note: system call returns the process ID ################
     ## To get the actual exit value, shift right by eight as ### 
