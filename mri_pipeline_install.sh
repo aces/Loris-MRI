@@ -95,7 +95,7 @@ echo
   sudo -S su $USER -c "mkdir -p /data/$PROJ/data/jiv"            ## holds JIVs used for JIV viewer
   sudo -S su $USER -c "mkdir -p /data/$PROJ/data/assembly" ## holds the MINC files
   sudo -S su $USER -c "mkdir -p /data/$PROJ/data/batch_output"  ##contains the result of the SGE (queue
-  sudo -S su $USER -c "mkdir -p $mridir/.loris_mri"
+  sudo -S su $USER -c "mkdir -p $mridir/dicom-archive/.loris_mri"
 echo
 #######################################################################################
  ###############incoming directory using sites########################################
