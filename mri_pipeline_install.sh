@@ -8,6 +8,25 @@
 
 ## First, check that all required modules are installed.
 ## Check if cpan module installed
+
+#If MRI and TRUNK use the same user/database. Propose to specify config.xml
+# to speed up the installation process
+while getopts ":c:" opt; do
+  case $opt in
+    c)
+      configFile="$OPTARG";
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
 CPANCHECK=`which cpan`
 if [ ! -f "$CPANCHECK" ]; then
     echo "\nERROR: Unable to find cpan"
@@ -29,16 +48,50 @@ if [ ! -f "$APTGETCHECK" ]; then
     exit
 fi
 
-
-read -p "what is the database name? " mysqldb
-read -p "What is the database host? " mysqlhost
-read -p "What is the Mysql user? " mysqluser
-stty -echo ##this disables the password to show up on the commandline
-read -p "What is the mysql password? " mysqlpass; echo
-stty echo
+if [ ! -f "$APTGETCHECK" ]; then
+    echo "\nERROR: Unable to find apt-get"
+    echo "Please, ask your sysadmin to install APT-GET\n"
+    exit
+fi
 
 read -p "what is the linux user which the installation will be based on? " USER
 read -p "what is the project Name " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
+
+
+if [ ! -z "$configFile" ] && [ -f "$configFile" ]; 
+then
+    mysqlhost=`grep -oPm1 "(?<=<host>)[^<]+" $configFile`;
+    mysqluser=`grep -oPm1 "(?<=<username>)[^<]+" $configFile`;
+    mysqlpass=`grep -oPm1 "(?<=<password>)[^<]+" $configFile`;
+    mysqldb=`grep -oPm1 "(?<=<database>)[^<]+" $configFile`;
+    while true; do
+        echo "Thoses values have been found in the config.xml?";
+        echo "Hostname=> $mysqlhost";
+        echo "Database=> $mysqldb";
+        echo "Username=> $mysqluser";
+        read -p "Would you like to keep those setting? [y,n]:" yn
+        echo
+        case $yn in
+            [Yy]* ) break;;
+            [Nn]* ) 
+                    read -p "what is the database name? " mysqldb
+                    read -p "What is the database host? " mysqlhost
+                    read -p "What is the Mysql user? " mysqluser
+                    stty -echo ##this disables the password to show up on the commandline
+                    read -p "What is the mysql password? " mysqlpass;
+                    echo
+                    stty echo;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+else
+    read -p "what is the database name? " mysqldb
+    read -p "What is the database host? " mysqlhost
+    read -p "What is the Mysql user? " mysqluser
+    stty -echo ##this disables the password to show up on the commandline
+    read -p "What is the mysql password? " mysqlpass; echo
+    stty echo  
+fi
 
 read -p "what is your email address " email
 email=${email/@/\\\\@}  ##adds a back slash before the @
@@ -101,11 +154,16 @@ echo
 ####################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
-echo "Modifying environment script"
-sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
-##Make sure that CIVET stuff are placed in the right place
+echo "Create init.sh script"
+##Make sure that CIVET stuff are placed at the right place
 ##source  /data/$PROJ/bin/$mridirname/environment
-export TMPDIR=/tmp
+
+TEXT="export LORIS_MRI_HOME=$mridir"
+TEXT="$TEXT\nexport PATH=\$LORIS_MRI_HOME:\$LORIS_MRI_HOME/uploadNeuroDB:\$LORIS_MRI_HOME/dicom-archive:\$PATH "
+TEXT="$TEXT\nexport PERL5LIB=\$LORIS_MRI_HOME/uploadNeuroDB:\$PERL5LIB "
+TEXT="$TEXT\nexport LORIS_CONFIG=\$LORIS_MRI_HOME/dicom-archive "
+TEXT="$TEXT\nexport TMPDIR=/tmp"
+echo -e $TEXT > init.sh
 echo
 
 ####################################################################################
