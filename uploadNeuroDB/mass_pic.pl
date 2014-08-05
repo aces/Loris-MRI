@@ -38,7 +38,7 @@ GetOptions(\@arg_table, \@ARGV) ||  exit 1;
 
 ################################################################
 ################ checking for profile settings #################
-#o###############################################################
+################################################################
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
