@@ -98,7 +98,7 @@ sub subjectIDIsValid {
     my $rowhr = $sth->fetchrow_hashref();
     
     if ($rowhr->{'isValid'} == 1) {
-        $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE Visit_label=".$${dbhr}->quote($visit_label);
+        $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE BINARY Visit_label=".$${dbhr}->quote($visit_label);
         $sth = $${dbhr}->prepare($query);
         $sth->execute();
     
