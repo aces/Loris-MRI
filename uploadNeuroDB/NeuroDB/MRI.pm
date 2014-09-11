@@ -462,12 +462,12 @@ sub identify_scan_db {
     #print "ScannerID: $ScannerID\n";
     
     # get the list of protocols for a site their scanner and subproject
-    $query = "SELECT Scan_type, Objective, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
+    $query = "SELECT Scan_type, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
               xstep_range, ystep_range, zstep_range, time_range, series_description_regex
               FROM mri_protocol
               WHERE
-             (Center_name='$psc' AND ScannerID='$ScannerID' AND Objective='$objective')
-              OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0' AND Objective='0')
+             (Center_name='$psc' AND ScannerID='$ScannerID')
+              OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
               ORDER BY Center_name ASC, ScannerID DESC";
 
     $sth = $${dbhr}->prepare($query);
