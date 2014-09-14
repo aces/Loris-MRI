@@ -169,5 +169,4 @@ sub  get_DTI_Site_CandID_Visit {
     }else{
         return  undef;
     }
-                                                              194,6         98%
 }
