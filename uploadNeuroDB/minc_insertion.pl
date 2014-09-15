@@ -7,7 +7,6 @@ use FileHandle;
 use File::Basename;
 use File::Temp qw/ tempdir /;
 use Data::Dumper;
-use Time::Piece;
 use FindBin;
 use Cwd qw/ abs_path /;
 # These are the NeuroDB modules to be used
@@ -368,13 +367,13 @@ my $mincFileID = $utility->registerScanIntoDB(
 );
 
 ################################################################
-# register the nifti file to the database if provide       #####
+# register the nifti file to the database if provided       #####
 ################################################################
 
 if($nifti){
     my $today = localtime->strftime('%Y-%m-%d');
     my $command = "register_processed_data.pl -profile $profile -sourceFileID $mincFileID ".
-        "-sourcePipeline Nifti_Conversion -tool dcm2nii -pipelineDate $today" .
+        "-sourcePipeline Nifti_Conversion -tool mnc2nii -pipelineDate $today" .
         " -coordinateSpace native -scanType $acquisitionProtocol  -outputType native".
         " -inputFileIDs  $mincFileID -protocolID $acquisitionProtocolID -file $nifti";
    

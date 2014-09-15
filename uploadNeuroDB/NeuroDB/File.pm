@@ -270,7 +270,7 @@ sub loadFileFromDisk {
     elsif($file =~ /\.nii$/) {
         $fileType = 'nii';
     }
-    elsif($file =~ /\.nii.gz$/) {
+    elsif($file =~ /\.nii\.gz$/) {
         $fileType = 'nii.gz';
     }
     $this->setFileData('FileType', $fileType) if defined $fileType;

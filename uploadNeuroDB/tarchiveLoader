@@ -59,7 +59,7 @@ my $nifti       = 0;
 my $niftiz      = 0;  
 my $message     = '';
 my $verbose     = 1;           # default for now
-my $profile     = 'prod';       # this should never be set unless you are in a
+my $profile     = 'undef';       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                #set it to 1!!!
@@ -186,7 +186,7 @@ my $User             = `whoami`;
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo", "mincpik", $converter);
 if($nifti || $niftiz){
-    # nifti conveter should be implement in .loris configuration files
+    # nifti converter should be implemented in .loris configuration files
     push (@progs, "mnc2nii");
 }
 
@@ -485,7 +485,7 @@ if ($valid_study) {
     ### And number_of_mincInserted #############################
     ############################################################
     my $where = "WHERE TarchiveID=?";
-    my $query = "UPDATE ¢ SET number_of_mincInserted=?, ".
+    my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
                  "number_of_mincCreated=? ";
     $query = $query . $where;
     if ($debug) {
