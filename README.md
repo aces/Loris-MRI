@@ -12,6 +12,7 @@
 ```cd /data/$projectname/bin``` <br>
 ```git clone git@github.com:your-git-username/Loris-MRI.git mri```
 
+
 2. Install Dicom-archive within the mri/ directory (created by the git clone command):
 ```cd /data/$projectname/bin/mri/ ```  <br>
 ```git submodule init```  <br>
