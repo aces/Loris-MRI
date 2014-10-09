@@ -1,6 +1,11 @@
 # System Requirements
+ * DICOM toolkit
+ * Perl
+ * MINC
 
 # Installation
+
+1. Create directories
 
 ```sudo mkdir -p /data/$projectname/bin``` <br>
 ```sudo chown -R lorisadmin:lorisadmin /data/$projectname``` <br>
