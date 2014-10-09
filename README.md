@@ -1,18 +1,17 @@
-# System Requrirements
+# System Requirements
 
 # Installation
 
-
-sudo mkdir -p /data/$projectname/bin
-sudo chown -R lorisadmin:lorisadmin /data/$projectname
-cd /data/$projectname/bin
-git clone git@github.com:your-git-username/Loris-MRI.git mri
+```sudo mkdir -p /data/$projectname/bin```
+```sudo chown -R lorisadmin:lorisadmin /data/$projectname```
+```cd /data/$projectname/bin```
+```git clone git@github.com:your-git-username/Loris-MRI.git mri```
 
 2. Install Dicom-archive within the mri/ directory (created by the git clone command):
-cd /data/$projectname/bin/mri/ 
-git submodule init
-git submodule sync
-git submodule update
+```cd /data/$projectname/bin/mri/ ```
+```git submodule init```
+```git submodule sync```
+```git submodule update```
 
 3. Run installer to install MINC & DICOM toolkits, Perl libraries, configure environment, and setup directories:
 bash imaging_install.sh
