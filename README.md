@@ -5,9 +5,6 @@
 
 # Installation
 
-
-
-
 1. Create directories
 
 ```sudo mkdir -p /data/$projectname/bin``` <br>
@@ -20,7 +17,6 @@
 ```git submodule init```  <br>
 ```git submodule sync```  <br>
 ```git submodule update```
-
 
 3. Run installer to install MINC & DICOM toolkits, Perl libraries, configure environment, and setup directories:
 bash imaging_install.sh
