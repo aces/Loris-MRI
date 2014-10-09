@@ -2,9 +2,9 @@
 
 # Installation
 
-```sudo mkdir -p /data/$projectname/bin
-sudo chown -R lorisadmin:lorisadmin /data/$projectname
-cd /data/$projectname/bin
+```sudo mkdir -p /data/$projectname/bin <br>
+sudo chown -R lorisadmin:lorisadmin /data/$projectname <br>
+cd /data/$projectname/bin <br>
 git clone git@github.com:your-git-username/Loris-MRI.git mri```
 
 2. Install Dicom-archive within the mri/ directory (created by the git clone command):
