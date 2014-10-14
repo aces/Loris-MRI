@@ -41,6 +41,6 @@
 
 Ensure that /home/lorisadmin/.bashrc includes the statements: 
 
-```source /data/$projectname/bin/mri/environme```
+```source /data/$projectname/bin/mri/environment```
 
 Installation complete. For customizations & protocol configurations, see LORIS Developer’s Guide.
