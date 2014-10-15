@@ -984,6 +984,28 @@ sub getPSC {
         return ($row->{'MRI_alias'}, $row->{'CenterID'})
 	    if ($patientName =~ /$row->{'Alias'}/i) || ($patientName =~ /$row->{'MRI_alias'}/i);
     }
+
+    ###########################################################################	
+    ###Get the centerID using the PSCID########################################
+    ###########################################################################
+
+    #extract the PSCID from $patientName
+    $subjectIDsref = getSubjectIDs($patientName,null,$dbhr);
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    print "PSCIDDDDDDDDDDDDDDDDDDDDD is " . $PSCID;
+    if ($PSCID) {
+    ##Get the CenterID using PSCID
+        $query = "SELECT CenterID FROM candidate WHERE PSCID='$PSCID'";
+        print $query . "\n";
+        $sth = ${$this->{'dbhr'}}->prepare($query);
+	$sth->execute();
+	if ( $sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+	    print "centerid  " . $row->{'CenterID'} ;
+	    return $row->{'CenterID'};
+	}
+    }  
+
     return ("UNKN", 0);
 }
 
