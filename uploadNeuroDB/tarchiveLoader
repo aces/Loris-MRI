@@ -540,7 +540,7 @@ if ($valid_study) {
 ################################################################
 # make final logfile name without overwriting phantom logs #####
 ################################################################
-my $final_logfile = $psc."_".$tarchiveInfo{'DateAcquired'}.
+my $final_logfile = $center_name."_".$tarchiveInfo{'DateAcquired'}.
                     '_'.$subjectIDsref->{'CandID'};
 if ($subjectIDsref->{'isPhantom'}) { 
     $final_logfile = $subjectIDsref->{'PSCID'}."_".
