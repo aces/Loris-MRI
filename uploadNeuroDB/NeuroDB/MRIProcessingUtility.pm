@@ -232,9 +232,8 @@ sub determinePSC {
         $tarchiveInfo->{$Settings::lookupCenterNameUsing},
         $this->{dbhr}
     );
-    my $psc = $center_name;
     if ($to_log) {
-        if (!$psc) {
+        if (!$center_name) {
             $this->{LOG}->print(
                 "\nERROR: No center found for this candidate \n\n"
             );
@@ -246,7 +245,7 @@ sub determinePSC {
             " : $centerID\n"
         );
     }
-    return ($psc,$center_name, $centerID);
+    return ($center_name, $centerID);
 }
 
 ################################################################

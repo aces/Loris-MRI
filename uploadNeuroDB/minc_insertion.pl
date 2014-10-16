@@ -212,9 +212,9 @@ if (($is_valid == 0) && ($force==0)) {
                 );
 
 ################################################################
-############ Get the $psc,$center_name, $centerID ##############
+############ Get the $center_name, $centerID ##############
 ################################################################
-my ($psc,$center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
 ################################################################
 #### Determine the ScannerID ###################################

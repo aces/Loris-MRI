@@ -218,7 +218,7 @@ $utility->validateArchive($tarchive,\%tarchiveInfo);
 ### Verify PSC information using whatever field ################ 
 ### contains site string #######################################
 ################################################################
-my ($psc,$center_name, $centerID) =
+my ($center_name, $centerID) =
     $utility->determinePSC(\%tarchiveInfo,1);
 
 ################################################################
