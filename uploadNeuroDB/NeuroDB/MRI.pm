@@ -58,7 +58,6 @@ Returns: a reference to a hash containing elements including 'CandID', 'visitLab
 sub getSubjectIDs {
     my ($patientName, $scannerID, $dbhr) = @_;
     my %subjectID;
-
 # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
     if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
 	$subjectID{'CandID'} = my_trim(getScannerCandID($scannerID, $dbhr));
@@ -70,10 +69,9 @@ sub getSubjectIDs {
 	$subjectID{'PSCID'} = my_trim($1);
 	$subjectID{'CandID'} = my_trim($2);
 	$subjectID{'visitLabel'} = my_trim($3);
-	if(!subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subject{'visitLabel'}, $dbhr)) {
+	if(!subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subjectID{'visitLabel'}, $dbhr)) {
 	    return undef;
 	}
-        
     }
     my $sth = $${dbhr}->prepare("SELECT VisitNo FROM session WHERE CandID='$subjectID{'CandID'}' AND Visit_label='$subjectID{'visitLabel'}' AND Active='Y'");
     $sth->execute();
@@ -90,7 +88,6 @@ B<subjectIDIsValid( C<$CandID>, C<$PSCID>, C<$dbhr> )>
 =cut
 sub subjectIDIsValid {
     my ($candID, $pscid, $visit_label, $dbhr) = @_;
-    
     my $query = "SELECT COUNT(*) AS isValid FROM candidate WHERE CandID=".$${dbhr}->quote($candID)." AND PSCID=".$${dbhr}->quote($pscid);
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
@@ -447,7 +444,6 @@ sub identify_scan_db {
     
     my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer='$manufacturer' AND Model='$model' AND Serial_number='$serial_number' AND Software='$software'";
     
-    # print "\n\n\t$query\n\n";
     
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
@@ -459,7 +455,6 @@ sub identify_scan_db {
         $ScannerID=$results[0];
     }
 
-    #print "ScannerID: $ScannerID\n";
     
     # get the list of protocols for a site their scanner and subproject
     $query = "SELECT Scan_type, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
@@ -472,7 +467,6 @@ sub identify_scan_db {
 
     $sth = $${dbhr}->prepare($query);
     $sth->execute();
-    # print $query;
     return 'unknown' unless $sth->rows>0;
     
     # check against all possible scan types
@@ -917,7 +911,6 @@ sub registerScanner {
 
     # find the CandID associated with this serial number
     my $query = "SELECT CandID FROM mri_scanner WHERE Serial_number=".$dbh->quote($serialNumber)." LIMIT 1";
-    
     my $sth = $dbh->prepare($query);
     $sth->execute();
     if($sth->rows > 0) {
@@ -992,17 +985,16 @@ sub getPSC {
     #extract the PSCID from $patientName
     $subjectIDsref = getSubjectIDs($patientName,null,$dbhr);
     my $PSCID = $subjectIDsref->{'PSCID'};
-    print "PSCIDDDDDDDDDDDDDDDDDDDDD is " . $PSCID;
     if ($PSCID) {
     ##Get the CenterID using PSCID
-        $query = "SELECT CenterID FROM candidate WHERE PSCID='$PSCID'";
-        print $query . "\n";
-        $sth = ${$this->{'dbhr'}}->prepare($query);
+	$query = "SELECT c.CenterID,p.MRI_alias FROM candidate c JOIN
+	psc p on p.CenterID=c.CenterID  WHERE c.PSCID = '$PSCID'";
+
+        $sth = $${dbhr}->prepare($query);
 	$sth->execute();
 	if ( $sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
-	    print "centerid  " . $row->{'CenterID'} ;
-	    return $row->{'CenterID'};
+	    return ($row->{'MRI_alias'},$row->{'CenterID'});
 	}
     }  
 
