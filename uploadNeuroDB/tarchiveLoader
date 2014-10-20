@@ -311,7 +311,7 @@ if (($output != 0) && ($output!= 5) && ($force==0)) {
 }
 
 ################################################################
-########## Get the $psc,$center_name, $centerID ################
+########## Get the $center_name, $centerID ################
 ################################################################
 my ($center_name, $centerID) =
      $utility->determinePSC(\%tarchiveInfo,0);
@@ -540,7 +540,7 @@ if ($valid_study) {
 ################################################################
 # make final logfile name without overwriting phantom logs #####
 ################################################################
-my $final_logfile = $psc."_".$tarchiveInfo{'DateAcquired'}.
+my $final_logfile = $center_name."_".$tarchiveInfo{'DateAcquired'}.
                     '_'.$subjectIDsref->{'CandID'};
 if ($subjectIDsref->{'isPhantom'}) { 
     $final_logfile = $subjectIDsref->{'PSCID'}."_".
