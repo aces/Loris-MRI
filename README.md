@@ -3,15 +3,18 @@
  * Perl
  * MINC
 
+The following installation should be run by the $lorisadmin user. sudo permission is required.
+See aces/Loris README.md for further information and Loris installation information. 
+
 # Installation
 
 1. Create directories
 
    ```bash
-   sudo mkdir -p /data/$projectname/bin
+   sudo mkdir -p /data/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
    cd /data/$projectname/bin
-   git clone git@github.com:your-git-username/Loris-MRI.git mri
+   git clone https://github.com/aces/Loris-MRI.git mri
    ```
    
 2. Install Dicom-archive within the mri/ directory (created by the git clone command):
@@ -25,6 +28,7 @@
 
 3. Run installer to install MINC & DICOM toolkits, Perl libraries, configure environment, and setup directories:
 
+   cd /data/$projectname/bin/mri/
    ```bash imaging_install.sh```
 
   You will be asked for the following input: 
@@ -44,3 +48,4 @@ Ensure that /home/lorisadmin/.bashrc includes the statements:
 ```source /data/$projectname/bin/mri/environment```
 
 Installation complete. For customizations & protocol configurations, see LORIS Developer’s Guide.
+
