@@ -3,12 +3,15 @@
  * Perl
  * MINC
 
+The following installation should be run by the $lorisadmin user, sudo permission is required.
+See aces/Loris README.md for further information and Loris installation information.
+
 # Installation
 
 1. Create directories
 
    ```bash
-   sudo mkdir -p /data/$projectname/bin
+   sudo mkdir -p /data/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
    cd /data/$projectname/bin
    git clone git@github.com:your-git-username/Loris-MRI.git mri
