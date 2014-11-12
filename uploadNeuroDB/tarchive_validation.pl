@@ -144,15 +144,13 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0700); 
 }
 my $logfile  = "$LogDir/$templog.log";
-open LOG, ">>", $logfile or die "Error Opening $logfile";
-LOG->autoflush(1);
 &logHeader();
 
 ################################################################
 ################ Establish database connection #################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
+$message= "\n==> Successfully connected to database \n";
 
 ################################################################
 ################ MRIProcessingUtility object ###################
@@ -161,7 +159,7 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
                   \$dbh,$debug,$TmpDir,$logfile,
                   $verbose
               );
-
+$utility->writeLog($message);
 ################################################################
 ############### Create tarchive array ##########################
 ################################################################
@@ -191,7 +189,7 @@ if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
                " doesn't exist in the mri_upload table. Either: \n".
                "-re-run the dicomTar.pl using -mri_upload_update ".
                "-or use -mri_upload_insert to insert the missing values.\n\n";
-    $utility->writeErrorLog($message,5,$logfile);
+    $utility->writeErrorLog($message,5);
     exit 5;
 }
 

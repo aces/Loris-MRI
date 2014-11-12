@@ -163,15 +163,13 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0700); 
 }
 my $logfile  = "$LogDir/$templog.log";
-open LOG, ">>", $logfile or die "Error Opening $logfile";
-LOG->autoflush(1);
 &logHeader();
 
 ################################################################
 ############### Establish database connection ##################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
+$message  = "\n==> Successfully connected to database \n";
 
 
 ################################################################
@@ -182,6 +180,7 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
                   $verbose
               );
 
+$utility->writeLog($message);
 ################################################################
 #################### Check is_valid column #####################
 ################################################################
@@ -200,7 +199,7 @@ if (($is_valid == 0) && ($force==0)) {
                "the problem. Or use -force to force the ".
                "execution.\n\n";
     print $message;
-    $utility->writeErrorLog($message,6,$logfile); 
+    $utility->writeErrorLog($message,6); 
     exit 6;
 }
 
@@ -262,8 +261,9 @@ my $file = $utility->loadAndCreateObjectFile($minc);
 ##### Optionally do extra filtering, if needed #################
 ################################################################
 if (defined(&Settings::filterParameters)) {
-    print LOG " --> using user-defined filterParameters for $minc\n"
-    if $verbose;
+    $message = " --> using user-defined filterParameters for $minc\n";
+    $utility->writeLog($message);
+    print $message if $verbose;
     Settings::filterParameters(\$file);
 }
 
@@ -276,9 +276,13 @@ if (defined(&Settings::filterParameters)) {
 ################################################################
 
 if (defined($CandMismatchError)) {
-    print LOG "Candidate Mismatch Error is $CandMismatchError\n";
-    print LOG " -> WARNING: This candidate was invalid. Logging to
+    $message = "Candidate Mismatch Error is $CandMismatchError\n";
+    $utility->writeErrorLog($message,7);
+
+    $message=  " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
+    $utility->writeErrorLog($message,7);
+
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
         $tarchiveInfo{'TarchiveID'},
@@ -304,8 +308,9 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
-    print "--> WARNING: This file has already been uploaded! \n"  if $debug;
-    print LOG " --> WARNING: This file has already been uploaded!"; 
+    $message = "--> WARNING: This file has already been uploaded! \n";
+    $utility->writeErrorLog($message,8);
+    print $message  if $debug;
     exit 8; 
 } 
 
@@ -336,8 +341,9 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
     );
 
 if($acquisitionProtocol =~ /unknown/) {
-   print LOG " --> The minc file cannot be registered since the ".
+   $message = " --> The minc file cannot be registered since the ".
              "AcquisitionProtocol IS unknown";
+   $utility->writeErrorLog($message,9);
    exit 9;
 }
 
