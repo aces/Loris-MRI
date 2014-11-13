@@ -61,7 +61,7 @@ sub writeLog
 {
 
     my $use_log_table  = $Settings::use_log_table;
-    my $use_file_table = $Settings::use_log_file;
+    my $use_log_file = $Settings::use_log_file;
     my $this           = shift;
     my ( $message ) = @_;
     
@@ -76,7 +76,7 @@ sub writeLog
     #############################################################
     #######write the logs in the log file########################
     #############################################################
-    if ( $use_file_table )
+    if ( $use_log_file )
     {
         $this->{ LOG }->print( $message );
         close $this->{ LOG };
@@ -85,10 +85,15 @@ sub writeLog
     #############################################################
     #######write the logs in the log table#######################
     ############################################################# 
-    if ( $use_file_table ) {
+   print "use log table is " . $use_log_table . "\n";
+    if ( $use_log_table ) {
     	my $log_query = "INSERT INTO log (Message,Created) VALUES (?, now())";
-	my $logsth    = ${ $this->{ 'dbhr' } }->prepare( $log_query );
-	$logsth->execute( $message );
+        print "log query is " . $log_query  . "\n";
+        print 'use_file_table' . $use_log_table;
+	my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
+        print "message is $message";
+	my $result = $logsth->execute( $message );
+        print "result is $result \n";
     }
  
 
