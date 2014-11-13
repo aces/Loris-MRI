@@ -149,6 +149,7 @@ extracts it so data can actually be uploaded
 sub extract_tarchive {
     my $this = shift;
     my ($tarchive) = @_;
+    my $message;
     print "Extracting tarchive $tarchive in $this->{TmpDir} \n" 
     if $this->{verbose};
     my $cmd = "cd $this->{TmpDir} ; tar -xf $tarchive";
@@ -159,7 +160,7 @@ sub extract_tarchive {
         readdir(TMPDIR);
     closedir TMPDIR;
     if (scalar(@tars) != 1) {
-	my $message =  "Error: Could not find inner tar in $tarchive!\n" .
+	$message =  "Error: Could not find inner tar in $tarchive!\n" .
                      @tars . "\n";
         $this->writeErrorLog( $message,1);
         print $message  if $this->{verbose};
@@ -236,6 +237,7 @@ sub createTarchiveArray {
     
     my $this = shift;
     my %tarchiveInfo;
+    my $message = '';
     my ($tarchive,$globArchiveLocation) = @_;
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
@@ -256,7 +258,7 @@ sub createTarchiveArray {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();
         %tarchiveInfo = %$tarchiveInfoRef;
     } else {
-        my $message = "\n ERROR: Only archived data can be uploaded.".
+        $message = "\n ERROR: Only archived data can be uploaded.".
                       "This seems not to be a valid archive for this study!".
                       "\n\n";
         $this->writeErrorLog($message, 3);
