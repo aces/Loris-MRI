@@ -1048,10 +1048,12 @@ sub validateCandidate {
     $query = "SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label=?";
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'visitLabel'});
-    if ($sth->rows == 0) {
+    if (($sth->rows == 0) && ($subjectIDsref->{'createVisitLabel'} eq "no") {
         print LOG  "\n\n => No Visit label";
         $CandMismatchError= 'Visit label does not exist';
         return $CandMismatchError;
+    } elsif (($sth->rows == 0) && ($subjectIDsref->{'createVisitLabel'} eq "yes")) {
+        print LOG  "\n\n => Will create visit label $subjectIDsref->{'visitLabel'}";
     } 
 
    return $CandMismatchError;
