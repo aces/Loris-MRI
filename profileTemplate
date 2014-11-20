@@ -95,10 +95,14 @@ sub getSubjectIDs {
      # If patientName is phantom scan or test scan
      # CandID is scanner DCCID (based on site alias)
      # visitLabel is scan patient name
+     # Set createVisitLable to 
+     #      a. "yes" if imaging pipeline should create the visit label (when visit label has not been created yet in the database. 
+     #      b. "no" if imaging pipeline should not create the visit label (when visit label has not been created yet in the database. 
     if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
 
         $subjectID{'CandID'}    = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $dbhr));
         $subjectID{'visitLabel'}= NeuroDB::MRI::my_trim($patientName);
+        $subjectID{'createVisitLabel'} = "yes";  # can be "yes" or "no"
 
      # If patient match PSCID_DCCID_VisitLabel
      # Determine PSCID, DCCID and visitLabel based on patient name
@@ -107,6 +111,7 @@ sub getSubjectIDs {
         $subjectID{'PSCID'}         = NeuroDB::MRI::my_trim($1);
         $subjectID{'CandID'}        = NeuroDB::MRI::my_trim($2);
         $subjectID{'visitLabel'}    = NeuroDB::MRI::my_trim($3);
+        $subjectID{'createVisitLabel'} = "no";  # can be "yes" or "no"
 
         print "PSCID is: "            . $subjectID{'PSCID'}      . 
                 "\n CandID id: "      . $subjectID{'CandID'}     . 
