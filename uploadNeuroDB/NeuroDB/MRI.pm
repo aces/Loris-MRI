@@ -95,7 +95,7 @@ sub subjectIDIsValid {
     my $rowhr = $sth->fetchrow_hashref();
     
     # Check that visit label exists in the database if don't want to create visit labels via imaging pipeline 
-    if (($rowhr->{'isValid'} == 1) && ($create_visit_label eq "no")) {
+    if (($rowhr->{'isValid'} == 1) && (!$create_visit_label)) {
         $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE BINARY Visit_label=".$${dbhr}->quote($visit_label);
         $sth = $${dbhr}->prepare($query);
         $sth->execute();
