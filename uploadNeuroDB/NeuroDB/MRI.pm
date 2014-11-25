@@ -87,14 +87,15 @@ B<subjectIDIsValid( C<$CandID>, C<$PSCID>, C<$dbhr> )>
     Returns: 1 if the ID pair matches, 0 otherwise
 =cut
 sub subjectIDIsValid {
-    my ($candID, $pscid, $visit_label, $dbhr) = @_;
+    my ($candID, $pscid, $visit_label, $dbhr, $create_visit_label) = @_;
     my $query = "SELECT COUNT(*) AS isValid FROM candidate WHERE CandID=".$${dbhr}->quote($candID)." AND PSCID=".$${dbhr}->quote($pscid);
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
     
     my $rowhr = $sth->fetchrow_hashref();
     
-    if ($rowhr->{'isValid'} == 1) {
+    # Check that visit label exists in the database if don't want to create visit labels via imaging pipeline 
+    if (($rowhr->{'isValid'} == 1) && (!$create_visit_label)) {
         $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE BINARY Visit_label=".$${dbhr}->quote($visit_label);
         $sth = $${dbhr}->prepare($query);
         $sth->execute();
