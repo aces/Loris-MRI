@@ -182,7 +182,7 @@ my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my $User             = `whoami`;
 
 # fixme there are better ways 
-my @progs = ("convert", "Mincinfo", "mincpik", $converter);
+my @progs = ("convert", "Mincinfo_wrapper", "mincpik", $converter);
 # create the temp dir
 my $TmpDir = tempdir(
                  $template, TMPDIR => 1, CLEANUP => 1 

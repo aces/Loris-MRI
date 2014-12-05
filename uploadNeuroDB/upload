@@ -10,7 +10,7 @@ CURRENTLY BROKEN . DO not USE!
     session, parameter_file, parameter_type, parameter_type_category, files, mri_staging, notification_spool
 =cut
 
-# fixme Mincinfo path
+# fixme Mincinfo_wrapper path
 # fixme add a check for all programms that will be used
 # fixme add a check for registered protocols...
 # fixme the Phantom problem
@@ -461,7 +461,7 @@ sub confirm_single_study {
 	
 	my %hash;
 	foreach my $minc_file (@$minc_files_ref) {
-		my $cmd = "Mincinfo -quiet -tab -attvalue dicom_0x0020:el_0x000d -attvalue patient:full_name $minc_file";
+		my $cmd = "Mincinfo_wrapper -quiet -tab -attvalue dicom_0x0020:el_0x000d -attvalue patient:full_name $minc_file";
 		my $key = `$cmd`;
 		$hash{$key} = 1;
 	}
@@ -536,7 +536,7 @@ sub get_mincs
    my @dates_list;
    foreach my $file (@files) {
       next unless $file =~ /\.mnc(\.gz)?$/;
-      push @files_list, `Mincinfo -quiet -tab -file -date $TmpDir/$file`;
+      push @files_list, `Mincinfo_wrapper -quiet -tab -file -date $TmpDir/$file`;
    }
     open SORTER, "|sort -nk2 | cut -f1 > $TmpDir/sortlist";
     print SORTER join("", @files_list);
@@ -570,7 +570,7 @@ sub refresh_mincs
 	next unless `mincinfo -dimlength xspace $TmpDir/$file` >  5;
 	next unless `mincinfo -dimlength yspace $TmpDir/$file` >  5;
 	next unless `mincinfo -dimlength zspace $TmpDir/$file` >  5;
-	push @files_list, `Mincinfo -quiet -tab -file -date $TmpDir/$file`;
+	push @files_list, `Mincinfo_wrapper -quiet -tab -file -date $TmpDir/$file`;
     }
     open SORTER, "|sort -nk2 | cut -f1 > $TmpDir/sortlist";
     print SORTER join("", @files_list);

@@ -12,7 +12,7 @@
 #             software for any purpose.  It is provided "as is" without
 #             express or implied warranty.
 #---------------------------------------------------------------------------- 
-#$RCSfile: Mincinfo,v $
+#$RCSfile: Mincinfo_wrapper,v $
 #$Revision: 1.1.1.1 $
 #$Author: moi $
 #$Date: 2006/05/31 11:33:39 $
@@ -131,7 +131,7 @@ sub SetupArgTables
 {
    my (@args) = 
        (
-	["Mincinfo options", "section"],
+	["Mincinfo_wrapper options", "section"],
 	["-image_info", "call", undef, \&MincInfoOption,
 	 "Print out the default information about the images"],
 	["-dimnames", "call", undef, \&MincInfoOption,
