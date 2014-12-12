@@ -194,6 +194,7 @@ if ($dbase) {
     if ($success) { print "\nDone\n" if $verbose; }
     else { print "the database command failed\n"; exit 22; }
 }
+
 # call the updateMRI_upload script###
 if ($mri_upload_update) {
     my $script =  "updateMRI_Upload.pl"
@@ -205,6 +206,7 @@ if ($mri_upload_update) {
         exit 33;
     }
 }
+
 
 exit 0;
 # **************************************************************************************************************************  
