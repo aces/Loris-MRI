@@ -1,9 +1,9 @@
-#LORIS Mac Install Guide
+#LORIS-MRI Mac Install Guide
 
 This is a guide on how to install the imaging pipeline on your Mac computer. It has been tested for Mac OS X 10.9.
 
-
 # 1. Request Loris-MRI Github repository permission, fork it to your Git-user, then clone the fork to your server
+
 ```
 sudo mkdir -p /data/$PROJ/bin
 sudo chown -R lorisadmin:lorisadmin /data/$PROJ
@@ -13,6 +13,7 @@ git clone git@github.com:your-git-username/Loris-MRI.git mri
 Note: $PROJ = project name
 
 # 2. Install Dicom-archive within the mri/ directory
+
 ```
 cd /data/$PROJ/bin/mri/
 git submodule init
@@ -25,12 +26,14 @@ Note: $PROJ = project name
 
 # 4. Install the following perl libraries
 Note: Before compiling DBD::mysql, you will need to create some alias because MySQL on Mac is installed differently than on Linux
+
 ```
 cd /usr/local
 sudo mkdir lib
 cd lib
 sudo ln -s /usr/local/mysql/lib/*.dylib .
 ```
+
 ```
 sudo -S cpan install Math::Round
 sudo -S cpan install Getopt::Tabular
@@ -39,11 +42,16 @@ sudo -S cpan install Path::Class
 sudo -S cpan install DBI
 sudo -S cpan install DBD::mysql
 ```
+
 # 5. Install md5sum library
+
 ```
 sudo port install md5sh1sum
 ```
+
 # 6. Run imaging_install_MacOSX.sh script
+
 ```
 sh imaging_install_MacOSX.sh
 ```
+
