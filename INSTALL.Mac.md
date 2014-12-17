@@ -1,3 +1,8 @@
+#LORIS Mac Install Guide
+
+This is a guide on how to install the imaging pipeline on your Mac computer. It has been tested for Mac OS X 10.9.
+
+
 # 1. Request Loris-MRI Github repository permission, fork it to your Git-user, then clone the fork to your server
 ```
 sudo mkdir -p /data/$PROJ/bin
