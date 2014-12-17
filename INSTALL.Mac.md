@@ -2,7 +2,10 @@
 
 This is a guide on how to install the imaging pipeline on your Mac computer. It has been tested for Mac OS X 10.9.
 
-## 1. Request Loris-MRI Github repository permission, fork it to your Git-user, then clone the fork to your server
+## 1. Grep the code from Github
+
+Request Loris-MRI Github repository permission. 
+Fork the repository to your Git-user and clone the fork to your server.
 
 ```
 sudo mkdir -p /data/$PROJ/bin
@@ -24,7 +27,7 @@ Note: $PROJ = project name
 
 ## 3. Install [minctoolkit](http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC) and [dcmtk] (http://dicom.offis.de/dcmtk.php.en)
 
-# 4. Install the following perl libraries
+## 4. Install the following perl libraries
 Note: Before compiling DBD::mysql, you will need to create some alias because MySQL on Mac is installed differently than on Linux
 
 ```
