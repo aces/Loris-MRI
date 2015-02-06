@@ -595,6 +595,7 @@ my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
 if ($xlog) {
     `kill -9 $childPID`;
 }
+exit 0;
 
 sub logHeader () {
     print LOG "

@@ -48,18 +48,9 @@ sub new {
 }
 
 
-####Todo##
-=pod
---this needs to be tested...It may not work...
-
-=cut 
-
-
-
 ###############################################################################
-##############################getgetArchivedFiles##############################
+##############################setEnvironment###################################
 ###############################################################################
-
 sub setEnvironment {
   my $environment_file = $Settings::data_dir . "/" . "environment";
   $environment_set = $this->runCommand("source $environment_file");
@@ -84,7 +75,7 @@ sub IsValid  {
     my @files = $file_decompress->getArchivedFiles();	
     my $files_not_dicom = 0;
     my $files_with_unmatched_patient_name = 0;
-     
+    my $is_valid = 0;     
     #############Loop through the files##############
     foreach (@files) {
 =pod
@@ -98,11 +89,11 @@ sub IsValid  {
  		$files_with_unmatched_patient_name++;
 	}
     }
-
    if (($files_not_dicom > 0) || 
-      ($files_with_unmatched_patient_name>0)) 
-	return 0;
-   return  1;
+      ($files_with_unmatched_patient_name>0)) {
+	$is_valid= 0;
+   }
+   return  $is_valid;
 }
 
 
@@ -110,55 +101,37 @@ sub IsValid  {
 ###############################runDicomTar#####################################
 ###############################################################################
 sub runDicomTar {
-  my $this = shift;
-  my $data_dir = $Settings::data_dir;
-=pod
-1) run the dicomtar
-2) get the tarchiveid
-3) update the mri-upload table with the specific info (i.e archiveid if the file is created and tarchive id is not null)
-   - 
-
-=cut
-  # $cmd = "perl $DICOMTAR $decompressed_folder $tarchive_location -clobber -database -profile prod";
-  
-=pod
-      $db->update(
-                "mri_upload",
-                array('TarchiveID' => $tarchive_id),
-                array('SourceLocation' => $source_location)
-            );
-            $this->tpl_data['dicom_success'] = true;
-            $data = array(
-                     $tarchive_id,
-                     $ArchiveLocation,
-                    );
-            return $data;
-=cut
-  ##run dicomtar.pl
+    my $this = shift;
+    my $tarchive_location = $Settings::data_dir. "/" . "tarchive";
+    my $dicomtar = $Settings::bin_dir. "/". "dicom-archive" . "/". "dicomTar.pl";
+    my $command = "perl $dicomtar" . $this->{'temp_file_path'} .   
+	"$tarchive_location -clobber -database -profile prod";
+    my $output = $this->runCommand($command);
+    $output = $output >> 8;
+    return $output;
 }
 
 ###############################################################################
-###############################runDicomTar#####################################
+###############################runInsertingScripts#############################
 ###############################################################################
-sub runDicomTar {
+sub runInsertionScripts {
   my $this = shift;
-  my $data_dir = $Settings::data_dir;
-  ##run dicomtar.pl
+  my $archived_file_path = $this->getTarchiveFileLocation();
+  my $command = $Settings::bin_dir. "/uploadNeuroDB/tarchiveLoader" . 
+		"-globLocation -profile prod $archived_file_path";
+  my $output = $this->runCommand($command);
+  $output = $output >> 8;
+  return $output;
 }
-
-
 
 ###############################################################################
 ###############################getgetArchivedFiles#############################
 ###############################################################################
-
-
 sub getArchivedFiles {
   my $this = shift;
   my $files = ${$this->{'extract_object'}}->files;
   return $files;
 }
-
 ###############################################################################
 ###############################getType#########################################
 ###############################################################################
@@ -171,18 +144,18 @@ sub getType {
 ##################################################################################
 ###############################PatientNameMatch###################################
 ##################################################################################
-
 sub PatientNameMatch {
  my $this = shift;
  my ($dicom_file) = @_;
-
  $cmd = "dcmdump $file | grep -i patientname";
 
  $patient_name_string = $this->runCommand($cmd);
  my ($l,$pname,$t) = split /^\[(.*?)\]^/, $patient_name_string;
- if ($pname eq  $this->{'pname'})
-   return 1;
- return 0;
+ if ($pname eq  $this->{'pname'}) {
+	return 1;
+ }
+ return  0;
+
 }
 ##################################################################################
 ###############################If DICOM File######################################
@@ -191,13 +164,37 @@ sub isDicom {
  my $this = shift;
  my ($dicom_file) = @_;
  $file_type = $this->runCommand("file $dicom_file") ;
- if ($file_type =~/DICOM/) return 1;
+ if ($file_type =~/DICOM/) {
+	return 1;
+ }
  return 0;
 }
 
 
+##################################################################################
+###############################getTarchiveFileLocation############################
+##################################################################################
+sub getTarchiveFileLocation {
+	my $this = shift;
+	my $archive_location  = '';
+	 $query = "SELECT t.ArchiveLocation FROM mri_upload m 
+	   JOIN t tarchive ON (m.TarchiveID = t.TarchiveID)
+	   WHERE m.SourceLocation =?";
+	${$this->{'dbhr'}}->execute($this->{'temp_file_path'};
+	if ($sth->rows> 0)) {
+		$archive_location = $sth->fetchrow_array();
+	}
+	return $archive_location; 
+}
+##################################################################################
+###############################moveUploadedFile###################################
+##################################################################################
 sub moveUploadedFile {
 }
+
+##################################################################################
+###############################runCommand#########################################
+##################################################################################
 
 sub runCommand {
  my $this = shift;
@@ -205,10 +202,5 @@ sub runCommand {
  return `$query`;
 }
 
-sub runBatchUpload {
-##$command = "cd $mri_code_path; perl $batch_upload_script< $tarchive_file_log";
- 
 
-}
-
-1; 
+0; 
