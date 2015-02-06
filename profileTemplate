@@ -30,7 +30,7 @@
 
 
 $data_dir       = '/PATH/TO/DATA/location';       # where the data goes
-$data_bin       = '/PATH/TO/BIN/location';        # where the imaging scripts go
+$bin_dir      = '/PATH/TO/BIN/location';        # where the imaging scripts go
 $prefix         = "project";                                    # study prefix or study name
 $mail_user      = "yourname\@example.com";                        # who will be notified
 $get_dicom_info = "/PATH/TO/get_dicom_info.pl";
