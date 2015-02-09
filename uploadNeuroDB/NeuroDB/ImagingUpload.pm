@@ -6,15 +6,15 @@ use warnings;
 use Data::Dumper;
 use File::Basename;
 use Path::Class;
-use FileDecompress;
+use NeuroDB::FileDecompress;
 use File::Temp qw/ tempdir /;
 
 =pod
 todo:
 
-    ----  is valid function 
-    ----  dicomtar function...
-    ----- tarchiveLoader function
+
+1) Create an  actuall function that sources the file
+http://stackoverflow.com/questions/6829179/how-to-source-a-shell-script-environment-variables-in-perl-script-without-fork
 =cut
 ################################################################
 #####################Constructor ###############################
@@ -26,7 +26,7 @@ todo:
 ################################################################
 sub new {
     my $params = shift;
-    my ($dbhr,$temp_file_path,$pname) = @_;
+    my ($dbhr,$uploaded_temp_folder,$pname) = @_;
     unless(defined $dbhr) {
        croak(
            "Usage: ".$params."->new(\$databaseHandleReference)"
@@ -42,7 +42,7 @@ sub new {
      package Settings;
      do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
-    $self->{'temp_file_path'} = $temp_file_path;
+    $self->{'uploaded_temp_folder'} = $uploaded_temp_folder;
     $self->{'dbhr'} = $dbhr ;
     $self->{'pname'} = $pname ;
     return bless $self, $params;
@@ -72,32 +72,37 @@ sub setEnvironment {
 sub IsValid  {
     my $this = shift;
     my $message = '';
-    my $file_decompress = FileDecompress->new(
-			$this->{'temp_file_path'}
-                     );
+    ##my $file_decompress = FileDecompress->new(
+	##		$this->{'uploaded_temp_folder'}
+    ##                 );
     #################################################
-    ####Get a list of files from the archive
+    ####Get a list of files from the folder
     #################################################
-    my @files = $file_decompress->getArchivedFiles();	
+    opendir DIR, $this->{'uploaded_temp_folder'} ||  
+        die "cannot open  $this->{'uploaded_temp_folder'} \n";
     my $files_not_dicom = 0;
     my $files_with_unmatched_patient_name = 0;
     my $is_valid = 0;     
     #################################################
     #############Loop through the files##############
     #################################################
-    foreach (@files) {
+    while (my $file = readdir(DIR)) {
 
     ############################################################
     ###  1) Check to see if it's dicom##########################
     ###  2) Check to see if the header matches the patient-name#
     ############################################################
-    
-    	if (!isDicom($_)) {
-    		$files_not_dicom++;
-        }
-        if (!PatientNameMatch($_)) {
- 		    $files_with_unmatched_patient_name++;
-     	}
+        if (($file ne '.') && ($file ne '..'))  {
+             $file = $this->{'uploaded_temp_folder'}. "/" . $file;
+             if (!$this->isDicom($file)) {
+                print "\n \n file is $file \n \n";
+            	$files_not_dicom++;
+             }
+             if (!$this->PatientNameMatch($file)) {
+                   
+         	    $files_with_unmatched_patient_name++;
+             }
+         }
     }
 
    if ($files_not_dicom > 0)  {
@@ -124,10 +129,10 @@ sub runDicomTar {
     my $this = shift;
     my $tarchive_location = $Settings::data_dir. "/" . "tarchive";
     my $dicomtar = $Settings::bin_dir. "/". "dicom-archive" . "/". "dicomTar.pl";
-    my $command = "perl $dicomtar" . $this->{'temp_file_path'} .   
-	"$tarchive_location -clobber -database -profile prod";
-    my $output = $this->runCommand($command);
-    $output = $output >> 8; ##returns the exit code
+    my $command = "perl $dicomtar " . $this->{'uploaded_temp_folder'} .   
+	" $tarchive_location -mri_upload_update -clobber -database -profile prod";
+    print "command" . $command . "\n";
+    my $output = $this->runCommandWithExitCode($command);
     return $output;
 }
 
@@ -137,10 +142,11 @@ sub runDicomTar {
 sub runInsertionScripts {
   my $this = shift;
   my $archived_file_path = $this->getTarchiveFileLocation();
-  my $command = $Settings::bin_dir. "/uploadNeuroDB/tarchiveLoader" . 
-		"-globLocation -profile prod $archived_file_path";
-  my $output = $this->runCommand($command);
-  $output = $output >> 8; ##returns the exit code
+  my $command = $Settings::bin_dir. 
+    "/uploadNeuroDB/tarchiveLoader" . 
+	" -globLocation -profile prod $archived_file_path";
+  print "\n" . $command . "\n";
+  my $output = $this->runCommandWithExitCode($command);
   return $output;
 }
 
@@ -167,15 +173,20 @@ sub getType {
 sub PatientNameMatch {
  my $this = shift;
  my ($dicom_file) = @_;
- my $cmd = "dcmdump $dicom_file | grep -i patientname";
+ my $cmd = "dcmdump $dicom_file | grep PatientName";
 
  my $patient_name_string = $this->runCommand($cmd);
- my ($l,$pname,$t) = split /^\[(.*?)\]^/, $patient_name_string;
+ if (!($patient_name_string)) {
+   print "the patientname cannot be extracted";
+   exit 1;
+ }
+ print "\n \n $patient_name_string  \n \n";
+ my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
  if ($pname ne  $this->{'pname'}) {
-     my $message = "The patient-name $pname does not Match" .
-                $this->{'pname'};
-     print $message;
-     return 0; ##return false
+    my $message = "The patient-name $pname does not Match" .
+          $this->{'pname'};
+    print $message;
+    return 0; ##return false
  }
  return 1; ##return true
 
@@ -186,8 +197,9 @@ sub PatientNameMatch {
 sub isDicom {
  my $this = shift;
  my ($dicom_file) = @_;
+ ##print "\n \n dicom_file is ". $dicom_file . "\n";
  my $file_type = $this->runCommand("file $dicom_file") ;
- if ($file_type =~/DICOM/) {
+ if (!($file_type =~/DICOM/)) {
     print "not of type DICOM";
     return 0;
  }
@@ -201,11 +213,12 @@ sub isDicom {
 sub getTarchiveFileLocation {
 	my $this = shift;
 	my $archive_location  = '';
-	my $query = "SELECT t.ArchiveLocation FROM mri_upload m 
-	   JOIN t tarchive ON (m.TarchiveID = t.TarchiveID)
-	   WHERE m.SourceLocation =?";
+    print "\n". $this->{'uploaded_temp_folder'} . "\n";
+	my $query = "SELECT t.ArchiveLocation FROM tarchive t ".
+	  " WHERE t.SourceLocation =?";
+      print "\n" . $query . "\n";
 	my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute($this->{'temp_file_path'});
+    $sth->execute($this->{'uploaded_temp_folder'});
 	if ($sth->rows> 0) {
 		$archive_location = $sth->fetchrow_array();
 	}
@@ -215,6 +228,22 @@ sub getTarchiveFileLocation {
 ###############################moveUploadedFile#################
 ################################################################
 sub moveUploadedFile {
+    my $this = shift;
+    my $incoming_folder = $Settings::IncomingDir;
+    my $cmd = "cp -R " . $this->{'uploaded_temp_folder'} . " " . $incoming_folder ;
+    $this->runCommand($cmd);
+}
+
+################################################################
+###############################runCommandWithExitCode###########
+################################################################
+
+sub runCommandWithExitCode {
+    my $this = shift;
+    my ($query) = @_;
+    ##print "\n\n $query \n\n ";
+    my $output =  system($query);
+    return  $output >> 8; ##returns the exit code
 }
 
 ################################################################
@@ -222,10 +251,11 @@ sub moveUploadedFile {
 ################################################################
 
 sub runCommand {
- my $this = shift;
- my ($query) = @_;
- return `$query`;
+    my $this = shift;
+    my ($query) = @_;
+    ##print "\n\n $query \n\n ";
+    return `$query`;
 }
 
 
-0; 
+1; 

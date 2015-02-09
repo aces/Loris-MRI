@@ -23,9 +23,8 @@ use Cwd qw/ abs_path /;
 use lib "$FindBin::Bin";
 
 use NeuroDB::FileDecompress;
-
+use NeuroDB::DBI;
 use NeuroDB::ImagingUpload;
-print "asdfsafsfsafsafsa";
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -48,8 +47,11 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
 my $User             = `whoami`; 
 my $template         = "ImagingUpload-$hour-$min-XXXXXX"; # for tempdir
 my $TmpDir_decompressed_folder =
-    tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+    tempdir($template, TMPDIR => 1);
+    #CLEANUP => 1 );
 my $output = undef;
+my $uploaded_file = undef;
+my $message = undef;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile","string",1, \$profile,
@@ -93,12 +95,11 @@ usage: $0 </path/to/UploadedFile> [options]
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
-print "asdfsafsaf";
 ################################################################
 ############### input option error checking ####################
 ################################################################
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !defined @Settings::db) { 
+if ($profile && ! @Settings::db) { 
     print "\n\tERROR: You don't have a 
     configuration file named '$profile' in:  
     $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
@@ -112,7 +113,8 @@ if (!$ARGV[0] || !$profile) {
     exit 3;  
 }
 if (!$pname) {
-   print "$Usage\n\tERROR: The pname entered is not valid \n\n";
+   print $Help;
+   print "$Usage\n\tERROR: The patient-name is missing \n\n";
    exit 4;
 }
 
@@ -129,19 +131,12 @@ unless (-e $uploaded_file) {
 ################ Establish database connection #################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-
-################################################################
-################ ImagingUpload  Object #########################
-################################################################
-my $imaging_upload = NeuroDB::ImagingUpload->new(
-                  \$dbh,$uploaded_file,$patient_name);
-
-
 ################################################################
 ################ FileDecompress Object #########################
 ################################################################
 my $file_decompress = 
     NeuroDB::FileDecompress->new($uploaded_file);
+
 
 ################################################################
 ############### Unzip File #####################################
@@ -151,24 +146,36 @@ my $result =
     $file_decompress->Extract($TmpDir_decompressed_folder);
 
 ################################################################
+################ ImagingUpload  Object #########################
+################################################################
+my $imaging_upload = NeuroDB::ImagingUpload->new(
+                 \$dbh,$TmpDir_decompressed_folder,$pname);
+
+################################################################
 ################ Source Environment#############################
 ################################################################
-$imaging_upload->setEnvironment();
+####$imaging_upload->setEnvironment();  -------FAIL
 
 ################################################################
 ############### Validate File ##################################
 ################################################################
-$is_valid = $imaging_upload->IsValid();
+
+my $is_valid = $imaging_upload->IsValid();
 if (!($is_valid)) {
     $message = "\n The validation has failed";
     print $message;
     exit 6;
 }
 ################################################################
+############### Move uploaded File to incoming DIR##############
+################################################################
+$imaging_upload->moveUploadedFile();
+
+################################################################
 ############### Run DicomTar  ##################################
 ################################################################
 $output = $imaging_upload->runDicomTar();
-if ($output!==0) {
+if ($output!=0) {
     $message = "\n The dicomtar execution has failed";
     print $message;
     exit 7;
@@ -178,7 +185,7 @@ if ($output!==0) {
 ############### Run InsertionScripts############################
 ################################################################
 $output = $imaging_upload->runInsertionScripts();
-if ($output!==0) {
+if ($output!=0) {
     $message = "\n The insertion scripts have failed";
     print $message;
     exit 8;
@@ -186,9 +193,9 @@ if ($output!==0) {
 
 
 
-
+###do we need to move it to /data/incoming directory
 sub UpdateMRIUploadTable {
-
+ 
 
 
 }

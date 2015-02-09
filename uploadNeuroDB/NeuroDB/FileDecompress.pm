@@ -63,7 +63,7 @@ sub getArchivedFiles {
 
 sub getExtractedDirectory {
   my $this = shift;
-  my $extracted_directory = $this->{'extract_object'}->extract_path()
+  my $extracted_directory = $this->{'extract_object'}->extract_path();
   return $extracted_directory;
 
 
