@@ -6,6 +6,7 @@ use warnings;
 use Data::Dumper;
 use File::Basename;
 use Path::Class;
+use File::Find;
 use NeuroDB::FileDecompress;
 use File::Temp qw/ tempdir /;
 
@@ -49,6 +50,7 @@ sub new {
 }
 
 
+
 #################################################################
 ##############################setEnvironment#####################
 #################################################################
@@ -78,31 +80,33 @@ sub IsValid  {
     #################################################
     ####Get a list of files from the folder
     #################################################
-    opendir DIR, $this->{'uploaded_temp_folder'} ||  
-        die "cannot open  $this->{'uploaded_temp_folder'} \n";
+    print "folderrrr". $this->{'uploaded_temp_folder'} ;
     my $files_not_dicom = 0;
     my $files_with_unmatched_patient_name = 0;
     my $is_valid = 0;     
     #################################################
     #############Loop through the files##############
     #################################################
-    while (my $file = readdir(DIR)) {
+    my @file_list;
+    find ( sub {
+    	return unless -f;       #Must be a file
+	push @file_list, $File::Find::name;
+    }, $this->{'uploaded_temp_folder'} );
 
-    ############################################################
-    ###  1) Check to see if it's dicom##########################
-    ###  2) Check to see if the header matches the patient-name#
-    ############################################################
-        if (($file ne '.') && ($file ne '..'))  {
-             $file = $this->{'uploaded_temp_folder'}. "/" . $file;
-             if (!$this->isDicom($file)) {
-                print "\n \n file is $file \n \n";
-            	$files_not_dicom++;
-             }
-             if (!$this->PatientNameMatch($file)) {
+    foreach(@file_list) {
+	    ############################################################
+	    ###  1) Check to see if it's dicom##########################
+	    ###  2) Check to see if the header matches the patient-name#
+	    ############################################################
+            if (($_ ne '.') && ($_ ne '..'))  {
+      	          if (!$this->isDicom($_)) {
+            		$files_not_dicom++;
+	          }
+         	  if (!$this->PatientNameMatch($_)) {
                    
          	    $files_with_unmatched_patient_name++;
-             }
-         }
+                  }
+            }
     }
 
    if ($files_not_dicom > 0)  {
@@ -131,7 +135,7 @@ sub runDicomTar {
     my $dicomtar = $Settings::bin_dir. "/". "dicom-archive" . "/". "dicomTar.pl";
     my $command = "perl $dicomtar " . $this->{'uploaded_temp_folder'} .   
 	" $tarchive_location -mri_upload_update -clobber -database -profile prod";
-    print "command" . $command . "\n";
+    print "\n command" . $command . "\n";
     my $output = $this->runCommandWithExitCode($command);
     return $output;
 }
@@ -180,7 +184,7 @@ sub PatientNameMatch {
    print "the patientname cannot be extracted";
    exit 1;
  }
- print "\n \n $patient_name_string  \n \n";
+ ##print "\n \n $patient_name_string  \n \n";
  my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
  if ($pname ne  $this->{'pname'}) {
     my $message = "The patient-name $pname does not Match" .
@@ -256,6 +260,8 @@ sub runCommand {
     ##print "\n\n $query \n\n ";
     return `$query`;
 }
+
+
 
 
 1; 
