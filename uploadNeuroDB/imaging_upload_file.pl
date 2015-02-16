@@ -47,7 +47,9 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
 my $User             = `whoami`; 
 my $template         = "ImagingUpload-$hour-$min-XXXXXX"; # for tempdir
 my $TmpDir_decompressed_folder =
+
     tempdir($template, TMPDIR => 1);
+    ##tempdir($template, TMPDIR => 1, CLEANUP => 1);
 my $output = undef;
 my $uploaded_file = undef;
 my $message = undef;
@@ -132,8 +134,14 @@ unless (-e $uploaded_file) {
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 ################################################################
+################ ChanEstablish database connection #################
+################################################################
+##changeFileOwnerShip($uploaded_file);
+
+################################################################
 ################ FileDecompress Object #########################
 ################################################################
+print "\n uploaded file is " . $uploaded_file . "\n";
 my $file_decompress = 
     NeuroDB::FileDecompress->new($uploaded_file);
 
@@ -141,6 +149,7 @@ my $file_decompress =
 ############### Unzip File #####################################
 ################################################################
 ################################################################
+print "\n \n tempdir : $TmpDir_decompressed_folder \n \n";
 my $result =  
     $file_decompress->Extract($TmpDir_decompressed_folder);
 
@@ -174,7 +183,7 @@ if (!($is_valid)) {
 ############### Run DicomTar  ##################################
 ################################################################
 $output = $imaging_upload->runDicomTar();
-if ($output!=0) {
+if (!$output) {
     $message = "\n The dicomtar execution has failed";
     print $message;
     exit 7;
@@ -190,7 +199,21 @@ if ($output!=0) {
     exit 8;
 }
 
+################################################################
+############### Change Ownership from www-data##################
+################ to the current-user############################
+################################################################
+#####ISSUE: Not working since root is needed###################
+sub changeFileOwnerShip {
+   my $file_path =  shift;
+   my $user =  $ENV{'LOGNAME'}; ###it may need to be set
+   print "\n \n \n user is $user \n \n \n";
+   my ($login,$pass,$uid,$gid) = getpwnam($user)
+         or die "$user not in passwd file";
 
+         print " \n \n \n login : $login uid: $uid and gid: $gid filepath : $file_path\n \n \n";
+   chown $uid, $gid, $file_path;
+}
 
 ###do we need to move it to /data/incoming directory
 sub UpdateMRIUploadTable {

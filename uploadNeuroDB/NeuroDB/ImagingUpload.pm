@@ -131,13 +131,61 @@ sub IsValid  {
 #################################################################
 sub runDicomTar {
     my $this = shift;
+    my $tarchive_id ='';
+    my $query = '';
+    my $where = '';
     my $tarchive_location = $Settings::data_dir. "/" . "tarchive";
     my $dicomtar = $Settings::bin_dir. "/". "dicom-archive" . "/". "dicomTar.pl";
     my $command = "perl $dicomtar " . $this->{'uploaded_temp_folder'} .   
-	" $tarchive_location -mri_upload_update -clobber -database -profile prod";
-    print "\n command" . $command . "\n";
+	" $tarchive_location -clobber -database -profile prod";
     my $output = $this->runCommandWithExitCode($command);
-    return $output;
+    if ($output==0) {
+
+        
+      ########################################################
+      ##########Extract tarchiveID using pname################
+      ########################################################
+
+        $query = "SELECT TarchiveID FROM tarchive ".
+        " WHERE PatientName =?";
+
+        my $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($this->{'pname'});
+        if ($sth->rows> 0) {
+            $tarchive_id = $sth->fetchrow_array();
+        }
+
+      ########################################################
+      #################Update MRI_upload Table accordingly####
+      ########################################################
+        $where = "WHERE PatientName=?";
+        $query = "UPDATE mri_upload SET TarchiveID='$tarchive_id'";
+        $query = $query . $where;
+        my $mri_upload_update = ${$this->{'dbhr'}}->prepare($query);
+        $mri_upload_update->execute($this->{'pname'});
+        return 1;   
+
+    }
+    return 0;
+}
+
+
+################################################################
+###################getTarchiveFileLocation######################
+################################################################
+sub getTarchiveFileLocation {
+    my $this = shift;
+    my $archive_location  = '';
+    print "\n". $this->{'uploaded_temp_folder'} . "\n";
+    my $query = "SELECT t.ArchiveLocation FROM tarchive t ".
+      " WHERE t.SourceLocation =?";
+      print "\n" . $query . "\n";
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($this->{'uploaded_temp_folder'});
+    if ($sth->rows> 0) {
+        $archive_location = $sth->fetchrow_array();
+    }
+    return $archive_location;
 }
 
 ##################################################################
@@ -245,7 +293,7 @@ sub moveUploadedFile {
 sub runCommandWithExitCode {
     my $this = shift;
     my ($query) = @_;
-    ##print "\n\n $query \n\n ";
+    print "\n\n $query \n\n ";
     my $output =  system($query);
     return  $output >> 8; ##returns the exit code
 }
@@ -257,7 +305,7 @@ sub runCommandWithExitCode {
 sub runCommand {
     my $this = shift;
     my ($query) = @_;
-    ##print "\n\n $query \n\n ";
+    print "\n\n $query \n\n ";
     return `$query`;
 }
 

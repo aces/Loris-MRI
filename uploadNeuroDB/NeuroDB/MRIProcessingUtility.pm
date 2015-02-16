@@ -87,7 +87,7 @@ sub writeLog
     ############################################################# 
    print "use log table is " . $use_log_table . "\n";
     if ( $use_log_table ) {
-    	my $log_query = "INSERT INTO log (Message,Created) VALUES (?, now())";
+    	my $log_query = "INSERT INTO log (Message,CreatedTime) VALUES (?, now())";
         print "log query is " . $log_query  . "\n";
         print 'use_file_table' . $use_log_table;
 	my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
