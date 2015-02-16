@@ -89,7 +89,7 @@ The program does the following
 
 HELP
 my $Usage = <<USAGE;
-usage: $0 </path/to/UploadedFile> [options]
+usage: $0 </path/to/UploadedFile> -patient_name [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
