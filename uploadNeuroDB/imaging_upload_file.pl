@@ -16,7 +16,8 @@ use Cwd qw/ abs_path /;
 
 ##  Should error checking  (exit code be inside the class or the 
 ##  file instantiating the class
-
+###Check to see if the file is zipped or compressed before calling the
+### decompress class
 ################################################################
 # These are the NeuroDB modules to be used #####################
 ################################################################
@@ -24,7 +25,9 @@ use lib "$FindBin::Bin";
 
 use NeuroDB::FileDecompress;
 use NeuroDB::DBI;
+
 use NeuroDB::ImagingUpload;
+use NeuroDB::Log;
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -102,6 +105,12 @@ USAGE
 ################################################################
 ############### input option error checking ####################
 ################################################################
+
+######TODO:
+=pod
+1)For those logs before getting the --dbh...they also need to 
+-They need to be inserted
+=cut
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && ! @Settings::db) { 
     print "\n\tERROR: You don't have a 
@@ -173,6 +182,14 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
 ################################################################
 ####$imaging_upload->setEnvironment();  -------FAIL
 
+
+################################################################
+################ Instantiate the Log Class######################
+################################################################
+my $Log = NeuroDB::Log->new(
+                 \$dbh,"imaging_upload_file.pl",$upload_id);
+
+
 ################################################################
 ############### Validate File ##################################
 ################################################################
@@ -180,6 +197,7 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
 my $is_valid = $imaging_upload->IsValid();
 if (!($is_valid)) {
     $message = "\n The validation has failed";
+    $Log->writeLog($message,7);
     print $message;
     exit 7;
 }
@@ -194,6 +212,7 @@ if (!($is_valid)) {
 $output = $imaging_upload->runDicomTar();
 if (!$output) {
     $message = "\n The dicomtar execution has failed";
+    $Log->writeLog($message,8); 
     print $message;
     exit 8;
 }
@@ -204,6 +223,7 @@ if (!$output) {
 $output = $imaging_upload->runInsertionScripts();
 if ($output!=0) {
     $message = "\n The insertion scripts have failed";
+    $Log->writeLog($message,9); 
     print $message;
     exit 9;
 }
