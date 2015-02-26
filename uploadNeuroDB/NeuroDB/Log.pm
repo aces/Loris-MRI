@@ -15,7 +15,7 @@ use Archive::Zip;
 ################################################################
 sub new {
     my $params = shift;
-    my ($dbhr,$logfile,$origin,$processid) = @_;
+    my ($dbhr,$origin,$processid,$logfile) = @_;
     unless(defined $dbhr) {
        croak(
            "Usage: ".$params."->new(\$databaseHandleReference)"
@@ -25,13 +25,17 @@ sub new {
     ############################################################
     #### Create the log file ###################################
     ############################################################
-    my $LogDir  = dirname($logfile);
-    my $file_name = basename($logfile);
-    my $dir = dir($LogDir);
-    my $file = $dir->file($file_name);
-    my $LOG = $file->openw();
-    $LOG->autoflush(1);
-
+    if ($logfile) {
+	    my $LogDir  = dirname($logfile);
+	    my $file_name = basename($logfile);
+	    my $dir = dir($LogDir);
+	    my $file = $dir->file($file_name);
+	    my $LOG = $file->openw();
+	    $LOG->autoflush(1);
+            $self->{'LogDir'} = $LogDir;
+            $self->{'logfile'} = $logfile;
+    	    $self->{'LOG'} = $LOG;
+    }
     ############################################################
     ############### Create a settings package ##################
     ############################################################
@@ -40,14 +44,7 @@ sub new {
      package Settings;
      do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
-   
-    $self->{'LOG'} = $LOG;
-    $self->{'verbose'} = $verbose;
-    $self->{'LogDir'} = $LogDir;
     $self->{'dbhr'} = $dbhr;
-    $self->{'debug'} = $debug;
-    $self->{'logfile'} = $logfile;
-
     $self->{'origin'} = $origin;
     $self->{'ProcessID'} = $processid;
     return bless $self, $params;
@@ -55,10 +52,12 @@ sub new {
 
 
 ################################################################
+################################################################
 ## writeLog ####################################################
 ## this is a useful function that will write Log messages ######
 ## if the useTable is
-
+################################################################
+################################################################
 ####Gets:
 =pod
 
@@ -95,7 +94,8 @@ sub writeLog
 
     my $this           = shift;
     my $use_log_table  = $Settings::use_log_table;
-    my $use_log_file = $Settings::use_log_file;
+    my $use_log_file   = $Settings::use_log_file;
+    my $is_error       = 0
     my ( $message,$failStatus) = @_;
  
     #############################################################
@@ -110,16 +110,20 @@ sub writeLog
     #######write the logs in the log file########################
     #############################################################
     if ( $use_log_file ) {
-
-        $this->{LOG}->print($message);
-        if ($failStatus) {
-            $this->{LOG}->print(
-                "program exit status: $failStatus"
-            );
-            `cat $this->{logfile}  >> $this->{LogDir}/error.log`;
-            `rm -f $this->{logfile} `;
-         }
-        close $this->{LOG};
+        ###########################################
+	#####only if the file exists###############
+	###########################################
+	if (($this->{logfile}) && (-e $this->{logfile})) {
+            $this->{LOG}->print($message);
+	    if ($failStatus) {
+	            $this->{LOG}->print(
+	                "program exit status: $failStatus"
+	            );
+	            `cat $this->{logfile}  >> $this->{LogDir}/error.log`;
+	            `rm -f $this->{logfile} `;
+	         }
+	        close $this->{LOG};
+	}
     }
 
     #############################################################
@@ -129,32 +133,42 @@ sub writeLog
     if ( $use_log_table ) {
 
         if ($failStatus) {
-            my $is_error = 1;
+            $is_error = 1;
         }
+	#########################################################
+	##################Get logtypeID##########################
+	######################################################### 
         my $log_type_id = $this->getLogTypeID();
         if ($log_type_id) {
-            my $log_query = "INSERT INTO log (Message,CreatedTime) VALUES (?, now())";
+            my $log_query = "INSERT INTO log (LogTypeID,ProcessID,CreatedTime,Message,Error) ".
+                            "VALUES (?,?, now(),?,?)";
             print "log query is " . $log_query  . "\n";
             print 'use_file_table' . $use_log_table;
-            my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
             print "message is $message";
-            my $result = $logsth->execute( $message );
+            my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
+            my $result = $logsth->execute($log_type_id,$this->{'ProcessID'}, $message,$is_error );
             print "result is $result \n";
         }
         else { 
             print "log type id not found";
         }
     }
-
 }
 
+################################################################
+#####################get Log Types##############################
+################################################################
 sub getLogTypes {}
+
+################################################################
+####################get LogTypeID###############################
+################################################################
 sub getLogTypeID {
     my $this           = shift;
     my $log_type_id= ''; 
-    my $query = "SELECT lt.LogTypeID FROM log l ".
-             "JOIN log_types lt join (lt.LogTypeID = l.LogTypeID)".
-             " WHERE lt.Origin =?";
+    my $query = "SELECT lt.LogTypeID FROM log l".
+                " JOIN log_types lt ON (lt.LogTypeID = l.LogTypeID)".
+                " WHERE lt.Origin =?";
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($this->{'origin'});
     if ($sth->rows> 0) {
@@ -162,7 +176,15 @@ sub getLogTypeID {
     }
    return $log_type_id; 
 }
+
+################################################################
+#####################get All Logs###############################
+################################################################
 sub getLogs {}
+
+################################################################
+#####################get Logs by ProcessID######################
+################################################################
 sub getLogsByProcessID{}
 
-0; 
+1; 
