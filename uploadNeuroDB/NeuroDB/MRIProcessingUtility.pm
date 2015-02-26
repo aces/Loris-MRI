@@ -7,7 +7,9 @@ use Data::Dumper;
 use File::Basename;
 use NeuroDB::File;
 use NeuroDB::MRI;
+
 use NeuroDB::DBI;
+use NeuroDB::Log;
 use Path::Class;
 
 ################################################################
@@ -35,9 +37,9 @@ sub new {
     ############### Create a Log Object ########################
     ############################################################
 
-    my $Log = Log->new($dbhr,$logfile,$origin,$processid);
+    my $Log = NeuroDB::Log->new($dbhr,$origin,$processid,$logfile);
     $self->{'Log'} = $Log;
-
+    
     $self->{'verbose'} = $verbose;
     $self->{'dbhr'} = $dbhr;
     $self->{'debug'} = $debug;
