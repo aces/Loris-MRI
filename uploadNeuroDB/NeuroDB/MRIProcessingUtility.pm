@@ -15,23 +15,13 @@ use Path::Class;
 ################################################################
 sub new {
     my $params = shift;
-    my ($dbhr,$debug,$TmpDir,$logfile,$verbose) = @_;
+    my ($dbhr,$debug,$TmpDir,$logfile,$verbose,$origin,$processid) = @_;
     unless(defined $dbhr) {
        croak(
            "Usage: ".$params."->new(\$databaseHandleReference)"
        );
     }
     my $self = {};
-    ############################################################
-    #### Create the log file ###################################
-    ############################################################
-    my $LogDir  = dirname($logfile);
-    my $file_name = basename($logfile);
-    my $dir = dir($LogDir); 
-    my $file = $dir->file($file_name);
-    my $LOG = $file->openw();
-    $LOG->autoflush(1);
-
     ############################################################
     ############### Create a settings package ##################
     ############################################################
@@ -40,85 +30,20 @@ sub new {
      package Settings; 
      do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
-    $self->{'LOG'} = $LOG;
+
+    ############################################################
+    ############### Create a Log Object ########################
+    ############################################################
+
+    my $Log = Log->new($dbhr,$logfile,$origin,$processid);
+    $self->{'Log'} = $Log;
+
     $self->{'verbose'} = $verbose;
-    $self->{'LogDir'} = $LogDir;
     $self->{'dbhr'} = $dbhr;
     $self->{'debug'} = $debug;
     $self->{'TmpDir'} = $TmpDir;
-    $self->{'logfile'} = $logfile;
     return bless $self, $params;
 }
-
-
-
-################################################################
-## writeLog ####################################################
-## this is a useful function that will write Log messages ######
-## if the useTable is
-################################################################
-sub writeLog
-{
-
-    my $use_log_table  = $Settings::use_log_table;
-    my $use_log_file = $Settings::use_log_file;
-    my $this           = shift;
-    my ( $message ) = @_;
-    
-    #############################################################
-    #######print out the message#################################
-    #############################################################
-    if ( $this->{ debug } )
-    {
-        print $message;
-    }
-
-    #############################################################
-    #######write the logs in the log file########################
-    #############################################################
-    if ( $use_log_file )
-    {
-        $this->{ LOG }->print( $message );
-        close $this->{ LOG };
-    }
-
-    #############################################################
-    #######write the logs in the log table#######################
-    ############################################################# 
-   print "use log table is " . $use_log_table . "\n";
-    if ( $use_log_table ) {
-    	my $log_query = "INSERT INTO log (Message,CreatedTime) VALUES (?, now())";
-        print "log query is " . $log_query  . "\n";
-        print 'use_file_table' . $use_log_table;
-	my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
-        print "message is $message";
-	my $result = $logsth->execute( $message );
-        print "result is $result \n";
-    }
- 
-
-}
-
-################################################################
-## writeErrorLog ###############################################
-## this is a useful function that will close the log and write #
-## error messages in case of abnormal program termination ######
-################################################################
-sub writeErrorLog {
-    my $this = shift;
-    my ($message, $failStatus,$LogDir) = @_;
-    if ($this->{debug}) {
-        print $message;
-    }
-    $this->{LOG}->print($message);
-    $this->{LOG}->print(
-        "program exit status: $failStatus"
-    );
-    `cat $this->{logfile}  >> $this->{LogDir}/error.log`;
-    close $this->{LOG};
-    `rm -f $this->{logfile} `;
-}       
-
 
 #################################################################    
 ## useful only if the visit label IS NOT encoded somewhere in ###
@@ -167,7 +92,7 @@ sub extract_tarchive {
     if (scalar(@tars) != 1) {
 	$message =  "Error: Could not find inner tar in $tarchive!\n" .
                      @tars . "\n";
-        $this->writeErrorLog( $message,1);
+        $this->{Log}->writeLog($message,1);
         print $message  if $this->{verbose};
         exit 1 ;
     }
@@ -195,7 +120,7 @@ sub extractAndParseTarchive {
     my $info       = "head -n 12 $this->{TmpDir}/${ExtractSuffix}.meta";
     my $header     = `$info`;
     my $message    = "\n$header\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     return ($ExtractSuffix, $study_dir, $header);
 }
 
@@ -212,7 +137,7 @@ sub determineSubjectID {
         if ($to_log) {
             $message =  "\nERROR: Profile does not contain getSubjectIDs ".
                            "routine. Upload will exit now.\n\n";
-            $this->writeErrorLog($message, 2); 
+        $this->{Log}->writeLog($message,2);
             exit 2;
         }
     }
@@ -228,8 +153,7 @@ sub determineSubjectID {
                             "- ". $subjectIDsref->{'PSCID'} . "- Visit: ".
                             $subjectIDsref->{'visitLabel'} . "- Acquired : ".
                             $tarchiveInfo->{'DateAcquired'} . "\n";
-
-        $this->writeLog($message);
+        $this->{Log}->writeLog($message);
     }
     return $subjectIDsref;
 }
@@ -266,7 +190,7 @@ sub createTarchiveArray {
         $message = "\n ERROR: Only archived data can be uploaded.".
                       "This seems not to be a valid archive for this study!".
                       "\n\n";
-        $this->writeErrorLog($message, 3);
+        $this->{Log}->writeLog($message,3);
         exit 3;
     }
     return %tarchiveInfo;
@@ -290,14 +214,13 @@ sub determinePSC {
     if ($to_log) {
         if (!$center_name) {
 	    $message = "\nERROR: No center found for this candidate \n\n";
-            $this->writeErrorLog($message,4);
+        $this->{Log}->writeLog($message,4);
             exit 4;
         }
-	$message = "\n==> Verifying acquisition center\n -> " .
+    	$message = "\n==> Verifying acquisition center\n -> " .
 	           "Center Name : $center_name\n -> CenterID ".
         	   " : $centerID\n";
-
-        $this->writeLog($message);
+        $this->{Log}->writeLog($message);
     }
     return ($center_name, $centerID);
 }
@@ -313,7 +236,7 @@ sub determineScannerID {
     $to_log = 1 unless defined $to_log;
     if ($to_log) {
 	$message = "\n\n==> Trying to determine scanner ID\n";
-        $this->writeLog($message);
+        $this->{Log}->writeLog($message);
     }   
 
     my $scannerID = 
@@ -332,13 +255,13 @@ sub determineScannerID {
                           "does not exist. Enable creating new ScannerIDs in ".
                           "your profile or this archive can not be ".
                           "uploaded.\n\n";
-            $this->writeErrorLog($message, 5); 
+            $this->{Log}->writeLog($message,5);
             exit 5;
         }
     }
     if ($to_log)  {
 	$message = "==> scanner ID : $scannerID\n\n";
-        $this->writeLog($message);
+        $this->{Log}->writeLog($message);
     }
     return $scannerID;
 }
@@ -354,7 +277,8 @@ sub get_acquisitions {
     @$acquisitions = 
     split("\n", `find $study_dir -type d -name \\*.ACQ`);
     $message = "Acquisitions: ".join("\n", @$acquisitions)."\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
+
 }
 
 ################################################################
@@ -364,12 +288,12 @@ sub computeMd5Hash {
     my $this = shift;
     my ($file) = @_;
     my $message = "==> computing md5 hash for MINC body.\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     print $message
      if $this->{verbose};
     my $md5hash = &NeuroDB::MRI::compute_hash(\$file);
     $message = " --> md5: $md5hash\n";
-    $this->writeLog($message);	
+    $this->{Log}->writeLog($message);	
 
     print $message
      if $this->{verbose};
@@ -391,7 +315,7 @@ sub getAcquisitionProtocol {
     ## get acquisition protocol (identify the volume) ##########
     ############################################################
     $message = "==> verifying acquisition protocol\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     print $message    
     	if $this->{verbose};
     my $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
@@ -403,7 +327,7 @@ sub getAcquisitionProtocol {
                                );
     
     $message = "Acquisition protocol is $acquisitionProtocol\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     my @checks = ();
     my $acquisitionProtocolID;
     if ($acquisitionProtocol !~ /unknown/) {
@@ -419,7 +343,7 @@ sub getAcquisitionProtocol {
                         $tarchiveInfo->{'PatientName'}
                   );
         $message = "Worst error: $checks[0]\n";
-	$this->writeLog($message);
+	$this->{Log}->writeLog($message);
         print $message
             if $this->{debug};
     }
@@ -550,7 +474,7 @@ sub loadAndCreateObjectFile {
     ########## load File object ################################
     ############################################################
     $message = "\n==> Loading file from disk $minc\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     print $message
     	if $this->{verbose};
     $file->loadFileFromDisk($minc);
@@ -559,7 +483,7 @@ sub loadAndCreateObjectFile {
     ############# map dicom fields #############################
     ############################################################
     $message =  " --> mapping DICOM parameter for $minc\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     print $message
      if $this->{verbose};
     NeuroDB::MRI::mapDicomParameters(\$file);
@@ -610,7 +534,7 @@ sub move_minc {
     $cmd = "mv $$minc $new_name";
     `$cmd`;
     $message =  "File $$minc \n moved to:\n $new_name\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     $$minc = $new_name;
     return $new_name;
 }
@@ -756,7 +680,7 @@ sub dicom_to_minc {
         croak("dicom_to_minc failure, exit code $exit_code");
    }
    $message = "### Dicom to MINC:\n$d2m_log";
-   $this->writeLog($message);
+   $this->{Log}->writeLog($message);
 }
 ################################################################
 ####### get_mincs ##############################################
@@ -791,7 +715,7 @@ sub get_mincs {
 
     $message = "\n### These MINC files have been created: \n".
         join("\n", @$minc_files)."\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
 }  
 
 ################################################################
@@ -840,7 +764,7 @@ sub concat_mri {
     $message = "### Count for concatenated MINCs: ".
         "$concat_count new files created\n";
 
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
 }
 
 ################################################################
@@ -952,12 +876,12 @@ sub CreateMRICandidates {
 	  
             $message =  "\n==> CREATED NEW CANDIDATE :".
                         "$subjectIDsref->{'CandID'}";
-            $this->writeLog($message);
+            $this->{Log}->writeLog($message);
       } elsif ($subjectIDsref->{'CandID'}) {# if the candidate exists
 
             $message =  "\n==> getSubjectIDs returned this CandID/DCCID : ".
                         "$subjectIDsref->{'CandID'}\n";
-            $this->writeLog($message);
+            $this->{Log}->writeLog($message);
       } else {
             $message = "\n ERROR: The candidate could not be considered for ". 
                        "uploading, since s/he is not registered in your database.".
@@ -994,7 +918,7 @@ sub setMRISession {
     ################## get session ID ##########################
     ############################################################
     $message = "\n\n==> Getting session ID\n";
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     my ($sessionID, $requiresStaging) =
         NeuroDB::MRI::getSessionID(
             $subjectIDsref, 
@@ -1003,7 +927,7 @@ sub setMRISession {
             $subjectIDsref->{'subprojectID'}
         );
     $message = "SessionID: $sessionID\n";
-    $this->writeLog($message);    
+    $this->{Log}->writeLog($message);    
     # Staging: $requiresStaging\n";
     ############################################################
     # Make sure MRI Scan Done is set to yes, because now ####### 
@@ -1027,7 +951,7 @@ sub validateArchive {
     my $this = shift;
     my $message;
     my ($tarchive,$tarchiveInfo) = @_;
-    $this->writeLog( "\n==> verifying dicom archive md5sum (checksum)\n");
+    $this->{Log}->writeLog( "\n==> verifying dicom archive md5sum (checksum)\n");
     my $cmd = "md5sum $tarchive";
     if ($this->{debug})  {
         print $cmd . "\n";
@@ -1039,7 +963,7 @@ sub validateArchive {
     $message =  " -> checksum for target        :  ".
         "$md5_real\n -> checksum from database :  $md5_db\n";
 
-    $this->writeLog($message);
+    $this->{Log}->writeLog($message);
     if ($md5_real ne $md5_db) {
         $message =  "\nerror: archive seems to be corrupted or modified. ".
                        "upload will exit now.\nplease read the creation logs ".
@@ -1082,7 +1006,7 @@ sub validateCandidate {
     if ($sth->rows == 0) {
 	$message = "\n\n => Could not find candidate with CandID =".
                    " $subjectIDsref->{'CandID'} in database";
-        $this->writeLog( $message );
+        $this->{Log}->writeLog( $message );
         $CandMismatchError = 'CandID does not exist';
         return $CandMismatchError;
     }
@@ -1096,7 +1020,7 @@ sub validateCandidate {
     $sth->execute($subjectIDsref->{'PSCID'});
     if ($sth->rows == 0) {
 	$message = "\n\n => No PSCID";
-        $this->writeLog($message);
+        $this->{Log}->writeLog($message);
         $CandMismatchError= 'PSCID does not exist';
         return $CandMismatchError;
     } 

@@ -230,10 +230,20 @@ extracting information ... if there is
 ################################################################
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
+
+###############TODO:::PASS the processID#######################
 my $utility = NeuroDB::MRIProcessingUtility->new(
                   \$dbh,$debug,$TmpDir,$logfile,
-                  $LogDir,$verbose
+                  $LogDir,$verbose,'TarchiveLoader'
               );
+
+
+################################################################
+################## Instantiate LOG Class########################
+################################################################
+my $Log = Log->new($dbh,$logfile,'TarchiveLoader',$processid);
+
+
 $utility->writeLog($message);
 
 ################################################################
