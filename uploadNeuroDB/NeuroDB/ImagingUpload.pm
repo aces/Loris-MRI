@@ -188,6 +188,8 @@ sub getTarchiveFileLocation {
     return $archive_location;
 }
 
+
+
 ##################################################################
 ###############################runInsertingScripts################
 ##################################################################
@@ -258,24 +260,6 @@ sub isDicom {
  return 1;
 }
 
-
-################################################################
-###################getTarchiveFileLocation######################
-################################################################
-sub getTarchiveFileLocation {
-	my $this = shift;
-	my $archive_location  = '';
-    print "\n". $this->{'uploaded_temp_folder'} . "\n";
-	my $query = "SELECT t.ArchiveLocation FROM tarchive t ".
-	  " WHERE t.SourceLocation =?";
-      print "\n" . $query . "\n";
-	my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute($this->{'uploaded_temp_folder'});
-	if ($sth->rows> 0) {
-		$archive_location = $sth->fetchrow_array();
-	}
-	return $archive_location; 
-}
 ################################################################
 ###############################moveUploadedFile#################
 ################################################################
