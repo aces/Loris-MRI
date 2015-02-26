@@ -42,6 +42,7 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
+my $upload_id      = 0;
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
@@ -180,7 +181,13 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
                   $verbose
               );
 
-$utility->writeLog($message);
+
+################################################################
+################## Instantiate LOG Class########################
+################################################################
+my $Log = NeuroDB::Log->new(\$dbh,$logfile,'minc_insertion',$upload_id);
+
+Log->writeLog($message);
 ################################################################
 #################### Check is_valid column #####################
 ################################################################
@@ -199,7 +206,7 @@ if (($is_valid == 0) && ($force==0)) {
                "the problem. Or use -force to force the ".
                "execution.\n\n";
     print $message;
-    $utility->writeErrorLog($message,6); 
+    Log->writeLog($message,6); 
     exit 6;
 }
 
@@ -262,7 +269,7 @@ my $file = $utility->loadAndCreateObjectFile($minc);
 ################################################################
 if (defined(&Settings::filterParameters)) {
     $message = " --> using user-defined filterParameters for $minc\n";
-    $utility->writeLog($message);
+    Log->writeLog($message);
     print $message if $verbose;
     Settings::filterParameters(\$file);
 }
@@ -277,11 +284,11 @@ if (defined(&Settings::filterParameters)) {
 
 if (defined($CandMismatchError)) {
     $message = "Candidate Mismatch Error is $CandMismatchError\n";
-    $utility->writeErrorLog($message,7);
+    Log->writeLog($message,7);
 
     $message=  " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
-    $utility->writeErrorLog($message,7);
+    Log->writeLog($message,7);
 
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
@@ -309,7 +316,7 @@ my ($sessionID, $requiresStaging) =
 my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
     $message = "--> WARNING: This file has already been uploaded! \n";
-    $utility->writeErrorLog($message,8);
+    Log->writeLog($message,8);
     print $message  if $debug;
     exit 8; 
 } 
@@ -343,7 +350,7 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
 if($acquisitionProtocol =~ /unknown/) {
    $message = " --> The minc file cannot be registered since the ".
              "AcquisitionProtocol IS unknown";
-   $utility->writeErrorLog($message,9);
+   Log->writeLog($message,9);
    exit 9;
 }
 
