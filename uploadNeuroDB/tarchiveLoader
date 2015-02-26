@@ -76,6 +76,7 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
                                # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
+my $upload_id =0;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -100,6 +101,8 @@ my @opt_table = (
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
                  ],
+	         ["-upload_id","string",1, \$upload_id,
+                  "The uploadID of the given scan uploaded"],
                  ["Fancy options","section"],
 # fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
 # have infinite space on your server."],
@@ -195,7 +198,7 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0700); 
 }
 my $logfile  = "$LogDir/$templog.log";
-&logHeader();
+##&logHeader();
 
 ################################################################
 ############### If xlog is set, fork a tail on log file. #######
@@ -209,6 +212,17 @@ if ($xlog) {
     } 
 }
 
+my $initial_message = "
+    ----------------------------------------------------------------
+            AUTOMATED DICOM DATA UPLOAD
+    ----------------------------------------------------------------
+    *** Date and time of upload    : $date
+    *** Location of source data    : $tarchive
+    *** tmp dir location           : $TmpDir
+    ";
+
+
+
 ################################################################
 ######### Establish database connection ########################
 ################################################################
@@ -218,12 +232,12 @@ $message =  "\n==> Successfully connected to database \n";
 =pod
 ################################################################
 ################################################################
- get useful information from the tarchive table  - The regex is 
+get useful information from the tarchive table  - The regex is 
 very study specific... !!!!!! fixme
- Fixme figure out a way to get rid of study specific ways of 
+Fixme figure out a way to get rid of study specific ways of 
 extracting information ... if there is 
- This will query the tarchive and retrieve (hopefully) enough
- information to continue the upload.
+This will query the tarchive and retrieve (hopefully) enough
+information to continue the upload.
 # fixme documentation needed
 =cut
 
@@ -241,10 +255,10 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ################################################################
 ################## Instantiate LOG Class########################
 ################################################################
-my $Log = Log->new($dbh,$logfile,'TarchiveLoader',$processid);
+my $Log = NeuroDB::Log->new(\$dbh,$logfile,'TarchiveLoader',$upload_id);
 
-
-$utility->writeLog($message);
+$Log->writeLog($initial_message);
+$Log->writeLog($message);
 
 ################################################################
 ################ Register programs #############################
@@ -290,7 +304,7 @@ if (($output== 5) && ($mri_upload_insert==0)) {
                " doesn't exist in the mri_upload table    \n".
                " re-run the tarchiveLoader script using ".
                " -mri_upload_insert to insert the missing values.\n\n";
- $utility->writeErrorLog($message,5); 
+ $Log->writeLog($message,5); 
  exit 5;
 }
 
@@ -303,7 +317,7 @@ if (($output==6) && ($mri_upload_insert)) {
     $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
                " already in the mri_upload table therefore cannot use ".
                " -mri_upload_insert option.\n\n";
-    $utility->writeErrorLog($message,6);
+    $Log->writeLog($message,6);
     exit 6;
 
 }
@@ -315,7 +329,7 @@ if (($output != 0) && ($output!= 5) && ($force==0)) {
  $message = "\n ERROR: The validation has failed. Either re-run the ".
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
- $utility->writeErrorLog($message,7); 
+ $Log->writeLog($message,7); 
  exit 7;
 }
 
@@ -393,7 +407,7 @@ print "\nNumber of MINC files that will be considered for inserting ".
 if ($mcount < 1) { 
     $message = "\nNo data could be converted into valid MINC files. ".
                "Localizers will not be considered! \n" ; 
-    $utility->writeErrorLog($message,8); 
+    $Log->writeLog($message,8); 
     exit 8; 
 }
 
@@ -581,7 +595,7 @@ if (scalar(@leftovers) > 0) {
     my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
     $message = "\n==> LEFTOVERS: ".scalar(@leftovers).
     "\n --> Moving leftovers to $trashdir\n";
-    $utility->writeLog($message);
+    $Log->writeLog($message);
 
     `mkdir -p -m 755 $trashdir`;
     `chmod -R u+w $TmpDir/*`;
@@ -594,7 +608,7 @@ if (scalar(@leftovers) > 0) {
     close MAIL;
 }
 $message = "\n==> Done!  Removing $TmpDir.\n";
-$utility->writeLog($message);
+$Log->writeLog($message);
 
 `gzip -9 $logfile`;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
