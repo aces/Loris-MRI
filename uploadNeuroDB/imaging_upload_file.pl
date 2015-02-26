@@ -39,7 +39,7 @@ my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
 my $pname       = undef;       # this is the patient-name inputed by the user
                                # on the front-end
-
+my $upload_id         =        # The uploadID
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
@@ -59,11 +59,14 @@ my @opt_table = (
                   "name of config file in ../dicom-archive/.loris_mri"],
                  ["-patient_name","string",1, \$pname,
                   "patient-name inputed by the user on the front-end"],
+		 ["-upload_id","string",1, \$upload_id,
+                  "The uploadID of the given scan uploaded"],
                  ["Advanced options","section"],
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
                   "Loosen the validity check of the tarchive allowing for".
                   " the possibility that the tarchive was moved to a". 
                   " different directory."],
+
                 ["Fancy options","section"]
                  );
 
@@ -79,7 +82,7 @@ Version :   $versionInfo
 The program does the following
 
 
-- Gets the location of the uploaded file
+- Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
 - Unzips the uploaded file
 - Source Environment
 - Uses the ImagaingUpload class to :
@@ -108,9 +111,8 @@ if ($profile && ! @Settings::db) {
 }
 if (!$ARGV[0] || !$profile) { 
     print $Help; 
-    print "$Usage\n\tERROR: The path to the Uploaded 
-    file is not valid and an existing ".
-          "profile.\n\n";  
+    print "$Usage\n\tERROR: The path to the Uploaded".
+    "file is not valid or there is no existing profile file \n\n";  
     exit 3;  
 }
 if (!$pname) {
@@ -119,13 +121,20 @@ if (!$pname) {
    exit 4;
 }
 
+if (!$upload_id) {
+   print $Help;
+   print "$Usage\n\tERROR: The Upload_id is missing \n\n";
+   exit 5;
+}
+
+
 $uploaded_file = abs_path($ARGV[0]);
 unless (-e $uploaded_file) {
     print "\nERROR: Could not find the uploaded file
             $uploaded_file. \nPlease, make sure ".
            "the path to the uploaded file is correct. 
            Upload will exit now.\n\n\n";
-    exit 5;
+    exit 6;
 }
 
 ################################################################
@@ -172,7 +181,7 @@ my $is_valid = $imaging_upload->IsValid();
 if (!($is_valid)) {
     $message = "\n The validation has failed";
     print $message;
-    exit 6;
+    exit 7;
 }
 ################################################################
 ############### Move uploaded File to incoming DIR##############
@@ -186,7 +195,7 @@ $output = $imaging_upload->runDicomTar();
 if (!$output) {
     $message = "\n The dicomtar execution has failed";
     print $message;
-    exit 7;
+    exit 8;
 }
 
 ################################################################
@@ -196,7 +205,7 @@ $output = $imaging_upload->runInsertionScripts();
 if ($output!=0) {
     $message = "\n The insertion scripts have failed";
     print $message;
-    exit 8;
+    exit 9;
 }
 
 ################################################################
