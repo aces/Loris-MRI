@@ -70,7 +70,9 @@ sub setEnvironment {
 ####2) Set the isvalidated to true in the mri_upload table
 
 #################################################################
-
+##TODO
+##Put these in the log table
+#############
 sub IsValid  {
     my $this = shift;
     my $message = '';

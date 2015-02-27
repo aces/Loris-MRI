@@ -95,8 +95,8 @@ sub writeLog
     my $this           = shift;
     my $use_log_table  = $Settings::use_log_table;
     my $use_log_file   = $Settings::use_log_file;
-    my $is_error       = 0
-    my ( $message,$failStatus) = @_;
+    my $is_error       = 0;
+    my ($message,$failStatus) = @_;
  
     #############################################################
     #######print out the message#################################
@@ -166,9 +166,10 @@ sub getLogTypes {}
 sub getLogTypeID {
     my $this           = shift;
     my $log_type_id= ''; 
-    my $query = "SELECT lt.LogTypeID FROM log l".
-                " JOIN log_types lt ON (lt.LogTypeID = l.LogTypeID)".
+    my $query = "SELECT lt.LogTypeID FROM log_types lt".
                 " WHERE lt.Origin =?";
+    print "query is " . $query . "\n";
+	print "origin is " . $this->{'origin'} . "\n";
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($this->{'origin'});
     if ($sth->rows> 0) {
