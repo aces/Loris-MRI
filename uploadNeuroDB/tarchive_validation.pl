@@ -163,7 +163,7 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ################################################################
 ################## Instantiate LOG Class########################
 ################################################################
-my $Log = NeuroDB::Log->new(\$dbh,$logfile,'TarchiveLoader',$upload_id);
+my $Log = NeuroDB::Log->new(\$dbh,'TarchiveLoader',$upload_id,$logfile);
 
 
 
