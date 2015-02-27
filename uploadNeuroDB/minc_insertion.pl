@@ -185,9 +185,9 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ################################################################
 ################## Instantiate LOG Class########################
 ################################################################
-my $Log = NeuroDB::Log->new(\$dbh,$logfile,'minc_insertion',$upload_id);
+my $Log = NeuroDB::Log->new(\$dbh,'minc_insertion',$upload_id,$logfile);
 
-Log->writeLog($message);
+$Log->writeLog($message);
 ################################################################
 #################### Check is_valid column #####################
 ################################################################
@@ -206,7 +206,7 @@ if (($is_valid == 0) && ($force==0)) {
                "the problem. Or use -force to force the ".
                "execution.\n\n";
     print $message;
-    Log->writeLog($message,6); 
+    $Log->writeLog($message,6); 
     exit 6;
 }
 
@@ -269,7 +269,7 @@ my $file = $utility->loadAndCreateObjectFile($minc);
 ################################################################
 if (defined(&Settings::filterParameters)) {
     $message = " --> using user-defined filterParameters for $minc\n";
-    Log->writeLog($message);
+    $Log->writeLog($message);
     print $message if $verbose;
     Settings::filterParameters(\$file);
 }
@@ -284,11 +284,11 @@ if (defined(&Settings::filterParameters)) {
 
 if (defined($CandMismatchError)) {
     $message = "Candidate Mismatch Error is $CandMismatchError\n";
-    Log->writeLog($message,7);
+    $Log->writeLog($message,7);
 
     $message=  " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
-    Log->writeLog($message,7);
+    $Log->writeLog($message,7);
 
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
@@ -316,7 +316,7 @@ my ($sessionID, $requiresStaging) =
 my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
     $message = "--> WARNING: This file has already been uploaded! \n";
-    Log->writeLog($message,8);
+    $Log->writeLog($message,8);
     print $message  if $debug;
     exit 8; 
 } 
@@ -350,7 +350,7 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
 if($acquisitionProtocol =~ /unknown/) {
    $message = " --> The minc file cannot be registered since the ".
              "AcquisitionProtocol IS unknown";
-   Log->writeLog($message,9);
+   $Log->writeLog($message,9);
    exit 9;
 }
 
