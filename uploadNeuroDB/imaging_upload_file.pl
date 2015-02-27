@@ -97,7 +97,7 @@ The program does the following
 
 HELP
 my $Usage = <<USAGE;
-usage: $0 </path/to/UploadedFile> -patient_name [options]
+usage: $0 </path/to/UploadedFile> -patient_name -upload_id [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
@@ -138,6 +138,7 @@ if (!$upload_id) {
 
 
 $uploaded_file = abs_path($ARGV[0]);
+print "uplaoded file" . $uploaded_file ;
 unless (-e $uploaded_file) {
     print "\nERROR: Could not find the uploaded file
             $uploaded_file. \nPlease, make sure ".
@@ -187,7 +188,7 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
 ################ Instantiate the Log Class######################
 ################################################################
 my $Log = NeuroDB::Log->new(
-                 \$dbh,"imaging_upload_file.pl",$upload_id);
+                 \$dbh,"imaging_upload_file",$upload_id);
 
 
 ################################################################
@@ -195,6 +196,7 @@ my $Log = NeuroDB::Log->new(
 ################################################################
 
 my $is_valid = $imaging_upload->IsValid();
+print "\n\n\n\n\nis_valid is " . $is_valid . "\n \n\n\n";
 if (!($is_valid)) {
     $message = "\n The validation has failed";
     $Log->writeLog($message,7);
