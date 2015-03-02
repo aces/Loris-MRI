@@ -594,7 +594,16 @@ my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
 if ($xlog) {
     `kill -9 $childPID`;
 }
+################################################################
+############# if no mincs are inserted or the valid_study is ###
+############## false, the exit code will not be 0 ##############
+################################################################
 
+if (!$valid_study) {
+    print "No Mincs inserted \n \n";
+    exit 9;
+}
+exit 0;
 sub logHeader () {
     print LOG "
     ----------------------------------------------------------------
