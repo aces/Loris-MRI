@@ -40,8 +40,8 @@ my $debug       = 1 ;
 my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
-my $pname       = undef;       # this is the patient-name inputed by the user
-                               # on the front-end
+##my $pname       = undef;       # this is the patient-name inputed by the user
+##                               # on the front-end
 my $upload_id         =        # The uploadID
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
@@ -60,9 +60,9 @@ my @opt_table = (
                  ["Basic options","section"],
                  ["-profile","string",1, \$profile,
                   "name of config file in ../dicom-archive/.loris_mri"],
-                 ["-patient_name","string",1, \$pname,
-                  "patient-name inputed by the user on the front-end"],
-		 ["-upload_id","string",1, \$upload_id,
+##                 ["-patient_name","string",1, \$pname,
+##                  "patient-name inputed by the user on the front-end"],
+        		 ["-upload_id","string",1, \$upload_id,
                   "The uploadID of the given scan uploaded"],
                  ["Advanced options","section"],
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
@@ -70,7 +70,7 @@ my @opt_table = (
                   " the possibility that the tarchive was moved to a". 
                   " different directory."],
 
-                ["Fancy options","section"]
+                 ["Fancy options","section"]
                  );
 
 my $Help = <<HELP;
@@ -97,7 +97,7 @@ The program does the following
 
 HELP
 my $Usage = <<USAGE;
-usage: $0 </path/to/UploadedFile> -patient_name -upload_id [options]
+usage: $0 </path/to/UploadedFile> -upload_id [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
@@ -110,6 +110,8 @@ USAGE
 =pod
 1)For those logs before getting the --dbh...they also need to 
 -They need to be inserted
+
+2) The -patient-name can be included for further validation
 =cut
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && ! @Settings::db) { 
@@ -124,16 +126,16 @@ if (!$ARGV[0] || !$profile) {
     "file is not valid or there is no existing profile file \n\n";  
     exit 3;  
 }
-if (!$pname) {
-   print $Help;
-   print "$Usage\n\tERROR: The patient-name is missing \n\n";
-   exit 4;
-}
+##if (!$pname) {
+##   print $Help;
+##   print "$Usage\n\tERROR: The patient-name is missing \n\n";
+##   exit 4;
+##}
 
 if (!$upload_id) {
    print $Help;
    print "$Usage\n\tERROR: The Upload_id is missing \n\n";
-   exit 5;
+   exit 4;
 }
 
 
@@ -144,7 +146,7 @@ unless (-e $uploaded_file) {
             $uploaded_file. \nPlease, make sure ".
            "the path to the uploaded file is correct. 
            Upload will exit now.\n\n\n";
-    exit 6;
+    exit 5;
 }
 
 ################################################################
@@ -169,14 +171,22 @@ my $file_decompress =
 ################################################################
 ################################################################
 print "\n \n tempdir : $TmpDir_decompressed_folder \n \n";
-my $result =  
-    $file_decompress->Extract($TmpDir_decompressed_folder);
+my $result =  $file_decompress->Extract(
+                $TmpDir_decompressed_folder
+              );
+
+################################################################
+############### Get Patient_name using UploadID#################
+################################################################
+################################################################
+my $pname = getPnameUsingUploadID($upload_id);
 
 ################################################################
 ################ ImagingUpload  Object #########################
 ################################################################
 my $imaging_upload = NeuroDB::ImagingUpload->new(
-                 \$dbh,$TmpDir_decompressed_folder,$pname);
+                 \$dbh,$TmpDir_decompressed_folder,
+                 $upload_id,$pname);
 
 ################################################################
 ################ Source Environment#############################
@@ -190,7 +200,6 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
 my $Log = NeuroDB::Log->new(
                  \$dbh,"imaging_upload_file",$upload_id);
 
-
 ################################################################
 ############### Validate File ##################################
 ################################################################
@@ -199,14 +208,19 @@ my $is_valid = $imaging_upload->IsValid();
 print "\n\n\n\n\nis_valid is " . $is_valid . "\n \n\n\n";
 if (!($is_valid)) {
     $message = "\n The validation has failed";
-    $Log->writeLog($message,7);
+    $Log->writeLog($message,6);
     print $message;
-    exit 7;
+    exit 6;
 }
+$message = "\n The validation has passed";
+$Log->writeLog($message);
+
 ################################################################
 ############### Move uploaded File to incoming DIR##############
 ################################################################
 ##$imaging_upload->moveUploadedFile();
+###NOte: Since the tarchive folder will have the incoming file
+###copy the file to incoming dir may not be needed
 
 ################################################################
 ############### Run DicomTar  ##################################
@@ -214,21 +228,26 @@ if (!($is_valid)) {
 $output = $imaging_upload->runDicomTar();
 if (!$output) {
     $message = "\n The dicomtar execution has failed";
-    $Log->writeLog($message,8); 
+    $Log->writeLog($message,7); 
     print $message;
-    exit 8;
+    exit 7;
 }
+$message = "\n The dicomtar execution has successfully completed";
+$Log->writeLog($message);
+
 
 ################################################################
 ############### Run InsertionScripts############################
 ################################################################
 $output = $imaging_upload->runInsertionScripts();
-if ($output!=0) {
+if (!$output) {
     $message = "\n The insertion scripts have failed";
-    $Log->writeLog($message,9); 
+    $Log->writeLog($message,8); 
     print $message;
-    exit 9;
+    exit 8;
 }
+$message = "\n The insertion Script has successfully completed";
+$Log->writeLog($message);
 
 ################################################################
 ############### Change Ownership from www-data##################
@@ -246,12 +265,27 @@ sub changeFileOwnerShip {
    chown $uid, $gid, $file_path;
 }
 
-###do we need to move it to /data/incoming directory
-sub UpdateMRIUploadTable {
- 
+################################################################
+############### Get the patient-name using the upload_id########
+################################################################
+sub getPnameUsingUploadID {
 
+   my $upload_id =  shift;
+   my ($patient_name, $query) = '';
 
+   if ($upload_id) {
+       ########################################################
+       ##########Extract pname using uploadid##################
+       ########################################################
+       $query = "SELECT PatientName FROM mri_upload ".
+       " WHERE UploadID =?";
+       my $sth = $dbh->prepare($query);
+       $sth->execute($upload_id);
+       if ($sth->rows> 0) {
+           $patient_name  = $sth->fetchrow_array();
+       }
+    }
+    return $patient_name;
 }
 
 exit 0;
-
