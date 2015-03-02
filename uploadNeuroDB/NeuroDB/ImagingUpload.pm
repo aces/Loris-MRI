@@ -27,7 +27,7 @@ http://stackoverflow.com/questions/6829179/how-to-source-a-shell-script-environm
 ################################################################
 sub new {
     my $params = shift;
-    my ($dbhr,$uploaded_temp_folder,$pname) = @_;
+    my ($dbhr,$uploaded_temp_folder,$upload_id,$pname) = @_;
     unless(defined $dbhr) {
        croak(
            "Usage: ".$params."->new(\$databaseHandleReference)"
@@ -43,9 +43,18 @@ sub new {
      package Settings;
      do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
+
+    ############################################################
+    ############### Create a Log Object ########################
+    ############################################################
+
+    my $Log = NeuroDB::Log->new($dbhr,'ImagingUpload',$upload_id);
+    $self->{'Log'} = $Log;
+
     $self->{'uploaded_temp_folder'} = $uploaded_temp_folder;
     $self->{'dbhr'} = $dbhr ;
     $self->{'pname'} = $pname ;
+    $self->{'upload_id'} = $upload_id ;
     return bless $self, $params;
 }
 
@@ -75,17 +84,17 @@ sub setEnvironment {
 #############
 sub IsValid  {
     my $this = shift;
-    my $message = '';
+    my ($message,$query) = '';
     ##my $file_decompress = FileDecompress->new(
 	##		$this->{'uploaded_temp_folder'}
     ##                 );
     #################################################
     ####Get a list of files from the folder
     #################################################
-    print "folderrrr". $this->{'uploaded_temp_folder'} ;
     my $files_not_dicom = 0;
     my $files_with_unmatched_patient_name = 0;
-    my $is_valid = 0;     
+    my $is_valid = 0;    
+    my @row = (); 
     #################################################
     #############Loop through the files##############
     #################################################
@@ -94,6 +103,42 @@ sub IsValid  {
     	return unless -f;       #Must be a file
 	push @file_list, $File::Find::name;
     }, $this->{'uploaded_temp_folder'} );
+
+
+    ################################################################
+    ############### Check to see if the uploadID exists ############
+    ################################################################
+    ################################################################
+    $query = "SELECT PatientName,TarchiveID,number_of_mincCreated,number_of_mincInserted FROM mri_upload ".
+       " WHERE UploadID =?";
+
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($this->{'upload_id'});
+    if ($sth->rows> 0) {
+        @row  = $sth->fetchrow_array();
+    }
+    else {
+        $message = "\n The uploadID " . $this->{'upload_id'} . "Does Not Exist " .
+               "Are not DiCOM";
+        ###NOTE: No exit code but the Fail-status is 1  
+        $this->{Log}->writeLog($message,1);
+        return 0; 
+    }
+
+
+    ################################################################
+    ############### Check to see if the scan has been ran ##########
+    ###############if the tarchiveid or the number_of_mincCreated ##
+    ############## It means that has already been ran###############
+
+    if (($row[1]) ||  ($row[2])) {
+        $message = "\n The Scan for the uploadID " . $this->{'upload_id'} .
+               " has already been ran";
+        ###NOTE: No exit code but the Fail-status is 1  
+        $this->{Log}->writeLog($message,2);
+        return 0;  
+
+    }
 
     foreach(@file_list) {
 	    ############################################################
@@ -114,6 +159,8 @@ sub IsValid  {
    if ($files_not_dicom > 0)  {
        $message = "\n ERROR: there are $files_not_dicom files which are " .
                    "Are not DiCOM";
+        ###NOTE: No exit code but the Fail-status is 1  
+       $this->{Log}->writeLog($message,3);
        print ($message);
        return 0;
 
@@ -121,7 +168,10 @@ sub IsValid  {
    if ($files_with_unmatched_patient_name>0) {
         $message = "\n ERROR: there are $files_with_unmatched_patient_name files".
                    " where the patient-name doesn't match ";
-     print ($message);
+        $this->{Log}->writeLog($message,4);
+        print ($message);
+        ###NOTE: No exit code but the Fail-status is 2
+
      return 0;
    }
    return 1; ##return true
@@ -166,7 +216,6 @@ sub runDicomTar {
         my $mri_upload_update = ${$this->{'dbhr'}}->prepare($query);
         $mri_upload_update->execute($this->{'pname'});
         return 1;   
-
     }
     return 0;
 }
@@ -203,7 +252,11 @@ sub runInsertionScripts {
 	" -globLocation -profile prod $archived_file_path";
   print "\n" . $command . "\n";
   my $output = $this->runCommandWithExitCode($command);
-  return $output;
+
+  if ($output==0) {
+      return 1;
+  }
+  return 0;
 }
 
 #################################################################
@@ -236,7 +289,6 @@ sub PatientNameMatch {
    print "the patientname cannot be extracted";
    exit 1;
  }
- ##print "\n \n $patient_name_string  \n \n";
  my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
  if ($pname ne  $this->{'pname'}) {
     my $message = "The patient-name $pname does not Match" .
@@ -253,7 +305,6 @@ sub PatientNameMatch {
 sub isDicom {
  my $this = shift;
  my ($dicom_file) = @_;
- ##print "\n \n dicom_file is ". $dicom_file . "\n";
  my $file_type = $this->runCommand("file $dicom_file") ;
  if (!($file_type =~/DICOM/)) {
     print "not of type DICOM";
@@ -268,14 +319,14 @@ sub isDicom {
 sub moveUploadedFile {
     my $this = shift;
     my $incoming_folder = $Settings::IncomingDir;
-    my $cmd = "cp -R " . $this->{'uploaded_temp_folder'} . " " . $incoming_folder ;
+    my $cmd = "cp -R " . $this->{'uploaded_temp_folder'} .
+     " " . $incoming_folder ;
     $this->runCommand($cmd);
 }
 
 ################################################################
 ###############################runCommandWithExitCode###########
 ################################################################
-
 sub runCommandWithExitCode {
     my $this = shift;
     my ($query) = @_;
@@ -295,7 +346,11 @@ sub runCommand {
     return `$query`;
 }
 
+################################################################
+#############################removeTMPDir#######################
+################################################################
 
-
+sub removeTMPDir {
+}
 
 1; 
