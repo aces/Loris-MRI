@@ -76,7 +76,6 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
                                # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
-my $upload_id =0;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -101,8 +100,6 @@ my @opt_table = (
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
                  ],
-	         ["-upload_id","string",1, \$upload_id,
-                  "The uploadID of the given scan uploaded"],
                  ["Fancy options","section"],
 # fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
 # have infinite space on your server."],
@@ -198,7 +195,9 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0700); 
 }
 my $logfile  = "$LogDir/$templog.log";
-##&logHeader();
+open LOG, ">$logfile";
+LOG->autoflush(1);
+&logHeader();
 
 ################################################################
 ############### If xlog is set, fork a tail on log file. #######
@@ -212,52 +211,31 @@ if ($xlog) {
     } 
 }
 
-my $initial_message = "
-    ----------------------------------------------------------------
-            AUTOMATED DICOM DATA UPLOAD
-    ----------------------------------------------------------------
-    *** Date and time of upload    : $date
-    *** Location of source data    : $tarchive
-    *** tmp dir location           : $TmpDir
-    ";
-
-
-
 ################################################################
 ######### Establish database connection ########################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-$message =  "\n==> Successfully connected to database \n";
+print LOG "\n==> Successfully connected to database \n";
 
 =pod
 ################################################################
 ################################################################
-get useful information from the tarchive table  - The regex is 
+ get useful information from the tarchive table  - The regex is 
 very study specific... !!!!!! fixme
-Fixme figure out a way to get rid of study specific ways of 
+ Fixme figure out a way to get rid of study specific ways of 
 extracting information ... if there is 
-This will query the tarchive and retrieve (hopefully) enough
-information to continue the upload.
+ This will query the tarchive and retrieve (hopefully) enough
+ information to continue the upload.
 # fixme documentation needed
 =cut
 
 ################################################################
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
-
-###############TODO:::PASS the processID#######################
 my $utility = NeuroDB::MRIProcessingUtility->new(
                   \$dbh,$debug,$TmpDir,$logfile,
-                  $LogDir,$verbose,'TarchiveLoader'
+                  $LogDir,$verbose
               );
-
-
-################################################################
-################## Instantiate LOG Class########################
-################################################################
-my $Log = NeuroDB::Log->new(\$dbh,'TarchiveLoader',$upload_id,$logfile);
-$Log->writeLog($initial_message);
-$Log->writeLog($message);
 
 ################################################################
 ################ Register programs #############################
@@ -303,7 +281,7 @@ if (($output== 5) && ($mri_upload_insert==0)) {
                " doesn't exist in the mri_upload table    \n".
                " re-run the tarchiveLoader script using ".
                " -mri_upload_insert to insert the missing values.\n\n";
- $Log->writeLog($message,5); 
+ $utility->writeErrorLog($message,5,$logfile); 
  exit 5;
 }
 
@@ -316,7 +294,7 @@ if (($output==6) && ($mri_upload_insert)) {
     $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
                " already in the mri_upload table therefore cannot use ".
                " -mri_upload_insert option.\n\n";
-    $Log->writeLog($message,6);
+    $utility->writeErrorLog($message,6,$logfile);
     exit 6;
 
 }
@@ -328,7 +306,7 @@ if (($output != 0) && ($output!= 5) && ($force==0)) {
  $message = "\n ERROR: The validation has failed. Either re-run the ".
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
- $Log->writeLog($message,7); 
+ $utility->writeErrorLog($message,5,$logfile); 
  exit 7;
 }
 
@@ -406,7 +384,7 @@ print "\nNumber of MINC files that will be considered for inserting ".
 if ($mcount < 1) { 
     $message = "\nNo data could be converted into valid MINC files. ".
                "Localizers will not be considered! \n" ; 
-    $Log->writeLog($message,8); 
+    $utility->writeErrorLog($message,6,$logfile); 
     exit 8; 
 }
 
@@ -592,10 +570,8 @@ my @leftovers = `\\ls -1 $TmpDir`;
 
 if (scalar(@leftovers) > 0) {
     my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
-    $message = "\n==> LEFTOVERS: ".scalar(@leftovers).
+    print LOG "\n==> LEFTOVERS: ".scalar(@leftovers).
     "\n --> Moving leftovers to $trashdir\n";
-    $Log->writeLog($message);
-
     `mkdir -p -m 755 $trashdir`;
     `chmod -R u+w $TmpDir/*`;
     `mv $TmpDir/* $trashdir`;
@@ -606,9 +582,9 @@ if (scalar(@leftovers) > 0) {
     print MAIL "Files left over:\n".join("", @leftovers)."\n";
     close MAIL;
 }
-$message = "\n==> Done!  Removing $TmpDir.\n";
-$Log->writeLog($message);
 
+print LOG "\n==> Done!  Removing $TmpDir.\n";
+close LOG;
 `gzip -9 $logfile`;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
 `$cmd`;
@@ -618,7 +594,6 @@ my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
 if ($xlog) {
     `kill -9 $childPID`;
 }
-exit 0;
 
 sub logHeader () {
     print LOG "

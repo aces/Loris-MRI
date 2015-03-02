@@ -42,7 +42,6 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $upload_id      = 0;
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
@@ -164,13 +163,15 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0700); 
 }
 my $logfile  = "$LogDir/$templog.log";
+open LOG, ">>", $logfile or die "Error Opening $logfile";
+LOG->autoflush(1);
 &logHeader();
 
 ################################################################
 ############### Establish database connection ##################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-$message  = "\n==> Successfully connected to database \n";
+print LOG "\n==> Successfully connected to database \n";
 
 
 ################################################################
@@ -181,13 +182,6 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
                   $verbose
               );
 
-
-################################################################
-################## Instantiate LOG Class########################
-################################################################
-my $Log = NeuroDB::Log->new(\$dbh,'minc_insertion',$upload_id,$logfile);
-
-$Log->writeLog($message);
 ################################################################
 #################### Check is_valid column #####################
 ################################################################
@@ -206,7 +200,7 @@ if (($is_valid == 0) && ($force==0)) {
                "the problem. Or use -force to force the ".
                "execution.\n\n";
     print $message;
-    $Log->writeLog($message,6); 
+    $utility->writeErrorLog($message,6,$logfile); 
     exit 6;
 }
 
@@ -268,9 +262,8 @@ my $file = $utility->loadAndCreateObjectFile($minc);
 ##### Optionally do extra filtering, if needed #################
 ################################################################
 if (defined(&Settings::filterParameters)) {
-    $message = " --> using user-defined filterParameters for $minc\n";
-    $Log->writeLog($message);
-    print $message if $verbose;
+    print LOG " --> using user-defined filterParameters for $minc\n"
+    if $verbose;
     Settings::filterParameters(\$file);
 }
 
@@ -283,13 +276,9 @@ if (defined(&Settings::filterParameters)) {
 ################################################################
 
 if (defined($CandMismatchError)) {
-    $message = "Candidate Mismatch Error is $CandMismatchError\n";
-    $Log->writeLog($message,7);
-
-    $message=  " -> WARNING: This candidate was invalid. Logging to
+    print LOG "Candidate Mismatch Error is $CandMismatchError\n";
+    print LOG " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
-    $Log->writeLog($message,7);
-
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
         $tarchiveInfo{'TarchiveID'},
@@ -315,9 +304,8 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
-    $message = "--> WARNING: This file has already been uploaded! \n";
-    $Log->writeLog($message,8);
-    print $message  if $debug;
+    print "--> WARNING: This file has already been uploaded! \n"  if $debug;
+    print LOG " --> WARNING: This file has already been uploaded!"; 
     exit 8; 
 } 
 
@@ -348,9 +336,8 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
     );
 
 if($acquisitionProtocol =~ /unknown/) {
-   $message = " --> The minc file cannot be registered since the ".
+   print LOG " --> The minc file cannot be registered since the ".
              "AcquisitionProtocol IS unknown";
-   $Log->writeLog($message,9);
    exit 9;
 }
 

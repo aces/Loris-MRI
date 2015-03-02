@@ -47,7 +47,7 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($gender, $tarchive,%tarchiveInfo);
 my $User             = `whoami`; 
-my $upload_id        = 0;
+
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile","string",1, \$profile,
@@ -144,13 +144,15 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0700); 
 }
 my $logfile  = "$LogDir/$templog.log";
+open LOG, ">>", $logfile or die "Error Opening $logfile";
+LOG->autoflush(1);
 &logHeader();
 
 ################################################################
 ################ Establish database connection #################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-$message= "\n==> Successfully connected to database \n";
+print LOG "\n==> Successfully connected to database \n";
 
 ################################################################
 ################ MRIProcessingUtility object ###################
@@ -160,14 +162,6 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
                   $verbose
               );
 
-################################################################
-################## Instantiate LOG Class########################
-################################################################
-my $Log = NeuroDB::Log->new(\$dbh,'TarchiveLoader',$upload_id,$logfile);
-
-
-
-$Log->writeLog($message);
 ################################################################
 ############### Create tarchive array ##########################
 ################################################################
@@ -197,7 +191,7 @@ if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
                " doesn't exist in the mri_upload table. Either: \n".
                "-re-run the dicomTar.pl using -mri_upload_update ".
                "-or use -mri_upload_insert to insert the missing values.\n\n";
-    $Log->writeLog($message,5);
+    $utility->writeErrorLog($message,5,$logfile);
     exit 5;
 }
 
@@ -210,7 +204,7 @@ if (($tarchiveid_count>0) && ($mri_upload_insert)) {
     $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
                " already in the mri_upload table therefore cannot use ".
                " -mri_upload_insert option.\n\n";
-    $Log->writeLog($message,6,$logfile);
+    $utility->writeErrorLog($message,6,$logfile);
     exit 6;
 }
 
