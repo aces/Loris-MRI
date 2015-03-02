@@ -110,20 +110,20 @@ sub writeLog
     #######write the logs in the log file########################
     #############################################################
     if ( $use_log_file ) {
-        ###########################################
-	#####only if the file exists###############
-	###########################################
-	if (($this->{logfile}) && (-e $this->{logfile})) {
+        #############################################################
+    	################only if the file exists######################
+    	#############################################################
+    	if (($this->{logfile}) && (-e $this->{logfile})) {
             $this->{LOG}->print($message);
-	    if ($failStatus) {
+    	    if ($failStatus) {
 	            $this->{LOG}->print(
 	                "program exit status: $failStatus"
 	            );
 	            `cat $this->{logfile}  >> $this->{LogDir}/error.log`;
 	            `rm -f $this->{logfile} `;
-	         }
+	        }
 	        close $this->{LOG};
-	}
+    	}
     }
 
     #############################################################
@@ -135,19 +135,21 @@ sub writeLog
         if ($failStatus) {
             $is_error = 1;
         }
-	#########################################################
-	##################Get logtypeID##########################
-	######################################################### 
+	    #########################################################
+    	##################Get logtypeID##########################
+    	######################################################### 
         my $log_type_id = $this->getLogTypeID();
         if ($log_type_id) {
-            my $log_query = "INSERT INTO log (LogTypeID,ProcessID,CreatedTime,Message,Error) ".
+            my $log_query = "INSERT INTO log (LogTypeID,ProcessID," .
+                            "CreatedTime,Message,Error) ".
                             "VALUES (?,?, now(),?,?)";
-            print "log query is " . $log_query  . "\n";
-            print 'use_file_table' . $use_log_table;
             print "message is $message";
             my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
-            my $result = $logsth->execute($log_type_id,$this->{'ProcessID'}, $message,$is_error );
-            print "result is $result \n";
+            my $result = $logsth->execute(
+                $log_type_id,
+                $this->{'ProcessID'}, 
+                $message,$is_error
+            );
         }
         else { 
             print "log type id not found";
@@ -187,5 +189,4 @@ sub getLogs {}
 #####################get Logs by ProcessID######################
 ################################################################
 sub getLogsByProcessID{}
-
 1; 
