@@ -181,7 +181,8 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
                     \$dbh,
                      $TmpDir_decompressed_folder,
                      $upload_id,
-                     $pname
+                     $pname,
+                     $profile
                  );
 
 ################################################################
@@ -196,7 +197,8 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
 my $Log = NeuroDB::Log->new(
                   \$dbh,
                   "imaging_upload_file",
-                  $upload_id
+                  $upload_id,
+                  $profile
          );
 
 ################################################################

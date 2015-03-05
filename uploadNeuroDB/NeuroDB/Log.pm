@@ -12,7 +12,7 @@ use Path::Class;
 ################################################################
 sub new {
     my $params = shift;
-    my ($dbhr,$origin,$processid,$logfile) = @_;
+    my ($dbhr,$origin,$processid,$logfile,$profile) = @_;
     unless(defined $dbhr) {
         croak(
                 "Usage: ".$params."->new(\$databaseHandleReference)"
@@ -36,7 +36,6 @@ sub new {
     ############################################################
     ############### Create a settings package ##################
     ############################################################
-    my $profile = "prod";
     {
         package Settings;
         do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";

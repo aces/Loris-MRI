@@ -20,7 +20,7 @@ use File::Temp qw/ tempdir /;
 ################################################################
 sub new {
     my $params = shift;
-    my ($dbhr,$uploaded_temp_folder,$upload_id,$pname) = @_;
+    my ($dbhr,$uploaded_temp_folder,$upload_id,$pname,$profile) = @_;
     unless(defined $dbhr) {
         croak(
                 "Usage: ".$params."->new(\$databaseHandleReference)"
@@ -31,7 +31,6 @@ sub new {
     ############################################################
     ############### Create a settings package ##################
     ############################################################
-    my $profile = "prod";
     {
         package Settings;
         do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
@@ -41,7 +40,7 @@ sub new {
     ############### Create a Log Object ########################
     ############################################################
 
-    my $Log = NeuroDB::Log->new($dbhr,'ImagingUpload',$upload_id);
+    my $Log = NeuroDB::Log->new($dbhr,'ImagingUpload',$upload_id,$profile);
     $self->{'Log'} = $Log;
 
     $self->{'uploaded_temp_folder'} = $uploaded_temp_folder;
