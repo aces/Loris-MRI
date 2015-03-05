@@ -136,7 +136,6 @@ if (!$upload_id) {
 
 
 $uploaded_file = abs_path($ARGV[0]);
-print "uplaoded file" . $uploaded_file ;
 unless (-e $uploaded_file) {
     print "\nERROR: Could not find the uploaded file
             $uploaded_file. \nPlease, make sure ".
@@ -158,7 +157,6 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 ################################################################
 ################ FileDecompress Object #########################
 ################################################################
-print "\n uploaded file is " . $uploaded_file . "\n";
 my $file_decompress = 
     NeuroDB::FileDecompress->new($uploaded_file);
 
@@ -166,7 +164,6 @@ my $file_decompress =
 ############### Unzip File #####################################
 ################################################################
 ################################################################
-print "\n \n tempdir : $TmpDir_decompressed_folder \n \n";
 my $result =  $file_decompress->Extract(
                 $TmpDir_decompressed_folder
               );
@@ -207,7 +204,6 @@ my $Log = NeuroDB::Log->new(
 ################################################################
 
 my $is_valid = $imaging_upload->IsValid();
-print "\n\n\n\n\nis_valid is " . $is_valid . "\n \n\n\n";
 if (!($is_valid)) {
     $message = "\n The validation has failed";
     $Log->writeLog($message,6);
@@ -258,11 +254,9 @@ $Log->writeLog($message);
 sub changeFileOwnerShip {
     my $file_path =  shift;
     my $user =  $ENV{'LOGNAME'}; ###it may need to be set
-    print "\n \n \n user is $user \n \n \n";
     my ($login,$pass,$uid,$gid) = getpwnam($user)
         or die "$user not in passwd file";
 
-    print " \n \n \n login : $login uid: $uid and gid: $gid filepath : $file_path\n \n \n";
     chown $uid, $gid, $file_path;
 }
 
