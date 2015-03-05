@@ -51,21 +51,6 @@ sub new {
 }
 
 #################################################################
-##############################setEnvironment#####################
-#################################################################
-sub setEnvironment {
-
-
-###1) Create an  actuall function that sources the file
-###http://stackoverflow.com/questions/6829179/how-to-source-a-shell-script-environment-variables-in-perl-script-without-fork
-
-    my $this = shift;
-    my $environment_file = $Settings::data_dir . "/" . "environment";
-    my $command = "source $environment_file";
-    $this->runCommand($command);
-
-}
-#################################################################
 #####################IsValid#####################################
 #################################################################
 ###Validates the File to be uploaded#############################
@@ -79,7 +64,7 @@ sub setEnvironment {
 #############
 sub IsValid  {
     my $this = shift;
-    my ($message,$query) = '';
+    my ($message,$query,$where) = '';
     ##my $file_decompress = FileDecompress->new(
     ##		$this->{'uploaded_temp_folder'}
     ##                 );
@@ -127,11 +112,10 @@ sub IsValid  {
     ###############if the tarchiveid or the number_of_mincCreated ##
     ############## It means that has already been ran###############
     ################################################################
-
     if (($row[1]) ||  ($row[2])) {
         $message = "\n The Scan for the uploadID " . $this->{'upload_id'} .
-            " has already been ran";
-    ###NOTE: No exit code but the Fail-status is 1  
+            " has already been ran with tarchiveID: " . $row[1];
+        ###NOTE: No exit code but the Fail-status is 1  
         $this->{Log}->writeLog($message,2);
         return 0;  
     }
@@ -167,6 +151,18 @@ sub IsValid  {
         ###NOTE: No exit code but the Fail-status is 2
         return 0;
     }
+
+    
+    #############################################################
+    ###############Update the MRI_upload table And###############
+    ################Set the isValidated to true##################
+    ########################################################
+    $where = " WHERE UploadID=?";
+    $query = "UPDATE mri_upload SET IsValidated=1";
+    $query = $query . $where;
+    my $mri_upload_update = ${$this->{'dbhr'}}->prepare($query);
+    $mri_upload_update->execute($this->{'upload_id'});
+    
     return 1; ##return true
 }
 
@@ -202,11 +198,11 @@ sub runDicomTar {
         ########################################################
         #################Update MRI_upload Table accordingly####
         ########################################################
-        $where = "WHERE PatientName=?";
+        $where = "WHERE UploadID=?";
         $query = "UPDATE mri_upload SET TarchiveID='$tarchive_id'";
         $query = $query . $where;
         my $mri_upload_update = ${$this->{'dbhr'}}->prepare($query);
-        $mri_upload_update->execute($this->{'pname'});
+        $mri_upload_update->execute($this->{'upload_id'});
         return 1;   
     }
     return 0;
@@ -338,5 +334,14 @@ sub runCommand {
 ################################################################
 #############################removeTMPDir#######################
 ################################################################
-sub removeTMPDir {}
+sub CleanUpTMPDir {
+    my $this = shift;
+    ############################################################
+    ####if the uploaded directory in /tmp exists################
+    #############REmove it #####################################
+    ############################################################
+    if (-d $this->{'uploaded_temp_folder'}) {
+        rmdir($this->{'uploaded_temp_folder'});
+    }
+}
 1; 
