@@ -10,13 +10,6 @@ use File::Find;
 use NeuroDB::FileDecompress;
 use File::Temp qw/ tempdir /;
 
-=pod
-todo:
-
-
-1) Create an  actuall function that sources the file
-http://stackoverflow.com/questions/6829179/how-to-source-a-shell-script-environment-variables-in-perl-script-without-fork
-=cut
 ################################################################
 #####################Constructor ###############################
 ################################################################
@@ -35,18 +28,18 @@ sub new {
     }
     my $self = {};
 
-############################################################
-############### Create a settings package ##################
-############################################################
+    ############################################################
+    ############### Create a settings package ##################
+    ############################################################
     my $profile = "prod";
     {
         package Settings;
         do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
 
-############################################################
-############### Create a Log Object ########################
-############################################################
+    ############################################################
+    ############### Create a Log Object ########################
+    ############################################################
 
     my $Log = NeuroDB::Log->new($dbhr,'ImagingUpload',$upload_id);
     $self->{'Log'} = $Log;
@@ -62,6 +55,11 @@ sub new {
 ##############################setEnvironment#####################
 #################################################################
 sub setEnvironment {
+
+
+###1) Create an  actuall function that sources the file
+###http://stackoverflow.com/questions/6829179/how-to-source-a-shell-script-environment-variables-in-perl-script-without-fork
+
     my $this = shift;
     my $environment_file = $Settings::data_dir . "/" . "environment";
     my $command = "source $environment_file";
@@ -125,24 +123,25 @@ sub IsValid  {
     }
 
 
-################################################################
-############### Check to see if the scan has been ran ##########
-###############if the tarchiveid or the number_of_mincCreated ##
-############## It means that has already been ran###############
+    ################################################################
+    ############### Check to see if the scan has been ran ##########
+    ###############if the tarchiveid or the number_of_mincCreated ##
+    ############## It means that has already been ran###############
+    ################################################################
 
     if (($row[1]) ||  ($row[2])) {
         $message = "\n The Scan for the uploadID " . $this->{'upload_id'} .
             " has already been ran";
-###NOTE: No exit code but the Fail-status is 1  
+    ###NOTE: No exit code but the Fail-status is 1  
         $this->{Log}->writeLog($message,2);
         return 0;  
     }
 
     foreach(@file_list) {
-############################################################
-###  1) Check to see if it's dicom##########################
-###  2) Check to see if the header matches the patient-name#
-############################################################
+    ############################################################
+    ###  1) Check to see if it's dicom##########################
+    ###  2) Check to see if the header matches the patient-name#
+    ############################################################
         if (($_ ne '.') && ($_ ne '..'))  {
             if (!$this->isDicom($_)) {
                 $files_not_dicom++;
@@ -156,7 +155,7 @@ sub IsValid  {
     if ($files_not_dicom > 0) {
         $message = "\n ERROR: there are $files_not_dicom files which are " .
             "Are not DiCOM";
-###NOTE: No exit code but the Fail-status is 1  
+        ###NOTE: No exit code but the Fail-status is 1  
         $this->{Log}->writeLog($message,3);
         print ($message);
         return 0;
@@ -166,7 +165,7 @@ sub IsValid  {
             " where the patient-name doesn't match ";
         $this->{Log}->writeLog($message,4);
         print ($message);
-###NOTE: No exit code but the Fail-status is 2
+        ###NOTE: No exit code but the Fail-status is 2
         return 0;
     }
     return 1; ##return true
@@ -220,7 +219,6 @@ sub runDicomTar {
 sub getTarchiveFileLocation {
     my $this = shift;
     my $archive_location  = '';
-    print "\n". $this->{'uploaded_temp_folder'} . "\n";
     my $query = "SELECT t.ArchiveLocation FROM tarchive t ".
         " WHERE t.SourceLocation =?";
     print "\n" . $query . "\n";
@@ -258,6 +256,7 @@ sub getArchivedFiles {
     my $files = ${$this->{'extract_object'}}->files;
     return $files;
 }
+
 #################################################################
 ###############################getType###########################
 #################################################################
@@ -267,6 +266,7 @@ sub getType {
     my $type = ${$this->{'extract_object'}}->type;
     return $type;
 }
+
 #################################################################
 ###############################PatientNameMatch##################
 #################################################################
@@ -339,7 +339,5 @@ sub runCommand {
 ################################################################
 #############################removeTMPDir#######################
 ################################################################
-
-sub removeTMPDir {
-}
+sub removeTMPDir {}
 1; 

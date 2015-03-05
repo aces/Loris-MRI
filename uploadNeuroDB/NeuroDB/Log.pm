@@ -6,9 +6,6 @@ use warnings;
 use Data::Dumper;
 use File::Basename;
 use Path::Class;
-use Archive::Extract;
-use Archive::Zip;
-
 
 ################################################################
 #####################Constructor ###############################
@@ -126,9 +123,7 @@ sub writeLog {
     #############################################################
     #######write the logs in the log table#######################
     ############################################################# 
-    print "use log table is " . $use_log_table . "\n";
-    if ( $use_log_table ) {
-
+    if ($use_log_table ) {
         if ($failStatus) {
             $is_error = 1;
         }
