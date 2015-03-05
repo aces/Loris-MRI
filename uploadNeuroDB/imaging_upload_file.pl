@@ -186,12 +186,6 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
                  );
 
 ################################################################
-################ Source Environment#############################
-################################################################
-####$imaging_upload->setEnvironment();  -------FAIL
-
-
-################################################################
 ################ Instantiate the Log Class######################
 ################################################################
 my $Log = NeuroDB::Log->new(
@@ -212,6 +206,7 @@ if (!($is_valid)) {
     print $message;
     exit 6;
 }
+
 $message = "\n The validation has passed";
 $Log->writeLog($message);
 
@@ -248,6 +243,10 @@ if (!$output) {
 $message = "\n The insertion Script has successfully completed";
 $Log->writeLog($message);
 
+################################################################
+############### remove the uploaded folder from the /tmp########
+################################################################
+$imaging_upload->CleanUpTMPDir();
 ################################################################
 ############### Change Ownership from www-data##################
 ################ to the current-user############################
