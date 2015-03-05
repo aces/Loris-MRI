@@ -94,10 +94,10 @@ sub writeLog {
     #############################################################
     #######print out the message#################################
     #############################################################
-    if ( $this->{ debug } )
-    {
-        print $message;
-    }
+    ##if ( $this->{ debug } )
+    ##{
+    print  "\n" . $message . "\n";
+    ##}
 
     #############################################################
     #######write the logs in the log file########################
@@ -126,21 +126,35 @@ sub writeLog {
         if ($failStatus) {
             $is_error = 1;
         }
-    #########################################################
-    ##################Get logtypeID##########################
-    ######################################################### 
+        #########################################################
+        ##################Get logtypeID##########################
+        ######################################################### 
         my $log_type_id = $this->getLogTypeID();
+    
+        #########################################################
+        ##################Insert the Log#########################
+        ######################################################### 
+
         if ($log_type_id) {
-            my $log_query = "INSERT INTO log (LogTypeID,ProcessID," .
-                "CreatedTime,Message,Error) ".
-                "VALUES (?,?, now(),?,?)";
-            print "message is $message";
-            my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
-            my $result = $logsth->execute(
-                    $log_type_id,
-                    $this->{'ProcessID'}, 
-                    $message,$is_error
-                    );
+            #################################################
+            ###############TODO:Insert only if it doesn't ###
+            ################# exist##########################
+            my $query = "SELECT COUNT(*) AS counter FROM log WHERE ProcessID=? AND Message=?";
+            my $sth = ${$this->{'dbhr'}}->prepare($query);
+            $sth->execute($this->{'ProcessID'},$message);
+            my $row = $sth->fetchrow_hashref();
+            if($row->{'counter'} == 0) {
+                my $log_query = "INSERT INTO log (LogTypeID,ProcessID," .
+                    "CreatedTime,Message,Error) ".
+                    "VALUES (?,?, now(),?,?) ";
+                my $logsth    = ${$this->{'dbhr'}}->prepare($log_query);
+                my $result = $logsth->execute(
+                        $log_type_id,
+                        $this->{'ProcessID'}, 
+                        $message,
+                        $is_error
+                        );
+          }
         }
         else { 
             print "log type id not found";
@@ -161,7 +175,6 @@ sub getLogTypeID {
     my $log_type_id= ''; 
     my $query = "SELECT lt.LogTypeID FROM log_types lt".
         " WHERE lt.Origin =?";
-    print "query is " . $query . "\n";
     print "origin is " . $this->{'origin'} . "\n";
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($this->{'origin'});
