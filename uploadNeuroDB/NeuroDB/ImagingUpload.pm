@@ -65,9 +65,26 @@ sub new {
 sub IsValid  {
     my $this = shift;
     my ($message,$query,$where) = '';
-    ##my $file_decompress = FileDecompress->new(
-    ##		$this->{'uploaded_temp_folder'}
-    ##                 );
+
+    #################################################
+    ####Set the processed to true####################
+    ##### Which means that the scan is going through#
+    #########The pipeline############################
+    ##Note: if process is true, it doesn't mean that#
+    # that the process has completed successfully####
+    #################################################
+
+    #################################################
+    ###########Update MRI_upload Table accordingly###
+    #################################################
+    $where = "WHERE UploadID=?";
+    $query = " UPDATE mri_upload SET Processed=1";
+    $query = $query . $where;
+    my $mri_upload_update = 
+	${$this->{'dbhr'}}->prepare($query);
+    ##$mri_upload_update->execute($this->{'upload_id'});
+
+
     #################################################
     ####Get a list of files from the folder
     #################################################
