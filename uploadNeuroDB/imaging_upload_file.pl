@@ -58,7 +58,7 @@ my @opt_table     = (
                       "name of config file in ../dicom-archive/.loris_mri"],
     ##                 ["-patient_name","string",1, \$pname,
     ##                  "patient-name inputed by the user on the front-end"],
-            		 ["-upload_id","string",1, \$upload_id,
+        	     ["-upload_id","string",1, \$upload_id,
                       "The uploadID of the given scan uploaded"],
                      ["Advanced options","section"],
                      ["-globLocation", "boolean", 1, \$globArchiveLocation,
@@ -106,7 +106,6 @@ USAGE
 =pod
 1)For those logs before getting the --dbh...they also need to 
 -They need to be inserted
-
 2) The -patient-name can be included for further validation
 =cut
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
@@ -247,6 +246,7 @@ $Log->writeLog($message);
 ############### remove the uploaded folder from the /tmp########
 ################################################################
 $imaging_upload->CleanUpTMPDir();
+
 ################################################################
 ############### Change Ownership from www-data##################
 ################ to the current-user############################
