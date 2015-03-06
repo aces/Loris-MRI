@@ -289,14 +289,18 @@ sub PatientNameMatch {
 
     my $patient_name_string = $this->runCommand($cmd);
     if (!($patient_name_string)) {
-        print "the patientname cannot be extracted";
+	my $message = "the patientname cannot be extracted";
+        print $message;
+        $this->{Log}->writeLog($message,1);
+
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
         my $message = "The patient-name $pname does not Match" .
             $this->{'pname'};
-        print $message;
+	print $message;
+	$this->{Log}->writeLog($message);
         return 0; ##return false
     }
     return 1; ##return true
