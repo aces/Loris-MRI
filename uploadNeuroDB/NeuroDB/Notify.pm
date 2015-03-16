@@ -50,7 +50,7 @@ sub new {
 
 =pod
 
-B<spool( C<$type>, C<$message>, C<$centerID> )>
+B<spool( C<$type>, C<$message>, C<$centerID>, C<$errorCode>, C<$processID>, C<$origin> )>
 
 Spools a new notification message, C<$message>, into the spool for
 notification type C<$type>, unless the exact same message (including
@@ -63,23 +63,67 @@ Returns: 1 on success, 0 on failure
 
 sub spool {
     my $this = shift;
-    my ($type, $message, $centerID) = @_;
+    my ($type, $message, $centerID, $origin, $processID, $isError) = @_;
 
     my $dbh = ${$this->{'dbhr'}};
 
     my $typeID = $this->getTypeID($type);
     return 0 unless defined $typeID;
 
-    my $query = "SELECT COUNT(*) AS counter FROM notification_spool WHERE NotificationTypeID=$typeID AND Message=".$dbh->quote($message)." AND Sent='N'";
-    $query .= " AND CenterID='$centerID'" if $centerID;
+    my $query = "SELECT COUNT(*) AS counter FROM notification_spool 
+                 WHERE NotificationTypeID= :p_nf_id 
+                 AND Message= :p_message
+                 AND Sent='N'";
+
+    $query .= " AND CenterID= :p_cid " if $centerID;
+    $query .= " AND Origin= :p_origin" if $origin;
+
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->bind_param("p_nf_id",$typeID);
+    $sth->bind_param("p_message",$message);
+
+    if ($centerID) {
+        $sth->bind_param("p_cid",$centerID);
+    }
+
+    if ($origin) {
+        $sth->bind_param("p_origin",$origin);
+    }
+    $sth->execute();    
     my $row = $sth->fetchrow_hashref();
     
     if($row->{'counter'} == 0) {
-        $query = "INSERT INTO notification_spool SET NotificationTypeID=$typeID, TimeSpooled=NOW(), Message=".$dbh->quote($message);
-	$query .= ", CenterID='$centerID'" if $centerID;
-        $dbh->do($query);
+        $query = "INSERT INTO notification_spool SET NotificationTypeID= :p_nf_id,
+                  TimeSpooled=NOW(), 
+                  Message= :p_message ";
+
+        $query .= " AND CenterID= :p_cid "  if $centerID;
+        $query .= " AND Origin= :p_origin"  if $origin;
+        $query .= " AND ProcessID= :p_pcid" if $processID;
+        $query .= " AND Error= :p_error"    if $isError;
+
+        my $insert = $dbh->prepare($query);
+
+        $insert->bind_param("p_nf_id",$typeID);
+        $insert->bind_param("p_message",$message);
+
+        if ($centerID) {
+            $sth->bind_param("p_cid",$centerID);
+        }
+
+        if ($origin) {
+            $sth->bind_param("p_origin",$origin);
+        }
+
+        if ($processID) {
+            $sth->bind_param("p_pcid",$processID);
+        }
+
+        if ($isError) {
+            $sth->bind_param("p_error",$isError);
+        }
+
+        $insert->execute();
     }
     
     return 1;
