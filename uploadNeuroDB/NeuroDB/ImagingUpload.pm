@@ -13,11 +13,19 @@ use File::Temp qw/ tempdir /;
 ################################################################
 #####################Constructor ###############################
 ################################################################
-###The constructor needs the location of the uploaded file
-###which will be in a temp folder i.e /tmp folder
-###once the validation passes the File will be moved to a
-### final destination directory
-################################################################
+=pod
+Description:
+    -The constructor needs the location of the uploaded file
+    Which will be in a temp folder i.e /tmp folder
+    once the validation passes the File will be moved to a
+    final destination directory
+Arguments:
+  $dbhr :
+  $uploaded_temp_folder:
+  $upload_id:
+  $pname: 
+  $profile:
+=cut
 sub new {
     my $params = shift;
     my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile ) = @_;
@@ -49,51 +57,54 @@ sub new {
     return bless $self, $params;
 }
 
-#################################################################
-#####################IsValid#####################################
-#################################################################
-###Validates the File to be uploaded#############################
-####if the validation passes the following will happen:
-####1) Copy the file from tmp folder to the /data/incoming
-####2) Set the isvalidated to true in the mri_upload table
+################################################################
+#####################IsValid####################################
+################################################################
+=pod
+IsValid()
+Description:
+ Validates the File to be upload:
+ If the validation passes the following will happen:
+  1) Copy the file from tmp folder to the /data/incoming
+  2) Set the isvalidated to true in the mri_upload table
 
-#################################################################
-##TODO
-##Put these in the log table
-#############
+Arguments:
+ $this: reference to the class
+
+ Returns: 0 if the validation fails and 1 if passes
+=cut
 sub IsValid {
     my $this = shift;
     my ($message,$query,$where) = '';
 
-    #################################################
-    ####Set the processed to true####################
-    ##### Which means that the scan is going through#
-    #########The pipeline############################
-    ##Note: if process is true, it doesn't mean that#
-    # that the process has completed successfully####
-    #################################################
-
-    #################################################
-    ###########Update MRI_upload Table accordingly###
-    #################################################
+    ############################################################
+    ####Set the processed to true###############################
+    ##### Which means that the scan is going through############
+    #########The pipeline#######################################
+    ##Note: if process is true, it doesn't mean that############
+    # that the process has completed successfully###############
+    ############################################################
+    ############################################################
+    ###########Update MRI_upload Table accordingly##############
+    ############################################################
     $where = "WHERE UploadID=?";
     $query = " UPDATE mri_upload SET Processed=1";
     $query = $query . $where;
     my $mri_upload_update = 
 	${$this->{'dbhr'}}->prepare($query);
-    ##$mri_upload_update->execute($this->{'upload_id'});
+    $mri_upload_update->execute($this->{'upload_id'});
 
 
-    #################################################
-    ####Get a list of files from the folder
-    #################################################
+    ############################################################
+    ####Get a list of files from the folder#####################
+    ############################################################
     my $files_not_dicom                   = 0;
     my $files_with_unmatched_patient_name = 0;
     my $is_valid                          = 0;
     my @row                               = ();
-    #################################################
-    #############Loop through the files##############
-    #################################################
+    ############################################################
+    #############Loop through the files#########################
+    ############################################################
     my @file_list;
     find(
         sub {
@@ -103,10 +114,10 @@ sub IsValid {
         $this->{'uploaded_temp_folder'}
     );
 
-    ################################################################
-    ############### Check to see if the uploadID exists ############
-    ################################################################
-    ################################################################
+    ############################################################
+    ############### Check to see if the uploadID exists ########
+    ############################################################
+    ############################################################
     $query =
         "SELECT PatientName,TarchiveID,number_of_mincCreated,"
       . "number_of_mincInserted FROM mri_upload "
@@ -128,11 +139,11 @@ sub IsValid {
         return 0;
     }
 
-    ################################################################
-    ############### Check to see if the scan has been ran ##########
-    ###############if the tarchiveid or the number_of_mincCreated ##
-    ############## It means that has already been ran###############
-    ################################################################
+    ############################################################
+    ############### Check to see if the scan has been ran ######
+    ############if the tarchiveid or the number_of_mincCreated #
+    ############## It means that has already been ran###########
+    ############################################################
     if ( ( $row[1] ) || ( $row[2] ) ) {
         $message =
             "\n The Scan for the uploadID "
@@ -145,10 +156,10 @@ sub IsValid {
     }
 
     foreach (@file_list) {
-        ############################################################
-        ###  1) Check to see if it's dicom##########################
-        ###  2) Check to see if the header matches the patient-name#
-        ############################################################
+        ########################################################
+        #1) Check to see if it's dicom##########################
+        #2) Check to see if the header matches the patient-name#
+        ########################################################
         if ( ( $_ ne '.' ) && ( $_ ne '..' ) ) {
             if ( !$this->isDicom($_) ) {
                 $files_not_dicom++;
@@ -177,22 +188,35 @@ sub IsValid {
         return 0;
     }
 
-    #############################################################
-    ###############Update the MRI_upload table And###############
-    ################Set the isValidated to true##################
-    ########################################################
+    ############################################################
+    ###############Update the MRI_upload table And##############
+    ################Set the isValidated to true#################
+    ############################################################
     $where = " WHERE UploadID=?";
     $query = "UPDATE mri_upload SET IsValidated=1";
     $query = $query . $where;
-    my $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
+    $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
     $mri_upload_update->execute( $this->{'upload_id'} );
 
     return 1;    ##return true
 }
 
-#################################################################
-###############################runDicomTar#######################
-#################################################################
+
+################################################################
+###############################runDicomTar######################
+################################################################
+=pod
+ runDicomTar()
+Description:
+ -Extracts tarchiveID using pname
+ -Runs dicomTar.pl with clobber -database -profile prod options
+ -If successfull it updates MRI_upload Table accordingly
+
+Arguments:
+ $this: reference to the class
+
+ Returns: 0 if the validation fails and 1 if passes
+=cut
 sub runDicomTar {
     my $this              = shift;
     my $tarchive_id       = '';
@@ -213,8 +237,7 @@ sub runDicomTar {
         ##########Extract tarchiveID using pname################
         ########################################################
 
-        $query = "SELECT TarchiveID FROM tarchive " . " WHERE PatientName =?";
-
+        $query = "SELECT TarchiveID FROM tarchive WHERE PatientName =?";
         my $sth = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute( $this->{'pname'} );
         if ( $sth->rows > 0 ) {
@@ -237,6 +260,18 @@ sub runDicomTar {
 ################################################################
 ###################getTarchiveFileLocation######################
 ################################################################
+=pod
+Description:
+ getTarchiveFileLocation()
+ -Extracts tarchiveID using pname
+ -Runs dicomTar.pl with clobber -database -profile prod options
+ -If successfull it updates MRI_upload Table accordingly
+
+Arguments:
+ $this: reference to the class
+
+ Returns: 0 if the validation fails and 1 if passes
+=cut
 sub getTarchiveFileLocation {
     my $this             = shift;
     my $archive_location = '';
@@ -251,9 +286,21 @@ sub getTarchiveFileLocation {
     return $archive_location;
 }
 
-##################################################################
-###############################runInsertingScripts################
-##################################################################
+################################################################
+######################runTarchiveLoader#########################
+################################################################
+=pod
+ runTarchiveLoader()
+Description:
+ -Runs tarchiveLoader with clobber -profile prod option
+ -If successfull it updates MRI_upload Table accordingly
+
+Arguments:
+ $this: reference to the class
+
+ Returns: 0 if the validation fails and 1 if passes
+=cut
+
 sub runInsertionScripts {
     my $this               = shift;
     my $archived_file_path = $this->getTarchiveFileLocation();
@@ -270,18 +317,39 @@ sub runInsertionScripts {
     return 0;
 }
 
-#################################################################
-###############################getgetArchivedFiles###############
-#################################################################
+################################################################
+#######################getArchivedFiles#########################
+################################################################
+=pod
+ getArchivedFiles()
+Description:
+ -Runs tarchiveLoader with clobber -profile prod option
+ -If successfull it updates MRI_upload Table accordingly
+
+Arguments:
+ $this: reference to the class
+
+ Returns: FILE $files List of archived Files
+=cut
 sub getArchivedFiles {
     my $this  = shift;
     my $files = ${ $this->{'extract_object'} }->files;
     return $files;
 }
 
-#################################################################
-###############################getType###########################
-#################################################################
+################################################################
+###############################getType##########################
+################################################################
+=pod
+ getType
+Description:
+ -Returns the type of the archived filed
+
+Arguments:
+ $this: reference to the class
+
+ Returns: String $type The type of the archived file
+=cut
 
 sub getType {
     my $this = shift;
@@ -289,9 +357,25 @@ sub getType {
     return $type;
 }
 
-#################################################################
-###############################PatientNameMatch##################
-#################################################################
+################################################################
+#########################PatientNameMatch#######################
+################################################################
+=pod
+PatientNameMatch()
+Description:
+ - Extracts the ptient-name header from the dicom file
+ - Uses regex to parse the string to the get the appropriate 
+   patientname
+ - returns the 1 if the extracted patient-name matches
+   $this->{'pname'} object
+
+Arguments:
+ $this: reference to the class
+ $dicom_file: The path to the dicom-file
+
+ Returns: 0 if the validation fails and 1 if passes
+=cut
+
 sub PatientNameMatch {
     my $this         = shift;
     my ($dicom_file) = @_;
@@ -313,12 +397,28 @@ sub PatientNameMatch {
 	$this->{Log}->writeLog($message);
         return 0; ##return false
     }
-    return 1;        ##return true
+    return 1;     ##return true
 
 }
 ################################################################
-###############################If DICOM File####################
+########################isDicom#################################
 ################################################################
+=pod
+isDicom()
+Description:
+ - Extracts the ptient-name header from the dicom file
+ - Uses regex to parse the string to the get the appropriate 
+   patientname
+ - returns the 1 if the extracted patient-name matches
+   $this->{'pname'} object
+
+Arguments:
+ $this: reference to the class
+ $dicom_file: The path to the dicom-file
+
+ Returns: 0 if the validation fails and 1 if passes
+=cut
+
 sub isDicom {
     my $this         = shift;
     my ($dicom_file) = @_;
@@ -333,43 +433,95 @@ sub isDicom {
 ################################################################
 ###############################moveUploadedFile#################
 ################################################################
+=pod
+moveUploadedFile()
+Description:
+   - Moves the uploaded file from the temp directory to 
+     Incoming directory
+
+Arguments:
+ $this      : Reference to the class
+
+ Returns    : NULL
+=cut
+
 sub moveUploadedFile {
     my $this            = shift;
     my $incoming_folder = $Settings::IncomingDir;
     my $cmd =
-      "cp -R " . $this->{'uploaded_temp_folder'} . " " . $incoming_folder;
+      "mv " . $this->{'uploaded_temp_folder'} . " " . $incoming_folder;
     $this->runCommand($cmd);
 }
 
 ################################################################
-###############################runCommandWithExitCode###########
+#######################runCommandWithExitCode###################
 ################################################################
+=pod
+runCommandWithExitCode()
+Description:
+   - Runs the linux command using system and 
+     Returns the proper exit code 
+
+   - Note: System return value is the exit status
+Arguments:
+ $this      : Reference to the class
+ $command   : The linux command to be executed
+
+ Returns    : NULL
+
+
+=cut
+
 sub runCommandWithExitCode {
     my $this = shift;
-    my ($query) = @_;
-    print "\n\n $query \n\n ";
-    my $output = system($query);
+    my ($command) = @_;
+    print "\n\n $command \n\n ";
+    my $output = system($command);
     return $output >> 8;    ##returns the exit code
 }
 
 ################################################################
-###############################runCommand#######################
+######################runCommand################################
 ################################################################
+=pod
+runCommand()
+Description:
+   - Runs the linux command using back-tilt
+   - Note: Backtilt return value is STDOUT 
+
+Arguments:
+ $this      : Reference to the class
+ $command   : The linux command to be executed
+
+ Returns    : NULL
+=cut
+
 sub runCommand {
     my $this = shift;
-    my ($query) = @_;
-    print "\n\n $query \n\n ";
-    return `$query`;
+    my ($command) = @_;
+    print "\n\n $command \n\n ";
+    return `$command`;
 }
 
 ################################################################
-#############################removeTMPDir#######################
+#############################CleanUpTMPDir######################
 ################################################################
+=pod
+CleanUpTMPDir()
+Description:
+   - Cleans Up and removes the uploaded TMP file/directory 
+     Once it is moved by the moveUploadedFile() function
+
+Arguments:
+ $this      : Reference to the class
+
+ Returns    : NULL
+=cut
+
 sub CleanUpTMPDir {
     my $this = shift;
     ############################################################
-    ####if the uploaded directory in /tmp exists################
-    #############REmove it #####################################
+    ####Removes the uploaded directory if exists################
     ############################################################
     if ( -d $this->{'uploaded_temp_folder'} ) {
         rmdir( $this->{'uploaded_temp_folder'} );
