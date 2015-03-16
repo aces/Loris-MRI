@@ -77,7 +77,7 @@ sub spool {
     my $row = $sth->fetchrow_hashref();
     
     if($row->{'counter'} == 0) {
-        $query = "INSERT INTO notification_spool SET NotificationTypeID=$typeID, TimeSpooled=UNIX_TIMESTAMP(), Message=".$dbh->quote($message);
+        $query = "INSERT INTO notification_spool SET NotificationTypeID=$typeID, TimeSpooled=NOW(), Message=".$dbh->quote($message);
 	$query .= ", CenterID='$centerID'" if $centerID;
         $dbh->do($query);
     }
