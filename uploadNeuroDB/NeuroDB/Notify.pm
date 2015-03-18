@@ -66,64 +66,62 @@ sub spool {
     my ($type, $message, $centerID, $origin, $processID, $isError) = @_;
 
     my $dbh = ${$this->{'dbhr'}};
-
+    my @params = ();
     my $typeID = $this->getTypeID($type);
     return 0 unless defined $typeID;
 
     my $query = "SELECT COUNT(*) AS counter FROM notification_spool 
-                 WHERE NotificationTypeID= :p_nf_id 
-                 AND Message= :p_message
+                 WHERE NotificationTypeID= ?
+                 AND Message=?
                  AND Sent='N'";
 
-    $query .= " AND CenterID= :p_cid " if $centerID;
-    $query .= " AND Origin= :p_origin" if $origin;
-
-    my $sth = $dbh->prepare($query);
-    $sth->bind_param("p_nf_id",$typeID);
-    $sth->bind_param("p_message",$message);
+    push @params, $typeID;
+    push @params, $message;
 
     if ($centerID) {
-        $sth->bind_param("p_cid",$centerID);
+    	$query .= " AND CenterID= ? ";
+        push @params, $centerID;	
+    }
+    if ($origin) {
+    	$query .= " AND Origin= ? ";
+        push @params, $origin;
     }
 
-    if ($origin) {
-        $sth->bind_param("p_origin",$origin);
-    }
-    $sth->execute();    
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@params);    
     my $row = $sth->fetchrow_hashref();
     
-    if($row->{'counter'} == 0) {
-        $query = "INSERT INTO notification_spool SET NotificationTypeID= :p_nf_id,
+    if ($row->{'counter'} == 0) {
+
+	my @insert_params = ();
+        $query = "INSERT INTO notification_spool SET NotificationTypeID=?,
                   TimeSpooled=NOW(), 
-                  Message= :p_message ";
+                  Message=? ";
 
-        $query .= " AND CenterID= :p_cid "  if $centerID;
-        $query .= " AND Origin= :p_origin"  if $origin;
-        $query .= " AND ProcessID= :p_pcid" if $processID;
-        $query .= " AND Error= :p_error"    if $isError;
+        push @insert_params, $typeID;
+        push @insert_params, $message;
 
-        my $insert = $dbh->prepare($query);
+    	if ($centerID) {
+            $query .= " AND CenterID=? ";
+	    push @insert_params, $centerID;
+    	}
 
-        $insert->bind_param("p_nf_id",$typeID);
-        $insert->bind_param("p_message",$message);
-
-        if ($centerID) {
-            $sth->bind_param("p_cid",$centerID);
-        }
-
-        if ($origin) {
-            $sth->bind_param("p_origin",$origin);
-        }
-
+	if ($origin) {
+      	    $query .= " AND Origin=? ";
+	    push @insert_params, $origin;
+	}
         if ($processID) {
-            $sth->bind_param("p_pcid",$processID);
+            $query .= " AND ProcessID=? ";
+            push @insert_params, $processID;
         }
 
         if ($isError) {
-            $sth->bind_param("p_error",$isError);
+            $query .= " AND Error=? ";
+            push @insert_params, $isError;
         }
-
-        $insert->execute();
+        my $insert = $dbh->prepare($query);
+	print Dumper($insert_params);
+        $insert->execute(@insert_params);
     }
     
     return 1;
