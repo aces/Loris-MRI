@@ -25,7 +25,7 @@ use NeuroDB::FileDecompress;
 use NeuroDB::DBI;
 
 use NeuroDB::ImagingUpload;
-use NeuroDB::Log;
+use NeuroDB::Notify;
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -149,9 +149,9 @@ unless (-e $uploaded_file) {
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 ################################################################
-################ ChanEstablish database connection #################
+################ Change Ownership ##############################
 ################################################################
-##changeFileOwnerShip($uploaded_file);
+changeFileOwnerShip($uploaded_file);
 
 ################################################################
 ################ FileDecompress Object #########################
@@ -185,13 +185,10 @@ my $imaging_upload = NeuroDB::ImagingUpload->new(
                  );
 
 ################################################################
-################ Instantiate the Log Class######################
+################ Instantiate the Notify Class###################
 ################################################################
-my $Log = NeuroDB::Log->new(
-                  \$dbh,
-                  "imaging_upload_file",
-                  $upload_id,
-                  $profile
+my $Notify = NeuroDB::Notify->new(
+                  \$dbh
          );
 
 ################################################################
@@ -201,18 +198,18 @@ my $Log = NeuroDB::Log->new(
 my $is_valid = $imaging_upload->IsValid();
 if (!($is_valid)) {
     $message = "\n The validation has failed";
-    $Log->writeLog($message,6);
+    spool($message,'Y');
     print $message;
     exit 6;
 }
 
 $message = "\n The validation has passed";
-$Log->writeLog($message);
+spool($message,'Y');
 
 ################################################################
 ############### Move uploaded File to incoming DIR##############
 ################################################################
-##$imaging_upload->moveUploadedFile();
+$imaging_upload->moveUploadedFile();
 ###NOte: Since the tarchive folder will have the incoming file
 ###copy the file to incoming dir may not be needed
 
@@ -222,12 +219,12 @@ $Log->writeLog($message);
 $output = $imaging_upload->runDicomTar();
 if (!$output) {
     $message = "\n The dicomtar execution has failed";
-    $Log->writeLog($message,7); 
+    spool($message,'Y');
     print $message;
     exit 7;
 }
 $message = "\n The dicomtar execution has successfully completed";
-$Log->writeLog($message);
+spool($message,'Y');
 
 ################################################################
 ############### Run InsertionScripts############################
@@ -235,12 +232,12 @@ $Log->writeLog($message);
 $output = $imaging_upload->runInsertionScripts();
 if (!$output) {
     $message = "\n The insertion scripts have failed";
-    $Log->writeLog($message,8); 
+    spool($message,'Y'); 
     print $message;
     exit 8;
 }
 $message = "\n The insertion Script has successfully completed";
-$Log->writeLog($message);
+spool($message,'Y');
 
 ################################################################
 ############### remove the uploaded folder from the /tmp########
@@ -283,4 +280,14 @@ sub getPnameUsingUploadID {
     }
     return $patient_name;
 }
+################################################################
+############### writes log into the table using ################
+############## $notify->spool
+################################################################
+sub spool  {
+    my ( $message, $error ) = @_;
+    $Notify->spool('mri_upload', $message, 0, 
+		   'Imaging_Upload.pm',$upload_id,$error);
+}
+
 exit 0;
