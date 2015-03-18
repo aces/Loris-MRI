@@ -8,6 +8,7 @@ use File::Basename;
 use Path::Class;
 use File::Find;
 use NeuroDB::FileDecompress;
+use NeuroDB::Notify;
 use File::Temp qw/ tempdir /;
 
 ################################################################
@@ -44,11 +45,11 @@ sub new {
     }
 
     ############################################################
-    ############### Create a Log Object ########################
+    ############### Create a Notify Object #####################
     ############################################################
 
-    my $Log = NeuroDB::Log->new( $dbhr, 'ImagingUpload', $upload_id, $profile );
-    $self->{'Log'} = $Log;
+    my $Notify = NeuroDB::Notify->new( $dbhr );
+    $self->{'Notify'} = $Notify;
 
     $self->{'uploaded_temp_folder'} = $uploaded_temp_folder;
     $self->{'dbhr'}                 = $dbhr;
@@ -135,7 +136,15 @@ sub IsValid {
           . "Does Not Exist "
           . "Are not DiCOM";
         ###NOTE: No exit code but the Fail-status is 1
-        $this->{Log}->writeLog( $message, 1 );
+
+        $this->{Notify}->spool(
+		'mri_upload', 
+		$message, 
+		0,
+		'Imaging_Upload.pm',
+		$upload_id,
+		1 
+        );
         return 0;
     }
 
@@ -151,7 +160,14 @@ sub IsValid {
           . " has already been ran with tarchiveID: "
           . $row[1];
         ###NOTE: No exit code but the Fail-status is 1
-        $this->{Log}->writeLog( $message, 2 );
+        $this->{Notify}->spool(
+                'mri_upload',
+                $message,
+                0,
+                'Imaging_Upload.pm',
+                $upload_id,
+                1
+        );
         return 0;
     }
 
@@ -174,7 +190,15 @@ sub IsValid {
         $message = "\n ERROR: there are $files_not_dicom files which are "
           . "Are not DiCOM";
         ###NOTE: No exit code but the Fail-status is 1
-        $this->{Log}->writeLog( $message, 3 );
+       	$this->{Notify}->spool(
+                'mri_upload', 
+                $message,
+                0,
+                'Imaging_Upload.pm',
+                $upload_id,
+                1
+        );
+
         print($message);
         return 0;
     }
@@ -182,7 +206,14 @@ sub IsValid {
         $message =
             "\n ERROR: there are $files_with_unmatched_patient_name files"
           . " where the patient-name doesn't match ";
-        $this->{Log}->writeLog( $message, 4 );
+        $this->{Notify}->spool(
+                'mri_upload', 
+                $message,
+                0,
+                'Imaging_Upload.pm',
+                $upload_id,
+                1
+        );
         print($message);
         ###NOTE: No exit code but the Fail-status is 2
         return 0;
@@ -385,8 +416,14 @@ sub PatientNameMatch {
     if (!($patient_name_string)) {
 	my $message = "the patientname cannot be extracted";
         print $message;
-        $this->{Log}->writeLog($message,1);
-
+        $this->{Notify}->spool(
+                'mri_upload', 
+                $message,
+                0,
+                'Imaging_Upload.pm',
+                $upload_id,
+                1
+        );
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
@@ -394,7 +431,14 @@ sub PatientNameMatch {
         my $message = "The patient-name $pname does not Match" .
             $this->{'pname'};
 	print $message;
-	$this->{Log}->writeLog($message);
+	$this->{Notify}->spool(
+                'mri_upload',
+                $message,
+                0,
+                'Imaging_Upload.pm',
+                $upload_id,
+                1
+        );
         return 0; ##return false
     }
     return 1;     ##return true
