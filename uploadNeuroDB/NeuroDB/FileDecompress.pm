@@ -30,12 +30,12 @@ Extract()
 Description:
   - This function will automatically detect the file-type
     and will decompress the file by calling the appropriate
-    function under the hood and return false if the decompressiong 
+    function under the hood and return false if the decompression
     fails and true otherwise.
 Arguments:
   $this              : reference to the class
   $destination_folder: Full path to the destination folder
-  Returns            : True if success and false otherwiseL
+  Returns            : True if success and false otherwise
 =cut
 
 sub Extract  {
@@ -73,11 +73,11 @@ sub getArchivedFiles {
 =pod
 getExtractedDirectory()
 Description:
-  - It will return the director that the files will be extracted
+  - It will return the directory that the files will be extracted
     to. 
 
 Arguments:
-  $this              : reference to the class
+  $this              : Reference to the class
   Returns            : Path to the folder where file will be extracted
 =cut
 
