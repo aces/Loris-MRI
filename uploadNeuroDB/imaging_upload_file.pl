@@ -194,14 +194,14 @@ my $Notify = NeuroDB::Notify->new(
 
 my $is_valid = $imaging_upload->IsValid();
 if ( !($is_valid) ) {
-    $message = "\n The validation has failed";
+    $message = "The validation has failed";
     spool($message,'Y');
     print $message;
     exit 6;
 }
 
-$message = "\n The validation has passed";
-spool($message,'Y');
+$message = "The validation has passed";
+spool($message,'N');
 
 ################################################################
 ############### Move uploaded File to incoming DIR##############
@@ -247,8 +247,7 @@ $imaging_upload->moveUploadedFile();
 $imaging_upload->CleanUpTMPDir();
 
 ################################################################
-############### Change Ownership from www-data##################
-################ to the current-user############################
+############### changeFileOwnerShip#############################
 ################################################################
 =pod
 changeFileOwnerShip()
@@ -267,13 +266,24 @@ sub changeFileOwnerShip {
     my $user      = $ENV{'LOGNAME'};    ###it may need to be set
     my ( $login, $pass, $uid, $gid ) = getpwnam($user)
       or die "$user not in passwd file";
-
     chown $uid, $gid, $file_path;
 }
 
 ################################################################
-############### Get the patient-name using the upload_id########
+############### getPnameUsingUploadID###########################
 ################################################################
+=pod
+getPnameUsingUploadID()
+Description:
+  - Get the patient-name using the upload_id
+
+Arguments:
+  $file_path: Full path to the uploaded file
+
+  Returns: NULL
+=cut
+
+
 sub getPnameUsingUploadID {
 
     my $upload_id = shift;
@@ -298,8 +308,12 @@ sub getPnameUsingUploadID {
 ################################################################
 sub spool  {
     my ( $message, $error ) = @_;
-    $Notify->spool('mri_upload', $message, 0, 
-		   'Imaging_Upload.pm',$upload_id,$error);
+    $Notify->spool('mri upload utility runner', 
+                   $message, 
+                   0, 
+        		   'Imaging_Upload.pm',
+                   $upload_id,$error
+    );
 }
 
 exit 0;
