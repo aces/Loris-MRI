@@ -21,7 +21,7 @@ of NeuroDB - particularly with regards to spooling new messages.
 
 use strict;
 use Carp;
-
+use Data::Dumper;
 my $VERSION = sprintf "%d.%03d", q$Revision: 1.1.1.1 $ =~ /: (\d+)\.(\d+)/;
 
 =pod
@@ -64,15 +64,15 @@ Returns: 1 on success, 0 on failure
 sub spool {
     my $this = shift;
     my ($type, $message, $centerID, $origin, $processID, $isError) = @_;
-
     my $dbh = ${$this->{'dbhr'}};
     my @params = ();
+    
     my $typeID = $this->getTypeID($type);
     return 0 unless defined $typeID;
 
     my $query = "SELECT COUNT(*) AS counter FROM notification_spool 
                  WHERE NotificationTypeID= ?
-                 AND Message=?
+                 AND Message= ?
                  AND Sent='N'";
 
     push @params, $typeID;
@@ -86,43 +86,40 @@ sub spool {
     	$query .= " AND Origin= ? ";
         push @params, $origin;
     }
-
     my $sth = $dbh->prepare($query);
     $sth->execute(@params);    
     my $row = $sth->fetchrow_hashref();
     
     if ($row->{'counter'} == 0) {
 
-	my @insert_params = ();
-        $query = "INSERT INTO notification_spool SET NotificationTypeID=?,
+	    my @insert_params = ();
+            $query = "INSERT INTO notification_spool SET NotificationTypeID=?,
                   TimeSpooled=NOW(), 
                   Message=? ";
 
-        push @insert_params, $typeID;
-        push @insert_params, $message;
+            push @insert_params, $typeID;
+            push @insert_params, $message;
 
-        if ($centerID) {
-            $query .= " AND CenterID=? ";
-            push @insert_params, $centerID;
-        }
+            if ($centerID) {
+                $query .= " , CenterID=? ";
+                push @insert_params, $centerID;
+            }
+            if ($origin) {
+                $query .= " , Origin=? ";
+                push @insert_params, $origin;
+            }
 
-        if ($origin) {
-            $query .= " AND Origin=? ";
-            push @insert_params, $origin;
-        }
+            if ($processID) {
+                $query .= " , ProcessID=? ";
+                push @insert_params, $processID;
+            }
 
-        if ($processID) {
-            $query .= " AND ProcessID=? ";
-            push @insert_params, $processID;
-        }
-
-        if ($isError) {
-            $query .= " AND Error=? ";
-            push @insert_params, $isError;
-        }
-
-        my $insert = $dbh->prepare($query);
-        $insert->execute(@insert_params);
+            if ($isError) {
+                $query .= " , Error=? ";
+                push @insert_params, $isError;
+            }
+            my $insert = $dbh->prepare($query);
+            $insert->execute(@insert_params);
     }
     
     return 1;
