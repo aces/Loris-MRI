@@ -33,13 +33,9 @@ my $verbose = 1;        # default for now
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
 my $upload_id =         # The uploadID
-my $reckless  = 0;      # this is only for playing and testing. Don't
-                        # set it to 1!!!
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
      tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
-my $globArchiveLocation = 0;     # whether to use strict ArchiveLocation strings
-                                 # or to glob them (like '%Loc')
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = undef;
@@ -54,16 +50,6 @@ my @opt_table           = (
         "The uploadID of the given scan uploaded"
     ],
     [ "Advanced options", "section" ],
-    [
-        "-globLocation",
-        "boolean",
-        1,
-        \$globArchiveLocation,
-        "Loosen the validity check of the tarchive allowing for"
-          . " the possibility that the tarchive was moved to a"
-          . " different directory."
-    ],
-
     [ "Fancy options", "section" ]
 );
 
@@ -78,10 +64,9 @@ Version :   $versionInfo
 
 The program does the following
 
-
 - Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
 - Unzips the uploaded file
-- Source Environment
+- Sourcs Environment
 - Uses the ImagaingUpload class to :
    1) Validate the uploaded file   (set the validation to true)
    2) Run dicomtar.pl on the file  (set the dicomtar to true)
@@ -99,8 +84,6 @@ USAGE
 ################################################################
 ############### input option error checking ####################
 ################################################################
-
-######TODO:
 
 =pod
  1) For those logs before getting the --dbh...they also need to 
@@ -221,7 +204,7 @@ if ( !$output ) {
     exit 7;
 }
 $message = "\n The dicomtar execution has successfully completed";
-spool($message,'Y');
+spool($message,'N');
 
 ################################################################
 ############### Run runTarchiveLoader###########################
@@ -234,15 +217,15 @@ if ( !$output ) {
     exit 8;
 }
 $message = "\n The insertion Script has successfully completed";
-spool($message,'Y');
+spool($message,'N');
 
 ################################################################
-######### move the uploaded folder to the Incoming Directory####
+######### moves the uploaded folder to the Incoming Directory####
 ################################################################
 $imaging_upload->moveUploadedFile();
 
 ################################################################
-############### remove the uploaded folder from the /tmp########
+############### removes the uploaded folder from the /tmp########
 ################################################################
 $imaging_upload->CleanUpTMPDir();
 
@@ -302,16 +285,29 @@ sub getPnameUsingUploadID {
     }
     return $patient_name;
 }
+
+
 ################################################################
-############### writes log into the table using ################
-############## $notify->spool
+############### spool()#########################################
 ################################################################
+=pod
+spool()
+Description:
+   - Calls the Notify->spool function to log all messages 
+
+Arguments:
+ $this      : Reference to the class
+ $message   : Message to be logged in the database 
+ $error     : if 'Y' it's an error log , 'N' otherwise
+ Returns    : NULL
+=cut
+
 sub spool  {
     my ( $message, $error ) = @_;
     $Notify->spool('mri upload utility runner', 
                    $message, 
                    0, 
-        		   'Imaging_Upload.pm',
+        		   'imaging_upload_file.pl',
                    $upload_id,$error
     );
 }
