@@ -76,11 +76,8 @@ sub IsValid {
     my $this = shift;
     my ($message,$query,$where) = '';
     ############################################################
-    ####Set the processed to true###############################
-    ##### Which means that the scan is going through############
-    #########The pipeline#######################################
-    ##Note: if processed is true, it doesn't mean that##########
-    # that the process has completed successfully###############
+    ####Set the Processed to true###############################
+    #Which means that the scan is going through the pipeline####
     ############################################################
     ############################################################
     ###########Update MRI_upload Table accordingly##############
@@ -520,6 +517,5 @@ sub spool  {
     $this->{'Notify'}->spool('mri upload utility', $message, 0,
            'Imaging_Upload.pm', $this->{'upload_id'},$error);
 }
-
 
 1;
