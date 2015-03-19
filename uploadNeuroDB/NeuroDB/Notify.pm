@@ -50,7 +50,7 @@ sub new {
 
 =pod
 
-B<spool( C<$type>, C<$message>, C<$centerID>, C<$errorCode>, C<$processID>, C<$origin> )>
+B<spool( C<$type>, C<$message>, C<$centerID>, C<$origin>, C<$processID>, C<$isError> )>
 
 Spools a new notification message, C<$message>, into the spool for
 notification type C<$type>, unless the exact same message (including
