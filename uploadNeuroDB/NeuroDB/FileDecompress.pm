@@ -8,10 +8,6 @@ use Path::Class;
 use Archive::Extract;
 use Archive::Zip;
 
-=pod
-todo:
-- Set these global variables:
-=cut
 ################################################################
 #####################Constructor ###############################
 ################################################################
@@ -29,12 +25,18 @@ sub new {
 ################################################################
 #####################Extract()##################################
 ################################################################
-################################################################
-###This function will automatically detect the file-type########
-####and will decompress the file by calling the appropriate##### 
-######function under the hood and return boolean returns #######
-######false if the decompressiong fails and true otherwise######
-################################################################
+=pod
+Extract()
+Description:
+  - This function will automatically detect the file-type
+    and will decompress the file by calling the appropriate
+    function under the hood and return false if the decompressiong 
+    fails and true otherwise.
+Arguments:
+  $this              : reference to the class
+  $destination_folder: Full path to the destination folder
+  Returns            : True if success and false otherwiseL
+=cut
 
 sub Extract  {
     my $this = shift;
@@ -42,25 +44,64 @@ sub Extract  {
     #####################################################
     ##Check to see if the destination folder exists######
     #####################################################
-    $this->{'extract_object'}->extract(to=>$destination_folder);
+    return $this->{'extract_object'}->extract(to=>$destination_folder);
 }
 
+
+################################################################
+#####################getArchivedFiles()#########################
+################################################################
+=pod
+getArchivedFiles()
+Description:
+  - This function will return an array ref with the paths of 
+    all the files in the archive.
+
+Arguments:
+  $this              : reference to the class
+  Returns            : Array of a files
+=cut
 
 sub getArchivedFiles {
     my $this = shift;
-    my $files = $this->{'extract_object'}->files;
-    return $files;
+    return  $this->{'extract_object'}->files;
 }
+
+################################################################
+#####################getExtractedDirectory()####################
+################################################################
+=pod
+getExtractedDirectory()
+Description:
+  - It will return the director that the files will be extracted
+    to. 
+
+Arguments:
+  $this              : reference to the class
+  Returns            : Path to the folder where file will be extracted
+=cut
 
 sub getExtractedDirectory {
     my $this = shift;
-    my $extracted_directory = $this->{'extract_object'}->extract_path();
-    return $extracted_directory;
+    return $this->{'extract_object'}->extract_path();
 }
+
+################################################################
+#####################getType()##################################
+################################################################
+=pod
+getType()
+Description:
+  - This function will return the type of the archive
+
+Arguments:
+  $this              : reference to the class
+  Returns            : The type of the archive
+=cut
+
 
 sub getType {
     my $this = shift;
-    my $type = $this->{'extract_object'}->type;
-    return $type;
+    return  $this->{'extract_object'}->type;
 }
 1; 
