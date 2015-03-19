@@ -101,15 +101,15 @@ sub spool {
         push @insert_params, $typeID;
         push @insert_params, $message;
 
-    	if ($centerID) {
+        if ($centerID) {
             $query .= " AND CenterID=? ";
-	        push @insert_params, $centerID;
-    	}
+            push @insert_params, $centerID;
+        }
 
-	    if ($origin) {
-      	    $query .= " AND Origin=? ";
-	        push @insert_params, $origin;
-    	}
+        if ($origin) {
+            $query .= " AND Origin=? ";
+            push @insert_params, $origin;
+        }
 
         if ($processID) {
             $query .= " AND ProcessID=? ";
