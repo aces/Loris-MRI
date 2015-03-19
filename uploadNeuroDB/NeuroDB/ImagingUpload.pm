@@ -7,6 +7,7 @@ use Data::Dumper;
 use File::Basename;
 use Path::Class;
 use File::Find;
+use NeuroDB::Notify;
 use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
 use File::Temp qw/ tempdir /;
@@ -55,6 +56,8 @@ sub new {
     $self->{'dbhr'}                 = $dbhr;
     $self->{'pname'}                = $pname;
     $self->{'upload_id'}            = $upload_id;
+    $self->{'origin'}               = 'ImagingUpload.pm';
+    $self->{'CenterID'}             = '';  ###TODO set the right CENTERID
     return bless $self, $params;
 }
 
@@ -137,14 +140,7 @@ sub IsValid {
           . "Are not DiCOM";
         ###NOTE: No exit code but the Fail-status is 1
 
-        $this->{Notify}->spool(
-		'mri_upload', 
-		$message, 
-		0,
-		'Imaging_Upload.pm',
-		$upload_id,
-		1 
-        );
+        $this->spool($message, 'Y');
         return 0;
     }
 
@@ -160,14 +156,7 @@ sub IsValid {
           . " has already been ran with tarchiveID: "
           . $row[1];
         ###NOTE: No exit code but the Fail-status is 1
-        $this->{Notify}->spool(
-                'mri_upload',
-                $message,
-                0,
-                'Imaging_Upload.pm',
-                $upload_id,
-                1
-        );
+        $this->spool($message, 'Y');
         return 0;
     }
 
@@ -190,15 +179,7 @@ sub IsValid {
         $message = "\n ERROR: there are $files_not_dicom files which are "
           . "Are not DiCOM";
         ###NOTE: No exit code but the Fail-status is 1
-       	$this->{Notify}->spool(
-                'mri_upload', 
-                $message,
-                0,
-                'Imaging_Upload.pm',
-                $upload_id,
-                1
-        );
-
+        $this->spool($message, 'Y');
         print($message);
         return 0;
     }
@@ -206,14 +187,7 @@ sub IsValid {
         $message =
             "\n ERROR: there are $files_with_unmatched_patient_name files"
           . " where the patient-name doesn't match ";
-        $this->{Notify}->spool(
-                'mri_upload', 
-                $message,
-                0,
-                'Imaging_Upload.pm',
-                $upload_id,
-                1
-        );
+        $this->spool($message, 'Y');
         print($message);
         ###NOTE: No exit code but the Fail-status is 2
         return 0;
@@ -332,7 +306,7 @@ Arguments:
  Returns: 0 if the validation fails and 1 if passes
 =cut
 
-sub runInsertionScripts {
+sub runTarchiveLoader {
     my $this               = shift;
     my $archived_file_path = $this->getTarchiveFileLocation();
     my $command =
@@ -416,14 +390,7 @@ sub PatientNameMatch {
     if (!($patient_name_string)) {
 	my $message = "the patientname cannot be extracted";
         print $message;
-        $this->{Notify}->spool(
-                'mri_upload', 
-                $message,
-                0,
-                'Imaging_Upload.pm',
-                $upload_id,
-                1
-        );
+        $this->spool($message, 'Y');
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
@@ -431,14 +398,7 @@ sub PatientNameMatch {
         my $message = "The patient-name $pname does not Match" .
             $this->{'pname'};
 	print $message;
-	$this->{Notify}->spool(
-                'mri_upload',
-                $message,
-                0,
-                'Imaging_Upload.pm',
-                $upload_id,
-                1
-        );
+    $this->spool($message, 'Y');
         return 0; ##return false
     }
     return 1;     ##return true
@@ -571,4 +531,31 @@ sub CleanUpTMPDir {
         rmdir( $this->{'uploaded_temp_folder'} );
     }
 }
+
+
+
+
+################################################################
+#################spool##########################################
+################################################################
+=pod
+spool()
+Description:
+   - Calls the Notify->spool function to log all the {error}message 
+
+Arguments:
+ $this      : Reference to the class
+ $message   : Message to be logged in the database 
+ $error     : if 'Y' it's an error log , 'N' otherwise
+ Returns    : NULL
+=cut
+
+sub spool  {
+    my $this = shift;
+    my ( $message, $error ) = @_;
+    $this->{'Notify'}->spool('mri_upload', $message, 0,
+           'Imaging_Upload.pm', $this->{'upload_id'},$error);
+}
+
+
 1;

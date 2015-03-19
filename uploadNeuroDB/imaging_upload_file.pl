@@ -4,18 +4,11 @@ use warnings;
 use Carp;
 use Getopt::Tabular;
 use FileHandle;
-use File::Basename;
 use File::Temp qw/ tempdir /;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
 
-
-####################TO CHECK##################################
-##  Should error checking  (exit code be inside the class or the 
-##  file instantiating the class
-###Check to see if the file is zipped or compressed before calling the
-### decompress class
 ################################################################
 # These are the NeuroDB modules to be used #####################
 ################################################################
@@ -23,51 +16,56 @@ use lib "$FindBin::Bin";
 
 use NeuroDB::FileDecompress;
 use NeuroDB::DBI;
-
 use NeuroDB::ImagingUpload;
 use NeuroDB::Notify;
 
-my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
-                =~ /: (\d+)\.(\d+)/;
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =localtime(time);
-my $date        = sprintf(
-                    "%4d-%02d-%02d %02d:%02d:%02d",
-                    $year+1900,$mon+1,$mday,$hour,$min,$sec
-                  );
-my $debug       = 1 ;  
-my $verbose     = 1;           # default for now
-my $profile     = undef;       # this should never be set unless you are in a
-                               # stable production environment
-##my $pname       = undef;     # this is the patient-name inputed by the user
-##                             # on the front-end
-my $upload_id   =              # The uploadID
-my $reckless    = 0;           # this is only for playing and testing. Don't
-                               # set it to 1!!!
-my $User        = `whoami`; 
-my $template    = "ImagingUpload-$hour-$min-XXXXXX"; # for tempdir
+my $versionInfo = sprintf "%d revision %2d",
+  q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/;
+my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
+  localtime(time);
+my $date    = sprintf(
+                "%4d-%02d-%02d %02d:%02d:%02d",
+                $year + 1900,
+                $mon + 1, $mday, $hour, $min, $sec
+              );
+my $debug   = 1;
+my $verbose = 1;        # default for now
+my $profile = undef;    # this should never be set unless you are in a
+                        # stable production environment
+my $upload_id =         # The uploadID
+my $reckless  = 0;      # this is only for playing and testing. Don't
+                        # set it to 1!!!
+my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
-    tempdir($template, TMPDIR => 1, CLEANUP => 1);
-my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
-                               # or to glob them (like '%Loc')
-my $output        = undef;
-my $uploaded_file = undef;
-my $message       = undef;
-my @opt_table     = (
-                     ["Basic options","section"],
-                     ["-profile","string",1, \$profile,
-                      "name of config file in ../dicom-archive/.loris_mri"],
-    ##                 ["-patient_name","string",1, \$pname,
-    ##                  "patient-name inputed by the user on the front-end"],
-        	     ["-upload_id","string",1, \$upload_id,
-                      "The uploadID of the given scan uploaded"],
-                     ["Advanced options","section"],
-                     ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                        "Loosen the validity check of the tarchive allowing for".
-                        " the possibility that the tarchive was moved to a". 
-                        " different directory."],
+     tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
+my $globArchiveLocation = 0;     # whether to use strict ArchiveLocation strings
+                                 # or to glob them (like '%Loc')
+my $output              = undef;
+my $uploaded_file       = undef;
+my $message             = undef;
+my @opt_table           = (
+    [ "Basic options", "section" ],
+    [
+        "-profile", "string", 1, \$profile,
+        "name of config file in ../dicom-archive/.loris_mri"
+    ],
+    [
+        "-upload_id", "string", 1, \$upload_id,
+        "The uploadID of the given scan uploaded"
+    ],
+    [ "Advanced options", "section" ],
+    [
+        "-globLocation",
+        "boolean",
+        1,
+        \$globArchiveLocation,
+        "Loosen the validity check of the tarchive allowing for"
+          . " the possibility that the tarchive was moved to a"
+          . " different directory."
+    ],
 
-                     ["Fancy options","section"]
-                  );
+    [ "Fancy options", "section" ]
+);
 
 my $Help = <<HELP;
 ******************************************************************************
@@ -96,49 +94,45 @@ my $Usage = <<USAGE;
 usage: $0 </path/to/UploadedFile> -upload_id [options]
        $0 -help to list options
 USAGE
-&Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::SetHelp( $Help, $Usage );
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
 ################################################################
 ############### input option error checking ####################
 ################################################################
 
 ######TODO:
+
 =pod
-1)For those logs before getting the --dbh...they also need to 
--They need to be inserted
-2) The -patient-name can be included for further validation
+ 1) For those logs before getting the --dbh...they also need to 
+     -They need to be inserted
+ 2) The -patient-name can be included for further validation
 =cut
+
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && ! @Settings::db) { 
+if ( $profile && !@Settings::db ) {
     print "\n\tERROR: You don't have a 
     configuration file named '$profile' in:  
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 2; 
+    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
+    exit 2;
 }
-if (!$ARGV[0] || !$profile) { 
-    print $Help; 
-    print "$Usage\n\tERROR: The path to the Uploaded".
-    "file is not valid or there is no existing profile file \n\n";  
-    exit 3;  
+if ( !$ARGV[0] || !$profile ) {
+    print $Help;
+    print "$Usage\n\tERROR: The path to the Uploaded"
+      . "file is not valid or there is no existing profile file \n\n";
+    exit 3;
 }
-##if (!$pname) {
-##   print $Help;
-##   print "$Usage\n\tERROR: The patient-name is missing \n\n";
-##   exit 4;
-##}
 
-if (!$upload_id) {
+if ( !$upload_id ) {
     print $Help;
     print "$Usage\n\tERROR: The Upload_id is missing \n\n";
     exit 4;
 }
 
-
-$uploaded_file = abs_path($ARGV[0]);
-unless (-e $uploaded_file) {
+$uploaded_file = abs_path( $ARGV[0] );
+unless ( -e $uploaded_file ) {
     print "\nERROR: Could not find the uploaded file
-            $uploaded_file. \nPlease, make sure ".
-           "the path to the uploaded file is correct. 
+            $uploaded_file. \nPlease, make sure "
+      . "the path to the uploaded file is correct. 
            Upload will exit now.\n\n\n";
     exit 5;
 }
@@ -149,23 +143,26 @@ unless (-e $uploaded_file) {
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 ################################################################
-################ Change Ownership ##############################
+############ Changes File OwnerShip ############################
 ################################################################
 changeFileOwnerShip($uploaded_file);
 
 ################################################################
 ################ FileDecompress Object #########################
 ################################################################
-my $file_decompress = 
-    NeuroDB::FileDecompress->new($uploaded_file);
+#####################TO DOOO##################################
+####Check to see if the file is zipped or compressed before calling the
+#### decompress class
+#
+my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 
 ################################################################
-############### Unzip File #####################################
+############### Decompress File ################################
 ################################################################
 ################################################################
-my $result =  $file_decompress->Extract(
-                $TmpDir_decompressed_folder
-              );
+my $result = $file_decompress->Extract( 
+                $TmpDir_decompressed_folder 
+             );
 
 ################################################################
 ############### Get Patient_name using UploadID#################
@@ -176,13 +173,13 @@ my $pname = getPnameUsingUploadID($upload_id);
 ################################################################
 ################ ImagingUpload  Object #########################
 ################################################################
-my $imaging_upload = NeuroDB::ImagingUpload->new(
-                    \$dbh,
-                     $TmpDir_decompressed_folder,
-                     $upload_id,
-                     $pname,
-                     $profile
-                 );
+my $imaging_upload =
+  NeuroDB::ImagingUpload->new( \$dbh, 
+                               $TmpDir_decompressed_folder, 
+                               $upload_id,
+                               $pname, 
+                               $profile 
+                             );
 
 ################################################################
 ################ Instantiate the Notify Class###################
@@ -196,7 +193,7 @@ my $Notify = NeuroDB::Notify->new(
 ################################################################
 
 my $is_valid = $imaging_upload->IsValid();
-if (!($is_valid)) {
+if ( !($is_valid) ) {
     $message = "\n The validation has failed";
     spool($message,'Y');
     print $message;
@@ -217,7 +214,7 @@ $imaging_upload->moveUploadedFile();
 ############### Run DicomTar  ##################################
 ################################################################
 $output = $imaging_upload->runDicomTar();
-if (!$output) {
+if ( !$output ) {
     $message = "\n The dicomtar execution has failed";
     spool($message,'Y');
     print $message;
@@ -227,10 +224,10 @@ $message = "\n The dicomtar execution has successfully completed";
 spool($message,'Y');
 
 ################################################################
-############### Run InsertionScripts############################
+############### Run runTarchiveLoader###########################
 ################################################################
-$output = $imaging_upload->runInsertionScripts();
-if (!$output) {
+$output = $imaging_upload->runTarchiveLoader();
+if ( !$output ) {
     $message = "\n The insertion scripts have failed";
     spool($message,'Y'); 
     print $message;
@@ -238,6 +235,11 @@ if (!$output) {
 }
 $message = "\n The insertion Script has successfully completed";
 spool($message,'Y');
+
+################################################################
+######### move the uploaded folder to the Incoming Directory####
+################################################################
+$imaging_upload->moveUploadedFile();
 
 ################################################################
 ############### remove the uploaded folder from the /tmp########
@@ -248,12 +250,23 @@ $imaging_upload->CleanUpTMPDir();
 ############### Change Ownership from www-data##################
 ################ to the current-user############################
 ################################################################
-#####ISSUE: Not working since root is needed###################
+=pod
+changeFileOwnerShip()
+Description:
+  - ISSUE: Not working since root is needed
+  - Changes the ownership from www-data to the curent-user
+
+Arguments:
+  $file_path: Full path to the uploaded file
+
+  Returns: NULL
+=cut
+
 sub changeFileOwnerShip {
-    my $file_path =  shift;
-    my $user =  $ENV{'LOGNAME'}; ###it may need to be set
-    my ($login,$pass,$uid,$gid) = getpwnam($user)
-        or die "$user not in passwd file";
+    my $file_path = shift;
+    my $user      = $ENV{'LOGNAME'};    ###it may need to be set
+    my ( $login, $pass, $uid, $gid ) = getpwnam($user)
+      or die "$user not in passwd file";
 
     chown $uid, $gid, $file_path;
 }
@@ -263,19 +276,18 @@ sub changeFileOwnerShip {
 ################################################################
 sub getPnameUsingUploadID {
 
-    my $upload_id =  shift;
-    my ($patient_name, $query) = '';
+    my $upload_id = shift;
+    my ( $patient_name, $query ) = '';
 
     if ($upload_id) {
         ########################################################
         ##########Extract pname using uploadid##################
         ########################################################
-        $query = "SELECT PatientName FROM mri_upload ".
-        " WHERE UploadID =?";
+        $query = "SELECT PatientName FROM mri_upload WHERE UploadID =?";
         my $sth = $dbh->prepare($query);
         $sth->execute($upload_id);
-        if ($sth->rows> 0) {
-            $patient_name  = $sth->fetchrow_array();
+        if ( $sth->rows > 0 ) {
+            $patient_name = $sth->fetchrow_array();
         }
     }
     return $patient_name;

@@ -103,13 +103,14 @@ sub spool {
 
     	if ($centerID) {
             $query .= " AND CenterID=? ";
-	    push @insert_params, $centerID;
+	        push @insert_params, $centerID;
     	}
 
-	if ($origin) {
+	    if ($origin) {
       	    $query .= " AND Origin=? ";
-	    push @insert_params, $origin;
-	}
+	        push @insert_params, $origin;
+    	}
+
         if ($processID) {
             $query .= " AND ProcessID=? ";
             push @insert_params, $processID;
@@ -119,8 +120,8 @@ sub spool {
             $query .= " AND Error=? ";
             push @insert_params, $isError;
         }
+
         my $insert = $dbh->prepare($query);
-	print Dumper($insert_params);
         $insert->execute(@insert_params);
     }
     
