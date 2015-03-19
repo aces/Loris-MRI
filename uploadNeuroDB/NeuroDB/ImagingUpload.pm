@@ -80,7 +80,6 @@ Arguments:
 sub IsValid {
     my $this = shift;
     my ($message,$query,$where) = '';
-
     ############################################################
     ####Set the processed to true###############################
     ##### Which means that the scan is going through############
@@ -90,8 +89,9 @@ sub IsValid {
     ############################################################
     ############################################################
     ###########Update MRI_upload Table accordingly##############
+    ####TODO---updated it if it's not set to 1##################
     ############################################################
-    $where = "WHERE UploadID=?";
+    $where = " WHERE UploadID=?";
     $query = " UPDATE mri_upload SET Processed=1";
     $query = $query . $where;
     my $mri_upload_update = 
@@ -139,17 +139,16 @@ sub IsValid {
           . "Does Not Exist "
           . "Are not DiCOM";
         ###NOTE: No exit code but the Fail-status is 1
-
         $this->spool($message, 'Y');
         return 0;
     }
-
     ############################################################
     ############### Check to see if the scan has been ran ######
     ############if the tarchiveid or the number_of_mincCreated #
     ############## It means that has already been ran###########
     ############################################################
     if ( ( $row[1] ) || ( $row[2] ) ) {
+
         $message =
             "\n The Scan for the uploadID "
           . $this->{'upload_id'}
@@ -180,7 +179,6 @@ sub IsValid {
           . "Are not DiCOM";
         ###NOTE: No exit code but the Fail-status is 1
         $this->spool($message, 'Y');
-        print($message);
         return 0;
     }
     if ( $files_with_unmatched_patient_name > 0 ) {
@@ -188,7 +186,6 @@ sub IsValid {
             "\n ERROR: there are $files_with_unmatched_patient_name files"
           . " where the patient-name doesn't match ";
         $this->spool($message, 'Y');
-        print($message);
         ###NOTE: No exit code but the Fail-status is 2
         return 0;
     }
@@ -282,7 +279,6 @@ sub getTarchiveFileLocation {
     my $archive_location = '';
     my $query            = "SELECT t.ArchiveLocation FROM tarchive t "
       . " WHERE t.SourceLocation =?";
-    print "\n" . $query . "\n";
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
     $sth->execute( $this->{'uploaded_temp_folder'} );
     if ( $sth->rows > 0 ) {
@@ -388,8 +384,7 @@ sub PatientNameMatch {
 
     my $patient_name_string = $this->runCommand($cmd);
     if (!($patient_name_string)) {
-	my $message = "the patientname cannot be extracted";
-        print $message;
+	    my $message = "the patientname cannot be extracted";
         $this->spool($message, 'Y');
         exit 1;
     }
@@ -397,7 +392,6 @@ sub PatientNameMatch {
     if ($pname ne  $this->{'pname'}) {
         my $message = "The patient-name $pname does not Match" .
             $this->{'pname'};
-	print $message;
     $this->spool($message, 'Y');
         return 0; ##return false
     }
@@ -553,7 +547,8 @@ Arguments:
 sub spool  {
     my $this = shift;
     my ( $message, $error ) = @_;
-    $this->{'Notify'}->spool('mri_upload', $message, 0,
+    print "message is $message \n";
+    $this->{'Notify'}->spool('mri upload utility', $message, 0,
            'Imaging_Upload.pm', $this->{'upload_id'},$error);
 }
 
