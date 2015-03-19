@@ -28,8 +28,6 @@ my $date    = sprintf(
                 $year + 1900,
                 $mon + 1, $mday, $hour, $min, $sec
               );
-my $debug   = 1;
-my $verbose = 1;        # default for now
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
 my $upload_id =         # The uploadID
