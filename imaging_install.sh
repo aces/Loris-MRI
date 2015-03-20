@@ -82,6 +82,8 @@ sudo -S cpan install Math::Round
 sudo -S cpan install Getopt::Tabular
 sudo -S cpan install Time::JulianDay
 sudo -S cpan install Path::Class
+sudo -S cpan install Archive::Zip;
+
 echo
 ##########################################################################################
 #############################Create directories########################################
@@ -100,6 +102,7 @@ echo
 #######################################################################################
  ###############incoming directory using sites########################################
 #######################################################################################
+sudo -S su $USER -c "mkdir -p /data/incoming/";
  echo "Creating incoming director(y/ies)"
   for s in $site; do 
    sudo -S su $USER -c "mkdir -p /data/incoming/$s/incoming";
@@ -121,7 +124,7 @@ echo
 ####################################################################################
 #echo "Changing permissions"
 
-sudo chmod -R 750 $mridir/.loris_mri/
+sudo chmod -R 750 $mridir/dicom-archive/.loris_mri/
 sudo chmod -R 750 /data/$PROJ/
 sudo chmod -R 750 /data/incoming/
 echo
