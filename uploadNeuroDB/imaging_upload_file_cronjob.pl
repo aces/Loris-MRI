@@ -43,7 +43,7 @@ my @opt_table           = (
 
 my $Help = <<HELP;
 ******************************************************************************
-Dicom Validator 
+Imaging_upload_file Cronjob script 
 ******************************************************************************
 
 Author  :   
@@ -51,7 +51,6 @@ Date    :
 Version :   $versionInfo
 
 The program does the following
-
 
 - Gets a series of rows from mri_uploaded which processed and currentlyprocess
 are both set to null
@@ -79,11 +78,8 @@ my $query = "SELECT UploadID, SourceLocation FROM mri_upload WHERE Processed=0";
 my $sth = $dbh->prepare($query);
 $sth->execute();
 while(@row = $sth->fetchrow_array()) {
-    
-    print " $row[0] . $row[1] \n";
     my $command = "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
     my $output = system($command);
-    
 }
 
 exit 0;
