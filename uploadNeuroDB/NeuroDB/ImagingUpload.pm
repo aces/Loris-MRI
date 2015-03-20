@@ -81,7 +81,6 @@ sub IsValid {
     ############################################################
     ############################################################
     ###########Update MRI_upload Table accordingly##############
-    ####TODO---updated it if it's not set to 1##################
     ############################################################
     $where = " WHERE UploadID=?";
     $query = " UPDATE mri_upload SET Processed=1";
@@ -415,8 +414,7 @@ Arguments:
 
 sub sourceEnvironment {
     my $this            = shift;
-    my $incoming_folder = $Settings::IncomingDir;
-    my $cmd =   "source environment";
+    my $cmd =   "source  " . $Settings::bin_dir."/". "environment";
     $this->runCommand($cmd);
 }
 
