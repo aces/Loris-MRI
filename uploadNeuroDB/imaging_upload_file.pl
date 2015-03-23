@@ -124,9 +124,12 @@ unless ( -e $uploaded_file ) {
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 ################################################################
-############ Changes File OwnerShip ############################
+############ Todo: Check to see if the file is accessible#######
+## if not, it means that the front-end module###################
+## has not changed the user-group properly######################
+##Therefore return an error and log the error###################
 ################################################################
-changeFileOwnerShip($uploaded_file);
+
 
 ################################################################
 ################ FileDecompress Object #########################
@@ -226,29 +229,6 @@ $imaging_upload->moveUploadedFile();
 ############### removes the uploaded folder from the /tmp########
 ################################################################
 $imaging_upload->CleanUpTMPDir();
-
-################################################################
-############### changeFileOwnerShip#############################
-################################################################
-=pod
-changeFileOwnerShip()
-Description:
-  - ISSUE: Not working since root is needed
-  - Changes the ownership from www-data to the curent-user
-
-Arguments:
-  $file_path: Full path to the uploaded file
-
-  Returns: NULL
-=cut
-
-sub changeFileOwnerShip {
-    my $file_path = shift;
-    my $user      = $ENV{'LOGNAME'};    ###it may need to be set
-    my ( $login, $pass, $uid, $gid ) = getpwnam($user)
-      or die "$user not in passwd file";
-    chown $uid, $gid, $file_path;
-}
 
 ################################################################
 ############### getPnameUsingUploadID###########################
