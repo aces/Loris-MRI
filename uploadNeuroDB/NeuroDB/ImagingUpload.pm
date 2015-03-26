@@ -389,7 +389,7 @@ Arguments:
 
 sub moveUploadedFile {
     my $this            = shift;
-    my $incoming_folder = $Settings::IncomingDir;
+    my $incoming_folder = $Settings::getIncomingDir;
     my $cmd =
       "mv " . $this->{'uploaded_temp_folder'} . " " . $incoming_folder;
     $this->runCommand($cmd);
