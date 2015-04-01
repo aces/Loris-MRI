@@ -64,7 +64,7 @@ The program does the following
 
 - Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
 - Unzips the uploaded file
-- Sourcs Environment
+- Sources the Environment
 - Uses the ImagaingUpload class to :
    1) Validate the uploaded file   (set the validation to true)
    2) Run dicomtar.pl on the file  (set the dicomtar to true)
@@ -186,13 +186,6 @@ if ( !($is_valid) ) {
 
 $message = "The validation has passed";
 spool($message,'N');
-
-################################################################
-############### Move uploaded File to incoming DIR##############
-################################################################
-$imaging_upload->moveUploadedFile();
-###NOte: Since the tarchive folder will have the incoming file
-###copy the file to incoming dir may not be needed
 
 ################################################################
 ############### Run DicomTar  ##################################
