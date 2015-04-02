@@ -293,7 +293,7 @@ if ( defined( &Settings::dicomFilter )) {
 ################################################################
 if (($tarchiveid_count!=0) && ($mri_upload_insert==0)) {
     $where = "WHERE TarchiveID=?";
-    $query = "UPDATE mri_upload SET IsValidated='1' ";
+    $query = "UPDATE mri_upload SET IsTarchiveValidated='1' ";
     $query = $query . $where;
     my $mri_upload_update = $dbh->prepare($query);
     $mri_upload_update->execute($tarchiveInfo{TarchiveID});
