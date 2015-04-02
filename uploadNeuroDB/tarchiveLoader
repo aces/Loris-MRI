@@ -269,7 +269,7 @@ if (($output != 0)  && ($force==0)) {
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog($message,5,$logfile); 
- exit 7;
+ exit 5;
 }
 
 ################################################################
@@ -347,7 +347,7 @@ if ($mcount < 1) {
     $message = "\nNo data could be converted into valid MINC files. ".
                "Localizers will not be considered! \n" ; 
     $utility->writeErrorLog($message,6,$logfile); 
-    exit 8; 
+    exit 6; 
 }
 
 ################################################################
