@@ -36,10 +36,6 @@ my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
-my $mri_upload_insert  = 0;           # This is a flag to allow the values to be 
-                               # inserted into the mri_upload table if 
-                               # dicomtar.pl hasn't been ran using the option
-                               # -mri_upload_update
 my $NewScanner  = 1;           # This should be the default unless you are a
                                # control freak
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
@@ -52,9 +48,6 @@ my @opt_table = (
                  ["Basic options","section"],
                  ["-profile","string",1, \$profile,
                   "name of config file in ../dicom-archive/.loris_mri"],
-                 ["-mri_upload_insert", "boolean", 1, \$mri_upload_insert,
-                  "Populates the mri_upload columns with the missing ". 
-                  "values if the dicomtar.pl -mri_upload_update was not ran"],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not".
@@ -181,33 +174,37 @@ $sth->execute($tarchiveInfo{TarchiveID});
 my $tarchiveid_count = $sth->fetchrow_array;
 
 ################################################################
-#### if tarchiveid is not inserted into ########################
-#### the mri_upload table and if the -mri_upload_insert option #
-#### is null then fail #########################################
+### Insert into the mri_upload table correct values ############
+### only if the $tarchive_id doesn't exist 
 ################################################################
 
-if (($tarchiveid_count==0) && ($mri_upload_insert==0)) {
-    $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               " doesn't exist in the mri_upload table. Either: \n".
-               "-re-run the dicomTar.pl using -mri_upload_update ".
-               "-or use -mri_upload_insert to insert the missing values.\n\n";
-    $utility->writeErrorLog($message,5,$logfile);
-    exit 5;
+if ($tarchiveid_count==0)  {
+    ##if the scan is already inserted into the mri_upload update it
+    $where = "WHERE SourceLocation=?";
+    $query = "SELECT COUNT(*) FROM mri_upload $where ";
+    $sth = $dbh->prepare($query);
+    $sth->execute($tarchiveInfo{SourceLocation});
+    my $source_location = $sth->fetchrow_array;
+    if ($source_location !=0) {
+    	$where = "WHERE SourceLocation=?";
+	$query = "UPDATE mri_upload SET TarchiveID=? ";
+	$query = $query . $where;
+	my $mri_upload_update = $dbh->prepare($query);
+	$mri_upload_update->execute($tarchiveInfo{'SourceLocation'},
+				    $tarchiveInfo{TarchiveID}
+				   );
+    } else {
+       ##otherwise insert it
+       $query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
+       "SourceLocation, IsValidated) VALUES (?,now(),?,?,'1')";
+       my $mri_upload_inserts = $dbh->prepare($query);
+       $mri_upload_inserts->execute(
+           $User,
+           $tarchiveInfo{TarchiveID},
+           $tarchiveInfo{'SourceLocation'}
+       );
+    }
 }
-
-################################################################
-#### If tarchiveid is already inserted into ####################
-#### The mri_upload table and -mri_upload_insert ###############
-################################################################
-
-if (($tarchiveid_count>0) && ($mri_upload_insert)) {
-    $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               " already in the mri_upload table therefore cannot use ".
-               " -mri_upload_insert option.\n\n";
-    $utility->writeErrorLog($message,6,$logfile);
-    exit 6;
-}
-
 ################################################################
 #### Verify the archive using the checksum from database #######
 ################################################################
@@ -289,9 +286,8 @@ if ( defined( &Settings::dicomFilter )) {
 
 ################################################################
 ### Update the mri_upload table with the correct tarchiveID ####
-### only if the $tarchive_id exists and -mri_upload is not used 
 ################################################################
-if (($tarchiveid_count!=0) && ($mri_upload_insert==0)) {
+if ($tarchiveid_count!=0) {
     $where = "WHERE TarchiveID=?";
     $query = "UPDATE mri_upload SET IsValidated='1' ";
     $query = $query . $where;
@@ -299,21 +295,6 @@ if (($tarchiveid_count!=0) && ($mri_upload_insert==0)) {
     $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 }
 
-################################################################
-### Insert into the mri_upload table correct values ############
-### only if the $tarchive_id doesn't exists and the -mri_upload
-### is used ####################################################
-################################################################
-if (($tarchiveid_count==0) && ($mri_upload_insert)) {
-    $query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
-         "SourceLocation, IsValidated) VALUES (?,now(),?,?,'1')";
-    my $mri_upload_inserts = $dbh->prepare($query);
-    $mri_upload_inserts->execute(
-        $User,
-        $tarchiveInfo{TarchiveID},
-        $tarchiveInfo{'SourceLocation'}
-    );
-}
 
 exit 0;
 
