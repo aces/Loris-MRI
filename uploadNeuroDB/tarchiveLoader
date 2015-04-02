@@ -63,10 +63,6 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                #set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
-my $mri_upload_insert  = 0;    # This is a flag to allow the values to be 
-                               # inserted into the mri_upload table if 
-                               # dicomtar.pl hasn't been ran using the option
-                               # -mri_upload_update
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                #control freak
 my $xlog        = 0;           # default should be 0
@@ -84,8 +80,6 @@ my @opt_table = (
                  ["-force", "boolean", 1, \$force,"Forces the script to run ". 
                  "even if the validation has failed."],
                  ["Advanced options","section"],
-                 ["-mri_upload_insert", "boolean", 1, \$mri_upload_insert,"Inserts the".
-                  " values in the mri_upload table."],
                  ["-reckless", "boolean", 1, \$reckless,"Upload data to ".
                   "database even if study protocol is not defined or violated."
                  ],
@@ -255,9 +249,6 @@ my %tarchiveInfo = $utility->createTarchiveArray(
 ################################################################
 my $script = "tarchive_validation.pl $tarchive -profile $profile ";
 
-if ($mri_upload_insert) {
-    $script .= " -mri_upload_insert";
-}
 if ($globArchiveLocation) {
     $script .= " -globLocation";
 }
@@ -269,40 +260,11 @@ if ($globArchiveLocation) {
 my $output = system($script); 
 $output = $output >> 8;
 
-################################################################
-# Exit if the return value is 5 meaning the tarchiveid #########
-# is not inserted in the mri_upload table ######################
-# and -mri_upload_insert is not used ###########################
-################################################################
-
-if (($output== 5) && ($mri_upload_insert==0)) {
-
-  $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               " doesn't exist in the mri_upload table    \n".
-               " re-run the tarchiveLoader script using ".
-               " -mri_upload_insert to insert the missing values.\n\n";
- $utility->writeErrorLog($message,5,$logfile); 
- exit 5;
-}
-
-################################################################
-### If tarchiveid is already inserted into #####################
-### The mri_upload table and -mri_upload_insert is set #########
-################################################################
-
-if (($output==6) && ($mri_upload_insert)) {
-    $message = "\n ERROR: The tarchiveid: ". $tarchiveInfo{TarchiveID} .
-               " already in the mri_upload table therefore cannot use ".
-               " -mri_upload_insert option.\n\n";
-    $utility->writeErrorLog($message,6,$logfile);
-    exit 6;
-
-}
 
 ################################################################
 #############Exit if the is_valid is false and $force is not####
 ################################################################
-if (($output != 0) && ($output!= 5) && ($force==0)) {
+if (($output != 0)  && ($force==0)) {
  $message = "\n ERROR: The validation has failed. Either re-run the ".
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
