@@ -81,7 +81,7 @@ if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
     }
 }
 
-if ($profile && !defined @Settings::db) {
+if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named '$profile' in:
             $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 2;
