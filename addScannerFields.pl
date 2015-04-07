@@ -52,7 +52,7 @@ unless(scalar(@leftovers) == 0) {
 if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
-if ($profile && !defined @Settings::db) {
+if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33;
 } 
 if(!$profile) { print $Usage; print "\n\tERROR: You must specify an existing profile.\n\n";  exit 33;  }
