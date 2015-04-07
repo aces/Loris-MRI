@@ -57,7 +57,7 @@ if ($version) { print "$versionInfo\n"; exit; }
 
 # checking for profile settings
 if($profile && -f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") { { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" } }    
-if ($profile && !defined @Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
+if ($profile && !@Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
 
 
 # basic error checking on tarchive
