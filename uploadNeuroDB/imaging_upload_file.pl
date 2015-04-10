@@ -216,12 +216,12 @@ spool($message,'N');
 ################################################################
 ######### moves the uploaded folder to the Incoming Directory####
 ################################################################
-$imaging_upload->moveUploadedFile();
+##$imaging_upload->moveUploadedFile();
 
 ################################################################
 ############### removes the uploaded folder from the /tmp########
 ################################################################
-$imaging_upload->CleanUpTMPDir();
+##$imaging_upload->CleanUpTMPDir();
 
 ################################################################
 ############### getPnameUsingUploadID###########################
@@ -275,7 +275,7 @@ Arguments:
 
 sub spool  {
     my ( $message, $error ) = @_;
-    $Notify->spool('mri upload utility runner', 
+    $Notify->spool('mri upload runner', 
                    $message, 
                    0, 
         		   'imaging_upload_file.pl',
