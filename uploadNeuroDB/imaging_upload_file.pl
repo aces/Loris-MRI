@@ -216,12 +216,12 @@ spool($message,'N');
 ################################################################
 ######### moves the uploaded folder to the Incoming Directory####
 ################################################################
-##$imaging_upload->moveUploadedFile();
+$imaging_upload->moveUploadedFile();
 
 ################################################################
 ############### removes the uploaded folder from the /tmp########
 ################################################################
-##$imaging_upload->CleanUpTMPDir();
+$imaging_upload->CleanUpTMPDir();
 
 ################################################################
 ############### getPnameUsingUploadID###########################
