@@ -19,21 +19,21 @@ trap "rm  $LOGFILE" EXIT
 CPANCHECK=`which cpan`
 if [ ! -f "$CPANCHECK" ]; then
     echo "\nERROR: Unable to find cpan"
-    echo "Please ask your sysadmin or install CPAN\n"
+    echo "Please ask your sysadmin or install cpan\n"
     exit
 fi
 #Check if make is installed
 MAKECHECK=`which make`
 if [ ! -f "$MAKECHECK" ]; then
     echo "\nERROR: Unable to find make"
-    echo "Please ask your sysadmin or install MAKE\n"
+    echo "Please ask your sysadmin or install make\n"
     exit
 fi
 #Check if apt-get is install
 APTGETCHECK=`which apt-get`
 if [ ! -f "$APTGETCHECK" ]; then
     echo "\nERROR: Unable to find apt-get"
-    echo "Please ask your sysadmin or install APT-GET\n"
+    echo "Please ask your sysadmin or install apt-get\n"
     exit
 fi
 
