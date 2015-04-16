@@ -1,10 +1,10 @@
 #!/bin/bash
 
-################################
-####WHAT WILL NOT DO#############
-###1)It doesn't set up the SGE
-###2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place it in h
-###3)It doesn't change the config.xml
+##################################
+###WHAT THIS SCRIPT WILL NOT DO###
+#1)It doesn't set up the SGE
+#2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place somewhere
+#3)It doesn't change the config.xml
 
 
 #Create a temporary log for installation and delete it on completion 
@@ -12,23 +12,20 @@
 LOGFILE="/tmp/$(basename $0).$$.tmp"
 touch $LOGFILE
 trap "rm  $LOGFILE" EXIT
- 
-read -p "what is the database name? " mysqldb
+
+read -p "What is the database name? " mysqldb
 read -p "What is the database host? " mysqlhost
-read -p "What is the Mysql user? " mysqluser
-stty -echo ##this disables the password to show up on the commandline
-read -p "What is the mysql password? " mysqlpass; echo
+read -p "What is the MySQL user? " mysqluser
+stty -echo
+read -p "What is the MySQL password? " mysqlpass; echo
 stty echo
+read -p "What is the Linux user which the installation will be based on? " USER
+read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
 
-read -p "what is the linux user which the installation will be based on? " USER
-read -p "what is the project Name " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
-
-read -p "what is your email address " email
+read -p "What is your email address? " email
 email=${email/@/\\\\@}  ##adds a back slash before the @
-echo "email is $email"
 
-
-read -p "what prod file name would you like to use? default: prod? " prodfilename
+read -p "What prod file name would you like to use? default: prod " prodfilename
 if [ -z "$prodfilename" ]; then
     prodfilename="prod"
 fi 
@@ -36,41 +33,41 @@ fi
 read -p "Enter the list of Site names (space separated) " site
 mridir=`pwd`
 
-##########################################################################################
-#############################Create directories########################################
-#########################################################################################
- echo "Creating the data directories"
+#####################################################################################
+#############################Create directories######################################
+#####################################################################################
+echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -p /data/$PROJ/data/"
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/trashbin"   ##holds mincs that didn't match protocol
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/tarchive"   ##holds tared dicom-folder
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/pic"           ##holds jpegs generated for the MRI-browser
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/logs"         ## holds logs from pipeline script
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/jiv"            ## holds JIVs used for JIV viewer
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/assembly" ## holds the MINC files
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/batch_output"  ##contains the result of the SGE (queue
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/trashbin"          #holds mincs that didn't match protocol
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/tarchive"          #holds tared dicom-folder
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/pic"               #holds jpegs generated for the MRI-browser
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/logs"              #holds logs from pipeline script
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/jiv"               #holds JIVs used for JIV viewer
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/assembly"          #holds the MINC files
+  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/batch_output"      #contains the result of the SGE (queue
   sudo -S su $USER -c "mkdir -p $mridir/dicom-archive/.loris_mri"
 echo
-#######################################################################################
- ###############incoming directory using sites########################################
-#######################################################################################
- echo "Creating incoming director(y/ies)"
-  for s in $site; do 
-   sudo -S su $USER -c "mkdir -p /data/incoming/$s/incoming";
-  done;
- echo
+#####################################################################################
+###############incoming directory using sites########################################
+#####################################################################################
+echo "Creating incoming director(y/ies)"
+ for s in $site; do 
+  sudo -S su $USER -c "mkdir -p /data/incoming/$s/incoming";
+ done;
+echo
 
-####################################################################################
+###################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
 echo "Modifying environment script"
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
-##Make sure that CIVET stuff are placed in the right place
-##source  /data/$PROJ/bin/$mridirname/environment
+#Make sure that CIVET stuff are placed in the right place
+#source /data/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
 echo
 
 ####################################################################################
-######################change permissions ##########################################
+######################change permissions ###########################################
 ####################################################################################
 #echo "Changing permissions"
 
@@ -79,9 +76,7 @@ sudo chmod -R 750 /data/$PROJ/
 sudo chmod -R 750 /data/incoming/
 echo
 
-
-echo
-######################################################################################
+#####################################################################################
 ##########################change the prod file#######################################
 #####################################################################################
 echo "Creating MRI config file"
