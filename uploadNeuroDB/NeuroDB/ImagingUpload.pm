@@ -512,7 +512,7 @@ sub spool  {
     my $this = shift;
     my ( $message, $error ) = @_;
     print "message is $message \n";
-    $this->{'Notify'}->spool('mri upload utility', $message, 0,
+    $this->{'Notify'}->spool('mri upload processing class', $message, 0,
            'Imaging_Upload.pm', $this->{'upload_id'},$error);
 }
 

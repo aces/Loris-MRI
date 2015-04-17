@@ -275,7 +275,7 @@ Arguments:
 
 sub spool  {
     my ( $message, $error ) = @_;
-    $Notify->spool('mri upload utility runner', 
+    $Notify->spool('mri upload runner', 
                    $message, 
                    0, 
         		   'imaging_upload_file.pl',
