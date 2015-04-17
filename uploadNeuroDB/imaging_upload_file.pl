@@ -5,7 +5,6 @@ use Carp;
 use Getopt::Tabular;
 use FileHandle;
 use File::Temp qw/ tempdir /;
-use File::Basename;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
@@ -145,12 +144,9 @@ my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 ############### Decompress File ################################
 ################################################################
 ################################################################
-my $uploaded_directory = dirname($uploaded_file);
 my $result = $file_decompress->Extract( 
-                $uploaded_directory
+                $TmpDir_decompressed_folder
              );
-my $extracted_directory = $file_decompress->getExtractedDirectory();
-
 ################################################################
 ############### Get Patient_name using UploadID#################
 ################################################################
@@ -162,7 +158,7 @@ my $pname = getPnameUsingUploadID($upload_id);
 ################################################################
 my $imaging_upload =
   NeuroDB::ImagingUpload->new( \$dbh, 
-                               $extracted_directory, 
+                               $TmpDir_decompressed_folder, 
                                $upload_id,
                                $pname, 
                                $profile 
