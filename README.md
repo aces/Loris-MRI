@@ -47,5 +47,5 @@ Ensure that /home/$lorisadmin/.bashrc includes the statements:
 
 ```source /data/$projectname/bin/mri/environment```
 
-Installation complete. For customizations & protocol configurations, see LORIS Developer's Guide.
+Installation complete. For customizations & protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
 
