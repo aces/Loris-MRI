@@ -5,6 +5,7 @@ use Carp;
 use Getopt::Tabular;
 use FileHandle;
 use File::Temp qw/ tempdir /;
+use File::Basename;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
@@ -144,9 +145,11 @@ my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 ############### Decompress File ################################
 ################################################################
 ################################################################
+my $uploaded_directory = dirname($uploaded_file);
 my $result = $file_decompress->Extract( 
-                $TmpDir_decompressed_folder 
+                $uploaded_directory
              );
+my $extracted_directory = $file_decompress->getExtractedDirectory();
 
 ################################################################
 ############### Get Patient_name using UploadID#################
@@ -159,12 +162,18 @@ my $pname = getPnameUsingUploadID($upload_id);
 ################################################################
 my $imaging_upload =
   NeuroDB::ImagingUpload->new( \$dbh, 
-                               $TmpDir_decompressed_folder, 
+                               $extracted_directory, 
                                $upload_id,
                                $pname, 
                                $profile 
                              );
-
+################################################################
+############Add the decompressed-folder location in the#########
+############mri-upload table####################################
+################################################################
+$imaging_upload->updateMRIUploadTable(
+	'DecompressedLocation',$extracted_directory
+);
 ################################################################
 ################ Instantiate the Notify Class###################
 ################################################################
@@ -216,7 +225,13 @@ spool($message,'N');
 ################################################################
 ######### moves the uploaded folder to the Incoming Directory####
 ################################################################
-$imaging_upload->moveUploadedFile();
+if (!$imaging_upload->moveUploadedFile()) {
+    $message = "\n The file cannot be moved. Make sure the getIncomingDir".
+               "config option is set\n";
+    spool($message,'Y');
+    print $message;
+    exit 9;
+}
 
 ################################################################
 ############### removes the uploaded folder from the /tmp########
@@ -232,9 +247,9 @@ Description:
   - Get the patient-name using the upload_id
 
 Arguments:
-  $file_path: Full path to the uploaded file
+  $upload_id: The Upload ID
 
-  Returns: NULL
+  Returns: $patient_name : The patientName
 =cut
 
 
@@ -256,7 +271,6 @@ sub getPnameUsingUploadID {
     }
     return $patient_name;
 }
-
 
 ################################################################
 ############### spool()#########################################
