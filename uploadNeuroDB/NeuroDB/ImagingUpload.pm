@@ -337,7 +337,7 @@ sub PatientNameMatch {
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
-        my $message = "The patient-name $pname does not Match" .
+        my $message = "The patient-name $pname does not Match " .
             $this->{'pname'};
     $this->spool($message, 'Y');
         return 0; ##return false
@@ -542,8 +542,8 @@ sub updateMRIUploadTable  {
     ########################################################
         #################Update MRI_upload table accordingly####
         ########################################################
-        $where = "WHERE UploadID=?";
-        $query = "UPDATE mri_upload SET $field='$value'";
+        my $where = "WHERE UploadID=?";
+        my $query = "UPDATE mri_upload SET $field='$value'";
         $query = $query . $where;
         my $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
         $mri_upload_update->execute( $this->{'upload_id'} );
