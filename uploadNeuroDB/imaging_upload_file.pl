@@ -170,7 +170,7 @@ my $imaging_upload =
 ############mri-upload table####################################
 ################################################################
 $imaging_upload->updateMRIUploadTable(
-	'DecompressedLocation',$extracted_directory
+	'DecompressedLocation',$TmpDir_decompressed_folder,
 );
 ################################################################
 ################ Instantiate the Notify Class###################
