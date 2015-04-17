@@ -145,8 +145,9 @@ my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 ################################################################
 ################################################################
 my $result = $file_decompress->Extract( 
-                $TmpDir_decompressed_folder
+                $TmpDir_decompressed_folder 
              );
+
 ################################################################
 ############### Get Patient_name using UploadID#################
 ################################################################
