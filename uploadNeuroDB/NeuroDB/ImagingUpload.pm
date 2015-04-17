@@ -390,8 +390,11 @@ Arguments:
 sub moveUploadedFile {
     my $this            = shift;
     my $incoming_folder = $Settings::getIncomingDir;
-    my $cmd =
-      "mv " . $this->{'uploaded_temp_folder'} . " " . $incoming_folder;
+    if (!$incoming_folder) {
+        return 0;
+    }
+    my $cmd = "mv " . $this->{'uploaded_temp_folder'} . 
+	      " " . $incoming_folder;
     $this->runCommand($cmd);
 }
 
@@ -514,6 +517,36 @@ sub spool  {
     print "message is $message \n";
     $this->{'Notify'}->spool('mri upload processing class', $message, 0,
            'Imaging_Upload.pm', $this->{'upload_id'},$error);
+}
+
+
+################################################################
+#################updateMRIUploadTable###########################
+################################################################
+=pod
+updateMRIUploadTable()
+Description:
+   - Update the mri_upload table 
+
+Arguments:
+ $this      : Reference to the class
+ $field     : Name of the column in the table 
+ $value     : Value of the column to be set
+ Returns    : NULL
+=cut
+
+sub updateMRIUploadTable  {
+    my $this = shift;
+
+    my ( $field, $value ) = @_;
+    ########################################################
+        #################Update MRI_upload table accordingly####
+        ########################################################
+        $where = "WHERE UploadID=?";
+        $query = "UPDATE mri_upload SET $field='$value'";
+        $query = $query . $where;
+        my $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
+        $mri_upload_update->execute( $this->{'upload_id'} );
 }
 
 1;
