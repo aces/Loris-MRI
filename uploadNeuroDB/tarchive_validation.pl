@@ -183,13 +183,13 @@ if ($tarchiveid_count==0)  {
     ##if the scan is already inserted into the mri_upload ######
     ###update it################################################
     ############################################################
-    $where = "WHERE SourceLocation=?";
+    $where = "WHERE DecompressedLocation=?";
     $query = "SELECT COUNT(*) FROM mri_upload $where ";
     $sth = $dbh->prepare($query);
     $sth->execute($tarchiveInfo{SourceLocation});
     my $source_location = $sth->fetchrow_array;
     if ($source_location !=0) {
-    	$where = "WHERE SourceLocation=?";
+    	$where = "WHERE DecompressedLocation=?";
 	$query = "UPDATE mri_upload SET TarchiveID=? ";
 	$query = $query . $where;
 	my $mri_upload_update = $dbh->prepare($query);
@@ -201,7 +201,7 @@ if ($tarchiveid_count==0)  {
        ##otherwise insert it####################################
        #########################################################
        $query = "INSERT INTO mri_upload (UploadedBy, ".
-                "UploadDate,TarchiveID, SourceLocation, IsTarchiveValidated)" .
+                "UploadDate,TarchiveID, DecompressedLocation, IsTarchiveValidated)" .
                 " VALUES (?,now(),?,?,'1')";
        my $mri_upload_inserts = $dbh->prepare($query);
        $mri_upload_inserts->execute(
