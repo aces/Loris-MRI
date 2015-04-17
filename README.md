@@ -35,17 +35,17 @@ See aces/Loris README.md for further information and Loris installation informat
 
  * What is the database name? $dbname
  * What is the database host? $dbhost
- * What is the Mysql user? $lorisuser 
- * What is the mysql password? 
- * What is the linux user which the installation will be based on? $lorisadmin
- * What is the project Name $projectname
- * What is your email address 
- * What prod file name would you like to use? default: prod?”  [leave blank]
+ * What is the MySQL user? $lorisuser 
+ * What is the MySQL password? 
+ * What is the Linux user which the installation will be based on? $lorisadmin
+ * What is the project name? $projectname
+ * What is your email address? 
+ * What prod file name would you like to use? default: prod  [leave blank]
  * Enter the list of Site names (space separated) site1 site2
 
-Ensure that /home/lorisadmin/.bashrc includes the statements: 
+Ensure that /home/$lorisadmin/.bashrc includes the statements: 
 
 ```source /data/$projectname/bin/mri/environment```
 
-Installation complete. For customizations & protocol configurations, see LORIS Developer’s Guide.
+Installation complete. For customizations & protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
 
