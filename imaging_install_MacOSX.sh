@@ -49,6 +49,7 @@ echo
 #####################################################################################
 ###############incoming directory using sites########################################
 #####################################################################################
+sudo -S su $USER -c "mkdir -p /data/incoming/";
 echo "Creating incoming director(y/ies)"
  for s in $site; do 
   sudo -S su $USER -c "mkdir -p /data/incoming/$s/incoming";
