@@ -37,6 +37,7 @@ my $TmpDir_decompressed_folder =
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = undef;
+my $verbose             = 0;           # default for now
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -47,6 +48,7 @@ my @opt_table           = (
         "-upload_id", "string", 1, \$upload_id,
         "The uploadID of the given scan uploaded"
     ],
+    ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     [ "Advanced options", "section" ],
     [ "Fancy options", "section" ]
 );
@@ -162,7 +164,8 @@ my $imaging_upload =
                                $TmpDir_decompressed_folder, 
                                $upload_id,
                                $pname, 
-                               $profile 
+                               $profile,
+                               $verbose 
                              );
 
 ################################################################

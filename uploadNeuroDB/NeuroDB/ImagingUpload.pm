@@ -29,7 +29,7 @@ Arguments:
 =cut
 sub new {
     my $params = shift;
-    my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile ) = @_;
+    my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile, $verbose ) = @_;
     unless ( defined $dbhr ) {
         croak( "Usage: " . $params . "->new(\$databaseHandleReference)" );
     }
@@ -53,6 +53,7 @@ sub new {
     $self->{'dbhr'}                 = $dbhr;
     $self->{'pname'}                = $pname;
     $self->{'upload_id'}            = $upload_id;
+    $self->{'verbose'}              = $verbose;
     return bless $self, $params;
 }
 
@@ -214,10 +215,10 @@ sub runDicomTar {
     my $query             = '';
     my $where             = '';
     my $tarchive_location = $Settings::data_dir . "/" . "tarchive";
-    my $dicomtar =
+    my $dicomtar = 
       $Settings::bin_dir . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
-        "perl $dicomtar $this->{'uploaded_temp_folder'} "
+        $dicomtar . " " . $this->{'uploaded_temp_folder'} 
       . " $tarchive_location -clobber -database -profile prod";
     my $output = $this->runCommandWithExitCode($command);
 
@@ -366,7 +367,7 @@ sub isDicom {
     my ($dicom_file) = @_;
     my $file_type    = $this->runCommand("file $dicom_file");
     if ( !( $file_type =~ /DICOM/ ) ) {
-        print "not of type DICOM";
+        print "not of type DICOM" if $this->{'verbose'};
         return 0;
     }
     return 1;
@@ -442,7 +443,7 @@ Arguments:
 sub runCommandWithExitCode {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n ";
+    print "\n\n $command \n\n " if $this->{'verbose'};
     my $output = system($command);
     return $output >> 8;    ##returns the exit code
 }
@@ -466,7 +467,7 @@ Arguments:
 sub runCommand {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n ";
+    print "\n\n $command \n\n " if $this->{'verbose'};
     return `$command`;
 }
 
