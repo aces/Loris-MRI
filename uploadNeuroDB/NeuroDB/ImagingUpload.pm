@@ -544,10 +544,10 @@ sub updateMRIUploadTable  {
         #################Update MRI_upload table accordingly####
         ########################################################
         my $where = "WHERE UploadID=?";
-        my $query = "UPDATE mri_upload SET $field='$value'";
+        my $query = "UPDATE mri_upload SET $field=?";
         $query = $query . $where;
         my $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
-        $mri_upload_update->execute( $this->{'upload_id'} );
+        $mri_upload_update->execute( $value,$this->{'upload_id'} );
 }
 
 1;
