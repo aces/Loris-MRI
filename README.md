@@ -28,8 +28,10 @@ See aces/Loris README.md for further information and Loris installation informat
 
 3. Run installer to install MINC & DICOM toolkits, Perl libraries, configure environment, and setup directories:
 
+   ```bash 
    cd /data/$projectname/bin/mri/
-   ```bash imaging_install.sh```
+   ./imaging_install.sh
+   ```
 
   You will be asked for the following input: 
 
