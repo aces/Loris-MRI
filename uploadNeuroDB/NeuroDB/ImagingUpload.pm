@@ -29,7 +29,7 @@ Arguments:
 =cut
 sub new {
     my $params = shift;
-    my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile ) = @_;
+    my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile, $verbose ) = @_;
     unless ( defined $dbhr ) {
         croak( "Usage: " . $params . "->new(\$databaseHandleReference)" );
     }
@@ -53,6 +53,7 @@ sub new {
     $self->{'dbhr'}                 = $dbhr;
     $self->{'pname'}                = $pname;
     $self->{'upload_id'}            = $upload_id;
+    $self->{'verbose'}              = $verbose;
     return bless $self, $params;
 }
 
@@ -214,10 +215,10 @@ sub runDicomTar {
     my $query             = '';
     my $where             = '';
     my $tarchive_location = $Settings::data_dir . "/" . "tarchive";
-    my $dicomtar =
+    my $dicomtar = 
       $Settings::bin_dir . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
-        "perl $dicomtar $this->{'uploaded_temp_folder'} "
+        $dicomtar . " " . $this->{'uploaded_temp_folder'} 
       . " $tarchive_location -clobber -database -profile prod";
     my $output = $this->runCommandWithExitCode($command);
 
@@ -337,7 +338,7 @@ sub PatientNameMatch {
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
-        my $message = "The patient-name $pname does not Match" .
+        my $message = "The patient-name $pname does not Match " .
             $this->{'pname'};
     $this->spool($message, 'Y');
         return 0; ##return false
@@ -366,7 +367,7 @@ sub isDicom {
     my ($dicom_file) = @_;
     my $file_type    = $this->runCommand("file $dicom_file");
     if ( !( $file_type =~ /DICOM/ ) ) {
-        print "not of type DICOM";
+        print "not of type DICOM" if $this->{'verbose'};
         return 0;
     }
     return 1;
@@ -390,8 +391,11 @@ Arguments:
 sub moveUploadedFile {
     my $this            = shift;
     my $incoming_folder = $Settings::getIncomingDir;
-    my $cmd =
-      "mv " . $this->{'uploaded_temp_folder'} . " " . $incoming_folder;
+    if (!$incoming_folder) {
+        return 0;
+    }
+    my $cmd = "mv " . $this->{'uploaded_temp_folder'} . 
+	      " " . $incoming_folder;
     $this->runCommand($cmd);
 }
 
@@ -439,7 +443,7 @@ Arguments:
 sub runCommandWithExitCode {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n ";
+    print "\n\n $command \n\n " if $this->{'verbose'};
     my $output = system($command);
     return $output >> 8;    ##returns the exit code
 }
@@ -463,7 +467,7 @@ Arguments:
 sub runCommand {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n ";
+    print "\n\n $command \n\n " if $this->{'verbose'};
     return `$command`;
 }
 
@@ -514,6 +518,36 @@ sub spool  {
     print "message is $message \n";
     $this->{'Notify'}->spool('mri upload processing class', $message, 0,
            'Imaging_Upload.pm', $this->{'upload_id'},$error);
+}
+
+
+################################################################
+#################updateMRIUploadTable###########################
+################################################################
+=pod
+updateMRIUploadTable()
+Description:
+   - Update the mri_upload table 
+
+Arguments:
+ $this      : Reference to the class
+ $field     : Name of the column in the table 
+ $value     : Value of the column to be set
+ Returns    : NULL
+=cut
+
+sub updateMRIUploadTable  {
+    my $this = shift;
+
+    my ( $field, $value ) = @_;
+    ########################################################
+        #################Update MRI_upload table accordingly####
+        ########################################################
+        my $where = "WHERE UploadID=?";
+        my $query = "UPDATE mri_upload SET $field=?";
+        $query = $query . $where;
+        my $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
+        $mri_upload_update->execute( $value,$this->{'upload_id'} );
 }
 
 1;

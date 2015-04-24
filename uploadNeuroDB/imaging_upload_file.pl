@@ -37,6 +37,7 @@ my $TmpDir_decompressed_folder =
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = undef;
+my $verbose             = 0;           # default for now
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -47,6 +48,7 @@ my @opt_table           = (
         "-upload_id", "string", 1, \$upload_id,
         "The uploadID of the given scan uploaded"
     ],
+    ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     [ "Advanced options", "section" ],
     [ "Fancy options", "section" ]
 );
@@ -162,9 +164,17 @@ my $imaging_upload =
                                $TmpDir_decompressed_folder, 
                                $upload_id,
                                $pname, 
-                               $profile 
+                               $profile,
+                               $verbose 
                              );
 
+################################################################
+############Add the decompressed-folder location in the#########
+############mri-upload table####################################
+################################################################
+$imaging_upload->updateMRIUploadTable(
+	'DecompressedLocation',$TmpDir_decompressed_folder,
+);
 ################################################################
 ################ Instantiate the Notify Class###################
 ################################################################
@@ -216,7 +226,13 @@ spool($message,'N');
 ################################################################
 ######### moves the uploaded folder to the Incoming Directory####
 ################################################################
-$imaging_upload->moveUploadedFile();
+if (!$imaging_upload->moveUploadedFile()) {
+    $message = "\n The file cannot be moved. Make sure the getIncomingDir".
+               "config option is set\n";
+    spool($message,'Y');
+    print $message;
+    exit 9;
+}
 
 ################################################################
 ############### removes the uploaded folder from the /tmp########
@@ -232,9 +248,9 @@ Description:
   - Get the patient-name using the upload_id
 
 Arguments:
-  $file_path: Full path to the uploaded file
+  $upload_id: The Upload ID
 
-  Returns: NULL
+  Returns: $patient_name : The patientName
 =cut
 
 
@@ -256,7 +272,6 @@ sub getPnameUsingUploadID {
     }
     return $patient_name;
 }
-
 
 ################################################################
 ############### spool()#########################################
