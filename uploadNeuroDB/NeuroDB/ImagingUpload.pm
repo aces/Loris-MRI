@@ -163,10 +163,9 @@ sub IsValid {
             if ( !$this->isDicom($_) ) {
                 $files_not_dicom++;
             }
-	    ####################################################
-            ##Validate the Patient-Name, only if it's not a ####
-	    ##phantom###########################################
-            ####################################################
+         #######################################################
+         #Validate the Patient-Name, only if it's not a phantom#
+         #######################################################
             if ($row['IsPhantom'] =='N') {
             	if ( !$this->PatientNameMatch($_) ) {
 	        	$files_with_unmatched_patient_name++;
