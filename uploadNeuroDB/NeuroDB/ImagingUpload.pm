@@ -164,7 +164,8 @@ sub IsValid {
                 $files_not_dicom++;
             }
 	    ####################################################
-	    ####Only do pname checking if it's not a phantom####
+            ##Validate the Patient-Name, only if it's not a ####
+	    ##phantom###########################################
             ####################################################
             if ($row['IsPhantom'] =='N') {
             	if ( !$this->PatientNameMatch($_) ) {
