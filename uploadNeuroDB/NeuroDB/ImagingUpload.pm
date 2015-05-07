@@ -163,7 +163,7 @@ sub IsValid {
          #######################################################
          #Validate the Patient-Name, only if it's not a phantom#
          #######################################################
-	    if ($row['IsPhantom'] == 'N') {
+	    if ($row['IsPhantom'] eq 'N') {
             	if ( !$this->PatientNameMatch($_) ) {
 	        	$files_with_unmatched_patient_name++;
 	        }
