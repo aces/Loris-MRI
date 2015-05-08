@@ -112,16 +112,14 @@ sub IsValid {
         },
         $this->{'uploaded_temp_folder'}
     );
-
     ############################################################
     ############### Check to see if the uploadID exists ########
     ############################################################
     ############################################################
     $query =
         "SELECT PatientName,TarchiveID,number_of_mincCreated,"
-      . "number_of_mincInserted FROM mri_upload "
+      . "number_of_mincInserted,IsPhantom FROM mri_upload "
       . " WHERE UploadID =?";
-
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
     $sth->execute( $this->{'upload_id'} );
     if ( $sth->rows > 0 ) {
@@ -135,12 +133,13 @@ sub IsValid {
         $this->spool($message, 'Y');
         return 0;
     }
+
     ############################################################
     ####Check to see if the scan has been ran ##################
     ####if the tarchiveid or the number_of_mincCreated is set ##
     ####itt means that has already been ran#####################
     ############################################################
-    if ( ( $row[1] ) || ( $row[2] ) ) {
+    if ( ( $row['TarchiveID'] ) || ( $row['number_of_mincCreated'] ) ) {
 
         $message =
             "\n The Scan for the uploadID "
@@ -151,6 +150,7 @@ sub IsValid {
         return 0;
     }
 
+
     foreach (@file_list) {
         ########################################################
         #1) Check to see if the file is of type DICOM###########
@@ -160,9 +160,15 @@ sub IsValid {
             if ( !$this->isDicom($_) ) {
                 $files_not_dicom++;
             }
-            if ( !$this->PatientNameMatch($_) ) {
-                $files_with_unmatched_patient_name++;
-            }
+         #######################################################
+         #Validate the Patient-Name, only if it's not a phantom#
+         #######################################################
+	    if ($row['IsPhantom'] eq 'N') {
+            	if ( !$this->PatientNameMatch($_) ) {
+	        	$files_with_unmatched_patient_name++;
+	        }
+
+	    }
         }
     }
 
@@ -214,7 +220,7 @@ sub runDicomTar {
     my $tarchive_id       = '';
     my $query             = '';
     my $where             = '';
-    my $tarchive_location = $Settings::data_dir . "/" . "tarchive";
+    my $tarchive_location = $Settings::tarchiveLibraryDir;
     my $dicomtar = 
       $Settings::bin_dir . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
@@ -228,9 +234,9 @@ sub runDicomTar {
         ##########Extract tarchiveID using pname################
         ########################################################
 
-        $query = "SELECT TarchiveID FROM tarchive WHERE PatientName =?";
+        $query = "SELECT TarchiveID FROM tarchive WHERE SourceLocation =?";
         my $sth = ${ $this->{'dbhr'} }->prepare($query);
-        $sth->execute( $this->{'pname'} );
+        $sth->execute( $this->{'uploaded_temp_folder'} );
         if ( $sth->rows > 0 ) {
             $tarchive_id = $sth->fetchrow_array();
         }
