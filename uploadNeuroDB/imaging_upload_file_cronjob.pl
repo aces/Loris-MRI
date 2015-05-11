@@ -36,9 +36,7 @@ my @opt_table           = (
     [
         "-profile", "string", 1, \$profile,
         "name of config file in ../dicom-archive/.loris_mri"
-    ],
-    [ "Advanced options", "section" ],
-    [ "Fancy options", "section" ]
+    ]
 );
 
 my $Help = <<HELP;
@@ -62,7 +60,7 @@ USAGE
 &Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
 
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ( $profile && !@Settings::db ) {
+if ($profile && !defined @Settings::db) {
     print "\n\tERROR: You don't have a 
     configuration file named '$profile' in:  
     $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
@@ -74,13 +72,13 @@ if ( $profile && !@Settings::db ) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my @row=();
-my $query = "SELECT UploadID, SourceLocation FROM mri_upload WHERE Processed=0 AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL)";
+my $query = "SELECT UploadID, UploadLocation FROM mri_upload WHERE Processed=0 AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL)";
 print "\n" . $query . "\n";
 my $sth = $dbh->prepare($query);
 $sth->execute();
 while(@row = $sth->fetchrow_array()) { 
 
-    if ( -e $row['SourceLocation'] ) {
+    if ( -e $row['UploadLocation'] ) {
 	my $command = "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
 	print "\n" . $command . "\n";
 	my $output = system($command);
