@@ -157,7 +157,7 @@ my $tarchiveID = $sth->fetchrow_array;
  #####populate the mri_upload columns with the correct values####
 ################################################################
 $query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
-         "SourceLocation) VALUES(?,now(),?,?)";
+         "DecompressedLocation) VALUES(?,now(),?,?)";
 my $mri_upload_insert = $dbh->prepare($query);
 $mri_upload_insert->execute($User,$tarchiveID,$source_location);
 
