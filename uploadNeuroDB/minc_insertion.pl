@@ -189,7 +189,7 @@ my $where = "WHERE t.ArchiveLocation='$tarchive'";
 if ($globArchiveLocation) {
     $where = "WHERE t.ArchiveLocation LIKE '%/".basename($tarchive)."'";
 }
-my $query = "SELECT m.IsValidated FROM mri_upload m " .
+my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
             "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
 print $query . "\n";
 my $is_valid = $dbh->selectrow_array($query);
