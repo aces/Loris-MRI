@@ -78,7 +78,7 @@ my $sth = $dbh->prepare($query);
 $sth->execute();
 while(@row = $sth->fetchrow_array()) { 
 
-    if ( -e $row['UploadLocation'] ) {
+    if ( -e $row[1] ) {
 	my $command = "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
 	print "\n" . $command . "\n";
 	my $output = system($command);
