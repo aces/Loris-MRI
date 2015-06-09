@@ -139,7 +139,7 @@ sub IsValid {
     ####if the tarchiveid or the number_of_mincCreated is set ##
     ####itt means that has already been ran#####################
     ############################################################
-    if ( ( $row['TarchiveID'] ) || ( $row['number_of_mincCreated'] ) ) {
+    if ( ( $row[1] ) || ( $row[2] ) ) {
 
         $message =
             "\n The Scan for the uploadID "
