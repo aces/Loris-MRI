@@ -398,39 +398,46 @@ Returns: Textual name of scan type
 
 sub identify_scan_db {
 
-
     my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
     my $pscid = ${subjectref}->{'PSCID'};
     my $visit = ${subjectref}->{'visitLabel'};
     my $objective = ${subjectref}->{'subprojectID'};
+
     # get parameters from minc header
-    my $tr = ${fileref}->getParameter('repetition_time');
-    my $te = ${fileref}->getParameter('echo_time');
-    my $ti = ${fileref}->getParameter('inversion_time');
     my $patient_name =  ${fileref}->getParameter('patient_name');
-    if (defined($tr)) {  $tr = &Math::Round::nearest(0.01, $tr*1000);  }
-    if (defined($te)) {  $te = &Math::Round::nearest(0.01, $te*1000);  }
-    if (defined($ti)) {  $ti = &Math::Round::nearest(0.01, $ti*1000);  }
     
     my $xstep = ${fileref}->getParameter('xstep');
     my $ystep = ${fileref}->getParameter('ystep');
     my $zstep = ${fileref}->getParameter('zstep');
 
-    my $time = ${fileref}->getParameter('time');    
-
     my $xspace = ${fileref}->getParameter('xspace');
     my $yspace = ${fileref}->getParameter('yspace');
     my $zspace = ${fileref}->getParameter('zspace');
-    my $seriesUID = ${fileref}->getParameter('series_instance_uid');
     my $slice_thickness = ${fileref}->getParameter('slice_thickness');
+    my $seriesUID = ${fileref}->getParameter('series_instance_uid');
     my $series_description = ${fileref}->getParameter('series_description');
     
+    # get parameters specific to MRIs
+    my ($tr, $te, $ti);
+    if ($fileref->{parameters}{modality} eq "MR") {
+        $tr = ${fileref}->getParameter('repetition_time');
+        $te = ${fileref}->getParameter('echo_time');
+        $ti = ${fileref}->getParameter('inversion_time');
+        if (defined($tr)) {  $tr = &Math::Round::nearest(0.01, $tr*1000);  }
+        if (defined($te)) {  $te = &Math::Round::nearest(0.01, $te*1000);  }
+        if (defined($ti)) {  $ti = &Math::Round::nearest(0.01, $ti*1000);  }
+        my $time = ${fileref}->getParameter('time'); 
+    } elsif ($fileref->{parameters}{modality} eq "MR") {
+        # Place to add stuff specific to PET images
+    }
     if(0) {
-        print "\ntr:\t$tr\nte:\t$te\nti:\t$ti\nst:\t$slice_thickness\n";
+        if ($fileref->{parameters}{modality} eq "MR") {
+            print "\ntr:\t$tr\nte:\t$te\nti:\t$ti\nst:\t$slice_thickness\n";
+            print "time;\t$time\n";
+        }
         print "xspace:\t$xspace\nyspace:\t$yspace\nzspace:\t$zspace\n";
-	print "time;\t$time\n";
         print "xstep:\t$xstep\nystep:\t$ystep\nzstep:\t$zstep\n";
     }
     
