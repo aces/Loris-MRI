@@ -435,8 +435,8 @@ sub identify_scan_db {
     if(0) {
         if ($fileref->{parameters}{modality} eq "MR") {
             print "\ntr:\t$tr\nte:\t$te\nti:\t$ti\nst:\t$slice_thickness\n";
-            print "time;\t$time\n";
         }
+        print "time;\t$time\n";
         print "xspace:\t$xspace\nyspace:\t$yspace\nzspace:\t$zspace\n";
         print "xstep:\t$xstep\nystep:\t$ystep\nzstep:\t$zstep\n";
     }
