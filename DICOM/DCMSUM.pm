@@ -128,11 +128,11 @@ sub database {
     
     my $common_query_part  =  "tarchive SET " . 
         "DicomArchiveID = "         . $dbh->quote($self->{studyuid})                . ", " .
-	    "PatientName = "            . $dbh->quote($self->{header}->{pname})         . ", " .
-	    "PatientID = "              . $dbh->quote($self->{header}->{pid})           . ", " .
-	    "PatientDoB = "             . $dbh->quote($self->{header}->{birthdate})     . ", " .
+        "PatientName = "            . $dbh->quote($self->{header}->{pname})         . ", " .
+        "PatientID = "              . $dbh->quote($self->{header}->{pid})           . ", " .
+        "PatientDoB = "             . $dbh->quote($self->{header}->{birthdate})     . ", " .
         "PatientGender = "          . $dbh->quote($self->{header}->{sex})           . ", " .
-	    "DateAcquired = "           . $dbh->quote($self->{header}->{scandate})      . ", " .
+        "DateAcquired = "           . $dbh->quote($self->{header}->{scandate})      . ", " .
         "ScannerManufacturer = "    . $dbh->quote($self->{header}->{manufacturer})  . ", " .
         "ScannerModel = "           . $dbh->quote($self->{header}->{scanner})       . ", " .
         "ScannerSerialNumber = "    . $dbh->quote($self->{header}->{scanner_serial}). ", " .
@@ -148,13 +148,13 @@ sub database {
 	    "DateLastArchived = NOW() ";
     
     # this only applies if you are archiving your data
-    if ($Archivemd5) { $common_query_part = $common_query_part      . ", " .
-			      "tarTypeVersion = "   . $dbh->quote($tarType)     . ", " .
-			      "md5sumArchive = "    . $dbh->quote($Archivemd5)  . ", " .
-			      "md5sumDicomOnly = "  . $dbh->quote($DCMmd5)      . ", " .
-			      "ArchiveLocation = "  . $dbh->quote($Archive)     . ", " .
-			      "CreateInfo = "       . $dbh->quote($tarLog);
-		       }
+    if ($Archivemd5) { $common_query_part = $common_query_part    . ", " .
+                "tarTypeVersion = "   . $dbh->quote($tarType)     . ", " .
+                "md5sumArchive = "    . $dbh->quote($Archivemd5)  . ", " .
+                "md5sumDicomOnly = "  . $dbh->quote($DCMmd5)      . ", " .
+                "ArchiveLocation = "  . $dbh->quote($Archive)     . ", " .
+                "CreateInfo = "       . $dbh->quote($tarLog);
+    }
 
     if (!$update) { $query = "Insert INTO $common_query_part, DateFirstArchived = NOW(), neurodbCenterName=$neurodbCenterName"; } 
     else {  $query = "UPDATE $common_query_part WHERE DicomArchiveID = " . $dbh->quote($self->{studyuid}); }
@@ -284,21 +284,21 @@ sub acquisition_AoH {
 	    # create an array of hashes. Containing the protocol info for every file 
 	    if(@{$info}[21]) {
 	        $AoH[$i]  = { 
-	    	    'seriesNum'     => @{$info}[1], 
+                'seriesNum'     => @{$info}[1], 
                 'seriesName'    => @{$info}[12], 
-	    	    'sl_thickness'  => @{$info}[18], 
+                'sl_thickness'  => @{$info}[18], 
                 'seriesUID'     => @{$info}[24],
                 'modality'      => @{$info}[25]
 	        };
             if(@{$info}[25] eq "MR") {
-	    	    $AoH[$i]->{'sequName'}    = @{$info}[17], 
-	    	    $AoH[$i]->{'echoN'}       = @{$info}[2],
+                $AoH[$i]->{'sequName'}    = @{$info}[17], 
+                $AoH[$i]->{'echoN'}       = @{$info}[2],
                 $AoH[$i]->{'echoT'}       = @{$info}[6], 
                 $AoH[$i]->{'invT'}        = @{$info}[7], 
                 $AoH[$i]->{'repT'}        = @{$info}[5],
                 $AoH[$i]->{'phaseEncode'} = @{$info}[19]
             } elsif (@{$info}[25] eq "PT") {
-                # Add stuff from Paul concerning PET parameters here
+                # Add parameters specific to PET here
             }
 	        $i++;
 	    }
@@ -319,11 +319,11 @@ sub collapse {
     # go through array and get rid of duplicate elements
     foreach my $value ( @{$self->{acqu_AoH}} ) {
 	    # this should be the same for series that follow the dicom specs
-	    my $common = join(':::', ($value->{'sequName'},     $value->{'seriesNum'}, 
+        my $common = join(':::', ($value->{'sequName'},     $value->{'seriesNum'}, 
                                   $value->{'echoN'} 
                                  )
                          );
-	    my $now    = join(':::', ($value->{'seriesNum'},    $value->{'sequName'},  
+        my $now    = join(':::', ($value->{'seriesNum'},    $value->{'sequName'},  
                                   $value->{'echoT'},        $value->{'repT'},      
                                   $value->{'invT'},         $value->{'seriesName'}, 
                                   $value->{'sl_thickness'}, $value->{'phaseEncode'}, 
@@ -348,7 +348,7 @@ sub acquisitions {
     my $self  = shift;
     my @retarr= ();
     foreach my $key (sort keys( %{$self->{acqu_Sum}} )) {
-	    push @retarr, $self->{acqu_Sum}->{$key};
+        push @retarr, $self->{acqu_Sum}->{$key};
     }
     # sort the bloody array by Acquisition numbers
     # fixme has to be changed some day to actually sort by the first
