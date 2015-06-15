@@ -429,7 +429,7 @@ sub identify_scan_db {
         if (defined($te)) {  $te = &Math::Round::nearest(0.01, $te*1000);  }
         if (defined($ti)) {  $ti = &Math::Round::nearest(0.01, $ti*1000);  }
         my $time = ${fileref}->getParameter('time'); 
-    } elsif ($fileref->{parameters}{modality} eq "MR") {
+    } elsif ($fileref->{parameters}{modality} eq "PT") {
         # Place to add stuff specific to PET images
     }
     if(0) {
