@@ -29,12 +29,13 @@
 =cut
 
 
-$data_dir       = '/PATH/TO/DATA/location';       # where the data goes
-$bin_dir      = '/PATH/TO/BIN/location';        # where the imaging scripts go
-$prefix         = "project";                                    # study prefix or study name
-$mail_user      = "yourname\@example.com";                        # who will be notified
-$get_dicom_info = "/PATH/TO/get_dicom_info.pl";
+$data_dir       = '/PATH/TO/DATA/location';     # where the data goes
+$bin_dir        = '/PATH/TO/BIN/location';      # where the imaging scripts go
+$prefix         = "project";                    # study prefix or study name
+$mail_user      = "yourname\@example.com";      # who will be notified
+$get_dicom_info = "/PATH/TO/get_dicom_info.pl"; # path to get_dicom_info.pl
 $horizontalPics = 1;
+$no_nii         = 0;                            # 0=create nifti files, 1=don't create nifti files
 
 # if converter is set to dcm2mnc, the c-version of dcm2mnc will be used. If however you want 
 # to use any of the various versions of the perl converter dicom_to_minc of mydcm2mnc you will have 
