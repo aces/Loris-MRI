@@ -1177,6 +1177,30 @@ sub make_jiv {
 }
 
 =pod
+Creates NIfTI files associated with MINC files and append
+its path to the parameter_file table using the parameter_type
+"check_nii_filename".
+=cut
+sub make_nii {
+    my ($fileref, $data_dir)  = @_;
+   
+    # Get MINC filename and NIfTI filename
+    my $file = $$fileref;
+    my $minc  = $file->getFileDatum('File');
+    my $nifti = $minc;
+    $nifti    =~ s/mnc$/nii/g;
+
+    #  mnc2nii command
+    my $m2n_cmd = "mnc2nii -nii -quiet " .
+                    $data_dir . "/" . $minc . " " .
+                    $data_dir . "/" . $nifti;
+    system($m2n_cmd);
+
+    # update mri table (parameter_file table)
+    $file->setParameter('check_nii_filename', $nifti);
+}
+
+=pod
 B<DICOMDateToUnixTimestamp( C<$dicomDate> )>
 Converts a DICOM date field (YYYYMMDD) into a unix timestamp
 Returns: a unix timestamp (integer) or 0 if something went wrong
