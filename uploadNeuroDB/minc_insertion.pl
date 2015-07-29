@@ -42,6 +42,7 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
+my $no_nii      = 1;           # skip NIfTI creation by default
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
@@ -153,7 +154,7 @@ unless (-e $minc) {
 ########### Create the Specific Log File #######################
 ################################################################
 my $data_dir = $Settings::data_dir;
-my $no_nii   = $Settings::no_nii;
+my $no_nii   = $Settings::no_nii if defined $Settings::no_nii;
 my $jiv_dir  = $data_dir.'/jiv';
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
