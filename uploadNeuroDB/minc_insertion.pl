@@ -42,6 +42,7 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
+my $no_nii      = 1;           # skip NIfTI creation by default
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
@@ -153,8 +154,9 @@ unless (-e $minc) {
 ########### Create the Specific Log File #######################
 ################################################################
 my $data_dir = $Settings::data_dir;
-my $jiv_dir = $data_dir.'/jiv';
-my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+my $no_nii   = $Settings::no_nii if defined $Settings::no_nii;
+my $jiv_dir  = $data_dir.'/jiv';
+my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
@@ -368,11 +370,19 @@ print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
 
 
 ################################################################
-###################### Creating of Jivs ########################
+###################### Creation of Jivs ########################
 ################################################################
 if (!$no_jiv) {
     print "Making JIV\n" if $verbose;
     NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
+}
+
+################################################################
+###################### Creation of NIfTIs ######################
+################################################################
+unless ($no_nii) {
+    print "Creating NIfTI files\n" if $verbose;
+    NeuroDB::MRI::make_nii(\$file, $data_dir);
 }
 
 ################################################################
