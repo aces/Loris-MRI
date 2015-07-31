@@ -9,20 +9,19 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 
 ## Starting the program
-my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.00 $
-=~ /: (\d+)\.(\d+)/;
-
+my $versionInfo = sprintf "%d revision %2d",
+  q$Revision: 1.00 $ =~ /: (\d+)\.(\d+)/;
 
 ################################################################
 ################## Set variables for GETOPT ####################
 ################################################################
-my $verbose    = 1;
-my $profile    = undef;
-my $minFileID  = undef;
-my $maxFileID  = undef;
-my $debug      = 0;
+my $verbose   = 1;
+my $profile   = undef;
+my $minFileID = undef;
+my $maxFileID = undef;
+my $debug     = 0;
 
-my $Help       = <<HELP;
+my $Help = <<HELP;
 ******************************************************************************
 MASS NIfTI CREATION SCRIPT
 ******************************************************************************
@@ -38,62 +37,68 @@ Author  :   Cécile Madjar based on mass_pic.pl.
 
 HELP
 
-my $Usage      = <<USAGE;
+my $Usage = <<USAGE;
 
 Usage:    See $0 -help for more info
 
 USAGE
 
 my @arg_table = (
-["Database options", "section"],
-    ["-profile", "string", 1, \$profile, 
-        "Specify the name of the config file which resides " .
-        "in ../dicom-archive/.loris_mri"],
+    [ "Database options", "section" ],
+    [
+        "-profile",
+        "string",
+        1,
+        \$profile,
+        "Specify the name of the config file which resides "
+          . "in ../dicom-archive/.loris_mri"
+    ],
 
-["File control", "section"],
-    ["-minFileID", "integer", 1, \$minFileID, 
-        "Specify the minimum FileID to operate on."], 
-    ["-maxFileID", "integer", 1, \$maxFileID, 
-        "Specify the maximum FileID to operate on."], 
+    [ "File control", "section" ],
+    [
+        "-minFileID", "integer", 1, \$minFileID,
+        "Specify the minimum FileID to operate on."
+    ],
+    [
+        "-maxFileID", "integer", 1, \$maxFileID,
+        "Specify the maximum FileID to operate on."
+    ],
 
-["General options", "section"],
-    ["-verbose", "boolean", 1, \$verbose, "Be verbose."]
+    [ "General options", "section" ],
+    [ "-verbose", "boolean", 1, \$verbose, "Be verbose." ]
 );
 
-GetOptions(\@arg_table, \@ARGV) ||  exit 1;
-
+GetOptions( \@arg_table, \@ARGV ) || exit 1;
 
 ################################################################
 # Checking for profile settings ################################
 ################################################################
-if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( -f "$ENV{LORIS_CONFIG}/.loris_mri/$profile" ) {
+    { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
 
-if ($profile && !@Settings::db) {
+if ( $profile && !@Settings::db ) {
     my $message = <<MESSAGE;
 
   ERROR: You don't have a configuration file named "$profile"
          in $ENV{LORIS_CONFIG}/.loris_mri/
 
 MESSAGE
-    print $message; 
+    print $message;
     exit 33;
-} 
-
-if (!$profile) { 
-    print $Usage; 
-    print "\n\tERROR: You must specify an existing profile.\n\n";  
-    exit 33;  
 }
 
+if ( !$profile ) {
+    print $Usage;
+    print "\n\tERROR: You must specify an existing profile.\n\n";
+    exit 33;
+}
 
 ################################################################
 # Establish database connection if database option is set ######
 ################################################################
 print "Connecting to database.\n" if $verbose;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-
 
 ################################################################
 # Query FileIDs of MINC files that don't have NIfTI associated #
@@ -120,36 +125,34 @@ $query .= " AND f.FileID <= ?" if defined $maxFileID;
 $query .= " AND f.FileID <= ?" if defined $minFileID;
 
 # Create array of parameters to use for query.
-my @param = ('check_nii_filename', 'mnc');
-push (@param, $maxFileID) if defined $maxFileID;
-push (@param, $minFileID) if defined $minFileID;
+my @param = ( 'check_nii_filename', 'mnc' );
+push( @param, $maxFileID ) if defined $maxFileID;
+push( @param, $minFileID ) if defined $minFileID;
 
 # Prepare and execute query
-my $sth   = $dbh->prepare($query);
+my $sth = $dbh->prepare($query);
 $sth->execute(@param);
 if ($debug) {
     print $query . "\n";
 }
-
 
 ################################################################
 # Create NIfTI files for each FileIDs from the query result ####
 ################################################################
 
 # Loop through FileIDs
-while(my $rowhr = $sth->fetchrow_hashref()) {
+while ( my $rowhr = $sth->fetchrow_hashref() ) {
 
     print "$rowhr->{'FileID'}\n" if $verbose;
 
     # Load file information
-    my $file = NeuroDB::File->new(\$dbh);
-    $file->loadFile($rowhr->{'FileID'});
+    my $file = NeuroDB::File->new( \$dbh );
+    $file->loadFile( $rowhr->{'FileID'} );
 
     # Create NIfTI file
-    &NeuroDB::MRI::make_nii(\$file, $Settings::data_dir);
+    &NeuroDB::MRI::make_nii( \$file, $Settings::data_dir );
 
 }
-
 
 ################################################################
 # Terminate script #############################################
