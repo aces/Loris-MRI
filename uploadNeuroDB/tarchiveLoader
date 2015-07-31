@@ -47,8 +47,8 @@ use NeuroDB::MRIProcessingUtility;
 $|++;
 
 ## Starting the program
-my $versionInfo = sprintf "%d revision %2d",
-  q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/;
+my $versionInfo =
+  sprintf( "%d revision %2d", q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/ );
 
 ## Needed for log and template
 my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
@@ -60,15 +60,15 @@ my $date = sprintf(
 );
 my $debug       = 1;
 my $message     = '';
-my $verbose     = 0;   # Default for now
-my $reckless    = 0;   # Only for playing and testing. Don't set it to 1!!!
-my $force       = 0;   # Force the script to run even if validation has failed
-my $NewScanner  = 1;   # This should be the default unless you are a control freak
-my $xlog        = 0;   # Default should be 0
-my $no_jiv      = 0;   # Should bet set to 1, if jivs should not be created
+my $verbose     = 0; # Default for now
+my $reckless    = 0; # Only for playing and testing. Don't set it to 1!!!
+my $force       = 0; # Force the script to run even if validation has failed
+my $NewScanner  = 1; # This should be the default unless you are a control freak
+my $xlog        = 0; # Default should be 0
+my $no_jiv      = 0; # Should bet set to 1, if jivs should not be created
 my $valid_study = 0;
-my $profile     = 'prod';   # This should never be set unless you are in a
-                            # stable production environment
+my $profile = 'prod';    # This should never be set unless you are in a
+                         # stable production environment
 my $globArchiveLocation = 0;     # Whether to use strict ArchiveLocation strings
                                  # or to glob them (like '%Loc')
 my $newTarchiveLocation = undef;

@@ -9,8 +9,8 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 
 ## Starting the program
-my $versionInfo = sprintf "%d revision %2d",
-  q$Revision: 1.00 $ =~ /: (\d+)\.(\d+)/;
+my $versionInfo =
+  sprintf( "%d revision %2d", q$Revision: 1.00 $ =~ /: (\d+)\.(\d+)/ );
 
 ################################################################
 ################## Set variables for GETOPT ####################
