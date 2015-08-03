@@ -212,9 +212,16 @@ sub read_db_metadata {
     my $dbcomparefile;
     $dbh = &DB::DBI::connect_to_db(@Settings::db);
     print "Getting data from database.\n" if $verbose;
-    my $query = "Select AcquisitionMetadata from tarchive where DicomArchiveID=\"$StudyUID\"";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT 
+  AcquisitionMetadata
+FROM
+  tarchive
+WHERE
+  DicomArchiveID=?
+QUERY
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute($StudyUID);
     if($sth->rows > 0) {
 	my @row = $sth->fetchrow_array();
 	$dbmeta = $row[0];
@@ -239,9 +246,16 @@ sub version_conflict {
     my $AVersion;
     my $NowVersion = $sumTypeVersion;
     $dbh = &DB::DBI::connect_to_db(@Settings::db);
-    my $query = "Select sumTypeVersion from tarchive where DicomArchiveID=\"$StudyUID\"";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT
+  sumTypeVersion
+FROM
+  tarchive
+WHERE
+  DicomArchiveID=?
+QUERY
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute($StudyUID);
     my @row = $sth->fetchrow_array();
     $AVersion = $row[0];
     if ($AVersion ne $NowVersion) { return $AVersion; }

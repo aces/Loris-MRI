@@ -64,13 +64,35 @@ my $dbh = &DB::DBI::connect_to_db(@Settings::db); print "Connecting to database.
 my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
 $tarchiveLibraryDir    =~ s/\/$//g;
 
-my $sth = $dbh->prepare("SELECT DicomArchiveID, ArchiveLocation FROM tarchive WHERE ScannerManufacturer='' AND ScannerModel=''");
-$sth->execute();
+(my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT 
+  DicomArchiveID, 
+  ArchiveLocation 
+FROM 
+  tarchive 
+WHERE 
+  ScannerManufacturer=? 
+  AND ScannerModel=?
+QUERY
+my $sth->prepare($query);
+$sth->execute('', '');
 if($sth->rows < 1) {
    print "\n\tERROR: No tarchives found which lack manufacturer or model \n\n"; exit 33;
 } 
 
-my $updatesth = $dbh->prepare("UPDATE tarchive SET ScannerManufacturer=?, ScannerModel=?, ScannerSerialNumber=?, ScannerSoftwareVersion=? WHERE DicomArchiveID=?");
+(my $updatequery = <<QUERY) =~ s/\n/ /gm;
+UPDATE
+  tarchive
+SET
+  ScannerManufacturer=?,
+  ScannerModel=?,
+  ScannerSerialNumber=?, 
+  ScannerSoftwareVersion=? 
+WHERE
+  DicomArchiveID=?
+QUERY
+
+my $updatesth = $dbh->prepare($updatequery);
 
  TARCHIVE:
     while(my @row = $sth->fetchrow_array()) {
@@ -116,12 +138,15 @@ my $updatesth = $dbh->prepare("UPDATE tarchive SET ScannerManufacturer=?, Scanne
             next TARCHIVE;
         }
         
-        
-        $updatesth->execute($dicomFile->value('0008','0070'),
-                            $dicomFile->value('0008','1090'),
-                            $dicomFile->value('0018','1000'),
-                            $dicomFile->value('0018','1020'),
-                            $row[0]);
+        my @sth_param =   
+          (
+           $dicomFile->value('0008','0070'), 
+           $dicomFile->value('0008','1090'),
+           $dicomFile->value('0018','1000'), 
+           $dicomFile->value('0018','1020'),
+           $row[0]
+          );
+        $updatesth->execute(@sth_param);
 
         print "Updated $tarchive with values ".$dbh->quote($dicomFile->value('0008','0070'))." "
             .$dbh->quote($dicomFile->value('0008','1090'))." "
