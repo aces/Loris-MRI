@@ -151,15 +151,15 @@ QUERY
 QUERY
     my @values = 
       (
-       $dbh->quote($self->{studyuid}),                 $dbh->quote($self->{header}->{pname}),           
-       $dbh->quote($self->{header}->{pid}),            $dbh->quote($self->{header}->{birthdate}),      
-       $dbh->quote($self->{header}->{sex}),            $dbh->quote($self->{header}->{scandate}),       
-       $dbh->quote($self->{header}->{manufacturer}),   $dbh->quote($self->{header}->{scanner}),          
-       $dbh->quote($self->{header}->{scanner_serial}), $dbh->quote($self->{header}->{software}),      
-       $dbh->quote($self->{header}->{institution}),    $dbh->quote($self->{acquisition_count}),          
-       $dbh->quote($self->{nondcmcount}),              $dbh->quote($self->{dcmcount}),                  
-       $dbh->quote($self->{user}),                     $dbh->quote($self->{dcmdir}),                     
-       $dbh->quote($self->{sumTypeVersion}),           $dbh->quote($metacontent)   
+       $self->{studyuid},                 $self->{header}->{pname},           
+       $self->{header}->{pid},            $self->{header}->{birthdate},      
+       $self->{header}->{sex},            $self->{header}->{scandate},       
+       $self->{header}->{manufacturer},   $self->{header}->{scanner},          
+       $self->{header}->{scanner_serial}, $self->{header}->{software},      
+       $self->{header}->{institution},    $self->{acquisition_count},          
+       $self->{nondcmcount},              $self->{dcmcount},                  
+       $self->{user},                     $self->{dcmdir},                     
+       $self->{sumTypeVersion},           $metacontent   
       );
     
     # this only applies if you are archiving your data
@@ -171,9 +171,9 @@ QUERY
 QUERY
         my @new_vals = 
           (
-           $dbh->quote($tarType), $dbh->quote($Archivemd5), 
-           $dbh->quote($DCMmd5),  $dbh->quote($Archive), 
-           $dbh->quote($tarLog)
+           $tarType, $Archivemd5, 
+           $DCMmd5,  $Archive, 
+           $tarLog
           );
         push(@values, @new_vals);
     }
@@ -193,10 +193,10 @@ QUERY
             $common_query_part 
           WHERE DicomArchiveID = ? 
 QUERY
-        push(@values, $dbh->quote($self->{studyuid});
+        push(@values, $self->{studyuid});
     }
     
-    $sth = $dbh->prepare($query);
+    $sth     = $dbh->prepare($query);
     $success = $sth->execute(@values);
 #FIXME
 print "Failed running query: $query\n\n\n" unless $success;
@@ -206,7 +206,7 @@ print "Failed running query: $query\n\n\n" unless $success;
     if(!$update) {
         $tarchiveID = $dbh->{'mysql_insertid'};
     } else {
-        (my $query = <<QUERY =~) s/\n/ / gm;
+        (my $query = <<QUERY) =~ s/\n/ /gm;
           SELECT 
             TarchiveID 
           FROM 
