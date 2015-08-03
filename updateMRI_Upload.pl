@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 # Zia Mohades 2014
-# zia.mohaes@mcgill.ca
+# zia.mohades@mcgill.ca
 # Perl tool to update the mri_upload table
 
 use strict;
@@ -138,8 +138,15 @@ if ($globArchiveLocation) {
     $tarchive_path = basename($tarchive);
 }
 
-$query  = "SELECT COUNT(*) FROM mri_upload m JOIN tarchive t ON".
-          " (t.TarchiveID=m.TarchiveID) $where";
+($query = <<QUERY) =~ s/\n/ /gm;
+SELECT 
+  COUNT(*) 
+FROM 
+  mri_upload m 
+JOIN 
+  tarchive t ON (t.TarchiveID=m.TarchiveID) 
+QUERY
+$query .= $where;
 $sth = $dbh->prepare($query);
 $sth->execute($tarchive_path);
 my $count = $sth->fetchrow_array;
@@ -152,7 +159,13 @@ if($count>0) {
 ################################################################
 #####get the tarchiveid from tarchive table#####################
 ################################################################
-$query = "SELECT t.TarchiveID FROM tarchive t $where ";
+($query = <<QUERY) =~ s/\n/ /gm;
+SELECT 
+  t.TarchiveID 
+FROM 
+  tarchive t 
+QUERY
+$query .= $where;
 $sth = $dbh->prepare($query);
 $sth->execute("%".$tarchive_path."%");
 my $tarchiveID = $sth->fetchrow_array;
@@ -161,8 +174,12 @@ my $tarchiveID = $sth->fetchrow_array;
 ################################################################
  #####populate the mri_upload columns with the correct values####
 ################################################################
-$query = "INSERT INTO mri_upload (UploadedBy, UploadDate,TarchiveID,".
-         "DecompressedLocation) VALUES(?,now(),?,?)";
+($query = <<QUERY) =~ s/\n/ /gm;
+INSERT INTO mri_upload 
+  (UploadedBy, UploadDate, TarchiveID, DecompressedLocation) 
+VALUES
+  (?, now(), ?, ?)
+QUERY
 my $mri_upload_insert = $dbh->prepare($query);
 $mri_upload_insert->execute($User,$tarchiveID,$source_location);
 
