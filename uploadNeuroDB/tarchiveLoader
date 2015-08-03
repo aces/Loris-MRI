@@ -333,7 +333,7 @@ my ( $ExtractSuffix, $study_dir, $header ) =
 ################################################################
 ##### Make the notifier object #################################
 ################################################################
-my $notifier = &NeuroDB::Notify->new( \$dbh );
+my $notifier = NeuroDB::Notify->new( \$dbh );
 
 ################################################################
 ##################### Convert the dicom data to minc ###########
@@ -443,7 +443,7 @@ if ($valid_study) {
     ### Update the number_of_mincCreated #######################
     ### And number_of_mincInserted #############################
     ############################################################
-    my $query = <<QUERY;
+    my $query = <<QUERY =~ s/\n/ /gm;
 UPDATE 
   mri_upload 
 SET 
@@ -464,7 +464,7 @@ QUERY
     ############################################################
     ############# Create minc-pics #############################
     ############################################################
-    $query = <<QUERY;
+    $query = <<QUERY =~ s/\n/ /gm;
 SELECT 
   Min(FileID) AS min, 
   Max(FileID) as max 
@@ -506,7 +506,7 @@ QUERY
     ############################################################
     #### Link the tarchive and mri_upload table  with session ##
     ############################################################
-    $query = <<QUERY;
+    $query = <<QUERY =~ s/\n/ /gm;
 UPDATE 
   tarchive t 
 JOIN 

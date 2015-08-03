@@ -105,7 +105,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 ################################################################
 
 # Base of the query
-my $query = <<QUERY;
+my $query = <<QUERY =~ s/\n/ /gm;
 SELECT 
     f.FileID 
 FROM 
