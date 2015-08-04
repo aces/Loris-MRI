@@ -160,6 +160,8 @@ my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
+my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+$tarchiveLibraryDir    =~ s/\/$//g;
 print "log dir is $LogDir \n";
 if (!-d $LogDir) { 
     mkdir($LogDir, 0700); 
@@ -187,6 +189,8 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ################################################################
 #################### Check is_valid column #####################
 ################################################################
+my $ArchiveLocation = $tarchive;
+$ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
 my $where = "WHERE t.ArchiveLocation='$tarchive'";
 if ($globArchiveLocation) {
     $where = "WHERE t.ArchiveLocation LIKE '%/".basename($tarchive)."'";
@@ -210,7 +214,7 @@ if (($is_valid == 0) && ($force==0)) {
 ############## Construct the tarchiveinfo Array ################
 ################################################################
 %tarchiveInfo = $utility->createTarchiveArray(
-                    $tarchive,$globArchiveLocation
+                    $ArchiveLocation, $globArchiveLocation
                 );
 
 ################################################################

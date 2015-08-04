@@ -59,6 +59,10 @@ if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 
 my $dbh = NeuroDB::DBI::connect_to_db(@Settings::db);
 
+# get path to tarchiveLibraryDir from config file
+my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+$tarchiveLibraryDir    =~ s/\/$//g;
+
 if($noUpdateSwitch == 1) { 
     $update=0; 
 }
@@ -98,7 +102,7 @@ if($sth->rows > 0) {
             # loop over the tarchives
             while(my @tarchive = $liststh->fetchrow_array()) {
                 $tarchive[0] =~ /(\d{4}\/.*)$/;
-                my $tarchivePath = $1;
+                my $tarchivePath = $tarchiveLibraryDir . "/" . $1;
                 push @studies, [$row->{'CenterName'}, $tarchivePath];
                 print $row->{'CenterName'}."\t".$tarchivePath."\n";
             }

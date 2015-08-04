@@ -239,8 +239,12 @@ $utility->registerProgs(@progs);
 ################################################################
 ################ Construct the tarchiveInfo Array ##############
 ################################################################
+my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+$tarchiveLibraryDir    =~ s/\/$//g;
+my $ArchiveLocation    = $tarchive;
+$ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
 my %tarchiveInfo = $utility->createTarchiveArray(
-                       $tarchive,
+                       $ArchiveLocation,
                        $globArchiveLocation
                    );
 

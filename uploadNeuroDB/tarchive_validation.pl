@@ -159,8 +159,12 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ############### Create tarchive array ##########################
 ################################################################
 ################################################################
+my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+$tarchiveLibraryDir    =~ s/\/$//g;
+my $ArchiveLocation    = $tarchive;
+$ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
 %tarchiveInfo = $utility->createTarchiveArray(
-                    $tarchive,
+                    $ArchiveLocation,
                     $globArchiveLocation
                 );
 
