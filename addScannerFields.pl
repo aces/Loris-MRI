@@ -60,6 +60,9 @@ if(!$profile) { print $Usage; print "\n\tERROR: You must specify an existing pro
 # establish database connection if database option is set
 my $dbh = &DB::DBI::connect_to_db(@Settings::db); print "Connecting to database.\n" if $verbose;
 
+# get $tarchiveLibraryDir from profile
+my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+$tarchiveLibraryDir    =~ s/\/$//g;
 
 my $sth = $dbh->prepare("SELECT DicomArchiveID, ArchiveLocation FROM tarchive WHERE ScannerManufacturer='' AND ScannerModel=''");
 $sth->execute();
@@ -71,7 +74,7 @@ my $updatesth = $dbh->prepare("UPDATE tarchive SET ScannerManufacturer=?, Scanne
 
  TARCHIVE:
     while(my @row = $sth->fetchrow_array()) {
-        my $tarchive = $row[1];
+        my $tarchive = $tarchiveLibraryDir . "/" . $row[1];
         print "Starting to work on $tarchive\n" if $verbose;
         
         # create the temp dir

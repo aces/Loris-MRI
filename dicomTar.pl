@@ -181,8 +181,10 @@ my $success;
 if ($dbase) {
     $dbh = &DB::DBI::connect_to_db(@Settings::db);
     print "Adding archive info into database\n" if $verbose;
-    my $update = 1 if $clobber;
-    $success = $summary->database($dbh, $metaname, $update, $tarTypeVersion, $tarinfo, $DICOMmd5sum, $ARCHIVEmd5sum, $finalTarget, $neurodbCenterName);
+    my $update          = 1 if $clobber;
+    my $ArchiveLocation = $finalTarget;
+    $ArchiveLocation    =~ s/$targetlocation\/?//g;
+    $success            = $summary->database($dbh, $metaname, $update, $tarTypeVersion, $tarinfo, $DICOMmd5sum, $ARCHIVEmd5sum, $ArchiveLocation, $neurodbCenterName);
 }
 
 # delete tmp files
