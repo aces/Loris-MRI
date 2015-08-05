@@ -191,7 +191,7 @@ sub createTarchiveArray {
     my ($tarchive,$globArchiveLocation) = @_;
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
+        $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
     }
     my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
                 " DateAcquired, DicomArchiveID, PatientGender,".
