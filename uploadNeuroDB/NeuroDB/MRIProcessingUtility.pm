@@ -827,9 +827,11 @@ sub moveAndUpdateTarchive {
     ############################################################
     # now update tarchive table to store correct location ######
     ############################################################
+    my $newArchiveLocationField = $newTarchiveLocation;
+    $newArchiveLocationField    =~ s/$Settings::tarchiveLibraryDir\/?//g;
     $query = "UPDATE tarchive ".
              " SET ArchiveLocation=" . 
-              ${$this->{'dbhr'}}->quote($newTarchiveLocation) .
+              ${$this->{'dbhr'}}->quote($newArchiveLocationField) .
              " WHERE DicomArchiveID=". 
              ${$this->{'dbhr'}}->quote(
                 $tarchiveInfo->{'DicomArchiveID'}
