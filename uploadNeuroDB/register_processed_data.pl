@@ -22,13 +22,12 @@ my  $coordinateSpace;
 my  $scanType;
 my  $outputType;
 my  $inputFileIDs;
-my  $classifyAlgorithm;
 my  $protocolID;
 my  @args;
 
 my  $Usage  =   <<USAGE;
 
-This script inserts processed data in the files and parameter_file tables. All options listed below are required as they will be necessary to insert a file in the DB (except the option classifyAlgorithm that only applies to CIVET outputs).
+This script inserts processed data in the files and parameter_file tables. All options listed below are required as they will be necessary to insert a file in the DB.
 
 Usage: perl register_processed_data.pl [options]
 
@@ -47,7 +46,6 @@ my  @args_table = (
     ["-scanType",           "string",   1,  \$scanType,         "The scan type of the file that is stored in the table mri_scan_type (i.e. QCedDTI, RGBqc, TxtQCReport, XMLQCReport...)"],
     ["-outputType",         "string",   1,  \$outputType,       "The type of output that will be registered in the database (i.e. QCed, processed, QCReport)"],
     ["-inputFileIDs",       "string",   1,  \$inputFileIDs,       "List of input fileIDs used to obtain the file to be registered (each entries being separated by ';')"],
-    ["-classifyAlgorithm",  "string",   1,  \$classifyAlgorithm,"The algorithm used to classify brain tissue in CIVET"],
     ["-protocolID",         "string",   1,  \$protocolID,       "ID of the registered protocol that was used to process data"]
 );
 
@@ -213,12 +211,6 @@ if ($protocolID) {
     $file->setFileData('ProcessProtocolID', $protocolID);
     print LOG "\t -> Set ProcessProtocolID to $protocolID.\n";
 }
-
-if  (defined($classifyAlgorithm))   {
-    $file->setFileData('ClassifyAlgorithm',$classifyAlgorithm);
-    print LOG "\t -> Set ClassifyAlgorithm to $classifyAlgorithm.\n";
-}
-
 
 # ----- STEP 7: Compute the md5 hash
 my  $md5hash    =   &NeuroDB::MRI::compute_hash(\$file);
