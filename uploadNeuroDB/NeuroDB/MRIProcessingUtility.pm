@@ -191,7 +191,7 @@ sub createTarchiveArray {
     my ($tarchive,$globArchiveLocation) = @_;
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%/".basename($tarchive)."'";
+        $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
     }
     my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
                 " DateAcquired, DicomArchiveID, PatientGender,".
@@ -827,9 +827,11 @@ sub moveAndUpdateTarchive {
     ############################################################
     # now update tarchive table to store correct location ######
     ############################################################
+    my $newArchiveLocationField = $newTarchiveLocation;
+    $newArchiveLocationField    =~ s/$Settings::tarchiveLibraryDir\/?//g;
     $query = "UPDATE tarchive ".
              " SET ArchiveLocation=" . 
-              ${$this->{'dbhr'}}->quote($newTarchiveLocation) .
+              ${$this->{'dbhr'}}->quote($newArchiveLocationField) .
              " WHERE DicomArchiveID=". 
              ${$this->{'dbhr'}}->quote(
                 $tarchiveInfo->{'DicomArchiveID'}

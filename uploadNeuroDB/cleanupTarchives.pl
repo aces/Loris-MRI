@@ -63,6 +63,7 @@ if ($profile && !defined @Settings::db) {
 # These settings are in a config file (profile)
 my $data_dir            = $Settings::data_dir;
 my $tarchiveLibraryDir  = $Settings::tarchiveLibraryDir;
+$tarchiveLibraryDir     =~ s/\/$//g;
 
 
 ##############################
@@ -88,7 +89,8 @@ print LOG "\n==> Successfully connected to database \n";
 # Get tarchives list from the database and stores ArchiveLocation and md5sumArchive informations in a hash.
 ## ArchiveLocation will be the key of the hash
 ## md5sumArchive will be the value of the hash
-my ($tarchivesList_db)  = &selectTarchives($dbh);
+my $tarchiveLibraryDir  = $Settings::tarchiveLibraryDir; # get tarchive directory from config file 
+my ($tarchivesList_db)  = &selectTarchives($dbh, $tarchiveLibraryDir);
 
 # Loop through the list of tarchives in the year subfolders
 foreach my $tarchive_db (keys %$tarchivesList_db) {
@@ -189,7 +191,7 @@ Input:  - $dbh           = the database handle object
 Output: - \%tarchiveInfo = hash of the tarchives found in the database, with the ArchiveLocation as keys and md5sum information as values
 =cut
 sub selectTarchives {
-    my ($dbh)   = @_;
+    my ($dbh, $tarchiveLibraryDir)   = @_;
 
     my $query   = "SELECT ArchiveLocation, md5sumArchive FROM tarchive";
 
@@ -199,7 +201,8 @@ sub selectTarchives {
     my %tarchiveInfo;
     if ($sth->rows > 0) {
         while (my $row = $sth->fetchrow_hashref) {
-            $tarchiveInfo{$row->{'ArchiveLocation'}}  = $row->{'md5sumArchive'};
+            my $tarchive = $tarchiveLibraryDir . "/" . $row->{'ArchiveLocation'};
+            $tarchiveInfo{$tarchiveLibraryDir}  = $row->{'md5sumArchive'};
         }
     } else {
         print LOG "\n ERROR: no archived data found in tarchive table.\n\n";
