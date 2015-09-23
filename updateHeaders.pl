@@ -115,7 +115,7 @@ foreach my $file (@filesToUpdate) {
 print "Rebuilding tarchive\n" if $verbose;
 my $targetdir = dirname($tarchive);
 my $DICOMTAR = $FindBin::Bin . "/dicomTar.pl";
-my $cmd = "$DICOMTAR $tempdir/$dcmdir $targetdir -clobber";
+my $cmd = "$DICOMTAR $tempdir/$dcmdir $targetdir -clobber -centerName";
 if($database) {
 	 $cmd .= " -database";
 }

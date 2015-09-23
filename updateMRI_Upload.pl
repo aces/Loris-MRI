@@ -125,8 +125,13 @@ print "Connecting to database.\n" if $verbose;
 ######generate an error#########################################
 ################################################################
 
+# fetch tarchiveLibraryDir from the config file
+my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+# determine tarchive path stored in the database (without tarchiveLibraryDir)
 my $tarchive_path = $tarchive;
-my $where = " WHERE t.ArchiveLocation =?";
+$tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;  
+
+my $where         = " WHERE t.ArchiveLocation =?";
 
 if ($globArchiveLocation) {
     $where = " WHERE t.ArchiveLocation LIKE ?";
