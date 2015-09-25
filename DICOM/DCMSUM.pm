@@ -97,10 +97,20 @@ sub database {
     # whether the query worked fine
     my $success = undef;
     # check if this StudyUID is already in your database
-    my $query;
-    $query = "SELECT DicomArchiveID, CreateInfo, LastUpdate, CreatingUser, md5sumArchive FROM tarchive where DicomArchiveID=\"$self->{studyuid}\" ";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+      SELECT 
+        DicomArchiveID, 
+        CreateInfo, 
+        LastUpdate,     
+        CreatingUser, 
+        md5sumArchive 
+      FROM 
+        tarchive 
+      WHERE 
+        DicomArchiveID=?
+QUERY
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute($self->{studyuid});
     
     # if there is an entry get create info
     if($sth->rows > 0) {
@@ -126,41 +136,68 @@ sub database {
     my $sfile = "$self->{tmpdir}/$meta.meta";
     my $metacontent = &read_file($sfile);
     
-    my $common_query_part  =  "tarchive SET " . 
-        "DicomArchiveID = "         . $dbh->quote($self->{studyuid})                . ", " .
-        "PatientName = "            . $dbh->quote($self->{header}->{pname})         . ", " .
-        "PatientID = "              . $dbh->quote($self->{header}->{pid})           . ", " .
-        "PatientDoB = "             . $dbh->quote($self->{header}->{birthdate})     . ", " .
-        "PatientGender = "          . $dbh->quote($self->{header}->{sex})           . ", " .
-        "DateAcquired = "           . $dbh->quote($self->{header}->{scandate})      . ", " .
-        "ScannerManufacturer = "    . $dbh->quote($self->{header}->{manufacturer})  . ", " .
-        "ScannerModel = "           . $dbh->quote($self->{header}->{scanner})       . ", " .
-        "ScannerSerialNumber = "    . $dbh->quote($self->{header}->{scanner_serial}). ", " .
-        "ScannerSoftwareVersion = " . $dbh->quote($self->{header}->{software})      . ", " .
-	    "CenterName = "             . $dbh->quote($self->{header}->{institution})   . ", " .
-	    "AcquisitionCount = "       . $dbh->quote($self->{acquisition_count})       . ", " .
-	    "NonDicomFileCount = "      . $dbh->quote($self->{nondcmcount})             . ", " .
-	    "DicomFileCount = "         . $dbh->quote($self->{dcmcount})                . ", " .
-	    "CreatingUser = "           . $dbh->quote($self->{user})                    . ", " .
-	    "SourceLocation = "         . $dbh->quote($self->{dcmdir})                  . ", " .
-	    "sumTypeVersion = "         . $dbh->quote($self->{sumTypeVersion})          . ", " .
-	    "AcquisitionMetadata = "    . $dbh->quote($metacontent)                     . ", " .
-	    "DateLastArchived = NOW() ";
+    (my $common_query_part = <<QUERY) =~ s/\n/ /gm;  
+      tarchive SET  
+        DicomArchiveID = ?,       PatientName = ?,
+        PatientID = ?,            PatientDoB = ?,
+        PatientGender = ?,        DateAcquired = ?,
+        ScannerManufacturer = ?,  ScannerModel = ?,
+        ScannerSerialNumber = ?,  ScannerSoftwareVersion = ?,
+        CenterName = ?,           AcquisitionCount = ?,
+        NonDicomFileCount = ?,    DicomFileCount = ?,
+        CreatingUser = ?,         SourceLocation = ?,
+        sumTypeVersion = ?,       AcquisitionMetadata = ?,
+        DateLastArchived = NOW()
+QUERY
+    my @values = 
+      (
+       $self->{studyuid},                 $self->{header}->{pname},           
+       $self->{header}->{pid},            $self->{header}->{birthdate},      
+       $self->{header}->{sex},            $self->{header}->{scandate},       
+       $self->{header}->{manufacturer},   $self->{header}->{scanner},          
+       $self->{header}->{scanner_serial}, $self->{header}->{software},      
+       $self->{header}->{institution},    $self->{acquisition_count},          
+       $self->{nondcmcount},              $self->{dcmcount},                  
+       $self->{user},                     $self->{dcmdir},                     
+       $self->{sumTypeVersion},           $metacontent   
+      );
     
     # this only applies if you are archiving your data
-    if ($Archivemd5) { $common_query_part = $common_query_part    . ", " .
-                "tarTypeVersion = "   . $dbh->quote($tarType)     . ", " .
-                "md5sumArchive = "    . $dbh->quote($Archivemd5)  . ", " .
-                "md5sumDicomOnly = "  . $dbh->quote($DCMmd5)      . ", " .
-                "ArchiveLocation = "  . $dbh->quote($Archive)     . ", " .
-                "CreateInfo = "       . $dbh->quote($tarLog);
+    if ($Archivemd5) { 
+       ($common_query_part = <<QUERY) =~ s/\n/ /gm; 
+          $common_query_part,  tarTypeVersion = ?,  
+          md5sumArchive = ?,   md5sumDicomOnly = ?,  
+          ArchiveLocation = ?, CreateInfo = ? 
+QUERY
+        my @new_vals = 
+          (
+           $tarType, $Archivemd5, 
+           $DCMmd5,  $Archive, 
+           $tarLog
+          );
+        push(@values, @new_vals);
     }
 
-    if (!$update) { $query = "Insert INTO $common_query_part, DateFirstArchived = NOW(), neurodbCenterName=$neurodbCenterName"; } 
-    else {  $query = "UPDATE $common_query_part WHERE DicomArchiveID = " . $dbh->quote($self->{studyuid}); }
+    if (!$update) { 
+        ($query = <<QUERY) =~ s/\n/ /gm;
+          INSERT INTO 
+            $common_query_part, 
+            DateFirstArchived = NOW(), 
+            neurodbCenterName = ?
+QUERY
+        push(@values, $neurodbCenterName);
+    } 
+    else {  
+        ($query = <<QUERY) =~ s/\n/ /gm;
+          UPDATE 
+            $common_query_part 
+          WHERE DicomArchiveID = ? 
+QUERY
+        push(@values, $self->{studyuid});
+    }
     
-    $sth = $dbh->prepare($query);
-    $success = $sth->execute();
+    $sth     = $dbh->prepare($query);
+    $success = $sth->execute(@values);
 #FIXME
 print "Failed running query: $query\n\n\n" unless $success;
 
@@ -169,19 +206,60 @@ print "Failed running query: $query\n\n\n" unless $success;
     if(!$update) {
         $tarchiveID = $dbh->{'mysql_insertid'};
     } else {
-        my $query = "SELECT TarchiveID FROM tarchive WHERE DicomArchiveID=".$dbh->quote($self->{studyuid})." AND SourceLocation=".$dbh->quote($self->{dcmdir});
-        my @row = $dbh->selectrow_array($query);
+        (my $query = <<QUERY) =~ s/\n/ /gm;
+          SELECT 
+            TarchiveID 
+          FROM 
+            tarchive 
+          WHERE 
+            DicomArchiveID = ? 
+            AND SourceLocation= ?
+QUERY
+        my $sth = $dbh->prepare($query);
+        $sth->execute($self->{studyuid}, $self->{dcmdir});
+        my @row = $sth->fetchrow_array();
         $tarchiveID = $row[0];
     }
     
     # if update, nuke series and files records then reinsert them
     if($update) {
-        $dbh->do("DELETE FROM tarchive_series WHERE TarchiveID='$tarchiveID'");
-        $dbh->do("DELETE FROM tarchive_files WHERE TarchiveID='$tarchiveID'");
+        (my $delete_series = <<QUERY) =~ s/\n/ /gm;
+          DELETE FROM 
+            tarchive_series 
+          WHERE 
+            TarchiveID = ?
+QUERY
+        (my $delete_files = <<QUERY) =~ s/\n/ /gm;
+          DELETE FROM 
+            tarchive_files 
+          WHERE 
+            TarchiveID = ?
+QUERY
+        my $sth_series = $dbh->prepare($delete_series);
+        my $sth_files  = $dbh->prepare($delete_files);
+        $sth_series->execute($tarchiveID);
+        $sth_files->execute($tarchiveID);
     }
 
     # now create the tarchive_series records
-    my $insert_series = $dbh->prepare("INSERT INTO tarchive_series (TarchiveID, SeriesNumber, SeriesDescription, SequenceName, EchoTime, RepetitionTime, InversionTime, SliceThickness, PhaseEncoding, NumberOfFiles, SeriesUID, Modality) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+      INSERT INTO 
+        tarchive_series 
+          (
+           TarchiveID,    SeriesNumber,   SeriesDescription, 
+           SequenceName,  EchoTime,       RepetitionTime, 
+           InversionTime, SliceThickness, PhaseEncoding, 
+           NumberOfFiles, SeriesUID,      Modality
+          ) 
+        VALUES 
+          (
+           ?,             ?,              ?, 
+           ?,             ?,              ?, 
+           ?,             ?,              ?, 
+           ?,             ?,              ?
+          )
+QUERY
+    my $insert_series = $dbh->prepare($query);
     foreach my $acq (@{$self->{acqu_List}}) {
 
         # insert the series
@@ -197,27 +275,73 @@ print "Failed running query: $query\n\n\n" unless $success;
             $sl_thickness = undef;
         }
         if ($modality eq 'MR') {
-            $insert_series->execute($tarchiveID, $seriesNum, $seriesName, $sequName,  $echoT, $repT, $invT, $sl_thickness, $phaseEncode, $num, $seriesUID, $modality);
+            my @values = 
+              (
+               $tarchiveID, $seriesNum,    $seriesName, 
+               $sequName,   $echoT,        $repT, 
+               $invT,       $sl_thickness, $phaseEncode, 
+               $num,        $seriesUID,    $modality
+              );
+            $insert_series->execute(@values);
         } elsif ($modality eq 'PT') {
-            $insert_series->execute($tarchiveID, $seriesNum, $seriesName, undef, undef, undef, undef, $sl_thickness, undef, $num, $seriesUID, $modality);
+            my @values = 
+              (
+               $tarchiveID, $seriesNum,    $seriesName, 
+               undef,       undef,         undef, 
+               undef,       $sl_thickness, undef, 
+               $num,        $seriesUID,    $modality
+              );
+            $insert_series->execute(@values);
         }
     }
 
     # now create the tarchive_files records
-    my $insert_file = $dbh->prepare("INSERT INTO tarchive_files (TarchiveID, SeriesNumber, FileNumber, EchoNumber, SeriesDescription, Md5Sum, FileName) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    (my $insert_query = <<QUERY) =~ s/\n/ /gm;
+      INSERT INTO 
+        tarchive_files 
+          (
+           TarchiveID, SeriesNumber,      FileNumber, 
+           EchoNumber, SeriesDescription, Md5Sum, 
+           FileName
+          ) 
+        VALUES 
+          (
+           ?,          ?,                 ?, 
+           ?,          ?,                 ?, 
+           ?
+          )
+QUERY
+    my $insert_file = $dbh->prepare($insert_query);
     my $dcmdirRoot = dirname($self->{dcmdir});
     foreach my $file (@{$self->{'dcminfo'}}) {
         # insert the file
         my $filename = $file->[4];
         $filename =~ s/^${dcmdirRoot}\///;
         $file->[2] = undef if($file->[2] eq '');
+        my @values;
         if($file->[21] && $file->[25] eq 'MR') { # file is dicom and an MRI scan
-            $insert_file->execute($tarchiveID, $file->[1], $file->[3], $file->[2], $file->[12], $file->[20], $filename);
+            @values = 
+              (
+               $tarchiveID, $file->[1],  $file->[3], 
+               $file->[2],  $file->[12], $file->[20], 
+               $filename
+              );
         } elsif($file->[21] && $file->[25] eq 'PT') { # file is dicom and a PET scan
-            $insert_file->execute($tarchiveID, $file->[1], $file->[3], undef, $file->[12], $file->[20], $filename);
+            @values = 
+              (
+               $tarchiveID, $file->[1],  $file->[3], 
+               undef,       $file->[12], $file->[20], 
+               $filename
+              );
         } else {
-            $insert_file->execute($tarchiveID, undef, undef, undef, undef, $file->[20], $filename);
+            @values = 
+              (
+               $tarchiveID, undef, undef, 
+               undef,       undef, $file->[20], 
+               $filename
+              );
         }
+        $insert_file->execute(@values);
     }
     return $success; # if query worked this will return 1;
 }

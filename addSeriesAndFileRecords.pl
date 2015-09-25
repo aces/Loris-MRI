@@ -98,8 +98,18 @@ $dbh = &DB::DBI::connect_to_db(@Settings::db);
 # now get the TarchiveID
 my $tarchiveID;
 my $tarchiveBasename = basename($tarchive);
-my $query = "SELECT TarchiveID FROM tarchive WHERE DicomArchiveID=".$dbh->quote($summary->{studyuid})." AND ArchiveLocation like '%${tarchiveBasename}'";
-my @row = $dbh->selectrow_array($query);
+(my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT 
+  TarchiveID 
+FROM 
+  tarchive 
+WHERE 
+  DicomArchiveID=?
+  AND ArchiveLocation like ?
+QUERY
+my $sth   = $dbh->prepare($query);
+$sth->execute($summary->{studyuid}, "%${tarchiveBasename}");
+my @row = $sth->fetchrow_array();
 $tarchiveID = $row[0];
 
 if($tarchiveID > 0) {
@@ -110,27 +120,86 @@ if($tarchiveID > 0) {
 }
 
 # nuke series and files records then reinsert them
-$dbh->do("DELETE FROM tarchive_series WHERE TarchiveID='$tarchiveID'");
-$dbh->do("DELETE FROM tarchive_files WHERE TarchiveID='$tarchiveID'");
+(my $delete_series = <<QUERY) =~ s/\n/ /gm;
+DELETE FROM
+  tarchive_series
+WHERE
+  TarchiveID=?
+QUERY
+(my $delete_files = <<QUERY) =~ s/\n/ /gm;
+DELETE FROM
+  tarchive_files
+WHERE
+  TarchiveID=?
+QUERY
+$sth = $dbh->prepare($delete_series);
+$dbh->execute($tarchiveID);
+$sth = $dbh->prepare($delete_files);
+$dbh->execute($tarchiveID);
 
 # now create the tarchive_series records
-my $insert_series = $dbh->prepare("INSERT INTO tarchive_series (TarchiveID, SeriesNumber, SeriesDescription, SequenceName, EchoTime, RepetitionTime, InversionTime, SliceThickness, PhaseEncoding, NumberOfFiles, SeriesUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+($query = <<QUERY) =~ s/\n/ /gm;
+INSERT INTO 
+  tarchive_series 
+    (
+     TarchiveID,    SeriesNumber,   SeriesDescription, SequenceName, 
+     EchoTime,      RepetitionTime, InversionTime,     SliceThickness, 
+     PhaseEncoding, NumberOfFiles,  SeriesUID
+    ) 
+  VALUES
+    (
+     ?,             ?,              ?,                 ?, 
+     ?,             ?,              ?,                 ?, 
+     ?,             ?,              ?
+    )
+QUERY
+my $insert_series = $dbh->prepare($query);
 foreach my $acq (@{$summary->{acqu_List}}) {
     # insert the series
     my ($seriesNum, $sequName,  $echoT, $repT, $invT, $seriesName, $sl_thickness, $phaseEncode, $seriesUID, $num) = split(':::',$acq);
-    $insert_series->execute($tarchiveID, $seriesNum, $seriesName, $sequName,  $echoT, $repT, $invT, $sl_thickness, $phaseEncode, $num, $seriesUID);
+    my @values = 
+      (
+       $tarchiveID,  $seriesNum, $seriesName, $sequName,  
+       $echoT,       $repT,      $invT,       $sl_thickness, 
+       $phaseEncode, $num,       $seriesUID
+      );
+    $insert_series->execute(@values);
 }
 
 # now create the tarchive_files records
-my $insert_file = $dbh->prepare("INSERT INTO tarchive_files (TarchiveID, SeriesNumber, FileNumber, EchoNumber, SeriesDescription, Md5Sum, FileName) VALUES (?, ?, ?, ?, ?, ?, ?)");
+($query = <<QUERY) =~ s/\n/ /gm;
+INSERT INTO 
+  tarchive_files 
+    (
+     TarchiveID,        SeriesNumber, FileNumber, EchoNumber, 
+     SeriesDescription, Md5Sum,       FileName
+    ) 
+  VALUES 
+    (
+     ?,                 ?,            ?,          ?, 
+     ?,                 ?,            ?
+    )
+QUERY
+my $insert_file = $dbh->prepare($query);
 foreach my $file (@{$summary->{'dcminfo'}}) {
     # insert the file
     my $filename = $file->[4];
     $filename =~ s/^${TmpDir}\///;
+    my @values;
     if($file->[21]) { # file is dicom
-        $insert_file->execute($tarchiveID, $file->[1], $file->[3], $file->[2], $file->[12], $file->[20], $filename);
+        @values = 
+          (
+           $tarchiveID, $file->[1],  $file->[3], $file->[2], 
+           $file->[12], $file->[20], $filename
+          );
+        $insert_file->execute(@values);
     } else {
-        $insert_file->execute($tarchiveID, undef, undef, undef, undef, $file->[20], $filename);
+        @values =
+          (
+           $tarchiveID, undef,       undef,     undef, 
+           undef,       $file->[20], $filename 
+          );
+        $insert_file->execute(@values);
     }
 }
 
