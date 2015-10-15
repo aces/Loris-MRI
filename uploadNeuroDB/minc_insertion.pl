@@ -125,7 +125,7 @@ USAGE
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 
 
-if ($profile && !defined @Settings::db) { 
+if ($profile && !@Settings::db) { 
     print "\n\tERROR: You don't have a ".
     "configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
     exit 2; 
@@ -154,7 +154,7 @@ unless (-e $minc) {
 ########### Create the Specific Log File #######################
 ################################################################
 my $data_dir = $Settings::data_dir;
-my $no_nii   = $Settings::no_nii if defined $Settings::no_nii;
+$no_nii      = $Settings::no_nii if defined $Settings::no_nii;
 my $jiv_dir  = $data_dir.'/jiv';
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
@@ -312,7 +312,7 @@ my $unique = $utility->computeMd5Hash($file);
 if (!$unique) { 
     print "--> WARNING: This file has already been uploaded! \n"  if $debug;
     print LOG " --> WARNING: This file has already been uploaded!"; 
-    exit 8; 
+#    exit 8; 
 } 
 
 ################################################################
