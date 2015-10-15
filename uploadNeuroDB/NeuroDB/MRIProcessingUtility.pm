@@ -1026,7 +1026,7 @@ sub validateCandidate {
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'PSCID'});
     if ($sth->rows == 0) {
-        print LOG  "\n\n => No PSCID";
+        print "\n\n => No PSCID";
         $CandMismatchError= 'PSCID does not exist';
         return $CandMismatchError;
     } 
@@ -1051,11 +1051,11 @@ sub validateCandidate {
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'visitLabel'});
     if (($sth->rows == 0) && (!$subjectIDsref->{'createVisitLabel'})) {
-        print LOG  "\n\n => No Visit label";
+        print "\n\n => No Visit label";
         $CandMismatchError= 'Visit label does not exist';
         return $CandMismatchError;
     } elsif (($sth->rows == 0) && ($subjectIDsref->{'createVisitLabel'})) {
-        print LOG  "\n\n => Will create visit label $subjectIDsref->{'visitLabel'}";
+        print "\n\n => Will create visit label $subjectIDsref->{'visitLabel'}";
     } 
 
    return $CandMismatchError;
