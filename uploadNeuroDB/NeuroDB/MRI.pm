@@ -420,7 +420,7 @@ sub identify_scan_db {
     my $series_description = ${fileref}->getParameter('series_description');
     
     # get parameters specific to MRIs
-    my ($tr, $te, $ti);
+    my ($tr, $te, $ti, $time);
     if ($fileref->{parameters}{modality} eq "MR") {
         $tr = ${fileref}->getParameter('repetition_time');
         $te = ${fileref}->getParameter('echo_time');
@@ -428,7 +428,7 @@ sub identify_scan_db {
         if (defined($tr)) {  $tr = &Math::Round::nearest(0.01, $tr*1000);  }
         if (defined($te)) {  $te = &Math::Round::nearest(0.01, $te*1000);  }
         if (defined($ti)) {  $ti = &Math::Round::nearest(0.01, $ti*1000);  }
-        my $time = ${fileref}->getParameter('time'); 
+        $time = ${fileref}->getParameter('time'); 
     } elsif ($fileref->{parameters}{modality} eq "PT") {
         # Place to add stuff specific to PET images
     }
