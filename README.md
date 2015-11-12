@@ -1,7 +1,9 @@
 # System Requirements
- * DICOM toolkit
  * Perl
+ * DICOM toolkit
  * MINC
+
+Note: For Ubuntu installations, DICOM toolkit and MINC toolkit are installed by the imaging\_install.sh script (see step 3 below). This script will apt-get install the packages _minc-tools_ and _dcmtk_.   
 
 The following installation should be run by the $lorisadmin user. sudo permission is required.
 See aces/Loris README.md for further information and Loris installation information. 
