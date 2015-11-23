@@ -279,6 +279,11 @@ sub getTarchiveFileLocation {
     if ( $sth->rows > 0 ) {
         $archive_location = $sth->fetchrow_array();
     }
+
+    unless ($archive_location =~ m/$Settings::tarchiveLibraryDir/i) {
+        $archive_location = ($Settings::tarchiveLibraryDir . "/" . $archive_location);
+    }
+
     return $archive_location;
 }
 

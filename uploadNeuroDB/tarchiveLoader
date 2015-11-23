@@ -153,7 +153,12 @@ if (!$ARGV[0] || !$profile) {
     exit 3;  
 }
 
-my $tarchive = abs_path($ARGV[0]);
+my $tarchive = $ARGV[0];
+
+unless ($tarchive =~ m/$Settings::tarchiveLibraryDir/i) {
+	$tarchive = ($Settings::tarchiveLibraryDir . "/" . $tarchive);
+}
+
 unless (-e $tarchive) {
     print "\nERROR: Could not find archive $tarchive. \n ".
           "Please, make sure the path to the archive is correct. ". 
