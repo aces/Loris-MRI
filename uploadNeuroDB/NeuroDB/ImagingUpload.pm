@@ -130,7 +130,7 @@ sub IsValid {
         $message =
             "\n The uploadID "
           . $this->{'upload_id'}
-          . "Does Not Exist ";
+          . " Does Not Exist \n";
         $this->spool($message, 'Y');
         return 0;
     }
@@ -146,7 +146,8 @@ sub IsValid {
             "\n The Scan for the uploadID "
           . $this->{'upload_id'}
           . " has already been ran with tarchiveID: "
-          . $row[1];
+          . $row[1]
+	  . "\n";
         $this->spool($message, 'Y');
         return 0;
     }
@@ -177,7 +178,7 @@ sub IsValid {
 
     if ( $files_not_dicom > 0 ) {
         $message = "\n ERROR: there are $files_not_dicom files which are "
-          . "Are not of type DICOM";
+          . "Are not of type DICOM \n";
         $this->spool($message, 'Y');
         return 0;
     }
@@ -185,7 +186,7 @@ sub IsValid {
     if ( $files_with_unmatched_patient_name > 0 ) {
         $message =
             "\n ERROR: there are $files_with_unmatched_patient_name files"
-          . " where the patient-name doesn't match ";
+          . " where the patient-name doesn't match \n";
         $this->spool($message, 'Y');
         return 0;
     }
@@ -354,7 +355,7 @@ sub PatientNameMatch {
     if ($pname ne  $this->{'pname'}) {
         my $message = "The patient-name $pname does not Match " .
             $this->{'pname'};
-    $this->spool($message, 'Y');
+    	$this->spool($message, 'Y');
         return 0; ##return false
     }
     return 1;     ##return true
@@ -554,7 +555,7 @@ sub updateMRIUploadTable  {
     my $this = shift;
 
     my ( $field, $value ) = @_;
-        ########################################################
+	########################################################
         #################Update MRI_upload table accordingly####
         ########################################################
         my $where = "WHERE UploadID=?";

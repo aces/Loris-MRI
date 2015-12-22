@@ -28,6 +28,8 @@ my $date = sprintf(
            );
 my $debug       = 1;  
 my $message     = '';
+my $tarchive_id = '';
+my $upload_id   = '';
 my $verbose     = 1;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
@@ -187,10 +189,18 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
               );
 
 ################################################################
+############ Construct the notifier object #####################
+################################################################
+my $notifier = NeuroDB::Notify->new(\$dbh);
+
+
+
+################################################################
 #################### Check is_valid column #####################
 ################################################################
 my $ArchiveLocation = $tarchive;
 $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
+
 my $where = "WHERE t.ArchiveLocation='$tarchive'";
 if ($globArchiveLocation) {
     $where = "WHERE t.ArchiveLocation LIKE '%".basename($tarchive)."'";
@@ -200,6 +210,23 @@ my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
 print $query . "\n";
 my $is_valid = $dbh->selectrow_array($query);
 
+## Setup  for the notification_spool table ##
+# get the tarchive_id from $tarchive 
+$query = "SELECT TarchiveID".
+        " FROM tarchive t $where";
+my $sth = $dbh->prepare($query);
+$sth->execute();
+$tarchive_id = $sth->fetchrow_array;
+# get the $upload_id from $tarchive_id 
+$query =
+	"SELECT UploadID FROM mri_upload "
+	. "WHERE TarchiveID =?";
+$sth = $dbh->prepare($query);
+$sth->execute($tarchive_id);
+$upload_id = $sth->fetchrow_array;
+## end of setup IDs for notification_spool table
+
+
 if (($is_valid == 0) && ($force==0)) {
     $message = "\n ERROR: The validation has failed. ".
                "Either run the validation again and fix ".
@@ -207,6 +234,9 @@ if (($is_valid == 0) && ($force==0)) {
                "execution.\n\n";
     print $message;
     $utility->writeErrorLog($message,6,$logfile); 
+    $notifier->spool('tarchive validation', $message, 0,
+                   'minc_insertion', $upload_id, 'Y'
+    );
     exit 6;
 }
 
@@ -255,14 +285,10 @@ my $logQuery = "INSERT INTO MRICandidateErrors".
 my $candlogSth = $dbh->prepare($logQuery);
 
 ################################################################
-############ Construct the notifier object #####################
-################################################################
-my $notifier = NeuroDB::Notify->new(\$dbh);
-
-################################################################
 #### Loads/Creates File object and maps dicom fields ###########
 ################################################################
-my $file = $utility->loadAndCreateObjectFile($minc);
+my $file = $utility->loadAndCreateObjectFile($minc,
+			$tarchiveInfo{'TarchiveID'});
 
 ################################################################
 ##### Optionally do extra filtering, if needed #################
@@ -308,7 +334,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
-my $unique = $utility->computeMd5Hash($file);
+my $unique = $utility->computeMd5Hash($file, $tarchiveInfo{'TarchiveID'});
 if (!$unique) { 
     print "--> WARNING: This file has already been uploaded! \n"  if $debug;
     print LOG " --> WARNING: This file has already been uploaded!"; 
@@ -362,13 +388,12 @@ $utility->registerScanIntoDB(
 ### Add series notification ####################################
 ################################################################
 $notifier->spool(
-    'mri new series', $subjectIDsref->{'CandID'} . " " .
+    'mri new series', "\n" . $subjectIDsref->{'CandID'} . " " .
     $subjectIDsref->{'PSCID'} ." " .
     $subjectIDsref->{'visitLabel'} .
     "\tacquired " . $file->getParameter('acquisition_date')
     . "\t" . $file->getParameter('series_description'),
-    $centerID
-);
+    0, 'minc_insertion.pl', $upload_id, 'N');
 
 print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
 

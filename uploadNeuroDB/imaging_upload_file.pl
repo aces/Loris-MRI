@@ -190,13 +190,13 @@ my $is_valid = $imaging_upload->IsValid();
 if ( !($is_valid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "The validation has failed";
+    $message = "\n The validation has failed \n";
     spool($message,'Y');
     print $message;
     exit 6;
 }
 
-$message = "The validation has passed";
+$message = "\n The validation has passed \n";
 spool($message,'N');
 
 ################################################################
@@ -206,7 +206,7 @@ $output = $imaging_upload->runDicomTar();
 if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\n The dicomtar execution has failed";
+    $message = "\n The dicomtar execution has failed\n";
     spool($message,'Y');
     print $message;
     exit 7;
@@ -220,7 +220,7 @@ spool($message,'N');
 $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
-    $message = "\n The insertion scripts have failed";
+    $message = "\n The insertion scripts have failed\n";
     spool($message,'Y'); 
     print $message;
     exit 8;
