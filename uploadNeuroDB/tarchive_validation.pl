@@ -268,7 +268,9 @@ $utility->CreateMRICandidates(
 ## correct here. ###############################################
 ################################################################
 ################################################################
-my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
+my $CandMismatchError= $utility->validateCandidate(
+				$subjectIDsref,
+				$tarchiveInfo{'TarchiveID'});
 if (defined $CandMismatchError) {
     print $CandMismatchError;
     ##Note that the script will not exit, so that further down
@@ -285,7 +287,8 @@ my ($sessionID, $requiresStaging) =
 ### The uploader ###############################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive($tarchive);
+    $utility->extractAndParseTarchive(
+                $tarchive, $tarchiveInfo{'TarchiveID'});
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###

@@ -356,7 +356,7 @@ my ($ExtractSuffix,$study_dir,$header) =
 ################################################################
 $utility->dicom_to_minc(
     $study_dir,$converter,$get_dicom_info,
-    $exclude,$mail_user
+    $exclude,$mail_user, $tarchiveInfo{'TarchiveID'}
 );
 
 
@@ -368,10 +368,12 @@ $utility->get_mincs(\@minc_files);
 my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
-print $message;
-$notifier->spool('tarchive loader', $message, 0,
-               'tarchiveLoader', $upload_id, 'N'
+if ($verbose){
+    print $message;
+    $notifier->spool('tarchive loader', $message, 0,
+                   'tarchiveLoader', $upload_id, 'N'
     );
+}
 ################################################################
 # If no good data was found stop processing and write error log.
 ################################################################

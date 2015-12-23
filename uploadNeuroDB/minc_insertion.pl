@@ -207,7 +207,7 @@ if ($globArchiveLocation) {
 }
 my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
             "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
-print $query . "\n";
+print $query . "\n" if $debug;
 my $is_valid = $dbh->selectrow_array($query);
 
 ## Setup  for the notification_spool table ##
@@ -277,7 +277,9 @@ my $subjectIDsref = $utility->determineSubjectID(
 ################################################################
 
 my $CandMismatchError = undef;
-$CandMismatchError= $utility->validateCandidate($subjectIDsref);
+$CandMismatchError= $utility->validateCandidate(
+                                $subjectIDsref,
+                                $tarchiveInfo{'TarchiveID'});
 
 my $logQuery = "INSERT INTO MRICandidateErrors".
               "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
