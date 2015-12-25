@@ -225,7 +225,7 @@ if ( !$output ) {
     print $message;
     exit 8;
 }
-$message = "\n The insertion Script has successfully completed";
+$message = "\n The insertion scripts have successfully completed";
 spool($message,'N');
 
 ################################################################
