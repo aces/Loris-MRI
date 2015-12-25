@@ -106,17 +106,17 @@ extracts it so data can actually be uploaded
 =cut
 sub extract_tarchive {
     my $this = shift;
-    my ($tarchive, $tarchive_id) = @_;
+    my ($tarchive, $tarchive_id, $verbose) = @_;
     my $upload_id = '';
     my $message = '';
     # get the upload_id from the tarchive_id to pass to the notification_spool
     $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     $message = "\n Extracting tarchive $tarchive in $this->{TmpDir} \n";
-    if ($this->{verbose}){
+    if ($verbose){
         $this->spool($message, 'N', $upload_id);
     }
     my $cmd = "cd $this->{TmpDir} ; tar -xf $tarchive";
-    if ($this->{verbose}){
+    if ($verbose){
         $message = "\n" . $cmd . "\n";
         $this->spool($message, 'N', $upload_id);
     }
@@ -147,9 +147,9 @@ sub extract_tarchive {
 sub extractAndParseTarchive {
 
     my $this = shift;
-    my ($tarchive, $tarchive_id) = @_;
+    my ($tarchive, $tarchive_id, $verbose) = @_;
     # get the upload_id from the tarchive_id to pass to notification_spool
-    my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
+    my $upload_id = getUploadIDUsingTarchiveID($tarchive_id, $verbose);
     my $study_dir = $this->{TmpDir}  . "/" .
         $this->extract_tarchive($tarchive, $tarchive_id);
     my $ExtractSuffix  = basename($tarchive, ".tar");
@@ -158,7 +158,7 @@ sub extractAndParseTarchive {
     my $info       = "head -n 12 $this->{TmpDir}/${ExtractSuffix}.meta";
     my $header     = `$info`;
     my $message = "\n$header\n";
-    if ($this->{verbose}){
+    if ($verbose){
         $this->{LOG}->print($message);
         $this->spool($message, 'N', $upload_id);
     }
@@ -758,7 +758,7 @@ sub dicom_to_minc {
 
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,
-		$exclude,$mail_user, $tarchive_id) = @_;
+		$exclude,$mail_user, $tarchive_id, $verbose) = @_;
     my ($d2m_cmd,$d2m_log,$exit_code);
     my $message = '';
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
@@ -791,7 +791,7 @@ sub dicom_to_minc {
         croak("dicom_to_minc failure, exit code $exit_code");
    }
 
-    if ($this->{verbose}){ 
+    if ($verbose){ 
         $message = "\n" . $d2m_cmd . "\n";
         $this->{LOG}->print(
         "### Dicom to MINC:\n$d2m_log");
@@ -897,13 +897,13 @@ sub registerProgs() {
 sub moveAndUpdateTarchive {
 
     my $this = shift;
-    my ($tarchive_location,$tarchiveInfo) = @_;
+    my ($tarchive_location,$tarchiveInfo,$verbose) = @_;
     my $query = '';
     my $message = '';
     my ($newTarchiveLocation, $newTarchiveFilename,$mvTarchiveCmd);
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
-    if ($this->{verbose}){
+    if ($verbose){
         $message = "\n Moving tarchive into library\n";
         $this->spool($message, 'N', $upload_id);
     }
@@ -925,7 +925,7 @@ sub moveAndUpdateTarchive {
     ###### move the tarchive ###################################
     ############################################################
     $mvTarchiveCmd = "mv $tarchive_location $newTarchiveLocation";
-    if ($this->{verbose}){
+    if ($verbose){
         $message = "\n" . $mvTarchiveCmd . "\n";
         $this->spool($message, 'N', $upload_id);
     }
@@ -1146,7 +1146,8 @@ sub validateCandidate {
     my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'CandID'});
-    print "candidate id " . $subjectIDsref->{'CandID'} . "\n";
+    print "candidate id " . $subjectIDsref->{'CandID'} . "\n" 
+	if ($this->{verbose});
     my @CandIDCheck = $sth->fetchrow_array;
     if ($sth->rows == 0) {
         print LOG  "\n\n => Could not find candidate with CandID =".
@@ -1259,7 +1260,7 @@ sub spool  {
     my $this = shift;
     my ( $message, $error, $upload_id ) = @_;
 
-    if (!($error eq 'Y')){
+    if ($error eq 'Y'){
  	print "Spool message is: $message \n";
     }
     $this->{'Notify'}->spool('mri upload processing class', $message, 0,

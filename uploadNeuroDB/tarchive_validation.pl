@@ -26,12 +26,12 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                     $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 1 ;  
+my $debug       = 0 ;  
 my $where       = '';
 my $sth         = undef;
 my $query       = '';
 my $message     = '';
-my $verbose     = 1;           # default for now
+my $verbose     = 0;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't
@@ -59,7 +59,12 @@ my @opt_table = (
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a". 
                   " new scanner will be registered if the data you upload".
                   " requires it. You can risk turning it off."],
-                 ["Fancy options","section"]
+
+                 ["Fancy options","section"],
+
+                 ["General options","section"],
+                 ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
+
                  );
 
 my $Help = <<HELP;
@@ -288,7 +293,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-                $tarchive, $tarchiveInfo{'TarchiveID'});
+                $tarchive, $tarchiveInfo{'TarchiveID'}, $verbose);
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###

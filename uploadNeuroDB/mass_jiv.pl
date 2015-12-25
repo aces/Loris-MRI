@@ -9,7 +9,7 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 
 # Set stuff for GETOPT
-my $verbose    = 1;
+my $verbose    = 0;
 my $profile    = undef;
 my $minFileID  = undef;
 my $maxFileID  = undef;
@@ -80,6 +80,6 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 
 $dbh->disconnect();
 
-print "Finished\n" if $verbose;
+print "\n Finished mass_jiv.pl execution\n" if $verbose;
 exit 0;
 

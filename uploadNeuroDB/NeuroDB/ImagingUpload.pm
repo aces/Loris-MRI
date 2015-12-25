@@ -230,6 +230,9 @@ sub runDicomTar {
     my $command =
         $dicomtar . " " . $this->{'uploaded_temp_folder'} 
       . " $tarchive_location -clobber -database -profile prod";
+    if ($this->{'verbose'}) {
+        $command .= " -verbose";
+    }
     my $output = $this->runCommandWithExitCode($command);
 
     if ( $output == 0 ) {
@@ -313,6 +316,10 @@ sub runTarchiveLoader {
         $Settings::bin_dir
       . "/uploadNeuroDB/tarchiveLoader"
       . " -globLocation -profile prod $archived_file_path";
+
+    if ($this->{'verbose'}){
+        $command .= " -verbose";
+    }
     my $output = $this->runCommandWithExitCode($command);
     if ( $output == 0 ) {
         return 1;
@@ -347,14 +354,14 @@ sub PatientNameMatch {
 
     my $patient_name_string = $this->runCommand($cmd);
     if (!($patient_name_string)) {
-	    my $message = "the patientname cannot be extracted";
+	my $message = "the patient name cannot be extracted";
         $this->spool($message, 'Y');
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
         my $message = "The patient-name $pname does not Match " .
-            $this->{'pname'};
+        		$this->{'pname'};
     	$this->spool($message, 'Y');
         return 0; ##return false
     }
@@ -382,7 +389,7 @@ sub isDicom {
     my ($dicom_file) = @_;
     my $file_type    = $this->runCommand("file $dicom_file");
     if ( !( $file_type =~ /DICOM/ ) ) {
-        print "not of type DICOM" if $this->{'verbose'};
+        print "not of type DICOM";
         return 0;
     }
     return 1;

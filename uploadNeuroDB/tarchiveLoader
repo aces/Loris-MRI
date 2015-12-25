@@ -54,7 +54,7 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                      $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 1;  
+my $debug       = 0;  
 my $message     = '';
 my $tarchive_id = '';
 my $upload_id   = '';
@@ -268,6 +268,10 @@ my $script = "tarchive_validation.pl $tarchive -profile $profile";
 if ($globArchiveLocation) {
     $script .= " -globLocation";
 }
+
+if ($verbose) {
+    $script .= " -verbose";
+}
 ################################################################
 ###### Note: system call returns the process ID ################
 ###### To the actual exit value, shift right by ################
@@ -348,7 +352,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-		$tarchive, $tarchiveInfo{'TarchiveID'});
+		$tarchive, $tarchiveInfo{'TarchiveID'}, $verbose);
 
 
 ################################################################
@@ -356,7 +360,7 @@ my ($ExtractSuffix,$study_dir,$header) =
 ################################################################
 $utility->dicom_to_minc(
     $study_dir,$converter,$get_dicom_info,
-    $exclude,$mail_user, $tarchiveInfo{'TarchiveID'}
+    $exclude,$mail_user, $tarchiveInfo{'TarchiveID'}, $verbose
 );
 
 
@@ -409,7 +413,8 @@ foreach my $minc (@minc_files) {
     }
     elsif (!$valid_study) {
         $newTarchiveLocation = 
-            $utility->moveAndUpdateTarchive($tarchive,\%tarchiveInfo);
+            $utility->moveAndUpdateTarchive($tarchive,
+					\%tarchiveInfo, $verbose);
     }
     $tarchive = $newTarchiveLocation;
 
@@ -433,6 +438,10 @@ foreach my $minc (@minc_files) {
  
     if ($debug) {
         print $script . "\n";
+    }
+
+    if ($verbose) {
+        $script .= " -verbose";
     }
     ###########################################################
     ## Note: system call returns the process ID ###############
@@ -488,6 +497,9 @@ if ($valid_study) {
     if (@row) {
         my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
                      "-profile $profile ";
+        if ($verbose) {
+            $script .= " -verbose";
+	}
     ############################################################
     ## Note: system call returns the process ID ################
     ## To get the actual exit value, shift right by eight as ### 
@@ -501,14 +513,16 @@ if ($valid_study) {
     ############################################################
     # spool a new study message ################################
     ############################################################
-    $notifier->spool(
-        'mri new study', 
-        "\n" . $subjectIDsref->{'CandID'} . 
-        " " . $subjectIDsref->{'PSCID'} .
-        " " . $subjectIDsref->{'visitLabel'} .
-        "\tacquired ". $tarchiveInfo{'DateAcquired'},
-	0, 'tarchiveLoader', $upload_id, 'N'
-    );
+    if ($verbose) {
+    	$notifier->spool(
+            'mri new study', 
+            "\n" . $subjectIDsref->{'CandID'} . 
+            " " . $subjectIDsref->{'PSCID'} .
+            " " . $subjectIDsref->{'visitLabel'} .
+            "\tacquired ". $tarchiveInfo{'DateAcquired'},
+	    0, 'tarchiveLoader', $upload_id, 'N'
+        );
+    }
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
@@ -587,8 +601,8 @@ if (scalar(@leftovers) > 0) {
     print MAIL "Files left over:\n".join("", @leftovers)."\n";
     close MAIL;
 }
-$message ="\n==> Done!  Removing $TmpDir.\n";
-print LOG $message;
+$message ="\n==> Done tarchiveLoader execution!  Removing $TmpDir.\n";
+print LOG $message if $verbose;
 close LOG;
 `gzip -9 $logfile`;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
