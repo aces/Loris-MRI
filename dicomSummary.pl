@@ -159,7 +159,7 @@ foreach $dcmdir (@dcmDirs) {
 	$dbh = &DB::DBI::connect_to_db(@Settings::db);
 	my $update = 1 unless !$dbreplace;
 	$summary->database($dbh, $metaname, $update);
-	print "\nDone\n";
+	print "\nDone dicomSummary.pl execution\n" if $verbose;
 	exit;
     }
 }

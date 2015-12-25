@@ -183,5 +183,5 @@ QUERY
 my $mri_upload_insert = $dbh->prepare($query);
 $mri_upload_insert->execute($User,$tarchiveID,$source_location);
 
-print "Done!\n";
+print "Done updateMRI_upload.pl execution!\n" if $verbose;
 exit 0;
