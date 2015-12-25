@@ -123,5 +123,5 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 
 $dbh->disconnect();
 
-print "\n Finished mass_pic.pl execustion\n" if $verbose;
+print "\n Finished mass_pic.pl execution\n" if $verbose;
 exit 0;
