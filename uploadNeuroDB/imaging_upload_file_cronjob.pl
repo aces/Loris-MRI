@@ -88,8 +88,8 @@ while(@row = $sth->fetchrow_array()) {
 	my $command = "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
 	if ($verbose){
 	    $command .= " -verbose";
+            print "\n" . $command . "\n";
 	}
-	print "\n" . $command . "\n";
 	my $output = system($command);
     } else {
     	print "\nERROR: Could not find the uploaded file
