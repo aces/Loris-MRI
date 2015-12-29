@@ -30,7 +30,7 @@ my $date    = sprintf(
               );
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
-my $upload_id =         # The uploadID
+my $upload_id = undef;         # The uploadID
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
      tempdir( $template, TMPDIR => 1, CLEANUP => 1 );

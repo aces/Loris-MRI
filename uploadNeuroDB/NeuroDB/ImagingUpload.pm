@@ -351,17 +351,16 @@ sub PatientNameMatch {
     my $this         = shift;
     my ($dicom_file) = @_;
     my $cmd          = "dcmdump $dicom_file | grep PatientName";
-
-    my $patient_name_string = $this->runCommand($cmd);
+    my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
-	my $message = "the patient name cannot be extracted";
+	my $message = "\n The patient name cannot be extracted \n";
         $this->spool($message, 'Y');
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
-        my $message = "The patient-name $pname does not Match " .
-        		$this->{'pname'};
+        my $message = "\n The patient-name $pname does not Match " .
+        		$this->{'pname'}. "\n";
     	$this->spool($message, 'Y');
         return 0; ##return false
     }
@@ -387,9 +386,10 @@ Arguments:
 sub isDicom {
     my $this         = shift;
     my ($dicom_file) = @_;
-    my $file_type    = $this->runCommand("file $dicom_file");
+    my $cmd    = "file $dicom_file";
+    my $file_type    = `$cmd`;
     if ( !( $file_type =~ /DICOM/ ) ) {
-        print "not of type DICOM";
+        print "\n Not of type DICOM \n";
         return 0;
     }
     return 1;
