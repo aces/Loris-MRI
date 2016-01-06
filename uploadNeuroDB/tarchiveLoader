@@ -360,23 +360,22 @@ my ($ExtractSuffix,$study_dir,$header) =
 ################################################################
 $utility->dicom_to_minc(
     $study_dir,$converter,$get_dicom_info,
-    $exclude,$mail_user, $tarchiveInfo{'TarchiveID'}, $verbose
-);
+    $exclude,$mail_user, $tarchiveInfo{'TarchiveID'}, $verbose);
 
 
 ################################################################
 ############### get a list of mincs ############################
 ################################################################
 my @minc_files = ();
-$utility->get_mincs(\@minc_files);
+$utility->get_mincs(\@minc_files,
+		     	 $tarchiveInfo{'TarchiveID'}, $verbose);
 my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
 if ($verbose){
     print $message;
     $notifier->spool('tarchive loader', $message, 0,
-                   'tarchiveLoader', $upload_id, 'N'
-    );
+                   'tarchiveLoader', $upload_id, 'N');
 }
 ################################################################
 # If no good data was found stop processing and write error log.
@@ -414,7 +413,7 @@ foreach my $minc (@minc_files) {
     elsif (!$valid_study) {
         $newTarchiveLocation = 
             $utility->moveAndUpdateTarchive($tarchive,
-					\%tarchiveInfo, $verbose);
+					\%tarchiveInfo,$verbose);
     }
     $tarchive = $newTarchiveLocation;
 
@@ -602,7 +601,11 @@ if (scalar(@leftovers) > 0) {
     close MAIL;
 }
 $message ="\n==> Done tarchiveLoader execution!  Removing $TmpDir.\n";
-print LOG $message if $verbose;
+if ($verbose) {
+    print LOG $message;
+    $notifier->spool('tarchive loader', $message, 0,
+                'tarchiveLoader', $upload_id, 'N');
+}
 close LOG;
 `gzip -9 $logfile`;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";

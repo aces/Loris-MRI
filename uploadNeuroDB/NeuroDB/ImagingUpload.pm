@@ -128,7 +128,7 @@ sub IsValid {
     }
     else {
         $message =
-            "\n The uploadID "
+            "\nThe uploadID "
           . $this->{'upload_id'}
           . " Does Not Exist \n";
         $this->spool($message, 'Y');
@@ -143,7 +143,7 @@ sub IsValid {
     if ( ( $row[1] ) || ( $row[2] ) ) {
 
         $message =
-            "\n The Scan for the uploadID "
+            "\nThe Scan for the uploadID "
           . $this->{'upload_id'}
           . " has already been ran with tarchiveID: "
           . $row[1]
@@ -177,7 +177,7 @@ sub IsValid {
     }
 
     if ( $files_not_dicom > 0 ) {
-        $message = "\n ERROR: there are $files_not_dicom files which are "
+        $message = "\nERROR: there are $files_not_dicom files which are "
           . "Are not of type DICOM \n";
         $this->spool($message, 'Y');
         return 0;
@@ -185,7 +185,7 @@ sub IsValid {
 
     if ( $files_with_unmatched_patient_name > 0 ) {
         $message =
-            "\n ERROR: there are $files_with_unmatched_patient_name files"
+            "\nERROR: there are $files_with_unmatched_patient_name files"
           . " where the patient-name doesn't match \n";
         $this->spool($message, 'Y');
         return 0;
@@ -230,7 +230,7 @@ sub runDicomTar {
     my $command =
         $dicomtar . " " . $this->{'uploaded_temp_folder'} 
       . " $tarchive_location -clobber -database -profile prod";
-    if ($this->{'verbose'}) {
+    if ($this->{verbose}) {
         $command .= " -verbose";
     }
     my $output = $this->runCommandWithExitCode($command);
@@ -317,7 +317,7 @@ sub runTarchiveLoader {
       . "/uploadNeuroDB/tarchiveLoader"
       . " -globLocation -profile prod $archived_file_path";
 
-    if ($this->{'verbose'}){
+    if ($this->{verbose}){
         $command .= " -verbose";
     }
     my $output = $this->runCommandWithExitCode($command);
@@ -353,13 +353,13 @@ sub PatientNameMatch {
     my $cmd          = "dcmdump $dicom_file | grep PatientName";
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
-	my $message = "\n The patient name cannot be extracted \n";
+	my $message = "\nThe patient name cannot be extracted \n";
         $this->spool($message, 'Y');
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
-        my $message = "\n The patient-name $pname does not Match " .
+        my $message = "\nThe patient-name $pname does not Match " .
         		$this->{'pname'}. "\n";
     	$this->spool($message, 'Y');
         return 0; ##return false
@@ -460,7 +460,7 @@ Arguments:
 sub runCommand {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n " if $this->{'verbose'};
+    print "\n\n $command \n\n " if $this->{verbose};
     return `$command`;
 }
 

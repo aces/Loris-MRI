@@ -422,9 +422,9 @@ sub getAcquisitionProtocol {
     	if ($this->{verbose}){
 		$message = "\n Worst error: $checks[0]\n";
 		$this->{LOG}->print($message);
-		# Here I am assuming that 'warn' and 'pass' are n
-		# errors, and only 'exclude' is an error in the 
-		# notifiucation_spool_table
+		# Here I am assuming that 'warn' and 'pass' are
+		# not errors, and only 'exclude' is an error in  
+		# the notification_spool_table
 		if (!($checks[0] eq 'exclude')){
 			$this->spool($message, 'N', $upload_id);
 		}
@@ -805,7 +805,9 @@ sub dicom_to_minc {
 sub get_mincs {
   
     my $this = shift;
-    my ($minc_files) = @_;
+    my ($minc_files, $tarchive_id, $verbose) = @_;
+    my $message = '';
+    my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     @$minc_files = ();
     opendir TMPDIR, $this->{TmpDir} ;
     my @files = readdir TMPDIR;
@@ -827,9 +829,12 @@ sub get_mincs {
     }
     close SORTLIST;
     `rm -f $this->{TmpDir}/sortlist`;
-    my $message = "\n### These MINC files have been created: \n".
+    $message = "\n### These MINC files have been created: \n".
         join("\n", @$minc_files)."\n";
-    $this->{LOG}->print($message);
+    if ($verbose){ 
+        $this->{LOG}->print($message);
+        $this->spool($message, 'N', $upload_id);
+    }
 }  
 
 ################################################################

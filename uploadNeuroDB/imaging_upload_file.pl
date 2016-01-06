@@ -190,13 +190,13 @@ my $is_valid = $imaging_upload->IsValid();
 if ( !($is_valid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\n The validation has failed \n";
+    $message = "\nThe validation has failed \n";
     spool($message,'Y');
     print $message;
     exit 6;
 }
 
-$message = "\n The validation has passed \n";
+$message = "\nThe validation has passed \n";
 spool($message,'N');
 
 ################################################################
@@ -206,12 +206,12 @@ $output = $imaging_upload->runDicomTar();
 if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\n The dicomtar execution has failed\n";
+    $message = "\nThe dicomtar execution has failed\n";
     spool($message,'Y');
     print $message;
     exit 7;
 }
-$message = "\n The dicomtar execution has successfully completed";
+$message = "\nThe dicomtar execution has successfully completed\n";
 spool($message,'N');
 
 ################################################################
@@ -220,12 +220,12 @@ spool($message,'N');
 $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
-    $message = "\n The insertion scripts have failed\n";
+    $message = "\nThe insertion scripts have failed\n";
     spool($message,'Y'); 
     print $message;
     exit 8;
 }
-$message = "\n The insertion scripts have successfully completed";
+$message = "\nThe insertion scripts have successfully completed\n";
 spool($message,'N');
 
 ################################################################
