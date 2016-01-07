@@ -13,6 +13,14 @@ LOGFILE="/tmp/$(basename $0).$$.tmp"
 touch $LOGFILE
 trap "rm  $LOGFILE" EXIT
  
+if [[ -n $(which mincheader) ]]; then
+    echo ""
+    echo "MINC Toolkit appears to be installed."
+else
+    echo ""
+    echo "MINC Toolkit does not appear to be installed. Aborting."
+    exit 2;
+fi
 
 #First, check that all required modules are installed.
 #Check if cpan module installed
@@ -57,12 +65,8 @@ mridir=`pwd`
 #read -p "Enter Full Loris-code directory path "   lorisdir
 
 ################################################################################################
-########################################MINC TOOL###############################################
+#####################################DICOM TOOLKIT##############################################
 ################################################################################################
-echo "Installing Minc toolkit (May prompt for sudo password)"
-sudo -S apt-get install minc-tools
-echo
-
 echo "Installing dicom toolkit (May prompt for sudo password)"
 sudo -S apt-get install dcmtk
 echo
