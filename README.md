@@ -1,9 +1,9 @@
 # System Requirements
  * Perl
- * DICOM toolkit (Will be installed by Install Script if not already installed)
+ * DICOM toolkit
  * MINC tools (http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC)
 
-Note: For Ubuntu installations, DICOM toolkit and MINC toolkit are installed by the imaging install script (see step 3 below). This script will apt-get install these packages: minc-tools and dcmtk.   
+Note: For Ubuntu installations, DICOM toolkit will be installed by the imaging install script (see step 3 below). This script will apt-get install dcmtk.   
 
 The following installation should be run by the $lorisadmin user. sudo permission is required.
 See aces/Loris README.md for further information and Loris installation information. 
