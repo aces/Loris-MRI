@@ -28,7 +28,7 @@ See aces/Loris README.md for further information and Loris installation informat
    git submodule update
    ```
 
-3. Run installer to install MINC & DICOM toolkits, Perl libraries, configure environment, and setup directories:
+3. Run installer to install DICOM toolkit, Perl libraries, configure environment, and setup directories:
 
    ```bash 
    cd /data/$projectname/bin/mri/

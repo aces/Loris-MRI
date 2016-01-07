@@ -5,6 +5,7 @@
 #1)It doesn't set up the SGE
 #2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place somewhere
 #3)It doesn't change the config.xml
+#4)It doesn't install DICOM toolkit
 
 
 #Create a temporary log for installation and delete it on completion 
