@@ -18,7 +18,7 @@ if [[ -n $(which mincheader) ]]; then
     echo "MINC Toolkit appears to be installed."
 else
     echo ""
-    echo "MINC Toolkit does not appear to be installed. Aborting."
+    echo "MINC Toolkit does not appear to be installed. Please see http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC. Aborting."
     exit 2;
 fi
 
