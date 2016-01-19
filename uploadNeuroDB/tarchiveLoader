@@ -428,10 +428,12 @@ if ($valid_study) {
     ############################################################
     ### Update the number_of_mincCreated #######################
     ### And number_of_mincInserted #############################
+    ### Set Processed to 1 & reset CurrentlyProcssed back to 0##
     ############################################################
     my $where = "WHERE TarchiveID=?";
     my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
-                 "number_of_mincCreated=? ";
+                 "number_of_mincCreated=?, Processed=1, ".
+		 "CurrentlyProcessed=0 ";
     $query = $query . $where;
     if ($debug) {
         print $query . "\n";
