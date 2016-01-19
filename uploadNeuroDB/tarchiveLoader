@@ -428,7 +428,7 @@ if ($valid_study) {
     ############################################################
     ### Update the number_of_mincCreated #######################
     ### And number_of_mincInserted #############################
-    ### Set Processed to 1 & reset CurrentlyProcssed back to 0##
+    ### Set Processed to 1 & reset CurrentlyProcessed back to 0#
     ############################################################
     my $where = "WHERE TarchiveID=?";
     my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
