@@ -423,17 +423,25 @@ foreach my $minc (@minc_files) {
     }
 } # end foreach $minc
 
+###############################################################
+### Set Processed to 1 in mri_upload table#####################
+###############################################################
+my $where = "WHERE TarchiveID=?";
+my $query = "UPDATE mri_upload SET Processed=1";
+$query = $query . $where;
+
+my $mri_upload_update = $dbh->prepare($query);
+$mri_upload_update->execute($tarchiveInfo{TarchiveID});
+
 if ($valid_study) {
 
     ############################################################
     ### Update the number_of_mincCreated #######################
     ### And number_of_mincInserted #############################
-    ### Set Processed to 1 & reset Processing back to 0#########
     ############################################################
     my $where = "WHERE TarchiveID=?";
     my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
-                 "number_of_mincCreated=?, Processed=1, ".
-		 "Processing=0 ";
+                 "number_of_mincCreated=? ";
     $query = $query . $where;
     if ($debug) {
         print $query . "\n";
