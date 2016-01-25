@@ -66,7 +66,8 @@ Description:
  Validates the File to be upload:
  If the validation passes the following will happen:
   1) Copy the file from tmp folder to the /data/incoming
-  2) Set the IsCanidateInfoValidated to true in the mri_upload table
+  2) Set the IsCandidateInfoValidated to true in the 
+     mri_upload table
 
 Arguments:
  $this: reference to the class
