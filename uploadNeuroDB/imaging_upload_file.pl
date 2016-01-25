@@ -188,6 +188,8 @@ my $Notify = NeuroDB::Notify->new(
 
 my $is_valid = $imaging_upload->IsValid();
 if ( !($is_valid) ) {
+    $imaging_upload->updateMRIUploadTable(
+	'Processing', 0);
     $message = "The validation has failed";
     spool($message,'Y');
     print $message;
@@ -202,6 +204,8 @@ spool($message,'N');
 ################################################################
 $output = $imaging_upload->runDicomTar();
 if ( !$output ) {
+    $imaging_upload->updateMRIUploadTable(
+	'Processing', 0);
     $message = "\n The dicomtar execution has failed";
     spool($message,'Y');
     print $message;
@@ -214,6 +218,7 @@ spool($message,'N');
 ############### Run runTarchiveLoader###########################
 ################################################################
 $output = $imaging_upload->runTarchiveLoader();
+$imaging_upload->updateMRIUploadTable('Processing', 0);
 if ( !$output ) {
     $message = "\n The insertion scripts have failed";
     spool($message,'Y'); 
@@ -224,7 +229,7 @@ $message = "\n The insertion Script has successfully completed";
 spool($message,'N');
 
 ################################################################
-######### moves the uploaded folder to the Incoming Directory####
+######### moves the uploaded folder to the Incoming Directory###
 ################################################################
 if (!$imaging_upload->moveUploadedFile()) {
     $message = "\n The file cannot be moved. Make sure the getIncomingDir".
@@ -235,7 +240,7 @@ if (!$imaging_upload->moveUploadedFile()) {
 }
 
 ################################################################
-############### removes the uploaded folder from the /tmp########
+############### removes the uploaded folder from the /tmp#######
 ################################################################
 $imaging_upload->CleanUpTMPDir();
 
