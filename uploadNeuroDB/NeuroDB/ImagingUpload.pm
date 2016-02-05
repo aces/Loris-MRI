@@ -66,7 +66,8 @@ Description:
  Validates the File to be upload:
  If the validation passes the following will happen:
   1) Copy the file from tmp folder to the /data/incoming
-  2) Set the isvalidated to true in the mri_upload table
+  2) Set the IsCandidateInfoValidated to true in the 
+     mri_upload table
 
 Arguments:
  $this: reference to the class
@@ -189,10 +190,10 @@ sub IsValid {
 
     ############################################################
     ###############Update the MRI_upload table and##############
-    ###############set the isValidated to true##################
+    #########set the IsCandidatInfoValidated to true############
     ############################################################
     $where = " WHERE UploadID=?";
-    $query = "UPDATE mri_upload SET IsValidated=1";
+    $query = "UPDATE mri_upload SET IsCandidateInfoValidated=1";
     $query = $query . $where;
     $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
     $mri_upload_update->execute( $this->{'upload_id'} );
