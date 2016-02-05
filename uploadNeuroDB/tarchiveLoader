@@ -423,31 +423,21 @@ foreach my $minc (@minc_files) {
     }
 } # end foreach $minc
 
-###############################################################
-### Set Processed to 1 in mri_upload table#####################
-###############################################################
-my $where = "WHERE TarchiveID=?";
-my $query = "UPDATE mri_upload SET Processed=1 ";
-$query = $query . $where;
-
-my $mri_upload_update = $dbh->prepare($query);
-$mri_upload_update->execute($tarchiveInfo{TarchiveID});
-
 if ($valid_study) {
 
     ############################################################
     ### Update the number_of_mincCreated #######################
     ### And number_of_mincInserted #############################
     ############################################################
-    $where = "WHERE TarchiveID=?";
-    $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
+    my $where = "WHERE TarchiveID=?";
+    my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
                  "number_of_mincCreated=? ";
     $query = $query . $where;
     if ($debug) {
         print $query . "\n";
     }
 
-    $mri_upload_update = $dbh->prepare($query);
+    my $mri_upload_update = $dbh->prepare($query);
     $mri_upload_update->execute(
                $minc_inserted,$mcount,$tarchiveInfo{TarchiveID}
     );
@@ -584,6 +574,17 @@ if (!$valid_study) {
     print "No Mincs inserted \n \n";
     exit 9;
 }
+
+###############################################################
+### Set Processed to 1 in mri_upload table#####################
+###############################################################
+my $where = "WHERE TarchiveID=?";
+my $query = "UPDATE mri_upload SET Processed=1 ";
+$query = $query . $where;
+
+my $mri_upload_update = $dbh->prepare($query);
+$mri_upload_update->execute($tarchiveInfo{TarchiveID});
+
 exit 0;
 sub logHeader () {
     print LOG "
