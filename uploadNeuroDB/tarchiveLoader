@@ -302,7 +302,7 @@ if (($output != 0)  && ($force==0)) {
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog($message,5,$logfile); 
  $notifier->spool('tarchive loader', $message, 0, 
-		'tarchiveLoader', $upload_id, 'Y'
+		'tarchiveLoader', $upload_id, 'Y', 'N'
  );
  exit 5;
 }
@@ -372,10 +372,10 @@ $utility->get_mincs(\@minc_files,
 my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
+$notifier->spool('tarchive loader', $message, 0,
+               'tarchiveLoader', $upload_id, 'N', 'Y');
 if ($verbose){
     print $message;
-    $notifier->spool('tarchive loader', $message, 0,
-                   'tarchiveLoader', $upload_id, 'N');
 }
 ################################################################
 # If no good data was found stop processing and write error log.
@@ -387,7 +387,7 @@ if ($mcount < 1) {
     # get the upload_id from the tarchive_id
     # to pass it on to the notification_spool table
     $notifier->spool('tarchive loader', $message, 0,
-                   'tarchiveLoader', $upload_id, 'Y'
+                   'tarchiveLoader', $upload_id, 'Y', 'N'
     );
     exit 6; 
 }
@@ -512,16 +512,14 @@ if ($valid_study) {
     ############################################################
     # spool a new study message ################################
     ############################################################
-    if ($verbose) {
-    	$notifier->spool(
+    $notifier->spool(
             'mri new study', 
             "\n" . $subjectIDsref->{'CandID'} . 
             " " . $subjectIDsref->{'PSCID'} .
             " " . $subjectIDsref->{'visitLabel'} .
             "\tacquired ". $tarchiveInfo{'DateAcquired'},
-	    0, 'tarchiveLoader', $upload_id, 'N'
+	    0, 'tarchiveLoader', $upload_id, 'N', 'Y'
         );
-    }
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
@@ -549,7 +547,7 @@ if ($valid_study) {
         'mri invalid study', "\n" . $tarchive. " acquired ". 
         $tarchiveInfo{'DateAcquired'} .
         " was deemed invalid\n\n". $study_dir,
-	0, 'tarchiveLoader', $upload_id, 'Y'
+	0, 'tarchiveLoader', $upload_id, 'Y', 'N'
     );
 }
 
@@ -601,11 +599,9 @@ if (scalar(@leftovers) > 0) {
     close MAIL;
 }
 $message ="\n==> Done tarchiveLoader execution!  Removing $TmpDir.\n";
-if ($verbose) {
-    print LOG $message;
-    $notifier->spool('tarchive loader', $message, 0,
-                'tarchiveLoader', $upload_id, 'N');
-}
+$notifier->spool('tarchive loader', $message, 0,
+            'tarchiveLoader', $upload_id, 'N', 'Y');
+print LOG $message;
 close LOG;
 `gzip -9 $logfile`;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
@@ -626,7 +622,7 @@ if (!$valid_study) {
     print ($message);
     $notifier->spool(
         'mri invalid study', $message, 0,
-        'tarchiveLoader', $upload_id, 'Y'
+        'tarchiveLoader', $upload_id, 'Y', 'N'
     );
     exit 9;
 }

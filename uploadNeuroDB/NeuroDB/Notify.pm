@@ -50,7 +50,7 @@ sub new {
 
 =pod
 
-B<spool( C<$type>, C<$message>, C<$centerID>, C<$origin>, C<$processID>, C<$isError> )>
+B<spool( C<$type>, C<$message>, C<$centerID>, C<$origin>, C<$processID>, C<$isError>, C<$isVerb> )>
 
 Spools a new notification message, C<$message>, into the spool for
 notification type C<$type>, unless the exact same message (including
@@ -63,7 +63,7 @@ Returns: 1 on success, 0 on failure
 
 sub spool {
     my $this = shift;
-    my ($type, $message, $centerID, $origin, $processID, $isError) = @_;
+    my ($type, $message, $centerID, $origin, $processID, $isError, $isVerb) = @_;
     my $dbh = ${$this->{'dbhr'}};
     my @params = ();
     
@@ -117,6 +117,11 @@ sub spool {
             if ($isError) {
                 $query .= " , Error=? ";
                 push @insert_params, $isError;
+            }
+
+            if ($isVerb) {
+                $query .= " , Verbose=? ";
+                push @insert_params, $isVerb;
             }
             my $insert = $dbh->prepare($query);
             $insert->execute(@insert_params);

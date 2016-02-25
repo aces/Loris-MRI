@@ -107,19 +107,15 @@ extracts it so data can actually be uploaded
 sub extract_tarchive {
     my $this = shift;
     my ($tarchive, $tarchive_id, $verbose) = @_;
-    my $upload_id = '';
+    my $upload_id = undef;
     my $message = '';
     # get the upload_id from the tarchive_id to pass to the notification_spool
     $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
-    $message = "\n Extracting tarchive $tarchive in $this->{TmpDir} \n";
-    if ($verbose){
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\nExtracting tarchive $tarchive in $this->{TmpDir} \n";
+    $this->spool($message, 'N', $upload_id, 'Y');
     my $cmd = "cd $this->{TmpDir} ; tar -xf $tarchive";
-    if ($verbose){
-        $message = "\n" . $cmd . "\n";
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\n" . $cmd . "\n";
+    $this->spool($message, 'N', $upload_id, 'Y');
     `$cmd`;
     opendir TMPDIR, $this->{TmpDir};
     my @tars = grep { /\.tar\.gz$/ && -f "$this->{TmpDir}/$_" }
@@ -130,7 +126,7 @@ sub extract_tarchive {
         my $message = "Error: Could not find inner tar in $tarchive!\n";
         print $message;
         print @tars . "\n";
-        $this->spool($message, 'Y', $upload_id);
+        $this->spool($message, 'Y', $upload_id, 'N');
         exit 1 ;
     }
     my $dcmtar = $tars[0];
@@ -158,10 +154,8 @@ sub extractAndParseTarchive {
     my $info       = "head -n 12 $this->{TmpDir}/${ExtractSuffix}.meta";
     my $header     = `$info`;
     my $message = "\n$header\n";
-    if ($verbose){
-        $this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
 
     return ($ExtractSuffix, $study_dir, $header);
 }
@@ -181,7 +175,7 @@ sub determineSubjectID {
             my $message =  "\nERROR: Profile does not contain getSubjectIDs ".
                            "routine. Upload will exit now.\n\n";
             $this->writeErrorLog($message, 2);
-	    $this->spool($message, 'Y', $upload_id);
+	    $this->spool($message, 'Y', $upload_id, 'N');
 	    exit 2;
         }
     }
@@ -197,10 +191,8 @@ sub determineSubjectID {
                             "- PSCID: ". $subjectIDsref->{'PSCID'} . "- Visit: ".
                             $subjectIDsref->{'visitLabel'} . "- Acquired : ".
                             $tarchiveInfo->{'DateAcquired'} . "\n";
-	if ($this->{verbose}){
-	        $this->{LOG}->print($message);
-        	$this->spool($message, 'N', $upload_id);
-        }
+	$this->{LOG}->print($message);
+        $this->spool($message, 'N', $upload_id, 'Y');
     }
     return $subjectIDsref;
 }
@@ -234,14 +226,14 @@ sub createTarchiveArray {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();
         %tarchiveInfo = %$tarchiveInfoRef;
     } else {
-        my $message = "\n ERROR: Only archived data can be uploaded.".
+        my $message = "\nERROR: Only archived data can be uploaded.".
                       "This seems not to be a valid archive for this study!".
                       "\n\n";
         $this->writeErrorLog($message, 3);
 	# no $tarchive nor $tarchive_id can be fetched since the archive 
 	# could not be found, making $upload_id hard to trace, so send some 
 	# random number (99999) instead for $upload_id in the notification_spool
-        $this->spool($message, 'Y', 99999);
+        $this->spool($message, 'Y', 99999, 'N');
         exit 3;
     }
 
@@ -256,7 +248,7 @@ sub determinePSC {
     my $this = shift;
     my ($tarchiveInfo,$to_log) = @_;
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
-    my $upload_id = '';
+    my $upload_id = undef;
     $to_log = 1 unless defined $to_log;
     my ($center_name, $centerID) =
     NeuroDB::MRI::getPSC(
@@ -269,17 +261,15 @@ sub determinePSC {
 
             my $message = "\nERROR: No center found for this candidate \n\n";
             $this->writeErrorLog($message, 4);
-	    $this->spool($message, 'Y', $upload_id);
+	    $this->spool($message, 'Y', $upload_id, 'N');
             exit 4;
         }
         my $message =
-            "\n==> Verifying acquisition center\n -> " .
-            "Center Name : $center_name\n -> CenterID ".
+            "\n==> Verifying acquisition center\n-> " .
+            "Center Name : $center_name\n-> CenterID ".
             " : $centerID\n";
-        if ($this->{verbose}){
-	    $this->{LOG}->print($message);
-	    $this->spool($message, 'N', $upload_id);
-        }
+	$this->{LOG}->print($message);
+	$this->spool($message, 'N', $upload_id, 'Y');
     }
     return ($center_name, $centerID);
 }
@@ -295,11 +285,11 @@ sub determineScannerID {
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     my $message = '';
     $to_log = 1 unless defined $to_log;
-    if ($to_log && ($this->{verbose})) {
+    if ($to_log) {
         $message = "\n\n==> Trying to determine scanner ID\n";
         $this->{LOG}->print($message);
-	$this->spool($message, 'N', $upload_id);
     }
+    $this->spool($message, 'N', $upload_id, 'Y');
 
     my $scannerID =
         NeuroDB::MRI::findScannerID(
@@ -312,21 +302,21 @@ sub determineScannerID {
             $NewScanner 
         );
     if ($scannerID == 0) {
+       	$this->spool($message, 'Y', $upload_id, 'N');
         if ($to_log) {
-            $message = "\n ERROR: The ScannerID for this particular scanner ".
+            $message = "\nERROR: The ScannerID for this particular scanner ".
                           "does not exist. Enable creating new ScannerIDs in ".
                           "your profile or this archive can not be ".
                           "uploaded.\n\n";
             $this->writeErrorLog($message, 5);
-       	    $this->spool($message, 'Y', $upload_id);
             exit 5;
         }
     }
-    if ($to_log && ($this->{verbose})) {
+    if ($to_log) {
         $message = "==> scanner ID : $scannerID\n\n";
         $this->{LOG}->print($message);
-	$this->spool($message,'N', $upload_id);
     }
+    $this->spool($message,'N', $upload_id, 'Y');
     return $scannerID;
 }
 
@@ -353,17 +343,13 @@ sub computeMd5Hash {
     my ($file, $tarchive_id) = @_;
     my $message = '';
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
-    if ($this->{verbose}){
-        $message = "\n ==> computing md5 hash for MINC body.\n";
-	$this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }	 
+    $message = "\n==> computing md5 hash for MINC body.\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     my $md5hash = &NeuroDB::MRI::compute_hash(\$file);
-    if ($this->{verbose}){
-        $message = "\n --> md5: $md5hash\n";
-        $this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\n--> md5: $md5hash\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     $file->setParameter('md5hash', $md5hash);
     my $unique = &NeuroDB::MRI::is_unique_hash(\$file);
     return $unique;
@@ -386,11 +372,10 @@ sub getAcquisitionProtocol {
     ## get acquisition protocol (identify the volume) ##########
     ############################################################
 
-    if ($this->{verbose}){
-	$message = "\n ==> verifying acquisition protocol\n";
-	$this->{LOG}->print($message);
-	$this->spool($message, 'N', $upload_id);
-    } 
+    $message = "\n==> verifying acquisition protocol\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
+
     my $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
                                    $center_name,
                                    $subjectIDsref,
@@ -398,12 +383,9 @@ sub getAcquisitionProtocol {
                                    $this->{dbhr}, 
                                    $minc
                                );
-    if ($this->{verbose}){
-	$message = "\n Acquisition protocol is $acquisitionProtocol\n";
-	$this->{LOG}->print($message);
-	$this->spool($message, 'N', $upload_id);
-
-    } 
+    $message = "\nAcquisition protocol is $acquisitionProtocol\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
 
     my @checks = ();
     my $acquisitionProtocolID;
@@ -419,19 +401,17 @@ sub getAcquisitionProtocol {
                         $subjectIDsref->{'visitLabel'},
                         $tarchiveInfo->{'PatientName'}
                   );
-    	if ($this->{verbose}){
-		$message = "\n Worst error: $checks[0]\n";
-		$this->{LOG}->print($message);
-		# Here I am assuming that 'warn' and 'pass' are
-		# not errors, and only 'exclude' is an error in  
-		# the notification_spool_table
-		if (!($checks[0] eq 'exclude')){
-			$this->spool($message, 'N', $upload_id);
-		}
-		else{
-			$this->spool($message, 'Y', $upload_id);
-		}
-    	} 
+	$message = "\nWorst error: $checks[0]\n";
+	$this->{LOG}->print($message);
+	# Here I am assuming that 'warn' and 'pass' are
+	# not errors, and only 'exclude' is an error in  
+	# the notification_spool_table
+	if (!($checks[0] eq 'exclude')){
+		$this->spool($message, 'N', $upload_id, 'Y');
+	}
+	else{
+		$this->spool($message, 'Y', $upload_id, 'N');
+	}
     }
     return ($acquisitionProtocol, $acquisitionProtocolID, @checks);
 }
@@ -562,20 +542,16 @@ sub loadAndCreateObjectFile {
     ########## load File object ################################
     ############################################################
     $message = 	"\n==> Loading file from disk $minc\n";
-    if ($this->{verbose}){
-	$this->{LOG}->print($message); 
-        $this->spool($message, 'N', $upload_id);
-    }
+    $this->{LOG}->print($message); 
+    $this->spool($message, 'N', $upload_id, 'Y');
     $file->loadFileFromDisk($minc);
 
     ############################################################
     ############# map dicom fields #############################
     ############################################################
-    $message = "\n --> mapping DICOM parameter for $minc\n";
-    if ($this->{verbose}){
-        $this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\n--> mapping DICOM parameter for $minc\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     NeuroDB::MRI::mapDicomParameters(\$file);
     return $file;
 }
@@ -626,11 +602,9 @@ sub move_minc {
     $new_name = "$new_dir/$new_name";
     $cmd = "mv $$minc $new_name";
     `$cmd`;
-    $message = "\n File $$minc \n moved to:\n $new_name\n";
-    if ($this->{verbose}){
-	$this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\nFile $$minc \nmoved to:\n$new_name\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     $$minc = $new_name;
     return $new_name;
 }
@@ -678,11 +652,9 @@ sub registerScanIntoDB {
              $acquisitionProtocolID
         );
         
-        if ($this->{verbose}){
-            $message = "\n Acq protocol: $acquisitionProtocol " 
-				. "- ID: $acquisitionProtocolID\n";
-            $this->spool($message, 'N', $upload_id);
- 	}
+        $message = "\nAcq protocol: $acquisitionProtocol " 
+			. "- ID: $acquisitionProtocolID\n";
+        $this->spool($message, 'N', $upload_id, 'Y');
 
         ########################################################
         # set Date_taken = last modification timestamp ######### 
@@ -730,15 +702,11 @@ sub registerScanIntoDB {
         ########################################################
         # register into the db fixme if I ever want a dry run ## 
         ########################################################
-        if ($this->{verbose}){
-            $message = "\n Registering file into database\n";
-            $this->spool($message, 'N', $upload_id);
-        }  
+        $message = "\nRegistering file into database\n";
+        $this->spool($message, 'N', $upload_id, 'Y');
         $fileID = &NeuroDB::MRI::register_db($minc_file);
-        if ($this->{verbose}){
-            $message = "\n FileID: $fileID\n";
-            $this->spool($message, 'N', $upload_id);
-        }  
+        $message = "\nFileID: $fileID\n";
+        $this->spool($message, 'N', $upload_id, 'Y');
 
         ########################################################
         ### update mri_acquisition_dates table #################
@@ -783,6 +751,8 @@ sub dicom_to_minc {
         # dicom_to_minc failed...  don't keep going, ########### 
         # just email. ##########################################
         ########################################################
+        $message = "\nDicom to Minc conversion failed\n";
+        $this->spool($message, 'Y', $upload_id, 'N');
         open MAIL, "| mail $mail_user";
         print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
                    "dicom->minc failed\n";
@@ -791,12 +761,10 @@ sub dicom_to_minc {
         croak("dicom_to_minc failure, exit code $exit_code");
    }
 
-    if ($verbose){ 
-        $message = "\n" . $d2m_cmd . "\n";
-        $this->{LOG}->print(
-        "### Dicom to MINC:\n$d2m_log");
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\n" . $d2m_cmd . "\n";
+    $this->{LOG}->print(
+    "### Dicom to MINC:\n$d2m_log");
+    $this->spool($message, 'N', $upload_id, 'Y');
 }
 ################################################################
 ####### get_mincs ##############################################
@@ -831,10 +799,8 @@ sub get_mincs {
     `rm -f $this->{TmpDir}/sortlist`;
     $message = "\n### These MINC files have been created: \n".
         join("\n", @$minc_files)."\n";
-    if ($verbose){ 
-        $this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
 }  
 
 ################################################################
@@ -908,10 +874,8 @@ sub moveAndUpdateTarchive {
     my ($newTarchiveLocation, $newTarchiveFilename,$mvTarchiveCmd);
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
-    if ($verbose){
-        $message = "\n Moving tarchive into library\n";
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\nMoving tarchive into library\n";
+    $this->spool($message, 'N', $upload_id, 'Y');
     $newTarchiveLocation = $Settings::tarchiveLibraryDir."/".
     substr($tarchiveInfo->{'DateAcquired'}, 0, 4);
     ############################################################
@@ -930,10 +894,8 @@ sub moveAndUpdateTarchive {
     ###### move the tarchive ###################################
     ############################################################
     $mvTarchiveCmd = "mv $tarchive_location $newTarchiveLocation";
-    if ($verbose){
-        $message = "\n" . $mvTarchiveCmd . "\n";
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\n" . $mvTarchiveCmd . "\n";
+    $this->spool($message, 'N', $upload_id, 'Y');
     `$mvTarchiveCmd`;
 
     ############################################################
@@ -964,8 +926,8 @@ sub CreateMRICandidates {
     my $query = '';
     my ($subjectIDsref,$gender,$tarchiveInfo,$User,$centerID) = @_;
     my ($message);
-    my $tarchive_id = '';
-    my $upload_id   = '';
+    my $tarchive_id = undef;
+    my $upload_id   = undef;
     if ($tarchiveInfo->{'PatientGender'} eq 'F') {
             $gender = "Female";
     } elsif ($tarchiveInfo->{'PatientGender'} eq 'M') {
@@ -1004,28 +966,24 @@ sub CreateMRICandidates {
                 print $query . "\n";
             }
             ${$this->{'dbhr'}}->do($query);
-	    if ($this->{verbose}){
-                $message = "\n==> CREATED NEW CANDIDATE :
-            		    $subjectIDsref->{'CandID'}";
-                $this->{LOG}->print($message);
-                $this->spool($message, 'N', $upload_id);
-	    }
+            $message = "\n==> CREATED NEW CANDIDATE :
+            		$subjectIDsref->{'CandID'}";
+            $this->{LOG}->print($message);
+            $this->spool($message, 'N', $upload_id, 'Y');
       } elsif ($subjectIDsref->{'CandID'}) {# if the candidate exists
-            if ($this->{verbose}){
-                $message = "\n==> getSubjectIDs returned this CandID/DCCID : ".
-                   "$subjectIDsref->{'CandID'}\n";
-	        $this->{LOG}->print($message);
-                $this->spool($message, 'N', $upload_id);
-	    }
+            $message = "\n==> getSubjectIDs returned this CandID/DCCID : ".
+               "$subjectIDsref->{'CandID'}\n";
+	    $this->{LOG}->print($message);
+            $this->spool($message, 'N', $upload_id, 'Y');
       } else {
-            $message = "\n ERROR: The candidate could not be considered for ". 
+            $message = "\nERROR: The candidate could not be considered for ". 
                        "uploading, since s/he is not registered in your database.".
-                       "\n The dicom header PatientID is: ". 
+                       "\nThe dicom header PatientID is: ". 
                        $tarchiveInfo->{'PatientID'}. "\n ".
                        "The dicom header PatientName is: ". 
                        $tarchiveInfo->{'PatientName'}. "\n\n";
             $this->writeErrorLog($message, 6); 
-            $this->spool($message, 'Y', $upload_id);
+            $this->spool($message, 'Y', $upload_id, 'N');
             exit 6;
      }
 }
@@ -1055,11 +1013,9 @@ sub setMRISession {
     ############################################################
     ################## get session ID ##########################
     ############################################################
-    if ($this->{verbose}){
-        $message = "\n==> Getting session ID\n";
-        $this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\n==> Getting session ID\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     my ($sessionID, $requiresStaging) =
         NeuroDB::MRI::getSessionID(
             $subjectIDsref, 
@@ -1067,11 +1023,9 @@ sub setMRISession {
             $this->{dbhr}, 
             $subjectIDsref->{'subprojectID'}
         );
-    if ($this->{verbose}){
-        $message = "\nSessionID: $sessionID\n";    
-        $this->{LOG}->print($message);
-        $this->spool($message, 'N', $upload_id);
-    }
+    $message = "\nSessionID: $sessionID\n";    
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     # Staging: $requiresStaging\n";
     ############################################################
     # Make sure MRI Scan Done is set to yes, because now ####### 
@@ -1097,10 +1051,8 @@ sub validateArchive {
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     my $message = "\n==> verifying dicom archive md5sum (checksum)\n";
-    if ($this->{verbose})  {
-	$this->{LOG}->print($message);
-    	$this->spool($message, 'N', $upload_id);
-    }
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     my $cmd = "md5sum $tarchive";
     if ($this->{verbose})  {
         print $cmd . "\n";
@@ -1108,18 +1060,16 @@ sub validateArchive {
     my $md5_check = `$cmd`;
     my ($md5_real, $real) = split(' ', $md5_check);
     my ($md5_db  , $db)   = split(' ', $tarchiveInfo->{'md5sumArchive'});
-    $message = "\n -> checksum for target        :  ".
-        "$md5_real\n -> checksum from database :  $md5_db\n";
-    if ($this->{verbose})  {
-	$this->{LOG}->print($message);
-    	$this->spool($message, 'N', $upload_id);
-    }
+    $message = "\n-> checksum for target        :  ".
+        "$md5_real\n-> checksum from database :  $md5_db\n";
+    $this->{LOG}->print($message);
+    $this->spool($message, 'N', $upload_id, 'Y');
     if ($md5_real ne $md5_db) {
         $message =  "\nerror: archive seems to be corrupted or modified. ".
                        "upload will exit now.\nplease read the creation logs ".
                        " for more  information!\n\n";
         $this->writeErrorLog($message, 7); 
-        $this->spool($message, 'Y', $upload_id);
+        $this->spool($message, 'Y', $upload_id, 'N');
         exit 7;
     }
 }
@@ -1155,7 +1105,7 @@ sub validateCandidate {
 	if ($this->{verbose});
     my @CandIDCheck = $sth->fetchrow_array;
     if ($sth->rows == 0) {
-        print LOG  "\n\n => Could not find candidate with CandID =".
+        print LOG  "\n\n=> Could not find candidate with CandID =".
                    " $subjectIDsref->{'CandID'} in database";
         $CandMismatchError = 'CandID does not exist';
         return $CandMismatchError;
@@ -1170,7 +1120,7 @@ sub validateCandidate {
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'PSCID'});
     if ($sth->rows == 0) {
-        print "\n\n => No PSCID";
+        print "\n\n=> No PSCID";
         $CandMismatchError= 'PSCID does not exist';
         return $CandMismatchError;
     } 
@@ -1195,11 +1145,11 @@ sub validateCandidate {
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'visitLabel'});
     if (($sth->rows == 0) && (!$subjectIDsref->{'createVisitLabel'})) {
-        print "\n\n => No Visit label";
+        print "\n\n=> No Visit label";
         $CandMismatchError= 'Visit label does not exist';
         return $CandMismatchError;
     } elsif (($sth->rows == 0) && ($subjectIDsref->{'createVisitLabel'})) {
-        print "\n\n => Will create visit label $subjectIDsref->{'visitLabel'}";
+        print "\n\n=> Will create visit label $subjectIDsref->{'visitLabel'}";
     } 
 
    return $CandMismatchError;
@@ -1228,7 +1178,8 @@ sub getUploadIDUsingTarchiveID {
     my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
     my $tarchive_id = shift;
-    my ( $query, $upload_id ) = '';
+    my $query = '';
+    my $upload_id = undef;
 
     if ($tarchive_id) {
         ########################################################
@@ -1258,18 +1209,19 @@ Arguments:
  $message   : Message to be logged in the database
  $error     : if 'Y' it's an error log , 'N' otherwise
  $upload_id: The upload_id
+ $verb      : 'N' for few main messages, 'Y' for more messages (developers)
  Returns    : NULL
 =cut
 
 sub spool  {
     my $this = shift;
-    my ( $message, $error, $upload_id ) = @_;
+    my ( $message, $error, $upload_id, $verb ) = @_;
 
     if ($error eq 'Y'){
  	print "Spool message is: $message \n";
     }
     $this->{'Notify'}->spool('mri upload processing class', $message, 0,
-           'MRIProcessingUtility.pm', $upload_id, $error);
+           'MRIProcessingUtility.pm', $upload_id, $error, $verb);
 }
 
 

@@ -28,8 +28,8 @@ my $date = sprintf(
            );
 my $debug       = 0;  
 my $message     = '';
-my $tarchive_id = '';
-my $upload_id   = '';
+my $tarchive_id = undef;
+my $upload_id   = undef;
 my $verbose     = 0;           # default for now
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
@@ -168,7 +168,7 @@ my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
 my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
 $tarchiveLibraryDir    =~ s/\/$//g;
-print "\n log dir is $LogDir \n" if $verbose;
+print "\nlog dir is $LogDir \n" if $verbose;
 if (!-d $LogDir) { 
     mkdir($LogDir, 0770); 
 }
@@ -239,7 +239,7 @@ if (($is_valid == 0) && ($force==0)) {
     print $message;
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y'
+                   'minc_insertion', $upload_id, 'Y', 'N'
     );
     exit 6;
 }
@@ -300,7 +300,7 @@ my $file = $utility->loadAndCreateObjectFile($minc,
 ##### Optionally do extra filtering, if needed #################
 ################################################################
 if (defined(&Settings::filterParameters)) {
-    print LOG "\n --> using user-defined filterParameters for $minc\n"
+    print LOG "\n--> using user-defined filterParameters for $minc\n"
     if $verbose;
     Settings::filterParameters(\$file);
 }
@@ -314,7 +314,7 @@ if (defined(&Settings::filterParameters)) {
 ################################################################
 
 if (defined($CandMismatchError)) {
-    $message = "\n Candidate Mismatch Error is $CandMismatchError\n";
+    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
     print LOG $message;
     print LOG " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
@@ -327,7 +327,7 @@ if (defined($CandMismatchError)) {
     );
     
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y'
+                   'minc_insertion', $upload_id, 'Y', 'N'
     );
 
     exit 7 ;
@@ -351,9 +351,9 @@ my $unique = $utility->computeMd5Hash($file,
 if (!$unique) { 
     $message = "\n--> WARNING: This file has already been uploaded! \n";  
     print $message if $verbose;
-    print LOG "\n --> WARNING: This file has already been uploaded! \n"; 
+    print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y'
+                   'minc_insertion', $upload_id, 'Y', 'N'
     );
 #    exit 8; 
 } 
@@ -390,7 +390,7 @@ if($acquisitionProtocol =~ /unknown/) {
 
    print LOG $message;
    $notifier->spool('tarchive validation', $message, 0,
-                  'minc_insertion', $upload_id, 'Y'
+                  'minc_insertion', $upload_id, 'Y', 'N'
    );
    exit 9;
 }
@@ -409,23 +409,22 @@ $utility->registerScanIntoDB(
 ################################################################
 ### Add series notification ####################################
 ################################################################
-if ($verbose) {
-    $notifier->spool(
-    	'mri new series', "\n" . $subjectIDsref->{'CandID'} . " " .
+$notifier->spool(
+	'mri new series', "\n" . $subjectIDsref->{'CandID'} . " " .
     	$subjectIDsref->{'PSCID'} ." " .
     	$subjectIDsref->{'visitLabel'} .
     	"\tacquired " . $file->getParameter('acquisition_date')
     	. "\t" . $file->getParameter('series_description'),
-    	0, 'minc_insertion.pl', $upload_id, 'N');
+    	0, 'minc_insertion.pl', $upload_id, 'N', 'Y');
 
-	print "\nFinished file:  ".$file->getFileDatum('File')." \n";
+if ($verbose) {
+    print "\nFinished file:  ".$file->getFileDatum('File')." \n";
 }
-
 ################################################################
 ###################### Creation of Jivs ########################
 ################################################################
 if (!$no_jiv) {
-    print "\n Making JIV\n" if $verbose;
+    print "\nMaking JIV\n" if $verbose;
     NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
 }
 
@@ -433,7 +432,7 @@ if (!$no_jiv) {
 ###################### Creation of NIfTIs ######################
 ################################################################
 unless ($no_nii) {
-    print "\n Creating NIfTI files\n" if $verbose;
+    print "\nCreating NIfTI files\n" if $verbose;
     NeuroDB::MRI::make_nii(\$file, $data_dir);
 }
 

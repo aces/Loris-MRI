@@ -191,13 +191,13 @@ if ( !($is_valid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe validation has failed \n";
-    spool($message,'Y');
+    spool($message,'Y', 'N');
     print $message;
     exit 6;
 }
 
 $message = "\nThe validation has passed \n";
-spool($message,'N');
+spool($message,'N', 'N');
 
 ################################################################
 ############### Run DicomTar  ##################################
@@ -207,12 +207,12 @@ if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe dicomtar execution has failed\n";
-    spool($message,'Y');
+    spool($message,'Y', 'N');
     print $message;
     exit 7;
 }
 $message = "\nThe dicomtar execution has successfully completed\n";
-spool($message,'N');
+spool($message,'N','N');
 
 ################################################################
 ############### Run runTarchiveLoader###########################
@@ -221,12 +221,12 @@ $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
     $message = "\nThe insertion scripts have failed\n";
-    spool($message,'Y'); 
+    spool($message,'Y', 'N'); 
     print $message;
     exit 8;
 }
 $message = "\nThe insertion scripts have successfully completed\n";
-spool($message,'N');
+spool($message,'N', 'N');
 
 ################################################################
 ### If we got this far, dicomTar and tarchiveLoader completed###
@@ -288,16 +288,18 @@ Arguments:
  $this      : Reference to the class
  $message   : Message to be logged in the database 
  $error     : if 'Y' it's an error log , 'N' otherwise
+ $verb      : 'N' for few main messages, 'Y' for more messages (developers)
+
  Returns    : NULL
 =cut
 
 sub spool  {
-    my ( $message, $error ) = @_;
+    my ( $message, $error, $verb) = @_;
     $Notify->spool('mri upload runner', 
                    $message, 
                    0, 
         		   'imaging_upload_file.pl',
-                   $upload_id,$error
+                   $upload_id,$error, $verb
     );
 }
 

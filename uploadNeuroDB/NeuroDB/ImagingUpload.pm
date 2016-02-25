@@ -131,7 +131,7 @@ sub IsValid {
             "\nThe uploadID "
           . $this->{'upload_id'}
           . " Does Not Exist \n";
-        $this->spool($message, 'Y');
+        $this->spool($message, 'Y','N');
         return 0;
     }
 
@@ -148,7 +148,7 @@ sub IsValid {
           . " has already been ran with tarchiveID: "
           . $row[1]
 	  . "\n";
-        $this->spool($message, 'Y');
+        $this->spool($message, 'Y','N');
         return 0;
     }
 
@@ -179,7 +179,7 @@ sub IsValid {
     if ( $files_not_dicom > 0 ) {
         $message = "\nERROR: there are $files_not_dicom files which are "
           . "Are not of type DICOM \n";
-        $this->spool($message, 'Y');
+        $this->spool($message, 'Y','N');
         return 0;
     }
 
@@ -187,7 +187,7 @@ sub IsValid {
         $message =
             "\nERROR: there are $files_with_unmatched_patient_name files"
           . " where the patient-name doesn't match \n";
-        $this->spool($message, 'Y');
+        $this->spool($message, 'Y','N');
         return 0;
     }
 
@@ -221,7 +221,7 @@ Arguments:
 =cut
 sub runDicomTar {
     my $this              = shift;
-    my $tarchive_id       = '';
+    my $tarchive_id       = undef;
     my $query             = '';
     my $where             = '';
     my $tarchive_location = $Settings::tarchiveLibraryDir;
@@ -354,14 +354,14 @@ sub PatientNameMatch {
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
-        $this->spool($message, 'Y');
+        $this->spool($message, 'Y','N');
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
         my $message = "\nThe patient-name $pname does not Match " .
         		$this->{'pname'}. "\n";
-    	$this->spool($message, 'Y');
+    	$this->spool($message, 'Y','N');
         return 0; ##return false
     }
     return 1;     ##return true
@@ -531,15 +531,16 @@ Arguments:
  $this      : Reference to the class
  $message   : Message to be logged in the database 
  $error     : if 'Y' it's an error log , 'N' otherwise
+ $verb      : 'N' for few main messages, 'Y' for more messages (developers)
  Returns    : NULL
 =cut
 
 sub spool  {
     my $this = shift;
-    my ( $message, $error ) = @_;
+    my ( $message, $error, $verb ) = @_;
     print "Spool message is: $message \n";
     $this->{'Notify'}->spool('mri upload processing class', $message, 0,
-           'Imaging_Upload.pm', $this->{'upload_id'},$error);
+           'Imaging_Upload.pm', $this->{'upload_id'},$error,$verb);
 }
 
 
