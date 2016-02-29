@@ -293,7 +293,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-                $tarchive, $tarchiveInfo{'TarchiveID'}, $verbose);
+                $tarchive, $tarchiveInfo{'TarchiveID'});
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###

@@ -106,7 +106,7 @@ extracts it so data can actually be uploaded
 =cut
 sub extract_tarchive {
     my $this = shift;
-    my ($tarchive, $tarchive_id, $verbose) = @_;
+    my ($tarchive, $tarchive_id) = @_;
     my $upload_id = undef;
     my $message = '';
     # get the upload_id from the tarchive_id to pass to the notification_spool
@@ -143,9 +143,9 @@ sub extract_tarchive {
 sub extractAndParseTarchive {
 
     my $this = shift;
-    my ($tarchive, $tarchive_id, $verbose) = @_;
+    my ($tarchive, $tarchive_id) = @_;
     # get the upload_id from the tarchive_id to pass to notification_spool
-    my $upload_id = getUploadIDUsingTarchiveID($tarchive_id, $verbose);
+    my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     my $study_dir = $this->{TmpDir}  . "/" .
         $this->extract_tarchive($tarchive, $tarchive_id);
     my $ExtractSuffix  = basename($tarchive, ".tar");
@@ -285,8 +285,8 @@ sub determineScannerID {
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     my $message = '';
     $to_log = 1 unless defined $to_log;
+    $message = "\n\n==> Trying to determine scanner ID\n";
     if ($to_log) {
-        $message = "\n\n==> Trying to determine scanner ID\n";
         $this->{LOG}->print($message);
     }
     $this->spool($message, 'N', $upload_id, 'Y');
@@ -726,7 +726,7 @@ sub dicom_to_minc {
 
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,
-		$exclude,$mail_user, $tarchive_id, $verbose) = @_;
+		$exclude,$mail_user, $tarchive_id) = @_;
     my ($d2m_cmd,$d2m_log,$exit_code);
     my $message = '';
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
@@ -773,7 +773,7 @@ sub dicom_to_minc {
 sub get_mincs {
   
     my $this = shift;
-    my ($minc_files, $tarchive_id, $verbose) = @_;
+    my ($minc_files, $tarchive_id) = @_;
     my $message = '';
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     @$minc_files = ();
@@ -868,7 +868,7 @@ sub registerProgs() {
 sub moveAndUpdateTarchive {
 
     my $this = shift;
-    my ($tarchive_location,$tarchiveInfo,$verbose) = @_;
+    my ($tarchive_location,$tarchiveInfo) = @_;
     my $query = '';
     my $message = '';
     my ($newTarchiveLocation, $newTarchiveFilename,$mvTarchiveCmd);
