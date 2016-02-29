@@ -56,8 +56,8 @@ my $date        = sprintf(
                   );
 my $debug       = 0;  
 my $message     = '';
-my $tarchive_id = '';
-my $upload_id   = '';
+my $tarchive_id = undef;
+my $upload_id   = undef;
 my $verbose     = 0;           # default for now
 my $profile     = 'prod';       # this should never be set unless you are in a
                                # stable production environment
