@@ -189,7 +189,7 @@ my $Notify = NeuroDB::Notify->new(
 my $is_valid = $imaging_upload->IsValid();
 if ( !($is_valid) ) {
     $imaging_upload->updateMRIUploadTable(
-	'Processing', 0);
+	'Inserting', 0);
     $message = "The validation has failed";
     spool($message,'Y');
     print $message;
@@ -205,7 +205,7 @@ spool($message,'N');
 $output = $imaging_upload->runDicomTar();
 if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
-	'Processing', 0);
+	'Inserting', 0);
     $message = "\n The dicomtar execution has failed";
     spool($message,'Y');
     print $message;
@@ -218,7 +218,7 @@ spool($message,'N');
 ############### Run runTarchiveLoader###########################
 ################################################################
 $output = $imaging_upload->runTarchiveLoader();
-$imaging_upload->updateMRIUploadTable('Processing', 0);
+$imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
     $message = "\n The insertion scripts have failed";
     spool($message,'Y'); 

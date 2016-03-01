@@ -50,8 +50,9 @@ Version :   $versionInfo
 
 The program does the following
 
-- Gets a series of rows from mri_uploaded which processed and currentlyprocess
-are both set to null
+- Gets a series of rows from mri_upload which are not currently inserting, nor
+have insertion completed
+
 HELP
 my $Usage = <<USAGE;
        $0 -help to list options
@@ -72,7 +73,9 @@ if ($profile && !@Settings::db) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my @row=();
-my $query = "SELECT UploadID, UploadLocation FROM mri_upload WHERE Processed=0 AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL)";
+my $query = "SELECT UploadID, UploadLocation FROM mri_upload 
+		WHERE Inserting <> 1 AND InsertionComplete <> 1 
+		AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL)";
 print "\n" . $query . "\n";
 my $sth = $dbh->prepare($query);
 $sth->execute();
