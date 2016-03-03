@@ -59,6 +59,7 @@ my $message     = '';
 my $tarchive_id = undef;
 my $upload_id   = undef;
 my $verbose     = 0;           # default for now
+my $verb_notification     = 'N';           # default for the notification_spool
 my $profile     = 'prod';       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -302,7 +303,8 @@ if (($output != 0)  && ($force==0)) {
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog($message,5,$logfile); 
  $notifier->spool('tarchive loader', $message, 0, 
-		'tarchiveLoader', $upload_id, 'Y', 'N'
+		'tarchiveLoader', $upload_id, 'Y',
+		$verb_notification
  );
  exit 5;
 }
@@ -387,7 +389,8 @@ if ($mcount < 1) {
     # get the upload_id from the tarchive_id
     # to pass it on to the notification_spool table
     $notifier->spool('tarchive loader', $message, 0,
-                   'tarchiveLoader', $upload_id, 'Y', 'N'
+                   'tarchiveLoader', $upload_id, 'Y',
+		   $verb_notification
     );
     exit 6; 
 }
@@ -547,7 +550,7 @@ if ($valid_study) {
         'mri invalid study', "\n" . $tarchive. " acquired ". 
         $tarchiveInfo{'DateAcquired'} .
         " was deemed invalid\n\n". $study_dir,
-	0, 'tarchiveLoader', $upload_id, 'Y', 'N'
+	0, 'tarchiveLoader', $upload_id, 'Y', $verb_notification
     );
 }
 
@@ -622,7 +625,7 @@ if (!$valid_study) {
     print ($message);
     $notifier->spool(
         'mri invalid study', $message, 0,
-        'tarchiveLoader', $upload_id, 'Y', 'N'
+        'tarchiveLoader', $upload_id, 'Y', $verb_notification
     );
     exit 9;
 }

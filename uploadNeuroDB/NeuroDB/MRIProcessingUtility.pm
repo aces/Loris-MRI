@@ -109,6 +109,7 @@ sub extract_tarchive {
     my ($tarchive, $tarchive_id) = @_;
     my $upload_id = undef;
     my $message = '';
+    my $verb_notification = 'N';
     # get the upload_id from the tarchive_id to pass to the notification_spool
     $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     $message = "\nExtracting tarchive $tarchive in $this->{TmpDir} \n";
@@ -126,7 +127,7 @@ sub extract_tarchive {
         my $message = "Error: Could not find inner tar in $tarchive!\n";
         print $message;
         print @tars . "\n";
-        $this->spool($message, 'Y', $upload_id, 'N');
+        $this->spool($message, 'Y', $upload_id, $verb_notification);
         exit 1 ;
     }
     my $dcmtar = $tars[0];
@@ -167,6 +168,7 @@ sub determineSubjectID {
 
     my $this = shift;
     my ($scannerID,$tarchiveInfo,$to_log) = @_;
+    my $verb_notification = 'N';
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     $to_log = 1 unless defined $to_log;
@@ -175,7 +177,7 @@ sub determineSubjectID {
             my $message =  "\nERROR: Profile does not contain getSubjectIDs ".
                            "routine. Upload will exit now.\n\n";
             $this->writeErrorLog($message, 2);
-	    $this->spool($message, 'Y', $upload_id, 'N');
+	    $this->spool($message, 'Y', $upload_id, $verb_notification);
 	    exit 2;
         }
     }
@@ -207,6 +209,7 @@ sub createTarchiveArray {
     my $this = shift;
     my %tarchiveInfo;
     my ($tarchive,$globArchiveLocation) = @_;
+    my $verb_notification = 'N';
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
         $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
@@ -233,7 +236,7 @@ sub createTarchiveArray {
 	# no $tarchive nor $tarchive_id can be fetched since the archive 
 	# could not be found, making $upload_id hard to trace, so send some 
 	# random number (99999) instead for $upload_id in the notification_spool
-        $this->spool($message, 'Y', 99999, 'N');
+        $this->spool($message, 'Y', 99999, $verb_notification);
         exit 3;
     }
 
@@ -249,6 +252,7 @@ sub determinePSC {
     my ($tarchiveInfo,$to_log) = @_;
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = undef;
+    my $verb_notification = 'N';
     $to_log = 1 unless defined $to_log;
     my ($center_name, $centerID) =
     NeuroDB::MRI::getPSC(
@@ -261,7 +265,7 @@ sub determinePSC {
 
             my $message = "\nERROR: No center found for this candidate \n\n";
             $this->writeErrorLog($message, 4);
-	    $this->spool($message, 'Y', $upload_id, 'N');
+	    $this->spool($message, 'Y', $upload_id, $verb_notification);
             exit 4;
         }
         my $message =
@@ -281,6 +285,7 @@ sub determineScannerID {
 
     my $this = shift;
     my ($tarchiveInfo,$to_log,$centerID,$NewScanner) = @_;
+    my $verb_notification = 'N';
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     my $message = '';
@@ -302,7 +307,7 @@ sub determineScannerID {
             $NewScanner 
         );
     if ($scannerID == 0) {
-       	$this->spool($message, 'Y', $upload_id, 'N');
+       	$this->spool($message, 'Y', $upload_id, $verb_notification);
         if ($to_log) {
             $message = "\nERROR: The ScannerID for this particular scanner ".
                           "does not exist. Enable creating new ScannerIDs in ".
@@ -366,6 +371,7 @@ sub getAcquisitionProtocol {
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     my $message = '';
+    my $verb_notification = 'N';
     
 
     ############################################################
@@ -410,7 +416,7 @@ sub getAcquisitionProtocol {
 		$this->spool($message, 'N', $upload_id, 'Y');
 	}
 	else{
-		$this->spool($message, 'Y', $upload_id, 'N');
+		$this->spool($message, 'Y', $upload_id, $verb_notification);
 	}
     }
     return ($acquisitionProtocol, $acquisitionProtocolID, @checks);
@@ -727,6 +733,7 @@ sub dicom_to_minc {
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,
 		$exclude,$mail_user, $tarchive_id) = @_;
+    my $verb_notification = 'N';
     my ($d2m_cmd,$d2m_log,$exit_code);
     my $message = '';
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
@@ -752,7 +759,7 @@ sub dicom_to_minc {
         # just email. ##########################################
         ########################################################
         $message = "\nDicom to Minc conversion failed\n";
-        $this->spool($message, 'Y', $upload_id, 'N');
+        $this->spool($message, 'Y', $upload_id, $verb_notification);
         open MAIL, "| mail $mail_user";
         print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
                    "dicom->minc failed\n";
@@ -925,6 +932,7 @@ sub CreateMRICandidates {
     my $this = shift;
     my $query = '';
     my ($subjectIDsref,$gender,$tarchiveInfo,$User,$centerID) = @_;
+    my $verb_notification = 'N';
     my ($message);
     my $tarchive_id = undef;
     my $upload_id   = undef;
@@ -983,7 +991,7 @@ sub CreateMRICandidates {
                        "The dicom header PatientName is: ". 
                        $tarchiveInfo->{'PatientName'}. "\n\n";
             $this->writeErrorLog($message, 6); 
-            $this->spool($message, 'Y', $upload_id, 'N');
+            $this->spool($message, 'Y', $upload_id, $verb_notification);
             exit 6;
      }
 }
@@ -1048,6 +1056,7 @@ sub setMRISession {
 sub validateArchive {
     my $this = shift;
     my ($tarchive,$tarchiveInfo) = @_;
+    my $verb_notification = 'N';
     my $tarchive_id = $tarchiveInfo->{'TarchiveID'};
     my $upload_id = getUploadIDUsingTarchiveID($tarchive_id);
     my $message = "\n==> verifying dicom archive md5sum (checksum)\n";
@@ -1069,7 +1078,7 @@ sub validateArchive {
                        "upload will exit now.\nplease read the creation logs ".
                        " for more  information!\n\n";
         $this->writeErrorLog($message, 7); 
-        $this->spool($message, 'Y', $upload_id, 'N');
+        $this->spool($message, 'Y', $upload_id, $verb_notification);
         exit 7;
     }
 }

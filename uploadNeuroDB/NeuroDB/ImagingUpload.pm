@@ -98,7 +98,7 @@ sub IsValid {
     my $files_with_unmatched_patient_name = 0;
     my $is_valid                          = 0;
     my @row                               = ();
-
+    my $verb_notification		  = 'N';
     ############################################################
     ####Get a list of files from the folder#####################
     ############################################################
@@ -131,7 +131,7 @@ sub IsValid {
             "\nThe uploadID "
           . $this->{'upload_id'}
           . " Does Not Exist \n";
-        $this->spool($message, 'Y','N');
+        $this->spool($message, 'Y', $verb_notification);
         return 0;
     }
 
@@ -148,7 +148,7 @@ sub IsValid {
           . " has already been ran with tarchiveID: "
           . $row[1]
 	  . "\n";
-        $this->spool($message, 'Y','N');
+        $this->spool($message, 'Y', $verb_notification);
         return 0;
     }
 
@@ -179,7 +179,7 @@ sub IsValid {
     if ( $files_not_dicom > 0 ) {
         $message = "\nERROR: there are $files_not_dicom files which are "
           . "Are not of type DICOM \n";
-        $this->spool($message, 'Y','N');
+        $this->spool($message, 'Y', $verb_notification);
         return 0;
     }
 
@@ -187,7 +187,7 @@ sub IsValid {
         $message =
             "\nERROR: there are $files_with_unmatched_patient_name files"
           . " where the patient-name doesn't match \n";
-        $this->spool($message, 'Y','N');
+        $this->spool($message, 'Y', $verb_notification);
         return 0;
     }
 
@@ -350,18 +350,19 @@ Arguments:
 sub PatientNameMatch {
     my $this         = shift;
     my ($dicom_file) = @_;
+    my $verb_notification = 'N';
     my $cmd          = "dcmdump $dicom_file | grep PatientName";
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
-        $this->spool($message, 'Y','N');
+        $this->spool($message, 'Y', $verb_notification);
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
         my $message = "\nThe patient-name $pname does not Match " .
         		$this->{'pname'}. "\n";
-    	$this->spool($message, 'Y','N');
+    	$this->spool($message, 'Y', $verb_notification);
         return 0; ##return false
     }
     return 1;     ##return true

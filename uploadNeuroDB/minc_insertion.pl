@@ -31,6 +31,7 @@ my $message     = '';
 my $tarchive_id = undef;
 my $upload_id   = undef;
 my $verbose     = 0;           # default for now
+my $verb_notification = 'N';   # default for the notification spool table
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -239,7 +240,8 @@ if (($is_valid == 0) && ($force==0)) {
     print $message;
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y', 'N'
+                   'minc_insertion', $upload_id, 'Y', 
+                   $verb_notification
     );
     exit 6;
 }
@@ -327,7 +329,8 @@ if (defined($CandMismatchError)) {
     );
     
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y', 'N'
+                   'minc_insertion', $upload_id, 'Y', 
+                   $verb_notification
     );
 
     exit 7 ;
@@ -353,7 +356,8 @@ if (!$unique) {
     print $message if $verbose;
     print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y', 'N'
+                   'minc_insertion', $upload_id, 'Y', 
+                   $verb_notification
     );
 #    exit 8; 
 } 
@@ -390,7 +394,8 @@ if($acquisitionProtocol =~ /unknown/) {
 
    print LOG $message;
    $notifier->spool('tarchive validation', $message, 0,
-                  'minc_insertion', $upload_id, 'Y', 'N'
+                  'minc_insertion', $upload_id, 'Y', 
+                  $verb_notification
    );
    exit 9;
 }

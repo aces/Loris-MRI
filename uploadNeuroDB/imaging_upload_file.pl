@@ -38,6 +38,7 @@ my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = undef;
 my $verbose             = 0;           # default for now
+my $verb_notification   = 'N';
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -191,13 +192,13 @@ if ( !($is_valid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe validation has failed \n";
-    spool($message,'Y', 'N');
+    spool($message,'Y', $verb_notification);
     print $message;
     exit 6;
 }
 
 $message = "\nThe validation has passed \n";
-spool($message,'N', 'N');
+spool($message,'N', $verb_notification);
 
 ################################################################
 ############### Run DicomTar  ##################################
@@ -207,12 +208,12 @@ if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe dicomtar execution has failed\n";
-    spool($message,'Y', 'N');
+    spool($message,'Y', $verb_notification);
     print $message;
     exit 7;
 }
 $message = "\nThe dicomtar execution has successfully completed\n";
-spool($message,'N','N');
+spool($message,'N', $verb_notification);
 
 ################################################################
 ############### Run runTarchiveLoader###########################
@@ -221,12 +222,12 @@ $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
     $message = "\nThe insertion scripts have failed\n";
-    spool($message,'Y', 'N'); 
+    spool($message,'Y', $verb_notification); 
     print $message;
     exit 8;
 }
 $message = "\nThe insertion scripts have successfully completed\n";
-spool($message,'N', 'N');
+spool($message,'N', $verb_notification);
 
 ################################################################
 ### If we got this far, dicomTar and tarchiveLoader completed###
@@ -235,7 +236,7 @@ spool($message,'N', 'N');
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "The uploaded file " . $uploaded_file . " was not removed\n";
-    spool($message,'Y'); 
+    spool($message,'Y', $verb_notification);
     print $message;
     exit 9;
 }
