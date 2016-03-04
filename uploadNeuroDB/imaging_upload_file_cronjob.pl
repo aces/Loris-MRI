@@ -73,9 +73,11 @@ if ($profile && !@Settings::db) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my @row=();
-my $query = "SELECT UploadID, UploadLocation FROM mri_upload 
-		WHERE Inserting <> 1 AND InsertionComplete <> 1 
-		AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL)";
+(my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT UploadID, UploadLocation FROM mri_upload 
+    WHERE Inserting <> 1 AND InsertionComplete <> 1 
+        AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL);
+QUERY
 print "\n" . $query . "\n";
 my $sth = $dbh->prepare($query);
 $sth->execute();
