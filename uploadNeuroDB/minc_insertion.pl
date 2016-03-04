@@ -31,7 +31,8 @@ my $message     = '';
 my $tarchive_id = undef;
 my $upload_id   = undef;
 my $verbose     = 0;           # default for now
-my $verb_notification = 'N';   # default for the notification spool table
+my $verb_default = 'N';        # default for the notification spool table
+my $verb_notdefault = 'Y';     # default for the notification spool table
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -241,7 +242,7 @@ if (($is_valid == 0) && ($force==0)) {
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
                    'minc_insertion', $upload_id, 'Y', 
-                   $verb_notification
+                   $verb_default
     );
     exit 6;
 }
@@ -330,7 +331,7 @@ if (defined($CandMismatchError)) {
     
     $notifier->spool('tarchive validation', $message, 0,
                    'minc_insertion', $upload_id, 'Y', 
-                   $verb_notification
+                   $verb_default
     );
 
     exit 7 ;
@@ -357,7 +358,7 @@ if (!$unique) {
     print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
                    'minc_insertion', $upload_id, 'Y', 
-                   $verb_notification
+                   $verb_default
     );
 #    exit 8; 
 } 
@@ -395,7 +396,7 @@ if($acquisitionProtocol =~ /unknown/) {
    print LOG $message;
    $notifier->spool('tarchive validation', $message, 0,
                   'minc_insertion', $upload_id, 'Y', 
-                  $verb_notification
+                  $verb_default
    );
    exit 9;
 }
@@ -420,7 +421,7 @@ $notifier->spool(
     	$subjectIDsref->{'visitLabel'} .
     	"\tacquired " . $file->getParameter('acquisition_date')
     	. "\t" . $file->getParameter('series_description'),
-    	0, 'minc_insertion.pl', $upload_id, 'N', 'Y');
+    	0, 'minc_insertion.pl', $upload_id, 'N', $verb_notdefault);
 
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";

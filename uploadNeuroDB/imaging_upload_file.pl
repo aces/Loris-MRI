@@ -38,7 +38,7 @@ my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = undef;
 my $verbose             = 0;           # default for now
-my $verb_notification   = 'N';
+my $verb_default   = 'N';
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -192,13 +192,13 @@ if ( !($is_valid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe validation has failed \n";
-    spool($message,'Y', $verb_notification);
+    spool($message,'Y', $verb_default);
     print $message;
     exit 6;
 }
 
 $message = "\nThe validation has passed \n";
-spool($message,'N', $verb_notification);
+spool($message,'N', $verb_default);
 
 ################################################################
 ############### Run DicomTar  ##################################
@@ -208,12 +208,12 @@ if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe dicomtar execution has failed\n";
-    spool($message,'Y', $verb_notification);
+    spool($message,'Y', $verb_default);
     print $message;
     exit 7;
 }
 $message = "\nThe dicomtar execution has successfully completed\n";
-spool($message,'N', $verb_notification);
+spool($message,'N', $verb_default);
 
 ################################################################
 ############### Run runTarchiveLoader###########################
@@ -222,12 +222,12 @@ $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
     $message = "\nThe insertion scripts have failed\n";
-    spool($message,'Y', $verb_notification); 
+    spool($message,'Y', $verb_default); 
     print $message;
     exit 8;
 }
 $message = "\nThe insertion scripts have successfully completed\n";
-spool($message,'N', $verb_notification);
+spool($message,'N', $verb_default);
 
 ################################################################
 ### If we got this far, dicomTar and tarchiveLoader completed###

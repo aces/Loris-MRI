@@ -59,8 +59,9 @@ my $message     = '';
 my $tarchive_id = undef;
 my $upload_id   = undef;
 my $verbose     = 0;           # default for now
-my $verb_notification     = 'N';           # default for the notification_spool
-my $profile     = 'prod';       # this should never be set unless you are in a
+my $verb_default     = 'N';    # default for the notification_spool
+my $verb_notdefault  = 'Y';    # default for the notification_spool
+my $profile     = 'prod';      # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                #set it to 1!!!
@@ -304,7 +305,7 @@ if (($output != 0)  && ($force==0)) {
  $utility->writeErrorLog($message,5,$logfile); 
  $notifier->spool('tarchive loader', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
-		$verb_notification
+		$verb_default
  );
  exit 5;
 }
@@ -375,7 +376,7 @@ my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
 $notifier->spool('tarchive loader', $message, 0,
-               'tarchiveLoader', $upload_id, 'N', 'Y');
+               'tarchiveLoader', $upload_id, 'N', $verb_notdefault);
 if ($verbose){
     print $message;
 }
@@ -390,7 +391,7 @@ if ($mcount < 1) {
     # to pass it on to the notification_spool table
     $notifier->spool('tarchive loader', $message, 0,
                    'tarchiveLoader', $upload_id, 'Y',
-		   $verb_notification
+		   $verb_default
     );
     exit 6; 
 }
@@ -521,7 +522,7 @@ if ($valid_study) {
             " " . $subjectIDsref->{'PSCID'} .
             " " . $subjectIDsref->{'visitLabel'} .
             "\tacquired ". $tarchiveInfo{'DateAcquired'},
-	    0, 'tarchiveLoader', $upload_id, 'N', 'Y'
+	    0, 'tarchiveLoader', $upload_id, 'N', $verb_notdefault
         );
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
@@ -550,7 +551,7 @@ if ($valid_study) {
         'mri invalid study', "\n" . $tarchive. " acquired ". 
         $tarchiveInfo{'DateAcquired'} .
         " was deemed invalid\n\n". $study_dir,
-	0, 'tarchiveLoader', $upload_id, 'Y', $verb_notification
+	0, 'tarchiveLoader', $upload_id, 'Y', $verb_default
     );
 }
 
@@ -603,7 +604,7 @@ if (scalar(@leftovers) > 0) {
 }
 $message ="\n==> Done tarchiveLoader execution!  Removing $TmpDir.\n";
 $notifier->spool('tarchive loader', $message, 0,
-            'tarchiveLoader', $upload_id, 'N', 'Y');
+            'tarchiveLoader', $upload_id, 'N', $verb_notdefault);
 print LOG $message;
 close LOG;
 `gzip -9 $logfile`;
@@ -625,7 +626,7 @@ if (!$valid_study) {
     print ($message);
     $notifier->spool(
         'mri invalid study', $message, 0,
-        'tarchiveLoader', $upload_id, 'Y', $verb_notification
+        'tarchiveLoader', $upload_id, 'Y', $verb_default
     );
     exit 9;
 }
