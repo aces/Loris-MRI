@@ -574,6 +574,17 @@ if (!$valid_study) {
     print "No Mincs inserted \n \n";
     exit 9;
 }
+
+###############################################################
+### Set Processed to 1 in mri_upload table#####################
+###############################################################
+my $where = "WHERE TarchiveID=?";
+my $query = "UPDATE mri_upload SET InsertionComplete=1 ";
+$query = $query . $where;
+
+my $mri_upload_update = $dbh->prepare($query);
+$mri_upload_update->execute($tarchiveInfo{TarchiveID});
+
 exit 0;
 sub logHeader () {
     print LOG "

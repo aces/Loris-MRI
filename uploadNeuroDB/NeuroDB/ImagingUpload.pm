@@ -78,14 +78,14 @@ sub IsValid {
     my $this = shift;
     my ($message,$query,$where) = '';
     ############################################################
-    ####Set the Processed to true###############################
+    ####Set the Inserting flag to true##########################
     #Which means that the scan is going through the pipeline####
     ############################################################
     ############################################################
     ###########Update MRI_upload Table accordingly##############
     ############################################################
     $where = " WHERE UploadID=?";
-    $query = " UPDATE mri_upload SET Processed=1";
+    $query = " UPDATE mri_upload SET Inserting=1";
     $query = $query . $where;
     my $mri_upload_update = ${$this->{'dbhr'}}->prepare($query);
     $mri_upload_update->execute($this->{'upload_id'});
@@ -552,7 +552,7 @@ sub updateMRIUploadTable  {
     my $this = shift;
 
     my ( $field, $value ) = @_;
-    ########################################################
+        ########################################################
         #################Update MRI_upload table accordingly####
         ########################################################
         my $where = "WHERE UploadID=?";
