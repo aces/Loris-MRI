@@ -271,13 +271,37 @@ foreach $minc (@minc_files)  {
         my $quotedPatientName = $dbh->quote($patientName);
         my $studyDate = $file->getParameter('study_date');
 
-        my $query = "SELECT COUNT(*) AS counter FROM mri_staging WHERE SessionID=$sessionID AND PatientName=$quotedPatientName AND StudyDate=UNIX_TIMESTAMP('$studyDate') AND Resolution IS NULL";
+        (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        COUNT(*) AS counter
+    FROM 
+        mri_staging 
+    WHERE 
+        SessionID=? 
+        AND PatientName=?
+        AND StudyDate=?
+        AND Resolution IS NULL
+QUERY
         my $sth = $dbh->prepare($query);
-        $sth->execute();
+        $sth->execute($sessionID, 
+                      $quotedPatientName, 
+                      "UNIX_TIMESTAMP('$studyDate')"
+                     );
         my $rowhr = $sth->fetchrow_hashref();
         if($rowhr->{'counter'} == 0) {
-            $query = "INSERT INTO mri_staging SET SessionID=$sessionID, PatientName=$quotedPatientName, StudyDate=UNIX_TIMESTAMP('$studyDate')";
-            $dbh->do($query);
+            ($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO
+        mri_staging
+    SET 
+        SessionID=?, 
+        PatientName=?, 
+        StudyDate=?
+QUERY
+            $sth = $dbh->prepare($query);
+            $sth->execute($sessionID,
+                          $quotedPatientName
+                          "UNIX_TIMESTAMP('$studyDate')"
+                         );
             $notifier->spool('mri staging required', "Data labelled $quotedPatientName requires staging");
         }
     }
@@ -414,11 +438,19 @@ sub lookupCandIDFromPSCID {
     my ($pscid, $dbhr) = @_;
     my $candid = 0;
 
-    my $sth = $${dbhr}->prepare("SELECT CandID FROM candidate WHERE PSCID=".$${dbhr}->quote($pscid));
-    $sth->execute();
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        CandID 
+    FROM 
+        candidate 
+    WHERE 
+        PSCID=?
+QUERY
+    my $sth = $${dbhr}->prepare($query);   
+    $sth->execute($pscid);
     if($sth->rows > 0) {
-	my @row = $sth->fetchrow_array();
-	$candid = int($row[0]);
+	    my @row = $sth->fetchrow_array();
+	    $candid = int($row[0]);
     }
 
     return $candid;
@@ -429,8 +461,18 @@ sub lookupNextVisitLabel {
     my ($CandID, $dbhr) = @_;
     my $visitLabel = 1;
 
-    my $sth = $${dbhr}->prepare("SELECT Visit_label FROM session WHERE CandID=$CandID ORDER BY ID DESC LIMIT 1");
-    $sth->execute();
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        Visit_label 
+    FROM 
+        session 
+    WHERE 
+        CandID=?
+    ORDER BY 
+        ID DESC LIMIT 1
+QUERY
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($CandID);
     if($sth->rows > 0) {
 	my @row = $sth->fetchrow_array();
 	$visitLabel = $row[0] + 1;
@@ -445,14 +487,31 @@ sub update_mri_acquisition_dates {
 	$dbh = $$dbhr;
 
 	# get the registered acquisition date for this session
-	my $query = "SELECT s.ID, m.AcquisitionDate from session AS s left outer join mri_acquisition_dates AS m on (s.ID=m.SessionID) WHERE s.ID='$sessionID' and (m.AcquisitionDate > '$acq_date' OR m.AcquisitionDate is null) AND '$acq_date'>0";
+	(my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        s.ID, 
+        m.AcquisitionDate 
+    FROM 
+        session AS s left outer 
+        JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID) 
+    WHERE s.ID=? 
+        AND (m.AcquisitionDate > ? OR m.AcquisitionDate IS NULL) 
+        AND ? > 0";
+QUERY
 	my $sth = $dbh->prepare($query);
-	$sth->execute();
+	$sth->execute($sessionID, $acq_date, $acq_date);
 
 	# if we found a session, it needs updating or inserting, so we use replace into.
 	if($sth->rows > 0) {
-		my $query = "REPLACE INTO mri_acquisition_dates SET AcquisitionDate='$acq_date', SessionID='$sessionID'";
-		$dbh->do($query);
+        (my $query = <<QUERY) =~ s///gm;
+    REPLACE INTO
+        mri_acquisition_dates
+    SET
+        AcquisitionDate=?,
+        SessionID=?
+QUERY
+        my $sth = $dbh->prepare($query);
+        $sth->execute($acq_date, $sessionID);
 	}
 }
 

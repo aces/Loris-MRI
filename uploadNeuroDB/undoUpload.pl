@@ -61,16 +61,35 @@ $CandID = $ARGV[0];
 
 # establish database connection and query for affected files 
 my $dbh = NeuroDB::DBI::connect_to_db(@Settings::db);
-my $query = "select FileID, file, s.ID from session AS s, files AS f 
-             where f.sessionID=s.ID AND s.visit_label=" . $dbh->quote($visit) . " AND s.CandID=" . $dbh->quote($CandID) . " AND f.outputtype ='native' "; 
+(my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        FileID, 
+        file, 
+        s.ID
+    FROM 
+        session AS s, 
+        files AS f 
+    WHERE 
+        f.sessionID=s.ID 
+        AND s.visit_label=? 
+        AND s.CandID=? 
+        AND f.outputtype=?
+QUERY
 my $sth = $dbh->prepare($query);
-$sth->execute();
+$sth->execute($dbh->quote($visit), $dbh->quote($CandID), 'native');
 my $SelectedFiles = $sth->fetchall_arrayref();
 
 # figure out the corresponding CandID
-my $query = "SELECT PSCID FROM candidate WHERE CandID=\"$CandID\" ";
+(my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        PSCID 
+    FROM 
+        candidate 
+    WHERE 
+        CandID=?
+QUERY
 my $sth = $dbh->prepare($query);
-$sth->execute();
+$sth->execute($CandID);
 $PSCID = $sth->fetchrow_array();
 print "The corresponding Patient ID is : $PSCID \n";
 
@@ -82,23 +101,106 @@ my ($fileID,$file,$session);
 foreach my $row (@$SelectedFiles) {
     ($fileID, $file, $session) = @$row;
     print "$session, $fileID, $file \n";
-    $dbh->do("delete from feedback_mri_comments where FileID=$fileID") if $nuke;  print "delete from feedback_mri_comments where FileID=$fileID\n";
-    $dbh->do("delete from parameter_file where FileID=$fileID") if $nuke;         print "delete from parameter_file where FileID=$fileID\n";
-    $dbh->do("delete from files where fileID=$fileID") if $nuke;                  print "delete from files where fileID=$fileID\n";
-    print "I should remove this file : $file\n";
-    if ($nuke) { if (!-e $file) { print $file . " does not exist!\n"; } 
-		 else { `rm -f $file` }
-	     } 
+    if ($nuke) {
+        # delete from feedback_mri_comments
+        ($query = <<QUERY) =~ s/\n/ /gm;
+    DELETE FROM
+        feedback_mri_comments
+    WHERE
+        FileID=?
+QUERY
+        print $query . "\n";
+        $sth = $dbh->prepare($query);
+        $sth->execute($fileID);
+
+        # delete from parameter_file 
+        ($query = <<QUERY) =~ s/\n/ /gm;
+    DELETE FROM
+        parameter_file
+    WHERE
+        FileID=?
+QUERY
+        print $query . "\n";
+        $sth = $dbh->prepare($query);
+        $sth->execute($fileID);
+
+        # delete from files
+        ($query = <<QUERY) =~ s/\n/ /gm;
+    DELETE FROM
+        files
+    WHERE
+        FileID=?
+QUERY
+        print $query . "\n";
+        $sth = $dbh->prepare($query);
+        $sth->execute($fileID);
+        print "I should remove this file : $file\n";
+        if (!-e $file) { 
+            print $file . " does not exist!\n";
+		 } else { 
+            `rm -f $file` 
+         }
+	} 
 }
 # get rid of session related entries and finally the session itself.
-$dbh->do("delete from feedback_mri_comments where SessionID=$session") if $nuke;  print "delete from feedback_mri_comments where SessionID = $session\n";
-$dbh->do("delete from mri_acquisition_dates where SessionID=$session") if $nuke;  print "delete from  mri_acquisition_dates where SessionID = $session\n";
-$dbh->do("delete from session where ID=$session") if $nuke;                       print "delete from session where ID = $session\n";
-$dbh->do("update tarchive SET SessionID=NULL where SessionID=$session") if $nuke;  print "Clearing tarchive SessionID for this candidate.\n";
+if ($nuke) {
+    # delete from feedback_mri_comments
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    DELETE FROM 
+        feedback_mri_comments
+    WHERE
+        SessionID=?
+QUERY
+    print $query . "\n";
+    $sth = $dbh->prepare($query);
+    $sth->execute($session);
 
-if ($PSCID) {
+    # delete from mri_acquisition_dates
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    DELETE FROM 
+        mri_acquisition_dates 
+    WHERE
+        SessionID=?
+QUERY
+    print $query . "\n";
+    $sth = $dbh->prepare($query);
+    $sth->execute($session);
+    
+    # delete from session
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    DELETE FROM 
+        session 
+    WHERE
+        SessionID=?
+QUERY
+    print $query . "\n";
+    $sth = $dbh->prepare($query);
+    $sth->execute($session);
+    
+    # update tarchive table 
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        tarchive 
+    SET
+        SessionID=NULL
+    WHERE
+        SessionID=?
+QUERY
+    print $query . "\n";
+    $sth = $dbh->prepare($query);
+    $sth->execute($session);
+}
+
+if ($PSCID) && ($nuke) {
     print "Clearing notification Spool.\n";
-    $dbh->do( "DELETE FROM notification_spool WHERE Message LIKE '%${PSCID}%'" ) if $nuke;
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    DELETE FROM 
+        notification_spool 
+    WHERE 
+        Message LIKE ?
+QUERY
+    $sth = $dbh->prepare($query);
+    $sth->execute('%${PSCID}%');
 }
 
 

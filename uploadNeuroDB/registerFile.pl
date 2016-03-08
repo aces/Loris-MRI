@@ -138,9 +138,17 @@ if(defined($source_list)) {
 		exit 1;
 	}
 
-	my $query = "SELECT SessionID FROM files WHERE FileID='$sourceFileID'";
+	(my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        SessionID 
+    FROM 
+        files 
+    WHERE 
+        FileID=?
+QUERY
+
 	my $sth = $dbh->prepare($query);
-        $sth->execute();
+    $sth->execute($sourceFileID);
 	if($sth->rows > 0) {
 		my $row = $sth->fetchrow_hashref();
 		$sessionID = $row->{'SessionID'};

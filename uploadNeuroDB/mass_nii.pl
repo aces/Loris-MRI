@@ -100,19 +100,24 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 ################################################################
 
 # Base of the query
-my $query = <<QUERY;
-SELECT 
-    f.FileID 
-FROM 
-    files AS f 
-LEFT OUTER JOIN 
-    (SELECT pf.FileID, pf.Value 
-     FROM parameter_file AS pf 
-     JOIN parameter_type AS pt USING (ParameterTypeID) 
-     WHERE pt.Name=?
-    ) AS NIfTI USING (FileID) 
-WHERE 
-    Value IS NULL AND f.FileType=?
+(my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        f.FileID 
+    FROM 
+        files AS f 
+    LEFT OUTER JOIN 
+        (SELECT 
+            pf.FileID, 
+            pf.Value 
+         FROM 
+            parameter_file AS pf 
+         JOIN 
+            parameter_type AS pt USING (ParameterTypeID) 
+         WHERE 
+            pt.Name=?
+        ) AS NIfTI USING (FileID) 
+    WHERE 
+        Value IS NULL AND f.FileType=?
 QUERY
 
 # Complete query if min and max File ID have been defined.

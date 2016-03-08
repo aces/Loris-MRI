@@ -268,7 +268,14 @@ sub getPnameUsingUploadID {
         ########################################################
         ##########Extract pname using uploadid##################
         ########################################################
-        $query = "SELECT PatientName FROM mri_upload WHERE UploadID =?";
+        ($query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        PatientName 
+    FROM 
+        mri_upload 
+    WHERE 
+        UploadID=?
+QUERY
         my $sth = $dbh->prepare($query);
         $sth->execute($upload_id);
         if ( $sth->rows > 0 ) {

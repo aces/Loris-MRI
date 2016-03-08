@@ -275,12 +275,17 @@ sub getSessionID    {
     
     # get sessionID using sourceFileID
     my  ($sessionID, %subjectIDsref);
-    my  $query  =   "SELECT f.SessionID, " .
-                           "s.CandID, " .
-                           "s.Visit_label " .
-                    "FROM files f " .
-                    "JOIN session s ON (s.ID=f.SessionID) " .
-                    "WHERE FileID=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;   
+    SELECT 
+        f.SessionID,
+        s.CandID, 
+        s.Visit_label
+    FROM 
+        files f 
+        JOIN session s ON (s.ID=f.SessionID) 
+    WHERE 
+        FileID=?
+QUERY
 
     my  $sth    =   $dbh->prepare($query);
     $sth->execute($sourceFileID);
@@ -308,10 +313,16 @@ sub getScannerID    {
     my  ($sourceFileID,$dbh)    =   @_;    
 
     my $scannerID;
-    my $query   =   "SELECT pf.Value AS ScannerID " .
-                    "FROM parameter_file AS pf " .
-                    "JOIN parameter_type AS pt ON (pt.ParameterTypeID=pf.ParameterTypeID) " .
-                    "WHERE pt.Name='ScannerID' AND pf.FileID=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;   
+    SELECT 
+        pf.Value AS ScannerID
+    FROM 
+        parameter_file AS pf
+        JOIN parameter_type AS pt ON (pt.ParameterTypeID=pf.ParameterTypeID) 
+    WHERE 
+        pt.Name='ScannerID' 
+        AND pf.FileID=?
+QUERY
     my $sth     =   $dbh->prepare($query);
     $sth->execute($sourceFileID);
     if($sth->rows > 0) {
@@ -331,9 +342,14 @@ sub getAcqProtID    {
     my  ($scanType,$dbh)    =   @_;
 
     my  $acqProtID;
-    my  $query  =   "SELECT ID " .
-                    "FROM mri_scan_type " .
-                    "WHERE Scan_type=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;   
+    SELECT 
+        ID 
+    FROM 
+        mri_scan_type 
+    WHERE 
+        Scan_type=?
+QUERY
     my  $sth    =   $dbh->prepare($query);
     $sth->execute($scanType);
     if($sth->rows > 0) {
@@ -418,9 +434,14 @@ Output: $filename
 sub getSourceFilename {
     my ($sourceFileID) = @_;
 
-    my $query   = "SELECT File " .
-                  "FROM files "  .
-                  "WHERE FileID=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        File 
+    FROM 
+        files   
+    WHERE 
+        FileID=?
+QUERY
     my $sth     = $dbh->prepare($query);
     $sth->execute($sourceFileID);
 
@@ -470,9 +491,11 @@ sub insert_intermedFiles {
     return undef if ((!$fileID) || (!$inputFileIDs) || (!$tool));
 
     # Prepare query to execute in the for loop 
-    my $query   = "INSERT INTO files_intermediary " .
-                  "(Output_FileID, Input_FileID, Tool) " .
-                  "Values (?, ?, ?)";
+    (my $query = <<QUERY) =~ s/\n/ /gm;  
+    INSERT INTO files_intermediary 
+        (Output_FileID, Input_FileID, Tool) 
+        VALUES (?, ?, ?)
+QUERY
     my $sth     = $dbh->prepare($query);
 
     my (@inputIDs)  = split(';', $inputFileIDs);

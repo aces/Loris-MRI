@@ -73,8 +73,15 @@ sub getSubjectIDs {
 	    return undef;
 	}
     }
-    my $sth = $${dbhr}->prepare("SELECT VisitNo FROM session WHERE CandID='$subjectID{'CandID'}' AND Visit_label='$subjectID{'visitLabel'}' AND Active='Y'");
-    $sth->execute();
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT VisitNo 
+    FROM session
+    WHERE CandID=?
+        AND Visit_label=?
+        AND Active='Y'
+QUERY
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($subjectID{'CandID'}, $subjectID{'visitLabel'});
     my $row = $sth->fetchrow_hashref();
     $subjectID{'visitNo'} = $row->{'VisitNo'};
     
@@ -88,17 +95,32 @@ B<subjectIDIsValid( C<$CandID>, C<$PSCID>, C<$dbhr> )>
 =cut
 sub subjectIDIsValid {
     my ($candID, $pscid, $visit_label, $dbhr, $create_visit_label) = @_;
-    my $query = "SELECT COUNT(*) AS isValid FROM candidate WHERE CandID=".$${dbhr}->quote($candID)." AND PSCID=".$${dbhr}->quote($pscid);
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        COUNT(*) AS isValid 
+    FROM 
+        candidate 
+    WHERE 
+        CandID=?
+        AND PSCID=?
+QUERY
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($candID, $pscid);
     
     my $rowhr = $sth->fetchrow_hashref();
     
     # Check that visit label exists in the database if don't want to create visit labels via imaging pipeline 
     if (($rowhr->{'isValid'} == 1) && (!$create_visit_label)) {
-        $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE BINARY Visit_label=".$${dbhr}->quote($visit_label);
+        ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        COUNT(*) AS isValid 
+    FROM
+        Visit_Windows 
+    WHERE
+        BINARY Visit_label=?
+QUERY
         $sth = $${dbhr}->prepare($query);
-        $sth->execute();
+        $sth->execute($visit_label);
     
         $rowhr = $sth->fetchrow_hashref();
     }
@@ -113,9 +135,17 @@ B<subjectIDExists( C<$CandID>, C<$dbhr> )>
 sub subjectIDExists {
     my ($candID, $dbhr) = @_;
     
-    my $query = "SELECT COUNT(*) AS idExists FROM candidate WHERE CandID=".$${dbhr}->quote($candID);
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        COUNT(*) AS idExists 
+    FROM 
+        candidate 
+    WHERE 
+        CandID=?
+QUERY
+
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($candID);
     
     my $rowhr = $sth->fetchrow_hashref();
     return $rowhr->{'idExists'} > 0;
@@ -130,15 +160,22 @@ sub getScannerCandID {
     my ($scannerID, $dbhr) = @_;
     my $candID;
     
-    my $query = "SELECT CandID FROM mri_scanner WHERE ID=$scannerID";
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT
+        CandID 
+    FROM
+        mri_scanner 
+    WHERE 
+        ID=?
+QUERY
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($scannerID);
     
     if($sth->rows > 0) {
 	my $rowref = $sth->fetchrow_hashref();
-	return $rowref->{'CandID'};
+	    return $rowref->{'CandID'};
     } else {
-	return undef;
+	    return undef;
     }
 }
 
@@ -172,9 +209,19 @@ sub getSessionID {
     my $dbh = $$dbhr;
     
 # find a matching timepoint
-    $query = "SELECT ID, Date_visit, Visit FROM session WHERE CandID=$subjectIDref->{'CandID'} AND LOWER(Visit_label)=LOWER(".$dbh->quote($subjectIDref->{'visitLabel'}).")";
+    ($query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        ID, 
+        Date_visit, 
+        Visit 
+    FROM 
+        session 
+    WHERE 
+        CandID=? 
+        AND LOWER(Visit_label)=LOWER(?)
+QUERY
     $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute( $subjectIDref->{'CandID'}, $subjectIDref->{'visitLabel'} );
 
 ##### if it finds an existing session it does this:
     if($sth->rows > 0) {
@@ -204,9 +251,18 @@ sub getSessionID {
 	# check dates of other files
 	if(defined($studyDateJD) and $requiresStaging == 1) {
 	    # get the set of files 
-	    $query = "SELECT FileID FROM files WHERE SessionID=$sessionID AND FileType='mnc' AND OutputType='native'";
+	    ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        FileID 
+    FROM 
+        files 
+    WHERE 
+        SessionID=? 
+        AND FileType='mnc' 
+        AND OutputType='native'
+QUERY
 	    $sth = $dbh->prepare($query);
-	    $sth->execute();
+	    $sth->execute($sessionID);
 	    
 	    if($sth->rows > 0) {
 		my @files = ();
@@ -234,9 +290,18 @@ sub getSessionID {
 	# fixme ask Jon ... is this still useful?
     # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
 	if($centerID == 0) {
-            $query = "SELECT IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, CenterID FROM session WHERE CandID=".$dbh->quote($subjectIDref->{'CandID'})." GROUP BY CandID";
+            ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, 
+        CenterID 
+    FROM 
+        session 
+    WHERE 
+        CandID=? 
+    GROUP BY CandID";
+QUERY
             $sth = $dbh->prepare($query);
-            $sth->execute();
+            $sth->execute($subjectIDref->{'CandID'});
             if($sth->rows > 0) {
                 my $rowref = $sth->fetchrow_hashref();
                 $newVisitNo = $rowref->{'newVisitNo'};
@@ -244,9 +309,16 @@ sub getSessionID {
                 # fixme add some debug messages if this is to be kept
                 print "Set newVisitNo = $newVisitNo and centerID = $centerID\n";
             } else {
-                $query = "SELECT CenterID FROM candidate WHERE CandID=".$dbh->quote($subjectIDref->{'CandID'});
+                ($query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT
+        CenterID 
+    FROM
+        candidate 
+    WHERE 
+        CandID=?
+QUERY
                 $sth = $dbh->prepare($query);
-                $sth->execute();
+                $sth->execute($subjectIDref->{'CandID'});
                 if($sth->rows > 0) {
                     my $rowref = $sth->fetchrow_hashref();
                     $centerID = $rowref->{'CenterID'};
@@ -262,17 +334,42 @@ sub getSessionID {
         $centerID = 0 unless $centerID;
 
 #### insert the new session setting Current_stage to 'Not started' because that column is important to the behavioural data entry gui.
-	$query = "INSERT INTO session SET CandID=".$dbh->quote($subjectIDref->{'CandID'}).", Visit_label=".$dbh->quote($subjectIDref->{'visitLabel'}).", CenterID=$centerID, VisitNo=$newVisitNo, Current_stage='Not Started', Scan_done='Y', Submitted='N', SubprojectID=".$dbh->quote($objective);
- 	$dbh->do($query); # execute query
+	($query = <<QUERY) =~ s/\n/ /gm; 
+    INSERT INTO 
+        session 
+    SET 
+        CandID=?,
+        Visit_label=?,
+        CenterID=?
+        VisitNo=?,
+        Current_stage='Not Started', 
+        Scan_done='Y', 
+        Submitted='N', 
+        SubprojectID=?
+QUERY
+ 	$sth = $dbh->prepare($query);
+    $sth->execute($subjectIDref->{'CandID'}, 
+                  $subjectIDref->{'visitLabel'}, 
+                  $centerID, 
+                  $newVisitNo, 
+                  $objective
+                 );
 	$sessionID = $dbh->{'mysql_insertid'}; # retain id of inserted row
 	$subjectIDref->{'visitNo'} = $newVisitNo; # add visit number to subjectIDref
 	
 	# check dates of other files
 	if(defined($studyDateJD) and !$noStagingCheck) {
 	    # get the set of sessions for the subject
-	    $query = "SELECT ID FROM session WHERE CandID=$subjectIDref->{'CandID'}";
+	    ($query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        ID 
+    FROM 
+        session 
+    WHERE
+        CandID=?
+QUERY
 	    $sth = $dbh->prepare($query);
-	    $sth->execute();
+	    $sth->execute($subjectIDref->{'CandID'});
 	    
 	    if($sth->rows > 0) {
 		my @sessionIDs = ();
@@ -280,9 +377,18 @@ sub getSessionID {
 		$sth->finish();
 		
 		# get the set of files 
-		$query = "SELECT FileID FROM files WHERE SessionID IN (".join(',', @sessionIDs)." AND FileType='mnc' AND OutputType='native'";
+		($query = <<QUERY) =~ s///gm; 
+    SELECT 
+        FileID 
+    FROM 
+        files 
+    WHERE 
+        SessionID IN ? 
+        AND FileType='mnc' 
+        AND OutputType='native'
+QUERY
 		$sth = $dbh->prepare($query);
-		$sth->execute();
+		$sth->execute(join(',', @sessionIDs));
 		
 		if($sth->rows > 0) {
 		    my @files = ();
@@ -317,9 +423,17 @@ sub checkMRIStudyDates {
     my $studyDateID = $file->getParameterTypeID('study_date');
     
     # check the other files
-    my $query = "SELECT DISTINCT Value FROM parameter_file WHERE ParameterTypeID=$studyDateID AND FileID IN (".join(',', @fileIDs).")";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        DISTINCT Value 
+    FROM 
+        parameter_file 
+    WHERE 
+        ParameterTypeID=?
+        AND FileID IN ?
+QUERY
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($studyDateID, join(',', @fileIDs));
     
     if($sth->rows > 0) {
       LOOP_FILES: {
@@ -360,10 +474,22 @@ sub getObjective
 	return 0;
     }
     
-    my $query = "SELECT SubprojectID FROM session WHERE CandID='$subjectIDs{'CandID'}' AND Visit_label='$subjectIDs{'visitLabel'}' AND Active='Y' ORDER BY ID DESC LIMIT 1";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        SubprojectID 
+    FROM
+        session 
+    WHERE 
+        CandID=? 
+        AND Visit_label=? 
+        AND Active='Y' 
+    ORDER BY 
+        ID DESC 
+    LIMIT 1
+QUERY
     my $sth = $${dbhr}->prepare($query) or die "Can't prepare $query: ".$${dbhr}->errstr."\n";
     
-    $sth->execute();
+    $sth->execute( $subjectIDs{'CandID'}, $subjectIDs{'visitLabel'});
     
     if($sth->rows > 0) {
         @results = $sth->fetchrow_array();
@@ -373,9 +499,20 @@ sub getObjective
     
     unless($objective>0) {
         # there probably isn't a valid row for this visit...
-        $query = "SELECT SubprojectID FROM session WHERE CandID='$subjectIDs{'CandID'}' AND Active='Y' ORDER BY ID DESC LIMIT 1";
+        ($query = <<QUERY) =~ s///gm;
+    SELECT 
+        SubprojectID 
+    FROM 
+        session 
+    WHERE 
+        CandID=?
+        AND Active='Y' 
+    ORDER BY 
+        ID DESC 
+    LIMIT 1
+QUERY
         $sth = $${dbhr}->prepare($query);
-        $sth->execute();
+        $sth->execute($subjectIDs{'CandID'});
         
         @results = $sth->fetchrow_array();
 	
@@ -450,11 +587,21 @@ sub identify_scan_db {
     my $serial_number = ${fileref}->getParameter('device_serial_number');
     my $software = ${fileref}->getParameter('software_versions');
     
-    my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer='$manufacturer' AND Model='$model' AND Serial_number='$serial_number' AND Software='$software'";
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        ID 
+    FROM 
+        mri_scanner 
+    WHERE 
+        Manufacturer=? 
+        AND Model=?
+        AND Serial_number=? 
+        AND Software=?
+QUERY
     
     
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute( $manufacturer, $model, $serial_number, $software );
     
     # default ScannerID to 0 if we have no better clue.
     my $ScannerID = 0;
@@ -465,16 +612,34 @@ sub identify_scan_db {
 
     
     # get the list of protocols for a site their scanner and subproject
-    $query = "SELECT Scan_type, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
-              xstep_range, ystep_range, zstep_range, time_range, series_description_regex
-              FROM mri_protocol
-              WHERE
-             (Center_name='$psc' AND ScannerID='$ScannerID')
-              OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
-              ORDER BY Center_name ASC, ScannerID DESC";
-
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        Scan_type, 
+        ScannerID, 
+        Center_name, 
+        TR_range, 
+        TE_range, 
+        TI_range, 
+        slice_thickness_range, 
+        xspace_range, 
+        yspace_range, 
+        zspace_range,
+        xstep_range, 
+        ystep_range, 
+        zstep_range, 
+        time_range, 
+        series_description_regex
+    FROM 
+        mri_protocol
+    WHERE
+        (Center_name=? AND ScannerID=?)
+        OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
+    ORDER BY 
+        Center_name ASC, 
+        ScannerID DESC
+QUERY
     $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute( $psc, $ScannerID );
     return 'unknown' unless $sth->rows>0;
     
     # check against all possible scan types
@@ -526,12 +691,53 @@ sub identify_scan_db {
 
 sub insert_violated_scans {
 
-   my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID) = @_;
-   my $query;
-   my $sth;
+    my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID) = @_;
+    my $query;
+    my $sth;
     
-   $sth = $${dbhr}->prepare("INSERT INTO mri_protocol_violated_scans (CandID,PSCID,time_run,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range,time_range,SeriesUID) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-   my $success = $sth->execute($candid,$pscid,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$time,$seriesUID);
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO mri_protocol_violated_scans 
+        (CandID,
+         PSCID,
+         time_run,
+         series_description,
+         minc_location,
+         PatientName,
+         TR_range,
+         TE_range,
+         TI_range,
+         slice_thickness_range,
+         xspace_range,
+         yspace_range,
+         zspace_range,
+         xstep_range,
+         ystep_range,
+         zstep_range,
+         time_range,
+         SeriesUID
+        ) 
+    VALUES 
+        (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+QUERY
+    $sth = $${dbhr}->prepare($query);
+    my $success = $sth->execute($candid,
+                                $pscid,
+                                $series_description,
+                                $minc_location,
+                                $patient_name,
+                                $tr,
+                                $te,
+                                $ti,
+                                $slice_thickness,
+                                $xspace,
+                                $yspace,
+                                $zspace,
+                                $xstep,
+                                $ystep,
+                                $zstep,
+                                $time,
+                                $seriesUID
+                               );
 
 }
 # ------------------------------ MNI Header ----------------------------------
@@ -572,9 +778,16 @@ Returns: Textual name of scan type
 sub scan_type_id_to_text {
     my ($ID, $dbhr) = @_;
 
-    my $query = "SELECT Scan_type FROM mri_scan_type WHERE ID='$ID'";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        Scan_type 
+    FROM 
+        mri_scan_type 
+    WHERE 
+        ID=?
+QUERY
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($ID);
     return 'unknown' unless $sth->rows;
     my @results = $sth->fetchrow_array();
     return $results[0];
@@ -594,9 +807,16 @@ sub scan_type_text_to_id {
     my $type = shift;
     my $dbhr = shift;
 
-    my $query = "SELECT ID FROM mri_scan_type WHERE Scan_type='$type'";
+    (my $query = <<QUERY) =~ s/\n/ /g;
+    SELECT 
+        ID 
+    FROM 
+        mri_scan_type 
+    WHERE 
+        Scan_type=?
+QUERY
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($type);
     return &scan_type_text_to_id('unknown', $dbhr) unless $sth->rows;
     my @results = $sth->fetchrow_array();
     return $results[0];
@@ -709,16 +929,22 @@ sub register_db {
     }
 
     # build the insert query
-    my $query = "INSERT INTO files SET ";
-
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    INSERT INTO 
+        files 
+    SET 
+QUERY
+    my @param;
     foreach my $key ('File', 'SessionID','EchoTime', 'CoordinateSpace', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID', 'Caveat', 'SeriesUID', 'TarchiveSource','SourcePipeline','PipelineDate','SourceFileID') {
         # add the key=value pair to the query
-        $query .= "$key=".$dbh->quote($${fileData{$key}}).", ";
+        $query .= $key . "=?,";
+        push(@param, $${fileData{$key}});
     }
     $query .= "InsertTime=UNIX_TIMESTAMP()";
 
     # run the query
-    $dbh->do($query);
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@param);
     my $fileID = $dbh->{'mysql_insertid'};
     $file->setFileData('FileID', $fileID);
 
@@ -728,7 +954,11 @@ sub register_db {
     # if there are any parameters to save
     if(scalar(keys(%$params)) > 0) {
 	# build the insert query
-	$query = "INSERT INTO parameter_file (FileID, ParameterTypeID, Value, InsertTime) VALUES ";
+	($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO parameter_file 
+        (FileID, ParameterTypeID, Value, InsertTime) 
+    VALUES
+QUERY
 	foreach my $key (keys %$params) {
 	    # skip the parameter if it is not defined
 	    next unless defined $${params{$key}};
@@ -738,12 +968,13 @@ sub register_db {
 	    my $value = '';
 	    $value = $dbh->quote($${params{$key}});
 	    
-	    if($query =~ /\)$/) { $query .= ",\n"; }
+        $query .= ",\n" if ($query =~ /\)$/); 
 
 	    $query .= "($fileID, $typeID, $value, UNIX_TIMESTAMP())";
 	}
 	# run query
-	$dbh->do($query);
+	$sth = $dbh->prepare($query);
+    $sth->execute();
     }
     return $fileID;
 }
@@ -886,9 +1117,23 @@ sub findScannerID {
     my $scanner_id = 0;
 
     my @results = ();
-    my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer=".$${dbhr}->quote($manufacturer)." AND Model=".$${dbhr}->quote($model)." AND Software=".$${dbhr}->quote($softwareVersion)." AND Serial_number=".$${dbhr}->quote($serialNumber);
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        ID 
+    FROM
+        mri_scanner 
+    WHERE
+        Manufacturer=?
+        AND Model=?
+        AND Software=?
+        AND Serial_number=?
+QUERY
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($manufacturer, 
+                  $model, 
+                  $softwareVersion, 
+                  $serialNumber
+                 );
     @results = $sth->fetchrow_array();
     $scanner_id = $results[0] if $results[0];
 
@@ -918,9 +1163,17 @@ sub registerScanner {
     my $candID = 'NULL';
 
     # find the CandID associated with this serial number
-    my $query = "SELECT CandID FROM mri_scanner WHERE Serial_number=".$dbh->quote($serialNumber)." LIMIT 1";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        CandID 
+    FROM    
+        mri_scanner 
+    WHERE
+        Serial_number=?
+    LIMIT 1
+QUERY
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute($serialNumber);
     if($sth->rows > 0) {
         my @row = $sth->fetchrow_array();
         $candID = $row[0];
@@ -930,13 +1183,24 @@ sub registerScanner {
     # create a new candidate for the scanner if it does not exist.
     if(!defined($candID) || ($candID eq 'NULL')) {
 	$candID = createNewCandID($dbhr);
-	$query = "INSERT INTO candidate (CandID, PSCID, CenterID, Date_active, Date_registered, UserID, Entity_type) VALUES ($candID, 'scanner', $centerID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
-	$dbh->do($query);
+	($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO candidate 
+        (CandID, PSCID, CenterID, Date_active, Date_registered, UserID, Entity_type) 
+    VALUES 
+        (?, 'scanner', ?, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')
+QUERY
+    $sth = $dbh->prepare($query);
+    $sth->execute($candID, $centerID);
     }	
     # register scanner as new
-    $query = "INSERT INTO mri_scanner (Manufacturer, Model, Serial_number, Software, CandID) VALUES (".$dbh->quote($manufacturer).",".$dbh->quote($model).","
-              .$dbh->quote($serialNumber).",".$dbh->quote($softwareVersion).",".$dbh->quote($candID).")";
-    $dbh->do($query);
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO mri_scanner 
+        (Manufacturer, Model, Serial_number, Software, CandID) 
+    VALUES 
+        (?, ?, ?, ?, ?)
+QUERY
+    $sth = $dbh->prepare($query);
+    $sth->execute($manufacturer, $model, $serialNumber, $softwareVersion, $candID);
     # get id of scanner
     return $dbh->{'mysql_insertid'};
 }
@@ -954,11 +1218,19 @@ sub createNewCandID {
     my ($dbhr) = @_;
     my $candID;
 
-    my $sth = $${dbhr}->prepare("SELECT CandID FROM candidate WHERE CandID = ?");
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        CandID 
+    FROM
+        candidate 
+    WHERE
+        CandID=?
+QUERY
+    my $sth = $${dbhr}->prepare($query);
     while(1) {
-	$candID = int(rand 899999) + 100000;
-	$sth->execute($candID);
-	last if $sth->rows == 0;
+	    $candID = int(rand 899999) + 100000;
+	    $sth->execute($candID);
+	    last if $sth->rows == 0;
     }
 
     return $candID;
