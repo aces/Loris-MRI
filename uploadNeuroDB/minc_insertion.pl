@@ -421,7 +421,7 @@ $notifier->spool(
     	$subjectIDsref->{'visitLabel'} .
     	"\tacquired " . $file->getParameter('acquisition_date')
     	. "\t" . $file->getParameter('series_description'),
-    	0, 'minc_insertion.pl', $upload_id, 'N', $verb_notdefault);
+    	$centerID, 'minc_insertion.pl', $upload_id, 'N', $verb_notdefault);
 
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
