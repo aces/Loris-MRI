@@ -21,6 +21,7 @@ else
     echo "MINC Toolkit does not appear to be installed. Please see http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC. Aborting."
     exit 2;
 fi
+MINC_TOOLKIT_DIR=`which mincheader|sed s#/bin/mincheader##`
 
 #First, check that all required modules are installed.
 #Check if cpan module installed
@@ -115,6 +116,7 @@ echo
 ###################################################################################
 echo "Modifying environment script"
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
+sed -i "s#%MINC_TOOLKIT_DIR%#$MINC_TOOLKIT_DIR#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
 #source /data/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
