@@ -80,14 +80,22 @@ sub lookupNextVisitLabel {
     my $this = shift;
     my ($CandID, $dbhr) = @_;
     my $visitLabel = 1;
-    my $query = "SELECT Visit_label FROM session".
-                " WHERE CandID=$CandID".
-                " ORDER BY ID DESC LIMIT 1"; 
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        Visit_label 
+    FROM
+        session
+    WHERE 
+        CandID=?
+    ORDER BY 
+        ID DESC 
+    LIMIT 1; 
+QUERY
     if ($this->{debug}) {
         print $query . "\n";
     }
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($CandID);
     if ($sth->rows > 0) {
         my @row = $sth->fetchrow_array();
         $visitLabel = $row[0] + 1;
@@ -189,20 +197,36 @@ sub createTarchiveArray {
     my $this = shift;
     my %tarchiveInfo;
     my ($tarchive,$globArchiveLocation) = @_;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        PatientName,    
+        PatientID,
+        PatientDoB, 
+        md5sumArchive, 
+        DateAcquired,
+        DicomArchiveID, 
+        PatientGender,
+        ScannerManufacturer,
+        ScannerModel, 
+        ScannerSerialNumber,
+        ScannerSoftwareVersion, 
+        neurodbCenterName, 
+        TarchiveID,
+        SourceLocation 
+    FROM 
+        tarchive 
+    WHERE 
+        ?
+QUERY
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
         $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
     }
-    my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
-                " DateAcquired, DicomArchiveID, PatientGender,".
-                " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
-                " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,".
-                " SourceLocation FROM tarchive WHERE $where";
     if ($this->{debug}) {
         print $query . "\n";
     }
     my $sth = ${$this->{'dbhr'}}->prepare($query); 
-    $sth->execute();
+    $sth->execute($where);
    
     if ($sth->rows > 0) {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();
@@ -384,12 +408,33 @@ sub extra_file_checks() {
     my $Visit_Label = shift;
     my $PatientName = shift;
 
-    my $query = "SELECT * FROM mri_protocol_checks WHERE Scan_type=?";
-    my $log_query = "INSERT INTO mri_violations_log".
-                    "(SeriesUID, TarchiveID, MincFile, PatientName,".
-                    " CandID, Visit_label, CheckID,  Scan_type,".
-                    " Severity, Header, Value, ValidRange,ValidRegex)".
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        * 
+    FROM 
+        mri_protocol_checks 
+    WHERE
+        Scan_type=?
+QUERY
+    (my $log_query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO mri_violations_log
+        (SeriesUID, 
+         TarchiveID, 
+         MincFile, 
+         PatientName, 
+         CandID, 
+         Visit_label, 
+         CheckID,  
+         Scan_type, 
+         Severity, 
+         Header, 
+         Value, 
+         ValidRange,
+         ValidRegex
+        )
+    VALUES 
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+QUERY
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -451,26 +496,40 @@ sub update_mri_acquisition_dates {
     ############################################################
     # get the registered acquisition date for this session #####
     ############################################################
-    my $query = "SELECT s.ID, m.AcquisitionDate FROM session AS s LEFT OUTER".
-                " JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)". 
-                " WHERE s.ID='$sessionID' AND".
-                " (m.AcquisitionDate > '$acq_date'". 
-                " OR m.AcquisitionDate IS NULL) AND '$acq_date'>0";
-    
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        s.ID, 
+        m.AcquisitionDate 
+    FROM 
+        session AS s 
+        LEFT OUTER JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID) 
+    WHERE 
+        s.ID=?
+        AND (m.AcquisitionDate > ?
+             OR m.AcquisitionDate IS NULL
+            ) 
+        AND ?>0
+QUERY
     if ($this->{debug}) {
         print $query . "\n";
     }
 
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+    $sth->execute($sessionID, $acq_date, $acq_date);
     ############################################################
     ### if we found a session, it needs updating or inserting, #
     ### so we use replace into. ################################
     ############################################################
     if ($sth->rows > 0) {
-        my $query = "REPLACE INTO mri_acquisition_dates".
-                    " SET AcquisitionDate='$acq_date', SessionID='$sessionID'";
-        ${$this->{'dbhr'}}->do($query);
+        (my $query = <<QUERY) =~ s/\n/ /gm;
+    REPLACE INTO 
+        mri_acquisition_dates
+    SET 
+        AcquisitionDate=?,
+        SessionID=?
+QUERY
+        my $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($acq_date, $sessionID);
     }
 }
 
@@ -829,15 +888,20 @@ sub moveAndUpdateTarchive {
     ############################################################
     my $newArchiveLocationField = $newTarchiveLocation;
     $newArchiveLocationField    =~ s/$Settings::tarchiveLibraryDir\/?//g;
-    $query = "UPDATE tarchive ".
-             " SET ArchiveLocation=" . 
-              ${$this->{'dbhr'}}->quote($newArchiveLocationField) .
-             " WHERE DicomArchiveID=". 
-             ${$this->{'dbhr'}}->quote(
-                $tarchiveInfo->{'DicomArchiveID'}
-             );
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        tarchive
+    SET
+        ArchiveLocation=?
+    WHERE
+        DicomArchiveID=?
+QUERY
     print $query . "\n"  if $this->{debug};
-    ${$this->{'dbhr'}}->do($query);
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($newArchiveLocationField, 
+                  $tarchiveInfo->{'DicomArchiveID'}
+                 );
+
     return $newTarchiveLocation;
 }
 
@@ -872,21 +936,33 @@ sub CreateMRICandidates {
                 $subjectIDsref->{'CandID'} = 
                 NeuroDB::MRI::createNewCandID($this->{dbhr});
             }
-            $query = "INSERT INTO candidate ".
-                     "(CandID, PSCID, DoB, Gender,CenterID, Date_active,".
-                     " Date_registered, UserID,Entity_type) ".
-                     "VALUES(" . 
-                     ${$this->{'dbhr'}}->quote($subjectIDsref->{'CandID'}).",".
-                     ${$this->{'dbhr'}}->quote($subjectIDsref->{'PSCID'}).",".
-                     ${$this->{'dbhr'}}->quote($tarchiveInfo->{'PatientDoB'}) ."," .
-                     ${$this->{'dbhr'}}->quote($gender).",". 
-                     ${$this->{'dbhr'}}->quote($centerID). 
-                     ", NOW(), NOW(), '$User', 'Human')";
+            ($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO candidate
+        (CandID, 
+         PSCID, 
+         DoB, 
+         Gender,
+         CenterID, 
+         Date_active,
+         Date_registered, 
+         UserID,
+         Entity_type
+        )
+    VALUES
+        (?, ?, ?, ?, ?, NOW(), NOW(), ?, 'Human')
+QUERY
             
             if ($this->{debug}) {
                 print $query . "\n";
             }
-            ${$this->{'dbhr'}}->do($query);
+            $sth = ${$this->{'dbhr'}}->prepare($query);
+            $sth->execute($subjectIDsref->{'CandID'},
+                          $subjectIDsref->{'PSCID'},
+                          $tarchiveInfo->{'PatientDoB'},
+                          $gender,
+                          $centerID,
+                          $User
+                         );
             $this->{LOG}->print( "\n==> CREATED NEW CANDIDATE :
             $subjectIDsref->{'CandID'}");
       } elsif ($subjectIDsref->{'CandID'}) {# if the candidate exis
@@ -944,11 +1020,19 @@ sub setMRISession {
     # there is data. ###########################################
     ############################################################
     if ($sessionID) {
-        $query = "UPDATE session SET Scan_done='Y' WHERE ID=$sessionID";
+        ($query = <<QUERY) =~ s///gm;
+    UPDATE 
+        session
+    SET 
+        Scan_done='Y'
+    WHERE 
+        ID=?
+QUERY
         if ($this->{debug}) {
             print $query . "\n";
         }
-        ${$this->{'dbhr'}}->do($query);
+        $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($sessionID);
     }
     return ($sessionID, $requiresStaging);
 }
@@ -1005,7 +1089,15 @@ sub validateCandidate {
     ############################################################
     ################## Check if CandID exists ##################
     ############################################################
-    my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
+    (my $query = <<QUERY) =~ s///gm;
+    SELECT 
+        CandID, 
+        PSCID
+    FROM 
+        candidate
+    WHERE 
+        CandID=?
+QUERY
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'CandID'});
     print "candidate id " . $subjectIDsref->{'CandID'} . "\n";
@@ -1021,8 +1113,16 @@ sub validateCandidate {
     ############################################################
     ################ Check if PSCID exists #####################
     ############################################################
-
-    $query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
+    
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        CandID, 
+        PSCID
+    FROM 
+        candidate
+    WHERE
+        PSCID=?
+QUERY
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'PSCID'});
     if ($sth->rows == 0) {
@@ -1047,7 +1147,14 @@ sub validateCandidate {
     ################ Check if visitLabel exists #####################
     ############################################################
 
-    $query = "SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label=?";
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        Visit_label
+    FROM
+        Visit_Windows
+    WHERE BINARY 
+        Visit_label=?
+QUERY
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'visitLabel'});
     if (($sth->rows == 0) && (!$subjectIDsref->{'createVisitLabel'})) {

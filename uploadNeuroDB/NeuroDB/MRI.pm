@@ -1249,9 +1249,19 @@ Returns: two element array: first is UNKN or the MRI alias of the PSC, second is
 
 sub getPSC {
     my ($patientName, $dbhr) = @_;
-    my $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
+
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        CenterID, 
+        Alias, 
+        MRI_alias
+    FROM
+        psc
+    WHERE    
+        mri_alias <> ''
+QUERY
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute;
+    $sth->execute();
 
     while(my $row = $sth->fetchrow_hashref) {
         return ($row->{'MRI_alias'}, $row->{'CenterID'})
@@ -1267,11 +1277,19 @@ sub getPSC {
     my $PSCID = $subjectIDsref->{'PSCID'};
     if ($PSCID) {
     ##Get the CenterID using PSCID
-	$query = "SELECT c.CenterID,p.MRI_alias FROM candidate c JOIN
-	psc p on p.CenterID=c.CenterID  WHERE c.PSCID = '$PSCID'";
+    ($query = <<QUERY) = s/\n/ /gm;
+    SELECT 
+        c.CenterID,
+        p.MRI_alias 
+    FROM 
+        candidate c 
+        JOIN psc p ON p.CenterID=c.CenterID  
+    WHERE 
+        c.PSCID = ?
+QUERY
 
-        $sth = $${dbhr}->prepare($query);
-	$sth->execute();
+    $sth = $${dbhr}->prepare($query);
+	$sth->execute($PSCID);
 	if ( $sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
 	    return ($row->{'MRI_alias'},$row->{'CenterID'});
@@ -1349,8 +1367,17 @@ sub is_unique_hash {
     # breaking gracefully (all files will be kept, basically) if we aren't tracking hashes...
     return 1 unless defined $hashParameterTypeID;
 
-    my $sth = $${dbhr}->prepare("SELECT count(*) FROM parameter_file WHERE ParameterTypeID=$hashParameterTypeID AND Value='$hash'");
-    $sth->execute();
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        count(*) 
+    FROM
+        parameter_file
+    WHERE 
+        ParameterTypeID=?
+        AND Value=?
+QUERY
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($hashParameterTypeID, $hash);
 
     my @res = $sth->fetchrow_array();
     
@@ -1374,8 +1401,17 @@ sub make_pics {
     my $file = $$fileref;
     my $dbhr = $file->getDatabaseHandleRef();
     
-    my $sth = $${dbhr}->prepare("SELECT CandID, Visit_label FROM session WHERE ID=".$file->getFileDatum('SessionID'));
-    $sth->execute();
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        CandID, 
+        Visit_label 
+    FROM 
+        session 
+    WHERE
+        ID=?
+QUERY
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($file->getFileDatum('SessionID'));
     my $rowhr = $sth->fetchrow_hashref();
     
     my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('AcquisitionProtocolID'), $dbhr);
@@ -1413,8 +1449,16 @@ sub make_jiv {
     my $file = $$fileref;
     my $dbhr = $file->getDatabaseHandleRef();
 
-    my $sth = $${dbhr}->prepare("SELECT CandID FROM session WHERE ID=".$file->getFileDatum('SessionID'));
-    $sth->execute();
+    (my $query = <<QUERY) =~ s///gm;
+    SELECT
+        CandID 
+    FROM
+        session 
+    WHERE 
+        ID=?
+QUERY
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($file->getFileDatum('SessionID'));
     
     my $rowhr = $sth->fetchrow_hashref();
     my $minc = $data_dir . '/' . $file->getFileDatum('File');
@@ -1501,8 +1545,16 @@ Returns: the CandID or 0 if the PSCID does not exist
 sub lookupCandIDFromPSCID {
     my ($pscid, $dbhr) = @_;
     my $candid = 0;
-    my $sth = $${dbhr}->prepare("SELECT CandID FROM candidate WHERE PSCID=".$${dbhr}->quote($pscid));
-    $sth->execute();
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        CandID 
+    FROM
+        candidate 
+    WHERE
+        PSCID=?
+QUERY
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($pscid);
     if($sth->rows > 0) {
         my @row = $sth->fetchrow_array();
         $candid = int($row[0]);
