@@ -241,7 +241,7 @@ QUERY
         $ParameterTypeID=   $rows->{'ParameterTypeID'};
     }
 
-    (my $query = <<QUERY) =~ s///gm;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
     UPDATE 
         parameter_file AS pf, 
         parameter_type AS pt
