@@ -400,7 +400,7 @@ of the registered XML protocol file if could find a match with md5sum.
 sub fetchProtocolID {
     my ($md5sum) = @_;
 
-    (my $query = <<QUERY) =~ s///gm;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
     SELECT 
         ProcessProtocolID 
     FROM
@@ -1572,7 +1572,7 @@ Output: - $registeredFileID: registered FileID matching md5sum
 sub fetchRegisteredMD5 {
     my ($md5sum) = @_;
 
-    (my $query = <<QUERY) =~ s///gm;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
     SELECT 
         File, 
         Scan_type

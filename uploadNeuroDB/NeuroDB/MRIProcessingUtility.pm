@@ -1020,7 +1020,7 @@ sub setMRISession {
     # there is data. ###########################################
     ############################################################
     if ($sessionID) {
-        ($query = <<QUERY) =~ s///gm;
+        ($query = <<QUERY) =~ s/\n/ /gm;
     UPDATE 
         session
     SET 
@@ -1089,7 +1089,7 @@ sub validateCandidate {
     ############################################################
     ################## Check if CandID exists ##################
     ############################################################
-    (my $query = <<QUERY) =~ s///gm;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
     SELECT 
         CandID, 
         PSCID

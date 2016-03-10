@@ -173,9 +173,9 @@ QUERY
     
     if($sth->rows > 0) {
 	my $rowref = $sth->fetchrow_hashref();
-	    return $rowref->{'CandID'};
+        return $rowref->{'CandID'};
     } else {
-	    return undef;
+        return undef;
     }
 }
 
@@ -377,7 +377,7 @@ QUERY
 		$sth->finish();
 		
 		# get the set of files 
-		($query = <<QUERY) =~ s///gm; 
+		($query = <<QUERY) =~ s/\n/ /gm; 
     SELECT 
         FileID 
     FROM 
@@ -499,7 +499,7 @@ QUERY
     
     unless($objective>0) {
         # there probably isn't a valid row for this visit...
-        ($query = <<QUERY) =~ s///gm;
+        ($query = <<QUERY) =~ s/\n/ /gm;
     SELECT 
         SubprojectID 
     FROM 
@@ -1228,9 +1228,9 @@ sub createNewCandID {
 QUERY
     my $sth = $${dbhr}->prepare($query);
     while(1) {
-	    $candID = int(rand 899999) + 100000;
-	    $sth->execute($candID);
-	    last if $sth->rows == 0;
+        $candID = int(rand 899999) + 100000;
+        $sth->execute($candID);
+        last if $sth->rows == 0;
     }
 
     return $candID;
@@ -1449,7 +1449,7 @@ sub make_jiv {
     my $file = $$fileref;
     my $dbhr = $file->getDatabaseHandleRef();
 
-    (my $query = <<QUERY) =~ s///gm;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
     SELECT
         CandID 
     FROM

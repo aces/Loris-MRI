@@ -449,8 +449,8 @@ QUERY
     my $sth = $${dbhr}->prepare($query);   
     $sth->execute($pscid);
     if($sth->rows > 0) {
-	    my @row = $sth->fetchrow_array();
-	    $candid = int($row[0]);
+        my @row = $sth->fetchrow_array();
+        $candid = int($row[0]);
     }
 
     return $candid;
@@ -503,7 +503,7 @@ QUERY
 
 	# if we found a session, it needs updating or inserting, so we use replace into.
 	if($sth->rows > 0) {
-        (my $query = <<QUERY) =~ s///gm;
+        (my $query = <<QUERY) =~ s/\n/ /gm;
     REPLACE INTO
         mri_acquisition_dates
     SET

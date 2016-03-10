@@ -277,7 +277,7 @@ sub getRecipientsByTypeID {
 
     my @param;
     push(@param, $typeID);
-    (my $query = <<QUERY) =~ s///gm;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
     SELECT
         users.email 
     FROM

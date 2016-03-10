@@ -224,7 +224,7 @@ Update location of jiv files in parameter_file
 sub update_parameter_file_location {
     my  ($fileID, $new_file_location, $parameter_type, $dbh) =   @_; 
 
-    (my $select = <<QUERY) =~ s///gm;
+    (my $select = <<QUERY) =~ s/\n/ /gm;
     SELECT 
         ParameterTypeID 
     FROM

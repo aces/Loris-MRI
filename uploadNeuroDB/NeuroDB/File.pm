@@ -108,7 +108,7 @@ QUERY
     }
     $this->{'fileData'} = $sth->fetchrow_hashref();
 
-    ($query = <<QUERY) =~ s///gm;
+    ($query = <<QUERY) =~ s/\n/ /gm;
     SELECT 
         Name, 
         Value 
@@ -122,12 +122,12 @@ QUERY
     $sth->execute($fileID);
 
     if($sth->rows == 0) {
-	    return 0;
+        return 0;
     }
 
     $this->{'parameters'} = {};
     while(my $paramref = $sth->fetchrow_hashref()) {
-	    $this->{'parameters'}->{$paramref->{'Name'}} = $paramref->{'Value'};
+        $this->{'parameters'}->{$paramref->{'Name'}} = $paramref->{'Value'};
     }
 
     return 1;
@@ -160,10 +160,10 @@ QUERY
     $sth->execute($file);
 
     if($sth->rows == 0) {
-	    return undef;
+        return undef;
     } else {
-	    my $row = $sth->fetchrow_hashref();
-	    return $row->{'FileID'};
+        my $row = $sth->fetchrow_hashref();
+        return $row->{'FileID'};
     }
 }
     
@@ -463,7 +463,7 @@ sub getParameterTypeID {
     my $dbh = ${$this->{'dbhr'}};
     
     # look for an existing parameter type ID
-    (my $query = <<QUERY) =~ s///gm; 
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
     SELECT 
         ParameterTypeID 
     FROM 
