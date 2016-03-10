@@ -361,12 +361,12 @@ sub setFileData {
     UPDATE 
         files 
     SET 
-        ?=? 
+        $paramName=? 
     WHERE 
         FileID=?
 QUERY
         my $sth = ${$this->{'dbhr'}}->prepare($query);
-        $sth->execute($paramName, $value, $fileID);
+        $sth->execute($value, $fileID);
     }
 }
 
@@ -486,7 +486,7 @@ QUERY
         (Name, Type, Description, SourceFrom, Queryable) 
         VALUES (?, 'text', ?, 'parameter_file', 0)
 QUERY
-        $sth = $dbh->prepare($query)
+        $sth = $dbh->prepare($query);
         $sth->execute($paramType, "$paramType magically created by NeuroDB::File");
         return $dbh->{'mysql_insertid'};
     }

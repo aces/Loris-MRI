@@ -438,8 +438,6 @@ if ($valid_study) {
     WHERE
         TarchiveID=?
 QUERY
-    my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
-                 "number_of_mincCreated=? ";
     if ($debug) {
         print $query . "\n";
     }
@@ -596,9 +594,6 @@ if (!$valid_study) {
 ###############################################################
 ### Set Processed to 1 in mri_upload table#####################
 ###############################################################
-my $where = "WHERE TarchiveID=?";
-my $query = "UPDATE mri_upload SET InsertionComplete=1 ";
-$query = $query . $where;
 (my $query = <<QUERY) =~ s/\n/ /gm;
     UPDATE 
         mri_upload 

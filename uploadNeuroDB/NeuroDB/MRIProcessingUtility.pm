@@ -216,17 +216,17 @@ sub createTarchiveArray {
     FROM 
         tarchive 
     WHERE 
-        ?
 QUERY
-    my $where = "ArchiveLocation='$tarchive'";
+    my $where = " ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
+        $where = " ArchiveLocation LIKE '%".basename($tarchive)."'";
     }
+    $query .= $where;
     if ($this->{debug}) {
         print $query . "\n";
     }
     my $sth = ${$this->{'dbhr'}}->prepare($query); 
-    $sth->execute($where);
+    $sth->execute();
    
     if ($sth->rows > 0) {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();
@@ -508,14 +508,14 @@ sub update_mri_acquisition_dates {
         AND (m.AcquisitionDate > ?
              OR m.AcquisitionDate IS NULL
             ) 
-        AND ?>0
+        AND $acq_date > 0
 QUERY
     if ($this->{debug}) {
         print $query . "\n";
     }
 
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute($sessionID, $acq_date, $acq_date);
+    $sth->execute($sessionID, $acq_date);
     ############################################################
     ### if we found a session, it needs updating or inserting, #
     ### so we use replace into. ################################
@@ -955,7 +955,7 @@ QUERY
             if ($this->{debug}) {
                 print $query . "\n";
             }
-            $sth = ${$this->{'dbhr'}}->prepare($query);
+            my $sth = ${$this->{'dbhr'}}->prepare($query);
             $sth->execute($subjectIDsref->{'CandID'},
                           $subjectIDsref->{'PSCID'},
                           $tarchiveInfo->{'PatientDoB'},
@@ -1031,7 +1031,7 @@ QUERY
         if ($this->{debug}) {
             print $query . "\n";
         }
-        $sth = ${$this->{'dbhr'}}->prepare($query);
+        my $sth = ${$this->{'dbhr'}}->prepare($query);
         $sth->execute($sessionID);
     }
     return ($sessionID, $requiresStaging);

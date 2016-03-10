@@ -240,7 +240,7 @@ sub getSpooledMessagesByTypeID {
         NotificationTypeID = ? 
         AND Sent='N'
 QUERY
-    if $centerID {
+    if ($centerID) {
         $query .= " AND CenterID=? ";
         push(@param, $centerID);
     }
@@ -287,7 +287,7 @@ sub getRecipientsByTypeID {
         users.UserID=notification_users.UserID 
         AND NotificationTypeID = ?
 QUERY
-    if $centerID {
+    if ($centerID) {
         $query .= " AND CenterID=?";
         push(@param, $centerID);
     }
@@ -329,11 +329,11 @@ sub markMessagesAsSentByTypeID {
         NotificationTypeID = ?
         AND Sent='N'
 QUERY
-    if $centerID {
+    if ($centerID) {
         $query .= " AND CenterID=? ";
         push(@param, $centerID);
     }
-    $query .= " AND CenterID='$centerID'" if $centerID;
+    $query .= " AND CenterID='$centerID'";
     my $sth = $dbh->prepare($query);
     $sth->execute(@param);
 }
