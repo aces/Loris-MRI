@@ -149,6 +149,44 @@ QUERY
         sumTypeVersion = ?,       AcquisitionMetadata = ?,
         DateLastArchived = NOW()
 QUERY
+
+    #-----------------------------------------------------------
+    # Try to determine the creating user for the tarchive row
+    # to be inserted. This is done by finding the row in 
+    # the mri_upload table with the DecompressedLocation equal
+    # to the $self->{dcmdir}. This is only done when the MRI
+    # pipeline is run in auto launch mode: the creating user is
+    # set to $ENV{'user'} otherwise (note that when the auto
+    # launch is turned on, $ENV{'USER'} will be '').
+    #-----------------------------------------------------------
+    my $creating_user = $self->{user};
+
+    # If we are in auto launch mode
+    if(length($creating_user) == 0) {
+        ($query = <<QUERY) =~ s/\n/ /gm;
+          SELECT UploadedBy
+          FROM mri_upload
+          WHERE DecompressedLocation = ?
+QUERY
+        # Lookup in the mri_upload table
+        $sth     = $dbh->prepare($query);
+        my @args = ($self->{dcmdir});
+        $success = $sth->execute(@args);
+        print "Failed running query: $query\n\n\n" unless $success;
+
+        # Fetch result
+        my @row = $sth->fetchrow_array();
+        if(@row == 0) {
+            print "No row in mri_upload table with DecompressedLocation = " . $self->{dcmdir} . "\n";
+            $creating_user = undef;
+        } elsif(@row > 1) {
+            print "More than one row in mri_upload table with DecompressedLocation = " . $self->{dcmdir} . "\n";
+            $creating_user = undef;
+        } else {
+            $creating_user = $row[0];
+        }
+    }
+
     my @values = 
       (
        $self->{studyuid},                 $self->{header}->{pname},           
@@ -158,7 +196,7 @@ QUERY
        $self->{header}->{scanner_serial}, $self->{header}->{software},      
        $self->{header}->{institution},    $self->{acquisition_count},          
        $self->{nondcmcount},              $self->{dcmcount},                  
-       $self->{user},                     $self->{dcmdir},                     
+       $creating_user,                    $self->{dcmdir},                     
        $self->{sumTypeVersion},           $metacontent   
       );
     
