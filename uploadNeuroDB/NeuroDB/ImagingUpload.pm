@@ -386,35 +386,6 @@ sub isDicom {
 }
 
 ################################################################
-###############################moveUploadedFile#################
-################################################################
-=pod
-moveUploadedFile()
-Description:
-   - Moves the uploaded file from the uploaded_temp_folder to 
-     Incoming directory
-
-Arguments:
- $this      : Reference to the class
-
- Returns    : NULL
-=cut
-
-sub moveUploadedFile {
-    my $this            = shift;
-    my $incoming_folder = $Settings::getIncomingDir;
-    if (!$incoming_folder) {
-        return 0;
-    }
-    my $cmd = "mv " . $this->{'uploaded_temp_folder'} . 
-	      " " . $incoming_folder;
-    $this->runCommand($cmd);
-}
-
-
-
-
-################################################################
 ####################sourceEnvironment###########################
 ################################################################
 =pod
@@ -455,7 +426,8 @@ Arguments:
 sub runCommandWithExitCode {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n " if $this->{'verbose'};
+#    print "\n\n $command \n\n " if $this->{'verbose'};
+    print "\n\n $command \n\n ";
     my $output = system($command);
     return $output >> 8;    ##returns the exit code
 }
@@ -484,28 +456,38 @@ sub runCommand {
 }
 
 ################################################################
-#############################CleanUpTMPDir######################
+####################CleanUpDataIncomingDir######################
 ################################################################
 =pod
-CleanUpTMPDir()
+CleanUpDataIncomingDir()
 Description:
-   - Cleans Up and removes the uploaded TMP file/directory 
-     once it is moved by the moveUploadedFile() function
+   - Cleans Up and removes the uploaded file from the data  
+     directory once it is inserted into the database
 
 Arguments:
  $this      : Reference to the class
 
- Returns    : NULL
+Returns: 1 if the uploaded file removal was successful and 0 otherwise
+
 =cut
 
-sub CleanUpTMPDir {
+sub CleanUpDataIncomingDir {
     my $this = shift;
+    my ($uploaded_file) = @_;
+    my $output = undef;
     ############################################################
-    ####Removes the uploaded directory if exists################
+    ################ Removes the uploaded file #################
     ############################################################
-    if ( -d $this->{'uploaded_temp_folder'} ) {
-        rmdir( $this->{'uploaded_temp_folder'} );
+
+    if ( -e $uploaded_file ) {
+        my $command = "rm " . $uploaded_file;
+        my $output = $this->runCommandWithExitCode($command);
     }
+
+    if (!$output) {
+        return 1;
+    }
+    return 0;
 }
 
 
