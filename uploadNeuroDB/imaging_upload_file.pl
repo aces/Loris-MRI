@@ -37,8 +37,11 @@ my $TmpDir_decompressed_folder =
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = undef;
-my $verbose             = 0;           # default for now
-my $verb_default   = 'N';
+my $verbose             = 0;           # default for now, run with -verbose option to re-enable
+my $notification_verbose= 'N';	       # notification_spool message flag for messages to 
+				       # be displayed BY DEFAULT in the front-end/imaging_uploader 
+my $notification_silent = 'Y';	       # notification_spool message flag for messages to 
+				       # be displayed UPON REQUEST in the front-end/imaging_uploader 
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -192,13 +195,13 @@ if ( !($is_valid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe validation has failed \n";
-    spool($message,'Y', $verb_default);
+    spool($message,'Y', $notification_verbose);
     print $message;
     exit 6;
 }
 
 $message = "\nThe validation has passed \n";
-spool($message,'N', $verb_default);
+spool($message,'N', $notification_verbose);
 
 ################################################################
 ############### Run DicomTar  ##################################
@@ -208,12 +211,12 @@ if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe dicomtar execution has failed\n";
-    spool($message,'Y', $verb_default);
+    spool($message,'Y', $notification_verbose);
     print $message;
     exit 7;
 }
 $message = "\nThe dicomtar execution has successfully completed\n";
-spool($message,'N', $verb_default);
+spool($message,'N', $notification_verbose);
 
 ################################################################
 ############### Run runTarchiveLoader###########################
@@ -222,12 +225,12 @@ $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
     $message = "\nThe insertion scripts have failed\n";
-    spool($message,'Y', $verb_default); 
+    spool($message,'Y', $notification_verbose); 
     print $message;
     exit 8;
 }
 $message = "\nThe insertion scripts have successfully completed\n";
-spool($message,'N', $verb_default);
+spool($message,'N', $notification_verbose);
 
 ################################################################
 ### If we got this far, dicomTar and tarchiveLoader completed###
@@ -236,7 +239,7 @@ spool($message,'N', $verb_default);
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "The uploaded file " . $uploaded_file . " was not removed\n";
-    spool($message,'Y', $verb_notification);
+    spool($message,'Y', $notification_verbose);
     print $message;
     exit 9;
 }

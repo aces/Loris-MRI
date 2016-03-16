@@ -25,7 +25,7 @@ my $date    = sprintf(
                 $mon + 1, $mday, $hour, $min, $sec
               );
 my $debug   = 0;
-my $verbose = 0;        # default for now
+my $verbose = 0;        # default for now unless launched with -verbose option
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
 my $output              = undef;

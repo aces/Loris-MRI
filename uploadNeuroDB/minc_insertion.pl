@@ -28,11 +28,13 @@ my $date = sprintf(
            );
 my $debug       = 0;  
 my $message     = '';
-my $tarchive_id = undef;
+my $tarchive_srcloc = '';
 my $upload_id   = undef;
-my $verbose     = 0;           # default for now
-my $verb_default = 'N';        # default for the notification spool table
-my $verb_notdefault = 'Y';     # default for the notification spool table
+my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
+my $notification_verbose= 'N'; # notification_spool message flag for messages to 
+                               # be displayed BY DEFAULT in the front-end/imaging_uploader 
+my $notification_silent = 'Y'; # notification_spool message flag for messages to 
+                               # be displayed UPON REQUEST in the front-end/imaging_uploader 
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -217,18 +219,18 @@ print $query . "\n" if $debug;
 my $is_valid = $dbh->selectrow_array($query);
 
 ## Setup  for the notification_spool table ##
-# get the tarchive_id from $tarchive 
-$query = "SELECT TarchiveID".
+# get the tarchive_srcloc from $tarchive 
+$query = "SELECT SourceLocation".
         " FROM tarchive t $where";
 my $sth = $dbh->prepare($query);
 $sth->execute();
-$tarchive_id = $sth->fetchrow_array;
-# get the $upload_id from $tarchive_id 
+$tarchive_srcloc = $sth->fetchrow_array;
+# get the $upload_id from $tarchive_srcloc 
 $query =
 	"SELECT UploadID FROM mri_upload "
-	. "WHERE TarchiveID =?";
+	. "WHERE DecompressedLocation =?";
 $sth = $dbh->prepare($query);
-$sth->execute($tarchive_id);
+$sth->execute($tarchive_srcloc);
 $upload_id = $sth->fetchrow_array;
 ## end of setup IDs for notification_spool table
 
@@ -242,7 +244,7 @@ if (($is_valid == 0) && ($force==0)) {
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
                    'minc_insertion', $upload_id, 'Y', 
-                   $verb_default
+                   $notification_verbose
     );
     exit 6;
 }
@@ -286,7 +288,7 @@ my $subjectIDsref = $utility->determineSubjectID(
 my $CandMismatchError = undef;
 $CandMismatchError= $utility->validateCandidate(
                                 $subjectIDsref,
-                                $tarchiveInfo{'TarchiveID'});
+                                $tarchiveInfo{'SourceLocation'});
 
 my $logQuery = "INSERT INTO MRICandidateErrors".
               "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
@@ -297,7 +299,7 @@ my $candlogSth = $dbh->prepare($logQuery);
 #### Loads/Creates File object and maps dicom fields ###########
 ################################################################
 my $file = $utility->loadAndCreateObjectFile($minc,
-			$tarchiveInfo{'TarchiveID'});
+			$tarchiveInfo{'SourceLocation'});
 
 ################################################################
 ##### Optionally do extra filtering, if needed #################
@@ -331,7 +333,7 @@ if (defined($CandMismatchError)) {
     
     $notifier->spool('tarchive validation', $message, 0,
                    'minc_insertion', $upload_id, 'Y', 
-                   $verb_default
+                   $notification_verbose
     );
 
     exit 7 ;
@@ -351,14 +353,14 @@ my ($sessionID, $requiresStaging) =
 ############ Compute the md5 hash ##############################
 ################################################################
 my $unique = $utility->computeMd5Hash($file, 
-				$tarchiveInfo{'TarchiveID'});
+				$tarchiveInfo{'SourceLocation'});
 if (!$unique) { 
     $message = "\n--> WARNING: This file has already been uploaded! \n";  
     print $message if $verbose;
     print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
                    'minc_insertion', $upload_id, 'Y', 
-                   $verb_default
+                   $notification_verbose
     );
 #    exit 8; 
 } 
@@ -396,7 +398,7 @@ if($acquisitionProtocol =~ /unknown/) {
    print LOG $message;
    $notifier->spool('tarchive validation', $message, 0,
                   'minc_insertion', $upload_id, 'Y', 
-                  $verb_default
+                  $notification_verbose
    );
    exit 9;
 }
@@ -421,7 +423,7 @@ $notifier->spool(
     	$subjectIDsref->{'visitLabel'} .
     	"\tacquired " . $file->getParameter('acquisition_date')
     	. "\t" . $file->getParameter('series_description'),
-    	$centerID, 'minc_insertion.pl', $upload_id, 'N', $verb_notdefault);
+    	$centerID, 'minc_insertion.pl', $upload_id, 'N', $notification_silent);
 
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";

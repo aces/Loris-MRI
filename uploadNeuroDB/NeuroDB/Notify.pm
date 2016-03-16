@@ -70,62 +70,39 @@ sub spool {
     my $typeID = $this->getTypeID($type);
     return 0 unless defined $typeID;
 
-    my $query = "SELECT COUNT(*) AS counter FROM notification_spool 
-                 WHERE NotificationTypeID= ?
-                 AND Message= ?
-                 AND Sent='N'";
+    my @insert_params = ();
+    my $query = "INSERT INTO notification_spool SET NotificationTypeID=?,
+                TimeSpooled=NOW(), 
+                Message=? ";
 
-    push @params, $typeID;
-    push @params, $message;
+    push @insert_params, $typeID;
+    push @insert_params, $message;
 
     if ($centerID) {
-    	$query .= " AND CenterID= ? ";
-        push @params, $centerID;	
+        $query .= " , CenterID=? ";
+        push @insert_params, $centerID;
     }
     if ($origin) {
-    	$query .= " AND Origin= ? ";
-        push @params, $origin;
+        $query .= " , Origin=? ";
+        push @insert_params, $origin;
     }
-    my $sth = $dbh->prepare($query);
-    $sth->execute(@params);    
-    my $row = $sth->fetchrow_hashref();
-    
-    if ($row->{'counter'} == 0) {
 
-	    my @insert_params = ();
-            $query = "INSERT INTO notification_spool SET NotificationTypeID=?,
-                  TimeSpooled=NOW(), 
-                  Message=? ";
-
-            push @insert_params, $typeID;
-            push @insert_params, $message;
-
-            if ($centerID) {
-                $query .= " , CenterID=? ";
-                push @insert_params, $centerID;
-            }
-            if ($origin) {
-                $query .= " , Origin=? ";
-                push @insert_params, $origin;
-            }
-
-            if ($processID) {
-                $query .= " , ProcessID=? ";
-                push @insert_params, $processID;
-            }
-
-            if ($isError) {
-                $query .= " , Error=? ";
-                push @insert_params, $isError;
-            }
-
-            if ($isVerb) {
-                $query .= " , Verbose=? ";
-                push @insert_params, $isVerb;
-            }
-            my $insert = $dbh->prepare($query);
-            $insert->execute(@insert_params);
+    if ($processID) {
+        $query .= " , ProcessID=? ";
+        push @insert_params, $processID;
     }
+
+    if ($isError) {
+        $query .= " , Error=? ";
+        push @insert_params, $isError;
+    }
+
+    if ($isVerb) {
+        $query .= " , Verbose=? ";
+        push @insert_params, $isVerb;
+    }
+    my $insert = $dbh->prepare($query);
+    $insert->execute(@insert_params);
     
     return 1;
 }

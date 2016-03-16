@@ -31,7 +31,7 @@ my $where       = '';
 my $sth         = undef;
 my $query       = '';
 my $message     = '';
-my $verbose     = 0;           # default for now
+my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
 my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't
@@ -275,7 +275,7 @@ $utility->CreateMRICandidates(
 ################################################################
 my $CandMismatchError= $utility->validateCandidate(
 				$subjectIDsref,
-				$tarchiveInfo{'TarchiveID'});
+				$tarchiveInfo{'SourceLocation'});
 if (defined $CandMismatchError) {
     print $CandMismatchError;
     ##Note that the script will not exit, so that further down
@@ -293,7 +293,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-                $tarchive, $tarchiveInfo{'TarchiveID'});
+                $tarchive, $tarchiveInfo{'SourceLocation'});
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###
