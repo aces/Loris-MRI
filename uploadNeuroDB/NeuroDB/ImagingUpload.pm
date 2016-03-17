@@ -498,7 +498,7 @@ sub CleanUpDataIncomingDir {
             "Unable to remove the file:" . $uploaded_file . "\n";
         $this->spool($message, 'Y');
         return 0;
-        }
+    }
     else {
         $message =
             "The file " . $tarchive_file . " can not be found\n";
