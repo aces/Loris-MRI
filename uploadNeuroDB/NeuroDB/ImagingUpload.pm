@@ -426,8 +426,7 @@ Arguments:
 sub runCommandWithExitCode {
     my $this = shift;
     my ($command) = @_;
-#    print "\n\n $command \n\n " if $this->{'verbose'};
-    print "\n\n $command \n\n ";
+    print "\n\n $command \n\n " if $this->{'verbose'};
     my $output = system($command);
     return $output >> 8;    ##returns the exit code
 }
@@ -475,19 +474,38 @@ sub CleanUpDataIncomingDir {
     my $this = shift;
     my ($uploaded_file) = @_;
     my $output = undef;
+    my $message = '';
+    my $tarchive_location = $Settings::tarchiveLibraryDir;
     ############################################################
-    ################ Removes the uploaded file #################
+    ################ Removes the uploaded file ################# 
+    ##### Check first that the file is in the tarchive dir ##### 
     ############################################################
 
-    if ( -e $uploaded_file ) {
-        my $command = "rm " . $uploaded_file;
+    my $base_decompressed_loc = basename($this->{'uploaded_temp_folder'}); 
+    my $command = "find " . $tarchive_location . "/ " . "-name *" . 
+		   $base_decompressed_loc . "*";
+    my $tarchive_file = $this->runCommand($command);
+    if ($tarchive_file) {
+        $command = "rm " . $uploaded_file;
         my $output = $this->runCommandWithExitCode($command);
+        if (!$output) {
+            $message =
+                "The following file " . $tarchive_file . " was found\n";
+            $this->spool($message, 'N');
+            return 1;
+        }
+        $message =
+            "Unable to remove the file:" . $uploaded_file . "\n";
+        $this->spool($message, 'Y');
+        return 0;
+        }
+    else {
+        $message =
+            "The file " . $tarchive_file . " can not be found\n";
+        $this->spool($message, 'Y');
+        return 0; # if the file was not found in tarchive, do not delete the original
     }
 
-    if (!$output) {
-        return 1;
-    }
-    return 0;
 }
 
 

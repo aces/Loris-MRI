@@ -234,12 +234,12 @@ spool($message,'N');
 ################################################################
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
-    $message = "\nThe uploaded file " . $uploaded_file . " was not removed";
+    $message = "The uploaded file " . $uploaded_file . " was not removed\n";
     spool($message,'Y'); 
     print $message;
     exit 9;
 }
-$message = "\nThe uploaded file " . $uploaded_file . " has been removed";
+$message = "The uploaded file " . $uploaded_file . " has been removed\n";
 spool($message,'N');
 
 ################################################################
