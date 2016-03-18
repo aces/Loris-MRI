@@ -486,11 +486,11 @@ sub CleanUpDataIncomingDir {
 		   $base_decompressed_loc . "*";
     my $tarchive_file = $this->runCommand($command);
     if ($tarchive_file) {
-        $command = "rm " . $uploaded_file;
-        my $output = $this->runCommandWithExitCode($command);
         $message =
             "The following file " . $tarchive_file . " was found\n";
         $this->spool($message, 'N');
+        $command = "rm " . $uploaded_file;
+        my $output = $this->runCommandWithExitCode($command);
         if (!$output) {
             return 1;
         }
