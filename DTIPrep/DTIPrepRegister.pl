@@ -362,9 +362,12 @@ sub registerProtocol {
     my $protPath= $tooldir . "/" . basename($protocol);
     `cp $protocol $protPath`    unless (-e $protPath);
 
-    my $query   = "INSERT INTO mri_processing_protocol " .
-                  "(ProtocolFile, FileType, Tool, InsertTime, md5sum) " .
-                  "VALUES (?, ?, ?, UNIX_TIMESTAMP(), ?)";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO mri_processing_protocol 
+        (ProtocolFile, FileType, Tool, InsertTime, md5sum)
+    VALUES 
+        (?, ?, ?, UNIX_TIMESTAMP(), ?)
+QUERY
     my $sth     = $dbh->prepare($query);
 
     my $protocolID;
@@ -397,9 +400,14 @@ of the registered XML protocol file if could find a match with md5sum.
 sub fetchProtocolID {
     my ($md5sum) = @_;
 
-    my $query   = "SELECT ProcessProtocolID " .
-                  "FROM mri_processing_protocol " .
-                  "WHERE md5sum=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        ProcessProtocolID 
+    FROM
+        mri_processing_protocol
+    WHERE
+        md5sum=?
+QUERY
 
     my $sth     = $dbh->prepare($query);
     $sth->execute($md5sum);
@@ -904,9 +912,14 @@ sub getFileID {
     my $fileID;
 
     # fetch the FileID of the raw dataset
-    my $query   =   "SELECT FileID " .
-                    "FROM files " . 
-                    "WHERE File like ?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        FileID
+    FROM 
+        files
+    WHERE 
+        File like ?
+QUERY
     
     my $like    =   "%$src_name%";    
     my $sth     =   $dbh->prepare($query); 
@@ -1193,19 +1206,30 @@ sub fetchRegisteredFile {
     my $registeredFile;
 
     # fetch the FileID of the raw dataset
-    my $query   =   "SELECT f.File "          .
-                    "FROM files f "             .
-                    "JOIN mri_scan_type mst "   .
-                        "ON mst.ID=f.AcquisitionProtocolID ".
-                    "WHERE f.SourceFileID=? "   .
-                        "AND f.SourcePipeline=? "   .
-                        "AND f.PipelineDate=? "     .
-                        "AND f.CoordinateSpace=? "  .
-                        "AND mst.Scan_type=? "      .
-                        "AND OutputType=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        f.File
+    FROM
+        files f
+        JOIN mri_scan_type mst
+            ON mst.ID=f.AcquisitionProtocolID
+    WHERE 
+        f.SourceFileID=?
+        AND f.SourcePipeline=?
+        AND f.PipelineDate=? 
+        AND f.CoordinateSpace=?
+        AND mst.Scan_type=? 
+        AND OutputType=?
+QUERY
 
-    my $sth     =   $dbh->prepare($query);
-    $sth->execute($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType);
+    my $sth = $dbh->prepare($query);
+    $sth->execute($src_fileID, 
+                  $src_pipeline, 
+                  $pipelineDate, 
+                  $coordinateSpace, 
+                  $scanType, 
+                  $outputType
+                 );
 
     if  ($sth->rows > 0)    {
         my $row =   $sth->fetchrow_hashref();
@@ -1548,12 +1572,19 @@ Output: - $registeredFileID: registered FileID matching md5sum
 sub fetchRegisteredMD5 {
     my ($md5sum) = @_;
 
-    my $query   = "SELECT File, Scan_type" .
-                    " FROM files f" .
-                    " JOIN parameter_file pf ON (pf.FileID = f.FileID)" .
-                    " JOIN parameter_type pt ON (pt.ParameterTypeID = pf.ParameterTypeID)" .
-                    " JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID)" .
-                    " WHERE pt.Name = ? AND pf.Value = ?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        File, 
+        Scan_type
+    FROM 
+        files f
+        JOIN parameter_file pf ON (pf.FileID = f.FileID)
+        JOIN parameter_type pt ON (pt.ParameterTypeID = pf.ParameterTypeID)
+        JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID)
+    WHERE 
+        pt.Name = ? 
+        AND pf.Value = ?
+QUERY
     my $sth     = $dbh->prepare($query);
     $sth->execute('md5hash', $md5sum);
     my ($registeredFile, $registeredScanType);

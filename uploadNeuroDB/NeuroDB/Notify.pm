@@ -70,10 +70,16 @@ sub spool {
     my $typeID = $this->getTypeID($type);
     return 0 unless defined $typeID;
 
-    my $query = "SELECT COUNT(*) AS counter FROM notification_spool 
-                 WHERE NotificationTypeID= ?
-                 AND Message= ?
-                 AND Sent='N'";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        COUNT(*) AS counter 
+    FROM
+        notification_spool
+    WHERE 
+        NotificationTypeID=?
+        AND Message=?
+        AND Sent='N'
+QUERY
 
     push @params, $typeID;
     push @params, $message;
@@ -93,33 +99,38 @@ sub spool {
     if ($row->{'counter'} == 0) {
 
 	    my @insert_params = ();
-            $query = "INSERT INTO notification_spool SET NotificationTypeID=?,
-                  TimeSpooled=NOW(), 
-                  Message=? ";
+        ($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO 
+        notification_spool 
+    SET 
+        NotificationTypeID=?,
+        TimeSpooled=NOW(), 
+        Message=?
+QUERY
 
-            push @insert_params, $typeID;
-            push @insert_params, $message;
+        push @insert_params, $typeID;
+        push @insert_params, $message;
 
-            if ($centerID) {
-                $query .= " , CenterID=? ";
-                push @insert_params, $centerID;
-            }
-            if ($origin) {
-                $query .= " , Origin=? ";
-                push @insert_params, $origin;
-            }
+        if ($centerID) {
+            $query .= " , CenterID=? ";
+            push @insert_params, $centerID;
+        }
+        if ($origin) {
+            $query .= " , Origin=? ";
+            push @insert_params, $origin;
+        }
 
-            if ($processID) {
-                $query .= " , ProcessID=? ";
-                push @insert_params, $processID;
-            }
+        if ($processID) {
+            $query .= " , ProcessID=? ";
+            push @insert_params, $processID;
+        }
 
-            if ($isError) {
-                $query .= " , Error=? ";
-                push @insert_params, $isError;
-            }
-            my $insert = $dbh->prepare($query);
-            $insert->execute(@insert_params);
+        if ($isError) {
+            $query .= " , Error=? ";
+            push @insert_params, $isError;
+        }
+        my $insert = $dbh->prepare($query);
+        $insert->execute(@insert_params);
     }
     
     return 1;
@@ -141,9 +152,16 @@ sub getTypeID {
 
     my $dbh = ${$this->{'dbhr'}};
 
-    my $query = "SELECT NotificationTypeID FROM notification_types WHERE Type=".$dbh->quote($type);
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        NotificationTypeID 
+    FROM
+        notification_types 
+    WHERE 
+        Type=?
+QUERY
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute($type);
 
     if($sth->rows > 0) {
 	my $row = $sth->fetchrow_hashref();
@@ -167,7 +185,18 @@ sub getSpooledTypes {
     my $this = shift;
     my $dbh = ${$this->{'dbhr'}};
 
-    my $query = "SELECT DISTINCT t.NotificationTypeID, t.SubjectLine, s.CenterID FROM notification_types AS t, notification_spool AS s WHERE t.NotificationTypeID = s.NotificationTypeID AND s.Sent='N'";
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        DISTINCT t.NotificationTypeID, 
+        t.SubjectLine, 
+        s.CenterID 
+    FROM 
+        notification_types AS t, 
+        notification_spool AS s 
+    WHERE 
+        t.NotificationTypeID = s.NotificationTypeID 
+        AND s.Sent='N'
+QUERY
     my $sth = $dbh->prepare($query);
     $sth->execute();
 
@@ -199,11 +228,25 @@ sub getSpooledMessagesByTypeID {
 
     my $dbh = ${$this->{'dbhr'}};
 
-    my $query = "SELECT TimeSpooled, Message FROM notification_spool WHERE NotificationTypeID = $typeID AND Sent='N'";
-    $query .= " AND CenterID='$centerID'" if $centerID;
+    my @param;
+    push(@param, $typeID);
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        TimeSpooled, 
+        Message 
+    FROM 
+        notification_spool 
+    WHERE 
+        NotificationTypeID = ? 
+        AND Sent='N'
+QUERY
+    if ($centerID) {
+        $query .= " AND CenterID=? ";
+        push(@param, $centerID);
+    }
     $query .= " ORDER BY TimeSpooled";
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute(@param);
 
     my @messages = ();
     if($sth->rows > 0) {
@@ -232,10 +275,24 @@ sub getRecipientsByTypeID {
 
     my $dbh = ${$this->{'dbhr'}};
 
-    my $query = "SELECT users.email FROM users, notification_users WHERE users.UserID=notification_users.UserID AND NotificationTypeID = $typeID";
-    $query .= " AND CenterID='$centerID'" if $centerID;
+    my @param;
+    push(@param, $typeID);
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        users.email 
+    FROM
+        users, 
+        notification_users 
+    WHERE 
+        users.UserID=notification_users.UserID 
+        AND NotificationTypeID = ?
+QUERY
+    if ($centerID) {
+        $query .= " AND CenterID=?";
+        push(@param, $centerID);
+    }
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute(@param);
 
     my @recipients = ();
     if($sth->rows > 0) {
@@ -261,9 +318,24 @@ sub markMessagesAsSentByTypeID {
 
     my $dbh = ${$this->{'dbhr'}};
 
-    my $query = "UPDATE notification_spool SET Sent='Y' WHERE NotificationTypeID = $typeID AND Sent='N'";
-    $query .= " AND CenterID='$centerID'" if $centerID;
-    $dbh->do($query);
+    my @param;
+    push(@param, $typeID);
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        notification_spool 
+    SET 
+        Sent='Y' 
+    WHERE 
+        NotificationTypeID = ?
+        AND Sent='N'
+QUERY
+    if ($centerID) {
+        $query .= " AND CenterID=? ";
+        push(@param, $centerID);
+    }
+    $query .= " AND CenterID='$centerID'";
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@param);
 }
 
 1;

@@ -84,9 +84,14 @@ sub IsValid {
     ############################################################
     ###########Update MRI_upload Table accordingly##############
     ############################################################
-    $where = " WHERE UploadID=?";
-    $query = " UPDATE mri_upload SET Inserting=1";
-    $query = $query . $where;
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        mri_upload 
+    SET 
+        Inserting=1
+    WHERE 
+        UploadID=?
+QUERY
     my $mri_upload_update = ${$this->{'dbhr'}}->prepare($query);
     $mri_upload_update->execute($this->{'upload_id'});
 
@@ -117,10 +122,18 @@ sub IsValid {
     ############### Check to see if the uploadID exists ########
     ############################################################
     ############################################################
-    $query =
-        "SELECT PatientName,TarchiveID,number_of_mincCreated,"
-      . "number_of_mincInserted,IsPhantom FROM mri_upload "
-      . " WHERE UploadID =?";
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        PatientName,
+        TarchiveID,
+        number_of_mincCreated,
+        number_of_mincInserted,
+        IsPhantom 
+    FROM 
+        mri_upload 
+    WHERE 
+        UploadID=?
+QUERY
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
     $sth->execute( $this->{'upload_id'} );
     if ( $sth->rows > 0 ) {
@@ -192,9 +205,14 @@ sub IsValid {
     ###############Update the MRI_upload table and##############
     #########set the IsCandidatInfoValidated to true############
     ############################################################
-    $where = " WHERE UploadID=?";
-    $query = "UPDATE mri_upload SET IsCandidateInfoValidated=1";
-    $query = $query . $where;
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        mri_upload 
+    SET 
+        IsCandidateInfoValidated=1
+    WHERE 
+        UploadID=?
+QUERY
     $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
     $mri_upload_update->execute( $this->{'upload_id'} );
     return 1;    ##return true
@@ -235,7 +253,14 @@ sub runDicomTar {
         ##########Extract tarchiveID using pname################
         ########################################################
 
-        $query = "SELECT TarchiveID FROM tarchive WHERE SourceLocation =?";
+        ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        TarchiveID 
+    FROM 
+        tarchive 
+    WHERE 
+        SourceLocation=?
+QUERY
         my $sth = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute( $this->{'uploaded_temp_folder'} );
         if ( $sth->rows > 0 ) {
@@ -245,11 +270,16 @@ sub runDicomTar {
         ########################################################
         #################Update MRI_upload table accordingly####
         ########################################################
-        $where = "WHERE UploadID=?";
-        $query = "UPDATE mri_upload SET TarchiveID='$tarchive_id'";
-        $query = $query . $where;
+        ($query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        mri_upload 
+    SET 
+        TarchiveID=?
+    WHERE 
+        UploadID=?
+QUERY
         my $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
-        $mri_upload_update->execute( $this->{'upload_id'} );
+        $mri_upload_update->execute( $tarchive_id, $this->{'upload_id'} );
         return 1;
     }
     return 0;
@@ -273,9 +303,16 @@ Arguments:
 sub getTarchiveFileLocation {
     my $this             = shift;
     my $archive_location = '';
-    my $query            = "SELECT t.ArchiveLocation FROM tarchive t "
-                           . " WHERE t.SourceLocation =?";
-    my $sth              = ${ $this->{'dbhr'} }->prepare($query);
+    
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        t.ArchiveLocation 
+    FROM
+        tarchive t
+    WHERE
+        t.SourceLocation=?
+QUERY
+    my $sth = ${ $this->{'dbhr'} }->prepare($query);
     $sth->execute( $this->{'uploaded_temp_folder'} );
     if ( $sth->rows > 0 ) {
         $archive_location = $sth->fetchrow_array();
@@ -558,8 +595,16 @@ sub updateMRIUploadTable  {
         my $where = "WHERE UploadID=?";
         my $query = "UPDATE mri_upload SET $field=?";
         $query = $query . $where;
+        (my $query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        mri_upload 
+    SET 
+        $field=?
+    WHERE 
+        UploadID=?
+QUERY
         my $mri_upload_update = ${ $this->{'dbhr'} }->prepare($query);
-        $mri_upload_update->execute( $value,$this->{'upload_id'} );
+        $mri_upload_update->execute( $value, $this->{'upload_id'} );
 }
 
 1;

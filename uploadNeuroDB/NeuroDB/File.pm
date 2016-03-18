@@ -92,26 +92,42 @@ sub loadFile {
     my $this = shift;
     my ($fileID) = @_;
 
-    my $query = "SELECT * FROM files WHERE FileID=$fileID";
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT  
+        *
+    FROM    
+        files
+    WHERE
+        FileID=?
+QUERY
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+    $sth->execute($fileID);
 
     if($sth->rows == 0) {
 	return 0;
     }
     $this->{'fileData'} = $sth->fetchrow_hashref();
 
-    $query = "SELECT Name, Value FROM parameter_file left join parameter_type USING (ParameterTypeID) WHERE FileID=$fileID";
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        Name, 
+        Value 
+    FROM 
+        parameter_file 
+        LEFT JOIN parameter_type USING (ParameterTypeID) 
+    WHERE 
+        FileID=?
+QUERY
     $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+    $sth->execute($fileID);
 
     if($sth->rows == 0) {
-	return 0;
+        return 0;
     }
 
     $this->{'parameters'} = {};
     while(my $paramref = $sth->fetchrow_hashref()) {
-	$this->{'parameters'}->{$paramref->{'Name'}} = $paramref->{'Value'};
+        $this->{'parameters'}->{$paramref->{'Name'}} = $paramref->{'Value'};
     }
 
     return 1;
@@ -132,15 +148,22 @@ sub findFile {
     my $this = shift;
     my ($file) = @_;
 
-    my $query = "SELECT FileID FROM files WHERE File='$file'";
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        FileID 
+    FROM 
+        files 
+    WHERE 
+        File=?
+QUERY
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+    $sth->execute($file);
 
     if($sth->rows == 0) {
-	return undef;
+        return undef;
     } else {
-	my $row = $sth->fetchrow_hashref();
-	return $row->{'FileID'};
+        my $row = $sth->fetchrow_hashref();
+        return $row->{'FileID'};
     }
 }
     
@@ -331,11 +354,19 @@ sub setFileData {
     $this->{'fileData'}->{$paramName} = $value;
 
     if($this->getFileDatum('FileID')) {
-	my $fileID = $this->getFileDatum('FileID');
-	$value = ${$this->{'dbhr'}}->quote($value);
-	
-	my $query = "UPDATE files SET $paramName=$value WHERE FileID=$fileID";
-	${$this->{'dbhr'}}->do($query);
+	    my $fileID = $this->getFileDatum('FileID');
+	    $value = ${$this->{'dbhr'}}->quote($value);
+	    
+	    (my $query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        files 
+    SET 
+        $paramName=? 
+    WHERE 
+        FileID=?
+QUERY
+        my $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($value, $fileID);
     }
 }
 
@@ -355,20 +386,47 @@ sub setParameter {
     $this->{'parameters'}->{$paramName} = $value;
 
     if($this->getFileDatum('FileID')) {
-	my $fileID = $this->getFileDatum('FileID');
-	my $paramID = $this->getParameterTypeID($paramName);
-	my $query = "SELECT count(*) AS counter FROM parameter_file WHERE FileID=$fileID AND ParameterTypeID=$paramID";
-	my $sth = ${$this->{'dbhr'}}->prepare($query);
-	$sth->execute();
-	my $row = $sth->fetchrow_hashref();
+	    my $fileID = $this->getFileDatum('FileID');
+	    my $paramID = $this->getParameterTypeID($paramName);
+	    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        count(*) AS counter 
+    FROM 
+        parameter_file 
+    WHERE 
+        FileID=? 
+        AND ParameterTypeID=?
+QUERY
 
-	$value = ${$this->{'dbhr'}}->quote($value);
-	if($row->{'counter'} > 0) {
-	    $query = "UPDATE parameter_file SET Value=$value, InsertTime=UNIX_TIMESTAMP() WHERE FileID=$fileID AND ParameterTypeID=$paramID";
-	} else {
-	    $query = "INSERT INTO parameter_file SET Value=$value, FileID=$fileID, ParameterTypeID=$paramID, InsertTime=UNIX_TIMESTAMP()";
-	}
-	${$this->{'dbhr'}}->do($query);
+	    my $sth = ${$this->{'dbhr'}}->prepare($query);
+	    $sth->execute($fileID, $paramID);
+	    my $row = $sth->fetchrow_hashref();
+
+	    $value = ${$this->{'dbhr'}}->quote($value);
+	    if($row->{'counter'} > 0) {
+            ($query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE
+        parameter_file
+    SET 
+        Value=?,
+        InsertTime=UNIX_TIMESTAMP()
+    WHERE
+        FileID=?
+        AND ParameterTypeID=?
+QUERY
+	    } else {
+            ($query = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO
+        parameter_file 
+    SET
+        Value=?, 
+        FileID=?, 
+        ParameterTypeID=?, 
+        InsertTime=UNIX_TIMESTAMP()
+QUERY
+	    }
+        $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($value, $fileID, $paramID);
     }
 }
 
@@ -405,9 +463,16 @@ sub getParameterTypeID {
     my $dbh = ${$this->{'dbhr'}};
     
     # look for an existing parameter type ID
-    my $query = "SELECT ParameterTypeID FROM parameter_type WHERE Name=".$dbh->quote($paramType);
+    (my $query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT 
+        ParameterTypeID 
+    FROM 
+        parameter_type 
+    WHERE 
+        Name=?
+QUERY
     my $sth = $dbh->prepare($query);
-    $sth->execute();
+    $sth->execute($paramType);
     
     if($sth->rows > 0) {
         my $row = $sth->fetchrow_hashref();
@@ -416,8 +481,13 @@ sub getParameterTypeID {
         # parameter type does not yet exist, so create it
         
         my ($user) = getpwuid($UID);
-        $query = "INSERT INTO parameter_type (Name, Type, Description, SourceFrom, Queryable) VALUES (".$dbh->quote($paramType).", 'text', ".$dbh->quote("$paramType magically created by NeuroDB::File").", 'parameter_file', 0)";
-        $dbh->do($query);
+        ($query = <<QUERY) =~ s/\n/ /gm; 
+    INSERT INTO parameter_type 
+        (Name, Type, Description, SourceFrom, Queryable) 
+        VALUES (?, 'text', ?, 'parameter_file', 0)
+QUERY
+        $sth = $dbh->prepare($query);
+        $sth->execute($paramType, "$paramType magically created by NeuroDB::File");
         return $dbh->{'mysql_insertid'};
     }
 }

@@ -68,20 +68,54 @@ if($noUpdateSwitch == 1) {
 }
 
 # get the sites using this transfer system and when each of them was last processed for new data
-my $query = "SELECT CenterName, LastRan FROM tarchive_find_new_uploads";
+(my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        CenterName,
+        LastRan
+    FROM
+        tarchive_find_new_uploads
+QUERY
 my $sth = $dbh->prepare($query);
 $sth->execute();
 
 
 if($sth->rows > 0) {
     # make the query to find the new LastRan
-    my $lastransth = $dbh->prepare("SELECT MAX(DateSent) AS NewLastRan FROM tarchive WHERE neurodbCenterName=?");
+    ($lastranquery = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        MAX(DateSent) AS NewLastRan
+    FROM
+        tarchive
+    WHERE
+        neurodbCenterName=?
+QUERY
+    my $lastransth = $dbh->prepare($lastranquery);
 
     # make the query to get new tarchives
-    my $liststh = $dbh->prepare("SELECT ArchiveLocation FROM tarchive WHERE neurodbCenterName=? AND PendingTransfer=0 AND DateSent > ? ORDER BY DateSent ASC");
+    ($listquery = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        ArchiveLocation 
+    FROM 
+        tarchive 
+    WHERE 
+        neurodbCenterName=? 
+            AND PendingTransfer=0 
+            AND DateSent > ?
+    ORDER BY
+        DateSent ASC
+QUERY
+    my $liststh = $dbh->prepare($listquery);
 
     # make the query to update the new-tarchive-finder state table
-    my $updatesth = $dbh->prepare("UPDATE tarchive_find_new_uploads SET LastRan=? WHERE CenterName=?");
+    ($updatequery = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        tarchive_find_new_uploads 
+    SET 
+        LastRan=? 
+    WHERE
+        CenterName=?
+QUERY
+    my $updatesth = $dbh->prepare($updatequery);
 
     # loop over the sites
     while(my $row = $sth->fetchrow_hashref()) {

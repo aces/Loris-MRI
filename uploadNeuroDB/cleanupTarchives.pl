@@ -193,8 +193,13 @@ Output: - \%tarchiveInfo = hash of the tarchives found in the database, with the
 sub selectTarchives {
     my ($dbh, $tarchiveLibraryDir)   = @_;
 
-    my $query   = "SELECT ArchiveLocation, md5sumArchive FROM tarchive";
-
+    (my $query = <<QUERY) =~ s/\// /gm; 
+    SELECT 
+        ArchiveLocation, 
+        md5sumArchive 
+    FROM 
+        tarchive
+QUERY
     my $sth     = $dbh->prepare($query);
     $sth->execute();
 

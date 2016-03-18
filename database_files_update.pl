@@ -135,9 +135,15 @@ sub get_minc_files {
     my  ($data_dir, $dbh)   =   @_;
 
     my  (%minc_locations,@fileIDs);
-    my  $query  =   "SELECT FileID, File "  .
-                    "FROM files "           .
-                    "WHERE File LIKE ?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        FileID, 
+        File
+    FROM
+        files 
+    WHERE 
+        File LIKE ?
+QUERY
     my  $like   =   "%$data_dir%";
     my  $sth    =   $dbh->prepare($query);
     $sth->execute($like);
@@ -161,9 +167,14 @@ Update location of minc files in the files table.
 sub update_minc_location {
     my  ($fileID, $new_minc_location, $dbh) =   @_;                # update minc location in files table.
 
-    my  $query          =   "UPDATE files " .
-                            "SET File=? " .
-                            "WHERE FileID=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        files 
+    SET 
+        File=? 
+    WHERE
+        FileID=?
+QUERY
     my  $sth            =   $dbh->prepare($query);
     my  $rows_affected  =   $sth->execute($new_minc_location,$fileID);
 
@@ -178,12 +189,18 @@ sub get_parameter_files {
 
     my (@fileIDs,%file_locations);
 
-    my  $query  =   "SELECT pf.FileID, pf.Value " .
-                    "FROM parameter_file AS pf "  .
-                    "JOIN parameter_type AS pt "  .
-                    "ON (pt.ParameterTypeID=pf.ParameterTypeID) " .
-                    "WHERE pt.Name=? " .
-                    "AND pf.Value LIKE ?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        pf.FileID, 
+        pf.Value 
+    FROM 
+        parameter_file AS pf 
+        JOIN parameter_type AS pt 
+            ON (pt.ParameterTypeID=pf.ParameterTypeID) 
+    WHERE 
+        pt.Name=? 
+        AND pf.Value LIKE ?
+QUERY
     my  $like   =   "%$data_dir%";
     my  $sth    =   $dbh->prepare($query);
     $sth->execute($parameter_type,$like);
@@ -207,10 +224,15 @@ Update location of jiv files in parameter_file
 sub update_parameter_file_location {
     my  ($fileID, $new_file_location, $parameter_type, $dbh) =   @_; 
 
-    my  $select         =   "SELECT ParameterTypeID " .
-                            "FROM parameter_type "    .
-                            "WHERE Name=?";
-    my  $sth            =   $dbh->prepare($select);
+    (my $select = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        ParameterTypeID 
+    FROM
+        parameter_type 
+    WHERE
+        Name=?
+QUERY
+    my $sth = $dbh->prepare($select);
     $sth->execute($parameter_type);    
 
     my  $ParameterTypeID;
@@ -219,10 +241,16 @@ sub update_parameter_file_location {
         $ParameterTypeID=   $rows->{'ParameterTypeID'};
     }
 
-    my  $query          =   "UPDATE parameter_file AS pf, parameter_type AS pt " .
-                            "SET pf.Value=? " .
-                            "WHERE pf.FileID=? " .
-                            "AND pf.ParameterTypeID=?";
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE 
+        parameter_file AS pf, 
+        parameter_type AS pt
+    SET 
+        pf.Value=? 
+    WHERE
+        pf.FileID=? 
+        AND pf.ParameterTypeID=?
+QUERY
     my  $sth_update     =   $dbh->prepare($query);
     my  $rows_affected  =   $sth_update->execute($new_file_location,$fileID,$ParameterTypeID);
 

@@ -68,43 +68,78 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 ################################################################
 ##### Now go make the pics #####################################
 ################################################################
-$query = "SELECT \@checkPicID:=ParameterTypeID FROM parameter_type WHERE ".
-          "Name='check_pic_filename'";
-$dbh->do($query);
-if ($debug) {
-    print $query . "\n";
-}
-
-$query = "CREATE TEMPORARY TABLE check_pic_filenames (FileID int(10) unsigned ".
-          "NOT NULL, Value text, PRIMARY KEY (FileID))";
-$dbh->do($query);
-
-if ($debug) {
-    print $query . "\n";
-}
-
-$query = "INSERT INTO check_pic_filenames SELECT FileID, Value FROM ".
-          "parameter_file WHERE ParameterTypeID=\@checkPicID AND ".    
-          "Value IS NOT NULL";
-$dbh->do($query);
-
-if ($debug) {
-    print $query . "\n";
-}
-
-my $extraWhere = "";
-$extraWhere .= " AND f.FileID <= $maxFileID" if defined $maxFileID;
-$extraWhere .= " AND f.FileID >= $minFileID" if defined $minFileID;
-
-$query = "SELECT f.FileID FROM files AS f LEFT OUTER JOIN check_pic_filenames ".
-         "AS c USING (FileID) WHERE c.FileID IS NULL AND f.FileType='mnc' ".
-         $extraWhere;
-if ($debug) {
-    print $query . "\n";
-}
-
+($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT 
+        \@checkPicID:=ParameterTypeID 
+    FROM 
+        parameter_type 
+    WHERE
+        Name=?
+QUERY
 my $sth = $dbh->prepare($query);
+$sth->execute('check_pic_filename');
+if ($debug) {
+    print $query . "\n";
+}
+
+($query = <<QUERY) =~ s/\n/ /gm; 
+    CREATE TEMPORARY TABLE check_pic_filenames 
+        (FileID int(10) unsigned NOT NULL, 
+         Value text, 
+         PRIMARY KEY (FileID)
+        )
+QUERY
+$sth = $dbh->prepare($query);
 $sth->execute();
+
+if ($debug) {
+    print $query . "\n";
+}
+
+($query = <<QUERY) =s/\n/ /gm; 
+    INSERT INTO check_pic_filenames 
+        SELECT 
+            FileID, 
+            Value 
+        FROM 
+            parameter_file 
+        WHERE 
+            ParameterTypeID=\@checkPicID 
+            AND Value IS NOT NULL
+QUERY
+$sth = $dbh->prepare($query);
+$sth->execute();
+
+if ($debug) {
+    print $query . "\n";
+}
+
+($query = <<QUERY) =~ s/\n/ /gm; 
+    SELECT f.FileID 
+    FROM 
+        files AS f 
+        LEFT OUTER JOIN check_pic_filenames AS c USING (FileID) 
+    WHERE 
+        c.FileID IS NULL 
+        AND f.FileType=?
+QUERY
+
+# Complete query if min and max File ID have been defined.
+$query .= " AND f.FileID <= ?" if defined $maxFileID;
+$query .= " AND f.FileID <= ?" if defined $minFileID;
+
+# Create array of parameters to use for query.
+my @param = ('mnc');
+push (@param, $maxFileID) if defined $maxFileID;
+push (@param, $minFileID) if defined $minFileID;
+
+if ($debug) {
+    print $query . "\n";
+}
+
+# Execute query
+$sth = $dbh->prepare($query);
+$sth->execute(@param);
 
 while(my $rowhr = $sth->fetchrow_hashref()) {
     print "$rowhr->{'FileID'}\n" if $verbose;

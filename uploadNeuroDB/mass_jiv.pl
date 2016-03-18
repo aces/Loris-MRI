@@ -51,16 +51,63 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 
 ## now go make the jivs
-$dbh->do("SELECT \@jivPathID:=ParameterTypeID FROM parameter_type WHERE Name='jiv_path'");
-$dbh->do("CREATE TEMPORARY TABLE jiv_paths (FileID int(10) unsigned NOT NULL, Value text, PRIMARY KEY (FileID))");
-$dbh->do("INSERT INTO jiv_paths SELECT FileID, Value FROM parameter_file WHERE ParameterTypeID=\@jivPathID AND Value IS NOT NULL");
+(my $selectquery = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        \@jivPathID:=ParameterTypeID
+    FROM
+        parameter_type
+    WHERE 
+        Name=?
+QUERY
+my $selectsth = $dbh->prepare($selectquery);
+$selectsth->execute('jiv_path');
+(my $createtmpquery = <<QUERY) =~ s/\n/ /gm;
+    CREATE TEMPORARY TABLE jiv_paths
+        (FileID int(10) unsigned NOT NULL, 
+         Value text, 
+         PRIMARY KEY (FileID)
+        )
+QUERY
+my $createtmpsth = $dbh->prepare($createtmpquery);
+$createtmpsth->execute();
+(my $insertquery = <<QUERY) =~ s/\n/ /gm;
+    INSERT INTO jiv_paths
+        SELECT 
+            FileID, 
+            Value 
+        FROM 
+            parameter_file 
+        WHERE 
+            ParameterTypeID=\@jivPathID 
+            AND Value IS NOT NULL
+QUERY
+my $insertsth = $dbh->prepare($insertquery);
+$insertsth->execute();
 
-my $extraWhere = "";
-$extraWhere .= " AND f.FileID >= $minFileID" if defined $minFileID;
-$extraWhere .= " AND f.FileID <= $maxFileID" if defined $maxFileID;
+(my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+        f.FileID, 
+        File
+    FROM
+        files AS f
+        LEFT OUTER JOIN jiv_paths AS j USING (FileID)
+    WHERE 
+        j.FileID IS NULL 
+        AND f.FileType=?
+QUERY
 
-my $sth = $dbh->prepare("SELECT f.FileID, File FROM files AS f LEFT OUTER JOIN jiv_paths AS j USING (FileID) WHERE j.FileID IS NULL AND f.FileType='mnc' $extraWhere");
-$sth->execute();
+# Complete query if min and max File ID have been defined.
+$query .= " AND f.FileID <= ?" if defined $maxFileID;
+$query .= " AND f.FileID <= ?" if defined $minFileID;
+
+# Create array of parameters to use for query.
+my @param = ('mnc');
+push (@param, $maxFileID) if defined $maxFileID;
+push (@param, $minFileID) if defined $minFileID;
+
+# Execute query
+my $sth = $dbh->prepare($query);
+$sth->execute(@param);
 
 while(my $rowhr = $sth->fetchrow_hashref()) {
     print "$rowhr->{'FileID'}\n" if $verbose;
