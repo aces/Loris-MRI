@@ -488,10 +488,10 @@ sub CleanUpDataIncomingDir {
     if ($tarchive_file) {
         $command = "rm " . $uploaded_file;
         my $output = $this->runCommandWithExitCode($command);
+        $message =
+            "The following file " . $tarchive_file . " was found\n";
+        $this->spool($message, 'N');
         if (!$output) {
-            $message =
-                "The following file " . $tarchive_file . " was found\n";
-            $this->spool($message, 'N');
             return 1;
         }
         $message =
