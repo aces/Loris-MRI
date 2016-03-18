@@ -88,7 +88,7 @@ my  $prefix     =   $Settings::prefix;
 
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs/registerProcessed";
-system("mkdir -p -m 755 $log_dir") unless (-e $log_dir);
+system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)    =   localtime(time);
 my  $date       =   sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log        =   "$log_dir/registerProcessed$date.log";
@@ -373,7 +373,7 @@ sub copy_file {
 
     # figure out where to put the files
     my $dir         =   &which_directory($subjectIDsref);
-    `mkdir -p -m 755 $dir/processed/$sourcePipeline`;
+    `mkdir -p -m 770 $dir/processed/$sourcePipeline`;
 
     # figure out what to call files
     my @exts        =   split(/\./, basename($$filename));

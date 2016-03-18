@@ -134,7 +134,7 @@ my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
 if (!-d $LogDir) { 
-    mkdir($LogDir, 0700); 
+    mkdir($LogDir, 0770); 
 }
 my $logfile  = "$LogDir/$templog.log";
 open LOG, ">>", $logfile or die "Error Opening $logfile";

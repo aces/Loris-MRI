@@ -78,7 +78,7 @@ sub check_output_path
 
       if (! (-e $partial || -l $partial))
       {
-	 unless (mkdir ($partial, 0755))
+	 unless (mkdir ($partial, 0770))
 	 {
 	    warn "\"$path\" not a writeable path: couldn't create \"$partial\": $!\n";
 	    return 0;
@@ -108,7 +108,7 @@ sub check_output_path
 
    if (! (-e $partial || -l $partial))
    {
-      unless (mkdir ($partial, 0755))
+      unless (mkdir ($partial, 0770))
       {
 	 warn "\"$path\" not a writeable path: couldn't create \"$partial\": $!\n";
 	 return 0;

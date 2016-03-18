@@ -90,7 +90,7 @@ if (!$DTIPrepVersion) {
 # Needed for log file
 my  $data_dir    =  $Settings::data_dir;
 my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
-system("mkdir -p -m 755 $log_dir") unless (-e $log_dir);
+system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 my  $date        =  sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log         =  "$log_dir/DTIregister$date.log";
@@ -358,7 +358,7 @@ sub registerProtocol {
 
     # Move file into protocol folder
     my $tooldir = $data_dir . "/protocols/" . $tool;
-    `mkdir $tooldir`    unless (-e $tooldir);
+    `mkdir -m 770 $tooldir`    unless (-e $tooldir);
     my $protPath= $tooldir . "/" . basename($protocol);
     `cp $protocol $protPath`    unless (-e $protPath);
 

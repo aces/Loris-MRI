@@ -90,24 +90,26 @@ echo
 #############################Create directories########################################
 #######################################################################################
 echo "Creating the data directories"
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/"
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/trashbin"         #holds mincs that didn't match protocol
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/tarchive"         #holds tared dicom-folder
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/logs"             #holds logs from pipeline script
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/jiv"              #holds JIVs used for JIV viewer
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/assembly"         #holds the MINC files
-  sudo -S su $USER -c "mkdir -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue
-  sudo -S su $USER -c "mkdir -p $mridir/dicom-archive/.loris_mri"
+  sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/data/"
+  sudo -S su $USER -c "chgrp lorisadmin /data/$PROJ/data/"
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/trashbin"         #holds mincs that didn't match protocol
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/tarchive"         #holds tared dicom-folder
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/logs"             #holds logs from pipeline script
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/jiv"              #holds JIVs used for JIV viewer
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly"         #holds the MINC files
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue
+  sudo -S su $USER -c "mkdir -m 770 -p $mridir/dicom-archive/.loris_mri"
 echo
 
 #####################################################################################
 ###############incoming directory using sites########################################
 #####################################################################################
-sudo -S su $USER -c "mkdir -p /data/incoming/"
+sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
+sudo -S su $USER -c "chgrp lorisadmin /dat/incoming/"
 echo "Creating incoming director(y/ies)"
  for s in $site; do 
-  sudo -S su $USER -c "mkdir -p /data/incoming/$s/incoming"
+  sudo -S su $USER -c "mkdir -m 770 -p /data/incoming/$s/incoming"
  done
 echo
 
@@ -127,30 +129,22 @@ echo
 ####################################################################################
 #echo "Changing permissions"
 
-sudo chmod -R 750 $mridir/dicom-archive/.loris_mri/
-sudo chmod -R 750 /data/$PROJ/
-sudo chmod -R 750 /data/incoming/
+sudo chmod -R 770 $mridir/dicom-archive/.loris_mri/
+sudo chmod -R 770 /data/$PROJ/
+sudo chmod -R 770 /data/incoming/
 echo
 
 ####################################################################################
-######################Add the proper Apache group user #############################
+###################### #############################
 ####################################################################################
-if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
-then 
-    group=www-data
-elif egrep ^www: /etc/group  > $LOGFILE 2>&1;
-then
-    group=www
-elif egrep -e ^apache: /etc/group  > $LOGFILE 2>&1;
-then
-    group=apache
-else
-    read -p "Cannot find the apache group name for your installation. Please provide? " group
-fi
 
-#Setting group permissions 
-sudo chgrp $group -R /data/$PROJ/data/
-sudo chgrp $group -R /data/incoming/
+#Setting Unix group ID to lorisadmin for all files/dirs under /data/$PROJ/data
+sudo chgrp lorisadmin -R /data/$PROJ/data/
+sudo chmod g+s /data/$PROJ/data/
+
+#Setting Unix group ID to lorisadmin for all files/dirs under /data/incoming
+sudo chgrp lorisadmin -R /data/incoming/
+sudo chmod g+s /data/incoming
 echo
 
 #####################################################################################

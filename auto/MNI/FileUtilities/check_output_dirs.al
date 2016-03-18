@@ -48,7 +48,7 @@ sub check_output_dirs
       }
       else                      # no file, no dangling link
       {
-	 if (! mkdir ($dir, 0755))
+	 if (! mkdir ($dir, 0770))
 	 {
 	    warn "couldn't create \"$dir\": $!\n";
 	    $num_err++;

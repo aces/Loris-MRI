@@ -96,13 +96,13 @@ my $pic_dir = $data_dir.'/pic';
 my $jiv_dir = $data_dir.'/jiv';
 
 # create temp dir
-if (! -e $TmpDir) { mkdir($TmpDir, 0700); } else { if(! -w $TmpDir) { $TmpDir .= 'a'; mkdir($TmpDir, 0700); } }
+if (! -e $TmpDir) { mkdir($TmpDir, 0770); } else { if(! -w $TmpDir) { $TmpDir .= 'a'; mkdir($TmpDir, 0770); } }
 
 # create logdir(if !exists) and logfile
 my @temp = split(/\//, $TmpDir);
 my $templog = $temp[$#temp];
 my $LogDir = "$data_dir/logs";
-if (!-d $LogDir) { mkdir($LogDir, 0700); }
+if (!-d $LogDir) { mkdir($LogDir, 0770); }
 my $logfile = "$LogDir/$templog.log";
 
 # if xlog is set fork a tail on the actual log file.
@@ -371,7 +371,7 @@ my @leftovers = `\\ls -1 $TmpDir`;
 if(scalar(@leftovers) > 0) {
     my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
     print LOG "LEFTOVERS: ".scalar(@leftovers)."\nMoving leftovers to $trashdir\n";
-    `mkdir -p -m 755 $trashdir`;
+    `mkdir -p -m 770 $trashdir`;
     `mv $TmpDir/* $trashdir`;
 
     open MAIL, "| mail $mail_user";
@@ -592,7 +592,7 @@ sub concat_mri
 {
     my ($minc_files) = @_;
 
-    mkdir("$TmpDir/concat", 0700);
+    mkdir("$TmpDir/concat", 0770);
     my $cmd = "concat_mri.pl -maxslicesep 3.1 -compress -postfix _concat -targetdir $TmpDir/concat ".join(' ', @$minc_files);
     my $log = `$cmd`;
 
@@ -621,7 +621,7 @@ sub move_minc
     # figure out where to put the files
     my $dir = which_directory($subjectIDsref);
     
-    `mkdir -p -m 755 $dir/native`;
+    `mkdir -p -m 770 $dir/native`;
 
     # figure out what to call files
     my @exts = split(/\./, $$minc);
@@ -673,14 +673,14 @@ sub jivify
 
     my $jiv = "$data_dir/jiv/$dispid/$visitNo/native";
     $jiv =~ s/ //g;
-    `mkdir -p -m 755 $jiv`;
+    `mkdir -p -m 770 $jiv`;
 
     $log = `minc2jiv.pl -quiet -force -slices -output_path $jiv $minc`;
     
     # make jpgs
     my $pik = "$data_dir/pic/$dispid/$visitNo/native";
     $pik =~ s/ //g;
-    `mkdir -p -m 755 $pik`;
+    `mkdir -p -m 770 $pik`;
 
     @fileparts = split(/\//, $minc);
     $mincbase = $fileparts[$#fileparts];
@@ -705,7 +705,7 @@ sub jivify
 #    
 #    my $dir = which_directory($subjectIDsref);
 #    $dir .= '/incoming';
-#    `mkdir -p -m 755 $dir`;
+#    `mkdir -p -m 770 $dir`;
 #
 #    my $study = basename($study_dir);
 #

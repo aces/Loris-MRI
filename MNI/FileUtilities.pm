@@ -264,7 +264,7 @@ sub check_output_dirs
       }
       else                      # no file, no dangling link
       {
-	 if (! mkdir ($dir, 0755))
+	 if (! mkdir ($dir, 0770))
 	 {
 	    warn "couldn't create \"$dir\": $!\n";
 	    $num_err++;
@@ -412,7 +412,7 @@ sub check_output_path
 
       if (! (-e $partial || -l $partial))
       {
-	 unless (mkdir ($partial, 0755))
+	 unless (mkdir ($partial, 0770))
 	 {
 	    warn "\"$path\" not a writeable path: couldn't create \"$partial\": $!\n";
 	    return 0;
@@ -442,7 +442,7 @@ sub check_output_path
 
    if (! (-e $partial || -l $partial))
    {
-      unless (mkdir ($partial, 0755))
+      unless (mkdir ($partial, 0770))
       {
 	 warn "\"$path\" not a writeable path: couldn't create \"$partial\": $!\n";
 	 return 0;

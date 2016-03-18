@@ -164,7 +164,7 @@ my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
 $tarchiveLibraryDir    =~ s/\/$//g;
 print "log dir is $LogDir \n";
 if (!-d $LogDir) { 
-    mkdir($LogDir, 0700); 
+    mkdir($LogDir, 0770); 
 }
 my $logfile  = "$LogDir/$templog.log";
 open LOG, ">>", $logfile or die "Error Opening $logfile";
