@@ -205,8 +205,8 @@ if ($tarchiveid_count==0)  {
        ##otherwise insert it####################################
        #########################################################
        $query = "INSERT INTO mri_upload (UploadedBy, ".
-                "UploadDate,TarchiveID, DecompressedLocation, IsTarchiveValidated)" .
-                " VALUES (?,now(),?,?,'1')";
+                "UploadDate,TarchiveID, DecompressedLocation)" .
+                " VALUES (?,now(),?,?)";
        my $mri_upload_inserts = $dbh->prepare($query);
        $mri_upload_inserts->execute(
            $User,
@@ -295,7 +295,7 @@ if ( defined( &Settings::dicomFilter )) {
 }
 
 ################################################################
-### Update the mri_upload table with the correct tarchiveID ####
+##Update the IsTarchiveValidated flag in the mri_upload table ##
 ################################################################
 if ($tarchiveid_count!=0) {
     $where = "WHERE TarchiveID=?";
