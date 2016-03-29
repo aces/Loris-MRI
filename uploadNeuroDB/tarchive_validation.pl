@@ -91,7 +91,7 @@ The program does the following validation
 
 - Optionally do extra filtering on the dicom data, if needed
 
-- Finally the isValid is set true in the MRI_Upload table
+- Finally the isTarchiveValidated is set true in the MRI_Upload table
 
 HELP
 my $Usage = <<USAGE;
@@ -297,13 +297,11 @@ if ( defined( &Settings::dicomFilter )) {
 ################################################################
 ##Update the IsTarchiveValidated flag in the mri_upload table ##
 ################################################################
-if ($tarchiveid_count!=0) {
-    $where = "WHERE TarchiveID=?";
-    $query = "UPDATE mri_upload SET IsTarchiveValidated='1' ";
-    $query = $query . $where;
-    my $mri_upload_update = $dbh->prepare($query);
-    $mri_upload_update->execute($tarchiveInfo{TarchiveID});
-}
+$where = "WHERE TarchiveID=?";
+$query = "UPDATE mri_upload SET IsTarchiveValidated='1' ";
+$query = $query . $where;
+my $mri_upload_update = $dbh->prepare($query);
+$mri_upload_update->execute($tarchiveInfo{TarchiveID});
 
 
 exit 0;
