@@ -169,8 +169,8 @@ sub filterParameters {
 sub  get_DTI_Site_CandID_Visit {
     my ($native_dir) =   @_;
 
-    if  ($native_dir =~  ~ /assembly\/(\d\d\d\d\d\d)\/(V\d{1,2})\/mri\//i)  {   # when only one site
-        my  $site   =   $prefix;                          # when only one site
+    if  ($native_dir =~  /assembly\/(\d\d\d\d\d\d)\/(V\d{1,2})\/mri\//i)  {  
+        my  $site   =   $prefix;                          
         my  $subjID =   $1;
         my  $visit  =   $2;
         return  ($site,$subjID,$visit);
