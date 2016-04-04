@@ -53,7 +53,7 @@ Ensure that /home/$lorisadmin/.bashrc includes the statements:
 
 For MINC tools installed manually, ensure that the apache envvars file includes all the EXPORT statements
 from minc-toolkit-config.sh (file located in the path where the MINC tools are installed), then restart apache.
-This is necessary for Brainbrowser to successfully the MINC images.
+This is necessary for Brainbrowser to successfully load MINC images.
 
 Installation complete. For customizations & protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
 
