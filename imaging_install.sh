@@ -129,7 +129,7 @@ echo
 
 sudo chmod -R 750 $mridir/dicom-archive/.loris_mri/
 sudo chmod -R 750 /data/$PROJ/
-sudo chmod -R 750 /data/incoming/
+sudo chmod -R 770 /data/incoming/
 echo
 
 ####################################################################################
