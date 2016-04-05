@@ -388,35 +388,6 @@ sub isDicom {
 }
 
 ################################################################
-###############################moveUploadedFile#################
-################################################################
-=pod
-moveUploadedFile()
-Description:
-   - Moves the uploaded file from the uploaded_temp_folder to 
-     Incoming directory
-
-Arguments:
- $this      : Reference to the class
-
- Returns    : NULL
-=cut
-
-sub moveUploadedFile {
-    my $this            = shift;
-    my $incoming_folder = $Settings::getIncomingDir;
-    if (!$incoming_folder) {
-        return 0;
-    }
-    my $cmd = "mv " . $this->{'uploaded_temp_folder'} . 
-	      " " . $incoming_folder;
-    $this->runCommand($cmd);
-}
-
-
-
-
-################################################################
 ####################sourceEnvironment###########################
 ################################################################
 =pod
@@ -486,28 +457,57 @@ sub runCommand {
 }
 
 ################################################################
-#############################CleanUpTMPDir######################
+####################CleanUpDataIncomingDir######################
 ################################################################
 =pod
-CleanUpTMPDir()
+CleanUpDataIncomingDir()
 Description:
-   - Cleans Up and removes the uploaded TMP file/directory 
-     once it is moved by the moveUploadedFile() function
+   - Cleans Up and removes the uploaded file from the data  
+     directory once it is inserted into the database
 
 Arguments:
  $this      : Reference to the class
 
- Returns    : NULL
+Returns: 1 if the uploaded file removal was successful and 0 otherwise
+
 =cut
 
-sub CleanUpTMPDir {
+sub CleanUpDataIncomingDir {
     my $this = shift;
+    my ($uploaded_file) = @_;
+    my $output = undef;
+    my $message = '';
+    my $tarchive_location = $Settings::tarchiveLibraryDir;
     ############################################################
-    ####Removes the uploaded directory if exists################
+    ################ Removes the uploaded file ################# 
+    ##### Check first that the file is in the tarchive dir ##### 
     ############################################################
-    if ( -d $this->{'uploaded_temp_folder'} ) {
-        rmdir( $this->{'uploaded_temp_folder'} );
+
+    my $base_decompressed_loc = basename($this->{'uploaded_temp_folder'}); 
+    my $command = "find " . $tarchive_location . "/ " . "-name *" . 
+		   $base_decompressed_loc . "*";
+    my $tarchive_file = $this->runCommand($command);
+    if ($tarchive_file) {
+        $message =
+            "The following file " . $tarchive_file . " was found\n";
+        $this->spool($message, 'N');
+        $command = "rm " . $uploaded_file;
+        my $output = $this->runCommandWithExitCode($command);
+        if (!$output) {
+            return 1;
+        }
+        $message =
+            "Unable to remove the file:" . $uploaded_file . "\n";
+        $this->spool($message, 'Y');
+        return 0;
     }
+    else {
+        $message =
+            "The file " . $tarchive_file . " can not be found\n";
+        $this->spool($message, 'Y');
+        return 0; # if the file was not found in tarchive, do not delete the original
+    }
+
 }
 
 

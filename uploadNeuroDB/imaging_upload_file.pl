@@ -71,7 +71,7 @@ The program does the following
    1) Validate the uploaded file   (set the validation to true)
    2) Run dicomtar.pl on the file  (set the dicomtar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
-   4) Move the uploaded file to the proper directory
+   4) Removes the uploaded file once the previous steps have completed
    5) Update the mri_upload table 
 
 HELP
@@ -229,20 +229,18 @@ $message = "\n The insertion Script has successfully completed";
 spool($message,'N');
 
 ################################################################
-######### moves the uploaded folder to the Incoming Directory###
+### If we got this far, dicomTar and tarchiveLoader completed###
+#### Remove the uploaded file from the incoming directory#######
 ################################################################
-if (!$imaging_upload->moveUploadedFile()) {
-    $message = "\n The file cannot be moved. Make sure the getIncomingDir".
-               "config option is set\n";
-    spool($message,'Y');
+my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
+if ( !$isCleaned ) {
+    $message = "The uploaded file " . $uploaded_file . " was not removed\n";
+    spool($message,'Y'); 
     print $message;
     exit 9;
 }
-
-################################################################
-############### removes the uploaded folder from the /tmp#######
-################################################################
-$imaging_upload->CleanUpTMPDir();
+$message = "The uploaded file " . $uploaded_file . " has been removed\n";
+spool($message,'N');
 
 ################################################################
 ############### getPnameUsingUploadID###########################
