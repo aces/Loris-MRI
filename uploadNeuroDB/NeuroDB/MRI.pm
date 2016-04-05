@@ -1112,7 +1112,7 @@ sub make_pics {
     $mincbase =~ s/\.mnc(\.gz)?$//;
 
     my $pic = $dest_dir . '/' . $rowhr->{'CandID'};
-    unless (-e $pic) { system("mkdir -p -m 755 $pic") == 0 or return 0; }
+    unless (-e $pic) { system("mkdir -p -m 770 $pic") == 0 or return 0; }
     my $tmpdir = tempdir( CLEANUP => 1 );
 
     # if the file has a fileid, add that to the filename
@@ -1168,7 +1168,7 @@ sub make_jiv {
     }
 
     # relocate jiv files to jiv destination dir
-    unless (-e $jiv) { system("mkdir -p -m 755 $jiv"); return 0 unless -e $jiv; }
+    unless (-e $jiv) { system("mkdir -p -m 770 $jiv"); return 0 unless -e $jiv; }
     `mv $tempdir/* $jiv/`;
 
     # update mri table

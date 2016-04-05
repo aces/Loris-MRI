@@ -71,7 +71,7 @@ $tarchiveLibraryDir     =~ s/\/$//g;
 ##############################
 # create logdir(if !exists) and logfile
 my $LogDir   = "$data_dir/logs"; 
-mkdir ($LogDir, 0700) if (!-d $LogDir);
+mkdir ($LogDir, 0770) if (!-d $LogDir);
 my $logfile  = "$LogDir/RemoveDuplicateTarchives_$date.log";
 open LOG, ">$logfile";
 LOG->autoflush(1);

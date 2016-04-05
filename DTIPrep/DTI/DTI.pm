@@ -56,7 +56,7 @@ sub createOutputFolders{
                         $visit  . "/mri/processed/" .
                         substr(basename($protocol),0,-4);
 
-    system("mkdir -p -m 755 $QC_out")   unless (-e $QC_out || !$runDTIPrep);
+    system("mkdir -p -m 770 $QC_out")   unless (-e $QC_out || !$runDTIPrep);
 
 
     return  ($QC_out) if (-e $QC_out);

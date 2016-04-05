@@ -191,7 +191,7 @@ my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
 if (!-d $LogDir) { 
-    mkdir($LogDir, 0700); 
+    mkdir($LogDir, 0770); 
 }
 my $logfile  = "$LogDir/$templog.log";
 open LOG, ">$logfile";
@@ -543,7 +543,7 @@ if (scalar(@leftovers) > 0) {
     my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
     print LOG "\n==> LEFTOVERS: ".scalar(@leftovers).
     "\n --> Moving leftovers to $trashdir\n";
-    `mkdir -p -m 755 $trashdir`;
+    `mkdir -p -m 770 $trashdir`;
     `chmod -R u+w $TmpDir/*`;
     `mv $TmpDir/* $trashdir`;
     open MAIL, "| mail $mail_user";

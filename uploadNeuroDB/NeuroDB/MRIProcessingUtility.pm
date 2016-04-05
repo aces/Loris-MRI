@@ -521,7 +521,7 @@ sub move_minc {
     ### figure out where to put the files ######################
     ############################################################
     $dir = $this->which_directory($subjectIDsref,$data_dir);
-    `mkdir -p -m 755 $dir/native`;
+    `mkdir -p -m 770 $dir/native`;
 
     ############################################################
     ####### figure out what to call files ######################
@@ -754,7 +754,7 @@ sub concat_mri {
         print CONCATFILES "$file\n";
     }
     close CONCATFILES;
-    mkdir("$this->{TmpDir} /concat", 0700);
+    mkdir("$this->{TmpDir} /concat", 0770);
     $cmd = "cat $this->{TmpDir} /concatfilelist.txt | concat_mri.pl ".
            "-maxslicesep 3.1 -compress -postfix _concat -targetdir ".
            "$this->{TmpDir} /concat -stdin";
@@ -809,7 +809,7 @@ sub moveAndUpdateTarchive {
     ##### make the directory if it does not yet exist ##########
     ############################################################
     unless(-e $newTarchiveLocation) {
-        mkdir($newTarchiveLocation, 0755);
+        mkdir($newTarchiveLocation, 0770);
     }
     ############################################################
     ####### determine the new name of the tarchive #############
