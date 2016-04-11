@@ -11,11 +11,8 @@ use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
 use File::Temp qw/ tempdir /;
 
-################################################################
-################# Define Constants #############################
-################################################################
-
-my $notify_detailed  = 'Y';  # notification_spool message flag for messages to be displayed 
+## Define Constants ##
+my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
                              # with DETAILED OPTION in the front-end/imaging_uploader 
 my $notify_notsummary = 'N'; # notification_spool message flag for messages to be displayed 
                              # with SUMMARY Option in the front-end/imaging_uploader 
