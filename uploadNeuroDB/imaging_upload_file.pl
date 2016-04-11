@@ -36,12 +36,12 @@ my $TmpDir_decompressed_folder =
      tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
 my $output              = undef;
 my $uploaded_file       = undef;
-my $message             = undef;
-my $verbose             = 0;           # default for now, run with -verbose option to re-enable
-my $notification_verbose= 'N';	       # notification_spool message flag for messages to 
-				       # be displayed BY DEFAULT in the front-end/imaging_uploader 
-my $notification_silent = 'Y';	       # notification_spool message flag for messages to 
-				       # be displayed UPON REQUEST in the front-end/imaging_uploader 
+my $message             = '';
+my $verbose             = 0;           	# default for now, run with -verbose option to re-enable
+my $notify_detailed     = 'Y';		# notification_spool message flag for messages to be displayed 
+				       	# with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary   = 'N';         	# notification_spool message flag for messages to be displayed 
+				       	# with SUMMARY Option in the front-end/imaging_uploader 
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -187,21 +187,21 @@ my $Notify = NeuroDB::Notify->new(
          );
 
 ################################################################
-############### Validate File ##################################
+########## Validate Candidate Info/File ########################
 ################################################################
 
-my $is_valid = $imaging_upload->IsValid();
-if ( !($is_valid) ) {
+my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
+if ( !($is_candinfovalid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\nThe validation has failed \n";
-    spool($message,'Y', $notification_verbose);
+    $message = "\nThe candidate info validation has failed \n";
+    spool($message,'Y', $notify_notsummary);
     print $message;
     exit 6;
 }
 
-$message = "\nThe validation has passed \n";
-spool($message,'N', $notification_verbose);
+$message = "\nThe candidate info validation has passed \n";
+spool($message,'N', $notify_notsummary);
 
 ################################################################
 ############### Run DicomTar  ##################################
@@ -211,12 +211,12 @@ if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
     $message = "\nThe dicomtar execution has failed\n";
-    spool($message,'Y', $notification_verbose);
+    spool($message,'Y', $notify_notsummary);
     print $message;
     exit 7;
 }
 $message = "\nThe dicomtar execution has successfully completed\n";
-spool($message,'N', $notification_verbose);
+spool($message,'N', $notify_notsummary);
 
 ################################################################
 ############### Run runTarchiveLoader###########################
@@ -225,12 +225,12 @@ $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
     $message = "\nThe insertion scripts have failed\n";
-    spool($message,'Y', $notification_verbose); 
+    spool($message,'Y', $notify_notsummary); 
     print $message;
     exit 8;
 }
 $message = "\nThe insertion scripts have successfully completed\n";
-spool($message,'N', $notification_verbose);
+spool($message,'N', $notify_notsummary);
 
 ################################################################
 ### If we got this far, dicomTar and tarchiveLoader completed###
@@ -238,13 +238,13 @@ spool($message,'N', $notification_verbose);
 ################################################################
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
-    $message = "The uploaded file " . $uploaded_file . " was not removed\n";
-    spool($message,'Y', $notification_verbose);
+    $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";
+    spool($message,'Y', $notify_notsummary);
     print $message;
     exit 9;
 }
-$message = "The uploaded file " . $uploaded_file . " has been removed\n";
-spool($message,'N');
+$message = "\nThe uploaded file " . $uploaded_file . " has been removed\n\n";
+spool($message,'N', $notify_notsummary);
 
 ################################################################
 ############### getPnameUsingUploadID###########################
@@ -292,7 +292,7 @@ Arguments:
  $this      : Reference to the class
  $message   : Message to be logged in the database 
  $error     : if 'Y' it's an error log , 'N' otherwise
- $verb      : 'N' for few main messages, 'Y' for more messages (developers)
+ $verb      : 'N' for summary messages, 'Y' for detailed messages (developers)
 
  Returns    : NULL
 =cut

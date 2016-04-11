@@ -12,6 +12,15 @@ use NeuroDB::Notify;
 use File::Temp qw/ tempdir /;
 
 ################################################################
+################# Define Constants #############################
+################################################################
+
+my $notify_detailed  = 'Y';  # notification_spool message flag for messages to be displayed 
+                             # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary = 'N'; # notification_spool message flag for messages to be displayed 
+                             # with SUMMARY Option in the front-end/imaging_uploader 
+
+################################################################
 #####################Constructor ###############################
 ################################################################
 =pod
@@ -47,8 +56,8 @@ sub new {
     ############### Create a Notify Object #####################
     ############################################################
 
-    my $Notify = NeuroDB::Notify->new( $dbhr );
-    $self->{'Notify'} = $Notify;
+    my $Notify 			    = NeuroDB::Notify->new( $dbhr );
+    $self->{'Notify'} 		    = $Notify;
     $self->{'uploaded_temp_folder'} = $uploaded_temp_folder;
     $self->{'dbhr'}                 = $dbhr;
     $self->{'pname'}                = $pname;
@@ -58,12 +67,12 @@ sub new {
 }
 
 ################################################################
-#####################IsValid####################################
+#####################IsCandidateInfoValid#######################
 ################################################################
 =pod
-IsValid()
+IsCandidateInfoValid()
 Description:
- Validates the File to be upload:
+ Validates the File to be uploaded:
  If the validation passes the following will happen:
   1) Copy the file from tmp folder to the /data/incoming
   2) Set the IsCandidateInfoValidated to true in the 
@@ -74,7 +83,7 @@ Arguments:
 
  Returns: 0 if the validation fails and 1 if passes
 =cut
-sub IsValid {
+sub IsCandidateInfoValid {
     my $this = shift;
     my ($message,$query,$where) = '';
     ############################################################
@@ -96,13 +105,10 @@ sub IsValid {
     ############################################################
     my $files_not_dicom                   = 0;
     my $files_with_unmatched_patient_name = 0;
-    my $is_valid                          = 0;
+    my $is_candinfovalid                  = 0;
     my @row                               = ();
-    my $notification_verbose		  	  = 'N';
     ############################################################
     ####Get a list of files from the folder#####################
-    ############################################################
-    ############################################################
     #############Loop through the files#########################
     ############################################################
     my @file_list;
@@ -115,7 +121,6 @@ sub IsValid {
     );
     ############################################################
     ############### Check to see if the uploadID exists ########
-    ############################################################
     ############################################################
     $query =
         "SELECT PatientName,TarchiveID,number_of_mincCreated,"
@@ -131,7 +136,7 @@ sub IsValid {
             "\nThe uploadID "
           . $this->{'upload_id'}
           . " Does Not Exist \n";
-        $this->spool($message, 'Y', $notification_verbose);
+        $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
 
@@ -148,7 +153,7 @@ sub IsValid {
           . " has already been ran with tarchiveID: "
           . $row[1]
 	  . "\n";
-        $this->spool($message, 'Y', $notification_verbose);
+        $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
 
@@ -177,17 +182,17 @@ sub IsValid {
     }
 
     if ( $files_not_dicom > 0 ) {
-        $message = "\nERROR: there are $files_not_dicom files which are "
-          . "Are not of type DICOM \n";
-        $this->spool($message, 'Y', $notification_verbose);
+        $message = "\nERROR: There are $files_not_dicom file(s) which"
+          . " are not of type DICOM \n";
+        $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
 
     if ( $files_with_unmatched_patient_name > 0 ) {
         $message =
-            "\nERROR: there are $files_with_unmatched_patient_name files"
+            "\nERROR: There are $files_with_unmatched_patient_name file(s)"
           . " where the patient-name doesn't match \n";
-        $this->spool($message, 'Y', $notification_verbose);
+        $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
 
@@ -350,19 +355,18 @@ Arguments:
 sub PatientNameMatch {
     my $this         = shift;
     my ($dicom_file) = @_;
-    my $notification_verbose = 'N';
     my $cmd          = "dcmdump $dicom_file | grep PatientName";
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
-        $this->spool($message, 'Y', $notification_verbose);
+        $this->spool($message, 'Y', $notify_notsummary);
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
         my $message = "\nThe patient-name $pname does not Match " .
         		$this->{'pname'}. "\n";
-    	$this->spool($message, 'Y', $notification_verbose);
+    	$this->spool($message, 'Y', $notify_notsummary);
         return 0; ##return false
     }
     return 1;     ##return true
@@ -498,22 +502,22 @@ sub CleanUpDataIncomingDir {
     my $tarchive_file = $this->runCommand($command);
     if ($tarchive_file) {
         $message =
-            "The following file " . $tarchive_file . " was found\n";
-        $this->spool($message, 'N');
+            "\nThe following file " . $tarchive_file . " was found\n";
+        $this->spool($message, 'N', $notify_detailed);
         $command = "rm " . $uploaded_file;
         my $output = $this->runCommandWithExitCode($command);
         if (!$output) {
             return 1;
         }
         $message =
-            "Unable to remove the file:" . $uploaded_file . "\n";
-        $this->spool($message, 'Y');
+            "\nUnable to remove the file:" . $uploaded_file . "\n";
+        $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
     else {
         $message =
-            "The file " . $tarchive_file . " can not be found\n";
-        $this->spool($message, 'Y');
+            "\nThe file " . $tarchive_file . " can not be found\n";
+        $this->spool($message, 'Y', $notify_notsummary);
         return 0; # if the file was not found in tarchive, do not delete the original
     }
 

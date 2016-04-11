@@ -31,10 +31,10 @@ my $message     = '';
 my $tarchive_srcloc = '';
 my $upload_id   = undef;
 my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
-my $notification_verbose= 'N'; # notification_spool message flag for messages to 
-                               # be displayed BY DEFAULT in the front-end/imaging_uploader 
-my $notification_silent = 'Y'; # notification_spool message flag for messages to 
-                               # be displayed UPON REQUEST in the front-end/imaging_uploader 
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
+                               # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
+                               # with SUMMARY Option in the front-end/imaging_uploader 
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -243,9 +243,8 @@ if (($is_valid == 0) && ($force==0)) {
     print $message;
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y', 
-                   $notification_verbose
-    );
+                    'minc_insertion', $upload_id, 'Y', 
+                    $notify_notsummary);
     exit 6;
 }
 
@@ -332,9 +331,8 @@ if (defined($CandMismatchError)) {
     );
     
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y', 
-                   $notification_verbose
-    );
+                    'minc_insertion', $upload_id, 'Y', 
+                    $notify_notsummary);
 
     exit 7 ;
 }
@@ -355,13 +353,12 @@ my ($sessionID, $requiresStaging) =
 my $unique = $utility->computeMd5Hash($file, 
 				$tarchiveInfo{'SourceLocation'});
 if (!$unique) { 
-    $message = "\n--> WARNING: This file has already been uploaded! \n";  
+    $message = "\n--> WARNING: This file has already been uploaded!\n";  
     print $message if $verbose;
     print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y', 
-                   $notification_verbose
-    );
+                    'minc_insertion', $upload_id, 'Y', 
+                    $notify_notsummary);
 #    exit 8; 
 } 
 
@@ -397,9 +394,8 @@ if($acquisitionProtocol =~ /unknown/) {
 
    print LOG $message;
    $notifier->spool('tarchive validation', $message, 0,
-                  'minc_insertion', $upload_id, 'Y', 
-                  $notification_verbose
-   );
+                   'minc_insertion', $upload_id, 'Y', 
+                   $notify_notsummary);
    exit 9;
 }
 
@@ -417,13 +413,16 @@ $utility->registerScanIntoDB(
 ################################################################
 ### Add series notification ####################################
 ################################################################
-$notifier->spool(
-	'mri new series', "\n" . $subjectIDsref->{'CandID'} . " " .
+$message =
+	"\n" . $subjectIDsref->{'CandID'} . " " .
     	$subjectIDsref->{'PSCID'} ." " .
     	$subjectIDsref->{'visitLabel'} .
-    	"\tacquired " . $file->getParameter('acquisition_date')
-    	. "\t" . $file->getParameter('series_description'),
-    	$centerID, 'minc_insertion.pl', $upload_id, 'N', $notification_silent);
+    	"\tacquired " . $file->getParameter('acquisition_date') .
+    	"\t" . $file->getParameter('series_description') .
+	"\n";
+$notifier->spool('mri new series', $message,
+    		$centerID, 'minc_insertion.pl', $upload_id, 'N', 
+		$notify_detailed);
 
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";

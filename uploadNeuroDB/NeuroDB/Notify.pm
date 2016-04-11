@@ -53,8 +53,7 @@ sub new {
 B<spool( C<$type>, C<$message>, C<$centerID>, C<$origin>, C<$processID>, C<$isError>, C<$isVerb> )>
 
 Spools a new notification message, C<$message>, into the spool for
-notification type C<$type>, unless the exact same message (including
-type) is already in the spool.  If C<$centerID> is specified, only
+notification type C<$type>.  If C<$centerID> is specified, only
 recipients in that site will receive the message.
 
 Returns: 1 on success, 0 on failure

@@ -59,10 +59,10 @@ my $message     = '';
 my $tarchive_srcloc = '';
 my $upload_id   = undef;
 my $verbose     = 0;           # default, overwritten if the scripts are run with -verbose
-my $notification_verbose= 'N'; # notification_spool message flag for messages to 
-                               # be displayed BY DEFAULT in the front-end/imaging_uploader 
-my $notification_silent = 'Y'; # notification_spool message flag for messages to 
-                               # be displayed UPON REQUEST in the front-end/imaging_uploader 
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
+                               # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
+                               # with SUMMARY Option in the front-end/imaging_uploader 
 my $profile     = 'prod';      # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -307,8 +307,7 @@ if (($output != 0)  && ($force==0)) {
  $utility->writeErrorLog($message,5,$logfile); 
  $notifier->spool('tarchive loader', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
-		$notification_verbose
- );
+		$notify_notsummary);
  exit 5;
 }
 
@@ -378,7 +377,8 @@ my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
 $notifier->spool('tarchive loader', $message, 0,
-               'tarchiveLoader', $upload_id, 'N', $notification_silent);
+		'tarchiveLoader', $upload_id, 'N', 
+		$notify_detailed);
 if ($verbose){
     print $message;
 }
@@ -390,9 +390,8 @@ if ($mcount < 1) {
                "Localizers will not be considered! \n" ; 
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive loader', $message, 0,
-                   'tarchiveLoader', $upload_id, 'Y',
-		   $notification_verbose
-    );
+		    'tarchiveLoader', $upload_id, 'Y',
+		    $notify_notsummary);
     exit 6; 
 }
 
@@ -516,14 +515,15 @@ if ($valid_study) {
     ############################################################
     # spool a new study message ################################
     ############################################################
-    $notifier->spool(
-            'mri new study', 
-            "\n" . $subjectIDsref->{'CandID'} . 
+    $message =             
+	    "\n" . $subjectIDsref->{'CandID'} . 
             " " . $subjectIDsref->{'PSCID'} .
             " " . $subjectIDsref->{'visitLabel'} .
-            "\tacquired ". $tarchiveInfo{'DateAcquired'},
-	    0, 'tarchiveLoader', $upload_id, 'N', $notification_silent
-        );
+            "\tacquired ". $tarchiveInfo{'DateAcquired'} .
+	    "\n";
+    $notifier->spool('mri new study', $message,
+		    0, 'tarchiveLoader', $upload_id, 'N', 
+		    $notify_detailed);
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
@@ -547,12 +547,14 @@ if ($valid_study) {
     ## spool a failure message This has been changed to tarchive
     ## instead of using patientName ############################
     ############################################################
-    $notifier->spool(
-        'mri invalid study', "\n" . $tarchive. " acquired ". 
-        $tarchiveInfo{'DateAcquired'} .
-        " was deemed invalid\n\n". $study_dir,
-	0, 'tarchiveLoader', $upload_id, 'Y', $notification_verbose
-    );
+    $message = 
+	    "\n" . $tarchive. " acquired ". 
+            $tarchiveInfo{'DateAcquired'} .
+            " was deemed invalid\n\n". $study_dir .
+	    "\n";
+    $notifier->spool('mri invalid study', $message,
+		    0, 'tarchiveLoader', $upload_id, 'Y', 
+		    $notify_notsummary);
 }
 
 ################################################################
@@ -591,6 +593,9 @@ if (scalar(@leftovers) > 0) {
     my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
     $message = "\n==> LEFTOVERS: ".scalar(@leftovers).
     "\n --> Moving leftovers to $trashdir\n";
+    $notifier->spool('tarchive loader', $message, 0,
+		    'tarchiveLoader', $upload_id, 'Y', 
+		    $notify_notsummary);
     print LOG $message;
     `mkdir -p -m 770 $trashdir`;
     `chmod -R u+w $TmpDir/*`;
@@ -604,7 +609,8 @@ if (scalar(@leftovers) > 0) {
 }
 $message ="\n==> Done tarchiveLoader execution!  Removing $TmpDir.\n";
 $notifier->spool('tarchive loader', $message, 0,
-            'tarchiveLoader', $upload_id, 'N', $notification_silent);
+		'tarchiveLoader', $upload_id, 'N', 
+		$notify_detailed);
 print LOG $message;
 close LOG;
 `gzip -9 $logfile`;
@@ -624,10 +630,9 @@ if ($xlog) {
 if (!$valid_study) {
     $message =  "\n No Mincs inserted \n \n";
     print ($message);
-    $notifier->spool(
-        'mri invalid study', $message, 0,
-        'tarchiveLoader', $upload_id, 'Y', $notification_verbose
-    );
+    $notifier->spool('mri invalid study', $message, 0,
+		    'tarchiveLoader', $upload_id, 'Y', 
+		    $notify_notsummary);
     exit 9;
 }
 
