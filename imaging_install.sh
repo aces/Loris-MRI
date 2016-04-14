@@ -106,7 +106,7 @@ echo
 ###############incoming directory using sites########################################
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
-sudo -S su $USER -c "chgrp lorisadmin /dat/incoming/"
+sudo -S su $USER -c "chgrp lorisadmin /data/incoming/"
 echo "Creating incoming director(y/ies)"
  for s in $site; do 
   sudo -S su $USER -c "mkdir -m 770 -p /data/incoming/$s/incoming"
