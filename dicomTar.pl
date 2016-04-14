@@ -25,7 +25,7 @@ my $versionInfo = sprintf "%d", q$Revision: 9 $ =~ /: (\d+)/;
 my $tarTypeVersion = 1;
 # Set stuff for GETOPT
 my ($dcm_source, $targetlocation);
-my $verbose    = 1;
+my $verbose    = 0;
 my $profile    = undef;
 my $neurodbCenterName = undef;
 my $clobber    = 0;
@@ -180,7 +180,7 @@ print  $tarinfo if $verbose;
 my $success;
 if ($dbase) {
     $dbh = &DB::DBI::connect_to_db(@Settings::db);
-    print "Adding archive info into database\n" if $verbose;
+    print "\nAdding archive info into database\n" if $verbose;
     my $update          = 1 if $clobber;
     my $ArchiveLocation = $finalTarget;
     $ArchiveLocation    =~ s/$targetlocation\/?//g;
@@ -193,8 +193,8 @@ print "\nRemoving temporary files from target location\n\n" if $verbose;
 
 # now report database failure (was not above to ensure temp files were erased)
 if ($dbase) {
-    if ($success) { print "\nDone\n" if $verbose; }
-    else { print "the database command failed\n"; exit 22; }
+    if ($success) { print "\nDone adding archive info into database\n" if $verbose; }
+    else { print "\nThe database command failed\n"; exit 22; }
 }
 
 # call the updateMRI_upload script###
