@@ -24,8 +24,8 @@ my $date    = sprintf(
                 $year + 1900,
                 $mon + 1, $mday, $hour, $min, $sec
               );
-my $debug   = 1;
-my $verbose = 1;        # default for now
+my $debug   = 0;
+my $verbose = 0;        # default for now unless launched with -verbose option
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
 my $output              = undef;
@@ -36,7 +36,8 @@ my @opt_table           = (
     [
         "-profile", "string", 1, \$profile,
         "name of config file in ../dicom-archive/.loris_mri"
-    ]
+    ],
+    ["-verbose", "boolean", 1,    \$verbose, "Be verbose."]
 );
 
 my $Help = <<HELP;
@@ -75,17 +76,20 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my @row=();
 (my $query = <<QUERY) =~ s/\n/ /gm;
 SELECT UploadID, UploadLocation FROM mri_upload 
-    WHERE Inserting <> 1 AND InsertionComplete <> 1 
+    WHERE Inserting IS NULL AND InsertionComplete <> 1 
         AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL);
 QUERY
-print "\n" . $query . "\n";
+print "\n" . $query . "\n" if $debug;
 my $sth = $dbh->prepare($query);
 $sth->execute();
 while(@row = $sth->fetchrow_array()) { 
 
     if ( -e $row[1] ) {
 	my $command = "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
-	print "\n" . $command . "\n";
+	if ($verbose){
+	    $command .= " -verbose";
+            print "\n" . $command . "\n";
+	}
 	my $output = system($command);
     } else {
     	print "\nERROR: Could not find the uploaded file

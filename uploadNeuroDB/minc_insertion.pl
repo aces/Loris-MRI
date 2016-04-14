@@ -26,9 +26,15 @@ my $date = sprintf(
                 "%4d-%02d-%02d %02d:%02d:%02d",
                 $year+1900,$mon+1,$mday,$hour,$min,$sec
            );
-my $debug       = 1;  
+my $debug       = 0;  
 my $message     = '';
-my $verbose     = 1;           # default for now
+my $tarchive_srcloc = '';
+my $upload_id   = undef;
+my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
+                               # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
+                               # with SUMMARY Option in the front-end/imaging_uploader 
 my $profile     = undef;       # this should never be set unless you are in a 
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -86,6 +92,10 @@ my @opt_table = (
 
                  ["-xlog", "boolean", 1, \$xlog, "Open an xterm with a tail".
                   " on the current log file."],
+
+                 ["General options","section"],
+                 ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
+           
 
 );
 
@@ -162,7 +172,7 @@ my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
 my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
 $tarchiveLibraryDir    =~ s/\/$//g;
-print "log dir is $LogDir \n";
+print "\nlog dir is $LogDir \n" if $verbose;
 if (!-d $LogDir) { 
     mkdir($LogDir, 0770); 
 }
@@ -175,7 +185,7 @@ LOG->autoflush(1);
 ############### Establish database connection ##################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
+print LOG "\n==> Successfully connected to database \n" if $verbose;
 
 
 ################################################################
@@ -187,18 +197,43 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
               );
 
 ################################################################
+############ Construct the notifier object #####################
+################################################################
+my $notifier = NeuroDB::Notify->new(\$dbh);
+
+
+
+################################################################
 #################### Check is_valid column #####################
 ################################################################
 my $ArchiveLocation = $tarchive;
 $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
+
 my $where = "WHERE t.ArchiveLocation='$tarchive'";
 if ($globArchiveLocation) {
     $where = "WHERE t.ArchiveLocation LIKE '%".basename($tarchive)."'";
 }
 my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
             "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
-print $query . "\n";
+print $query . "\n" if $debug;
 my $is_valid = $dbh->selectrow_array($query);
+
+## Setup  for the notification_spool table ##
+# get the tarchive_srcloc from $tarchive 
+$query = "SELECT SourceLocation".
+        " FROM tarchive t $where";
+my $sth = $dbh->prepare($query);
+$sth->execute();
+$tarchive_srcloc = $sth->fetchrow_array;
+# get the $upload_id from $tarchive_srcloc 
+$query =
+	"SELECT UploadID FROM mri_upload "
+	. "WHERE DecompressedLocation =?";
+$sth = $dbh->prepare($query);
+$sth->execute($tarchive_srcloc);
+$upload_id = $sth->fetchrow_array;
+## end of setup IDs for notification_spool table
+
 
 if (($is_valid == 0) && ($force==0)) {
     $message = "\n ERROR: The validation has failed. ".
@@ -207,6 +242,9 @@ if (($is_valid == 0) && ($force==0)) {
                "execution.\n\n";
     print $message;
     $utility->writeErrorLog($message,6,$logfile); 
+    $notifier->spool('tarchive validation', $message, 0,
+                    'minc_insertion', $upload_id, 'Y', 
+                    $notify_notsummary);
     exit 6;
 }
 
@@ -247,7 +285,9 @@ my $subjectIDsref = $utility->determineSubjectID(
 ################################################################
 
 my $CandMismatchError = undef;
-$CandMismatchError= $utility->validateCandidate($subjectIDsref);
+$CandMismatchError= $utility->validateCandidate(
+                                $subjectIDsref,
+                                $tarchiveInfo{'SourceLocation'});
 
 my $logQuery = "INSERT INTO MRICandidateErrors".
               "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
@@ -255,20 +295,16 @@ my $logQuery = "INSERT INTO MRICandidateErrors".
 my $candlogSth = $dbh->prepare($logQuery);
 
 ################################################################
-############ Construct the notifier object #####################
-################################################################
-my $notifier = NeuroDB::Notify->new(\$dbh);
-
-################################################################
 #### Loads/Creates File object and maps dicom fields ###########
 ################################################################
-my $file = $utility->loadAndCreateObjectFile($minc);
+my $file = $utility->loadAndCreateObjectFile($minc,
+			$tarchiveInfo{'SourceLocation'});
 
 ################################################################
 ##### Optionally do extra filtering, if needed #################
 ################################################################
 if (defined(&Settings::filterParameters)) {
-    print LOG " --> using user-defined filterParameters for $minc\n"
+    print LOG "\n--> using user-defined filterParameters for $minc\n"
     if $verbose;
     Settings::filterParameters(\$file);
 }
@@ -282,7 +318,8 @@ if (defined(&Settings::filterParameters)) {
 ################################################################
 
 if (defined($CandMismatchError)) {
-    print LOG "Candidate Mismatch Error is $CandMismatchError\n";
+    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
+    print LOG $message;
     print LOG " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
     $candlogSth->execute(
@@ -292,6 +329,11 @@ if (defined($CandMismatchError)) {
         $tarchiveInfo{'PatientName'},
         $CandMismatchError
     );
+    
+    $notifier->spool('tarchive validation', $message, 0,
+                    'minc_insertion', $upload_id, 'Y', 
+                    $notify_notsummary);
+
     exit 7 ;
 }
 
@@ -308,10 +350,15 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
-my $unique = $utility->computeMd5Hash($file);
+my $unique = $utility->computeMd5Hash($file, 
+				$tarchiveInfo{'SourceLocation'});
 if (!$unique) { 
-    print "--> WARNING: This file has already been uploaded! \n"  if $debug;
-    print LOG " --> WARNING: This file has already been uploaded!"; 
+    $message = "\n--> WARNING: This file has already been uploaded!\n";  
+    print $message if $verbose;
+    print LOG $message; 
+    $notifier->spool('tarchive validation', $message, 0,
+                    'minc_insertion', $upload_id, 'Y', 
+                    $notify_notsummary);
 #    exit 8; 
 } 
 
@@ -342,8 +389,13 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
     );
 
 if($acquisitionProtocol =~ /unknown/) {
-   print LOG " --> The minc file cannot be registered since the ".
-             "AcquisitionProtocol IS unknown";
+   $message = "\n  --> The minc file cannot be registered ".
+		"since the AcquisitionProtocol is unknown \n";
+
+   print LOG $message;
+   $notifier->spool('tarchive validation', $message, 0,
+                   'minc_insertion', $upload_id, 'Y', 
+                   $notify_notsummary);
    exit 9;
 }
 
@@ -361,23 +413,25 @@ $utility->registerScanIntoDB(
 ################################################################
 ### Add series notification ####################################
 ################################################################
-$notifier->spool(
-    'mri new series', $subjectIDsref->{'CandID'} . " " .
-    $subjectIDsref->{'PSCID'} ." " .
-    $subjectIDsref->{'visitLabel'} .
-    "\tacquired " . $file->getParameter('acquisition_date')
-    . "\t" . $file->getParameter('series_description'),
-    $centerID
-);
+$message =
+	"\n" . $subjectIDsref->{'CandID'} . " " .
+    	$subjectIDsref->{'PSCID'} ." " .
+    	$subjectIDsref->{'visitLabel'} .
+    	"\tacquired " . $file->getParameter('acquisition_date') .
+    	"\t" . $file->getParameter('series_description') .
+	"\n";
+$notifier->spool('mri new series', $message,
+    		$centerID, 'minc_insertion.pl', $upload_id, 'N', 
+		$notify_detailed);
 
-print "\nFinished file:  ".$file->getFileDatum('File')." \n" if $debug;
-
-
+if ($verbose) {
+    print "\nFinished file:  ".$file->getFileDatum('File')." \n";
+}
 ################################################################
 ###################### Creation of Jivs ########################
 ################################################################
 if (!$no_jiv) {
-    print "Making JIV\n" if $verbose;
+    print "\nMaking JIV\n" if $verbose;
     NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
 }
 
@@ -385,7 +439,7 @@ if (!$no_jiv) {
 ###################### Creation of NIfTIs ######################
 ################################################################
 unless ($no_nii) {
-    print "Creating NIfTI files\n" if $verbose;
+    print "\nCreating NIfTI files\n" if $verbose;
     NeuroDB::MRI::make_nii(\$file, $data_dir);
 }
 

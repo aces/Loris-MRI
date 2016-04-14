@@ -16,7 +16,7 @@ my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.00 $
 ################################################################
 ################## Set variables for GETOPT ####################
 ################################################################
-my $verbose    = 1;
+my $verbose    = 0;
 my $profile    = undef;
 my $minFileID  = undef;
 my $maxFileID  = undef;
@@ -157,7 +157,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 
 # Close database handler
 $dbh->disconnect();
-print "Finished\n" if $verbose;
+print "\n Finished mass_nii.pl execution\n" if $verbose;
 
 # Exit script
 exit 0;

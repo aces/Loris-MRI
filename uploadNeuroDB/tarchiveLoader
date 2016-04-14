@@ -54,10 +54,16 @@ my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                      $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 1;  
+my $debug       = 0;  
 my $message     = '';
-my $verbose     = 0;           # default for now
-my $profile     = 'prod';       # this should never be set unless you are in a
+my $tarchive_srcloc = '';
+my $upload_id   = undef;
+my $verbose     = 0;           # default, overwritten if the scripts are run with -verbose
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
+                               # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
+                               # with SUMMARY Option in the front-end/imaging_uploader 
+my $profile     = 'prod';      # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                #set it to 1!!!
@@ -139,7 +145,6 @@ USAGE
 ################################################################
 ################### input option error checking ################
 ################################################################
-
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !@Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named ". 
@@ -214,7 +219,8 @@ if ($xlog) {
 ######### Establish database connection ########################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
+$message ="\n==> Successfully connected to database \n";
+print LOG $message;
 
 =pod
 ################################################################
@@ -242,6 +248,11 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 $utility->registerProgs(@progs);
 
 ################################################################
+##### make the notifier object #################################
+################################################################
+my $notifier = NeuroDB::Notify->new(\$dbh);
+
+################################################################
 ################ Construct the tarchiveInfo Array ##############
 ################################################################
 my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
@@ -256,10 +267,14 @@ my %tarchiveInfo = $utility->createTarchiveArray(
 ################################################################
 ################## Call the validation script ##################
 ################################################################
-my $script = "tarchive_validation.pl $tarchive -profile $profile ";
+my $script = "tarchive_validation.pl $tarchive -profile $profile";
 
 if ($globArchiveLocation) {
     $script .= " -globLocation";
+}
+
+if ($verbose) {
+    $script .= " -verbose";
 }
 ################################################################
 ###### Note: system call returns the process ID ################
@@ -269,6 +284,18 @@ if ($globArchiveLocation) {
 my $output = system($script); 
 $output = $output >> 8;
 
+################################################################
+### get the UploadID to log in the notification spool table ####
+################################################################
+# first get the tarchive SourceLocation from $tarchiveInfo 
+$tarchive_srcloc = $tarchiveInfo{'SourceLocation'};
+# then get the upload_id from tarchive_srcloc
+my $query =
+        "SELECT UploadID FROM mri_upload "
+        . "WHERE DecompressedLocation =?";
+my $sth = $dbh->prepare($query);
+$sth->execute($tarchive_srcloc);
+$upload_id = $sth->fetchrow_array;
 
 ################################################################
 #############Exit if the is_valid is false and $force is not####
@@ -278,6 +305,9 @@ if (($output != 0)  && ($force==0)) {
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog($message,5,$logfile); 
+ $notifier->spool('tarchive loader', $message, 0, 
+		'tarchiveLoader', $upload_id, 'Y',
+		$notify_notsummary);
  exit 5;
 }
 
@@ -325,30 +355,33 @@ my ($sessionID, $requiresStaging) =
 ###### Dir to the uploader #####################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive($tarchive);
+    $utility->extractAndParseTarchive(
+		$tarchive, $tarchiveInfo{'SourceLocation'});
 
-################################################################
-##### make the notifier object #################################
-################################################################
-my $notifier = NeuroDB::Notify->new(\$dbh);
 
 ################################################################
 ##################### convert the dicom data to minc ###########
 ################################################################
 $utility->dicom_to_minc(
     $study_dir,$converter,$get_dicom_info,
-    $exclude,$mail_user
-);
+    $exclude,$mail_user, $tarchiveInfo{'SourceLocation'});
 
 
 ################################################################
 ############### get a list of mincs ############################
 ################################################################
 my @minc_files = ();
-$utility->get_mincs(\@minc_files);
+$utility->get_mincs(\@minc_files,
+		     	 $tarchiveInfo{'SourceLocation'});
 my $mcount = $#minc_files + 1;
-print "\nNumber of MINC files that will be considered for inserting ".
+$message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
+$notifier->spool('tarchive loader', $message, 0,
+		'tarchiveLoader', $upload_id, 'N', 
+		$notify_detailed);
+if ($verbose){
+    print $message;
+}
 ################################################################
 # If no good data was found stop processing and write error log.
 ################################################################
@@ -356,6 +389,9 @@ if ($mcount < 1) {
     $message = "\nNo data could be converted into valid MINC files. ".
                "Localizers will not be considered! \n" ; 
     $utility->writeErrorLog($message,6,$logfile); 
+    $notifier->spool('tarchive loader', $message, 0,
+		    'tarchiveLoader', $upload_id, 'Y',
+		    $notify_notsummary);
     exit 6; 
 }
 
@@ -379,7 +415,8 @@ foreach my $minc (@minc_files) {
     }
     elsif (!$valid_study) {
         $newTarchiveLocation = 
-            $utility->moveAndUpdateTarchive($tarchive,\%tarchiveInfo);
+            $utility->moveAndUpdateTarchive($tarchive,
+					\%tarchiveInfo);
     }
     $tarchive = $newTarchiveLocation;
 
@@ -403,6 +440,10 @@ foreach my $minc (@minc_files) {
  
     if ($debug) {
         print $script . "\n";
+    }
+
+    if ($verbose) {
+        $script .= " -verbose";
     }
     ###########################################################
     ## Note: system call returns the process ID ###############
@@ -430,7 +471,7 @@ if ($valid_study) {
     ### And number_of_mincInserted #############################
     ############################################################
     my $where = "WHERE TarchiveID=?";
-    my $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
+    $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
                  "number_of_mincCreated=? ";
     $query = $query . $where;
     if ($debug) {
@@ -458,6 +499,9 @@ if ($valid_study) {
     if (@row) {
         my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
                      "-profile $profile ";
+        if ($verbose) {
+            $script .= " -verbose";
+	}
     ############################################################
     ## Note: system call returns the process ID ################
     ## To get the actual exit value, shift right by eight as ### 
@@ -467,17 +511,19 @@ if ($valid_study) {
         $output = $output >> 8;
 
     }
-    
+
     ############################################################
     # spool a new study message ################################
     ############################################################
-    $notifier->spool(
-        'mri new study', 
-        $subjectIDsref->{'CandID'} . 
-        " " . $subjectIDsref->{'PSCID'} .
-        " " . $subjectIDsref->{'visitLabel'} .
-        "\tacquired ". $tarchiveInfo{'DateAcquired'}
-    );
+    $message =             
+	    "\n" . $subjectIDsref->{'CandID'} . 
+            " " . $subjectIDsref->{'PSCID'} .
+            " " . $subjectIDsref->{'visitLabel'} .
+            "\tacquired ". $tarchiveInfo{'DateAcquired'} .
+	    "\n";
+    $notifier->spool('mri new study', $message,
+		    0, 'tarchiveLoader', $upload_id, 'N', 
+		    $notify_detailed);
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
@@ -501,11 +547,14 @@ if ($valid_study) {
     ## spool a failure message This has been changed to tarchive
     ## instead of using patientName ############################
     ############################################################
-    $notifier->spool(
-        'mri invalid study', $tarchive. " acquired ". 
-        $tarchiveInfo{'DateAcquired'} .
-        " was deemed invalid\n\n". $study_dir
-    );
+    $message = 
+	    "\n" . $tarchive. " acquired ". 
+            $tarchiveInfo{'DateAcquired'} .
+            " was deemed invalid\n\n". $study_dir .
+	    "\n";
+    $notifier->spool('mri invalid study', $message,
+		    0, 'tarchiveLoader', $upload_id, 'Y', 
+		    $notify_notsummary);
 }
 
 ################################################################
@@ -530,8 +579,9 @@ $final_logfile .= '.log.gz';
 ################################################################
 # fixme for now we assume that extracted data will not be kept #
 ################################################################
-my $cleanup = "rm -rf ${TmpDir}/${ExtractSuffix}*"; 
-print "\nCleaning up temp files: $cleanup\n" if $verbose;
+my $cleanup = "rm -rf ${TmpDir}/${ExtractSuffix}*";
+$message = "\nCleaning up temp files: $cleanup\n";
+print $message if $verbose;
 `$cleanup`;
 
 ################################################################
@@ -541,8 +591,12 @@ my @leftovers = `\\ls -1 $TmpDir`;
 
 if (scalar(@leftovers) > 0) {
     my $trashdir = $data_dir . '/trashbin/' . $temp[$#temp];
-    print LOG "\n==> LEFTOVERS: ".scalar(@leftovers).
+    $message = "\n==> LEFTOVERS: ".scalar(@leftovers).
     "\n --> Moving leftovers to $trashdir\n";
+    $notifier->spool('tarchive loader', $message, 0,
+		    'tarchiveLoader', $upload_id, 'Y', 
+		    $notify_notsummary);
+    print LOG $message;
     `mkdir -p -m 770 $trashdir`;
     `chmod -R u+w $TmpDir/*`;
     `mv $TmpDir/* $trashdir`;
@@ -553,8 +607,11 @@ if (scalar(@leftovers) > 0) {
     print MAIL "Files left over:\n".join("", @leftovers)."\n";
     close MAIL;
 }
-
-print LOG "\n==> Done!  Removing $TmpDir.\n";
+$message ="\n==> Done tarchiveLoader execution!  Removing $TmpDir.\n";
+$notifier->spool('tarchive loader', $message, 0,
+		'tarchiveLoader', $upload_id, 'N', 
+		$notify_detailed);
+print LOG $message;
 close LOG;
 `gzip -9 $logfile`;
 my $cmd = "mv $logfile.gz $data_dir/logs/$final_logfile";
@@ -571,7 +628,11 @@ if ($xlog) {
 ################################################################
 
 if (!$valid_study) {
-    print "No Mincs inserted \n \n";
+    $message =  "\n No Mincs inserted \n \n";
+    print ($message);
+    $notifier->spool('mri invalid study', $message, 0,
+		    'tarchiveLoader', $upload_id, 'Y', 
+		    $notify_notsummary);
     exit 9;
 }
 
@@ -579,7 +640,7 @@ if (!$valid_study) {
 ### Set Processed to 1 in mri_upload table#####################
 ###############################################################
 my $where = "WHERE TarchiveID=?";
-my $query = "UPDATE mri_upload SET InsertionComplete=1 ";
+$query = "UPDATE mri_upload SET InsertionComplete=1 ";
 $query = $query . $where;
 
 my $mri_upload_update = $dbh->prepare($query);

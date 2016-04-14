@@ -10,7 +10,7 @@ use NeuroDB::MRI;
 ################################################################
 ################## Set stuff for GETOPT ########################
 ################################################################
-my $verbose    = 1;
+my $verbose    = 0;
 my $profile    = undef;
 my $minFileID  = undef;
 my $maxFileID  = undef;
@@ -107,7 +107,7 @@ my $sth = $dbh->prepare($query);
 $sth->execute();
 
 while(my $rowhr = $sth->fetchrow_hashref()) {
-    print "$rowhr->{'FileID'}\n" if $verbose;
+    print "FileID from mass_pic.pl is: $rowhr->{'FileID'}\n" if $verbose;
     my $file = NeuroDB::File->new(\$dbh);
     $file->loadFile($rowhr->{'FileID'});
 
@@ -123,5 +123,5 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 
 $dbh->disconnect();
 
-print "Finished\n" if $verbose;
+print "\nFinished mass_pic.pl execution\n" if $verbose;
 exit 0;
