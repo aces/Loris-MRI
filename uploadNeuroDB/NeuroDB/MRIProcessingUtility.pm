@@ -368,7 +368,7 @@ sub computeMd5Hash {
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc) = @_;
+    my ($file,$subjectIDsref,$tarchiveInfo,$minc) = @_;
     my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $message = '';
@@ -382,7 +382,6 @@ sub getAcquisitionProtocol {
     $this->spool($message, 'N', $upload_id, $notify_detailed);
 
     my $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
-                                   $center_name,
                                    $subjectIDsref,
                                    $file, 
                                    $this->{dbhr}, 
