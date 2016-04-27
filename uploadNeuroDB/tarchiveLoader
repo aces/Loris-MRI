@@ -305,7 +305,7 @@ if (($output != 0)  && ($force==0)) {
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog($message,5,$logfile); 
- $notifier->spool('tarchive loader', $message, 0, 
+ $notifier->spool('tarchive validation', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
 		$notify_notsummary);
  exit 5;
@@ -521,8 +521,8 @@ if ($valid_study) {
             " " . $subjectIDsref->{'visitLabel'} .
             "\tacquired ". $tarchiveInfo{'DateAcquired'} .
 	    "\n";
-    $notifier->spool('mri new study', $message,
-		    0, 'tarchiveLoader', $upload_id, 'N', 
+    $notifier->spool('mri new study', $message, 0,
+		    'tarchiveLoader', $upload_id, 'N', 
 		    $notify_detailed);
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
@@ -552,8 +552,8 @@ if ($valid_study) {
             $tarchiveInfo{'DateAcquired'} .
             " was deemed invalid\n\n". $study_dir .
 	    "\n";
-    $notifier->spool('mri invalid study', $message,
-		    0, 'tarchiveLoader', $upload_id, 'Y', 
+    $notifier->spool('mri invalid study', $message, 0,
+		    'tarchiveLoader', $upload_id, 'Y', 
 		    $notify_notsummary);
 }
 

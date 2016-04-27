@@ -361,8 +361,10 @@ sub PatientNameMatch {
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname ne  $this->{'pname'}) {
-        my $message = "\nThe patient-name $pname does not Match " .
-        		$this->{'pname'}. "\n";
+        my $message = "\nThe patient-name $pname read ".
+                      "from the DICOM header does not match " .
+        	      $this->{'pname'} . 
+                      "from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);
         return 0; ##return false
     }
@@ -391,7 +393,7 @@ sub isDicom {
     my $cmd    = "file $dicom_file";
     my $file_type    = `$cmd`;
     if ( !( $file_type =~ /DICOM/ ) ) {
-        print "\n Not of type DICOM \n";
+        print "\n $dicom_file is not of type DICOM \n";
         return 0;
     }
     return 1;
@@ -438,7 +440,7 @@ Arguments:
 sub runCommandWithExitCode {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n " if $this->{'verbose'};
+    print "\n$command \n " if $this->{'verbose'};
     my $output = system($command);
     return $output >> 8;    ##returns the exit code
 }
@@ -462,7 +464,7 @@ Arguments:
 sub runCommand {
     my $this = shift;
     my ($command) = @_;
-    print "\n\n $command \n\n " if $this->{verbose};
+    print "\n$command \n " if $this->{verbose};
     return `$command`;
 }
 
@@ -540,9 +542,12 @@ Arguments:
 sub spool  {
     my $this = shift;
     my ( $message, $error, $verb ) = @_;
-    print "Spool message is: $message \n";
+
+    if ($error eq 'Y'){
+        print "Spool message is: $message \n";
+    }
     $this->{'Notify'}->spool('mri upload processing class', $message, 0,
-           'Imaging_Upload.pm', $this->{'upload_id'},$error,$verb);
+           'ImagingUpload.pm', $this->{'upload_id'},$error,$verb);
 }
 
 

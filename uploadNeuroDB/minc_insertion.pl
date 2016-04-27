@@ -172,11 +172,11 @@ my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
 my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
 $tarchiveLibraryDir    =~ s/\/$//g;
-print "\nlog dir is $LogDir \n" if $verbose;
 if (!-d $LogDir) { 
     mkdir($LogDir, 0770); 
 }
 my $logfile  = "$LogDir/$templog.log";
+print "\nlog dir is $LogDir and log file is $logfile \n" if $verbose;
 open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
 &logHeader();
@@ -243,7 +243,7 @@ if (($is_valid == 0) && ($force==0)) {
     print $message;
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
-                    'minc_insertion', $upload_id, 'Y', 
+                    'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
     exit 6;
 }
@@ -331,7 +331,7 @@ if (defined($CandMismatchError)) {
     );
     
     $notifier->spool('tarchive validation', $message, 0,
-                    'minc_insertion', $upload_id, 'Y', 
+                    'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
 
     exit 7 ;
@@ -357,7 +357,7 @@ if (!$unique) {
     print $message if $verbose;
     print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
-                    'minc_insertion', $upload_id, 'Y', 
+                    'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
 #    exit 8; 
 } 
@@ -393,8 +393,8 @@ if($acquisitionProtocol =~ /unknown/) {
 		"since the AcquisitionProtocol is unknown \n";
 
    print LOG $message;
-   $notifier->spool('tarchive validation', $message, 0,
-                   'minc_insertion', $upload_id, 'Y', 
+   $notifier->spool('minc insertion', $message, 0,
+                   'minc_insertion.pl', $upload_id, 'Y', 
                    $notify_notsummary);
    exit 9;
 }
@@ -420,8 +420,8 @@ $message =
     	"\tacquired " . $file->getParameter('acquisition_date') .
     	"\t" . $file->getParameter('series_description') .
 	"\n";
-$notifier->spool('mri new series', $message,
-    		$centerID, 'minc_insertion.pl', $upload_id, 'N', 
+$notifier->spool('mri new series', $message, 0,
+    		'minc_insertion.pl', $upload_id, 'N', 
 		$notify_detailed);
 
 if ($verbose) {
