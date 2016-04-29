@@ -626,8 +626,9 @@ sub registerScanIntoDB {
     ) = @_;
     my $data_dir = $Settings::data_dir;
     my $prefix   = $Settings::prefix;
+    my $acquisitionProtocolID = undef;
     my (
-        $acquisitionProtocolID,$Date_taken,$minc_protocol_identified,
+        $Date_taken,$minc_protocol_identified,
         $file_path,$tarchive_path,$fileID
     );
     my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
@@ -720,6 +721,7 @@ sub registerScanIntoDB {
             $tarchiveInfo->{'DateAcquired'}
         );
     }
+    return $acquisitionProtocolID;
 }
 
 ################################################################

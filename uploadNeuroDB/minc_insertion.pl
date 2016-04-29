@@ -404,12 +404,24 @@ if($acquisitionProtocol =~ /unknown/) {
 # to keep optionally controlled by the config file #############
 ################################################################
 
-$utility->registerScanIntoDB(
+my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
     \$file, \%tarchiveInfo,$subjectIDsref, 
     $acquisitionProtocol, $minc, \@checks, 
     $reckless, $tarchive, $sessionID
 );
 
+if ((!defined$acquisitionProtocolIDFromProd)
+   && (defined(&Settings::isFileToBeRegisteredGivenProtocol))
+   ) {
+   $message = "\n  --> The minc file cannot be registered ".
+                "since $acquisitionProtocol ".
+                "does not exist in $profile \n";
+   print LOG $message;
+   $notifier->spool('minc insertion', $message, 0,
+                   'minc_insertion', $upload_id, 'Y',
+                   $notify_notsummary);
+    exit 10;
+}
 ################################################################
 ### Add series notification ####################################
 ################################################################
