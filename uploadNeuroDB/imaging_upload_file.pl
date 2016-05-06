@@ -33,7 +33,7 @@ my $profile = undef;    # this should never be set unless you are in a
 my $upload_id = undef;         # The uploadID
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
-     tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
+     tempdir( $template, DIR => $ENV{TMPDIR}, TMPDIR => 1, CLEANUP => 1 );
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = '';

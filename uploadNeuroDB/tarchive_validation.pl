@@ -134,7 +134,7 @@ unless (-e $tarchive) {
 ########## Create the Specific Log File ########################
 ################################################################
 my $data_dir         = $Settings::data_dir;
-my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+my $TmpDir = tempdir($template, DIR => $ENV{TMPDIR}, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 
