@@ -1,9 +1,9 @@
 # System Requirements
  * Perl
- * DICOM toolkit (step 3)
- * MINC toolkit (step 2)
+ * DICOM toolkit (step 4)
+ * MINC toolkit (step 3)
 
-Note: For Ubuntu installations, DICOM toolkit will be installed by the imaging install script (see step 3 below). This script will apt-get install dcmtk.   
+Note: For Ubuntu installations, DICOM toolkit will be installed by the imaging install script (see step 4 below). This script will apt-get install dcmtk.   
 
 The following installation should be run by the $lorisadmin user. sudo permission is required.
 See aces/Loris README.md for further information and Loris installation information. 
@@ -19,7 +19,7 @@ See aces/Loris README.md for further information and Loris installation informat
    git clone https://github.com/aces/Loris-MRI.git mri
    ```
    
-2. Install Dicom-archive within the mri/ directory (created by the git clone command):
+2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
 
    ```bash
    cd /data/$projectname/bin/mri/
