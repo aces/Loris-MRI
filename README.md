@@ -1,7 +1,7 @@
 # System Requirements
  * Perl
- * DICOM toolkit (step 3 below)
- * MINC toolkit (step 5 below; also see http://bic-mni.github.io/)
+ * DICOM toolkit (step 3)
+ * MINC toolkit (step 2)
 
 Note: For Ubuntu installations, DICOM toolkit will be installed by the imaging install script (see step 3 below). This script will apt-get install dcmtk.   
 
@@ -28,7 +28,11 @@ See aces/Loris README.md for further information and Loris installation informat
    git submodule update
    ```
 
-3. Run installer to install DICOM toolkit, Perl libraries, configure environment, and setup directories:
+3. Install MINC toolkit from http://bic-mni.github.io/ 
+
+   Pre-compiled packages are available for major operating systems.
+
+4. Run installer to install DICOM toolkit, Perl libraries, configure environment, and setup directories:
 
    ```bash 
    cd /data/$projectname/bin/mri/
@@ -49,14 +53,14 @@ See aces/Loris README.md for further information and Loris installation informat
 
   If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L90)
 
-4. Install MINC toolkit from http://bic-mni.github.io/ 
+5. Configure paths and environment
 
-   Ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (this file located in the path where the MINC tools are installed), then restart apache. This is necessary for BrainBrowser to successfully load MINC images.
-
-5. Ensure that /home/$lorisadmin/.bashrc includes the statements: 
+   Ensure that /home/$lorisadmin/.bashrc includes the statements: 
 
 ```source /data/$projectname/bin/mri/environment```
 
+   Finally, ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (this file located in the path where the MINC tools are installed), then restart apache. This is necessary for BrainBrowser to successfully load MINC images.
 
-Installation complete. For customizations & protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
+
+Installation complete. For customizations and protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
 
