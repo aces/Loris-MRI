@@ -57,7 +57,7 @@ See aces/Loris README.md for further information and Loris installation informat
 
    Ensure that /home/$lorisadmin/.bashrc includes the statements: 
 
-```source /data/$projectname/bin/mri/environment```
+   ```source /data/$projectname/bin/mri/environment```
 
    Finally, ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (this file located in the path where the MINC tools are installed), then restart apache. This is necessary for BrainBrowser to successfully load MINC images.
 
