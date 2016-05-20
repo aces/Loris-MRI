@@ -47,10 +47,11 @@ See aces/Loris README.md for further information and Loris installation informat
  * What prod file name would you like to use? default: prod  [leave blank]
  * Enter the list of Site names (space separated) site1 site2
 
-If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L90)
+  If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L90)
 
-4. Install MINC toolkit from: http://bic-mni.github.io/ 
-Ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (this file located in the path where the MINC tools are installed), then restart apache. This is necessary for BrainBrowser to successfully load MINC images.
+4. Install MINC toolkit from http://bic-mni.github.io/ 
+
+   Ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (this file located in the path where the MINC tools are installed), then restart apache. This is necessary for BrainBrowser to successfully load MINC images.
 
 5. Ensure that /home/$lorisadmin/.bashrc includes the statements: 
 
