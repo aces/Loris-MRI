@@ -247,7 +247,7 @@ spool($message,'N', $notify_notsummary);
 ################################################################
 ############### Spool last completion message ##################
 ################################################################
-my ($minc_created, $minc_inserted) = getNumberMincFiles($upload_id);
+my ($minc_created, $minc_inserted) = getNumberOfMincFiles($upload_id);
 
 $message = "\nThe insertion scripts have completed "
 	    . "with $minc_created minc file(s) created, "
@@ -294,7 +294,7 @@ sub getPnameUsingUploadID {
 ###### get number_of_mincCreated & number_of_mincInserted ######
 ################################################################
 =pod
-getNumberMincFiles()
+getNumberOfMincFiles()
 Description:
   - Get the count of minc files created and inserted using the upload_id
 
@@ -305,7 +305,7 @@ Arguments:
 =cut
 
 
-sub getNumberMincFiles {
+sub getNumberOfMincFiles {
 
     my $upload_id = shift;
     my ( $minc_created, $minc_inserted, $query ) = '';
