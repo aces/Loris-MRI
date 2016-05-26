@@ -500,23 +500,33 @@ sub identify_scan_db {
             print "\n";
         }
         
-        if(($sd_regex && ($series_description =~ /$sd_regex/i)) ||
-           ((!$rowref->{'TR_range'} || &in_range($tr, $rowref->{'TR_range'}))
-	    && (!$rowref->{'TE_range'} || &in_range($te, $rowref->{'TE_range'}))
-	    && (!$rowref->{'TI_range'} || &in_range($ti, $rowref->{'TI_range'}))
-	    && (!$rowref->{'slice_thickness_range'} || &in_range($slice_thickness, $rowref->{'slice_thickness_range'}))
-	    
-	    && (!$rowref->{'xspace_range'} || &in_range($xspace, $rowref->{'xspace_range'}))
-	    && (!$rowref->{'yspace_range'} || &in_range($yspace, $rowref->{'yspace_range'}))
-	    && (!$rowref->{'zspace_range'} || &in_range($zspace, $rowref->{'zspace_range'}))
-	    
-	    && (!$rowref->{'xstep_range'} || &in_range($xstep, $rowref->{'xstep_range'}))
-	    && (!$rowref->{'ystep_range'} || &in_range($ystep, $rowref->{'ystep_range'}))
-	    && (!$rowref->{'zstep_range'} || &in_range($zstep, $rowref->{'zstep_range'}))
-	    && (!$rowref->{'time_range'} || &in_range($time, $rowref->{'time_range'})))) {
-            return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
+
+	if ($sd_regex) {
+
+            if ($series_description =~ /$sd_regex/i) {
+                return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
+            }
+	}
+
+	else {
+         	if ((!$rowref->{'TR_range'} || &in_range($tr, $rowref->{'TR_range'}))
+                && (!$rowref->{'TE_range'} || &in_range($te, $rowref->{'TE_range'}))
+                && (!$rowref->{'TI_range'} || &in_range($ti, $rowref->{'TI_range'}))
+                && (!$rowref->{'slice_thickness_range'} || &in_range($slice_thickness, $rowref->{'slice_thickness_range'}))
+
+                && (!$rowref->{'xspace_range'} || &in_range($xspace, $rowref->{'xspace_range'}))
+                && (!$rowref->{'yspace_range'} || &in_range($yspace, $rowref->{'yspace_range'}))
+                && (!$rowref->{'zspace_range'} || &in_range($zspace, $rowref->{'zspace_range'}))
+
+                && (!$rowref->{'xstep_range'} || &in_range($xstep, $rowref->{'xstep_range'}))
+                && (!$rowref->{'ystep_range'} || &in_range($ystep, $rowref->{'ystep_range'}))
+                && (!$rowref->{'zstep_range'} || &in_range($zstep, $rowref->{'zstep_range'}))
+                && (!$rowref->{'time_range'} || &in_range($time, $rowref->{'time_range'}))) {
+                    return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
+            }
         }
-    }
+}
+
     # if we got here, we're really clueless...
     insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID);
 
