@@ -500,14 +500,11 @@ sub identify_scan_db {
             print "\n";
         }
         
-
 	if ($sd_regex) {
-
             if ($series_description =~ /$sd_regex/i) {
                 return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
             }
 	}
-
 	else {
          	if ((!$rowref->{'TR_range'} || &in_range($tr, $rowref->{'TR_range'}))
                 && (!$rowref->{'TE_range'} || &in_range($te, $rowref->{'TE_range'}))
@@ -525,7 +522,7 @@ sub identify_scan_db {
                     return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
             }
         }
-}
+    }
 
     # if we got here, we're really clueless...
     insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID);
