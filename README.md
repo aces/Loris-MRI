@@ -53,16 +53,12 @@ See aces/Loris README.md for further information and Loris installation informat
 
   If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L90)
 
-5. Configure paths and environment
+5. Ensure your _project/config.xml_ file (in your main LORIS codebase) contains the following tagset (where /opt/minc/ is the MINC tools path in this example).
 
-   Ensure that /home/$lorisadmin/.bashrc includes the statement: 
-
-   ```source /data/$projectname/bin/mri/environment```
-
-   Ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (this file located in the path where the MINC tools are installed). This is necessary for BrainBrowser to successfully load MINC images.
-
-   Finally, source the .bashrc file and restart apache.
-
+   ```xml
+   <!-- MINC TOOLS PATH -->
+   <MINCToolsPath>/opt/minc/</MINCToolsPath>
+   ```
 
 Installation complete. For customizations and protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
 
