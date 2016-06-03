@@ -1,4 +1,4 @@
-This Readme covers release 16.0 of the LORIS Imaging Insertion Pipeline
+This Readme covers release 16.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
 This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris)</b>
 For documentation and detailed setup information, please see the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database)</b>
@@ -60,22 +60,31 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
   If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L90)
 
-5. Ensure that /home/$lorisadmin/.bashrc includes the statement: 
+  The installer will make apache (www-data) part of the lorisadmin linux group.  
+
+5. Configure paths and environment
+
+   Ensure that /home/$lorisadmin/.bashrc includes the statement: 
 
    ```source /data/$projectname/bin/mri/environment```
 
    Then source the .bashrc file.   
 
-6. Configure path variables to ensure that BrainBrowser can load MINC images: 
- 
    Ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (file located in the path where the MINC toolkit is installed), then restart apache.
-  
-  Ensure your _project/config.xml_ file (in the main LORIS codebase) contains the following tagset specifying the MINC toolkit path (/opt/minc/ in this example).
+
+6. Set up MINC utilities for BrainBrowser visualization
+
+   To ensure that BrainBrowser can load MINC images, the MINC toolkit must be accessible to the main LORIS codebase.
+   (If the Loris-MRI codebase is installed on a separate machine, ensure the MINC toolkit is installed in both locations.)
+
+   Ensure your _project/config.xml_ file (in the main LORIS codebase) contains the following tagset, specifying the MINC toolkit path local to the main LORIS codebase (/opt/minc/ in this example).
+
 
    ```xml
    <!-- MINC TOOLS PATH -->
    <MINCToolsPath>/opt/minc/</MINCToolsPath>
    ```
+
 
    Installation complete. For customizations and protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
 
