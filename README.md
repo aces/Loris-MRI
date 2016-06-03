@@ -50,7 +50,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
  * What is the database name? $dbname
  * What is the database host? $dbhost
- * What is the MySQL user? $lorisuser 
+ * What is the MySQL user? $lorisuser [Use the same mysql user from the Loris installation, i.e. _lorisuser_]
  * What is the MySQL password? 
  * What is the Linux user which the installation will be based on? $lorisadmin
  * What is the project name? $projectname
@@ -60,18 +60,17 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
   If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L90)
 
+5. Ensure that /home/$lorisadmin/.bashrc includes the statement: 
+
+   ```source /data/$projectname/bin/mri/environment```
+
+   Then source the .bashrc file.   
+
+6. Configure path variables to ensure that BrainBrowser can load MINC images: 
+ 
+   Ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (file located in the path where the MINC toolkit is installed), then restart apache.
   
-5. To ensure the Imaging Uploader (apache) can write to the data directories, run: 
-
-   ```bash
-   cd /data/$projectname/data/
-   chown -R lorisadmin.www-data *   # if running Ubuntu
-   chown -R lorisadmin.apache *     # if running CentOS
-   chmod 770 
-   chmod g+s
-   ```
-
-6. Ensure your _project/config.xml_ file (in your main LORIS codebase) contains the following tagset (where /opt/minc/ is the MINC toolkit path in this example).
+  Ensure your _project/config.xml_ file (in the main LORIS codebase) contains the following tagset specifying the MINC toolkit path (/opt/minc/ in this example).
 
    ```xml
    <!-- MINC TOOLS PATH -->
