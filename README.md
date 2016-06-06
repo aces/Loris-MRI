@@ -37,7 +37,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
 3. Install MINC toolkit from http://bic-mni.github.io/ 
 
-   Pre-compiled packages are available for major operating systems.
+   Pre-compiled packages are available for major operating systems. Note required dependencies such as imagemagick.
 
 4. Run installer to install DICOM toolkit, Perl libraries, configure environment, and setup directories:
 
