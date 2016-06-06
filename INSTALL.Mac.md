@@ -1,6 +1,8 @@
 #LORIS-MRI Mac Install Guide
+### Mac is no longer supported as of 15.10. 
 
 This is a guide on how to install the imaging pipeline on your Mac computer. It has been tested for Mac OS X 10.9.
+For best results, we recommend installing LORIS on Ubuntu or CentOS.
 
 ## 1. Grep the code from Github
 
