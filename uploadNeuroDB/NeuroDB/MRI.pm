@@ -1173,7 +1173,8 @@ sub make_jiv {
     `mv $tempdir/* $jiv/`;
 
     # update mri table
-    $file->setParameter('jiv_path', $rowhr->{'CandID'} . '/'. $newbase . '.header; ' . $newbase . '.raw_byte.gz');
+    $file->setParameter('jiv_path', $rowhr->{'CandID'});
+    $file->setParameter('jiv_filenames', $rowhr->{'CandID'} . '/'. $newbase . '.header; ' . $newbase . '.raw_byte.gz');
     return 1;
 }
 
