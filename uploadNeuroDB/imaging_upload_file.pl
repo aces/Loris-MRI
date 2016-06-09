@@ -28,9 +28,12 @@ my $date    = sprintf(
                 $year + 1900,
                 $mon + 1, $mday, $hour, $min, $sec
               );
-my $profile = undef;    # this should never be set unless you are in a
+my $profile   = undef;    # this should never be set unless you are in a
                         # stable production environment
 my $upload_id = undef;         # The uploadID
+my $phantom   = undef;         # Y if Phantom
+my $patient_name_batch = undef;         # Patient Name as obtained from batch upload
+my $pname = undef;         
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
      tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
@@ -51,6 +54,14 @@ my @opt_table           = (
     [
         "-upload_id", "string", 1, \$upload_id,
         "The uploadID of the given scan uploaded"
+    ],
+    [
+        "-patient_name_batch", "string", 1, \$patient_name_batch,
+        "The patient name; needed only when using batch_upload_imaguploader"
+    ],
+    [
+        "-phantom", "string", 1, \$phantom,
+        "Y for phantom and N for real study participants"
     ],
     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     [ "Advanced options", "section" ],
@@ -109,10 +120,12 @@ if ( !$ARGV[0] || !$profile ) {
     exit 3;
 }
 
-if ( !$upload_id ) {
-    print $Help;
-    print "$Usage\n\tERROR: The Upload_id is missing \n\n";
-    exit 4;
+if ( !$upload_id ) { #check for upload_id only if this script is not called from batch_upload_imageuploader
+    if (!$patient_name_batch) { 
+        print $Help;
+        print "$Usage\n\tERROR: The Upload_id is missing \n\n";
+        exit 4;
+    }
 }
 
 $uploaded_file = abs_path( $ARGV[0] );
@@ -158,7 +171,30 @@ my $result = $file_decompress->Extract(
 ############### Get Patient_name using UploadID#################
 ################################################################
 ################################################################
-my $pname = getPnameUsingUploadID($upload_id);
+if (!$patient_name_batch) { 
+    $pname = getPnameUsingUploadID($upload_id);
+}
+else {
+    $pname = $patient_name_batch;
+}
+
+################################################################
+############# For entries coming from batch_upload #############
+########### Created entries into the mri_upload table ##########
+################################################################
+if ($patient_name_batch) {
+    if (!$phantom) {
+        print "Please ensure that entries from " .
+              "batch_upload_imageuploader contain " .
+	      "a Y or N for phantoms or no phantoms, ".
+	      "respectively\n";
+    } 
+    else {
+         $upload_id = insertIntoMRIUpload($patient_name_batch, 
+				          $phantom, 
+				          $uploaded_file);
+    }
+}
 
 ################################################################
 ################ ImagingUpload  Object #########################
@@ -278,6 +314,47 @@ sub getPnameUsingUploadID {
         }
     }
     return $patient_name;
+}
+
+################################################################
+############### insertIntoMRIUpload ############################
+################################################################
+=pod
+insertIntoMRIUpload()
+Description:
+  - Insert into the mri_upload table entries for data coming 
+    from batch_upload_imageuploader
+
+Arguments:
+  $patient_name_batch: The patient name
+  $phantom : 'Y' if the entry is for a phantom, and 'N' othwrwose
+  $uploaded_file: Path to the uploaded file
+ 
+  Returns: $upload_id : The Upload ID
+=cut
+
+
+sub insertIntoMRIUpload {
+
+    my ( $patient_name_batch, $phantom, $uploaded_file ) = @_;
+    my $User = `whoami`;
+
+    my $query = "INSERT INTO mri_upload ".
+      		"(UploadedBy, UploadDate, PatientName, ".
+		"IsPhantom, UploadLocation) ".
+    		"VALUES (?, now(), ?, ?, ?)";
+    my $mri_upload_insert = $dbh->prepare($query);
+    $mri_upload_insert->execute($User,$patient_name_batch,
+				$phantom, $uploaded_file);
+
+    my $where = " WHERE mu.UploadLocation =?";
+    $query = "SELECT mu.UploadID FROM mri_upload mu";
+    $query .= $where;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($uploaded_file);
+    my $upload_id = $sth->fetchrow_array;
+
+    return $upload_id;
 }
 
 ################################################################
