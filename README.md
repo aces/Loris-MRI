@@ -60,7 +60,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
   If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/16.0-dev/imaging_install.sh#L90)
 
-  The installer will make apache (www-data) part of the lorisadmin linux group.  
+  The installer will make lorisadmin part of apache (or www-data) linux group.  
 
 5. Configure paths and environment
 
