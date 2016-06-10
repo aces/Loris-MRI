@@ -2,24 +2,30 @@
 use strict;
 use warnings;
 use File::Basename;
+use Getopt::Tabular;
 
-#####Get config setting#######################################################
-# checking for profile settings
-if(-f "$ENV{LORIS_CONFIG}/.loris_mri/prod") {
-    { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
-} ##Possibly the script can exit if the prod doesn't exist
-#######################################################################################
-
-# define project space
+my $profile   = undef;
 my ($debug, $verbose) = (0,1);
-my ($stdoutbase, $stderrbase) = ("$Settings::data_dir/batch_output/imuploadstdout.log", "$Settings::data_dir/batch_output/imuploadstderr.log");
 my $stdout = '';
 my $stderr = '';
 
 my @opt_table           = (
     [ "Basic options", "section" ],
+    [
+        "-profile", "string", 1, \$profile,
+        "name of config file in ../dicom-archive/.loris_mri"
+    ],
     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."]
 );
+
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+
+#####Get config setting#######################################################
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+##############################################################################
+
+my ($stdoutbase, $stderrbase) = ("$Settings::data_dir/batch_output/imuploadstdout.log", "$Settings::data_dir/batch_output/imuploadstderr.log");
+
 
 
 while($_ = $ARGV[0], /^-/) {
@@ -95,7 +101,7 @@ foreach my $input (@resultsarray)
     ## processor will do all the real magic
 
     my $command = "$Settings::bin_dir/uploadNeuroDB/imaging_upload_file.pl "
-		. "-profile prod -phantom $phantom -patient_name $patientname $fullpath";
+		. "-profile $profile -phantom $phantom -patient_name $patientname $fullpath";
     if ($verbose) {
         $command .= " -verbose";
     }
