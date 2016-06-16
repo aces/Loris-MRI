@@ -23,7 +23,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
    sudo mkdir -p /data/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
    cd /data/$projectname/bin
-   git clone https://github.com/aces/Loris-MRI.git mri
+   git clone -b 16.0-dev https://github.com/aces/Loris-MRI.git mri
    ```
    
 2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
@@ -69,7 +69,6 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
    ```source /data/$projectname/bin/mri/environment```
 
    Then source the .bashrc file.   
-   Also ensure that the apache envvars file includes all the EXPORT statements from minc-toolkit-config.sh (file located in the path where the MINC toolkit is installed), then restart apache.
 
 6. Set up MINC utilities for BrainBrowser visualization
 
