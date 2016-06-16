@@ -148,6 +148,9 @@ else
     read -p "Cannot find the apache group name for your installation. Please provide? " group
 fi
 
+# Making lorisadmin part of the apache group
+sudo usermod -a -G $group $USER
+
 #Setting group permissions to apache and group ID for all files/dirs under /data/$PROJ/data
 sudo chgrp $group -R /data/$PROJ/data/
 sudo chmod -R g+s /data/$PROJ/data/
