@@ -17,13 +17,13 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
 # Installation
 
-1. Create directories
+1. Create directories and download Loris-MRI Release 16.0.0 code
 
    ```bash
    sudo mkdir -p /data/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
    cd /data/$projectname/bin
-   git clone -b 16.0-dev https://github.com/aces/Loris-MRI.git mri
+   git clone -b v16.0.0 https://github.com/aces/Loris-MRI.git mri
    ```
    
 2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
