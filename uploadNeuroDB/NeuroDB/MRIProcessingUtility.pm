@@ -578,23 +578,7 @@ sub move_minc {
     ### figure out where to put the files ######################
     ############################################################
     $dir = $this->which_directory($subjectIDsref,$data_dir);
-
-    # create the last 4 subdirectories: CandID, Visit Lavel, mri, native
-    # one at a time to make sure mode 770 is applicable to each
-    # since `mkdir -p -m 770 $dir/native`
-    # will only apply 770 to last directory
-    my (@subdir) = split (/\//, $dir);
-    my $size = scalar(@subdir);
-    my $partial1=$subdir[$size-3];
-    my $partial2=$subdir[$size-2];
-    my $partial3=$subdir[$size-1];
-    my $full1 = $data_dir . "/assembly/" . $partial1;
-    my $full2 = $data_dir . "/assembly/" . $partial1 . "/" . $partial2;
-    my $full3 = $data_dir . "/assembly/" . $partial1 . "/" . $partial2 ."/" . $partial3;
-    unless (-e $full1) {`mkdir -m 770 $full1`};
-    unless (-e $full2) {`mkdir -m 770 $full2`};
-    unless (-e $full3) {`mkdir -m 770 $full3`};
-    `mkdir -m 770 $dir/native`;
+    `mkdir -p -m 770 $dir/native`;
 
     ############################################################
     ####### figure out what to call files ######################
@@ -904,7 +888,7 @@ sub moveAndUpdateTarchive {
     ##### make the directory if it does not yet exist ##########
     ############################################################
     unless(-e $newTarchiveLocation) {
-        `mkdir -m 770 $newTarchiveLocation`;
+        mkdir($newTarchiveLocation, 0770);
     }
     ############################################################
     ####### determine the new name of the tarchive #############
