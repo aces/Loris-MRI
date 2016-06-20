@@ -61,7 +61,9 @@ my @opt_table           = (
     ],
     [
         "-phantom", "string", 1, \$phantom,
-        "Y for phantom and N for real study participants"
+        "Y for phantom and N for real study participants; " .
+	" needed only when using batch_upload_imaguploader"
+
     ],
     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     [ "Advanced options", "section" ],
@@ -120,10 +122,12 @@ if ( !$ARGV[0] || !$profile ) {
     exit 3;
 }
 
-if ( !$upload_id ) { #check for upload_id only if this script is not called from batch_upload_imageuploader
+# check if patient name is provided in case of no upload_id; 
+# expected when script is called from batch_upload_imageuploader 
+if ( !$upload_id ) { 
     if (!$patient_name_batch) { 
         print $Help;
-        print "$Usage\n\tERROR: The Upload_id is missing \n\n";
+        print "$Usage\n\tERROR: No upload_id or patient name provided \n\n";
         exit 4;
     }
 }
