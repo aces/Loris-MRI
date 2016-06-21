@@ -91,7 +91,6 @@ echo
 #######################################################################################
 echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/data/"
-  sudo -S su $USER -c "chgrp lorisadmin /data/$PROJ/data/"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/trashbin"         #holds mincs that didn't match protocol
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/tarchive"         #holds tared dicom-folder
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
@@ -106,7 +105,6 @@ echo
 ###############incoming directory using sites########################################
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
-sudo -S su $USER -c "chgrp lorisadmin /data/incoming/"
 echo "Creating incoming director(y/ies)"
  for s in $site; do 
   sudo -S su $USER -c "mkdir -m 770 -p /data/incoming/$s/incoming"
@@ -135,16 +133,31 @@ sudo chmod -R 770 /data/incoming/
 echo
 
 ####################################################################################
-###################### #############################
+######################Add the proper Apache group user #############################
 ####################################################################################
+if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
+then 
+    group=www-data
+elif egrep ^www: /etc/group  > $LOGFILE 2>&1;
+then
+    group=www
+elif egrep -e ^apache: /etc/group  > $LOGFILE 2>&1;
+then
+    group=apache
+else
+    read -p "Cannot find the apache group name for your installation. Please provide? " group
+fi
 
-#Setting Unix group ID to lorisadmin for all files/dirs under /data/$PROJ/data
-sudo chgrp lorisadmin -R /data/$PROJ/data/
-sudo chmod g+s /data/$PROJ/data/
+# Making lorisadmin part of the apache group
+sudo usermod -a -G $group $USER
 
-#Setting Unix group ID to lorisadmin for all files/dirs under /data/incoming
-sudo chgrp lorisadmin -R /data/incoming/
-sudo chmod g+s /data/incoming
+#Setting group permissions to apache and group ID for all files/dirs under /data/$PROJ/data
+sudo chgrp $group -R /data/$PROJ/data/
+sudo chmod -R g+s /data/$PROJ/data/
+
+#Setting group permissions to apache and group ID for all files/dirs under /data/$PROJ/incoming
+sudo chgrp $group -R /data/incoming/
+sudo chmod -R g+s /data/incoming/
 echo
 
 #####################################################################################
