@@ -1,4 +1,4 @@
-This Readme covers release 16.0.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 16.* of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
 This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris)</b>, release 16.0.*.<br>
 For documentation and detailed setup information, please see the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database)</b>.
@@ -17,13 +17,13 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
 # Installation
 
-1. Create directories and download Loris-MRI Release 16.0.0 code
+1. Create directories and download Loris-MRI code
 
    ```bash
    sudo mkdir -p /data/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
    cd /data/$projectname/bin
-   git clone -b v16.0.0 https://github.com/aces/Loris-MRI.git mri
+   git clone https://github.com/aces/Loris-MRI.git mri
    ```
    
 2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
@@ -60,10 +60,13 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
   If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir/chmod/chown commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/16.0-dev/imaging_install.sh#L90)
 
-  Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group, and setting Apache group ownership of certain /data/ subdirectories.  To help ensure Apache-writability, verify that the installer has added the following line to your environment file:
+  Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group, and setting Apache group ownership of /data/ subdirectories.  
+  To help ensure Apache-writability, verify that your environment file contains the following line:
     ```bash
     umask 0002
     ```
+
+   Then source the environment file.   
 
 5. Configure paths and environment
 
