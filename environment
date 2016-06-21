@@ -4,4 +4,5 @@ export TMPDIR=/tmp
 export LORIS_CONFIG=/data/%PROJECT%/bin/mri/dicom-archive
 
 source %MINC_TOOLKIT_DIR%/minc-toolkit-config.sh
+umask 0002
 
