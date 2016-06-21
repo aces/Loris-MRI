@@ -1,6 +1,6 @@
-This Readme covers release 16.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 16.0.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
-This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris)</b>.<br>
+This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris)</b>, release 16.0.*.<br>
 For documentation and detailed setup information, please see the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database)</b>.
 
 This repo can be installed on either the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
@@ -58,9 +58,12 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
  * What prod file name would you like to use? default: prod  [leave blank]
  * Enter the list of Site names (space separated) site1 site2
 
-  If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir and chmod commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/16.0-dev/imaging_install.sh#L90)
+  If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir/chmod/chown commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/16.0-dev/imaging_install.sh#L90)
 
-  The installer will make lorisadmin part of apache (or www-data) linux group.  
+  Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group, and setting Apache group ownership of certain /data/ subdirectories.  To help ensure Apache-writability, verify that the installer has added the following line to your environment file:
+    ```bash
+    umask 0002
+    ```
 
 5. Configure paths and environment
 
