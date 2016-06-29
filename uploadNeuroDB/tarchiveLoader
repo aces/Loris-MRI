@@ -79,6 +79,7 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
                                # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
+my $seriesuid   = '';          # if you want to insert a specific SeriesUID
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -109,6 +110,7 @@ my @opt_table = (
                  ],
                  ["General options", "section"],
                  ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
+                 ["-seriesuid", "string", 1, \$seriesuid, "Only insert this SeriesUID"],
                  );
 
 my $Help = <<HELP;
@@ -357,7 +359,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-		$tarchive, $tarchiveInfo{'SourceLocation'});
+		$tarchive, $tarchiveInfo{'SourceLocation'}, $seriesuid);
 
 
 ################################################################
