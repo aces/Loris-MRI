@@ -46,6 +46,9 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                # control freak
 my $xlog        = 0;           # default should be 0
+my $acquisitionProtocol = '';  # Specify the acquisition Protocol also bypasses the checks
+my @checks      = ();          # Initialise the array
+my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $no_nii      = 1;           # skip NIfTI creation by default
@@ -96,7 +99,11 @@ my @opt_table = (
                  ["General options","section"],
                  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
            
+                 ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
+                  "Suggest the acquisition protocol to use."],
 
+                 ["-create_minc_pics", "boolean", 1, \$create_minc_pics,
+                  "Use this if invoked directly witouth tarchiveloader."],
 );
 
 
@@ -380,13 +387,15 @@ $file->setFileData('Caveat', 0);
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
 ################################################################
-my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
-  = $utility->getAcquisitionProtocol(
+if(!defined($acquisitionProtocol)) {
+  my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
+    = $utility->getAcquisitionProtocol(
         $file,
         $subjectIDsref,
         \%tarchiveInfo,$center_name,
         $minc
-    );
+      );
+}
 
 if($acquisitionProtocol =~ /unknown/) {
    $message = "\n  --> The minc file cannot be registered ".
@@ -453,6 +462,40 @@ if (!$no_jiv) {
 unless ($no_nii) {
     print "\nCreating NIfTI files\n" if $verbose;
     NeuroDB::MRI::make_nii(\$file, $data_dir);
+}
+
+############################################################
+############# Create minc-pics #############################
+############################################################
+unless ($create_minc_pics)
+{
+	$where = "WHERE TarchiveSource = ? ";
+	$query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
+	$query = $query . $where;
+	if ($debug) {
+		print $query . "\n";
+	}
+	my $sth = $dbh->prepare($query);
+	$sth->execute($tarchiveInfo{TarchiveID});
+	#$sth->execute();
+	print "TarchiveSource is " . $tarchiveInfo{TarchiveID} . "\n";
+
+	my $script = undef;
+	my $output = undef;
+	my @row = $sth->fetchrow_array();
+	if (@row) {
+		$script = "mass_pic.pl -minFileID $row[1] -maxFileID $row[1] ".
+		             "-profile $profile";
+		print "Running mass_pic as follows : " .$script . "\n";
+		    
+		############################################################
+		## Note: system call returns the process ID ################
+		## To get the actual exit value, shift right by eight as ### 
+		## done below ##############################################
+		############################################################
+		$output = system($script);
+		$output = $output >> 8;
+	}
 }
 
 ################################################################
