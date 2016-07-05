@@ -113,10 +113,8 @@ sub getFileNamesfromSeriesUID {
     my ($seriesuid) = @_;
     my $tarstring = ' --wildcards ';
     my $query = "select tf.FileName from tarchive_files as tf".
-        " where tf.TarchiveID = (select distinct ts.tarchiveID   from tarchive_series".
-        " as ts where ts.SeriesUID=?)".
-        " and tf.SeriesNumber = (select distinct ts.SeriesNumber from tarchive_series".
-        " as ts where ts.SeriesUID=?)".
+        " where tf.TarchiveID = (select distinct ts.tarchiveID   from tarchive_series as ts where ts.SeriesUID=?)".
+        " and tf.SeriesNumber = (select distinct ts.SeriesNumber from tarchive_series as ts where ts.SeriesUID=?)".
         " order by tf.FileNumber";
     my $sth = $dbh->prepare($query);
     $sth->execute($seriesuid, $seriesuid);
@@ -782,10 +780,10 @@ sub dicom_to_minc {
     ############################################################
     #### use some other converter if specified in the config ###
     ############################################################
-    if ($converter !~ /dcm2mnc/) {
+    if ($converter ne 'dcm2mnc') {
         $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
     } else {
-        $d2m_cmd .= "$converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
+        $d2m_cmd .= "dcm2mnc -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
     }
     $d2m_log = `$d2m_cmd`;
 
