@@ -1162,6 +1162,66 @@ sub validateCandidate {
 }
 
 ################################################################
+#################### computeSNR ################################
+################################################################
+
+sub computeSNR {
+
+    my $this = shift;
+    my (@row, $file, $base, $fullpath, $cmd, $message, $SNR);
+    my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
+    my $data_dir = $Settings::data_dir;
+    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+
+    my $query = "SELECT file from files f ";
+    my $where = "WHERE f.TarchiveSource=?";
+    $query = $query . $where;
+
+    if ($this->{debug}) {
+        print $query . "\n";
+    }
+
+    my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query);
+    $minc_file_arr->execute($tarchiveID);
+
+    while (@row = $minc_file_arr->fetchrow_array()) {
+           $file = join (" ", @row);
+           $base = basename($file);
+           $fullpath = $data_dir . "/" . $file;
+       # if ($base =~ /t1w/i or $base =~ /t2/i or $base =~ /pd/i) {
+           if (defined(&Settings::getSNRModalities)
+                && Settings::getSNRModalities($base)) {
+               $cmd = "noise_estimate --snr $fullpath";
+               $SNR = `$cmd`;
+               print "$cmd \n" if ($this->{verbose});
+               print "SNR is: $SNR \n" if ($this->{verbose});
+
+                ### Update the SNR in files table
+                $query = "UPDATE files SET SNR=?";
+                $where = "WHERE File=?";
+                $query = $query . $where;
+                if ($this->{debug}) {
+                    print $query . "\n";
+                }
+
+                my $files_SNR_update = ${$this->{'dbhr'}}->prepare($query);
+                $files_SNR_update->execute($SNR, $file);
+                $message = "The SNR was computed for $base with SNR=$SNR \n ";
+		$this->{LOG}->print($message);
+		$this->spool($message, 'N', $upload_id, $notify_detailed);
+            }
+            else {
+                $message = "The SNR was not be computed for $base. ".
+                           "Either the getSNRModalities is not defined in your ".
+                           "$profile file, or the imaging modality does not ".
+                           "SNR computation. \n";
+		$this->{LOG}->print($message);
+		$this->spool($message, 'N', $upload_id, $notify_detailed);
+            }
+    }
+}
+
+################################################################
 ################ getUploadIDUsingTarchiveSrcLoc#################
 ################################################################
 =pod
