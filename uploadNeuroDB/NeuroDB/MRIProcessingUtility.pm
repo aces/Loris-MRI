@@ -1188,7 +1188,6 @@ sub computeSNR {
            $file = join (" ", @row);
            $base = basename($file);
            $fullpath = $data_dir . "/" . $file;
-       # if ($base =~ /t1w/i or $base =~ /t2/i or $base =~ /pd/i) {
            if (defined(&Settings::getSNRModalities)
                 && Settings::getSNRModalities($base)) {
                $cmd = "noise_estimate --snr $fullpath";
