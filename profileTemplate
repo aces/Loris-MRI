@@ -94,7 +94,7 @@ sub getIncomingDir {
 ## So compute SNR on the 3-D modalities; most commonly t1, t2, flair, and pd
 sub getSNRModalities {
     my $base = shift;
-    if ($base =~ /t1/i or $base =~ /t2/i or $base =~ /fair/i or $base =~ /pd/i)
+    if ($base =~ /t1/i or $base =~ /t2/i or $base =~ /flair/i or $base =~ /pd/i)
         return 1;
     }
     return 0;
