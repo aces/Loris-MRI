@@ -18,7 +18,7 @@ use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
 
-my $profile   = 'prod';      # this should never be set unless you are in a
+my $profile   = '';      # this should never be set unless you are in a
                              # stable production environment
 my $seriesuid = '';
 my $query     = '';
@@ -101,10 +101,10 @@ my $jiv_header   = $pic_path[0] . ".header";
 my $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
 
 if ($ARGV[0] eq "confirm") {
-  unlink($data_dir . "/" . $f->{'File'});
-  unlink($data_dir . "/pic/" . $f->{'VALUE'});
-  unlink($data_dir . "/jiv/" . $jiv_header);
-  unlink($data_dir . "/jiv/" . $jiv_raw_byte);
+  rename($data_dir . "/" . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
+  rename($data_dir . "/pic/" . $f->{'VALUE'}, $data_dir . "/archive/pic/" . $f->{'VALUE'});
+  rename($data_dir . "/jiv/" . $jiv_header, $data_dir . "/archive/jiv/" . $jiv_header);
+  rename($data_dir . "/jiv/" . $jiv_raw_byte, $data_dir . "/archive/jiv/" . $jiv_raw_byte);
 } else {
   print $data_dir . "/" . $f->{'File'} . "\n";
   print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
