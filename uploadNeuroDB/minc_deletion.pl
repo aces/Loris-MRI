@@ -6,6 +6,7 @@ use Getopt::Tabular;
 use FileHandle;
 use File::Basename;
 use File::Temp qw/ tempdir /;
+use File::Path qw/ make_path /;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
@@ -93,24 +94,42 @@ $query = "select f.File, pf.`VALUE` from files as f ".
          "pf.ParameterTypeID = (select pt.ParameterTypeID from parameter_type as pt where pt.Name = 'check_pic_filename') and ".
          "pf.FileID = (SELECT FileID FROM files WHERE SeriesUID = ?)";
 my $sth = $dbh->prepare($query);
-$sth->execute($seriesuid);
+my $rvl = $sth->execute($seriesuid);
+
+if ($sth->err) {
+  die "ERROR! return code:" . $sth->err . " error msg: " . $sth->errstr . "\n";
+}
+
+if (defined $rvl && $rvl == 0) {
+  die "Can't rename if there is no value return from: \n" . $query . "\n";
+}
+
 my $f = $sth->fetchrow_hashref();
 
 my @pic_path     = split /_check/, $f->{'VALUE'};
 my $jiv_header   = $pic_path[0] . ".header";
 my $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
+my($file, $dir, $ext) = fileparse($f->{'File'});
+my @candid = split("/", $dir);
+
+# Let's make directories
+make_path($data_dir . "/archive/"    . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
+make_path($data_dir . "/archive/pic/" . $candid[1]) unless(-d  $data_dir . "/archive/pic/" . $candid[1]);
+make_path($data_dir . "/archive/jiv/" . $candid[1]) unless(-d  $data_dir . "/archive/jiv/" . $candid[1]);
 
 if ($ARGV[0] eq "confirm") {
   rename($data_dir . "/" . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
   rename($data_dir . "/pic/" . $f->{'VALUE'}, $data_dir . "/archive/pic/" . $f->{'VALUE'});
   rename($data_dir . "/jiv/" . $jiv_header, $data_dir . "/archive/jiv/" . $jiv_header);
   rename($data_dir . "/jiv/" . $jiv_raw_byte, $data_dir . "/archive/jiv/" . $jiv_raw_byte);
-} else {
-  print $data_dir . "/" . $f->{'File'} . "\n";
-  print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
-  print $data_dir . "/jiv/" . $jiv_header . "\n";
-  print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
 }
+
+print "Moving these files to archive:\n";
+print $data_dir . "/" . $f->{'File'} . "\n";
+print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
+print $data_dir . "/jiv/" . $jiv_header . "\n";
+print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
+
 
 
 # Delete from DB
