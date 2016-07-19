@@ -23,7 +23,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
    sudo mkdir -p /data/$projectname/bin/mri
    sudo chown -R lorisadmin:$group /data/$projectname
    ```
-where $group is the Apache group
+where $group is the Apache linux group
    ```bash
    cd /data/$projectname/bin
    git clone https://github.com/aces/Loris-MRI.git mri
