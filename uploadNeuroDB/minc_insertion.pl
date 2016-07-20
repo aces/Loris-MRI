@@ -384,7 +384,7 @@ my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
   = $utility->getAcquisitionProtocol(
         $file,
         $subjectIDsref,
-        \%tarchiveInfo,$center_name,
+        \%tarchiveInfo,
         $minc
     );
 

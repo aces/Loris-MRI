@@ -398,7 +398,7 @@ Returns: Textual name of scan type
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
+    my  ($subjectref, $fileref, $dbhr,$minc_location) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
     my $pscid = ${subjectref}->{'PSCID'};
@@ -469,7 +469,7 @@ sub identify_scan_db {
               xstep_range, ystep_range, zstep_range, time_range, series_description_regex
               FROM mri_protocol
               WHERE
-             (Center_name='$psc' AND ScannerID='$ScannerID')
+             (ScannerID='$ScannerID')
               OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
               ORDER BY Center_name ASC, ScannerID DESC";
 
