@@ -3,6 +3,7 @@ use English;
 use Carp;
 use strict;
 use warnings;
+no warnings 'once';
 use Data::Dumper;
 use File::Basename;
 use NeuroDB::File;

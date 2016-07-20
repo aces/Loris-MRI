@@ -24,6 +24,7 @@ mri_staging, notification_spool
 
 use strict;
 use warnings;
+no warnings 'once';
 use Carp;
 use Getopt::Tabular;
 use FileHandle;
