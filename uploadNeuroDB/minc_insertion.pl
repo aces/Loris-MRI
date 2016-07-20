@@ -46,7 +46,8 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                # control freak
 my $xlog        = 0;           # default should be 0
-my $acquisitionProtocol = '';  # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocolID;     # acquisition Protocol id
 my @checks      = ();          # Initialise the array
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
@@ -388,7 +389,7 @@ $file->setFileData('Caveat', 0);
 ## Get acquisition protocol (identify the volume) ##############
 ################################################################
 if(!defined($acquisitionProtocol)) {
-  my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
+  ($acquisitionProtocol,$acquisitionProtocolID,@checks)
     = $utility->getAcquisitionProtocol(
         $file,
         $subjectIDsref,
@@ -467,7 +468,7 @@ unless ($no_nii) {
 ############################################################
 ############# Create minc-pics #############################
 ############################################################
-unless ($create_minc_pics)
+if ($create_minc_pics)
 {
 	$where = "WHERE TarchiveSource = ? ";
 	$query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
