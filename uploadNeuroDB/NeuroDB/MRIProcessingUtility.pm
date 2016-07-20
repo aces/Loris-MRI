@@ -109,8 +109,19 @@ sub lookupNextVisitLabel {
 ################################################################
 sub getFileNamesfromSeriesUID {
 
+    # longest common prefix
+    sub LCP {
+      return '' unless @_;
+      my $prefix = shift;
+      for (@_) {
+          chop $prefix while (! /^\Q$prefix\E/);
+          }
+      return $prefix;
+    }
+
     my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-    my ($seriesuid) = @_;
+    my $seriesuid = @_;
+    my @filearray;
     my $tarstring = ' --wildcards ';
     my $query = "select tf.FileName from tarchive_files as tf".
         " where tf.TarchiveID = (select distinct ts.tarchiveID   from tarchive_series as ts where ts.SeriesUID=?)".
@@ -119,8 +130,12 @@ sub getFileNamesfromSeriesUID {
     my $sth = $dbh->prepare($query);
     $sth->execute($seriesuid, $seriesuid);
     while (my $tf = $sth->fetchrow_hashref()) {
-        $tarstring .= "'*/" . $tf->{'FileName'} . "' ";
+        push @filearray, $tf->{'FileName'};
+        $tarstring .= "'*" . $tf->{'FileName'} . "' ";
     }
+
+    my $lcp = LCP(@filearray);
+    $tarstring =~ s/$lcp//g;
 
     return $tarstring;
 }
