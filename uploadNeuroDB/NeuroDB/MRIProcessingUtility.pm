@@ -190,10 +190,10 @@ sub determineSubjectID {
     }
 
     # Check for regular expression pattenr in the identifier field
-    if ($tarchiveInfo->{'PatientName'} =~ /$Settings::regex_pattern/i){
+    if ($tarchiveInfo->{'PatientName'} =~ /$Settings::PatientID_regex/i){
           $identifier = $tarchiveInfo->{'PatientName'};
     }
-    elsif ($tarchiveInfo->{'PatientID'} =~ /$Settings::regex_pattern/i){
+    elsif ($tarchiveInfo->{'PatientID'} =~ /$Settings::PatientID_regex/i){
           $identifier = $tarchiveInfo->{'PatientID'};
     }
 
@@ -269,10 +269,10 @@ sub determinePSC {
     my $identifier = undef;
     $to_log = 1 unless defined $to_log;
 
-    if ($tarchiveInfo->{'PatientName'} =~ /$Settings::regex_pattern/i){
+    if ($tarchiveInfo->{'PatientName'} =~ /$Settings::PatientID_regex/i){
       $identifier = $tarchiveInfo->{'PatientName'};
     }
-    elsif ($tarchiveInfo->{'PatientID'} =~ /$Settings::regex_pattern/i){
+    elsif ($tarchiveInfo->{'PatientID'} =~ /$Settings::PatientID_regex/i){
       $identifier = $tarchiveInfo->{'PatientID'};
     }
     my ($center_name, $centerID) =

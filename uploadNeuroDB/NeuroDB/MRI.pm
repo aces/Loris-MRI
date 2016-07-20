@@ -74,7 +74,7 @@ sub getSubjectIDs {
 # subject data
 # old versions of this
 # qnts /([A-Z-]{3,4}\s+\d+)_(\d+)_([^_ ]+)/) or nihpd =~ /(\w{3}\d+)_(\d+)_([^_ ]+)/)
-    } elsif ($identifier =~ /$regex_pattern/i) {
+    } elsif ($identifier =~ /$PatientID_regex/i) {
 	$subjectID{'PSCID'} = my_trim($1);
 	$subjectID{'CandID'} = my_trim($2);
 	$subjectID{'visitLabel'} = my_trim($3);
