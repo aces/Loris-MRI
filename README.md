@@ -25,6 +25,8 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
    cd /data/$projectname/bin
    git clone https://github.com/aces/Loris-MRI.git mri
    ```
+
+  Note: Ensure that the permissions on /data/$projectname are such that lorisadmin and the Apache linux user can read/execute
    
 2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
 
