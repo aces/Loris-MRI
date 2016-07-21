@@ -21,7 +21,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
    ```bash
    sudo mkdir -p /data/$projectname/bin/mri
-   sudo chown -R lorisadmin:$group /data/$projectname
+   sudo chown -R lorisadmin:lorisadmin /data/$projectname
    cd /data/$projectname/bin
    git clone https://github.com/aces/Loris-MRI.git mri
    ```
