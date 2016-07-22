@@ -25,8 +25,6 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
    cd /data/$projectname/bin
    git clone https://github.com/aces/Loris-MRI.git mri
    ```
-
-  Note: Ensure that the permissions on /data/$projectname are such that lorisadmin and the Apache linux user can read/execute
    
 2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
 
@@ -62,7 +60,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
   If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir/chmod/chown commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/16.0-dev/imaging_install.sh#L90)
 
-  Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group, and setting Apache group ownership of certain /data/ subdirectories.  
+  Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group, and setting Apache group ownership of /data/$PROJ subdirectories.  
   To help ensure Apache-writability, verify that your environment file contains the following line:
     ```bash
     umask 0002

@@ -151,12 +151,10 @@ fi
 # Making lorisadmin part of the apache group
 sudo usermod -a -G $group $USER
 
-#Setting group permissions to apache and group ID for all files/dirs under /data/$PROJ/data
-sudo chgrp $group -R /data/$PROJ/data/
+#Setting group permissions and group ID for all files/dirs under /data/$PROJ/data
 sudo chmod -R g+s /data/$PROJ/data/
 
-#Setting group permissions to apache and group ID for all files/dirs under /data/$PROJ/incoming
-sudo chgrp $group -R /data/incoming/
+#Setting group permissions and group ID for all files/dirs under /data/$PROJ/incoming
 sudo chmod -R g+s /data/incoming/
 echo
 
@@ -167,6 +165,8 @@ echo "Creating MRI config file"
 
 cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
+#Setting group permissions for all files/dirs /data/$PROJ/ now that the prod file is created
+sudo chgrp $group -R /data/$PROJ/
 
 sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#/PATH/TO/BIN/location#$mridir#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
