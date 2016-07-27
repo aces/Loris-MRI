@@ -22,6 +22,9 @@ use NeuroDB::MRIProcessingUtility;
 my $profile   = '';      # this should never be set unless you are in a
                              # stable production environment
 my $seriesuid = '';
+my $fileid    = '';
+my $sth;
+my $rvl;
 my $query     = '';
 my $selORdel  = '';
 my @opt_table = (
@@ -30,6 +33,8 @@ my @opt_table = (
                   "name of config file in ../dicom-archive/.loris_mri"
                  ],
                  ["-seriesuid", "string", 1, \$seriesuid, "Only deletes this SeriesUID"
+                 ],
+                 ["-fileid", "string", 1, \$fileid, "Only deletes this FileID"
                  ],
                  );
 
@@ -49,6 +54,18 @@ if (!$ARGV[0] || !$profile) {
           "existing profile.\n\n";
     exit 3;  
 }
+if (!$seriesuid && !$fileid) {
+    print " ERROR: You must specify either a seriesuid or a fileid ".
+          "option.\n\n";
+    exit 4;
+}
+if ($seriesuid && $fileid) {
+    print " ERROR: You cannot specify both a seriesuid and a fileid ".
+          "option.\n\n";
+    exit 5;
+}
+
+
 
 if ($ARGV[0] eq "confirm") {
   $selORdel  = "DELETE ";
@@ -64,11 +81,16 @@ sub selORdel {
   my ($table, $field) = @_;
   my $where = '';
 
-  if ($table eq "parameter_file") {
-    $where = " WHERE FileID = (SELECT FileID FROM files WHERE SeriesUID = ?)";
-  } else {
-    $where = " WHERE SeriesUID = ?";
+  if ($seriesuid) {
+    if ($table eq "parameter_file") {
+      $where = " WHERE FileID = (SELECT FileID FROM files WHERE SeriesUID = ?)";
+    } else {
+      $where = " WHERE SeriesUID = ?";
+    }
+  } elsif ($fileid) {
+    $where = " WHERE FileID =  ?";
   }
+
 
   my $query = $selORdel . "FROM " . $table . $where;
   print $query . "\n";
@@ -84,17 +106,21 @@ sub selORdel {
 
 
 # Delete from FS:
-# /data/ibis/data_assembly/858677/V24/mri/native/ibis_858677_V24_dti_005.mnc
-# /data/ibis/data/pic/858677/ibis_858677_V24_dti_005_43606_check.jpg
-# /data/ibis/data/jiv
-
 # get the file names
 $query = "select f.File, pf.`VALUE` from files as f ".
          "left join parameter_file as pf using (FileID) where ".
          "pf.ParameterTypeID = (select pt.ParameterTypeID from parameter_type as pt where pt.Name = 'check_pic_filename') and ".
-         "pf.FileID = (SELECT FileID FROM files WHERE SeriesUID = ?)";
-my $sth = $dbh->prepare($query);
-my $rvl = $sth->execute($seriesuid);
+         "pf.FileID = ";
+
+if ($seriesuid) {
+  $query .= "(SELECT FileID FROM files WHERE SeriesUID = ?)";
+  $sth = $dbh->prepare($query);
+  $rvl = $sth->execute($seriesuid);
+} elsif ($fileid) {
+  $query .= "?";
+  $sth = $dbh->prepare($query);
+  $rvl = $sth->execute($fileid);
+}
 
 if ($sth->err) {
   die "ERROR! return code:" . $sth->err . " error msg: " . $sth->errstr . "\n";
@@ -129,7 +155,6 @@ print $data_dir . "/" . $f->{'File'} . "\n";
 print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
 print $data_dir . "/jiv/" . $jiv_header . "\n";
 print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
-
 
 
 # Delete from DB
