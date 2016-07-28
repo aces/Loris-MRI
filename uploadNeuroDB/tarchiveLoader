@@ -427,6 +427,7 @@ foreach my $minc (@minc_files) {
 
     $script = "minc_insertion.pl -tarchivePath $tarchive ".
               "-mincPath $minc -profile $profile";
+
     if ($force) {
         $script .= " -force";
     }
@@ -463,7 +464,16 @@ foreach my $minc (@minc_files) {
        $minc_inserted++;
        $valid_study = 1;
     }
+
 } # end foreach $minc
+
+################################################################
+############### Compute SNR on 3D modalities ###################
+################################################################
+$utility->computeSNR($tarchiveInfo{TarchiveID},
+                         $tarchiveInfo{'SourceLocation'},
+			 $profile);
+
 
 if ($valid_study) {
 
