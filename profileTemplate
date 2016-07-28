@@ -88,6 +88,18 @@ sub getIncomingDir {
     my $site = shift;
     return $tarchiveLibraryDir;
 }
+
+### This gets the modalities that SNR is to be computed on
+## Filename base usually contains the modality
+## So compute SNR on the 3-D modalities; most commonly t1, t2, flair, and pd
+sub getSNRModalities {
+    my $base = shift;
+    if ($base =~ /t1/i or $base =~ /t2/i or $base =~ /flair/i or $base =~ /pd/i) {
+        return 1;
+    }
+    return 0;
+}
+
 # extracts the subject and timepoint identifiers from the patient name 
 # assumes identifers are stored as <PSCID>_<DCCID>_<visit> in PatientName field, where <visit> is 3 digits.
 sub getSubjectIDs {
