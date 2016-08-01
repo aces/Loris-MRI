@@ -19,6 +19,8 @@ use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
 
+my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.2 $
+    =~ /: (\d+)\.(\d+)/;
 my $profile   = '';      # this should never be set unless you are in a
                              # stable production environment
 my $seriesuid = '';
@@ -30,7 +32,7 @@ my $selORdel  = '';
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
-                  "name of config file in ../dicom-archive/.loris_mri"
+                  "config file in ../dicom-archive/.loris_mri"
                  ],
                  ["-seriesuid", "string", 1, \$seriesuid, "Only deletes this SeriesUID"
                  ],
@@ -38,6 +40,32 @@ my @opt_table = (
                  ],
                  );
 
+
+my $Help = <<HELP;
+*******************************************************************************
+Minc Deletion
+*******************************************************************************
+
+Author  :   Gregory Luneau
+Date    :   July 2016
+Version :   $versionInfo
+
+
+The program does the following:
+
+Deletes minc files from the web interface by:
+  - Moving the existing files to an archive directory.
+    .mnc .jpg .header .raw_byte.gz
+  - Deleting all related data from 4 database tables.
+    parameter_file, files_qcstatus, feedback_mri_comments, files
+
+HELP
+my $Usage = <<USAGE;
+usage: $0 [options] select|confirm
+       $0 -help to list options
+
+USAGE
+&Getopt::Tabular::SetHelp($Help, $Usage);
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
 
 ################################################################
@@ -50,6 +78,7 @@ if ($profile && !@Settings::db) {
     exit 2; 
 }
 if (!$ARGV[0] || !$profile) { 
+    print $Help;
     print " ERROR: You must type select or confirm and have an ".
           "existing profile.\n\n";
     exit 3;  
