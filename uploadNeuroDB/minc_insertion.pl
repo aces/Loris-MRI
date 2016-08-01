@@ -470,7 +470,11 @@ unless ($no_nii) {
 ################################################################
 if ($create_minc_pics) {
     print "\nCreating Minc Pics\n" if $verbose;
-    NeuroDB::MRI::make_minc_pics(\$tarchiveInfo{TarchiveID});
+    NeuroDB::MRI::make_minc_pics(\$dbh,
+                                  $tarchiveInfo{TarchiveID},
+                                  $profile,
+                                  1);
+    # Set minFileID to 1: minFileID $row[1] & maxFileID $row[1]
 }
 
 ################################################################
