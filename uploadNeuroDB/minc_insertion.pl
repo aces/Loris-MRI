@@ -60,7 +60,7 @@ my ($tarchive,%tarchiveInfo,$minc);
 #### These settings are in a config file (profile) #############
 ################################################################
 my @opt_table = (
-                 ["casic options","section"],
+                 ["Basic options","section"],
 
                  ["-profile","string",1, \$profile, "name of config file". 
                  " in ../dicom-archive/.loris_mri"],
@@ -104,7 +104,7 @@ my @opt_table = (
                   "Suggest the acquisition protocol to use."],
 
                  ["-create_minc_pics", "boolean", 1, \$create_minc_pics,
-                  "Use this if invoked directly witouth tarchiveloader."],
+                  "Creates the minc pics."],
 );
 
 
@@ -465,38 +465,12 @@ unless ($no_nii) {
     NeuroDB::MRI::make_nii(\$file, $data_dir);
 }
 
-############################################################
-############# Create minc-pics #############################
-############################################################
-if ($create_minc_pics)
-{
-	$where = "WHERE TarchiveSource = ? ";
-	$query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
-	$query = $query . $where;
-	if ($debug) {
-		print $query . "\n";
-	}
-	my $sth = $dbh->prepare($query);
-	$sth->execute($tarchiveInfo{TarchiveID});
-	#$sth->execute();
-	print "TarchiveSource is " . $tarchiveInfo{TarchiveID} . "\n";
-
-	my $script = undef;
-	my $output = undef;
-	my @row = $sth->fetchrow_array();
-	if (@row) {
-		$script = "mass_pic.pl -minFileID $row[1] -maxFileID $row[1] ".
-		             "-profile $profile";
-		print "Running mass_pic as follows : " .$script . "\n";
-		    
-		############################################################
-		## Note: system call returns the process ID ################
-		## To get the actual exit value, shift right by eight as ### 
-		## done below ##############################################
-		############################################################
-		$output = system($script);
-		$output = $output >> 8;
-	}
+################################################################
+################# Create minc-pics #############################
+################################################################
+if ($create_minc_pics) {
+    print "\nCreating Minc Pics\n" if $verbose;
+    NeuroDB::MRI::make_minc_pics(\$tarchiveInfo{TarchiveID});
 }
 
 ################################################################
