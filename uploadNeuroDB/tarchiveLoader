@@ -486,32 +486,13 @@ if ($valid_study) {
     ############################################################
     ############# Create minc-pics #############################
     ############################################################
+    print "\nCreating Minc Pics\n" if $verbose;
+    NeuroDB::MRI::make_minc_pics(\$dbh,
+                                  $tarchiveInfo{TarchiveID},
+                                  $profile,
+                                  0); # minFileID $row[0]
+                                      # maxFileID $row[1]
     
-    $where = "WHERE TarchiveSource =? ";
-    $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
-    $query = $query . $where;
-    if ($debug) {
-        print $query . "\n";
-    }
-    my $sth = $dbh->prepare($query);
-    $sth->execute($tarchiveInfo{TarchiveID});
-    my @row = $sth->fetchrow_array();
-    if (@row) {
-        my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
-                     "-profile $profile ";
-        if ($verbose) {
-            $script .= " -verbose";
-	}
-    ############################################################
-    ## Note: system call returns the process ID ################
-    ## To get the actual exit value, shift right by eight as ### 
-    ## done below ##############################################
-    ############################################################
-        $output = system($script);
-        $output = $output >> 8;
-
-    }
-
     ############################################################
     # spool a new study message ################################
     ############################################################
