@@ -1216,7 +1216,7 @@ sub make_minc_pics {
     my $output = undef;
     my @row = $sth->fetchrow_array();
     if (@row) {
-        $script = "mass_pic.pl -minFileID $minFileID -maxFileID $row[1] ".
+        $script = "mass_pic.pl -minFileID $row[$minFileID] -maxFileID $row[1] ".
                      "-profile $profile";
         print "Running mass_pic as follows : " .$script . "\n";
 
