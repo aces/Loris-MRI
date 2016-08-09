@@ -131,12 +131,10 @@ foreach my $input (@resultsarray)
 
     ## Populate the mri_upload table with necessary entries and get an upload_id 
 
-print "PN and Phantom and Full Path are: $patientname and $phantom and $fullpath\n";
     $upload_id = insertIntoMRIUpload(\$dbh,
 				     $patientname,
                                      $phantom,
                                      $fullpath);
-print "UploadID returned is: $upload_id\n";
 
     ## this is where the subprocesses are created...  should basically run processor script with study directory as argument.
     ## processor will do all the real magic
@@ -155,8 +153,8 @@ print "UploadID returned is: $upload_id\n";
     }
     ##if qsub is not enabled
     else {
-print "Command is: $command\n";
-         system($command);
+	print "Running now the following command: $command\n" if $verbose;
+	system($command);
     }
 
      push @submitted, $input;

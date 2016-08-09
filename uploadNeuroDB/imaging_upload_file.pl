@@ -28,7 +28,7 @@ my $date    = sprintf(
                 $year + 1900,
                 $mon + 1, $mday, $hour, $min, $sec
               );
-my $profile   = undef;    # this should never be set unless you are in a
+my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
 my $upload_id = undef;         # The uploadID
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
@@ -109,9 +109,9 @@ if ( !$ARGV[0] || !$profile ) {
     exit 3;
 }
 
-if ( !$upload_id ) { 
+if ( !$upload_id ) {
     print $Help;
-    print "$Usage\n\tERROR: No upload_id or patient name provided \n\n";
+    print "$Usage\n\tERROR: The Upload_id is missing \n\n";
     exit 4;
 }
 
