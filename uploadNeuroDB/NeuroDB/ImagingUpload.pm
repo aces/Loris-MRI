@@ -364,7 +364,7 @@ sub PatientNameMatch {
         my $message = "\nThe patient-name $pname read ".
                       "from the DICOM header does not match " .
         	      $this->{'pname'} . 
-                      "from the mri_upload table\n";
+                      " from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);
         return 0; ##return false
     }

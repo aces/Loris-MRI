@@ -277,7 +277,7 @@ my $CandMismatchError= $utility->validateCandidate(
 				$subjectIDsref,
 				$tarchiveInfo{'SourceLocation'});
 if (defined $CandMismatchError) {
-    print $CandMismatchError;
+    print "$CandMismatchError \n";
     ##Note that the script will not exit, so that further down
     ##it can be inserted per minc into the MRICandidateErrors
 }
