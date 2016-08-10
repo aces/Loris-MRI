@@ -38,7 +38,6 @@ mridir=`pwd`
 #####################################################################################
 echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/data/"
-  sudo -S su $USER -c "chgrp lorisadmin /data/$PROJ/data/"
   sudo -S su $USER -c "chmod g+s /data/$PROJ/data/"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/trashbin"          #holds mincs that didn't match protocol
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/tarchive"          #holds tared dicom-folder
@@ -53,7 +52,6 @@ echo
 ###############incoming directory using sites########################################
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/";
-sudo -S su $USER -c "chgrp lorisadmin /data/incoming/"
 echo "Creating incoming director(y/ies)"
  for s in $site; do 
   sudo -S su $USER -c "mkdir -m 770 -p /data/incoming/$s/incoming";
@@ -71,14 +69,20 @@ export TMPDIR=/tmp
 echo
 
 ####################################################################################
-######################change permissions ###########################################
+######################Add the proper Apache group user #############################
 ####################################################################################
-#echo "Changing permissions"
-
-sudo chmod -R 770 $mridir/.loris_mri/
-sudo chmod -R 770 /data/$PROJ/
-sudo chmod -R 770 /data/incoming/
-echo
+if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
+then 
+    group=www-data
+elif egrep ^www: /etc/group  > $LOGFILE 2>&1;
+then
+    group=www
+elif egrep -e ^apache: /etc/group  > $LOGFILE 2>&1;
+then
+    group=apache
+else
+    read -p "Cannot find the apache group name for your installation. Please provide? " group
+fi
 
 #####################################################################################
 ##########################change the prod file#######################################
@@ -92,3 +96,25 @@ sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
+####################################################################################
+######################change permissions ###########################################
+####################################################################################
+#echo "Changing permissions"
+
+sudo chmod -R 770 $mridir/.loris_mri/
+sudo chmod -R 770 /data/$PROJ/
+sudo chmod -R 770 /data/incoming/
+
+
+# Making lorisadmin part of the apache group
+sudo usermod -a -G $group $USER
+
+#Setting group permissions for all files/dirs under /data/$PROJ/ now that the prod file is created
+sudo chgrp $group -R /data/$PROJ/
+
+#Setting group ID for all files/dirs under /data/$PROJ/data
+sudo chmod -R g+s /data/$PROJ/data/
+
+#Setting group ID for all files/dirs under /data/incoming
+sudo chmod -R g+s /data/incoming/
+echo
