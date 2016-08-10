@@ -1204,10 +1204,13 @@ sub make_nii {
 Creates pics associated with MINC files
 =cut
 sub make_minc_pics {
-    my ($dbhr, $TarchiveSource, $profile, $minFileID) = @_;
+    my ($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose) = @_;
     my $where = "WHERE TarchiveSource = ? ";
     my $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
     $query    = $query . $where;
+    if ($debug) {		
+        print $query . "\n";		
+    }
     my $sth   = $${dbhr}->prepare($query);
     $sth->execute($TarchiveSource);
     print "TarchiveSource is " . $TarchiveSource . "\n";
@@ -1218,7 +1221,9 @@ sub make_minc_pics {
     if (@row) {
         $script = "mass_pic.pl -minFileID $row[$minFileID] -maxFileID $row[1] ".
                      "-profile $profile";
-        print "Running mass_pic as follows : " .$script . "\n";
+        if ($verbose) {		
+            $script .= " -verbose";		
+	}
 
         ############################################################
         ## Note: system call returns the process ID ################

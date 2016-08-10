@@ -490,8 +490,9 @@ if ($valid_study) {
     NeuroDB::MRI::make_minc_pics(\$dbh,
                                   $tarchiveInfo{TarchiveID},
                                   $profile,
-                                  0); # minFileID $row[0]
-                                      # maxFileID $row[1]
+                                  0, # minFileID $row[0], maxFileID $row[1]
+                                  $debug, 
+                                  $verbose);
     
     ############################################################
     # spool a new study message ################################
