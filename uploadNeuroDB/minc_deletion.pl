@@ -19,6 +19,7 @@ use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
 
+my $sessionfilesfound = '';
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.2 $
     =~ /: (\d+)\.(\d+)/;
 my $profile   = '';      # this should never be set unless you are in a
@@ -136,15 +137,19 @@ sub selORdel {
 
 # Delete from FS:
 # get the file names
-$query = "select f.File, pf.`VALUE` from files as f ".
+$query = "select f.File, f.TarchiveSource, f.SessionID, pf.`VALUE` from files as f ".
          "left join parameter_file as pf using (FileID) where ".
          "pf.ParameterTypeID = (select pt.ParameterTypeID from parameter_type as pt where pt.Name = 'check_pic_filename') and ".
          "pf.FileID = ";
+
+# Useful database tracing for troubleshooting
+# $dbh->trace(5);
 
 if ($seriesuid) {
   $query .= "(SELECT FileID FROM files WHERE SeriesUID = ?)";
   $sth = $dbh->prepare($query);
   $rvl = $sth->execute($seriesuid);
+print "|$seriesuid|$query|"
 } elsif ($fileid) {
   $query .= "?";
   $sth = $dbh->prepare($query);
@@ -155,12 +160,15 @@ if ($sth->err) {
   die "ERROR! return code:" . $sth->err . " error msg: " . $sth->errstr . "\n";
 }
 
+print "rvl:$rvl\n";
 if (defined $rvl && $rvl == 0) {
   die "Can't rename if there is no value return from: \n" . $query . "\n";
 }
 
 my $f = $sth->fetchrow_hashref();
 
+my $tarchiveid   = $f->{'TarchiveSource'};
+my $sessionid    = $f->{'SessionID'};
 my @pic_path     = split /_check/, $f->{'VALUE'};
 my $jiv_header   = $pic_path[0] . ".header";
 my $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
@@ -194,3 +202,81 @@ selORdel("feedback_mri_comments","Comment");
 # selORdel("MRICandidateErrors","Reason");       # not applicable to /assembly
 # selORdel("mri_violations_log","LogID");        # "
 selORdel("files","File");
+
+### Removal of entry in mri_acquisition_dates table ###
+### (if only one file exists and is being removed,  ###
+### the table entry needs to be removed)            ###
+print "\nTarchiveID: $tarchiveid\n";
+print "\nSessionID: $sessionid\n";
+
+# Check #1 in files, if other files from same session
+$query = "select * from files as g " .
+"where g.SessionID=(select f.SessionID from files as f where f.SeriesUID=?) " .
+"and g.SeriesUID <> ?";
+
+$sth = $dbh->prepare($query);
+$rvl = $sth->execute($seriesuid, $seriesuid);
+
+if ($sth->rows > 0) {
+    $sessionfilesfound = 1;
+    print "\nfiles found in the same session\n";
+}
+
+
+# Check #2 in mri_protocol_violated_scans
+$query = "select * from mri_protocol_violated_scans as m " .
+"WHERE m.SeriesUID in (SELECT t.SeriesUID FROM tarchive_series as t " .
+"WHERE t.TarchiveID=?)";
+
+$sth = $dbh->prepare($query);
+$rvl = $sth->execute($tarchiveid);
+
+if ($sth->rows > 0) {
+    $sessionfilesfound = 1;
+    print "\nfiles found in mri_protocol_violated_scans\n";
+}
+
+
+# Check #3 in MRICandidateErrors
+$query = "SELECT * FROM MRICandidateErrors as m " .
+"WHERE m.TarchiveID=?";
+
+$sth = $dbh->prepare($query);
+$rvl = $sth->execute($tarchiveid);
+
+if ($sth->rows > 0) {
+    $sessionfilesfound = 1;
+    print "\nfiles found in MRICandidateErrors\n";
+}
+
+
+# Check #4 in mri_violations_log
+$query = "SELECT * FROM mri_violations_log as m " .
+"WHERE m.TarchiveID=?";
+
+$sth = $dbh->prepare($query);
+$rvl = $sth->execute($tarchiveid);
+
+if ($sth->rows > 0) {
+    $sessionfilesfound = 1;
+    print "\nfiles found in mri_violations_log\n";
+}
+
+
+# If no related files were found, delete the entry
+if (!$sessionfilesfound) {
+
+  my $query = $selORdel . "FROM mri_acquisition_dates as m where m.SessionID=?";
+  print $query . "\n";
+  my $sth = $dbh->prepare($query);
+  $sth->execute($sessionid);
+
+  if ($selORdel eq "SELECT * ") {
+    while (my $pf = $sth->fetchrow_hashref()) {
+        print "\nAcquisitionDate: " . $pf->{'AcquisitionDate'};
+    }
+  } else {
+    print "\nmri_acquisition_dates has been deleted\n";
+  }
+
+}
