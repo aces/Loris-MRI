@@ -61,37 +61,6 @@ my $profile = "prod";
 }
 
 =pod
-B<getSubjectIDs( C<$identifier>, C<$scannerID>, C<$dbhr> )>
-Determines the cand id and visit label for the subject based on patient name and (for calibration data) scannerid.
-Returns: a reference to a hash containing elements including 'CandID', 'visitLabel' and 'visitNo', or, in the case of failure, undef
-=cut
-sub getSubjectIDs {
-    my ($identifier, $scannerID, $dbhr) = @_;
-    my %subjectID;
-# calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
-    if ($identifier =~ /PHA/i or $identifier =~ /TEST/i) {
-	$subjectID{'CandID'} = my_trim(getScannerCandID($scannerID, $dbhr));
-	$subjectID{'visitLabel'} = my_trim($identifier);
-# subject data
-# old versions of this
-# qnts /([A-Z-]{3,4}\s+\d+)_(\d+)_([^_ ]+)/) or nihpd =~ /(\w{3}\d+)_(\d+)_([^_ ]+)/)
-    } elsif ($identifier =~ /$PatientID_regex/i) {
-	$subjectID{'PSCID'} = my_trim($1);
-	$subjectID{'CandID'} = my_trim($2);
-	$subjectID{'visitLabel'} = my_trim($3);
-	if(!subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subjectID{'visitLabel'}, $dbhr)) {
-	    return undef;
-	}
-    }
-    my $sth = $${dbhr}->prepare("SELECT VisitNo FROM session WHERE CandID='$subjectID{'CandID'}' AND Visit_label='$subjectID{'visitLabel'}' AND Active='Y'");
-    $sth->execute();
-    my $row = $sth->fetchrow_hashref();
-    $subjectID{'visitNo'} = $row->{'VisitNo'};
-
-    return \%subjectID;
-}
-
-=pod
 B<subjectIDIsValid( C<$CandID>, C<$PSCID>, C<$dbhr> )>
     Verifies that the subject IDs match.
     Returns: 1 if the ID pair matches, 0 otherwise
