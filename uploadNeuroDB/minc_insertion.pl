@@ -473,7 +473,9 @@ if ($create_minc_pics) {
     NeuroDB::MRI::make_minc_pics(\$dbh,
                                   $tarchiveInfo{TarchiveID},
                                   $profile,
-                                  1);
+                                  1,
+                                  $debug,
+                                  $verbose);
     # Set minFileID to 1: minFileID $row[1] & maxFileID $row[1]
 }
 
