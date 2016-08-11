@@ -1208,6 +1208,41 @@ sub make_nii {
 }
 
 =pod
+Creates pics associated with MINC files
+=cut
+sub make_minc_pics {
+    my ($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose) = @_;
+    my $where = "WHERE TarchiveSource = ? ";
+    my $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
+    $query    = $query . $where;
+    if ($debug) {		
+        print $query . "\n";		
+    }
+    my $sth   = $${dbhr}->prepare($query);
+    $sth->execute($TarchiveSource);
+    print "TarchiveSource is " . $TarchiveSource . "\n";
+
+    my $script = undef;
+    my $output = undef;
+    my @row = $sth->fetchrow_array();
+    if (@row) {
+        $script = "mass_pic.pl -minFileID $row[$minFileID] -maxFileID $row[1] ".
+                     "-profile $profile";
+        if ($verbose) {		
+            $script .= " -verbose";		
+	}
+
+        ############################################################
+        ## Note: system call returns the process ID ################
+        ## To get the actual exit value, shift right by eight as ###
+        ## done below ##############################################
+        ############################################################
+        $output = system($script);
+        $output = $output >> 8;
+    }
+}
+
+=pod
 B<DICOMDateToUnixTimestamp( C<$dicomDate> )>
 Converts a DICOM date field (YYYYMMDD) into a unix timestamp
 Returns: a unix timestamp (integer) or 0 if something went wrong
