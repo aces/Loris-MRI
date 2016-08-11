@@ -84,18 +84,6 @@ else
     read -p "Cannot find the apache group name for your installation. Please provide? " group
 fi
 
-#####################################################################################
-##########################change the prod file#######################################
-#####################################################################################
-echo "Creating MRI config file"
-
-cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodfilename
-sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
-
-sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
-echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
-echo
-
 ####################################################################################
 ######################change permissions ###########################################
 ####################################################################################
@@ -118,3 +106,17 @@ sudo chmod -R g+s /data/$PROJ/data/
 #Setting group ID for all files/dirs under /data/incoming
 sudo chmod -R g+s /data/incoming/
 echo
+
+#####################################################################################
+##########################change the prod file#######################################
+#####################################################################################
+echo "Creating MRI config file"
+
+cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodfilename
+sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
+sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
+
+sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
+echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
+echo
+
