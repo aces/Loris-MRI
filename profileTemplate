@@ -84,11 +84,6 @@ $QCed2_step   =   'INTERLACE_outputDWIFileNameSuffix';
 # -----------------------------------------------------------------------------------------------
 =cut
 
-sub getIncomingDir {
-    my $site = shift;
-    return $tarchiveLibraryDir;
-}
-
 ### This gets the modalities that SNR is to be computed on
 ## Filename base usually contains the modality
 ## So compute SNR on the 3-D modalities; most commonly t1, t2, flair, and pd
