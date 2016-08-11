@@ -150,8 +150,9 @@ sudo chmod -R 770 /data/incoming/
 # Making lorisadmin part of the apache group
 sudo usermod -a -G $group $USER
 
-#Setting group permissions for all files/dirs under /data/$PROJ/ now that the prod file is created
+#Setting group permissions for all files/dirs under /data/$PROJ/ and /data/incoming/
 sudo chgrp $group -R /data/$PROJ/
+sudo chgrp $group -R /data/incoming/
 
 #Setting group ID for all files/dirs under /data/$PROJ/data
 sudo chmod -R g+s /data/$PROJ/data/
