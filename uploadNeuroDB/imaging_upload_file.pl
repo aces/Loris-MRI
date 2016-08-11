@@ -229,8 +229,6 @@ if ( !$output ) {
     print $message;
     exit 8;
 }
-$message = "\nThe insertion scripts have successfully completed\n";
-spool($message,'N', $notify_notsummary);
 
 ################################################################
 ### If we got this far, dicomTar and tarchiveLoader completed###
@@ -244,6 +242,17 @@ if ( !$isCleaned ) {
     exit 9;
 }
 $message = "\nThe uploaded file " . $uploaded_file . " has been removed\n\n";
+spool($message,'N', $notify_notsummary);
+
+################################################################
+############### Spool last completion message ##################
+################################################################
+my ($minc_created, $minc_inserted) = getNumberOfMincFiles($upload_id);
+
+$message = "\nThe insertion scripts have completed "
+            . "with $minc_created minc file(s) created, "
+            . "and $minc_inserted minc file(s) "
+            . "inserted into the database \n";
 spool($message,'N', $notify_notsummary);
 
 ################################################################
@@ -278,6 +287,47 @@ sub getPnameUsingUploadID {
         }
     }
     return $patient_name;
+}
+
+
+################################################################
+###### get number_of_mincCreated & number_of_mincInserted ######
+################################################################
+=pod
+getNumberOfMincFiles()
+Description:
+  - Get the count of minc files created and inserted using the upload_id
+
+Arguments:
+  $upload_id: The Upload ID
+
+  Returns: $minc_created and $minc_inserted: count of minc created and inserted
+=cut
+
+
+sub getNumberOfMincFiles {
+    my $upload_id = shift;
+    my ( $minc_created, $minc_inserted, $query ) = '';
+    my @row = ();
+
+    if ($upload_id) {
+    ############################################################
+    ############### Check to see if the uploadID exists ########
+    ############################################################
+    $query =
+        "SELECT number_of_mincCreated, number_of_mincInserted "
+      . "FROM mri_upload "
+      . "WHERE UploadID =?";
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+    if ( $sth->rows > 0 ) {
+        @row = $sth->fetchrow_array();
+        $minc_created = $row[0];
+        $minc_inserted = $row[1];
+        return ($minc_created, $minc_inserted);
+       }
+    }
 }
 
 ################################################################
