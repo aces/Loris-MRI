@@ -149,7 +149,6 @@ if ($seriesuid) {
   $query .= "(SELECT FileID FROM files WHERE SeriesUID = ?)";
   $sth = $dbh->prepare($query);
   $rvl = $sth->execute($seriesuid);
-print "|$seriesuid|$query|"
 } elsif ($fileid) {
   $query .= "?";
   $sth = $dbh->prepare($query);
@@ -160,7 +159,6 @@ if ($sth->err) {
   die "ERROR! return code:" . $sth->err . " error msg: " . $sth->errstr . "\n";
 }
 
-print "rvl:$rvl\n";
 if (defined $rvl && $rvl == 0) {
   die "Can't rename if there is no value return from: \n" . $query . "\n";
 }
@@ -266,7 +264,7 @@ if ($sth->rows > 0) {
 # If no related files were found, delete the entry
 if (!$sessionfilesfound) {
 
-  my $query = $selORdel . "FROM mri_acquisition_dates as m where m.SessionID=?";
+  my $query = $selORdel . "FROM mri_acquisition_dates where SessionID=?";
   print $query . "\n";
   my $sth = $dbh->prepare($query);
   $sth->execute($sessionid);
