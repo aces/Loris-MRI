@@ -388,15 +388,16 @@ $file->setFileData('Caveat', 0);
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
 ################################################################
-if(!defined($acquisitionProtocol)) {
-  ($acquisitionProtocol,$acquisitionProtocolID,@checks)
-    = $utility->getAcquisitionProtocol(
-        $file,
-        $subjectIDsref,
-        \%tarchiveInfo,$center_name,
-        $minc
-      );
-}
+($acquisitionProtocol,$acquisitionProtocolID,@checks)
+  = $utility->getAcquisitionProtocol(
+      $file,
+      $subjectIDsref,
+      \%tarchiveInfo,$center_name,
+      $minc,
+      $acquisitionProtocol,
+      $force
+    );
+
 
 if($acquisitionProtocol =~ /unknown/) {
    $message = "\n  --> The minc file cannot be registered ".
