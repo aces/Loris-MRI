@@ -1219,7 +1219,7 @@ sub computeSNR {
 		    $paramID = $sth->fetchrow_array;
  		}
 
-                $query = "INSERT INTO parameter_file SET Value=?, ".
+                $query = "INSERT IGNORE INTO parameter_file SET Value=?, ".
 			 "FileID=?, ParameterTypeID=?";
                 if ($this->{debug}) {
                     print $query . "\n";
@@ -1231,7 +1231,7 @@ sub computeSNR {
 		$this->spool($message, 'N', $upload_id, $notify_detailed);
             }
             else {
-                $message = "The SNR was not be computed for $base. ".
+                $message = "The SNR can not be computed for $base. ".
                            "Either the getSNRModalities is not defined in your ".
                            "$profile file, or the imaging modality does not ".
                            "support SNR computation. \n";
