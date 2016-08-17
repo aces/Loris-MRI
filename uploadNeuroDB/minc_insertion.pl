@@ -46,6 +46,7 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                # control freak
 my $xlog        = 0;           # default should be 0
+my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
 my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
 my @checks      = ();          # Initialise the array
@@ -105,6 +106,9 @@ my @opt_table = (
 
                  ["-create_minc_pics", "boolean", 1, \$create_minc_pics,
                   "Creates the minc pics."],
+
+                 ["-bypass_extra_file_checks", "boolean", 1, \$bypass_extra_file_checks,
+                  "Bypasses extra_file_checks."],
 );
 
 
@@ -395,7 +399,7 @@ $file->setFileData('Caveat', 0);
       \%tarchiveInfo,$center_name,
       $minc,
       $acquisitionProtocol,
-      $force
+      $bypass_extra_file_checks
     );
 
 

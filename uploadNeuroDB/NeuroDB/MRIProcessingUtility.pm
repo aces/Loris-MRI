@@ -369,7 +369,7 @@ sub computeMd5Hash {
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc,$acquisitionProtocol,$force) = @_;
+    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc,$acquisitionProtocol,$bypass_extra_file_checks) = @_;
     my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $message = '';
@@ -404,7 +404,7 @@ sub getAcquisitionProtocol {
           $acquisitionProtocol, $this->{dbhr}
         );
 
-        if ($force == 0) {
+        if ($bypass_extra_file_checks == 0) {
           @checks = $this->extra_file_checks(
                         $acquisitionProtocolID, 
                         $file, 
