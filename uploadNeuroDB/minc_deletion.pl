@@ -59,6 +59,12 @@ Deletes minc files from the web interface by:
     .mnc .jpg .header .raw_byte.gz
   - Deleting all related data from 4 database tables.
     parameter_file, files_qcstatus, feedback_mri_comments, files
+  - Deletes mri_acquisition_dates entry if it is the last file
+    removed from that session.
+
+Use the argument "select" to view the record that could be removed
+from the database.  Use "confirm" to acknowledge that the data in 
+the database will be deleted once the script executes.
 
 HELP
 my $Usage = <<USAGE;
