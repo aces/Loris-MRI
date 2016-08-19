@@ -1233,8 +1233,8 @@ sub computeSNR {
             else {
                 $message = "The SNR can not be computed for $base. ".
                            "Either the getSNRModalities is not defined in your ".
-                           "$profile file, or the imaging modality does not ".
-                           "support SNR computation. \n";
+                           "$profile file, or the imaging modality is not ".
+                           "supported by the SNR computation. \n";
 		$this->{LOG}->print($message);
 		$this->spool($message, 'N', $upload_id, $notify_detailed);
             }
