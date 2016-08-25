@@ -46,6 +46,11 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                # control freak
 my $xlog        = 0;           # default should be 0
+my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
+my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocolID;     # acquisition Protocol id
+my @checks      = ();          # Initialise the array
+my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $no_nii      = 1;           # skip NIfTI creation by default
@@ -56,7 +61,7 @@ my ($tarchive,%tarchiveInfo,$minc);
 #### These settings are in a config file (profile) #############
 ################################################################
 my @opt_table = (
-                 ["casic options","section"],
+                 ["Basic options","section"],
 
                  ["-profile","string",1, \$profile, "name of config file". 
                  " in ../dicom-archive/.loris_mri"],
@@ -96,7 +101,14 @@ my @opt_table = (
                  ["General options","section"],
                  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
            
+                 ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
+                  "Suggest the acquisition protocol to use."],
 
+                 ["-create_minc_pics", "boolean", 1, \$create_minc_pics,
+                  "Creates the minc pics."],
+
+                 ["-bypass_extra_file_checks", "boolean", 1, \$bypass_extra_file_checks,
+                  "Bypasses extra_file_checks."],
 );
 
 
@@ -380,13 +392,16 @@ $file->setFileData('Caveat', 0);
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
 ################################################################
-my ($acquisitionProtocol,$acquisitionProtocolID,@checks)
+($acquisitionProtocol,$acquisitionProtocolID,@checks)
   = $utility->getAcquisitionProtocol(
-        $file,
-        $subjectIDsref,
-        \%tarchiveInfo,$center_name,
-        $minc
+      $file,
+      $subjectIDsref,
+      \%tarchiveInfo,$center_name,
+      $minc,
+      $acquisitionProtocol,
+      $bypass_extra_file_checks
     );
+
 
 if($acquisitionProtocol =~ /unknown/) {
    $message = "\n  --> The minc file cannot be registered ".
@@ -453,6 +468,20 @@ if (!$no_jiv) {
 unless ($no_nii) {
     print "\nCreating NIfTI files\n" if $verbose;
     NeuroDB::MRI::make_nii(\$file, $data_dir);
+}
+
+################################################################
+################# Create minc-pics #############################
+################################################################
+if ($create_minc_pics) {
+    print "\nCreating Minc Pics\n" if $verbose;
+    NeuroDB::MRI::make_minc_pics(\$dbh,
+                                  $tarchiveInfo{TarchiveID},
+                                  $profile,
+                                  1,
+                                  $debug,
+                                  $verbose);
+    # Set minFileID to 1: minFileID $row[1] & maxFileID $row[1]
 }
 
 ################################################################

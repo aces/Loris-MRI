@@ -369,7 +369,7 @@ sub computeMd5Hash {
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc) = @_;
+    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc,$acquisitionProtocol,$bypass_extra_file_checks) = @_;
     my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $message = '';
@@ -378,17 +378,20 @@ sub getAcquisitionProtocol {
     ## get acquisition protocol (identify the volume) ##########
     ############################################################
 
-    $message = "\n==> verifying acquisition protocol\n";
-    $this->{LOG}->print($message);
-    $this->spool($message, 'N', $upload_id, $notify_detailed);
+    if(!defined($acquisitionProtocol)) {
+      $message = "\n==> verifying acquisition protocol\n";
+      $this->{LOG}->print($message);
+      $this->spool($message, 'N', $upload_id, $notify_detailed);
 
-    my $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
+      $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
                                    $center_name,
                                    $subjectIDsref,
                                    $file, 
                                    $this->{dbhr}, 
                                    $minc
-                               );
+                                 );
+    }
+
     $message = "\nAcquisition protocol is $acquisitionProtocol\n";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
@@ -400,23 +403,26 @@ sub getAcquisitionProtocol {
         &NeuroDB::MRI::scan_type_text_to_id(
           $acquisitionProtocol, $this->{dbhr}
         );
-        @checks = $this->extra_file_checks(
+
+        if ($bypass_extra_file_checks == 0) {
+          @checks = $this->extra_file_checks(
                         $acquisitionProtocolID, 
                         $file, 
                         $subjectIDsref->{'CandID'}, 
                         $subjectIDsref->{'visitLabel'},
                         $tarchiveInfo->{'PatientName'}
-                  );
-	$message = "\nWorst error: $checks[0]\n";
-	$this->{LOG}->print($message);
-	# 'warn' and 'exclude' are errors, while 'pass' is not
-	# log in the notification_spool_table the $Verbose flag accordingly
-	if (!($checks[0] eq 'pass')){
-		$this->spool($message, 'Y', $upload_id, $notify_notsummary);
-	}
-	else{
-		$this->spool($message, 'N', $upload_id, $notify_detailed);
-	}
+                    );
+          $message = "\nWorst error: $checks[0]\n";
+	  $this->{LOG}->print($message);
+	  # 'warn' and 'exclude' are errors, while 'pass' is not
+	  # log in the notification_spool_table the $Verbose flag accordingly
+	  if (!($checks[0] eq 'pass')){
+	          $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+	  }
+	  else{
+	          $this->spool($message, 'N', $upload_id, $notify_detailed);
+	  }
+        }
     }
     return ($acquisitionProtocol, $acquisitionProtocolID, @checks);
 }
