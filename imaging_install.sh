@@ -123,16 +123,6 @@ export TMPDIR=/tmp
 echo
 
 ####################################################################################
-######################change permissions ###########################################
-####################################################################################
-#echo "Changing permissions"
-
-sudo chmod -R 770 $mridir/dicom-archive/.loris_mri/
-sudo chmod -R 770 /data/$PROJ/
-sudo chmod -R 770 /data/incoming/
-echo
-
-####################################################################################
 ######################Add the proper Apache group user #############################
 ####################################################################################
 if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
@@ -148,15 +138,26 @@ else
     read -p "Cannot find the apache group name for your installation. Please provide? " group
 fi
 
+####################################################################################
+######################change permissions ###########################################
+####################################################################################
+#echo "Changing permissions"
+
+sudo chmod -R 770 $mridir/dicom-archive/.loris_mri/
+sudo chmod -R 770 /data/$PROJ/
+sudo chmod -R 770 /data/incoming/
+
 # Making lorisadmin part of the apache group
 sudo usermod -a -G $group $USER
 
-#Setting group permissions to apache and group ID for all files/dirs under /data/$PROJ/data
-sudo chgrp $group -R /data/$PROJ/data/
+#Setting group permissions for all files/dirs under /data/$PROJ/ and /data/incoming/
+sudo chgrp $group -R /data/$PROJ/
+sudo chgrp $group -R /data/incoming/
+
+#Setting group ID for all files/dirs under /data/$PROJ/data
 sudo chmod -R g+s /data/$PROJ/data/
 
-#Setting group permissions to apache and group ID for all files/dirs under /data/$PROJ/incoming
-sudo chgrp $group -R /data/incoming/
+#Setting group ID for all files/dirs under /data/incoming
 sudo chmod -R g+s /data/incoming/
 echo
 
@@ -167,6 +168,7 @@ echo "Creating MRI config file"
 
 cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
+sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
 sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#/PATH/TO/BIN/location#$mridir#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
