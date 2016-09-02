@@ -24,6 +24,7 @@ mri_staging, notification_spool
 
 use strict;
 use warnings;
+no warnings 'once';
 use Carp;
 use Getopt::Tabular;
 use FileHandle;
@@ -426,6 +427,7 @@ foreach my $minc (@minc_files) {
 
     $script = "minc_insertion.pl -tarchivePath $tarchive ".
               "-mincPath $minc -profile $profile";
+
     if ($force) {
         $script .= " -force";
     }
@@ -462,7 +464,16 @@ foreach my $minc (@minc_files) {
        $minc_inserted++;
        $valid_study = 1;
     }
+
 } # end foreach $minc
+
+################################################################
+############### Compute SNR on 3D modalities ###################
+################################################################
+$utility->computeSNR($tarchiveInfo{TarchiveID},
+                         $tarchiveInfo{'SourceLocation'},
+			 $profile);
+
 
 if ($valid_study) {
 
@@ -486,32 +497,14 @@ if ($valid_study) {
     ############################################################
     ############# Create minc-pics #############################
     ############################################################
+    print "\nCreating Minc Pics\n" if $verbose;
+    NeuroDB::MRI::make_minc_pics(\$dbh,
+                                  $tarchiveInfo{TarchiveID},
+                                  $profile,
+                                  0, # minFileID $row[0], maxFileID $row[1]
+                                  $debug, 
+                                  $verbose);
     
-    $where = "WHERE TarchiveSource =? ";
-    $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
-    $query = $query . $where;
-    if ($debug) {
-        print $query . "\n";
-    }
-    my $sth = $dbh->prepare($query);
-    $sth->execute($tarchiveInfo{TarchiveID});
-    my @row = $sth->fetchrow_array();
-    if (@row) {
-        my $script = "mass_pic.pl -minFileID $row[0] -maxFileID $row[1] ".
-                     "-profile $profile ";
-        if ($verbose) {
-            $script .= " -verbose";
-	}
-    ############################################################
-    ## Note: system call returns the process ID ################
-    ## To get the actual exit value, shift right by eight as ### 
-    ## done below ##############################################
-    ############################################################
-        $output = system($script);
-        $output = $output >> 8;
-
-    }
-
     ############################################################
     # spool a new study message ################################
     ############################################################

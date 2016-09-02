@@ -3,6 +3,7 @@ use English;
 use Carp;
 use strict;
 use warnings;
+no warnings 'once';
 use Data::Dumper;
 use File::Basename;
 use NeuroDB::File;
@@ -368,7 +369,7 @@ sub computeMd5Hash {
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc) = @_;
+    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc,$acquisitionProtocol,$bypass_extra_file_checks) = @_;
     my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $message = '';
@@ -377,17 +378,20 @@ sub getAcquisitionProtocol {
     ## get acquisition protocol (identify the volume) ##########
     ############################################################
 
-    $message = "\n==> verifying acquisition protocol\n";
-    $this->{LOG}->print($message);
-    $this->spool($message, 'N', $upload_id, $notify_detailed);
+    if(!defined($acquisitionProtocol)) {
+      $message = "\n==> verifying acquisition protocol\n";
+      $this->{LOG}->print($message);
+      $this->spool($message, 'N', $upload_id, $notify_detailed);
 
-    my $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
+      $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
                                    $center_name,
                                    $subjectIDsref,
                                    $file, 
                                    $this->{dbhr}, 
                                    $minc
-                               );
+                                 );
+    }
+
     $message = "\nAcquisition protocol is $acquisitionProtocol\n";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
@@ -399,23 +403,26 @@ sub getAcquisitionProtocol {
         &NeuroDB::MRI::scan_type_text_to_id(
           $acquisitionProtocol, $this->{dbhr}
         );
-        @checks = $this->extra_file_checks(
+
+        if ($bypass_extra_file_checks == 0) {
+          @checks = $this->extra_file_checks(
                         $acquisitionProtocolID, 
                         $file, 
                         $subjectIDsref->{'CandID'}, 
                         $subjectIDsref->{'visitLabel'},
                         $tarchiveInfo->{'PatientName'}
-                  );
-	$message = "\nWorst error: $checks[0]\n";
-	$this->{LOG}->print($message);
-	# 'warn' and 'exclude' are errors, while 'pass' is not
-	# log in the notification_spool_table the $Verbose flag accordingly
-	if (!($checks[0] eq 'pass')){
-		$this->spool($message, 'Y', $upload_id, $notify_notsummary);
-	}
-	else{
-		$this->spool($message, 'N', $upload_id, $notify_detailed);
-	}
+                    );
+          $message = "\nWorst error: $checks[0]\n";
+	  $this->{LOG}->print($message);
+	  # 'warn' and 'exclude' are errors, while 'pass' is not
+	  # log in the notification_spool_table the $Verbose flag accordingly
+	  if (!($checks[0] eq 'pass')){
+	          $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+	  }
+	  else{
+	          $this->spool($message, 'N', $upload_id, $notify_detailed);
+	  }
+        }
     }
     return ($acquisitionProtocol, $acquisitionProtocolID, @checks);
 }
@@ -744,10 +751,10 @@ sub dicom_to_minc {
     ############################################################
     #### use some other converter if specified in the config ###
     ############################################################
-    if ($converter ne 'dcm2mnc') {
+    if ($converter !~ /dcm2mnc/) {
         $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
     } else {
-        $d2m_cmd .= "dcm2mnc -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
+        $d2m_cmd .= "$converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
     }
     $d2m_log = `$d2m_cmd`;
 
@@ -1159,6 +1166,79 @@ sub validateCandidate {
     } 
 
    return $CandMismatchError;
+}
+
+################################################################
+#################### computeSNR ################################
+################################################################
+
+sub computeSNR {
+
+    my $this = shift;
+    my ($row, $file, $fileID, $base, $fullpath, $cmd, $message, $SNR, $paramID, $sth);
+    my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
+    my $data_dir = $Settings::data_dir;
+    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+
+    my $query = "SELECT FileID, file from files f ";
+    my $where = "WHERE f.TarchiveSource=?";
+    $query = $query . $where;
+
+    if ($this->{debug}) {
+        print $query . "\n";
+    }
+
+    my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query);
+    $minc_file_arr->execute($tarchiveID);
+
+    while ($row = $minc_file_arr->fetchrow_hashref()) {
+           $file = $row->{'file'};
+           $fileID = $row->{'FileID'};
+           $base = basename($file);
+           $fullpath = $data_dir . "/" . $file;
+           if (defined(&Settings::getSNRModalities)
+                && Settings::getSNRModalities($base)) {
+               $cmd = "noise_estimate --snr $fullpath";
+               $SNR = `$cmd`;
+               $SNR =~ s/\n//g;
+               print "$cmd \n" if ($this->{verbose});
+               print "SNR is: $SNR \n" if ($this->{verbose});
+
+                ### Update the SNR in files table
+                $query = "SELECT ParameterTypeID from parameter_type pt ";
+		 $where = "WHERE pt.Name='SNR'";
+		 $query = $query . $where;
+
+		if ($this->{debug}) {
+		    print $query . "\n";
+		}
+
+		$sth = ${$this->{'dbhr'}}->prepare($query);
+		$sth->execute();
+		if ( $sth->rows > 0 ) {
+		    $paramID = $sth->fetchrow_array;
+ 		}
+
+                $query = "INSERT INTO parameter_file SET Value=?, ".
+			 "FileID=?, ParameterTypeID=?";
+                if ($this->{debug}) {
+                    print $query . "\n";
+                }
+                my $files_SNR_update = ${$this->{'dbhr'}}->prepare($query);
+                $files_SNR_update->execute($SNR, $fileID, $paramID);
+                $message = "The SNR was computed for $base with SNR=$SNR \n ";
+		$this->{LOG}->print($message);
+		$this->spool($message, 'N', $upload_id, $notify_detailed);
+            }
+            else {
+                $message = "The SNR was not be computed for $base. ".
+                           "Either the getSNRModalities is not defined in your ".
+                           "$profile file, or the imaging modality does not ".
+                           "support SNR computation. \n";
+		$this->{LOG}->print($message);
+		$this->spool($message, 'N', $upload_id, $notify_detailed);
+            }
+    }
 }
 
 ################################################################
