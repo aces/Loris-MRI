@@ -146,7 +146,7 @@ sub isPhantom {
 # ----------- OPTIONAL SUBROUTINE
 # This function allows the user to decide which images are to be inserted into the database.
 # The current default setting is to allow insertion of all the scans
-# that meet an mri_protocol table entry to be insreted;
+# that meet an mri_protocol table entry to be inserted;
 # this is achieved by returning 1 when $acquisitionProtocol ne 'unknown'.
 # Alternatively, this routine can be tailored to the user's needs; it can be made to
 # insert scans based on exact (eq 't1') or partial regex matching (=~ /despot/), or case 
