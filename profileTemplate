@@ -144,11 +144,18 @@ sub isPhantom {
 }
 
 # ----------- OPTIONAL SUBROUTINE
-# If you don't want to upload all types of images you can specify the complete protocol 
-# for all types and limit the upload using the protocol names
+# This function allows the user to decide how images are to be inserted into the
+# database (violated vs. non-violated scans).
+# The current default setting is to allow insertion of all the scans
+# that meet an mri_protocol table entry to be insreted as non-violated scans;
+# this is achieved by returning 1 when $acquisitionProtocol ne 'unknown'.
+# Alternatively, this routine can be tailored to the user's needs; it can be made to
+# insert scans (as non-violated scans) based on exact or partial regex matching, could 
+# be made case insensitive to the scan type, etc... as shown in the commented-out line below.
 sub isFileToBeRegisteredGivenProtocol {
     my $acquisitionProtocol = shift;
-    if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'pd' or $acquisitionProtocol eq 'mrs' or $acquisitionProtocol =~ /despot/) {
+    if($acquisitionProtocol ne 'unknown') {
+#    if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'pd' or $acquisitionProtocol eq 'mrs' or $acquisitionProtocol=~ /dti/i or $acquisitionProtocol =~ /despot/) {
         return 1;
     }
     return 0;
