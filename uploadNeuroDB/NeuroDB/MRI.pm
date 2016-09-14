@@ -715,14 +715,22 @@ sub register_db {
 	return 0;
     }
 
+    # get the ScannerCandID to then insert into files 
+    my $query = "SELECT CandID FROM session WHERE ID=".$fileData->{'SessionID'};
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $rowhr = $sth->fetchrow_hashref();
+    my $ScannerCandID = $rowhr->{'CandID'};
+
     # build the insert query
-    my $query = "INSERT INTO files SET ";
+    $query = "INSERT INTO files SET ";
 
     foreach my $key ('File', 'SessionID','EchoTime', 'CoordinateSpace', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID', 'Caveat', 'SeriesUID', 'TarchiveSource','SourcePipeline','PipelineDate','SourceFileID') {
         # add the key=value pair to the query
         $query .= "$key=".$dbh->quote($${fileData{$key}}).", ";
     }
-    $query .= "InsertTime=UNIX_TIMESTAMP()";
+    $query .= "InsertTime=UNIX_TIMESTAMP(), ";
+    $query .= "ScannerCandID=" . $ScannerCandID;
 
     # run the query
     $dbh->do($query);
