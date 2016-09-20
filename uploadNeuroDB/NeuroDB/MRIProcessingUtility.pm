@@ -412,7 +412,8 @@ sub getAcquisitionProtocol {
                         $subjectIDsref->{'visitLabel'},
                         $tarchiveInfo->{'PatientName'}
                     );
-          $message = "\nWorst error: $checks[0]\n";
+          $message = "\nextra_file_checks from table mri_protocol_check " .
+                     "logged in table mri_violations_log: $checks[0]\n";
 	  $this->{LOG}->print($message);
 	  # 'warn' and 'exclude' are errors, while 'pass' is not
 	  # log in the notification_spool_table the $Verbose flag accordingly
