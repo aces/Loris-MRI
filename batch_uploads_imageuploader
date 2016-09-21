@@ -111,10 +111,10 @@ foreach my $input (@resultsarray)
 	exit(4);
     }
     if ($phantom eq 'N') {
-        if ($base ne $patientname) {
+        if ($patientname ne (substr ($base, 0, length($patientname)))) {
        	    print "Make sure the patient name $patientname " .
-	          "for non-phantom entries matches the file " .
-		  "name $base in $path\n";
+	          "for non-phantom entries matches the start of the ".
+		  "filename $base in $path\n";
 	    exit(5);
 	}
     }
