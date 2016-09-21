@@ -1175,7 +1175,7 @@ sub validateCandidate {
 sub computeSNR {
 
     my $this = shift;
-    my ($row, $file, $fileID, $base, $fullpath, $cmd, $message, $SNR, $paramID, $sth);
+    my ($row, $filename, $fileID, $base, $fullpath, $cmd, $message, $SNR, $SNR_old);
     my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
     my $data_dir = $Settings::data_dir;
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
@@ -1192,10 +1192,10 @@ sub computeSNR {
     $minc_file_arr->execute($tarchiveID);
 
     while ($row = $minc_file_arr->fetchrow_hashref()) {
-           $file = $row->{'file'};
+           $filename = $row->{'file'};
            $fileID = $row->{'FileID'};
-           $base = basename($file);
-           $fullpath = $data_dir . "/" . $file;
+           $base = basename($filename);
+           $fullpath = $data_dir . "/" . $filename;
            if (defined(&Settings::getSNRModalities)
                 && Settings::getSNRModalities($base)) {
                $cmd = "noise_estimate --snr $fullpath";
@@ -1204,31 +1204,16 @@ sub computeSNR {
                print "$cmd \n" if ($this->{verbose});
                print "SNR is: $SNR \n" if ($this->{verbose});
 
-                ### Update the SNR in files table
-                $query = "SELECT ParameterTypeID from parameter_type pt ";
-		 $where = "WHERE pt.Name='SNR'";
-		 $query = $query . $where;
-
-		if ($this->{debug}) {
-		    print $query . "\n";
-		}
-
-		$sth = ${$this->{'dbhr'}}->prepare($query);
-		$sth->execute();
-		if ( $sth->rows > 0 ) {
-		    $paramID = $sth->fetchrow_array;
- 		}
-
-                $query = "INSERT IGNORE INTO parameter_file SET Value=?, ".
-			 "FileID=?, ParameterTypeID=?";
-                if ($this->{debug}) {
-                    print $query . "\n";
-                }
-                my $files_SNR_update = ${$this->{'dbhr'}}->prepare($query);
-                $files_SNR_update->execute($SNR, $fileID, $paramID);
-                $message = "The SNR was computed for $base with SNR=$SNR \n ";
-		$this->{LOG}->print($message);
-		$this->spool($message, 'N', $upload_id, $notify_detailed);
+	       my $file = NeuroDB::File->new($this->{dbhr});
+	       $file->loadFile($fileID);
+	       $SNR_old = $file->getParameter('SNR');
+	       if ((defined ($SNR_old)) && ($SNR_old != $SNR)) {
+                   $message = "The SNR value will be updated from " .
+			      "$SNR_old to $SNR. \n";
+		   $this->{LOG}->print($message);
+		   $this->spool($message, 'N', $upload_id, $notify_detailed);
+	       }
+	       $file->setParameter('SNR', $SNR);
             }
             else {
                 $message = "The SNR can not be computed for $base. ".
