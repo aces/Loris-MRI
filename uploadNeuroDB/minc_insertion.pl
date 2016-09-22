@@ -378,7 +378,7 @@ if (!$unique) {
 ## at this point things will appear in the database ############
 ## Set some file information ###################################
 ################################################################
-$file->setParameter('ScannerID', $scannerID);
+$file->setFileData('ScannerID', $scannerID);
 $file->setFileData('SessionID', $sessionID);
 $file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
 $file->setFileData('EchoTime', $file->getParameter('echo_time'));

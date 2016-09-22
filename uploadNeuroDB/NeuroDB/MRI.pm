@@ -716,9 +716,9 @@ sub register_db {
     }
 
     # build the insert query
-    $query = "INSERT INTO files SET ";
+    my $query = "INSERT INTO files SET ";
 
-    foreach my $key ('File', 'SessionID','EchoTime', 'CoordinateSpace', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID', 'Caveat', 'SeriesUID', 'TarchiveSource','SourcePipeline','PipelineDate','SourceFileID') {
+    foreach my $key ('File', 'SessionID','EchoTime', 'CoordinateSpace', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID', 'Caveat', 'SeriesUID', 'TarchiveSource','SourcePipeline','PipelineDate','SourceFileID', 'ScannerID') {
         # add the key=value pair to the query
         $query .= "$key=".$dbh->quote($${fileData{$key}}).", ";
     }
@@ -752,12 +752,6 @@ sub register_db {
 	# run query
 	$dbh->do($query);
     }
-    # get the ScannerID to then insert into files 
-    my $query = "UPDATE files SET ScannerID=". $file->getParameter('ScannerID') .
-		" WHERE FileID=".$fileData->{'FileID'};
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-
     return $fileID;
 }
 
