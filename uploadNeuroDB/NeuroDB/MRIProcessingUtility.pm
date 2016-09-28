@@ -1242,6 +1242,80 @@ sub computeSNR {
 }
 
 ################################################################
+##########  Order Imaging Modalities By Acq ####################
+################################################################
+
+sub orderModalitiesByAcq {
+
+    my $this = shift;
+    my ($row, $file, $acqProtID, $dataArr, $cmd, $message, $sth);
+    my ($tarchiveID, $tarchive_srcloc)= @_;
+    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+
+    my $query = "SELECT DISTINCT AcquisitionProtocolID ".
+		"from files f ";
+    my $where = "WHERE f.TarchiveSource=?";   
+    $query = $query . $where;
+
+
+    if ($this->{debug}) {
+        print $query . "\n";
+    }
+
+    my $acqArr = ${$this->{'dbhr'}}->prepare($query);
+    $acqArr->execute($tarchiveID);
+    # For each of the files having this AcquisitionProtocolID
+    # load the file object to get the series_number  
+    while (my $row = $acqArr->fetchrow_hashref()) {
+	$acqProtID = $row->{'AcquisitionProtocolID'};
+	$query = "SELECT FileID, ModalityOrder ".
+		 " from files f ";
+	$where = "WHERE f.TarchiveSource=? AND f.AcquisitionProtocolID=?";
+     	$query = $query . $where;
+
+	if ($this->{debug}) {
+	    print $query . "\n";
+	}
+
+	$dataArr = ${$this->{'dbhr'}}->prepare($query);
+	$dataArr->execute($tarchiveID, $acqProtID);
+	my (@fileID, @seriesNumber)=();
+	my ($fileID, $seriesNumber)=();
+	my $i=0;
+    	while (my $row2 = $dataArr->fetchrow_hashref()) {
+	    $i++;
+            $fileID[$i] = $row2->{'FileID'};
+	    $file = NeuroDB::File->new($this->{dbhr});
+	    $file->loadFile($fileID[$i]);
+	    $seriesNumber[$i] = $file->getParameter('series_number');
+	}
+    	my (@sorted_seriesNumber_indices, @sorted_fileID)=();
+	# Sort the series_number, and assign the Modality Order accordingly
+    	@sorted_seriesNumber_indices = sort {$seriesNumber[$a] <=> $seriesNumber[$b]} (0..$#seriesNumber);
+	@sorted_fileID = @fileID[@sorted_seriesNumber_indices];
+
+	my $order = 0;
+	foreach my $j (@sorted_seriesNumber_indices) {
+	    $order++;
+            $query = "UPDATE files f SET f.ModalityOrder=? ";
+	    $where = "WHERE f.FileID=?";
+	    $query = $query . $where;
+            if ($this->{debug}) {
+                print $query . "\n";
+	    }
+            my $modalityOrder_update = ${$this->{'dbhr'}}->prepare($query);
+            $modalityOrder_update->execute($order, $sorted_fileID[$order]);
+            $message = "The Modality Order for FileID $sorted_fileID[$order] was updated to $order \n ";
+	    print "Message is: $message \n";
+	    $this->{LOG}->print($message);
+	    $this->spool($message, 'N', $upload_id, $notify_detailed);
+	}
+
+    }
+
+}
+
+################################################################
 ################ getUploadIDUsingTarchiveSrcLoc#################
 ################################################################
 =pod

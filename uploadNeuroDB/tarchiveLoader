@@ -467,12 +467,19 @@ foreach my $minc (@minc_files) {
 
 } # end foreach $minc
 
+=pod
 ################################################################
 ############### Compute SNR on 3D modalities ###################
 ################################################################
 $utility->computeSNR($tarchiveInfo{TarchiveID},
                          $tarchiveInfo{'SourceLocation'},
 			 $profile);
+=cut
+################################################################
+############### Compute SNR on 3D modalities ###################
+################################################################
+$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID},
+                         $tarchiveInfo{'SourceLocation'});
 
 
 if ($valid_study) {
