@@ -168,7 +168,7 @@ if  (!defined($scannerID))  {
     print LOG "\nERROR: could not determine scannerID based on sourceFileID $sourceFileID.\n\n";
     exit 2;
 }
-$file->setParameter('ScannerID',$scannerID);
+$file->setFileData('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
 
 
@@ -302,16 +302,15 @@ sub getSessionID    {
 
 
 =pod
-This function gets ScannerID from parameter_file using sourceFileID
+This function gets ScannerID from files using sourceFileID
 =cut
 sub getScannerID    {
     my  ($sourceFileID,$dbh)    =   @_;    
 
     my $scannerID;
-    my $query   =   "SELECT pf.Value AS ScannerID " .
-                    "FROM parameter_file AS pf " .
-                    "JOIN parameter_type AS pt ON (pt.ParameterTypeID=pf.ParameterTypeID) " .
-                    "WHERE pt.Name='ScannerID' AND pf.FileID=?";
+    my $query   =   "SELECT f.ScannerID AS ScannerID " .
+                    "FROM files AS f " .
+                    "WHERE f.FileID=?";
     my $sth     =   $dbh->prepare($query);
     $sth->execute($sourceFileID);
     if($sth->rows > 0) {
