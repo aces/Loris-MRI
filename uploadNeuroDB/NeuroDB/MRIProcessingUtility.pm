@@ -1296,7 +1296,6 @@ sub orderModalitiesByAcq {
 
 	my $order = 0;
 	foreach my $j (0..$#seriesNumber-1) {
-print "Index is: $j \n";
 	     $order++;
             $query = "UPDATE files f SET f.ModalityOrder=? ";
 	     $where = "WHERE f.FileID=?";
