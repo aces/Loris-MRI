@@ -1252,7 +1252,7 @@ sub orderModalitiesByAcq {
     my ($tarchiveID, $tarchive_srcloc)= @_;
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
 
-    my $query = "SELECT DISTINCT AcquisitionProtocolID ".
+    my $query = "SELECT DISTINCT f.AcquisitionProtocolID ".
 		"from files f ";
     my $where = "WHERE f.TarchiveSource=?";   
     $query = $query . $where;
@@ -1268,8 +1268,8 @@ sub orderModalitiesByAcq {
     # load the file object to get the series_number  
     while (my $row = $acqArr->fetchrow_hashref()) {
 	$acqProtID = $row->{'AcquisitionProtocolID'};
-	$query = "SELECT FileID, ModalityOrder ".
-		 " from files f ";
+	$query = "SELECT f.FileID, f.ModalityOrder ".
+		 "from files f ";
 	$where = "WHERE f.TarchiveSource=? AND f.AcquisitionProtocolID=?";
      	$query = $query . $where;
 
@@ -1284,7 +1284,7 @@ sub orderModalitiesByAcq {
 	my $i=0;
     	while (my $row2 = $dataArr->fetchrow_hashref()) {
 	    $i++;
-            $fileID[$i] = $row2->{'FileID'};
+           $fileID[$i] = $row2->{'FileID'};
 	    $file = NeuroDB::File->new($this->{dbhr});
 	    $file->loadFile($fileID[$i]);
 	    $seriesNumber[$i] = $file->getParameter('series_number');
@@ -1295,14 +1295,15 @@ sub orderModalitiesByAcq {
 	@sorted_fileID = @fileID[@sorted_seriesNumber_indices];
 
 	my $order = 0;
-	foreach my $j (@sorted_seriesNumber_indices) {
-	    $order++;
+	foreach my $j (0..$#seriesNumber-1) {
+print "Index is: $j \n";
+	     $order++;
             $query = "UPDATE files f SET f.ModalityOrder=? ";
-	    $where = "WHERE f.FileID=?";
-	    $query = $query . $where;
+	     $where = "WHERE f.FileID=?";
+	     $query = $query . $where;
             if ($this->{debug}) {
                 print $query . "\n";
-	    }
+	     }
             my $modalityOrder_update = ${$this->{'dbhr'}}->prepare($query);
             $modalityOrder_update->execute($order, $sorted_fileID[$order]);
             $message = "The Modality Order for FileID $sorted_fileID[$order] was updated to $order \n ";
