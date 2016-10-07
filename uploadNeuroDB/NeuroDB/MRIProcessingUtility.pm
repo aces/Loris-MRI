@@ -1242,7 +1242,7 @@ sub computeSNR {
 }
 
 ################################################################
-##########  Order Imaging Modalities By Acq ####################
+##########  Order Imaging Modalities By Acquisition ############
 ################################################################
 
 sub orderModalitiesByAcq {
@@ -1253,10 +1253,8 @@ sub orderModalitiesByAcq {
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
 
     my $query = "SELECT DISTINCT f.AcquisitionProtocolID ".
-		"from files f ";
-    my $where = "WHERE f.TarchiveSource=?";   
-    $query = $query . $where;
-
+		"FROM files f ".
+                "WHERE f.TarchiveSource=?";   
 
     if ($this->{debug}) {
         print $query . "\n";
@@ -1268,10 +1266,9 @@ sub orderModalitiesByAcq {
     # load the file object to get the series_number  
     while (my $row = $acqArr->fetchrow_hashref()) {
 	$acqProtID = $row->{'AcquisitionProtocolID'};
-	$query = "SELECT f.FileID, f.ModalityOrder ".
-		 "from files f ";
-	$where = "WHERE f.TarchiveSource=? AND f.AcquisitionProtocolID=?";
-     	$query = $query . $where;
+	$query = "SELECT f.FileID, f.AcqOrderPerModality ".
+		 "FROM files f ".
+	         "WHERE f.TarchiveSource=? AND f.AcquisitionProtocolID=?";
 
 	if ($this->{debug}) {
 	    print $query . "\n";
@@ -1297,16 +1294,14 @@ sub orderModalitiesByAcq {
 	my $order = 0;
 	foreach my $j (0..$#seriesNumber-1) {
 	     $order++;
-            $query = "UPDATE files f SET f.ModalityOrder=? ";
-	     $where = "WHERE f.FileID=?";
-	     $query = $query . $where;
+            $query = "UPDATE files f SET f.AcqOrderPerModality=? ".
+	              "WHERE f.FileID=?";
             if ($this->{debug}) {
                 print $query . "\n";
 	     }
             my $modalityOrder_update = ${$this->{'dbhr'}}->prepare($query);
             $modalityOrder_update->execute($order, $sorted_fileID[$order]);
             $message = "The Modality Order for FileID $sorted_fileID[$order] was updated to $order \n ";
-	    print "Message is: $message \n";
 	    $this->{LOG}->print($message);
 	    $this->spool($message, 'N', $upload_id, $notify_detailed);
 	}
