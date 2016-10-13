@@ -12,7 +12,7 @@ use NeuroDB::MRIProcessingUtility;
 
 my $verbose = 1;
 my $debug = 1;
-my $profile = 'prod';
+my $profile = undef;
 my $TarchiveID = undef;
 my $query;
 
