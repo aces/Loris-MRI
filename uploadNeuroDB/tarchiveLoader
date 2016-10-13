@@ -365,7 +365,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-		$tarchive, $tarchiveInfo{'SourceLocation'}, $seriesuid);
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $seriesuid);
 
 
 ################################################################

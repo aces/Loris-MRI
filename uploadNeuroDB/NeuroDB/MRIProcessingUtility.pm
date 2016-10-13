@@ -795,10 +795,10 @@ sub dicom_to_minc {
     ############################################################
     #### use some other converter if specified in the config ###
     ############################################################
-    if ($converter ne 'dcm2mnc') {
+    if ($converter !=  /dcm2mnc/) {
         $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
     } else {
-        $d2m_cmd .= "dcm2mnc -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
+        $d2m_cmd .= "$converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
     }
     $d2m_log = `$d2m_cmd`;
 
