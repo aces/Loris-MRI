@@ -68,8 +68,12 @@ mridir=`pwd`
 ################################################################################################
 #####################################DICOM TOOLKIT##############################################
 ################################################################################################
-echo "Installing dicom toolkit (May prompt for sudo password)"
-sudo -S apt-get install dcmtk
+if [ ! -f "$APTGETCHECK" ]; then
+    echo "Please see Loris-MRI Readme for notes on how to install the DICOM TOOLKIT if your OS is not Ubuntu. Further information on installing dependencies is also included in the Loris GitHub Wiki Imaging Database page"
+else
+    echo "Installing dicom toolkit (May prompt for sudo password)"
+    sudo -S apt-get install dcmtk
+fi
 echo
 
 #################################################################################################
