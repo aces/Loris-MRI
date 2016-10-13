@@ -1192,37 +1192,36 @@ sub computeSNR {
     $minc_file_arr->execute($tarchiveID);
 
     while ($row = $minc_file_arr->fetchrow_hashref()) {
-           $filename = $row->{'file'};
-           $fileID = $row->{'FileID'};
-           $base = basename($filename);
-           $fullpath = $data_dir . "/" . $filename;
-           if (defined(&Settings::getSNRModalities)
-                && Settings::getSNRModalities($base)) {
-               $cmd = "noise_estimate --snr $fullpath";
-               $SNR = `$cmd`;
-               $SNR =~ s/\n//g;
-               print "$cmd \n" if ($this->{verbose});
-               print "SNR is: $SNR \n" if ($this->{verbose});
-
-	       my $file = NeuroDB::File->new($this->{dbhr});
-	       $file->loadFile($fileID);
-	       $SNR_old = $file->getParameter('SNR');
-	       if ((defined ($SNR_old)) && ($SNR_old != $SNR)) {
-                   $message = "The SNR value will be updated from " .
-			      "$SNR_old to $SNR. \n";
-		   $this->{LOG}->print($message);
-		   $this->spool($message, 'N', $upload_id, $notify_detailed);
-	       }
-	       $file->setParameter('SNR', $SNR);
-            }
-            else {
-                $message = "The SNR can not be computed for $base. ".
-                           "Either the getSNRModalities is not defined in your ".
-                           "$profile file, or the imaging modality is not ".
-                           "supported by the SNR computation. \n";
-		$this->{LOG}->print($message);
-		$this->spool($message, 'N', $upload_id, $notify_detailed);
-            }
+        $filename = $row->{'file'};
+        $fileID = $row->{'FileID'};
+        $base = basename($filename);
+        $fullpath = $data_dir . "/" . $filename;
+        if (defined(&Settings::getSNRModalities)
+            && Settings::getSNRModalities($base)) {
+                $cmd = "noise_estimate --snr $fullpath";
+                $SNR = `$cmd`;
+                $SNR =~ s/\n//g;
+                print "$cmd \n" if ($this->{verbose});
+                print "SNR is: $SNR \n" if ($this->{verbose});
+                my $file = NeuroDB::File->new($this->{dbhr});
+                $file->loadFile($fileID);
+                $SNR_old = $file->getParameter('SNR');
+                if ((defined ($SNR_old)) && ($SNR_old != $SNR)) {
+                    $message = "The SNR value will be updated from " .
+                        "$SNR_old to $SNR. \n";
+                    $this->{LOG}->print($message);
+                    $this->spool($message, 'N', $upload_id, $notify_detailed);
+                }
+                $file->setParameter('SNR', $SNR);
+        }
+        else {
+            $message = "The SNR can not be computed for $base. ".
+                "Either the getSNRModalities is not defined in your ".
+                "$profile file, or the imaging modality is not ".
+                "supported by the SNR computation. \n";
+            $this->{LOG}->print($message);
+            $this->spool($message, 'N', $upload_id, $notify_detailed);
+        }
     }
 }
 
