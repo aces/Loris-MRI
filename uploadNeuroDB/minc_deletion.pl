@@ -54,9 +54,9 @@ Version :   $versionInfo
 
 The program does the following:
 
-Deletes minc files from the web interface by:
+Deletes minc files from Loris by:
   - Moving the existing files to an archive directory.
-    .mnc .jpg .header .raw_byte.gz
+    .mnc .nii .jpg .header .raw_byte.gz
   - Deleting all related data from 4 database tables.
     parameter_file, files_qcstatus, feedback_mri_comments, files
   - Deletes mri_acquisition_dates entry if it is the last file
