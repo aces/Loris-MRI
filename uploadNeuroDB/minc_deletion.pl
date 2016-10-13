@@ -129,9 +129,12 @@ sub selORdel {
 
 
   my $query = $selORdel . "FROM " . $table . $where;
-  print $query . "\n";
   my $sth = $dbh->prepare($query);
-  $sth->execute($seriesuid);
+  if ($seriesuid) {
+    $sth->execute($seriesuid);
+  } elsif ($fileid) {
+    $sth->execute($fileid);
+  }
 
   if ($selORdel eq "SELECT * ") {
     while (my $pf = $sth->fetchrow_hashref()) {
@@ -176,27 +179,35 @@ my $sessionid    = $f->{'SessionID'};
 my @pic_path     = split /_check/, $f->{'VALUE'};
 my $jiv_header   = $pic_path[0] . ".header";
 my $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
-my($file, $dir, $ext) = fileparse($f->{'File'});
+my ($file, $dir, $ext) = fileparse($f->{'File'});
+my $nii_file     = basename($file, ".mnc") . ".nii";
 my @candid = split("/", $dir);
 
-# Let's make directories
-make_path($data_dir . "/archive/"    . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
-make_path($data_dir . "/archive/pic/" . $candid[1]) unless(-d  $data_dir . "/archive/pic/" . $candid[1]);
-make_path($data_dir . "/archive/jiv/" . $candid[1]) unless(-d  $data_dir . "/archive/jiv/" . $candid[1]);
-
 if ($ARGV[0] eq "confirm") {
-  rename($data_dir . "/" . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
+  # Let's make directories
+  make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
+  make_path($data_dir . "/archive/pic/" . $candid[1]) unless(-d  $data_dir . "/archive/pic/" . $candid[1]);
+  make_path($data_dir . "/archive/jiv/" . $candid[1]) unless(-d  $data_dir . "/archive/jiv/" . $candid[1]);
+
+  if (-e $data_dir . "/" . $dir . $nii_file) {
+    rename($data_dir . "/" . $dir . $nii_file, $data_dir . "/archive/" . $dir . $nii_file);
+  }
+  rename($data_dir . "/"     . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
   rename($data_dir . "/pic/" . $f->{'VALUE'}, $data_dir . "/archive/pic/" . $f->{'VALUE'});
   rename($data_dir . "/jiv/" . $jiv_header, $data_dir . "/archive/jiv/" . $jiv_header);
   rename($data_dir . "/jiv/" . $jiv_raw_byte, $data_dir . "/archive/jiv/" . $jiv_raw_byte);
+  print "Moving these files to archive:\n";
+} else {
+  print "Files that will be moved when rerunning the script using the confirm option:\n";
 }
 
-print "Moving these files to archive:\n";
-print $data_dir . "/" . $f->{'File'} . "\n";
+print $data_dir . "/"     . $f->{'File'} . "\n";
+if (-e $data_dir . "/"    . $dir . $nii_file) {
+  print $data_dir . "/"   . $dir . $nii_file . "\n";
+}
 print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
 print $data_dir . "/jiv/" . $jiv_header . "\n";
 print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
-
 
 # Delete from DB
 selORdel("parameter_file","Value");
@@ -271,7 +282,6 @@ if ($sth->rows > 0) {
 if (!$sessionfilesfound) {
 
   my $query = $selORdel . "FROM mri_acquisition_dates where SessionID=?";
-  print $query . "\n";
   my $sth = $dbh->prepare($query);
   $sth->execute($sessionid);
 
