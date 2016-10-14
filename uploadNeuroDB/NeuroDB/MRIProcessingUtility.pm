@@ -120,7 +120,7 @@ sub getFileNamesfromSeriesUID {
     }
 
     my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-    my $seriesuid = @_;
+    my ($seriesuid) = @_;
     my @filearray;
     my $tarstring = ' --wildcards ';
     my $query = "select tf.FileName from tarchive_files as tf".

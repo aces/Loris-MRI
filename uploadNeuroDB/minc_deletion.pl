@@ -137,9 +137,13 @@ sub selORdel {
   }
 
   if ($selORdel eq "SELECT * ") {
-    while (my $pf = $sth->fetchrow_hashref()) {
-        print "\n$field: " . $pf->{$field};
+    if ($seriesuid) {
+      $query =~ s/\?/'$seriesuid'/g;
+    } elsif ($fileid) {
+      $query =~ s/\?/'$fileid'/g;
     }
+
+    print "\n" . $query;
   }
 }
 
