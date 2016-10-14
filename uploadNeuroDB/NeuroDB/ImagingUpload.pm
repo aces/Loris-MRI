@@ -140,16 +140,43 @@ sub IsCandidateInfoValid {
     ############################################################
     ####Check to see if the scan has been ran ##################
     ####if the tarchiveid or the number_of_mincCreated is set ##
-    ####itt means that has already been ran#####################
+    ####it means that has already been ran. ####################
+    ####So the user can continue the insertion by running ######
+    ####tarchiveLoader exactly as the error message indicates ##
     ############################################################
     if ( ( $row[1] ) || ( $row[2] ) ) {
 
+        my $archived_file_path = '';
+        my $query             = "SELECT t.ArchiveLocation FROM tarchive t "
+                              . " WHERE t.TarchiveID =?";
+        my $sth               = ${ $this->{'dbhr'} }->prepare($query);
+        $sth->execute( $row[1] );   
+        if ( $sth->rows > 0 ) {
+            $archived_file_path = $sth->fetchrow_array();
+        }
+
+        unless ($archived_file_path =~ m/$Settings::tarchiveLibraryDir/i) {
+            $archived_file_path = ($Settings::tarchiveLibraryDir . "/" . $archived_file_path);
+        }
+
+        my $command =
+            $Settings::bin_dir
+            . "/uploadNeuroDB/tarchiveLoader"
+            . " -globLocation -profile prod $archived_file_path";
+
+        if ($this->{verbose}){
+            $command .= " -verbose";
+        }
+
         $message =
             "\nThe Scan for the uploadID "
-          . $this->{'upload_id'}
-          . " has already been ran with tarchiveID: "
-          . $row[1]
-	  . "\n";
+            . $this->{'upload_id'}
+            . " has already been ran with tarchiveID: "
+            . $row[1]
+            . ". \nTo continue with the rest of the insertion pipeline, "
+            . "please run tarchiveLoader from a terminal as follows: "
+            . $command 
+            . "\n";
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
@@ -292,7 +319,6 @@ sub getTarchiveFileLocation {
     unless ($archive_location =~ m/$Settings::tarchiveLibraryDir/i) {
         $archive_location = ($Settings::tarchiveLibraryDir . "/" . $archive_location);
     }
-
     return $archive_location;
 }
 
