@@ -360,9 +360,9 @@ sub PatientNameMatch {
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
-    if ($pname ne  $this->{'pname'}) {
+    if ($pname !~ /^$this->{'pname'}/) {
         my $message = "\nThe patient-name $pname read ".
-                      "from the DICOM header does not match " .
+                      "from the DICOM header does not start with " .
         	      $this->{'pname'} . 
                       " from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);
