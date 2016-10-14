@@ -1,9 +1,37 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+no warnings 'once';
 use Data::Dumper;
+use File::Basename;
 use Term::ANSIColor qw(:constants);
 use NeuroDB::DBI;
+
+my $Help = <<HELP;
+*******************************************************************************
+SeriesUID 2 fileID
+*******************************************************************************
+
+Author  :   Gregory Luneau
+Date    :   October 2016
+Version :   1
+
+
+The program does the following:
+
+Takes SeriesUID from STDIN and returns a report with
+
+- SeriesUID
+- SeriesDescription
+- TarchiveID
+- m_p_v_s_ID
+- mri_v_log
+- FileID
+- FileName
+
+There are no arguments so far.
+
+HELP
 
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
@@ -23,7 +51,7 @@ my $sthP = $dbh->prepare($queryP);
 my ($rF, $rT, $rM, $rV, $rP);
 my ($fF, $fT, $fM, $fV, $fP);
 
-my ($SeriesDescription, $TarchiveID, $FileID, $ID, $Severity, $PatientName, $NumberOfFiles, $ZxT);
+my ($SeriesDescription, $TarchiveID, $FileID, $ID, $Severity, $PatientName, $NumberOfFiles, $ZxT, $FileName);
 
 printf ("%-6s", '| L# ');
 printf ("%-64s",'| SeriesUID');
@@ -32,6 +60,8 @@ printf ("%-16s",'| TarchiveID');
 printf ("%-13s",'| m_p_v_s_ID');
 printf ("%-12s",'| mri_v_log');
 printf ("%-16s",'| FileID');
+printf ("%-36s",'| FileName');
+
 print "|\n";
 
 while (<STDIN>) {
@@ -71,6 +101,7 @@ while (<STDIN>) {
 
   if ($sthF->rows > 0) {
     $FileID = $fF->{'FileID'};
+    $FileName = basename($fF->{'File'});
     $rP = $sthP->execute($FileID, $FileID);
     $fP = $sthP->fetchrow_hashref();
 
@@ -83,9 +114,11 @@ while (<STDIN>) {
   } elsif (index($SeriesDescription, "localizer") != -1) {
     $FileID = 'exclude';
     $ZxT = '';
+    $FileName = '';
   } else {
     $FileID = '';
     $ZxT = '';
+    $FileName = '';
   }
 
   if ($sthV->rows > 0) {
@@ -103,7 +136,7 @@ while (<STDIN>) {
   printf ("%-13s",'| '. $ID);
   printf ("%-12s",'| '. $Severity);
   printf ("%-16s",'| '. $FileID . $ZxT);
+  printf ("%-36s",'| '. $FileName);
   print  "|\n";
  
 }
-
