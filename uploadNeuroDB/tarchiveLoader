@@ -473,6 +473,11 @@ foreach my $minc (@minc_files) {
 $utility->computeSNR($tarchiveInfo{TarchiveID},
                          $tarchiveInfo{'SourceLocation'},
 			 $profile);
+################################################################
+############### Compute SNR on 3D modalities ###################
+################################################################
+$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID},
+                         $tarchiveInfo{'SourceLocation'});
 
 
 if ($valid_study) {
