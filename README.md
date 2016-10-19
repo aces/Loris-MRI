@@ -40,7 +40,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
 3. Install MINC toolkit from http://bic-mni.github.io/ 
 
-   Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick. Then install your MINC toolkit package: 
+   Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
 
    ```bash
    run sudo dpkg i minc-toolkit<version>.deb
