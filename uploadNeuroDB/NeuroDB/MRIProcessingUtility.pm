@@ -1206,7 +1206,7 @@ sub computeSNR {
                 my $file = NeuroDB::File->new($this->{dbhr});
                 $file->loadFile($fileID);
                 $SNR_old = $file->getParameter('SNR');
-                if ((defined ($SNR_old)) && ($SNR_old != $SNR)) {
+                if ((defined ($SNR_old)) && ($SNR_old ne $SNR)) {
                     $message = "The SNR value will be updated from " .
                         "$SNR_old to $SNR. \n";
                     $this->{LOG}->print($message);
