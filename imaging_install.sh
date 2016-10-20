@@ -68,10 +68,11 @@ mridir=`pwd`
 ################################################################################################
 #####################################DICOM TOOLKIT##############################################
 ################################################################################################
-if [ ! -f "$APTGETCHECK" ]; then
-    echo "Please see Loris-MRI Readme for notes on how to install the DICOM TOOLKIT if your OS is not Ubuntu. Further information on installing dependencies is also included in the Loris GitHub Wiki Imaging Database page"
+os_distro=$(lsb_release -si)
+if [ $os_distro  = "CentOS" ]; then
+    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
 else
-    echo "Installing dicom toolkit (May prompt for sudo password)"
+    echo "Installing DICOM Toolkit (May prompt for sudo password)"
     sudo -S apt-get install dcmtk
 fi
 echo
