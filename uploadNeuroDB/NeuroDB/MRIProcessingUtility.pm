@@ -1206,13 +1206,15 @@ sub computeSNR {
                 my $file = NeuroDB::File->new($this->{dbhr});
                 $file->loadFile($fileID);
                 $SNR_old = $file->getParameter('SNR');
-                if ((defined ($SNR_old)) && ($SNR_old ne $SNR)) {
-                    $message = "The SNR value will be updated from " .
-                        "$SNR_old to $SNR. \n";
-                    $this->{LOG}->print($message);
-                    $this->spool($message, 'N', $upload_id, $notify_detailed);
+                if ($SNR ne '') {
+                    if (($SNR_old ne '') && ($SNR_old ne $SNR)) {
+                        $message = "The SNR value will be updated from " .
+                            "$SNR_old to $SNR. \n";
+                        $this->{LOG}->print($message);
+                        $this->spool($message, 'N', $upload_id, $notify_detailed);
+                    }
+                    $file->setParameter('SNR', $SNR);
                 }
-                $file->setParameter('SNR', $SNR);
         }
         else {
             $message = "The SNR can not be computed for $base. ".
