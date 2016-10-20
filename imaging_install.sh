@@ -80,7 +80,7 @@ echo
 #################################################################################################
 ############################INSTALL THE PERL LIBRARIES###########################################
 #################################################################################################
-echo "Installing the perl libraries...THis will take a few minutes..."
+echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo perl -MCPAN -e shell
 sudo -S cpan install Math::Round
 #echo $rootpass | sudo -S cpan install Bundle::CPAN
