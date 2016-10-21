@@ -64,8 +64,7 @@ if ( $profile && !@Settings::db ) {
 
 if ( !$ARGV[0] || !$profile ) {
     print $Help;
-    print "$Usage\n\tERROR: The path to the Uploaded"
-      . "file is not valid or there is no existing profile file \n\n";
+    print "\n$Usage\n";
     exit 3;
 }
 
