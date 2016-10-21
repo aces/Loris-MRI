@@ -371,7 +371,7 @@ if (!$unique) {
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-#    exit 8; 
+    exit 8; 
 } 
 
 ################################################################
