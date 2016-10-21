@@ -1,18 +1,19 @@
-This Readme covers release 16.1 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 17.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
-This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 16.1.*.<br>
+This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 17.0.*.<br>
 For documentation and detailed setup information, please see the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database)</b>.
 
 This repo can be installed on either the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
 
 # System Requirements
  * Perl
- * DICOM toolkit (step 4)
  * MINC toolkit (step 3)
+ * DICOM toolkit (step 4)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
 For <u>CentOS</u>: Dependency installation notes are included in the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database) Imaging Setup page, Section 1 (installing codebase)</b>.
+As of the release date, this includes a transcript for [CentOS installation](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript) and notes on dependencies including [DICOM toolkit](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript#7-install-dicom-toolkit).
 
 The following installation should be run by the $lorisadmin user. sudo permission is required.
 See [aces/Loris README.md](https://github.com/aces/loris) for further information and Loris installation information. 
@@ -39,13 +40,13 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
 
 3. Install MINC toolkit from http://bic-mni.github.io/ 
 
-   Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick. Then install your MINC toolkit package: 
+   Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
 
    ```bash
    run sudo dpkg i minc-toolkit<version>.deb
    ```
 
-  Then source the environment in /opt/minc/minc-toolkit-config.sh for bash, or /opt/minc/minc-toolkit-config.csh for tcsh.
+  Then source the MINC toolkit environment by running (for bash) `source /opt/minc/minc-toolkit-config.sh` or (tcsh) `source /opt/minc/minc-toolkit-config.csh`.
 
 4. Run installer to install DICOM toolkit, Perl libraries, configure environment, and setup directories:
 
@@ -66,7 +67,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
  * What prod file name would you like to use? default: prod  [leave blank]
  * Enter the list of Site names (space separated) site1 site2
 
-  If the imaging install script reports errors in creating directories (due to /data/ mount permissions), manually execute mkdir/chmod/chown commands starting at [imaging_install.sh:L90](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L90)
+  If the imaging install script reports errors in creating directories (due to /data/ mount permissions), review and manually execute `mkdir/chmod/chown` commands starting at [imaging_install.sh:L83](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L83)
 
   Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group.  To ensure this change takes effect, log out and log back into your terminal session before running the imaging pipeline.
 The installer will also set Apache group ownership of certain /data/ subdirectories.  
