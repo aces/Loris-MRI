@@ -116,33 +116,50 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 sub selORdel {
   my ($table, $field) = @_;
   my $where = '';
+  my $fileidq = "SELECT FileID FROM files WHERE SeriesUID = ?";
 
   if ($seriesuid) {
     if ($table eq "parameter_file") {
-      $where = " WHERE FileID = (SELECT FileID FROM files WHERE SeriesUID = ?)";
+      $where = " WHERE FileID = ?";
     } else {
       $where = " WHERE SeriesUID = ?";
     }
   } elsif ($fileid) {
-    $where = " WHERE FileID =  ?";
+    $where = " WHERE FileID = ?";
   }
 
-
   my $query = $selORdel . "FROM " . $table . $where;
+
   my $sth = $dbh->prepare($query);
+  my $stq = $dbh->prepare($fileidq);
+
   if ($seriesuid) {
-    $sth->execute($seriesuid);
+    if ($table eq "parameter_file") {
+      $stq->execute($seriesuid);
+      # Taking care of multiple seriesuid
+      while (my $st = $stq->fetchrow_hashref()) {
+        $fileid .= $st->{'FileID'} . ",";
+        $sth->execute($st->{'FileID'});
+      }
+      chop($fileid);
+    } else {
+      $sth->execute($seriesuid)
+    }
   } elsif ($fileid) {
     $sth->execute($fileid);
   }
 
   if ($selORdel eq "SELECT * ") {
     if ($seriesuid) {
-      $query =~ s/\?/'$seriesuid'/g;
+      if ($table eq "parameter_file") {
+       $query =~ s/= \?/IN ($fileid)/g;
+       undef $fileid;
+      } else { 
+       $query =~ s/\?/'$seriesuid'/g;
+      }
     } elsif ($fileid) {
       $query =~ s/\?/'$fileid'/g;
     }
-
     print "\n" . $query;
   }
 }
@@ -153,7 +170,7 @@ sub selORdel {
 $query = "select f.File, f.TarchiveSource, f.SessionID, pf.`VALUE` from files as f ".
          "left join parameter_file as pf using (FileID) where ".
          "pf.ParameterTypeID = (select pt.ParameterTypeID from parameter_type as pt where pt.Name = 'check_pic_filename') and ".
-         "pf.FileID = ";
+         "pf.FileID IN ";
 
 # Useful database tracing for troubleshooting
 # $dbh->trace(5);
@@ -176,43 +193,47 @@ if (defined $rvl && $rvl == 0) {
   die "Can't rename if there is no value return from: \n" . $query . "\n";
 }
 
-my $f = $sth->fetchrow_hashref();
 
-my $tarchiveid   = $f->{'TarchiveSource'};
-my $sessionid    = $f->{'SessionID'};
-my @pic_path     = split /_check/, $f->{'VALUE'};
-my $jiv_header   = $pic_path[0] . ".header";
-my $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
-my ($file, $dir, $ext) = fileparse($f->{'File'});
-my $nii_file     = basename($file, ".mnc") . ".nii";
-my @candid = split("/", $dir);
+my ($tarchiveid, $sessionid, @pic_path, $jiv_header, $jiv_raw_byte, $file, $dir, $ext, $nii_file, @candid);
 
-if ($ARGV[0] eq "confirm") {
-  # Let's make directories
-  make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
-  make_path($data_dir . "/archive/pic/" . $candid[1]) unless(-d  $data_dir . "/archive/pic/" . $candid[1]);
-  make_path($data_dir . "/archive/jiv/" . $candid[1]) unless(-d  $data_dir . "/archive/jiv/" . $candid[1]);
+while (my $f = $sth->fetchrow_hashref()) {
+  $tarchiveid   = $f->{'TarchiveSource'};
+  $sessionid    = $f->{'SessionID'};
+  @pic_path     = split /_check/, $f->{'VALUE'};
+  $jiv_header   = $pic_path[0] . ".header";
+  $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
+  ($file, $dir, $ext) = fileparse($f->{'File'});
+  $nii_file     = basename($file, ".mnc") . ".nii";
+  @candid = split("/", $dir);
 
-  if (-e $data_dir . "/" . $dir . $nii_file) {
-    rename($data_dir . "/" . $dir . $nii_file, $data_dir . "/archive/" . $dir . $nii_file);
+  if ($ARGV[0] eq "confirm") {
+    # Let's make directories
+    make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
+    make_path($data_dir . "/archive/pic/" . $candid[1]) unless(-d  $data_dir . "/archive/pic/" . $candid[1]);
+    make_path($data_dir . "/archive/jiv/" . $candid[1]) unless(-d  $data_dir . "/archive/jiv/" . $candid[1]);
+
+    if (-e $data_dir . "/" . $dir . $nii_file) {
+      rename($data_dir . "/" . $dir . $nii_file, $data_dir . "/archive/" . $dir . $nii_file);
+    }
+    rename($data_dir . "/"     . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
+    rename($data_dir . "/pic/" . $f->{'VALUE'}, $data_dir . "/archive/pic/" . $f->{'VALUE'});
+    rename($data_dir . "/jiv/" . $jiv_header, $data_dir . "/archive/jiv/" . $jiv_header);
+    rename($data_dir . "/jiv/" . $jiv_raw_byte, $data_dir . "/archive/jiv/" . $jiv_raw_byte);
+    print "\nMoving these files to archive:\n";
+  } else {
+    print "\nFiles that will be moved when rerunning the script using the confirm option:\n";
   }
-  rename($data_dir . "/"     . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
-  rename($data_dir . "/pic/" . $f->{'VALUE'}, $data_dir . "/archive/pic/" . $f->{'VALUE'});
-  rename($data_dir . "/jiv/" . $jiv_header, $data_dir . "/archive/jiv/" . $jiv_header);
-  rename($data_dir . "/jiv/" . $jiv_raw_byte, $data_dir . "/archive/jiv/" . $jiv_raw_byte);
-  print "Moving these files to archive:\n";
-} else {
-  print "Files that will be moved when rerunning the script using the confirm option:\n";
+
+  print $data_dir . "/"     . $f->{'File'} . "\n";
+  if (-e $data_dir . "/"    . $dir . $nii_file) {
+    print $data_dir . "/"   . $dir . $nii_file . "\n";
+  }
+  print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
+  print $data_dir . "/jiv/" . $jiv_header . "\n";
+  print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
 }
 
-print $data_dir . "/"     . $f->{'File'} . "\n";
-if (-e $data_dir . "/"    . $dir . $nii_file) {
-  print $data_dir . "/"   . $dir . $nii_file . "\n";
-}
-print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
-print $data_dir . "/jiv/" . $jiv_header . "\n";
-print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
-
+print "\nDelete from DB";
 # Delete from DB
 selORdel("parameter_file","Value");
 selORdel("files_qcstatus","QCStatus");
@@ -228,9 +249,10 @@ selORdel("files","File");
 print "\nTarchiveID: $tarchiveid\n";
 print "\nSessionID: $sessionid\n";
 
+
 # Check #1 in files, if other files from same session
 $query = "select * from files as g " .
-"where g.SessionID=(select f.SessionID from files as f where f.SeriesUID=?) " .
+"where g.SessionID IN (select f.SessionID from files as f where f.SeriesUID=?) " .
 "and g.SeriesUID <> ?";
 
 $sth = $dbh->prepare($query);

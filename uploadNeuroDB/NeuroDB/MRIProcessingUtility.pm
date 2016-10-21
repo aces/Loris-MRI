@@ -120,7 +120,7 @@ sub getFileNamesfromSeriesUID {
     }
 
     my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-    my ($seriesuid) = @_;
+    my ($seriesuid, @alltarfiles) = @_;
     my @filearray;
     my $tarstring = ' --wildcards ';
     my $query = "select tf.FileName from tarchive_files as tf".
@@ -134,7 +134,7 @@ sub getFileNamesfromSeriesUID {
         $tarstring .= "'*" . $tf->{'FileName'} . "' ";
     }
 
-    my $lcp = LCP(@filearray);
+    my $lcp = LCP(@alltarfiles);
     $tarstring =~ s/$lcp//g;
 
     return $tarstring;
@@ -175,15 +175,17 @@ sub extract_tarchive {
         exit 1 ;
     }
 
-    if (defined($seriesuid)) {
-        print "seriesuid: $seriesuid\n";
-        $tarnames = getFileNamesfromSeriesUID($seriesuid);
-        print "tarnames: $tarnames\n";
-    }
-
     my $dcmtar = $tars[0];
     my $dcmdir = $dcmtar;
     $dcmdir =~ s/\.tar\.gz$//;
+
+    if (defined($seriesuid)) {
+        print "seriesuid: $seriesuid\n";
+        my @alltarfiles = `cd $this->{TmpDir} ; tar -tzf $dcmtar`;
+        $tarnames = getFileNamesfromSeriesUID($seriesuid, @alltarfiles);
+        print "tarnames: $tarnames\n";
+    }
+
     `cd $this->{TmpDir} ; tar -xzf $dcmtar $tarnames`;
     return $dcmdir;
 }
