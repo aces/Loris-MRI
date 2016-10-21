@@ -68,14 +68,19 @@ mridir=`pwd`
 ################################################################################################
 #####################################DICOM TOOLKIT##############################################
 ################################################################################################
-echo "Installing dicom toolkit (May prompt for sudo password)"
-sudo -S apt-get install dcmtk
+os_distro=$(lsb_release -si)
+if [ $os_distro  = "CentOS" ]; then
+    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
+else
+    echo "Installing DICOM Toolkit (May prompt for sudo password)"
+    sudo -S apt-get install dcmtk
+fi
 echo
 
 #################################################################################################
 ############################INSTALL THE PERL LIBRARIES###########################################
 #################################################################################################
-echo "Installing the perl libraries...THis will take a few minutes..."
+echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo perl -MCPAN -e shell
 sudo -S cpan install Math::Round
 #echo $rootpass | sudo -S cpan install Bundle::CPAN

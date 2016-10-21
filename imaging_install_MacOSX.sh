@@ -1,6 +1,14 @@
 #!/bin/bash
 
 ##################################
+# This script is not actively maintained. 
+# and has not been supported since 15.10
+##################################
+echo "NOTE: Mac is no longer supported as of 15.10."
+echo "This script is not actively maintained."
+echo 
+
+##################################
 ###WHAT THIS SCRIPT WILL NOT DO###
 #1)It doesn't set up the SGE
 #2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place somewhere
