@@ -275,6 +275,7 @@ QUERY
 QUERY
         my $sth_series = $dbh->prepare($delete_series);
         my $sth_files  = $dbh->prepare($delete_files);
+        # Deleting from files first because of db constraints.
         $sth_files->execute($tarchiveID);
         $sth_series->execute($tarchiveID);
     }
