@@ -275,8 +275,8 @@ QUERY
 QUERY
         my $sth_series = $dbh->prepare($delete_series);
         my $sth_files  = $dbh->prepare($delete_files);
-        $sth_series->execute($tarchiveID);
         $sth_files->execute($tarchiveID);
+        $sth_series->execute($tarchiveID);
     }
 
     # now create the tarchive_series records
