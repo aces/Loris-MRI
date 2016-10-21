@@ -240,7 +240,7 @@ my ($center_name, $centerID) =
 ################################################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,0,
+                    \%tarchiveInfo,1,
                     $centerID,$NewScanner
                 );
 
