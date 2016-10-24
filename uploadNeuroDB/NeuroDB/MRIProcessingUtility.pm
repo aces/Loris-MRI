@@ -90,7 +90,7 @@ sub lookupNextVisitLabel {
     my ($CandID, $dbhr) = @_;
     my $visitLabel = 1;
     my $query = "SELECT Visit_label FROM session".
-                " WHERE CandID=$CandID".
+                " WHERE CandID=$CandID AND Active='Y'".
                 " ORDER BY ID DESC LIMIT 1";
     if ($this->{debug}) {
         print $query . "\n";
@@ -512,7 +512,7 @@ sub update_mri_acquisition_dates {
     ############################################################
     my $query = "SELECT s.ID, m.AcquisitionDate FROM session AS s LEFT OUTER".
                 " JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)". 
-                " WHERE s.ID='$sessionID' AND".
+                " WHERE s.ID='$sessionID' AND s.Active='Y' AND".
                 " (m.AcquisitionDate > '$acq_date'". 
                 " OR m.AcquisitionDate IS NULL) AND '$acq_date'>0";
     
