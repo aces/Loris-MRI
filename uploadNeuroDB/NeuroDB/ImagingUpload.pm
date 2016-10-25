@@ -138,9 +138,9 @@ sub IsCandidateInfoValid {
     }
 
     ############################################################
-    ####Check to see if the scan has been ran ##################
+    ####Check to see if the scan has been run ##################
     ####if the tarchiveid or the number_of_mincCreated is set ##
-    ####it means that has already been ran. ####################
+    ####it means that has already been run. ####################
     ####So the user can continue the insertion by running ######
     ####tarchiveLoader exactly as the error message indicates ##
     ############################################################
@@ -171,7 +171,7 @@ sub IsCandidateInfoValid {
         $message =
             "\nThe Scan for the uploadID "
             . $this->{'upload_id'}
-            . " has already been ran with tarchiveID: "
+            . " has already been run with tarchiveID: "
             . $row[1]
             . ". \nTo continue with the rest of the insertion pipeline, "
             . "please run tarchiveLoader from a terminal as follows: "
