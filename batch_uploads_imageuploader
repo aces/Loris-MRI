@@ -45,7 +45,7 @@ An example of what list_of_scans.txt might contain for 3 uploads to be inserted:
 
 HELP
 my $Usage = <<USAGE;
-usage: .batch_uploads_imageuploader -profile prod < list_of_scans.txt >log_batch_imageuploader.txt 2>&1 [options]
+usage: ./batch_uploads_imageuploader -profile prod < list_of_scans.txt >log_batch_imageuploader.txt 2>&1 [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
@@ -62,7 +62,7 @@ if ( $profile && !@Settings::db ) {
     exit 2;
 }
 
-if ( !$ARGV[0] || !$profile ) {
+if (!$profile ) {
     print $Help;
     print "\n$Usage\n";
     exit 3;
