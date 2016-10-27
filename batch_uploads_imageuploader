@@ -7,7 +7,7 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 
-my $profile   = undef;
+my $profile   = '';
 my $upload_id = undef; 
 my $fullpath = undef; 
 my $phantom = undef; 
