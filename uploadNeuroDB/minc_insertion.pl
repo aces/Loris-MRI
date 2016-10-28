@@ -405,7 +405,7 @@ $file->setFileData('Caveat', 0);
 
 if($acquisitionProtocol =~ /unknown/) {
    $message = "\n  --> The minc file cannot be registered ".
-		"since the AcquisitionProtocol is unknown \n";
+              "since the AcquisitionProtocol is unknown \n";
 
    print LOG $message;
    $notifier->spool('minc insertion', $message, 0,
@@ -430,7 +430,8 @@ if ((!defined$acquisitionProtocolIDFromProd)
    ) {
    $message = "\n  --> The minc file cannot be registered ".
                 "since $acquisitionProtocol ".
-                "does not exist in $profile \n";
+                "does not exist in $profile ". 
+                "or it did not pass the extra_file_checks\n";
    print LOG $message;
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion', $upload_id, 'Y',
