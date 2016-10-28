@@ -40,7 +40,7 @@ my $queryF = "SELECT * FROM files as f WHERE f.SeriesUID=?";
 my $queryT = "SELECT * FROM tarchive_series as t LEFT JOIN tarchive as a USING (TarchiveID) WHERE t.SeriesUID=?";
 my $queryM = "SELECT * FROM mri_protocol_violated_scans as m WHERE m.SeriesUID=? OR (m.PatientName=? AND m.series_description=?)";
 my $queryV = "SELECT * FROM mri_violations_log as v WHERE v.SeriesUID=?";
-my $queryP = "SELECT (SELECT pf.`VALUE` FROM parameter_file AS pf WHERE pf.FileID=56788 AND pf.ParameterTypeID=182) AS xspace, (SELECT pf.`VALUE` FROM parameter_file AS pf WHERE pf.FileID=? AND pf.ParameterTypeID=171) AS zspace, IFNULL((SELECT pf.`VALUE` FROM parameter_file AS pf WHERE pf.FileID=? AND pf.ParameterTypeID=337), 1) as time";
+my $queryP = "SELECT (SELECT pf.`VALUE` FROM parameter_file AS pf WHERE pf.FileID=? AND pf.ParameterTypeID=(SELECT p.ParameterTypeID FROM parameter_type as p WHERE p.Name='xspace')) AS xspace, (SELECT pf.`VALUE` FROM parameter_file AS pf WHERE pf.FileID=? AND pf.ParameterTypeID=(SELECT p.ParameterTypeID FROM parameter_type as p WHERE p.Name='zspace')) AS zspace, IFNULL((SELECT pf.`VALUE` FROM parameter_file AS pf WHERE pf.FileID=? AND pf.ParameterTypeID=(SELECT p.ParameterTypeID FROM parameter_type as p WHERE p.Name='time')), 1) as time";
 
 my $sthF = $dbh->prepare($queryF);
 my $sthT = $dbh->prepare($queryT);
@@ -102,7 +102,7 @@ while (<STDIN>) {
   if ($sthF->rows > 0) {
     $FileID = $fF->{'FileID'};
     $FileName = basename($fF->{'File'});
-    $rP = $sthP->execute($FileID, $FileID);
+    $rP = $sthP->execute($FileID, $FileID, $FileID);
     $fP = $sthP->fetchrow_hashref();
 
     if ($sthP->rows > 0) {
