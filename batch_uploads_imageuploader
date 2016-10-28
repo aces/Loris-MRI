@@ -7,7 +7,7 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 
-my $profile   = undef;
+my $profile   = '';
 my $upload_id = undef; 
 my $fullpath = undef; 
 my $phantom = undef; 
@@ -25,6 +25,30 @@ my @opt_table           = (
     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."]
 );
 
+my $Help = <<HELP;
+******************************************************************************
+Run imaging_upload_file.pl in batch mode
+******************************************************************************
+
+This script runs the Loris-MRI insertion on multiple scans. The list of scans are 
+provided through a text file (e.g. list_of_scans.txt) with one scan details per line.
+The scan details includes the path to the scan, identification as to whether the
+scan is for a phantom (Y) or not (N), and the candidate name for non-phantom entries.
+
+Like the Loris Imaging Uploader interface, this script also validates the candidate 
+name against the (start of the) filename and creates an entry in the mri_upload table.
+
+An example of what list_of_scans.txt might contain for 3 uploads to be inserted:
+/data/incoming/PSC0001_123457_V1.tar.gz N PSC0000_123456_V1
+/data/incoming/Lego_Phantom_MNI_20140101.zip Y
+/data/incoming/PSC0001_123457_V1_RES.tar.gz N PSC0000_123456_V1
+
+HELP
+my $Usage = <<USAGE;
+usage: ./batch_uploads_imageuploader -profile prod < list_of_scans.txt >log_batch_imageuploader.txt 2>&1 [options]
+       $0 -help to list options
+USAGE
+&Getopt::Tabular::SetHelp( $Help, $Usage );
 &Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
 
 ################################################################
@@ -36,6 +60,12 @@ if ( $profile && !@Settings::db ) {
     configuration file named '$profile' in:
     $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
     exit 2;
+}
+
+if (!$profile ) {
+    print $Help;
+    print "\n$Usage\n";
+    exit 3;
 }
 
 ################################################################
@@ -111,10 +141,10 @@ foreach my $input (@resultsarray)
 	exit(4);
     }
     if ($phantom eq 'N') {
-        if ($base ne $patientname) {
+        if ($patientname ne (substr ($base, 0, length($patientname)))) {
        	    print "Make sure the patient name $patientname " .
-	          "for non-phantom entries matches the file " .
-		  "name $base in $path\n";
+	          "for non-phantom entries matches the start of the ".
+		  "filename $base in $path\n";
 	    exit(5);
 	}
     }
