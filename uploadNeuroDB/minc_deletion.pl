@@ -20,7 +20,7 @@ use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
 
 my $sessionfilesfound = '';
-my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.2 $
+my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.3 $
     =~ /: (\d+)\.(\d+)/;
 my $profile   = '';      # this should never be set unless you are in a
                              # stable production environment
@@ -30,6 +30,7 @@ my $sth;
 my $rvl;
 my $query     = '';
 my $selORdel  = '';
+my $delqcdata = '';
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -38,6 +39,8 @@ my @opt_table = (
                  ["-seriesuid", "string", 1, \$seriesuid, "Only deletes this SeriesUID"
                  ],
                  ["-fileid", "string", 1, \$fileid, "Only deletes this FileID"
+                 ],
+                 ["-delqcdata", "boolean", 1, \$delqcdata, "Deletes QC data"
                  ],
                  );
 
@@ -57,8 +60,11 @@ The program does the following:
 Deletes minc files from Loris by:
   - Moving the existing files to an archive directory.
     .mnc .nii .jpg .header .raw_byte.gz
-  - Deleting all related data from 4 database tables.
-    parameter_file, files_qcstatus, feedback_mri_comments, files
+  - Deleting all related data from 2 database tables.
+    parameter_file & files
+  - Deletes data from files_qcstatus & feedback_mri_comments
+    database tables if the -delqcdata is set. In most cases
+    you would want to delete this when the images changes.
   - Deletes mri_acquisition_dates entry if it is the last file
     removed from that session.
 
@@ -180,7 +186,7 @@ if ($seriesuid) {
   $sth = $dbh->prepare($query);
   $rvl = $sth->execute($seriesuid);
 } elsif ($fileid) {
-  $query .= "?";
+  $query .= "(?)";
   $sth = $dbh->prepare($query);
   $rvl = $sth->execute($fileid);
 }
@@ -236,8 +242,10 @@ while (my $f = $sth->fetchrow_hashref()) {
 print "\nDelete from DB";
 # Delete from DB
 selORdel("parameter_file","Value");
-selORdel("files_qcstatus","QCStatus");
-selORdel("feedback_mri_comments","Comment");
+if ($delqcdata) {
+  selORdel("files_qcstatus","QCStatus");
+  selORdel("feedback_mri_comments","Comment");
+}
 # selORdel("mri_protocol_violated_scans","ID");  # if there is data here, the mnc will be in the trashbin
 # selORdel("MRICandidateErrors","Reason");       # not applicable to /assembly
 # selORdel("mri_violations_log","LogID");        # "
