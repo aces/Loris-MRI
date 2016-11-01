@@ -275,7 +275,7 @@ QUERY
 QUERY
         my $sth_series = $dbh->prepare($delete_series);
         my $sth_files  = $dbh->prepare($delete_files);
-        # Deleting from files first because of db constraints.
+        # Deleting from tarchive_files first because of db constraints.
         $sth_files->execute($tarchiveID);
         $sth_series->execute($tarchiveID);
     }
@@ -350,7 +350,7 @@ QUERY
            ?,          ?
           )
 QUERY
-    my $query_select_TarchiveSeriesID = "SELECT TarchiveSeriesID FROM tarchive_series WHERE SeriesUID = ? AND EchoTime= ?";
+    my $query_select_TarchiveSeriesID = "SELECT TarchiveSeriesID FROM tarchive_series WHERE SeriesUID = ? AND EchoTime = ?";
     my $select_TarchiveSeriesID = $dbh->prepare($query_select_TarchiveSeriesID);
     my $insert_file = $dbh->prepare($insert_query);
     my $dcmdirRoot = dirname($self->{dcmdir});
