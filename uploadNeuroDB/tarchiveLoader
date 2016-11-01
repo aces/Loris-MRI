@@ -79,6 +79,9 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
                                # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
+my $seriesuid   = '';          # if you want to insert a specific SeriesUID
+my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
+my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -109,6 +112,11 @@ my @opt_table = (
                  ],
                  ["General options", "section"],
                  ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
+                 ["-seriesuid", "string", 1, \$seriesuid, "Only insert this SeriesUID"],
+                 ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
+                  "Suggest the acquisition protocol to use."],
+                 ["-bypass_extra_file_checks", "boolean", 1, \$bypass_extra_file_checks,
+                  "Bypasses extra_file_checks."],
                  );
 
 my $Help = <<HELP;
@@ -357,7 +365,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-		$tarchive, $tarchiveInfo{'SourceLocation'});
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $seriesuid);
 
 
 ################################################################
@@ -440,12 +448,21 @@ foreach my $minc (@minc_files) {
         $script .= " -noJIV";
     }
  
-    if ($debug) {
-        print $script . "\n";
-    }
-
     if ($verbose) {
         $script .= " -verbose";
+    }
+
+    if ($acquisitionProtocol) {
+        $script .= " -acquisition_protocol " . $acquisitionProtocol;
+    }
+
+    if ($bypass_extra_file_checks) {
+        $script .= " -bypass_extra_file_checks";
+    }
+
+    # Should be kept last
+    if ($debug) {
+        print $script . "\n";
     }
     ###########################################################
     ## Note: system call returns the process ID ###############

@@ -105,6 +105,42 @@ sub lookupNextVisitLabel {
 }
 
 ################################################################
+########### getFileNamesfromSeriesUID  #########################
+################################################################
+sub getFileNamesfromSeriesUID {
+
+    # longest common prefix
+    sub LCP {
+      return '' unless @_;
+      my $prefix = shift;
+      for (@_) {
+          chop $prefix while (! /^\Q$prefix\E/);
+          }
+      return $prefix;
+    }
+
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+    my ($seriesuid, @alltarfiles) = @_;
+    my @filearray;
+    my $tarstring = ' --wildcards ';
+    my $query = "select tf.FileName from tarchive_files as tf".
+        " where tf.TarchiveID = (select distinct ts.tarchiveID   from tarchive_series as ts where ts.SeriesUID=?)".
+        " and tf.SeriesNumber = (select distinct ts.SeriesNumber from tarchive_series as ts where ts.SeriesUID=?)".
+        " order by tf.FileNumber";
+    my $sth = $dbh->prepare($query);
+    $sth->execute($seriesuid, $seriesuid);
+    while (my $tf = $sth->fetchrow_hashref()) {
+        push @filearray, $tf->{'FileName'};
+        $tarstring .= "'*" . $tf->{'FileName'} . "' ";
+    }
+
+    my $lcp = LCP(@alltarfiles);
+    $tarstring =~ s/$lcp//g;
+
+    return $tarstring;
+}
+
+################################################################
 ##################### extract_tarchive #########################
 ################################################################
 =pod
@@ -113,9 +149,10 @@ extracts it so data can actually be uploaded
 =cut
 sub extract_tarchive {
     my $this = shift;
-    my ($tarchive, $tarchive_srcloc) = @_;
+    my ($tarchive, $tarchive_srcloc, $seriesuid) = @_;
     my $upload_id = undef;
     my $message = '';
+    my $tarnames = '';
     # get the upload_id from the tarchive source location
     # to pass to the notification_spool
     $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
@@ -137,10 +174,19 @@ sub extract_tarchive {
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
         exit 1 ;
     }
+
     my $dcmtar = $tars[0];
     my $dcmdir = $dcmtar;
     $dcmdir =~ s/\.tar\.gz$//;
-    `cd $this->{TmpDir} ; tar -xzf $dcmtar`;
+
+    if (defined($seriesuid)) {
+        print "seriesuid: $seriesuid\n";
+        my @alltarfiles = `cd $this->{TmpDir} ; tar -tzf $dcmtar`;
+        $tarnames = getFileNamesfromSeriesUID($seriesuid, @alltarfiles);
+        print "tarnames: $tarnames\n";
+    }
+
+    `cd $this->{TmpDir} ; tar -xzf $dcmtar $tarnames`;
     return $dcmdir;
 }
 
@@ -151,11 +197,11 @@ sub extract_tarchive {
 sub extractAndParseTarchive {
 
     my $this = shift;
-    my ($tarchive, $tarchive_srcloc) = @_;
+    my ($tarchive, $tarchive_srcloc, $seriesuid) = @_;
     # get the upload_id from the tarchive_srcloc to pass to notification_spool
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $study_dir = $this->{TmpDir}  . "/" .
-        $this->extract_tarchive($tarchive, $tarchive_srcloc);
+        $this->extract_tarchive($tarchive, $tarchive_srcloc, $seriesuid);
     my $ExtractSuffix  = basename($tarchive, ".tar");
     # get rid of the tarchive Prefix 
     $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
@@ -1124,7 +1170,6 @@ sub validateCandidate {
         $CandMismatchError = 'CandID does not exist';
         return $CandMismatchError;
     }
-   
     
     ############################################################
     ################ Check if PSCID exists #####################
@@ -1138,7 +1183,6 @@ sub validateCandidate {
         $CandMismatchError= 'PSCID does not exist';
         return $CandMismatchError;
     } 
-    
     
     ############################################################
     ################ No Checking if the subject is Phantom #####
