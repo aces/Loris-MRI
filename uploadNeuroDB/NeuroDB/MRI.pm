@@ -50,15 +50,51 @@ $VERSION = 0.2;
 @EXPORT = qw();
 @EXPORT_OK = qw(identify_scan in_range get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
 
+sub getSubjectIDs {
+    my ($identifier, $scannerID, $dbhr) = @_;
 
-############################################################
-############### Create a settings package ##################
-############################################################
-my $profile = "prod";
-{
- package Settings;
- do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
+    my %subjectID; # Will stored subject IDs.
+
+     # If patientName is phantom scan or test scan
+     # CandID is scanner DCCID (based on site alias)
+     # visitLabel is scan patient name
+     # Set createVisitLable to
+     #      a. 1 if imaging pipeline should create the visit label (when visit label has not been created yet in the database.
+     #      b. 0 if imaging pipeline should not create the visit label (when visit label has not been created yet in the database.
+    if ($identifier =~ /PHA/i or $identifier =~ /TEST/i) {
+
+        $subjectID{'CandID'}    = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $dbhr));
+        $subjectID{'visitLabel'}= NeuroDB::MRI::my_trim($identifier);
+        $subjectID{'createVisitLabel'} = 1;
+
+     # If patient match PSCID_DCCID_VisitLabel
+     # Determine PSCID, DCCID and visitLabel based on patient name
+    } elsif ($identifier =~ /$PatientID_regex/i) {
+
+        $subjectID{'PSCID'}         = NeuroDB::MRI::my_trim($1);
+        $subjectID{'CandID'}        = NeuroDB::MRI::my_trim($2);
+        $subjectID{'visitLabel'}    = NeuroDB::MRI::my_trim($3);
+        $subjectID{'createVisitLabel'} = 0;
+
+        if(!subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subjectID{'visitLabel'}, $dbhr)) {
+            return undef;
+        }
+
+        print "PSCID is: "            . $subjectID{'PSCID'}      .
+                "\n CandID id: "      . $subjectID{'CandID'}     .
+                "\n visit_label is: " . $subjectID{'visitLabel'} . "\n";
+
+    }
+
+    my $sth = $${dbhr}->prepare("SELECT VisitNo FROM session WHERE CandID='$subjectID{'CandID'}' AND Visit_label='$subjectID{'visitLabel'}' AND Active='Y'");
+    $sth->execute();
+    my $row = $sth->fetchrow_hashref();
+    $subjectID{'visitNo'} = $row->{'VisitNo'};
+
+    # Return subjectIDs
+    return \%subjectID;
 }
+
 
 =pod
 B<subjectIDIsValid( C<$CandID>, C<$PSCID>, C<$dbhr> )>
@@ -977,7 +1013,7 @@ sub getPSC {
     ###########################################################################
 
     #extract the PSCID from $patientName
-    $subjectIDsref = &Settings::getSubjectIDs($identifier,null,$dbhr);
+    $subjectIDsref = getSubjectIDs($identifier,null,$dbhr);
     my $PSCID = $subjectIDsref->{'PSCID'};
     if ($PSCID) {
     ##Get the CenterID using PSCID

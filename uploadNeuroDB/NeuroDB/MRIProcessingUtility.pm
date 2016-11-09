@@ -1,5 +1,4 @@
 package NeuroDB::MRIProcessingUtility;
-package NeuroDB::MRIProcessingUtility;
 use English;
 use Carp;
 use strict;
