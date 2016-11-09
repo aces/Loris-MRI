@@ -38,7 +38,6 @@ mridir=`pwd`
 #####################################################################################
 echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/data/"
-  sudo -S su $USER -c "chgrp lorisadmin /data/$PROJ/data/"
   sudo -S su $USER -c "chmod g+s /data/$PROJ/data/"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/trashbin"          #holds mincs that didn't match protocol
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/tarchive"          #holds tared dicom-folder
@@ -53,7 +52,6 @@ echo
 ###############incoming directory using sites########################################
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/";
-sudo -S su $USER -c "chgrp lorisadmin /data/incoming/"
 echo "Creating incoming director(y/ies)"
  for s in $site; do 
   sudo -S su $USER -c "mkdir -m 770 -p /data/incoming/$s/incoming";
@@ -71,6 +69,22 @@ export TMPDIR=/tmp
 echo
 
 ####################################################################################
+######################Add the proper Apache group user #############################
+####################################################################################
+if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
+then 
+    group=www-data
+elif egrep ^www: /etc/group  > $LOGFILE 2>&1;
+then
+    group=www
+elif egrep -e ^apache: /etc/group  > $LOGFILE 2>&1;
+then
+    group=apache
+else
+    read -p "Cannot find the apache group name for your installation. Please provide? " group
+fi
+
+####################################################################################
 ######################change permissions ###########################################
 ####################################################################################
 #echo "Changing permissions"
@@ -78,6 +92,19 @@ echo
 sudo chmod -R 770 $mridir/.loris_mri/
 sudo chmod -R 770 /data/$PROJ/
 sudo chmod -R 770 /data/incoming/
+
+# Making lorisadmin part of the apache group
+sudo usermod -a -G $group $USER
+
+#Setting group permissions for all files/dirs under /data/$PROJ/ and /data/incoming/
+sudo chgrp $group -R /data/$PROJ/
+sudo chgrp $group -R /data/incoming/
+
+#Setting group ID for all files/dirs under /data/$PROJ/data
+sudo chmod -R g+s /data/$PROJ/data/
+
+#Setting group ID for all files/dirs under /data/incoming
+sudo chmod -R g+s /data/incoming/
 echo
 
 #####################################################################################
@@ -87,6 +114,7 @@ echo "Creating MRI config file"
 
 cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
+sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
 sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"

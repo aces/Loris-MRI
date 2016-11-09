@@ -256,6 +256,17 @@ $message = "\nThe insertion scripts have completed "
 spool($message,'N', $notify_notsummary);
 
 ################################################################
+############### Spool last completion message ##################
+################################################################
+my ($minc_created, $minc_inserted) = getNumberOfMincFiles($upload_id);
+
+$message = "\nThe insertion scripts have completed "
+            . "with $minc_created minc file(s) created, "
+            . "and $minc_inserted minc file(s) "
+            . "inserted into the database \n";
+spool($message,'N', $notify_notsummary);
+
+################################################################
 ############### getPnameUsingUploadID###########################
 ################################################################
 =pod
@@ -306,7 +317,6 @@ Arguments:
 
 
 sub getNumberOfMincFiles {
-
     my $upload_id = shift;
     my ( $minc_created, $minc_inserted, $query ) = '';
     my @row = ();
@@ -324,9 +334,9 @@ sub getNumberOfMincFiles {
     $sth->execute($upload_id);
     if ( $sth->rows > 0 ) {
         @row = $sth->fetchrow_array();
-	$minc_created = $row[0];
-	$minc_inserted = $row[1];
-	return ($minc_created, $minc_inserted);
+        $minc_created = $row[0];
+        $minc_inserted = $row[1];
+        return ($minc_created, $minc_inserted);
        }
     }
 }
