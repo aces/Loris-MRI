@@ -180,7 +180,7 @@ sub determineSubjectID {
     my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     $to_log = 1 unless defined $to_log;
-    if (!defined(&Settings::getSubjectIDs)) {
+    if (!defined(NeuroDB::MRI::getSubjectIDs)) {
         if ($to_log) {
             my $message =  "\nERROR: Profile does not contain getSubjectIDs ".
                            "routine. Upload will exit now.\n\n";

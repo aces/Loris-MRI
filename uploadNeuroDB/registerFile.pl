@@ -180,7 +180,7 @@ if(defined($source_list)) {
     print "Set scannerid = $scannerID\n" if $verbose;
 	
 	# get ids from the headers
-    if(!defined(&Settings::getSubjectIDs)) {
+    if(!defined(NeuroDB::MRI::getSubjectIDs)) {
         print "\nERROR: Profile does not contain getSubjectIDs routine. Upload will exit now.\n\n";
         exit 66; 
     }
