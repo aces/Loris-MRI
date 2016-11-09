@@ -50,6 +50,11 @@ $VERSION = 0.2;
 @EXPORT = qw();
 @EXPORT_OK = qw(identify_scan in_range get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
 
+=pod
+B<getSubjectIDs( C<$identifier>, C<$scannerID>, C<$dbhr> )>
+Determines the cand id and visit label for the subject based on patient name and (for calibration data) scannerid.
+Returns: a reference to a hash containing elements including 'CandID', 'visitLabel' and 'visitNo', or, in the case of failure, undef
+=cut
 sub getSubjectIDs {
     my ($identifier, $scannerID, $dbhr) = @_;
 
