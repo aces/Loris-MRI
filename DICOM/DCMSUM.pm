@@ -275,8 +275,9 @@ QUERY
 QUERY
         my $sth_series = $dbh->prepare($delete_series);
         my $sth_files  = $dbh->prepare($delete_files);
-        $sth_series->execute($tarchiveID);
+        # Deleting from tarchive_files first because of db constraints.
         $sth_files->execute($tarchiveID);
+        $sth_series->execute($tarchiveID);
     }
 
     # now create the tarchive_series records
@@ -340,15 +341,17 @@ QUERY
           (
            TarchiveID, SeriesNumber,      FileNumber, 
            EchoNumber, SeriesDescription, Md5Sum, 
-           FileName
+           FileName,   TarchiveSeriesID
           ) 
         VALUES 
           (
            ?,          ?,                 ?, 
            ?,          ?,                 ?, 
-           ?
+           ?,          ?
           )
 QUERY
+    my $query_select_TarchiveSeriesID = "SELECT TarchiveSeriesID FROM tarchive_series WHERE SeriesUID = ? AND EchoTime = ?";
+    my $select_TarchiveSeriesID = $dbh->prepare($query_select_TarchiveSeriesID);
     my $insert_file = $dbh->prepare($insert_query);
     my $dcmdirRoot = dirname($self->{dcmdir});
     foreach my $file (@{$self->{'dcminfo'}}) {
@@ -356,27 +359,29 @@ QUERY
         my $filename = $file->[4];
         $filename =~ s/^${dcmdirRoot}\///;
         $file->[2] = undef if($file->[2] eq '');
+        $select_TarchiveSeriesID->execute($file->[24], $file->[6]); # based on SeriesUID and EchoTime
+        my ($TarchiveSeriesID) = $select_TarchiveSeriesID->fetchrow_array();
         my @values;
         if($file->[21] && $file->[25] eq 'MR') { # file is dicom and an MRI scan
             @values = 
               (
                $tarchiveID, $file->[1],  $file->[3], 
                $file->[2],  $file->[12], $file->[20], 
-               $filename
+               $filename,   $TarchiveSeriesID
               );
         } elsif($file->[21] && $file->[25] eq 'PT') { # file is dicom and a PET scan
             @values = 
               (
                $tarchiveID, $file->[1],  $file->[3], 
                undef,       $file->[12], $file->[20], 
-               $filename
+               $filename,   $TarchiveSeriesID
               );
         } else {
             @values = 
               (
                $tarchiveID, undef, undef, 
                undef,       undef, $file->[20], 
-               $filename
+               $filename,   $TarchiveSeriesID
               );
         }
         $insert_file->execute(@values);
