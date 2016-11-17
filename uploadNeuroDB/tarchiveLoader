@@ -79,7 +79,7 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
                                # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
-my $seriesuid   = '';          # if you want to insert a specific SeriesUID
+my $seriesuid   = undef;       # if you want to insert a specific SeriesUID
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
 my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
 my @opt_table = (
@@ -450,6 +450,10 @@ foreach my $minc (@minc_files) {
  
     if ($verbose) {
         $script .= " -verbose";
+    }
+
+    if ($seriesuid) {
+        $script .= " -seriesuid";
     }
 
     if ($acquisitionProtocol) {
