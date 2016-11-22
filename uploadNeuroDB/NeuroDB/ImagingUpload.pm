@@ -187,11 +187,11 @@ sub IsCandidateInfoValid {
         #1) Check to see if the file is of type DICOM###########
         #2) Check to see if the header matches the patient-name#
         ########################################################
-        if ( ( $_ ne '.' ) && ( $_ ne '..' ) ) {
+        if ( ( $_ ne '.' ) && ( $_ ne '..' ) && (basename($_) ne '.DS_Store')) {
             if ( !$this->isDicom($_) ) {
                 $files_not_dicom++;
             }
-	    else {
+    	    else {
          #######################################################
          #Validate the Patient-Name, only if it's not a phantom#
          ############## and the file is of type DICOM###########
