@@ -1203,8 +1203,14 @@ sub make_nii {
                     $data_dir . "/" . $nifti;
     system($m2n_cmd);
 
+    #  write mnc2nii version into parameter_file 
+    my $m2nv_cmd = "mnc2nii -version";
+    my $m2n_version = `$m2nv_cmd`;
+    print "$m2nv_cmd \n" . "$m2n_version\n"; 
+
     # update mri table (parameter_file table)
     $file->setParameter('check_nii_filename', $nifti);
+    $file->setParameter('mnc2nii_version', $m2n_version);
 }
 
 =pod
