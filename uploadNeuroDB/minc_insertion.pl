@@ -49,7 +49,6 @@ my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
 my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
-my $seriesuid   = undef;          # if you are inserting a specific SeriesUID, the caveat flag will be set.
 my @checks      = ();          # Initialise the array
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
@@ -101,8 +100,6 @@ my @opt_table = (
 
                  ["General options","section"],
                  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
-
-                 ["-seriesuid", "boolean", 1, \$seriesuid, "Inserting by SeriesUID"],
 
                  ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
                   "Suggest the acquisition protocol to use."],
