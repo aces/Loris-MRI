@@ -47,7 +47,7 @@ my $NewScanner  = 1;           # This should be the default unless you are a
                                # control freak
 my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
-my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
 my $seriesuid   = undef;          # if you are inserting a specific SeriesUID, the caveat flag will be set.
 my @checks      = ();          # Initialise the array
@@ -390,7 +390,7 @@ $file->setFileData('CoordinateSpace', 'native');
 $file->setFileData('OutputType', 'native');
 $file->setFileData('FileType', 'mnc');
 $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
-if (defined($seriesuid)) {
+if (defined($acquisitionProtocol)) {
     $file->setFileData('Caveat', 1);
 } else {
     $file->setFileData('Caveat', 0);
