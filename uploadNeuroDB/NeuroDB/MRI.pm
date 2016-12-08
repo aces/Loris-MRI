@@ -1165,9 +1165,10 @@ sub make_jiv {
     closedir DIR;
 
     my $fileID = $file->getFileDatum('FileID');
+    my ($newbase,$newsuffix);
     if(defined($fileID)) {
         foreach my $filename (@files) {
-            my ($newbase,undef,$newsuffix) = fileparse($filename,qw{.header .raw_byte.gz});
+            ($newbase,undef,$newsuffix) = fileparse($filename,qw{.header .raw_byte.gz});
             $newbase .= "_$fileID";
             
             `mv $tempdir/$filename $tempdir/$newbase$newsuffix`;
@@ -1180,6 +1181,7 @@ sub make_jiv {
 
     # update mri table
     $file->setParameter('jiv_path', $rowhr->{'CandID'});
+    $file->setParameter('jiv_filenames', $rowhr->{'CandID'} . '/'. $newbase . '.header; ' . $newbase . '.raw_byte.gz');
     return 1;
 }
 
