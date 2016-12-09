@@ -452,10 +452,6 @@ foreach my $minc (@minc_files) {
         $script .= " -verbose";
     }
 
-    if ($seriesuid) {
-        $script .= " -seriesuid";
-    }
-
     if ($acquisitionProtocol) {
         $script .= " -acquisition_protocol " . $acquisitionProtocol;
     }
