@@ -8,7 +8,8 @@ use File::Copy;
 use Term::ANSIColor qw(:constants);
 use NeuroDB::DBI;
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
+my $profile = "prod";
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/" . $profile}
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # Only the f.SeriesUID is really needed for minc_deletion, other fields are for information only
@@ -63,7 +64,7 @@ while ($fF = $sthF->fetchrow_hashref()) {
       }
     }
 
-    my $minc_delete_cmd = "../uploadNeuroDB/minc_deletion.pl -profile prod -seriesuid " . $fF->{'SeriesUID'} . " confirm";
+    my $minc_delete_cmd = "../uploadNeuroDB/minc_deletion.pl -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " confirm";
     print $minc_delete_cmd . "\n";
     my $minc_delete_log = `$minc_delete_cmd`;
     print $minc_delete_log . "\n";
