@@ -249,7 +249,6 @@ if ($delqcdata) {
 # selORdel("mri_protocol_violated_scans","ID");  # if there is data here, the mnc will be in the trashbin
 # selORdel("MRICandidateErrors","Reason");       # not applicable to /assembly
 # selORdel("mri_violations_log","LogID");        # "
-selORdel("files","File");
 
 ### Removal of entry in mri_acquisition_dates table ###
 ### (if only one file exists and is being removed,  ###
@@ -270,7 +269,6 @@ if ($sth->rows > 0) {
     $sessionfilesfound = 1;
     print "\nfiles found in the same session\n";
 }
-
 
 # Check #2 in mri_protocol_violated_scans
 $query = "select * from mri_protocol_violated_scans as m " .
@@ -328,3 +326,6 @@ if (!$sessionfilesfound) {
   }
 
 }
+
+# Delete file records last
+selORdel("files","File");
