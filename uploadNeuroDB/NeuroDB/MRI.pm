@@ -172,7 +172,7 @@ sub getSessionID {
     my $dbh = $$dbhr;
     
 # find a matching timepoint
-    $query = "SELECT ID, Date_visit, Visit FROM session WHERE CandID=$subjectIDref->{'CandID'} AND LOWER(Visit_label)=LOWER(".$dbh->quote($subjectIDref->{'visitLabel'}).")";
+    $query = "SELECT ID, Date_visit, Visit FROM session WHERE CandID=$subjectIDref->{'CandID'} AND LOWER(Visit_label)=LOWER(".$dbh->quote($subjectIDref->{'visitLabel'}).") AND Active='Y'";
     $sth = $dbh->prepare($query);
     $sth->execute();
 
@@ -270,7 +270,7 @@ sub getSessionID {
 	# check dates of other files
 	if(defined($studyDateJD) and !$noStagingCheck) {
 	    # get the set of sessions for the subject
-	    $query = "SELECT ID FROM session WHERE CandID=$subjectIDref->{'CandID'}";
+	    $query = "SELECT ID FROM session WHERE CandID=$subjectIDref->{'CandID'} AND Active='Y'";
 	    $sth = $dbh->prepare($query);
 	    $sth->execute();
 	    
