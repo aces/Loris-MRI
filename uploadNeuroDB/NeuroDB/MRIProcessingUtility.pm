@@ -180,10 +180,10 @@ sub extract_tarchive {
     $dcmdir =~ s/\.tar\.gz$//;
 
     if (defined($seriesuid)) {
-        print "seriesuid: $seriesuid\n";
+        print "seriesuid: $seriesuid\n" if $this->{verbose};
         my @alltarfiles = `cd $this->{TmpDir} ; tar -tzf $dcmtar`;
         $tarnames = getFileNamesfromSeriesUID($seriesuid, @alltarfiles);
-        print "tarnames: $tarnames\n";
+        print "tarnames: $tarnames\n" if $this->{verbose};
     }
 
     `cd $this->{TmpDir} ; tar -xzf $dcmtar $tarnames`;

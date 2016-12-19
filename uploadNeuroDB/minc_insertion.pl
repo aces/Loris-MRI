@@ -47,7 +47,7 @@ my $NewScanner  = 1;           # This should be the default unless you are a
                                # control freak
 my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
-my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
 my @checks      = ();          # Initialise the array
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
@@ -100,7 +100,7 @@ my @opt_table = (
 
                  ["General options","section"],
                  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
-           
+
                  ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
                   "Suggest the acquisition protocol to use."],
 
@@ -387,7 +387,11 @@ $file->setFileData('CoordinateSpace', 'native');
 $file->setFileData('OutputType', 'native');
 $file->setFileData('FileType', 'mnc');
 $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
-$file->setFileData('Caveat', 0);
+if (defined($acquisitionProtocol)) {
+    $file->setFileData('Caveat', 1);
+} else {
+    $file->setFileData('Caveat', 0);
+}
 
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
