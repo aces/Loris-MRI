@@ -176,7 +176,7 @@ if(defined($source_list)) {
 												$file->getParameter('software_versions'),
 												$centerID,
 												\$dbh, 0);
-	$file->setParameter('ScannerID', $scannerID);
+	$file->setFileData('ScannerID', $scannerID);
     print "Set scannerid = $scannerID\n" if $verbose;
 	
 	# get ids from the headers

@@ -47,7 +47,7 @@ my $NewScanner  = 1;           # This should be the default unless you are a
                                # control freak
 my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
-my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
 my @checks      = ();          # Initialise the array
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
@@ -100,7 +100,7 @@ my @opt_table = (
 
                  ["General options","section"],
                  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
-           
+
                  ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
                   "Suggest the acquisition protocol to use."],
 
@@ -371,14 +371,14 @@ if (!$unique) {
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-#    exit 8; 
+    exit 8; 
 } 
 
 ################################################################
 ## at this point things will appear in the database ############
 ## Set some file information ###################################
 ################################################################
-$file->setParameter('ScannerID', $scannerID);
+$file->setFileData('ScannerID', $scannerID);
 $file->setFileData('SessionID', $sessionID);
 $file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
 $file->setFileData('EchoTime', $file->getParameter('echo_time'));
@@ -387,7 +387,11 @@ $file->setFileData('CoordinateSpace', 'native');
 $file->setFileData('OutputType', 'native');
 $file->setFileData('FileType', 'mnc');
 $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
-$file->setFileData('Caveat', 0);
+if (defined($acquisitionProtocol)) {
+    $file->setFileData('Caveat', 1);
+} else {
+    $file->setFileData('Caveat', 0);
+}
 
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
@@ -405,7 +409,7 @@ $file->setFileData('Caveat', 0);
 
 if($acquisitionProtocol =~ /unknown/) {
    $message = "\n  --> The minc file cannot be registered ".
-		"since the AcquisitionProtocol is unknown \n";
+              "since the AcquisitionProtocol is unknown \n";
 
    print LOG $message;
    $notifier->spool('minc insertion', $message, 0,
@@ -430,7 +434,8 @@ if ((!defined$acquisitionProtocolIDFromProd)
    ) {
    $message = "\n  --> The minc file cannot be registered ".
                 "since $acquisitionProtocol ".
-                "does not exist in $profile \n";
+                "does not exist in $profile ". 
+                "or it did not pass the extra_file_checks\n";
    print LOG $message;
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion', $upload_id, 'Y',

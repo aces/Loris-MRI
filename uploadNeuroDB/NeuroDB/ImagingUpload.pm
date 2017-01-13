@@ -138,18 +138,45 @@ sub IsCandidateInfoValid {
     }
 
     ############################################################
-    ####Check to see if the scan has been ran ##################
+    ####Check to see if the scan has been run ##################
     ####if the tarchiveid or the number_of_mincCreated is set ##
-    ####itt means that has already been ran#####################
+    ####it means that has already been run. ####################
+    ####So the user can continue the insertion by running ######
+    ####tarchiveLoader exactly as the error message indicates ##
     ############################################################
     if ( ( $row[1] ) || ( $row[2] ) ) {
 
+        my $archived_file_path = '';
+        my $query             = "SELECT t.ArchiveLocation FROM tarchive t "
+                              . " WHERE t.TarchiveID =?";
+        my $sth               = ${ $this->{'dbhr'} }->prepare($query);
+        $sth->execute( $row[1] );   
+        if ( $sth->rows > 0 ) {
+            $archived_file_path = $sth->fetchrow_array();
+        }
+
+        unless ($archived_file_path =~ m/$Settings::tarchiveLibraryDir/i) {
+            $archived_file_path = ($Settings::tarchiveLibraryDir . "/" . $archived_file_path);
+        }
+
+        my $command =
+            $Settings::bin_dir
+            . "/uploadNeuroDB/tarchiveLoader"
+            . " -globLocation -profile prod $archived_file_path";
+
+        if ($this->{verbose}){
+            $command .= " -verbose";
+        }
+
         $message =
             "\nThe Scan for the uploadID "
-          . $this->{'upload_id'}
-          . " has already been ran with tarchiveID: "
-          . $row[1]
-	  . "\n";
+            . $this->{'upload_id'}
+            . " has already been run with tarchiveID: "
+            . $row[1]
+            . ". \nTo continue with the rest of the insertion pipeline, "
+            . "please run tarchiveLoader from a terminal as follows: "
+            . $command 
+            . "\n";
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
@@ -160,11 +187,11 @@ sub IsCandidateInfoValid {
         #1) Check to see if the file is of type DICOM###########
         #2) Check to see if the header matches the patient-name#
         ########################################################
-        if ( ( $_ ne '.' ) && ( $_ ne '..' ) ) {
+        if ( ( $_ ne '.' ) && ( $_ ne '..' ) && (basename($_) ne '.DS_Store')) {
             if ( !$this->isDicom($_) ) {
                 $files_not_dicom++;
             }
-	    else {
+    	    else {
          #######################################################
          #Validate the Patient-Name, only if it's not a phantom#
          ############## and the file is of type DICOM###########
@@ -292,7 +319,6 @@ sub getTarchiveFileLocation {
     unless ($archive_location =~ m/$Settings::tarchiveLibraryDir/i) {
         $archive_location = ($Settings::tarchiveLibraryDir . "/" . $archive_location);
     }
-
     return $archive_location;
 }
 
@@ -360,9 +386,9 @@ sub PatientNameMatch {
         exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
-    if ($pname ne  $this->{'pname'}) {
+    if ($pname !~ /^$this->{'pname'}/) {
         my $message = "\nThe patient-name $pname read ".
-                      "from the DICOM header does not match " .
+                      "from the DICOM header does not start with " .
         	      $this->{'pname'} . 
                       " from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);

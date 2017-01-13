@@ -90,7 +90,7 @@ sub lookupNextVisitLabel {
     my ($CandID, $dbhr) = @_;
     my $visitLabel = 1;
     my $query = "SELECT Visit_label FROM session".
-                " WHERE CandID=$CandID".
+                " WHERE CandID=$CandID AND Active='Y'".
                 " ORDER BY ID DESC LIMIT 1";
     if ($this->{debug}) {
         print $query . "\n";
@@ -105,6 +105,42 @@ sub lookupNextVisitLabel {
 }
 
 ################################################################
+########### getFileNamesfromSeriesUID  #########################
+################################################################
+sub getFileNamesfromSeriesUID {
+
+    # longest common prefix
+    sub LCP {
+      return '' unless @_;
+      my $prefix = shift;
+      for (@_) {
+          chop $prefix while (! /^\Q$prefix\E/);
+          }
+      return $prefix;
+    }
+
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+    my ($seriesuid, @alltarfiles) = @_;
+    my @filearray;
+    my $tarstring = ' --wildcards ';
+    my $query = "select tf.FileName from tarchive_files as tf".
+        " where tf.TarchiveID = (select distinct ts.tarchiveID   from tarchive_series as ts where ts.SeriesUID=?)".
+        " and tf.SeriesNumber = (select distinct ts.SeriesNumber from tarchive_series as ts where ts.SeriesUID=?)".
+        " order by tf.FileNumber";
+    my $sth = $dbh->prepare($query);
+    $sth->execute($seriesuid, $seriesuid);
+    while (my $tf = $sth->fetchrow_hashref()) {
+        push @filearray, $tf->{'FileName'};
+        $tarstring .= "'*" . $tf->{'FileName'} . "' ";
+    }
+
+    my $lcp = LCP(@alltarfiles);
+    $tarstring =~ s/$lcp//g;
+
+    return $tarstring;
+}
+
+################################################################
 ##################### extract_tarchive #########################
 ################################################################
 =pod
@@ -113,9 +149,10 @@ extracts it so data can actually be uploaded
 =cut
 sub extract_tarchive {
     my $this = shift;
-    my ($tarchive, $tarchive_srcloc) = @_;
+    my ($tarchive, $tarchive_srcloc, $seriesuid) = @_;
     my $upload_id = undef;
     my $message = '';
+    my $tarnames = '';
     # get the upload_id from the tarchive source location
     # to pass to the notification_spool
     $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
@@ -137,10 +174,19 @@ sub extract_tarchive {
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
         exit 1 ;
     }
+
     my $dcmtar = $tars[0];
     my $dcmdir = $dcmtar;
     $dcmdir =~ s/\.tar\.gz$//;
-    `cd $this->{TmpDir} ; tar -xzf $dcmtar`;
+
+    if (defined($seriesuid)) {
+        print "seriesuid: $seriesuid\n" if $this->{verbose};
+        my @alltarfiles = `cd $this->{TmpDir} ; tar -tzf $dcmtar`;
+        $tarnames = getFileNamesfromSeriesUID($seriesuid, @alltarfiles);
+        print "tarnames: $tarnames\n" if $this->{verbose};
+    }
+
+    `cd $this->{TmpDir} ; tar -xzf $dcmtar $tarnames`;
     return $dcmdir;
 }
 
@@ -151,11 +197,11 @@ sub extract_tarchive {
 sub extractAndParseTarchive {
 
     my $this = shift;
-    my ($tarchive, $tarchive_srcloc) = @_;
+    my ($tarchive, $tarchive_srcloc, $seriesuid) = @_;
     # get the upload_id from the tarchive_srcloc to pass to notification_spool
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $study_dir = $this->{TmpDir}  . "/" .
-        $this->extract_tarchive($tarchive, $tarchive_srcloc);
+        $this->extract_tarchive($tarchive, $tarchive_srcloc, $seriesuid);
     my $ExtractSuffix  = basename($tarchive, ".tar");
     # get rid of the tarchive Prefix 
     $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
@@ -412,7 +458,8 @@ sub getAcquisitionProtocol {
                         $subjectIDsref->{'visitLabel'},
                         $tarchiveInfo->{'PatientName'}
                     );
-          $message = "\nWorst error: $checks[0]\n";
+          $message = "\nextra_file_checks from table mri_protocol_check " .
+                     "logged in table mri_violations_log: $checks[0]\n";
 	  $this->{LOG}->print($message);
 	  # 'warn' and 'exclude' are errors, while 'pass' is not
 	  # log in the notification_spool_table the $Verbose flag accordingly
@@ -512,7 +559,7 @@ sub update_mri_acquisition_dates {
     ############################################################
     my $query = "SELECT s.ID, m.AcquisitionDate FROM session AS s LEFT OUTER".
                 " JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)". 
-                " WHERE s.ID='$sessionID' AND".
+                " WHERE s.ID='$sessionID' AND s.Active='Y' AND".
                 " (m.AcquisitionDate > '$acq_date'". 
                 " OR m.AcquisitionDate IS NULL) AND '$acq_date'>0";
     
@@ -1123,7 +1170,6 @@ sub validateCandidate {
         $CandMismatchError = 'CandID does not exist';
         return $CandMismatchError;
     }
-   
     
     ############################################################
     ################ Check if PSCID exists #####################
@@ -1137,7 +1183,6 @@ sub validateCandidate {
         $CandMismatchError= 'PSCID does not exist';
         return $CandMismatchError;
     } 
-    
     
     ############################################################
     ################ No Checking if the subject is Phantom #####
@@ -1175,7 +1220,7 @@ sub validateCandidate {
 sub computeSNR {
 
     my $this = shift;
-    my ($row, $file, $fileID, $base, $fullpath, $cmd, $message, $SNR, $paramID, $sth);
+    my ($row, $filename, $fileID, $base, $fullpath, $cmd, $message, $SNR, $SNR_old);
     my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
     my $data_dir = $Settings::data_dir;
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
@@ -1192,52 +1237,104 @@ sub computeSNR {
     $minc_file_arr->execute($tarchiveID);
 
     while ($row = $minc_file_arr->fetchrow_hashref()) {
-           $file = $row->{'file'};
-           $fileID = $row->{'FileID'};
-           $base = basename($file);
-           $fullpath = $data_dir . "/" . $file;
-           if (defined(&Settings::getSNRModalities)
-                && Settings::getSNRModalities($base)) {
-               $cmd = "noise_estimate --snr $fullpath";
-               $SNR = `$cmd`;
-               $SNR =~ s/\n//g;
-               print "$cmd \n" if ($this->{verbose});
-               print "SNR is: $SNR \n" if ($this->{verbose});
-
-                ### Update the SNR in files table
-                $query = "SELECT ParameterTypeID from parameter_type pt ";
-		 $where = "WHERE pt.Name='SNR'";
-		 $query = $query . $where;
-
-		if ($this->{debug}) {
-		    print $query . "\n";
-		}
-
-		$sth = ${$this->{'dbhr'}}->prepare($query);
-		$sth->execute();
-		if ( $sth->rows > 0 ) {
-		    $paramID = $sth->fetchrow_array;
- 		}
-
-                $query = "INSERT INTO parameter_file SET Value=?, ".
-			 "FileID=?, ParameterTypeID=?";
-                if ($this->{debug}) {
-                    print $query . "\n";
+        $filename = $row->{'file'};
+        $fileID = $row->{'FileID'};
+        $base = basename($filename);
+        $fullpath = $data_dir . "/" . $filename;
+        if (defined(&Settings::getSNRModalities)
+            && Settings::getSNRModalities($base)) {
+                $cmd = "noise_estimate --snr $fullpath";
+                $SNR = `$cmd`;
+                $SNR =~ s/\n//g;
+                print "$cmd \n" if ($this->{verbose});
+                print "SNR is: $SNR \n" if ($this->{verbose});
+                my $file = NeuroDB::File->new($this->{dbhr});
+                $file->loadFile($fileID);
+                $SNR_old = $file->getParameter('SNR');
+                if ($SNR ne '') {
+                    if (($SNR_old ne '') && ($SNR_old ne $SNR)) {
+                        $message = "The SNR value will be updated from " .
+                            "$SNR_old to $SNR. \n";
+                        $this->{LOG}->print($message);
+                        $this->spool($message, 'N', $upload_id, $notify_detailed);
+                    }
+                    $file->setParameter('SNR', $SNR);
                 }
-                my $files_SNR_update = ${$this->{'dbhr'}}->prepare($query);
-                $files_SNR_update->execute($SNR, $fileID, $paramID);
-                $message = "The SNR was computed for $base with SNR=$SNR \n ";
-		$this->{LOG}->print($message);
-		$this->spool($message, 'N', $upload_id, $notify_detailed);
+        }
+        else {
+            $message = "The SNR can not be computed for $base. ".
+                "Either the getSNRModalities is not defined in your ".
+                "$profile file, or the imaging modality is not ".
+                "supported by the SNR computation. \n";
+            $this->{LOG}->print($message);
+            $this->spool($message, 'N', $upload_id, $notify_detailed);
+        }
+    }
+}
+
+################################################################
+##########  Order Imaging Modalities By Acquisition ############
+################################################################
+
+sub orderModalitiesByAcq {
+
+    my $this = shift;
+    my ($file, $acqProtID, $dataArr, $message, $sth);
+    my ($tarchiveID, $tarchive_srcloc)= @_;
+    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+
+    my $queryAcqProt = "SELECT DISTINCT f.AcquisitionProtocolID ".
+                        "FROM files f ".
+                        "WHERE f.TarchiveSource=?";   
+
+    if ($this->{debug}) {
+        print $queryAcqProt . "\n";
+    }
+
+    my $acqArr = ${$this->{'dbhr'}}->prepare($queryAcqProt);
+    $acqArr->execute($tarchiveID);
+    # For each of the files having this AcquisitionProtocolID
+    # load the file object to get the series_number  
+    while (my $rowAcqProt = $acqArr->fetchrow_hashref()) {
+        $acqProtID = $rowAcqProt->{'AcquisitionProtocolID'};
+        my $queryDataArr = "SELECT f.FileID, f.AcqOrderPerModality ".
+                            "FROM files f ".
+                            "WHERE f.TarchiveSource=? AND f.AcquisitionProtocolID=?";
+
+        if ($this->{debug}) {
+            print $queryDataArr . "\n";
+        }
+
+        $dataArr = ${$this->{'dbhr'}}->prepare($queryDataArr);
+        $dataArr->execute($tarchiveID, $acqProtID);
+        my (@fileIDArr, @seriesNumberArr)=();
+        my $i=0;
+        while (my $rowDataArr = $dataArr->fetchrow_hashref()) {
+            $fileIDArr[$i] = $rowDataArr->{'FileID'};
+            $file = NeuroDB::File->new($this->{dbhr});
+            $file->loadFile($fileIDArr[$i]);
+            $seriesNumberArr[$i] = $file->getParameter('series_number');
+            $i++;
+        }
+        my (@sorted_seriesNumber_indices, @sorted_fileIDArr)=();
+        # Sort the series_number, and assign the Modality Order accordingly
+        @sorted_seriesNumber_indices = sort {$seriesNumberArr[$a] <=> $seriesNumberArr[$b]} (0..$#seriesNumberArr);
+        @sorted_fileIDArr = @fileIDArr[@sorted_seriesNumber_indices];
+
+        my $order = 1;
+        foreach my $j (0..$#seriesNumberArr) {
+            my $update = "UPDATE files f SET f.AcqOrderPerModality=? ".
+                         "WHERE f.FileID=?";
+            if ($this->{debug}) {
+                print $update . "\n";
             }
-            else {
-                $message = "The SNR was not be computed for $base. ".
-                           "Either the getSNRModalities is not defined in your ".
-                           "$profile file, or the imaging modality does not ".
-                           "support SNR computation. \n";
-		$this->{LOG}->print($message);
-		$this->spool($message, 'N', $upload_id, $notify_detailed);
-            }
+            my $modalityOrder_update = ${$this->{'dbhr'}}->prepare($update);
+            $modalityOrder_update->execute($order, $sorted_fileIDArr[$j]);
+            $message = "The Modality Order for FileID $sorted_fileIDArr[$j] was updated to $order \n ";
+            $this->{LOG}->print($message);
+            $this->spool($message, 'N', $upload_id, $notify_detailed);
+            $order++;
+        }
     }
 }
 
