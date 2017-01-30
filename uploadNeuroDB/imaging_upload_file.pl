@@ -241,18 +241,7 @@ if ( !$isCleaned ) {
     print $message;
     exit 9;
 }
-$message = "\nThe uploaded file " . $uploaded_file . " has been removed\n";
-spool($message,'N', $notify_notsummary);
-
-################################################################
-############### Spool last completion message ##################
-################################################################
-my ($minc_created, $minc_inserted) = getNumberOfMincFiles($upload_id);
-
-$message = "\nThe insertion scripts have completed "
-	    . "with $minc_created minc file(s) created, "
-	    . "and $minc_inserted minc file(s) "
-	    . "inserted into the database \n";
+$message = "\nThe uploaded file " . $uploaded_file . " has been removed\n\n";
 spool($message,'N', $notify_notsummary);
 
 ################################################################
