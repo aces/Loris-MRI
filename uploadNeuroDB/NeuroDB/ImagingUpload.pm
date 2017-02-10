@@ -417,9 +417,8 @@ sub isDicom {
     my $this         = shift;
     my ($dicom_file) = @_;
     my $cmd    = "file $dicom_file";
-    my $cmd_log = `$cmd`;
-    my ($file_path, $file_type) = split /:/, $cmd_log;
-    if ( !( $file_type =~ /DICOM/ ) ) {
+    my $file_type = `$cmd`;
+    if ( !( $file_type =~ /DICOM medical imaging data$/ ) ) {
         print "\n $dicom_file is not of type DICOM \n";
         return 0;
     }
