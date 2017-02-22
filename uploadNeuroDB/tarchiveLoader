@@ -491,7 +491,8 @@ $utility->computeSNR($tarchiveInfo{TarchiveID},
                          $tarchiveInfo{'SourceLocation'},
 			 $profile);
 ################################################################
-############### Compute SNR on 3D modalities ###################
+####### Add order of acquisition for similar modalities ########
+####### within the same session based on series number #########
 ################################################################
 $utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID},
                          $tarchiveInfo{'SourceLocation'});
@@ -504,6 +505,19 @@ if ($valid_study) {
     ### And number_of_mincInserted #############################
     ############################################################
     my $where = "WHERE TarchiveID=?";
+
+    $query =
+        "SELECT number_of_mincInserted FROM mri_upload ";
+    $query = $query . $where;
+    if ($debug) {
+        print $query . "\n";
+    }
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute($tarchiveInfo{TarchiveID});
+    my $oldCount = $sth->fetchrow_array;
+    my $newCount = $minc_inserted + $oldCount;
+
     $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
                  "number_of_mincCreated=? ";
     $query = $query . $where;
@@ -513,7 +527,7 @@ if ($valid_study) {
 
     my $mri_upload_update = $dbh->prepare($query);
     $mri_upload_update->execute(
-               $minc_inserted,$mcount,$tarchiveInfo{TarchiveID}
+               $newCount,$mcount,$tarchiveInfo{TarchiveID}
     );
  
     ############################################################
