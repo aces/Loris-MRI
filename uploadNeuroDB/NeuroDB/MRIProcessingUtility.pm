@@ -303,9 +303,12 @@ sub determinePSC {
     my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
     my $upload_id = undef;
     $to_log = 1 unless defined $to_log;
+    my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'lookupCenterNameUsing'
+                        );
     my ($center_name, $centerID) =
     NeuroDB::MRI::getPSC(
-        $tarchiveInfo->{$Settings::lookupCenterNameUsing},
+        $tarchiveInfo->{$lookupCenterNameUsing},
         $this->{dbhr}
     );
     if ($to_log) {
@@ -678,8 +681,14 @@ sub registerScanIntoDB {
         $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
         $minc, $checks,$reckless, $tarchive, $sessionID
     ) = @_;
-    my $data_dir = $Settings::data_dir;
-    my $prefix   = $Settings::prefix;
+
+    my $data_dir = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'mincPath'
+                        );
+    my $prefix = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'prefix'
+                        );
+
     my $acquisitionProtocolID = undef;
     my (
         $Date_taken,$minc_protocol_identified,
@@ -936,7 +945,10 @@ sub moveAndUpdateTarchive {
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     $message = "\nMoving tarchive into library\n";
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-    $newTarchiveLocation = $Settings::tarchiveLibraryDir."/".
+    my $tarchivePath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'tarchiveLibraryDir'
+                        );
+    $newTarchiveLocation = $tarchivePath ."/".
     substr($tarchiveInfo->{'DateAcquired'}, 0, 4);
     ############################################################
     ##### make the directory if it does not yet exist ##########
@@ -962,7 +974,10 @@ sub moveAndUpdateTarchive {
     # now update tarchive table to store correct location ######
     ############################################################
     my $newArchiveLocationField = $newTarchiveLocation;
-    $newArchiveLocationField    =~ s/$Settings::tarchiveLibraryDir\/?//g;
+    my $tarchivePath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'tarchiveLibraryDir'
+                        );
+    $newArchiveLocationField    =~ s/$tarchivePath\/?//g;
     $query = "UPDATE tarchive ".
              " SET ArchiveLocation=" . 
               ${$this->{'dbhr'}}->quote($newArchiveLocationField) .
@@ -1004,7 +1019,7 @@ sub CreateMRICandidates {
             $subjectIDsref->{'CandID'},
             $this->{dbhr}
         ) 
-        && $Settings::createCandidates
+        && (NeuroDB::DBI::getConfigSetting($this->{dbhr},'createCandidates'))
     ) {
            chomp($User);
             unless ($subjectIDsref->{'CandID'}) {
@@ -1222,7 +1237,9 @@ sub computeSNR {
     my $this = shift;
     my ($row, $filename, $fileID, $base, $fullpath, $cmd, $message, $SNR, $SNR_old);
     my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
-    my $data_dir = $Settings::data_dir;
+    my $data_dir = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'mincPath'
+                        );
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
 
     my $query = "SELECT FileID, file from files f ";
