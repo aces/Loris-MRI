@@ -55,15 +55,18 @@ if (!$profile) {
 }
 
 ################################################################
-# Where the pics should go #####################################
-################################################################
-my $pic_dir = $Settings::data_dir . '/pic';
-
-################################################################
 # Establish database connection if database option is set ######
 ################################################################
 print "Connecting to database.\n" if $verbose;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+################################################################
+# Where the pics should go #####################################
+################################################################
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'mincPath'
+                    );
+my $pic_dir = $data_dir . '/pic';
 
 ################################################################
 ##### Now go make the pics #####################################
@@ -103,6 +106,9 @@ if ($debug) {
     print $query . "\n";
 }
 
+my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'horizontalPics'
+                    );
 my $sth = $dbh->prepare($query);
 $sth->execute();
 
@@ -113,8 +119,8 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 
     unless(
         &NeuroDB::MRI::make_pics(
-            \$file, $Settings::data_dir, 
-            $pic_dir, $Settings::horizontalPics
+            \$file, $data_dir, 
+            $pic_dir, $horizontalPics
         )
     ) {
         print "FAILURE!\n";

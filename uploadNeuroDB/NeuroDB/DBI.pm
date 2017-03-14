@@ -57,7 +57,7 @@ sub getConfigSetting
 {
     my ($dbh, $name) = @_;
     my ($message,$query,$where) = '';
-    my $vakue = undef;
+    my $value = undef;
 
     $where = " WHERE c.ConfigID=(Select cs.ID from ConfigSettings cs where cs.Name=?)";
     $query = " SELECT c.Value FROM Config c";

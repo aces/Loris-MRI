@@ -86,9 +86,14 @@ if (!$DTIPrepVersion) {
 }
 
 
+# Establish database connection
+my  $dbh    =   &DB::DBI::connect_to_db(@Settings::db);
+print LOG "\n==> Successfully connected to database \n";
 
 # Needed for log file
-my  $data_dir    =  $Settings::data_dir;
+my $data_dir = NeuroDB::DBI::getConfigSetting(
+                    $dbh,'mincPath'
+                    );
 my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
 system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
@@ -101,13 +106,10 @@ print LOG "Log file, $date\n\n";
 
 # Fetch DTIPrep step during which a secondary QCed file will be created (for example: noMC for a file without motion correction). 
 # This is set as a config option in the config file.
-my  $QCed2_step =  $Settings::QCed2_step;
+my  $QCed2_step = NeuroDB::DBI::getConfigSetting(
+                    $dbh,'QCed2_step'
+                    );
 
-
-
-# Establish database connection
-my  $dbh    =   &DB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
 
 print LOG "\n==> DTI output directory is: $DTIPrep_subdir\n";
 

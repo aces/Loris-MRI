@@ -57,12 +57,23 @@ if ($profile && !defined @Settings::db) {
 }
 
 
+
+##############################
+##  Establish db connection ##
+##############################
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+print LOG "\n==> Successfully connected to database \n";
+
 ##############################
 ####  Initiate variables  ####
 ##############################
-# These settings are in a config file (profile)
-my $data_dir            = $Settings::data_dir;
-my $tarchiveLibraryDir  = $Settings::tarchiveLibraryDir;
+# These settings are in the database, accessible from the Configuration module
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    $this->{dbhr},'mincPath'
+                    );
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
+                       $this->{dbhr},'tarchiveLibraryDir'
+                       );
 $tarchiveLibraryDir     =~ s/\/$//g;
 
 
@@ -76,20 +87,13 @@ my $logfile  = "$LogDir/RemoveDuplicateTarchives_$date.log";
 open LOG, ">$logfile";
 LOG->autoflush(1);
 
-
-
 ##############################
 ####     Main program     ####
 ##############################
 
-# Establish database connection
-my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
-
 # Get tarchives list from the database and stores ArchiveLocation and md5sumArchive informations in a hash.
 ## ArchiveLocation will be the key of the hash
 ## md5sumArchive will be the value of the hash
-my $tarchiveLibraryDir  = $Settings::tarchiveLibraryDir; # get tarchive directory from config file 
 my ($tarchivesList_db)  = &selectTarchives($dbh, $tarchiveLibraryDir);
 
 # Loop through the list of tarchives in the year subfolders

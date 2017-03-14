@@ -974,9 +974,6 @@ sub moveAndUpdateTarchive {
     # now update tarchive table to store correct location ######
     ############################################################
     my $newArchiveLocationField = $newTarchiveLocation;
-    my $tarchivePath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'tarchiveLibraryDir'
-                        );
     $newArchiveLocationField    =~ s/$tarchivePath\/?//g;
     $query = "UPDATE tarchive ".
              " SET ArchiveLocation=" . 

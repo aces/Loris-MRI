@@ -535,7 +535,7 @@ sub CleanUpDataIncomingDir {
     my $output = undef;
     my $message = '';
     my $tarchive_location = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr},'tarchiveLibraryDir'
+                                $this->{dbhr},'tarchiveLibraryDir'
                             );
     ############################################################
     ################ Removes the uploaded file ################# 

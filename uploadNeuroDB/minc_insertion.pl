@@ -173,16 +173,29 @@ unless (-e $minc) {
 }
 
 ################################################################
+############### Establish database connection ##################
+################################################################
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+################################################################
 ########### Create the Specific Log File #######################
 ################################################################
-my $data_dir = $Settings::data_dir;
-$no_nii      = $Settings::no_nii if defined $Settings::no_nii;
+my $data_dir = NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'mincPath'
+                    );
+if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'no_nii'))) {
+    $no_nii = NeuroDB::DBI::getConfigSetting(
+                       \$dbh,'no_nii'
+                        ) 
+}
 my $jiv_dir  = $data_dir.'/jiv';
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
-my $LogDir   = "$data_dir/logs"; 
-my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+my $LogDir   = "$data_dir/logs";
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
+                       \$dbh,'tarchiveLibraryDir'
+                       );
 $tarchiveLibraryDir    =~ s/\/$//g;
 if (!-d $LogDir) { 
     mkdir($LogDir, 0770); 
@@ -193,12 +206,7 @@ open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
 &logHeader();
 
-################################################################
-############### Establish database connection ##################
-################################################################
-my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print LOG "\n==> Successfully connected to database \n" if $verbose;
-
 
 ################################################################
 ################## MRIProcessingUtility object #################
@@ -371,7 +379,7 @@ if (!$unique) {
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-    exit 8; 
+    #exit 8; 
 } 
 
 ################################################################

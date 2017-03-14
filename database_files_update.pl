@@ -35,8 +35,14 @@ if  (!$profile) {
             exit 33;
 }
 
-# hese settings are in the config file (profile)
-my  $data_dir   =   $Settings::data_dir;
+# Establish database connection
+my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
+print LOG "\n==> Successfully connected to database \n";
+
+# these settings are in the database and can be set in the Configuration module of LORIS
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    $dbh,'mincPath'
+                    );
 
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs";
@@ -46,9 +52,6 @@ my  $log        =   "$log_dir/replacePATH_$date.log";
 open (LOG,">>$log");
 print LOG "Log file, $date\n\n";
 
-# Establish database connection
-my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
 
 
 #### Updating minc location in files table ####

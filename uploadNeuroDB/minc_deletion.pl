@@ -115,9 +115,10 @@ if ($ARGV[0] eq "confirm") {
   $selORdel  = "SELECT * ";
 }
 
-my $data_dir         = $Settings::data_dir;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'mincPath'
+                    );
 
 sub selORdel {
   my ($table, $field) = @_;
