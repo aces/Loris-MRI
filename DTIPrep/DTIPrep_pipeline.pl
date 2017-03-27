@@ -85,7 +85,7 @@ if (!$DTIPrepVersion) {
 
 # These settings are in the ConfigSettings table
 my  $data_dir       =   NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'mincPath'
+                        \$dbh,'dataDirBasepath'
                         );
 my  $t1_scan_type   =   NeuroDB::DBI::getConfigSetting(
                         \$dbh,'t1_scan_type'

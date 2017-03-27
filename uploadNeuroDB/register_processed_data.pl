@@ -86,7 +86,7 @@ print LOG "\n==> Successfully connected to database \n";
 
 # These settings are in the config file (profile)
 my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mincPath'
+                    $dbh,'dataDirBasepath'
                     );
 my $pic_dir  =   $data_dir.'/pic';
 my $jiv_dir  =   $data_dir.'/jiv';

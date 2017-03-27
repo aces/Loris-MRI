@@ -69,7 +69,7 @@ print LOG "\n==> Successfully connected to database \n";
 ##############################
 # These settings are in the database, accessible from the Configuration module
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $this->{dbhr},'mincPath'
+                    $this->{dbhr},'dataDirBasepath'
                     );
 my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
                        $this->{dbhr},'tarchiveLibraryDir'

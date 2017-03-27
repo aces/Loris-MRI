@@ -65,7 +65,7 @@ print "\nSuccessfully connected to database \n";
 ######### Initialize variables #################################
 ################################################################
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mincPath'
+                    $dbh,'dataDirBasepath'
                     );
 my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
                        $dbh,'tarchiveLibraryDir'

@@ -64,7 +64,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 # Where the pics should go #####################################
 ################################################################
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'mincPath'
+                    \$dbh,'dataDirBasepath'
                     );
 my $pic_dir = $data_dir . '/pic';
 

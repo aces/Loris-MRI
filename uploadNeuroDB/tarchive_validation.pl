@@ -140,7 +140,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 ########## Create the Specific Log File ########################
 ################################################################
 my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'mincPath'
+                    \$dbh,'dataDirBasepath'
                     );
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);

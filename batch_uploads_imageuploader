@@ -73,7 +73,7 @@ if (!$profile ) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mincPath'
+                    $dbh,'dataDirBasepath'
                     );
 my $bin_dir = &NeuroDB::DBI::getConfigSetting(
                     $dbh,'MRICodePath'

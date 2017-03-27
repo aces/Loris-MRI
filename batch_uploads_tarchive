@@ -19,7 +19,7 @@ print "\nSuccessfully connected to database \n";
 # define project space
 my ($debug, $verbose) = (0,0);
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mincPath'
+                    $dbh,'dataDirBasepath'
                     );
 my $tarchiveLibraryir = &NeuroDB::DBI::getConfigSetting(
                     $dbh,'tarchiveLibraryDir'

@@ -683,7 +683,7 @@ sub registerScanIntoDB {
     ) = @_;
 
     my $data_dir = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'mincPath'
+                        $this->{dbhr},'dataDirBasepath'
                         );
     my $prefix = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'prefix'
@@ -1235,7 +1235,7 @@ sub computeSNR {
     my ($row, $filename, $fileID, $base, $fullpath, $cmd, $message, $SNR, $SNR_old);
     my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
     my $data_dir = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'mincPath'
+                        $this->{dbhr},'dataDirBasepath'
                         );
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
 

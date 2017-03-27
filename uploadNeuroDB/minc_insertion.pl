@@ -181,7 +181,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 ########### Create the Specific Log File #######################
 ################################################################
 my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'mincPath'
+                    \$dbh,'dataDirBasepath'
                     );
 if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'no_nii'))) {
     $no_nii = NeuroDB::DBI::getConfigSetting(
@@ -379,7 +379,7 @@ if (!$unique) {
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-    #exit 8; 
+    exit 8; 
 } 
 
 ################################################################

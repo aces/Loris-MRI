@@ -48,7 +48,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # where the JIVs should go
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'mincPath'
+                    \$dbh,'dataDirBasepath'
                     );
 my $jiv_dir = $data_dir . '/jiv';
 

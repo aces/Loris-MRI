@@ -92,7 +92,7 @@ print LOG "\n==> Successfully connected to database \n";
 
 # Needed for log file
 my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mincPath'
+                    $dbh,'dataDirBasepath'
                     );
 my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
 system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);

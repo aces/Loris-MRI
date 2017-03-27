@@ -136,7 +136,7 @@ if ($debug) {
 # Create NIfTI files for each FileIDs from the query result ####
 ################################################################
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'mincPath'
+                    \$dbh,'dataDirBasepath'
                     );
 # Loop through FileIDs
 while(my $rowhr = $sth->fetchrow_hashref()) {

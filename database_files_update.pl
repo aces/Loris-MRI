@@ -41,7 +41,7 @@ print LOG "\n==> Successfully connected to database \n";
 
 # these settings are in the database and can be set in the Configuration module of LORIS
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mincPath'
+                    $dbh,'dataDirBasepath'
                     );
 
 # Needed for log file
