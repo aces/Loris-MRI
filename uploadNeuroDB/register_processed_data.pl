@@ -82,7 +82,6 @@ unless  (-r $filename)  { print "Cannot read $filename\n"; exit 1;}
 
 # Establish database connection
 my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
 
 # These settings are in the config file (profile)
 my $data_dir = NeuroDB::DBI::getConfigSetting(
@@ -100,6 +99,7 @@ my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)    =   localtime(time)
 my  $date       =   sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log        =   "$log_dir/registerProcessed$date.log";
 open (LOG,">>$log");
+print LOG "\n==> Successfully connected to database \n";
 print LOG "Log file, $date\n\n";
 
 

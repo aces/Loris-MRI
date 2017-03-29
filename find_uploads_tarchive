@@ -57,15 +57,15 @@ if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
  }
 #######################################################################################
 
-my $dbh = NeuroDB::DBI::connect_to_db(@Settings::db);
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # get path to tarchiveLibraryDir from the database
-my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
                             $dbh,'tarchiveLibraryDir'
                             );
 $tarchiveLibraryDir    =~ s/\/$//g;
 
-my $mail_user = NeuroDB::DBI::getConfigSetting(
+my $mail_user = &NeuroDB::DBI::getConfigSetting(
                     $dbh,'mail_user'
                     );
 

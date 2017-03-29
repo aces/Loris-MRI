@@ -60,7 +60,7 @@ GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
 # input option error checking
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if  ($profile && !defined @Settings::db) {
+if  ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 33;
 }
@@ -88,11 +88,10 @@ if (!$DTIPrepVersion) {
 
 # Establish database connection
 my  $dbh    =   &DB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
 
 # Needed for log file
-my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    $dbh,'dataDirBasepath'
+my $data_dir = &DB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
                     );
 my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
 system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
@@ -100,14 +99,15 @@ my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 my  $date        =  sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log         =  "$log_dir/DTIregister$date.log";
 open(LOG,">>$log");
+print LOG "\n==> Successfully connected to database \n";
 print LOG "Log file, $date\n\n";
 
 
 
 # Fetch DTIPrep step during which a secondary QCed file will be created (for example: noMC for a file without motion correction). 
 # This is set as a config option in the config file.
-my  $QCed2_step = NeuroDB::DBI::getConfigSetting(
-                    $dbh,'QCed2_step'
+my  $QCed2_step = &DB::DBI::getConfigSetting(
+                    \$dbh,'QCed2_step'
                     );
 
 

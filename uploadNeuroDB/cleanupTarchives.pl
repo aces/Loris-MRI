@@ -62,7 +62,6 @@ if ($profile && !defined @Settings::db) {
 ##  Establish db connection ##
 ##############################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
 
 ##############################
 ####  Initiate variables  ####
@@ -86,6 +85,8 @@ mkdir ($LogDir, 0770) if (!-d $LogDir);
 my $logfile  = "$LogDir/RemoveDuplicateTarchives_$date.log";
 open LOG, ">$logfile";
 LOG->autoflush(1);
+
+print LOG "\n==> Successfully connected to database \n";
 
 ##############################
 ####     Main program     ####
