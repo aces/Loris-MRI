@@ -109,7 +109,6 @@ Arguments:
   $config_name: Variable to set in the Config table
   $config_value : value to set in the Config table
 
-  Returns: $upload_id : The Upload ID
 =cut
 
 
@@ -128,6 +127,5 @@ sub updateConfigFromProd {
     print "Just updated the Configuration Setting value for " . $config_name . " to become " . $config_value . "\n";
 }
 
-## exit 0 for find to consider this -cmd true (in case we ever run it that way...)
 exit(0);
 
