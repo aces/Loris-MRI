@@ -178,7 +178,7 @@ unless (-e $minc) {
 my $data_dir = $Settings::data_dir;
 $no_nii      = $Settings::no_nii if defined $Settings::no_nii;
 my $jiv_dir  = $data_dir.'/jiv';
-my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+my $TmpDir   = tempdir($template, DIR => $ENV{TMPDIR}, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs"; 

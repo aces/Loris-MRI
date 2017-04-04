@@ -198,7 +198,7 @@ my $User             = `whoami`;
 my @progs = ("convert", "Mincinfo_wrapper", "mincpik", $converter);
 # create the temp dir
 my $TmpDir = tempdir(
-                 $template, TMPDIR => 1, CLEANUP => 1 
+                 $template, DIR => $ENV{TMPDIR}, TMPDIR => 1, CLEANUP => 1 
              );
 # create logdir(if !exists) and logfile
 my @temp     = split(/\//, $TmpDir); 

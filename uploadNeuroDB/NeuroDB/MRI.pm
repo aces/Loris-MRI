@@ -1156,7 +1156,7 @@ sub make_jiv {
     my $jiv = $dest_dir . '/' . $rowhr->{'CandID'};
 
     # generate jiv into temp dir
-    my $tempdir = tempdir(CLEANUP=>1);
+    my $tempdir = tempdir(DIR => $ENV{TMPDIR}, CLEANUP=>1);
     `$FindBin::Bin/bin/minc2jiv.pl -quiet -force -clobber -output_path $tempdir $minc`;
 
     # rename jiv files to add fileid
