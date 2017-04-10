@@ -44,7 +44,8 @@ my @opt_table = (
                  ],
                  );
 
-
+my $val;
+my $field;
 my $Help = <<HELP;
 *******************************************************************************
 Minc Deletion
@@ -257,13 +258,20 @@ print "\nTarchiveID: $tarchiveid\n";
 print "\nSessionID: $sessionid\n";
 
 
+if ($seriesuid) {
+  $val = $seriesuid;
+  $field = "SeriesUID";
+} else {
+  $val = $fileid;
+  $field = "FileID"
+}
 # Check #1 in files, if other files from same session
 $query = "select * from files as g " .
-"where g.SessionID IN (select f.SessionID from files as f where f.SeriesUID=?) " .
-"and g.SeriesUID <> ?";
+"where g.SessionID IN (select f.SessionID from files as f where f.${field}=?) " .
+"and g.${field} <> ?";
 
 $sth = $dbh->prepare($query);
-$rvl = $sth->execute($seriesuid, $seriesuid);
+$rvl = $sth->execute($val, $val);
 
 if ($sth->rows > 0) {
     $sessionfilesfound = 1;
