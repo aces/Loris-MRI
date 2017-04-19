@@ -63,7 +63,7 @@ fi
  
 read -p "Enter the list of Site names (space separated) " site
 mridir=`pwd`
-#read -p "Enter Full Loris-code directory path "   lorisdir
+read -p "Enter Full Loris-code directory path "   lorisdir
 
 ################################################################################################
 #####################################DICOM TOOLKIT##############################################
@@ -183,3 +183,7 @@ echo
 ###########Modify the config.xml######################################
 ######################################################################
 #sed -i "s#SAME AS imagePath#/data/$PROJ/data#g" -i "s#/PATH/TO/MINC/DATA/ROOT/mri-data/minc/#data/$PROJ/data#g" $lorisdir/project/config.xml
+sed -e "s#%MINCTOOLSPATH%#$MINC_TOOLKIT_DIR/#g" \
+    < $lorisdir/docs/config/config.xml > $lorisdir/project/config.xml
+
+echo "Added $MINC_TOOLKIT_DIR/ as the MincToolsPath in $lorisdir/project/config.xml"
