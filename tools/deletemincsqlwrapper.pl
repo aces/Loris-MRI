@@ -8,7 +8,7 @@ use File::Copy;
 use Term::ANSIColor qw(:constants);
 use NeuroDB::DBI;
 
-my $profile = "null_grads"; # "prod";
+my $profile = "prod";
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/" . $profile}
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
