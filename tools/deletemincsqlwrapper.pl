@@ -21,16 +21,20 @@ if (!empty($argv[1]) {
 
 # Only the f.SeriesUID is really needed for minc_deletion, other fields are for information only
 my $queryF = <<SQL;
-    SELECT DISTINCT
-    f.FileID, f.File, f.SeriesUID, t.ArchiveLocation, SUBSTRING_INDEX(t.ArchiveLocation, '/', -1) as tarchive
-    FROM files AS f
-    LEFT JOIN session s ON (f.SessionID=s.ID)
-    LEFT JOIN parameter_file AS pf USING (FileID)
-    LEFT JOIN files_qcstatus AS fq USING (FileID)
-    LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
-    WHERE t.TarchiveID=42
-    ORDER BY f.FileID
+  select f.fileid, f.SeriesUID, f.SessionID, f.file, from_unixtime(f.InsertTime), p.Value, q.QCStatus, c.Alias, m.Scan_type
+  from files as f 
+  left join parameter_file as p using (FileID)
+  left join parameter_type as t using (ParameterTypeID)
+  left join files_qcstatus as q using (FileID)
+  left join session as s on (f.SessionID=s.ID)
+  left join psc as c on (c.CenterID=s.CenterID)
+  left join mri_scan_type as m on (m.ID=f.AcquisitionProtocolID)
+  where t.Name = 'acquisition:slice_thickness'
+  and p.Value like '%4.%'
+  and (m.Scan_type like '%t1%' or m.Scan_type like '%t2%')
+  order by f.InsertTime
 SQL
+
 
 my $sthF = $dbh->prepare($queryF);
 
