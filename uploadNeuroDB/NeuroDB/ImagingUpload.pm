@@ -182,23 +182,38 @@ sub IsCandidateInfoValid {
     }
 
 
+    ############################################################
+    ####Remove __MACOSX directory from the upload ##############
+    ############################################################
+    my $cmd = "cd " . $this->{'uploaded_temp_folder'} . "; find -name '__MACOSX' | xargs rm -rf";
+    system($cmd);
+
     foreach (@file_list) {
         ########################################################
-        #1) Check to see if the file is of type DICOM###########
-        #2) Check to see if the header matches the patient-name#
+        #1) Exlcude files starting with . (and ._ as a result)##
+        #including the .DS_Store file###########################
+        #2) Check to see if the file is of type DICOM###########
+        #3) Check to see if the header matches the patient-name#
         ########################################################
-        if ( ( $_ ne '.' ) && ( $_ ne '..' ) && (basename($_) ne '.DS_Store')) {
-            if ( !$this->isDicom($_) ) {
-                $files_not_dicom++;
-            }
-    	    else {
-         #######################################################
-         #Validate the Patient-Name, only if it's not a phantom#
-         ############## and the file is of type DICOM###########
-         #######################################################
-                if ($row[4] eq 'N') {
-                    if ( !$this->PatientNameMatch($_) ) {
-                            $files_with_unmatched_patient_name++;
+        if ( (basename($_) =~ /^\./)) {
+            $cmd = "rm " . ($_);
+            print ($cmd);
+            system($cmd);
+        }
+        else {
+            if ( ( $_ ne '.' ) && ( $_ ne '..' )) {
+                if ( !$this->isDicom($_) ) {
+                    $files_not_dicom++;
+                }
+    	        else {
+            #######################################################
+            #Validate the Patient-Name, only if it's not a phantom#
+            ############## and the file is of type DICOM###########
+            #######################################################
+                    if ($row[4] eq 'N') {
+                        if ( !$this->PatientNameMatch($_) ) {
+                                $files_with_unmatched_patient_name++;
+                        }
                     }
                 }
             }
