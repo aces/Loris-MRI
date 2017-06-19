@@ -968,7 +968,13 @@ sub moveAndUpdateTarchive {
               ${$this->{'dbhr'}}->quote($newArchiveLocationField) .
              " WHERE DicomArchiveID=". 
              ${$this->{'dbhr'}}->quote(
-                $tarchiveInfo->{'DicomArchiveID'}
+                $tarchiveInfo->{'DicomArchiveID'}) .
+             " AND TarchiveID=".
+             ${$this->{'dbhr'}}->quote(
+              $tarchiveInfo->{'TarchiveID'}) . 
+             " AND SourceLocation=".
+             ${$this->{'dbhr'}}->quote(
+              $tarchiveInfo->{'SourceLocation'}
              );
     print $query . "\n"  if $this->{debug};
     ${$this->{'dbhr'}}->do($query);

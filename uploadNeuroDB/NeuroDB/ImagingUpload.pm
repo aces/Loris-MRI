@@ -240,7 +240,7 @@ sub IsCandidateInfoValid {
 runDicomTar()
 Description:
  -Extracts tarchiveID using pname
- -Runs dicomTar.pl with -clobber -database -profile prod options
+ -Runs dicomTar.pl with -database -profile prod options
  -If successfull it updates MRI_upload table accordingly
 
 Arguments:
@@ -258,7 +258,7 @@ sub runDicomTar {
       $Settings::bin_dir . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
         $dicomtar . " " . $this->{'uploaded_temp_folder'} 
-      . " $tarchive_location -clobber -database -profile prod";
+      . " $tarchive_location -database -profile prod";
     if ($this->{verbose}) {
         $command .= " -verbose";
     }
@@ -297,7 +297,7 @@ sub runDicomTar {
 getTarchiveFileLocation()
 Description:
  -Extracts tarchiveID using pname
- -Runs dicomTar.pl with clobber -database -profile prod options
+ -Runs dicomTar.pl with -database -profile prod options
  -If successfull it updates MRI_upload Table accordingly
 
 Arguments:
