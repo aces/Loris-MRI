@@ -24,7 +24,8 @@ This script needs to be run once during the upgrade to LORIS-MRI v17.1. Its purp
 is to remove some variables defined in the $profile file to the Configuration module
 within LORIS. This script assumes that the LORIS upgrade patch has been run, with 
 table entries created and set to default values. This script will then update those
-values with those that already exist in the $profile file.
+values with those that already exist in the $profile file. If the table entry does not
+exist in the $profile, it will be kept at the default value of a new install.
 
 HELP
 my $Usage = <<USAGE;
@@ -70,7 +71,15 @@ my $no_nii = $Settings::no_nii;
 my $converter = $Settings::converter;
 my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
 my $lookupCenterNameUsing = $Settings::lookupCenterNameUsing;
-my $if_sge = $Settings::if_sge;
+my $if_sge;
+# Some projects may have manually changed the name of if_sge to is_qsub
+# so account for this case here
+if (defined($Settings::if_sge)) {
+    $if_sge = $Settings::if_sge;
+}
+if (defined($Settings::is_qsub)) {
+    $if_sge = $Settings::is_qsub;
+}
 my $if_site = $Settings::if_site;
 my $DTI_volumes = $Settings::DTI_volumes;
 my $t1_scan_type = $Settings::t1_scan_type;
@@ -88,7 +97,7 @@ my ($config_name, $config_value);
     ## Populate the mri_upload table with necessary entries and get an upload_id 
 for my $index (0 .. $#config_name_arr) {
     $config_name = $config_name_arr[$index];
-    ## This value was called if_sge, but should be called is_qsub
+    ## This value was called if_sge in the default profileTemplate, but should be called is_qsub
     if ($config_name eq "if_sge" ) {
         $config_name = "is_qsub";
     }
@@ -116,15 +125,26 @@ sub updateConfigFromProd {
 
     my ( $dbhr, $config_name, $config_value ) = @_;
 
-    my $query = "UPDATE Config SET Value=? ";
+    my $query_update = "UPDATE Config SET Value=? ";
     my $where = "WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name=?)";
-    $query = $query . $where;
+    $query_update = $query_update . $where;
 
-    my $config_update = $dbh->prepare($query);
-    $config_update->execute(
-               $config_value,$config_name
-    );
-    print "Just updated the Configuration Setting value for " . $config_name . " to become " . $config_value . "\n";
+    my $query_select = "SELECT Value FROM Config ";
+    $query_select = $query_select . $where;
+
+    # If value is found in the existing prod file, use it to update the database
+    if (defined($config_value)) {
+        my $config_update = $dbh->prepare($query_update);
+        $config_update->execute($config_value,$config_name);
+        print "Just updated the Configuration Setting value for " . $config_name . " to become " . $config_value . "\n";
+    }
+    # Otherwise, keep the default value that is equivalent to a fresh Loris-MRI install
+    else {
+        my $config_select = $dbh->prepare($query_select);
+        $config_select->execute($config_name);
+        my $config_default = $config_select->fetchrow_array;
+        print "The Configuration Setting value for " . $config_name . " is kept at its default value of " . $config_default . "\n";
+    }
 }
 
 exit(0);
