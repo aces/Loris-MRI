@@ -57,7 +57,7 @@ if (!$profile ) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-my @config_name_arr = ("data_dir", "prefix", "mail_user", "get_dicom_info",
+my @config_name_arr = ("dataDirBasepath", "prefix", "mail_user", "get_dicom_info",
                        "horizontalPics", "no_nii", "converter", "tarchiveLibraryDir",
                        "lookupCenterNameUsing", "if_sge", "if_site", "DTI_volumes",
                        "t1_scan_type", "reject_thresh", "niak_path", "QCed2_step");
