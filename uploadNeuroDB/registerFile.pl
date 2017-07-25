@@ -158,7 +158,7 @@ if(defined($source_list)) {
 	# get psc
 	my $centerID;
     my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
-                                    $dbh,'lookupCenterNameUsing'
+                                    \$dbh,'lookupCenterNameUsing'
                                     );
 
     $lookupCenterNameUsing = 'patient_name' if ($lookupCenterNameUsing eq 'PatientName');

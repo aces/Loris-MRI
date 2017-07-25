@@ -61,12 +61,12 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # get path to tarchiveLibraryDir from the database
 my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                            $dbh,'tarchiveLibraryDir'
+                            \$dbh,'tarchiveLibraryDir'
                             );
 $tarchiveLibraryDir    =~ s/\/$//g;
 
 my $mail_user = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mail_user'
+                    \$dbh,'mail_user'
                     );
 
 if($noUpdateSwitch == 1) { 

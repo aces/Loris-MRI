@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 no warnings 'once';
+use NeuroDB::DBI;
 
 #####Get config setting#######################################################
 # checking for profile settings
@@ -19,16 +20,16 @@ print "\nSuccessfully connected to database \n";
 # define project space
 my ($debug, $verbose) = (0,0);
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'dataDirBasepath'
+                    \$dbh,'dataDirBasepath'
                     );
-my $tarchiveLibraryir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'tarchiveLibraryDir'
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'tarchiveLibraryDir'
                     );
 my $is_qsub = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'is_qsub'
+                    \$dbh,'is_qsub'
                     );
 my $mail_user = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mail_user'
+                    \$dbh,'mail_user'
                     );
 
 my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/tarstdout.log", "$data_dir/batch_output/tarstderr.log");

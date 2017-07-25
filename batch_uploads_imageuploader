@@ -73,16 +73,16 @@ if (!$profile ) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'dataDirBasepath'
+                    \$dbh,'dataDirBasepath'
                     );
 my $bin_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'MRICodePath'
+                    \$dbh,'MRICodePath'
                     );
 my $is_qsub = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'is_qsub'
+                    \$dbh,'is_qsub'
                     );
 my $mail_user = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'mail_user'
+                    \$dbh,'mail_user'
                     );
 
 my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/imuploadstdout.log", 

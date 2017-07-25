@@ -40,7 +40,7 @@ my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # these settings are in the database and can be set in the Configuration module of LORIS
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'dataDirBasepath'
+                    \$dbh,'dataDirBasepath'
                     );
 
 # Needed for log file

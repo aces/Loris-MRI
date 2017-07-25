@@ -65,10 +65,10 @@ print "\nSuccessfully connected to database \n";
 ######### Initialize variables #################################
 ################################################################
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    $dbh,'dataDirBasepath'
+                    \$dbh,'dataDirBasepath'
                     );
 my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                       $dbh,'tarchiveLibraryDir'
+                       \$dbh,'tarchiveLibraryDir'
                        );
 $tarchiveLibraryDir    =~ s/\/$//g;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) 

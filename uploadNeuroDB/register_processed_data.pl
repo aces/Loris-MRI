@@ -85,12 +85,12 @@ my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # These settings are in the config file (profile)
 my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    $dbh,'dataDirBasepath'
+                    \$dbh,'dataDirBasepath'
                     );
 my $pic_dir  =   $data_dir.'/pic';
 my $jiv_dir  =   $data_dir.'/jiv';
 my $prefix   = NeuroDB::DBI::getConfigSetting(
-                    $dbh,'prefix'
+                    \$dbh,'prefix'
                     );
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs/registerProcessed";
@@ -130,7 +130,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 my  ($center_name,$centerID);
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $lookupCenterName       =   NeuroDB::DBI::getConfigSetting(
-                                    $dbh,'lookupCenterNameUsing'
+                                    \$dbh,'lookupCenterNameUsing'
                                     );
     my  $patientInfo;
     if      ($lookupCenterName eq 'PatientName')    {
@@ -253,7 +253,7 @@ my $intermediary_insert = &insert_intermedFiles($fileID, $inputFileIDs, $tool);
 print LOG "\n==> FAILED TO INSERT INTERMEDIARY FILES FOR $fileID!\n\n" if (!$intermediary_insert);
 
 my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
-                        $dbh,'horizontalPics'
+                        \$dbh,'horizontalPics'
                         );
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     # Jivify

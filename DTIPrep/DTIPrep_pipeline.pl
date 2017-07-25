@@ -85,26 +85,26 @@ my  $dbh    =   &DB::DBI::connect_to_db(@Settings::db);
 
 # These settings are in the ConfigSettings table
 my  $data_dir       =   &DB::DBI::getConfigSetting(
-                        $dbh,'dataDirBasepath'
+                        \$dbh,'dataDirBasepath'
                         );
 my  $t1_scan_type   =   &DB::DBI::getConfigSetting(
-                        $dbh,'t1_scan_type'
+                        \$dbh,'t1_scan_type'
                         );
 my  $DTI_volumes    =   &DB::DBI::getConfigSetting(
-                        $dbh,'DTI_volumes'
+                        \$dbh,'DTI_volumes'
                         );
 my  $reject_thresh  =   &DB::DBI::getConfigSetting(
-                        $dbh,'reject_thresh'
+                        \$dbh,'reject_thresh'
                         );
 my  $niak_path      =   &DB::DBI::getConfigSetting(
-                        $dbh,'niak_path'
+                        \$dbh,'niak_path'
                         );
 my  $QCed2_step     =   &DB::DBI::getConfigSetting(
-                        $dbh,'QCed2_step'
+                        \$dbh,'QCed2_step'
                         );
 
 my  $site           =   &DB::DBI::getConfigSetting(
-                        $dbh,'prefix'
+                        \$dbh,'prefix'
                         );
 
 # Needed for log file
