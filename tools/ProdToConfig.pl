@@ -143,8 +143,9 @@ sub updateConfigFromProd {
         my $config_select = $dbh->prepare($query_select);
         $config_select->execute($config_name);
         my $config_default = $config_select->fetchrow_array;
-print "Default is: $config_default \n";
-        print "The Configuration Setting value for " . $config_name . " is kept at its default value of " . $config_default . "\n";
+        print "*** WARNING *** " . 
+              "The Configuration Setting value for " . $config_name . " is kept at its default value of " . $config_default .
+              " because " . $config_name . " is not found in the " . $profile . " file \n";
     }
 }
 
