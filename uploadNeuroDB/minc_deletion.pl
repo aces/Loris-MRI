@@ -330,3 +330,27 @@ if (!$sessionfilesfound) {
 
 # Delete file records last
 selORdel("files","File");
+
+# Update the number of minc inserted in mri_upload by subtracting one
+if ($selORdel eq "DELETE ") {
+    $query = "SELECT number_of_mincInserted FROM mri_upload " .
+        "WHERE TarchiveID=?";
+
+    $sth = $dbh->prepare($query);
+    $sth->execute($tarchiveid);
+    my $nmi = $sth->fetchrow_array;
+
+    if ($sth->rows > 0) {
+        my $new_nmi = $nmi - 1;
+        $query = "UPDATE mri_upload SET number_of_mincInserted=? ".
+            "WHERE TarchiveID=?";
+
+        $sth = $dbh->prepare($query);
+        my $success = $sth->execute($new_nmi, $tarchiveid);
+
+        if ($success) {
+            print "\nNew count for number of mincs inserted changed to " . $new_nmi . "\n";
+        }
+    }
+}
+
