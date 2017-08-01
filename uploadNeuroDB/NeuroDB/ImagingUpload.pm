@@ -434,7 +434,7 @@ sub isDicom {
     my ($dicom_file) = @_;
     my $cmd    = "file $dicom_file";
     my $file_type    = `$cmd`;
-    if ( !( $file_type =~ /DICOM/ ) ) {
+    if ( !( $file_type =~ /DICOM medical imaging data$/ ) ) {
         print "\n $dicom_file is not of type DICOM \n";
         return 0;
     }
