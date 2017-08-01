@@ -154,13 +154,18 @@ sub IsCandidateInfoValid {
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
         }
-
-        unless ($archived_file_path =~ m/$Settings::tarchiveLibraryDir/i) {
-            $archived_file_path = ($Settings::tarchiveLibraryDir . "/" . $archived_file_path);
+        my $tarchivePath = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'tarchiveLibraryDir'
+                            );
+        my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'MRICodePath'
+                            );
+        unless ($archived_file_path =~ m/$tarchivePath/i) {
+            $archived_file_path = ($tarchivePath . "/" . $archived_file_path);
         }
 
         my $command =
-            $Settings::bin_dir
+            $bin_dirPath
             . "/uploadNeuroDB/tarchiveLoader"
             . " -globLocation -profile prod $archived_file_path";
 
@@ -253,9 +258,14 @@ sub runDicomTar {
     my $tarchive_id       = undef;
     my $query             = '';
     my $where             = '';
-    my $tarchive_location = $Settings::tarchiveLibraryDir;
+    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'tarchiveLibraryDir'
+                            );
+    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'MRICodePath'
+                        );
     my $dicomtar = 
-      $Settings::bin_dir . "/" . "dicom-archive" . "/" . "dicomTar.pl";
+      $bin_dirPath . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
         $dicomtar . " " . $this->{'uploaded_temp_folder'} 
       . " $tarchive_location -clobber -database -profile prod";
@@ -316,8 +326,11 @@ sub getTarchiveFileLocation {
         $archive_location = $sth->fetchrow_array();
     }
 
-    unless ($archive_location =~ m/$Settings::tarchiveLibraryDir/i) {
-        $archive_location = ($Settings::tarchiveLibraryDir . "/" . $archive_location);
+    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'tarchiveLibraryDir'
+                            );
+    unless ($archive_location =~ m/$tarchive_location/i) {
+        $archive_location = ($tarchive_location . "/" . $archive_location);
     }
     return $archive_location;
 }
@@ -340,8 +353,11 @@ Arguments:
 sub runTarchiveLoader {
     my $this               = shift;
     my $archived_file_path = $this->getTarchiveFileLocation();
+    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'MRICodePath'
+                        );
     my $command =
-        $Settings::bin_dir
+        $bin_dirPath
       . "/uploadNeuroDB/tarchiveLoader"
       . " -globLocation -profile prod $archived_file_path";
 
@@ -441,7 +457,10 @@ Arguments:
 
 sub sourceEnvironment {
     my $this            = shift;
-    my $cmd =   "source  " . $Settings::bin_dir."/". "environment";
+    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'MRICodePath'
+                        );
+    my $cmd =   "source  " . $bin_dirPath."/". "environment";
     $this->runCommand($cmd);
 }
 
@@ -515,7 +534,9 @@ sub CleanUpDataIncomingDir {
     my ($uploaded_file) = @_;
     my $output = undef;
     my $message = '';
-    my $tarchive_location = $Settings::tarchiveLibraryDir;
+    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
+                                $this->{dbhr},'tarchiveLibraryDir'
+                            );
     ############################################################
     ################ Removes the uploaded file ################# 
     ##### Check first that the file is in the tarchive dir ##### 

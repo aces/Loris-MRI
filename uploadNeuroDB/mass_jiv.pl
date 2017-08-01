@@ -42,12 +42,15 @@ if ($profile && !@Settings::db) {
 
 if(!$profile) { print $Usage; print "\n\tERROR: You must specify an existing profile.\n\n";  exit 33;  }
 
-# where the JIVs should go
-my $jiv_dir = $Settings::data_dir . '/jiv';
-
 # establish database connection if database option is set
 print "Connecting to database.\n" if $verbose;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# where the JIVs should go
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
+                    );
+my $jiv_dir = $data_dir . '/jiv';
 
 
 ## now go make the jivs
@@ -73,7 +76,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
     my $file = NeuroDB::File->new(\$dbh);
     $file->loadFile($rowhr->{'FileID'});
 
-    unless(&NeuroDB::MRI::make_jiv(\$file, $Settings::data_dir, $jiv_dir)) {
+    unless(&NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir)) {
 	print "FAILURE!\t$rowhr->{'FileID'}\n";
     }
 }
