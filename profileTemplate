@@ -20,63 +20,9 @@
 
 @db = ('DBNAME','DBUSER', 'DBPASS', 'DBHOST');
 
+
 =pod
 # SECTION II
-# -----------------------------------------------------------------------------------------------
-  tarchiveloader settings
-  Do not use a trailing / for data_dir
-# -----------------------------------------------------------------------------------------------
-=cut
-
-
-$data_dir       = '/PATH/TO/DATA/location';     # where the data goes
-$bin_dir        = '/PATH/TO/BIN/location';      # where the imaging scripts go
-$prefix         = "project";                    # study prefix or study name
-$mail_user      = "yourname\@example.com";      # who will be notified
-$get_dicom_info = "/PATH/TO/get_dicom_info.pl"; # path to get_dicom_info.pl
-$horizontalPics = 1;
-$no_nii         = 0;                            # 0=create nifti files, 1=don't create nifti files
-
-# if converter is set to dcm2mnc, the c-version of dcm2mnc will be used. If however you want 
-# to use any of the various versions of the perl converter dicom_to_minc of mydcm2mnc you will have 
-# to specify what it is called and the uploader will try to invoke it. 
-$converter      = "dcm2mnc";
-
-# where to store the library of used tarchives
-# if this is not set they will not be moved
-$tarchiveLibraryDir = '/PATH/TO/dicomlib/'; 
-
-# which element of the tarchive table should be used to getPSC(), being either PatientID or PatientName
-$lookupCenterNameUsing = 'PatientName';
-
-# should the upload create candidates when needed? 0/1
-$createCandidates = 1;
-
-###1 if the qsub/sge is used 0 otherwise##
-##set false by default##
-$if_sge = 0;
-
-###1 if site is used or 0 otherwise####
-###It is used by default
-$if_site = 1;
-
-### DTIPrep pipeline options
-## If DTI acquisitions are performed, specify
-# 1. Number of volumes in native DTI acquisitions
-$DTI_volumes    =   '65';
-# 2. Scan type of native T1 acquisition (as in mri_scan_type table)
-$t1_scan_type   =   'adniT1';
-# 3. Max number of directions that can be rejected to PASS QC
-$reject_thresh  =   19;
-## Optionaly, set this two options:
-# 4a. path to niak quarantine to use if mincdiffusion will be run (option -runMincdiffusion set when calling DTIPrep_pipeline.pl) 
-$niak_path      =   '/opt/niak-0.6.4.1/';
-# 4b. DTIPrep protocol step at which a secondary QCed dataset is produced (for example one without motion correction and eddy current correction would be saved at INTERLACE_outputDWIFileNameSuffix step of DTIPrep)
-$QCed2_step   =   'INTERLACE_outputDWIFileNameSuffix';
-
-
-=pod
-# SECTION III
 # -----------------------------------------------------------------------------------------------
   custom settings
   these functions are very specific for any given study. Using them seems to be the only way of
@@ -179,15 +125,14 @@ sub filterParameters {
 
 
 # ----------- OPTIONAL SUBROUTINE
-# Fetch site, CandID and Visit info from DTI folder.
-sub  get_DTI_Site_CandID_Visit {
+# Fetch CandID and Visit info from DTI folder.
+sub  get_DTI_CandID_Visit {
     my ($native_dir) =   @_;
 
     if  ($native_dir =~  /assembly\/(\d\d\d\d\d\d)\/(V\d{1,2})\/mri\//i)  {  
-        my  $site   =   $prefix;                          
         my  $subjID =   $1;
         my  $visit  =   $2;
-        return  ($site,$subjID,$visit);
+        return  ($subjID,$visit);
     }else{
         return  undef;
     }

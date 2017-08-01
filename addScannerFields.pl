@@ -60,8 +60,10 @@ if(!$profile) { print $Usage; print "\n\tERROR: You must specify an existing pro
 # establish database connection if database option is set
 my $dbh = &DB::DBI::connect_to_db(@Settings::db); print "Connecting to database.\n" if $verbose;
 
-# get $tarchiveLibraryDir from profile
-my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+# get $tarchiveLibraryDir from the ConfigSettings table
+my $tarchiveLibraryDir = &DB::DBI::getConfigSetting(
+                            \$dbh,'tarchiveLibraryDir'
+                            );
 $tarchiveLibraryDir    =~ s/\/$//g;
 
 (my $query = <<QUERY) =~ s/\n/ /gm;

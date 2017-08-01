@@ -125,8 +125,10 @@ print "Connecting to database.\n" if $verbose;
 ######generate an error#########################################
 ################################################################
 
-# fetch tarchiveLibraryDir from the config file
-my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+# fetch tarchiveLibraryDir from ConfigSettings in the database
+my $tarchiveLibraryDir = &DB::DBI::getConfigSetting(
+                            \$dbh,'tarchiveLibraryDir'
+                            );
 # determine tarchive path stored in the database (without tarchiveLibraryDir)
 my $tarchive_path = $tarchive;
 $tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;  
