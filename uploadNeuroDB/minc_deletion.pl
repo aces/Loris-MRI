@@ -31,6 +31,7 @@ my $rvl;
 my $query     = '';
 my $selORdel  = '';
 my $delqcdata = '';
+my $seriesUIDFiles = 0;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -88,7 +89,7 @@ USAGE
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !@Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named ". 
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
+          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
     exit 2; 
 }
 if (!$ARGV[0] || !$profile) { 
@@ -213,7 +214,7 @@ while (my $f = $sth->fetchrow_hashref()) {
   ($file, $dir, $ext) = fileparse($f->{'File'});
   $nii_file     = basename($file, ".mnc") . ".nii";
   @candid = split("/", $dir);
-
+  $data_dir = "/data/ccna/data";
   if ($ARGV[0] eq "confirm") {
     # Let's make directories
     make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
@@ -336,6 +337,16 @@ if (!$sessionfilesfound) {
 
 }
 
+# If using SeriesUID, get number of matching files before deleting
+if ($field eq "SeriesUID") {
+    $query = "SELECT COUNT(*) FROM files WHERE SeriesUID = ?";
+    $sth = $dbh->prepare($query);
+    $sth->execute($seriesuid);
+    $seriesUIDFiles = $sth->fetchrow_array;
+    print "\n ". $seriesUIDFiles ." files matched with SeriesUID " . $seriesuid . "\n";
+}
+
+
 # Delete file records last
 selORdel("files","File");
 
@@ -349,7 +360,12 @@ if ($selORdel eq "DELETE ") {
     my $nmi = $sth->fetchrow_array;
 
     if ($sth->rows > 0) {
-        my $new_nmi = $nmi - 1;
+        my $new_nmi = $nmi;
+        if ($field eq "SeriesUID") {
+            $nmi -= $seriesUIDFiles;
+        } else {
+            $new_nmi -= 1;
+        }
         $query = "UPDATE mri_upload SET number_of_mincInserted=? ".
             "WHERE TarchiveID=?";
 
