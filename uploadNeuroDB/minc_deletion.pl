@@ -345,7 +345,6 @@ if ($field eq "SeriesUID") {
     print "\n ". $sUIDFiles ." files matched with SeriesUID " . $seriesuid . "\n";
 }
 
-
 # Delete file records last
 selORdel("files","File");
 
