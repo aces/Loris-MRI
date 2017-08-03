@@ -31,7 +31,7 @@ my $rvl;
 my $query     = '';
 my $selORdel  = '';
 my $delqcdata = '';
-my $seriesUIDFiles = 0;
+my $sUIDFiles = 0;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -214,7 +214,6 @@ while (my $f = $sth->fetchrow_hashref()) {
   ($file, $dir, $ext) = fileparse($f->{'File'});
   $nii_file     = basename($file, ".mnc") . ".nii";
   @candid = split("/", $dir);
-  $data_dir = "/data/ccna/data";
   if ($ARGV[0] eq "confirm") {
     # Let's make directories
     make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
@@ -342,8 +341,8 @@ if ($field eq "SeriesUID") {
     $query = "SELECT COUNT(*) FROM files WHERE SeriesUID = ?";
     $sth = $dbh->prepare($query);
     $sth->execute($seriesuid);
-    $seriesUIDFiles = $sth->fetchrow_array;
-    print "\n ". $seriesUIDFiles ." files matched with SeriesUID " . $seriesuid . "\n";
+    $sUIDFiles = $sth->fetchrow_array;
+    print "\n ". $sUIDFiles ." files matched with SeriesUID " . $seriesuid . "\n";
 }
 
 
@@ -362,7 +361,7 @@ if ($selORdel eq "DELETE ") {
     if ($sth->rows > 0) {
         my $new_nmi = $nmi;
         if ($field eq "SeriesUID") {
-            $nmi -= $seriesUIDFiles;
+            $new_nmi -= $sUIDFiles;
         } else {
             $new_nmi -= 1;
         }
