@@ -76,9 +76,9 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 
   To help ensure Apache-writability, verify that your environment file contains the following line:
 
-    ```bash
-    umask 0002
-    ```
+   ```bash
+   umask 0002
+   ```
 
    Ensure that /home/lorisadmin/.bashrc includes the statement: 
 
@@ -108,7 +108,7 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    /data/$projectname/data/ 
    /data/$projectname/bin/mri/
    /data/incoming/
-   /data/$projectname/bin/mri/dicom-archive/.prod
+   /data/$projectname/bin/mri/dicom-archive/.loris_mri/prod
    ```
 
 <br>
