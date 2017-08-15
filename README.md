@@ -43,7 +43,7 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
    Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
 
    ```bash
-   run sudo dpkg i minc-toolkit<version>.deb
+   sudo dpkg -i minc-toolkit<version>.deb
    ```
 
   Then source the MINC toolkit environment by running (for bash) `source /opt/minc/minc-toolkit-config.sh` or (tcsh) `source /opt/minc/minc-toolkit-config.csh`.
