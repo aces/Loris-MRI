@@ -342,7 +342,7 @@ if ($field eq "SeriesUID") {
     $sth = $dbh->prepare($query);
     $sth->execute($seriesuid);
     $sUIDFiles = $sth->fetchrow_array;
-    print "\n ". $sUIDFiles ." files matched with SeriesUID " . $seriesuid . "\n";
+    print "\n". $sUIDFiles ." files matched with SeriesUID " . $seriesuid . "\n";
 }
 
 # Delete file records last
@@ -358,11 +358,10 @@ if ($selORdel eq "DELETE ") {
     my $nmi = $sth->fetchrow_array;
 
     if ($sth->rows > 0) {
-        my $new_nmi = $nmi;
         if ($field eq "SeriesUID") {
-            $new_nmi -= $sUIDFiles;
+            $nmi -= $sUIDFiles;
         } else {
-            $new_nmi -= 1;
+            $nmi -= 1;
         }
         $query = "UPDATE mri_upload SET number_of_mincInserted=? ".
             "WHERE TarchiveID=?";
