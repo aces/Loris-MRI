@@ -234,7 +234,7 @@ sub getSessionID {
 	# fixme ask Jon ... is this still useful?
     # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
 	if($centerID == 0) {
-            $query = "SELECT IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, CenterID FROM session WHERE CandID=".$dbh->quote($subjectIDref->{'CandID'})." GROUP BY CandID newVisitNo, CenterID";
+            $query = "SELECT IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, CenterID FROM session WHERE CandID=".$dbh->quote($subjectIDref->{'CandID'})." GROUP BY CandID, newVisitNo, CenterID";
             $sth = $dbh->prepare($query);
             $sth->execute();
             if($sth->rows > 0) {
