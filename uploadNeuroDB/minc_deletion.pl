@@ -370,7 +370,7 @@ if ($selORdel eq "DELETE ") {
         my $success = $sth->execute($new_nmi, $tarchiveid);
 
         if ($success) {
-            print "\nNew count for number of mincs inserted changed to " . $new_nmi . "\n";
+            print "\nNew count for number of mincs inserted changed to " . $nmi . "\n";
         }
     }
 }
