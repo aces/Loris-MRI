@@ -29,6 +29,7 @@ if (!empty($argv[1]) {
 }
 
 # Only the f.SeriesUID is really needed for minc_deletion, other fields are for information only
+# If you plan to re-insert, you'll also need ArchiveLocation
 my $queryF = <<SQL;
     SELECT DISTINCT
     f.FileID, f.File, f.SeriesUID, t.ArchiveLocation, SUBSTRING_INDEX(t.ArchiveLocation, '/', -1) as tarchive
@@ -39,6 +40,7 @@ my $queryF = <<SQL;
     LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
     LIMIT 5
 SQL
+
 
 my $sthF = $dbh->prepare($queryF);
 
