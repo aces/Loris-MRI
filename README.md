@@ -7,8 +7,8 @@ This repo can be installed on either the same VM as the main LORIS codebase, or 
 
 # System Requirements
  * Perl
- * MINC toolkit (step 3)
- * DICOM toolkit (step 4)
+ * MINC toolkit (step 3 below)
+ * DICOM toolkit (step 4 below)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
@@ -76,9 +76,9 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 
   To help ensure Apache-writability, verify that your environment file contains the following line:
 
-    ```bash
-    umask 0002
-    ```
+   ```bash
+   umask 0002
+   ```
 
    Ensure that /home/lorisadmin/.bashrc includes the statement: 
 
@@ -108,7 +108,7 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    /data/$projectname/data/ 
    /data/$projectname/bin/mri/
    /data/incoming/
-   /data/$projectname/bin/mri/dicom-archive/.prod
+   /data/$projectname/bin/mri/dicom-archive/.loris_mri/prod
    ```
 
 <br>
