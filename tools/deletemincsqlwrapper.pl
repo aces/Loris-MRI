@@ -8,7 +8,16 @@ use File::Copy;
 use Term::ANSIColor qw(:constants);
 use NeuroDB::DBI;
 
-my $profile = "null_grads"; # "prod";
+my $Help = <<HELP;
+This script is a wrapper for deleting multiple mincs at a time
+and optionally re-inserting them.
+HELP
+
+my $Usage = <<USAGE;
+Usage: ./deletemincsqlwrapper.pl [insertminc]
+USAGE
+
+my $profile = "prod";
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/" . $profile}
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
@@ -28,14 +37,7 @@ my $queryF = <<SQL;
     LEFT JOIN parameter_file AS pf USING (FileID)
     LEFT JOIN files_qcstatus AS fq USING (FileID)
     LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
-    WHERE f.SeriesUID='1.3.12.2.1107.5.2.32.35177.2015072521545163128256406.0.0.0' or f.SeriesUID='1.3.12.2.1107.5.2.32.35177.2015072822492087585653675.0.0.0' and
-    ((pf.ParameterTypeID=329 and pf.`VALUE` like '%acquisition:direction_x = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.%')
-     or (pf.ParameterTypeID=329 and pf.`VALUE` like '%acquisition:direction_y = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.%')
-     or (pf.ParameterTypeID=329 and pf.`VALUE` like '%acquisition:direction_z = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.%')
-     or (pf.ParameterTypeID=333 and pf.`VALUE` like '%0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.%')
-     or (pf.ParameterTypeID=334 and pf.`VALUE` like '%0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.%')
-     or (pf.ParameterTypeID=343 and pf.`VALUE` like '%0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.%'))
-    ORDER BY f.FileID
+    LIMIT 5
 SQL
 
 my $sthF = $dbh->prepare($queryF);
