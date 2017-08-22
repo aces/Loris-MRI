@@ -13,12 +13,6 @@ my $profile = "prod";
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 
-if (!empty($argv[1]) {
-  if ($argv[1] eq "insertminc") {
-    my $insertminc = 1;
-  }
-}
-
 # Only the f.SeriesUID is really needed for minc_deletion, other fields are for information only
 my $queryF = <<SQL;
   select f.fileid, f.SeriesUID, f.SessionID, f.file, from_unixtime(f.InsertTime), p.Value, q.QCStatus, c.Alias, m.Scan_type
