@@ -367,7 +367,7 @@ if ($selORdel eq "DELETE ") {
             "WHERE TarchiveID=?";
 
         $sth = $dbh->prepare($query);
-        my $success = $sth->execute($new_nmi, $tarchiveid);
+        my $success = $sth->execute($nmi, $tarchiveid);
 
         if ($success) {
             print "\nNew count for number of mincs inserted changed to " . $nmi . "\n";
