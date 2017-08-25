@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use Getopt::Tabular;
 no warnings 'once';
 use Data::Dumper;
 use File::Basename;
@@ -11,7 +12,6 @@ use NeuroDB::DBI;
 my $profile = "prod";
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/" . $profile}
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-
 
 # Only the f.SeriesUID is really needed for minc_deletion, other fields are for information only
 my $queryF = <<SQL;
@@ -65,13 +65,13 @@ while ($fF = $sthF->fetchrow_hashref()) {
       }
     }
 
-    my $minc_delete_cmd = "../uploadNeuroDB/minc_deletion.pl -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " confirm";
+    my $minc_delete_cmd = "minc_deletion.pl -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " confirm";
     print $minc_delete_cmd . "\n";
     my $minc_delete_log = `$minc_delete_cmd`;
     print $minc_delete_log . "\n";
 
     if ($insertminc) {
-      my $tar_loader_cmd  = "../uploadNeuroDB/tarchiveLoader -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
+      my $tar_loader_cmd  = "tarchiveLoader -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
       print $tar_loader_cmd . "\n";
       my $tar_loader_log  = `$tar_loader_cmd`;
       print $tar_loader_log . "\n";
