@@ -9,7 +9,7 @@ use File::Copy;
 use Term::ANSIColor qw(:constants);
 use NeuroDB::DBI;
 
-my $profile = " ";
+my $profile = undef;
 my $insertminc;
 
 my @opt_table           = (
@@ -58,10 +58,10 @@ my $queryF = <<SQL;
   left join session as s on (f.SessionID=s.ID)
   left join psc as c on (c.CenterID=s.CenterID)
   left join mri_scan_type as m on (m.ID=f.AcquisitionProtocolID)
-  left join tarchive AS t ON f.TarchiveSource=t.TarchiveID
+  left join tarchive AS t on f.TarchiveSource=t.TarchiveID
   where pt.Name = 'acquisition:slice_thickness'
-  and p.Value like '%3.%'
-  and (m.Scan_type like '%fMRI%')
+  and p.Value like '%4.%'
+  and (m.Scan_type like '%t1%' or m.Scan_type like '%t2%')
   order by f.InsertTime
 SQL
 
@@ -101,13 +101,13 @@ while ($fF = $sthF->fetchrow_hashref()) {
       }
     }
 
-    my $minc_delete_cmd = "minc_deletion.pl -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " confirm";
+    my $minc_delete_cmd = "uploadNeuroDB/minc_deletion.pl -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " confirm";
     print $minc_delete_cmd . "\n";
     my $minc_delete_log = `$minc_delete_cmd`;
     print $minc_delete_log . "\n";
 
     if ($insertminc) {
-      my $tar_loader_cmd  = "tarchiveLoader -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
+      my $tar_loader_cmd  = "uploadNeuroDB/tarchiveLoader -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
       print $tar_loader_cmd . "\n";
       my $tar_loader_log  = `$tar_loader_cmd`;
       print $tar_loader_log . "\n";
