@@ -28,7 +28,6 @@ my $queryF = <<SQL;
   order by f.InsertTime
 SQL
 
-
 my $sthF = $dbh->prepare($queryF);
 
 my $keepgoing = 1;
