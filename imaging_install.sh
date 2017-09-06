@@ -5,6 +5,7 @@
 #1)It doesn't set up the SGE
 #2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place it in somewhere
 #3)It doesn't change the config.xml
+#4)It doesn't populate the Config tables with paths etc.
 ##################################
 
 #Create a temporary log for installation and delete it on completion 
@@ -38,14 +39,6 @@ if [ ! -f "$MAKECHECK" ]; then
     echo "Please ask your sysadmin or install make\n"
     exit
 fi
-#Check if apt-get is install
-APTGETCHECK=`which apt-get`
-if [ ! -f "$APTGETCHECK" ]; then
-    echo "\nERROR: Unable to find apt-get"
-    echo "Please ask your sysadmin or install apt-get\n"
-    exit
-fi
-
 
 read -p "What is the database name? " mysqldb
 read -p "What is the database host? " mysqlhost
@@ -64,17 +57,6 @@ read -p "Enter the list of Site names (space separated) " site
 mridir=`pwd`
 #read -p "Enter Full Loris-code directory path "   lorisdir
 
-################################################################################################
-#####################################DICOM TOOLKIT##############################################
-################################################################################################
-os_distro=$(lsb_release -si)
-if [ $os_distro  = "CentOS" ]; then
-    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
-else
-    echo "Installing DICOM Toolkit (May prompt for sudo password)"
-    sudo -S apt-get install dcmtk
-fi
-echo
 
 #################################################################################################
 ############################INSTALL THE PERL LIBRARIES###########################################
@@ -182,3 +164,23 @@ echo
 ###########Modify the config.xml######################################
 ######################################################################
 #sed -i "s#SAME AS imagePath#/data/$PROJ/data#g" -i "s#/PATH/TO/MINC/DATA/ROOT/mri-data/minc/#data/$PROJ/data#g" $lorisdir/project/config.xml
+
+################################################################################################
+#####################################DICOM TOOLKIT##############################################
+################################################################################################
+os_distro=$(lsb_release -si)
+if [ $os_distro  = "CentOS" ]; then
+    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
+else
+    #Check if apt-get is install
+    APTGETCHECK=`which apt-get`
+    if [ ! -f "$APTGETCHECK" ]; then
+        echo "\nERROR: Unable to find apt-get"
+        echo "Please ask your sysadmin or install apt-get\n"
+        exit
+    fi
+
+    echo "Installing DICOM Toolkit (May prompt for sudo password)"
+    sudo -S apt-get install dcmtk
+fi
+echo
