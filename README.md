@@ -7,8 +7,8 @@ This repo can be installed on the same VM as the main LORIS codebase, or on a di
 
 # System Requirements
  * Perl
- * MINC toolkit (step 3)
- * DICOM toolkit (step 4)
+ * MINC toolkit (step 3 below)
+ * DICOM toolkit (step 4 below)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
@@ -42,7 +42,7 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
 Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
 
    ```bash
-   run sudo dpkg i minc-toolkit<version>.deb
+   sudo dpkg -i minc-toolkit<version>.deb
    ```
 
   Then source the MINC toolkit environment by running (for bash) `source /opt/minc/minc-toolkit-config.sh` or (tcsh) `source /opt/minc/minc-toolkit-config.csh`.
@@ -107,7 +107,7 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    /data/$projectname/data/ 
    /data/$projectname/bin/mri/
    /data/incoming/
-   /data/$projectname/bin/mri/dicom-archive/.prod
+   /data/$projectname/bin/mri/dicom-archive/.loris_mri/.prod
    ```
 
 <br>
