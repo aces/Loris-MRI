@@ -19,7 +19,7 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
 
 # Installation
 
-### 1. Create directories and download Loris-MRI code
+#### 1. Create directories and download Loris-MRI code
 
    ```bash
    sudo mkdir -p /data/$projectname/bin/mri
@@ -28,7 +28,7 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
    git clone -b master https://github.com/aces/Loris-MRI.git mri
    ```
 
-### 2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
+#### 2. Install dicom-archive-tools sub-repo within the mri/ directory (created by the git clone command):
 
    ```bash
    cd /data/$projectname/bin/mri/
@@ -37,7 +37,7 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
    git submodule update
    ```
 
-### 3. Install MINC toolkit from http://bic-mni.github.io/ 
+#### 3. Install MINC toolkit from http://bic-mni.github.io/ 
 
 Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
 
@@ -47,7 +47,7 @@ Download the pre-compiled package for your operating system.  Install required d
 
   Then source the MINC toolkit environment by running (for bash) `source /opt/minc/minc-toolkit-config.sh` or (tcsh) `source /opt/minc/minc-toolkit-config.csh`.
 
-### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
+#### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
    ```bash 
    cd /data/$projectname/bin/mri/
@@ -71,7 +71,7 @@ Download the pre-compiled package for your operating system.  Install required d
   Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group.  To ensure this change takes effect, log out and log back into your terminal session before running the imaging pipeline.
 The installer will also set Apache group ownership of certain /data/ subdirectories.  
 
-### 5. Configure paths and environment
+#### 5. Configure paths and environment
 
   To help ensure Apache-writability, verify that your environment file contains the following line:
 
@@ -85,7 +85,7 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 
    Then source the .bashrc file.   
 
-### 6. Set up MINC utilities for BrainBrowser visualization
+#### 6. Set up MINC utilities for BrainBrowser visualization
 
 To ensure that BrainBrowser can load MINC images, the MINC toolkit must be accessible to the main LORIS codebase.
 (If the Loris-MRI codebase is installed on a separate machine, ensure the MINC toolkit is installed in both locations.)
@@ -97,7 +97,7 @@ Ensure the _project/config.xml_ file (in the main LORIS codebase) contains the f
    <MINCToolsPath>/opt/minc/</MINCToolsPath>
    ```
 
-### 7. Verify filesystem permissions 
+#### 7. Verify filesystem permissions 
 
 As a final step, ensure that permissions on /data/$projectname and /data/incoming and their subdirectories are set such that lorisadmin and the Apache linux user can read, write _and_ execute all contents.
 
@@ -111,5 +111,7 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    ```
 
 <br>
-   Installation complete. For customizations and protocol configurations, see [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database).
+   Installation complete.
+
+ For customizations and protocol configurations, and how to run the pipeline -- see the wiki [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database)
 
