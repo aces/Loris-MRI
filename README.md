@@ -107,7 +107,7 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    /data/$projectname/data/ 
    /data/$projectname/bin/mri/
    /data/incoming/
-   /data/$projectname/bin/mri/dicom-archive/.loris_mri/.prod
+   /data/$projectname/bin/mri/dicom-archive/.loris_mri/prod
    ```
 
 <br>
