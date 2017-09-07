@@ -1,22 +1,21 @@
-This Readme covers release 17.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 18.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
-This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 17.0.*.<br>
+This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 18.0.*.<br>
 For documentation and detailed setup information, please see the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database)</b>.
 
 This repo can be installed on either the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
 
 # System Requirements
  * Perl
- * MINC toolkit (step 3 below)
- * DICOM toolkit (step 4 below)
+ * MINC toolkit (step 3)
+ * DICOM toolkit (step 4)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
-For <u>CentOS</u>: Dependency installation notes are included in the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database) Imaging Setup page, Section 1 (installing codebase)</b>.
-As of the release date, this includes a transcript for [CentOS installation](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript) and notes on dependencies including [DICOM toolkit](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript#7-install-dicom-toolkit).
+For <u>CentOS</u>: The [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database) Imaging Setup page (see Section 1, installing codebase) includes links to older transcripts for [CentOS installation](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript) and notes on dependencies including [DICOM toolkit](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript#7-install-dicom-toolkit).
 
 The following installation should be run by the $lorisadmin user. sudo permission is required.
-See [aces/Loris README.md](https://github.com/aces/loris) for further information and Loris installation information. 
+See [aces/Loris](https://github.com/aces/loris) README.md for further information. 
 
 # Installation
 
@@ -43,12 +42,12 @@ See [aces/Loris README.md](https://github.com/aces/loris) for further informatio
    Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
 
    ```bash
-   sudo dpkg -i minc-toolkit<version>.deb
+   run sudo dpkg i minc-toolkit<version>.deb
    ```
 
   Then source the MINC toolkit environment by running (for bash) `source /opt/minc/minc-toolkit-config.sh` or (tcsh) `source /opt/minc/minc-toolkit-config.csh`.
 
-4. Run installer to install DICOM toolkit, Perl libraries, configure environment, and setup directories:
+4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
    ```bash 
    cd /data/$projectname/bin/mri/
@@ -76,9 +75,9 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 
   To help ensure Apache-writability, verify that your environment file contains the following line:
 
-   ```bash
-   umask 0002
-   ```
+    ```bash
+    umask 0002
+    ```
 
    Ensure that /home/lorisadmin/.bashrc includes the statement: 
 
@@ -108,7 +107,7 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    /data/$projectname/data/ 
    /data/$projectname/bin/mri/
    /data/incoming/
-   /data/$projectname/bin/mri/dicom-archive/.loris_mri/prod
+   /data/$projectname/bin/mri/dicom-archive/.prod
    ```
 
 <br>
