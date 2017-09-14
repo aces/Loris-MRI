@@ -187,7 +187,7 @@ fi
 ######################################################################
 ###### Update the Database table, Config, with the user values #######
 ######################################################################
-echo "Populating database config."
+echo "Populating database configuration entries for the Imaging Pipeline:"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='dataDirBasepath')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$PROJ' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='prefix')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$email' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='mail_user')"
