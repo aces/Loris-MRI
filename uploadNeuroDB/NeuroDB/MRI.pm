@@ -47,6 +47,9 @@ use FindBin;
 $VERSION = 0.2;
 @ISA = qw(Exporter);
 
+# Number of decimals considered when testing if two floats are equal
+$FLOAT_EQUALS_NB_DECIMALS = 4;
+
 @EXPORT = qw();
 @EXPORT_OK = qw(identify_scan in_range get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
 
@@ -633,17 +636,34 @@ sub in_range
 
     my $range = 0;
     foreach $range (@ranges) {
-	chomp($range);
-	if($range=~/^[0-9.]+$/) { ## single value element
-	    return 1 if $value==$range;
-	} else { ## range X-Y
-	    $range =~ /([0-9.]+)-([0-9.]+)/;
-	    return 1 if ($1 <= $value && $value <= $2);
-	}
+       chomp($range);
+       if($range=~/^[0-9.]+$/) { ## single value element
+           return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
+       } else { ## range X-Y
+           $range =~ /([0-9.]+)-([0-9.]+)/;
+           return 1 if ($1 <= $value && $value <= $2) 
+               || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
+               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
+       }
     }
 
     ## if we've gotten this far, we're out of range.
     return 0;
+}
+
+=pod
+
+B<floats_are_equal( C<$f1>, C<$f2>, C<$nb_decimals> )>
+
+Checks whether f1 and f2 are equal (considers only the first nb_decimals decimals).
+
+Returns: 1 if the numbers are relatively equal, 0 otherwise
+
+=cut
+sub floats_are_equal {
+    my($f1, $f2, $nb_decimals) = @_;
+
+    return sprintf("%.${nb_decimals}g", $f1) eq sprintf("%.${nb_decimals}g", $f2);
 }
 
 ## string range_to_sql($field, $range_string) where $range_string follows the same format as in in_range
