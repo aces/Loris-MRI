@@ -33,6 +33,9 @@ re-inserting them.
 
 It will pause before for confirmation before deleting.
 
+Please note that this is an example script. Projects need to customize the query based
+on their needs. Please refer to the README in the tools/ directory for more details.
+
 HELP
 
 my $Usage = <<USAGE;
@@ -50,19 +53,19 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 # Only the f.SeriesUID is really needed for minc_deletion, other fields are for information only
 # If you plan to re-insert, you'll also need ArchiveLocation
 my $queryF = <<SQL;
-  select distinct f.fileid, f.SeriesUID, f.SessionID, f.file, t.ArchiveLocation, from_unixtime(f.InsertTime), p.Value, q.QCStatus, c.Alias, m.Scan_type
-  from files as f 
-  left join parameter_file as p using (FileID)
-  left join parameter_type as pt using (ParameterTypeID)
-  left join files_qcstatus as q using (FileID)
-  left join session as s on (f.SessionID=s.ID)
-  left join psc as c on (c.CenterID=s.CenterID)
-  left join mri_scan_type as m on (m.ID=f.AcquisitionProtocolID)
-  left join tarchive AS t on f.TarchiveSource=t.TarchiveID
-  where pt.Name = 'acquisition:slice_thickness'
-  and p.Value like '%4.%'
-  and (m.Scan_type like '%t1%' or m.Scan_type like '%t2%')
-  order by from_unixtime(f.InsertTime)
+  SELECT DISTINCT f.fileid, f.SeriesUID, f.SessionID, f.file, t.ArchiveLocation, from_unixtime(f.InsertTime), p.Value, q.QCStatus, c.Alias, m.Scan_type
+  FROM files AS f
+  LEFT JOIN parameter_file AS p using (FileID)
+  LEFT JOIN parameter_type AS pt using (ParameterTypeID)
+  LEFT JOIN files_qcstatus AS q using (FileID)
+  LEFT JOIN session AS s ON (f.SessionID=s.ID)
+  LEFT JOIN psc AS c ON (c.CenterID=s.CenterID)
+  LEFT JOIN mri_scan_type AS m ON (m.ID=f.AcquisitionProtocolID)
+  LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
+  WHERE pt.Name = 'acquisition:slice_thickness'
+  AND p.Value LIKE '%4.%'
+  AND (m.Scan_type LIKE '%t1%' OR m.Scan_type LIKE '%t2%')
+  ORDER BY FROM_UNIXTIME(f.InsertTime)
 SQL
 
 
