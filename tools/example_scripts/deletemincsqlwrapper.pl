@@ -64,7 +64,7 @@ my $queryF = <<SQL;
   LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
   WHERE pt.Name = 'acquisition:slice_thickness'
   AND p.Value LIKE '%4.%'
-  AND (m.Scan_type LIKE '%adniT1%')
+  AND (m.Scan_type LIKE '%t1%' OR m.Scan_type LIKE '%t2%')
   ORDER BY FROM_UNIXTIME(f.InsertTime)
 SQL
 
