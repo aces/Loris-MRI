@@ -118,5 +118,5 @@ if ($sthF->rows > 0) {
     }
   }
 } else {
-    print "No find matched the following query.\n" . $queryF . "\n";
+    print "No find matched the following query:\n" . $queryF . "\n";
 }
