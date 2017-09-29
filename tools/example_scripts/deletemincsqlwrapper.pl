@@ -64,7 +64,7 @@ my $queryF = <<SQL;
   LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
   WHERE pt.Name = 'acquisition:slice_thickness'
   AND p.Value LIKE '%4.%'
-  AND (m.Scan_type LIKE '%t1%' OR m.Scan_type LIKE '%t2%')
+  AND (m.Scan_type LIKE '%adniT1%')
   ORDER BY FROM_UNIXTIME(f.InsertTime)
 SQL
 
@@ -72,7 +72,7 @@ SQL
 my $sthF = $dbh->prepare($queryF);
 
 my $keepgoing = 1;
-my ($rF, $fF, $stdin, $i);
+my ($fF, $stdin, $i);
 
 printf ("%-6s", '| L# ');
 printf ("%-64s",'| SeriesUID');
@@ -81,11 +81,12 @@ printf ("%-20s",'| Scan Type');
 printf ("%-60s",'| File');
 print "|\n";
 
-$rF = $sthF->execute();
+$sthF->execute();
 
-while ($fF = $sthF->fetchrow_hashref()) {
+if ($sthF->rows > 0) {
 
-  if ($sthF->rows > 0) {
+  while ($fF = $sthF->fetchrow_hashref()) {
+
     $i++;
 
     printf ("%-6s", '| '. $i);
@@ -116,4 +117,6 @@ while ($fF = $sthF->fetchrow_hashref()) {
       print $tar_loader_log . "\n";
     }
   }
+} else {
+    print "No find matched the following query.\n" . $queryF . "\n";
 }
