@@ -16,7 +16,7 @@ my @opt_table           = (
     [ "Basic options", "section" ],
     [
         "-profile", "string", 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"
+        "name of config file in ../../dicom-archive/.loris_mri"
     ],
     [   
          "-insertminc", "boolean", 0, \$insertminc, "Re-insert the deleted minc"
@@ -39,7 +39,7 @@ on their needs. Please refer to the README in the tools/ directory for more deta
 HELP
 
 my $Usage = <<USAGE;
-usage: tools/deletemincsqlwrapper.pl -profile prod
+usage: tools/example_scripts/deletemincsqlwrapper.pl -profile prod
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
@@ -53,7 +53,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 # Only the f.SeriesUID is really needed for minc_deletion, other fields are for information only
 # If you plan to re-insert, you'll also need ArchiveLocation
 my $queryF = <<SQL;
-  SELECT DISTINCT f.fileid, f.SeriesUID, f.SessionID, f.file, t.ArchiveLocation, from_unixtime(f.InsertTime), p.Value, q.QCStatus, c.Alias, m.Scan_type
+  SELECT DISTINCT f.fileid, f.SeriesUID, f.SessionID, f.file, t.ArchiveLocation, FROM_UNIXTIME(f.InsertTime), p.Value, q.QCStatus, c.Alias, m.Scan_type
   FROM files AS f
   LEFT JOIN parameter_file AS p using (FileID)
   LEFT JOIN parameter_type AS pt using (ParameterTypeID)
