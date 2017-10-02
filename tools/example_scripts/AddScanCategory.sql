@@ -1,0 +1,12 @@
+ALTER TABLE mri_scan_type ADD COLUMN `Scan_category` enum('anat','func','dwi','fmap') DEFAULT NULL;
+UPDATE mri_scan_type SET Scan_category = 'anat' where Scan_type = '3d_t1w'; 
+UPDATE mri_scan_type SET Scan_category = 'anat' where Scan_type = '2d_flair'; 
+UPDATE mri_scan_type SET Scan_category = 'anat' where Scan_type = 't2_star'; 
+UPDATE mri_scan_type SET Scan_category = 'anat' where Scan_type = 'dual_pd'; 
+UPDATE mri_scan_type SET Scan_category = 'anat' where Scan_type = 'dual_t2'; 
+UPDATE mri_scan_type SET Scan_category = 'func' where Scan_type = 'resting_state'; 
+UPDATE mri_scan_type SET Scan_category = 'func' where Scan_type = 'fmri_epi'; 
+UPDATE mri_scan_type SET Scan_category = 'dwi' where Scan_type = 'dti'; 
+UPDATE mri_scan_type SET Scan_category = 'dwi' where Scan_type = 'b0_map'; 
+UPDATE mri_scan_type SET Scan_category = 'fmap' where Scan_type = 'gre_field_map1'; 
+UPDATE mri_scan_type SET Scan_category = 'fmap' where Scan_type = 'gre_field_map2'; 
