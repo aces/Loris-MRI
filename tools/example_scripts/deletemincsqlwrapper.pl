@@ -33,8 +33,9 @@ re-inserting them.
 
 It will pause before for confirmation before deleting.
 
-Please note that this is an example script. Projects need to customize the query based
-on their needs. Please refer to the README in the tools/ directory for more details.
+Please note that this is an example script. Projects need to customize the query
+based on their needs. Please refer to the README in the tools/example_scripts/ 
+directory for more details.
 
 HELP
 
@@ -111,12 +112,13 @@ if ($sthF->rows > 0) {
     print $minc_delete_log . "\n";
 
     if ($insertminc) {
-      my $tar_loader_cmd  = "uploadNeuroDB/tarchiveLoader -profile " . $profile . " -seriesuid " . $fF->{'SeriesUID'} . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
+      # Running tarchiveLoader on the archived tar as a whole will only insert new minc files that are not already in the files table 
+      my $tar_loader_cmd  = "uploadNeuroDB/tarchiveLoader -profile " . $profile . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
       print $tar_loader_cmd . "\n";
       my $tar_loader_log  = `$tar_loader_cmd`;
       print $tar_loader_log . "\n";
     }
   }
 } else {
-    print "No find matched the following query:\n" . $queryF . "\n";
+    print "\n***No files were found that match the following query:***\n\n" . $queryF . "\n";
 }
