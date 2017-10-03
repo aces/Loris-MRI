@@ -5,6 +5,7 @@
 #1)It doesn't set up the SGE
 #2)It doesn't fetch the CIVET stuff   TODO:Get the CIVET stuff from somewhere and place it in somewhere
 #3)It doesn't change the config.xml
+#4)It doesn't populate the Config tables with paths etc.
 ##################################
 
 #Create a temporary log for installation and delete it on completion 
@@ -38,14 +39,6 @@ if [ ! -f "$MAKECHECK" ]; then
     echo "Please ask your sysadmin or install make\n"
     exit
 fi
-#Check if apt-get is install
-APTGETCHECK=`which apt-get`
-if [ ! -f "$APTGETCHECK" ]; then
-    echo "\nERROR: Unable to find apt-get"
-    echo "Please ask your sysadmin or install apt-get\n"
-    exit
-fi
-
 
 read -p "What is the database name? " mysqldb
 read -p "What is the database host? " mysqlhost
@@ -65,17 +58,6 @@ read -p "Enter the list of Site names (space separated) " site
 mridir=`pwd`
 #read -p "Enter Full Loris-code directory path "   lorisdir
 
-################################################################################################
-#####################################DICOM TOOLKIT##############################################
-################################################################################################
-os_distro=$(lsb_release -si)
-if [ $os_distro  = "CentOS" ]; then
-    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
-else
-    echo "Installing DICOM Toolkit (May prompt for sudo password)"
-    sudo -S apt-get install dcmtk
-fi
-echo
 
 #################################################################################################
 ############################INSTALL THE PERL LIBRARIES###########################################
@@ -175,7 +157,7 @@ cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodf
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
-sed -e "s#project#$PROJ#g" -e "s#/PATH/TO/DATA/location#/data/$PROJ/data#g" -e "s#/PATH/TO/BIN/location#$mridir#g" -e "s#yourname\\\@example.com#$email#g" -e "s#/PATH/TO/get_dicom_info.pl#$mridir/dicom-archive/get_dicom_info.pl#g"  -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#/PATH/TO/dicomlib/#/data/$PROJ/data/tarchive#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
@@ -183,3 +165,32 @@ echo
 ###########Modify the config.xml######################################
 ######################################################################
 #sed -i "s#SAME AS imagePath#/data/$PROJ/data#g" -i "s#/PATH/TO/MINC/DATA/ROOT/mri-data/minc/#data/$PROJ/data#g" $lorisdir/project/config.xml
+
+################################################################################################
+#####################################DICOM TOOLKIT##############################################
+################################################################################################
+os_distro=$(lsb_release -si)
+if [ $os_distro  = "CentOS" ]; then
+    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
+else
+    #Check if apt-get is install
+    APTGETCHECK=`which apt-get`
+    if [ ! -f "$APTGETCHECK" ]; then
+        echo "\nERROR: Unable to find apt-get"
+        echo "Please ask your sysadmin or install apt-get\n"
+        exit
+    fi
+
+    echo "Installing DICOM Toolkit (May prompt for sudo password)"
+    sudo -S apt-get install dcmtk
+fi
+######################################################################
+###### Update the Database table, Config, with the user values #######
+######################################################################
+echo "Populating database configuration entries for the Imaging Pipeline:"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='dataDirBasepath')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$PROJ' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='prefix')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$email' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='mail_user')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/bin/mri/dicom-archive/get_dicom_info.pl' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='get_dicom_info')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/tarchive' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='tarchiveLibraryDir')"
+echo

@@ -154,13 +154,18 @@ sub IsCandidateInfoValid {
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
         }
-
-        unless ($archived_file_path =~ m/$Settings::tarchiveLibraryDir/i) {
-            $archived_file_path = ($Settings::tarchiveLibraryDir . "/" . $archived_file_path);
+        my $tarchivePath = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'tarchiveLibraryDir'
+                            );
+        my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'MRICodePath'
+                            );
+        unless ($archived_file_path =~ m/$tarchivePath/i) {
+            $archived_file_path = ($tarchivePath . "/" . $archived_file_path);
         }
 
         my $command =
-            $Settings::bin_dir
+            $bin_dirPath
             . "/uploadNeuroDB/tarchiveLoader"
             . " -globLocation -profile prod $archived_file_path";
 
@@ -182,23 +187,38 @@ sub IsCandidateInfoValid {
     }
 
 
+    ############################################################
+    ####Remove __MACOSX directory from the upload ##############
+    ############################################################
+    my $cmd = "cd " . $this->{'uploaded_temp_folder'} . "; find -name '__MACOSX' | xargs rm -rf";
+    system($cmd);
+
     foreach (@file_list) {
         ########################################################
-        #1) Check to see if the file is of type DICOM###########
-        #2) Check to see if the header matches the patient-name#
+        #1) Exlcude files starting with . (and ._ as a result)##
+        #including the .DS_Store file###########################
+        #2) Check to see if the file is of type DICOM###########
+        #3) Check to see if the header matches the patient-name#
         ########################################################
-        if ( ( $_ ne '.' ) && ( $_ ne '..' ) && (basename($_) ne '.DS_Store')) {
-            if ( !$this->isDicom($_) ) {
-                $files_not_dicom++;
-            }
-    	    else {
-         #######################################################
-         #Validate the Patient-Name, only if it's not a phantom#
-         ############## and the file is of type DICOM###########
-         #######################################################
-                if ($row[4] eq 'N') {
-                    if ( !$this->PatientNameMatch($_) ) {
-                            $files_with_unmatched_patient_name++;
+        if ( (basename($_) =~ /^\./)) {
+            $cmd = "rm " . ($_);
+            print ($cmd);
+            system($cmd);
+        }
+        else {
+            if ( ( $_ ne '.' ) && ( $_ ne '..' )) {
+                if ( !$this->isDicom($_) ) {
+                    $files_not_dicom++;
+                }
+    	        else {
+            #######################################################
+            #Validate the Patient-Name, only if it's not a phantom#
+            ############## and the file is of type DICOM###########
+            #######################################################
+                    if ($row[4] eq 'N') {
+                        if ( !$this->PatientNameMatch($_) ) {
+                                $files_with_unmatched_patient_name++;
+                        }
                     }
                 }
             }
@@ -253,9 +273,14 @@ sub runDicomTar {
     my $tarchive_id       = undef;
     my $query             = '';
     my $where             = '';
-    my $tarchive_location = $Settings::tarchiveLibraryDir;
+    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'tarchiveLibraryDir'
+                            );
+    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'MRICodePath'
+                        );
     my $dicomtar = 
-      $Settings::bin_dir . "/" . "dicom-archive" . "/" . "dicomTar.pl";
+      $bin_dirPath . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
         $dicomtar . " " . $this->{'uploaded_temp_folder'} 
       . " $tarchive_location -clobber -database -profile prod";
@@ -316,8 +341,11 @@ sub getTarchiveFileLocation {
         $archive_location = $sth->fetchrow_array();
     }
 
-    unless ($archive_location =~ m/$Settings::tarchiveLibraryDir/i) {
-        $archive_location = ($Settings::tarchiveLibraryDir . "/" . $archive_location);
+    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'tarchiveLibraryDir'
+                            );
+    unless ($archive_location =~ m/$tarchive_location/i) {
+        $archive_location = ($tarchive_location . "/" . $archive_location);
     }
     return $archive_location;
 }
@@ -340,8 +368,11 @@ Arguments:
 sub runTarchiveLoader {
     my $this               = shift;
     my $archived_file_path = $this->getTarchiveFileLocation();
+    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'MRICodePath'
+                        );
     my $command =
-        $Settings::bin_dir
+        $bin_dirPath
       . "/uploadNeuroDB/tarchiveLoader"
       . " -globLocation -profile prod $archived_file_path";
 
@@ -418,7 +449,7 @@ sub isDicom {
     my ($dicom_file) = @_;
     my $cmd    = "file $dicom_file";
     my $file_type    = `$cmd`;
-    if ( !( $file_type =~ /DICOM/ ) ) {
+    if ( !( $file_type =~ /DICOM medical imaging data$/ ) ) {
         print "\n $dicom_file is not of type DICOM \n";
         return 0;
     }
@@ -441,7 +472,10 @@ Arguments:
 
 sub sourceEnvironment {
     my $this            = shift;
-    my $cmd =   "source  " . $Settings::bin_dir."/". "environment";
+    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'MRICodePath'
+                        );
+    my $cmd =   "source  " . $bin_dirPath."/". "environment";
     $this->runCommand($cmd);
 }
 
@@ -515,7 +549,9 @@ sub CleanUpDataIncomingDir {
     my ($uploaded_file) = @_;
     my $output = undef;
     my $message = '';
-    my $tarchive_location = $Settings::tarchiveLibraryDir;
+    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
+                                $this->{dbhr},'tarchiveLibraryDir'
+                            );
     ############################################################
     ################ Removes the uploaded file ################# 
     ##### Check first that the file is in the tarchive dir ##### 
