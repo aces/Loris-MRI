@@ -99,7 +99,7 @@ Ensure the _project/config.xml_ file (in the main LORIS codebase) contains the f
 
 #### 7. Verify filesystem permissions 
 
-As a final step, ensure that permissions on /data/$projectname and /data/incoming and their subdirectories are set such that lorisadmin and the Apache linux user can read, write _and_ execute all contents.
+Ensure that permissions on /data/$projectname and /data/incoming and their subdirectories are set such that lorisadmin and the Apache linux user can read, write _and_ execute all contents.
 
 The following must be recursively owned by the lorisadmin user and by Apache group:
 
@@ -109,9 +109,19 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    /data/incoming/
    /data/$projectname/bin/mri/dicom-archive/.loris_mri/prod
    ```
+#### 8. Verify Configuration module settings for Imaging Pipeline
+  
+In the LORIS front-end, under the Admin menu, go to the `Config` module.  Under the section `Imaging Pipeline`, verify/set the following config settings: 
+ * `Loris-MRI Data Directory`
+ * `Study Name`
+ * `User to notify when executing the pipeline`
+ * `Full path to get_dicom_info.pl script`
+ * `Path to Tarchives`
+
+Click 'Submit' at the end of the Configuration page to save any changes. 
 
 <br>
-   Installation complete.
+Installation complete.
 
- For customizations and protocol configurations, and how to run the pipeline -- see the wiki [LORIS Imaging Setup Guide](https://github.com/aces/Loris/wiki/Imaging-Database)
+For customizations and protocol configurations, see LORIS Imaging Setup Guide : https://github.com/aces/Loris/wiki/Imaging-Database 
 
