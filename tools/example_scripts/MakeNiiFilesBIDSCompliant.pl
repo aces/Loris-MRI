@@ -184,6 +184,9 @@ sub makeNIIAndHeader {
         $nifti                =~ s/mnc/nii/g;
         $nifti                =~ s/$remove/$replace/g;
 
+        # for files that have DTI in their names, replace it with DWI as BIDS expects that
+        $nifti                =~ s/dti/dwi/g;
+
         # Get the scan category (anat, func, dwi, to know which subdirectory to place files in
         ( my $query = <<QUERY ) =~ s/\n/ /g;
 SELECT
@@ -200,18 +203,22 @@ QUERY
         $destDirFinal = $destDir . "/sub-" . $candID . "/ses-" . $visitLabel . "/" . $scanCategory;
         make_path($destDirFinal) unless(-d  $destDirFinal);
 
-        #  mnc2nii command
+        #  mnc2nii command then gzip it because BIDS expects it this way
         my $m2n_cmd = "mnc2nii -nii -quiet " .
                         $dataDir . "/" . $minc . " " .
                         $destDirFinal . "/" . $nifti;
         system($m2n_cmd);
 
-        #  create json information from minc files header
+        my $gzip_cmd = "gzip " . $destDirFinal . "/" . $nifti;
+        system($gzip_cmd);
 
+        #  create json information from minc files header; 
+        # 0019:1029 is ???
+        # 0018:1314 is slice timing
         my ($headerNameArr, @headerNameArr, $headerName, $headerVal, $headerFile);
         @headerNameArr   = ("repetition_time","manufacturer","manufacturer_model_name","magnetic_field_strength","device_serial_number",
-                            "software_versions","acquisition:receive_coil","transmitting_coil","echo_time","inversion_time","dicom_0x0018:el_0x1314",
-                            "institution_name");
+                            "software_versions","acquisition:receive_coil","transmitting_coil","echo_time","inversion_time",
+                            "dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name");
         $headerFile      = $nifti;
         $headerFile         =~ s/nii/json/g;
         open HEADERINFO, ">$destDirFinal/$headerFile";
