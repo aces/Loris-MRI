@@ -69,24 +69,53 @@ my $destDir = $dataDir . "/BIDS";
 make_path($destDir) unless(-d  $destDir);
 
 ################################################################
-# Grep tarchive list in a hash                          ########
-# %tarchive_list = {                                    ########
-#      $TarchiveID => {                                 ########
-#          'ArchiveLocation'    => $ArchiveLocation     ########
-#          'NewArchiveLocation' => $newArchiveLocation  ########
-#      }                                                ########
-# };                                                    ########
+################ Grep files list in a hash #####################
+######### If no TarchiveID is given loop through all ###########
+###### Else, use the given TarchiveID at the command line ######
 ################################################################
-my %file_list = &getFileList( $dbh, $dataDir );
+
+my ($query, $sth);
+
+# Query to grep all distinct TarchiveIDs from the database 
+if (!defined($tarchiveID)) {
+    ( $query = <<QUERY ) =~ s/\n/ /g;
+SELECT DISTINCT
+  TarchiveID
+FROM
+  tarchive t
+QUERY
+    # Prepare and execute query
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+}
+else{
+    ( $query = <<QUERY ) =~ s/\n/ /g;
+SELECT DISTINCT
+  TarchiveID
+FROM
+  tarchive t
+WHERE
+  TarchiveID = ?
+QUERY
+    # Prepare and execute query
+    $sth = $dbh->prepare($query);
+    $sth->execute($tarchiveID);
+}
+while ( my $rowhr = $sth->fetchrow_hashref()) {
+    my $givenTarchiveID = $rowhr->{'TarchiveID'};
+    print "\n\n*******Currently creating a BIDS directory of nii files for ".
+            "tarchiveID $givenTarchiveID********\n\n";
+    my %file_list = &getFileList( $dbh, $dataDir, $givenTarchiveID );
 
 ################################################################
-############# Make nii files out of those minc #################
+##### Make nii files and JSON headers out of those minc ########
 ################################################################
-&makeNIIAndHeader( $dbh, %file_list);
-
-
+    &makeNIIAndHeader( $dbh, %file_list);
+    print "\n\nFinished tarchiveID $givenTarchiveID\\nn";
+}
+ 
+print "\n\nFinished all Tarchives\n\n";
 $dbh->disconnect();
-print "Finished\n";
 exit 0;
 
 
@@ -94,13 +123,14 @@ exit 0;
 This function will grep all the TarchiveID and associated ArchiveLocation
 present in the tarchive table and will create a hash of this information
 including new ArchiveLocation to be inserted into the DB.
-Input:  - $dbh = database handler
-        - $dataDir = where the data (files) is located
-Output: - %file_list = hash with files for a given TarchiveID
+Input:  - $dbh             = database handler
+        - $dataDir         = where the data (files) is located
+        - $givenTarchiveID = the TarchiveID under consideration
+Output: - %file_list       = hash with files for a given TarchiveID
 =cut
 sub getFileList {
 
-    my ($dbh, $dataDir) = @_;
+    my ($dbh, $dataDir, $givenTarchiveID) = @_;
 
     # Query to grep all file entries
     ( my $query = <<QUERY ) =~ s/\n/ /g;
@@ -133,7 +163,7 @@ QUERY
 
     # Prepare and execute query
     my $sth = $dbh->prepare($query);
-    $sth->execute($tarchiveID);
+    $sth->execute($givenTarchiveID);
     
     # Create file list hash with ID and relative location
     my %file_list;
