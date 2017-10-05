@@ -42,7 +42,7 @@ USAGE
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named ".
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
+          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n";
     exit 2;
 }
 
@@ -67,12 +67,6 @@ $dataDir    =~ s/\/$//g;
 # same level as assmebly/ directory but named as BIDS/
 my $destDir = $dataDir . "/BIDS";
 make_path($destDir) unless(-d  $destDir);
-
-################################################################
-################ Grep files list in a hash #####################
-######### If no TarchiveID is given loop through all ###########
-###### Else, use the given TarchiveID at the command line ######
-################################################################
 
 my ($query, $sth);
 
@@ -103,18 +97,27 @@ QUERY
 }
 while ( my $rowhr = $sth->fetchrow_hashref()) {
     my $givenTarchiveID = $rowhr->{'TarchiveID'};
-    print "\n\n*******Currently creating a BIDS directory of nii files for ".
-            "tarchiveID $givenTarchiveID********\n\n";
+    print "\n*******Currently creating a BIDS directory of nii files for ".
+            "tarchiveID $givenTarchiveID********\n";
+################################################################
+################ Grep files list in a hash #####################
+######### If no TarchiveID is given loop through all ###########
+###### Else, use the given TarchiveID at the command line ######
+################################################################
+
     my %file_list = &getFileList( $dbh, $dataDir, $givenTarchiveID );
 
 ################################################################
 ##### Make nii files and JSON headers out of those minc ########
 ################################################################
     &makeNIIAndHeader( $dbh, %file_list);
-    print "\n\nFinished tarchiveID $givenTarchiveID\\nn";
+    if (defined($tarchiveID)) {
+        print "\nFinished tarchiveID $givenTarchiveID\n";
+    }
 }
- 
-print "\n\nFinished all Tarchives\n\n";
+if (!defined($tarchiveID)) {
+    print "\nFinished all Tarchives\n";
+}
 $dbh->disconnect();
 exit 0;
 
@@ -233,35 +236,45 @@ QUERY
         $destDirFinal = $destDir . "/sub-" . $candID . "/ses-" . $visitLabel . "/" . $scanCategory;
         make_path($destDirFinal) unless(-d  $destDirFinal);
 
-        #  mnc2nii command then gzip it because BIDS expects it this way
-        my $m2n_cmd = "mnc2nii -nii -quiet " .
-                        $dataDir . "/" . $minc . " " .
-                        $destDirFinal . "/" . $nifti;
-        system($m2n_cmd);
+        my $mincFullPath = $dataDir . "/" . $minc;
+        if (-e $mincFullPath) {
+            print "\n*******Currently processing $mincFullPath********\n";
+            #  mnc2nii command then gzip it because BIDS expects it this way
+            my $m2n_cmd = "mnc2nii -nii -quiet " .
+                            $dataDir . "/" . $minc . " " .
+                            $destDirFinal . "/" . $nifti;
+            system($m2n_cmd);
 
-        my $gzip_cmd = "gzip " . $destDirFinal . "/" . $nifti;
-        system($gzip_cmd);
+            # the -f flag is to force overwrite of an existing output; otherwise, 
+            # the user is prompted for every file if they would like to override
+            my $gzip_cmd = "gzip -f " . $destDirFinal . "/" . $nifti;
+            system($gzip_cmd);
 
-        #  create json information from minc files header; 
-        # 0019:1029 is ???
-        # 0018:1314 is slice timing
-        my ($headerNameArr, @headerNameArr, $headerName, $headerVal, $headerFile);
-        @headerNameArr   = ("repetition_time","manufacturer","manufacturer_model_name","magnetic_field_strength","device_serial_number",
-                            "software_versions","acquisition:receive_coil","transmitting_coil","echo_time","inversion_time",
-                            "dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name");
-        $headerFile      = $nifti;
-        $headerFile         =~ s/nii/json/g;
-        open HEADERINFO, ">$destDirFinal/$headerFile";
-        HEADERINFO->autoflush(1);
-        select(HEADERINFO);
-        select(STDOUT);
-        print HEADERINFO "{\n";
+            #  create json information from minc files header; 
+            my (@headerNameArr, $headerNameArr, @headerNameDBArr, $headerName, $headerNameDB, $headerVal, $headerFile);
+            # Name as it appears in the database
+            @headerNameDBArr      = ("repetition_time","manufacturer","manufacturer_model_name","magnetic_field_strength",
+                                "device_serial_number","software_versions","acquisition:receive_coil","acquisition:scanning_sequence",
+                                "echo_time","inversion_time","dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name");
+            # Equivalent name as it appears in the BIDS specifications
+            @headerNameArr  = ("RepetitionTime","Manufacturer","ManufacturerModelName","MagneticFieldStrength",
+                                "DeviceSerialNumber","SoftwareVersions","ReceiveCoilName","PulseSequenceType",
+                                "EchoTime","InversionTime","SliceTiming", "FlipAngle", "InstitutionName");
+            $headerFile         = $nifti;
+            $headerFile         =~ s/nii/json/g;
+            open HEADERINFO, ">$destDirFinal/$headerFile";
+            HEADERINFO->autoflush(1);
+            select(HEADERINFO);
+            select(STDOUT);
+            print HEADERINFO "{\n";
    
-        foreach my $j (0..scalar(@headerNameArr)-1) {
-            $headerName = $headerNameArr[$j];
-            $headerName =~ s/^\"+|\"$//g;
-            print "Adding now $headerName header to $headerFile\n";
-            ( $query = <<QUERY ) =~ s/\n/ /g;
+            foreach my $j (0..scalar(@headerNameDBArr)-1) {
+                $headerNameDB = $headerNameDBArr[$j];
+                $headerNameDB =~ s/^\"+|\"$//g;
+                $headerName   = $headerNameArr[$j];
+                $headerName   =~ s/^\"+|\"$//g;
+                print "Adding now $headerName header to $headerFile\n";
+                ( $query = <<QUERY ) =~ s/\n/ /g;
 SELECT
   pf.Value
 FROM
@@ -275,21 +288,25 @@ WHERE
 AND
   f.FileID = ?
 QUERY
-            # Prepare and execute query
-            $sth = $dbh->prepare($query);
-            $sth->execute($headerName,$fileID);
-            if ( $sth->rows > 0 ) {
-                $headerVal = $sth->fetchrow_array();
-                print HEADERINFO "$headerName: $headerVal,\n";
+                # Prepare and execute query
+                $sth = $dbh->prepare($query);
+                $sth->execute($headerNameDB,$fileID);
+                if ( $sth->rows > 0 ) {
+                    $headerVal = $sth->fetchrow_array();
+                    print HEADERINFO "$headerName: $headerVal,\n";
+                    print "     $headerName was found for $nifti with value $headerVal\n";
+                }
+                else {
+                    print "     $headerName was not found for $nifti\n";
+                }
             }
-            else {
-                print "$headerName was not found for $nifti\n";
-            }
+            print HEADERINFO "}\n";
+            close HEADERINFO;
         }
-        print HEADERINFO "}\n";
-        close HEADERINFO;
+        else {
+            print "\nCould not find the following minc file: $mincFullPath\n";
+        }
     }
-
 }
 
 
