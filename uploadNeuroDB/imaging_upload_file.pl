@@ -5,6 +5,7 @@ use Carp;
 use Getopt::Tabular;
 use FileHandle;
 use File::Temp qw/ tempdir /;
+use File::Basename;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
@@ -71,7 +72,7 @@ The program does the following
 - Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
 - Unzips the uploaded file
 - Sources the Environment
-- Uses the ImagaingUpload class to :
+- Uses the ImagingUpload class to :
    1) Validate the uploaded file   (set the validation to true)
    2) Run dicomtar.pl on the file  (set the dicomtar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
@@ -82,6 +83,8 @@ HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/UploadedFile> -upload_id [options]
        $0 -help to list options
+Note:  Please make sure that the </path/to/UploadedFile> and the upload_id provided 
+correspond to the same upload entry.
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
 &Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
@@ -128,6 +131,19 @@ unless ( -e $uploaded_file ) {
 ################ Establish database connection #################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+################################################################
+####Check that UploadID and path to the file are consistent#####
+####i.e. they refer to the same entry in the mri_upload table###
+################################################################
+my $expected_file = getFilePathUsingUploadID($upload_id);
+
+if ( basename($expected_file) ne basename($uploaded_file)) {
+    print "$Usage\nERROR: The specified upload_id $upload_id " .
+            "does not correspond to the provided file path " .
+            "$uploaded_file. \n\n";
+    exit 6;
+}
 
 ################################################################
 ############ Todo: Check to see if the file is accessible#######
@@ -197,7 +213,7 @@ if ( !($is_candinfovalid) ) {
     $message = "\nThe candidate info validation has failed \n";
     spool($message,'Y', $notify_notsummary);
     print $message;
-    exit 6;
+    exit 7;
 }
 
 $message = "\nThe candidate info validation has passed \n";
@@ -213,7 +229,7 @@ if ( !$output ) {
     $message = "\nThe dicomtar execution has failed\n";
     spool($message,'Y', $notify_notsummary);
     print $message;
-    exit 7;
+    exit 8;
 }
 $message = "\nThe dicomtar execution has successfully completed\n";
 spool($message,'N', $notify_notsummary);
@@ -227,7 +243,7 @@ if ( !$output ) {
     $message = "\nThe insertion scripts have failed\n";
     spool($message,'Y', $notify_notsummary); 
     print $message;
-    exit 8;
+    exit 9;
 }
 
 ################################################################
@@ -239,7 +255,7 @@ if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";
     spool($message,'Y', $notify_notsummary);
     print $message;
-    exit 9;
+    exit 10;
 }
 $message = "\nThe uploaded file " . $uploaded_file . " has been removed\n\n";
 spool($message,'N', $notify_notsummary);
@@ -287,6 +303,40 @@ sub getPnameUsingUploadID {
         }
     }
     return $patient_name;
+}
+
+################################################################
+############### getPnameUsingUploadID###########################
+################################################################
+=pod
+getPnameUsingUploadID()
+Description:
+  - Get the patient-name using the upload_id
+
+Arguments:
+  $upload_id: The Upload ID
+
+  Returns: $patient_name : The patientName
+=cut
+
+
+sub getFilePathUsingUploadID {
+
+    my $upload_id = shift;
+    my ( $file_path, $query ) = '';
+
+    if ($upload_id) {
+        ########################################################
+        ##########Extract pname using uploadid##################
+        ########################################################
+        $query = "SELECT UploadLocation FROM mri_upload WHERE UploadID =?";
+        my $sth = $dbh->prepare($query);
+        $sth->execute($upload_id);
+        if ( $sth->rows > 0 ) {
+            $file_path = $sth->fetchrow_array();
+        }
+    }
+    return $file_path;
 }
 
 
