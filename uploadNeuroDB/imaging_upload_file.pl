@@ -306,17 +306,17 @@ sub getPnameUsingUploadID {
 }
 
 ################################################################
-############### getPnameUsingUploadID###########################
+############### getFilePathUsingUploadID########################
 ################################################################
 =pod
-getPnameUsingUploadID()
+getFilePathUsingUploadID()
 Description:
-  - Get the patient-name using the upload_id
+  - Get the file path from the mri_upload table using the upload_id
 
 Arguments:
   $upload_id: The Upload ID
 
-  Returns: $patient_name : The patientName
+  Returns: $file_path : The full path to the uploaded file
 =cut
 
 
@@ -327,7 +327,7 @@ sub getFilePathUsingUploadID {
 
     if ($upload_id) {
         ########################################################
-        ##########Extract pname using uploadid##################
+        #######Extract File with full path using upload_id######
         ########################################################
         $query = "SELECT UploadLocation FROM mri_upload WHERE UploadID =?";
         my $sth = $dbh->prepare($query);
