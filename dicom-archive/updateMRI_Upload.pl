@@ -14,7 +14,7 @@ use Getopt::Tabular;
 use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
-use DB::DBI;
+use NeuroDB::DBI;
 
 my $verbose = 0;
 my $profile    = undef;
@@ -116,7 +116,7 @@ unless (-e $source_location) {
 ################################################################
 #####establish database connection if database option is set####
 ################################################################
-my $dbh = &DB::DBI::connect_to_db(@Settings::db); 
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); 
 print "Connecting to database.\n" if $verbose;
 
 ################################################################
@@ -126,7 +126,7 @@ print "Connecting to database.\n" if $verbose;
 ################################################################
 
 # fetch tarchiveLibraryDir from ConfigSettings in the database
-my $tarchiveLibraryDir = &DB::DBI::getConfigSetting(
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
                             \$dbh,'tarchiveLibraryDir'
                             );
 # determine tarchive path stored in the database (without tarchiveLibraryDir)
