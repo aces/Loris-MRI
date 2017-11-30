@@ -110,7 +110,7 @@ sub IsCandidateInfoValid {
     ####Get a list of files from the folder#####################
     #############Loop through the files#########################
     ############################################################
-    my $cmd = "cd " . $this->{'uploaded_temp_folder'} . "; find -name '__MACOSX' | xargs rm -rf";
+    my $cmd = "cd " . $this->{'uploaded_temp_folder'} . "; find -name '__MACOSX' -exec rm -r {} + ";
     print "\n $cmd \n";
     system($cmd);
 
