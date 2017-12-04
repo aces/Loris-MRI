@@ -236,6 +236,7 @@ sub makeNIIAndHeader {
     
     my ( $dbh, %file_list) = @_;
     my ($row, $scanType, $BIDSCategory, $BIDSScanType, $destDirFinal);
+
     foreach $row (keys %file_list) {
         my $fileID            = $file_list{$row}{'fileID'};
         my $minc              = $file_list{$row}{'file'};
@@ -262,6 +263,36 @@ QUERY
         $BIDSCategory = $rowhr->{'BIDS_category'};
         $BIDSScanType = $rowhr->{'BIDS_Scan_type'};
 
+        # Determine first if a single session with minc files exist for the candidate
+        # this will dictate if the BIDS filename and path have the ses-VisitLabel in it or not
+
+        # Query to grep all file entries
+        ( my $query = <<QUERY ) =~ s/\n/ /g;
+SELECT
+  COUNT(DISTINCT f.SessionID) AS Count
+FROM
+  files f
+JOIN
+  session s
+ON
+  s.ID=f.SessionID
+JOIN
+  candidate c
+ON
+  c.CandID=s.CandID
+WHERE
+  c.CandID = ?
+GROUP BY
+  f.SessionID
+QUERY
+
+        # Prepare and execute query
+        my $sth = $dbh->prepare($query);
+        $sth->execute($candID);
+        my $row = $sth->fetchrow_hashref();
+        my $sessionCountPerCandID = $row->{'Count'};
+
+
         my $mincBase          = basename($minc);
         my $nifti             = $mincBase;
 
@@ -274,7 +305,12 @@ QUERY
 
         # Remove prefix; i.e project name; and add sub- and ses- in front of CandID and Visit label
         my $remove            = $prefix . "_" . $candID . "_" . $visitLabelOrig;
-        my $replace           = "sub-" . $candID . "_ses-" . $visitLabel;
+        my $replace;
+        if ($sessionCountPerCandID > 1) {
+            $replace = $candID . "_" . $visitLabel;
+        } else {
+            $replace = $candID;
+        }
         $nifti                =~ s/$remove/$replace/g;
 
         # make the filename have the BIDS Scan type name, in case the project Scan type name is not compliant;
@@ -297,7 +333,12 @@ QUERY
             $nifti =~ s/$remove/$replace/g;
         }
 
-        $destDirFinal = $destDir . "/sub-" . $candID . "/ses-" . $visitLabel . "/" . $BIDSCategory;
+        if ($sessionCountPerCandID > 1) {
+            $destDirFinal = $destDir . "/sub-" . $candID . "/ses-" . $visitLabel . "/" . $BIDSCategory;
+        } else {
+            $destDirFinal = $destDir . "/sub-" . $candID . "/" . $BIDSCategory;
+        }
+
         make_path($destDirFinal) unless(-d  $destDirFinal);
 
         my $mincFullPath = $dataDir . "/" . $minc;
@@ -319,13 +360,15 @@ QUERY
                 @headerNameDBArr, $headerNameDBArr,
                 $headerName, $headerNameDB, $headerVal, $headerFile);
             # Name as it appears in the database
+            # slice order is needed for rs-FMRI
             @headerNameDBArr      = ("repetition_time","manufacturer","manufacturer_model_name","magnetic_field_strength",
                                 "device_serial_number","software_versions","acquisition:receive_coil","acquisition:scanning_sequence",
-                                "echo_time","inversion_time","dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name");
+                                "echo_time","inversion_time","dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name","acquisition:slice_order");
             # Equivalent name as it appears in the BIDS specifications
+            # slice order is needed for rs-FMRI
             @headerNameArr  = ("RepetitionTime","Manufacturer","ManufacturerModelName","MagneticFieldStrength",
                                 "DeviceSerialNumber","SoftwareVersions","ReceiveCoilName","PulseSequenceType",
-                                "EchoTime","InversionTime","SliceTiming", "FlipAngle", "InstitutionName");
+                                "EchoTime","InversionTime","SliceTiming", "FlipAngle", "InstitutionName", "SliceOrder");
 
             $headerFile         = $nifti;
             $headerFile         =~ s/nii/json/g;
