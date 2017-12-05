@@ -304,12 +304,13 @@ QUERY
         $visitLabel           =~ s/_//g;
 
         # Remove prefix; i.e project name; and add sub- and ses- in front of CandID and Visit label
+        # removing sub- and ses- makes the BIDS validator happy, but document section 5 says to keep it
         my $remove            = $prefix . "_" . $candID . "_" . $visitLabelOrig;
         my $replace;
         if ($sessionCountPerCandID > 1) {
-            $replace = $candID . "_" . $visitLabel;
+            $replace = "sub-" . $candID . "_ses-" . $visitLabel;
         } else {
-            $replace = $candID;
+            $replace = "sub-" . $candID;
         }
         $nifti                =~ s/$remove/$replace/g;
 
