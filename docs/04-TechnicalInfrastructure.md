@@ -119,7 +119,7 @@ In the event a scan does not match any of the protocol mentioned in the
       parameters (TR, TE, TI...) for easy identification of what is different
       between the violated scan and the imaging protocol specified in the 
       _mri\_protocol_ table. ***NOTE: THE LINKS TO THE CANDIDATE TABLE IS A 
-      TERRIBLE DESIGN AND THAT TABLE SHOULD LINKE TO THE TARCHIVE TABLE 
+      TERRIBLE DESIGN AND THAT TABLE SHOULD LINKED TO THE TARCHIVE TABLE 
       INSTEAD. ISSUE THAT SHOULD BE FIX FOR THE NEXT MINOR RELEASE AFTER 19.0***
   * THE **_violations\_resolved_** table... ***NOTE: THIS TABLE DOES NOT HAVE
       ANY LINK TO THE OTHER TABLES... NEED TO FIX THIS. PROBABLY FOR THE NEXT
@@ -137,7 +137,7 @@ In the _Imaging Browser_ module, it is possible to view the images via
       is linked to the _files_ table via the _FileID_ foreign key. 
   * the **_feedback\_mri\_comments_** table stores all the comments associated
       to a given scan. These comments can be predefined (from the table 
-      **_feedback\_mri\_prededined\_comments_** or a text entered by the user 
+      **_feedback\_mri\_predefined\_comments_** or a text entered by the user 
       based on the comment type stored in **_feedback\_mri\_comment\_types_**).
   * session level QC information are saved in the **_session_** table and  
       session level comments are saved in the **_feedback\_mri\_comments_** 
@@ -156,13 +156,13 @@ Any native scan inserted into the files table can be processed and the output
   * the **_files\_intermediary_** table allows to link processed data with the
       native datasets (our even intermediary outputs). The _Input\_FileID_ and 
       _Output\_FileID_ fields of that table are links to the _FileID_ field of
-      the _files_ table mentionned in section 4.2.2. Note that the native file
+      the _files_ table mentioned in section 4.2.2. Note that the native file
       used to create processed outputs is always stored in the files table in 
       the _SourceFileID_ field, which is linked to the _FileID_ field of the
       same table.
   * the **_mri\_processing\_protocol_** table stores the imaging processing 
       protocols used to produce processed data. This table is linked to the
-      _files_ table using the _ProcessProtocolID_ foreign key. Additionaly,
+      _files_ table using the _ProcessProtocolID_ foreign key. Additionally,
       the field _FileType_ of the _mri\_processing\_protocol_ table is linked to
       the _type_ field of the _ImagingFileTypes_ table.
   
