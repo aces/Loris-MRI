@@ -3,23 +3,59 @@
 
 ## 4.1 Back end directory structure
 
+The root directory of the imaging part of a LORIS instance is typically 
+  `/data/project`.
 
+Within that root directory, the data is structured according to its function:
 
+- the imaging scripts from the Loris-MRI repository can be found under `bin/mri`
+    and the logs created but the imaging script are organized under `logs`.
+- incoming scans from the Imaging uploader module (or automatic cron jobs) are 
+    stored in an `incoming` directory. Once the pipeline has successfully run,
+    data in the incoming folder are removed to avoid duplication of raw imaging
+    datasets.
+- the DICOM archives listed in the DICOM archive module are stored in the
+  `data/tarchive` directory and organized folders representing the different 
+  years of acquisition.
+- the violated scans listed in the MRI violated scans module are stored within 
+    the directory `data/trashbin`.
+- the MINC images that can be viewed via BrainBrowser in the imaging browser 
+    module are located under the `data/assembly` directory and organized by 
+    `CandID/Visit_label`. Whithin each of these visit labels, data are first 
+    organized by imaging type (`mri` or `pet` for example) and then by output 
+    type (such as `native` or `processed`). For example, a native T1W image for 
+    subject 123456's V1 visit will be located in 
+    `data/assembly/123456/V1/mri/native/Project_123456_V1_T1W_001.mnc`.
+- the screenshots displayed in the imaging browser module for each modality is 
+    stored within the `data/pic` folder and organized per candidates. 
+- additionally, jiv images are produced by the imaging pipeline and are 
+    organized per candidates in the `data/jiv` folder.
+- finally, processed incoming data or DTIPrep pipeline outputs are stored within 
+    the `data/pipelines` directory and organized per pipeline versions, 
+    candidates and visit labels. In addition, protocol files for automatic 
+    pipelines are saved in the `data/protocols` directory.
 
-## 4.2 Database infrastrucure
+## 4.2 Database infrastructure
 
-The database infrastructure is divided in four main components based on the 
+The database infrastructure is divided in six main components based on the 
   workflow happening from native images insertion to quality control and 
-  ultimately insertion of processed datasets:  
+  ultimately insertion of processed datasets.  
 
-1. storage of the DICOM files and their related information
-2. storage of the native MINC files and their related information
-3. storage of violated scans
-4. storage of image quality control information 
-5. storage of the processed outputs information
+![overall_DB_structure](images/overall_DB_structure.png)
 
 
-### 4.2.1. DICOM files and their related information
+### Imaging uploader database infrastructure
+
+Summary information about the imaging upload status can be found in the 
+  mri_upload table. This includes links to the DICOM archive tables (described 
+  in the next section) and to the session table. It also includes summary 
+  information regarding the upload and the insertion process performed after 
+  the upload.
+
+![mri_upload_tables](images/mri_upload_tables.png)
+
+
+### DICOM archive database infrastructure
 
 The first step to insert a new imaging session into the database is the 
   insertion of the DICOM study. In the database, all information related to a
@@ -51,7 +87,7 @@ Note: the SessionID field of the tarchive table is populated once at least one
   in 4.2.2.
 
 
-### 4.2.2. Native images information (in MINC)
+### Imaging browser database infrastructure
 
 The second step to insert a new imaging session into the database is the 
   conversion of the DICOM study into the MINC files that will be inserted based 
@@ -102,7 +138,7 @@ Once an image has been inserted into the database, it is possible to view it
   directly via the _Imaging Browser_ module under the _Imaging_ menu. 
 
 
-### 4.2.3. Violated scans information
+### MRI violated scans database infrastructure
 
 In the event a scan does not match any of the protocol mentioned in the 
   _mri_protocol_ table, LORIS automatically flags it as a violated scan.
@@ -127,7 +163,7 @@ In the event a scan does not match any of the protocol mentioned in the
 
 ![violated_tables](images/violated_tables.png)
 
-### 4.2.4. Images quality control (QC)
+### Images quality control (QC) database infrastructure
 
 In the _Imaging Browser_ module, it is possible to view the images via
   _BrainBrowser_ and directly perform quality control of the images. The quality
@@ -146,7 +182,7 @@ In the _Imaging Browser_ module, it is possible to view the images via
 ![qc_tables](images/QC_tables.png)
 
 
-### 4.2.5. Processed data information
+### Processed data insertion database infrastructure
 
 Any native scan inserted into the files table can be processed and the output
   of this processing can be inserted into the database and linked to the native
@@ -163,7 +199,7 @@ Any native scan inserted into the files table can be processed and the output
   * the **_mri\_processing\_protocol_** table stores the imaging processing 
       protocols used to produce processed data. This table is linked to the
       _files_ table using the _ProcessProtocolID_ foreign key. Additionally,
-      the field _FileType_ of the _mri\_processing\_protocol_ table is linked to
-      the _type_ field of the _ImagingFileTypes_ table.
+      the field _FileType_ of the _mri\_processing\_protocol_ table is linked
+      to the _type_ field of the _ImagingFileTypes_ table.
   
 ![processed_tables](images/Processed_data_tables.png)
