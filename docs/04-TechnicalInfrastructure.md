@@ -44,7 +44,7 @@ The database infrastructure is divided in six main components based on the
 ![overall_DB_structure](images/overall_DB_structure.png)
 
 
-### Imaging uploader database infrastructure
+### MRI upload table
 
 Summary information about the imaging upload status can be found in the 
   mri_upload table. This includes links to the DICOM archive tables (described 
@@ -55,7 +55,7 @@ Summary information about the imaging upload status can be found in the
 ![mri_upload_tables](images/mri_upload_tables.png)
 
 
-### DICOM archive database infrastructure
+### Tarchive tables
 
 The first step to insert a new imaging session into the database is the 
   insertion of the DICOM study. In the database, all information related to a
@@ -87,7 +87,7 @@ Note: the SessionID field of the tarchive table is populated once at least one
   in 4.2.2.
 
 
-### Imaging browser database infrastructure
+### Files tables
 
 The second step to insert a new imaging session into the database is the 
   conversion of the DICOM study into the MINC files that will be inserted based 
@@ -138,7 +138,7 @@ Once an image has been inserted into the database, it is possible to view it
   directly via the _Imaging Browser_ module under the _Imaging_ menu. 
 
 
-### MRI violated scans database infrastructure
+### MRI violation tables
 
 In the event a scan does not match any of the protocol mentioned in the 
   _mri_protocol_ table, LORIS automatically flags it as a violated scan.
@@ -163,7 +163,7 @@ In the event a scan does not match any of the protocol mentioned in the
 
 ![violated_tables](images/violated_tables.png)
 
-### Images quality control (QC) database infrastructure
+### Quality Control (QC) tables
 
 In the _Imaging Browser_ module, it is possible to view the images via
   _BrainBrowser_ and directly perform quality control of the images. The quality
@@ -182,7 +182,7 @@ In the _Imaging Browser_ module, it is possible to view the images via
 ![qc_tables](images/QC_tables.png)
 
 
-### Processed data insertion database infrastructure
+### Processed data tables
 
 Any native scan inserted into the files table can be processed and the output
   of this processing can be inserted into the database and linked to the native
