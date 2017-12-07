@@ -9,7 +9,7 @@ The root directory of the imaging part of a LORIS instance is typically
 Within that root directory, the data is structured according to its function:
 
 - the imaging scripts from the Loris-MRI repository can be found under `bin/mri`
-    and the logs created but the imaging script are organized under `logs`.
+- the logs of the scripts are created under `data/logs` in `/data/project`.
 - incoming scans from the Imaging uploader module (or automatic cron jobs) are 
     stored in an `incoming` directory. Once the pipeline has successfully run,
     data in the incoming folder are removed to avoid duplication of raw imaging
@@ -102,9 +102,9 @@ Once all MINC files are created (via the dcm2mnc converter from the minctools),
       along with the ID field that will be used to identify the scan type
   * the **_mri\_protocol_** table stores each scan type's parameters that will 
       be used to identify the scan type (TR, TE, TI, slice_thickness...)
-  * the **_mri\_protocol\_checks_** table stores additional protocol checks in 
-      order to automatically flag some acquisitions based on information stored
-      in specific headers
+  * the **_mri\_protocol\_checks_** table stores additional protocol checks 
+  	   after an acquisition has been identified in order to automatically flag 
+  	   some acquisitions based on information stored in specific DICOM headers
   
 Every MINC file that matches the protocol defined in the tables mentioned above 
   will be inserted in the database using the following tables:
@@ -131,6 +131,7 @@ Every MINC file that matches the protocol defined in the tables mentioned above
       table using the _CandID_ foreign key. In addition, the _ID_ field of the 
       _mri\_scanner_ table is linked to the _ScannerID_ field of the _files_ 
       table.
+      
 
 ![files_tables](images/files_tables.png)
 
