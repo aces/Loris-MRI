@@ -6,34 +6,151 @@
 The root directory of the imaging part of a LORIS instance is typically 
   `/data/project`.
 
-Within that root directory, the data is structured according to its function:
+```
+## Imaging pipeline file directory structure
+/
+|__ data
+    |__ project
+        |__ bin
+        |   |__ mri
+        |__ data
+            |__ assembly
+            |__ incoming
+            |__ jiv
+            |__ logs
+            |__ pic
+            |__ pipelines
+            |__ protocols
+            |__ tarchive
+            |__ trashbin
+```
 
-- the imaging scripts from the Loris-MRI repository can be found under `bin/mri`
-- the logs of the scripts are created under `data/logs` in `/data/project`.
-- incoming scans from the Imaging uploader module (or automatic cron jobs) are 
+Within that project directory, the data is structured according to its function:
+
+- The imaging scripts from the Loris-MRI repository can be found under `bin/mri`
+
+- The logs of the scripts are created under `data/logs` in `/data/project`.
+    
+```
+## Content of the /data/project/data/logs directory
+.
+|__ TarLoad.log
+    |__ DTIPrep_pipeline
+    |   |__ DTI_QC`date`.log
+    |   |__ DTI_QC`date`.log
+    |__ DTIPrep_register
+    |   |__ DTIregister`date`.log
+    |   |__ DTIregister`date`.log
+    |__ registerProcessed
+        |__ registerProcessed`date`.log
+        |__ registerProcessed`date`.log
+```
+
+- Incoming scans from the Imaging uploader module (or automatic cron jobs) are 
     stored in an `incoming` directory. Once the pipeline has successfully run,
     data in the incoming folder are removed to avoid duplication of raw imaging
     datasets.
-- the DICOM archives listed in the DICOM archive module are stored in the
+    
+- The DICOM archives listed in the DICOM archive module are stored in the
   `data/tarchive` directory and organized folders representing the different 
   years of acquisition.
-- the violated scans listed in the MRI violated scans module are stored within 
+
+```
+## Content of the /data/project/data/tarchive directory
+.
+|__ year_1
+    |__ DCM_`date`_tarchive.tar
+    |__ DCM_`date`_tarchive.tar
+    |__ DCM_`date`_tarchive.tar
+|__ year_2
+    |__ DCM_`date`_tarchive.tar
+    |__ DCM_`date`_tarchive.tar
+    |__ DCM_`date`_tarchive.tar
+```
+
+- The violated scans listed in the MRI violated scans module are stored within 
     the directory `data/trashbin`.
-- the MINC images that can be viewed via BrainBrowser in the imaging browser 
+    
+```
+## Content of the /data/project/data/trashbin directory
+.
+|__ Tarload-XX1
+    |__ file.mnc
+    |__ file.mnc
+|__ Tarload-XX2
+    |__file.mnc
+```
+     
+- The MINC images that can be viewed via BrainBrowser in the imaging browser 
     module are located under the `data/assembly` directory and organized by 
     `CandID/Visit_label`. Whithin each of these visit labels, data are first 
     organized by imaging type (`mri` or `pet` for example) and then by output 
     type (such as `native` or `processed`). For example, a native T1W image for 
     subject 123456's V1 visit will be located in 
     `data/assembly/123456/V1/mri/native/Project_123456_V1_T1W_001.mnc`.
-- the screenshots displayed in the imaging browser module for each modality is 
+    
+```
+## Content of the /data/project/data/assembly directory
+.
+|__ candid
+    |__ visit
+        |__ mri
+        |   |__ native
+        |   |   |__ Project_candid_visit_modality_number.mnc
+        |   |__ processed
+        |       |__ pipeline_name
+        |           |__ nativeFileName_output_number.mnc
+        |__ pet
+            |__ native
+                | Project_candid_visit_modality_number.mnc
+```
+
+- The screenshots displayed in the imaging browser module for each modality is 
     stored within the `data/pic` folder and organized per candidates. 
-- additionally, jiv images are produced by the imaging pipeline and are 
+    
+```
+## Content of the /data/project/data/pic directory
+.
+|__ candid
+    |__ Project_candid_visit_modality_number_fileid_check.jpg
+    |__ Project_candid_visit_modality_number_fileid_check.jpg
+```
+    
+- Additionally, jiv images are produced by the imaging pipeline and are 
     organized per candidates in the `data/jiv` folder.
-- finally, processed incoming data or DTIPrep pipeline outputs are stored within 
+    
+```
+## Content of the /data/project/data/jiv directory
+.
+|__ candid
+    |__ Project_candid_visit_modality_number_fileid.header
+    |__ Project_candid_visit_modality_number_fileid.raw_byte.gz
+```
+    
+- Finally, processed incoming data or DTIPrep pipeline outputs are stored within 
     the `data/pipelines` directory and organized per pipeline versions, 
     candidates and visit labels. In addition, protocol files for automatic 
     pipelines are saved in the `data/protocols` directory.
+    
+```
+## Content of the /data/project/data/pipelines directory
+.
+|__ DTIPrep
+    |__ DTIPrep_version
+        |__ candid
+            |__ visit
+                |__ mri
+                    |__ processed
+                        |__ DTIPrep_XML_protocol_name
+                            |__ file.mnc
+                            |__ file.nrrd
+
+## Content of the /data/project/data/protocols directory
+.
+|__ protocols
+    |__ DTIPrep
+        |__ Project_DTIPrep_XML_protocol.xml
+```
 
 ## 4.2 Database infrastructure
 
@@ -44,7 +161,7 @@ The database infrastructure is divided in six main components based on the
 ![overall_DB_structure](images/overall_DB_structure.png)
 
 
-### MRI upload table
+### 4.2.1 MRI upload table
 
 Summary information about the imaging upload status can be found in the 
   mri_upload table. This includes links to the DICOM archive tables (described 
@@ -55,7 +172,7 @@ Summary information about the imaging upload status can be found in the
 ![mri_upload_tables](images/mri_upload_tables.png)
 
 
-### Tarchive tables
+### 4.2.2 Tarchive tables
 
 The first step to insert a new imaging session into the database is the 
   insertion of the DICOM study. In the database, all information related to a
@@ -87,7 +204,7 @@ Note: the SessionID field of the tarchive table is populated once at least one
   in 4.2.2.
 
 
-### Files tables
+### 4.2.3 Files tables
 
 The second step to insert a new imaging session into the database is the 
   conversion of the DICOM study into the MINC files that will be inserted based 
@@ -139,7 +256,7 @@ Once an image has been inserted into the database, it is possible to view it
   directly via the _Imaging Browser_ module under the _Imaging_ menu. 
 
 
-### MRI violation tables
+### 4.2.4 MRI violation tables
 
 In the event a scan does not match any of the protocol mentioned in the 
   _mri_protocol_ table, LORIS automatically flags it as a violated scan.
@@ -164,7 +281,7 @@ In the event a scan does not match any of the protocol mentioned in the
 
 ![violated_tables](images/violated_tables.png)
 
-### Quality Control (QC) tables
+### 4.2.5 Quality Control (QC) tables
 
 In the _Imaging Browser_ module, it is possible to view the images via
   _BrainBrowser_ and directly perform quality control of the images. The quality
@@ -183,7 +300,7 @@ In the _Imaging Browser_ module, it is possible to view the images via
 ![qc_tables](images/QC_tables.png)
 
 
-### Processed data tables
+### 4.2.6 Processed data tables
 
 Any native scan inserted into the files table can be processed and the output
   of this processing can be inserted into the database and linked to the native
