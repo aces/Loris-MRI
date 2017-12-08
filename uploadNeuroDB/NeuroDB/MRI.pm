@@ -571,11 +571,6 @@ QUERY
         $time,          $seriesUID
     );
 
-#    $sth = $${dbhr}->prepare("INSERT INTO mri_protocol_violated_scans#
-    # (CandID,PSCID,time_run,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range,time_range,SeriesUID) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-#    my $success = $sth->execute($candid,$pscid,$series_description,
-#        $minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$time,$seriesUID);
-
 }
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : debug_inrange
