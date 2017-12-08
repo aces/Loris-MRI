@@ -92,7 +92,7 @@ RETURNS: new instance of this class.
 
 sub new {
     my $params = shift;
-    my ($db, $dbhr,$debug,$TmpDir,$logfile,$verbose) = @_;
+    my ($db, $dbhr, $debug, $TmpDir, $logfile, $verbose, $profile) = @_;
     unless(defined $dbhr) {
        croak(
            "Usage: ".$params."->new(\$databaseHandleReference)"
@@ -109,7 +109,6 @@ sub new {
     ############################################################
     ############### Create a settings package ##################
     ############################################################
-    my $profile = "prod";
     {
      package Settings;
      do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";

@@ -106,7 +106,6 @@ use DateTime;
 
 use NeuroDB::ExitCodes;
 
-
 my $verbose = 0;
 my $profile    = undef;
 my $source_location = '';

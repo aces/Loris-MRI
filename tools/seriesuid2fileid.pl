@@ -43,9 +43,18 @@ no warnings 'once';
 use Data::Dumper;
 use File::Basename;
 use Term::ANSIColor qw(:constants);
+use Getopt::Tabular;
 use NeuroDB::DBI;
 
+my $profile = undef;
+my $profile_desc = "name of config file in ../dicom-archive/.loris_mri";
+
+my @opt_table = (
+ [ "-profile", "string", 1, \$profile, $profile_desc ]
+);
+
 my $Help = <<HELP;
+
 *******************************************************************************
 SeriesUID 2 fileID
 *******************************************************************************
@@ -69,9 +78,34 @@ Takes SeriesUID from STDIN and returns a report with:
 
 Documentation: perldoc seriesuid2fileid
 
+The only argument required is the name of the profile file.
+
 HELP
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
+my $Usage = <<USAGE;
+
+usage: ./seriesuid2fileid -profile prod < seriesuid_list.txt
+       $0 -help to list options
+
+USAGE
+
+&Getopt::Tabular::SetHelp( $Help, $Usage );
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+
+if (!$profile ) {
+  print $Help;
+  print "\n$Usage\n";
+  exit 3;
+}
+
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( $profile && !@Settings::db ) {
+  print "\n\tERROR: You don't have a
+    configuration file named '$profile' in:
+    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
+  exit 2;
+}
+
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 my $queryF = "SELECT * FROM files as f WHERE f.SeriesUID=?";

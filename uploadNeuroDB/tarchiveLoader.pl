@@ -108,17 +108,12 @@ my $debug       = 0;
 my $message     = '';
 my $tarchive_srcloc = '';
 my $upload_id   = undef;
-my $verbose     = 0;           # default, overwritten if the scripts are run
-                               # with -verbose
-my $notify_detailed   = 'Y';   # notification_spool message flag for messages to
-                               # be displayed
-                               # with DETAILED OPTION in the front-end/
-                               # imaging_uploader
-my $notify_notsummary = 'N';   # notification_spool message flag for messages to
-                               # be displayed
-                               # with SUMMARY Option in the front-end/
-                               # imaging_uploader
-my $profile     = 'prod';      # this should never be set unless you are in a
+my $verbose     = 0;           # default, overwritten if the scripts are run with -verbose
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
+                               # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
+                               # with SUMMARY Option in the front-end/imaging_uploader 
+my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
                                #set it to 1!!!
@@ -329,8 +324,7 @@ if ($xlog) {
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  $db, \$dbh,$debug,$TmpDir,$logfile,
-                  $LogDir,$verbose
+                  $db, \$dbh, $debug, $TmpDir, $logfile, $verbose, $profile
               );
 
 ################################################################

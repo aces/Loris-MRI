@@ -241,8 +241,7 @@ print LOG "\n==> Successfully connected to database \n";
 ################ MRIProcessingUtility object ###################
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  $db, \$dbh,$debug,$TmpDir,$logfile,
-                  $verbose
+                  $db, \$dbh, $debug, $TmpDir, $logfile, $verbose, $profile
               );
 
 ################################################################
