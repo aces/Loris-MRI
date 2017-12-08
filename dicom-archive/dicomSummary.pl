@@ -13,7 +13,7 @@ use FileHandle;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
 use DICOM::DCMSUM;
-use DB::DBI;
+use NeuroDB::DBI;
 
 my $screen   = 1;
 my $verbose  = 0;
@@ -108,7 +108,7 @@ elsif(! -w $TmpDir) { print "Sorry you have no permission to use $TmpDir as tmp 
 
 # establish database connection if database option is set
 my $dbh;
-if ($dbase) { $dbh = &DB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity. \n" if $verbose; $dbh->disconnect(); print "Database is available.\n\n" if $verbose; }
+if ($dbase) { $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity. \n" if $verbose; $dbh->disconnect(); print "Database is available.\n\n" if $verbose; }
 
 ####################### main ########################################### main ########################################### 
 
@@ -156,7 +156,7 @@ foreach $dcmdir (@dcmDirs) {
 # if -dbase has been given create an entry based on unique studyID
 # Create database entry checking for already existing entries...
     if ($dbase) {
-	$dbh = &DB::DBI::connect_to_db(@Settings::db);
+	$dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 	my $update = 1 unless !$dbreplace;
 	$summary->database($dbh, $metaname, $update);
 	print "\nDone dicomSummary.pl execution\n" if $verbose;
@@ -210,7 +210,7 @@ sub read_db_metadata {
     my $StudyUID = shift;
     my $dbmeta;
     my $dbcomparefile;
-    $dbh = &DB::DBI::connect_to_db(@Settings::db);
+    $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     print "Getting data from database.\n" if $verbose;
     (my $query = <<QUERY) =~ s/\n/ /gm;
 SELECT 
@@ -245,7 +245,7 @@ sub version_conflict {
     my $StudyUID = shift;
     my $AVersion;
     my $NowVersion = $sumTypeVersion;
-    $dbh = &DB::DBI::connect_to_db(@Settings::db);
+    $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     (my $query = <<QUERY) =~ s/\n/ /gm;
 SELECT
   sumTypeVersion

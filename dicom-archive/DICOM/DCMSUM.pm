@@ -187,6 +187,11 @@ QUERY
         }
     }
 
+    # If DoB is not set, $self->{header}->{birthdate} = '' which will
+    # not be allowed anymore in MySQL 5.7 for date fields 
+    $self->{header}->{birthdate} = undef if ($self->{header}->{birthdate} eq '');
+    $self->{header}->{scandate}  = undef if ($self->{header}->{scandate} eq '');
+
     my @values = 
       (
        $self->{studyuid},                 $self->{header}->{pname},           

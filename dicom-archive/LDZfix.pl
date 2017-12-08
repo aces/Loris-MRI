@@ -12,7 +12,7 @@ use Getopt::Tabular;
 
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
-use DB::DBI;
+use NeuroDB::DBI;
 
 $|++;
 
@@ -65,10 +65,10 @@ if (!@Settings::db) {
 ################################################################
 ######### Establish database connection ########################
 ################################################################
-my $dbh = &DB::DBI::connect_to_db(@Settings::db);
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print "\n==> Successfully connected to database \n";
 
-my $get_dicom_info   = &DB::DBI::getConfigSetting(
+my $get_dicom_info   = &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'get_dicom_info'
                         );
 

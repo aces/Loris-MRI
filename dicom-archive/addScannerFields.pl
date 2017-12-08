@@ -15,7 +15,7 @@ use Getopt::Tabular;
 
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
-use DB::DBI;
+use NeuroDB::DBI;
 
 my $verbose = 0;
 my $profile    = undef;
@@ -58,10 +58,10 @@ if ($profile && !@Settings::db) {
 if(!$profile) { print $Usage; print "\n\tERROR: You must specify an existing profile.\n\n";  exit 33;  }
 
 # establish database connection if database option is set
-my $dbh = &DB::DBI::connect_to_db(@Settings::db); print "Connecting to database.\n" if $verbose;
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); print "Connecting to database.\n" if $verbose;
 
 # get $tarchiveLibraryDir from the ConfigSettings table
-my $tarchiveLibraryDir = &DB::DBI::getConfigSetting(
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
                             \$dbh,'tarchiveLibraryDir'
                             );
 $tarchiveLibraryDir    =~ s/\/$//g;

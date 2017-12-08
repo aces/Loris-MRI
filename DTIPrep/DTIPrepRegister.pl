@@ -10,7 +10,7 @@ use XML::Simple;
 use lib "$FindBin::Bin";
 
 # These are to load the DTI & DBI modules to be used
-use DB::DBI;
+use NeuroDB::DBI;
 use DTI::DTI;
 
 # Set default option values
@@ -87,10 +87,10 @@ if (!$DTIPrepVersion) {
 
 
 # Establish database connection
-my  $dbh    =   &DB::DBI::connect_to_db(@Settings::db);
+my  $dbh    =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # Needed for log file
-my $data_dir = &DB::DBI::getConfigSetting(
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
 my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
@@ -106,7 +106,7 @@ print LOG "Log file, $date\n\n";
 
 # Fetch DTIPrep step during which a secondary QCed file will be created (for example: noMC for a file without motion correction). 
 # This is set as a config option in the config file.
-my  $QCed2_step = &DB::DBI::getConfigSetting(
+my  $QCed2_step = &NeuroDB::DBI::getConfigSetting(
                     \$dbh,'QCed2_step'
                     );
 
