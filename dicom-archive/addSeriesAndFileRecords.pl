@@ -15,7 +15,7 @@ use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
 use DICOM::DCMSUM;
-use DB::DBI;
+use NeuroDB::DBI;
 
 my $profile;
 my $verbose  = 0;
@@ -66,7 +66,7 @@ my $tarchive = abs_path($ARGV[0]);
 
 # establish database connection if database option is set
 my $dbh;
-$dbh = &DB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity. \n" if $verbose; $dbh->disconnect(); print "Database is available.\n\n" if $verbose;
+$dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity. \n" if $verbose; $dbh->disconnect(); print "Database is available.\n\n" if $verbose;
 
 ####################### main ########################################### main ########################################### 
 
@@ -93,7 +93,7 @@ $studyUnique = $summary->{'studyuid'};
 
 # if -dbase has been given create an entry based on unique studyID
 # Create database entry checking for already existing entries...
-$dbh = &DB::DBI::connect_to_db(@Settings::db);
+$dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # now get the TarchiveID
 my $tarchiveID;

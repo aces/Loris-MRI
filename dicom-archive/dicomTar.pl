@@ -16,7 +16,7 @@ use Sys::Hostname;
 use lib "$FindBin::Bin";
 
 use DICOM::DCMSUM;
-use DB::DBI;
+use NeuroDB::DBI;
 
 # version info from cvs
 my $version = 0;
@@ -89,7 +89,7 @@ my $ARCHIVEmd5sum = 'Provided in database only';
 
 
 # establish database connection if database option is set
-my $dbh; if ($dbase) { $dbh = &DB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity.\n" if $verbose; $dbh->disconnect();  print "Database is available.\n\n" if $verbose;}
+my $dbh; if ($dbase) { $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity.\n" if $verbose; $dbh->disconnect();  print "Database is available.\n\n" if $verbose;}
 
 # ***************************************    main    *************************************** 
 #### get some info about who created the archive and where and when
@@ -180,7 +180,7 @@ print  $tarinfo if $verbose;
 # Create database entry checking for already existing entries...
 my $success;
 if ($dbase) {
-    $dbh = &DB::DBI::connect_to_db(@Settings::db);
+    $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     print "\nAdding archive info into database\n" if $verbose;
     my $update          = 1 if $clobber;
     my $ArchiveLocation = $finalTarget;

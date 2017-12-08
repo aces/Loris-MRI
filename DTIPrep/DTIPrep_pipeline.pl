@@ -12,7 +12,7 @@ use Cwd 'abs_path';
 
 # These are to load the DBI & DTI modules to be used
 # use lib "$FindBin::Bin";
-use DB::DBI;
+use NeuroDB::DBI;
 use DTI::DTI;
 
 
@@ -81,29 +81,29 @@ if (!$DTIPrepVersion) {
 }
 
 # Establish database connection
-my  $dbh    =   &DB::DBI::connect_to_db(@Settings::db);
+my  $dbh    =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # These settings are in the ConfigSettings table
-my  $data_dir       =   &DB::DBI::getConfigSetting(
+my  $data_dir       =   &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'dataDirBasepath'
                         );
-my  $t1_scan_type   =   &DB::DBI::getConfigSetting(
+my  $t1_scan_type   =   &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'t1_scan_type'
                         );
-my  $DTI_volumes    =   &DB::DBI::getConfigSetting(
+my  $DTI_volumes    =   &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'DTI_volumes'
                         );
-my  $reject_thresh  =   &DB::DBI::getConfigSetting(
+my  $reject_thresh  =   &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'reject_thresh'
                         );
-my  $niak_path      =   &DB::DBI::getConfigSetting(
+my  $niak_path      =   &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'niak_path'
                         );
-my  $QCed2_step     =   &DB::DBI::getConfigSetting(
+my  $QCed2_step     =   &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'QCed2_step'
                         );
 
-my  $site           =   &DB::DBI::getConfigSetting(
+my  $site           =   &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'prefix'
                         );
 
