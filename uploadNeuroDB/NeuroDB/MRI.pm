@@ -398,11 +398,12 @@ Returns: Textual name of scan type
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
+    my  ($psc, $subjectref, $tarchiveInfo, $fileref, $dbhr,$minc_location) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
     my $pscid = ${subjectref}->{'PSCID'};
     my $visit = ${subjectref}->{'visitLabel'};
+    my $tarchiveID = $tarchiveInfo->{'TarchiveID'};
     my $objective = ${subjectref}->{'subprojectID'};
 
     # get parameters from minc header
@@ -525,7 +526,13 @@ sub identify_scan_db {
     }
 
     # if we got here, we're really clueless...
-    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID);
+    insert_violated_scans(
+        $dbhr,   $series_description, $minc_location,   $patient_name,
+        $candid, $pscid,              $tr,              $te,
+        $ti,     $slice_thickness,    $xstep,           $ystep,
+        $zstep,  $xspace,             $yspace,          $zspace,
+        $time,   $seriesUID,          $tarchiveID
+    );
 
     return 'unknown';
 }    
@@ -533,12 +540,36 @@ sub identify_scan_db {
 
 sub insert_violated_scans {
 
-   my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID) = @_;
-   my $query;
-   my $sth;
-    
-   $sth = $${dbhr}->prepare("INSERT INTO mri_protocol_violated_scans (CandID,PSCID,time_run,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range,time_range,SeriesUID) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-   my $success = $sth->execute($candid,$pscid,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$time,$seriesUID);
+    my ($dbhr,   $series_description, $minc_location, $patient_name,
+        $candid, $pscid,              $tr,            $te,
+        $ti,     $slice_thickness,    $xstep,         $ystep,
+        $zstep,  $xspace,             $yspace,        $zspace,
+        $time,   $seriesUID,          $tarchiveID) = @_;
+
+    (my $query = <<QUERY) =~ s/\n//gm;
+  INSERT INTO mri_protocol_violated_scans (
+    CandID,             PSCID,         TarchiveID,            time_run,
+    series_description, minc_location, PatientName,           TR_range,
+    TE_range,           TI_range,      slice_thickness_range, xspace_range,
+    yspace_range,       zspace_range,  xstep_range,           ystep_range,
+    zstep_range,        time_range,    SeriesUID
+  ) VALUES (
+    ?, ?, ?, now(),
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?
+  )
+QUERY
+
+    my $sth = $${dbhr}->prepare($query);
+    my $success = $sth->execute(
+        $candid,        $pscid,           $tarchiveID, $series_description,
+        $minc_location, $patient_name,    $tr,         $te,
+        $ti,            $slice_thickness, $xspace,     $yspace,
+        $zspace,        $xstep,           $ystep,      $zstep,
+        $time,          $seriesUID
+    );
 
 }
 # ------------------------------ MNI Header ----------------------------------

@@ -435,6 +435,7 @@ sub getAcquisitionProtocol {
       $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
                                    $center_name,
                                    $subjectIDsref,
+                                   $tarchiveInfo,
                                    $file, 
                                    $this->{dbhr}, 
                                    $minc

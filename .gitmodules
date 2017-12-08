@@ -1,3 +1,0 @@
-[submodule "dicom-archive"]
-	path = dicom-archive
-	url = https://github.com/aces/dicom-archive-tools.git
