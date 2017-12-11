@@ -398,12 +398,13 @@ Returns: Textual name of scan type
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $tarchiveInfo, $fileref, $dbhr,$minc_location) = @_;
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr,$minc_location
+    ) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
     my $pscid = ${subjectref}->{'PSCID'};
     my $visit = ${subjectref}->{'visitLabel'};
-    my $tarchiveID = $tarchiveInfo->{'TarchiveID'};
+    my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
     my $objective = ${subjectref}->{'subprojectID'};
 
     # get parameters from minc header
