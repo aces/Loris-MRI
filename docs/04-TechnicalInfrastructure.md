@@ -25,11 +25,72 @@ The root directory of the imaging part of a LORIS instance is typically
             |__ trashbin
 ```
 
-Within that project directory, the data is structured according to its function:
+Within that project directory, there are typically two directories:
 
-- The imaging scripts from the Loris-MRI repository can be found under `bin/mri`
+- The `bin/mri` directory is a copy of all the imaging scripts downloaded from
+    the [GitHub Loris-MRI repository](https://github.com/aces/Loris-MRI). 
+    Details about the content of this folder can be found in 
+    [section 5](./05-Scripts.md).
 
-- The logs of the scripts are created under `data/logs` in `/data/project`.
+- The `data` directory stores all the imaging-related data that will be created
+    by the imaging scripts. 
+
+The following subsections will describe the content of the different 
+  subdirectories found under `/data/project/data`.
+
+
+#### The `assembly` directory
+
+The MINC images that can be viewed via BrainBrowser in the imaging browser 
+  module are located under the `data/assembly` directory and organized by 
+  `CandID/Visit`. Within each of these visit labels, data are first 
+  organized by imaging type (`mri` or `pet` for example) and then by output 
+  type (such as `native` or `processed`). For example, a native T1W image for 
+  subject 123456's V1 visit will be located in 
+  `data/assembly/123456/V1/mri/native/project_123456_V1_T1W_001.mnc`.
+    
+```
+## Content of the /data/project/data/assembly directory
+.
+|__ CandID
+    |__ Visit
+        |__ mri
+        |   |__ native
+        |   |   |__ project_CandID_Visit_modality_number.mnc
+        |   |__ processed
+        |       |__ pipeline_name
+        |           |__ nativeFileName_output_number.mnc
+        |__ pet
+            |__ native
+                | project_CandID_Visit_modality_number.mnc
+```
+
+
+#### The `incoming` directory
+
+Incoming scans from the Imaging uploader module (or automatic cron jobs) are 
+  stored in an `incoming` directory. Once the pipeline has successfully run,
+  data in the incoming folder are removed to avoid duplication of raw imaging
+  datasets.
+  
+  
+#### The `jiv` directory
+
+Jiv images produced by the imaging insertion pipeline are organized per 
+  candidates in the `data/jiv` folder.
+    
+```
+## Content of the /data/project/data/jiv directory
+.
+|__ CandID
+    |__ project_CandID_Visit_modality_number_fileid.header
+    |__ project_CandID_Visit_modality_number_fileid.raw_byte.gz
+```
+
+
+#### The `logs` directory
+
+The logs of the scripts are created under `data/logs` in `/data/project`.
     
 ```
 ## Content of the /data/project/data/logs directory
@@ -46,12 +107,52 @@ Within that project directory, the data is structured according to its function:
         |__ registerProcessed`date`.log
 ```
 
-- Incoming scans from the Imaging uploader module (or automatic cron jobs) are 
-    stored in an `incoming` directory. Once the pipeline has successfully run,
-    data in the incoming folder are removed to avoid duplication of raw imaging
-    datasets.
+
+#### The `pic` directory
+
+The screenshots displayed in the imaging browser module for each modality is 
+  stored within the `data/pic` folder and organized per candidates. 
     
-- The DICOM archives listed in the DICOM archive module are stored in the
+```
+## Content of the /data/project/data/pic directory
+.
+|__ CandID
+    |__ project_CandID_Visit_modality_number_fileid_check.jpg
+    |__ project_CandID_Visit_modality_number_fileid_check.jpg
+```  
+
+
+#### The `pipelines` directory
+
+Processed incoming data or DTIPrep pipeline outputs are stored within 
+  the `data/pipelines` directory and organized per pipeline versions, 
+  candidates and visit labels. In addition, protocol files for automatic 
+  pipelines are saved in the `data/protocols` directory.
+    
+```
+## Content of the /data/project/data/pipelines directory
+.
+|__ DTIPrep
+    |__ DTIPrep_version
+        |__ CandID
+            |__ Visit
+                |__ mri
+                    |__ processed
+                        |__ DTIPrep_XML_protocol_name
+                            |__ file.mnc
+                            |__ file.nrrd
+
+## Content of the /data/project/data/protocols directory
+.
+|__ protocols
+    |__ DTIPrep
+        |__ project_DTIPrep_XML_protocol.xml
+```
+
+
+#### The `tarchive` directory
+  
+The DICOM archives listed in the DICOM archive module are stored in the
   `data/tarchive` directory and organized folders representing the different 
   years of acquisition.
 
@@ -68,8 +169,10 @@ Within that project directory, the data is structured according to its function:
     |__ DCM_`date`_tarchive.tar
 ```
 
-- The violated scans listed in the MRI violated scans module are stored within 
-    the directory `data/trashbin`.
+#### The `trashbin` directory
+
+The scans that violates the established imaging protocol and listed in the MRI 
+  violated scans module are stored within the directory `data/trashbin`.
     
 ```
 ## Content of the /data/project/data/trashbin directory
@@ -80,77 +183,7 @@ Within that project directory, the data is structured according to its function:
 |__ Tarload-XX2
     |__file.mnc
 ```
-     
-- The MINC images that can be viewed via BrainBrowser in the imaging browser 
-    module are located under the `data/assembly` directory and organized by 
-    `CandID/Visit_label`. Whithin each of these visit labels, data are first 
-    organized by imaging type (`mri` or `pet` for example) and then by output 
-    type (such as `native` or `processed`). For example, a native T1W image for 
-    subject 123456's V1 visit will be located in 
-    `data/assembly/123456/V1/mri/native/Project_123456_V1_T1W_001.mnc`.
-    
-```
-## Content of the /data/project/data/assembly directory
-.
-|__ candid
-    |__ visit
-        |__ mri
-        |   |__ native
-        |   |   |__ Project_candid_visit_modality_number.mnc
-        |   |__ processed
-        |       |__ pipeline_name
-        |           |__ nativeFileName_output_number.mnc
-        |__ pet
-            |__ native
-                | Project_candid_visit_modality_number.mnc
-```
-
-- The screenshots displayed in the imaging browser module for each modality is 
-    stored within the `data/pic` folder and organized per candidates. 
-    
-```
-## Content of the /data/project/data/pic directory
-.
-|__ candid
-    |__ Project_candid_visit_modality_number_fileid_check.jpg
-    |__ Project_candid_visit_modality_number_fileid_check.jpg
-```
-    
-- Additionally, jiv images are produced by the imaging pipeline and are 
-    organized per candidates in the `data/jiv` folder.
-    
-```
-## Content of the /data/project/data/jiv directory
-.
-|__ candid
-    |__ Project_candid_visit_modality_number_fileid.header
-    |__ Project_candid_visit_modality_number_fileid.raw_byte.gz
-```
-    
-- Finally, processed incoming data or DTIPrep pipeline outputs are stored within 
-    the `data/pipelines` directory and organized per pipeline versions, 
-    candidates and visit labels. In addition, protocol files for automatic 
-    pipelines are saved in the `data/protocols` directory.
-    
-```
-## Content of the /data/project/data/pipelines directory
-.
-|__ DTIPrep
-    |__ DTIPrep_version
-        |__ candid
-            |__ visit
-                |__ mri
-                    |__ processed
-                        |__ DTIPrep_XML_protocol_name
-                            |__ file.mnc
-                            |__ file.nrrd
-
-## Content of the /data/project/data/protocols directory
-.
-|__ protocols
-    |__ DTIPrep
-        |__ Project_DTIPrep_XML_protocol.xml
-```
+      
 
 ## 4.2 Database infrastructure
 
@@ -272,13 +305,21 @@ In the event a scan does not match any of the protocol mentioned in the
   * the **_mri\_protocol\_violated\_scans_** table stores the violated scans'
       parameters (TR, TE, TI...) for easy identification of what is different
       between the violated scan and the imaging protocol specified in the 
-      _mri\_protocol_ table. ***NOTE: THE LINKS TO THE CANDIDATE TABLE IS A 
-      TERRIBLE DESIGN AND THAT TABLE SHOULD LINKED TO THE TARCHIVE TABLE 
-      INSTEAD. ISSUE THAT SHOULD BE FIX FOR THE NEXT MINOR RELEASE AFTER 19.0***
-  * THE **_violations\_resolved_** table... ***NOTE: THIS TABLE DOES NOT HAVE
-      ANY LINK TO THE OTHER TABLES... NEED TO FIX THIS. PROBABLY FOR THE NEXT
-      RELEASE TOO***
-
+      _mri\_protocol_ table. This table is linked to the tarchive table via 
+      the _TarchiveID_ foreign key and to the candidate table via the _CandID_
+      and _PSCID_ foreign keys.
+  * the **_violations\_resolved_** is linked to the three other tables mentioned 
+      in this section. For each entry in that table, the _TypeTable_ field 
+      allows to specify the table to link **_violations\_resolved_** to and the
+      _ExtID_ allows to specify the ID to use from the linked table. Below is a
+      table illustrating this concept.
+      
+| TableType                      | ExtID                                |
+|--------------------------------|--------------------------------------|
+| MRICandidateErrors             |   MRICandidateErrors.ID              |
+| mri\_violations\_log           | mri\_violations\_log.LogID           |
+| mri\_protocol\_violated\_scans |   mri\_protocol\_violated\_scans.ID  |       
+ 
 ![violated_tables](images/violated_tables.png)
 
 ### 4.2.5 Quality Control (QC) tables
