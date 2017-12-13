@@ -37,7 +37,7 @@ where `$ID` is the number corresponding to the UploadID column in the Imaging Up
 `/PATH/TO/UPLOAD/` is typically the `/data/incoming/` directory.
 
 
-## 5.2 Option 2
+## 5.2 Option 2 (I think we should deprecate)
 This option is used in similar scenarios as Option 1, but with potentially the project
 imaging specialist launching the pipeline (manually or through a cron job) at pre-defined 
 time intervals (e.g. once a day, or once a week).
@@ -56,10 +56,10 @@ In this case, the scans should be placed in a path such as `/data/incoming/` and
 containing a list of the scans, e.g. `scans_list.txt`, where `scans_list.txt` contains one scan 
 detail per line (example for 2 entries shown below); and each line (for each scan) consists of 
 space delimited 
-
     1) the full path to the DICOM zipped scan, 
     2) Y or N depending on whether the scan is for a phantom or not, 
-    and 3) patient name following the PSCID_CandID_VisitLabel Loris convention for real candidates and left BLANK for phantoms
+    and 
+    3) patient name following the PSCID_CandID_VisitLabel Loris convention for real candidates and left BLANK for phantoms
 
 An example of uploading 2 entries/scans to be uploaded:
 ```
@@ -73,7 +73,24 @@ The insertion pipeline can then be triggered using the command:
 
 ```
 
-## 5.4 Option 4 ???????????
+## 5.4 Option 4 (why exactly would one want to do this?)
 This is an option that addresses a possibility of a project wanting to split the insertion 
-pipeline into 2 major 
+pipeline into its two major steps. In this case the command to run each of the two steps separately
+are highlighted below:
+
+```
+dicom-archive/dicomTar.pl /SOURCE/Dir_With_DCM_Files /data/loris-MRI/data/tarchive -clobber -database -profile prod -verbose -centerName UCI -mri_upload_update > temp.log 2>&1
+```
+where `Dir_With_DCM_Files/` is a directory containing the DICOM files of the upload.
+This will essentially archive the DICOMs for this scan and populates the LORIS DICOM-Archive module.
+
+```
+uploadNeuroDB/tarchiveLoader -globLocation -profile prod /data/$PROJECT/data/tarchive/DCM_2016-11-15_your_current_archive.tar -verbose
+```
+where `DCM_2016-11-15_your_current_archive.tar` represents the archived tar from Step 1.
+This step essentially converts the images into MINC format, checks them against the mri_protocol, 
+generates .jpg images to be displayed in LORIS Imaging Browser, and if applicable, moves MRI 
+violated scans into the LORIS MRI Violated Scans module.
+
+
 
