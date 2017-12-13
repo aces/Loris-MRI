@@ -8,6 +8,11 @@
 
 ## 3.4 Pipeline flow
 
+The graph below shows the different frontend modules as well as the name
+  of the main table used by those modules and the scripts that allows
+  insertion in the database of the information displayed within those
+  modules.
+
 ![pipeline_flow](images/overall_flow.png)
 
 Once a new imaging study has been uploaded via the imaging uploader
@@ -33,7 +38,6 @@ After the DICOM study has been archived and inserted into the database
 
 
 ![pipeline_flow](images/pipeline_flow.png)
-
 
 
 ## 3.5 Common errors
