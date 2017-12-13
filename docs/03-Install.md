@@ -32,6 +32,7 @@ After the DICOM study has been archived and inserted into the database
   the `imaging_upload_file.pl` script will call `tarchiveLoader` to
 
 
+![pipeline_flow](images/pipeline_flow.png)
 
 
 
