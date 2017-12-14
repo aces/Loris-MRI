@@ -31,6 +31,7 @@ my $rvl;
 my $query     = '';
 my $selORdel  = '';
 my $delqcdata = '';
+my $sUIDFiles = 0;
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
@@ -44,7 +45,8 @@ my @opt_table = (
                  ],
                  );
 
-
+my $val;
+my $field;
 my $Help = <<HELP;
 *******************************************************************************
 Minc Deletion
@@ -87,7 +89,7 @@ USAGE
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ($profile && !@Settings::db) { 
     print "\n\tERROR: You don't have a configuration file named ". 
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
+          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
     exit 2; 
 }
 if (!$ARGV[0] || !$profile) { 
@@ -115,9 +117,10 @@ if ($ARGV[0] eq "confirm") {
   $selORdel  = "SELECT * ";
 }
 
-my $data_dir         = $Settings::data_dir;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
+                    );
 
 sub selORdel {
   my ($table, $field) = @_;
@@ -211,7 +214,6 @@ while (my $f = $sth->fetchrow_hashref()) {
   ($file, $dir, $ext) = fileparse($f->{'File'});
   $nii_file     = basename($file, ".mnc") . ".nii";
   @candid = split("/", $dir);
-
   if ($ARGV[0] eq "confirm") {
     # Let's make directories
     make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
@@ -257,13 +259,20 @@ print "\nTarchiveID: $tarchiveid\n";
 print "\nSessionID: $sessionid\n";
 
 
+if ($seriesuid) {
+  $val = $seriesuid;
+  $field = "SeriesUID";
+} else {
+  $val = $fileid;
+  $field = "FileID"
+}
 # Check #1 in files, if other files from same session
 $query = "select * from files as g " .
-"where g.SessionID IN (select f.SessionID from files as f where f.SeriesUID=?) " .
-"and g.SeriesUID <> ?";
+"where g.SessionID IN (select f.SessionID from files as f where f.${field}=?) " .
+"and g.${field} <> ?";
 
 $sth = $dbh->prepare($query);
-$rvl = $sth->execute($seriesuid, $seriesuid);
+$rvl = $sth->execute($val, $val);
 
 if ($sth->rows > 0) {
     $sessionfilesfound = 1;
@@ -327,5 +336,42 @@ if (!$sessionfilesfound) {
 
 }
 
+# If using SeriesUID, get number of matching files before deleting
+if ($field eq "SeriesUID") {
+    $query = "SELECT COUNT(*) FROM files WHERE SeriesUID = ?";
+    $sth = $dbh->prepare($query);
+    $sth->execute($seriesuid);
+    $sUIDFiles = $sth->fetchrow_array;
+    print "\n". $sUIDFiles ." files matched with SeriesUID " . $seriesuid . "\n";
+}
+
 # Delete file records last
 selORdel("files","File");
+
+# Update the number of minc inserted in mri_upload by subtracting one
+if ($selORdel eq "DELETE ") {
+    $query = "SELECT number_of_mincInserted FROM mri_upload " .
+        "WHERE TarchiveID=?";
+
+    $sth = $dbh->prepare($query);
+    $sth->execute($tarchiveid);
+    my $nmi = $sth->fetchrow_array;
+
+    if ($sth->rows > 0) {
+        if ($field eq "SeriesUID") {
+            $nmi -= $sUIDFiles;
+        } else {
+            $nmi -= 1;
+        }
+        $query = "UPDATE mri_upload SET number_of_mincInserted=? ".
+            "WHERE TarchiveID=?";
+
+        $sth = $dbh->prepare($query);
+        my $success = $sth->execute($nmi, $tarchiveid);
+
+        if ($success) {
+            print "\nNew count for number of mincs inserted changed to " . $nmi . "\n";
+        }
+    }
+}
+

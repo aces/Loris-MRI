@@ -53,5 +53,21 @@ sub connect_to_db
     return $dbh;
 }
 
+sub getConfigSetting
+{
+    my ($dbh, $name) = @_;
+    my ($message,$query,$where) = '';
+    my $value = undef;
+
+    $where = " WHERE c.ConfigID=(Select cs.ID from ConfigSettings cs where cs.Name=?)";
+    $query = " SELECT c.Value FROM Config c";
+    $query = $query . $where;
+    my $sth = $$dbh->prepare($query);
+    $sth->execute($name);
+    if ( $sth->rows > 0 ) {
+        $value = $sth->fetchrow_array();
+    }
+    return $value;
+}
 
 1;
