@@ -236,7 +236,6 @@ sub makeNIIAndHeader {
     
     my ( $dbh, %file_list) = @_;
     my ($row, $scanType, $BIDSCategory, $BIDSScanType, $destDirFinal);
-
     foreach $row (keys %file_list) {
         my $fileID            = $file_list{$row}{'fileID'};
         my $minc              = $file_list{$row}{'file'};
@@ -263,36 +262,6 @@ QUERY
         $BIDSCategory = $rowhr->{'BIDS_category'};
         $BIDSScanType = $rowhr->{'BIDS_Scan_type'};
 
-        # Determine first if a single session with minc files exist for the candidate
-        # this will dictate if the BIDS filename and path have the ses-VisitLabel in it or not
-
-        # Query to grep all file entries
-        ( my $query = <<QUERY ) =~ s/\n/ /g;
-SELECT
-  COUNT(DISTINCT f.SessionID) AS Count
-FROM
-  files f
-JOIN
-  session s
-ON
-  s.ID=f.SessionID
-JOIN
-  candidate c
-ON
-  c.CandID=s.CandID
-WHERE
-  c.CandID = ?
-GROUP BY
-  f.SessionID
-QUERY
-
-        # Prepare and execute query
-        my $sth = $dbh->prepare($query);
-        $sth->execute($candID);
-        my $row = $sth->fetchrow_hashref();
-        my $sessionCountPerCandID = $row->{'Count'};
-
-
         my $mincBase          = basename($minc);
         my $nifti             = $mincBase;
 
@@ -304,42 +273,33 @@ QUERY
         $visitLabel           =~ s/_//g;
 
         # Remove prefix; i.e project name; and add sub- and ses- in front of CandID and Visit label
-        # removing sub- and ses- makes the BIDS validator happy, but document section 5 says to keep it
         my $remove            = $prefix . "_" . $candID . "_" . $visitLabelOrig;
-        my $replace;
-        if ($sessionCountPerCandID > 1) {
-            $replace = "sub-" . $candID . "_ses-" . $visitLabel;
-        } else {
-            $replace = "sub-" . $candID;
-        }
+        my $replace           = "sub-" . $candID . "_ses-" . $visitLabel;
         $nifti                =~ s/$remove/$replace/g;
 
         # make the filename have the BIDS Scan type name, in case the project Scan type name is not compliant;
         # and append the word 'run' before run number
         $remove = $scanType . "_";
-        $replace = $BIDSScanType . "_run-";
+        if ($BIDSCategory eq 'func') {
+            # If the file is functional; need to add a leading 'task' before BIDS scan type
+            $replace = "task-" . $BIDSScanType . "_run-";
+        } else {
+            $replace = "run-";
+        }
         $nifti =~ s/$remove/$replace/g;
 
+        # find position of the last dot, so where the extension starts
+        my ($base,$path,$ext) = fileparse($nifti, qr{\..*});
         # If the file is functional; need to add a trailing 'bold' before the extension
+        # otherwise, add the real BIDSScanType in the end
         if ($BIDSCategory eq 'func') {
-            # find position of the last dot, so where the extension starts
-            my ($base,$path,$ext) = fileparse($nifti, qr{\..*});
             $base = $base . "_bold";
-            $nifti = $base . $ext;
-        }
-        # If the file is functional; need to add a leading 'task' before BIDS scan type
-        if ($BIDSCategory eq 'func') {
-            $remove = $BIDSScanType;
-            $replace = "task-" . $BIDSScanType;
-            $nifti =~ s/$remove/$replace/g;
-        }
-
-        if ($sessionCountPerCandID > 1) {
-            $destDirFinal = $destDir . "/sub-" . $candID . "/ses-" . $visitLabel . "/" . $BIDSCategory;
         } else {
-            $destDirFinal = $destDir . "/sub-" . $candID . "/" . $BIDSCategory;
+            $base = $base . "_" . $BIDSScanType;        
         }
+        $nifti = $base . $ext;
 
+        $destDirFinal = $destDir . "/sub-" . $candID . "/ses-" . $visitLabel . "/" . $BIDSCategory;
         make_path($destDirFinal) unless(-d  $destDirFinal);
 
         my $mincFullPath = $dataDir . "/" . $minc;
@@ -364,9 +324,8 @@ QUERY
             # slice order is needed for rs-FMRI
             @headerNameDBArr      = ("repetition_time","manufacturer","manufacturer_model_name","magnetic_field_strength",
                                 "device_serial_number","software_versions","acquisition:receive_coil","acquisition:scanning_sequence",
-                                "echo_time","inversion_time","dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name","acquisition:slice_order");
+                                "echo_time","inversion_time","dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name", ,"acquisition:slice_order");
             # Equivalent name as it appears in the BIDS specifications
-            # slice order is needed for rs-FMRI
             @headerNameArr  = ("RepetitionTime","Manufacturer","ManufacturerModelName","MagneticFieldStrength",
                                 "DeviceSerialNumber","SoftwareVersions","ReceiveCoilName","PulseSequenceType",
                                 "EchoTime","InversionTime","SliceTiming", "FlipAngle", "InstitutionName", "SliceOrder");
@@ -413,6 +372,14 @@ QUERY
                 else {
                     print "     $headerName was not found for $nifti\n";
                 }
+            }
+            # for fMRI, we need to add TaskName which is e.g task-rest in the case of resting-state fMRI
+            if ($BIDSCategory eq 'func') {
+                my $extraHeader = "TaskName";
+                $extraHeader =~ s/^\"+|\"$//g;
+                my $extraHeaderVal = "task";
+                $header_hash{$extraHeader} = $extraHeaderVal;
+                    print "    TASKNAME***** $extraHeader with value $extraHeaderVal\n";
             }
             $currentHeaderJSON = encode_json \%header_hash;
             print HEADERINFO "$currentHeaderJSON";
