@@ -377,9 +377,9 @@ QUERY
             if ($BIDSCategory eq 'func') {
                 my $extraHeader = "TaskName";
                 $extraHeader =~ s/^\"+|\"$//g;
-                my $extraHeaderVal = "task";
+                my $extraHeaderVal = "rest";
                 $header_hash{$extraHeader} = $extraHeaderVal;
-                    print "    TASKNAME***** $extraHeader with value $extraHeaderVal\n";
+                    print "    TASKNAME added for bold: $extraHeader with value $extraHeaderVal\n";
             }
             $currentHeaderJSON = encode_json \%header_hash;
             print HEADERINFO "$currentHeaderJSON";
