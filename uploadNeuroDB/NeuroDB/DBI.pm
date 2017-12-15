@@ -30,22 +30,23 @@ are available.
 
 use strict;
 use warnings;
-use Exporter ();
 use DBI;
-use Pod::Usage;
+
 
 =pod
 
 =head2 connect_to_db
 
-This methods connects to the LORIS database ($db_database) on host ($db_host)
-as username ($db_user) & password ($db_pass).
+C<$dbh = connect_to_db($db_name, $db_user, $db_pass, $db_host);>
 
-C<connect_to_db($db_name, $db_user, $db_pass, $db_host);>
+This methods connects to the LORIS database ($db_database) on host ($db_host)
+as username ($db_user) & password ($db_pass). The function dies with a
+database connection error when the connection failed or returns a DBI database
+handler.
 
 INPUT: optional: database, username, password, host
 
-RETURNS: DBI database handler.
+RETURNS: DBI database handler when connection is successful
 
 =cut
 sub connect_to_db
@@ -60,14 +61,15 @@ sub connect_to_db
     $db_user = ""    unless $db_user;       # user name (fill in as appropriate)
     $db_pass = ""    unless $db_pass;       # password (ditto)
 
-    my $dbh = DBI->connect($db_dsn, $db_user, $db_pass) or die "DB connection failed\nDBI Error: ". $DBI::errstr."\n";
+    my $dbh = DBI->connect($db_dsn, $db_user, $db_pass) or die
+        "DB connection failed\nDBI Error: ". $DBI::errstr."\n";
     return $dbh;
 }
 
 sub getConfigSetting
 {
     my ($dbh, $name) = @_;
-    my ($message,$query,$where) = '';
+    my ($message, $query, $where) = '';
     my $value = undef;
 
     $where = " WHERE c.ConfigID=(Select cs.ID from ConfigSettings cs where cs.Name=?)";
@@ -89,8 +91,5 @@ sub getConfigSetting
 
 Jonathan Harlap, McConnell Brain Imaging Centre, Montreal Neurological
 Institute, McGill University.
-
-
-=head1 COPYRIGHT AND LICENSE
 
 =cut
