@@ -59,7 +59,7 @@ You will be asked for the following input:
 - What is the database name? *$dbname*
 - What is the database host? *$dbhost*
 - What is the MySQL user? *$lorisuser* [Use the same MySQL user from the LORIS 
-installation, i.e. *lorisuser*]
+    installation, i.e. *lorisuser*]
 - What is the MySQL password?
 - What is the Linux user which the installation will be based on? *$lorisadmin*
 - What is the project name? *$projectname*
@@ -204,6 +204,104 @@ Note: `Scan_type` column values are defined in the `mri_scan_type` table
 if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'dti' or $acquisitionProtocol eq 'bold' or $acquisitionProtocol =~ /fmri/) { return 1; }
 ```
 
+### 2.3.2 Set up the Imaging Uploader module
+
+The Imaging Uploader module provides a user-friendly interface for transferring 
+  an imaging dataset to the Loris server, before it is handled by the imaging 
+  pre-processing and insertion pipeline scripts.
+  
+To configure the Imaging Uploader module for upload and insertion of scans via 
+  a browser, see the [Imaging Uploader Readme](https://github.com/aces/Loris/blob/master/modules/imaging_uploader/README.md) 
+  (within modules/imaging_uploader folder).
+  
+> **Missing visit label options?** The Imaging Uploader's Visit label options 
+    are drawn from the list of all timepoints registered in the database *where 
+    CenterID != 1* (this CenterID is reserved for 
+    [DCC candidates](https://github.com/aces/Loris/wiki/Project-Customization#4-define-study-sites)
+    ). If you do not see a particular visit label option in the Uploader's  
+    dropdown select, simply create a new timepoint for any (non-DCC) 
+    candidate with that visit label (via Candidate menu, Access Profiles). 
+    The visit label should then automatically appear in the Uploader's 
+    dropdown options.
+
+#### Post-Upload: Pre-processing and Insertion into Loris
+
+After an imaging dataset is uploaded to the Loris server, run the script 
+  `imaging_upload_file.pl` to run the pre-processing and insertion pipeline 
+  scripts that load the imaging data into the Loris database tables. Provide 
+  the upload_id value and uploaded dataset name (e.g. 608, 
+  AAA0001_513067_V01.zip):
+```
+cd /data/$PROJ/bin/mri
+uploadNeuroDB/imaging_upload_file.pl -profile prod -verbose -upload_id 608 /data/incoming/AAA0001_513067_V01.zip 
+```
+
+See also: [Logs](#logs) and 
+  [Troubleshooting Insertion of Uploaded Datasets](#troubleshooting-insertion-of-uploaded-datasets)
+
+For more details on the different possibilities available to run the insertion 
+  pipeline, please refer to [05-PipelineOptions](05-PipelineOptions.md).
+
+#### Setting up Imaging AutoLaunch
+
+- To automatically preprocess, validate and insert all uploaded scans into the
+    database, set *ImagingUploader Auto-Launch* to "Yes" in the `Config` module, 
+    "Study" section.
+- For initial setup and configuration, it is recommended to 
+    [manually run the imaging pipeline scripts](#post-upload:-pre-processing-and-insertion-into-loris) 
+    for each uploaded dataset.
+- Note that your *lorisadmin* user must also be part of the apache group (e.g. 
+    www-data).
+
+##### Server Processes Manager
+
+The Server Processes Manager module (Admin menu) shows all server jobs launched 
+  by Imaging Uploader. The exact Output and Error file names for each 
+  upload/insertion are easily found in this module. The Exit Code file 
+  describes the exit status of the job.
+
+Caveat: By default these log files are output to `/tmp/` and deleted. To avoid 
+  deletion, edit [deleteProcessFiles()](https://github.com/aces/Loris/blob/master/modules/server_processes_manager/php/AbstractServerProcess.class.inc#L521)
+  to return false. (See also: [Logs](#logs)).
+  
+### 2.3.3 Queue Manager (optional/recommended)
+
+Installing Sun GridEngine (SGE) is useful for managing the server processing 
+  load for all scripts. Use the `Configuration` module setting `isqsub` to tell 
+  the pipeline whether a queue manager is installed.
+
+### 2.3.4 Email Notifications
+
+Installing a mail server is recommended, as the LORIS Imaging pipeline by 
+  default attempts to send notifications about completed or failed uploads.
+
+### 2.3.5 Visualization: [BrainBrowser](https://brainbrowser.cbrain.mcgill.ca/)
+
+[BrainBrowser](https://brainbrowser.cbrain.mcgill.ca/), a web-enabled viewer for
+   real-time exploration of 3D images, comes embedded within LORIS, including 
+   a 2D Volume viewer that can overlay 2 acquisitions. A 3D surface viewer 
+   can be used for processed surface datasets.
+   
+See also: [BrainBrowser Troubleshooting](#2.5.3-brainbrowser-troubleshooting)
+
+### 2.3.6 Quality Control within the Imaging Browser
+
+The Imaging Browser module enables web-based Quality Control (QC) of 
+  acquisitions.
+
+MRI scans can be viewed in 3D space using the embedded BrainBrowser 
+  visualization tool.
+
+QC flags, comments and statistics are fully integrated and can be enabled by:
+
+- Grant QC permissions in User Accounts (or add `mri_feedback` permission via 
+    `user_perm_rel` table).
+- Scan types will be populated automatically once images are inserted in the 
+    database. Use the "Selected" dropdown to identify the single best 
+    acquisition for a given type (e.g. t1) for the scan session.
+- QC comments should already be enabled via the `feedback_mri_comment_types` 
+    table.
+
 ## 2.4 Configuration
 
 ## 2.5 Pipeline flow
@@ -305,6 +403,21 @@ Error and output messages from the imaging insertion scripts are logged in files
   function [deleteProcessFiles()](https://github.com/aces/Loris/blob/master/modules/server_processes_manager/php/AbstractServerProcess.class.inc#L521) 
   to return false instead of true.
 
+#### Troubleshooting Insertion of uploaded datasets
+
+If upload was successful but issues were encountered with the imaging insertion 
+  pipeline scripts:
+
+- CentOS: check for additional dependencies/configurations (e.g. Dicom 
+    Dictionary path) in the detailed 
+    [CentOS Imaging Installation transcript](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript)
+- Manually re-run the entire pipeline sequence: 
+    [imaging_upload_file.pl](#post-upload:-pre-processing-and-insertion-into-loris)
+- If one of the final steps such as the MINC conversion is failing, you may 
+    wish to just re-run the tarchiveLoader script.
+- See also [re-running the Imaging pipeline](#rerunning-the-imaging-pipeline) 
+    section for troubleshooting information.
+
 #### Protocol violations
 
 Scans whose parameters can't be matched against the `mri_protocol` table during 
@@ -370,5 +483,14 @@ In cases where a subject was scanned in two scanner sessions within a single
   visit label / session table record. Create separate tarchives for each 
   DICOM dataset upload each to the same visit.
 
+### 2.5.3 BrainBrowser Troubleshooting 
 
-[FAQ](AppendixA-FAQ.md)
+- `/data/$PROJ` directory and subdirectories must be readable and executable by 
+    the Apache linux user.
+- If [showDatabaseQueries](https://github.com/aces/Loris/wiki/Behavioural-Database#showdatabasequeries)
+    is enabled, image volumes will not display properly in the Imaging Browser.
+- Verify the Configuration module (*Paths*) `MINC files` setting is 
+    `/data/$PROJ/data/`.
+
+Feel free to visit the [FAQ](AppendixA-FAQ.md) section for more 
+  troubleshooting solutions.
