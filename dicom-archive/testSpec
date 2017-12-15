@@ -1,0 +1,7 @@
+# Careful : this is an example for a spec file meant to split on series and echo time
+# series	NO	echo time	in ms
+(0020,0011)	6	(0018,0081)	16	(0018,0086)	1	(0008,103e)	PD EN adjusted
+(0020,0011)	6	(0018,0081)	80	(0018,0086)	2	(0008,103e)	T2 EN adjusted
+(0020,0011)	4	(0018,0081)	16	(0018,0086)	1	(0008,103e)	PD EN adjusted
+(0020,0011)	4	(0018,0081)	80	(0018,0086)	2	(0008,103e)	T2 EN adjusted
+

@@ -80,12 +80,18 @@ unless  ((defined($sourceFileID)) && ($sourceFileID =~ /^[0-9]+$/)) {
 # Make sure we have permission to read the file
 unless  (-r $filename)  { print "Cannot read $filename\n"; exit 1;}
 
-# These settings are in the config file (profile)
-my  $data_dir   =   $Settings::data_dir;
-my  $pic_dir    =   $data_dir.'/pic';
-my  $jiv_dir    =   $data_dir.'/jiv';
-my  $prefix     =   $Settings::prefix;
+# Establish database connection
+my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
+# These settings are in the config file (profile)
+my $data_dir = NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
+                    );
+my $pic_dir  =   $data_dir.'/pic';
+my $jiv_dir  =   $data_dir.'/jiv';
+my $prefix   = NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'prefix'
+                    );
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs/registerProcessed";
 system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
@@ -93,11 +99,9 @@ my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)    =   localtime(time)
 my  $date       =   sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log        =   "$log_dir/registerProcessed$date.log";
 open (LOG,">>$log");
+print LOG "\n==> Successfully connected to database \n";
 print LOG "Log file, $date\n\n";
 
-# Establish database connection
-my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
 
 
 # ----- STEP 1: Create and load File object.
@@ -125,7 +129,9 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 #       (only for minc files)
 my  ($center_name,$centerID);
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
-    my  $lookupCenterName       =   $Settings::lookupCenterNameUsing;
+    my  $lookupCenterName       =   NeuroDB::DBI::getConfigSetting(
+                                    \$dbh,'lookupCenterNameUsing'
+                                    );
     my  $patientInfo;
     if      ($lookupCenterName eq 'PatientName')    {
         $patientInfo    =   fetchMincHeader($filename,'patient:full_name');
@@ -246,6 +252,9 @@ unless  ($fileID)   {
 my $intermediary_insert = &insert_intermedFiles($fileID, $inputFileIDs, $tool);
 print LOG "\n==> FAILED TO INSERT INTERMEDIARY FILES FOR $fileID!\n\n" if (!$intermediary_insert);
 
+my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'horizontalPics'
+                        );
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     # Jivify
     print LOG "Making JIV\n";
@@ -253,7 +262,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     
     # make the browser pics
     print "Making browser pics\n";
-    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $Settings::horizontalPics);
+    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics);
 }
 
 # tell the user we've done so and include the MRIID for reference

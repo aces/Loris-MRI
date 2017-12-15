@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 no warnings 'once';
+use NeuroDB::DBI;
 
 #####Get config setting#######################################################
 # checking for profile settings
@@ -9,9 +10,29 @@ if(-f "$ENV{LORIS_CONFIG}/.loris_mri/prod") {
     { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
 } ##Possibly the script can exit if the prod doesn't exist
 #######################################################################################
+
+################################################################
+######### Establish database connection ########################
+################################################################
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+print "\nSuccessfully connected to database \n";
+
 # define project space
 my ($debug, $verbose) = (0,0);
-my ($stdoutbase, $stderrbase) = ("$Settings::data_dir/batch_output/tarstdout.log", "$Settings::data_dir/batch_output/tarstderr.log");
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
+                    );
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'tarchiveLibraryDir'
+                    );
+my $is_qsub = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'is_qsub'
+                    );
+my $mail_user = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'mail_user'
+                    );
+
+my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/tarstdout.log", "$data_dir/batch_output/tarstderr.log");
 my $stdout = '';
 my $stderr = '';
 while($_ = $ARGV[0], /^-/) {
@@ -47,10 +68,10 @@ foreach my $input (@inputs)
     ## processor will do all the real magic
 
     $input =~ s/\t/ /;
-    $input =~ s/$Settings::tarchiveLibraryDir//;
-    my $command = "tarchiveLoader -globLocation -profile prod $Settings::tarchiveLibraryDir/$input";
+    $input =~ s/$tarchiveLibraryDir//;
+    my $command = "tarchiveLoader -globLocation -profile prod $tarchiveLibraryDir/$input";
     ##if qsub is enabled use it
-    if ($Settings::is_qsub) {
+    if ($is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
     	 print QSUB $command;
     	 close QSUB;
@@ -62,7 +83,7 @@ foreach my $input (@inputs)
 
      push @submitted, $input;
 }
-open MAIL, "|mail $Settings::mail_user";
+open MAIL, "|mail $mail_user";
 print MAIL "Subject: BATCH_UPLOADS_TARCHIVE: ".scalar(@submitted)." studies submitted.\n";
 print MAIL join("\n", @submitted)."\n";
 close MAIL;

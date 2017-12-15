@@ -72,9 +72,21 @@ if (!$profile ) {
 ################ Establish database connection #################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
+                    );
+my $bin_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'MRICodePath'
+                    );
+my $is_qsub = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'is_qsub'
+                    );
+my $mail_user = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'mail_user'
+                    );
 
-my ($stdoutbase, $stderrbase) = ("$Settings::data_dir/batch_output/imuploadstdout.log", 
-				 "$Settings::data_dir/batch_output/imuploadstderr.log");
+my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/imuploadstdout.log", 
+				 "$data_dir/batch_output/imuploadstderr.log");
 
 
 while($_ = $ARGV[0], /^-/) {
@@ -169,14 +181,14 @@ foreach my $input (@resultsarray)
     ## this is where the subprocesses are created...  should basically run processor script with study directory as argument.
     ## processor will do all the real magic
 
-    my $command = "$Settings::bin_dir/uploadNeuroDB/imaging_upload_file.pl "
+    my $command = "$bin_dir/uploadNeuroDB/imaging_upload_file.pl "
 		. "-profile $profile -upload_id $upload_id $fullpath";
     if ($verbose) {
         $command .= " -verbose";
     }
 
     ##if qsub is enabled use it
-    if ($Settings::is_qsub) {
+    if ($is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_imageuploader_${counter}";
     	 print QSUB $command;
     	 close QSUB;
@@ -189,7 +201,7 @@ foreach my $input (@resultsarray)
 
      push @submitted, $input;
 }
-open MAIL, "|mail $Settings::mail_user";
+open MAIL, "|mail $mail_user";
 print MAIL "Subject: BATCH_UPLOADS_IMAGEUPLOADER: ".scalar(@submitted)." studies submitted.\n";
 print MAIL join("\n", @submitted)."\n";
 close MAIL;

@@ -57,11 +57,17 @@ if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
  }
 #######################################################################################
 
-my $dbh = NeuroDB::DBI::connect_to_db(@Settings::db);
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-# get path to tarchiveLibraryDir from config file
-my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
+# get path to tarchiveLibraryDir from the database
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
+                            \$dbh,'tarchiveLibraryDir'
+                            );
 $tarchiveLibraryDir    =~ s/\/$//g;
+
+my $mail_user = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'mail_user'
+                    );
 
 if($noUpdateSwitch == 1) { 
     $update=0; 
@@ -117,7 +123,7 @@ if($sth->rows > 0) {
 
 # print out which ones were queued
 if($update && (scalar(@studies) > 0)) {
-    open MAIL, "|mail $Settings::mail_user";
+    open MAIL, "|mail $mail_user";
     print MAIL "Subject: FIND_UPLOADS_TARCHIVE: ".scalar(@studies)." studies found.\n";
     foreach my $study (@studies) {
         print MAIL "$study->[0]    $study->[1]\n";
