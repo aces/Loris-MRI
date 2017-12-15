@@ -1,7 +1,7 @@
-# 4.0 - Technical Infrastructure
+# 3.0 - Technical Infrastructure
 
 
-## 4.1 Back end directory structure
+## 3.1 Back end directory structure
 
 The root directory of the imaging part of a LORIS instance is typically 
   `/data/project`.
@@ -30,7 +30,7 @@ Within that project directory, there are typically two directories:
 - The `bin/mri` directory is a copy of all the imaging scripts downloaded from
     the [GitHub Loris-MRI repository](https://github.com/aces/Loris-MRI). 
     Details about the content of this folder can be found in 
-    [section 5](./05-Scripts.md).
+    [section 5](04-Scripts.md).
 
 - The `data` directory stores all the imaging-related data that will be created
     by the imaging scripts. 
@@ -185,7 +185,7 @@ The scans that violates the established imaging protocol and listed in the MRI
 ```
       
 
-## 4.2 Database infrastructure
+## 3.2 Database infrastructure
 
 The database infrastructure is divided in six main components based on the 
   workflow happening from native images insertion to quality control and 
@@ -194,7 +194,7 @@ The database infrastructure is divided in six main components based on the
 ![overall_DB_structure](images/overall_DB_structure.png)
 
 
-### 4.2.1 MRI upload table
+### 3.2.1 MRI upload table
 
 Summary information about the imaging upload status can be found in the 
   mri_upload table. This includes links to the DICOM archive tables (described 
@@ -205,7 +205,7 @@ Summary information about the imaging upload status can be found in the
 ![mri_upload_tables](images/mri_upload_tables.png)
 
 
-### 4.2.2 Tarchive tables
+### 3.2.2 Tarchive tables
 
 The first step to insert a new imaging session into the database is the 
   insertion of the DICOM study. In the database, all information related to a
@@ -234,10 +234,10 @@ In the front end of LORIS, you can see the DICOM studies using the
 
 Note: the SessionID field of the tarchive table is populated once at least one 
   MINC file derived from that DICOM study got inserted in the tables described 
-  in 4.2.2.
+  in 3.2.2.
 
 
-### 4.2.3 Files tables
+### 3.2.3 Files tables
 
 The second step to insert a new imaging session into the database is the 
   conversion of the DICOM study into the MINC files that will be inserted based 
@@ -289,7 +289,7 @@ Once an image has been inserted into the database, it is possible to view it
   directly via the _Imaging Browser_ module under the _Imaging_ menu. 
 
 
-### 4.2.4 MRI violation tables
+### 3.2.4 MRI violation tables
 
 In the event a scan does not match any of the protocol mentioned in the 
   _mri_protocol_ table, LORIS automatically flags it as a violated scan.
@@ -322,7 +322,7 @@ In the event a scan does not match any of the protocol mentioned in the
  
 ![violated_tables](images/violated_tables.png)
 
-### 4.2.5 Quality Control (QC) tables
+### 3.2.5 Quality Control (QC) tables
 
 In the _Imaging Browser_ module, it is possible to view the images via
   _BrainBrowser_ and directly perform quality control of the images. The quality
@@ -341,7 +341,7 @@ In the _Imaging Browser_ module, it is possible to view the images via
 ![qc_tables](images/QC_tables.png)
 
 
-### 4.2.6 Processed data tables
+### 3.2.6 Processed data tables
 
 Any native scan inserted into the files table can be processed and the output
   of this processing can be inserted into the database and linked to the native
@@ -351,7 +351,7 @@ Any native scan inserted into the files table can be processed and the output
   * the **_files\_intermediary_** table allows to link processed data with the
       native datasets (our even intermediary outputs). The _Input\_FileID_ and 
       _Output\_FileID_ fields of that table are links to the _FileID_ field of
-      the _files_ table mentioned in section 4.2.2. Note that the native file
+      the _files_ table mentioned in section 3.2.2. Note that the native file
       used to create processed outputs is always stored in the files table in 
       the _SourceFileID_ field, which is linked to the _FileID_ field of the
       same table.
