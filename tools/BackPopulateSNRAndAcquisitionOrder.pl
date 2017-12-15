@@ -55,7 +55,22 @@ if ($profile && !@Settings::db) {
     exit 2;
 }
 
-my $data_dir = $Settings::data_dir;
+################################################################
+######### Establish database connection ########################
+################################################################
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+print "\nSuccessfully connected to database \n";
+
+################################################################
+######### Initialize variables #################################
+################################################################
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
+                    );
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
+                       \$dbh,'tarchiveLibraryDir'
+                       );
+$tarchiveLibraryDir    =~ s/\/$//g;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) 
     =localtime(time);
 my $template = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
@@ -69,18 +84,6 @@ if (!-d $LogDir) {
     mkdir($LogDir, 0770); 
 }
 my $logfile  = "$LogDir/$templog.log";
-
-################################################################
-#### This setting is in a config file (profile)    #############
-################################################################
-my $tarchiveLibraryDir = $Settings::tarchiveLibraryDir;
-$tarchiveLibraryDir    =~ s/\/$//g;
-
-################################################################
-######### Establish database connection ########################
-################################################################
-my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-print "\nSuccessfully connected to database \n";
 
 ################################################################
 ################## Instantiate MRIProcessingUtility ############

@@ -157,9 +157,12 @@ if(defined($source_list)) {
 
 	# get psc
 	my $centerID;
-    my $lookupCenterNameUsing;
-    $lookupCenterNameUsing = 'patient_name' if ($Settings::lookupCenterNameUsing eq 'PatientName');
-    $lookupCenterNameUsing = 'patient_id' if ($Settings::lookupCenterNameUsing eq 'PatientID');
+    my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
+                                    \$dbh,'lookupCenterNameUsing'
+                                    );
+
+    $lookupCenterNameUsing = 'patient_name' if ($lookupCenterNameUsing eq 'PatientName');
+    $lookupCenterNameUsing = 'patient_id' if ($lookupCenterNameUsing eq 'PatientID');
 
     unless(defined($lookupCenterNameUsing)) {
         print "\nERROR: registerFile.pl only knows how to lookup center name using PatientName or PatientID.\n\n";
