@@ -39,7 +39,7 @@ use DBI;
 
 C<$dbh = connect_to_db($db_name, $db_user, $db_pass, $db_host);>
 
-This methods connects to the LORIS database ($db_database) on host ($db_host)
+This method connects to the LORIS database ($db_database) on host ($db_host)
 as username ($db_user) & password ($db_pass). The function dies with a
 database connection error when the connection failed or returns a DBI database
 handler.
@@ -66,6 +66,21 @@ sub connect_to_db
     return $dbh;
 }
 
+
+=pod
+
+=head2 getConfigSetting
+
+C<$config_value = getConfigSetting($dbh, $name)>
+
+This method fetches the value ($value) stored in the Config table for a
+specific config setting ($name) specified as an input.
+
+INPUT: database handler, name of the config setting
+
+RETURNS: value corresponding to the config setting in the Config table of LORIS
+
+=cut
 sub getConfigSetting
 {
     my ($dbh, $name) = @_;
