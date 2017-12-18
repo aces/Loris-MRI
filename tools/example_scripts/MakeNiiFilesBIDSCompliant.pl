@@ -319,16 +319,9 @@ QUERY
             #  create json information from minc files header; 
             my (@headerNameArr, $headerNameArr,
                 @headerNameDBArr, $headerNameDBArr,
-                $headerName, $headerNameDB, $headerVal, $headerFile);
-            # Name as it appears in the database
-            # slice order is needed for rs-FMRI
-            @headerNameDBArr      = ("repetition_time","manufacturer","manufacturer_model_name","magnetic_field_strength",
-                                "device_serial_number","software_versions","acquisition:receive_coil","acquisition:scanning_sequence",
-                                "echo_time","inversion_time","dicom_0x0019:el_0x1029", "dicom_0x0018:el_0x1314", "institution_name", ,"acquisition:slice_order");
-            # Equivalent name as it appears in the BIDS specifications
-            @headerNameArr  = ("RepetitionTime","Manufacturer","ManufacturerModelName","MagneticFieldStrength",
-                                "DeviceSerialNumber","SoftwareVersions","ReceiveCoilName","PulseSequenceType",
-                                "EchoTime","InversionTime","SliceTiming", "FlipAngle", "InstitutionName", "SliceOrder");
+                @headerNameMINCArr, $headerNameMINCArr,
+                $headerName, $headerNameDB, $headerNameMINC, $headerVal, $headerFile);
+
 
             $headerFile         = $nifti;
             $headerFile         =~ s/nii/json/g;
@@ -341,43 +334,79 @@ QUERY
             my $header_hash;
             my $currentHeaderJSON;
    
-            foreach my $j (0..scalar(@headerNameDBArr)-1) {
-                $headerNameDB = $headerNameDBArr[$j];
-                $headerNameDB =~ s/^\"+|\"$//g;
+            # get this info from the mincheader instead of the database
+            # Name as it appears in the database
+            # slice order is needed for rs-FMRI
+            @headerNameMINCArr      = ('acquisition:repetition_time','study:manufacturer','study:device_model','study:field_value',
+                                'study:serial_no','study:software_version','acquisition:receive_coil','acquisition:scanning_sequence',
+                                'acquisition:echo_time','acquisition:inversion_time','dicom_0x0018:el_0x1314', 'study:institution','acquisition:slice_order');
+            # Equivalent name as it appears in the BIDS specifications
+            @headerNameArr  = ("RepetitionTime","Manufacturer","ManufacturerModelName","MagneticFieldStrength",
+                                "DeviceSerialNumber","SoftwareVersions","ReceiveCoilName","PulseSequenceType",
+                                "EchoTime","InversionTime","FlipAngle", "InstitutionName", "SliceOrder");
+
+            my $mincFileName = $dataDir . "/" . $minc;
+            my $manufacturerPhilips = 0;
+            my ($extraHeader, $extraHeaderVal);
+
+            foreach my $j (0..scalar(@headerNameMINCArr)-1) {
+                $headerNameMINC = $headerNameMINCArr[$j];
                 $headerName   = $headerNameArr[$j];
                 $headerName   =~ s/^\"+|\"$//g;
                 print "Adding now $headerName header to $headerFile\n";
-                ( $query = <<QUERY ) =~ s/\n/ /g;
-SELECT
-  pf.Value
-FROM
-  parameter_file pf
-JOIN
-  files f
-ON
-  pf.FileID=f.FileID
-WHERE
-  pf.ParameterTypeID = (SELECT pt.ParameterTypeID from parameter_type pt WHERE pt.Name = ?)
-AND
-  f.FileID = ?
-QUERY
-                # Prepare and execute query
-                $sth = $dbh->prepare($query);
-                $sth->execute($headerNameDB,$fileID);
-                if ( $sth->rows > 0 ) {
-                    $headerVal = $sth->fetchrow_array();
+
+                $headerVal    =   &fetchMincHeader($mincFileName,$headerNameMINC);
+                # Some headers need to be explicitely converted to floats in Perl
+                # so json_encode does not add the double quotation around them
+                if (($headerNameMINC eq 'acquisition:repetition_time') ||
+                    ($headerNameMINC eq 'acquisition:echo_time') ||
+                    ($headerNameMINC eq 'acquisition:inversion_time') ||
+                    ($headerNameMINC eq 'dicom_0x0018:el_0x1314')) {
+                        $headerVal *= 1;
+                }
+
+
+#                if (defined($headerVal) && ($headerVal ne '')) {
+#                if (defined($headerVal) && ($headerVal != '')) {
+                if (defined($headerVal)) {
                     $header_hash{$headerName} = $headerVal;
-                    print "     $headerName was found for $nifti with value $headerVal\n";
+                    print "     $headerName was found for $mincFileName with value $headerVal\n";
+
+                    # If scanner is Philips, store this as condition 1 being met
+                    if ($headerNameMINC eq 'study:manufacturer' && $headerVal =~ /Philips/i) {
+                        $manufacturerPhilips = 1;
+                    }
                 }
                 else {
-                    print "     $headerName was not found for $nifti\n";
+                    print "     $headerName was not found for $mincFileName\n";
                 }
             }
+            
+            # If manufacturer is Philips, then add SliceOrder to the JSON manually
+            ########## THE SLICEORDER SHOULD EVENTUALLY BECOME PROJECT CUSTOMIZABLE #######
+            if ($manufacturerPhilips == 1) {
+                $extraHeader = "SliceOrder";
+                $extraHeader =~ s/^\"+|\"$//g;
+                $extraHeaderVal = "ascending";
+                $header_hash{$extraHeader} = $extraHeaderVal;
+                    print "    $extraHeaderVal was added for Philps Scanners' $extraHeader \n";            
+            } else {
+                # get the SliceTiming from the proper header
+                # for slicetiming; split on the ',', then remove trailing '.' if exists;
+                # and add [] to make it a list
+                $headerNameMINC = 'dicom_0x0019:el_0x1029';
+                $extraHeader    = "SliceTiming";
+                $headerVal      =  &fetchMincHeader($mincFileName,$headerNameMINC);
+                $headerVal = [map {1 * $_} split(",", $headerVal)];
+                    print "    SliceTiming $headerVal was added \n";
+                $header_hash{$extraHeader} = $headerVal;
+            } 
+
             # for fMRI, we need to add TaskName which is e.g task-rest in the case of resting-state fMRI
             if ($BIDSCategory eq 'func') {
-                my $extraHeader = "TaskName";
+                $extraHeader = "TaskName";
                 $extraHeader =~ s/^\"+|\"$//g;
-                my $extraHeaderVal = "rest";
+                $extraHeaderVal = "rest";
                 $header_hash{$extraHeader} = $extraHeaderVal;
                     print "    TASKNAME added for bold: $extraHeader with value $extraHeaderVal\n";
             }
@@ -388,6 +417,7 @@ QUERY
         else {
             print "\nCould not find the following minc file: $mincFullPath\n";
         }
+
 
         # DWI files need 2 extra special files; .bval and .bvec
         if ($BIDSScanType eq 'dwi') {
@@ -483,4 +513,22 @@ QUERY
     }
 }
 
+=pod
+This function parses the mincheader and look for specific field's value.
+**Copied from register_processed_data.pl**
+=cut
+
+sub fetchMincHeader {
+    my  ($file,$field)  =   @_;
+
+#    my  $value  =   `mincheader $file | grep '$field' | awk '{print \$3, \$4, \$5, \$6}' | tr '\n' ' '`;
+    my  $value  =   `mincheader $file | grep '$field' | cut -d= -f2- |sed -e 's/^ //'`;
+
+    $value=~s/"//g;    #remove "
+    $value=~s/^\s+//; #remove leading spaces
+    $value=~s/\s+$//; #remove trailing spaces
+    $value=~s/;//;    #remove ;
+
+    return  $value;
+}
 
