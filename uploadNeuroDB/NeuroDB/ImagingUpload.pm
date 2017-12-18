@@ -1,4 +1,22 @@
 package NeuroDB::ImagingUpload;
+
+
+=pod
+
+=head1 NAME
+
+NeuroDB::ImagingUpload -- ??????????????????????
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+
+
+=head2 Methods
+
+=cut
+
 use English;
 use Carp;
 use strict;
@@ -20,19 +38,28 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 ################################################################
 #####################Constructor ###############################
 ################################################################
+
+
 =pod
-Description:
-    -The constructor needs the location of the uploaded file
-     Which will be in a uploaded_temp_folder and 
-     once the validation passes, the File will be moved to a
-     final destination directory
-Arguments:
-  $dbhr :
-  $uploaded_temp_folder:
-  $upload_id:
-  $pname: 
-  $profile:
+
+=head3 new($dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile,
+$verbose) (constructor)
+
+Create a new instance of this class. This constructor needs the location of
+the uploaded file. Once the uploaded file has been validated, it will be
+moved to a final destination directory.
+
+INPUT:
+  $dbhr: database handler
+  $uploaded_temp_folder: temporary directory of the upload
+  $upload_id: ID of the upload in the mri_upload table
+  $pname: patient name
+  $profile: name of the configuration file (typically C<prod>)
+
+RETURNS: new instance of this class
+
 =cut
+
 sub new {
     my $params = shift;
     my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile, $verbose ) = @_;
@@ -63,23 +90,20 @@ sub new {
     return bless $self, $params;
 }
 
-################################################################
-#####################IsCandidateInfoValid#######################
-################################################################
+
 =pod
-IsCandidateInfoValid()
-Description:
- Validates the File to be uploaded:
- If the validation passes the following will happen:
-  1) Copy the file from tmp folder to the /data/incoming
-  2) Set the IsCandidateInfoValidated to true in the 
-     mri_upload table
 
-Arguments:
- $this: reference to the class
+=head3 IsCandidateInfoValid()
 
- Returns: 0 if the validation fails and 1 if passes
+Validates the File to be uploaded. If the validation passes, the following
+actions will happen:
+  1) Copy the file from tmp folder to the /data/incoming directory
+  2) Set the IsCandidateInfoValidated to true in the mri_upload table
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
+
 sub IsCandidateInfoValid {
     my $this = shift;
     my ($message,$query,$where) = '';
@@ -257,17 +281,18 @@ sub IsCandidateInfoValid {
 ############################runDicomTar#########################
 ################################################################
 =pod
-runDicomTar()
-Description:
- -Extracts tarchiveID using pname
- -Runs dicomTar.pl with -clobber -database -profile prod options
- -If successfull it updates MRI_upload table accordingly
 
-Arguments:
- $this: reference to the class
+=head3 runDicomTar()
 
- Returns: 0 if the validation fails and 1 if it passes
+This method executes the following actions:
+ - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
+ - Extracts the TarchiveID of the tarchive created by C<dicomTar.pl>
+ - Updates the mri_upload table accordingly if C<dicomTar.pl> ran successfully
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
+
 sub runDicomTar {
     my $this              = shift;
     my $tarchive_id       = undef;
@@ -319,16 +344,14 @@ sub runDicomTar {
 ###################getTarchiveFileLocation######################
 ################################################################
 =pod
-getTarchiveFileLocation()
-Description:
- -Extracts tarchiveID using pname
- -Runs dicomTar.pl with clobber -database -profile prod options
- -If successfull it updates MRI_upload Table accordingly
 
-Arguments:
- $this: reference to the class
+=head3 getTarchiveFileLocation()
 
- Returns: 0 if the validation fails and 1 if passes
+This method fetches the location of the archive from the tarchive table of
+the database.
+
+RETURNS: the archive location
+
 =cut
 sub getTarchiveFileLocation {
     my $this             = shift;
@@ -354,15 +377,15 @@ sub getTarchiveFileLocation {
 ######################runTarchiveLoader#########################
 ################################################################
 =pod
- runTarchiveLoader()
-Description:
- -Runs tarchiveLoader with clobber -profile prod option
- -If successfull it updates MRI_upload Table accordingly
 
-Arguments:
- $this: reference to the class
+=head3 runTarchiveLoader()
 
- Returns: 0 if the validation fails and 1 if passes
+This methods will call C<tarchiveLoader> with the C<-clobber -profile prod>
+options and update the mri_upload table accordingly if C<tarchiveLoader> ran
+successfully.
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
 
 sub runTarchiveLoader {
@@ -390,20 +413,17 @@ sub runTarchiveLoader {
 #########################PatientNameMatch#######################
 ################################################################
 =pod
-PatientNameMatch()
-Description:
- - Extracts the patientname string from the dicom file header
-   using dcmdump
- - Uses regex to parse the string in order to the get the appropriate 
-   patientname from the obtained string
- - returns the 1 if the extracted patient-name matches
-   $this->{'pname'} object, 0 otherwise
 
-Arguments:
- $this: reference to the class
- $dicom_file: The full path to the dicom-file
+=head3 PatientNameMatch()
 
- Returns: 0 if the validation fails and 1 if passes
+This method extracts the patient name field from the DICOM file header using
+C<dcmdump> and compares it with the patient name information stored in the
+mri_upload table.
+
+INPUT: full path to the dicom-file
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
 
 sub PatientNameMatch {
