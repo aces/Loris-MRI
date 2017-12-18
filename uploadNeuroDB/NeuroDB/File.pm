@@ -58,7 +58,7 @@ my $VERSION = sprintf "%d.%03d", q$Revision: 1.6 $ =~ /: (\d+)\.(\d+)/;
 
 =pod
 
-=head3 C<<  new(\$dbh) >> (constructor)
+=head3 new(\$dbh) >> (constructor)
 
 Create a new instance of this class. The parameter C<\$dbh> is a
 reference to a DBI database handle, used to set the object's database
@@ -84,7 +84,7 @@ sub new {
 
 =pod
 
-=head3 C<< loadFile($fileID)  >>
+=head3 loadFile($fileID)
 
 Load the object with all the data pertaining to a file as defined by
 parameter C<$fileID>.
@@ -126,7 +126,7 @@ sub loadFile {
 
 =pod
 
-=head3 C<< findFile($filename) >>
+=head3 findFile($filename)
 
 Finds the FileID pertaining to a file as defined by parameter C<$filename>,
 which is a full /path/to/file.
@@ -156,7 +156,7 @@ sub findFile {
 
 =pod
 
-=head3 C<< getFileData() >>
+=head3 getFileData()
 
 Gets the set of file data (data from the C<files> table in the database).
 
@@ -174,7 +174,7 @@ sub getFileData {
 
 =pod
 
-=head3 C<< getFileDatum($datumName) >>
+=head3 getFileDatum($datumName)
 
 Gets one element from the file data (data from the C<files> table in the
 database).
@@ -194,7 +194,7 @@ sub getFileDatum {
 
 =pod
 
-=head3 C<< getParameter($parameterName) >>
+=head3 getParameter($parameterName)
 
 Gets one element from the file's parameters (data from the C<parameter_file>
 table in the database).
@@ -215,7 +215,7 @@ sub getParameter {
 
 =pod
 
-=head3 C<< getParameters() >>
+=head3 getParameters()
 
 Gets the set of parameters for the loaded file (data from the C<parameter_file>
 table in the database).
@@ -232,7 +232,7 @@ sub getParameters {
 
 =pod
 
-=head3 C<< getDatabaseHandleRef() >>
+=head3 getDatabaseHandleRef()
 
 Gets the database handle reference which the object is using internally.
 
@@ -247,7 +247,7 @@ sub getDatabaseHandleRef {
 
 =pod
 
-=head3 C<< loadFileFromDisk($filename) >>
+=head3 loadFileFromDisk($filename)
 
 Reads the headers from the file specified by C<$filename> and loads the current
 object with the resultant parameters.
@@ -340,7 +340,7 @@ sub loadFileFromDisk {
 
 =pod
 
-=head3 C<< setFileData($propertyName, $value) >>
+=head3 setFileData($propertyName, $value)
 
 Sets the fileData property named C<$propertyName> to the value of C<$value>.
 
@@ -365,7 +365,7 @@ sub setFileData {
 
 =pod
 
-=head3 C<< setParameter($parameterName, $value) >>
+=head3 setParameter($parameterName, $value)
 
 Sets the parameter named C<$parameterName> to the value of C<$value>.
 
@@ -400,7 +400,7 @@ sub setParameter {
 
 =pod
 
-=head3 C<< removeParameter($parameterName) >>
+=head3 removeParameter($parameterName)
 
 Removes the parameter named C<$parameterName>.
 
@@ -417,7 +417,7 @@ sub removeParameter {
 
 =pod
 
-=head3 C<< getParameterTypeID($parameter) >>
+=head3 getParameterTypeID($parameter)
 
 Gets the ParameterTypeID for the parameter C<$parameter>.  If C<$parameter>
 does not exist, it will be created.
@@ -455,7 +455,7 @@ sub getParameterTypeID {
 
 =pod
 
-=head3 C<< removeWhitespace($value) >>
+=head3 removeWhitespace($value)
 
 Removes white space from variable C<$value>.
 
