@@ -37,7 +37,7 @@ use DBI;
 
 =pod
 
-=head3 C<<  connect_to_db($db_name, $db_user, $db_pass, $db_host) >>
+=head3 connect_to_db($db_name, $db_user, $db_pass, $db_host)
 
 This method connects to the LORIS database ($db_database) on host ($db_host)
 as username ($db_user) & password ($db_pass). The function dies with a
@@ -69,7 +69,7 @@ sub connect_to_db
 
 =pod
 
-=head3 C<<  getConfigSetting($dbh, $name) >>
+=head3 getConfigSetting($dbh, $name)
 
 This method fetches the value ($value) stored in the Config table for a
 specific config setting ($name) specified as an input.
