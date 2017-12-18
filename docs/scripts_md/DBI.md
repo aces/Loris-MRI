@@ -19,9 +19,9 @@ This package performs common tasks relating to database connectivity between
 the LORIS-MRI code base and the LORIS backend database. The following methods
 are available.
 
-## connect\_to\_db
+## Methods
 
-`$dbh = connect_to_db($db_name, $db_user, $db_pass, $db_host);`
+### `connect_to_db($db_name, $db_user, $db_pass, $db_host)`
 
 This method connects to the LORIS database ($db\_database) on host ($db\_host)
 as username ($db\_user) & password ($db\_pass). The function dies with a
@@ -32,9 +32,7 @@ INPUT: optional: database, username, password, host
 
 RETURNS: DBI database handler when connection is successful
 
-## getConfigSetting
-
-`$config_value = getConfigSetting($dbh, $name)`
+### `getConfigSetting($dbh, $name)`
 
 This method fetches the value ($value) stored in the Config table for a
 specific config setting ($name) specified as an input.
@@ -43,7 +41,16 @@ INPUT: database handler, name of the config setting
 
 RETURNS: value corresponding to the config setting in the Config table of LORIS
 
-# AUTHOR
+# BUGS
+
+None reported
+
+# COPYRIGHT
+
+Copyright (c) 2003 by Jonathan Harlap, McConnell Brain Imaging Centre,
+Montreal Neurological Institute, McGill University.
+
+# AUTHORS
 
 Jonathan Harlap, McConnell Brain Imaging Centre, Montreal Neurological
 Institute, McGill University.

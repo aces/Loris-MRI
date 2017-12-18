@@ -25,6 +25,8 @@ This package performs common tasks relating to database connectivity between
 the LORIS-MRI code base and the LORIS backend database. The following methods
 are available.
 
+=head2 Methods
+
 =cut
 
 
@@ -35,9 +37,7 @@ use DBI;
 
 =pod
 
-=head2 connect_to_db
-
-C<$dbh = connect_to_db($db_name, $db_user, $db_pass, $db_host);>
+=head3 C<<  connect_to_db($db_name, $db_user, $db_pass, $db_host) >>
 
 This method connects to the LORIS database ($db_database) on host ($db_host)
 as username ($db_user) & password ($db_pass). The function dies with a
@@ -69,9 +69,7 @@ sub connect_to_db
 
 =pod
 
-=head2 getConfigSetting
-
-C<$config_value = getConfigSetting($dbh, $name)>
+=head3 C<<  getConfigSetting($dbh, $name) >>
 
 This method fetches the value ($value) stored in the Config table for a
 specific config setting ($name) specified as an input.
@@ -102,7 +100,16 @@ sub getConfigSetting
 
 =pod
 
-=head1 AUTHOR
+=head1 BUGS
+
+None reported
+
+=head1 COPYRIGHT
+
+Copyright (c) 2003 by Jonathan Harlap, McConnell Brain Imaging Centre,
+Montreal Neurological Institute, McGill University.
+
+=head1 AUTHORS
 
 Jonathan Harlap, McConnell Brain Imaging Centre, Montreal Neurological
 Institute, McGill University.
