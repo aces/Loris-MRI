@@ -166,6 +166,9 @@ QC flags, comments and statistics are fully integrated and can be enabled by:
 
 ## 2.3 Configuration
 
+**NEED TO TALK ABOUT THE CREATION OF NIFTI OPTIONS AS IT IS REFERENCED IN THE
+  PIPELINE FLOW DOCUMENTATION.**
+
 ## 2.4 Pipeline flow
 
 By default the pipeline is designed for **raw DICOM MRI data**, collected by a
@@ -200,7 +203,8 @@ The graph below shows the different modules mentioned above with the
   representation of the group of tables described in more details in the
   [Technical Infrastructure](03-TechnicalInfrastructure.md) section. In
   addition, the graph shows the name of the main script that is used to insert
-  the images into the LORIS database.
+  the images into the LORIS database. More details about those scripts can be
+  found in the section [4 Scripts](04-Scripts.md).
 
 ![pipeline_flow](images/overall_flow.png)
 
