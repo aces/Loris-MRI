@@ -5,8 +5,8 @@
 ## 1.2 How does LORIS work?
 
 
-### Anonymization
+### Deidentification of imaging datasets
 
-All DICOM data transferred to the DCC must be free of any identifying 
-  information (e.g. patient name). A tool can be provided to the sites to 
-  facilitate anonymization. Please contact the LORIS team for details.
+All DICOM datasets transferred to the DCC must be free of any identifying
+  information (*e.g.* patient name). A tool can be provided to the sites to
+  facilitate deidentification. Please contact the LORIS team for details.
