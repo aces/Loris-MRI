@@ -204,3 +204,4 @@ The graph below shows the different modules mentioned above with the
 
 ![pipeline_flow](images/overall_flow.png)
 
+## 2.5 Common errors
