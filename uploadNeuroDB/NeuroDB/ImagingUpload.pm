@@ -5,13 +5,37 @@ package NeuroDB::ImagingUpload;
 
 =head1 NAME
 
-NeuroDB::ImagingUpload -- ??????????????????????
+NeuroDB::ImagingUpload -- Provides an interface to the uploaded imaging file
 
 =head1 SYNOPSIS
 
+use NeuroDB::ImagingUpload;
+
+my $imaging_upload = &NeuroDB::ImagingUpload->new(
+                       \$dbh,
+                       $TmpDir_decompressed_folder,
+                       $upload_id,
+                       $patient_name,
+                       $profile,
+                       $verbose
+                     );
+
+my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
+
+my $output = $imaging_upload->runDicomTar();
+$imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output );
+
+
+my $output = $imaging_upload->runTarchiveLoader();
+$imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output);
+
+my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
+
+
 =head1 DESCRIPTION
 
-
+This library regroups utilities for manipulation of the uploaded imaging file
+ and updates of the C<mri_upload> table according to the upload status.
 
 =head2 Methods
 
