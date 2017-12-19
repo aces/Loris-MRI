@@ -41,6 +41,10 @@ INPUT: database handler, name of the config setting
 
 RETURNS: value corresponding to the config setting in the Config table of LORIS
 
+# TO DO
+
+Add more wrapper functions to query the database here.
+
 # BUGS
 
 None reported
