@@ -1517,5 +1517,6 @@ License: GPLv3
 =head1 AUTHORS
 
 Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
+LORIS team <loris.info@mcin.ca>
 
 =cut    
