@@ -64,8 +64,10 @@ RETURNS: type of the archive
 
 None reported
 
-# COPYRIGHT
+# COPYRIGHT AND LICENSE
+
+License: GPLv3
 
 # AUTHORS
 
-LORIS TEAM
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

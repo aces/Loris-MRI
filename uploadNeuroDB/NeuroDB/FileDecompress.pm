@@ -143,10 +143,12 @@ sub getType {
 
 None reported
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
 
 =head1 AUTHORS
 
-LORIS TEAM
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
