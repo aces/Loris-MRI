@@ -277,9 +277,7 @@ sub IsCandidateInfoValid {
 }
 
 
-################################################################
-############################runDicomTar#########################
-################################################################
+
 =pod
 
 =head3 runDicomTar()
@@ -340,9 +338,7 @@ sub runDicomTar {
     return 0;
 }
 
-################################################################
-###################getTarchiveFileLocation######################
-################################################################
+
 =pod
 
 =head3 getTarchiveFileLocation()
@@ -353,6 +349,7 @@ the database.
 RETURNS: the archive location
 
 =cut
+
 sub getTarchiveFileLocation {
     my $this             = shift;
     my $archive_location = '';
@@ -373,9 +370,7 @@ sub getTarchiveFileLocation {
     return $archive_location;
 }
 
-################################################################
-######################runTarchiveLoader#########################
-################################################################
+
 =pod
 
 =head3 runTarchiveLoader()
@@ -409,12 +404,10 @@ sub runTarchiveLoader {
     return 0;
 }
 
-################################################################
-#########################PatientNameMatch#######################
-################################################################
+
 =pod
 
-=head3 PatientNameMatch()
+=head3 PatientNameMatch($dicom_file)
 
 This method extracts the patient name field from the DICOM file header using
 C<dcmdump> and compares it with the patient name information stored in the
@@ -449,19 +442,17 @@ sub PatientNameMatch {
 
 }
 
-################################################################
-########################isDicom#################################
-################################################################
+
 =pod
-isDicom()
-Description:
- - checks to see if the file is of type DICOM 
 
-Arguments:
- $this: reference to the class
- $dicom_file: The path to the dicom-file
+=head3 isDicom($dicom_file)
 
- Returns: 0 if the file is not of type DICOM and 1 otherwise
+This method checks whether the file given as an argument is of type DICOM.
+
+INPUT: full path to the dicom-file
+
+RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
+
 =cut
 
 sub isDicom {
@@ -476,18 +467,13 @@ sub isDicom {
     return 1;
 }
 
-################################################################
-####################sourceEnvironment###########################
-################################################################
+
 =pod
-sourceEnvironment()
-Description:
-   - sources the environment file 
 
-Arguments:
- $this      : Reference to the class
+=head3 sourceEnvironment()
 
- Returns    : NULL
+This method sources the environment file.
+
 =cut
 
 sub sourceEnvironment {
@@ -500,20 +486,16 @@ sub sourceEnvironment {
 }
 
 
-################################################################
-#######################runCommandWithExitCode###################
-################################################################
 =pod
-runCommandWithExitCode()
-Description:
-   - Runs the linux command using system and 
-     returns the proper exit code 
 
-Arguments:
- $this      : Reference to the class
- $command   : The linux command to be executed
+=head3 runCommandWithExitCode($command)
 
- Returns    : NULL
+This method will run any linux command given as an argument using the
+C<system()> method and will return the proper exit code.
+
+INPUT: the linux command to be executed
+
+RETURNS: the exit code of the command
 
 =cut
 
@@ -525,20 +507,18 @@ sub runCommandWithExitCode {
     return $output >> 8;    ##returns the exit code
 }
 
-################################################################
-######################runCommand################################
-################################################################
+
 =pod
-runCommand()
-Description:
-   - Runs the linux command using back-tilt
-   - Note: Backtilt return value is STDOUT 
 
-Arguments:
- $this      : Reference to the class
- $command   : The linux command to be executed
+=head3 runCommand($command)
 
- Returns    : NULL
+This method will run any linux command given as an argument using back-tilt
+and will return the back-tilt return value (which is STDOUT).
+
+INPUT: the linux command to be executed
+
+RETURNS: back-tilt return value (STDOUT)
+
 =cut
 
 sub runCommand {
@@ -548,19 +528,16 @@ sub runCommand {
     return `$command`;
 }
 
-################################################################
-####################CleanUpDataIncomingDir######################
-################################################################
+
 =pod
-CleanUpDataIncomingDir()
-Description:
-   - Cleans Up and removes the uploaded file from the data  
-     directory once it is inserted into the database
 
-Arguments:
- $this      : Reference to the class
+=head3 CleanUpDataIncomingDir($uploaded_file)
 
-Returns: 1 if the uploaded file removal was successful and 0 otherwise
+This method cleans up and removes the uploaded file from the data directory
+once the uploaded file has been inserted into the database and saved in the
+tarchive folder.
+
+RETURNS: 1 on success, 0 on failure
 
 =cut
 
@@ -605,20 +582,18 @@ sub CleanUpDataIncomingDir {
 }
 
 
-################################################################
-#################spool##########################################
-################################################################
 =pod
-spool()
-Description:
-   - Calls the Notify->spool function to log all messages 
 
-Arguments:
- $this      : Reference to the class
- $message   : Message to be logged in the database 
- $error     : if 'Y' it's an error log , 'N' otherwise
- $verb      : 'N' for few main messages, 'Y' for more messages (developers)
- Returns    : NULL
+=head3 spool($message, $error, $verb)
+
+This method calls the C<< Notify->spool >> function to log all messages
+returned by the insertion scripts.
+
+INPUT:
+ $message: message to be logged in the database
+ $error  : 'Y' for an error log , 'N' otherwise
+ $verb   : 'N' for few main messages, 'Y' for more messages (for developers)
+
 =cut
 
 sub spool  {
@@ -633,19 +608,17 @@ sub spool  {
 }
 
 
-################################################################
-#################updateMRIUploadTable###########################
-################################################################
 =pod
-updateMRIUploadTable()
-Description:
-   - Update the mri_upload table 
 
-Arguments:
- $this      : Reference to the class
- $field     : Name of the column in the table 
- $value     : Value of the column to be set
- Returns    : NULL
+=head3 updateMRIUploadTable($field, $value)
+
+This method updates the C<mri_upload> table with C<$value> for the field
+C<$field>.
+
+INPUT:
+ $field: name of the column in the table to be updated
+ $value: value of the column to be set
+
 =cut
 
 sub updateMRIUploadTable  {
@@ -663,3 +636,20 @@ sub updateMRIUploadTable  {
 }
 
 1;
+
+
+=pod
+
+=head1 TO DO
+
+=head1 BUGS
+
+None reported
+
+=head1 COPYRIGHT
+
+=head1 AUTHORS
+
+LORIS TEAM
+
+=cut
