@@ -346,6 +346,8 @@ RETURNS: the CandID or 0 if the PSCID does not exist
 
 # TO DO
 
+Nothing planned.
+
 # BUGS
 
 None reported.
