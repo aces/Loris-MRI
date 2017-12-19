@@ -498,13 +498,17 @@ C<files> table which are lookup fields.
 
 None reported.
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
 
 Copyright (c) 2004,2005 by Jonathan Harlap, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 
+License: GPLv3
+
 =head1 AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
 
 =cut    

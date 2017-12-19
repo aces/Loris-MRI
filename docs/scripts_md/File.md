@@ -165,11 +165,14 @@ Other operations should be added: perhaps get\* methods for those fields in the
 
 None reported.
 
-# COPYRIGHT
+# COPYRIGHT AND LICENSE
 
 Copyright (c) 2004,2005 by Jonathan Harlap, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 
+License: GPLv3
+
 # AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
