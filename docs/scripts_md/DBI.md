@@ -45,12 +45,14 @@ RETURNS: value corresponding to the config setting in the Config table of LORIS
 
 None reported
 
-# COPYRIGHT
+# COPYRIGHT AND LICENSE
 
 Copyright (c) 2003 by Jonathan Harlap, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 
+License: GPLv3
+
 # AUTHORS
 
-Jonathan Harlap, McConnell Brain Imaging Centre, Montreal Neurological
-Institute, McGill University.
+Jonathan Harlap,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

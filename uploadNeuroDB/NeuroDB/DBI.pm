@@ -104,14 +104,16 @@ sub getConfigSetting
 
 None reported
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
 
 Copyright (c) 2003 by Jonathan Harlap, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 
+License: GPLv3
+
 =head1 AUTHORS
 
-Jonathan Harlap, McConnell Brain Imaging Centre, Montreal Neurological
-Institute, McGill University.
+Jonathan Harlap,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
