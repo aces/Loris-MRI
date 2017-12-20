@@ -1,19 +1,34 @@
-# Element.pm ver 0.3
-# Andrew Crabb (ahc@jhu.edu), May 2002.
-# Element routines for DICOM.pm: a Perl module to read DICOM headers.
-# $Id: Element.pm 4 2007-12-11 20:21:51Z jharlap $
-
-# Each element is a hash with the following keys:
-#   group	Group (hex).
-#   element	Element within group (hex).
-#   offset	Offset from file start (dec).
-#   code	Field code eg 'US', 'UI'.
-#   length	Field value length (dec).
-#   name	Field descriptive name.
-#   value	Value.
-#   header	All bytes up to value, for easy writing.
-
 package DICOM::Element;
+
+=pod
+
+=head1 NAME
+
+DICOM::Element -- Element routines for DICOM::DICOM module
+
+=head1 SYNOPSIS
+
+use DICOM::Element;
+
+
+
+=head1 DESCRIPTION
+
+Element routines for DICOM::DICOM module to read DICOM headers.
+
+Each element is a hash with the following keys:
+  group	    Group (hex).
+  element	Element within group (hex).
+  offset	Offset from file start (dec).
+  code	    Field code eg 'US', 'UI'.
+  length	Field value length (dec).
+  name	    Field descriptive name.
+  value	    Value.
+  header	All bytes up to value, for easy writing.
+
+=head2 Methods
+
+=cut
 
 use strict;
 use DICOM::VRfields;
@@ -38,13 +53,35 @@ BEGIN {
   }
 }
 
+
+=pod
+
+=head3 new() (constructor)
+
+Creates a new instance of this class.
+
+RETURNS: a DICOM::Element object
+
+=cut
+
 sub new {
   my $type = shift;
   my $self = {};
   return bless $self, $type;
 }
 
-# Fill in self from file.
+
+=pod
+
+=head3 fill($IN, $dictref, $big_endian_image)
+
+Fills in self from file.
+
+INPUT: input file, DICOM dictionary, big endian image
+
+RETURNS: element hash
+
+=cut
 
 sub fill {
   my $this = shift;
@@ -104,12 +141,24 @@ sub fill {
   return $this;
 }
 
-# readInt(instream, bytelength, fieldlength).
-#   instream:	Input file stream.
-#   bytelength: SHORT (2) or INT (4) bytes.
-#   fieldlength:Total number of bytes in the field.
-# If fieldlength > bytelength, multiple values are read in and
-# stored as a string representation of an array.
+
+=pod
+
+=head3 readInt($IN, $bytes, $len).
+
+Reads int variables. ??????????????????????????
+
+INPUT:
+  $IN   : input file stream.
+  $bytes: SHORT (2) or INT (4) bytes.
+  $len  : total number of bytes in the field.
+
+If fieldlength > bytelength, multiple values are read in and stored as a
+string representation of an array.
+
+RETURNS: string representation of an array???
+
+=cut
 
 sub readInt {
   my ($IN, $bytes, $len) = @_;
@@ -132,6 +181,17 @@ sub readInt {
   return $val;
 }
 
+
+=pod
+
+=head3 writeInt($OUT, $bytes)
+
+Writes Int variable into the output file C<$OUT>. ?????
+
+INPUT: output file, number of bytes in the field
+
+=cut
+
 sub writeInt {
   my ($this, $OUT, $bytes) = @_;
   my $val = $this->{value};
@@ -146,6 +206,20 @@ sub writeInt {
   }
 }
 
+
+=pod
+
+=head3 readFloat($IN, $format, $len)
+
+Reads float variables ????
+
+INPUT: input file stream, format of the variable, total number of bytes in
+the field.
+
+RETURNS: string ?????
+
+=cut
+
 sub readFloat {
     my ($IN, $format, $len) = @_;
     my ($buff, $val);
@@ -155,6 +229,25 @@ sub readFloat {
     $val = unpack($format, $buff);
     return sprintf("%e", $val);
 }
+
+
+=pod
+
+=head3 readSequence($IN, $len)
+
+Reads sequence. ??????
+
+Three different cases:
+    - implicit VR, explicit length
+    - explicit VR, undefined length, items of defined length (w/end delimiter)
+    - implicit VR, undefined length, items of undefined length
+
+
+INPUT: input file stream, total number of bytes in the field
+
+RETURNS: ??????
+
+=cut
 
 sub readSequence {
     my ($IN, $len) = @_;
@@ -204,9 +297,19 @@ sub readSequence {
 }
 
 
-# Return the Value Field length, and length before Value Field.
-# Implicit VR: Length is 4 byte int.
-# Explicit VR: 2 bytes hold VR, then 2 byte length.
+=pod
+
+=head3 readLength($IN)
+
+Reads length. ????????????????????????
+  - Implicit VR: Length is 4 byte int.
+  - Explicit VR: 2 bytes hold VR, then 2 byte length.
+
+INPUT: input file stream
+
+RETURNS: the value field length, and length before value field
+
+=cut
 
 sub readLength {
   my ($IN) = @_;
@@ -272,7 +375,16 @@ sub readLength {
   return ($vrstr, $length);
 }
 
-# Return the values of each field.
+
+=pod
+
+=head3 values()
+
+Returns the values of each field of the object.
+
+RETURNS: values of each field
+
+=cut
 
 sub values {
   my $this = shift;
@@ -285,7 +397,14 @@ sub values {
   return @vals;
 }
 
-# Print formatted representation of element to stdout.
+
+=pod
+
+=head3 print()
+
+Prints formatted representation of element to stdout.
+
+=cut
 
 sub print {
   my $this = shift;
@@ -294,7 +413,17 @@ sub print {
   printf "(%04X, %04X) %s %6d: %-33s = %s\n", hex($gp), hex($el), $code, $len, $name, $val;
 }
 
-# Return a string representation of the value field (null if binary).
+
+=pod
+
+=head3 valueString()
+
+Returns a string representation of the value field.
+
+RETURNS: string representation of the value field, or null if value field is
+binary
+
+=cut
 
 sub valueString {
   my $this = shift;
@@ -318,8 +447,15 @@ sub valueString {
   return $value;
 }
 
-# Write this data element to disk.  All fields up to value are stored in 
-# immutable field 'header' - write this to disk then value field.
+
+=pod
+
+Writes this data element to disk. All fields up to value are stored in
+immutable field 'header' - write this to disk then value field.
+
+INPUT: output file
+
+=cut
 
 sub write {
   my ($this, $OUTFILE) = @_;
@@ -341,13 +477,33 @@ sub write {
   }
 }
 
+
+=pod
+
+=head3 value()
+
+Returns the value of the field.
+
+RETURNS: value field
+
+=cut
+
 sub value {
   my $this = shift;
 
   return $this->{'value'};
 }
 
-# Set the value field of this element.  Truncates to max length.
+
+=pod
+
+=head3 setValue($value)
+
+Sets the value field of this element. Truncates to max length.
+
+INPUT: value field
+
+=cut
 
 sub setValue {
   my $this = shift;
@@ -356,6 +512,17 @@ sub setValue {
 
   $this->{'value'} = $value;
 }
+
+
+=pod
+
+=head3 byteswap($valref)
+
+?????
+
+INPUT: value reference???
+
+=cut
 
 sub byteswap {
     my ($valref) = @_;
@@ -373,3 +540,29 @@ sub byteswap {
 1;
 __END__
 
+=pod
+
+=head1 TO DO
+
+Better documentation of the following functions:
+  - readInt()
+  - readFloat()
+  - readSequence($IN, $len)
+  - readLength($IN)
+  - writeInt($OUT, $bytes)
+  - byteswap($valref)
+
+=head1 BUGS
+
+None reported (or list of bugs)
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Andrew Crabb (ahc@jhu.edu),
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
