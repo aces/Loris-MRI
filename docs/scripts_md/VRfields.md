@@ -4,6 +4,10 @@ DICOM::VRfields -- Value Representations (DICOM Standard PS 3.5 Sect 6.2)
 
 # SYNOPSIS
 
+    use DICOM::Element;
+    use DICOM::Fields;    # Standard header definitions.
+    use DICOM::Private;   # Private or custom definitions.
+
     # Initialize VR hash.
     # Fill in VR definitions from DICOM_fields.
     BEGIN {
