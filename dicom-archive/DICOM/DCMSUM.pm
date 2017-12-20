@@ -1,19 +1,21 @@
-# ------------------------------ MNI Header ----------------------------------
-#@NAME       : DICOM::DCMSUM
-#@DESCRIPTION: deals with dicom summaries for archiving and other purposes
-#@EXPORT     : none
-#@EXPORT_OK  : none
-#@EXPORT_TAGS: none
-#@USES       : DICOM::DICOM
-#@REQUIRES   : 
-#@VERSION    : $Id: DCMSUM.pm 9 2007-12-18 22:26:00Z jharlap $
-#@CREATED    : 2006/03/18, J-Sebastian Muehlboeck
-#@MODIFIED   : sebas
-#@COPYRIGHT  : Copyright (c) 2006 by J-Sebastian Muehlboeck, McConnell Brain Imaging
-#              Centre, Montreal Neurological Institute, McGill University.
-#-----------------------------------------------------------------------------
-
 package DICOM::DCMSUM;
+
+=pod
+
+=head1 NAME
+
+DICOM::DCMSUM -- deals with DICOM summaries for archiving and other purposes
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+Deals with DICOM summaries for archiving and other purposes.
+
+=head2 Methods
+
+=cut
+
 use strict;
 # some general stuff
 use File::Basename;
@@ -24,7 +26,19 @@ use Digest::MD5;
 # more specific stuff
 use DICOM::DICOM;
 
-# The constructor 
+
+=pod
+
+=head3 new($dcm_dir, $tmp_dir)(constructor)
+
+Creates a new instance of this class.
+
+INPUT: DICOM directory, target location
+
+RETURNS: a DICOM::DCMSUM object
+
+=cut
+
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -69,9 +83,24 @@ sub new {
 }
 
 =pod 
-################################################################################################
-    Some useful things :
-################################################################################################
+
+Inserts or updates the tarchive tables.
+
+=head3 database($dbh, $meta, $update, $tarType, $tarLog, $DCMmd5, ...)
+
+INPUT:
+  $dbh              : database handle
+  $meta             : name of the .meta file
+  $update           : boolean, 1 to update tarchive entry, 0 otherwise
+  $tarType          : tar type version
+  $tarLog           : name of the .log file
+  $DCMmd5           : DICOM MD5SUM
+  $Archivemd5       : tarchive MD5SUM
+  $Archive          : archive location
+  $neurodbCenterName: center name
+
+RETURNS: 1 on success
+
 =cut
 
 sub database {
@@ -394,11 +423,19 @@ QUERY
     return $success; # if query worked this will return 1;
 }
 
+
 =pod 
-################################################
-Read file content into variable
-################################################
-=cut    
+
+=head3 read_file($file)
+
+Reads the content of a file (typically .meta file in the tarchive).
+
+INPUT: the file to be read
+
+RETURNS: the content of the file
+
+=cut
+
 sub read_file {
     my $file = shift;
     my $content;
@@ -410,7 +447,17 @@ sub read_file {
     return $content;
 }
 
-# Figure out the total number of acquistions
+
+=pod
+
+=head3 acquistion_count()
+
+Figures out the total number of acquisitions.
+
+RETURNS: number of acquisitions
+
+=cut
+
 sub acquistion_count {
     my ($self) = shift;
     my @ac = @{$self->{acqu_List}};
@@ -418,13 +465,34 @@ sub acquistion_count {
     return $count;
 }
 
-# Figure out the total number of acquistions
+
+=pod
+
+=head3 file_count()
+
+Figures out the total number of files.
+
+RETURNS: number of files
+
+=cut
+
 sub file_count {
     my ($self) = shift;
     my @ac = @{$self->{dcminfo}};
     my $count = @ac;
     return $count;
 }
+
+
+=pod
+
+=head3 dcm_count()
+
+Figures out the total number of DICOM files.
+
+RETURNS: number of DICOM files, or exits if no DICOM file found.
+
+=cut
 
 sub dcm_count {
     my ($self) = shift;
@@ -442,11 +510,20 @@ sub dcm_count {
     else { return $count;}
 }
 
+
 =pod 
-################################################################################################
-Get acquisitions: Array of Hashes describing every file in terms of the acquisition
-################################################################################################
+
+=head3 acquisition_AoH($self->{dcminfo})
+
+Creates an Array of Hashes (AoH) describing acquisition parameters for each
+file.
+
+INPUT: list of DICOM files
+
+RETURNS: array of hashes with acquisition parameters for each file
+
 =cut
+
 sub acquisition_AoH {
     my $self = shift;
     my @AoH = ();
@@ -478,11 +555,20 @@ sub acquisition_AoH {
     return @AoH; # meaning array of hashes
 } 
 
+
 =pod 
-################################################
-Collapse the AoH to get a summary of acquisitions
-################################################
+
+=head3 collapse($self->{acqu_AoH})
+
+Collapses the AoH to get a summary of acquisitions.
+
+INPUT: array of hashes with acquisition parameters for each DICOM file
+
+RETURNS: hash table acquisition summary collapsed by unique acquisition
+definitions
+
 =cut
+
 sub collapse {
     my $self = shift;
     my %hash;
@@ -511,11 +597,19 @@ sub collapse {
     return %hash;
 } # end of function
 
+
 =pod 
-################################################
-Sort the Hash by acquisitions
-################################################
+
+=head3 acquisitions(self->{acqu_Sum})
+
+Sorts the Array of Hash by acquisition number.
+
+INPUT: array of hash table acquisition summary
+
+RETURNS: acquisition listing sorted by acquisition number to be used for summary
+
 =cut
+
 sub acquisitions {
     my $self  = shift;
     my @retarr= ();
@@ -530,13 +624,21 @@ sub acquisitions {
     
 } # end of function
 
+
 =pod 
-################################################################################################
-Get dicom info from all files in a directory  
+
+=head3 content_list($dcmdir)
+
+Gets DICOM info from all files in a directory.
 Info: I added the -k5 on August 28th 2006 because the guys in Kupio assign 
       duplicate FN SN EN values for scouts and subsequent scans    
-################################################################################################
-=cut 
+
+INPUT: DICOM directory
+
+RETURNS: sorted DICOM information from all the files in the DICOM directory
+
+=cut
+
 sub content_list {
     my ($self, $dcmdir) = @_;
     my @info = (); 
@@ -553,11 +655,19 @@ sub content_list {
     return @sorted_info;
 }
 
+
 =pod
-################################################
-# Get dicom info for all files
-################################################
+
+=head3 read_dicom_data($file)
+
+Gets DICOM info from a DICOM file.
+
+INPUT: DICOM file to read
+
+RETURNS: array with pertinent DICOM information read from the DICOM file
+
 =cut
+
 sub read_dicom_data {
     my $file = shift;
 
@@ -626,11 +736,17 @@ sub read_dicom_data {
 
 }
 
+
 =pod 
-################################################################################################
-fill header information reading the first valid dicom file 
-################################################################################################
-=cut 
+
+=head3 fill_header()
+
+Fills header information reading the first valid DICOM file.
+
+RETURNS: header information
+
+=cut
+
 sub fill_header {
     my $self = shift;
     # fixme: this makes it more obvious to access array members
@@ -656,13 +772,21 @@ sub fill_header {
     return $self->{header};
 }
 
+
 =pod 
-################################################################################################
-Confirm only one study is in dir to be archived. returns False if there is more than one ID 
-otherwise it returns that ID
+
+=head3 confirm_single_study()
+
+Confirms that only one DICOM study is in the DICOM directory to be archived.
+Returns False if there is more than one StudyUID, otherwise it returns that
+StudyUID.
 This is what I want : ". $self->{dcminfo}->[1][0] ."\n";#
-################################################################################################
-=cut 
+
+RETURNS: StudyUID found in the DICOM directory, or false if more than one
+study was found
+
+=cut
+
 sub confirm_single_study {
     my $self = shift;
     my %hash;
@@ -691,17 +815,30 @@ sub confirm_single_study {
 	return $studyid;
     }
 }
-=pod 
-################################################################################################################################################
-print HEADER see format below
-################################################################################################################################################
-=cut 
+
+
+=pod
+
+=head3 print_header()
+
+Prints HEADER using the format defined in C<&format_head> function.
+
+=cut
+
 sub print_header {
     my $self = shift;
     $self->format_head($self);
 }
 
-################################################# format definitions ###########################################
+
+=pod
+
+=head3 format_head()
+
+Format definition to print the head of the HEADER.
+
+=cut
+
 sub format_head {
     my $self = shift;
     $~ = 'FORMAT_HEADER';
@@ -732,11 +869,15 @@ sub format_head {
 .
 }
 
+
 =pod 
-################################################################################################################################################
-print CONTENT using formats below
-################################################################################################################################################
-=cut 
+
+=head3 print_content()
+
+Prints the CONTENT using formats defined in C<&write_content_head>.
+
+=cut
+
 sub print_content {
     my $self = shift;
     my @files = @{$self->{'dcminfo'}};
@@ -755,7 +896,16 @@ sub print_content {
     }
     print "</FILES>\n";
 }
-################################################ the Content head
+
+
+=pod
+
+=head3 write_content_head()
+
+Prints the Content head.
+
+=cut
+
 sub write_content_head {
     $~ = 'CONTENT_HEAD';
     write();
@@ -764,7 +914,18 @@ sub write_content_head {
 SN   | FN  | EN | Series                      | md5sum                           | File name
 .
 }
-################################################ all dicom files
+
+
+=pod
+
+=head3 write_dcm($dcm)
+
+Prints all DICOM files.
+
+INPUT: array of DICOM information to print
+
+=cut
+
 sub write_dcm {
     my ($dcm) = @_;
     my $d = $$dcm;
@@ -777,7 +938,18 @@ $$d[1], $$d[3],$$d[2],$$d[12],                  $$d[20],                        
 .
 # </FILES>
 }
-################################################ all other files
+
+
+=pod
+
+=head3 write_other($dcm)
+
+Prints all other files.
+
+INPUT: array of other files information
+
+=cut
+
 sub write_other {
     my ($dcm) = @_;
     my $d = $$dcm;
@@ -791,11 +963,16 @@ format FORMAT_OTHER =
 # </OTHER Files>
 }
 
-=pod 
-################################################################################################################################################
-print Acquisitions using formats below
-################################################################################################################################################
+
+=pod
+
+=head3 print_acquisitions()
+
+Prints Acquisitions using formats from C<&write_acqu_head> and
+C<&write_acqu_content>
+
 =cut
+
 sub print_acquisitions {
     my $self = shift;
     my @a = @{$self->{acqu_List}};
@@ -807,7 +984,16 @@ sub print_acquisitions {
     }
     print "</ACQUISITIONS>\n"; # print the pseudo xml footer
 }
-################################################ print aquisition header
+
+
+=pod
+
+=head3 write_acqu_head()
+
+Prints acquisition table header.
+
+=cut
+
 sub write_acqu_head {
     $~ = 'ACQU_HEADER';
     write();
@@ -816,7 +1002,18 @@ sub write_acqu_head {
 Series (SN) | Name of series                  | Seq Name        | echoT ms | repT ms  | invT ms  | sth mm | PhEnc | NoF            
 .
 }
-################################################ print aquisition types
+
+
+=pod
+
+=head3 write_acqu_content($acqu)
+
+Prints acquisition's content.
+
+INPUT: array of acquisition information to print
+
+=cut
+
 sub write_acqu_content {
     my $acqu = shift;
     my ($seriesNum, $sequName,  $echoT, $repT, $invT, $seriesName, $sl_thickness, $phaseEncode, $seriesUID, $num) = split(':::',$acqu);
@@ -828,18 +1025,31 @@ $seriesNum,   $seriesName,                      $sequName,        $echoT,    $re
 .
 }
 
+
 =pod 
-################################################################################################################################################
-print footer using formats below
-################################################################################################################################################
+
+=head3 print_footer()
+
+Prints footer using formats from C<&write_footer>.
+
 =cut
+
 sub print_footer {
     my $self = shift;
     $self->write_footer($self);
     my ($total, $acquNum, $acquName)  = @_;
 
     }
-################################################ print summary information
+
+
+=pod
+
+=head3 write_footer()
+
+Prints footer summary information.
+
+=cut
+
 sub write_footer {
     my $self = shift;
     my $scanage = &date_format($self->{header}->{birthdate},$self->{header}->{scandate});
@@ -854,11 +1064,17 @@ Age at scan             :   @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 </SUMMARY>
 .
 }
-=pod 
-################################################################################################################################################
-PRINT THE WHOLE THING ! THIS IS WHAT YOU REALLY WANT
-################################################################################################################################################
+
+
+=pod
+
+=head3 dcmsummary()
+
+Prints the whole thing using C<&print_header>, C<&print_content>,
+C<&print_acquisitions> and C<&print_footer>. This is what you really want.
+
 =cut
+
 sub dcmsummary {
     my $self = shift;
     print "<STUDY>\n";
@@ -869,25 +1085,43 @@ sub dcmsummary {
     print "</STUDY>\n";
 }
 
-######  unrelated but useful functions ########################################
-=pod 
-################################################
-Get rid of nasty whitespace 
-################################################
-=cut    
+
+=pod
+
+B<Unrelated but useful functions>
+
+=head3 trimwhitespace($string)
+
+Gets rid of nasty whitespace
+
+INPUT: string to remove white space
+
+RETURNS: string without white space
+
+=cut
+
 sub trimwhitespace {
 	my $string = shift;
 	$string =~ s/^\s+//;
 	$string =~ s/\s+$//;
 	return $string;
 }
-=pod 
-################################################
-Pass it a date in YYYYMMDD and you get YYYY-MM-DD
-Pass it two of these and you get the difference
-in decimal and Y M +/- Days
-################################################
-=cut 
+
+
+=pod
+
+=head3 date_format($first, $second)
+
+Pass it a date in YYYYMMDD and you get YYYY-MM-DD.
+Pass it two of these and you get the difference in decimal and Y M +/- Days.
+
+INPUT: date to format, (optionally, a second date to get the difference
+between two dates)
+
+RETURNS: formatted date, or the different between two dates
+
+=cut
+
 sub date_format {
     my $first = $_[0];
     my $second = $_[1];
@@ -906,10 +1140,18 @@ sub date_format {
 }
 
 
-
 =pod
+
+=head3 md5sum($filename)
+
 Computes MD5 sum of a file and outputs a format similar to md5sum on Linux
+
+INPUT: file name to use to computer MD5 sum
+
+RETURNS: MD5 sum of the file
+
 =cut
+
 sub md5sum {
     my $filename = shift;
     open(FILE, $filename) or die "Can't open '$filename': $!";
@@ -917,3 +1159,28 @@ sub md5sum {
     return Digest::MD5->new->addfile(*FILE)->hexdigest . "  $filename\n";
 } 
 1;
+
+
+=pod
+
+=head1 TO DO
+
+Fix comments written as #fixme in the code.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+Copyright (c) 2006 by J-Sebastian Muehlboeck, McConnell Brain Imaging Centre,
+Montreal Neurological Institute, McGill University.
+
+License: GPLv3
+
+=head1 AUTHORS
+
+J-Sebastian Muehlboeck,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
