@@ -8,15 +8,15 @@ DICOM::VRfields -- Value Representations (DICOM Standard PS 3.5 Sect 6.2)
 
 =head1 SYNOPSIS
 
-# Initialize VR hash.
-# Fill in VR definitions from DICOM_fields.
-BEGIN {
-  foreach my $line (@VR) {
-    next if ($line =~ /^\#/);
-    my ($vr, $name, $len, $fix, $numeric, $byteswap) = split(/\t+/, $line);
-    $VR{$vr} = [($name, $len, $fix, $numeric, $byteswap)];
+  # Initialize VR hash.
+  # Fill in VR definitions from DICOM_fields.
+  BEGIN {
+    foreach my $line (@VR) {
+      next if ($line =~ /^\#/);
+      my ($vr, $name, $len, $fix, $numeric, $byteswap) = split(/\t+/, $line);
+      $VR{$vr} = [($name, $len, $fix, $numeric, $byteswap)];
+    }
   }
-}
 
 =head1 DESCRIPTION
 
