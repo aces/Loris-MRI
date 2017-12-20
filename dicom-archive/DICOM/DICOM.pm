@@ -1,11 +1,37 @@
-# DICOM.pm
-# Andrew Crabb (ahc@jhu.edu), May 2002.
-# Jonathan Harlap (jharlap@bic.mni.mcgill.ca) 2003
-# Perl module to read DICOM headers.
-# TODO: add support for sequences (SQ) (currently being skipped)
-# $Id: DICOM.pm 4 2007-12-11 20:21:51Z jharlap $
-
 package DICOM;
+
+=pod
+
+=head1 NAME
+
+DICOM::DICOM -- Perl library that allows Perl programs to read the headers of
+medical image files conforming to DICOM standards.
+
+=head1 SYNOPSIS
+
+  use DICOM;
+  my $dicom = DICOM->new();
+  $dicom->fill($dicomFile);
+  my $patientName = $dicom->value('0010', '0010');
+
+=head1 DESCRIPTION
+
+DICOM (Digital Imaging and Communications in Medicine) is a standard
+designed to allow medical image files to be transferred, stored and
+viewed on different makes of computers. Perl is a multiplatform
+language that excels at system tasks such as file manipulation. It's
+easy to learn, particularly if you are familiar with C or the Unix
+shells and utility programs.
+
+This library provides the methods to read and parse a DICOM file, then
+to recover the contents of each header element by their standard DICOM
+group and element codes. Header element values can be edited (either
+through the GUI or command line) and the modified file written back to
+disk.
+
+=head2 Methods
+
+=cut
 
 use strict;
 use vars qw($VERSION %dict);
@@ -35,6 +61,17 @@ BEGIN {
   }
 }
 
+
+=pod
+
+=head3 new()
+
+Creates a new instance of this class.
+
+RETURNS: a DICOM::DICOM object
+
+=cut
+
 sub new {
   my $class = shift;
 
@@ -44,7 +81,16 @@ sub new {
   return $elements;
 }
 
-# Store and process the command line options from hash ref.
+
+=pod
+
+=head3 processOpts($href)
+
+Stores and process the command line options from hash ref.
+
+INPUT: an hash reference
+
+=cut
 
 sub processOpts {
   my $this = shift;
@@ -61,7 +107,18 @@ sub processOpts {
   $this->write($outfile) if (defined($outfile));
 }
 
-# Fill in hash with header members from given file.
+
+=pod
+
+=head3 fill($infile, $big_endian_image)
+
+Fills in hash with header members from given file.
+
+INPUT: file, (optionally, big endian image)
+
+RETURNS: 1 if duplication, 0 on success
+
+=cut
 
 sub fill {
   my ($this, $infile, $big_endian_image) = @_;
@@ -99,9 +156,18 @@ sub fill {
   return 0;
 }
 
-# Write currently open file to given file name, or to current name 
-# if no new name specified.  All fields before value are written
-# verbatim; value field is stored as is (possibly edited).
+
+=pod
+
+=head3 write($outfile)
+
+Writes currently open file to given file name, or to current name if no new
+name specified.  All fields before value are written verbatim; value field
+is stored as is (possibly edited).
+
+INPUT: file to write into
+
+=cut
 
 sub write {
   my ($this, $outfile) = @_;
@@ -115,7 +181,16 @@ sub write {
   close(OUTFILE);
 }
 
-# Print all elements, to disk if file handle supplied.
+
+=pod
+
+=head3 printContents($OUTFILE)
+
+Prints all elements, to disk if file handle supplied.
+
+INPUT: file to print into
+
+=cut
 
 sub printContents {
   my ($this, $OUTFILE) = @_;
@@ -134,7 +209,16 @@ sub printContents {
   }
 }
 
-# Return sorted array of references to element arrays.
+
+=pod
+
+=head3 contents()
+
+Returns a sorted array of references to element arrays.
+
+RETURNS: sorte array of references
+
+=cut
 
 sub contents {
   my $this = shift;
@@ -155,7 +239,18 @@ sub contents {
   return @all;
 }
 
-# Set field index to sort by.  Return 1 if new index, else 0.
+
+=pod
+
+=head3 setIndex($val)
+
+Sets field index to sort by.
+
+INPUT: value
+
+RETURNS: 1 if new index, else 0.
+
+=cut
 
 sub setIndex {
   my $this = shift;
@@ -170,13 +265,31 @@ sub setIndex {
   return 1;
 }
 
-# Return sort index.
+
+=pod
+
+=head3 getIndex()
+
+Returns the sort index.
+
+=cut
 
 sub getIndex {
   return $sortIndex;
 }
 
-# Return value of the element at (group, element).
+
+=pod
+
+=head3 value($gp, $el)
+
+Return value of the element at (group, element).
+
+INPUT: group, element
+
+RETURNS value of the element
+
+=cut
 
 sub value {
   my $this = shift;
@@ -186,8 +299,18 @@ sub value {
   return (defined($elem->value())) ? $elem->value() : "";
 }
 
-# Return field of given index from element.
-# Params: Group, Element, Field index.
+
+=pod
+
+=head3 field($gp, $el, $fieldname)
+
+Returns field of given index from element.
+
+INPUT: group, element, field index.
+
+RETURNS: field of given index from element
+
+=cut
 
 sub field {
   my $this = shift;
@@ -197,10 +320,21 @@ sub field {
   return $elem->{$fieldname};
 }
 
-# Edit header value from string.
-# String format: 'gggg,eeee=newvalue' or 'fieldname=newvalue'.
-#   gggg, eeee = group, element (in hex); XXXX = new value.
-#   fieldname = name of field from @dicom_fields.
+
+=pod
+
+=head3 editHeader($editstr)
+
+Edit header value from string.
+String format: 'gggg,eeee=newvalue' or 'fieldname=newvalue'.
+  gggg, eeee = group, element (in hex); XXXX = new value.
+  fieldname = name of field from @dicom_fields.
+
+INPUT: string to edit
+
+RETURNS: undef unless group and element are defined
+
+=cut
 
 sub editHeader {
   my ($this, $editstr) = @_;
@@ -219,7 +353,18 @@ sub editHeader {
   $this->setElementValue($gp, $el, $val);
 }
 
-# Return group and element number of field with given name.
+
+=pod
+
+=head3 fieldByName($searchname)
+
+Returns group and element number of field with given name.
+
+INPUT: name of the field to search
+
+RETURNS: group and element number of field
+
+=cut
 
 sub fieldByName {
   my ($this, $searchname) = @_;
@@ -238,7 +383,16 @@ sub fieldByName {
   return ($gp, $el);
 }
 
-# Replace value of given element.
+
+=pod
+
+=head3 setElementValue($gp, $el, $newvalue)
+
+Replaces value of given element.
+
+INPUT: group, element, new value
+
+=cut
 
 sub setElementValue {
   my $this = shift;
@@ -247,13 +401,31 @@ sub setElementValue {
   $elem->setValue($newvalue);
 }
 
-#  ------------------------------------------------------------
-#  Utility Functions (non-public)
-#  ------------------------------------------------------------
+
+=pod
+
+=head3 hexadecimally()
+
+------------------------------------------------------------
+Utility Functions (non-public)
+------------------------------------------------------------
+
+=cut
 
 sub hexadecimally {
   hex($a) <=> hex($b);
 }
+
+
+=pod
+
+=head3 sortByField()
+
+Sort array of value by field.
+
+RETURNS: sorted array
+
+=cut
 
 sub sortByField {
   my @aarr = @$a;
@@ -266,57 +438,37 @@ sub sortByField {
   }
 }
 
-# Doesn't do anything in non-graphical case.
+
+=pod
+
+=head3 loop()
+
+Doesn't do anything in non-graphical case.
+
+=cut
+
 sub loop {}
 
 1;
 __END__
 
-=head1 NAME
-
-DICOM.pm is a Perl library that allows Perl programs to read the
-headers of medical image files conforming to DICOM standards.
-
-=head1 SYNOPSIS
-
-  use DICOM;
-  my $dicom = DICOM->new();
-  $dicom->fill($dicomFile);
-  my $patientName = $dicom->value('0010', '0010');
-  
-=head1 DESCRIPTION
-
-DICOM (Digital Imaging and Communications in Medicine) is a standard
-designed to allow medical image files to be transferred, stored and
-viewed on different makes of computers. Perl is a multiplatform
-language that excels at system tasks such as file manipulation. It's
-easy to learn, particularly if you are familiar with C or the Unix
-shells and utility programs.
-
-This library provides the methods to read and parse a DICOM file, then
-to recover the contents of each header element by their standard DICOM
-group and element codes. Header element values can be edited (either
-through the GUI or command line) and the modified file written back to
-disk.
-
-=head2 Methods
-
-=over 4
-
-=item * $object->fill($filename)
-
-Fills the DICOM object with data from the file $filename
-
-=back
+=pod
 
 =head1 SEE ALSO
 
 The DICOM standard - http://medical.nema.org/
 
-=head1 AUTHOR
+=head1 TO DO
 
-Andrew Crabb, E<lt>ahc@jhu.eduE<gt>
-Jonathan Harlap, E<lt>jharlap@bic.mni.mcgill.caE<gt>
+Add support for sequences (SQ) (currently being skipped)
+Better documentation of:
+  - setIndex()
+  - hexadecimally() -- non public?
+  - loop - doesn't do anything in non-graphical case. Is this used?
+
+=head1 BUGS
+
+None reported.
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -326,5 +478,14 @@ Some parts are Copyright (C) 2003 by Jonathan Harlap
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,
 at your option, any later version of Perl 5 you may have available.
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Andrew Crabb, E<lt>ahc@jhu.eduE<gt>,
+Jonathan Harlap, E<lt>jharlap@bic.mni.mcgill.caE<gt>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
 
 =cut
