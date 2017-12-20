@@ -8,8 +8,37 @@ Dependencies and installation information are documented on the LORIS-MRI
 
 ## 2.2 Configuration
 
+Following a successful install, some configurations and customizations are needed
+on the database, LORIS and LORIS-MRI sides as outlines in the following sub-sections.
+
+### 2.2.1 Database
+
+1. `psc` table
+2. `Visit_Windows` table
+3. `mri_scan_types` table
+4. `mri_protocol` table
+5. `Config` table
+
+The items in 5. cna also be accessed in the LORIS front-end, under the Admin menu, 
+the `Config` module. Under the section `Imaging Pipeline`, verify/set the following 
+config settings:
+ * `Loris-MRI Data Directory`
+ * `Study Name`
+ * `User to notify when executing the pipeline`
+ * `Full path to get_dicom_info.pl script`
+ * `Path to Tarchives`
+
+Under the section `Paths`
+ * `imagePath`
+
 **NEED TO TALK ABOUT THE CREATION OF NIFTI OPTIONS AS IT IS REFERENCED IN THE
   PIPELINE FLOW DOCUMENTATION.**
+
+### 2.2.2 LORIS
+
+
+### 2.2.3 LORIS-MRI 
+
 
 ## 2.3 Pipeline flow
 
