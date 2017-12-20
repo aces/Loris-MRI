@@ -4,6 +4,25 @@
 
 package DICOM::Fields;
 
+=pod
+
+=head1 NAME
+
+DICOM::Fields
+
+=head1 SYNOPSIS
+
+A few lines of code on how to use the package or script
+
+=head1 DESCRIPTION
+
+Overall description of the package or script
+
+=head2 Methods
+
+=cut
+
+
 use strict;
 
 require Exporter;
