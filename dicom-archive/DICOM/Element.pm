@@ -14,7 +14,7 @@ use DICOM::Element;
 
 =head1 DESCRIPTION
 
-Element routines for DICOM::DICOM module to read DICOM headers.
+Element routines for DICOM::DICOM module to read binary DICOM headers.
 
 Each element is a hash with the following keys:
   group	    Group (hex).
@@ -77,7 +77,7 @@ sub new {
 
 Fills in self from file.
 
-INPUT: input file, DICOM dictionary, big endian image
+INPUT: input file, DICOM dictionary, if big endian image
 
 RETURNS: element hash
 
@@ -146,7 +146,7 @@ sub fill {
 
 =head3 readInt($IN, $bytes, $len).
 
-Reads int variables. ??????????????????????????
+Reads Int.
 
 INPUT:
   $IN   : input file stream.
@@ -156,7 +156,7 @@ INPUT:
 If fieldlength > bytelength, multiple values are read in and stored as a
 string representation of an array.
 
-RETURNS: string representation of an array???
+RETURNS: string representation of an array
 
 =cut
 
@@ -186,7 +186,7 @@ sub readInt {
 
 =head3 writeInt($OUT, $bytes)
 
-Writes Int variable into the output file C<$OUT>. ?????
+Writes Int into the output file C<$OUT>.
 
 INPUT: output file, number of bytes in the field
 
@@ -211,12 +211,12 @@ sub writeInt {
 
 =head3 readFloat($IN, $format, $len)
 
-Reads float variables ????
+Reads Float.
 
 INPUT: input file stream, format of the variable, total number of bytes in
 the field.
 
-RETURNS: string ?????
+RETURNS: string
 
 =cut
 
@@ -235,10 +235,10 @@ sub readFloat {
 
 =head3 readSequence($IN, $len)
 
-Reads sequence. ??????
+Reads Sequence.
 
 Three different cases:
-    - implicit VR, explicit length
+    - implicit Value Representation (VR), explicit length
     - explicit VR, undefined length, items of defined length (w/end delimiter)
     - implicit VR, undefined length, items of undefined length
 
@@ -301,8 +301,8 @@ sub readSequence {
 
 =head3 readLength($IN)
 
-Reads length. ????????????????????????
-  - Implicit VR: Length is 4 byte int.
+Reads length.
+  - Implicit Value Representation (VR): Length is 4 byte int.
   - Explicit VR: 2 bytes hold VR, then 2 byte length.
 
 INPUT: input file stream
