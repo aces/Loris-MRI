@@ -8,7 +8,7 @@ package DICOM::Fields;
 
 =head1 NAME
 
-DICOM::Fields
+DICOM::Fields -- Definitions of fields of DICOM headers.
 
 =head1 SYNOPSIS
 
@@ -16,9 +16,20 @@ A few lines of code on how to use the package or script
 
 =head1 DESCRIPTION
 
-Overall description of the package or script
+Definitions of fields of DICOM headers. Not for medical use. This file is
+provided purely for experimental use.
 
-=head2 Methods
+Simply creating an array of:
+  0000   0000   UL   1      GroupLength
+  0000   0001   UL   1      CommandLengthToEnd
+  0000   0002   UI   1      AffectedSOPClassUID
+  0000   0003   UI   1      RequestedSOPClassUID
+  0000   0010   CS   1      CommandRecognitionCode
+  0000   0100   US   1      CommandField
+  0000   0110   US   1      MessageID
+  0000   0120   US   1      MessageIDBeingRespondedTo
+  0000   0200   AE   1      Initiator
+  ...
 
 =cut
 
