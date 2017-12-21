@@ -1,4 +1,41 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+minc_insertion.pl -- Insert MINC files into the LORIS database system
+
+=head1 SYNOPSIS
+
+perl minc_insertion.pl
+
+=head1 DESCRIPTION
+
+The program inserts MINC files into the LORIS database system. It performs the
+four following actions:
+
+- Loads the created MINC file and then sets the appropriate parameter for
+the loaded object:
+
+   (
+    ScannerID,  SessionID,      SeriesUID,
+    EchoTime,   PendingStaging, CoordinateSpace,
+    OutputType, FileType,       TarchiveSource,
+    Caveat
+   )
+
+- Extracts the correct acquisition protocol
+
+- Registers the scan into the LORIS database by changing the path to the MINC
+and setting extra parameters
+
+- Finally sets the series notification
+
+=head2 Methods
+
+=cut
+
 use strict;
 use warnings;
 use Carp;
@@ -502,6 +539,15 @@ if ($create_minc_pics) {
 ################################################################
 exit 0;
 
+
+=pod
+
+=head3 logHeader()
+
+Creates and prints the LOG header.
+
+=cut
+
 sub logHeader () {
     print LOG "
 ----------------------------------------------------------------
@@ -512,3 +558,26 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
