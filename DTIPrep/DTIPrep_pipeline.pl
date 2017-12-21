@@ -75,6 +75,8 @@ Usage: $0 [options]
 
 -help for options
 
+Documentation: perldoc DTIPrep_pipeline.pl.
+
 USAGE
 
 # Set default option values
