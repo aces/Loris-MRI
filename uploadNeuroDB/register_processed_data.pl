@@ -1,5 +1,33 @@
 #!/usr/bin/perl -w
 
+=pod
+
+=head1 NAME
+
+register_processed_data.pl -- Insert processed data and link it to the source
+ data
+
+=head1 SYNOPSIS
+
+perl register_processed_data.pl -profile C<name_of_the_profile> -file
+C</path/to/file/to/register> -sourceFileID C<source_FileID> -sourcePipeline
+C<pipeline_name_used> -tool C<tool_used> -pipelineDate C<pipeline_date>
+-coordinateSpace C<coordinate_space> -scanType C<scan_type> -outputType
+C<output_type> -inputFileIDs C<list_of_input_FileIDs_separated_by_semi-colon>
+-protocolID C<protocol_ID>
+
+Note: All options are required as they will be necessary to insert a file in
+the database.
+
+=head1 DESCRIPTION
+
+This script inserts processed data in the files and parameter_file tables.
+
+=head2 Methods
+
+=cut
+
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -276,9 +304,19 @@ exit 0;
 ###################################
 ##           Functions           ##
 ###################################
+
 =pod
-This function returns the sessionID based on sourceFileID.
+
+=head3 getSessionID($sourceFileID, $dbh)
+
+This function returns the sessionID based on the provided sourceFileID.
+
+INPUT: source FileID, database handle
+
+RETURNS: session ID
+
 =cut
+
 sub getSessionID    {
     my  ($sourceFileID,$dbh)    =   @_;
     
@@ -311,8 +349,17 @@ sub getSessionID    {
 
 
 =pod
-This function gets ScannerID from files using sourceFileID
+
+=head3 getScannerID($sourceFileID, $dbh)
+
+This function gets ScannerID from the C<files> table using sourceFileID
+
+INPUT: source FileID, database handle
+
+RETURNS: scanner ID
+
 =cut
+
 sub getScannerID    {
     my  ($sourceFileID,$dbh)    =   @_;    
 
@@ -332,9 +379,20 @@ sub getScannerID    {
     return  ($scannerID);
 }
 
+
 =pod
-This function returns the AcquisitionProtocolID of the file to register in DB based on scanType in mri_scan_type.
+
+=head3 getAcqProtID($scanType, $dbh)
+
+This function returns the AcquisitionProtocolID of the file to register in the
+database based on scanType in the C<mri_scan_type> table.
+
+INPUT: scan type, database handle
+
+RETURNS: acquisition protocol ID
+
 =cut
+
 sub getAcqProtID    {
     my  ($scanType,$dbh)    =   @_;
 
@@ -354,9 +412,19 @@ sub getAcqProtID    {
     return  ($acqProtID);
 }
 
+
 =pod
-This function parses the mincheader and look for specific field's value.
+
+=head3 fetchMincHeader($file, $field)
+
+This function parses the MINC header and look for specific field's value.
+
+INPUT: MINC file, MINC header field
+
+RETURNS: MINC header value
+
 =cut
+
 sub fetchMincHeader {
     my  ($file,$field)  =   @_;
 
@@ -370,9 +438,19 @@ sub fetchMincHeader {
     return  $value;
 }    
 
+
 =pod
+
+=head3 copy_file($filename, $subjectIDsref, $scan_type, $fileref)
+
 Move files to assembly folder.
+
+INPUT: file to copy, subject ID hashref, scan type, file hash ref
+
+RETURNS: file name of the copied file
+
 =cut
+
 sub copy_file {
     my ($filename, $subjectIDsref, $scan_type, $fileref)    =   @_;
 
@@ -417,12 +495,18 @@ sub copy_file {
 }
 
 
-
 =pod
+
+=head3 getSourceFilename($sourceFileID)
+
 Grep source file name from the database using SourceFileID.
-Input:  $sourceFileID
-Output: $filename
+
+INPUT: ID of the source file
+
+RETURNS: name of the source file
+
 =cut
+
 sub getSourceFilename {
     my ($sourceFileID) = @_;
 
@@ -447,10 +531,18 @@ sub getSourceFilename {
 }
 
 
-
 =pod
-Determines where the mincs will go...
+
+=head3 which_directory($subjectIDsref)
+
+Determines where the MINC files will go.
+
+INPUT: subject ID hashref
+
+RETURNS: directory where the MINC files will go
+
 =cut
+
 sub which_directory {
     my ($subjectIDsref) =   @_;
     
@@ -465,13 +557,22 @@ sub which_directory {
 
 
 =pod
-Function that will insert into the files_intermediary table of the database, intermediary outputs that were used to obtain the processed file.
-- Input:  - fileID : fileID of the registered processed file
-          - inputFileIDs : array containing the list of input files that were used to obtain the processed file
-          - tool : tool that was used to obtain the processed file
-- Output: - return undef if insertion did not succeed
-          - return 1 if insertion into the intermediary table succeeded. 
+
+=head3 insert_intermedFiles($fileID, $inputFileIDs, $tool)
+
+Function that will insert into the C<files_intermediary> table of the database,
+intermediary outputs that were used to obtain the processed file.
+
+INPUT:
+  - $fileID      : fileID of the registered processed file
+  - $inputFileIDs: array containing the list of input files that were used to
+                    obtain the processed file
+  - $tool        : tool that was used to obtain the processed file
+
+RETURNS: 1 on success, undef on failure
+
 =cut
+
 sub insert_intermedFiles {
     my ($fileID, $inputFileIDs, $tool) = @_;
 
@@ -491,3 +592,26 @@ sub insert_intermedFiles {
 
     return 1;
 }
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
