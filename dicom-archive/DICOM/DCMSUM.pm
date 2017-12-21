@@ -89,15 +89,15 @@ sub new {
 Inserts or updates the tarchive tables.
 
 INPUT:
-  $dbh              : database handle
-  $meta             : name of the .meta file
-  $update           : boolean, 1 to update tarchive entry, 0 otherwise
-  $tarType          : tar type version
-  $tarLog           : name of the .log file
-  $DCMmd5           : DICOM MD5SUM
-  $Archivemd5       : tarchive MD5SUM
-  $Archive          : archive location
-  $neurodbCenterName: center name
+  - $dbh              : database handle
+  - $meta             : name of the .meta file
+  - $update           : set to 1 to update tarchive entry, 0 otherwise
+  - $tarType          : tar type version
+  - $tarLog           : name of the .log file
+  - $DCMmd5           : DICOM MD5SUM
+  - $Archivemd5       : tarchive MD5SUM
+  - $Archive          : archive location
+  - $neurodbCenterName: center name
 
 RETURNS: 1 on success
 
@@ -631,8 +631,8 @@ sub acquisitions {
 
 Gets DICOM info from all files in a directory.
 
-Info: I added the -k5 on August 28th 2006 because the guys in Kupio assign 
-duplicate FN SN EN values for scouts and subsequent scans
+Note: I added the -k5 on August 28th 2006 because the guys in Kupio assign
+duplicate FN SN EN values for scouts and subsequent scans.
 
 INPUT: DICOM directory
 
@@ -781,7 +781,6 @@ sub fill_header {
 Confirms that only one DICOM study is in the DICOM directory to be archived.
 Returns False if there is more than one StudyUID, otherwise it returns that
 StudyUID.
-This is what I want : ". $self->{dcminfo}->[1][0] ."\n";#
 
 RETURNS: StudyUID found in the DICOM directory, or false if more than one
 study was found
