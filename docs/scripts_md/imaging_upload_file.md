@@ -1,0 +1,74 @@
+# NAME
+
+imaging\_upload\_file.pl --
+
+# SYNOPSIS
+
+perl imaging\_upload\_file.pl
+
+# DESCRIPTION
+
+The program does the following
+
+\- Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+\- Unzips the uploaded file
+\- Sources the Environment
+\- Uses the ImagingUpload class to :
+   1) Validate the uploaded file   (set the validation to true)
+   2) Run dicomtar.pl on the file  (set the dicomtar to true)
+   3) Run tarchiveLoader on the file (set the minc-created to true)
+   4) Removes the uploaded file once the previous steps have completed
+   5) Update the mri\_upload table
+
+## Methods
+
+### getPnameUsingUploadID()
+
+Function that gets the patient-name using the upload\_id
+
+INPUT: $upload\_id: The Upload ID
+
+Returns: $patient\_name : The patientName
+
+### getFilePathUsingUploadID()
+Functions that gets the file path from the mri\_upload table using the upload\_id
+
+INPUT:  $upload\_id: The Upload ID
+
+RETURNS: $file\_path : The full path to the uploaded file
+
+### getNumberOfMincFiles()
+
+Function that gets the count of minc files created and inserted using the upload\_id
+
+INPUT:  $upload\_id: The Upload ID
+
+RETURNS: $minc\_created and $minc\_inserted: count of minc created and inserted
+
+### spool()
+
+Function that calls the Notify->spool function to log all messages
+
+INPUTS:
+ - $this      : Reference to the class
+ - $message   : Message to be logged in the database
+ - $error     : if 'Y' it's an error log , 'N' otherwise
+ - $verb      : 'N' for summary messages, 'Y' for detailed messages (developers)
+
+RETURNS    : NULL
+
+# TO DO
+
+Nothing planned.
+
+# BUGS
+
+None reported.
+
+# LICENSING
+
+License: GPLv3
+
+# AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

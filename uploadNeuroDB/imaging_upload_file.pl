@@ -1,4 +1,33 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+imaging_upload_file.pl --
+
+=head1 SYNOPSIS
+
+perl imaging_upload_file.pl
+
+=head1 DESCRIPTION
+
+The program does the following
+
+- Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+- Unzips the uploaded file
+- Sources the Environment
+- Uses the ImagingUpload class to :
+   1) Validate the uploaded file   (set the validation to true)
+   2) Run dicomtar.pl on the file  (set the dicomtar to true)
+   3) Run tarchiveLoader on the file (set the minc-created to true)
+   4) Removes the uploaded file once the previous steps have completed
+   5) Update the mri_upload table
+
+=head2 Methods
+
+=cut
+
 use strict;
 use warnings;
 use Carp;
@@ -31,7 +60,7 @@ my $date    = sprintf(
               );
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
-my $upload_id = undef;         # The uploadID
+my $upload_id = undef;  # The uploadID
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
      tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
@@ -79,6 +108,8 @@ The program does the following
    4) Removes the uploaded file once the previous steps have completed
    5) Update the mri_upload table 
 
+Documentation: perldoc imaging_upload_file.pl
+
 HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/UploadedFile> -upload_id [options]
@@ -92,11 +123,6 @@ USAGE
 ############### input option error checking ####################
 ################################################################
 
-=pod
- 1) For those logs before getting the --dbh...they also need to 
-     -They need to be inserted
- 2) The -patient-name can be included for further validation
-=cut
 
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ( $profile && !@Settings::db ) {
@@ -275,14 +301,15 @@ spool($message,'N', $notify_notsummary);
 ############### getPnameUsingUploadID###########################
 ################################################################
 =pod
-getPnameUsingUploadID()
-Description:
-  - Get the patient-name using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getPnameUsingUploadID()
 
-  Returns: $patient_name : The patientName
+Function that gets the patient-name using the upload_id
+
+INPUT: $upload_id: The Upload ID
+
+Returns: $patient_name : The patientName
+
 =cut
 
 
@@ -309,14 +336,14 @@ sub getPnameUsingUploadID {
 ############### getFilePathUsingUploadID########################
 ################################################################
 =pod
-getFilePathUsingUploadID()
-Description:
-  - Get the file path from the mri_upload table using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getFilePathUsingUploadID()
+Functions that gets the file path from the mri_upload table using the upload_id
 
-  Returns: $file_path : The full path to the uploaded file
+INPUT:  $upload_id: The Upload ID
+
+RETURNS: $file_path : The full path to the uploaded file
+
 =cut
 
 
@@ -344,14 +371,15 @@ sub getFilePathUsingUploadID {
 ###### get number_of_mincCreated & number_of_mincInserted ######
 ################################################################
 =pod
-getNumberOfMincFiles()
-Description:
-  - Get the count of minc files created and inserted using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getNumberOfMincFiles()
 
-  Returns: $minc_created and $minc_inserted: count of minc created and inserted
+Function that gets the count of minc files created and inserted using the upload_id
+
+INPUT:  $upload_id: The Upload ID
+
+RETURNS: $minc_created and $minc_inserted: count of minc created and inserted
+
 =cut
 
 
@@ -384,17 +412,19 @@ sub getNumberOfMincFiles {
 ############### spool()#########################################
 ################################################################
 =pod
-spool()
-Description:
-   - Calls the Notify->spool function to log all messages 
 
-Arguments:
- $this      : Reference to the class
- $message   : Message to be logged in the database 
- $error     : if 'Y' it's an error log , 'N' otherwise
- $verb      : 'N' for summary messages, 'Y' for detailed messages (developers)
+=head3 spool()
 
- Returns    : NULL
+Function that calls the Notify->spool function to log all messages
+
+INPUTS:
+ - $this      : Reference to the class
+ - $message   : Message to be logged in the database
+ - $error     : if 'Y' it's an error log , 'N' otherwise
+ - $verb      : 'N' for summary messages, 'Y' for detailed messages (developers)
+
+RETURNS    : NULL
+
 =cut
 
 sub spool  {
@@ -408,3 +438,26 @@ sub spool  {
 }
 
 exit 0;
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
