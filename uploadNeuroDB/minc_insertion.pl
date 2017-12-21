@@ -170,6 +170,8 @@ The program does the following:
   parameters
 - Finally sets the series notification
 
+Documentation: perldoc minc_insertion.pl
+
 HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/DICOM-tarchive> [options]
