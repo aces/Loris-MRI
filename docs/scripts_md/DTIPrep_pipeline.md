@@ -5,6 +5,18 @@ database.
 
 # SYNOPSIS
 
+perl DTIPrep\_pipeline.pl -profile `prod` -list
+`/path/to/list/of/native/dir` -DTIPrepVersion `DTIPrep_version`
+\-mincdiffusionVersion `mincdiffusion_version` -runDTIPrep - DTIPrepProtocol
+`/path/to/DTIPrep/XML/protocol` -registerFilesInDB
+
+Note:
+\- `-DTIPrepVersion` and `-mincdiffusionVersion` are optional if the
+version of those tools can be found directly from the tools installed on the
+server running `DTIPrepRegister`.
+\- `-runDTIPrep` and `registerFilesInDB` are optional depending on whether
+just want to run the DTIPrep pipeline or just want to register the outputs...
+
 # DESCRIPTION
 
 `DTIPrep_pipeline.pl` can be used to run DTIPrep on native DWI datasets. It

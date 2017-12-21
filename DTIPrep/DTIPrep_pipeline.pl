@@ -9,7 +9,17 @@ database.
 
 =head1 SYNOPSIS
 
+perl DTIPrep_pipeline.pl -profile C<prod> -list
+C</path/to/list/of/native/dir> -DTIPrepVersion C<DTIPrep_version>
+-mincdiffusionVersion C<mincdiffusion_version> -runDTIPrep - DTIPrepProtocol
+C</path/to/DTIPrep/XML/protocol> -registerFilesInDB
 
+Note:
+- C<-DTIPrepVersion> and C<-mincdiffusionVersion> are optional if the
+version of those tools can be found directly from the tools installed on the
+server running C<DTIPrepRegister>.
+- C<-runDTIPrep> and C<registerFilesInDB> are optional depending on whether
+just want to run the DTIPrep pipeline or just want to register the outputs...
 
 =head1 DESCRIPTION
 
