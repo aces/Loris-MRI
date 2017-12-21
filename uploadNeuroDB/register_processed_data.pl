@@ -61,6 +61,8 @@ Usage: perl register_processed_data.pl [options]
 
 -help for options
 
+Documentation: perldoc register_processed_data.pl
+
 USAGE
 
 my  @args_table = (
