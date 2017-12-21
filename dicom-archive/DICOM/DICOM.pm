@@ -10,6 +10,7 @@ medical image files conforming to DICOM standards.
 =head1 SYNOPSIS
 
   use DICOM;
+
   my $dicom = DICOM->new();
   $dicom->fill($dicomFile);
   my $patientName = $dicom->value('0010', '0010');
@@ -272,6 +273,8 @@ sub setIndex {
 
 Returns the sort index.
 
+RETURNS: sort index
+
 =cut
 
 sub getIndex {
@@ -287,7 +290,7 @@ Return value of the element at (group, element).
 
 INPUT: group, element
 
-RETURNS value of the element
+RETURNS: value of the element
 
 =cut
 
@@ -327,8 +330,8 @@ sub field {
 
 Edit header value from string.
 String format: 'gggg,eeee=newvalue' or 'fieldname=newvalue'.
-  gggg, eeee = group, element (in hex); XXXX = new value.
-  fieldname = name of field from @dicom_fields.
+  gggg, eeee = group, element (in hex);
+  fieldname  = name of field from @dicom_fields.
 
 INPUT: string to edit
 
@@ -406,9 +409,9 @@ sub setElementValue {
 
 =head3 hexadecimally()
 
-------------------------------------------------------------
+------------------------------------------------------------------
 Utility Functions (non-public)
-------------------------------------------------------------
+------------------------------------------------------------------
 
 =cut
 

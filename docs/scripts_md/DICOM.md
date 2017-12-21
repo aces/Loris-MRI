@@ -6,6 +6,7 @@ medical image files conforming to DICOM standards.
 # SYNOPSIS
 
     use DICOM;
+
     my $dicom = DICOM->new();
     $dicom->fill($dicomFile);
     my $patientName = $dicom->value('0010', '0010');
@@ -79,13 +80,15 @@ RETURNS: 1 if new index, else 0.
 
 Returns the sort index.
 
+RETURNS: sort index
+
 ### value($gp, $el)
 
 Return value of the element at (group, element).
 
 INPUT: group, element
 
-RETURNS value of the element
+RETURNS: value of the element
 
 ### field($gp, $el, $fieldname)
 
@@ -99,8 +102,8 @@ RETURNS: field of given index from element
 
 Edit header value from string.
 String format: 'gggg,eeee=newvalue' or 'fieldname=newvalue'.
-  gggg, eeee = group, element (in hex); XXXX = new value.
-  fieldname = name of field from @dicom\_fields.
+  gggg, eeee = group, element (in hex);
+  fieldname  = name of field from @dicom\_fields.
 
 INPUT: string to edit
 
@@ -122,9 +125,9 @@ INPUT: group, element, new value
 
 ### hexadecimally()
 
-\------------------------------------------------------------
+\------------------------------------------------------------------
 Utility Functions (non-public)
-\------------------------------------------------------------
+\------------------------------------------------------------------
 
 ### sortByField()
 
