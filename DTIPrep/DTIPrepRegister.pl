@@ -82,6 +82,8 @@ Usage: $0 [options]
 
 -help for options
 
+Documentation: perldoc DTIPrepRegister.pl
+
 USAGE
 
 # Define the table describing the command-line options
