@@ -8,15 +8,32 @@ DTIPrepRegister.pl -- registers DTIPrep outputs in the LORIS database
 
 =head1 SYNOPSIS
 
-perl DTIPrepRegister.pl -profile C<prod> -DTIPrep_subdir
-C</path/to/DTIPrep/dir> -DTIPrepProtocol C</Path/to/DTIPrep/XML/protocol>
--DTI_file C</path/to/DTI/native/file> -anat_file C</path/to/anat/native/file>
--DTIPrepVersion C<DTIPrep_version> -mincdiffusionVersion
-C<mincdiffusion_version>
+perl DTIPrepRegister.pl C<[options]>
+
+Available options are:
+
+-profile        : name of the config file in ../dicom-archive/.loris-mri
+
+-DTIPrep_subdir : DTIPrep subdirectory storing the processed files to
+                   be registered
+
+-DTIPrepProtocol: DTIPrep protocol used to obtain the output files
+
+-DTI_file       : native DWI file used to obtain the output files
+
+-anat_file      : native anatomical dataset used to create FA, RGB and
+                   other post-processed maps using mincdiffusion tools
+
+-DTIPrepVersion : DTIPrep version used if cannot be found in MINC
+                   files' C<processing:pipeline> header field
+
+-mincdiffusionVersion: mincdiffusion release version used if cannot be
+                        found in minc files' C<processing:pipeline>
+                        header field
 
 Note: C<-DTIPrepVersion> and C<-mincdiffusionVersion> are optional if the
-version of those tools can be found directly from the tools installed on the
-server running C<DTIPrepRegister>.
+version of those tools can be found directly in the MINC header of the
+processed files.
 
 =head1 DESCRIPTION
 
@@ -24,16 +41,16 @@ Registers DWI QC pipeline's output files of interest into the LORIS database
 via C<register_processed_data.pl>.
 
 The following output files will be inserted:
-  - QCed MINC file produced by DTIPrep pre-processing step (i.e. DWI dataset
-     without the bad directions detected by DTIPrep)
+  - QCed MINC file produced by DTIPrep pre-processing step (i.e. DWI
+     dataset without the bad directions detected by DTIPrep)
   - QCReport produced by DTPrep
   - XMLQCResult produced by DTIPrep
   - RGB map produced by either DTIPrep or mincdiffusion post-processing
   - MD map produced by either DTIPrep or mincdiffusion post-processing
   - FA map produced by either DTIPrep or mincdiffusion post-processing
   - baseline image produced by DTIPrep or mincdiffusion post-processing
-  - DTI mask produced by mincdiffusion post-processing (only if mincdiffusion
-     was used to post-process the data)
+  - DTI mask produced by mincdiffusion post-processing (only if
+     mincdiffusion was used to post-process the data)
 
 =head2 Methods
 
@@ -473,16 +490,17 @@ via C<register_processed_data.pl> script.
 
 INPUT:
   - $minc                  : MINC file to be registered
-  - $raw_file              : source native file the MINC file to register
+  - $raw_file              : source file of the MINC file to register
   - $data_dir              : data_dir directory from the config table
-  - $inputs                : input files of the MINC file to be registered
-  - $pipelineName          : name of the pipeline used to obtain the MINC file
+  - $inputs                : input files of the file to be registered
+  - $pipelineName          : name of the pipeline used to obtain the
+                              MINC file
   - $toolName              : tool name & version used
   - $registeredXMLFile     : registered DTIPrep XML report
   - $registeredQCReportFile: registered DTIPrep txt report
-  - $scanType              : type of scan to be used to register the minc file
-  - $registered_nrrd       : optional, registered NRRD file used to create
-                              the MINC file
+  - $scanType              : scan type of the MINC file to register
+  - $registered_nrrd       : optional, registered NRRD file used to
+                              create the MINC file
 
 RETURNS: registered MINC file on success, undef otherwise
 
@@ -606,11 +624,12 @@ and call registerFile to register the XML file via register_processed_data.pl.
 INPUT:
   - $XMLFile     : XML file to be registered
   - $raw_file    : native DWI file used to obtain the DTIPrep outputs
-  - $data_dir    : data_dir from the config table (a.k.a. /data/project/data)
+  - $data_dir    : data_dir from the config table
+                    (e.g. /data/project/data)
   - $QCReport    : DTIPrep QCreport
-  - $inputs      : input files that were used to process data through DTIPrep
-  - $pipelineName: name of the pipeline used to process DTIs (DTIPrepPipeline)
-  - $toolName    : DTIPrep name and version that was used to process DTIs
+  - $inputs      : input files used to process data through DTIPrep
+  - $pipelineName: pipeline name used to process DWIs (DTIPrepPipeline)
+  - $toolName    : DTIPrep name & version used to process the DWI file
 
 RETURNS: the registered XNL file if it was registered in the database, undef
 otherwise
@@ -696,10 +715,11 @@ C<register_processed_data.pl>.
 INPUT:
   - $QCReport    : QC report file to be registered
   - $raw_file    : native DWI file used to obtain the DTIPrep outputs
-  - $data_dir    : data_dir from the config table (a.k.a. /data/project/data)
-  - $inputs      : input files that were used to process data through DTIPrep
-  - $pipelineName: name of the pipeline used to process DTIs (DTIPrepPipeline)
-  - $toolName    : DTIPrep name and version that was used to process DTIs
+  - $data_dir    : data_dir from the config table
+                    (e.g. /data/project/data)
+  - $inputs      : input files used to process data through DTIPrep
+  - $pipelineName: pipeline name used to process DTIs (DTIPrepPipeline)
+  - $toolName    : DTIPrep name & version used to process the DWI file
 
 RETURNS: registered QCReport file if it was registered in the database, undef
  otherwise
@@ -781,10 +801,11 @@ INPUT: raw DTI dataset that is used as a key in C<$DTIrefs> hash; hash
 containing all output paths and tool information
 
 RETURNS:
-  - $XMLProtocol    : DTIPrep XML protocol that was found in the file system
-  - $QCReport       : DTIPrep text QCReport that was found in the file system
-  - $XMLReport      : DTIPrep XML QCReport that was found in the file system
-  - $QCed_minc      : QCed MINC file created after conversion of QCed NRRD file
+  - $XMLProtocol    : DTIPrep XML protocol found in the file system
+  - $QCReport       : DTIPrep text QCReport found in the file system
+  - $XMLReport      : DTIPrep XML QCReport found in the file system
+  - $QCed_minc      : QCed MINC file created after conversion of
+                       QCed NRRD file
   - $RGB_minc       : RGB MINC file found in the file system
   - $FA_minc        : FA MINC file found in the file system
   - $MD_minc        : MD MINC file found in the file system
@@ -792,8 +813,8 @@ RETURNS:
   - $brain_mask_minc: brain mask MINC file found in the file system
   - $QCed2_minc     : optional, secondary QCed MINC file created after
                        conversion of secondary QCed DTIPrep NRRD file
-  - returns undef if there are some missing files (except for QCed2_minc which
-     is optional)
+  - returns undef if there are some missing files (except for
+     QCed2_minc which is optional)
 
 =cut
 
@@ -826,14 +847,15 @@ INPUT: raw DTI dataset that is used as a key in $DTIrefs hash; hash
 containing all output paths and tool information
 
 RETURNS:
-  - $XMLProtocol: DTIPrep XML protocol that was found in the file system
-  - $QCReport   : DTIPrep text QCReport that was found in the file system
-  - $XMLReport  : DTIPrep XML QCReport that was found in the file system
-  - $QCed_minc  : QCed MINC file created after conversion of QCed NRRD file
-  - $QCed2_minc : optional, secondary QCed MINC file created after conversion of
-                   secondary QCed DTIPrep NRRD file
-  - returns undef if one of the file listed above is missing (except for
-     QCed2_minc which is optional)
+  - $XMLProtocol: DTIPrep XML protocol found in the file system
+  - $QCReport   : DTIPrep text QCReport found in the file system
+  - $XMLReport  : DTIPrep XML QCReport found in the file system
+  - $QCed_minc  : QCed MINC file created after conversion of
+                   QCed NRRD file
+  - $QCed2_minc : optional, secondary QCed MINC file created after
+                   conversion of secondary QCed DTIPrep NRRD file
+  - returns undef if one of the file listed above is missing (except
+     for QCed2_minc which is optional)
 
 =cut
 
@@ -1144,8 +1166,10 @@ INPUT: minc file to modify header; path to the registered DTIPrep's XML
 report; path to the registered DTIPrep's QC text report
 
 RETURNS:
-- $Txtreport_insert: 1 if on text report path insertion success, undef otherwise
-- $XMLreport_insert: 1 if on  xml report path insertion success, undef otherwise
+ - $Txtreport_insert: 1 if on text report path insertion success,
+                       undef otherwise
+ - $XMLreport_insert: 1 if on  xml report path insertion success,
+                       undef otherwise
 
 =cut
 
@@ -1249,15 +1273,17 @@ options.
 INPUT:
   - $file           : file to be registered in the database
   - $src_fileID     : source file's FileID
-  - $src_pipeline   : pipeline used to obtain the file (DTIPrepPipeline)
-  - $src_tool       : name and version of the tool (DTIPrep or mincdiffusion)
+  - $src_pipeline   : pipeline used to obtain the file
+                       (DTIPrepPipeline)
+  - $src_tool       : name and version of the tool
+                       (DTIPrep or mincdiffusion)
   - $pipelineDate   : file's creation date (= pipeline date)
   - $coordinateSpace: file's coordinate space (= native, T1 ...)
   - $scanType       : file's scan type (= DTIPrepReg, DTIPrepDTIFA,
                        DTIPrepDTIMD, DTIPrepDTIColorFA...)
   - $outputType     : file's output type (.xml, .txt, .mnc...)
-  - $inputs         : input files that were used to create the file to be
-                       registered (intermediary files)
+  - $inputs         : input files that were used to create the file to
+                       be registered (intermediary files)
 
 RETURNS: registered file
 
@@ -1317,9 +1343,9 @@ Fetches the registered file from the database to link it to the minc files.
 
 INPUT:
  - $src_fileID     : FileID of the source native file
- - $src_pipeline   : Pipeline name used to register the processed file
- - $pipelineDate   : Pipeline data used to register the processed file
- - $coordinateSpace: coordinate space used to register the processed file
+ - $src_pipeline   : pipeline name used to register the processed file
+ - $pipelineDate   : pipeline data used to register the processed file
+ - $coordinateSpace: processed file's coordinate space
  - $scanType       : scan type used to register the processed file
  - $outputType     : output type used to register the processed file
 
@@ -1438,12 +1464,14 @@ C<register_processed_data.pl>.
 INPUT:
   - $nrrd        : NRRD file to be registered
   - $raw_file    : native DWI file used to obtain the DTIPrep outputs
-  - $data_dir    : data_dir from the config table (a.k.a. /data/project/data)
+  - $data_dir    : data_dir from the config table
+                    (a.k.a. /data/project/data)
   - $QCReport    : DTIPrep QCreport
-  - $inputs      : input files that were used to process data through DTIPrep
-  - $pipelineName: name of the pipeline used to process DTIs (DTIPrepPipeline)
-  - $toolName    : DTIPrep name and version that was used to process DTIs
-  - $scanType    : nrrd file's scan type
+  - $inputs      : input files used to process data through DTIPrep
+  - $pipelineName: pipeline name used to process DTIs
+                    (DTIPrepPipeline)
+  - $toolName    : DTIPrep name & version used to process the DWI file
+  - $scanType    : NRRD file's scan type
 
 RETURNS: registered NRRD file or undef on insertion's failure
 
@@ -1524,7 +1552,8 @@ NRRD file and then the MINC file for each scan type.
 
 INPUT:
   - $mri_files   : hash containing all DTI output information
-  - $dti_file    : native DWI file (that will be used as a key for $mri_files)
+  - $dti_file    : native DWI file (that will be used as a key
+                    for $mri_files)
   - $data_dir    : data_dir defined in the config file
   - $pipelineName: pipeline name (DTIPrepPipeline)
   - $toolName    : tool's name and version
@@ -1584,8 +1613,9 @@ INPUT:
   - $process_step: processing step (preprocessing, post-processing)
 
 RETURNS:
-  - @registered: list of registered files
-  - @failed_to_register: list of files that failed to be registered in the DB
+  - @registered        : list of registered files
+  - @failed_to_register: list of files that failed to be registered
+                          in the DB
 
 =cut
 
@@ -1660,11 +1690,11 @@ Function that will return in a string the list of inputs used to process the
 data separated by ';'.
 
 INPUT:
-  - $mri_files   : list of processed outputs to register or that have been
-                    registered
+  - $mri_files   : list of processed outputs to register or that
+                    have been registered
   - $data_dir    : data directory from the Config table
-  - $process_step: processing step used for the processed output to determine
-                    inputs
+  - $process_step: processing step used for the processed output
+                    to determine inputs
   - $proc_file   : processing file to determine inputs used
 
 RETURNS: string with each inputs used separated by ';'
