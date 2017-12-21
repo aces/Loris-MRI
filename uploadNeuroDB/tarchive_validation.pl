@@ -1,4 +1,66 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+tarchive_validation.pl -- Validates the tarchive against the one inserted in
+the LORIS database.
+
+=head1 SYNOPSIS
+
+perl tarchive_validation.pl C<[options]>
+
+Available options are:
+
+-profile     : name of the config file in ../dicom-archive/.loris-mri
+
+-reckless    : upload data to the database even if the study protocol
+                is not defined or if it is violated
+
+-globLocation: loosen the validity check of the tarchive allowing for
+                the possibility that the tarchive was moved to a
+                different directory
+
+-newScanner  : boolean, if set, register new scanners into the database
+
+-verbose     : boolean, if set, run the script in verbose mode
+
+=head1 DESCRIPTION
+
+The program does the following validations:
+
+- Verification of the DICOM study archive given as an argument to the script
+using the checksum from the one inserted in the database
+
+- Verification of the PSC information using whatever field containing the site
+string (typically, the patient name or patient ID)
+
+- Verification/determination of the ScannerID of the DICOM study archive
+(optionally creates a new scanner entry in the database if necessary)
+
+- Optionally, creation of candidates as needed and standardization of gender
+information when creating the candidates (DICOM uses M/F, LORIS database uses
+Male/Female)
+
+- Check of the CandID/PSCID match. It's possible that the CandID exists, but
+that CandID and PSCID does not correspond to the same candidate. This would
+fail further down silently, so we explicitly check that this information is
+correct here.
+
+- Validation/Obtention of the SessionID
+
+- Optionally, completion of extra filtering on the DICOM dataset, if needed
+
+- Finally, the C<isTarchiveValidated> field in the C<mri_upload> table is set
+to C<TRUE>
+
+=head2 Methods
+
+
+=cut
+
+
 use strict;
 use warnings;
 use Carp;
@@ -320,6 +382,14 @@ $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 
 exit 0;
 
+=pod
+
+=head3 logHeader()
+
+Creates and prints the LOG header.
+
+=cut
+
 sub logHeader () {
     print LOG "
 ----------------------------------------------------------------
@@ -330,3 +400,27 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
+
+__END__
+
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
+
