@@ -84,9 +84,9 @@ sub new {
 
 =pod 
 
-Inserts or updates the tarchive tables.
-
 =head3 database($dbh, $meta, $update, $tarType, $tarLog, $DCMmd5, ...)
+
+Inserts or updates the tarchive tables.
 
 INPUT:
   $dbh              : database handle
@@ -630,8 +630,9 @@ sub acquisitions {
 =head3 content_list($dcmdir)
 
 Gets DICOM info from all files in a directory.
+
 Info: I added the -k5 on August 28th 2006 because the guys in Kupio assign 
-      duplicate FN SN EN values for scouts and subsequent scans    
+duplicate FN SN EN values for scouts and subsequent scans
 
 INPUT: DICOM directory
 
@@ -1144,7 +1145,7 @@ sub date_format {
 
 =head3 md5sum($filename)
 
-Computes MD5 sum of a file and outputs a format similar to md5sum on Linux
+Computes the MD5 sum of a file and outputs a format similar to md5sum on Linux.
 
 INPUT: file name to use to computer MD5 sum
 

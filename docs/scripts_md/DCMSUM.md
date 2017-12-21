@@ -18,9 +18,9 @@ INPUT: DICOM directory, target location
 
 RETURNS: a DICOM::DCMSUM object
 
-Inserts or updates the tarchive tables.
-
 ### database($dbh, $meta, $update, $tarType, $tarLog, $DCMmd5, ...)
+
+Inserts or updates the tarchive tables.
 
 INPUT:
   $dbh              : database handle
@@ -90,8 +90,9 @@ RETURNS: acquisition listing sorted by acquisition number to be used for summary
 ### content\_list($dcmdir)
 
 Gets DICOM info from all files in a directory.
+
 Info: I added the -k5 on August 28th 2006 because the guys in Kupio assign 
-      duplicate FN SN EN values for scouts and subsequent scans    
+duplicate FN SN EN values for scouts and subsequent scans
 
 INPUT: DICOM directory
 
@@ -199,7 +200,7 @@ RETURNS: formatted date, or the different between two dates
 
 ### md5sum($filename)
 
-Computes MD5 sum of a file and outputs a format similar to md5sum on Linux
+Computes the MD5 sum of a file and outputs a format similar to md5sum on Linux.
 
 INPUT: file name to use to computer MD5 sum
 
