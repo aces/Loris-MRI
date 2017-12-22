@@ -137,8 +137,8 @@ HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/UploadedFile> -upload_id [options]
        $0 -help to list options
-Note:  Please make sure that the </path/to/UploadedFile> and the upload_id provided 
-correspond to the same upload entry.
+Note:  Please make sure that the </path/to/UploadedFile> and the upload_id
+provided correspond to the same upload entry.
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
 &Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
