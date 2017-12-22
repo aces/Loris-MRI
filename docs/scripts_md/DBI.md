@@ -1,17 +1,17 @@
 # NAME
 
-NeuroDB::DBI
+NeuroDB::DBI -- Allows LORIS database connectivity for LORIS-MRI code base
 
 # SYNOPSIS
 
-use NeuroDB::DBI;
+    use NeuroDB::DBI;
 
-my $dbh = &NeuroDB::DBI::connect\_to\_db(@Settings::db);
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-my $sth = $dbh->prepare($query);
-$sth->execute(@bind\_value);
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@bind_value);
 
-my @row\_array  = $sth->fetchrow\_array;
+    my @row_array  = $sth->fetchrow_array;
 
 # DESCRIPTION
 
