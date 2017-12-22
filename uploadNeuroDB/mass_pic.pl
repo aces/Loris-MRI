@@ -49,7 +49,8 @@ my $query;
 my $debug       = 0;
 my $Usage = "mass_pic.pl generates check pic images for NeuroDB for those ".
             "files that are missing pics. ".
-            " \n\n See $0 -help for more info\n\n";
+            " \n\n See $0 -help for more info\n\n".
+            "Documentation: perldoc mass_pic.pl\n\n";
 
 my @arg_table =
     (
