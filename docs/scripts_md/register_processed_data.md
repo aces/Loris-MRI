@@ -1,16 +1,43 @@
 # NAME
 
-register\_processed\_data.pl -- Insert processed data and link it to the source
- data
+register\_processed\_data.pl -- Inserts processed data and link it to the source
+data
 
 # SYNOPSIS
 
-perl register\_processed\_data.pl -profile `name_of_the_profile` -file
-`/path/to/file/to/register` -sourceFileID `source_FileID` -sourcePipeline
-`pipeline_name_used` -tool `tool_used` -pipelineDate `pipeline_date`
-\-coordinateSpace `coordinate_space` -scanType `scan_type` -outputType
-`output_type` -inputFileIDs `list_of_input_FileIDs_separated_by_semi-colon`
-\-protocolID `protocol_ID`
+perl register\_processed\_data.pl `[options]`
+
+Available options are:
+
+\-profile        : name of config file in ../dicom-archive/.loris\_mri
+
+\-file           : file that will be registered in the database
+                   (full path from the root directory is required)
+
+\-sourceFileID   : FileID of the raw input dataset that was processed
+                   to obtain the file to be registered in the database
+
+\-sourcePipeline : pipeline name that was used to obtain the file to be
+                   registered (example: DTIPrep\_pipeline)
+
+\-tool           : tool name and version that was used to obtain the
+                   file to be registered (example: DTIPrep\_v1.1.6)
+
+\-pipelineDate   : date at which the processing pipeline was run
+
+\-coordinateSpace: space coordinate of the file
+                   (i.e. linear, nonlinear or native)
+
+\-scanType       : file scan type stored in the `mri_scan_type` table
+                   (i.e. QCedDTI, RGBqc, TxtQCReport, XMLQCReport...)
+
+\-outputType     : output type to be registered in the database
+                   (i.e. QCed, processed, QCReport)
+
+\-inputFileIDs   : list of input fileIDs used to obtain the file to
+                   be registered (each fileID separated by ';')
+
+\-protocolID     : ID of the registered protocol used to process data
 
 Note: All options are required as they will be necessary to insert a file in
 the database.
@@ -85,8 +112,8 @@ intermediary outputs that were used to obtain the processed file.
 
 INPUT:
   - $fileID      : fileID of the registered processed file
-  - $inputFileIDs: array containing the list of input files that were used to
-                    obtain the processed file
+  - $inputFileIDs: array containing the list of input files that were
+                    used to obtain the processed file
   - $tool        : tool that was used to obtain the processed file
 
 RETURNS: 1 on success, undef on failure
