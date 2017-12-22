@@ -70,7 +70,8 @@ INPUTS:
  - $this      : Reference to the class
  - $message   : Message to be logged in the database
  - $error     : if 'Y' it's an error log , 'N' otherwise
- - $verb      : 'N' for summary messages, 'Y' for detailed messages (developers)
+ - $verb      : 'N' for summary messages, 
+                'Y' for detailed messages (developers)
 
 RETURNS    : NULL
 
