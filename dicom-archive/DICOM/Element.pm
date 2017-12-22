@@ -17,14 +17,14 @@ use DICOM::Element;
 Element routines for DICOM::DICOM module to read binary DICOM headers.
 
 Each element is a hash with the following keys:
-  group	    Group (hex).
-  element	Element within group (hex).
-  offset	Offset from file start (dec).
-  code	    Field code eg 'US', 'UI'.
-  length	Field value length (dec).
-  name	    Field descriptive name.
-  value	    Value.
-  header	All bytes up to value, for easy writing.
+  - group  : group (hex)
+  - element: element within group (hex)
+  - offset : offset from file start (dec)
+  - code   : field code eg 'US', 'UI'
+  - length : field value length (dec)
+  - name   : field descriptive name
+  - value  : value
+  - header : all bytes up to value, for easy writing
 
 =head2 Methods
 
@@ -239,7 +239,8 @@ Reads Sequence.
 
 Three different cases:
     - implicit Value Representation (VR), explicit length
-    - explicit VR, undefined length, items of defined length (w/end delimiter)
+    - explicit VR, undefined length, items of defined length
+       (w/end delimiter)
     - implicit VR, undefined length, items of undefined length
 
 
@@ -449,6 +450,8 @@ sub valueString {
 
 
 =pod
+
+=head3 write($OUTFILE)
 
 Writes this data element to disk. All fields up to value are stored in
 immutable field 'header' - write this to disk then value field.
