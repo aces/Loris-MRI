@@ -1,7 +1,7 @@
 # NAME
 
 NeuroDB::File -- Provides an interface to the MRI file management subsystem of
-  LORIS
+LORIS
 
 # SYNOPSIS
 

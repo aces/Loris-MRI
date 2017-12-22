@@ -8,7 +8,7 @@ use Carp;
 =head1 NAME
 
 NeuroDB::File -- Provides an interface to the MRI file management subsystem of
-  LORIS
+LORIS
 
 =head1 SYNOPSIS
 
