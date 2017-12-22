@@ -4,7 +4,7 @@ DICOM::Element -- Element routines for DICOM::DICOM module
 
 # SYNOPSIS
 
-use DICOM::Element;
+    use DICOM::Element;
 
 # DESCRIPTION
 

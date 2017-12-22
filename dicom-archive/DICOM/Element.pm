@@ -8,7 +8,7 @@ DICOM::Element -- Element routines for DICOM::DICOM module
 
 =head1 SYNOPSIS
 
-use DICOM::Element;
+  use DICOM::Element;
 
 
 
