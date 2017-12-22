@@ -40,7 +40,7 @@ RETURNS: TRUE on success, FALSE on failure
 
 ### getArchivedFiles()
 
-This function will return an array ref with the paths of all the files in the 
+This function will return an array ref with the paths of all the files in the
 archive.
 
 RETURNS: array of archived files
