@@ -1,5 +1,30 @@
 #! /usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+database_files_update.pl -- Updates path stored in C<files> and
+C<parameter_file> tables so that they are relative to data_dir
+
+=head1 SYNOPSIS
+
+perl database_files_update.pl C<[options]>
+
+Available option is:
+
+-profile: name of the config file in ../dicom-archive/.loris_mri
+
+=head1 DESCRIPTION
+
+This script updates the path stored in the C<files> and C<parameter_file>
+tables to remove the <\$data_dir> part of the path for security improvements.
+
+=head2 Methods
+
+=cut
+
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -10,9 +35,12 @@ my @args;
 
 my $Usage   =   <<USAGE;
 
-This script updates the path stored in the files and parameter_file tables to remove the \$data_dir part of the path for security improvements.
+This script updates the path stored in the files and parameter_file tables to
+remove the \$data_dir part of the path for security improvements.
 
 Usage: perl database_files_update.pl [options]
+
+Documentation: perldoc database_files_update.pl
 
 -help for options
 
@@ -132,8 +160,17 @@ if  ($tarchive_location_refs) {
 ###############
 
 =pod
-Get list of minc files to update location in the files table.
+
+=head3 get_minc_files($data_dir, $dbh)
+
+Gets the list of MINC files to update the location in the C<files> table.
+
+INPUT: data directory from the C<Config> tables, database handle
+
+RETURNS: hash of MINC locations, array of FileIDs
+
 =cut
+
 sub get_minc_files {
     my  ($data_dir, $dbh)   =   @_;
 
@@ -158,11 +195,21 @@ sub get_minc_files {
     return  (\%minc_locations, \@fileIDs);
 }
 
+
 =pod
-Update location of minc files in the files table.
+
+=head3 update_minc_location($fileID, $new_minc_location, $dbh)
+
+Updates the location of MINC files in the C<files> table.
+
+INPUT: File ID, new MINC relative location, database handle
+
+RETURNS: Number of rows affected by the update (should always be 1)
+
 =cut
+
 sub update_minc_location {
-    my  ($fileID, $new_minc_location, $dbh) =   @_;                # update minc location in files table.
+    my  ($fileID, $new_minc_location, $dbh) =   @_;  # update minc location in files table.
 
     my  $query          =   "UPDATE files " .
                             "SET File=? " .
@@ -173,9 +220,20 @@ sub update_minc_location {
     return  ($rows_affected);
 }
 
+
 =pod
-Get list of jivs to update location in parameter_file (remove root directory from path)
+
+=head3 get_parameter_files($data_dir, $parameter_type, $dbh)
+
+Gets list of JIV files to update location in C<parameter_file> (remove root
+directory from path)
+
+INPUT: data directory, parameter type name for the JIV, database handle
+
+RETURNS: hash of JIV file locations, array of FileIDs
+
 =cut
+
 sub get_parameter_files {
     my  ($data_dir, $parameter_type, $dbh)  =   @_;
 
@@ -204,9 +262,23 @@ sub get_parameter_files {
     return  (\%file_locations, \@fileIDs);
 }
 
+
 =pod
-Update location of jiv files in parameter_file
+
+=head3 update_parameter_file_location($fileID, $new_file_location, ...)
+
+Updates the location of JIV files in the C<parameter_file> table.
+
+INPUT:
+  - $fileID           : FileID
+  - $new_file_location: new location of the JIV file
+  - $parameter_type   : parameter type name for the JIV
+  - $dbh              : database handle
+
+RETURNS: number of rows affected by the update (should always be 1)
+
 =cut
+
 sub update_parameter_file_location {
     my  ($fileID, $new_file_location, $parameter_type, $dbh) =   @_; 
 
@@ -232,3 +304,25 @@ sub update_parameter_file_location {
     return  ($rows_affected);   
 }
 
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
