@@ -5,33 +5,37 @@ utilities
 
 # SYNOPSIS
 
-use NeuroDB::ProcessingUtility;
+    use NeuroDB::ProcessingUtility;
 
-my $utility = NeuroDB::MRIProcessingUtility->new(
-                  \\$dbh,    $debug,  $TmpDir,
-                  $logfile, $LogDir, $verbose
-              );
+    my $utility = NeuroDB::MRIProcessingUtility->new(
+                      \$dbh,    $debug,  $TmpDir,
+                      $logfile, $LogDir, $verbose
+                  );
 
-%tarchiveInfo = $utility->createTarchiveArray(
-                  $ArchiveLocation, $globArchiveLocation
-                );
+    %tarchiveInfo = $utility->createTarchiveArray(
+                      $ArchiveLocation, $globArchiveLocation
+                    );
 
-my ($center\_name, $centerID) = $utility->determinePSC(\\%tarchiveInfo,0);
+    my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-my $scannerID = $utility->determineScannerID(
-                    \\%tarchiveInfo, 0,
-                    $centerID,      $NewScanner
-                );
+    my $scannerID = $utility->determineScannerID(
+                        \%tarchiveInfo, 0,
+                        $centerID,      $NewScanner
+                    );
 
-my $subjectIDsref = $utility->determineSubjectID($scannerID, \\%tarchiveInfo, 0);
+    my $subjectIDsref = $utility->determineSubjectID(
+                            $scannerID,
+                            \%tarchiveInfo,
+                            0
+                        );
 
-my $CandMismatchError= $utility->validateCandidate(
-                                $subjectIDsref,
-                                $tarchiveInfo{'SourceLocation'}
-                       );
+    my $CandMismatchError= $utility->validateCandidate(
+                                    $subjectIDsref,
+                                    $tarchiveInfo{'SourceLocation'}
+                           );
 
-$utility->computeSNR($TarchiveID, $ArchLoc, $profile);
-$utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
+    $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+    $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
 
 # DESCRIPTION
 

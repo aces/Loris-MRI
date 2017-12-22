@@ -10,33 +10,37 @@ utilities
 
 =head1 SYNOPSIS
 
-use NeuroDB::ProcessingUtility;
+  use NeuroDB::ProcessingUtility;
 
-my $utility = NeuroDB::MRIProcessingUtility->new(
-                  \$dbh,    $debug,  $TmpDir,
-                  $logfile, $LogDir, $verbose
-              );
-
-%tarchiveInfo = $utility->createTarchiveArray(
-                  $ArchiveLocation, $globArchiveLocation
+  my $utility = NeuroDB::MRIProcessingUtility->new(
+                    \$dbh,    $debug,  $TmpDir,
+                    $logfile, $LogDir, $verbose
                 );
 
-my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+  %tarchiveInfo = $utility->createTarchiveArray(
+                    $ArchiveLocation, $globArchiveLocation
+                  );
 
-my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo, 0,
-                    $centerID,      $NewScanner
-                );
+  my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-my $subjectIDsref = $utility->determineSubjectID($scannerID, \%tarchiveInfo, 0);
+  my $scannerID = $utility->determineScannerID(
+                      \%tarchiveInfo, 0,
+                      $centerID,      $NewScanner
+                  );
 
-my $CandMismatchError= $utility->validateCandidate(
-                                $subjectIDsref,
-                                $tarchiveInfo{'SourceLocation'}
-                       );
+  my $subjectIDsref = $utility->determineSubjectID(
+                          $scannerID,
+                          \%tarchiveInfo,
+                          0
+                      );
 
-$utility->computeSNR($TarchiveID, $ArchLoc, $profile);
-$utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
+  my $CandMismatchError= $utility->validateCandidate(
+                                  $subjectIDsref,
+                                  $tarchiveInfo{'SourceLocation'}
+                         );
+
+  $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+  $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
 
 =head1 DESCRIPTION
 
