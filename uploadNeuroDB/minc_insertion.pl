@@ -8,7 +8,40 @@ minc_insertion.pl -- Insert MINC files into the LORIS database system
 
 =head1 SYNOPSIS
 
-perl minc_insertion.pl
+perl minc_insertion.pl C<[options]>
+
+Available options are:
+
+-profile     : name of the config file in
+                C<../dicom-archive/.loris_mri>
+
+-reckless    : uploads data to database even if study protocol
+                is not defined or violated
+
+-force       : forces the script to run even if validation failed
+
+-noJIV       : prevents the JIVs from being created
+
+-mincPath    : the absolute path to the MINC file
+
+-tarchivePath: the absolute path to the tarchive file
+
+-globLocation: loosens the validity check of the tarchive allowing
+                 for the possibility that the tarchive was moved
+                 to a different directory
+
+-newScanner  : if set [default], new scanner will be registered
+
+-xlog        : opens an xterm with a tail on the current log file
+
+-verbose     : if set, be verbose
+
+-acquisition_protocol    : suggests the acquisition protocol to use
+
+-create_minc_pics        : creates the MINC pics
+
+-bypass_extra_file_checks: bypasses extra file checks
+
 
 =head1 DESCRIPTION
 
