@@ -64,6 +64,8 @@ Author  :   Cécile Madjar based on mass_pic.pl.
                         for the inserted MINC images that 
                         are missing NIfTIs.
 
+Documentation: perldoc mass_nii.pl
+
 HELP
 
 my $Usage      = <<USAGE;
