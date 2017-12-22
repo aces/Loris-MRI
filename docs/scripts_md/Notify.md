@@ -5,17 +5,17 @@ of LORIS
 
 # SYNOPSIS
 
-use NeuroDB::Notify;
+    use NeuroDB::Notify;
 
-my $notifier = NeuroDB::Notify->new(\\$dbh);
+    my $notifier = NeuroDB::Notify->new(\$dbh);
 
-my $message           = "Some kind of message from tarchive validation";
-my $upload\_id         = 123456;
-my $notify\_notsummary = 'N';
-$notifier->spool('tarchive validation', $message,   0,
-		         'tarchiveLoader',      $upload\_id, 'Y',
-		         $notify\_notsummary
-		        );
+    my $message           = "Some kind of message from tarchive validation";
+    my $upload_id         = 123456;
+    my $notify_notsummary = 'N';
+    $notifier->spool('tarchive validation', $message,   0,
+                             'tarchiveLoader',      $upload_id, 'Y',
+                             $notify_notsummary
+                            );
 
 # DESCRIPTION
 
@@ -34,7 +34,7 @@ INPUT: DBI database handle
 
 RETURNS: new instance of this class.
 
-### spool($type, $message, $centerID, $origin, $processID, $isError, $isVerb)
+### spool($type, $message, $centerID, $origin, $processID, ...)
 
 Spools a new notification message, `$message`, into the spool for notification
 type `$type`. If `$centerID` is specified, only recipients in that site will

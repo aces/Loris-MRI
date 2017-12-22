@@ -10,17 +10,17 @@ of LORIS
 
 =head1 SYNOPSIS
 
-use NeuroDB::Notify;
+  use NeuroDB::Notify;
 
-my $notifier = NeuroDB::Notify->new(\$dbh);
+  my $notifier = NeuroDB::Notify->new(\$dbh);
 
-my $message           = "Some kind of message from tarchive validation";
-my $upload_id         = 123456;
-my $notify_notsummary = 'N';
-$notifier->spool('tarchive validation', $message,   0,
-		         'tarchiveLoader',      $upload_id, 'Y',
-		         $notify_notsummary
-		        );
+  my $message           = "Some kind of message from tarchive validation";
+  my $upload_id         = 123456;
+  my $notify_notsummary = 'N';
+  $notifier->spool('tarchive validation', $message,   0,
+  		           'tarchiveLoader',      $upload_id, 'Y',
+  		           $notify_notsummary
+  		          );
 
 
 =head1 DESCRIPTION
@@ -67,7 +67,7 @@ sub new {
 
 =pod
 
-=head3 spool($type, $message, $centerID, $origin, $processID, $isError, $isVerb)
+=head3 spool($type, $message, $centerID, $origin, $processID, ...)
 
 Spools a new notification message, C<$message>, into the spool for notification
 type C<$type>. If C<$centerID> is specified, only recipients in that site will
