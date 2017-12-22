@@ -4,7 +4,8 @@
 
 =head1 NAME
 
-imaging_upload_file.pl --
+imaging_upload_file.pl -- a single step script for the imaging pre-processing
+and insertion pipeline sequence
 
 =head1 SYNOPSIS
 

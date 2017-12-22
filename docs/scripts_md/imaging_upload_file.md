@@ -1,6 +1,7 @@
 # NAME
 
-imaging\_upload\_file.pl --
+imaging\_upload\_file.pl -- a single step script for the imaging pre-processing
+and insertion pipeline sequence
 
 # SYNOPSIS
 
