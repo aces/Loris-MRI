@@ -161,7 +161,7 @@ INPUT:
   $center\_name             : center name
   $minc                    : absolute path to the MINC file
   $acquisitionProtocol     : acquisition protocol if already knows it
-  $bypass\_extra\_file\_checks: boolean, if should bypass the extra file checks
+  $bypass\_extra\_file\_checks: boolean, if set bypass the extra checks
 
 RETURNS: acquisition protocol, acquisition protocol ID, array of extra checks
 
@@ -280,8 +280,9 @@ INPUT:
 
 Sets the imaging session ID. This function will call
 `&NeuroDB::MRI::getSessionID` which in turn will either:
-  - grep the sessionID if the visit label for that candidate already exists, or
-  - create a new session if the visit label doesn't exist for that candidate yet
+  - grep sessionID if visit for that candidate already exists, or
+  - create a new session if visit label does not exist for that
+     candidate yet
 
 INPUT: subject's ID information hashref, tarchive information hashref
 
@@ -346,7 +347,8 @@ INPUT:
   $message   : message to be logged in the database
   $error     : if 'Y' it's an error log , 'N' otherwise
   $upload\_id : the upload\_id
-  $verb      : 'N' for few main messages, 'Y' for more messages (developers)
+  $verb      : 'N' for few main messages,
+               'Y' for more messages (developers)
 
 # TO DO
 

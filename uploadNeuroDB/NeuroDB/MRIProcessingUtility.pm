@@ -595,7 +595,7 @@ INPUT:
   $center_name             : center name
   $minc                    : absolute path to the MINC file
   $acquisitionProtocol     : acquisition protocol if already knows it
-  $bypass_extra_file_checks: boolean, if should bypass the extra file checks
+  $bypass_extra_file_checks: boolean, if set bypass the extra checks
 
 RETURNS: acquisition protocol, acquisition protocol ID, array of extra checks
 
@@ -1376,8 +1376,9 @@ sub CreateMRICandidates {
 
 Sets the imaging session ID. This function will call
 C<&NeuroDB::MRI::getSessionID> which in turn will either:
-  - grep the sessionID if the visit label for that candidate already exists, or
-  - create a new session if the visit label doesn't exist for that candidate yet
+  - grep sessionID if visit for that candidate already exists, or
+  - create a new session if visit label does not exist for that
+     candidate yet
 
 INPUT: subject's ID information hashref, tarchive information hashref
 
@@ -1724,9 +1725,6 @@ sub orderModalitiesByAcq {
     }
 }
 
-################################################################
-################ getUploadIDUsingTarchiveSrcLoc#################
-################################################################
 =pod
 
 =head3 getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc)
@@ -1777,7 +1775,8 @@ INPUT:
   $message   : message to be logged in the database
   $error     : if 'Y' it's an error log , 'N' otherwise
   $upload_id : the upload_id
-  $verb      : 'N' for few main messages, 'Y' for more messages (developers)
+  $verb      : 'N' for few main messages,
+               'Y' for more messages (developers)
 
 =cut
 
