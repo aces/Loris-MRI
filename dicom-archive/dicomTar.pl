@@ -5,6 +5,54 @@
 # Tar and gzip dicom files and retar them with pertaining summary and creation log
 # @VERSION : $Id: dicomTar.pl 9 2007-12-18 22:26:00Z jharlap $
 
+=pod
+
+=head1 NAME
+
+dicomTar.pl -- archives DICOM data into the LORIS database
+
+=head1 SYNOPSIS
+
+perl dicomTar.pl </PATH/TO/SOURCE/DICOM> </PATH/TO/TARGET/DIR> `[options]`
+
+Available options are:
+
+-today                  : Use today's date for archive name instead of using
+                          acquisition date
+
+-database               : Use a database if you have one set up for you.
+                          Just trying will fail miserably
+
+-mri_upload_update      : update the mri_upload table by inserting the correct
+                          tarchiveID
+
+-clobber                : Specify the name of the config file which resides in
+                          .loris_mri in the current directory
+
+-centerName             : Specify the symbolic center name to be stored
+                          alongside the DICOM institution
+
+-verbose                : Be verbose if set
+
+-version                : Print cvs version number and exit
+
+
+=head1 DESCRIPTION
+
+A tool for archiving DICOM data. Point it to a source dir and provide a target
+dir which will be the archive location.
+
+- If the source contains only one valid STUDY worth of DICOM it will create a
+  descriptive summary, a (gzipped) DICOM tarball
+  The tarball with the metadata and a logfile will then be retarred into the
+  final TARCHIVE.
+- md5sums are reported for every step
+- It can also be used with a MySQL database.
+
+=head2 Methods
+
+=cut
+
 use strict;
 use FindBin;
 use Getopt::Tabular;
@@ -42,11 +90,18 @@ my $Usage = "------------------------------------------
 
 WHAT THIS IS:
 
-A tool for archiving DICOM data. Point it to a source dir and provide a target dir which will be the archive location. 
-- If the source contains only one valid STUDY worth of DICOM it will create a descriptive summary, a (gzipped) DICOM tarball 
-  The tarball with the metadata and a logfile will then be retarred into the final TARCHIVE. 
+A tool for archiving DICOM data. Point it to a source dir and provide a target
+dir which will be the archive location.
+- If the source contains only one valid STUDY worth of DICOM it will create a
+  descriptive summary, a (gzipped) DICOM tarball
+  The tarball with the metadata and a logfile will then be retarred into the
+  final TARCHIVE.
 - md5sums are reported for every step
 - It can also be used with a MySQL database.
+
+
+Documentation: perldoc imaging_upload_file.pl
+
 
 Usage:\n\t $0 </PATH/TO/SOURCE/DICOM> </PATH/TO/TARGET/DIR> [options]
 \n\n See $0 -help for more info\n\n";
@@ -54,15 +109,22 @@ Usage:\n\t $0 </PATH/TO/SOURCE/DICOM> </PATH/TO/TARGET/DIR> [options]
 my @arg_table =
     (
      ["Input and database options", "section"],
-     ["-today", "boolean", 1,     \$todayDate, "Use today's date for archive name instead of using acquisition date."],
-     ["-database", "boolean", 1,  \$dbase, "Use a database if you have one set up for you. Just trying will fail miserably"],
-     ["-mri_upload_update", "boolean", 1,  \$mri_upload_update, "update the mri_upload table by inserting the correct tarchiveID"],
-     ["-clobber", "boolean", 1,   \$clobber, "Use this option only if you want to replace the resulting tarball!"],
-     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
-     ["-centerName","string",1, \$neurodbCenterName, "Specify the symbolic center name to be stored alongside the DICOM institution."],
+     ["-today", "boolean", 1,     \$todayDate, "Use today's date for archive
+     name instead of using acquisition date."],
+     ["-database", "boolean", 1,  \$dbase, "Use a database if you have one set
+     up for you. Just trying will fail miserably"],
+     ["-mri_upload_update", "boolean", 1,  \$mri_upload_update, "update the
+     mri_upload table by inserting the correct tarchiveID"],
+     ["-clobber", "boolean", 1,   \$clobber, "Use this option only if you want
+     to replace the resulting tarball!"],
+     ["-profile","string",1, \$profile, "Specify the name of the config file
+     which resides in .loris_mri in the current directory."],
+     ["-centerName","string",1, \$neurodbCenterName, "Specify the symbolic
+     center name to be stored alongside the DICOM institution."],
      ["General options", "section"],
      ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
-     ["-version", "boolean", 1,   \$version, "Print cvs version number and exit."],
+     ["-version", "boolean", 1,   \$version, "Print cvs version number and
+     exit."],
      );
 
 GetOptions(\@arg_table, \@ARGV) ||  exit 1;
@@ -74,29 +136,50 @@ if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
 if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33;
+    print "\n\tERROR: You don't have a configuration file named '$profile' in:
+    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33;
 } 
-# The source and the target dir have to be present and must be directories. The absolute path will be supplied if necessary
-if(scalar(@ARGV) != 2) { print "\nError: Missing source and/or target\n\n".$Usage; exit 1; } $dcm_source = abs_path($ARGV[0]); $targetlocation = abs_path($ARGV[1]);
+# The source and the target dir have to be present and must be directories.
+# The absolute path will be supplied if necessary
+if(scalar(@ARGV) != 2) {
+    print "\nError: Missing source and/or target\n\n". $Usage; exit 1;
+}
+$dcm_source = abs_path($ARGV[0]);
+$targetlocation = abs_path($ARGV[1]);
 #if (!$dcm_source || !$targetlocation) { print $Usage; exit 1; }
-if (-d $dcm_source && -d $targetlocation) { $dcm_source =~ s/^(.*)\/$/$1/; $targetlocation =~ s/^(.*)\/$/$1/; } 
-else { print "\nError: source and target must be existing directories!!\n\n"; exit 1; }
+if (-d $dcm_source && -d $targetlocation) {
+    $dcm_source =~ s/^(.*)\/$/$1/; $targetlocation =~ s/^(.*)\/$/$1/;
+}
+else {
+    print "\nError: source and target must be existing directories!!\n\n";
+    exit 1;
+}
 
 # The tar target 
 my $totar = basename($dcm_source);
-print "Source: ". $dcm_source . "\nTarget: ".  $targetlocation . "\n\n" if $verbose;
+print "Source: ". $dcm_source . "\nTarget: ".  $targetlocation . "\n\n"
+    if $verbose;
 my $ARCHIVEmd5sum = 'Provided in database only';
 
 
 # establish database connection if database option is set
-my $dbh; if ($dbase) { $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity.\n" if $verbose; $dbh->disconnect();  print "Database is available.\n\n" if $verbose;}
+my $dbh;
+if ($dbase) {
+    $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+    print "Testing for database connectivity.\n" if $verbose;
+    $dbh->disconnect();
+    print "Database is available.\n\n" if $verbose;
+}
 
 # ***************************************    main    *************************************** 
 #### get some info about who created the archive and where and when
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-my $date            = sprintf("%4d-%02d-%02d %02d:%02d:%02d\n",$year+1900,$mon+1,$mday,$hour,$min,$sec);
+my $date            = sprintf("%4d-%02d-%02d %02d:%02d:%02d\n",
+                    $year+1900,$mon+1,$mday,$hour,$min,$sec);
 my $today           = sprintf("%4d-%02d-%02d",$year+1900,$mon+1,$mday);
-my $hostname        = inet_ntoa(scalar(gethostbyname(hostname() || 'localhost'))); #`hostname -f`; # fixme specify -f for fully qualified if you need it.
+my $hostname        = inet_ntoa(scalar(gethostbyname(hostname() || 'localhost')));
+                    #`hostname -f`;
+                    # # fixme specify -f for fully qualified if you need it.
 my $system          = `uname`;
 
 
@@ -120,10 +203,17 @@ my $sumTypeVersion  = $summary->{sumTypeVersion};
 
 my $byDate;
 # Determine how to name the archive... by acquisition date or by today's date.
-if ($todayDate) { $byDate = $today; } else { $byDate = $summary->{header}->{scandate}; } # wrap up the archive 
+if ($todayDate) {
+    $byDate = $today;
+} else {
+    $byDate = $summary->{header}->{scandate};
+} # wrap up the archive
 my $finalTarget = "$targetlocation/DCM_${byDate}_$summary->{metaname}.tar";
 
-if (-e $finalTarget && !$clobber) { print "\nTarget exists. Use clobber to overwrite!\n\n"; exit 2; }
+if (-e $finalTarget && !$clobber) {
+    print "\nTarget exists. Use clobber to overwrite!\n\n";
+    exit 2;
+}
 
 # read acquisition metadata into variable 
 my $metafile = "$targetlocation/$metaname.meta";
@@ -144,10 +234,12 @@ chdir(dirname($dcm_source));
 print "You will archive the dir\t\t: $totar\n" if $verbose;
 # tar contents into tarball
 my $command = "tar -cf $targetlocation/$totar.tar $totar\n";
-print "\nYou are creating a tar with the following command: \n$command\n" if $verbose;
+print "\nYou are creating a tar with the following command:
+        \n$command\n" if $verbose;
 `$command`;
 
-# chdir to targetlocation create md5sums gzip and wrap the whole thing up again into a retarred archive
+# chdir to targetlocation create md5sums gzip and wrap the whole thing up again
+# into a retarred archive
 chdir($targetlocation);
 print "\ngetting md5sums and gzipping!!\n" if $verbose;
 my $DICOMmd5sum = DICOM::DCMSUM::md5sum($totar.".tar"); #`md5sum $totar.tar`;
@@ -185,7 +277,10 @@ if ($dbase) {
     my $update          = 1 if $clobber;
     my $ArchiveLocation = $finalTarget;
     $ArchiveLocation    =~ s/$targetlocation\/?//g;
-    $success            = $summary->database($dbh, $metaname, $update, $tarTypeVersion, $tarinfo, $DICOMmd5sum, $ARCHIVEmd5sum, $ArchiveLocation, $neurodbCenterName);
+    $success            = $summary->database($dbh, $metaname, $update,
+                            $tarTypeVersion, $tarinfo, $DICOMmd5sum,
+                            $ARCHIVEmd5sum, $ArchiveLocation,
+                            $neurodbCenterName);
 }
 
 # delete tmp files
@@ -194,8 +289,13 @@ print "\nRemoving temporary files from target location\n\n" if $verbose;
 
 # now report database failure (was not above to ensure temp files were erased)
 if ($dbase) {
-    if ($success) { print "\nDone adding archive info into database\n" if $verbose; }
-    else { print "\nThe database command failed\n"; exit 22; }
+    if ($success) {
+        print "\nDone adding archive info into database\n" if $verbose;
+    }
+    else {
+        print "\nThe database command failed\n";
+        exit 22;
+    }
 }
 
 # call the updateMRI_upload script###
@@ -212,12 +312,13 @@ if ($mri_upload_update) {
 
 
 exit 0;
-# **************************************************************************************************************************  
-=pod 
-################################################
-print tarchive header
-################################################
-=cut 
+# ******************************************************************************
+=head3 archive_head()
+
+Function that prints the tarchive header
+
+=cut
+
 sub archive_head {
     $~ = 'FORMAT_HEADER';
     write();
@@ -250,11 +351,16 @@ format FORMAT_HEADER =
 .
 
 
-=pod 
-################################################
-Read file content into variable
-################################################
-=cut    
+=head3 read_file()
+
+Function that reads file contents into a variable
+
+INPUT: $file : file to be read
+
+Returns: $content : file contents
+
+=cut
+
 sub read_file {
     my $file = shift;
     my $content;
@@ -266,3 +372,25 @@ sub read_file {
     return $content;
 }
 
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+J-Sebastian Muehlboeck
+
+=cut
