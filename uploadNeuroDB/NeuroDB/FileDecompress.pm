@@ -66,7 +66,7 @@ sub new {
 =head3 Extract($destination_folder)
 
 This function will automatically detect the file-type and will decompress the
- file by calling the appropriate function under the hood.
+file by calling the appropriate function under the hood.
 
 INPUT: full path to the destination folder
 
@@ -87,8 +87,8 @@ sub Extract  {
 
 =head3 getArchivedFiles()
 
-This function will return an array ref with the paths of all the files in the
- archive.
+This function will return an array ref with the paths of all the files in the 
+archive.
 
 RETURNS: array of archived files
 

@@ -32,7 +32,7 @@ RETURNS: a `Archive::Extract` object on success, or false on failure
 ### Extract($destination\_folder)
 
 This function will automatically detect the file-type and will decompress the
- file by calling the appropriate function under the hood.
+file by calling the appropriate function under the hood.
 
 INPUT: full path to the destination folder
 
@@ -40,8 +40,8 @@ RETURNS: TRUE on success, FALSE on failure
 
 ### getArchivedFiles()
 
-This function will return an array ref with the paths of all the files in the
- archive.
+This function will return an array ref with the paths of all the files in the 
+archive.
 
 RETURNS: array of archived files
 
