@@ -160,6 +160,8 @@ The program does the following validation
 
 - Finally the isTarchiveValidated is set true in the MRI_Upload table
 
+Documentation: perldoc tarchive_validation.pl
+
 HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/DICOM-tarchive> [options]
