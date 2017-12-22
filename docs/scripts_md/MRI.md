@@ -24,7 +24,7 @@ files into the LORIS system)
 # DESCRIPTION
 
 Really a mishmash of utility functions, primarily used by process\_uploads and
- all of its children.
+all of its children.
 
 ## Methods
 
@@ -62,8 +62,7 @@ INPUT: the scanner ID and the database handle reference
 
 RETURNS: the CandID or (if none exists) undef
 
-### getSessionID($subjectIDref, $studyDate, $dbhr, $objective,
-$noStagingCheck)
+### getSessionID($subjectIDref, $studyDate, $dbhr, $objective, ...)
 
 Gets (or creates) the session ID, given CandID and visitLabel (contained
 inside the hashref `$subjectIDref`).  Unless `$noStagingCheck` is true, it
@@ -71,14 +70,15 @@ also determines whether staging is required using the `$studyDate`
 (formatted YYYYMMDD) to determine whether staging is required based on a
 simple algorithm:
 
-> \- If there exists a session with the same visit label, then that is the
->  session ID to use.  If any dates (either existing MRI data or simply a date
->  of visit) exist associated with that session, then if they are outside of
->  some (arbitrary) time window, staging is required.  If no dates exist, no
->  staging is required.
+> \- If there exists a session with the same visit label, then that is
+>    the session ID to use.  If any dates (either existing MRI data or
+>    simply a date of visit) exist associated with that session, then
+>    if they are outside of some (arbitrary) time window, staging is
+>    required.  If no dates exist, no staging is required.
 >
-> \- If no sessions exist, then if there is any other date associated with
->  another session of the same subject within a time window, staging is required.
+> \- If no sessions exist, then if there is any other date associated
+>    with another session of the same subject within a time window,
+>    staging is required.
 >
 > \- Otherwise, staging is not required.
 
@@ -122,25 +122,25 @@ Inserts scans that do not correspond to any of the defined protocol from the
 mri\_protocol table into the mri\_protocol\_violated\_scans table of the database.
 
 INPUT: 
-  $dbhr           : database handle reference
-  $series\_desc    : series description of the scan
-  $minc\_location  : minc location of the file
-  $patient\_name   : patient name of the scan
-  $candid         : candidate's CandID
-  $pscid          : candidate's PSCID
-  $visit          : visit of the scan
-  $tr             : repetition time of the scan
-  $te             : echo time of the scan
-  $ti             : inversion time of the scan
-  $slice\_thickness: slice thickness of the image
-  $xstep          : x-step of the image
-  $ystep          : y-step of the image
-  $zstep          : z-step of the image
-  $xspace         : x-space of the image
-  $yspace         : y-space of the image
-  $zspace         : z-space of the image
-  $time           : time dimension of the scan
-  $seriesUID      : seriesUID of the scan
+  - $dbhr           : database handle reference
+  - $series\_desc    : series description of the scan
+  - $minc\_location  : minc location of the file
+  - $patient\_name   : patient name of the scan
+  - $candid         : candidate's CandID
+  - $pscid          : candidate's PSCID
+  - $visit          : visit of the scan
+  - $tr             : repetition time of the scan
+  - $te             : echo time of the scan
+  - $ti             : inversion time of the scan
+  - $slice\_thickness: slice thickness of the image
+  - $xstep          : x-step of the image
+  - $ystep          : y-step of the image
+  - $zstep          : z-step of the image
+  - $xspace         : x-space of the image
+  - $yspace         : y-space of the image
+  - $zspace         : z-space of the image
+  - $time           : time dimension of the scan
+  - $seriesUID      : seriesUID of the scan
 
 ### debug\_inrange($val, $range)
 
@@ -170,7 +170,7 @@ RETURNS: ID of the scan type
 
 Determines whether numerical value falls within the range described by range
 string. Range string is a comma-separated list of range units. A single range
-unit follows the syntax either "X" or "X-Y"
+unit follows the syntax either "X" or "X-Y".
 
 INPUT: numerical value and the range to use
 
@@ -220,15 +220,15 @@ database handle reference `$dbhr`. If no scannerID exists, one will be
 created.
 
 INPUT:
-  $manufacturer   : scanner's manufacturer
-  $model          : scanner's model
-  $serialNumber   : scanner's serial number
-  $softwareVersion: scanner's software version
-  $centerID       : scanner's center ID
-  $dbhr           : database handle reference
-  $register\_new   : if set, will call the function &registerScanner
+  - $manufacturer   : scanner's manufacturer
+  - $model          : scanner's model
+  - $serialNumber   : scanner's serial number
+  - $softwareVersion: scanner's software version
+  - $centerID       : scanner's center ID
+  - $dbhr           : database handle reference
+  - $register\_new   : if set, will call the function `&registerScanner`
 
-RETURNS: (int) scannerID
+RETURNS: (int) scanner ID
 
 ### registerScanner($manufacturer, $model, $serialNumber, ...)
 
@@ -237,14 +237,14 @@ Registers the scanner as defined by `$manufacturer`, `$model`,
 database handle reference `$dbhr`.
 
 INPUT:
-  $manufacturer   : scanner's manufacturer
-  $model          : scanner's model
-  $serialNumber   : scanner's serial number
-  $softwareVersion: scanner's software version
-  $centerID       : scanner's center ID
-  $dbhr           : database handle reference
+  - $manufacturer   : scanner's manufacturer
+  - $model          : scanner's model
+  - $serialNumber   : scanner's serial number
+  - $softwareVersion: scanner's software version
+  - $centerID       : scanner's center ID
+  - $dbhr           : database handle reference
 
-RETURNS: (int) scannerID
+RETURNS: (int) scanner ID
 
 ### createNewCandID($dbhr)
 
@@ -290,10 +290,10 @@ Generates check pics for the Imaging Browser module for the NeuroDB::File object
 referenced by `$file_ref`.
 
 INPUT:
-  $file\_ref      : file hash ref
-  $data\_dir      : data directory (/data/project/data typically)
-  $dest\_dir      : destination directory (pic directory)
-  $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
+  - $file\_ref      : file hash ref
+  - $data\_dir      : data directory (/data/project/data typically)
+  - $dest\_dir      : destination directory (pic directory)
+  - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
 
@@ -303,9 +303,9 @@ Generates JIV data for the Imaging Browser module for the NeuroDB::File object
 referenced by `$file_ref`.
 
 INPUT:
-  $file\_ref      : file hash ref
-  $data\_dir      : data directory (/data/project/data typically)
-  $dest\_dir      : destination directory (jiv directory)
+  - $file\_ref      : file hash ref
+  - $data\_dir      : data directory (/data/project/data typically)
+  - $dest\_dir      : destination directory (jiv directory)
 
 RETURNS: 1 if the JIV data was generated or 0 otherwise.
 
@@ -316,17 +316,17 @@ parameter\_file table using the parameter\_type "check\_nii\_filename".
 
 INPUT: file hashref and data directory (typically /data/project/data)
 
-### make\_minc\_pics($dbhr, $TarchiveSource, $profile, $minFileID, $debug, ...)
+### make\_minc\_pics($dbhr, $TarchiveSource, $profile, $minFileID, ...)
 
 Creates pics associated with MINC files.
 
 INPUT:
-  $dbhr          : database handle reference
-  $TarchiveSource: tarchiveID of the DICOM study
-  $profile       : the profile (typically named `prod`)
-  $minFileID     : smaller FileID to be used to run `mass_pic.pl`
-  $debug         : boolean, whether in debug mode (1) or not (0)
-  $verbose       : boolean, whether in verbose mode (1) or not (0)
+  - $dbhr          : database handle reference
+  - $TarchiveSource: tarchiveID of the DICOM study
+  - $profile       : the profile (typically named `prod`)
+  - $minFileID     : smaller FileID to be used to run `mass_pic.pl`
+  - $debug         : boolean, whether in debug mode (1) or not (0)
+  - $verbose       : boolean, whether in verbose mode (1) or not (0)
 
 ### DICOMDateToUnixTimestamp($dicomDate>
 

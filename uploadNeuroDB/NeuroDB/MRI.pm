@@ -28,7 +28,7 @@ files into the LORIS system)
 =head1 DESCRIPTION
 
 Really a mishmash of utility functions, primarily used by process_uploads and
- all of its children.
+all of its children.
 
 =head2 Methods
 
@@ -178,8 +178,7 @@ sub getScannerCandID {
 
 =pod
 
-=head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective,
-$noStagingCheck)
+=head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective, ...)
 
 Gets (or creates) the session ID, given CandID and visitLabel (contained
 inside the hashref C<$subjectIDref>).  Unless C<$noStagingCheck> is true, it
@@ -189,14 +188,15 @@ simple algorithm:
 
 =over 3
 
-- If there exists a session with the same visit label, then that is the
- session ID to use.  If any dates (either existing MRI data or simply a date
- of visit) exist associated with that session, then if they are outside of
- some (arbitrary) time window, staging is required.  If no dates exist, no
- staging is required.
+- If there exists a session with the same visit label, then that is
+   the session ID to use.  If any dates (either existing MRI data or
+   simply a date of visit) exist associated with that session, then
+   if they are outside of some (arbitrary) time window, staging is
+   required.  If no dates exist, no staging is required.
     
-- If no sessions exist, then if there is any other date associated with
- another session of the same subject within a time window, staging is required.
+- If no sessions exist, then if there is any other date associated
+   with another session of the same subject within a time window,
+   staging is required.
     
 - Otherwise, staging is not required.
 
@@ -600,25 +600,25 @@ Inserts scans that do not correspond to any of the defined protocol from the
 mri_protocol table into the mri_protocol_violated_scans table of the database.
 
 INPUT: 
-  $dbhr           : database handle reference
-  $series_desc    : series description of the scan
-  $minc_location  : minc location of the file
-  $patient_name   : patient name of the scan
-  $candid         : candidate's CandID
-  $pscid          : candidate's PSCID
-  $visit          : visit of the scan
-  $tr             : repetition time of the scan
-  $te             : echo time of the scan
-  $ti             : inversion time of the scan
-  $slice_thickness: slice thickness of the image
-  $xstep          : x-step of the image
-  $ystep          : y-step of the image
-  $zstep          : z-step of the image
-  $xspace         : x-space of the image
-  $yspace         : y-space of the image
-  $zspace         : z-space of the image
-  $time           : time dimension of the scan
-  $seriesUID      : seriesUID of the scan
+  - $dbhr           : database handle reference
+  - $series_desc    : series description of the scan
+  - $minc_location  : minc location of the file
+  - $patient_name   : patient name of the scan
+  - $candid         : candidate's CandID
+  - $pscid          : candidate's PSCID
+  - $visit          : visit of the scan
+  - $tr             : repetition time of the scan
+  - $te             : echo time of the scan
+  - $ti             : inversion time of the scan
+  - $slice_thickness: slice thickness of the image
+  - $xstep          : x-step of the image
+  - $ystep          : y-step of the image
+  - $zstep          : z-step of the image
+  - $xspace         : x-space of the image
+  - $yspace         : y-space of the image
+  - $zspace         : z-space of the image
+  - $time           : time dimension of the scan
+  - $seriesUID      : seriesUID of the scan
 
 =cut
 
@@ -714,7 +714,7 @@ sub scan_type_text_to_id {
 
 Determines whether numerical value falls within the range described by range
 string. Range string is a comma-separated list of range units. A single range
-unit follows the syntax either "X" or "X-Y"
+unit follows the syntax either "X" or "X-Y".
 
 INPUT: numerical value and the range to use
 
@@ -1011,15 +1011,15 @@ database handle reference C<$dbhr>. If no scannerID exists, one will be
 created.
 
 INPUT:
-  $manufacturer   : scanner's manufacturer
-  $model          : scanner's model
-  $serialNumber   : scanner's serial number
-  $softwareVersion: scanner's software version
-  $centerID       : scanner's center ID
-  $dbhr           : database handle reference
-  $register_new   : if set, will call the function &registerScanner
+  - $manufacturer   : scanner's manufacturer
+  - $model          : scanner's model
+  - $serialNumber   : scanner's serial number
+  - $softwareVersion: scanner's software version
+  - $centerID       : scanner's center ID
+  - $dbhr           : database handle reference
+  - $register_new   : if set, will call the function C<&registerScanner>
 
-RETURNS: (int) scannerID
+RETURNS: (int) scanner ID
 
 =cut
 
@@ -1050,14 +1050,14 @@ C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
 database handle reference C<$dbhr>.
 
 INPUT:
-  $manufacturer   : scanner's manufacturer
-  $model          : scanner's model
-  $serialNumber   : scanner's serial number
-  $softwareVersion: scanner's software version
-  $centerID       : scanner's center ID
-  $dbhr           : database handle reference
+  - $manufacturer   : scanner's manufacturer
+  - $model          : scanner's model
+  - $serialNumber   : scanner's serial number
+  - $softwareVersion: scanner's software version
+  - $centerID       : scanner's center ID
+  - $dbhr           : database handle reference
 
-RETURNS: (int) scannerID
+RETURNS: (int) scanner ID
 
 =cut
 
@@ -1259,10 +1259,10 @@ Generates check pics for the Imaging Browser module for the NeuroDB::File object
 referenced by C<$file_ref>.
 
 INPUT:
-  $file_ref      : file hash ref
-  $data_dir      : data directory (/data/project/data typically)
-  $dest_dir      : destination directory (pic directory)
-  $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
+  - $file_ref      : file hash ref
+  - $data_dir      : data directory (/data/project/data typically)
+  - $dest_dir      : destination directory (pic directory)
+  - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
 
@@ -1308,9 +1308,9 @@ Generates JIV data for the Imaging Browser module for the NeuroDB::File object
 referenced by C<$file_ref>.
 
 INPUT:
-  $file_ref      : file hash ref
-  $data_dir      : data directory (/data/project/data typically)
-  $dest_dir      : destination directory (jiv directory)
+  - $file_ref      : file hash ref
+  - $data_dir      : data directory (/data/project/data typically)
+  - $dest_dir      : destination directory (jiv directory)
 
 RETURNS: 1 if the JIV data was generated or 0 otherwise.
 
@@ -1388,17 +1388,17 @@ sub make_nii {
 
 =pod
 
-=head3 make_minc_pics($dbhr, $TarchiveSource, $profile, $minFileID, $debug, ...)
+=head3 make_minc_pics($dbhr, $TarchiveSource, $profile, $minFileID, ...)
 
 Creates pics associated with MINC files.
 
 INPUT:
-  $dbhr          : database handle reference
-  $TarchiveSource: tarchiveID of the DICOM study
-  $profile       : the profile (typically named C<prod>)
-  $minFileID     : smaller FileID to be used to run C<mass_pic.pl>
-  $debug         : boolean, whether in debug mode (1) or not (0)
-  $verbose       : boolean, whether in verbose mode (1) or not (0)
+  - $dbhr          : database handle reference
+  - $TarchiveSource: tarchiveID of the DICOM study
+  - $profile       : the profile (typically named C<prod>)
+  - $minFileID     : smaller FileID to be used to run C<mass_pic.pl>
+  - $debug         : boolean, whether in debug mode (1) or not (0)
+  - $verbose       : boolean, whether in verbose mode (1) or not (0)
 
 =cut
 
