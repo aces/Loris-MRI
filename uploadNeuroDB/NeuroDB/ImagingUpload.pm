@@ -9,33 +9,33 @@ NeuroDB::ImagingUpload -- Provides an interface to the uploaded imaging file
 
 =head1 SYNOPSIS
 
-use NeuroDB::ImagingUpload;
+  use NeuroDB::ImagingUpload;
 
-my $imaging_upload = &NeuroDB::ImagingUpload->new(
-                       \$dbh,
-                       $TmpDir_decompressed_folder,
-                       $upload_id,
-                       $patient_name,
-                       $profile,
-                       $verbose
-                     );
+  my $imaging_upload = &NeuroDB::ImagingUpload->new(
+                         \$dbh,
+                         $TmpDir_decompressed_folder,
+                         $upload_id,
+                         $patient_name,
+                         $profile,
+                         $verbose
+                       );
 
-my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
+  my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
 
-my $output = $imaging_upload->runDicomTar();
-$imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output );
+  my $output = $imaging_upload->runDicomTar();
+  $imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output );
 
 
-my $output = $imaging_upload->runTarchiveLoader();
-$imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output);
+  my $output = $imaging_upload->runTarchiveLoader();
+  $imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output);
 
-my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
+  my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 
 
 =head1 DESCRIPTION
 
 This library regroups utilities for manipulation of the uploaded imaging file
- and updates of the C<mri_upload> table according to the upload status.
+and updates of the C<mri_upload> table according to the upload status.
 
 =head2 Methods
 
@@ -66,19 +66,19 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 
 =pod
 
-=head3 new($dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile,
-$verbose) (constructor)
+=head3 new($dbhr, $uploaded_temp_folder, $upload_id, ...) (constructor)
 
 Create a new instance of this class. This constructor needs the location of
 the uploaded file. Once the uploaded file has been validated, it will be
 moved to a final destination directory.
 
 INPUT:
-  $dbhr: database handler
-  $uploaded_temp_folder: temporary directory of the upload
-  $upload_id: ID of the upload in the mri_upload table
-  $pname: patient name
-  $profile: name of the configuration file (typically C<prod>)
+  - $dbhr                : database handler
+  - $uploaded_temp_folder: temporary directory of the upload
+  - $upload_id           : uploadID from the mri_upload table
+  - $pname               : patient name
+  - $profile             : name of the configuration file
+                          (typically C<prod>)
 
 RETURNS: new instance of this class
 
@@ -121,8 +121,8 @@ sub new {
 
 Validates the File to be uploaded. If the validation passes, the following
 actions will happen:
-  1) Copy the file from tmp folder to the /data/incoming directory
-  2) Set the IsCandidateInfoValidated to true in the mri_upload table
+  1) Copy the file from tmp folder to /data/incoming
+  2) Set C<IsCandidateInfoValidated> to TRUE in the mri_upload table
 
 RETURNS: 1 on success, 0 on failure
 
@@ -309,7 +309,7 @@ sub IsCandidateInfoValid {
 This method executes the following actions:
  - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
  - Extracts the TarchiveID of the tarchive created by C<dicomTar.pl>
- - Updates the mri_upload table accordingly if C<dicomTar.pl> ran successfully
+ - Updates the mri_upload table if C<dicomTar.pl> ran successfully
 
 RETURNS: 1 on success, 0 on failure
 
@@ -614,9 +614,10 @@ This method calls the C<< Notify->spool >> function to log all messages
 returned by the insertion scripts.
 
 INPUT:
- $message: message to be logged in the database
- $error  : 'Y' for an error log , 'N' otherwise
- $verb   : 'N' for few main messages, 'Y' for more messages (for developers)
+ - $message: message to be logged in the database
+ - $error  : 'Y' for an error log , 'N' otherwise
+ - $verb   : 'N' for few main messages,
+             'Y' for more messages (for developers)
 
 =cut
 
@@ -640,8 +641,8 @@ This method updates the C<mri_upload> table with C<$value> for the field
 C<$field>.
 
 INPUT:
- $field: name of the column in the table to be updated
- $value: value of the column to be set
+ - $field: name of the column in the table to be updated
+ - $value: value of the column to be set
 
 =cut
 
