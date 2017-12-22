@@ -166,7 +166,7 @@ sub IsCandidateInfoValid {
 
         my $command =
             $bin_dirPath
-            . "/uploadNeuroDB/tarchiveLoader"
+            . "/uploadNeuroDB/tarchiveLoader.pl"
             . " -globLocation -profile prod $archived_file_path";
 
         if ($this->{verbose}){
@@ -373,7 +373,7 @@ sub runTarchiveLoader {
                         );
     my $command =
         $bin_dirPath
-      . "/uploadNeuroDB/tarchiveLoader"
+      . "/uploadNeuroDB/tarchiveLoader.pl"
       . " -globLocation -profile prod $archived_file_path";
 
     if ($this->{verbose}){

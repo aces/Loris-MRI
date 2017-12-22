@@ -69,7 +69,7 @@ foreach my $input (@inputs)
 
     $input =~ s/\t/ /;
     $input =~ s/$tarchiveLibraryDir//;
-    my $command = "tarchiveLoader -globLocation -profile prod $tarchiveLibraryDir/$input";
+    my $command = "tarchiveLoader.pl -globLocation -profile prod $tarchiveLibraryDir/$input";
     ##if qsub is enabled use it
     if ($is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";

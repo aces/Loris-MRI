@@ -1,0 +1,93 @@
+# NAME
+
+tarchiveLoader.pl -- this script performs the following:
+
+\- validates the tarchive
+
+\- converts DICOM data into MINC files
+
+\- automated protocol checks against the entries in the \`mri\_protocol\` table.
+
+# SYNOPSIS
+
+perl tarchiveLoader.pl &lt;/path/to/DICOM-tarchive> \`\[options\]\`
+
+Available options are:
+
+\-profile                    : name of the config file in
+                              `../dicom-archive/.loris_mri`
+
+\-force                      : Forces the script to run even if the validation
+                              has failed
+
+\-reckless                   : Upload data to database even if study protocol is
+                              not defined or violated
+
+\-globLocation               : Loosen the validity check of the tarchive allowing
+                              for the possibility that the tarchive was moved to
+                              a different directory
+
+\-noJIV                      : Prevents the JIVs from being created
+
+\-newScanner                 : By default a new scanner will be registered if the
+                              data you upload requires it. You can risk turning
+                              it off
+
+\-keeptmp                    : Keep temp dir. Makes sense if have infinite space
+                              on your server
+
+\-xlog                       : Open an xterm with a tail on the current log file
+
+\-verbose                    : if set, be verbose
+
+\-seriesuid                  : Only insert this SeriesUID
+
+\-acquisition\_protocol       : Suggest the acquisition protocol to use
+
+\-bypass\_extra\_file\_checks   : Bypasses extra\_file\_checks
+
+# DESCRIPTION
+
+This script interacts with the NeuroDB database system. It will connect to/deal
+with/ modify contents of the following tables:
+\`session\`, \`parameter\_file\`, \`parameter\_type\`, \`parameter\_type\_category\`,
+\`files\`, \`mri\_staging\`, \`notification\_spool\`
+
+## Methods
+
+### logHeader()
+
+Function that adds a header with relevant information to the log file
+
+INPUTS:
+ - $date       : Date and time of upload
+ - $tarchive   : Location of source data
+ - $TmpDir     : tmp dir location
+
+# TO DO
+
+\- dicom\_to\_minc: change converter back to perl (or make configurable)
+
+\- add a check for all programms that will be used (exists, but could
+  be better....)
+
+\- consider whether to add a check for registered protocols against the
+  tarchive db to save a few minutes of converting
+
+\- also add an option to make it interactively query user to learn new protocols
+
+\- this should be a separate program
+
+\- add to config file whether or not to autocreate scanners
+
+# BUGS
+
+None reported.
+
+# LICENSING
+
+License: GPLv3
+
+# AUTHORS
+
+J-Sebastian Muehlboeck based on Jonathan Harlap\\'s process\_uploads
