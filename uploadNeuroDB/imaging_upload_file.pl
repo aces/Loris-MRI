@@ -8,15 +8,28 @@ imaging_upload_file.pl --
 
 =head1 SYNOPSIS
 
-perl imaging_upload_file.pl
+perl imaging_upload_file.pl </path/to/UploadedFile> `[options]`
+
+Available options are:
+
+-profile      : name of the config file in
+                C<../dicom-archive/.loris_mri>
+
+-upload_id    : The upload ID of the given scan uploaded
+
+-verbose      : if set, be verbose
+
 
 =head1 DESCRIPTION
 
 The program does the following
 
 - Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+
 - Unzips the uploaded file
+
 - Sources the Environment
+
 - Uses the ImagingUpload class to :
    1) Validate the uploaded file   (set the validation to true)
    2) Run dicomtar.pl on the file  (set the dicomtar to true)
@@ -67,11 +80,16 @@ my $TmpDir_decompressed_folder =
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = '';
-my $verbose             = 0;           	# default for now, run with -verbose option to re-enable
-my $notify_detailed     = 'Y';		# notification_spool message flag for messages to be displayed 
-				       	# with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary   = 'N';         	# notification_spool message flag for messages to be displayed 
-				       	# with SUMMARY Option in the front-end/imaging_uploader 
+my $verbose             = 0;
+                        # default for now, run with -verbose option to re-enable
+my $notify_detailed     = 'Y';
+                        # notification_spool message flag for messages to be
+                        # displayed with DETAILED OPTION in the front-end/
+                        # imaging_uploader
+my $notify_notsummary   = 'N';
+                        # notification_spool message flag for messages to be
+				       	# displayed with SUMMARY Option in the front-end/
+                        # imaging_uploader
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -99,13 +117,17 @@ Version :   $versionInfo
 The program does the following
 
 - Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+
 - Unzips the uploaded file
+
 - Sources the Environment
+
 - Uses the ImagingUpload class to :
-   1) Validate the uploaded file   (set the validation to true)
-   2) Run dicomtar.pl on the file  (set the dicomtar to true)
+
+   1) Validate the uploaded file (set the validation to true)
+   2) Run dicomtar.pl on the file (set the dicomtar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
-   4) Removes the uploaded file once the previous steps have completed
+   4) Remove the uploaded file once the previous steps have completed
    5) Update the mri_upload table 
 
 Documentation: perldoc imaging_upload_file.pl
@@ -304,11 +326,11 @@ spool($message,'N', $notify_notsummary);
 
 =head3 getPnameUsingUploadID()
 
-Function that gets the patient-name using the upload_id
+Function that gets the patient name using the upload ID
 
-INPUT: $upload_id: The Upload ID
+INPUT: $upload_id: The upload ID
 
-Returns: $patient_name : The patientName
+Returns: $patient_name : The patient name
 
 =cut
 
@@ -338,9 +360,11 @@ sub getPnameUsingUploadID {
 =pod
 
 =head3 getFilePathUsingUploadID()
-Functions that gets the file path from the mri_upload table using the upload_id
 
-INPUT:  $upload_id: The Upload ID
+Functions that gets the file path from the `mri_upload` table using the upload
+ID
+
+INPUT:  $upload_id: The upload ID
 
 RETURNS: $file_path : The full path to the uploaded file
 
@@ -374,11 +398,13 @@ sub getFilePathUsingUploadID {
 
 =head3 getNumberOfMincFiles()
 
-Function that gets the count of minc files created and inserted using the upload_id
+Function that gets the count of minc files created and inserted using the
+upload ID
 
-INPUT:  $upload_id: The Upload ID
+INPUT:  $upload_id: The upload ID
 
-RETURNS: $minc_created and $minc_inserted: count of minc created and inserted
+RETURNS: $minc_created and $minc_inserted: count of minc files created and
+inserted
 
 =cut
 
@@ -458,6 +484,7 @@ License: GPLv3
 
 =head1 AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
 
 =cut
