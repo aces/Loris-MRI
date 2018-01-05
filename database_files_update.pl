@@ -26,7 +26,7 @@ GetOptions(\@args_table, \@ARGV, \@args)    ||  exit 1;
 
 # Input option error checking
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if  ($profile && !defined @Settings::db)    { 
+if  ($profile && !@Settings::db)    { 
         print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
             exit 33; 
 }
@@ -35,8 +35,13 @@ if  (!$profile) {
             exit 33;
 }
 
-# hese settings are in the config file (profile)
-my  $data_dir   =   $Settings::data_dir;
+# Establish database connection
+my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# these settings are in the database and can be set in the Configuration module of LORIS
+my $data_dir = &NeuroDB::DBI::getConfigSetting(
+                    \$dbh,'dataDirBasepath'
+                    );
 
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs";
@@ -44,11 +49,9 @@ my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)    =   localtime(time)
 my  $date       =   sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
 my  $log        =   "$log_dir/replacePATH_$date.log";
 open (LOG,">>$log");
+print LOG "\n==> Successfully connected to database \n";
 print LOG "Log file, $date\n\n";
 
-# Establish database connection
-my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
-print LOG "\n==> Successfully connected to database \n";
 
 
 #### Updating minc location in files table ####
