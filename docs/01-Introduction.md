@@ -17,7 +17,7 @@ LORIS-MRI allows you to easily organize and archive your MRI data and links it w
  corresponding behavioral data in LORIS. Scans can be viewed and quality controlled through the user's web browser, facilitating collaboration between radiologists, clinicians and researchers. 
 
 ### 1.2 How does LORIS-MRI work?
-![user_story][images/user_story.png]
+![user_story](images/user_story.png)
 
 [1]: https://github.com/aces/Loris/wiki 
 [2]: http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html
