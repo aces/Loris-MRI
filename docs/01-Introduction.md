@@ -1,4 +1,6 @@
-# 1.0 - What is LORIS-MRI?  
+# 1.0 - Introduction 
+
+### 1.1 What is LORIS-MRI?
 LORIS-MRI is the backbone of the imaging component that makes up LORIS. 
 These documents assume you have some
 knowledge regarding LORIS and a functioning installation. For information
@@ -11,11 +13,13 @@ files, and then archives these files onto the server. Knowledge of
 these file formats can be helpful, but are not necessary for using or
 installing LORIS-MRI.
 
-LORIS-MRI allows you to organize and archive your MRI data and links it with 
- corresponding behavioral data in LORIS.
+LORIS-MRI allows you to easily organize and archive your MRI data and links it with 
+ corresponding behavioral data in LORIS. Scans can be viewed and quality controlled through the user's web browser, facilitating collaboration between radiologists, clinicians and researchers. 
 
+### 1.2 How does LORIS-MRI work?
+![user_story][images/user_story.png]
 
 [1]: https://github.com/aces/Loris/wiki 
-[2]:http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html
+[2]: http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html
 [3]: https://en.wikibooks.org/wiki/MINC/Introduction 
-[4]:https://nifti.nimh.nih.gov/
+[4]: https://nifti.nimh.nih.gov/ 
