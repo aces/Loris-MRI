@@ -14,7 +14,7 @@ Available options are:
 \-database               : Use a database if you have one set up for you.
                           Just trying will fail miserably
 
-\-mri\_upload\_update      : update the mri\_upload table by inserting the correct
+\-mri\_upload\_update      : Update the mri\_upload table by inserting the correct
                           tarchiveID
 
 \-clobber                : Specify the name of the config file which resides in
@@ -29,14 +29,15 @@ Available options are:
 
 # DESCRIPTION
 
-A tool for archiving DICOM data. Point it to a source dir and provide a target
-dir which will be the archive location.
+A tool for archiving DICOM data. Point it to a source directory and provide a
+target directory which will be the archive location.
 
 \- If the source contains only one valid STUDY worth of DICOM it will create a
-  descriptive summary, a (gzipped) DICOM tarball
-  The tarball with the metadata and a logfile will then be retarred into the
-  final TARCHIVE.
-\- md5sums are reported for every step
+  descriptive summary, a (gzipped) DICOM tarball. The tarball with the metadata
+  and a logfile will then be retarred into the final TARCHIVE.
+
+\- md5sums are reported for every step.
+
 \- It can also be used with a MySQL database.
 
 ## Methods
@@ -45,13 +46,13 @@ dir which will be the archive location.
 
 Function that prints the tarchive header
 
-### read\_file()
+### read\_file($file)
 
 Function that reads file contents into a variable
 
-INPUT: $file : file to be read
+INPUT   : $file : file to be read
 
-Returns: $content : file contents
+RETURNS : $content : file contents
 
 # TO DO
 
@@ -67,4 +68,6 @@ License: GPLv3
 
 # AUTHORS
 
-J-Sebastian Muehlboeck
+J-Sebastian Muehlboeck,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience

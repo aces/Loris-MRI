@@ -23,7 +23,7 @@ Available options are:
 -database               : Use a database if you have one set up for you.
                           Just trying will fail miserably
 
--mri_upload_update      : update the mri_upload table by inserting the correct
+-mri_upload_update      : Update the mri_upload table by inserting the correct
                           tarchiveID
 
 -clobber                : Specify the name of the config file which resides in
@@ -39,14 +39,15 @@ Available options are:
 
 =head1 DESCRIPTION
 
-A tool for archiving DICOM data. Point it to a source dir and provide a target
-dir which will be the archive location.
+A tool for archiving DICOM data. Point it to a source directory and provide a
+target directory which will be the archive location.
 
 - If the source contains only one valid STUDY worth of DICOM it will create a
-  descriptive summary, a (gzipped) DICOM tarball
-  The tarball with the metadata and a logfile will then be retarred into the
-  final TARCHIVE.
-- md5sums are reported for every step
+  descriptive summary, a (gzipped) DICOM tarball. The tarball with the metadata
+  and a logfile will then be retarred into the final TARCHIVE.
+
+- md5sums are reported for every step.
+
 - It can also be used with a MySQL database.
 
 =head2 Methods
@@ -90,17 +91,17 @@ my $Usage = "------------------------------------------
 
 WHAT THIS IS:
 
-A tool for archiving DICOM data. Point it to a source dir and provide a target
-dir which will be the archive location.
+A tool for archiving DICOM data. Point it to a source directory and provide a
+target directory which will be the archive location.
 - If the source contains only one valid STUDY worth of DICOM it will create a
-  descriptive summary, a (gzipped) DICOM tarball
+  descriptive summary, a (gzipped) DICOM tarball.
   The tarball with the metadata and a logfile will then be retarred into the
   final TARCHIVE.
-- md5sums are reported for every step
+- md5sums are reported for every step.
 - It can also be used with a MySQL database.
 
 
-Documentation: perldoc imaging_upload_file.pl
+Documentation: perldoc dicomTar.pl
 
 
 Usage:\n\t $0 </PATH/TO/SOURCE/DICOM> </PATH/TO/TARGET/DIR> [options]
@@ -351,13 +352,13 @@ format FORMAT_HEADER =
 .
 
 
-=head3 read_file()
+=head3 read_file($file)
 
 Function that reads file contents into a variable
 
-INPUT: $file : file to be read
+INPUT   : $file : file to be read
 
-Returns: $content : file contents
+RETURNS : $content : file contents
 
 =cut
 
@@ -391,6 +392,8 @@ License: GPLv3
 
 =head1 AUTHORS
 
-J-Sebastian Muehlboeck
+J-Sebastian Muehlboeck,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
 
 =cut
