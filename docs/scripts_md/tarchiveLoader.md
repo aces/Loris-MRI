@@ -2,11 +2,12 @@
 
 tarchiveLoader.pl -- this script performs the following:
 
-\- validates the tarchive
+\- validation of the tarchive
 
-\- converts DICOM data into MINC files
+\- conversion of DICOM datasets into MINC files
 
-\- automated protocol checks against the entries in the \`mri\_protocol\` table.
+\- automated protocol checks against the entries in the \`mri\_protocol\` and
+optionally, \`mri\_protocol\_checks\` tables.
 
 # SYNOPSIS
 
@@ -14,10 +15,10 @@ perl tarchiveLoader.pl &lt;/path/to/DICOM-tarchive> \`\[options\]\`
 
 Available options are:
 
-\-profile                    : name of the config file in
+\-profile                    : Name of the config file in
                               `../dicom-archive/.loris_mri`
 
-\-force                      : Forces the script to run even if the validation
+\-force                      : Force the script to run even if the validation
                               has failed
 
 \-reckless                   : Upload data to database even if study protocol is
@@ -27,29 +28,29 @@ Available options are:
                               for the possibility that the tarchive was moved to
                               a different directory
 
-\-noJIV                      : Prevents the JIVs from being created
+\-noJIV                      : Prevent the JIVs from being created
 
 \-newScanner                 : By default a new scanner will be registered if the
                               data you upload requires it. You can risk turning
                               it off
 
-\-keeptmp                    : Keep temp dir. Makes sense if have infinite space
-                              on your server
+\-keeptmp                    : Keep temporary directory. Make sense if have
+                              infinite space on your server
 
 \-xlog                       : Open an xterm with a tail on the current log file
 
-\-verbose                    : if set, be verbose
+\-verbose                    : If set, be verbose
 
 \-seriesuid                  : Only insert this SeriesUID
 
 \-acquisition\_protocol       : Suggest the acquisition protocol to use
 
-\-bypass\_extra\_file\_checks   : Bypasses extra\_file\_checks
+\-bypass\_extra\_file\_checks   : Bypass extra\_file\_checks
 
 # DESCRIPTION
 
-This script interacts with the NeuroDB database system. It will connect to/deal
-with/ modify contents of the following tables:
+This script interacts with the NeuroDB database system. It will fetch or modify
+contents of the following tables:
 \`session\`, \`parameter\_file\`, \`parameter\_type\`, \`parameter\_type\_category\`,
 \`files\`, \`mri\_staging\`, \`notification\_spool\`
 
@@ -62,7 +63,7 @@ Function that adds a header with relevant information to the log file
 INPUTS:
  - $date       : Date and time of upload
  - $tarchive   : Location of source data
- - $TmpDir     : tmp dir location
+ - $TmpDir     : Location of the temporary directory
 
 # TO DO
 
@@ -90,4 +91,5 @@ License: GPLv3
 
 # AUTHORS
 
-J-Sebastian Muehlboeck based on Jonathan Harlap\\'s process\_uploads
+J-Sebastian Muehlboeck based on Jonathan Harlap\\'s process\_uploads, LORIS
+community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

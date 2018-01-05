@@ -7,11 +7,12 @@
 
 tarchiveLoader.pl -- this script performs the following:
 
-- validates the tarchive
+- validation of the tarchive
 
-- converts DICOM data into MINC files
+- conversion of DICOM datasets into MINC files
 
-- automated protocol checks against the entries in the `mri_protocol` table.
+- automated protocol checks against the entries in the `mri_protocol` and
+optionally, `mri_protocol_checks` tables.
 
 
 =head1 SYNOPSIS
@@ -21,10 +22,10 @@ perl tarchiveLoader.pl </path/to/DICOM-tarchive> `[options]`
 
 Available options are:
 
--profile                    : name of the config file in
+-profile                    : Name of the config file in
                               C<../dicom-archive/.loris_mri>
 
--force                      : Forces the script to run even if the validation
+-force                      : Force the script to run even if the validation
                               has failed
 
 -reckless                   : Upload data to database even if study protocol is
@@ -34,31 +35,31 @@ Available options are:
                               for the possibility that the tarchive was moved to
                               a different directory
 
--noJIV                      : Prevents the JIVs from being created
+-noJIV                      : Prevent the JIVs from being created
 
 -newScanner                 : By default a new scanner will be registered if the
                               data you upload requires it. You can risk turning
                               it off
 
--keeptmp                    : Keep temp dir. Makes sense if have infinite space
-                              on your server
+-keeptmp                    : Keep temporary directory. Make sense if have
+                              infinite space on your server
 
 -xlog                       : Open an xterm with a tail on the current log file
 
--verbose                    : if set, be verbose
+-verbose                    : If set, be verbose
 
 -seriesuid                  : Only insert this SeriesUID
 
 -acquisition_protocol       : Suggest the acquisition protocol to use
 
--bypass_extra_file_checks   : Bypasses extra_file_checks
+-bypass_extra_file_checks   : Bypass extra_file_checks
 
 
 =head1 DESCRIPTION
 
 
-This script interacts with the NeuroDB database system. It will connect to/deal
-with/ modify contents of the following tables:
+This script interacts with the NeuroDB database system. It will fetch or modify
+contents of the following tables:
 `session`, `parameter_file`, `parameter_type`, `parameter_type_category`,
 `files`, `mri_staging`, `notification_spool`
 
@@ -139,9 +140,9 @@ my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
-                  "name of config file in ../dicom-archive/.loris_mri"
+                  "Name of config file in ../dicom-archive/.loris_mri"
                  ],
-                 ["-force", "boolean", 1, \$force,"Forces the script to run ". 
+                 ["-force", "boolean", 1, \$force,"Force the script to run ".
                  "even if the validation has failed."],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,"Upload data to ".
@@ -152,15 +153,15 @@ my @opt_table = (
                   "the possibility that the tarchive was moved to a different".
                   " directory."
                  ],
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being".
+                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevent the JIVs from being".
                   "created."],
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
                  ],
                  ["Fancy options","section"],
-# fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
-# have infinite space on your server."],
+# fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temporay directory. Make
+# sense if have infinite space on your server."],
                  ["-xlog", "boolean", 1, \$xlog,"Open an xterm with a tail on".
                   "the current log file."
                  ],
@@ -170,7 +171,7 @@ my @opt_table = (
                  ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
                   "Suggest the acquisition protocol to use."],
                  ["-bypass_extra_file_checks", "boolean", 1, \$bypass_extra_file_checks,
-                  "Bypasses extra_file_checks."],
+                  "Bypass extra_file_checks."],
                  );
 
 my $Help = <<HELP;
@@ -759,11 +760,11 @@ Function that adds a header with relevant information to the log file
 INPUTS:
  - $date       : Date and time of upload
  - $tarchive   : Location of source data
- - $TmpDir     : tmp dir location
+ - $TmpDir     : Location of the temporary directory
 
 =cut
 
-sub logHeader () {
+sub logHeader ($date, $tarchive, $TmpDir) {
     print LOG "
     ----------------------------------------------------------------
             AUTOMATED DICOM DATA UPLOAD
@@ -807,6 +808,7 @@ License: GPLv3
 
 =head1 AUTHORS
 
-J-Sebastian Muehlboeck based on Jonathan Harlap\'s process_uploads
+J-Sebastian Muehlboeck based on Jonathan Harlap\'s process_uploads, LORIS
+community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
