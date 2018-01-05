@@ -14,19 +14,16 @@ perl imaging_upload_file_cronjob.pl `[options]`
 
 Available options are:
 
--profile      : name of the config file in
+-profile      : Name of the config file in
                 C<../dicom-archive/.loris_mri>
 
--verbose      : if set, be verbose
+-verbose      : If set, be verbose
 
 
 =head1 DESCRIPTION
 
 The program gets a series of rows from `mri_upload` on which the insertion
 pipeline has not been run yet, and launches it.
-
-
-=head2 Methods
 
 =cut
 
