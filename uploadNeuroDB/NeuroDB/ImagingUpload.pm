@@ -491,25 +491,6 @@ sub isDicom {
     return 1;
 }
 
-
-=pod
-
-=head3 sourceEnvironment()
-
-This method sources the environment file.
-
-=cut
-
-sub sourceEnvironment {
-    my $this            = shift;
-    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'MRICodePath'
-                        );
-    my $cmd =   "source  " . $bin_dirPath."/". "environment";
-    $this->runCommand($cmd);
-}
-
-
 =pod
 
 =head3 runCommandWithExitCode($command)

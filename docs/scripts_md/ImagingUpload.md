@@ -100,10 +100,6 @@ INPUT: full path to the dicom-file
 
 RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
 
-### sourceEnvironment()
-
-This method sources the environment file.
-
 ### runCommandWithExitCode($command)
 
 This method will run any linux command given as an argument using the
