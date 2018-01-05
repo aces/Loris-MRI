@@ -12,7 +12,7 @@ Available options are:
 \-profile      : name of the config file in
                 `../dicom-archive/.loris_mri`
 
-\-upload\_id    : The upload ID of the given scan uploaded
+\-upload\_id    : The Upload ID of the given scan uploaded
 
 \-verbose      : if set, be verbose
 
@@ -20,46 +20,44 @@ Available options are:
 
 The program does the following
 
-\- Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+\- Gets the location of the uploaded file (.zip, .tar.gz or .tgz)
 
 \- Unzips the uploaded file
 
-\- Sources the Environment
-
 \- Uses the ImagingUpload class to :
    1) Validate the uploaded file   (set the validation to true)
-   2) Run dicomtar.pl on the file  (set the dicomtar to true)
+   2) Run dicomTar.pl on the file  (set the dicomTar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
    4) Removes the uploaded file once the previous steps have completed
    5) Update the mri\_upload table
 
 ## Methods
 
-### getPnameUsingUploadID()
+### getPnameUsingUploadID($upload\_id)
 
 Function that gets the patient name using the upload ID
 
-INPUT: $upload\_id: The upload ID
+INPUT   : $upload\_id : The upload ID
 
-Returns: $patient\_name : The patient name
+RETURNS : $patient\_name : The patient name
 
-### getFilePathUsingUploadID()
+### getFilePathUsingUploadID($upload\_id)
 
 Functions that gets the file path from the \`mri\_upload\` table using the upload
 ID
 
-INPUT:  $upload\_id: The upload ID
+INPUT   : $upload\_id : The upload ID
 
-RETURNS: $file\_path : The full path to the uploaded file
+RETURNS : $file\_path : The full path to the uploaded file
 
-### getNumberOfMincFiles()
+### getNumberOfMincFiles($upload\_id)
 
-Function that gets the count of minc files created and inserted using the
+Function that gets the count of MINC files created and inserted using the
 upload ID
 
-INPUT:  $upload\_id: The upload ID
+INPUT   : $upload\_id: The upload ID
 
-RETURNS: $minc\_created and $minc\_inserted: count of minc files created and
+RETURNS : $minc\_created and $minc\_inserted: count of MINC files created and
 inserted
 
 ### spool()
@@ -69,11 +67,9 @@ Function that calls the Notify->spool function to log all messages
 INPUTS:
  - $this      : Reference to the class
  - $message   : Message to be logged in the database
- - $error     : if 'Y' it's an error log , 'N' otherwise
+ - $error     : If 'Y' it's an error log , 'N' otherwise
  - $verb      : 'N' for summary messages, 
                 'Y' for detailed messages (developers)
-
-RETURNS    : NULL
 
 # TO DO
 

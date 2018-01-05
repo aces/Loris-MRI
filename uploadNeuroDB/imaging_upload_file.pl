@@ -16,7 +16,7 @@ Available options are:
 -profile      : name of the config file in
                 C<../dicom-archive/.loris_mri>
 
--upload_id    : The upload ID of the given scan uploaded
+-upload_id    : The Upload ID of the given scan uploaded
 
 -verbose      : if set, be verbose
 
@@ -25,15 +25,13 @@ Available options are:
 
 The program does the following
 
-- Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+- Gets the location of the uploaded file (.zip, .tar.gz or .tgz)
 
 - Unzips the uploaded file
 
-- Sources the Environment
-
 - Uses the ImagingUpload class to :
    1) Validate the uploaded file   (set the validation to true)
-   2) Run dicomtar.pl on the file  (set the dicomtar to true)
+   2) Run dicomTar.pl on the file  (set the dicomTar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
    4) Removes the uploaded file once the previous steps have completed
    5) Update the mri_upload table
@@ -121,12 +119,10 @@ The program does the following
 
 - Unzips the uploaded file
 
-- Sources the Environment
-
 - Uses the ImagingUpload class to :
 
    1) Validate the uploaded file (set the validation to true)
-   2) Run dicomtar.pl on the file (set the dicomtar to true)
+   2) Run dicomTar.pl on the file (set the dicomTar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
    4) Remove the uploaded file once the previous steps have completed
    5) Update the mri_upload table 
@@ -275,12 +271,12 @@ $output = $imaging_upload->runDicomTar();
 if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\nThe dicomtar execution has failed\n";
+    $message = "\nThe dicomTar execution has failed\n";
     spool($message,'Y', $notify_notsummary);
     print $message;
     exit 8;
 }
-$message = "\nThe dicomtar execution has successfully completed\n";
+$message = "\nThe dicomTar execution has successfully completed\n";
 spool($message,'N', $notify_notsummary);
 
 ################################################################
@@ -325,13 +321,13 @@ spool($message,'N', $notify_notsummary);
 ################################################################
 =pod
 
-=head3 getPnameUsingUploadID()
+=head3 getPnameUsingUploadID($upload_id)
 
 Function that gets the patient name using the upload ID
 
-INPUT: $upload_id: The upload ID
+INPUT   : $upload_id : The upload ID
 
-Returns: $patient_name : The patient name
+RETURNS : $patient_name : The patient name
 
 =cut
 
@@ -360,14 +356,14 @@ sub getPnameUsingUploadID {
 ################################################################
 =pod
 
-=head3 getFilePathUsingUploadID()
+=head3 getFilePathUsingUploadID($upload_id)
 
 Functions that gets the file path from the `mri_upload` table using the upload
 ID
 
-INPUT:  $upload_id: The upload ID
+INPUT   : $upload_id : The upload ID
 
-RETURNS: $file_path : The full path to the uploaded file
+RETURNS : $file_path : The full path to the uploaded file
 
 =cut
 
@@ -397,14 +393,14 @@ sub getFilePathUsingUploadID {
 ################################################################
 =pod
 
-=head3 getNumberOfMincFiles()
+=head3 getNumberOfMincFiles($upload_id)
 
-Function that gets the count of minc files created and inserted using the
+Function that gets the count of MINC files created and inserted using the
 upload ID
 
-INPUT:  $upload_id: The upload ID
+INPUT   : $upload_id: The upload ID
 
-RETURNS: $minc_created and $minc_inserted: count of minc files created and
+RETURNS : $minc_created and $minc_inserted: count of MINC files created and
 inserted
 
 =cut
@@ -447,11 +443,9 @@ Function that calls the Notify->spool function to log all messages
 INPUTS:
  - $this      : Reference to the class
  - $message   : Message to be logged in the database
- - $error     : if 'Y' it's an error log , 'N' otherwise
+ - $error     : If 'Y' it's an error log , 'N' otherwise
  - $verb      : 'N' for summary messages, 
                 'Y' for detailed messages (developers)
-
-RETURNS    : NULL
 
 =cut
 
