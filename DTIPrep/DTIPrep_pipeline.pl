@@ -10,11 +10,10 @@ use File::Basename;
 use XML::Simple;
 use Cwd 'abs_path';
 
-# These are to load the DTI modules to be used
+# These are to load the DBI & DTI modules to be used
 # use lib "$FindBin::Bin";
+use NeuroDB::DBI;
 use DTI::DTI;
-
-
 
 
 #Set the help section
@@ -64,7 +63,7 @@ GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
 # input options error checking
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !defined @Settings::db) {
+if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named \"$profile\" in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
     exit 33;
 }
@@ -81,16 +80,32 @@ if (!$DTIPrepVersion) {
     exit 33;
 }
 
+# Establish database connection
+my  $dbh    =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
+# These settings are in the ConfigSettings table
+my  $data_dir       =   &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'dataDirBasepath'
+                        );
+my  $t1_scan_type   =   &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'t1_scan_type'
+                        );
+my  $DTI_volumes    =   &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'DTI_volumes'
+                        );
+my  $reject_thresh  =   &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'reject_thresh'
+                        );
+my  $niak_path      =   &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'niak_path'
+                        );
+my  $QCed2_step     =   &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'QCed2_step'
+                        );
 
-# These settings are in a config file (profile)
-my  $data_dir       =   $Settings::data_dir;
-my  $t1_scan_type   =   $Settings::t1_scan_type;
-my  $DTI_volumes    =   $Settings::DTI_volumes;
-my  $reject_thresh  =   $Settings::reject_thresh;
-my  $niak_path      =   $Settings::niak_path;
-my  $QCed2_step     =   $Settings::QCed2_step;
-
+my  $site           =   &NeuroDB::DBI::getConfigSetting(
+                        \$dbh,'prefix'
+                        );
 
 # Needed for log file
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)   =   localtime(time);
@@ -121,9 +136,9 @@ foreach my $nativedir (@nativedirs)   {
 
     
     #######################
-    ####### Step 1: #######  Get Site, SubjectID and Visit label
+    ####### Step 1: #######  Get SubjectID and Visit label
     #######################
-    my ($site, $subjID, $visit) = &getIdentifiers($nativedir);
+    my ($subjID, $visit) = &getIdentifiers($nativedir);
     next if ((!$site) || (!$subjID) || !($visit));
 
 
@@ -269,28 +284,28 @@ sub identify_tool_version {
 
 
 =pod
-Fetches site, candID and visit label from the native directory of the dataset to process.
+Fetches candID and visit label from the native directory of the dataset to process.
 Input:  - $nativedir: native directory of the dataset to process
 Output: - undef if could not find the site, candID or visit label.
-        - $site, $candID and $visit_label informations if they were found.
+        - $candID and $visit_label informations if they were found.
 Relevant information will also be printed in the log file.
 =cut
 sub getIdentifiers {
     my ($nativedir) = @_;    
 
-    my ($site, $subjID, $visit) = &Settings::get_DTI_Site_CandID_Visit($nativedir); 
-    if ((!$site) || (!$subjID) || (!$visit))  {
+    my ($subjID, $visit) = &Settings::get_DTI_CandID_Visit($nativedir); 
+    if ((!$subjID) || (!$visit))  {
         print LOG "\n#############################\n";
-        print LOG "WARNING:Cannot find site,ID,visit for $nativedir\n";
+        print LOG "WARNING:Cannot find ID,visit for $nativedir\n";
         print LOG "\n#############################\n";
         return undef;
     }else{
         print LOG "\n################################\n";
-        print LOG "SITE". "\t" . "subID" . "\t" . "visit". "\n";
-        print LOG $site . "\t" . $subjID . "\t" . $visit . "\n";
+        print LOG "subID" . "\t" . "visit". "\n";
+        print LOG $subjID . "\t" . $visit . "\n";
         print LOG "--------------------------------\n";
-        print     $site . "\t" . $subjID . "\t" . $visit . "\n";
-        return ($site, $subjID, $visit);
+        print     $subjID . "\t" . $visit . "\n";
+        return ($subjID, $visit);
     }
 }
 
@@ -321,8 +336,9 @@ sub getOutputDirectories {
 
     my ($QCoutdir)  = &DTI::createOutputFolders($outdir, $subjID, $visit, $DTIPrepProtocol, $runDTIPrep);
     if (!$QCoutdir) {
-        my $verb_message = "create" if ($runDTIPrep );
-        my $verb_message = "find"   if (!$runDTIPrep);
+        my $verb_message;
+        $verb_message = "create" if ($runDTIPrep );
+        $verb_message = "find"   if (!$runDTIPrep);
         print LOG "\n#############################\n";
         print LOG "WARNING:Could not $verb_message QC out directory in $outdir for candidate $subjID, visit $visit and DTIPrep protocol $DTIPrepProtocol. \n";
         print LOG "\n#############################\n";
