@@ -191,14 +191,6 @@ if ( basename($expected_file) ne basename($uploaded_file)) {
 }
 
 ################################################################
-############ Todo: Check to see if the file is accessible#######
-## if not, it means that the front-end module###################
-## has not changed the user-group properly######################
-##Therefore return an error and log the error###################
-################################################################
-
-
-################################################################
 ################ FileDecompress Object #########################
 ################################################################
 #####################TO DOOO##################################
@@ -468,7 +460,9 @@ __END__
 
 =head1 TO DO
 
-Nothing planned.
+Add a check that the uploaded scan file is accessible by the front end user
+(i.e. that the user-group is set properly on the upload directory). Throw an
+error and log it, otherwise.
 
 =head1 BUGS
 

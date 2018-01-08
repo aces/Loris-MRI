@@ -73,7 +73,9 @@ INPUTS:
 
 # TO DO
 
-Nothing planned.
+Add a check that the uploaded scan file is accessible by the front end user
+(i.e. that the user-group is set properly on the upload directory). Throw an
+error and log it, otherwise.
 
 # BUGS
 
