@@ -442,7 +442,7 @@ License: GPLv3
 
 =head1 AUTHORS
 
-Gregory Luneau and the LORIS community <loris.info@mcin.ca> and McGill Centre
+Gregory Luneau, the LORIS community <loris.info@mcin.ca> and McGill Centre
 for Integrative Neuroscience
 
 =cut
