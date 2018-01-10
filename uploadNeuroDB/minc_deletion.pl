@@ -1,4 +1,50 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+minc_deletion.pl -- this script deletes files records from the database, and
+archives the actual files. Files to be deleted can be specified either based on
+the series UID or the file ID.
+
+=head1 SYNOPSIS
+
+perl minc_deletion.pl `[options]`
+
+Available options are:
+
+-profile    : name of the config file in
+                C<../dicom-archive/.loris_mri>
+
+-series_uid : the series UID to be deleted
+
+-fileid     : the file ID to be deleted
+
+
+=head1 DESCRIPTION
+
+The program does the following:
+
+Deletes minc files from Loris by:
+  - Moving the existing files (.mnc .nii .jpg .header .raw_byte.gz) to an
+    archive directory
+  - Deleting all related data from 2 database tables:
+    parameter_file & files
+  - Deleting data from files_qcstatus & feedback_mri_comments
+    database tables if the -delqcdata is set. In most cases
+    you would want to delete this when the images change
+  - Deleting mri_acquisition_dates entry if it is the last file
+    removed from that session.
+
+Users can use the argument "select" to view the record that could be removed
+from the database, or "confirm" to acknowledge that the data in the database
+will be deleted once the script executes.
+
+
+=cut
+
+
 use strict;
 use warnings;
 use Carp;
@@ -60,19 +106,21 @@ Version :   $versionInfo
 The program does the following:
 
 Deletes minc files from Loris by:
-  - Moving the existing files to an archive directory.
-    .mnc .nii .jpg .header .raw_byte.gz
-  - Deleting all related data from 2 database tables.
+  - Moving the existing files (.mnc .nii .jpg .header .raw_byte.gz) to an
+    archive directory
+  - Deleting all related data from 2 database tables:
     parameter_file & files
-  - Deletes data from files_qcstatus & feedback_mri_comments
+  - Deleting data from files_qcstatus & feedback_mri_comments
     database tables if the -delqcdata is set. In most cases
-    you would want to delete this when the images changes.
-  - Deletes mri_acquisition_dates entry if it is the last file
+    you would want to delete this when the images change
+  - Deleting mri_acquisition_dates entry if it is the last file
     removed from that session.
 
-Use the argument "select" to view the record that could be removed
-from the database.  Use "confirm" to acknowledge that the data in 
-the database will be deleted once the script executes.
+Users can use the argument "select" to view the record that could be removed
+from the database, or "confirm" to acknowledge that the data in the database
+will be deleted once the script executes.
+
+Documentation: perldoc minc_deletion.pl
 
 HELP
 my $Usage = <<USAGE;
@@ -375,3 +423,26 @@ if ($selORdel eq "DELETE ") {
     }
 }
 
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Gregory Luneau and the LORIS community <loris.info@mcin.ca> and McGill Centre
+for Integrative Neuroscience
+
+=cut
