@@ -13,9 +13,9 @@ Available options are:
 \-profile    : name of the config file in
                 `../dicom-archive/.loris_mri`
 
-\-series\_uid : the series UID to be deleted
+\-series\_uid : the series UID of the file to be deleted
 
-\-fileid     : the file ID to be deleted
+\-fileid     : the file ID of the file to be deleted
 
 # DESCRIPTION
 
