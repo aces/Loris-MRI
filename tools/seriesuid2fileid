@@ -1,4 +1,37 @@
 #!/usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+seriesuid2fileid -- a script that displays relevant information and tracks the
+status of an acquired imaging series based on the series UID as an input
+argument (provided as a STDIN).
+
+=head1 SYNOPSIS
+
+perl tools/seriesuid2fileid
+
+There are no available options. Once the script is invoked, series UID can be
+input to display the status. The $profile file for database connection
+credentials is assumed to be `prod`.
+
+
+=head1 DESCRIPTION
+
+The program takes series UID from STDIN and returns a report with:
+
+  - SeriesUID
+  - SeriesDescription
+  - TarchiveID
+  - m_p_v_s_ID
+  - mri_v_log
+  - FileID
+  - FileName
+
+
+=cut
+
 use strict;
 use warnings;
 no warnings 'once';
@@ -19,7 +52,7 @@ Version :   1
 
 The program does the following:
 
-Takes SeriesUID from STDIN and returns a report with
+Takes SeriesUID from STDIN and returns a report with:
 
 - SeriesUID
 - SeriesDescription
@@ -29,7 +62,7 @@ Takes SeriesUID from STDIN and returns a report with
 - FileID
 - FileName
 
-There are no arguments so far.
+Documentation: perldoc seriesuid2fileid
 
 HELP
 
@@ -140,3 +173,27 @@ while (<STDIN>) {
   print  "|\n";
  
 }
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Gregory Luneau, LORIS community <loris.info@mcin.ca> and McGill Centre for
+Integrative Neuroscience
+
+=cut
