@@ -5,19 +5,19 @@
 
 =head1 NAME
 
-tarchiveLoader.pl -- this script performs the following:
+tarchiveLoader -- this script performs the following:
 
 - validation of the tarchive
 
 - conversion of DICOM datasets into MINC files
 
-- automated protocol checks against the entries in the `mri_protocol` and
-optionally, `mri_protocol_checks` tables.
+- automated protocol checks against the entries in the C<mri_protocol> and
+optionally, C<mri_protocol_checks> tables.
 
 
 =head1 SYNOPSIS
 
-perl tarchiveLoader.pl </path/to/DICOM-tarchive> `[options]`
+perl uploadNeuroDB/tarchiveLoader </path/to/DICOM-tarchive> C<[options]>
 
 
 Available options are:
@@ -60,8 +60,8 @@ Available options are:
 
 This script interacts with the NeuroDB database system. It will fetch or modify
 contents of the following tables:
-`session`, `parameter_file`, `parameter_type`, `parameter_type_category`,
-`files`, `mri_staging`, `notification_spool`
+C<session>, C<parameter_file>, C<parameter_type>, C<parameter_type_category>,
+C<files>, C<mri_staging>, C<notification_spool>
 
 
 
@@ -197,7 +197,7 @@ performs a lot of magic on the acquisitions within it.
 - file relocation (to the MRI repository)
 - neuroDB mri database registration and JIVification.
 
-Documentation: perldoc tarchiveLoader.pl
+Documentation: perldoc tarchiveLoader
 
 HELP
 
