@@ -166,7 +166,7 @@ sub IsCandidateInfoValid {
 
         my $command =
             $bin_dirPath
-            . "/uploadNeuroDB/tarchiveLoader.pl"
+            . "/uploadNeuroDB/tarchiveLoader"
             . " -globLocation -profile prod $archived_file_path";
 
         if ($this->{verbose}){

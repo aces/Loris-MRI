@@ -753,7 +753,7 @@ exit 0;
 
 =pod
 
-=head3 logHeader()
+=head3 logHeader($date, $tarchive, $TmpDir)
 
 Function that adds a header with relevant information to the log file
 

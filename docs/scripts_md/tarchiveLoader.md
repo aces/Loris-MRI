@@ -56,7 +56,7 @@ contents of the following tables:
 
 ## Methods
 
-### logHeader()
+### logHeader($date, $tarchive, $TmpDir)
 
 Function that adds a header with relevant information to the log file
 
