@@ -7,7 +7,7 @@
 
 =head1 NAME
 
-updateMRI_Upload.pl - updates database table mri_upload according to an entry in table
+updateMRI_Upload.pl - updates database table C<mri_upload> according to an entry in table
    tarchive
 
 =head1 SYNOPSIS
@@ -25,7 +25,7 @@ B<-tarchivePath tarchivePath> : (mandatory) absolute path to the tarchive file
 
 =item *
 B<-source_location source_location> : (mandatory) value to set column 
-    DecompressedLocation to for the newly created record in table mri_upload (see below)
+    C<DecompressedLocation> to for the newly created record in table C<mri_upload> (see below)
     
 =item *
 B<-globLocation> : Loosen the validity check of the tarchive allowing for the 
@@ -41,7 +41,7 @@ B<-verbose> : Be verbose
 This script first starts by reading the F<prod> file (argument passed to the C<-profile> switch)
 to fetch the C<@db> variable, a Perl array containing four elements: the database
 name, the databse user name used to connect to the database, the password and the 
-database hostname. It then checks for an entry in table C<tarchive> with the same 
+database hostname. It then checks for an entry in the C<tarchive> table with the same 
 C<ArchiveLocation> as the tarchive file passed on the command line. Let C<T> be the 
 tarchive record found. The script will then proceed to scan table C<mri_upload> for a 
 record with the same C<tarchiveID> as C<T>'s. If there is none (which is the expected 
@@ -80,7 +80,10 @@ None reported.
 License: GPLv3
 
 =head1 AUTHORS
+
 Zia Mohades 2014 (zia.mohades@mcgill.ca)
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
 
 =cut
 
