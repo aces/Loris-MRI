@@ -17,7 +17,7 @@ updateMRI_Upload.pl [options] -profile prod -tarchivePath tarchivePath -source_l
 =over 2
 
 =item *
-B<-profile prof> : (mandatory) path (absolute or relative to the current directory) of the 
+B<-profile prod> : (mandatory) path (absolute or relative to the current directory) of the 
     profile file
 
 =item *
