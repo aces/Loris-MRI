@@ -77,8 +77,6 @@ INPUTS:
 
 \- also add an option to make it interactively query user to learn new protocols
 
-\- this should be a separate program
-
 \- add to config file whether or not to autocreate scanners
 
 # BUGS
