@@ -33,7 +33,7 @@ LORIS
 
 # DESCRIPTION
 
-This class defines a BIC MRI (or related) file (minc, bicobj, xfm,
+This class defines a MRI (or related) file (minc, bicobj, xfm,
 etc) as represented within the LORIS database system.
 
 **Note:** if a developer does something naughty (such as leaving out
@@ -73,8 +73,6 @@ RETURNS: (int) FileID or undef if no file was found.
 ### getFileData()
 
 Gets the set of file data (data from the `files` table in the database).
-
-INPUT: none
 
 RETURNS: hashref of the contents of the record in the `files` table for the
 loaded file.
@@ -158,8 +156,8 @@ RETURNS: string or array of the value without white spaces
 
 # TO DO
 
-Other operations should be added: perhaps get\* methods for those fields in the
-`files` table which are lookup fields.
+Other operations should be added: perhaps `get*` methods for those fields in
+the `files` table which are lookup fields.
 
 # BUGS
 

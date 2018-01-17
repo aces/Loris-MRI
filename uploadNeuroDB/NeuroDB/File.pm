@@ -40,7 +40,7 @@ LORIS
 
 =head1 DESCRIPTION
 
-This class defines a BIC MRI (or related) file (minc, bicobj, xfm,
+This class defines a MRI (or related) file (minc, bicobj, xfm,
 etc) as represented within the LORIS database system.
 
 B<Note:> if a developer does something naughty (such as leaving out
@@ -159,8 +159,6 @@ sub findFile {
 =head3 getFileData()
 
 Gets the set of file data (data from the C<files> table in the database).
-
-INPUT: none
 
 RETURNS: hashref of the contents of the record in the C<files> table for the
 loaded file.
@@ -491,8 +489,8 @@ __END__
 
 =head1 TO DO
 
-Other operations should be added: perhaps get* methods for those fields in the
-C<files> table which are lookup fields.
+Other operations should be added: perhaps C<get*> methods for those fields in
+the C<files> table which are lookup fields.
 
 =head1 BUGS
 
