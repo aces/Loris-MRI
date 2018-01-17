@@ -70,12 +70,12 @@ sub connect_to_db
 
 =head3 getConfigSetting($dbh, $name)
 
-This method fetches the value ($value) stored in the `Config` table for a
+This method fetches the value ($value) stored in the C<Config> table for a
 specific config setting ($name) specified as an input.
 
 INPUT: database handler, name of the config setting
 
-RETURNS: value corresponding to the config setting in the `Config` table
+RETURNS: value corresponding to the config setting in the C<Config> table
          of LORIS
 
 =cut
