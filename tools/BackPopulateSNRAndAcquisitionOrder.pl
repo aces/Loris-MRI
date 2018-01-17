@@ -5,22 +5,22 @@
 =head1 NAME
 
 BackPopulateSNRAndAcquisitionOrder.pl -- a script that back populates the
-AcqOrderPerModality column of the files table, and the signal-to-noise (SNR)
-values in the parameter_file table for inserted MINC files. The SNR is computed
-using algorithms built-in the MINC tools.
+AcqOrderPerModality column of the files table, and the signal-to-noise ratio
+(SNR) values in the parameter_file table for inserted MINC files. The SNR is
+computed using MINC tools built-in algorithms.
 
 
 =head1 SYNOPSIS
 
-perl tools/BackPopulateSNRAndAcquisitionOrder.pl `[options]`
+perl tools/BackPopulateSNRAndAcquisitionOrder.pl C<[options]>
 
 Available options are:
 
 -profile        : name of the config file in
                   C<../dicom-archive/.loris_mri>
 
--tarchive_id    : The tarchive ID of the .tar to be processed from the tarchive
-                  table
+-tarchive_id    : The tarchive ID of the DICOM archive (.tar files) to be
+                  processed from the C<tarchive> table
 
 
 
@@ -31,8 +31,9 @@ AcqOrderPerModality column; in reference to:
 https://github.com/aces/Loris-MRI/pull/160
 as well as populate the parameter_file table with SNR entries in reference to:
 https://github.com/aces/Loris-MRI/pull/142
-It can take in tarchiveID as an argument if only a specific .tar is to be
-processed; otherwise, all .tar in the tarchive table are processed.
+It can take in tarchiveID as an argument if only a specific DICOM archive
+(.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
+the C<tarchive> table are processed.
 
 
 =cut
@@ -59,7 +60,7 @@ my @opt_table = (
       "name of config file in ../dicom-archive/.loris_mri"
     ],
     [ "-tarchive_id", "string", 1, \$TarchiveID,
-      "tarchive_id of the .tar to be processed from tarchive table"
+      "tarchive_id of the DICOM archive (.tar files) to be processed from tarchive table"
     ]
 ); 
 
@@ -70,8 +71,9 @@ AcqOrderPerModality column; in reference to:
 https://github.com/aces/Loris-MRI/pull/160
 as well as populate the parameter_file table with SNR entries in reference to:
 https://github.com/aces/Loris-MRI/pull/142
-It can take in tarchiveID as an argument if only a specific .tar is to be 
-processed; otherwise, all .tar in the tarchive table are processed.
+It can take in tarchiveID as an argument if only a specific DICOM archive
+(.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
+the C<tarchive> table are processed.
 
 
 Documentation: perldoc BackPopulateSNRAndAcquisitionOrder.pl
