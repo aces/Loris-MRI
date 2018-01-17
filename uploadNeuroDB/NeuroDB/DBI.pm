@@ -21,9 +21,8 @@ NeuroDB::DBI -- Allows LORIS database connectivity for LORIS-MRI code base
 
 =head1 DESCRIPTION
 
-This package performs common tasks relating to database connectivity between
-the LORIS-MRI code base and the LORIS backend database. The following methods
-are available.
+This package performs common tasks related to database connectivity between
+the LORIS-MRI code base and the LORIS backend database.
 
 =head2 Methods
 
@@ -71,12 +70,13 @@ sub connect_to_db
 
 =head3 getConfigSetting($dbh, $name)
 
-This method fetches the value ($value) stored in the Config table for a
+This method fetches the value ($value) stored in the `Config` table for a
 specific config setting ($name) specified as an input.
 
 INPUT: database handler, name of the config setting
 
-RETURNS: value corresponding to the config setting in the Config table of LORIS
+RETURNS: value corresponding to the config setting in the `Config` table
+         of LORIS
 
 =cut
 sub getConfigSetting
@@ -102,7 +102,7 @@ sub getConfigSetting
 
 =head1 TO DO
 
-Add more wrapper functions to query the database here.
+Expand the package with more functions.
 
 =head1 BUGS
 
