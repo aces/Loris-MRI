@@ -5,7 +5,7 @@ package NeuroDB::FileDecompress;
 =head1 NAME
 
 NeuroDB::FileDecompress -- Provides an interface to the file decompression of
- LORIS
+LORIS-MRI
 
 =head1 SYNOPSIS
 
@@ -39,13 +39,13 @@ use Archive::Zip;
 
 =pod
 
-=head3 new($file_path) (constructor)
+=head3 new($file_path) >> (constructor)
 
 Create a new instance of this class.
 
 INPUT: path of the file to extract.
 
-RETURNS: a C<Archive::Extract> object on success, or false on failure
+RETURNS: an C<Archive::Extract> object on success, or FALSE on failure
 
 =cut
 
@@ -107,7 +107,7 @@ sub getArchivedFiles {
 This function will return the path to the directory where the files will be
 extracted to.
 
-RETURNS: Path to the folder where file will be extracted
+RETURNS: path to the folder where file will be extracted
 
 =cut
 

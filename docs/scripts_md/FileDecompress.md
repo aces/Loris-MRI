@@ -1,7 +1,7 @@
 # NAME
 
 NeuroDB::FileDecompress -- Provides an interface to the file decompression of
- LORIS
+LORIS-MRI
 
 # SYNOPSIS
 
@@ -21,13 +21,13 @@ This library regroups utilities for manipulation of archived datasets.
 
 ## Methods
 
-### new($file\_path) (constructor)
+### new($file\_path) >> (constructor)
 
 Create a new instance of this class.
 
 INPUT: path of the file to extract.
 
-RETURNS: a `Archive::Extract` object on success, or false on failure
+RETURNS: an `Archive::Extract` object on success, or FALSE on failure
 
 ### Extract($destination\_folder)
 
@@ -50,7 +50,7 @@ RETURNS: array of archived files
 This function will return the path to the directory where the files will be
 extracted to.
 
-RETURNS: Path to the folder where file will be extracted
+RETURNS: path to the folder where file will be extracted
 
 ### getType()
 
