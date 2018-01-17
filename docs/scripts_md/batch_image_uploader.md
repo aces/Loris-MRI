@@ -5,7 +5,7 @@ batch mode
 
 # SYNOPSIS
 
-./batch\_uploads\_imageuploader -profile prod < list\_of\_scans.txt >log\_batch\_imageuploader.txt 2>&1 \`\[options\]\`
+./batch\_uploads\_imageuploader -profile prod < list\_of\_scans.txt > log\_batch\_imageuploader.txt 2>&1 \`\[options\]\`
 
 Available options are:
 
@@ -16,38 +16,37 @@ Available options are:
 
 # DESCRIPTION
 
-This script runs the Loris-MRI insertion on multiple scans. The list of scans
-are provided through a text file (e.g. list\_of\_scans.txt) with one scan details
-per line.
+This script runs the Loris-MRI insertion pipeline on multiple scans. The list of
+scans are provided through a text file (e.g. `list_of_scans.txt`) with one scan
+details per line.
 The scan details includes the path to the scan, identification as to whether the
 scan is for a phantom (Y) or not (N), and the candidate name for non-phantom
 entries.
 
-Like the Loris Imaging Uploader interface, this script also validates the
-candidate name against the (start of the) filename and creates an entry in the
-mri\_upload table.
+Like the LORIS Imaging Uploader interface, this script also validates the
+candidate's name against the (start of the) filename and creates an entry in the
+`mri_upload` table.
 
-An example of what list\_of\_scans.txt might contain for 3 uploads to be inserted:
-/data/incoming/PSC0001\_123457\_V1.tar.gz N PSC0000\_123456\_V1
-/data/incoming/lego\_Phantom\_MNI\_20140101.zip Y
-/data/incoming/PSC0001\_123457\_V1\_RES.tar.gz N PSC0000\_123456\_V1
+An example of what `list_of_scans.txt` might contain for 3 uploads to be
+inserted:
+
+    /data/incoming/PSC0001_123457_V1.tar.gz N PSC0000_123456_V1
+    /data/incoming/lego_Phantom_MNI_20140101.zip Y
+    /data/incoming/PSC0001_123457_V1_RES.tar.gz N PSC0000_123456_V1
 
 ## Methods
 
 ### insertIntoMRIUpload($patientname, $phantom, $fullpath)
 
-Function that inserts into the mri\_upload table entries for data coming from
+Function that inserts into the `mri_upload` table entries for data coming from
 the list of scans in the text file provided when calling
 batch\_upload\_imageuploader
 
-INPUT  :
+INPUTS  :
     - $patientname  : The patient name
-
     - $phantom      : 'Y' if the entry is for a phantom,
                       'N' otherwise
-
     - $fullpath     : Path to the uploaded file
-    
 
 RETURNS: $upload\_id : The upload ID
 
