@@ -1,8 +1,8 @@
 # NAME
 
-seriesuid2fileid -- a script that displays relevant information and tracks the
-status of an acquired imaging series based on the series UID as an input
-argument (provided as a STDIN).
+seriesuid2fileid -- a script that displays a report about the pipeline insertion
+progress and outcome (including MRI violation status) of imaging datasets, based
+on series UID(s) provided as STDIN.
 
 # SYNOPSIS
 
@@ -10,7 +10,7 @@ perl tools/seriesuid2fileid
 
 There are no available options. Once the script is invoked, series UID can be
 input to display the status. The $profile file for database connection
-credentials is assumed to be \`prod\`.
+credentials is assumed to be `prod`.
 
 # DESCRIPTION
 
