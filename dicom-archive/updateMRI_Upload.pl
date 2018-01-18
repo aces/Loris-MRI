@@ -3,6 +3,90 @@
 # zia.mohades@mcgill.ca
 # Perl tool to update the mri_upload table
 
+=pod
+
+=head1 NAME
+
+updateMRI_Upload.pl - updates database table C<mri_upload> according to an entry in table
+   tarchive
+
+=head1 SYNOPSIS
+
+updateMRI_Upload.pl [options] -profile prod -tarchivePath tarchivePath -source_location source_location
+
+=over 2
+
+=item *
+B<-profile prod> : (mandatory) path (absolute or relative to the current directory) of the 
+    profile file
+
+=item *
+B<-tarchivePath tarchivePath> : (mandatory) absolute path to the tarchive file
+
+=item *
+B<-source_location source_location> : (mandatory) value to set column 
+    C<DecompressedLocation> to for the newly created record in table C<mri_upload> (see below)
+    
+=item *
+B<-globLocation> : Loosen the validity check of the tarchive allowing for the 
+     possibility that the tarchive was moved to a different directory.
+
+=item *
+B<-verbose> : Be verbose
+
+=back 
+
+=head1 DESCRIPTION
+
+This script first starts by reading the F<prod> file (argument passed to the C<-profile> switch)
+to fetch the C<@db> variable, a Perl array containing four elements: the database
+name, the databse user name used to connect to the database, the password and the 
+database hostname. It then checks for an entry in the C<tarchive> table with the same 
+C<ArchiveLocation> as the tarchive file passed on the command line. Let C<T> be the 
+tarchive record found. The script will then proceed to scan table C<mri_upload> for a 
+record with the same C<tarchiveID> as C<T>'s. If there is none (which is the expected 
+outcome), it will insert a record in C<mri_upload> with the following properties/values:
+
+=over 2
+
+=item *
+C<UploadedBy> : Unix username of the person currently running F<updateMRI_upload.pl>
+   
+=item * 
+C<uploadDate>: timestamp representing the moment at which F<updateMRI_upload.pl> was run
+  
+=item *
+C<tarchiveID>: value of C<tarchiveID> for record C<T> in table C<tarchive>
+  
+=item *
+C<DecompressedLocation>: argument of the C<-source_location> switch passed on the command line
+  
+=back
+
+If there already is an entry in C<mri_upload> with the same C<ArchiveLocation> as C<T>'s, the script
+will exit with an error message saying that C<mri_upload> is already up to date with respect to
+C<T>. 
+
+=head1 TO DO
+
+Nothing.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Zia Mohades 2014 (zia.mohades@mcgill.ca)
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
+
 use strict;
 
 use Cwd qw/ abs_path /;
