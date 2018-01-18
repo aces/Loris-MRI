@@ -34,13 +34,11 @@ B<Notes:>
  - For the example query provided (in C<$queryF>), all inserted scans with types
    like C<t1> or C<t2>, having a C<slice thickness> in the range of C<4 mm> will
    be deleted.
-   - A use-case of this deletion query might be that initially the project did
+    - A use-case of this deletion query might be that initially the project did
     not exclude C<t1> or C<t2> modalities having 4 mm slice thickness, and
     subsequently, the study C<mri_protocol> table has been changed to add
     tighter checks on slice thickness.
 
-
-=head2 Methods
 
 =cut
 
@@ -110,9 +108,9 @@ my $queryF = <<SQL;
   LEFT JOIN psc AS c ON (c.CenterID=s.CenterID)
   LEFT JOIN mri_scan_type AS m ON (m.ID=f.AcquisitionProtocolID)
   LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
-  WHERE pt.Name = 'acquisition:slice_thickness'
-  AND p.Value LIKE '%4.%'
-  AND (m.Scan_type LIKE '%t1%' OR m.Scan_type LIKE '%t2%')
+  where pt.Name = 'acquisition:echo_time'
+  and p.Value like '%0.003044%'
+  and (m.Scan_type like '%t1w%')
   ORDER BY FROM_UNIXTIME(f.InsertTime)
 SQL
 
