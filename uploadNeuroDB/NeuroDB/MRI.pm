@@ -27,7 +27,7 @@ files into the LORIS system)
 
 =head1 DESCRIPTION
 
-Really a mishmash of utility functions, primarily used by process_uploads and
+Really a mishmash of utility functions, primarily used by C<process_uploads> and
 all of its children.
 
 =head2 Methods
@@ -61,10 +61,10 @@ $FLOAT_EQUALS_NB_DECIMALS = 4;
 Determines the candidate ID and visit label for the subject based on patient
 name and (for calibration data) scannerID.
 
-INPUT: patient name, scanner ID and database handle reference
+INPUTS: patient name, scanner ID and database handle reference
 
-RETURNS: a reference to a hash containing elements including 'CandID',
-'visitLabel' and 'visitNo', or, in the case of failure, C<undef>
+RETURNS: a reference to a hash containing elements including C<CandID>,
+C<visitLabel> and C<visitNo>, or, in the case of failure, C<undef>
 
 =cut
 
@@ -100,7 +100,7 @@ sub getSubjectIDs {
 
 Verifies that the subject IDs match.
 
-INPUT: candidate's CandID, candidate's PSCID and the database handle reference
+INPUTS: candidate's CandID, candidate's PSCID and the database handle reference
 
 RETURNS: 1 if the ID pair matches, 0 otherwise
 
@@ -131,7 +131,7 @@ sub subjectIDIsValid {
 
 Verifies that the subject ID (CandID) exists.
 
-INPUT: candidate's CandID and the database handle reference
+INPUTS: candidate's CandID and the database handle reference
 
 RETURNS: 1 if the ID exists, 0 otherwise
 
@@ -154,7 +154,7 @@ sub subjectIDExists {
 
 Retrieves the candidate (CandID) for the given scanner.
 
-INPUT: the scanner ID and the database handle reference
+INPUTS: the scanner ID and the database handle reference
 
 RETURNS: the CandID or (if none exists) undef
 
@@ -202,7 +202,7 @@ simple algorithm:
 
 =back
 
-INPUT: hash reference of subject IDs, study date, database handle reference,
+INPUTS: hash reference of subject IDs, study date, database handle reference,
 the objective of the study and a no staging check flag.
 
 RETURNS: a list of two items, (sessionID, requiresStaging)
@@ -354,7 +354,7 @@ sub getSessionID {
 This method tries to figure out if there may have been labelling problems which
 would put the files in a staging area that does not actually exist.
 
-INPUT: study date, database handle reference and array of fileIDs to check the
+INPUTS: study date, database handle reference and array of fileIDs to check the
 study date
 
 RETURNS: 1 if the file requires staging, 0 otherwise
@@ -402,7 +402,7 @@ sub checkMRIStudyDates {
 Attempts to determine the SubprojectID  of a timepoint given the subjectIDs
 hashref C<$subjectIDsref> and a database handle reference C<$dbhr>
 
-INPUT: subjectIDs hashref and database handle reference
+INPUTS: subjectIDs hashref and database handle reference
 
 RETURNS: the determined objective, or 0
 
@@ -448,13 +448,13 @@ sub getObjective
 
 =head3 identify_scan_db($center_name, $objective, $fileref, $dbhr)
 
-Determines the type of the scan described by minc headers based on mri_protocol
-table in the database.
+Determines the type of the scan described by MINC headers based on
+C<mri_protocol> table in the database.
 
-INPUT: center's name, objective of the study, file hashref, database handle
+INPUTS: center's name, objective of the study, file hashref, database handle
 reference
 
-RETURNS: textual name of scan type
+RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 =cut
 
@@ -597,9 +597,10 @@ sub identify_scan_db {
 =head3 insert_violated_scans($dbhr, $series_desc, $minc_location, ...)
 
 Inserts scans that do not correspond to any of the defined protocol from the 
-mri_protocol table into the mri_protocol_violated_scans table of the database.
+C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
+database.
 
-INPUT: 
+INPUTS:
   - $dbhr           : database handle reference
   - $series_desc    : series description of the scan
   - $minc_location  : minc location of the file
@@ -640,7 +641,7 @@ sub insert_violated_scans {
 
 Will evaluate whether the scalar C<$value> is in the specified C<$range>.
 
-INPUT: scalar value, scalar range string
+INPUTS: scalar value, scalar range string
 
 RETURNS: 1 if in range, 0 if not in range
 
@@ -666,7 +667,7 @@ sub debug_inrange {
 
 Determines the type of the scan identified by its scan type ID.
 
-INPUT: scan type ID and database handle reference
+INPUTS: scan type ID and database handle reference
 
 RETURNS: Textual name of scan type
 
@@ -689,7 +690,7 @@ sub scan_type_id_to_text {
 
 Determines the type of the scan identified by scan type.
 
-INPUT: scan type and database handle reference
+INPUTS: scan type and database handle reference
 
 RETURNS: ID of the scan type
 
@@ -716,7 +717,7 @@ Determines whether numerical value falls within the range described by range
 string. Range string is a comma-separated list of range units. A single range
 unit follows the syntax either "X" or "X-Y".
 
-INPUT: numerical value and the range to use
+INPUTS: numerical value and the range to use
 
 RETURNS: 1 if the value is in range, 0 otherwise
 
@@ -756,7 +757,7 @@ sub in_range
 Checks whether f1 and f2 are equal (considers only the first nb_decimals
 decimals).
 
-INPUT: float 1, float 2 and the number of first decimals
+INPUTS: float 1, float 2 and the number of first decimals
 
 RETURNS: 1 if the numbers are relatively equal, 0 otherwise
 
@@ -777,7 +778,7 @@ C<$range_string> using the same C<$range_string> syntax as C<&in_range()>.
 It returns a scalar range SQL string appropriate to use as a WHERE condition
 (C<SELECT ... WHERE range_to_sql(...)>).
 
-INPUT: scalar field, scalar range string that follows the same format as in
+INPUTS: scalar field, scalar range string that follows the same format as in
 C<&in_range()>
 
 RETURNS: scalar range SQL string
@@ -1010,7 +1011,7 @@ C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
 database handle reference C<$dbhr>. If no scannerID exists, one will be
 created.
 
-INPUT:
+INPUTS:
   - $manufacturer   : scanner's manufacturer
   - $model          : scanner's model
   - $serialNumber   : scanner's serial number
@@ -1049,7 +1050,7 @@ Registers the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
 database handle reference C<$dbhr>.
 
-INPUT:
+INPUTS:
   - $manufacturer   : scanner's manufacturer
   - $model          : scanner's model
   - $serialNumber   : scanner's serial number
@@ -1125,7 +1126,7 @@ sub createNewCandID {
 Looks for the site alias in whatever field (usually patient_name or
 patient_id) is provided and return the MRI alias and CenterID.
 
-INPUT: patient name, database handle reference
+INPUTS: patient name, database handle reference
 
 RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
@@ -1255,13 +1256,13 @@ sub is_unique_hash {
 
 =head3 make_pics($file_ref, $data_dir, $dest_dir, $horizontalPics)
 
-Generates check pics for the Imaging Browser module for the NeuroDB::File object
-referenced by C<$file_ref>.
+Generates check pics for the Imaging Browser module for the C<NeuroDB::File>
+object referenced by C<$file_ref>.
 
-INPUT:
+INPUTS:
   - $file_ref      : file hash ref
-  - $data_dir      : data directory (/data/project/data typically)
-  - $dest_dir      : destination directory (pic directory)
+  - $data_dir      : data directory (C/data/$PROJECT/data> typically)
+  - $dest_dir      : destination directory (C</data/$PROJECT/data> typically)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
@@ -1304,13 +1305,13 @@ sub make_pics {
 
 =head3 make_jiv($file_ref, $data_dir, $dest_dir)
 
-Generates JIV data for the Imaging Browser module for the NeuroDB::File object
-referenced by C<$file_ref>.
+Generates JIV data for the Imaging Browser module for the C<NeuroDB::File>
+object referenced by C<$file_ref>.
 
-INPUT:
+INPUTS:
   - $file_ref      : file hash ref
-  - $data_dir      : data directory (/data/project/data typically)
-  - $dest_dir      : destination directory (jiv directory)
+  - $data_dir      : data directory (C</data/$PROJECT/data> typically)
+  - $dest_dir      : destination directory (C</data/$PROJECT/data> typically)
 
 RETURNS: 1 if the JIV data was generated or 0 otherwise.
 
@@ -1363,7 +1364,7 @@ sub make_jiv {
 Creates NIfTI files associated with MINC files and append its path to the
 parameter_file table using the parameter_type "check_nii_filename".
 
-INPUT: file hashref and data directory (typically /data/project/data)
+INPUTS: file hashref and data directory (typically C</data/project/data>)
 
 =cut
 
@@ -1392,7 +1393,7 @@ sub make_nii {
 
 Creates pics associated with MINC files.
 
-INPUT:
+INPUTS:
   - $dbhr          : database handle reference
   - $TarchiveSource: tarchiveID of the DICOM study
   - $profile       : the profile (typically named C<prod>)
@@ -1468,7 +1469,7 @@ sub DICOMDateToUnixTimestamp {
 
 Looks up the CandID for a given PSCID.
 
-INPUT: candidate's PSCID, database handle reference
+INPUTS: candidate's PSCID, database handle reference
 
 RETURNS: the CandID or 0 if the PSCID does not exist
 
@@ -1518,7 +1519,7 @@ License: GPLv3
 
 =head1 AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
 LORIS community <loris.info@mcin.ca>  
 and McGill Centre for Integrative Neuroscience
 =cut    
