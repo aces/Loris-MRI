@@ -66,13 +66,13 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 
 =pod
 
-=head3 new($dbhr, $uploaded_temp_folder, $upload_id, ...) (constructor)
+=head3 new($dbhr, $uploaded_temp_folder, $upload_id, ...) >> (constructor)
 
-Create a new instance of this class. This constructor needs the location of
+Creates a new instance of this class. This constructor needs the location of
 the uploaded file. Once the uploaded file has been validated, it will be
 moved to a final destination directory.
 
-INPUT:
+INPUTS:
   - $dbhr                : database handler
   - $uploaded_temp_folder: temporary directory of the upload
   - $upload_id           : uploadID from the mri_upload table
@@ -308,8 +308,8 @@ sub IsCandidateInfoValid {
 
 This method executes the following actions:
  - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
- - Extracts the TarchiveID of the tarchive created by C<dicomTar.pl>
- - Updates the mri_upload table if C<dicomTar.pl> ran successfully
+ - Extracts the TarchiveID of the DICOM archive created by C<dicomTar.pl>
+ - Updates the C<mri_upload> table if C<dicomTar.pl> ran successfully
 
 RETURNS: 1 on success, 0 on failure
 
@@ -367,7 +367,7 @@ sub runDicomTar {
 
 =head3 getTarchiveFileLocation()
 
-This method fetches the location of the archive from the tarchive table of
+This method fetches the location of the archive from the C<tarchive> table of
 the database.
 
 RETURNS: the archive location
@@ -400,7 +400,7 @@ sub getTarchiveFileLocation {
 =head3 runTarchiveLoader()
 
 This methods will call C<tarchiveLoader> with the C<-clobber -profile prod>
-options and update the mri_upload table accordingly if C<tarchiveLoader> ran
+options and update the C<mri_upload> table accordingly if C<tarchiveLoader> ran
 successfully.
 
 RETURNS: 1 on success, 0 on failure
@@ -437,7 +437,7 @@ This method extracts the patient name field from the DICOM file header using
 C<dcmdump> and compares it with the patient name information stored in the
 mri_upload table.
 
-INPUT: full path to the dicom-file
+INPUT: full path to the DICOM file
 
 RETURNS: 1 on success, 0 on failure
 
@@ -473,7 +473,7 @@ sub PatientNameMatch {
 
 This method checks whether the file given as an argument is of type DICOM.
 
-INPUT: full path to the dicom-file
+INPUT: full path to the DICOM file
 
 RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
 
@@ -594,9 +594,10 @@ sub CleanUpDataIncomingDir {
 This method calls the C<< Notify->spool >> function to log all messages
 returned by the insertion scripts.
 
-INPUT:
+INPUTS:
  - $message: message to be logged in the database
- - $error  : 'Y' for an error log , 'N' otherwise
+ - $error  : 'Y' for an error log ,
+             'N' otherwise
  - $verb   : 'N' for few main messages,
              'Y' for more messages (for developers)
 
@@ -621,7 +622,7 @@ sub spool  {
 This method updates the C<mri_upload> table with C<$value> for the field
 C<$field>.
 
-INPUT:
+INPUTS:
  - $field: name of the column in the table to be updated
  - $value: value of the column to be set
 
