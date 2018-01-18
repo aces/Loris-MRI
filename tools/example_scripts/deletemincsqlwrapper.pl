@@ -6,12 +6,12 @@
 
 deletemincsqlqrapper.pl -- This script is a wrapper for deleting multiple MINC
 files at a time and optionally re-inserting them. It will pause for confirmation
-before deleting. B< Projects should modify the query as needed to suit their
+before deleting. B<Projects should modify the query as needed to suit their
 needs>.
 
 =head1 SYNOPSIS
 
-perl tools/example_scripts/deletemincsqlqrapper.pl `[options]`
+perl tools/example_scripts/deletemincsqlqrapper.pl C<[options]>
 
 Available options are:
 
@@ -27,17 +27,17 @@ Available options are:
 This is an B<example> script that does the following:
  - Deletes multiple MINC files fitting a common criterion from the database.
  - Provides the option to re-insert deleted scans with their series UID when
-   using the `-insertminc` flag.
+   using the C<-insertminc> flag.
 
 B<Notes:>
  - B<Projects should modify the query as they see fit to suit their needs>.
- - For the example query provided (in `$queryF`), all inserted scans with types
-   like `t1` or `t2`, having a `slice thickness` in the range of `4 mm` will be
-   deleted.
+ - For the example query provided (in C<$queryF>), all inserted scans with types
+   like C<t1> or C<t2>, having a C<slice thickness> in the range of C<4 mm> will
+   be deleted.
    - A use-case of this deletion query might be that initially the project did
-    not exclude `t1` or `t2` modalities having 4 mm slice thickness, and
-    subsequently, the study `mri_protocol` has been changed to add tighter
-    checks on slice thickness.
+    not exclude C<t1> or C<t2> modalities having 4 mm slice thickness, and
+    subsequently, the study C<mri_protocol> table has been changed to add
+    tighter checks on slice thickness.
 
 
 =head2 Methods
@@ -77,9 +77,9 @@ This script is a wrapper for deleting multiple MINC files at a time and
 optionally re-inserting them. It will pause for confirmation before deleting.
 
 Please note that this is an example script. Projects need to customize the query
-based on their needs. Please refer to the README in the tools/example_scripts/ 
-directory for more details. Alternatively, the documentation on this script can
-be obtained as follows:
+based on their needs. Please refer to the associated documentation file in the
+docs/scripts_md/ directory for more details. Alternatively, the documentation on
+this script can be obtained as follows:
 
 
 Documentation: perldoc tools/example_scripts/deletemincsqlwrapper.pl
