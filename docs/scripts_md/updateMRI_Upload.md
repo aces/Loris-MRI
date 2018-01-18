@@ -1,17 +1,17 @@
 # NAME
 
-updateMRI\_Upload.pl - updates database table mri\_upload according to an entry in table
+updateMRI\_Upload.pl - updates database table `mri_upload` according to an entry in table
    tarchive
 
 # SYNOPSIS
 
 updateMRI\_Upload.pl \[options\] -profile prod -tarchivePath tarchivePath -source\_location source\_location
 
-- **-profile prof** : (mandatory) path (absolute or relative to the current directory) of the 
+- **-profile prod** : (mandatory) path (absolute or relative to the current directory) of the 
     profile file
 - **-tarchivePath tarchivePath** : (mandatory) absolute path to the tarchive file
 - **-source\_location source\_location** : (mandatory) value to set column 
-    DecompressedLocation to for the newly created record in table mri\_upload (see below)
+    `DecompressedLocation` to for the newly created record in table `mri_upload` (see below)
 - **-globLocation** : Loosen the validity check of the tarchive allowing for the 
      possibility that the tarchive was moved to a different directory.
 - **-verbose** : Be verbose
@@ -21,7 +21,7 @@ updateMRI\_Upload.pl \[options\] -profile prod -tarchivePath tarchivePath -sourc
 This script first starts by reading the `prod` file (argument passed to the `-profile` switch)
 to fetch the `@db` variable, a Perl array containing four elements: the database
 name, the databse user name used to connect to the database, the password and the 
-database hostname. It then checks for an entry in table `tarchive` with the same 
+database hostname. It then checks for an entry in the `tarchive` table with the same 
 `ArchiveLocation` as the tarchive file passed on the command line. Let `T` be the 
 tarchive record found. The script will then proceed to scan table `mri_upload` for a 
 record with the same `tarchiveID` as `T`'s. If there is none (which is the expected 
@@ -49,4 +49,7 @@ None reported.
 License: GPLv3
 
 # AUTHORS
-Zia Mohades 2014 (zia.mohades@mcgill.ca)
+
+Zia Mohades 2014 (zia.mohades@mcgill.ca),
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
