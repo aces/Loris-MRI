@@ -108,9 +108,9 @@ my $queryF = <<SQL;
   LEFT JOIN psc AS c ON (c.CenterID=s.CenterID)
   LEFT JOIN mri_scan_type AS m ON (m.ID=f.AcquisitionProtocolID)
   LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
-  where pt.Name = 'acquisition:echo_time'
-  and p.Value like '%0.003044%'
-  and (m.Scan_type like '%t1w%')
+  WHERE pt.Name = 'acquisition:slice_thickness'
+  AND p.Value LIKE '%4.%'
+  AND (m.Scan_type LIKE '%t1%' OR m.Scan_type LIKE '%t2%')
   ORDER BY FROM_UNIXTIME(f.InsertTime)
 SQL
 
