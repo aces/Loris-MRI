@@ -53,7 +53,7 @@ RETURNS: new instance of this class
 
 Validates the File to be uploaded. If the validation passes, the following
 actions will happen:
-  1) Copy the file from tmp folder to /data/incoming
+  1) Copy the file from `tmp` folder to `/data/incoming`
   2) Set `IsCandidateInfoValidated` to TRUE in the mri\_upload table
 
 RETURNS: 1 on success, 0 on failure

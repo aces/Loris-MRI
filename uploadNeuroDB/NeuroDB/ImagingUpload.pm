@@ -121,7 +121,7 @@ sub new {
 
 Validates the File to be uploaded. If the validation passes, the following
 actions will happen:
-  1) Copy the file from tmp folder to /data/incoming
+  1) Copy the file from C<tmp> folder to C</data/incoming>
   2) Set C<IsCandidateInfoValidated> to TRUE in the mri_upload table
 
 RETURNS: 1 on success, 0 on failure
