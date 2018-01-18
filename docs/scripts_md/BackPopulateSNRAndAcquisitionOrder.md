@@ -14,7 +14,7 @@ Available options are:
 \-profile        : name of the config file in
                   `../dicom-archive/.loris_mri`
 
-\-tarchive\_id    : The tarchive ID of the DICOM archive (.tar files) to be
+\-tarchive\_id    : The Tarchive ID of the DICOM archive (.tar files) to be
                   processed from the `tarchive` table
 
 # DESCRIPTION
@@ -25,7 +25,7 @@ https://github.com/aces/Loris-MRI/pull/160
 as well as populate the `parameter_file` table with SNR entries in reference
 to:
 https://github.com/aces/Loris-MRI/pull/142
-It can take in tarchiveID as an argument if only a specific DICOM archive
+It can take in TarchiveID as an argument if only a specific DICOM archive
 (.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
 the `tarchive` table are processed.
 

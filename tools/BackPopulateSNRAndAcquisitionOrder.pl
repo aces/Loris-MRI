@@ -19,7 +19,7 @@ Available options are:
 -profile        : name of the config file in
                   C<../dicom-archive/.loris_mri>
 
--tarchive_id    : The tarchive ID of the DICOM archive (.tar files) to be
+-tarchive_id    : The Tarchive ID of the DICOM archive (.tar files) to be
                   processed from the C<tarchive> table
 
 
@@ -32,7 +32,7 @@ https://github.com/aces/Loris-MRI/pull/160
 as well as populate the C<parameter_file> table with SNR entries in reference
 to:
 https://github.com/aces/Loris-MRI/pull/142
-It can take in tarchiveID as an argument if only a specific DICOM archive
+It can take in TarchiveID as an argument if only a specific DICOM archive
 (.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
 the C<tarchive> table are processed.
 
@@ -72,9 +72,9 @@ AcqOrderPerModality column; in reference to:
 https://github.com/aces/Loris-MRI/pull/160
 as well as populate the parameter_file table with SNR entries in reference to:
 https://github.com/aces/Loris-MRI/pull/142
-It can take in tarchiveID as an argument if only a specific DICOM archive
+It can take in TarchiveID as an argument if only a specific DICOM archive
 (.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
-the C<tarchive> table are processed.
+the tarchive table are processed.
 
 
 Documentation: perldoc BackPopulateSNRAndAcquisitionOrder.pl
