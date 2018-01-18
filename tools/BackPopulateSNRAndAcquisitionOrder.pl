@@ -26,10 +26,11 @@ Available options are:
 
 =head1 DESCRIPTION
 
-This script will back populate the files table with entries for the
-AcqOrderPerModality column; in reference to:
+This script will back populate the C<files> table with entries for the
+C<AcqOrderPerModality> column; in reference to:
 https://github.com/aces/Loris-MRI/pull/160
-as well as populate the parameter_file table with SNR entries in reference to:
+as well as populate the C<parameter_file> table with SNR entries in reference
+to:
 https://github.com/aces/Loris-MRI/pull/142
 It can take in tarchiveID as an argument if only a specific DICOM archive
 (.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
