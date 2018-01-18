@@ -40,7 +40,7 @@ my $VERSION = sprintf "%d.%03d", q$Revision: 1.1.1.1 $ =~ /: (\d+)\.(\d+)/;
 
 =pod
 
-=head3 new($dbh) (constructor)
+=head3 new($dbh) >> (constructor)
 
 Creates a new instance of this class. The parameter C<\$dbh> is a
 reference to a DBI database handle, used to set the object's database
@@ -69,18 +69,18 @@ sub new {
 
 =head3 spool($type, $message, $centerID, $origin, $processID, ...)
 
-Spools a new notification message, C<$message>, into the spool for notification
-type C<$type>. If C<$centerID> is specified, only recipients in that site will
-receive the message.
+Spools a new notification message, C<$message>, into the C<notification_spool>
+table for notification type C<$type>. If C<$centerID> is specified, only
+recipients in that site will receive the message.
 
-INPUT:
-  $type     : notification type
-  $message  : notification message
-  $centerID : center ID
-  $origin   : notification origin
-  $processID: process ID
-  $isError  : if the notification is an error
-  $isVerb   : if verbose is set
+INPUTS:
+  - $type     : notification type
+  - $message  : notification message
+  - $centerID : center ID
+  - $origin   : notification origin
+  - $processID: process ID
+  - $isError  : if the notification is an error
+  - $isVerb   : if verbose is set
 
 RETURNS: 1 on success, 0 on failure
 
@@ -170,8 +170,8 @@ sub getTypeID {
 
 Gets the notification types for which there are unsent messages spooled.
 
-RETURNS: an array of hashrefs, each of which has keys NotificationTypeID and
-SubjectLine and CenterID
+RETURNS: an array of hashrefs, each of which has keys C<NotificationTypeID> and
+C<SubjectLine> and C<CenterID>
 
 =cut
 
@@ -198,12 +198,13 @@ sub getSpooledTypes {
 
 =head3 getSpooledMessagesByTypeID($typeID, $centerID)
 
-Gets the spooled messages for a given NotificationTypeID specified by
+Gets the spooled messages for a given C<NotificationTypeID> specified by
 C<$typeID>, optionally directed to the center specified by C<$centerID>.
 
-INPUT: notification type ID, (optionally the center ID)
+INPUTS: notification type ID, (optionally the center ID)
 
-RETURNS: an array of hashrefs, each of which has keys TimeSpooled and Message
+RETURNS: an array of hashrefs, each of which has keys C<TimeSpooled> and
+C<Message>
 
 =cut
 
@@ -237,7 +238,7 @@ sub getSpooledMessagesByTypeID {
 Gets the recipient list for a given NotificationTypeID specified by
 C<$typeID>, optionally directed to the center specified by C<$centerID>.
 
-INPUT: notification type ID, (optionally the center ID)
+INPUTS: notification type ID, (optionally the center ID)
 
 RETURNS: an array of email addresses
 
@@ -272,7 +273,7 @@ sub getRecipientsByTypeID {
 Marks all messages as sent with a given NotificationTypeID specified by
 C<$typeID> and optionally C<$centerID>.
 
-INPUT: notification type ID, (optionally the center ID)
+INPUTS: notification type ID, (optionally the center ID)
 
 =cut
 

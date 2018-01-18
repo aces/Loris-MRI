@@ -24,7 +24,7 @@ LORIS - particularly with regards to spooling new messages.
 
 ## Methods
 
-### new($dbh) (constructor)
+### new($dbh) >> (constructor)
 
 Creates a new instance of this class. The parameter `\$dbh` is a
 reference to a DBI database handle, used to set the object's database
@@ -36,18 +36,18 @@ RETURNS: new instance of this class.
 
 ### spool($type, $message, $centerID, $origin, $processID, ...)
 
-Spools a new notification message, `$message`, into the spool for notification
-type `$type`. If `$centerID` is specified, only recipients in that site will
-receive the message.
+Spools a new notification message, `$message`, into the `notification_spool`
+table for notification type `$type`. If `$centerID` is specified, only
+recipients in that site will receive the message.
 
-INPUT:
-  $type     : notification type
-  $message  : notification message
-  $centerID : center ID
-  $origin   : notification origin
-  $processID: process ID
-  $isError  : if the notification is an error
-  $isVerb   : if verbose is set
+INPUTS:
+  - $type     : notification type
+  - $message  : notification message
+  - $centerID : center ID
+  - $origin   : notification origin
+  - $processID: process ID
+  - $isError  : if the notification is an error
+  - $isVerb   : if verbose is set
 
 RETURNS: 1 on success, 0 on failure
 
@@ -63,24 +63,25 @@ RETURNS: the notification typeID, or undef is none exists
 
 Gets the notification types for which there are unsent messages spooled.
 
-RETURNS: an array of hashrefs, each of which has keys NotificationTypeID and
-SubjectLine and CenterID
+RETURNS: an array of hashrefs, each of which has keys `NotificationTypeID` and
+`SubjectLine` and `CenterID`
 
 ### getSpooledMessagesByTypeID($typeID, $centerID)
 
-Gets the spooled messages for a given NotificationTypeID specified by
+Gets the spooled messages for a given `NotificationTypeID` specified by
 `$typeID`, optionally directed to the center specified by `$centerID`.
 
-INPUT: notification type ID, (optionally the center ID)
+INPUTS: notification type ID, (optionally the center ID)
 
-RETURNS: an array of hashrefs, each of which has keys TimeSpooled and Message
+RETURNS: an array of hashrefs, each of which has keys `TimeSpooled` and
+`Message`
 
 ### getRecipientsByTypeID($typeID, $centerID)
 
 Gets the recipient list for a given NotificationTypeID specified by
 `$typeID`, optionally directed to the center specified by `$centerID`.
 
-INPUT: notification type ID, (optionally the center ID)
+INPUTS: notification type ID, (optionally the center ID)
 
 RETURNS: an array of email addresses
 
@@ -89,7 +90,7 @@ RETURNS: an array of email addresses
 Marks all messages as sent with a given NotificationTypeID specified by
 `$typeID` and optionally `$centerID`.
 
-INPUT: notification type ID, (optionally the center ID)
+INPUTS: notification type ID, (optionally the center ID)
 
 # TO DO
 
