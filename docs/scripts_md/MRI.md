@@ -292,8 +292,9 @@ object referenced by `$file_ref`.
 
 INPUTS:
   - $file\_ref      : file hash ref
-  - $data\_dir      : data directory (C/data/$PROJECT/data> typically)
-  - $dest\_dir      : destination directory (`/data/$PROJECT/data` typically)
+  - $data\_dir      : data directory (`/data/$PROJECT/data` typically)
+  - $dest\_dir      : destination directory (`/data/$PROJECT/data/pics`
+                     typically)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
@@ -306,7 +307,8 @@ object referenced by `$file_ref`.
 INPUTS:
   - $file\_ref      : file hash ref
   - $data\_dir      : data directory (`/data/$PROJECT/data` typically)
-  - $dest\_dir      : destination directory (`/data/$PROJECT/data` typically)
+  - $dest\_dir      : destination directory (`/data/$PROJECT/data/jiv`
+                     typically)
 
 RETURNS: 1 if the JIV data was generated or 0 otherwise.
 
