@@ -18,9 +18,9 @@ of LORIS
   my $upload_id         = 123456;
   my $notify_notsummary = 'N';
   $notifier->spool('tarchive validation', $message,   0,
-  		           'tarchiveLoader',      $upload_id, 'Y',
-  		           $notify_notsummary
-  		          );
+  		   'tarchiveLoader',      $upload_id, 'Y',
+  		   $notify_notsummary
+  	          );
 
 
 =head1 DESCRIPTION
@@ -141,7 +141,7 @@ Gets the notification typeID for the notification of type C<$type>.
 
 INPUT: notification type
 
-RETURNS: the notification typeID, or undef is none exists
+RETURNS: the notification typeID, or undef if none exists
 
 =cut
 
