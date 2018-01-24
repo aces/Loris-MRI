@@ -36,7 +36,11 @@ Download the pre-compiled package for your operating system.  Install required d
    sudo dpkg -i minc-toolkit<version>.deb
    ```
 
-  Then source the MINC toolkit environment by running (for bash) `source /opt/minc/minc-toolkit-config.sh` or (tcsh) `source /opt/minc/minc-toolkit-config.csh`.
+  Then source the MINC toolkit environment by running (for bash) 
+  `source $mincToolsDirectory/minc-toolkit-config.sh` or (tcsh) 
+  `source $mincToolsDirectory/minc-toolkit-config.csh`,
+  
+  where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
 
 #### 3. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
@@ -81,7 +85,7 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 To ensure that BrainBrowser can load MINC images, the MINC toolkit must be accessible to the main LORIS codebase.
 (If the Loris-MRI codebase is installed on a separate machine, ensure the MINC toolkit is installed in both locations.)
 
-Ensure the _project/config.xml_ file (in the main LORIS codebase) contains the following tagset, specifying the MINC toolkit path local to the main LORIS codebase (/opt/minc/ in this example):
+Ensure the _project/config.xml_ file (in the main LORIS codebase) contains the following tagset, specifying the MINC toolkit path local to the main LORIS codebase (`/opt/minc/` in this example):
 
    ```xml
    <!-- MINC TOOLS PATH -->
