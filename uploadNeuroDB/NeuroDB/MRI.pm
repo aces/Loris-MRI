@@ -1262,7 +1262,7 @@ object referenced by C<$file_ref>.
 INPUTS:
   - $file_ref      : file hash ref
   - $data_dir      : data directory (C</data/$PROJECT/data> typically)
-  - $dest_dir      : destination directory (C</data/$PROJECT/data/pics>
+  - $dest_dir      : destination directory (C</data/$PROJECT/data/pic>
                      typically)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
 
