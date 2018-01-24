@@ -293,7 +293,7 @@ object referenced by `$file_ref`.
 INPUTS:
   - $file\_ref      : file hash ref
   - $data\_dir      : data directory (`/data/$PROJECT/data` typically)
-  - $dest\_dir      : destination directory (`/data/$PROJECT/data/pics`
+  - $dest\_dir      : destination directory (`/data/$PROJECT/data/pic`
                      typically)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
 
