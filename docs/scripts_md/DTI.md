@@ -374,7 +374,7 @@ RETURNS: 1 on success, undef on failure
 
 ### RGBpik\_creation($dti\_file, $DTIrefs)
 
-Function that runs `mincpik` on the RGB map.
+Function that runs `mincpik.pl` on the RGB map.
 
 INPUTS:
   - $dti\_file: hash key to use to fetch file names (e.g. raw DWI file)

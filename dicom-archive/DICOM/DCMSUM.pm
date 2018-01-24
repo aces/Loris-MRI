@@ -716,7 +716,7 @@ sub read_dicom_data {
 	$slice_thickness    = trimwhitespace($dicom->value('0018','0050'));  # element 0 18 slice_thickness
 	$phase_encoding     = trimwhitespace($dicom->value('0018','1312'));  # element 0 19 phase encoding
 
-    # these have been added only for tarchiveLoader functionality
+    # these have been added only for tarchiveLoader.pl functionality
     $manufacturer       = trimwhitespace($dicom->value('0008','0070'));  # element 0 22  scanner manufacturer
     $scanner_serial     = trimwhitespace($dicom->value('0018','1000'));  # element 0 23  scanner serial number
 
@@ -772,7 +772,7 @@ sub fill_header {
     $self->{header}->{institution} = $head_info[$i]->[ 16 ];
     $self->{header}->{modality}    = $head_info[$i]->[ 25 ];
 
-# these have been added for tarchiveLoader
+# these have been added for tarchiveLoader.pl
     $self->{header}->{manufacturer}       = $head_info[$i]->[ 22 ];
     $self->{header}->{scanner_serial}     = $head_info[$i]->[ 23 ];    
     return $self->{header};

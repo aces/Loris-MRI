@@ -194,13 +194,13 @@ sub IsCandidateInfoValid {
         return 0;
     }
 
-    ############################################################
-    ####Check to see if the scan has been run ##################
-    ####if the tarchiveid or the number_of_mincCreated is set ##
-    ####it means that has already been run. ####################
-    ####So the user can continue the insertion by running ######
-    ####tarchiveLoader exactly as the error message indicates ##
-    ############################################################
+    ###############################################################
+    ####Check to see if the scan has been run #####################
+    ####if the tarchiveid or the number_of_mincCreated is set #####
+    ####it means that has already been run. #######################
+    ####So the user can continue the insertion by running #########
+    ####tarchiveLoader.pl exactly as the error message indicates ##
+    ###############################################################
     if ( ( $row[1] ) || ( $row[2] ) ) {
 
         my $archived_file_path = '';
@@ -223,7 +223,7 @@ sub IsCandidateInfoValid {
 
         my $command =
             $bin_dirPath
-            . "/uploadNeuroDB/tarchiveLoader"
+            . "/uploadNeuroDB/tarchiveLoader.pl"
             . " -globLocation -profile prod $archived_file_path";
 
         if ($this->{verbose}){
@@ -236,7 +236,7 @@ sub IsCandidateInfoValid {
             . " has already been run with tarchiveID: "
             . $row[1]
             . ". \nTo continue with the rest of the insertion pipeline, "
-            . "please run tarchiveLoader from a terminal as follows: "
+            . "please run tarchiveLoader.pl from a terminal as follows: "
             . $command 
             . "\n";
         $this->spool($message, 'Y', $notify_notsummary);
@@ -417,7 +417,7 @@ sub runTarchiveLoader {
                         );
     my $command =
         $bin_dirPath
-      . "/uploadNeuroDB/tarchiveLoader"
+      . "/uploadNeuroDB/tarchiveLoader.pl"
       . " -globLocation -profile prod $archived_file_path";
 
     if ($this->{verbose}){
