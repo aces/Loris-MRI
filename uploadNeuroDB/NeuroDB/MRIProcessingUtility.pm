@@ -12,32 +12,32 @@ utilities
 
   use NeuroDB::ProcessingUtility;
 
-  my $utility = NeuroDB::MRIProcessingUtility->new(
-                    \$dbh,    $debug,  $TmpDir,
-                    $logfile, $LogDir, $verbose
-                );
+  my $utility       = NeuroDB::MRIProcessingUtility->new(
+                        \$dbh,    $debug,  $TmpDir,
+                        $logfile, $LogDir, $verbose
+                      );
 
-  %tarchiveInfo = $utility->createTarchiveArray(
-                    $ArchiveLocation, $globArchiveLocation
-                  );
+  %tarchiveInfo     = $utility->createTarchiveArray(
+                        $ArchiveLocation, $globArchiveLocation
+                      );
 
   my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-  my $scannerID = $utility->determineScannerID(
-                      \%tarchiveInfo, 0,
-                      $centerID,      $NewScanner
-                  );
-
-  my $subjectIDsref = $utility->determineSubjectID(
-                          $scannerID,
-                          \%tarchiveInfo,
-                          0
+  my $scannerID     = $utility->determineScannerID(
+                        \%tarchiveInfo, 0,
+                        $centerID,      $NewScanner
                       );
 
-  my $CandMismatchError= $utility->validateCandidate(
-                                  $subjectIDsref,
-                                  $tarchiveInfo{'SourceLocation'}
-                         );
+  my $subjectIDsref = $utility->determineSubjectID(
+                        $scannerID,
+                        \%tarchiveInfo,
+                        0
+                      );
+
+  my $CandMismatchError = $utility->validateCandidate(
+                            $subjectIDsref,
+                            $tarchiveInfo{'SourceLocation'}
+                          );
 
   $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
   $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
@@ -74,7 +74,7 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 
 =pod
 
-=head3 new($dbhr, $debug, $TmpDir, $logfile, $verbose) (constructor)
+=head3 new($dbhr, $debug, $TmpDir, $logfile, $verbose) >> (constructor)
 
 Creates a new instance of this class. The parameter `\$dbhr` is a reference
 to a DBI database handle, used to set the object's database handle, so that all
@@ -134,7 +134,7 @@ sub new {
 Writes error log. This is a useful function that will close the log and write
 error messages in case of abnormal program termination.
 
-INPUT: notification message, fail status of the process, log directory
+INPUTS: notification message, fail status of the process, log directory
 
 =cut
 
@@ -159,7 +159,7 @@ sub writeErrorLog {
 Will look up for the next visit label of candidate C<CandID>. Useful only if
 the visit label IS NOT encoded somewhere in the patient ID or patient name.
 
-INPUT: candidate's CandID, database handle reference
+INPUTS: candidate's CandID, database handle reference
 
 RETURNS: next visit label found for the candidate
 
@@ -189,11 +189,12 @@ sub lookupNextVisitLabel {
 
 =head3 getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
 
-?????????????????????????????
+Will extract from the C<tarchive_files> table a list of DICOM files
+matching a given SeriesUID.
 
-INPUT: seriesUID, list of tar files
+INPUTS: seriesUID, list of tar files
 
-RETURNS: ???????????????????
+RETURNS: list of DICOM files corresponding to the seriesUID
 
 =cut
 
@@ -235,9 +236,9 @@ sub getFileNamesfromSeriesUID {
 
 =head3 extract_tarchive($tarchive, $tarchive_srcloc, $seriesuid)
 
-Extracts the tarchive so that data can actually be uploaded.
+Extracts the DICOM archive so that data can actually be uploaded.
 
-INPUT: path to the tarchive, source location from the tarchive table,
+INPUTS: path to the DICOM archive, source location from the C<tarchive> table,
 (optionally seriesUID)
 
 RETURNS: the extracted DICOM directory
@@ -294,7 +295,7 @@ sub extract_tarchive {
 
 Extracts and parses the tarchive.
 
-INPUT: path to the tarchive, source location from the tarchive table,
+INPUTS: path to the tarchive, source location from the tarchive table,
 (optionally seriesUID)
 
 RETURNS: extract suffix, extracted DICOM directory, tarchive meta data header
@@ -328,10 +329,11 @@ sub extractAndParseTarchive {
 
 Determines subject's ID based on scanner ID and tarchive information.
 
-INPUT: scanner ID, tarchive information hashref, boolean if this step should be
-logged
+INPUTS: scanner ID, tarchive information hashref, boolean if this step should
+be logged
 
-RETURNS: subject's ID hashref
+RETURNS: subject's ID hashref containing CandID, PSCID and Visit Label
+information
 
 =cut
 
@@ -376,7 +378,8 @@ sub determineSubjectID {
 
 Creates the tarchive information hashref.
 
-INPUT: tarchive's path, globArchiveLocation option
+INPUTS: tarchive's path, globArchiveLocation argument specified when running
+the insertion scripts
 
 RETURNS: tarchive information hashref
 
@@ -426,7 +429,7 @@ sub createTarchiveArray {
 
 Determines the PSC based on the tarchive information hashref.
 
-INPUT: tarchive information hashref, whether this step should be logged
+INPUTS: tarchive information hashref, whether this step should be logged
 
 RETURNS: array of two elements: center name and center ID
 
@@ -473,7 +476,7 @@ sub determinePSC {
 
 Determines which scanner ID was used for DICOM acquisitions.
 
-INPUT:
+INPUTS:
   $tarchiveInfo: tarchive information hashref
   $to_log      : whether this step should be logged
   $centerID    : center ID
@@ -532,10 +535,7 @@ sub determineScannerID {
 
 =head3 get_acqusitions($study_dir, \@acquisitions)
 
-Greps the list of acquisitions in the study directory from array
-C<@acquisitions>. ?????????????????????????????????????
-
-INPUT: study directory, array of acquisitions ??????????????????
+UNUSED FUNCTION TO BE CLEANED UP IN ANOTHER PULL REQUEST
 
 =cut
 
@@ -557,7 +557,7 @@ sub get_acquisitions {
 
 Computes the MD5 hash of a file and makes sure it is unique.
 
-INPUT: file to use to compute the MD5 hash, tarchive source location
+INPUTS: file to use to compute the MD5 hash, tarchive source location
 
 RETURNS: 1 if the file is unique, 0 otherwise
 
@@ -587,12 +587,12 @@ sub computeMd5Hash {
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If C<$acquisitionProtocol> is not set, it will look for the acquisition
-protocol in the mri_protocol table based on the mincheader information using
-C<&NeuroDB::MRI::identify_scan_db>. If C<$bypass_extra_file_checks> is
+protocol in the C<mri_protocol> table based on the MINC header information
+using C<&NeuroDB::MRI::identify_scan_db>. If C<$bypass_extra_file_checks> is
 true, then it will bypass the additional protocol checks from the
-mri_protocol_checks table using C<&extra_file_checks>.
+C<mri_protocol_checks> table using C<&extra_file_checks>.
 
-INPUT:
+INPUTS:
   $file                    : file's information hashref
   $subjectIDsref           : subject's information hashref
   $tarchiveInfo            : tarchive's information hashref
@@ -675,7 +675,7 @@ sub getAcquisitionProtocol {
 Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
 
-INPUT:
+INPUTS:
   $scan_type  : scan type of the file
   $file       : file information hashref
   $CandID     : candidate's CandID
@@ -761,7 +761,7 @@ sub extra_file_checks() {
 
 Updates the mri_acquisition_dates table by a new acquisition date C<$acq_date>.
 
-INPUT: session ID, acquisition date
+INPUTS: session ID, acquisition date
 
 =cut
 
@@ -803,7 +803,7 @@ sub update_mri_acquisition_dates {
 
 Loads and creates the object file.
 
-INPUT: location of the minc file, tarchive source location
+INPUTS: location of the minc file, tarchive source location
 
 RETURNS: file information hashref
 
@@ -846,7 +846,7 @@ sub loadAndCreateObjectFile {
 
 Renames and moves the MINC file.
 
-INPUT:
+INPUTS:
   $minc           : path to the MINC file
   $subjectIDsref  : subject's ID hashref
   $minc_type      : MINC file information hashref
@@ -915,7 +915,7 @@ sub move_minc {
 
 Registers the scan into the database.
 
-INPUT:
+INPUTS:
   $minc_file          : MINC file information hashref
   $tarchiveInfo       : tarchive information hashref
   $subjectIDsref      : subject's ID information hashref
@@ -1050,7 +1050,7 @@ sub registerScanIntoDB {
 
 Converts a DICOM study into MINC files.
 
-INPUT:
+INPUTS:
   $study_dir      : DICOM study directory to convert
   $converter      : converter to be used
   $get_dicom_info : get DICOM information setting from the Config table
@@ -1112,7 +1112,7 @@ sub dicom_to_minc {
 
 Greps the created MINC files and returns a sorted list of those MINC files.
 
-INPUT: empty array to store the list of MINC files, tarchive source location
+INPUTS: empty array to store the list of MINC files, tarchive source location
 
 =cut
 
@@ -1154,7 +1154,7 @@ sub get_mincs {
 
 =head3 concat_mri($minc_files)
 
-Concats and removes pre-concat MINC files. ?????????????????
+Concats and removes pre-concat MINC files.
 
 INPUT: list of MINC files to concat
 
@@ -1204,7 +1204,7 @@ sub concat_mri {
 
 =head3 registerProgs(@toregister)
 
-Register programs ???????????????????????
+Register programs.
 
 INPUT: program to register
 
@@ -1228,7 +1228,7 @@ sub registerProgs() {
 
 Moves and updates the tarchive table with the new location of the tarchive.
 
-INPUT: tarchive location, tarchive information hashref
+INPUTS: tarchive location, tarchive information hashref
 
 RETURNS: the new tarchive location
 
@@ -1294,7 +1294,7 @@ sub moveAndUpdateTarchive {
 
 Registers a new candidate in the candidate table.
 
-INPUT:
+INPUTS:
   $subjectIDsref: subject's ID information hashref
   $gender       : gender of the candidate
   $tarchiveInfo : tarchive information hashref
@@ -1384,7 +1384,7 @@ C<&NeuroDB::MRI::getSessionID> which in turn will either:
   - create a new session if visit label does not exist for that
      candidate yet
 
-INPUT: subject's ID information hashref, tarchive information hashref
+INPUTS: subject's ID information hashref, tarchive information hashref
 
 RETURNS: session ID, if the new session requires staging
 
@@ -1450,7 +1450,7 @@ the one stored in the tarchive information hashref C<$tarchiveInfo> derived
 from the database. The function will exits with an error message if the
 tarchive is not validated.
 
-INPUT: tarchive file, tarchive information hashref
+INPUTS: tarchive file, tarchive information hashref
 
 =cut
 
@@ -1490,7 +1490,7 @@ sub validateArchive {
 
 Determines where the MINC files to be registered into the database will go.
 
-INPUT: subject's ID information hashref, data directory (typically
+INPUTS: subject's ID information hashref, data directory (typically
 /data/project/data)
 
 RETURNS: the final directory in which the registered MINC files will go
@@ -1517,10 +1517,10 @@ Check that the candidate's information derived from the patient name field of
 the DICOM files is valid (CandID and PSCID of the candidate should correspond
 to the same subject in the database).
 
-INPUT: subject's ID information hashref, tarchive source location
+INPUTS: subject's ID information hashref, tarchive source location
 
 RETURNS: the candidate mismatch error, or undef if the candidate is validated
- or a phantom
+or a phantom
 
 =cut
 
@@ -1592,10 +1592,10 @@ sub validateCandidate {
 
 =head3 computeSNR($tarchiveID, $tarchive_srcloc, $profile)
 
-Computes the SNR on the modalities specified in the Config table for a given
-tarchive.
+Computes the SNR on the modalities specified in the C<getSNRModalities()>
+routine of the C<$profile> file.
 
-INPUT: tarchive ID, tarchive source location, configuration file (usually prod)
+INPUTS: tarchive ID, tarchive source location, configuration file (usually prod)
 
 =cut
 
@@ -1663,7 +1663,7 @@ sub computeSNR {
 
 Order imaging modalities by acquisition number.
 
-INPUT: tarchive ID, tarchive source location
+INPUTS: tarchive ID, tarchive source location
 
 =cut
 
@@ -1733,9 +1733,10 @@ sub orderModalitiesByAcq {
 
 =head3 getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc)
 
-Gets the upload ID form the mri_upload table using tarchive's SourceLocation
+Gets the upload ID form the C<mri_upload> table using the DICOM archive
+C<SourceLocation> specified in the C<tarchive> table.
 
-INPUT: tarchive's source location
+INPUT: DICOM archive's source location
 
 RETURNS: the found upload ID
 
@@ -1775,9 +1776,10 @@ sub getUploadIDUsingTarchiveSrcLoc {
 
 Calls the Notify->spool function to log all messages.
 
-INPUT:
+INPUTS:
   $message   : message to be logged in the database
-  $error     : if 'Y' it's an error log , 'N' otherwise
+  $error     : if 'Y' it's an error log,
+               'N' otherwise
   $upload_id : the upload_id
   $verb      : 'N' for few main messages,
                'Y' for more messages (developers)
@@ -1804,7 +1806,6 @@ sub spool  {
 =head1 TO DO
 
 Document the following functions:
-  - getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
   - get_acqusitions($study_dir, \@acquisitions)
   - concat_mri($minc_files)
   - registerProgs(@toregister)
