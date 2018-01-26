@@ -3,7 +3,7 @@
 =pod
 
 =head1 NAME
-concat_mri.pl - aggregates minc files that have a common set of properties.
+concat_mri.pl - aggregates MINC files that have a common set of properties.
 
 =head1 SYNOPSIS
 concat_mri.pl [options] [minc_files]
@@ -26,13 +26,15 @@ B<-verbose> : print additional information while running
 B<-compress> : compress resulting output files with C<gzip>
     
 =item *
-B<-stdin> : do not read the names of the minc files on the commmand line but read them
+B<-stdin> : do not read the names of the MINC files on the commmand line but read them
 from STDIN instead
 
 =item *
-B<-postfix [postfix]> : Create output file names using the first file name, followed by 
-C<postfix>. C<postfix> will be inserted before the F<.mnc> extension. If this option is not
-used, files will be created as if C<-postfix _concat> was used.
+B<-postfix text> : create output file names using the file name without its extension, followed
+by C<text> and the the extension. For example, if C<-postfix _test> is used and the file name
+passed on the command line is F<scan.mnc>, the resulting output file will be F<scan_test.mnc>.
+If there is not C<-postfix> option on the command line, output files will be created as if 
+C<-postfix _concat> had been used.
 
 =item *
 B<-target_dir dir> : use F<dir> as the directory where output files will be written. By 
@@ -55,7 +57,7 @@ start values in one of the non-slice dimensions exceeds C<tolerance>. If this op
 is not used C<-nonslicetolerance 1e-5> is assumed.
 
 =item *
-B<-slicetolerance tolerance> : allow C<tolerance> when judging concatenateability 
+B<-slicetolerance tolerance> : allow C<tolerance> when judging concatenate ability 
 based on the start values in the slice dimension. If this option is not used, 
 C<-slicetolerance 0.05> is assumed.
 
@@ -67,7 +69,7 @@ automatically.
 
 =head1 DESCRIPTION
 
-This script parses the minc files passed on the command line (or read from STDIN) and 
+This script parses the MINC files passed on the command line (or read from STDIN) and 
 uses C<mincinfo> to extract specific header information from each of them. It then groups
 together the files that have identical values for the following properties: 
 patient name, study ID, contrast agent flag (unless C<-ignorecontrast> is specified, see 
@@ -77,7 +79,7 @@ Once the groups are created, the script proceeds to aggregate those files that b
 a given group and for which stacking or interleaving occurs in the slice direction (this 
 will be the first element in the list of dimension names). Note that C<mincresample> might 
 be called on a specific file before the actual merging takes place (see C<-nonslicetolerance>
-above). Finally, note that merging of the minc files is done with C<mincconcat>. 
+above). Finally, note that merging of the MINC files is done with C<mincconcat>. 
 
 =head1 TO DO
 
