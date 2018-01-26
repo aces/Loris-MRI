@@ -53,7 +53,7 @@ my $scan_type_desc     = "file's scan type (from the mri_scan_type table)";
 my $date_acquired_desc = "acquisition date for the file";
 my $scanner_id_desc    = "ID of the scanner stored in the mri_scanner table";
 my $reckless_desc      = "Upload data to database even if study protocol is "
-                          . "not defined or violated.";
+                         . "not defined or violated.";
 my $new_scanner_desc   = "By default a new scanner will be registered if the "
                          . "data you upload requires it. You can risk "
                          . "turning it off.";
@@ -132,7 +132,7 @@ my $temp_log = $temp[$#temp];
 # log
 my $log_dir  = $data_dir . "/logs";
 my $logfile  = $log_dir . "/" . $temp_log . ".log";
-
+my $message  = "";
 
 
 
@@ -213,10 +213,16 @@ my ($center_name, $center_id) = $utility->determinePSC(\%info, 0);
 
 # determine subject ID information
 my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
-##TODO exit with an exit code here if candidate was not found
+##TODO exit with an exit code here if candidate was not found and log in DB
 exit unless ($subjectIDsref);
 
-#TODO: add candidate mismatch utility
+# candidate IDs mismatch error
+my $CandMismatchError = undef;
+$CandMismatchError = $utility->validateCandidate(
+                        $subjectIDsref, $info{'SourceLocation'}
+);
+##TODO exit with an exit code here if candidate IDs mismatch and log this in DB
+exit if ($CandMismatchError); # exits if there is a mismatch in candidate IDs
 
 # determine sessionID
 my ($sessionID, $requiresStaging) = NeuroDB::MRI::getSessionID(
@@ -229,9 +235,8 @@ $file->setFileData('SessionID', $sessionID);
 print "\t -> Set SessionID to $sessionID.\n";
 
 
-########### STOPPED HERE
 
-###### Determine the scan type to be used to register the file
+###### Determine the scan type and acquisition protocol ID of the file
 
 ##TODO: depending on the type of the file load, could maybe determine this
 # from metadata or filename? For now, just exits if scan type is not defined
@@ -240,6 +245,13 @@ unless ($scan_type) {
     print "\nERROR: could not determine the scan type of $file_path.\n\n";
     exit;
 }
+
+# determine acquisition protocol ID
+my $acqProtocolID;
+my @checks; #TODO: verify if can remove @checks as won't be used
+($scan_type, $acqProtocolID, @checks) = $utility->getAcquisitionProtocol(
+    $file, $subjectIDsref, \%info, $center_name, $file_path, $scan_type, 0
+);
 
 
 
@@ -254,27 +266,6 @@ if ($output_type) {
 } else {
     # otherwise, use information somewhere from the file to determine it
     #TODO: we'll see when we get there... Might change depending if eeg, pet...
-}
-
-
-
-
-###### Determine the acquisition protocol ID
-
-if ($scan_type) {
-    # if the scan type has been provided as an argument to the script, then
-    # use it to determine the acquisition protocol ID from mri_scan_type table
-    my $acqProtID = getAcqProtID($scan_type, $dbh);
-    if (!defined($acqProtID)) {
-        print "\nERROR: could not determine AcquisitionProtocolID based "
-              . "on scanType $scan_type.\n\n";
-        exit 2;
-    }
-    $file->setFileData('AcquisitionProtocolID', $acqProtID);
-    print "\t -> Set AcquisitionProtocolID to $acqProtID.\n";
-} else {
-    # otherwise, use information somewhere from the file to determine it
-    ##TODO: we'll see when we get there... Might change depending if eeg, pet...
 }
 
 
@@ -317,17 +308,18 @@ QUERY
 
 
 
+###### Compute the md5hash and check if file is unique
 
-###### Compute the md5hash
-
-my  $md5hash = &NeuroDB::MRI::compute_hash(\$file);
-$file->setParameter('md5hash', $md5hash);
-print LOG "\t -> Set md5hash to $md5hash.\n";
-if  (!NeuroDB::MRI::is_unique_hash(\$file)) {
-    print "\n==> $file is not a unique file and will not be added to database.\n\n";
-    exit 1;
+my $unique = $utility->computeMd5Hash($file, $info{'SourceLocation'});
+if (!$unique) {
+    $message = "\n--> WARNING: This file has already been uploaded!\n";
+    print $message if $verbose;
+    print LOG $message;
+#    $notifier->spool('tarchive validation', $message, 0,
+#        'minc_insertion.pl', $upload_id, 'Y',
+#        $notify_notsummary);
+    exit 8;
 }
-
 
 
 
