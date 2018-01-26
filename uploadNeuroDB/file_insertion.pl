@@ -2,11 +2,17 @@ use strict;
 use warnings;
 use Getopt::Tabular;
 use File::Basename;
+use File::Temp qw/ tempdir /;
 
 ###### Import NeuroDB libraries to be used
 use NeuroDB::DBI;
 use NeuroDB::MRI;
 use NeuroDB::File;
+use NeuroDB::MRIProcessingUtility;
+
+
+#
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 
 
 
@@ -21,6 +27,8 @@ my $scan_type     = undef;
 my $date_acquired = undef;
 my $scanner_id    = undef;
 my $verbose       = 0;
+my $reckless      = 0;   # only for playing & testing. Don't set it to 1!!!
+my $new_scanner   = 1;   # 1 should be the default unless you're a control freak
 my @args;
 
 # Describe the usage to be displayed by Getopt::Tabular
@@ -44,6 +52,11 @@ my $output_type_desc   = "file's output type (e.g. native, qc, processed...)";
 my $scan_type_desc     = "file's scan type (from the mri_scan_type table)";
 my $date_acquired_desc = "acquisition date for the file";
 my $scanner_id_desc    = "ID of the scanner stored in the mri_scanner table";
+my $reckless_desc      = "Upload data to database even if study protocol is "
+                          . "not defined or violated.";
+my $new_scanner_desc   = "By default a new scanner will be registered if the "
+                         . "data you upload requires it. You can risk "
+                         . "turning it off.";
 
 # Initialize the arguments table
 my @args_table = (
@@ -53,6 +66,11 @@ my @args_table = (
         ["-profile",   "string",  1, \$profile,   $profile_desc],
         ["-file_path", "string",  1, \$file_path, $file_path_desc],
         ["-verbose",   "boolean", 1, \$verbose,   "Be verbose"],
+
+    ["Advanced options", "section"],
+
+        ["-reckless",    "boolean", 1, \$reckless,    $reckless_desc],
+        ["-new_scanner", "boolean", 1, \$new_scanner, $new_scanner_desc],
 
     ["Optional options", "section"],
 
@@ -96,17 +114,45 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 
 
-###### Get the user that is performing the insert
+###### Get config settings
 
-my $InsertedByUserID = `whoami`;
-
-
+my $data_dir = NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
 
 
 
-###### Create and load File object.
+
+###### For the log and temp directories
+
+# temp directory
+my $template = "FileLoad-$hour-$min-XXXXXX";
+my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
+my @temp     = split(/\//, $TmpDir);
+my $temp_log = $temp[$#temp];
+
+# log
+my $log_dir  = $data_dir . "/logs";
+my $logfile  = $log_dir . "/" . $temp_log . ".log";
+
+
+
+
+###### Create File, Utility and Notify objects
+
 # Create File object
 my $file = NeuroDB::File->new(\$dbh);
+
+# Create Utility object
+my $utility = NeuroDB::MRIProcessingUtility->new(
+    \$dbh, 0, $TmpDir, $logfile, $verbose
+);
+
+# Load Notify object
+my $notifier = NeuroDB::Notify->new(\$dbh);
+
+
+
+
+###### Load File object
 
 # Load File object (file type will be automatically determined here as long
 # as the file type exists in the ImagingFileTypes table
@@ -118,43 +164,59 @@ $file->loadFileFromDisk($file_path);
 ###### Determine file basename and directory name
 
 # Get the file name and directory name of $file_path
-##TODO: remove if not needed in the script later on
 my ($file_name, $dir_name) = fileparse($file_path);
-print "\nfile name: "   . $file_name
-      . "\ndir name: "  . $dir_name;
 
 
 
-###### Determine the candidate's IDs and SessionID
 
-# determine subjectIDs
-##TODO: investigate further if we can use determineSubjectID in
-# MRIProcessingUtility. Difficult because of the hardcoded reference to
-# TarchiveSourceLocation...
-if (!defined(&Settings::getSubjectIDs)) {
-    print "\nERROR: $profile does not contain getSubjectIDs() routine.\n\n";
-}
-my $subjectIDsref = undef;
+###### Determine the metadata to be stored in parameter_file
+
+##TODO: that's going to be a pickle!!
+
+
+
+
+###### Determine center name and ID, scanner ID and candidate information
+
+# create a hash similar to tarchiveInfo so that can use Utility routines to
+# determine the center name, center ID, scanner ID and candidate information
+my %info;
+
+# for now, set SourceLocation to undef
+$info{'SourceLocation'} = undef;
+
 if ($patient_name) {
     # if the patient name has been provided as an argument to the script, then
-    # use it to determine Candidate's information
-    $subjectIDsref = Settings::getSubjectIDs(
-        $patient_name,
-        $patient_name,
-        undef,
-        \$dbh
-    );
+    # use it to determine candidate & site information
+    $info{'PatientName'} = $patient_name;
+    $info{'PatientID'}   = $patient_name;
 } else {
-    # otherwise, use the file's name to determine Candidate's information
-    $subjectIDsref = Settings::getSubjectIDs(
-        $file_name,
-        $file_name,
-        undef,
-        \$dbh
-    );
+    # otherwise, use the file's name to determine candidate & site information
+    $info{'PatientName'} = $file_name;
+    $info{'PatientID'}   = $file_name;
 }
+
+# get the center name, center ID
+my ($center_name, $center_id) = $utility->determinePSC(\%info, 0);
+
+
+
+# determine the scanner ID
+#TODO: have that specified at the command line or grep this from metadata
+# $info{'ScannerManufacturer'}    = $scanner_manufacturer;
+# $info{'ScannerModel'}           = $scanner_model;
+# $info{'ScannerSerialNumber'}    = $scanner_serial_number;
+# $info{'ScannerSoftwareVersion'} = $scanner_software_version,
+# $scanner_id = $utility->determineScannerID(
+#                    \%info, 0, $center_id, $new_scanner
+#);
+
+# determine subject ID information
+my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
 ##TODO exit with an exit code here if candidate was not found
 exit unless ($subjectIDsref);
+
+#TODO: add candidate mismatch utility
 
 # determine sessionID
 my ($sessionID, $requiresStaging) = NeuroDB::MRI::getSessionID(
@@ -167,11 +229,17 @@ $file->setFileData('SessionID', $sessionID);
 print "\t -> Set SessionID to $sessionID.\n";
 
 
+########### STOPPED HERE
 
+###### Determine the scan type to be used to register the file
 
-###### Determine the metadata to be stored in parameter_file along with the file
+##TODO: depending on the type of the file load, could maybe determine this
+# from metadata or filename? For now, just exits if scan type is not defined
 
-##TODO: that's going to be a pickle!!
+unless ($scan_type) {
+    print "\nERROR: could not determine the scan type of $file_path.\n\n";
+    exit;
+}
 
 
 
@@ -246,6 +314,33 @@ QUERY
     $file->setFileData('ScannerID', 0);
 }
 
+
+
+
+
+###### Compute the md5hash
+
+my  $md5hash = &NeuroDB::MRI::compute_hash(\$file);
+$file->setParameter('md5hash', $md5hash);
+print LOG "\t -> Set md5hash to $md5hash.\n";
+if  (!NeuroDB::MRI::is_unique_hash(\$file)) {
+    print "\n==> $file is not a unique file and will not be added to database.\n\n";
+    exit 1;
+}
+
+
+
+
+###### Register scan into DB
+
+my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
+    \$file,     undef, $subjectIDsref, $scan_type,
+    $file_path, undef, $reckless,      undef,
+    $sessionID
+);
+
+
+
 ##TODO: continue looking from step 7 of register processed data
 
 exit 0;
@@ -279,3 +374,7 @@ sub getAcqProtID    {
 
     return  ($acqProtID);
 }
+
+__END__
+
+
