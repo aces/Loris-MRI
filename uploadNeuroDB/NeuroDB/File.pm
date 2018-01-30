@@ -317,7 +317,7 @@ sub loadFileFromDisk {
 
     # grep possible file types from the database
     my $fileType = $this->getFileType($file);
-    $this->setFileData('FileType', $fileType) if defined $fileType;
+   $this->setFileData('FileType', $fileType) if defined $fileType;
     
     # if the file is not a minc, then just we've done as much as we can...
     if(!defined($fileType) || $fileType ne 'mnc') {
