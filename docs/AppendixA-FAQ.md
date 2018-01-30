@@ -24,12 +24,7 @@ post-installation verification section.
 |                      |4-D images (e.g. DTI, fMRI) in brainbrowser do not show any volumes (Play button not displayed)|Most likely a dcm2mnc conversion error|Post an issue on the MincTools github|
 |**Insertion Scripts**|`The Candidate info validation has failed`|PatientName/PatientID header in the DICOMs not anonymized according to the LORIS convention `(PSCID_CandID_VisitLabel)`|Use DiCAT to anonymize it properly OR Use the command line in the DICOM toolkit to do so|
 |                     |`The Candidate info validation has failed`|The upload contains at least one file that is NOT of type DICOM (.bmp or .pdf are common)|Remove any file in the upload that is not of type DICOM|
-|                     |`ERROR: This class is designed around the notion of a 'Study'.
-                        	 You can't use it with data from multiple studies.  
-                        The following study UIDs were found:
-                        '1.3.12.2.1107.5.2.43.66060.30000018010817270342400000004'
-                        '1.3.12.2.1107.5.2.43.66060.30000018011016312906600000007'
-                        The dicomTar execution has failed`|The upload contains acquisitions from two scanning sessions|Separate into two separate uploads|
+|                     |`ERROR: This class is designed around the notion of a 'Study'. You can't use it with data from multiple studies.  The following study UIDs were found: '1.3.12.2.1107.5.2.43.66060.30000018010817270342400000004' '1.3.12.2.1107.5.2.43.66060.30000018011016312906600000007' The dicomTar execution has failed`|The upload contains acquisitions from two scanning sessions|Separate into two separate uploads|
 |                     |`Out of memory!`|The Transfer syntax if the uploaded scan is other than Little Endian Explicit (such as Implicit or JPEG lossless)|Use the DICOM toolkit to convert|
 |                     |`Number of MINC files that will be considered for inserting into the database: 0. No data could be converted into valid MINC files. Localizers will not be considered!`|The upload contains only ‘localizer’ type SeriesDescription|Localizers are not processed by default in Loris|
 |                     |My upload had 6 modalities in the DICOMs and only 5 are inserted; the 6th one has no MINC generated and nothing in the violated scans|Probably the scan is a `localizer` scan. `tarchiveLoader` script is specifically instructed to exclude this modality.|No action needed. This is the expected behavior of the Loris-MRI insertion pipeline|
