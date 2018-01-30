@@ -32,7 +32,7 @@ B<-globLocation> : loosen the validity check of the DICOM archive allowing for t
      possibility that it was moved to a different directory.
 
 =item *
-B<-verbose> : Be verbose
+B<-verbose> : be verbose
 
 =back 
 

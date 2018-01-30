@@ -14,7 +14,7 @@ updateMRI\_Upload.pl \[options\] -profile prod -tarchivePath tarchivePath -sourc
     `DecompressedLocation` for the newly created record in table `mri_upload` (see below)
 - **-globLocation** : loosen the validity check of the DICOM archive allowing for the 
      possibility that it was moved to a different directory.
-- **-verbose** : Be verbose
+- **-verbose** : be verbose
 
 # DESCRIPTION
 
