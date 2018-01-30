@@ -56,7 +56,7 @@ uploadNeuroDB/imaging_upload_file_cronjob.pl -profile prod -verbose
                                 
 The script `imaging_upload_file_cronjob.pl` does not require a specific 
 `$UploadID` as an argument because it automatically cycles through 
-I<all new uploads> on which the pipeline has not been triggered yet, and 
+*all new uploads* on which the pipeline has not been triggered yet, and 
 launches it. As such, this option is used in similar scenarios as Option 1, 
 but with the added advantage of not needing to continuously monitor for new 
 uploads (the script can be added to the system's crontab to launch at 
@@ -66,7 +66,7 @@ pre-scheduled times, as per the project's requirements).
 
 ## 5.3 Option 3
 
-The insertion pipeline can then be triggered using the command:
+The insertion pipeline can also be triggered using the command:
 ```
 ./batch_uploads_imageuploader -profile prod < scans_list.txt >log_batch_imageuploader.txt 2>&1 
 
