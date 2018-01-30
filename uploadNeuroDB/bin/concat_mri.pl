@@ -31,7 +31,7 @@ from STDIN instead
 
 =item *
 B<-postfix text> : create output file names using the file name without its extension, followed
-by C<text> and the the extension. For example, if C<-postfix _test> is used and the file name
+by C<text> and the extension. For example, if C<-postfix _test> is used and the file name
 passed on the command line is F<scan.mnc>, the resulting output file will be F<scan_test.mnc>.
 If there is not C<-postfix> option on the command line, output files will be created as if 
 C<-postfix _concat> had been used.

@@ -12,7 +12,7 @@ concat\_mri.pl \[options\] \[minc\_files\]
 - **-stdin** : do not read the names of the MINC files on the commmand line but read them
 from STDIN instead
 - **-postfix text** : create output file names using the file name without its extension, followed
-by `text` and the the extension. For example, if `-postfix _test` is used and the file name
+by `text` and the extension. For example, if `-postfix _test` is used and the file name
 passed on the command line is `scan.mnc`, the resulting output file will be `scan_test.mnc`.
 If there is not `-postfix` option on the command line, output files will be created as if 
 `-postfix _concat` had been used.
