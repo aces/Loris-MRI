@@ -104,10 +104,16 @@ sub IsCandidateInfoValid {
     my $files_with_unmatched_patient_name = 0;
     my $is_candinfovalid                  = 0;
     my @row                               = ();
+
     ############################################################
+    ####Remove __MACOSX directory from the upload if found######
     ####Get a list of files from the folder#####################
     #############Loop through the files#########################
     ############################################################
+    my $cmd = "find -path " . quotemeta($this->{'uploaded_temp_folder'}) . " -name '__MACOSX' -delete ";
+    print "\n $cmd \n";
+    system($cmd);
+
     my @file_list;
     find(
         sub {
@@ -186,13 +192,6 @@ sub IsCandidateInfoValid {
         return 0;
     }
 
-
-    ############################################################
-    ####Remove __MACOSX directory from the upload ##############
-    ############################################################
-    my $cmd = "cd " . $this->{'uploaded_temp_folder'} . "; find -name '__MACOSX' | xargs rm -rf";
-    system($cmd);
-
     foreach (@file_list) {
         ########################################################
         #1) Exlcude files starting with . (and ._ as a result)##
@@ -202,7 +201,7 @@ sub IsCandidateInfoValid {
         ########################################################
         if ( (basename($_) =~ /^\./)) {
             $cmd = "rm " . ($_);
-            print ($cmd);
+            print "\n $cmd \n";
             system($cmd);
         }
         else {
