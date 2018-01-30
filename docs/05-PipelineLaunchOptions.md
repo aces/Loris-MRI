@@ -1,11 +1,12 @@
 # 5.0 - Pipeline Launch options
 
 Scans upload into LORIS and insertion pipeline's triggering can be done in a few 
-ways depending on each project's needs. The best choice will depend on whether 
-for example data is collected retrospectively or prospectively, and/or whether 
-the MRI protocol is harmonized across all the sites involved in the study.
+ways depending on each project's needs. The best choice will depend on the study 
+workflow and protocol. For example, it will depend on whether data is collected 
+retrospectively or prospectively, and/or whether the MRI protocol is harmonized 
+across all the sites involved in the study.
 
-The different options available are graphically illustrated in the graph below.
+The different options available are illustrated in the graph below.
 
 ![PipelineLaunchOptions](images/PipelineLaunchOptions.png)
 
@@ -78,15 +79,18 @@ prospective studies that want to benefit from tracking scans through the Imaging
 Uploader while automating the upload and insertion process without a user/GUI 
 interface interaction. 
 
-In this case, the scans should be transferred to the LORIS-MRI filesystem (a 
-path such as `/data/incoming/`), and on input text file `scans_list.txt` 
-provided, listing one line pr dataset (example below).
-The following fields are expected, separated by spaces:
+In this case, the scans should be transferred to the LORIS-MRI filesystem (for 
+example `/data/incoming/`). In addition, an input text file (such as 
+`scans_list.txt`) listing one dataset per line should be provided (see example 
+below).
 
-1. the full path to the zipped DICOM scanset (`.zip`, `.tgz`, `.tar.gz`), 
+Each line in that text file should include the following information separated 
+by spaces:
+
+1. the full path to the zipped DICOM dataset (`.zip`, `.tgz`, `.tar.gz`), 
 2. Y or N depending on whether the scan is for a phantom or not, and
-3. patient name following the PSCID_CandID_VisitLabel LORIS convention for real 
-candidates. Leave BLANK for phantoms.
+3. the patient name following the PSCID_CandID_VisitLabel LORIS convention for 
+real candidates. Leave BLANK for phantoms.
 
 
 Example for two entries/scans to be uploaded (one human subject and one phantom):
