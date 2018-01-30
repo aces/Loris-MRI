@@ -11,8 +11,8 @@ updateMRI\_Upload.pl \[options\] -profile prod -tarchivePath tarchivePath -sourc
     profile file
 - **-tarchivePath tarchivePath** : (mandatory) absolute path to the DICOM archive
 - **-source\_location source\_location** : (mandatory) value to set column 
-    `DecompressedLocation` to for the newly created record in table `mri_upload` (see below)
-- **-globLocation** : Loosen the validity check of the DICOM archive allowing for the 
+    `DecompressedLocation` for the newly created record in table `mri_upload` (see below)
+- **-globLocation** : loosen the validity check of the DICOM archive allowing for the 
      possibility that it was moved to a different directory.
 - **-verbose** : Be verbose
 

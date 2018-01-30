@@ -25,10 +25,10 @@ B<-tarchivePath tarchivePath> : (mandatory) absolute path to the DICOM archive
 
 =item *
 B<-source_location source_location> : (mandatory) value to set column 
-    C<DecompressedLocation> to for the newly created record in table C<mri_upload> (see below)
+    C<DecompressedLocation> for the newly created record in table C<mri_upload> (see below)
     
 =item *
-B<-globLocation> : Loosen the validity check of the DICOM archive allowing for the 
+B<-globLocation> : loosen the validity check of the DICOM archive allowing for the 
      possibility that it was moved to a different directory.
 
 =item *
