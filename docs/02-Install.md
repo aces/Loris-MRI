@@ -67,10 +67,10 @@ Under the section `Paths`
  * `Images`
  
  Under the section `Imaging Modules`
-  * `Patient ID regex`: Used by the DICOM Archive module to 
-  * `Patient name regex`
-  * `Lego phantom regex`
-  * `Living phantom regex`
+  * `Patient ID regex`: Used by the DICOM Archive module to show/hide the PatientID info
+  * `Patient name regex`: Used by the DICOM Archive module to show/hide the Patient Name info
+  * `Lego phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
+  * `Living phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
   * `Imaging Browser Tabulated Scan Types`: Used by Imaging Browser to decide what modalities to display the QC status on
      
  Under the section `Imaging Pipeline`:
