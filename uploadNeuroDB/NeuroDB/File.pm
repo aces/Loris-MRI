@@ -261,7 +261,7 @@ QUERY
     $sth->execute();
 
     # else, loop through the different values from ImagingFileTypes table
-        # and see if $file matches one of the file types.
+    # and see if $file matches one of the file types.
     while (my $fileTypeRow = $sth->fetchrow_hashref()) {
         if ($file =~ /\.$fileTypeRow->{'type'}(\.gz)?$/) {
             $fileType = $fileTypeRow->{'type'};
