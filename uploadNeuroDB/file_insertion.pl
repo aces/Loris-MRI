@@ -25,10 +25,10 @@ my $patient_name  = undef;
 my $output_type   = undef;
 my $scan_type     = undef;
 my $date_acquired = undef;
-my $scanner_id    = undef;
 my $verbose       = 0;
 my $reckless      = 0;   # only for playing & testing. Don't set it to 1!!!
 my $new_scanner   = 1;   # 1 should be the default unless you're a control freak
+my $scanner_id    = undef;
 my @args;
 
 # Describe the usage to be displayed by Getopt::Tabular
@@ -51,12 +51,13 @@ my $pname_desc         = "patient name (in the form of "
 my $output_type_desc   = "file's output type (e.g. native, qc, processed...)";
 my $scan_type_desc     = "file's scan type (from the mri_scan_type table)";
 my $date_acquired_desc = "acquisition date for the file";
-my $scanner_id_desc    = "ID of the scanner stored in the mri_scanner table";
-my $reckless_desc      = "Upload data to database even if study protocol is "
+my $reckless_desc      = "upload data to database even if study protocol is "
                          . "not defined or violated.";
-my $new_scanner_desc   = "By default a new scanner will be registered if the "
+my $new_scanner_desc   = "by default a new scanner will be registered if the "
                          . "data you upload requires it. You can risk "
                          . "turning it off.";
+my $scanner_id_desc    = "ID of the scanner stored in the mri_scanner table";
+
 
 # Initialize the arguments table
 my @args_table = (
@@ -78,7 +79,8 @@ my @args_table = (
         ["-output_type",   "string", 1, \$output_type,   $output_type_desc],
         ["-scan_type",     "string", 1, \$scan_type,     $scan_type_desc],
         ["-date_acquired", "string", 1, \$date_acquired, $date_acquired_desc],
-        ["-scanner_id",    "string", 1, \$scanner_id,    $scanner_id_desc]
+        ["-scanner_id",    "string", 1, \$scanner_id,    $scanner_id_desc],
+
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
@@ -155,7 +157,7 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 ###### Load File object
 
 # Load File object (file type will be automatically determined here as long
-# as the file type exists in the ImagingFileTypes table
+# as the file type exists in the ImagingFileTypes table)
 $file->loadFileFromDisk($file_path);
 
 
@@ -173,6 +175,18 @@ my ($file_name, $dir_name) = fileparse($file_path);
 
 ##TODO: that's going to be a pickle!!
 
+##TODO: if possible grep the following from metadata (if only partial info is
+# available, then set the missing info to '' for the scanner. Will be
+# useful for PET as don't have all that information)
+my $scanner_model = undef;
+my $scanner_manufacturer     = undef;
+my $scanner_serial_number    = undef;
+my $scanner_software_version = undef;
+
+##TODO: depending on the type of the file to insert, could maybe determine the
+# $scan_type from metadata if not set as an argument to the script
+
+##TODO: see if can get the output type from metadata
 
 
 
@@ -199,21 +213,47 @@ if ($patient_name) {
 # get the center name, center ID
 my ($center_name, $center_id) = $utility->determinePSC(\%info, 0);
 
-
-
 # determine the scanner ID
-#TODO: have that specified at the command line or grep this from metadata
-# $info{'ScannerManufacturer'}    = $scanner_manufacturer;
-# $info{'ScannerModel'}           = $scanner_model;
-# $info{'ScannerSerialNumber'}    = $scanner_serial_number;
-# $info{'ScannerSoftwareVersion'} = $scanner_software_version,
-# $scanner_id = $utility->determineScannerID(
-#                    \%info, 0, $center_id, $new_scanner
-#);
+if ($scanner_id) {
+    # if the scanner ID has been provided as an argument to the script, then
+    # use its value in the ScannerID field of the files table (after having
+    # checked that this scanner ID exists in the mri_scanner table)
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT ID FROM mri_scanner WHERE ID=?
+QUERY
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+
+    unless ($sth->rows > 0) {
+        # if no row returned, exits with message that the scanner ID provided
+        # does not exist
+        print "\nERROR: did not find any scanner with ID=$scanner_id.\n\n";
+        ##TODO: proper logging and exit code
+        exit;
+    }
+} elsif ($scanner_manufacturer     && $scanner_model
+         && $scanner_serial_number && $scanner_software_version) {
+    # if found scanner manufacturer, scanner model, scanner serial number, and
+    # scanner software version in the metadata, then set them in %info and
+    # grep the scanner ID
+    $info{'ScannerManufacturer'}    = $scanner_manufacturer;
+    $info{'ScannerModel'}           = $scanner_model;
+    $info{'ScannerSerialNumber'}    = $scanner_serial_number;
+    $info{'ScannerSoftwareVersion'} = $scanner_software_version;
+    $scanner_id = $utility->determineScannerID(
+                       \%info, 0, $center_id, $new_scanner
+    );
+} else {
+    # otherwise, set it to 0 if no way of finding that information
+    $scanner_id=0;
+}
+# set file's scanner ID to $scanner_id
+$file->setFileData('ScannerID', $scanner_id);
+print "\t -> Set ScannerID to $scanner_id.\n";
 
 # determine subject ID information
 my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
-##TODO exit with an exit code here if candidate was not found and log in DB
+##TODO: proper logging and exit code
 exit unless ($subjectIDsref);
 
 # candidate IDs mismatch error
@@ -221,7 +261,7 @@ my $CandMismatchError = undef;
 $CandMismatchError = $utility->validateCandidate(
                         $subjectIDsref, $info{'SourceLocation'}
 );
-##TODO exit with an exit code here if candidate IDs mismatch and log this in DB
+##TODO: proper logging and exit code
 exit if ($CandMismatchError); # exits if there is a mismatch in candidate IDs
 
 # determine sessionID
@@ -236,13 +276,16 @@ print "\t -> Set SessionID to $sessionID.\n";
 
 
 
+
 ###### Determine the scan type and acquisition protocol ID of the file
 
-##TODO: depending on the type of the file load, could maybe determine this
-# from metadata or filename? For now, just exits if scan type is not defined
-
+##TODO: depending on the type of the file to insert, if $scan_type was not
+# set as an argument or defined when reading metadata, then try reading it
+# from the filename. If not in the filename either, then just exits if scan type
+#  is not defined
 unless ($scan_type) {
     print "\nERROR: could not determine the scan type of $file_path.\n\n";
+    ##TODO: proper logging and exit code
     exit;
 }
 
@@ -258,52 +301,9 @@ my @checks; #TODO: verify if can remove @checks as won't be used
 
 ###### Determine the output type (native, qc, processed...)
 
-if ($output_type) {
-    # if the output type has been provided as an argument to the script, then
-    # use its value in the OutputType field of the files table
-    $file->setFileData('OutputType', $output_type);
-    print "\t -> Set OutputType to $output_type.\n";
-} else {
-    # otherwise, use information somewhere from the file to determine it
-    #TODO: we'll see when we get there... Might change depending if eeg, pet...
-}
+$file->setFileData('OutputType', $output_type);
+print "\t -> Set OutputType to $output_type.\n";
 
-
-
-
-###### Determine the scanner ID
-##TODO: might want to create new scanners if following arguments are passed:
-# $manufacturer, $model, $serialNumber, $softwareVersion, $register_new, if
-# so, would call function NeuroDB::MRI::findScannerID()
-
-if ($scanner_id) {
-    # if the scanner ID has been provided as an argument to the script, then
-    # use its value in the ScannerID field of the files table (after having
-    # checked that this scanner ID exists in the mri_scanner table)
-    (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT ID FROM mri_scanner WHERE ID=?
-QUERY
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-
-
-    if($sth->rows>0) {
-        # if found scanner, set scanner ID to $scanner_id
-        $file->setFileData('ScannerID', $scanner_id);
-        print "\t -> Set ScannerID to $scanner_id.\n";
-    } else {
-        # otherwise, exits with message that the scanner ID provided does not
-        #  exist
-        print "\nERROR: did not find any scanner with ID=$scanner_id.\n\n";
-        #TODO exit with code exit
-        exit;
-    }
-} else {
-    # otherwise, use information somewhere from the file to determine it or
-    # set it to 0 if no way of finding that information
-    ##TODO: we'll see when we get there... Might change depending on eeg, pet...
-    $file->setFileData('ScannerID', 0);
-}
 
 
 
@@ -318,8 +318,10 @@ if (!$unique) {
 #    $notifier->spool('tarchive validation', $message, 0,
 #        'minc_insertion.pl', $upload_id, 'Y',
 #        $notify_notsummary);
+    ##TODO: proper logging and exit code
     exit 8;
 }
+
 
 
 
