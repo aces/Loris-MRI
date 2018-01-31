@@ -757,14 +757,15 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path   =   $tarchive;
-        $tarchive_path      =~  s/$data_dir\///i;
+        $tarchive_path =  $tarchive;
+        $tarchive_path =~ s/$data_dir\///i if ($tarchive_path);
+        $tarchive_path = 'NULL' unless ($tarchive_path);
         $${minc_file}->setParameter(
             'tarchiveLocation', 
             $tarchive_path
         );
         $${minc_file}->setParameter(
-            'tarchiveMD5', 
+            'tarchiveMD5',
             $tarchiveInfo->{'md5sumArchive'}
         );
 
@@ -780,9 +781,15 @@ sub registerScanIntoDB {
         ########################################################
         ### update mri_acquisition_dates table #################
         ########################################################
+        my $acquisition_date = undef;
+        if ($tarchiveInfo->{'DateAcquired'}) {
+            $acquisition_date = $tarchiveInfo->{'DateAcquired'};
+        } elsif ($${minc_file}->getParameter('AcquisitionDate')) {
+            $acquisition_date = $${minc_file}->getParameter('AcquisitionDate');
+        }
         $this->update_mri_acquisition_dates(
-            $sessionID, 
-            $tarchiveInfo->{'DateAcquired'}
+            $sessionID,
+            $acquisition_date
         );
     }
     return $acquisitionProtocolID;

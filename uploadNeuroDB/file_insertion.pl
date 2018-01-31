@@ -3,6 +3,7 @@ use warnings;
 use Getopt::Tabular;
 use File::Basename;
 use File::Temp qw/ tempdir /;
+use Date::Parse;
 
 ###### Import NeuroDB libraries to be used
 use NeuroDB::DBI;
@@ -11,8 +12,6 @@ use NeuroDB::File;
 use NeuroDB::MRIProcessingUtility;
 
 
-#
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 
 
 
@@ -25,10 +24,11 @@ my $patient_name  = undef;
 my $output_type   = undef;
 my $scan_type     = undef;
 my $date_acquired = undef;
+my $scanner_id    = undef;
+my $metadata_file = undef;
 my $verbose       = 0;
 my $reckless      = 0;   # only for playing & testing. Don't set it to 1!!!
 my $new_scanner   = 1;   # 1 should be the default unless you're a control freak
-my $scanner_id    = undef;
 my @args;
 
 # Describe the usage to be displayed by Getopt::Tabular
@@ -50,13 +50,15 @@ my $pname_desc         = "patient name (in the form of "
                          . "PSCID_CandID_VisitLabel)";
 my $output_type_desc   = "file's output type (e.g. native, qc, processed...)";
 my $scan_type_desc     = "file's scan type (from the mri_scan_type table)";
-my $date_acquired_desc = "acquisition date for the file";
+my $date_acquired_desc = "acquisition date for the file (YYYY-MM-DD)";
+my $scanner_id_desc    = "ID of the scanner stored in the mri_scanner table";
 my $reckless_desc      = "upload data to database even if study protocol is "
                          . "not defined or violated.";
 my $new_scanner_desc   = "by default a new scanner will be registered if the "
                          . "data you upload requires it. You can risk "
                          . "turning it off.";
-my $scanner_id_desc    = "ID of the scanner stored in the mri_scanner table";
+my $metadata_file_desc = "file that can be read to look for metadata "
+                         . "information to attach to the file to be inserted";
 
 
 # Initialize the arguments table
@@ -80,6 +82,7 @@ my @args_table = (
         ["-scan_type",     "string", 1, \$scan_type,     $scan_type_desc],
         ["-date_acquired", "string", 1, \$date_acquired, $date_acquired_desc],
         ["-scanner_id",    "string", 1, \$scanner_id,    $scanner_id_desc],
+        ["-metadata_file", "string", 1, \$metadata_file, $metadata_file_desc]
 
 );
 
@@ -104,6 +107,7 @@ unless (-e $file_path) {
           . "using the -file_path option.\n\n";
     exit 33;
 }
+
 ##TODO more can go there as the script gets more arguments
 
 
@@ -124,6 +128,9 @@ my $data_dir = NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
 
 
 ###### For the log and temp directories
+
+# determine local time
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 
 # temp directory
 my $template = "FileLoad-$hour-$min-XXXXXX";
@@ -188,6 +195,8 @@ my $scanner_software_version = undef;
 
 ##TODO: see if can get the output type from metadata
 
+##TODO: see if date acquired can be found in metadata
+
 
 
 ###### Determine center name and ID, scanner ID and candidate information
@@ -245,7 +254,7 @@ QUERY
     );
 } else {
     # otherwise, set it to 0 if no way of finding that information
-    $scanner_id=0;
+    $scanner_id = undef;
 }
 # set file's scanner ID to $scanner_id
 $file->setFileData('ScannerID', $scanner_id);
@@ -276,6 +285,17 @@ print "\t -> Set SessionID to $sessionID.\n";
 
 
 
+###### Determine acquisition date
+
+unless ($date_acquired){
+    print "\nERROR: could not determine the scan date of $file_path.\n\n";
+    ##TODO: proper logging and exit code
+    exit;
+}
+my ($ss, $mm, $hh, $day, $month, $year, $zone) = strptime($date_acquired);
+$date_acquired = sprintf("%4d-%02d-%02d",$year+1900,$month+1,$day);
+$file->setParameter('AcquisitionDate', $date_acquired);
+
 
 ###### Determine the scan type and acquisition protocol ID of the file
 
@@ -289,22 +309,25 @@ unless ($scan_type) {
     exit;
 }
 
-# determine acquisition protocol ID
-my $acqProtocolID;
-my @checks; #TODO: verify if can remove @checks as won't be used
-($scan_type, $acqProtocolID, @checks) = $utility->getAcquisitionProtocol(
-    $file, $subjectIDsref, \%info, $center_name, $file_path, $scan_type, 0
-);
+# verify that an acquisition protocol ID exists for $scan_type
+my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, \$dbh);
+if ($acqProtocolID =~ /unknown/){
+    print "\tERROR: no acquisition protocol ID found for $scan_type.\n\n";
+    ##TODO: proper logging and exit code
+    exit;
+}
 
 
 
 
 ###### Determine the output type (native, qc, processed...)
 
-$file->setFileData('OutputType', $output_type);
-print "\t -> Set OutputType to $output_type.\n";
-
-
+##TODO: output_type cannot be null so need to find a way to define it if not
+# in args...
+if ($output_type) {
+    $file->setFileData('OutputType', $output_type);
+    print "\t -> Set OutputType to $output_type.\n";
+}
 
 
 
@@ -314,7 +337,7 @@ my $unique = $utility->computeMd5Hash($file, $info{'SourceLocation'});
 if (!$unique) {
     $message = "\n--> WARNING: This file has already been uploaded!\n";
     print $message if $verbose;
-    print LOG $message;
+#    print LOG $message;
 #    $notifier->spool('tarchive validation', $message, 0,
 #        'minc_insertion.pl', $upload_id, 'Y',
 #        $notify_notsummary);
@@ -327,15 +350,14 @@ if (!$unique) {
 
 ###### Register scan into DB
 
+# note, have to give an array of checks, for now, hardcoding it to 'pass'
+# until we end up with a case where this should not be the case.
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,     undef, $subjectIDsref, $scan_type,
-    $file_path, undef, $reckless,      undef,
+    \$file,     undef,    $subjectIDsref, $scan_type,
+    $file_path, ['pass'], $reckless,      undef,
     $sessionID
 );
 
-
-
-##TODO: continue looking from step 7 of register processed data
 
 exit 0;
 
