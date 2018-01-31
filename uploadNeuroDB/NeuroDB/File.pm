@@ -260,17 +260,11 @@ QUERY
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute();
 
-    # determine file type of $file
-    if($file =~ /\.mnc(\.gz)?$/) {
-        # if file type is .mnc or .mnc.gz, then file type will be 'mnc'
-        $fileType = 'mnc';
-    } else {
-        # else, loop through the different values from ImagingFileTypes table
+    # else, loop through the different values from ImagingFileTypes table
         # and see if $file matches one of the file types.
-        while (my $fileTypeRow = $sth->fetchrow_hashref()) {
-            if ($file =~ /\.$fileTypeRow->{'type'}$/) {
-                $fileType = $fileTypeRow->{'type'};
-            }
+    while (my $fileTypeRow = $sth->fetchrow_hashref()) {
+        if ($file =~ /\.$fileTypeRow->{'type'}(\.gz)?$/) {
+            $fileType = $fileTypeRow->{'type'};
         }
     }
     $this->setFileData('FileType', $fileType) if defined $fileType;
