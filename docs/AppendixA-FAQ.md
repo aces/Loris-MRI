@@ -28,7 +28,7 @@ post-installation verification section. **TODO: link to the proper sub-section.*
 |                     |`Number of MINC files that will be considered for inserting into the database: 0. No data could be converted into valid MINC files. Localizers will not be considered!`|The upload contains only ‘localizer’ type SeriesDescription|Localizers are not processed by default in Loris|
 |                     |My upload DICOM has 6 modalities but only 5 are inserted; the 6th one has no MINC generated and nothing in the LORIS MRI Violated Scans module|Probably the scan is a `localizer` scan. `tarchiveLoader` is specifically 'instructed' to exclude this modality|No action needed. This is the expected behavior of the LORIS-MRI insertion pipeline|
 |                     |My resting-state fMRI scans are tagged as task fMRI although I have 2 entries in the `mri_protocol` table|The resting-state scan has parameters that match those of the task entry of the `mri_protocol` table, and the task-related entry in the `mri_protocol` table precedes that of the resting-state fMRI|Make sure the `mri_protocol` table has parameters that discern between all the study acquired modalities in an **exclusive** manner (i.e. no two row entries have overlapping parameters across all their columns)|
-|                     |`no MINCs inserted`|Possibly all the MINC images are violated scans|Check the images headers details against the mri_protocol entries|
+|                     |`no MINCs inserted`|Possibly all the MINC images are violated scans|Check the images headers details (in Imaging Browser or using `mincheader` against the `mri_protocol` table entries, and adjust the table protocol parameters accordingly|
 
 
 
