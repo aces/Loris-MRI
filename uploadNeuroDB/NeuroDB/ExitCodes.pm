@@ -3,27 +3,67 @@ use warnings;
 
 package NeuroDB::ExitCodes;
 
+#TODO: POD DOCUMENTATION
 
-#### Exit codes common to most imaging insertion scripts
+
+
+
+
+#### --- EXIT CODES COMMON TO MOST IMAGING INSERTION SCRIPTS
 
 # script ran successfully
 my $SUCCESS = 0; # yeah!! Success!!
 
 # input error checking and setting failures
 my $GETOPT_FAILURE          = 1; # if no getOptions were set
-my $PROFILE_FAILURE         = 1; # if no profile file specified
-my $MISSING_ARG             = 1; # if missing script's argument(s)
-my $DB_SETTINGS_FAILURE     = 1; # if DB settings in profile file are not set
-my $ARG_FILE_DOES_NOT_EXIST = 1; # if file given as an argument does not exist
+my $PROFILE_FAILURE         = 2; # if no profile file specified
+my $MISSING_ARG             = 3; # if missing script's argument(s)
+my $DB_SETTINGS_FAILURE     = 4; # if DB settings in profile file are not set
+my $ARG_FILE_DOES_NOT_EXIST = 5; # if file given as an argument does not exist
                                  # in the file system
 
 
 
 
-#### From uploadNeuroDBimaging_upload_file.pl
+
+
+#### --- FROM batch_uploads_imageuploader
+
+# validation failures
+my $UPLOADED_FILE_TYPE_FAILURE = 10; # if the uploaded file is not a .tgz,
+# tar.gz or .zip file
+my $PHANTOM_ENTRY_FAILURE      = 11; # if the phantom entry in the text file is
+# not 'N' nor 'Y'
+my $PNAME_FILENAME_MISMATCH    = 12; # if patient name and beginning of uploaded
+# filename does not match
+my $PNAME_PHANTOM_MISMATCH     = 13; # if patient name provided in the text file
+# but phantom is set to 'Y'
+
+
+
+
+
+
+#### --- FROM dicom-archive/dicomTar.pl
 
 # input error checking and setting failures
-my $MISSING_UPLOAD_ID_ARG   = 1; # TODO maybe just keep MISSING_ARG
+my $TARGET_EXISTS_NO_CLOBBER = 21; # if tarchive already exists but option
+# -clobber was not set
+
+# database related failures
+my $TARCHIVE_INSERT_FAILURE  = 22; # if insertion in the tarchive tables failed
+
+# script execution failures
+my $UPDATEMRI_UPLOAD_FAILURE = 23; # if updateMRI_Upload.pl execution failed
+
+
+
+
+
+
+#### --- FROM uploadNeuroDB/imaging_upload_file.pl
+
+# input error checking and setting failures
 my $UPLOAD_ID_PATH_MISMATCH = 1; # if upload path given as an argument does
                                  # not match the path stored in the mri_upload
                                  # table for the UploadID given as an argument
@@ -44,19 +84,55 @@ my $CLEANUP_UPLOAD_FAILURE = 1; # if removal/clean up of the uploaded file in
 
 
 
-#### uploadNeuroDB/tarchiveLoader
 
-# script execution failures
-my $TARCHIVE_VALIDATION_FAILURE = 1; # if tarchive_validation.pl failed
+
+#### --- FROM dicom-archive/updateMRI_upload.pl
+
+# validation failures
+my $TARCHIVE_ALREADY_UPLOADED = 1; # if the tarchive was already uploaded
+
+
+
+
+
+
+#### --- FROM uploadNeuroDB/NeuroDB/MRIProcessingUtility.pm
+
+# database related failures
+my $TARCHIVE_NOT_IN_DB        = 1; # if tarchive not found in the database
+my $GET_PSC_FAILURE           = 1; # if could not determine PSC from the DB
+my $GET_SCANNERID_FAILURE     = 1; # if could not determine scannerID from DB
+my $CAND_REGISTRATION_FAILURE = 1; # if candidate registration failed
+
 
 # file related failures
-my $NO_VALID_MINC_CREATED = 1; # if no valid MINC file was created (non-scout)
-my $NO_MINC_INSERTED      = 1; # if no MINC files was inserted (invalid study)
+my $EXTRACT_ARCHIVE_FAILURE = 1; # if extraction of the archive failed
+my $CORRUPTED_TARCHIVE      = 1; # if mismatch between md5sum stored in the
+                                 # tarchive table and the md5sum of the tarchive
+                                 # from the file system
+
+# study related failures
+my $GET_SUBJECT_ID_FAILURE = 1; # if the getSubjectIDs function from the
+                                # profile does not return subject IDs
 
 
 
 
-#### uploadNeuroDB/minc_insertion.pl
+
+
+#### --- FROM uploadNeuroDB/minc_deletion.pl
+
+# validation failures
+my $FILEID_SERIESUID_ARG_FAILURE = 1; # if seriesUID and fileID both provided
+                                      # as input to the file (it should always
+                                      # be one or the other)
+
+
+
+
+
+
+#### --- FROM uploadNeuroDB/minc_insertion.pl
 
 # validation failures
 my $INVALID_TARCHIVE   = 1; # if tarchive validation is not set to 1 in the
@@ -71,47 +147,14 @@ my $PROTOCOL_NOT_IN_PROFILE = 1; # if the acquisition protocol could be
 
 
 
-#### dicom-archive/dicomTar.pl
 
-# input error checking and setting failures
-my $TARGET_EXISTS_NO_CLOBBER = 1; # if tarchive already exists but option
-                                  # -clobber was not set
 
-# database related failures
-my $TARCHIVE_INSERT_FAILURE  = 1; # if insertion in the tarchive tables failed
+
+#### --- FROM uploadNeuroDB/tarchiveLoader
 
 # script execution failures
-my $UPDATEMRI_UPLOAD_FAILURE = 1; # if updateMRI_Upload.pl execution failed
-
-
-
-
-#### dicom-archive/updateMRI_upload.pl
-
-# validation failures
-my $TARCHIVE_ALREADY_UPLOADED = 1; # if the tarchive was already uploaded
-
-
-
-
-
-
-# database related failures
-
-my $no_tarchive_in_db       = 1;
-my $get_psc_failure         = 1;
-my $get_scanner_id_failure  = 1;
-my $candidate_registration_failure = 1;
+my $TARCHIVE_VALIDATION_FAILURE = 1; # if tarchive_validation.pl failed
 
 # file related failures
-
-my $extract_archive_failure = 1;
-my $corrupted_archive       = 1;
-
-# study related failures
-
-my $get_subject_id_failure = 1;
-
-
-
-
+my $NO_VALID_MINC_CREATED = 1; # if no valid MINC file was created (non-scout)
+my $NO_MINC_INSERTED      = 1; # if no MINC files was inserted (invalid study)
