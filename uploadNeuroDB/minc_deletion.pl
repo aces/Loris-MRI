@@ -18,6 +18,7 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
 
 my $sessionfilesfound = '';
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.3 $

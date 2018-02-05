@@ -9,7 +9,9 @@ use Path::Class;
 use File::Find;
 use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
 use File::Temp qw/ tempdir /;
+
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -413,7 +415,7 @@ sub PatientNameMatch {
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
         $this->spool($message, 'Y', $notify_notsummary);
-        exit 1;
+        exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname !~ /^$this->{'pname'}/) {
