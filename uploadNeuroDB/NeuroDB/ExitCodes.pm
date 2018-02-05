@@ -22,6 +22,11 @@ our $DB_SETTINGS_FAILURE     = 4; # if DB settings in profile file are not set
 our $ARG_FILE_DOES_NOT_EXIST = 5; # if file given as an argument does not exist
                                   # in the file system
 
+# database related failure
+# called from minc_insertion.pl & register_processed_data.pl
+our $FILE_NOT_UNIQUE = 6; # if file to register is not unique & already
+                           # inserted
+
 
 
 
@@ -56,14 +61,14 @@ our $PNAME_PHANTOM_MISMATCH     = 13; # if patient name provided in the text
 #### --- FROM dicom-archive/dicomTar.pl
 
 # input error checking and setting failures
-our $TARGET_EXISTS_NO_CLOBBER  = 20; # if tarchive already exists but option
+our $TARGET_EXISTS_NO_CLOBBER  = 30; # if tarchive already exists but option
                                      # -clobber was not set
 
 # database related failures
-our $TARCHIVE_INSERT_FAILURE   = 21; # if insertion in tarchive tables failed
+our $TARCHIVE_INSERT_FAILURE   = 31; # if insertion in tarchive tables failed
 
 # script execution failures
-our $UPDATE_MRI_UPLOAD_FAILURE = 22; # if updateMRI_Upload.pl execution failed
+our $UPDATE_MRI_UPLOAD_FAILURE = 32; # if updateMRI_Upload.pl execution failed
 
 
 
@@ -73,7 +78,43 @@ our $UPDATE_MRI_UPLOAD_FAILURE = 22; # if updateMRI_Upload.pl execution failed
 #### --- FROM dicom-archive/updateMRI_upload.pl
 
 # validation failures
-our $TARCHIVE_ALREADY_UPLOADED = 30; # if the tarchive was already uploaded
+our $TARCHIVE_ALREADY_UPLOADED = 40; # if the tarchive was already uploaded
+
+
+
+
+
+
+#### --- FROM DTIPrep/DTIPrep_pipeline.pl
+
+# validation failures
+our $NO_DTIPREP_VERSION       = 50; # if no DTIPrep version could be found
+our $NO_MINCDIFFUSION_VERSION = 51; # if no mincdiffusion version could be found
+                                    # NOTE: ALSO USED BY DTIPrepRegister.pl
+our $NO_NIAK_PATH             = 52; # if no valid NIAK path could be found
+
+# processing exits
+our $NO_POST_PROCESSING_TO_RUN = 53; # if no post-processing will be run
+
+
+
+
+
+
+#### --- FROM DTIPrep/DTIPrepRegister.pl
+
+# validation failures
+our $UNREADABLE_DTIPREP_PROTOCOL = 60; # if DTIPrep XML protocol cannot be read
+our $GET_OUTPUT_LIST_FAILURE     = 61; # if could not get the list of outputs
+                                       # for the DTI file
+our $MISSING_PREPROCESSED_FILES  = 62; # if some preprocess files are missing
+our $MISSING_POSTPROCESSED_FILES = 63; # if some post-process files are missing
+our $NO_TOOL_NAME_VERSION        = 64; # if tool name & version not available
+
+# database related failures
+our $XML_PROTOCOL_INSERT_FAILURE = 65; # if XML protocol insertion failed
+our $XML_QCREPORT_INSERT_FAILURE = 66; # if XML QC report insertion failed
+our $TXT_QCREPORT_INSERT_FAILURE = 67; # if text QC report insertion failed
 
 
 
@@ -83,19 +124,19 @@ our $TARCHIVE_ALREADY_UPLOADED = 30; # if the tarchive was already uploaded
 #### --- FROM uploadNeuroDB/imaging_upload_file.pl
 
 # input error checking and setting failures
-our $UPLOAD_ID_PATH_MISMATCH = 40; # if upload path given as an argument does
+our $UPLOAD_ID_PATH_MISMATCH = 70; # if upload path given as an argument does
                                    # not match the path stored in the mri_upload
                                    # table for the UploadID given as an argument
-our $INVALID_DICOM_CAND_INFO = 41; # if files in tarchive are not all DICOMs or
+our $INVALID_DICOM_CAND_INFO = 71; # if files in tarchive are not all DICOMs or
                                    # if at least one patient name mismatch
                                    # between the one stored in DICOM files and
                                    # the one stored in mri_upload
 
 # script execution failures
-our $DICOMTAR_FAILURE       = 42; # if dicomTar.pl execution failed
-our $TARCHIVELOADER_FAILURE = 43; # if tarchiveLoader execution failed
+our $DICOMTAR_FAILURE       = 72; # if dicomTar.pl execution failed
+our $TARCHIVELOADER_FAILURE = 73; # if tarchiveLoader execution failed
 
-our $CLEANUP_UPLOAD_FAILURE = 44; # if removal/clean up of the uploaded file in
+our $CLEANUP_UPLOAD_FAILURE = 74; # if removal/clean up of the uploaded file in
                                   # the incoming folder failed
 
 
@@ -106,7 +147,7 @@ our $CLEANUP_UPLOAD_FAILURE = 44; # if removal/clean up of the uploaded file in
 #### --- FROM uploadNeuroDB/NeuroDB/ImagingUpload.pm
 
 # validation failures
-our $DICOM_PNAME_EXTRACTION_FAILURE = 50; # if the tarchive was already uploaded
+our $DICOM_PNAME_EXTRACTION_FAILURE = 80; # if the tarchive was already uploaded
 
 
 
@@ -116,20 +157,20 @@ our $DICOM_PNAME_EXTRACTION_FAILURE = 50; # if the tarchive was already uploaded
 #### --- FROM uploadNeuroDB/NeuroDB/MRIProcessingUtility.pm
 
 # database related failures
-our $TARCHIVE_NOT_IN_DB        = 60; # if tarchive not found in the database
-our $GET_PSC_FAILURE           = 61; # if could not determine PSC from the DB
-our $GET_SCANNERID_FAILURE     = 62; # if could not determine scannerID from DB
-our $CAND_REGISTRATION_FAILURE = 63; # if candidate registration failed
+our $TARCHIVE_NOT_IN_DB        = 90; # if tarchive not found in the database
+our $GET_PSC_FAILURE           = 91; # if could not determine PSC from the DB
+our $GET_SCANNERID_FAILURE     = 92; # if could not determine scannerID from DB
+our $CAND_REGISTRATION_FAILURE = 93; # if candidate registration failed
 
 
 # file related failures
-our $EXTRACT_ARCHIVE_FAILURE = 64; # if extraction of the archive failed
-our $CORRUPTED_TARCHIVE      = 65; # if mismatch between md5sum stored in the
+our $EXTRACT_ARCHIVE_FAILURE = 94; # if extraction of the archive failed
+our $CORRUPTED_TARCHIVE      = 95; # if mismatch between md5sum stored in the
                                    # tarchive table and the md5sum of the
                                    # tarchive from the file system
 
 # study related failures
-our $GET_SUBJECT_ID_FAILURE = 66; # if the getSubjectIDs function from the
+our $GET_SUBJECT_ID_FAILURE = 96; # if the getSubjectIDs function from the
                                   # profile does not return subject IDs
 
 
@@ -140,9 +181,9 @@ our $GET_SUBJECT_ID_FAILURE = 66; # if the getSubjectIDs function from the
 #### --- FROM uploadNeuroDB/minc_deletion.pl
 
 # validation failures
-our $FILEID_SERIESUID_ARG_FAILURE = 70; # if seriesUID and fileID both provided
-                                        # as input to the file (it should always
-                                        # be one or the other)
+our $FILEID_SERIESUID_ARG_FAILURE = 100; # if seriesUID and fileID both provided
+                                         # as input to the file (it should
+                                         # always be one or the other)
 
 
 
@@ -152,17 +193,37 @@ our $FILEID_SERIESUID_ARG_FAILURE = 70; # if seriesUID and fileID both provided
 #### --- FROM uploadNeuroDB/minc_insertion.pl
 
 # validation failures
-our $INVALID_TARCHIVE   = 80; # if tarchive validation is not set to 1 in the
-                              # mri_upload table
-our $CANDIDATE_MISMATCH = 81; # if candidate PSCID and CandID do not match
-our $FILE_NOT_UNIQUE    = 82; # if (MINC) file is not unique and already
-# inserted
-our $UNKNOW_PROTOCOL    = 83; # if could not find acquisition protocol of the
-# MINC
-our $PROTOCOL_NOT_IN_PROFILE = 84; # if the acquisition protocol could be
-                                   # determined but is not included in the
-                                   # isFileToBeRegisteredGivenProtocol function
-                                   # of the profile file
+our $INVALID_TARCHIVE   = 110; # if tarchive validation is not set to 1 in the
+                               # mri_upload table
+our $CANDIDATE_MISMATCH = 111; # if candidate PSCID and CandID do not match
+our $UNKNOW_PROTOCOL    = 112; # if could not find acquisition protocol of the
+                               # MINC
+our $PROTOCOL_NOT_IN_PROFILE = 113; # if the acquisition protocol could be
+                                    # determined but is not included in the
+                                    # isFileToBeRegisteredGivenProtocol function
+                                    # of the profile file
+
+
+
+
+
+
+#### --- FROM uploadNeuroDB/register_processed_data.pl
+
+# validation failures
+our $INVALID_SOURCEFILEID = 120; # if source file ID argument is not valid
+
+# database related failures
+our $GET_PSC_FROM_SOURCEFILEID_FAILURE       = 121; # if failed to fetch PSC
+                                                    # info from the sourceFileID
+our $GET_SCANNERID_FROM_SOURCEFILEID_FAILURE = 122; # if failed to get ScannerID
+                                                    # from the sourceFileID
+our $GET_SESSIONID_FROM_SOURCEFILEID_FAILURE = 123; # if failed to get SessionID
+                                                    # from the sourceFileID
+our $GET_ACQUISITION_PROTOCOL_ID_FAILURE     = 124; # if failed to determine the
+                                                   # acquisition protocol ID
+our $FILE_REGISTRATION_FAILURE               = 125; # if file registration
+                                                    # into the database failed
 
 
 
@@ -172,8 +233,10 @@ our $PROTOCOL_NOT_IN_PROFILE = 84; # if the acquisition protocol could be
 #### --- FROM uploadNeuroDB/tarchiveLoader
 
 # script execution failures
-our $TARCHIVE_VALIDATION_FAILURE = 90; # if tarchive_validation.pl failed
+our $TARCHIVE_VALIDATION_FAILURE = 130; # if tarchive_validation.pl failed
 
 # file related failures
-our $NO_VALID_MINC_CREATED = 91; # if no valid MINC file was created (non-scout)
-our $NO_MINC_INSERTED      = 92; # if no MINC files was inserted (invalid study)
+our $NO_VALID_MINC_CREATED = 131; # if no valid MINC file was created
+                                  # (non-localizers)
+our $NO_MINC_INSERTED      = 132; # if no MINC files was inserted (invalid
+                                  # study)
