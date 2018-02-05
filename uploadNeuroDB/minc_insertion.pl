@@ -17,6 +17,8 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
+
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
     =~ /: (\d+)\.(\d+)/;
@@ -146,30 +148,28 @@ USAGE
 # input option error checking
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 
-
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a ".
-    "configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2; 
+if ( !$profile ) {
+    print $Help;
+    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+if ( !@Settings::db ) {
+    print "\n\tERROR: You don't have a @db setting in the file "
+        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-if (!$profile) { 
-    print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid ".
-    "and existing profile.\n\n";  
-    exit 3; 
-}
 
 
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
-          " the path to the archive is correct. Upload will exit now.\n\n\n";
-    exit 4;
+    print "\nERROR: Could not find archive $tarchive.\n"
+          . "Please, make sure the path to the archive is valid.\n\n";
+    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 unless (-e $minc) {
-    print "\nERROR: Could not find minc $minc. \nPlease, make sure the ".
-          "path to the minc is correct. Upload will exit now.\n\n\n";
-    exit 5;
+    print "\nERROR: Could not find minc $minc.\n"
+          . "Please, make sure the path to the MINC file is valid.\n\n";
+    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 
 ################################################################
@@ -265,7 +265,7 @@ if (($is_valid == 0) && ($force==0)) {
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-    exit 6;
+    exit $NeuroDB::ExitCodes::INVALID_TARCHIVE;
 }
 
 ################################################################
@@ -354,7 +354,7 @@ if (defined($CandMismatchError)) {
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
 
-    exit 7 ;
+    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
 }
 
 ################################################################
@@ -379,7 +379,7 @@ if (!$unique) {
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-    exit 8; 
+    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 } 
 
 ################################################################
@@ -423,7 +423,7 @@ if($acquisitionProtocol =~ /unknown/) {
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion.pl', $upload_id, 'Y', 
                    $notify_notsummary);
-   exit 9;
+   exit $NeuroDB::ExitCodes::UNKNOW_PROTOCOL;
 }
 
 ################################################################
@@ -448,7 +448,7 @@ if ((!defined$acquisitionProtocolIDFromProd)
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion', $upload_id, 'Y',
                    $notify_notsummary);
-    exit 10;
+    exit $NeuroDB::ExitCodes::PROTOCOL_NOT_IN_PROFILE;
 }
 ################################################################
 ### Add series notification ####################################
@@ -500,7 +500,7 @@ if ($create_minc_pics) {
 ################################################################
 ################## Succesfully completed #######################
 ################################################################
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 sub logHeader () {
     print LOG "

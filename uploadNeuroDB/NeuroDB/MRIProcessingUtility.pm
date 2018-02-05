@@ -10,7 +10,9 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
 use Path::Class;
+
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -172,7 +174,7 @@ sub extract_tarchive {
         print $message;
         print @tars . "\n";
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-        exit 1 ;
+        exit $NeuroDB::ExitCodes::EXTRACT_ARCHIVE_FAILURE;
     }
 
     my $dcmtar = $tars[0];
@@ -230,7 +232,7 @@ sub determineSubjectID {
                            "routine. Upload will exit now.\n\n";
             $this->writeErrorLog($message, 2);
 	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-	    exit 2;
+	    exit $NeuroDB::ExitCodes::GET_SUBJECT_ID_FAILURE;
         }
     }
     my $subjectIDsref = Settings::getSubjectIDs(
@@ -287,7 +289,7 @@ sub createTarchiveArray {
 	# no $tarchive can be fetched so $upload_id is undef
 	# in the notification_spool
         $this->spool($message, 'Y', undef, $notify_notsummary);
-        exit 3;
+        exit $NeuroDB::ExitCodes::TARCHIVE_NOT_IN_DB;
     }
 
     return %tarchiveInfo;
@@ -318,7 +320,7 @@ sub determinePSC {
             my $message = "\nERROR: No center found for this candidate \n\n";
             $this->writeErrorLog($message, 4);
 	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit 4;
+            exit $NeuroDB::ExitCodes::GET_PSC_FAILURE;
         }
         my $message =
             "\n==> Verifying acquisition center\n-> " .
@@ -365,7 +367,7 @@ sub determineScannerID {
                           "uploaded.\n\n";
             $this->writeErrorLog($message, 5);
        	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit 5;
+            exit $NeuroDB::ExitCodes::GET_SCANNERID_FAILURE;
         }
     }
     if ($to_log) {
@@ -1057,7 +1059,7 @@ sub CreateMRICandidates {
                        $tarchiveInfo->{'PatientName'}. "\n\n";
             $this->writeErrorLog($message, 6); 
             $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit 6;
+            exit $NeuroDB::ExitCodes::CAND_REGISTRATION_FAILURE;
      }
 }
 
@@ -1143,7 +1145,7 @@ sub validateArchive {
                        " for more  information!\n\n";
         $this->writeErrorLog($message, 7); 
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-        exit 7;
+        exit $NeuroDB::ExitCodes::CORRUPTED_TARCHIVE;
     }
 }
 
