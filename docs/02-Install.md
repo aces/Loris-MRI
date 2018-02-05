@@ -9,8 +9,7 @@ Dependencies and installation information are documented on the LORIS-MRI
 ## 2.2 Configuration
 
 Following a successful install, some configurations and customizations are 
-needed on the database, LORIS and LORIS-MRI sides as outlined in the following 
-sub-sections.
+needed and outlined in the next three sub-sections.
 
 ### 2.2.1 Database
 The following tables in the database need to be configured properly for the 
@@ -29,8 +28,8 @@ information:
 
       INSERT INTO Visit_Windows (Visit_label,  WindowMinDays, WindowMaxDays, OptimumMinDays, OptimumMaxDays, WindowMidpointDays) VALUES ('V1', '0', '100', '40', '60', '50');
 
-If age is a not critical factor in study visit scheduling, define Min value as 
-0, and Max value as 39999.
+If age is not a critical factor in study visit scheduling, define Min value as 
+0, and Max value as 2147483647.
 
 
 Alternatively, LORIS provides a PHP script in its `tools/` directory 
@@ -52,37 +51,37 @@ The `Scan_type` column values are defined in the `mri_scan_type` table
 
 5. **`Config`** table
 
-The `Config` table can also be accessed and customized from the LORIS front-end, 
-under the Admin menu, the `Configuration` module. Here are the configuration
-settings that impact directly or indirectly the pipeline:
+The `Config` table can also be accessed and customized from the LORIS front-end
+via the `Configuration` module, accessible under the Admin menu. Here are the 
+configuration settings that impact directly or indirectly the pipeline:
 
 Under the section `Study`:
- * `ImagingUploader Auto Launch`
+ * `ImagingUploader Auto Launch`: Used by the Imaging Uploader to automatically launch the insertion scripts on the uploaded scan
  
 Under the section `Paths`
- * `Imaging Data`
- * `LORIS-MRI Code`
- * `MRI-Upload Directory`
- * `MINC Files`
- * `Images`
+ * `Imaging Data`: Where the imaging data is stored; typically `/data/$PROJECT/data/`
+ * `LORIS-MRI Code`: Where the MRI code base is installed; typically `/data/$PROJECT/bin/mri/`
+ * `MRI-Upload Directory`: Where the uploaded scans get stored; typically `/data/incoming/`
+ * `MINC Files`: Where the MINC images are stored; typically `/data/$PROJECT/data/`
+ * `Images`: Where the images displayed in Imaging Browser are stored; typically `/data/$PROJECT/data/`
  
  Under the section `Imaging Modules`
   * `Patient ID regex`: Used by the DICOM Archive module to show/hide the PatientID info
   * `Patient name regex`: Used by the DICOM Archive module to show/hide the Patient Name info
   * `Lego phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
   * `Living phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
-  * `Imaging Browser Tabulated Scan Types`: Used by Imaging Browser to decide what modalities to display the QC status on
+  * `Imaging Browser Tabulated Scan Types`: Used by Imaging Browser main page which lists the different imaging sessions across candidates. This setting will determine which modalities will have their QC status displayed in that listing page.
      
  Under the section `Imaging Pipeline`:
- * `Loris-MRI Data Directory`: Typically `/data/$PROJECT/bin/mri/`
- * `Study Name`: Prefix used for all filenames inserted into Imaging Browser and the `files` table
- * `User to notify when executing the pipeline`: User email address used when notification is to be sent by the pipeline
+ * `Loris-MRI Data Directory`: Typically `/data/$PROJECT/data/`
+ * `Study Name`: Prefix to be used in all filenames inserted into the `files` table and visible in the front-end via the Imaging Browser module
+ * `User to notify when executing the pipeline`: User email address to be used when notification is to be sent by the pipeline
  * `Full path to get_dicom_info.pl script`: Typically `/data/$PROJECT/bin/mri/dicom-arhive/get_dicom_info.pl`
  * `Horizontal pictures creation`
- * `NIFTII file creation`: Project choice to enable for automated NIFTII file creation
+ * `NIfTI file creation`: Used to enable or disable automated NIfTI file creation
  * `dcm2mnc binary to use when converting`
  * `Path to Tarchives`
- * `Upload creation of candidates`: Creates candidates into LORIS if enabled
+ * `Upload creation of candidates`: Enable or disable candidate creation into LORIS when running the insertion pipeline
  * `Project batch management used`
  * `If site is used`
  * `Number of volumes in native DTI acquisitions`: Used by the DTIPrep pipeline
