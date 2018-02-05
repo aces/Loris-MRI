@@ -7,7 +7,7 @@ modules setup (Table 2), or the LORIS-MRI scripts (Table 3).
 
 
 | **Error** | **Cause** | **How to Fix**|
-|:-----:|:------|:------|:----------| 
+|:------|:------|:----------| 
 |`install_driver(mysql) failed: Can't locate DBD/mysql.pm`|Missing dependency|`sudo apt-get install libdbd-mysql-perl`|
 |`ERROR: You don't have a configuration file named 'prod' in: /data/%PROJECT%/bin/mri/dicom-archive/.loris_mri/`| Your `environment` file does not contain your actual LORIS-MRI project name. Instead, it contains the placeholder `%PROJECT%` as provided in the 'generic' file and/or your `environment` file is not sourced| Source the environment file located in `/data/$PROJECT/bin/mri/` after making sure that the `$PROJECT` variable is replaced with your LORIS-MRI project name|
 |`ERROR: You don't have a configuration file named 'prod' in: /data/loris-MRI/bin/mri/dicom-archive/.loris_mri/` *note*: `loris-MRI` is an example project name used in this illustration| Wrong file and/or directory permissions| Make sure that the `/data/loris-MRI/bin/mri` directory, and all directories within are readable by the user running the scripts (`lorisadmin` or the front-end `apache` user)|
@@ -17,7 +17,7 @@ modules setup (Table 2), or the LORIS-MRI scripts (Table 3).
 _**Table 1: Common errors encountered during LORIS-MRI installation, and their proposed solutions .**_
 
 | **Error** | **Cause** | **How to Fix**|
-|:-----:|:------|:------|:----------| 
+|:------|:------|:----------| 
 |Images thumbnails do not show up in Imaging Browser. They appear as a broken image icon|Wrong permissions to the `/data/$PROJECT/data/pic/` folder|Ensure that the `apache` user can read/execute the `pic` images folder|
 |Images thumbnails do not show up in Imaging Browser. They appear as a broken image icon|Wrong `Images` path under the `Paths` section in LORIS Configuration module|Ensure the path to the images is correct, typically `/data/$PROJECT/data/`|
 |4-D images (e.g. DTI, fMRI) in brainbrowser do not show any volumes (Play button not displayed)|Most likely a dcm2mnc conversion error|Post an issue on the [minc-toolkit Github Issues page](https://github.com/BIC-MNI/minc-toolkit/issues)|
@@ -29,7 +29,7 @@ _**Table 2: Common errors encountered due to missing LORIS (front-end) module se
 
 
 | **Error** | **Cause** | **How to Fix**|
-|:-----:|:------|:------|:----------| 
+|:------|:------|:----------| 
 |`The Candidate info validation has failed`|PatientName/PatientID header in the DICOMs not anonymized according to the LORIS convention `(PSCID_CandID_VisitLabel)`|Use [DICAT](https://github.com/aces/DICAT) to anonymize it properly OR Use the DICOM toolkit `dcmodify` command. The following one-line command (to be run from the folder where the DICOM files are) which anonymizes your entire folder of DICOM files is: `for i in $(find -type f); do dcmodify -ma PatientName="PSCID_CandID_VisitLabel" -nb $i; done`|
 |`The Candidate info validation has failed`|The upload scan contains at least one file that is NOT of type DICOM (.bmp or .pdf are common)|Remove any file in the upload that is not of type DICOM|
 |No more disk space|The temporary directory where the insertion scripts peform its intermediate steps is full. This directory is set in the `environment` file to the default directory of `/tmp` as specified in the line `export TMPDIR=/tmp`|Change the `TMPDIR` path in the environment file to a directory with enough space. A good rule of thumb is to have at least 2-3 times the size of an uploaded scan available to write. This space is usually automatically emptied by the pipeline upon a successful execution|
