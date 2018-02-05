@@ -14,7 +14,8 @@ modules setup (Table 2), or the LORIS-MRI scripts (Table 3).
 |`ERROR: You don't have a configuration file named 'prod' in: /data/loris-MRI/bin/mri/dicom-archive/.loris_mri/` *note*: `loris-MRI` is an example project name used in this illustration| Syntax error in the `prod` file in the customized routines (for example a missing closing bracket)| Check the routines that were customized for your project needs|
 |`DB connection failed`| Database credentials in the `prod` file were entered incorrectly during the install, or they were modified subsequently| Make sure that your `prod` file contains the correct database connection/credentials information in the `DATABASE Settings, Section I`|
 
-_**Table 1: Common errors encountered during LORIS-MRI installation, and their proposed solutions .**_
+_**Table 1: Common errors encountered during LORIS-MRI installation, and their proposed solutions.**_
+
 
 | **Error** | **Cause** | **How to Fix**|
 |:------|:------|:----------| 
@@ -25,7 +26,8 @@ _**Table 1: Common errors encountered during LORIS-MRI installation, and their p
 |Brainbrowser stays `Loading…` but no image shows up|Wrong `Images` path under the `Paths` section in LORIS Configuration module|Ensure the path to the MINC images is correct, typically `/data/$PROJECT/data/`| 
 |Brainbrowser stays `Loading…` but no image shows up|The `config.xml` in LORIS does not have the MINC Toolkit Path set properly|Fill out the path `<MINCToolsPath>` to the MINC Toolkit Installation in the `config.xml` (on the LORIS side). The last trailing `/’`in the path is mandatory|
 
-_**Table 2: Common errors encountered due to missing LORIS (front-end) module setup steps, and their proposed solutions .**_
+_**Table 2: Common errors encountered due to missing LORIS (front-end) module setup steps, and their proposed solutions.**_
+
 
 
 | **Error** | **Cause** | **How to Fix**|
@@ -40,4 +42,4 @@ _**Table 2: Common errors encountered due to missing LORIS (front-end) module se
 |My resting-state fMRI scans are tagged as task fMRI although I have 2 entries in the `mri_protocol` table|The resting-state scan has parameters that match those of the task entry of the `mri_protocol` table, and the task-related entry in the `mri_protocol` table precedes that of the resting-state fMRI|Make sure the `mri_protocol` table has parameters that discern between all the study acquired modalities in an **exclusive** manner (i.e. no two row entries have overlapping parameters across all their columns)|
 |`no MINCs inserted`|Possibly all the MINC images are violated scans|Check the details of the image headers (in Imaging Browser or using `mincheader` against the `mri_protocol` table entries, and adjust the table protocol parameters accordingly|
 
-_**Table 3: Common errors encountered during execution of the LORIS-MRi insertion scripts, and their proposed solutions .**_
+_**Table 3: Common errors encountered during execution of the LORIS-MRi insertion scripts, and their proposed solutions.**_
