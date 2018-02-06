@@ -1,3 +1,10 @@
+
+# Generic TODOs:
+
+##TODO 1: once ExitCodes.pm class merged, replace exit codes by the variables
+# from that class
+
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -10,8 +17,7 @@ use NeuroDB::DBI;
 use NeuroDB::MRI;
 use NeuroDB::File;
 use NeuroDB::MRIProcessingUtility;
-
-
+##TODO 1: add line use NeuroDB::ExitCodes;
 
 
 
@@ -25,10 +31,10 @@ my $output_type   = undef;
 my $scan_type     = undef;
 my $date_acquired = undef;
 my $scanner_id    = undef;
+my $coordin_space = undef;
 my $metadata_file = undef;
 my $verbose       = 0;
 my $reckless      = 0;   # only for playing & testing. Don't set it to 1!!!
-my $new_scanner   = 1;   # 1 should be the default unless you're a control freak
 my @args;
 
 # Describe the usage to be displayed by Getopt::Tabular
@@ -46,17 +52,16 @@ USAGE
 my $profile_desc       = "name of config file in ./dicom-archive/.loris_mri.";
 my $file_path_desc     = "file to register into the database (full path from "
                          . "the root directory is required)";
-my $pname_desc         = "patient name (in the form of "
-                         . "PSCID_CandID_VisitLabel)";
+my $pname_desc         = "patient name, if cannot be found in the file name "
+                         . "(in the form of PSCID_CandID_VisitLabel)";
 my $output_type_desc   = "file's output type (e.g. native, qc, processed...)";
 my $scan_type_desc     = "file's scan type (from the mri_scan_type table)";
 my $date_acquired_desc = "acquisition date for the file (YYYY-MM-DD)";
 my $scanner_id_desc    = "ID of the scanner stored in the mri_scanner table";
+my $coordin_space_desc = "Coordinate space of the file to register (e.g. "
+                         . "native, linear, nonlinear, nativeT1)";
 my $reckless_desc      = "upload data to database even if study protocol is "
                          . "not defined or violated.";
-my $new_scanner_desc   = "by default a new scanner will be registered if the "
-                         . "data you upload requires it. You can risk "
-                         . "turning it off.";
 my $metadata_file_desc = "file that can be read to look for metadata "
                          . "information to attach to the file to be inserted";
 
@@ -64,51 +69,91 @@ my $metadata_file_desc = "file that can be read to look for metadata "
 # Initialize the arguments table
 my @args_table = (
 
-    ["Basic options", "section"],
+    ["Mandatory options", "section"],
 
-        ["-profile",   "string",  1, \$profile,   $profile_desc],
-        ["-file_path", "string",  1, \$file_path, $file_path_desc],
-        ["-verbose",   "boolean", 1, \$verbose,   "Be verbose"],
+        ["-profile",       "string",  1, \$profile,       $profile_desc      ],
+        ["-file_path",     "string",  1, \$file_path,     $file_path_desc    ],
+        ["-output_type",   "string",  1, \$output_type,   $output_type_desc  ],
+        ["-scan_type",     "string",  1, \$scan_type,     $scan_type_desc    ],
+        ["-date_acquired", "string",  1, \$date_acquired, $date_acquired_desc],
+        ["-scanner_id",    "string",  1, \$scanner_id,    $scanner_id_desc   ],
+        ["-coordin_space", "string",  1, \$coordin_space, $coordin_space_desc],
 
     ["Advanced options", "section"],
 
-        ["-reckless",    "boolean", 1, \$reckless,    $reckless_desc],
-        ["-new_scanner", "boolean", 1, \$new_scanner, $new_scanner_desc],
+        ["-reckless",    "boolean", 1, \$reckless,    $reckless_desc ],
+        ["-verbose",     "boolean", 1, \$verbose,     "Be verbose"   ],
 
     ["Optional options", "section"],
-
-        ["-patient_name",  "string", 1, \$patient_name,  $pname_desc],
-        ["-output_type",   "string", 1, \$output_type,   $output_type_desc],
-        ["-scan_type",     "string", 1, \$scan_type,     $scan_type_desc],
-        ["-date_acquired", "string", 1, \$date_acquired, $date_acquired_desc],
-        ["-scanner_id",    "string", 1, \$scanner_id,    $scanner_id_desc],
+        ["-patient_name",  "string", 1, \$patient_name,  $pname_desc        ],
         ["-metadata_file", "string", 1, \$metadata_file, $metadata_file_desc]
 
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
+##TODO 1: replace exit 1 by $NeuroDB::ExitCodes::GETOPT_FAILURE
 GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
 # Input option error checking
 if  (!$profile) {
     print "$Usage\n\tERROR: You must specify a profile.\n\n";
-    exit 33;
+    ##TODO 1: replace exit 2 by $NeuroDB::ExitCodes::PROFILE_FAILURE
+    exit 2;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ($profile && !@Settings::db)    {
-    print "\n\tERROR: You don't have a configuration file named "
-          . "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 33;
+    print "\n\tERROR: You don't have a @db setting in the file "
+          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    ##TODO 1: replace exit 4 by $NeuroDB::ExitCodes::DB_SETTING_FAILURE
+    exit 4;
 }
 
-# Make sure we have all the arguments that we need set
-unless (-e $file_path) {
+# Make sure that all the arguments that we need are set
+unless ( $file_path ) {
+    print "$Usage\n\tERROR: missing -file_path argument\n\n";
+    ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit 3;
+}
+unless ( $output_type ) {
+    print "$Usage\n\tERROR: missing -output_type argument\n\n";
+    ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit 3;
+}
+unless ( $scan_type ) {
+    print "$Usage\n\tERROR: missing -scan_type argument\n\n";
+    ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit 3;
+}
+unless ( $date_acquired ) {
+    print "$Usage\n\tERROR: missing -date_acquired argument\n\n";
+    ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit 3;
+}
+unless ( $scanner_id ) {
+    print "$Usage\n\tERROR: missing -scanner_ID argument\n\n";
+    ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit 3;
+}
+unless ( $coordin_space ) {
+    print "$Usage\n\tERROR: missing -coordin_space argument\n\n";
+    ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit 3;
+}
+
+# Make sure the files specified as an argument exist and are readable
+unless (-r $file_path) {
     print "$Usage\n\tERROR: You must specify a valid file path to insert "
           . "using the -file_path option.\n\n";
-    exit 33;
+    ##TODO 1: replace exit 5 by $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST
+    exit 5;
+}
+# Make sure that the metadata file is readable if it is set
+if ( $metadata_file && !(-r $metadata_file) ){
+    print "\n\tERROR: The metadata file does not exist in the filesystem.\n\n";
+    ##TODO 1: replace exit 5 by $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST
+    exit 5;
 }
 
-##TODO more can go there as the script gets more arguments
 
 
 
@@ -142,6 +187,7 @@ my $temp_log = $temp[$#temp];
 my $log_dir  = $data_dir . "/logs";
 my $logfile  = $log_dir . "/" . $temp_log . ".log";
 my $message  = "";
+
 
 
 
@@ -180,29 +226,16 @@ my ($file_name, $dir_name) = fileparse($file_path);
 
 ###### Determine the metadata to be stored in parameter_file
 
-##TODO: that's going to be a pickle!!
-
-##TODO: if possible grep the following from metadata (if only partial info is
-# available, then set the missing info to '' for the scanner. Will be
-# useful for PET as don't have all that information)
-my $scanner_model = undef;
-my $scanner_manufacturer     = undef;
-my $scanner_serial_number    = undef;
-my $scanner_software_version = undef;
-
-##TODO: depending on the type of the file to insert, could maybe determine the
-# $scan_type from metadata if not set as an argument to the script
-
-##TODO: see if can get the output type from metadata
-
-##TODO: see if date acquired can be found in metadata
+##TODO: read a simply ASCII or JSON file to grep the metadata (would be
+# created by the overall insertion scripts like PET_loader etc...)
 
 
 
-###### Determine center name and ID, scanner ID and candidate information
+
+###### Determine candidate information
 
 # create a hash similar to tarchiveInfo so that can use Utility routines to
-# determine the center name, center ID, scanner ID and candidate information
+# determine the candidate information
 my %info;
 
 # for now, set SourceLocation to undef
@@ -219,50 +252,10 @@ if ($patient_name) {
     $info{'PatientID'}   = $file_name;
 }
 
-# get the center name, center ID
-my ($center_name, $center_id) = $utility->determinePSC(\%info, 0);
-
-# determine the scanner ID
-if ($scanner_id) {
-    # if the scanner ID has been provided as an argument to the script, then
-    # use its value in the ScannerID field of the files table (after having
-    # checked that this scanner ID exists in the mri_scanner table)
-    (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT ID FROM mri_scanner WHERE ID=?
-QUERY
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-
-    unless ($sth->rows > 0) {
-        # if no row returned, exits with message that the scanner ID provided
-        # does not exist
-        print "\nERROR: did not find any scanner with ID=$scanner_id.\n\n";
-        ##TODO: proper logging and exit code
-        exit;
-    }
-} elsif ($scanner_manufacturer     && $scanner_model
-         && $scanner_serial_number && $scanner_software_version) {
-    # if found scanner manufacturer, scanner model, scanner serial number, and
-    # scanner software version in the metadata, then set them in %info and
-    # grep the scanner ID
-    $info{'ScannerManufacturer'}    = $scanner_manufacturer;
-    $info{'ScannerModel'}           = $scanner_model;
-    $info{'ScannerSerialNumber'}    = $scanner_serial_number;
-    $info{'ScannerSoftwareVersion'} = $scanner_software_version;
-    $scanner_id = $utility->determineScannerID(
-                       \%info, 0, $center_id, $new_scanner
-    );
-} else {
-    # otherwise, set it to 0 if no way of finding that information
-    $scanner_id = undef;
-}
-# set file's scanner ID to $scanner_id
-$file->setFileData('ScannerID', $scanner_id);
-print "\t -> Set ScannerID to $scanner_id.\n";
-
 # determine subject ID information
 my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
-##TODO: proper logging and exit code
+##TODO: proper logging
+##TODO 1: create an exit code in ExitCodes.pm and call it here
 exit unless ($subjectIDsref);
 
 # candidate IDs mismatch error
@@ -270,7 +263,8 @@ my $CandMismatchError = undef;
 $CandMismatchError = $utility->validateCandidate(
                         $subjectIDsref, $info{'SourceLocation'}
 );
-##TODO: proper logging and exit code
+##TODO: proper logging
+##TODO 1: create an exit code in ExitCodes.pm and call it here
 exit if ($CandMismatchError); # exits if there is a mismatch in candidate IDs
 
 # determine sessionID
@@ -285,49 +279,57 @@ print "\t -> Set SessionID to $sessionID.\n";
 
 
 
-###### Determine acquisition date
 
-unless ($date_acquired){
-    print "\nERROR: could not determine the scan date of $file_path.\n\n";
-    ##TODO: proper logging and exit code
+#### Set the scanner ID if it exists in the database
+(my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT ID FROM mri_scanner WHERE ID=?
+QUERY
+my $sth = $dbh->prepare($query);
+$sth->execute();
+
+unless ($sth->rows > 0) {
+    # if no row returned, exits with message that the scanner ID provided
+    # does not exist
+    print "\nERROR: did not find any scanner with ID=$scanner_id.\n\n";
+    ##TODO: proper logging
+    ##TODO 1: create an exit code in ExitCodes.pm and call it here
     exit;
 }
-my ($ss, $mm, $hh, $day, $month, $year, $zone) = strptime($date_acquired);
-$date_acquired = sprintf("%4d-%02d-%02d",$year+1900,$month+1,$day);
-$file->setParameter('AcquisitionDate', $date_acquired);
+# set file's scanner ID to $scanner_id
+$file->setFileData('ScannerID', $scanner_id);
+print "\t -> Set ScannerID to $scanner_id.\n";
 
 
-###### Determine the scan type and acquisition protocol ID of the file
 
-##TODO: depending on the type of the file to insert, if $scan_type was not
-# set as an argument or defined when reading metadata, then try reading it
-# from the filename. If not in the filename either, then just exits if scan type
-#  is not defined
-unless ($scan_type) {
-    print "\nERROR: could not determine the scan type of $file_path.\n\n";
-    ##TODO: proper logging and exit code
-    exit;
-}
+
+###### Determine the acquisition protocol ID of the file based on scan type
 
 # verify that an acquisition protocol ID exists for $scan_type
 my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, \$dbh);
 if ($acqProtocolID =~ /unknown/){
     print "\tERROR: no acquisition protocol ID found for $scan_type.\n\n";
-    ##TODO: proper logging and exit code
+    ##TODO: proper logging
+    ##TODO 1: create an exit code in ExitCodes.pm and call it here
     exit;
 }
+
+
+
+
+###### Set the acquisition date
+
+my ($ss, $mm, $hh, $day, $month, $year, $zone) = strptime($date_acquired);
+$date_acquired = sprintf("%4d-%02d-%02d",$year+1900,$month+1,$day);
+$file->setParameter('AcquisitionDate', $date_acquired);
 
 
 
 
 ###### Determine the output type (native, qc, processed...)
 
-##TODO: output_type cannot be null so need to find a way to define it if not
-# in args...
-if ($output_type) {
-    $file->setFileData('OutputType', $output_type);
-    print "\t -> Set OutputType to $output_type.\n";
-}
+$file->setFileData('OutputType', $output_type);
+print "\t -> Set OutputType to $output_type.\n";
+##TODO: proper logging
 
 
 
@@ -341,7 +343,8 @@ if (!$unique) {
 #    $notifier->spool('tarchive validation', $message, 0,
 #        'minc_insertion.pl', $upload_id, 'Y',
 #        $notify_notsummary);
-    ##TODO: proper logging and exit code
+    #TODO: proper logging
+    ##TODO 1: replace exit 8 by $NeuroDB::ExitCodes::$FILE_NOT_UNIQUE
     exit 8;
 }
 
@@ -358,39 +361,5 @@ my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
     $sessionID
 );
 
-
+##TODO 1: replace exit 0 by $NeuroDB::ExitCodes::$SUCCESS
 exit 0;
-
-
-
-
-
-=pod
-This function returns the AcquisitionProtocolID of the file to register in DB
-based on scanType in mri_scan_type.
-=cut
-##TODO move this function to one of the library file as it is the same as the
-#  one used by register_processed_data.pl
-sub getAcqProtID    {
-    my  ($scanType, $dbh)    =   @_;
-
-    my  $acqProtID;
-    my  $query  =   "SELECT ID " .
-        "FROM mri_scan_type " .
-        "WHERE Scan_type=?";
-    my  $sth    =   $dbh->prepare($query);
-    $sth->execute($scanType);
-
-    if($sth->rows > 0) {
-        my $row     =   $sth->fetchrow_hashref();
-        $acqProtID  =   $row->{'ID'};
-    }else{
-        return  undef;
-    }
-
-    return  ($acqProtID);
-}
-
-__END__
-
-
