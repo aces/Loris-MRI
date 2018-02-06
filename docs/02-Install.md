@@ -29,7 +29,7 @@ information:
       INSERT INTO Visit_Windows (Visit_label,  WindowMinDays, WindowMaxDays, OptimumMinDays, OptimumMaxDays, WindowMidpointDays) VALUES ('V1', '0', '100', '40', '60', '50');
 
 If age is not a critical factor in study visit scheduling, define Min value as 
-0, and Max value as 2147483647.
+0, and Max value as 2147483647 (maximum `int`).
 
 
 Alternatively, LORIS provides a PHP script in its `tools/` directory 
