@@ -70,20 +70,20 @@ Under the section `Paths`
   * `Patient name regex`: Used by the DICOM Archive module to show/hide the Patient Name info
   * `Lego phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
   * `Living phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
-  * `Imaging Browser Tabulated Scan Types`: Used by Imaging Browser main page which lists the different imaging sessions across candidates. This setting will determine which modalities will have their QC status displayed in that listing page.
+  * `Imaging Browser Tabulated Scan Types`: Used by Imaging Browser main page which lists the different imaging sessions across candidates. This setting will determine which modalities will have their QC status displayed in that listing page
      
- Under the section `Imaging Pipeline`:
+ Under the section `Imaging Pipeline`
  * `Loris-MRI Data Directory`: Directory where imaging data is stored; typically `/data/$PROJECT/data/`
  * `Study Name`: Prefix to be used in all filenames inserted into the `files` table and visible in the front-end via the Imaging Browser module
  * `User to notify when executing the pipeline`: User email address to be used when notification is to be sent by the pipeline
  * `Full path to get_dicom_info.pl script`: Typically `/data/$PROJECT/bin/mri/dicom-arhive/get_dicom_info.pl`
- * `Horizontal pictures creation`
+ * `Horizontal pictures creation`: Used to pass or not pass the argument `-horizontal` to `mincpik` when generating pictures to be displayed in Imaging Browser. 
  * `NIfTI file creation`: Used to enable or disable automated NIfTI file creation
- * `dcm2mnc binary to use when converting`: 
+ * `dcm2mnc binary to use when converting`: Allows the user to specify the binary file to be used when converting DICOM files to MINC. The default setting is to use the binary provided by the MINC tools, namely `dcm2mnc
  * `Path to Tarchives`: Directory where the original DICOMs are archived; typically `/data/$PROJECT/data/tarchive/`
  * `Upload creation of candidates`: Enable or disable candidate creation into LORIS when running the insertion pipeline
  * `Project batch management used`: Enable or disable batch management
- * `If site is used`: Obsolete **To be confirmed**. This option used to allow the scans' incoming and archival paths to be configured based on the scanning sites.
+ * `If site is used`: Obsolete **To be confirmed**. This option used to allow the scans' incoming and archival paths to be configured based on the scanning sites
  * `Number of volumes in native DTI acquisitions`: Used by the DTIPrep pipeline
  * `Scan type of native T1 acquisition`: Name as specified in the `mri_scan_type` table. Used by the DTIPrep pipeline
  * `Max number of DTI rejected directions for passing QC`: Number of directions that can be rejected and still pass QC. Used by the DTIPrep pipeline
