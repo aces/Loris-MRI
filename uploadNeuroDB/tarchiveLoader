@@ -336,7 +336,9 @@ if (($output != 0)  && ($force==0)) {
  $message = "\n ERROR: The validation has failed. Either re-run the ".
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
- $utility->writeErrorLog($message,5,$logfile); 
+ $utility->writeErrorLog(
+     $message, $NeuroDB::ExitCodes::TARCHIVE_VALIDATION_FAILURE, $logfile
+ );
  $notifier->spool('tarchive validation', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
 		$notify_notsummary);
@@ -420,7 +422,9 @@ if ($verbose){
 if ($mcount < 1) { 
     $message = "\nNo data could be converted into valid MINC files. ".
                "Localizers will not be considered! \n" ; 
-    $utility->writeErrorLog($message,6,$logfile); 
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
+    );
     $notifier->spool('tarchive loader', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y',
 		    $notify_notsummary);

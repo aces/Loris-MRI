@@ -261,7 +261,9 @@ if (($is_valid == 0) && ($force==0)) {
                "the problem. Or use -force to force the ".
                "execution.\n\n";
     print STDERR $message;
-    $utility->writeErrorLog($message,6,$logfile); 
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::INVALID_TARCHIVE, $logfile
+    );
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);

@@ -230,7 +230,9 @@ sub determineSubjectID {
         if ($to_log) {
             my $message =  "\nERROR: Profile does not contain getSubjectIDs ".
                            "routine. Upload will exit now.\n\n";
-            $this->writeErrorLog($message, 2);
+            $this->writeErrorLog(
+                $message, $NeuroDB::ExitCodes::GET_SUBJECT_ID_FAILURE
+            );
 	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 	    exit $NeuroDB::ExitCodes::GET_SUBJECT_ID_FAILURE;
         }
@@ -285,7 +287,7 @@ sub createTarchiveArray {
         my $message = "\nERROR: Only archived data can be uploaded.".
                       "This seems not to be a valid archive for this study!".
                       "\n\n";
-        $this->writeErrorLog($message, 3);
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::TARCHIVE_NOT_IN_DB);
 	# no $tarchive can be fetched so $upload_id is undef
 	# in the notification_spool
         $this->spool($message, 'Y', undef, $notify_notsummary);
@@ -318,7 +320,9 @@ sub determinePSC {
         if (!$center_name) {
 
             my $message = "\nERROR: No center found for this candidate \n\n";
-            $this->writeErrorLog($message, 4);
+            $this->writeErrorLog(
+                $message, $NeuroDB::ExitCodes::GET_PSC_FAILURE
+            );
 	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
             exit $NeuroDB::ExitCodes::GET_PSC_FAILURE;
         }
@@ -365,7 +369,9 @@ sub determineScannerID {
                           "does not exist. Enable creating new ScannerIDs in ".
                           "your profile or this archive can not be ".
                           "uploaded.\n\n";
-            $this->writeErrorLog($message, 5);
+            $this->writeErrorLog(
+                $message, $NeuroDB::ExitCodes::GET_SCANNERID_FAILURE
+            );
        	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
             exit $NeuroDB::ExitCodes::GET_SCANNERID_FAILURE;
         }
@@ -1057,7 +1063,9 @@ sub CreateMRICandidates {
                        $tarchiveInfo->{'PatientID'}. "\n ".
                        "The dicom header PatientName is: ". 
                        $tarchiveInfo->{'PatientName'}. "\n\n";
-            $this->writeErrorLog($message, 6); 
+            $this->writeErrorLog(
+                $message, $NeuroDB::ExitCodes::CAND_REGISTRATION_FAILURE
+            );
             $this->spool($message, 'Y', $upload_id, $notify_notsummary);
             exit $NeuroDB::ExitCodes::CAND_REGISTRATION_FAILURE;
      }
@@ -1143,7 +1151,7 @@ sub validateArchive {
         $message =  "\nerror: archive seems to be corrupted or modified. ".
                        "upload will exit now.\nplease read the creation logs ".
                        " for more  information!\n\n";
-        $this->writeErrorLog($message, 7); 
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::CORRUPTED_TARCHIVE);
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
         exit $NeuroDB::ExitCodes::CORRUPTED_TARCHIVE;
     }
