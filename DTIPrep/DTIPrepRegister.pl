@@ -62,33 +62,33 @@ GetOptions(\@args_table, \@ARGV, \@args)
 
 # input option error checking
 if ( !$profile ) {
-    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ( !@Settings::db ) {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 if (!$DTIPrep_subdir) {
-    print "$Usage\n\tERROR: You must specify a DTIPrep subdirectory with "
-          . "processed files to be registered in the database.\n\n";
+    print STDERR "$Usage\n\tERROR: You must specify a DTIPrep subdirectory "
+                 . "with processed files to be registered in the database.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$dti_file) {
-    print "$Usage\n\tERROR: You must specify the raw DTI file that was "
-          . "processed through DTIPrep.\n\n";
+    print STDERR "$Usage\n\tERROR: You must specify the raw DTI file that was "
+                 . "processed through DTIPrep.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$DTIPrepProtocol) {
-    print "$Usage\n\tERROR: You must specify the XML DTIPrep protocol used "
-          . "by DTIPrep.\n\n";
+    print STDERR "$Usage\n\tERROR: You must specify the XML DTIPrep protocol "
+                 . "used by DTIPrep.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$DTIPrepVersion) {
-    print "$Usage\n\tERROR: You must specify the version of DTIPrep used to "
-          . "process the DTI files.\n\n";
+    print STDERR "$Usage\n\tERROR: You must specify the version of DTIPrep "
+                 . "used to process the DTI files.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
@@ -573,8 +573,8 @@ sub register_XMLFile {
 
     my  ($src_pipeline, $src_tool);
     if  (!$toolName)    {
-        print "WARNING: This should not happen as long as the pipeline "
-              . "versioning of DTIPrep is not fixed!";
+        print STDERR "WARNING: This should not happen as long as the pipeline "
+                     . "versioning of DTIPrep is not fixed!";
         exit $NeuroDB::ExitCodes::NO_TOOL_NAME_VERSION;
         # Will need to program this part once DTIPrep fixed!
         #($src_pipeline, $src_tool)=getToolName($XMLFile);
@@ -653,8 +653,8 @@ sub register_QCReport {
 
     my  ($src_pipeline, $src_tool);
     if  (!$toolName)    {
-        print "WARNING: This should not happen as long as the pipeline "
-              . "versioning of DTIPrep is not fixed!";
+        print STDERR "WARNING: This should not happen as long as the pipeline "
+                     . "versioning of DTIPrep is not fixed!";
         exit $NeuroDB::ExitCodes::NO_TOOL_NAME_VERSION;
         # Will need to program this part once DTIPrep fixed!
         #($src_pipeline, $src_tool)=getToolName($QCReport);
@@ -1330,8 +1330,8 @@ sub register_nrrd {
 
     my  ($src_pipeline, $src_tool);
     if  (!$toolName)    {
-        print "WARNING: This should not happen as long as the pipeline "
-              . "versioning of DTIPrep is not fixed!";
+        print STDERR "WARNING: This should not happen as long as the pipeline "
+                     . "versioning of DTIPrep is not fixed!";
         exit $NeuroDB::ExitCodes::NO_TOOL_NAME_VERSION;
         # Will need to program this part once DTIPrep fixed!
         #($src_pipeline, $src_tool)=getToolName($XMLFile);

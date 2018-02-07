@@ -150,25 +150,25 @@ USAGE
 
 if ( !$profile ) {
     print $Help;
-    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 if ( !@Settings::db ) {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 
 
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive.\n"
-          . "Please, make sure the path to the archive is valid.\n\n";
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is valid.\n\n";
     exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 unless (-e $minc) {
-    print "\nERROR: Could not find minc $minc.\n"
-          . "Please, make sure the path to the MINC file is valid.\n\n";
+    print STDERR "\nERROR: Could not find minc $minc.\n"
+                 . "Please, make sure the path to the MINC file is valid.\n\n";
     exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 
@@ -260,7 +260,7 @@ if (($is_valid == 0) && ($force==0)) {
                "Either run the validation again and fix ".
                "the problem. Or use -force to force the ".
                "execution.\n\n";
-    print $message;
+    print STDERR $message;
     $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
@@ -374,7 +374,7 @@ my $unique = $utility->computeMd5Hash($file,
 				$tarchiveInfo{'SourceLocation'});
 if (!$unique) { 
     $message = "\n--> WARNING: This file has already been uploaded!\n";  
-    print $message if $verbose;
+    print STDERR $message if $verbose;
     print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 

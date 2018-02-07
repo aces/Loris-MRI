@@ -65,13 +65,13 @@ GetOptions(\@args_table, \@ARGV, \@args)
 
 # input options error checking
 if ( !$profile ) {
-    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ( !@Settings::db ) {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -79,9 +79,10 @@ if ( !@Settings::db ) {
 ($DTIPrepVersion)   = &identify_tool_version("DTIPrep", '\/(DTIPrep[A-Z0-9._]+)\/DTIPrep$')     if (!$DTIPrepVersion);
 # Exit with error message if $DTIPrepVersion was not set or found based on its absolute path
 if (!$DTIPrepVersion) {
-    print "$Usage\n\t ERROR: Pipeline version could not been determined via "
-          . "the path to DTIPrep binary. You need to specify which version of "
-          . "DTIPrep you will be using with -DTIPrepVersion option.\n\n";
+    print STDERR "$Usage\n\t ERROR: Pipeline version could not been determined "
+                 . "via the path to DTIPrep binary. You need to specify which "
+                 . "version of DTIPrep you will be using with -DTIPrepVersion "
+                 . "option.\n\n";
     exit $NeuroDB::ExitCodes::NO_DTIPREP_VERSION;
 }
 
@@ -166,15 +167,15 @@ foreach my $nativedir (@nativedirs)   {
         ($mincdiffVersion)  = &identify_tool_version("minctensor.pl", '\/(mincdiffusion-[A-Z0-9._-]+)\/');
         # Exit program if mincdiffVersion is not set (needed to run minctensor)
         if (!$mincdiffVersion) {
-            print "\n\tERROR: mincdiffusion tool's version could not be "
-                  . "determined.\n\n";
+            print STDERR "\n\tERROR: mincdiffusion tool's version could "
+                  . "not be determined.\n\n";
             exit $NeuroDB::ExitCodes::NO_MINCDIFFUSION_VERSION;
         }
         # Exit program if $niak_path is not set
         if  (!$niak_path) {
-            print "\n\tERROR: variable niak_path need to be set in the config "
-                  . "file if you plan to use mincdiffusion tools to process "
-                  . "the DTI files.\n\n";
+            print STDERR "\n\tERROR: variable niak_path need to be set in the "
+                         . "config file if you plan to use mincdiffusion tools "
+                         . "to process the DTI files.\n\n";
             exit $NeuroDB::ExitCodes::NO_NIAK_PATH;
         }
     }

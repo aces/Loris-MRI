@@ -80,7 +80,7 @@ my @arg_table =
 ################################################################
 if ( !$profile ) {
     print $Help;
-    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
@@ -90,8 +90,8 @@ if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 }
 
 if ( !@Settings::db ) {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 } 
 
@@ -100,8 +100,8 @@ if ( !@Settings::db ) {
 ################# if tarchive not specified#####################
 ################################################################
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive.\n"
-          . "Please, make sure the path to the archive is valid.\n\n";
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is valid.\n\n";
     exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 
@@ -109,8 +109,8 @@ unless (-e $tarchive) {
 #################if the sourcelocation is not set###############
 ################################################################
 unless (-e $source_location) {
-    print "\nERROR: Could not find sourcelocation $source_location\n"
-          . "Please, make sure the sourcelocation is valid.\n\n";
+    print STDERR "\nERROR: Could not find sourcelocation $source_location\n"
+                 . "Please, make sure the sourcelocation is valid.\n\n";
     exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 ################################################################
@@ -153,7 +153,7 @@ $sth = $dbh->prepare($query);
 $sth->execute($tarchive_path);
 my $count = $sth->fetchrow_array;
 if($count>0) {
-   print "\n\tERROR: the tarchive is already uploaded \n\n"; 
+   print STDERR "\n\tERROR: the tarchive is already uploaded \n\n";
    exit $NeuroDB::ExitCodes::TARCHIVE_ALREADY_UPLOADED;
 } 
 

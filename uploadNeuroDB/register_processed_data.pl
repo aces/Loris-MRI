@@ -56,13 +56,13 @@ GetOptions(\@args_table, \@ARGV, \@args)
 
 # Input option error checking
 if ( !$profile ) {
-    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ( !@Settings::db )    {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -70,22 +70,22 @@ if  ( !@Settings::db )    {
 unless  ($filename && $sourceFileID && $sourcePipeline && $scanType
          && $pipelineDate && $coordinateSpace && $outputType
          && $tool && $inputFileIDs)   {
-    print "$Usage\n\tERROR: -file, -sourceFileID, -sourcePipeline, -scanType,"
-          . "-pipelineDate -coordinateSpace, -outputType, -tool & "
-          . "-inputFileIDs must be specified.\n\n";
+    print STDERR "$Usage\n\tERROR: -file, -sourceFileID, -sourcePipeline, "
+                 . "-scanType, -pipelineDate -coordinateSpace, -outputType, "
+                 . "-tool & -inputFileIDs must be specified.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 # Make sure sourceFileID is valid
 unless  ((defined($sourceFileID)) && ($sourceFileID =~ /^[0-9]+$/)) {
-    print "Files to be registered require the -sourceFileID option with a "
-          . "valid FileID as an argument\n";
+    print STDERR "Files to be registered require the -sourceFileID option "
+                 . "with a valid FileID as an argument\n";
     exit $NeuroDB::ExitCodes::INVALID_SOURCEFILEID;
 }
 
 # Make sure we have permission to read the file
 unless  (-r $filename)  {
-    print "Cannot read $filename\n";
+    print STDERR "Cannot read $filename\n";
     exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 

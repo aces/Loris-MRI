@@ -59,13 +59,13 @@ USAGE
 ################################################################
 if ( !$profile ) {
     print $Help;
-    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ( !@Settings::db ) {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -146,25 +146,27 @@ foreach my $input (@resultsarray)
     ## 3) for non-phantoms, the patient name and path entries are identical; this mimics the imaging uploader in the front-end
     my ($base,$path,$type) = fileparse($fullpath, qr{\..*});
     if (($type ne '.tgz') && ($type ne '.tar.gz') && ($type ne '.zip')) {
-	print "The file on line $counter is not of type .tgz, tar.gz, or .zip and "
-          . "will not be processed\n";
+	print STDERR "The file on line $counter is not of type .tgz, tar.gz, or "
+                 . ".zip and will not be processed\n";
 	exit $NeuroDB::ExitCodes::UPLOADED_FILE_TYPE_FAILURE;
     }
     if (($phantom eq '') || (($phantom ne 'N') && ($phantom ne 'Y'))) {
-	print "Make sure the Phantom entry is filled out "
-	      . "with Y if the scan if for a phantom, and N otherwise\n";
+	print STDERR "Make sure the Phantom entry is filled out "
+	             . "with Y if the scan if for a phantom, and N otherwise\n";
 	exit $NeuroDB::ExitCodes::PHANTOM_ENTRY_FAILURE;
     }
     if ($phantom eq 'N') {
         if ($patientname ne (substr ($base, 0, length($patientname)))) {
-       	    print "Make sure the patient name $patientname for non-phantom "
-	              . "entries matches the start of $base filename in $path\n";
-	    exit $NeuroDB::ExitCodes::PNAME_FILENAME_MISMATCH;
-	}
+       	    print STDERR "Make sure the patient name $patientname for "
+	                     . "non-phantom entries matches the start of $base "
+	                     . "filename in $path\n";
+	        exit $NeuroDB::ExitCodes::PNAME_FILENAME_MISMATCH;
+	    }
     }
     else {
         if ($patientname ne '') {
-       	    print "Please leave the patient name blank for phantom entries\n";
+       	    print STDERR "Please leave the patient name blank for phantom "
+       	                 . "entries\n";
 	        exit $NeuroDB::ExitCodes::PNAME_PHANTOM_MISMATCH;
 	}
 	else {

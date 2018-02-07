@@ -73,21 +73,21 @@ if ($version) { print "Version: $versionInfo\n"; exit; }
 
 # checking for profile settings
 if ( !$profile ) {
-    print "$Usage\n\tERROR: missing -profile argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
 if ( !@Settings::db ) {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 # The source and the target dir have to be present and must be directories.
 # The absolute path will be supplied if necessary
 if(scalar(@ARGV) != 2) {
-    print $Usage . "\n\tERROR: Missing source and/or target\n\n";
+    print STDERR $Usage . "\n\tERROR: Missing source and/or target\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 $dcm_source     = abs_path($ARGV[0]);
@@ -97,7 +97,7 @@ if (-d $dcm_source && -d $targetlocation) {
     $dcm_source =~ s/^(.*)\/$/$1/;
     $targetlocation =~ s/^(.*)\/$/$1/;
 } else {
-    print "\nERROR: source and target must be existing directories!!\n\n";
+    print STDERR "\nERROR: source and target must be existing directories!\n\n";
     exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 
@@ -143,7 +143,7 @@ if ($todayDate) { $byDate = $today; } else { $byDate = $summary->{header}->{scan
 my $finalTarget = "$targetlocation/DCM_${byDate}_$summary->{metaname}.tar";
 
 if (-e $finalTarget && !$clobber) {
-    print "\nTarget exists. Use clobber to overwrite!\n\n";
+    print STDERR "\nTarget exists. Use clobber to overwrite!\n\n";
     exit $NeuroDB::ExitCodes::TARGET_EXISTS_NO_CLOBBER;
 }
 
@@ -219,7 +219,7 @@ if ($dbase) {
     if ($success) {
         print "\nDone adding archive info into database\n" if $verbose;
     } else {
-        print "\nThe database command failed\n";
+        print STDERR "\nThe database command failed\n";
         exit $NeuroDB::ExitCodes::TARCHIVE_INSERT_FAILURE;
     }
 }
@@ -231,7 +231,7 @@ if ($mri_upload_update) {
                  . " -sourceLocation $dcm_source";
     my $output = system($script);
     if ($output!=0)  {
-        print "\n\tERROR: the script updateMRI_Upload.pl has failed \n\n"; 
+        print STDERR "\n\tERROR: the script updateMRI_Upload.pl has failed\n\n";
         exit $NeuroDB::ExitCodes::UPDATE_MRI_UPLOAD_FAILURE;
     }
 }
