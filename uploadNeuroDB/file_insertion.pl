@@ -213,20 +213,19 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
     \$dbh, 0, $TmpDir, $log_file, $verbose
 );
 
-# or the notification, if $verbose = 0, then $notify_verbose = 'N',
-my $notify_verbose = 'N' unless ( $verbose );
-my $notify_verbose = 'Y' if ( $verbose );
+
+
 
 ##### Verify that the provided scanner ID refers to a valid scanner entry
 (my $query = <<QUERY) =~ s/\n/ /gm;
 SELECT ID FROM mri_scanner WHERE ID=?
 QUERY
 my $sth = $dbh->prepare($query);
-$sth->execute();
+$sth->execute($scanner_id);
 unless ($sth->rows > 0) {
     # if no row returned, exits with message that did not find this scanner ID
     $message = <<MESSAGE;
-    \n\tERROR: ScannerID $scanner_id was not found in mri_scanner.\n\n
+    ERROR: ScannerID $scanner_id was not found in mri_scanner.\n\n
 MESSAGE
     # write error message in the log file
     $utility->writeErrorLog( $message, $INVALID_SCANNER_ID, $log_file );
@@ -234,9 +233,8 @@ MESSAGE
     $notifier->spool(
         'file insertion'   , $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
-        $notify_verbose
+        'N'
     );
-    print $message;
     exit $INVALID_SCANNER_ID; ##TODO 1: call the exit code from ExitCodes.pm
 }
 
@@ -249,18 +247,26 @@ MESSAGE
 my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, \$dbh);
 if ($acqProtocolID =~ /unknown/){
     $message = <<MESSAGE;
-    \tERROR: no acquisition protocol ID found for $scan_type.\n\n
+    ERROR: no acquisition protocol ID found for $scan_type.\n\n
 MESSAGE
     # write error message in the log file
     $utility->writeErrorLog( $message, $PROTOCOL_ID_NOT_FOUND, $log_file );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion'   , $message,   0,
+        'file insertion',    $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
-        $notify_verbose
+        'N'
     );
-    print $message;
     exit $PROTOCOL_ID_NOT_FOUND; ##TODO 1: call the exit code from ExitCodes.pm
+} else {
+    $message = <<MESSAGE;
+    Found acquisition protocol ID $acqProtocolID for $scan_type.\n\n
+MESSAGE
+    $notifier->spool(
+        'file insertion',    $message,   0,
+        'file_insertion.pl', $upload_id, 'Y',
+        'Y'
+    )
 }
 
 
@@ -314,7 +320,7 @@ my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
 unless ($subjectIDsref){
     # exits if could not determine subject IDs
     $message = <<MESSAGE;
-    \n\tERROR: could not determine subject IDs for $file_path.\n\n
+    ERROR: could not determine subject IDs for $file_path.\n\n
 MESSAGE
     # write error message in the log file
     $utility->writeErrorLog( $message, $GET_SUBJECT_ID_FAILURE, $log_file );
@@ -322,8 +328,8 @@ MESSAGE
     $notifier->spool(
         'file insertion'   , $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
-        $notify_verbose
-    );print $message;
+        'N'
+    );
     exit $GET_SUBJECT_ID_FAILURE; ##TODO 1: call the exit code from ExitCodes.pm
 }
 
@@ -335,7 +341,7 @@ $CandMismatchError = $utility->validateCandidate(
 if ($CandMismatchError){
     # exits if there is a mismatch in candidate IDs
     $message = <<MESSAGE;
-    \n\tERROR: Candidate IDs mismatch for $file_path.\n\n
+    ERROR: Candidate IDs mismatch for $file_path.\n\n
 MESSAGE
     # write error message in the log file
     $utility->writeErrorLog( $message, $CANDIDATE_MISMATCH, $log_file );
@@ -343,10 +349,18 @@ MESSAGE
     $notifier->spool(
         'file insertion'   , $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
-        $notify_verbose
+        'N'
     );
-    print $message;
     exit $CANDIDATE_MISMATCH; ##TODO 1: call the exit code from ExitCodes.pm
+} else {
+    $message = <<MESSAGE;
+    Validation of candidate information has passed.\n\n
+MESSAGE
+    $notifier->spool(
+        'file insertion',    $message,   0,
+        'file_insertion.pl', $upload_id, 'Y',
+        'N'
+    )
 }
 
 # determine the session ID
@@ -358,7 +372,7 @@ my ($session_id, $requiresStaging) = NeuroDB::MRI::getSessionID(
 );
 unless ($session_id) {
     $message = <<MESSAGE;
-    \n\tERROR: Could not determine the session ID for $file_path.\n\n
+    ERROR: Could not determine the session ID for $file_path.\n\n
 MESSAGE
     # write error message in the log file
     $utility->writeErrorLog( $message, $GET_SESSION_ID_FAILURE, $log_file );
@@ -366,11 +380,11 @@ MESSAGE
     $notifier->spool(
         'file insertion'   , $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
-        $notify_verbose
+        'N'
     );
-    print $message;
     exit $GET_SESSION_ID_FAILURE; ##TODO 1: call the exit code from ExitCodes.pm
 }
+
 
 
 
@@ -379,16 +393,15 @@ MESSAGE
 
 my $unique = $utility->computeMd5Hash($file, $info{'SourceLocation'});
 if (!$unique) {
-    $message = "\n\tERROR: This file has already been uploaded!\n";
+    $message = "ERROR: This file has already been uploaded!\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $FILE_NOT_UNIQUE, $log_file );
     # insert error message into notification spool table
     $notifier->spool(
         'file insertion'   , $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
-        $notify_verbose
+        'N'
     );
-    print $message;
     exit $FILE_NOT_UNIQUE; ##TODO 1: call the exit code from ExitCodes.pm
 }
 
@@ -399,13 +412,19 @@ if (!$unique) {
 
 # message to write in the LOG file
 $message = <<MESSAGE;
-    -> Set ScannerID to $scanner_id
-    -> Set SessionID to $session_id
-    -> Set acquisition date to $date_acquired
-    -> Set output type to $output_type
+    -> ScannerID was set to $scanner_id\n
+    -> SessionID was set to $session_id\n
+    -> Acquisition date was set to $date_acquired\n
+    -> Output type was set to $output_type\n\n
 MESSAGE
-print $message if verbose;
+print $message if $verbose;
 print LOG $message;
+
+$notifier->spool(
+    'file insertion',    $message,   0,
+    'file_insertion.pl', $upload_id, 'Y',
+    'Y'
+);
 
 # set file's scanner ID to $scanner_id
 $file->setFileData( 'ScannerID', $scanner_id );
@@ -433,6 +452,17 @@ my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
     $file_path, ['pass'], $reckless,      undef,
     $session_id
 );
+if ( $acquisitionProtocolIDFromProd ) {
+    my $registered_file = $file->getFileDatum('File');
+    $message = <<MESSAGE;
+    Registered file $registered_file successfully.\n\n
+MESSAGE
+    $notifier->spool(
+        'file insertion',    $message,   0,
+        'file_insertion.pl', $upload_id, 'Y',
+        'N'
+    );
+}
 
 
 
