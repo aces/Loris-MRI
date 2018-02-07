@@ -24,6 +24,7 @@ use NeuroDB::MRIProcessingUtility;
 my $INVALID_SCANNER_ID     = 140; # new
 my $PROTOCOL_ID_NOT_FOUND  = 141; # new
 my $GET_SESSION_ID_FAILURE = 142; # new
+my $INVALID_UPLOAD_ID      = 143; # new
 my $GET_SUBJECT_ID_FAILURE = 96;  # same as MRIProcessingUtility.pm
 my $CANDIDATE_MISMATCH     = 111; # same as minc_insertion.pl
 my $FILE_NOT_UNIQUE        = 6;
@@ -225,7 +226,7 @@ $sth->execute($scanner_id);
 unless ($sth->rows > 0) {
     # if no row returned, exits with message that did not find this scanner ID
     $message = <<MESSAGE;
-    ERROR: ScannerID $scanner_id was not found in mri_scanner.\n\n
+    ERROR: Invalid ScannerID $scanner_id.\n\n
 MESSAGE
     # write error message in the log file
     $utility->writeErrorLog( $message, $INVALID_SCANNER_ID, $log_file );
@@ -236,6 +237,31 @@ MESSAGE
         'N'
     );
     exit $INVALID_SCANNER_ID; ##TODO 1: call the exit code from ExitCodes.pm
+}
+
+
+
+
+##### Verify that the upload ID refers to a valid upload ID
+(my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT UploadID FROM mri_upload WHERE UploadID=?
+QUERY
+my $sth = $dbh->prepare($query);
+$sth->execute($upload_id);
+unless ($sth->rows > 0) {
+    # if no row returned, exits with message that did not find this upload ID
+    $message = <<MESSAGE;
+    ERROR: Invalid UploadID $upload_id.\n\n
+MESSAGE
+    # write error message in the log file
+    $utility->writeErrorLog( $message, $INVALID_UPLOAD_ID, $log_file );
+    # insert error message into notification spool table
+    $notifier->spool(
+        'file insertion'   , $message,   0,
+        'file_insertion.pl', $upload_id, 'Y',
+        'N'
+    );
+    exit $INVALID_UPLOAD_ID; ##TODO 1: call the exit code from ExitCodes.pm
 }
 
 
