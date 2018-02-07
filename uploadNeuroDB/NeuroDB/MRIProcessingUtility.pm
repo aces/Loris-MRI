@@ -71,7 +71,7 @@ sub new {
 sub writeErrorLog {
     my $this = shift;
     my ($message, $failStatus,$LogDir) = @_;
-    print $message;
+    print STDERR $message;
     $this->{LOG}->print($message);
     $this->{LOG}->print(
         "program exit status: $failStatus"
@@ -171,7 +171,7 @@ sub extract_tarchive {
 
     if (scalar(@tars) != 1) {
         my $message = "Error: Could not find inner tar in $tarchive!\n";
-        print $message;
+        print STDERR $message;
         print @tars . "\n";
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
         exit $NeuroDB::ExitCodes::EXTRACT_ARCHIVE_FAILURE;
