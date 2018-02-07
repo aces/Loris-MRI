@@ -96,7 +96,7 @@ if ( !$profile ) {
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ( !@Settings::db ) {
-    print "\n\tERROR: You don't have a @db setting in the file "
+    print "\n\tERROR: You don't have a \@db setting in the file "
           . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
