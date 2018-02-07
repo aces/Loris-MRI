@@ -65,7 +65,6 @@ GetOptions(\@args_table, \@ARGV, \@args)
 
 # input options error checking
 if ( !$profile ) {
-    print $Help;
     print "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
