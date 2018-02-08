@@ -204,16 +204,23 @@ sub IsCandidateInfoValid {
     ############################################################
     ############### Check to see if the uploadID exists ########
     ############################################################
-    $query =
-        "SELECT PatientName,TarchiveID,number_of_mincCreated,"
-      . "number_of_mincInserted,IsPhantom FROM mri_upload "
-      . " WHERE UploadID =?";
+    ( $query = <<QUERY ) = s/\n//gm;
+SELECT
+    PatientName,           TarchiveID,
+    number_of_mincCreated, number_of_mincInserted,
+    IsPhantom,             Modality
+FROM
+    mri_upload
+LEFT JOIN
+    ImagingModality USING (ImagingModalityID)
+WHERE
+    UploadID=?
+QUERY
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
     $sth->execute( $this->{'upload_id'} );
     if ( $sth->rows > 0 ) {
         @row = $sth->fetchrow_array();
-    }
-    else {
+    } else {
         $message =
             "\nThe uploadID "
           . $this->{'upload_id'}
@@ -221,6 +228,8 @@ sub IsCandidateInfoValid {
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
+    my $pname    = $row[0]; # grep the patient name
+    my $modality = $row[6]; # grep the study modality
 
     ###############################################################
     ####Check to see if the scan has been run #####################
@@ -232,9 +241,9 @@ sub IsCandidateInfoValid {
     if ( ( $row[1] ) || ( $row[2] ) ) {
 
         my $archived_file_path = '';
-        my $query             = "SELECT t.ArchiveLocation FROM tarchive t "
-                              . " WHERE t.TarchiveID =?";
-        my $sth               = ${ $this->{'dbhr'} }->prepare($query);
+        my $query              = "SELECT t.ArchiveLocation FROM tarchive t "
+                                 . " WHERE t.TarchiveID =?";
+        my $sth                = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute( $row[1] );   
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
@@ -278,22 +287,34 @@ sub IsCandidateInfoValid {
 	# Issue a warning for the total number of files that are not
 	# DICOM images
     my $files_not_dicom = scalar @non_image_files;
-    if ($files_not_dicom > 0 ) {
+    if ( ($modality =~ /DICOM/i) && ($files_not_dicom > 0) ) {
         $message = "\nWARNING: There are $files_not_dicom file(s) which"
                    . " are not DICOM images: these will be ignored.\n";
         $this->spool($message, 'N', $notify_notsummary);
     }
 
-    # check that the patient name was set properly in the DICOM files
+    # check that the patient name was set properly in the DICOM files or the HRRT files
     my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
     my $patient_name  = $this->{'pname'};
-    foreach my $file (@image_files) {
-        if ($row[4] eq 'N' && !$this->PatientNameMatch($file, "^$patient_name")) {
-            $files_with_unmatched_patient_name++;
-        } elsif ($row[4] eq 'Y' && !$this->PatientNameMatch($file, $phantom_regex)) {
-            $files_with_unmatched_patient_name++;
+    if ($modality =~ /DICOM/i) {
+        foreach my $file (@image_files) {
+            if ($row[4] eq 'N' && !$this->PatientNameMatch($file, "^$patient_name")) {
+                $files_with_unmatched_patient_name++;
+            } elsif ($row[4] eq 'Y' && !$this->PatientNameMatch($file, $phantom_regex)) {
+                $files_with_unmatched_patient_name++;
+            }
         }
+    } elsif ( $modality eq 'PET HRRT' ) {
+        # if modality is PET HRRT, then bypass files that don't have
+        # the patient in the filename (we already know which ones
+        # they are, at least for the BIC)
+        my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
+            . "script|ini|directnorm|up_mask";
+        next if ( $_ =~ /$exclude_regex/i );
+        $files_with_unmatched_patient_name++ if !($_ =~ /$pname/i);
+        print "\nNo patient name: " . $_ if !($_ =~ /$pname/i);
     }
+
 
     # return 0 if found at least one DICOM file without the proper patient name
     if ( $files_with_unmatched_patient_name > 0 ) {
