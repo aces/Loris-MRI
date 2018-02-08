@@ -1,6 +1,6 @@
 # NAME
 
-DICOM::DCMSUM -- deals with DICOM summaries for archiving and other purposes
+DICOM::DCMSUM -- Archives DICOM summaries
 
 # SYNOPSIS
 
@@ -10,11 +10,11 @@ Deals with DICOM summaries for archiving and other purposes.
 
 ## Methods
 
-### new($dcm\_dir, $tmp\_dir)(constructor)
+### new($dcm\_dir, $tmp\_dir) >> (constructor)
 
 Creates a new instance of this class.
 
-INPUT: DICOM directory, target location
+INPUTS: DICOM directory, target location
 
 RETURNS: a DICOM::DCMSUM object
 
@@ -22,7 +22,7 @@ RETURNS: a DICOM::DCMSUM object
 
 Inserts or updates the tarchive tables.
 
-INPUT:
+INPUTS:
   - $dbh              : database handle
   - $meta             : name of the .meta file
   - $update           : set to 1 to update tarchive entry, 0 otherwise
@@ -91,7 +91,7 @@ RETURNS: acquisition listing sorted by acquisition number to be used for summary
 
 Gets DICOM info from all files in a directory.
 
-Note: I added the -k5 on August 28th 2006 because the guys in Kupio assign
+Note: The -k5 was added on August 28th 2006 because the guys in Kupio assign
 duplicate FN SN EN values for scouts and subsequent scans.
 
 INPUT: DICOM directory
@@ -189,10 +189,12 @@ RETURNS: string without white space
 
 ### date\_format($first, $second)
 
-Pass it a date in YYYYMMDD and you get YYYY-MM-DD.
-Pass it two of these and you get the difference in decimal and Y M +/- Days.
+If only one date argument is provided, then it will convert YYYYMMDD date
+format into YYYY-MM-DD.
+If two date arguments are provided, thenit will compute the difference in
+decimal and Y M +/- Days.
 
-INPUT: date to format, (optionally, a second date to get the difference
+INPUTS: date to format, (optionally, a second date to get the difference
 between two dates)
 
 RETURNS: formatted date, or the different between two dates
