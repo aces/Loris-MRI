@@ -40,9 +40,9 @@ Like the Loris Imaging Uploader interface, this script also validates the candid
 name against the (start of the) filename and creates an entry in the mri_upload table.
 
 An example of what list_of_scans.txt might contain for 3 uploads to be inserted:
-/data/incoming/PSC0001_123457_V1.tar.gz N PSC0000_123456_V1
-/data/incoming/Lego_Phantom_MNI_20140101.zip Y
-/data/incoming/PSC0001_123457_V1_RES.tar.gz N PSC0000_123456_V1
+/data/incoming/PSC0001_123457_V1.tar.gz N MRI_DICOM PSC0000_123456_V1
+/data/incoming/Lego_Phantom_MNI_20140101.zip Y MRI_DICOM
+/data/incoming/PSC0001_123457_V1_RES.tar.gz N PET_HRRT PSC0000_123456_V1
 
 HELP
 my $Usage = <<USAGE;
