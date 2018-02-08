@@ -477,11 +477,11 @@ sub determinePSC {
 Determines which scanner ID was used for DICOM acquisitions.
 
 INPUTS:
-  $tarchiveInfo: tarchive information hashref
-  $to_log      : whether this step should be logged
-  $centerID    : center ID
-  $NewScanner  : whether a new scanner entry should be created if the scanner
-  used is a new scanner for the study
+  - $tarchiveInfo: tarchive information hashref
+  - $to_log      : whether this step should be logged
+  - $centerID    : center ID
+  - $NewScanner  : whether a new scanner entry should be created if the scanner
+                   used is a new scanner for the study
 
 RETURNS: scanner ID
 
@@ -535,7 +535,7 @@ sub determineScannerID {
 
 =head3 get_acqusitions($study_dir, \@acquisitions)
 
-UNUSED FUNCTION TO BE CLEANED UP IN ANOTHER PULL REQUEST
+UNUSED
 
 =cut
 
@@ -593,13 +593,13 @@ true, then it will bypass the additional protocol checks from the
 C<mri_protocol_checks> table using C<&extra_file_checks>.
 
 INPUTS:
-  $file                    : file's information hashref
-  $subjectIDsref           : subject's information hashref
-  $tarchiveInfo            : tarchive's information hashref
-  $center_name             : center name
-  $minc                    : absolute path to the MINC file
-  $acquisitionProtocol     : acquisition protocol if already knows it
-  $bypass_extra_file_checks: boolean, if set bypass the extra checks
+  - $file                    : file's information hashref
+  - $subjectIDsref           : subject's information hashref
+  - $tarchiveInfo            : tarchive's information hashref
+  - $center_name             : center name
+  - $minc                    : absolute path to the MINC file
+  - $acquisitionProtocol     : acquisition protocol if already knows it
+  - $bypass_extra_file_checks: boolean, if set bypass the extra checks
 
 RETURNS: acquisition protocol, acquisition protocol ID, array of extra checks
 
@@ -676,11 +676,11 @@ Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
 
 INPUTS:
-  $scan_type  : scan type of the file
-  $file       : file information hashref
-  $CandID     : candidate's CandID
-  $Visit_Label: visit label of the scan
-  $PatientName: patient name of the scan
+  - $scan_type  : scan type of the file
+  - $file       : file information hashref
+  - $CandID     : candidate's CandID
+  - $Visit_Label: visit label of the scan
+  - $PatientName: patient name of the scan
 
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
@@ -847,13 +847,13 @@ sub loadAndCreateObjectFile {
 Renames and moves the MINC file.
 
 INPUTS:
-  $minc           : path to the MINC file
-  $subjectIDsref  : subject's ID hashref
-  $minc_type      : MINC file information hashref
-  $fileref        : file information hashref
-  $prefix         : study prefix
-  $data_dir       : data directory (typically /data/project/data)
-  $tarchive_srcloc: tarchive source location
+  - $minc           : path to the MINC file
+  - $subjectIDsref  : subject's ID hashref
+  - $minc_type      : MINC file information hashref
+  - $fileref        : file information hashref
+  - $prefix         : study prefix
+  - $data_dir       : data directory (typically /data/project/data)
+  - $tarchive_srcloc: tarchive source location
 
 RETURNS: new name of the MINC file with path relative to C<$data_dir>
 
@@ -916,15 +916,15 @@ sub move_minc {
 Registers the scan into the database.
 
 INPUTS:
-  $minc_file          : MINC file information hashref
-  $tarchiveInfo       : tarchive information hashref
-  $subjectIDsref      : subject's ID information hashref
-  $acquisitionProtocol: acquisition protocol
-  $minc               : MINC file to register into the database
-  $checks             : failed checks to register with the file
-  $reckless           : boolean, if reckless or not
-  $tarchive           : tarchive path
-  $sessionID          : session ID of the MINC file
+  - $minc_file          : MINC file information hashref
+  - $tarchiveInfo       : tarchive information hashref
+  - $subjectIDsref      : subject's ID information hashref
+  - $acquisitionProtocol: acquisition protocol
+  - $minc               : MINC file to register into the database
+  - $checks             : failed checks to register with the file
+  - $reckless           : boolean, if reckless or not
+  - $tarchive           : tarchive path
+  - $sessionID          : session ID of the MINC file
 
 RETURNS: acquisition protocol ID of the MINC file
 
@@ -1051,12 +1051,12 @@ sub registerScanIntoDB {
 Converts a DICOM study into MINC files.
 
 INPUTS:
-  $study_dir      : DICOM study directory to convert
-  $converter      : converter to be used
-  $get_dicom_info : get DICOM information setting from the Config table
-  $exclude        : which files to exclude from the dcm2mnc command
-  $mail_user      : mail of the user
-  $tarchive_srcloc: tarchive source location
+  - $study_dir      : DICOM study directory to convert
+  - $converter      : converter to be used
+  - $get_dicom_info : get DICOM information setting from the Config table
+  - $exclude        : which files to exclude from the dcm2mnc command
+  - $mail_user      : mail of the user
+  - $tarchive_srcloc: tarchive source location
 
 =cut
 
@@ -1295,11 +1295,11 @@ sub moveAndUpdateTarchive {
 Registers a new candidate in the candidate table.
 
 INPUTS:
-  $subjectIDsref: subject's ID information hashref
-  $gender       : gender of the candidate
-  $tarchiveInfo : tarchive information hashref
-  $User         : user that is running the pipeline
-  $centerID     : center ID
+  - $subjectIDsref: subject's ID information hashref
+  - $gender       : gender of the candidate
+  - $tarchiveInfo : tarchive information hashref
+  - $User         : user that is running the pipeline
+  - $centerID     : center ID
 
 =cut
 
@@ -1777,12 +1777,12 @@ sub getUploadIDUsingTarchiveSrcLoc {
 Calls the Notify->spool function to log all messages.
 
 INPUTS:
-  $message   : message to be logged in the database
-  $error     : if 'Y' it's an error log,
-               'N' otherwise
-  $upload_id : the upload_id
-  $verb      : 'N' for few main messages,
-               'Y' for more messages (developers)
+  - $message   : message to be logged in the database
+  - $error     : if 'Y' it's an error log,
+                 'N' otherwise
+  - $upload_id : the upload_id
+  - $verb      : 'N' for few main messages,
+                 'Y' for more messages (developers)
 
 =cut
 
@@ -1810,6 +1810,8 @@ Document the following functions:
   - concat_mri($minc_files)
   - registerProgs(@toregister)
 
+Remove function get_acqusitions($study_dir, \@acquisitions) that is not used
+
 =head1 BUGS
 
 None reported (or list of bugs)
@@ -1820,6 +1822,7 @@ License: GPLv3
 
 =head1 AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
 
 =cut
