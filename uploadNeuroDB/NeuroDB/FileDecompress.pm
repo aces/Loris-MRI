@@ -78,6 +78,9 @@ sub Extract  {
     my $this = shift;
     my ($destination_folder) = @_;
 
+    # use binary for extraction as some datasets are just too big for Perl...
+    $Archive::Extract::PREFER_BIN = 1;
+
     # Check to see if the destination folder exists
     return $this->{'extract_object'}->extract(to=>$destination_folder);
 }

@@ -204,16 +204,16 @@ sub IsCandidateInfoValid {
     ############################################################
     ############### Check to see if the uploadID exists ########
     ############################################################
-    ( $query = <<QUERY ) = s/\n//gm;
-SELECT
+    ( $query = <<QUERY ) =~ s/\n//gm;
+  SELECT
     PatientName,           TarchiveID,
     number_of_mincCreated, number_of_mincInserted,
     IsPhantom,             Modality
-FROM
+  FROM
     mri_upload
-LEFT JOIN
+  LEFT JOIN
     ImagingModality USING (ImagingModalityID)
-WHERE
+  WHERE
     UploadID=?
 QUERY
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
@@ -228,8 +228,8 @@ QUERY
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
-    my $pname    = $row[0]; # grep the patient name
-    my $modality = $row[6]; # grep the study modality
+    # grep the study modality and add it to the imagingUpload object
+    $this->{'modality'} = $row[5];
 
     ###############################################################
     ####Check to see if the scan has been run #####################
@@ -287,7 +287,7 @@ QUERY
 	# Issue a warning for the total number of files that are not
 	# DICOM images
     my $files_not_dicom = scalar @non_image_files;
-    if ( ($modality =~ /DICOM/i) && ($files_not_dicom > 0) ) {
+    if ( ($this->{'modality'} =~ /DICOM/i) && ($files_not_dicom > 0) ) {
         $message = "\nWARNING: There are $files_not_dicom file(s) which"
                    . " are not DICOM images: these will be ignored.\n";
         $this->spool($message, 'N', $notify_notsummary);
@@ -296,7 +296,7 @@ QUERY
     # check that the patient name was set properly in the DICOM files or the HRRT files
     my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
     my $patient_name  = $this->{'pname'};
-    if ($modality =~ /DICOM/i) {
+    if ($this->{'modality'} =~ /DICOM/i) {
         foreach my $file (@image_files) {
             if ($row[4] eq 'N' && !$this->PatientNameMatch($file, "^$patient_name")) {
                 $files_with_unmatched_patient_name++;
@@ -304,15 +304,15 @@ QUERY
                 $files_with_unmatched_patient_name++;
             }
         }
-    } elsif ( $modality eq 'PET HRRT' ) {
+    } elsif ( $this->{'modality'} eq 'PET HRRT' ) {
         # if modality is PET HRRT, then bypass files that don't have
         # the patient in the filename (we already know which ones
         # they are, at least for the BIC)
         my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
             . "script|ini|directnorm|up_mask";
         next if ( $_ =~ /$exclude_regex/i );
-        $files_with_unmatched_patient_name++ if !($_ =~ /$pname/i);
-        print "\nNo patient name: " . $_ if !($_ =~ /$pname/i);
+        $files_with_unmatched_patient_name++ if !($_ =~ /$patient_name/i);
+        print "\nNo patient name: " . $_ if !($_ =~ /$patient_name/i);
     }
 
 
