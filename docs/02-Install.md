@@ -97,7 +97,7 @@ Under the section `Paths`
 
 
 Projects can upload scans and launch the pipeline in a variety of options 
-detailed in [PipelineOptions](PipelineOptions.md). 
+detailed in [PipelineOptions](05-PipelineOptions.md). 
 Irrespective of the project's choice as to whether the imaging scan is to be 
 uploaded through the Imaging Uploader GUI or not, pipeline insertion progress 
 can be consulted through a live 'Log Viewer' panel.
@@ -125,7 +125,7 @@ Imaging Browser accesses the PIC images directly from the filesystem where they
 are stored. It also provides the option to doownload some files.  Ensure that:
 - `/data/$PROJ` directory and subdirectories are readable and executable by
     the Apache linux user.
-- Verify the Configuration module (*Paths*) `Imaging data`, `MINC files` and 
+- the Configuration module (*Paths*) `Imaging data`, `MINC files` and 
   `Images` settings are set (typically: `/data/$PROJECT/data/`). 
     
 More detailed specifications can be consulted in the 
@@ -137,27 +137,22 @@ Brainbrowser displays the MINC images within the browser. It accesses those MINC
 images directly from the filesystem. Ensure that:
 - `/data/$PROJ` directory and subdirectories are readable and executable by
     the Apache linux user.
-- Verify the Configuration module (*Paths*) `MINC files` setting is
+- the Configuration module (*Paths*) `MINC files` setting is
     `/data/$PROJ/data/`.
-- Ensure the _project/config.xml_ file (in the main LORIS codebase) contains the
-      following tagset, specifying the MINC toolkit path local to the main LORIS
-      codebase (/`opt/minc/` in this example):
-          
-    ```xml
-    <!-- MINC TOOLS PATH -->
-    <MINCToolsPath>/opt/minc/</MINCToolsPath>
-    ```
+- the _project/config.xml_ file (in the main LORIS codebase) contains the
+      proper MINC toolkit path in the `<MINCToolsPath>` tagset.
+      
 More detailed specifications can be consulted in the 
 [LORIS repository:Brainbrowser Specification](https://github.com/aces/Loris/blob/master/modules/brainbrowser/README.md).
 
 
 5. **MRI Violated Scans**
 
-No configuration setting is needed for the MRI Violated Scans LORIS module to 
-work. Data loaded in this module gets populated automatically by the insertion
+No configuration setting is needed for the MRI Violated Scans module to work. 
+Data loaded in this module gets populated automatically by the insertion 
 scripts. As such, scans whose parameters can't be matched against the 
 `mri_protocol` table during the imaging insertion process, will be flagged as 
-protocol violations and will not have their MINC/NIFTII volumes loaded in the 
+protocol violations and will not have their MINC/NIfTI volumes loaded in the 
 database. The type of error (scan identification, protocol violation) will be 
 listed and can be reviewed from the front-end.
 
@@ -246,7 +241,7 @@ The graph below shows the different modules mentioned above with the
   [Technical Infrastructure](03-TechnicalInfrastructure.md) section. In
   addition, the graph shows the name of the main script that is used to insert
   the images into the LORIS database. More details about those scripts can be
-  found in the section [4 Scripts](04-Scripts.md).
+  found in the section [Scripts](04-Scripts.md).
 
 ![pipeline_flow](images/overall_flow.png)
 
@@ -296,7 +291,9 @@ The following must be recursively owned by the lorisadmin user and by Apache
 #### 2.4.4 Verify Configuration module settings for Imaging Pipeline
 
 In the LORIS front-end, under the Admin menu, go to the `Configuration` module. 
-Under the section `Imaging Pipeline`, verify/set the following config settings:
+Under the section `Imaging Pipeline`, verify/set the following config settings 
+(whose definition can be consulted in [Databse](###2.2.1 Database):
+
  * `Loris-MRI Data Directory`
  * `Study Name`
  * `User to notify when executing the pipeline`

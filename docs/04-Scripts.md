@@ -86,12 +86,12 @@ Neuroscience
 
 ## 4.2 - Common insertion scripts re-run
 
-##### Bypassing protocol violation checks
+#### Bypassing protocol violation checks
 
-For cases when a scan has triggered a protocol violation, the minc volume can be
+For cases when a scan has triggered a protocol violation, the MINC volume can be
   **force-loaded** into LORIS by running:
 ```
-uploadNeuroDB/minc_insertion.pl -acquisition_protocol t2w -bypass_extra_file_checks -create_minc_pics -profile prod -globLocation -force  -tarchivePath _/data/project/dataTransfer/library/2009/DCM_2009-09-25_project_20110214_185904581.tar_ -mincPath _/data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.mnc_
+uploadNeuroDB/minc_insertion.pl -acquisition_protocol t2w -bypass_extra_file_checks -create_minc_pics -profile prod -globLocation -force  -tarchivePath /data/project/dataTransfer/library/2009/DCM_2009-09-25_project_20110214_185904581.tar -mincPath /data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.mnc
 ```
 
 Note carefully the following arguments:
@@ -99,7 +99,7 @@ Note carefully the following arguments:
 - *acquisition_protocol*: must be a known scan type according to the
     `mri_scan_type` table
 - *tarchive_Path*: the DICOM tarball
-- *mincPath*: note this file may haven placed in the `trashbin` directory
+- *mincPath*: note this file may have been placed in the `trashbin` directory
 
 See also: [MRI-PR#141](https://github.com/aces/Loris-MRI/pull/141) for more
   examples.
@@ -110,13 +110,13 @@ See also: [MRI-PR#141](https://github.com/aces/Loris-MRI/pull/141) for more
     wish to just re-run the tarchiveLoader script.
     
 > When the need arises to re-load imaging data in LORIS, it is generally not
-   sufficient to just re-run the MINC/NIFTII loading step (`tarchiveLoader` or
+   sufficient to just re-run the MINC/NIfTI loading step (`tarchiveLoader` or
     `batch_uploads_tarchive`). The pipeline steps must be re-run starting
     with dicomTar.pl (see section 5.4 of
    [Pipeline triggering options](05-PipelineOptions.md)).
 
 In general, to re-load an imaging dataset through the pipeline from start (from
-  dicomTar.pl) -- Ensure entries from the previous attempt to load the dataset
+  `dicomTar.pl`) -- Ensure entries from the previous attempt to load the dataset
   have been removed from the following database tables:
 
 - `parameter_file`
@@ -128,7 +128,8 @@ In general, to re-load an imaging dataset through the pipeline from start (from
     associated to this session e.g. on the Behavioural side of Loris.
 
 It is also recommended to remove from the tarchive directory the last generated
-  *.tar package for this dataset.
+  `*.tar` package for this dataset, as well as files in the `assembly/`, `pic/`, 
+  `jiv/`, and `trashbin/` directories.
 
 If any Quality Control flags or comments exist for these scans, you may also
   wish to delete specific records from `files_qcstatus` and the `mri_feedback_*`
@@ -139,7 +140,9 @@ For backing up, re-labelling and re-loading MRI datasets with QC information,
 
 #### Multiple scanner datasets per session
 
-In cases where a subject was scanned in two scanner sessions within a single
-  study Timepoint, both datasets should be loaded and associated to the same
-  visit label / session table record. Create separate tarchives for each
-  DICOM dataset upload each to the same visit.
+In cases where a subject was scanned in two scanner sessions as part of the same
+  study Timepoint, anonymize both DICOM datasets using the same Visit Label in 
+  the PatientName (or PatientID), and upload as two separate DICOM datasets. The 
+  insertion pipeline will automatically associate and display both sets of 
+  images acquired in both session scanner sessions under the same session table 
+  record. 

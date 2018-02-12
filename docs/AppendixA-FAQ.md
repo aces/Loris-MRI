@@ -1,6 +1,6 @@
 # Appendix A - FAQ
 
-### A.1 Installation trouble shooting notes
+### A.1 Installation troubleshooting notes
 
 Key configuration points to verify:
 
@@ -13,10 +13,10 @@ Key configuration points to verify:
 
 - If your MINC toolkit is older than 1.9.14 and your scans have no Date of Birth
    value, you may see an age unit error during DICOM to MINC conversion.
-   Instructions for compiling a more recent version available on
-   [MNI-BIC GitHub](https://github.com/BIC-MNI/minc-toolkit-v2).
+   Instructions for compiling a more recent version of the MINC toolkit are 
+   available on [MNI-BIC GitHub](https://github.com/BIC-MNI/minc-toolkit-v2).
 
-### A.2 Verify loaded images and Troubleshooting
+### A.2 Images display troubleshooting notes
 
 Once an MRI scan session has been successfully inserted, it will be listed in
   the Imaging Browser main data table (also linked from the DICOM Archive
@@ -34,7 +34,7 @@ sudo service apache2 restart
 If download links do not work, ensure that the `/data/$PROJ/data/assembly`
   directory and subdirectories are executable.
 
-#### Logs
+### A.3 Logs troubleshooting notes
 
 Error and output messages from the imaging insertion scripts are logged in files
   created under the `/data/$PROJ/data/logs/` directory. To view messages from
@@ -49,7 +49,7 @@ Error and output messages from the imaging insertion scripts are logged in files
   function [deleteProcessFiles()](https://github.com/aces/Loris/blob/master/modules/server_processes_manager/php/AbstractServerProcess.class.inc#L521)
   to return false instead of true.
 
-#### Troubleshooting Insertion of uploaded datasets
+### A.4 Insertion script troubleshooting notes
 
 If upload was successful but issues were encountered with the imaging insertion
   pipeline scripts:
