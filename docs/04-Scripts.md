@@ -1,8 +1,6 @@
 # 4.0 - Scripts
 
-**NOT SURE WHAT THIS IMAGE IS DOING HERE!!!**
-
-![pipeline_flow](images/pipeline_flow.png)
+![pipeline_flow](images/pipeline_schematic.png)
 
 ## 4.1 - Perl documentation
 
