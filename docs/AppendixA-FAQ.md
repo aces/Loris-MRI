@@ -19,10 +19,10 @@ Key configuration points to verify:
 ### A.2 Verify loaded images and Troubleshooting
 
 Once an MRI scan session has been successfully inserted, it will be listed in
-  the Imaging Browser main data table (also linked from the Dicom Archive
-  subpage: "View Images").
+  the Imaging Browser main data table (also linked from the DICOM Archive
+  sub-page: "View Images").
 
-Verify in the Imaging Browser's View Session page that a jpg showing 3 slice
+Verify in the Imaging Browser's View Session page that a `jpg` showing 3 slice
   orientations displays properly; if not, verify your permissions and restart
   apache:
 ```
@@ -54,16 +54,12 @@ Error and output messages from the imaging insertion scripts are logged in files
 If upload was successful but issues were encountered with the imaging insertion
   pipeline scripts:
 
-- CentOS: check for additional dependencies/configurations (e.g. Dicom
+- CentOS: check for additional dependencies/configurations (e.g. DICOM
     Dictionary path) in the detailed
     [CentOS Imaging Installation transcript](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript)
-- Manually re-run the entire pipeline sequence:
-    [imaging_upload_file.pl](#post-upload:-pre-processing-and-insertion-into-loris)
+- Manually re-run the entire pipeline sequence using the 
+`imaging_upload_file.pl` script
 - If one of the final steps such as the MINC conversion is failing, you may
-    wish to just re-run the tarchiveLoader script.
+    wish to just re-run the `tarchiveLoader` script.
 - See also [re-running the Imaging pipeline](#rerunning-the-imaging-pipeline)
     section for troubleshooting information.
-
-
-Feel free to visit the [FAQ](AppendixA-FAQ.md) section for more
-  troubleshooting solutions.

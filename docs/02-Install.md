@@ -88,7 +88,7 @@ Under the section `Paths`
  * `Scan type of native T1 acquisition`: Name as specified in the `mri_scan_type` table. Used by the DTIPrep pipeline
  * `Max number of DTI rejected directions for passing QC`: Number of directions that can be rejected and still pass QC. Used by the DTIPrep pipeline
  * `NIAK Path`: Path to NIAK if MINC diffusion is to be run. Used by the DTIPrep pipeline
- * `Secondary QCed dataset`: Path where a secondary QC'ed dataset it to be stored. Used by the DTIPrep pipeline
+ * `Secondary QCed dataset`: Path where a secondary QC'ed dataset is to be stored. Used by the DTIPrep pipeline
 
 
 ### 2.2.2 LORIS
@@ -112,7 +112,7 @@ This LORIS module provides a front-end display of the details of the archived
 DICOMs from the database `tarchive_*` tables. The only setting that impacts the 
 display of this module are the regex settings in the `Configuration` module 
 under the section `Imaging Modules`. These settings determine whether the 
-Patient Name/Patient ID headers are displayed in full, or show up as 
+Patient Name/Patient ID header values are displayed in full, or show up as 
 **INVALID-HIDDEN**.
 
 More detailed specifications can be consulted in the 
@@ -133,8 +133,8 @@ More detailed specifications can be consulted in the
 
 4. **Brainbrowser**
 
-Brainbrowser accesses the MINC images directly from the filesystem where they
-are stored. Ensure that:
+Brainbrowser displays the MINC images within the browser. It accesses those MINC 
+images directly from the filesystem. Ensure that:
 - `/data/$PROJ` directory and subdirectories are readable and executable by
     the Apache linux user.
 - Verify the Configuration module (*Paths*) `MINC files` setting is
