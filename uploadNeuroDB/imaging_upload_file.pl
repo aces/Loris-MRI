@@ -219,37 +219,43 @@ if ( !($is_candinfovalid) ) {
 $message = "\nThe candidate info validation has passed \n";
 spool($message,'N', $notify_notsummary);
 
-################################################################
-############### Run DicomTar  ##################################
-################################################################
-$output = $imaging_upload->runDicomTar();
-if ( !$output ) {
-    $imaging_upload->updateMRIUploadTable(
-	'Inserting', 0);
-    $message = "\nThe dicomtar execution has failed\n";
-    spool($message,'Y', $notify_notsummary);
-    print $message;
-    exit 8;
-}
-$message = "\nThe dicomtar execution has successfully completed\n";
-spool($message,'N', $notify_notsummary);
+if ( $imaging_upload->{'modality'} =~ /DICOM/i ) {
+    ################################################################
+    ############### Run DicomTar  ##################################
+    ################################################################
+    $output = $imaging_upload->runDicomTar();
+    if (!$output) {
+        $imaging_upload->updateMRIUploadTable(
+            'Inserting', 0);
+        $message = "\nThe dicomtar execution has failed\n";
+        spool($message, 'Y', $notify_notsummary);
+        print $message;
+        exit 8;
+    }
+    $message = "\nThe dicomtar execution has successfully completed\n";
+    spool($message, 'N', $notify_notsummary);
 
-################################################################
-############### Run runTarchiveLoader###########################
-################################################################
-$output = $imaging_upload->runTarchiveLoader();
-$imaging_upload->updateMRIUploadTable('Inserting', 0);
-if ( !$output ) {
-    $message = "\nThe insertion scripts have failed\n";
-    spool($message,'Y', $notify_notsummary); 
-    print $message;
-    exit 9;
+    ################################################################
+    ############### Run runTarchiveLoader###########################
+    ################################################################
+    $output = $imaging_upload->runTarchiveLoader();
+    $imaging_upload->updateMRIUploadTable('Inserting', 0);
+    if (!$output) {
+        $message = "\nThe insertion scripts have failed\n";
+        spool($message, 'Y', $notify_notsummary);
+        print $message;
+        exit 9;
+    }
+} elsif ( $imaging_upload->{'modality'} eq "PET HRRT" ) {
+    print "\n\nPET PET PET\n\n";
 }
 
 ################################################################
 ### If we got this far, dicomTar and tarchiveLoader completed###
 #### Remove the uploaded file from the incoming directory#######
 ################################################################
+#TODO: either move this function in the DICOM section or modify function to
+# clean up PET incoming dir
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";

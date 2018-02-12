@@ -44,6 +44,8 @@ sub Extract  {
     #####################################################
     ##Check to see if the destination folder exists######
     #####################################################
+    # use binary for extraction as some datasets are just too big for Perl...
+    $Archive::Extract::PREFER_BIN = 1;
     return $this->{'extract_object'}->extract(to=>$destination_folder);
 }
 

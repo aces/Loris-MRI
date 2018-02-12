@@ -125,16 +125,16 @@ sub IsCandidateInfoValid {
     ############################################################
     ############### Check to see if the uploadID exists ########
     ############################################################
-    ( $query = <<QUERY ) = s/\n//gm;
-SELECT
+    ( $query = <<QUERY ) =~ s/\n//gm;
+  SELECT
     PatientName,           TarchiveID,
     number_of_mincCreated, number_of_mincInserted,
     IsPhantom,             Modality
-FROM
+  FROM
     mri_upload
-LEFT JOIN
+  LEFT JOIN
     ImagingModality USING (ImagingModalityID)
-WHERE
+  WHERE
     UploadID=?
 QUERY
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
@@ -149,8 +149,8 @@ QUERY
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
-    my $pname    = $row[0]; # grep the patient name
-    my $modality = $row[6]; # grep the study modality
+    # grep the study modality and add it to the imagingUpload object
+    $this->{'modality'} = $row[5];
 
     ############################################################
     ####Check to see if the scan has been run ##################
@@ -215,20 +215,20 @@ QUERY
             system($cmd);
         } else {
             # go to next file if file matches "." or ".."
-            next if ( ( $_ ne '.' ) && ( $_ ne '..' ) );
-            if ( ($modality =~ /DICOM/i) && (!$this->isDicom($_)) ) {
+            next unless ( ( $_ ne '.' ) && ( $_ ne '..' ) );
+            if ( ($this->{'modality'} =~ /DICOM/i) && (!$this->isDicom($_)) ) {
                 # count number of files that are not DICOMs if the
                 # uploaded study is of DICOM type (i.e. MRI DICOM, PET DICOM)
                 $files_not_dicom++;
-            } elsif ( $modality eq "PET HRRT" ) {
+            } elsif ( $this->{'modality'} eq "PET HRRT" ) {
                 # if modality is PET HRRT, then bypass files that don't have
                 # the patient in the filename (we already know which ones
                 # they are, at least for the BIC)
                 my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
                                     . "script|ini|directnorm|up_mask";
                 next if ( $_ =~ /$exclude_regex/i );
+                my $pname = $this->{'pname'};
                 $files_with_unmatched_patient_name++ if !($_ =~ /$pname/i);
-                print "\nNo patient name: " . $_ if !($_ =~ /$pname/i);
             } else {
                 #######################################################
                 #Validate the Patient-Name, only if it's not a phantom#
