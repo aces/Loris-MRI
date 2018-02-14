@@ -1,6 +1,6 @@
 # Appendix A - FAQ
 
-This section covers some of the most commonly encountered errors when running 
+This section covers some of the most commonly encountered errors when running
 the insertion scripts. They are divided into 3 separate tables, with each table 
 handling errors originating from the LORIS-MRI installation (Table 1), the LORIS 
 modules setup (Table 2), or the LORIS-MRI scripts (Table 3).
