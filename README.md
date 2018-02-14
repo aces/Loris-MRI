@@ -102,12 +102,20 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    ```
 #### 7. Verify Configuration module settings for Imaging Pipeline
   
-In the LORIS front-end, under the Admin menu, go to the `Config` module.  Under the section `Imaging Pipeline`, verify/set the following config settings: 
+In the LORIS front-end, under the Admin menu, go to the `Config` module.  Verify/set the following config settings 
+
+under the section `Imaging Pipeline`:
  * `Loris-MRI Data Directory`
  * `Study Name`
  * `User to notify when executing the pipeline`
  * `Full path to get_dicom_info.pl script`
  * `Path to Tarchives`
+
+under the section `Path`:
+ * `Imaging Data`
+ * `LORIS-MRI Code`
+ * `MINC files`
+ * `Images`
 
 Click 'Submit' at the end of the Configuration page to save any changes. 
 
