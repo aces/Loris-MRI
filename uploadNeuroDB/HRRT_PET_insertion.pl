@@ -13,11 +13,16 @@ use Date::Parse;
 
 ###### Import NeuroDB libraries to be used
 use NeuroDB::DBI;
+use NeuroDB::Notify;
+use NeuroDB::MRIProcessingUtility;
+use NeuroDB::HRRTSUM;
 ##TODO 1: add line use NeuroDB::ExitCodes;
 
 
 ##TODO 1: move those exit codes to ExitCodes.pm
-my $INVALID_UPLOAD_ID = 150;
+my $INVALID_UPLOAD_ID       = 150; # invalid upload ID
+my $INVALID_UPLOAD_LOCATION = 151; # invalid upload location
+my $INVALID_DECOMP_LOCATION = 152; # invalid decompressed location
 
 ###### Table-driven argument parsing
 
@@ -25,6 +30,8 @@ my $INVALID_UPLOAD_ID = 150;
 my $profile   = undef;
 my $upload_id = undef;
 my $verbose   = 0;
+my $bic       = 0;
+my @args;
 
 # Describe the usage to be displayed by Getopt::Tabular
 my  $Usage  =   <<USAGE;
@@ -47,6 +54,7 @@ USAGE
 my $profile_desc   = "name of config file in ./dicom-archive/.loris_mri.";
 my $upload_id_desc = "ID of the uploaded imaging archive containing the "
                      . "file given as argument with -file_path option";
+my $bic_desc       = "whether the datasets comes from the BIC HRRT scanner";
 
 # Initialize the arguments table
 my @args_table = (
@@ -58,7 +66,10 @@ my @args_table = (
 
     ["Advanced options", "section"],
 
-        ["-verbose",     "boolean", 1, \$verbose,     "Be verbose"   ],
+        ["-verbose", "boolean", 1, \$verbose, "Be verbose"   ],
+
+    ["Optional options", "section"],
+        ["-bic_dataset", "boolean", 1, \$bic, $bic_desc]
 
 );
 
@@ -126,20 +137,71 @@ print LOG $message;
 
 # create Notify and Utility objects
 my $notifier = NeuroDB::Notify->new(\$dbh);
-my $utility = NeuroDB::MRIProcessingUtility->new(
+my $utility  = NeuroDB::MRIProcessingUtility->new(
     \$dbh, 0, $TmpDir, $log_file, $verbose
 );
 
 
 
 
-##### Verify that the provided upload ID refers to a valid uploaded entry
+##### Verify that the provided upload ID refers to a valid uploaded entry in
+# the database and in the filesystem
+
+# grep the UploadedLocation for the UploadID
 (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT UploadedLocation FROM mri_scanner WHERE UploadID=?
+SELECT UploadLocation, DecompressedLocation
+FROM mri_upload
+WHERE UploadID=?
 QUERY
 my $sth = $dbh->prepare($query);
 $sth->execute($upload_id);
-unless ($sth->rows > 0) {
+
+my $decompressed_location;
+my $upload_location;
+if ( $sth->rows > 0 ) {
+
+    # if found an entry, check that UploadedLocation exists in the filesystem
+    my @result = $sth->fetchrow_array();
+    $upload_location     = $result[0];
+    $decompressed_location = $result[1];
+
+    unless ( -r $decompressed_location ) {
+        $message = <<MESSAGE;
+    ERROR: The decompressedLocation $decompressed_location cannot be found or
+    read for UploadID $upload_id.\n\n
+MESSAGE
+        # write error message in the log file
+        $utility->writeErrorLog($message, $INVALID_DECOMP_LOCATION, $log_file);
+        ##TODO 1: call the exit code from ExitCodes.pm
+        # insert error message into notification spool table
+        $notifier->spool(
+            'HRRT_PET insertion'   , $message,   0,
+            'HRRT_PET_insertion.pl', $upload_id, 'Y',
+            'N'
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        exit $INVALID_DECOMP_LOCATION;
+    }
+    unless ( -r $upload_location ) {
+        $message = <<MESSAGE;
+    ERROR: The UploadedLocation $upload_location cannot be found or
+    read for UploadID $upload_id.\n\n
+MESSAGE
+        # write error message in the log file
+        $utility->writeErrorLog($message, $INVALID_UPLOAD_LOCATION, $log_file);
+        ##TODO 1: call the exit code from ExitCodes.pm
+        # insert error message into notification spool table
+        $notifier->spool(
+            'HRRT_PET insertion'   , $message,   0,
+            'HRRT_PET_insertion.pl', $upload_id, 'Y',
+            'N'
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        exit $INVALID_UPLOAD_LOCATION;
+    }
+
+} else {
+
     # if no row returned, exits with message that did not find this scanner ID
     $message = <<MESSAGE;
     ERROR: Invalid UploadID $upload_id.\n\n
@@ -154,6 +216,46 @@ MESSAGE
         'N'
     );
     exit $INVALID_UPLOAD_ID; ##TODO 1: call the exit code from ExitCodes.pm
+
 }
-# Check that the uploadedlocation is valid
-# check that PET not already inserted
+
+
+# TODO: check that PET not already inserted (need to create upload_rel table)
+
+# TODO: create archive for HRRT (HRRTarchive HRRTarchive_files)
+
+my $archive = NeuroDB::HRRTSUM->new($decompressed_location,
+    "/data/preventAD/data/HRRTarchive", $bic);
+
+### if BIC, CenterName=BIC-MNI-MCGILL, skip test.v
+
+# TODO: grep ecat files from decompressed location
+
+# TODO: correct facility name header if BIC datasets
+
+# TODO: create MINC files from ecat (unless BIC that already have MINC files)
+
+# TODO: for BIC datasets: append values in .m file to mincheader
+
+# TODO: register MINC using minc_insertion.pl
+
+# TODO: append the ecat file into the parameter file table
+
+
+
+
+
+exit 0; ##TODO 1: replace exit 0 by $NeuroDB::ExitCodes::$SUCCESS
+
+
+
+
+sub logHeader () {
+    print LOG "
+----------------------------------------------------------------
+            AUTOMATED PET HRRT INSERTION
+----------------------------------------------------------------
+*** Date and time of insertion : $today
+*** tmp dir location           : $TmpDir
+";
+}
