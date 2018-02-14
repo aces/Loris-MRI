@@ -314,6 +314,7 @@ if ( $imaging_upload->{'modality'} =~ /DICOM/i ) {
     }
 } elsif ( $imaging_upload->{'modality'} eq "PET HRRT" ) {
     print "\n\nPET PET PET\n\n";
+    #TODO: create a runHrrtPet into ImagingUpload.pm
 }
 
 ################################################################
