@@ -9,10 +9,10 @@ perl minc\_insertion.pl `[options]`
 Available options are:
 
 \-profile     : name of the config file in
-                `../dicom-archive/.loris_mri`
+               `../dicom-archive/.loris_mri`
 
 \-reckless    : uploads data to database even if study protocol
-                is not defined or violated
+               is not defined or violated
 
 \-force       : forces the script to run even if validation failed
 
@@ -23,8 +23,8 @@ Available options are:
 \-tarchivePath: the absolute path to the tarchive file
 
 \-globLocation: loosens the validity check of the tarchive allowing
-                 for the possibility that the tarchive was moved
-                 to a different directory
+               for the possibility that the tarchive was moved
+               to a different directory
 
 \-newScanner  : if set \[default\], new scanner will be registered
 
