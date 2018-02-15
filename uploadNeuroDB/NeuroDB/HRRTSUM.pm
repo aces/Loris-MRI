@@ -32,9 +32,8 @@ sub new {
     my $self = {};
     bless $self, $params;
 
-    # set the source directory and the target directory of the HRRT study
+    # set the source directory
     $self->{source_dir} = $source_dir;
-    $self->{target_dir} = $target_dir;
 
     # get arrays of all files, ecat files only, and various file counts
     $self->{hrrt_files}    = [ $self->hrrt_content_list($self->{source_dir}) ];
@@ -50,6 +49,9 @@ sub new {
     # get study information based on the first ecat file header information
     $self->{study_info} = {};
     $self->{study_info} = $self->determine_study_info();
+
+    # set the source directory and the target directory of the HRRT study
+    $self->{target_dir} = $target_dir . $self->{study_info}->{year_acquired};
 
     # get the user information
     $self->{user} = $ENV{'USER'};
@@ -209,6 +211,7 @@ sub determine_study_info {
     $self->{study_info}->{date_acquired} = sprintf(
         "%4d-%02d-%02d", $year+1900, $month+1, $day
     );
+    $self->{study_info}->{year_acquired} = sprintf("%4d", $year+1900);
 
     # set patient name, system type and center name
     $self->{study_info}->{system_type}  = $ecat_info->{system_type};
@@ -224,4 +227,125 @@ sub determine_study_info {
 
 
 
+
+=pod
+
+=head3 md5sum($filename)
+
+Computes MD5 sum of a file and outputs a format similar to md5sum on Linux.
+
+=cut
+sub md5sum {
+    my ($filename) = @_;
+
+    open(FILE, $filename) or die "Can't open '$filename': $!";
+    binmode(FILE);
+
+    return Digest::MD5->new->addfile(*FILE)->hexdigest . "  $filename\n";
+}
+
+
+
+
+=pod
+
+=head3 database($dbh, $today, $md5sumArchive)
+
+=cut
+sub database {
+    my ( $self, $dbh, $md5sumArchive ) = @_;
+
+    ## check if hrrt archive already inserted based on md5sumArchive
+    ( my $select_hrrtArchiveID = <<QUERY ) =~ s/\n/ /gm;
+    SELECT HrrtArchiveID
+    FROM   hrrt_archive
+    WHERE  md5sumArchive = ?
+QUERY
+    my $sth = $dbh->prepare($select_hrrtArchiveID);
+    $sth->execute($md5sumArchive);
+
+    if ($sth->rows > 0) {
+        my @row = $sth->fetchrow_array();
+        print "\n\n PROBLEM: This study has already been archived. "
+              . "HrrtArchiveID corresponding to this study is $row[0]\n\n";
+        exit; #TODO 1: call ExitCode.pm to do proper exit code
+    }
+
+
+    ## INSERT INTO hrrt_archive
+    ( my $hrrt_archive_insert_query = <<QUERY ) =~ s/\n/ /gm;
+    INSERT INTO hrrt_archive SET
+      PatientName   = ?,   CenterName        = ?,
+      CreatingUser  = ?,   SourceLocation    = ?,
+      EcatFileCount = ?,   NonEcatFileCount  = ?,
+      DateAcquired  = ?,   DateFirstArchived = NOW(),
+      md5sumArchive = ?,   DateLastArchived  = NOW()
+QUERY
+
+    my $study_info = $self->{study_info};
+    my @values = (
+        $study_info->{patient_name},    $study_info->{center_name},
+        $self->{user},                  $self->{source_dir},
+        $self->{ecat_count},            $self->{nonecat_count},
+        $study_info->{date_acquired},   $md5sumArchive
+    );
+
+    $sth = $dbh->prepare( $hrrt_archive_insert_query );
+    my $success = $sth->execute( @values );
+    unless ($success) {
+        print "Failed running query:\n$hrrt_archive_insert_query\n\n\n";
+    }
+
+    ## SELECT the inserted HrrtArchiveID
+    $sth = $dbh->prepare($select_hrrtArchiveID);
+    $sth->execute($md5sumArchive);
+    my $hrrtArchiveID = undef;
+    if ($sth->rows > 0) {
+        my @row        = $sth->fetchrow_array();
+        $hrrtArchiveID = $row[0];
+    }
+
+    ## INSERT INTO hrrt_archive_files
+    ( my $hrrt_archive_files_query = <<QUERY ) =~ s/\n/ /gm;
+    INSERT INTO hrrt_archive_files SET
+      HrrtArchiveID = ?,   Filename = ?,  Md5Sum = ?
+QUERY
+    $sth = $dbh->prepare($hrrt_archive_files_query);
+    foreach my $ecat_file ( @{ $self->{ecat_files} } ) {
+        my $md5sum = md5sum($ecat_file);
+        @values    = ( $hrrtArchiveID, basename($ecat_file), $md5sum );
+        $sth->execute(@values);
+    }
+
+    return $success;
+
+}
+
 1;
+
+
+
+
+# end of script
+
+=pod
+
+=head1 TO DO
+
+- md5sum is an exact copy of the one in DCMSUM.pm. Now that the 2 repo are
+merged, could move that function from those 2 libraries into a library that
+can be accessed by dicomTar.pl and HRRT_PET_archive.pl
+
+=head1 BUGS
+
+None reported (or list of bugs)
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
