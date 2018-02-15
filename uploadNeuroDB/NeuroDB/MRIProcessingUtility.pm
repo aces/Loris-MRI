@@ -1806,7 +1806,6 @@ sub spool  {
 =head1 TO DO
 
 Document the following functions:
-  - get_acqusitions($study_dir, \@acquisitions)
   - concat_mri($minc_files)
   - registerProgs(@toregister)
 

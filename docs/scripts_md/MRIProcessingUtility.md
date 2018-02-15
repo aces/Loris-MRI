@@ -359,7 +359,6 @@ INPUTS:
 # TO DO
 
 Document the following functions:
-  - get\_acqusitions($study\_dir, \\@acquisitions)
   - concat\_mri($minc\_files)
   - registerProgs(@toregister)
 
