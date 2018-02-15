@@ -222,10 +222,16 @@ MESSAGE
 
 # TODO: check that PET not already inserted (need to create upload_rel table)
 
+# check if the dataset comes from the BIC HRRT scanner
+#my @result = `grep -r BIC $decompressed_location`;
+#$bic = 1 if (@result); # set $bic to 1 if dataset is
+#TODO: move the BIC check commented here to the imagingUpload run PETHRRT script
+
 # TODO: create archive for HRRT (HRRTarchive HRRTarchive_files)
 
-my $archive = NeuroDB::HRRTSUM->new($decompressed_location,
-    "/data/preventAD/data/HRRTarchive", $bic);
+my $archive = NeuroDB::HRRTSUM->new(
+    $decompressed_location, "/data/preventAD/data/HRRTarchive", $bic
+);
 
 ### if BIC, CenterName=BIC-MNI-MCGILL, skip test.v
 
