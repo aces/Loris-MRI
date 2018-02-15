@@ -56,6 +56,12 @@ sub new {
     # get the user information
     $self->{user} = $ENV{'USER'};
 
+    # if BIC dataset, grep info from the .m file
+    if ($bic) {
+        $self->{matlab_info} = {};
+        $self->{matlab_info} = $self->read_matlab_file();
+    }
+
     return $self;
 }
 
@@ -227,6 +233,34 @@ sub determine_study_info {
 
 
 
+=pod
+
+=head3 read_matlab_file()
+
+=cut
+sub read_matlab_file {
+    my $self = shift;
+
+    # grep the Matlab with study parameters file from the hrrt_files list
+    my @matlab_files = grep ( /.m$/, @{ $self->{hrrt_files} } );
+    my $matlab_file  = $matlab_files[0];
+
+    open my $fh, '<', $matlab_file;
+    chomp(my @info = <$fh>);
+    close $fh;
+
+    foreach my $line_nb ( @info ) {
+        next unless ( $line_nb =~ / = / );
+        my ($key, $val) = split( ' = ', $line_nb );
+        $val =~ s/;\cM$//;
+        # set header information
+        $self->{matlab_info}->{$key} = $val;
+    }
+
+    return $self->{matlab_info};
+
+}
+
 
 =pod
 
@@ -253,7 +287,7 @@ sub md5sum {
 
 =cut
 sub database {
-    my ( $self, $dbh, $md5sumArchive ) = @_;
+    my ( $self, $dbh, $md5sumArchive, $upload_id ) = @_;
 
     ## check if hrrt archive already inserted based on md5sumArchive
     ( my $select_hrrtArchiveID = <<QUERY ) =~ s/\n/ /gm;
@@ -261,8 +295,8 @@ sub database {
     FROM   hrrt_archive
     WHERE  md5sumArchive = ?
 QUERY
-    my $sth = $dbh->prepare($select_hrrtArchiveID);
-    $sth->execute($md5sumArchive);
+    my $sth = $dbh->prepare( $select_hrrtArchiveID );
+    $sth->execute( $md5sumArchive) ;
 
     if ($sth->rows > 0) {
         my @row = $sth->fetchrow_array();
@@ -290,20 +324,21 @@ QUERY
         $study_info->{date_acquired},   $md5sumArchive
     );
 
-    $sth = $dbh->prepare( $hrrt_archive_insert_query );
+    $sth        = $dbh->prepare( $hrrt_archive_insert_query );
     my $success = $sth->execute( @values );
     unless ($success) {
         print "Failed running query:\n$hrrt_archive_insert_query\n\n\n";
     }
 
     ## SELECT the inserted HrrtArchiveID
-    $sth = $dbh->prepare($select_hrrtArchiveID);
-    $sth->execute($md5sumArchive);
+    $sth = $dbh->prepare( $select_hrrtArchiveID );
+    $sth->execute( $md5sumArchive );
     my $hrrtArchiveID = undef;
     if ($sth->rows > 0) {
         my @row        = $sth->fetchrow_array();
         $hrrtArchiveID = $row[0];
     }
+
 
     ## INSERT INTO hrrt_archive_files
     ( my $hrrt_archive_files_query = <<QUERY ) =~ s/\n/ /gm;
@@ -312,13 +347,22 @@ QUERY
 QUERY
     $sth = $dbh->prepare($hrrt_archive_files_query);
     foreach my $ecat_file ( @{ $self->{ecat_files} } ) {
-        my $md5sum = md5sum($ecat_file);
+        my $md5sum = md5sum( $ecat_file );
         @values    = ( $hrrtArchiveID, basename($ecat_file), $md5sum );
-        $sth->execute(@values);
+        $sth->execute( @values );
     }
 
-    return $success;
 
+    ## UPDATE mri_upload_rel table with the HRRT archive ID
+    (my $insert_mri_upload_rel = <<QUERY ) =~ s/\n//gm;
+    INSERT INTO mri_upload_rel SET
+      HrrtArchiveID = ?,   UploadID = ?
+QUERY
+    @values  = ( $hrrtArchiveID, $upload_id );
+    $sth     = $dhb->prepare( $insert_mri_upload_rel );
+    $success = $sth->execute( @values );
+
+    return $success;
 }
 
 1;
