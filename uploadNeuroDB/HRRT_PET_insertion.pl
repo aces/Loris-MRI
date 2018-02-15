@@ -9,6 +9,7 @@ use warnings;
 use Getopt::Tabular;
 use File::Temp qw/ tempdir /;
 use Date::Parse;
+use File::Basename;
 
 
 ###### Import NeuroDB libraries to be used
@@ -23,6 +24,7 @@ use NeuroDB::HRRTSUM;
 my $INVALID_UPLOAD_ID       = 150; # invalid upload ID
 my $INVALID_UPLOAD_LOCATION = 151; # invalid upload location
 my $INVALID_DECOMP_LOCATION = 152; # invalid decompressed location
+my $HRRT_ARCHIVE_ALREADY_INSERTED = 153; # if HRRT archive already exists in DB
 
 ###### Table-driven argument parsing
 
@@ -38,13 +40,13 @@ my  $Usage  =   <<USAGE;
 
 This script takes an upload ID of a PET HRRT study to insert it into the
 database with information about the list of files contained in the upload. It
-will also grep the ecat7 files to convert them into MINC files and register
-them into the files and parameter_file tables.
+will also grep the ecat7 files to insert their header information into the
+database.
 
 NOTE: in case the MINC files are already present in the PET HRRT study, it
 will use the already created MINC instead of creating them.
 
-Usage: perl HRRT_PET_insertion.pl [options]
+Usage: perl HRRT_PET_archive.pl [options]
 
 -help for options
 
@@ -66,7 +68,7 @@ my @args_table = (
 
     ["Advanced options", "section"],
 
-        ["-verbose", "boolean", 1, \$verbose, "Be verbose"   ],
+        ["-verbose", "boolean", 1, \$verbose, "Be verbose"  ],
 
     ["Optional options", "section"],
         ["-bic_dataset", "boolean", 1, \$bic, $bic_desc]
@@ -145,62 +147,19 @@ my $utility  = NeuroDB::MRIProcessingUtility->new(
 
 
 ##### Verify that the provided upload ID refers to a valid uploaded entry in
-# the database and in the filesystem
+# the database and in the filesystem, and that it did not get already archived
 
 # grep the UploadedLocation for the UploadID
 (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT UploadLocation, DecompressedLocation
+SELECT UploadLocation, DecompressedLocation, HrrtArchiveID
 FROM mri_upload
-WHERE UploadID=?
+LEFT JOIN mri_upload_rel ON ( mri_upload.UploadID = mri_upload_rel.UploadID )
+WHERE mri_upload.UploadID=?
 QUERY
 my $sth = $dbh->prepare($query);
 $sth->execute($upload_id);
 
-my $decompressed_location;
-my $upload_location;
-if ( $sth->rows > 0 ) {
-
-    # if found an entry, check that UploadedLocation exists in the filesystem
-    my @result = $sth->fetchrow_array();
-    $upload_location     = $result[0];
-    $decompressed_location = $result[1];
-
-    unless ( -r $decompressed_location ) {
-        $message = <<MESSAGE;
-    ERROR: The decompressedLocation $decompressed_location cannot be found or
-    read for UploadID $upload_id.\n\n
-MESSAGE
-        # write error message in the log file
-        $utility->writeErrorLog($message, $INVALID_DECOMP_LOCATION, $log_file);
-        ##TODO 1: call the exit code from ExitCodes.pm
-        # insert error message into notification spool table
-        $notifier->spool(
-            'HRRT_PET insertion'   , $message,   0,
-            'HRRT_PET_insertion.pl', $upload_id, 'Y',
-            'N'
-        );
-        ##TODO 1: call the exit code from ExitCodes.pm
-        exit $INVALID_DECOMP_LOCATION;
-    }
-    unless ( -r $upload_location ) {
-        $message = <<MESSAGE;
-    ERROR: The UploadedLocation $upload_location cannot be found or
-    read for UploadID $upload_id.\n\n
-MESSAGE
-        # write error message in the log file
-        $utility->writeErrorLog($message, $INVALID_UPLOAD_LOCATION, $log_file);
-        ##TODO 1: call the exit code from ExitCodes.pm
-        # insert error message into notification spool table
-        $notifier->spool(
-            'HRRT_PET insertion'   , $message,   0,
-            'HRRT_PET_insertion.pl', $upload_id, 'Y',
-            'N'
-        );
-        ##TODO 1: call the exit code from ExitCodes.pm
-        exit $INVALID_UPLOAD_LOCATION;
-    }
-
-} else {
+unless ( $sth->rows > 0 ) {
 
     # if no row returned, exits with message that did not find this scanner ID
     $message = <<MESSAGE;
@@ -219,31 +178,167 @@ MESSAGE
 
 }
 
+# grep the result of the query into variables
+my @result = $sth->fetchrow_array();
+my $upload_location       = $result[0];
+my $decompressed_location = $result[1];
+my $hrrt_archive_ID       = $result[2];
 
-# TODO: check that PET not already inserted (need to create upload_rel table)
+# check that decompressed location exists in the filesystem
+unless ( -r $decompressed_location ) {
+    $message = <<MESSAGE;
+    ERROR: The decompressedLocation $decompressed_location cannot be found or
+    read for UploadID $upload_id.\n\n
+MESSAGE
+    # write error message in the log file
+    $utility->writeErrorLog($message, $INVALID_DECOMP_LOCATION, $log_file);
+    ##TODO 1: call the exit code from ExitCodes.pm
+    # insert error message into notification spool table
+    $notifier->spool(
+        'HRRT_PET insertion'   , $message,   0,
+        'HRRT_PET_insertion.pl', $upload_id, 'Y',
+        'N'
+    );
+    ##TODO 1: call the exit code from ExitCodes.pm
+    exit $INVALID_DECOMP_LOCATION;
+}
 
+# check that upload location exists in the filesystem
+unless ( -r $upload_location ) {
+    $message = <<MESSAGE;
+    ERROR: The UploadedLocation $upload_location cannot be found or
+    read for UploadID $upload_id.\n\n
+MESSAGE
+    # write error message in the log file
+    $utility->writeErrorLog($message, $INVALID_UPLOAD_LOCATION, $log_file);
+    ##TODO 1: call the exit code from ExitCodes.pm
+    # insert error message into notification spool table
+    $notifier->spool(
+        'HRRT_PET insertion'   , $message,   0,
+        'HRRT_PET_insertion.pl', $upload_id, 'Y',
+        'N'
+    );
+    ##TODO 1: call the exit code from ExitCodes.pm
+    exit $INVALID_UPLOAD_LOCATION;
+}
+
+# check that no HRRT archive ID is already associated to that UploadID
+if ( $hrrt_archive_ID ) {
+    $message = <<MESSAGE;
+    ERROR: This HRRT study upload ID $upload_id appears to be already inserted
+    into the hrrt_archive tables (HrrtArchiveID=$hrrt_archive_ID).\n\n
+MESSAGE
+    # write error message in the log file
+    $utility->writeErrorLog(
+        $message, $HRRT_ARCHIVE_ALREADY_INSERTED, $log_file
+    );
+    ##TODO 1: call the exit code from ExitCodes.pm
+    # insert error message into notification spool table
+    $notifier->spool(
+        'HRRT_PET insertion'   , $message,   0,
+        'HRRT_PET_insertion.pl', $upload_id, 'Y',
+        'N'
+    );
+    ##TODO 1: call the exit code from ExitCodes.pm
+    exit $HRRT_ARCHIVE_ALREADY_INSERTED;
+}
+
+
+
+
+
+#TODO: move the BIC check commented here to the imagingUpload run PETHRRT script
 # check if the dataset comes from the BIC HRRT scanner
 #my @result = `grep -r BIC $decompressed_location`;
 #$bic = 1 if (@result); # set $bic to 1 if dataset is
-#TODO: move the BIC check commented here to the imagingUpload run PETHRRT script
 
-# TODO: create archive for HRRT (HRRTarchive HRRTarchive_files)
+
+
+
+##### Create the archive summary object
+
+# determine the target_location
+my $target_location = $data_dir
+                      . "/HRRTarchive/";
 
 my $archive = NeuroDB::HRRTSUM->new(
-    $decompressed_location, "/data/preventAD/data/HRRTarchive", $bic
+    $decompressed_location, $target_location, $bic
 );
 
-### if BIC, CenterName=BIC-MNI-MCGILL, skip test.v
+# grep the final target location directory from $archive and create the target
+# location directory if it does not exist yet
+$target_location = $archive->{target_dir};
+mkdir $target_location unless ( -e $target_location );
 
-# TODO: grep ecat files from decompressed location
 
-# TODO: correct facility name header if BIC datasets
+#### Create the tar file
 
-# TODO: create MINC files from ecat (unless BIC that already have MINC files)
+# determine where the name and path of the archived HRRT dataset
+my $final_target  = $target_location
+                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
+                    . "_"      . basename($archive->{source_dir})
+                    . ".tgz";
+if ( -e $final_target ) {
+    print "\nTarget already exists.\n\n";
+    exit 2; #TODO 1: call the exit code from ExitCodes.pm
+}
 
-# TODO: for BIC datasets: append values in .m file to mincheader
+# create the tar file and get its md5sum
+my $tar_cmd = "tar -czf $final_target $decompressed_location/*";
+print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
+system($tar_cmd);
+my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
 
-# TODO: register MINC using minc_insertion.pl
+
+
+
+##### Register the HRRT archive into the database
+
+print "\nAdding archive info into the database\n" if $verbose;
+my $success = $archive->database( $dbh, $md5sumArchive );
+
+if ($success) {
+    print "\nDone adding HRRT archive info into the database\n" if $verbose;
+} else {
+    print "\nThe database command failed\n";
+    exit ; #TODO 1: call the exit code from ExitCodes.p,
+}
+
+
+
+
+##### Loop through ECAT files
+
+foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
+
+    # check if there is a MINC file associated to the ECAT file
+    my $dirname   = dirname( $ecat_file );
+    my $minc_file = $dirname . "/" . basename( $ecat_file, '.v' ) . ".mnc";
+    unless ( -e $minc_file ) {
+        my $ecat2mnc_cmd = "ecattominc -quiet "
+                           . $ecat_file   . " "
+                           . $minc_file;
+        system($ecat2mnc_cmd);
+    }
+
+    if ($bic) {
+
+        # TODO: append values in the .m file to mincheader
+        # TODO: maybe append other values?
+
+
+    }
+
+    # TODO: register MINC using minc_insertion.pl
+    my $minc_insert_cmd = "minc_insertion.pl "
+                          . " -profile " . $profile
+                          . " -mincPath" . $minc_file
+                          . " -acquisition_protocol " . "NAV"
+                          . " -bypass_extra_file_checks";
+
+
+}
+
 
 # TODO: append the ecat file into the parameter file table
 
