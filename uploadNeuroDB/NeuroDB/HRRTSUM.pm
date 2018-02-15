@@ -1,0 +1,227 @@
+use strict;
+use warnings;
+
+package NeuroDB::HRRTSUM;
+
+use File::Basename;
+use File::Find;
+use Digest::MD5;
+use File::Type;
+use Date::Parse;
+
+
+=pod
+
+=head3 new($params, $source_dir, $target_dir, $bic) >> (constructor)
+
+Creates a new instance of this class.
+
+INPUTS:
+  - $source_dir : source directory of the HRRT study
+  - $target_dir : target directory where to save the HRRT study
+  - $bic        : boolean variable specifying if the dataset is a BIC dataset
+
+RETURNS: new instance of this class.
+
+=cut
+sub new {
+    my $params = shift;
+
+    my ($source_dir, $target_dir, $bic) = @_;
+
+    my $self = {};
+    bless $self, $params;
+
+    # set the source directory and the target directory of the HRRT study
+    $self->{source_dir} = $source_dir;
+    $self->{target_dir} = $target_dir;
+
+    # get arrays of all files, ecat files only, and various file counts
+    $self->{hrrt_files}    = [ $self->hrrt_content_list($self->{source_dir}) ];
+    $self->{ecat_files}    = [ $self->grep_ecat_files_only($bic) ];
+    $self->{ecat_count}    = scalar @{ $self->{ecat_files}  };
+    $self->{total_count}   = scalar @{ $self->{hrrt_files} };
+    $self->{nonecat_count} = $self->{total_count} - $self->{ecat_count};
+
+    # get header information from the ecat file
+    $self->{header} = {};
+    $self->{header} = $self->read_all_ecat($bic);
+
+    # get study information based on the first ecat file header information
+    $self->{study_info} = {};
+    $self->{study_info} = $self->determine_study_info();
+
+    # get the user information
+    $self->{user} = $ENV{'USER'};
+
+    return $self;
+}
+
+
+
+
+=pod
+
+=head3 hrrt_content_list($source_dir)
+
+Grep the list of files in the source directory and return it.
+
+INPUT: path to the source directory
+
+RETURNS: array of sorted files found in the source directory
+
+=cut
+sub hrrt_content_list {
+    my ($self, $source_dir) = @_;
+
+    my @files;
+
+    my $find_handler = sub {
+        push @files, $File::Find::name if ( -f $File::Find::name );
+    };
+    find($find_handler, $source_dir);
+
+    my @sorted_files = sort @files;
+
+    return @sorted_files;
+}
+
+
+
+
+=pod
+
+=head3 grep_ecat_files_only($bic)
+
+Grep the ECAT files present in the HRRT folder.
+Note, if the dataset is a BIC dataset, skip the test*.v file.
+
+INPUT: the boolean variable specifying if the dataset is a BIC dataset
+
+RETURNS: array of ECAT files
+
+=cut
+sub grep_ecat_files_only {
+
+    my ( $self, $bic ) = @_;
+
+    my @ecat_files;
+    foreach my $file ( @{ $self->{hrrt_files} } ) {
+        next if !( $file =~ /.v$/i ); # continue if not an ecat file (.v)
+        # next if dataset from the BIC and its basename starts with "test"
+        next if ( $bic && basename($file) =~ /^test/i );
+        # if gone until here, then file is a valid ecat
+        push ( @ecat_files, $file );
+    }
+
+    return @ecat_files;
+}
+
+
+
+
+=pod
+
+=head3 read_ecat($ecat_file, $bic)
+
+Read the header of the ECAT file given as an argument and store the header info
+in the $self->{header}->{$ecat_file} hash.
+
+INPUTS: the full path to the ECAT file and the boolean variable specifying if
+the dataset is a BIC dataset
+
+RETURNS: the header information of the ECAT file stored in the
+$self->{header}->{filename} hash
+
+=cut
+sub read_ecat {
+    my ( $self, $ecat_file, $bic ) = @_;
+
+    my @info = `lmhdr $ecat_file`;
+    chomp( @info ); # remove carriage return of each element
+
+    my $scan_start_time;
+    foreach my $line_nb ( @info ) {
+        next unless ( $line_nb =~ / := / );
+        my ($key, $val) = split( ' := ', $line_nb );
+        # set header information
+        $self->{header}->{$ecat_file}->{$key} = $val;
+    }
+
+    # overwrite the facility name to be BIC-MNI-MCGILL if it is a BIC dataset
+    # otherwise, it will wrongly say the facility name is Johns Hopkins Univ...
+    $self->{header}->{$ecat_file}->{facility_name} = "BIC-MNI_MCGILL" if ($bic);
+
+    return $self->{header}->{$ecat_file};
+}
+
+
+
+
+=pod
+
+=head3 read_all_ecat($bic)
+
+Loop through all ECAT files to read their header info and store them in the
+$self->{header} hash.
+
+INPUT: the boolean variable specifying if the dataset is a BIC dataset
+
+RETURNS: all ECAT files' header information stored in $self->{header} hash
+
+=cut
+sub read_all_ecat {
+    my ( $self, $bic ) = @_;
+
+    foreach my $ecat_file ( @{ $self->{ecat_files} } ) {
+        $self->{header}->{$ecat_file} = {};
+        $self->{header}->{$ecat_file} = $self->read_ecat( $ecat_file, $bic );
+    }
+
+    return $self->{header};
+}
+
+
+
+
+=pod
+
+=head3 determine_study_info()
+
+Determine the study information based on the first ECAT file header information.
+Study information includes the acquisition date, the patient name, the
+center name and the scanner information.
+
+RETURNS: the study information hash appended to $self ($self->{study_info})
+
+=cut
+sub determine_study_info {
+    my ($self) = shift;
+
+    # grep the first ecat file to determine study information
+    my $ecat_file = @{ $self->{ecat_files}  }[0];
+    my $ecat_info = $self->{header}->{$ecat_file};
+
+    # determine the acquisition date based on $self->{header}->{scan_start_time}
+    my ($ss,$mm,$hh,$day,$month,$year,$zone) = strptime(
+        $ecat_info->{scan_start_time}
+    );
+    $self->{study_info}->{date_acquired} = sprintf(
+        "%4d-%02d-%02d", $year+1900, $month+1, $day
+    );
+
+    # set patient name, system type and center name
+    $self->{study_info}->{system_type}  = $ecat_info->{system_type};
+    $self->{study_info}->{patient_name} = $ecat_info->{patient_name};
+    $self->{study_info}->{center_name}  = $ecat_info->{facility_name};
+
+    # scanner info are hardcoded as it remains the same for all HRRT scanners
+    $self->{study_info}->{manufacturer}  = "Siemens";
+    $self->{study_info}->{scanner_model} = "HRRT";
+
+    return $self->{study_info};
+}
+
+
+
+1;
