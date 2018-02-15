@@ -10,6 +10,7 @@ use Getopt::Tabular;
 use File::Temp qw/ tempdir /;
 use Date::Parse;
 use File::Basename;
+use String::ShellQuote;
 
 
 ###### Import NeuroDB libraries to be used
@@ -271,43 +272,45 @@ $target_location = $archive->{target_dir};
 mkdir $target_location unless ( -e $target_location );
 
 
-#### Create the tar file
-
-# determine where the name and path of the archived HRRT dataset
-my $final_target  = $target_location
-                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
-                    . "_"      . basename($archive->{source_dir})
-                    . ".tgz";
-if ( -e $final_target ) {
-    print "\nTarget already exists.\n\n";
-    exit 2; #TODO 1: call the exit code from ExitCodes.pm
-}
-
-# create the tar file and get its md5sum
-my $tar_cmd = "tar -czf $final_target $decompressed_location/*";
-print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
-system($tar_cmd);
-my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
-
-
-
-
-##### Register the HRRT archive into the database
-
-print "\nAdding archive info into the database\n" if $verbose;
-my $success = $archive->database( $dbh, $md5sumArchive );
-
-if ($success) {
-    print "\nDone adding HRRT archive info into the database\n" if $verbose;
-} else {
-    print "\nThe database command failed\n";
-    exit ; #TODO 1: call the exit code from ExitCodes.p,
-}
+##### Create the tar file
+#
+## determine where the name and path of the archived HRRT dataset
+#my $final_target  = $target_location
+#                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
+#                    . "_"      . basename($archive->{source_dir})
+#                    . ".tgz";
+#if ( -e $final_target ) {
+#    print "\nTarget already exists.\n\n";
+#    exit 2; #TODO 1: call the exit code from ExitCodes.pm
+#}
+#
+## create the tar file and get its md5sum
+#my $tar_cmd = "tar -czf $final_target $decompressed_location/*";
+#print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
+#system($tar_cmd);
+#my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
+#
+#
+#
+#
+###### Register the HRRT archive into the database
+#
+#print "\nAdding archive info into the database\n" if $verbose;
+#my $success = $archive->database( $dbh, $md5sumArchive, $upload_id );
+#
+#if ($success) {
+#    print "\nDone adding HRRT archive info into the database\n" if $verbose;
+#} else {
+#    print "\nThe database command failed\n";
+#    exit ; #TODO 1: call the exit code from ExitCodes.pm
+#}
 
 
 
 
 ##### Loop through ECAT files
+
+my $success; # TODO: remove this once uncommenting above
 
 foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
 
@@ -321,26 +324,62 @@ foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
         system($ecat2mnc_cmd);
     }
 
+    # if it is a BIC dataset, we know a few things
+    my $protocol;
     if ($bic) {
 
-        # TODO: append values in the .m file to mincheader
-        # TODO: maybe append other values?
+        # append values from the .m parameter file to the MINC header
+        foreach my $key ( keys %{ $archive->{matlab_info} } ) {
+            my $arg = "matlab_param:" . $key;
+            my $val = $archive->{matlab_info}->{$key};
+            $val = shell_quote $val;
+            $success = modify_header($arg, $val, $minc_file, '$3, $4, $5, $6');
+            exit unless ( $success ); #TODO 1: exit code + logging
+        }
 
+        # insert proper scanner information
+        modify_header(
+            'study:manufacturer',  $archive->{study_info}->{manufacturer},
+            $minc_file,            '$3, $4, $5, $6'
+        );
+        modify_header(
+            'study:device_model',  $archive->{study_info}->{scanner_model},
+            $minc_file,            '$3, $4, $5, $6'
+        );
+        modify_header(
+            'study:serial_no',     $archive->{study_info}->{system_type},
+            $minc_file,            '$3, $4, $5, $6'
+        );
+
+        # TODO: maybe append other values if needed?
+
+        # grep the acquisition protocol from the profile file
+        $protocol = fetch_header_info(
+            'matlab_param:PROTOCOL', $minc_file, '$3, $4, $5, $6'
+        );
 
     }
 
-    # TODO: register MINC using minc_insertion.pl
+    # TODO: copy Settings option into profileTemplate
+    my $acquisition_protocol = &Settings::determineHRRTprotocol(
+        $protocol, $ecat_file
+    );
+
+    # TODO: register MINC using minc_insertion.pl (need to test the command)
     my $minc_insert_cmd = "minc_insertion.pl "
                           . " -profile " . $profile
                           . " -mincPath" . $minc_file
-                          . " -acquisition_protocol " . "NAV"
+                          . " -acquisition_protocol " . $acquisition_protocol
                           . " -bypass_extra_file_checks";
+    print $minc_insert_cmd;
 
+
+    # TODO: append the ecat file into the parameter file table
 
 }
 
 
-# TODO: append the ecat file into the parameter file table
+# TODO: call the mass minc pic script
 
 
 
@@ -360,3 +399,71 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
+
+
+=pod
+Function that runs minc_modify_header and insert
+minc header information if not already inserted.
+Inputs:  - $argument: argument to be inserted in minc header
+         - $value: value of the argument to be inserted in minc header
+         - $minc: minc file
+         - $awk: awk information to check if argument not already inserted in minc header
+Outputs: - 1 if argument was indeed inserted into the minc file
+         - undef otherwise
+=cut
+sub modify_header {
+    my ( $argument, $value, $minc, $awk ) = @_;
+
+    # check if header information not already in minc file
+    my $hdr_val = fetch_header_info( $argument, $minc, $awk );
+
+    # insert mincheader unless mincheader field already inserted and
+    # its header value equals the value to insert
+    my  $cmd = "minc_modify_header -sinsert $argument=$value $minc";
+    system($cmd) unless ( ($hdr_val) && ($value eq $hdr_val) );
+
+    # check if header information was indeed inserted in minc file
+    my $hdr_val2 = fetch_header_info( $argument, $minc, $awk );
+
+    if ($hdr_val2) {
+        return 1;
+    } else {
+        return undef;
+    }
+}
+
+
+
+=pod
+Function that fetch header information in minc file
+Inputs:  - $field: field to look for in minc header
+         - $minc: minc file
+         - $awk: awk information to check if argument not already inserted in minc header
+         - $keep_semicolon: if defined, keep semicolon at the end of the value extracted
+Outputs: - $value: value of the field found in the minc header
+=cut
+sub fetch_header_info {
+    my ( $field, $minc, $awk, $keep_semicolon ) = @_;
+
+    my $cmd = "mincheader " . $minc
+              . " | grep "  . $field
+              . " | awk '{print $awk}' "
+              . " | tr '\n' ' ' ";
+
+    my $val = `$cmd`;
+    #my $val   = `mincheader $minc | grep $field | awk '{print $awk}' | tr'\n' ' '`;
+    my $value = $val if ( $val !~ /^\s*"*\s*"*\s*$/ );
+    if ($value) {
+        $value =~ s/^\s+//; # remove leading spaces
+        $value =~ s/\s+$//; # remove trailing spaces
+        # remove ";" unless $keep_semicolon is defined
+        $value =~ s/;// unless ( $keep_semicolon );
+    } else {
+        return undef;
+    }
+
+    return  ($value);
+}
+
+
+#TODO: in another PR, move minc functions to library readable by DTI & NeuroDB
