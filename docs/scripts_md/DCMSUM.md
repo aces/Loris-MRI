@@ -191,7 +191,7 @@ RETURNS: string without white space
 
 If only one date argument is provided, then it will convert YYYYMMDD date
 format into YYYY-MM-DD.
-If two date arguments are provided, thenit will compute the difference in
+If two date arguments are provided, then it will compute the difference in
 decimal and Y M +/- Days.
 
 INPUTS: date to format, (optionally, a second date to get the difference
