@@ -24,7 +24,7 @@ Available options are:
 =head1 DESCRIPTION
 
 This script generates NIfTI images for the inserted MINC files with a FileID
-between C<minFileID> and C<maxFileID> and that are missing NIfTIs.
+between the specified C<minFileID> and C<maxFileID>.
 
 =cut
 

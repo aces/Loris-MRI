@@ -20,7 +20,7 @@ Available options are:
 # DESCRIPTION
 
 This script generates NIfTI images for the inserted MINC files with a FileID
-between `minFileID` and `maxFileID` and that are missing NIfTIs.
+between the specified `minFileID` and `maxFileID`.
 
 # TO DO
 
