@@ -220,9 +220,7 @@ sub extractAndParseTarchive {
 sub determineSubjectID {
 
     my $this = shift;
-    my ($scannerID,$tarchiveInfo,$to_log) = @_;
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+    my ($scannerID,$tarchiveInfo,$to_log, $upload_id) = @_;
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
@@ -299,9 +297,7 @@ sub createTarchiveArray {
 sub determinePSC {
 
     my $this = shift;
-    my ($tarchiveInfo,$to_log) = @_;
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    my $upload_id = undef;
+    my ($tarchiveInfo, $to_log, $upload_id) = @_;
     $to_log = 1 unless defined $to_log;
     my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'lookupCenterNameUsing'
@@ -312,7 +308,6 @@ sub determinePSC {
         $this->{dbhr}
     );
     if ($to_log) {
-	$upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
         if (!$center_name) {
 
             my $message = "\nERROR: No center found for this candidate \n\n";
@@ -336,9 +331,7 @@ sub determinePSC {
 sub determineScannerID {
 
     my $this = shift;
-    my ($tarchiveInfo,$to_log,$centerID,$NewScanner) = @_;
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+    my ($tarchiveInfo, $to_log, $centerID, $NewScanner, $upload_id) = @_;
     my $message = '';
     $to_log = 1 unless defined $to_log;
     if ($to_log) {
@@ -396,9 +389,8 @@ sub get_acquisitions {
 ################################################################
 sub computeMd5Hash {
     my $this = shift;
-    my ($file, $tarchive_srcloc) = @_;
+    my ($file, $upload_id) = @_;
     my $message = '';
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     $message = "\n==> computing md5 hash for MINC body.\n";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
@@ -418,9 +410,8 @@ sub computeMd5Hash {
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfoRef,$center_name,$minc,$acquisitionProtocol,$bypass_extra_file_checks) = @_;
-    my $tarchive_srcloc = $tarchiveInfoRef->{'SourceLocation'};
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+    my ($file,$subjectIDsref,$tarchiveInfoRef,$center_name,$minc,
+        $acquisitionProtocol,$bypass_extra_file_checks, $upload_id) = @_;
     my $message = '';
 
     ############################################################
@@ -680,7 +671,7 @@ sub registerScanIntoDB {
     my $this = shift;
     my (
         $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
-        $minc, $checks,$reckless, $tarchive, $sessionID
+        $minc, $checks,$reckless, $sessionID, $upload_id
     ) = @_;
 
     my $data_dir = NeuroDB::DBI::getConfigSetting(
@@ -695,8 +686,6 @@ sub registerScanIntoDB {
         $Date_taken,$minc_protocol_identified,
         $file_path,$tarchive_path,$fileID
     );
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $message = '';
     ############################################################
     # Register scans into the database.  Which protocols to ####
@@ -757,8 +746,8 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path   =   $tarchive;
-        $tarchive_path      =~  s/$data_dir\///i;
+        $tarchive_path =  $tarchiveInfo->{SourceLocation};
+        $tarchive_path =~ s/$data_dir\///i;
         $${minc_file}->setParameter(
             'tarchiveLocation', 
             $tarchive_path
