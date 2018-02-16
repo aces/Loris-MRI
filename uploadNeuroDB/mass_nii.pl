@@ -4,8 +4,8 @@
 
 =head1 NAME
 
-mass_nii.pl -- Generates NIfTI files based on the inserted MINC files and
-insert them into the LORIS database.
+mass_nii.pl -- Generates NIfTI files based on the MINC files available in the
+LORIS database and inserts them into the parameter_file table.
 
 =head1 SYNOPSIS
 
@@ -15,9 +15,9 @@ Available options are:
 
 -profile  : name of the config file in C<../dicom-archive/.loris_mri>
 
--minFileID: specifies the minimum FileID to operate on
+-minFileID: specifies the minimum C<FileID> to operate on
 
--maxFileID: specifies the maximum FileID to operate on
+-maxFileID: specifies the maximum C<FileID> to operate on
 
 -verbose  : be verbose
 
