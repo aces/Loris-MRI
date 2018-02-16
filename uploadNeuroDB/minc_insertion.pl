@@ -160,6 +160,9 @@ my @opt_table = (
                  ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
                   " to tarchive-file"],
 
+                 ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
+                  "from which this MINC was created"],
+
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
                   "Loosen the validity check of the tarchive allowing for the". 
                   " possibility that the tarchive was moved to a different". 
@@ -202,8 +205,13 @@ The program does the following:
 
 - Loads the created MINC file and then sets the appropriate parameter for
   the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
+<<<<<<< c95ac7197f03f61b6dd54ab63bf3d01e0525f3f5
                      CoordinateSpace , OutputType , FileType,
                      TarchiveSource and Caveat)
+=======
+                     PendingStaging, CoordinateSpace , OutputType , FileType
+                     ,TarchiveSource and Caveat)
+>>>>>>> Adding -uploadID option to minc_insertion.pl
 - Extracts the correct acquition protocol
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
@@ -330,17 +338,47 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 #################### Check is_valid column #####################
 ################################################################
 my ( $is_valid, $ArchiveLocation );
-if ($upload_id) {
+if ($tarchive) {
+    # if the tarchive path is given as an argument, find the associated UploadID
+    # and check if IsTarchiveValidated is set to 1.
+    $ArchiveLocation = $tarchive;
+    $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
+
+    my $where = "WHERE t.ArchiveLocation='$tarchive'";
+    if ($globArchiveLocation) {
+        $where = "WHERE t.ArchiveLocation LIKE '%" . basename($tarchive) . "'";
+    }
+    my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
+        "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
+    print $query . "\n" if $debug;
+    $is_valid = $dbh->selectrow_array($query);
+
+    ## Setup  for the notification_spool table ##
+    # get the tarchive_srcloc from $tarchive
+    $query = "SELECT SourceLocation" .
+        " FROM tarchive t $where";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    $tarchive_srcloc = $sth->fetchrow_array;
+    # get the $upload_id from $tarchive_srcloc
+    $query =
+        "SELECT UploadID FROM mri_upload "
+            . "WHERE DecompressedLocation =?";
+    $sth = $dbh->prepare($query);
+    $sth->execute($tarchive_srcloc);
+    $upload_id = $sth->fetchrow_array;
+    ## end of setup IDs for notification_spool table
+} elsif ($upload_id) {
     # if the uploadID is passed as an argument, verify that the tarchive was
     # validated
     (my $query = <<QUERY) =~ s/\n/ /gm;
     SELECT
-      IsTarchiveValidated,
-      ArchiveLocation
+      m.IsTarchiveValidated,
+      t.ArchiveLocation
     FROM
-      mri_upload JOIN tarchive USING (TarchiveID)
+      mri_upload m JOIN tarchive t ON (t.TarchiveID = m.TarchiveID)
     WHERE
-      UploadID = ?
+      m.UploadID = ?
 QUERY
     print $query . "\n" if $debug;
     my $sth = $dbh->prepare($query);
@@ -348,67 +386,15 @@ QUERY
     my @array        = $sth->fetchrow_array;
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
-
-    # create the studyInfo object
-    %studyInfo = $utility->createTarchiveArray(
-        $ArchiveLocation, $globArchiveLocation
-    );
-
-} elsif ($tarchive) {
-    # if only the tarchive path is given as an argument, find the associated UploadID
-    # and check if IsTarchiveValidated is set to 1.
-    $ArchiveLocation = $tarchive;
-    $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
-
-    my $where = "WHERE ArchiveLocation='$tarchive'";
-    if ($globArchiveLocation) {
-        $where = "WHERE ArchiveLocation LIKE '%/" . quotemeta(basename($tarchive)) . "' "
-                 . "OR ArchiveLocation = '" . quotemeta(basename($tarchive)) . "'";
-    }
-    my $query = "SELECT IsTarchiveValidated, UploadID, SourceLocation "
-                . "FROM mri_upload "
-                . "JOIN tarchive USING (TarchiveID) $where ";
-    my $sth   = $dbh->prepare($query);
-    print $query . "\n" if $debug;
-
-    $sth->execute();
-    my $errorMessage;
-    if ($sth->rows == 0) {
-        $errorMessage = $globArchiveLocation
-            ? "No mri_upload with the same archive location basename as '$tarchive'\n"
-            : "No mri_upload with archive location '$tarchive'\n";
-        $utility->writeErrorLog(
-            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
-        );
-        print STDERR $errorMessage;
-        exit $NeuroDB::ExitCodes::INVALID_ARG;
-    } elsif ($sth->rows > 1) {
-        $errorMessage = "\nERROR: found more than one UploadID associated with "
-                        . "this ArchiveLocation ($tarchive). Please specify the "
-                        . "UploadID to use using the -uploadID option.\n\n";
-        $utility->writeErrorLog(
-            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
-        );
-        print STDERR $errorMessage;
-        exit $NeuroDB::ExitCodes::INVALID_ARG;
-    } else {
-        my %row          = $sth->fetchrow_hashref();
-        $is_valid        = $row{isTarchiveValidated};
-        $upload_id       = $row{UploadID};
-    }
-
-    # load the DICOM archive information from the tarchive table in studyInfo object
-    %studyInfo = $utility->createTarchiveArray(
-        $ArchiveLocation, $globArchiveLocation
-    );
 }
 
-if ((!defined $is_valid || $is_valid == 0) && !$force) {
-    $message = "\n ERROR: The validation has failed. Either run the validation again"
-               . "and fix the problem or use -force to force the insertion.\n\n";
-    $utility->writeErrorLog(
-        $message, $NeuroDB::ExitCodes::INVALID_TARCHIVE, $logfile
-    );
+if (($is_valid == 0) && ($force==0)) {
+    $message = "\n ERROR: The validation has failed. ".
+               "Either run the validation again and fix ".
+               "the problem. Or use -force to force the ".
+               "execution.\n\n";
+    print $message;
+    $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y',
                     $notify_notsummary);
@@ -472,6 +458,7 @@ QUERY
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
+
 
 
 

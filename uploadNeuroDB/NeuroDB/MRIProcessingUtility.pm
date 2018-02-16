@@ -395,7 +395,6 @@ sub determineSubjectID {
 
     my $this = shift;
     my ($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID) = @_;
-
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
