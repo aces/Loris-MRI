@@ -10,16 +10,16 @@ Available options are:
 
 \-profile   : name of the config file in ../dicom-archive/.loris\_mri
 
-\-mincFileID: integer, minimum FileID to operate on
+\-mincFileID: integer, minimum `FileID` to operate on
 
-\-maxFileID : integer, maximum FileID to operate on
+\-maxFileID : integer, maximum `FileID` to operate on
 
 \-verbose   : be verbose
 
 # DESCRIPTION
 
-This scripts will generate check pics for every registered MINC file that
-have a `FileID` from the `files` table between the specified `minFileID`
+This scripts will generate pics for every registered MINC file that have
+a `FileID` from the `files` table between the specified `minFileID`
 and `maxFileID`.
 
 # TO DO

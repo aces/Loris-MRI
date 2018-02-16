@@ -15,17 +15,17 @@ Available options are:
 
 -profile   : name of the config file in ../dicom-archive/.loris_mri
 
--mincFileID: integer, minimum FileID to operate on
+-mincFileID: integer, minimum C<FileID> to operate on
 
--maxFileID : integer, maximum FileID to operate on
+-maxFileID : integer, maximum C<FileID> to operate on
 
 -verbose   : be verbose
 
 
 =head1 DESCRIPTION
 
-This scripts will generate check pics for every registered MINC file that
-have a C<FileID> from the C<files> table between the specified C<minFileID>
+This scripts will generate pics for every registered MINC file that have
+a C<FileID> from the C<files> table between the specified C<minFileID>
 and C<maxFileID>.
 
 =cut
@@ -47,7 +47,7 @@ my $minFileID  = undef;
 my $maxFileID  = undef;
 my $query;
 my $debug       = 0;
-my $Usage = "mass_pic.pl generates check pic images for NeuroDB for those ".
+my $Usage = "mass_pic.pl generates pic images for NeuroDB for those ".
             "files that are missing pics. ".
             " \n\n See $0 -help for more info\n\n".
             "Documentation: perldoc mass_pic.pl\n\n";
@@ -164,7 +164,6 @@ $dbh->disconnect();
 print "\nFinished mass_pic.pl execution\n" if $verbose;
 exit 0;
 
-1;
 
 __END__
 
