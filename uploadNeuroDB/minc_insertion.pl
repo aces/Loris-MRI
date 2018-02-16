@@ -204,15 +204,10 @@ Version :   $versionInfo
 The program does the following:
 
 - Loads the created MINC file and then sets the appropriate parameter for
-  the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
-<<<<<<< c95ac7197f03f61b6dd54ab63bf3d01e0525f3f5
-                     CoordinateSpace , OutputType , FileType,
-                     TarchiveSource and Caveat)
-=======
+  the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime,
                      PendingStaging, CoordinateSpace , OutputType , FileType
                      ,TarchiveSource and Caveat)
->>>>>>> Adding -uploadID option to minc_insertion.pl
-- Extracts the correct acquition protocol
+- Extracts the correct acquisition protocol
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
 - Finally sets the series notification
@@ -458,6 +453,7 @@ QUERY
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
+
 
 
 
