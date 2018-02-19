@@ -5,16 +5,29 @@
 
 use strict;
 
+use constant GET_COUNT      => 1;
+use constant BASENAME_MATCH => 1;
+
 use Cwd qw/ abs_path /;
 use File::Basename qw/ dirname /;
 use File::Find;
 use File::Temp qw/ tempdir /;
 use FindBin;
+use DateTime;
 use Getopt::Tabular;
 use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
-use NeuroDB::DBI;
+
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+use NeuroDB::objectBroker::TarchiveOB;
+use NeuroDB::objectBroker::MriUploadOB;
+
+use TryCatch;
 
 my $verbose = 0;
 my $profile    = undef;
@@ -116,8 +129,26 @@ unless (-e $source_location) {
 ################################################################
 #####establish database connection if database option is set####
 ################################################################
-my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); 
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+); 
+
 print "Connecting to database.\n" if $verbose;
+try {
+	$db->connect();
+} catch(NeuroDB::DatabaseException $e) {
+	die sprintf(
+	    "User %s failed to connect to %s on %s: %s (error code %d)\n",
+	    $Settings::db[1],
+	    $Settings::db[0],
+	    $Settings::db[3],
+	    $e->errorMessage,
+	    $e->errorCode
+	);
+}
 
 ################################################################
 #####check to see if the tarchiveid is already set or not#######
@@ -126,33 +157,34 @@ print "Connecting to database.\n" if $verbose;
 ################################################################
 
 # fetch tarchiveLibraryDir from ConfigSettings in the database
-my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                            \$dbh,'tarchiveLibraryDir'
-                            );
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $tarchiveLibraryDir;
+try {
+    $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+	die sprintf(
+	    "Failed to get tarchive library dir from config: %s",
+	    $e->errorMessage
+	);
+}
 # determine tarchive path stored in the database (without tarchiveLibraryDir)
 my $tarchive_path = $tarchive;
 $tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;  
 
-my $where         = " WHERE t.ArchiveLocation =?";
-
-if ($globArchiveLocation) {
-    $where = " WHERE t.ArchiveLocation LIKE ?";
-    $tarchive_path = basename($tarchive);
+# Check if there is already an mri upload record for the tarchive
+my $resultRef;
+my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
+try{
+	$resultRef = $mriUploadOB->getWithTarchive(
+	    GET_COUNT, $tarchive_path, $globArchiveLocation
+	);
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+	die $e->errorMessage;
 }
 
-($query = <<QUERY) =~ s/\n/ /gm;
-SELECT 
-  COUNT(*) 
-FROM 
-  mri_upload m 
-JOIN 
-  tarchive t ON (t.TarchiveID=m.TarchiveID) 
-QUERY
-$query .= $where;
-$sth = $dbh->prepare($query);
-$sth->execute($tarchive_path);
-my $count = $sth->fetchrow_array;
-if($count>0) {
+if($resultRef->[0]->[0] > 0) {
    print "\n\tERROR: the tarchive is already uploaded \n\n"; 
    exit 6;
 } 
@@ -161,29 +193,48 @@ if($count>0) {
 ################################################################
 #####get the tarchiveid from tarchive table#####################
 ################################################################
-($query = <<QUERY) =~ s/\n/ /gm;
-SELECT 
-  t.TarchiveID 
-FROM 
-  tarchive t 
-QUERY
-$query .= $where;
-$sth = $dbh->prepare($query);
-$sth->execute("%".$tarchive_path."%");
-my $tarchiveID = $sth->fetchrow_array;
+
+my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $db);
+try {
+    $resultRef = $tarchiveOB->getByTarchiveLocation(
+        ['TarchiveID'], $tarchive_path, BASENAME_MATCH
+    );
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+	die sprintf(
+	    "Failed to get tarchive ID for tarchive with location %s: %s",
+	    $tarchive_path,
+	    $e->errorMessage
+	);
+}
+
+if(@$resultRef != 1) {
+	die sprintf(
+	    "Unxepected number of tarchive records with location %s found: %d\n",
+	    $tarchive_path,
+	    @$resultRef
+	);
+}
+my $tarchiveID = $resultRef->[0]->[0];
 
 
 ################################################################
  #####populate the mri_upload columns with the correct values####
 ################################################################
-($query = <<QUERY) =~ s/\n/ /gm;
-INSERT INTO mri_upload 
-  (UploadedBy, UploadDate, TarchiveID, DecompressedLocation) 
-VALUES
-  (?, now(), ?, ?)
-QUERY
-my $mri_upload_insert = $dbh->prepare($query);
-$mri_upload_insert->execute($User,$tarchiveID,$source_location);
 
+try {
+    $mriUploadOB->insert(
+        {
+		  UploadedBy           => $User,
+          UploadDate           => DateTime->now()->strftime('%Y-%m-%d %H:%M:%S'),
+          TarchiveID           => $tarchiveID,
+          DecompressedLocation => $source_location
+        }
+    );
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+	die sprintf(
+	    "Insertion of MRI record failed: %s",
+	    $e->errorMessage
+	);
+}
 print "Done updateMRI_upload.pl execution!\n" if $verbose;
 exit 0;
