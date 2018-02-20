@@ -1,9 +1,12 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 # Zia Mohades 2014
 # zia.mohades@mcgill.ca
 # Perl tool to update the mri_upload table
 
 use strict;
+
+use constant GET_COUNT      => 1;
+use constant BASENAME_MATCH => 1;
 
 use Cwd qw/ abs_path /;
 use File::Basename qw/ dirname /;
@@ -14,7 +17,18 @@ use Getopt::Tabular;
 use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
-use NeuroDB::DBI;
+
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+use NeuroDB::objectBroker::TarchiveOB;
+use NeuroDB::objectBroker::MriUploadOB;
+
+use TryCatch;
+
+use DateTime;
 
 my $verbose = 0;
 my $profile    = undef;
@@ -34,8 +48,8 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
 my $Help = <<HELP;
 *******************************************************************************
 
-Author  :   
-Date    :   
+Author  :
+Date    :
 Version :   $versionInfo
 
 
@@ -54,11 +68,11 @@ Usage:\n\t $0 -profile <profile>
 \n\n See $0 -help for more info\n\n";
 
 my @arg_table =
-	 (
-	  ["Main options", "section"],
-	  ["-profile","string",1, \$profile, "Specify the name of the config file
+     (
+      ["Main options", "section"],
+      ["-profile","string",1, \$profile, "Specify the name of the config file
           which resides in .loris_mri in the current directory."],
-	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
+      ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
       ["-globLocation", "boolean", 1, \$globArchiveLocation, "Loosen the".
        " validity check of the tarchive allowing for the possibility that".
        " the tarchive was moved to a different directory."],
@@ -76,30 +90,30 @@ my @arg_table =
 ################# checking for profile settings#################
 ################################################################
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-	{ 
-        package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" 
+    {
+        package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile"
     }
 }
 
 if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named '$profile' in:
-            $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
+            $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
     exit 2;
-} 
+}
 
 ################################################################
 ################# if profile not specified######################
 ################################################################
-if(!$profile) { 
-    print $Usage; print "\n\tERROR: You must specify an existing profile.\n\n";  
-    exit 3;  
+if(!$profile) {
+    print $Usage; print "\n\tERROR: You must specify an existing profile.\n\n";
+    exit 3;
 }
 
 ################################################################
 ################# if tarchive not specified#####################
 ################################################################
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the 
+    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the
             path to the archive is correct. Upload will exit now.\n\n\n";
     exit 4;
 }
@@ -109,15 +123,34 @@ unless (-e $tarchive) {
 ################################################################
 unless (-e $source_location) {
     print "\nERROR: Could not find sourcelocation $source_location \nPlease,
-           make sure the sourcelocation is correct. Upload will 
+           make sure the sourcelocation is correct. Upload will
            exit now.\n\n\n";
     exit 5;
 }
 ################################################################
 #####establish database connection if database option is set####
 ################################################################
-my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); 
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+
 print "Connecting to database.\n" if $verbose;
+
+try {
+    $db->connect();
+} catch(NeuroDB::DatabaseException $e) {
+    die sprintf(
+        "User %s failed to connect to %s on %s: %s (error code %d)\n",
+        $Settings::db[1],
+        $Settings::db[0],
+        $Settings::db[3],
+        $e->errorMessage,
+        $e->errorCode
+    );
+}
 
 ################################################################
 #####check to see if the tarchiveid is already set or not#######
@@ -126,64 +159,82 @@ print "Connecting to database.\n" if $verbose;
 ################################################################
 
 # fetch tarchiveLibraryDir from ConfigSettings in the database
-my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                            \$dbh,'tarchiveLibraryDir'
-                            );
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $tarchiveLibraryDir;
+try {
+    $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+    die sprintf(
+        "Failed to get tarchive library dir from config: %s\n",
+        $e->errorMessage
+    );
+}
 # determine tarchive path stored in the database (without tarchiveLibraryDir)
 my $tarchive_path = $tarchive;
-$tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;  
+$tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;
 
-my $where         = " WHERE t.ArchiveLocation =?";
-
-if ($globArchiveLocation) {
-    $where = " WHERE t.ArchiveLocation LIKE ?";
-    $tarchive_path = basename($tarchive);
+# Check if there is already an mri upload record for the tarchive
+my $resultRef;
+my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
+try{
+    $resultRef = $mriUploadOB->getWithTarchive(
+        GET_COUNT, $tarchive_path, $globArchiveLocation
+    );
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+    die sprintf("%s\n", $e->errorMessage);
 }
 
-($query = <<QUERY) =~ s/\n/ /gm;
-SELECT 
-  COUNT(*) 
-FROM 
-  mri_upload m 
-JOIN 
-  tarchive t ON (t.TarchiveID=m.TarchiveID) 
-QUERY
-$query .= $where;
-$sth = $dbh->prepare($query);
-$sth->execute($tarchive_path);
-my $count = $sth->fetchrow_array;
-if($count>0) {
-   print "\n\tERROR: the tarchive is already uploaded \n\n"; 
+if($resultRef->[0]->[0] > 0) {
+   print "\n\tERROR: the tarchive is already uploaded \n\n";
    exit 6;
-} 
-
+}
 
 ################################################################
 #####get the tarchiveid from tarchive table#####################
 ################################################################
-($query = <<QUERY) =~ s/\n/ /gm;
-SELECT 
-  t.TarchiveID 
-FROM 
-  tarchive t 
-QUERY
-$query .= $where;
-$sth = $dbh->prepare($query);
-$sth->execute("%".$tarchive_path."%");
-my $tarchiveID = $sth->fetchrow_array;
 
+my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $db);
+try {
+    $resultRef = $tarchiveOB->getByTarchiveLocation(
+        ['TarchiveID'], $tarchive_path, BASENAME_MATCH
+    );
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+    die sprintf(
+        "Failed to get tarchive ID for tarchive with location %s: %s\n",
+        $tarchive_path,
+        $e->errorMessage
+    );
+}
+
+if(@$resultRef != 1) {
+    die sprintf(
+        "Unxepected number of tarchive records with location %s found: %d\n",
+        $tarchive_path,
+        @$resultRef
+    );
+}
+my $tarchiveID = $resultRef->[0]->[0];
 
 ################################################################
- #####populate the mri_upload columns with the correct values####
+#####populate the mri_upload columns with the correct values####
 ################################################################
-($query = <<QUERY) =~ s/\n/ /gm;
-INSERT INTO mri_upload 
-  (UploadedBy, UploadDate, TarchiveID, DecompressedLocation) 
-VALUES
-  (?, now(), ?, ?)
-QUERY
-my $mri_upload_insert = $dbh->prepare($query);
-$mri_upload_insert->execute($User,$tarchiveID,$source_location);
 
+try {
+    $mriUploadOB->insert(
+        {
+          UploadedBy           => $User,
+          UploadDate           => DateTime->now()->strftime('%Y-%m-%d %H:%M:%S'),
+          TarchiveID           => $tarchiveID,
+          DecompressedLocation => $source_location
+        }
+    );
+} catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
+    die sprintf(
+        "Insertion of MRI record failed: %s\n",
+        $e->errorMessage
+    );
+}
 print "Done updateMRI_upload.pl execution!\n" if $verbose;
 exit 0;
