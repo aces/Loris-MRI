@@ -282,4 +282,42 @@ sub insert {
     }
 }
 
+=pod
+
+=head3 C<disconnect()>
+
+Terminates the connection previously instantiated to the database.
+
+=cut
+
+sub disconnect {
+	my $self = shift;
+	
+	try {
+	    $self->dbh->disconnect();
+	} catch {
+		NeuroDB::DatabaseException->throw(
+            statement    => 'Call to disconnect failed',
+            args         => [],
+            errorCode    => $DBI::err,
+            errorMessage => $DBI::errstr
+        );
+	
+	}
+}
+
+=pod
+
+=head3 C<DESTROY()>
+
+Object destructor: terminates the connection previously instantiated to the
+database.
+
+=cut
+sub DESTROY {
+	my $self = shift;
+	
+	$self->disconnect();
+}
+
 1;
