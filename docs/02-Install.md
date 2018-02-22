@@ -101,9 +101,9 @@ Typically, images insertion into LORIS is performed via the following steps:
 
     b. If a scan does not match any of the protocol defined in the
          `mri_protocol` table, then the MINC image of this scan will be stored
-         into the `mri_protocol_violated_scans` table. Additionally, scans that
-         were excluded by the optional additional file checks present in the
-         `mri_protocol_checks` table will be inserted into the
+         in the `mri_protocol_violated_scans` table. Additionally, scans that
+         were excluded by the optional criteria defined in the
+         `mri_protocol_checks` table will be logged into the
          `mri_violations_log` table. Both types of violated scans are
          then accessible via the **MRI Violated Scans** module and can be
          displayed in 3D using **BrainBrowser**.
