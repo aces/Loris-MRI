@@ -1,7 +1,7 @@
 # NAME
 
 mass\_nii.pl -- Generates NIfTI files based on the MINC files available in the
-LORIS database and inserts them into the parameter\_file table.
+LORIS database and inserts them into the `parameter_file` table.
 
 # SYNOPSIS
 

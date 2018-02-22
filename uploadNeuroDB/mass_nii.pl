@@ -5,7 +5,7 @@
 =head1 NAME
 
 mass_nii.pl -- Generates NIfTI files based on the MINC files available in the
-LORIS database and inserts them into the parameter_file table.
+LORIS database and inserts them into the C<parameter_file> table.
 
 =head1 SYNOPSIS
 
