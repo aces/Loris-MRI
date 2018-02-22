@@ -47,6 +47,9 @@ use FindBin;
 $VERSION = 0.2;
 @ISA = qw(Exporter);
 
+# Number of decimals considered when testing if two floats are equal
+$FLOAT_EQUALS_NB_DECIMALS = 4;
+
 @EXPORT = qw();
 @EXPORT_OK = qw(identify_scan in_range get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
 
@@ -398,11 +401,13 @@ Returns: Textual name of scan type
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr,$minc_location
+    ) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
     my $pscid = ${subjectref}->{'PSCID'};
     my $visit = ${subjectref}->{'visitLabel'};
+    my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
     my $objective = ${subjectref}->{'subprojectID'};
 
     # get parameters from minc header
@@ -525,7 +530,13 @@ sub identify_scan_db {
     }
 
     # if we got here, we're really clueless...
-    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID);
+    insert_violated_scans(
+        $dbhr,   $series_description, $minc_location,   $patient_name,
+        $candid, $pscid,              $tr,              $te,
+        $ti,     $slice_thickness,    $xstep,           $ystep,
+        $zstep,  $xspace,             $yspace,          $zspace,
+        $time,   $seriesUID,          $tarchiveID
+    );
 
     return 'unknown';
 }    
@@ -533,12 +544,36 @@ sub identify_scan_db {
 
 sub insert_violated_scans {
 
-   my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID) = @_;
-   my $query;
-   my $sth;
-    
-   $sth = $${dbhr}->prepare("INSERT INTO mri_protocol_violated_scans (CandID,PSCID,time_run,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range,time_range,SeriesUID) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-   my $success = $sth->execute($candid,$pscid,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$time,$seriesUID);
+    my ($dbhr,   $series_description, $minc_location, $patient_name,
+        $candid, $pscid,              $tr,            $te,
+        $ti,     $slice_thickness,    $xstep,         $ystep,
+        $zstep,  $xspace,             $yspace,        $zspace,
+        $time,   $seriesUID,          $tarchiveID) = @_;
+
+    (my $query = <<QUERY) =~ s/\n//gm;
+  INSERT INTO mri_protocol_violated_scans (
+    CandID,             PSCID,         TarchiveID,            time_run,
+    series_description, minc_location, PatientName,           TR_range,
+    TE_range,           TI_range,      slice_thickness_range, xspace_range,
+    yspace_range,       zspace_range,  xstep_range,           ystep_range,
+    zstep_range,        time_range,    SeriesUID
+  ) VALUES (
+    ?, ?, ?, now(),
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?
+  )
+QUERY
+
+    my $sth = $${dbhr}->prepare($query);
+    my $success = $sth->execute(
+        $candid,        $pscid,           $tarchiveID, $series_description,
+        $minc_location, $patient_name,    $tr,         $te,
+        $ti,            $slice_thickness, $xspace,     $yspace,
+        $zspace,        $xstep,           $ystep,      $zstep,
+        $time,          $seriesUID
+    );
 
 }
 # ------------------------------ MNI Header ----------------------------------
@@ -633,17 +668,34 @@ sub in_range
 
     my $range = 0;
     foreach $range (@ranges) {
-	chomp($range);
-	if($range=~/^[0-9.]+$/) { ## single value element
-	    return 1 if $value==$range;
-	} else { ## range X-Y
-	    $range =~ /([0-9.]+)-([0-9.]+)/;
-	    return 1 if ($1 <= $value && $value <= $2);
-	}
+       chomp($range);
+       if($range=~/^[0-9.]+$/) { ## single value element
+           return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
+       } else { ## range X-Y
+           $range =~ /([0-9.]+)-([0-9.]+)/;
+           return 1 if ($1 <= $value && $value <= $2) 
+               || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
+               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
+       }
     }
 
     ## if we've gotten this far, we're out of range.
     return 0;
+}
+
+=pod
+
+B<floats_are_equal( C<$f1>, C<$f2>, C<$nb_decimals> )>
+
+Checks whether f1 and f2 are equal (considers only the first nb_decimals decimals).
+
+Returns: 1 if the numbers are relatively equal, 0 otherwise
+
+=cut
+sub floats_are_equal {
+    my($f1, $f2, $nb_decimals) = @_;
+
+    return sprintf("%.${nb_decimals}g", $f1) eq sprintf("%.${nb_decimals}g", $f2);
 }
 
 ## string range_to_sql($field, $range_string) where $range_string follows the same format as in in_range
