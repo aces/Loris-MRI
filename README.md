@@ -102,20 +102,20 @@ The following must be recursively owned by the lorisadmin user and by Apache gro
    ```
 #### 7. Verify Configuration module settings for Imaging Pipeline
   
-In the LORIS front-end, under the Admin menu, go to the `Config` module.  Verify/set the following config settings (examples below illustrated for a project name `demo`):
+In the LORIS front-end, under the Admin menu, go to the `Config` module.  Verify/set the following config settings (examples below illustrated for a project named `demo`):
 
 Under the section `Imaging Pipeline`:
- * `Loris-MRI Data Directory` (typically `/data/demo/data/')
+ * `Loris-MRI Data Directory` (typically `/data/demo/data/`)
  * `Study Name` (`exampleStudy`; this name will be appended as a prefix to the filenames in LORIS' Imaging Browser)
  * `User to notify when executing the pipeline`
- * `Full path to get_dicom_info.pl script`(typically `/data/demo/bin/mri/dicom-archive/get_dicom_info.pl')
- * `Path to Tarchives` (typically `/data/demo/data/tarchive/')
+ * `Full path to get_dicom_info.pl script`(typically `/data/demo/bin/mri/dicom-archive/get_dicom_info.pl`)
+ * `Path to Tarchives` (typically `/data/demo/data/tarchive/`)
 
 Under the section `Path`:
- * `Imaging Data` (typically `/data/demo/data/')
- * `LORIS-MRI Code`(typically `/data/demo/bin/mri/')
- * `MINC files` (typically `/data/demo/data/')
- * `Images` (typically `/data/demo/data/')
+ * `Imaging Data` (typically `/data/demo/data/`)
+ * `LORIS-MRI Code`(typically `/data/demo/bin/mri/`)
+ * `MINC files` (typically `/data/demo/data/`)
+ * `Images` (typically `/data/demo/data/`)
 
 Click 'Submit' at the end of the Configuration page to save any changes. 
 
