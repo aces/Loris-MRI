@@ -305,7 +305,6 @@ if ($xlog) {
     } 
 }
 
-
 ################################################################
 # get useful information from the tarchive table  - The regex is
 # very study specific... !!!!!! fixme

@@ -63,7 +63,6 @@ be kept at the value of a new install.
 
 Documentation: perldoc ProdToConfig.pl
 
-
 HELP
 my $Usage = <<USAGE;
 usage: tools/ProdToConfig.pl -profile $profile
@@ -156,7 +155,6 @@ INPUTS   :
 
 =cut
 
-
 sub updateConfigFromProd {
 
     my ( $dbhr, $config_name, $config_value ) = @_;
@@ -187,7 +185,6 @@ sub updateConfigFromProd {
 
 exit(0);
 
-
 __END__
 
 =pod
@@ -210,4 +207,3 @@ LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
 
 =cut
-

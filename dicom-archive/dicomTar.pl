@@ -54,8 +54,6 @@ target directory which will be the archive location.
 
 =cut
 
-=======
->>>>>>> v19.0.0
 use strict;
 use FindBin;
 use Getopt::Tabular;
@@ -316,7 +314,6 @@ if ($mri_upload_update) {
 
 
 exit 0;
-
 # ******************************************************************************
 =head3 archive_head()
 

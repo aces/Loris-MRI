@@ -494,7 +494,6 @@ sub isDicom {
 
 =head3 runCommandWithExitCode($command)
 
-
 This method will run any linux command given as an argument using the
 C<system()> method and will return the proper exit code.
 
