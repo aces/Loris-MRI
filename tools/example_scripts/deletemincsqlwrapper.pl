@@ -42,6 +42,8 @@ B<Notes:>
 
 =cut
 
+=======
+>>>>>>> v19.0.0
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -67,6 +69,7 @@ my @opt_table           = (
 );
 
 my $Help = <<HELP;
+
 *******************************************************************************
 Wrapper to minc_deletion.pl for bulk deletion based on a SQL customisable query
 *******************************************************************************
@@ -81,6 +84,7 @@ this script can be obtained as follows:
 
 
 Documentation: perldoc tools/example_scripts/deletemincsqlwrapper.pl
+
 
 HELP
 
@@ -192,3 +196,4 @@ LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
 
 =cut
+

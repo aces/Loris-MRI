@@ -68,8 +68,9 @@ my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.3 $
     =~ /: (\d+)\.(\d+)/;
 my $profile   = '';      # this should never be set unless you are in a
                              # stable production environment
-my $seriesuid = '';
-my $fileid    = '';
+my $seriesuid = ''; # seriesUID value from script inputs
+my $fileid    = ''; # fileID value from script inputs
+my @files_FileID;   # fileID value from query of the files table
 my $sth;
 my $rvl;
 my $query     = '';
@@ -221,7 +222,7 @@ sub selORdel {
 
 # Delete from FS:
 # get the file names
-$query = "select f.File, f.TarchiveSource, f.SessionID, pf.`VALUE` from files as f ".
+$query = "select f.File, f.TarchiveSource, f.SessionID, pf.`VALUE`, f.FileID from files as f ".
          "left join parameter_file as pf using (FileID) where ".
          "pf.ParameterTypeID = (select pt.ParameterTypeID from parameter_type as pt where pt.Name = 'check_pic_filename') and ".
          "pf.FileID IN ";
@@ -253,6 +254,9 @@ my ($tarchiveid, $sessionid, @pic_path, $jiv_header, $jiv_raw_byte, $file, $dir,
 while (my $f = $sth->fetchrow_hashref()) {
   $tarchiveid   = $f->{'TarchiveSource'};
   $sessionid    = $f->{'SessionID'};
+  # grep the list of fileIDs from the files table and organize them so they
+    # can be given in a "WHERE FileID IN ()" syntax
+  push(@files_FileID, $f->{'FileID'});
   @pic_path     = split /_check/, $f->{'VALUE'};
   $jiv_header   = $pic_path[0] . ".header";
   $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
@@ -288,11 +292,33 @@ while (my $f = $sth->fetchrow_hashref()) {
 
 print "\nDelete from DB";
 # Delete from DB
-selORdel("parameter_file","Value");
-if ($delqcdata) {
+
+# Take care of the QC data
+if (($delqcdata) || ($selORdel eq "SELECT * ")) {
+  ## if the "-delqcdata" option is set or the script is run in "select" mode
+    # executes queries in function selORdel (which will either "SELECT *" or
+    # "DELETE" from table given as argument to the function selORdel
   selORdel("files_qcstatus","QCStatus");
   selORdel("feedback_mri_comments","Comment");
+} else {
+  ## if don't want to delete the QC data, will have to set their FileID to
+    # null so that it can be remapped to the new FileID based on their
+    # SeriesUID and echo time, and the FileID can be removed from the files
+    # table
+  foreach my $table ("files_qcstatus", "feedback_mri_comments") {
+      (my $updateQCquery = <<QUERY) =~ s/\n//gm;
+ UPDATE $table
+ SET    FileID=NULL
+ WHERE  FileID=?
+QUERY
+      $sth = $dbh->prepare($updateQCquery);
+      $rvl = $sth->execute($_) for @files_FileID;
+  }
 }
+
+# Delete from parameter_file
+selORdel("parameter_file","Value");
+
 # selORdel("mri_protocol_violated_scans","ID");  # if there is data here, the mnc will be in the trashbin
 # selORdel("MRICandidateErrors","Reason");       # not applicable to /assembly
 # selORdel("mri_violations_log","LogID");        # "
@@ -309,7 +335,7 @@ if ($seriesuid) {
   $field = "SeriesUID";
 } else {
   $val = $fileid;
-  $field = "FileID"
+  $field = "FileID";
 }
 # Check #1 in files, if other files from same session
 $query = "select * from files as g " .
@@ -419,6 +445,7 @@ if ($selORdel eq "DELETE ") {
         }
     }
 }
+
 
 
 __END__

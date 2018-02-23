@@ -82,7 +82,7 @@ sub new {
     return $self;
 }
 
-=pod 
+=pod
 
 =head3 database($dbh, $meta, $update, $tarType, $tarLog, $DCMmd5, ...)
 
@@ -878,6 +878,7 @@ Prints the CONTENT using formats defined in C<&write_content_head>.
 
 =cut
 
+
 sub print_content {
     my $self = shift;
     my @files = @{$self->{'dcminfo'}};
@@ -906,6 +907,7 @@ Prints the Content head.
 
 =cut
 
+
 sub write_content_head {
     $~ = 'CONTENT_HEAD';
     write();
@@ -925,6 +927,7 @@ Prints all DICOM files.
 INPUT: array of DICOM information to print
 
 =cut
+
 
 sub write_dcm {
     my ($dcm) = @_;
@@ -949,6 +952,7 @@ Prints all other files.
 INPUT: array of other files information
 
 =cut
+
 
 sub write_other {
     my ($dcm) = @_;
@@ -984,7 +988,6 @@ sub print_acquisitions {
     }
     print "</ACQUISITIONS>\n"; # print the pseudo xml footer
 }
-
 
 =pod
 
@@ -1034,6 +1037,7 @@ Prints footer using formats from C<&write_footer>.
 
 =cut
 
+
 sub print_footer {
     my $self = shift;
     $self->write_footer($self);
@@ -1074,6 +1078,7 @@ Prints the whole thing using C<&print_header>, C<&print_content>,
 C<&print_acquisitions> and C<&print_footer>. This is what you really want.
 
 =cut
+
 
 sub dcmsummary {
     my $self = shift;

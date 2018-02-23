@@ -54,6 +54,8 @@ target directory which will be the archive location.
 
 =cut
 
+=======
+>>>>>>> v19.0.0
 use strict;
 use FindBin;
 use Getopt::Tabular;
@@ -160,6 +162,7 @@ else {
 my $totar = basename($dcm_source);
 print "Source: ". $dcm_source . "\nTarget: ".  $targetlocation . "\n\n"
     if $verbose;
+
 my $ARCHIVEmd5sum = 'Provided in database only';
 
 
@@ -313,6 +316,7 @@ if ($mri_upload_update) {
 
 
 exit 0;
+
 # ******************************************************************************
 =head3 archive_head()
 

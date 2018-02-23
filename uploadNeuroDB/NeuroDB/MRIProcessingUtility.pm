@@ -608,8 +608,8 @@ RETURNS: acquisition protocol, acquisition protocol ID, array of extra checks
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfo,$center_name,$minc,$acquisitionProtocol,$bypass_extra_file_checks) = @_;
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
+    my ($file,$subjectIDsref,$tarchiveInfoRef,$center_name,$minc,$acquisitionProtocol,$bypass_extra_file_checks) = @_;
+    my $tarchive_srcloc = $tarchiveInfoRef->{'SourceLocation'};
     my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $message = '';
 
@@ -625,6 +625,7 @@ sub getAcquisitionProtocol {
       $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
                                    $center_name,
                                    $subjectIDsref,
+                                   $tarchiveInfoRef,
                                    $file, 
                                    $this->{dbhr}, 
                                    $minc
@@ -649,7 +650,7 @@ sub getAcquisitionProtocol {
                         $file, 
                         $subjectIDsref->{'CandID'}, 
                         $subjectIDsref->{'visitLabel'},
-                        $tarchiveInfo->{'PatientName'}
+                        $tarchiveInfoRef->{'PatientName'}
                     );
           $message = "\nextra_file_checks from table mri_protocol_check " .
                      "logged in table mri_violations_log: $checks[0]\n";
