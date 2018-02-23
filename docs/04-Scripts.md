@@ -85,6 +85,7 @@ Neuroscience
 A very brief illustration of the key and expected outcomes at different steps in 
 the execution of the pipeline are shown below 
 ![pipeline_flow](images/pipeline_schematic.png) 
+
 This figure highlights the few 
 key scripts in the pipeline execution, the order in which they call each other, 
 and their interactions with the diverse libraries and utility classes. It 
