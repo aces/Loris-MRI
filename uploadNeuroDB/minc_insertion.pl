@@ -217,10 +217,8 @@ print "\nlog dir is $LogDir and log file is $logfile \n" if $verbose;
 open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
 # strings needed for the logHeader, if not set, as an argument, use empty string
-my $source_data_for_log = $tarchive;
-$source_data_for_log = "" unless $tarchive;
-my $upload_id_for_log = $upload_id;
-$upload_id_for_log    = "" unless $upload_id;
+my $source_data_for_log = $tarchive // "";
+my $upload_id_for_log = $upload_id // "";
 &logHeader();
 
 print LOG "\n==> Successfully connected to database \n" if $verbose;
