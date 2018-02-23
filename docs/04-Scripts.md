@@ -83,10 +83,11 @@ Neuroscience
 ## 4.2 - Pipeline flow
 
 A very brief illustration of the key and expected outcomes at different steps in 
-the execution of the pipeline are shown in 
-![pipeline_flow](images/pipeline_schematic.png). This figure highlights the few 
+the execution of the pipeline are shown below 
+![pipeline_flow](images/pipeline_schematic.png) 
+This figure highlights the few 
 key scripts in the pipeline execution, the order in which they call each other, 
-and the interactions with the diverse libraries and utility classes. It 
+and their interactions with the diverse libraries and utility classes. It 
 therefore serves as a tool to help project developers understand the pipeline
 quickly, and develop independently project customizations and debugging skills.
 
@@ -126,17 +127,17 @@ See also: [MRI-PR#141](https://github.com/aces/Loris-MRI/pull/141) for more
     with dicomTar.pl (see section 5.4 of
    [Pipeline triggering options](05-PipelineOptions.md)).
 
-In general, to re-load an imaging dataset through the pipeline from start (from
-  `dicomTar.pl`) -- Ensure entries from the previous attempt to load the dataset
-  have been removed from the following database tables:
+In general, to re-load an imaging dataset through the pipeline from the start 
+   (from `dicomTar.pl`) -- Ensure entries from the previous attempt to load the 
+   dataset have been removed from the following database tables:
 
 - `parameter_file`
-- `tarchive`
 - `mri_acquisition_dates`
 - `files` (best to delete from this table last)
 - `mri_upload`
 - `session` - not recommended - only if necessary, and only if no other data is
     associated to this session e.g. on the Behavioural side of Loris.
+- `tarchive`
 
 It is also recommended to remove from the tarchive directory the last generated
   `*.tar` package for this dataset, as well as files in the `assembly/`, `pic/`, 
@@ -144,7 +145,7 @@ It is also recommended to remove from the tarchive directory the last generated
 
 If any Quality Control flags or comments exist for these scans, you may also
   wish to delete specific records from `files_qcstatus` and the `mri_feedback_*`
-  tables.
+  tables, before deleting from the `files` table.
 
 For backing up, re-labelling and re-loading MRI datasets with QC information,
   see [Beta Tutorial](https://github.com/aces/Loris/wiki/Reloading-MRI-data-for-mislabelled-session)
@@ -155,5 +156,4 @@ In cases where a subject was scanned in two scanner sessions as part of the same
   study Timepoint, anonymize both DICOM datasets using the same Visit Label in 
   the PatientName (or PatientID), and upload as two separate DICOM datasets. The 
   insertion pipeline will automatically associate and display both sets of 
-  images acquired in both session scanner sessions under the same session table 
-  record. 
+  images acquired in both scanner sessions under the same session table record. 

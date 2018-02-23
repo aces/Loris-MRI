@@ -187,21 +187,21 @@ More detailed specifications can be consulted in the
 if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'dti' or $acquisitionProtocol eq 'bold' or $acquisitionProtocol =~ /fmri/) { return 1; }
 ```
 
-- getSNRModalities()
+- `getSNRModalities()`
     
     Routine to instruct the pipeline which 3-D modalities to include when 
     computing the signal-to-noise-ratio (SNR) on MINC images.
 
-- getSubjectIDs()
+- `getSubjectIDs()`
 
-    Routine to parse candidate’s CandID, Center (from the PSCID), and visit 
+    Routine to parse candidate’s PSCID, CandID, Center (determined from the PSCID), and visit 
     label. 
 
-- filterParameters()
+- `filterParameters()`
 
-    Used for ???
+    Routine that takes in a file as an object and removes all parameters of lenngth > 1000
     
-- get_DTI_Site_CandID_Visit()
+- `get_DTI_Site_CandID_Visit()`
 
     Used for the DTIPrep pipeline
 
