@@ -157,4 +157,4 @@ In cases where a subject was scanned in two scanner sessions as part of the same
   study Timepoint, anonymize both DICOM datasets using the same Visit Label in 
   the PatientName (or PatientID), and upload as two separate DICOM datasets. The 
   insertion pipeline will automatically associate and display both sets of 
-  images acquired in both scanner sessions under the same session table record. 
+  images acquired in both scanner sessions under the same `session` table record. 
