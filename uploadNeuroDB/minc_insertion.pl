@@ -1,4 +1,74 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+minc_insertion.pl -- Insert MINC files into the LORIS database system
+
+=head1 SYNOPSIS
+
+perl minc_insertion.pl C<[options]>
+
+Available options are:
+
+-profile     : name of the config file in
+               C<../dicom-archive/.loris_mri>
+
+-reckless    : uploads data to database even if study protocol
+               is not defined or violated
+
+-force       : forces the script to run even if validation failed
+
+-noJIV       : prevents the JIVs from being created
+
+-mincPath    : the absolute path to the MINC file
+
+-tarchivePath: the absolute path to the tarchive file
+
+-globLocation: loosens the validity check of the tarchive allowing
+               for the possibility that the tarchive was moved
+               to a different directory
+
+-newScanner  : if set [default], new scanner will be registered
+
+-xlog        : opens an xterm with a tail on the current log file
+
+-verbose     : if set, be verbose
+
+-acquisition_protocol    : suggests the acquisition protocol to use
+
+-create_minc_pics        : creates the MINC pics
+
+-bypass_extra_file_checks: bypasses extra file checks
+
+
+=head1 DESCRIPTION
+
+The program inserts MINC files into the LORIS database system. It performs the
+four following actions:
+
+- Loads the created MINC file and then sets the appropriate parameter for
+the loaded object:
+
+   (
+    ScannerID,  SessionID,      SeriesUID,
+    EchoTime,   PendingStaging, CoordinateSpace,
+    OutputType, FileType,       TarchiveSource,
+    Caveat
+   )
+
+- Extracts the correct acquisition protocol
+
+- Registers the scan into the LORIS database by changing the path to the MINC
+and setting extra parameters
+
+- Finally sets the series notification
+
+=head2 Methods
+
+=cut
+
 use strict;
 use warnings;
 use Carp;
@@ -132,6 +202,8 @@ The program does the following:
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
 - Finally sets the series notification
+
+Documentation: perldoc minc_insertion.pl
 
 HELP
 my $Usage = <<USAGE;
@@ -502,6 +574,15 @@ if ($create_minc_pics) {
 ################################################################
 exit 0;
 
+
+=pod
+
+=head3 logHeader()
+
+Creates and prints the LOG header.
+
+=cut
+
 sub logHeader () {
     print LOG "
 ----------------------------------------------------------------
@@ -512,3 +593,26 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
