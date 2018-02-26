@@ -56,14 +56,9 @@ contents of the following tables:
 
 ## Methods
 
-### logHeader($date, $tarchive, $TmpDir)
+### logHeader()
 
 Function that adds a header with relevant information to the log file
-
-INPUTS:
- - $date       : Date and time of upload
- - $tarchive   : Location of source data
- - $TmpDir     : Location of the temporary directory
 
 # TO DO
 
