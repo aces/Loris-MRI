@@ -32,18 +32,18 @@ my $FILE_NOT_UNIQUE        = 6;
 ###### Table-driven argument parsing
 
 # Initialize variables for Getopt::Tabular
-my $profile       = undef;
-my $file_path     = undef;
-my $upload_id     = undef;
-my $patient_name  = undef;
-my $output_type   = undef;
-my $scan_type     = undef;
-my $date_acquired = undef;
-my $scanner_id    = undef;
-my $coordin_space = undef;
-my $metadata_file = undef;
-my $verbose       = 0;
-my $reckless      = 0;   # only for playing & testing. Don't set it to 1!!!
+my $profile;
+my $file_path;
+my $upload_id;
+my $patient_name;
+my $output_type;
+my $scan_type;
+my $date_acquired;
+my $scanner_id;
+my $coordin_space;
+my $metadata_file;
+my $verbose  = 0;
+my $reckless = 0;   # only for playing & testing. Don't set it to 1!!!
 my @args;
 
 # Describe the usage to be displayed by Getopt::Tabular
@@ -108,58 +108,59 @@ GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
 
 # Input option error checking
 if  (!$profile) {
-    print "$Usage\n\tERROR: You must specify a profile.\n\n";
+    print STDERR "$Usage\n\tERROR: You must specify a profile.\n\n";
     ##TODO 1: replace exit 2 by $NeuroDB::ExitCodes::PROFILE_FAILURE
     exit 2;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ($profile && !@Settings::db)    {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     ##TODO 1: replace exit 4 by $NeuroDB::ExitCodes::DB_SETTING_FAILURE
     exit 4;
 }
 
 # Make sure that all the arguments that we need are set
 unless ( $file_path ) {
-    print "$Usage\n\tERROR: missing -file_path argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -file_path argument\n\n";
     exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
 }
 unless ( $output_type ) {
-    print "$Usage\n\tERROR: missing -output_type argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -output_type argument\n\n";
     exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
 }
 unless ( $scan_type ) {
-    print "$Usage\n\tERROR: missing -scan_type argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -scan_type argument\n\n";
     exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
 }
 unless ( $date_acquired ) {
-    print "$Usage\n\tERROR: missing -date_acquired argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -date_acquired argument\n\n";
     exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
 }
 unless ( $scanner_id ) {
-    print "$Usage\n\tERROR: missing -scanner_ID argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -scanner_ID argument\n\n";
     exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
 }
 unless ( $coordin_space ) {
-    print "$Usage\n\tERROR: missing -coordin_space argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -coordin_space argument\n\n";
     exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
 }
 unless ( $upload_id ) {
-    print "$Usage\n\tERROR: missing -upload_id argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -upload_id argument\n\n";
     exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
 }
 
 # Make sure the files specified as an argument exist and are readable
 unless (-r $file_path) {
-    print "$Usage\n\tERROR: You must specify a valid file path to insert "
-          . "using the -file_path option.\n\n";
+    print STDERR "$Usage\n\tERROR: You must specify a valid file path to "
+                 . "insert using the -file_path option.\n\n";
     ##TODO 1: replace exit 5 by $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST
     exit 5;
 }
 # Make sure that the metadata file is readable if it is set
 if ( $metadata_file && !(-r $metadata_file) ){
-    print "\n\tERROR: The metadata file does not exist in the filesystem.\n\n";
+    print STDERR "\n\tERROR: The metadata file does not exist in the "
+                 . "filesystem.\n\n";
     ##TODO 1: replace exit 5 by $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST
     exit 5;
 }
@@ -218,16 +219,12 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 
 
 ##### Verify that the provided scanner ID refers to a valid scanner entry
-(my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT ID FROM mri_scanner WHERE ID=?
-QUERY
+my $query = "SELECT ID FROM mri_scanner WHERE ID=?";
 my $sth = $dbh->prepare($query);
 $sth->execute($scanner_id);
 unless ($sth->rows > 0) {
     # if no row returned, exits with message that did not find this scanner ID
-    $message = <<MESSAGE;
-    ERROR: Invalid ScannerID $scanner_id.\n\n
-MESSAGE
+    $message = "\n\tERROR: Invalid ScannerID $scanner_id.\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $INVALID_SCANNER_ID, $log_file );
     # insert error message into notification spool table
@@ -243,16 +240,12 @@ MESSAGE
 
 
 ##### Verify that the upload ID refers to a valid upload ID
-(my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT UploadID FROM mri_upload WHERE UploadID=?
-QUERY
-my $sth = $dbh->prepare($query);
+$query = "SELECT UploadID FROM mri_upload WHERE UploadID=?";
+$sth = $dbh->prepare($query);
 $sth->execute($upload_id);
 unless ($sth->rows > 0) {
     # if no row returned, exits with message that did not find this upload ID
-    $message = <<MESSAGE;
-    ERROR: Invalid UploadID $upload_id.\n\n
-MESSAGE
+    $message = "\n\tERROR: Invalid UploadID $upload_id.\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $INVALID_UPLOAD_ID, $log_file );
     # insert error message into notification spool table
@@ -272,9 +265,7 @@ MESSAGE
 # verify that an acquisition protocol ID exists for $scan_type
 my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, \$dbh);
 if ($acqProtocolID =~ /unknown/){
-    $message = <<MESSAGE;
-    ERROR: no acquisition protocol ID found for $scan_type.\n\n
-MESSAGE
+    $message = "\n\tERROR: no AcquisitionProtocolID found for $scan_type.\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $PROTOCOL_ID_NOT_FOUND, $log_file );
     # insert error message into notification spool table
@@ -285,9 +276,7 @@ MESSAGE
     );
     exit $PROTOCOL_ID_NOT_FOUND; ##TODO 1: call the exit code from ExitCodes.pm
 } else {
-    $message = <<MESSAGE;
-    Found acquisition protocol ID $acqProtocolID for $scan_type.\n\n
-MESSAGE
+    $message = "\nFound protocol ID $acqProtocolID for $scan_type.\n\n";
     $notifier->spool(
         'file insertion',    $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
@@ -329,25 +318,19 @@ my ($file_name, $dir_name) = fileparse($file_path);
 
 # create a hash similar to tarchiveInfo so that can use Utility routines to
 # determine the candidate information
-my %info;
-$info{'SourceLocation'} = undef; # for now, set SourceLocation to undef
-if ($patient_name) {
-    # if patient name provided as an argument, use it to get candidate/site info
-    $info{'PatientName'} = $patient_name;
-    $info{'PatientID'}   = $patient_name;
-} else {
-    # otherwise, use the file's name to determine candidate & site information
-    $info{'PatientName'} = $file_name;
-    $info{'PatientID'}   = $file_name;
-}
+# if patient name provided as an argument, use it to get candidate/site info
+# otherwise, use the file's name to determine candidate & site information
+my %info = (
+    SourceLocation => undef,
+    PatientName    => ($patient_name // $file_name),
+    PatientID      => ($patient_name // $file_name)
+);
 
 # determine subject ID information
 my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
 unless ($subjectIDsref){
     # exits if could not determine subject IDs
-    $message = <<MESSAGE;
-    ERROR: could not determine subject IDs for $file_path.\n\n
-MESSAGE
+    $message = "\n\tERROR: could not determine subject IDs for $file_path.\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $GET_SUBJECT_ID_FAILURE, $log_file );
     # insert error message into notification spool table
@@ -360,15 +343,13 @@ MESSAGE
 }
 
 # check whether there is a candidate IDs mismatch error
-my $CandMismatchError = undef;
+my $CandMismatchError;
 $CandMismatchError = $utility->validateCandidate(
                         $subjectIDsref, $info{'SourceLocation'}
 );
 if ($CandMismatchError){
     # exits if there is a mismatch in candidate IDs
-    $message = <<MESSAGE;
-    ERROR: Candidate IDs mismatch for $file_path.\n\n
-MESSAGE
+    $message = "\n\tERROR: Candidate IDs mismatch for $file_path.\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $CANDIDATE_MISMATCH, $log_file );
     # insert error message into notification spool table
@@ -379,9 +360,7 @@ MESSAGE
     );
     exit $CANDIDATE_MISMATCH; ##TODO 1: call the exit code from ExitCodes.pm
 } else {
-    $message = <<MESSAGE;
-    Validation of candidate information has passed.\n\n
-MESSAGE
+    $message = "Validation of candidate information has passed.\n\n";
     $notifier->spool(
         'file insertion',    $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
@@ -397,9 +376,7 @@ my ($session_id, $requiresStaging) = NeuroDB::MRI::getSessionID(
                                         $subjectIDsref->{'subprojectID'}
 );
 unless ($session_id) {
-    $message = <<MESSAGE;
-    ERROR: Could not determine the session ID for $file_path.\n\n
-MESSAGE
+    $message = "\n\tERROR: Could not determine session ID for $file_path.\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $GET_SESSION_ID_FAILURE, $log_file );
     # insert error message into notification spool table
@@ -419,7 +396,7 @@ MESSAGE
 
 my $unique = $utility->computeMd5Hash($file, $info{'SourceLocation'});
 if (!$unique) {
-    $message = "ERROR: This file has already been uploaded!\n\n";
+    $message = "\n\tERROR: This file has already been uploaded!\n\n";
     # write error message in the log file
     $utility->writeErrorLog( $message, $FILE_NOT_UNIQUE, $log_file );
     # insert error message into notification spool table
@@ -480,9 +457,7 @@ my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
 );
 if ( $acquisitionProtocolIDFromProd ) {
     my $registered_file = $file->getFileDatum('File');
-    $message = <<MESSAGE;
-    Registered file $registered_file successfully.\n\n
-MESSAGE
+    $message = "Registered file $registered_file successfully.\n\n";
     $notifier->spool(
         'file insertion',    $message,   0,
         'file_insertion.pl', $upload_id, 'Y',
