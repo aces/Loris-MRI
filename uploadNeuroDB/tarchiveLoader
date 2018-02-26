@@ -753,18 +753,13 @@ exit 0;
 
 =pod
 
-=head3 logHeader($date, $tarchive, $TmpDir)
+=head3 logHeader()
 
 Function that adds a header with relevant information to the log file
 
-INPUTS:
- - $date       : Date and time of upload
- - $tarchive   : Location of source data
- - $TmpDir     : Location of the temporary directory
-
 =cut
 
-sub logHeader ($date, $tarchive, $TmpDir) {
+sub logHeader () {
     print LOG "
     ----------------------------------------------------------------
             AUTOMATED DICOM DATA UPLOAD
