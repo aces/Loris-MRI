@@ -1,6 +1,6 @@
-This Readme covers release 18.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 19.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
-This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 18.0.*.<br>
+This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 19.0.*.<br>
 For documentation and detailed setup information, please see the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database)</b>.
 
 This repo can be installed on the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
@@ -36,7 +36,11 @@ Download the pre-compiled package for your operating system.  Install required d
    sudo dpkg -i minc-toolkit<version>.deb
    ```
 
-  Then source the MINC toolkit environment by running (for bash) `source /opt/minc/minc-toolkit-config.sh` or (tcsh) `source /opt/minc/minc-toolkit-config.csh`.
+  Then source the MINC toolkit environment by running (for bash)
+  `source $mincToolsDirectory/minc-toolkit-config.sh` or (tcsh)
+  `source $mincToolsDirectory/minc-toolkit-config.csh`,
+
+  where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
 
 #### 3. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
