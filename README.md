@@ -72,7 +72,7 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 
 #### 4. Configure paths and environment
 
-   Ensure that /home/lorisadmin/.bashrc includes the statement: 
+   Ensure that /home/lorisadmin/.bashrc includes the statement:
 
    ```source /data/$projectname/bin/mri/environment```
 

@@ -160,7 +160,6 @@ else {
 my $totar = basename($dcm_source);
 print "Source: ". $dcm_source . "\nTarget: ".  $targetlocation . "\n\n"
     if $verbose;
-
 my $ARCHIVEmd5sum = 'Provided in database only';
 
 

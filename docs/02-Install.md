@@ -268,7 +268,6 @@ Under the section `Path`:
 
 Click 'Submit' at the end of the Configuration page to save any changes.
 
-
 #### 2.3.5 FAQ
 
 For common errors and frequently asked questions, please refer to the [Appendix
