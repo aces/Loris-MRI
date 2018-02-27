@@ -36,10 +36,10 @@ Download the pre-compiled package for your operating system.  Install required d
    sudo dpkg -i minc-toolkit<version>.deb
    ```
 
-  Then source the MINC toolkit environment by running (for bash) 
-  `source $mincToolsDirectory/minc-toolkit-config.sh` or (tcsh) 
+  Then source the MINC toolkit environment by running (for bash)
+  `source $mincToolsDirectory/minc-toolkit-config.sh` or (tcsh)
   `source $mincToolsDirectory/minc-toolkit-config.csh`,
-  
+
   where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
 
 #### 3. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
