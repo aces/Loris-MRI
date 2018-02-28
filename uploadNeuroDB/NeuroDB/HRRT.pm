@@ -8,6 +8,7 @@ use File::Find;
 use Digest::MD5;
 use File::Type;
 use Date::Parse;
+use NeuroDB::MincUtilities;
 
 
 =pod
@@ -359,11 +360,54 @@ QUERY
       HrrtArchiveID = ?,   UploadID = ?
 QUERY
     @values  = ( $hrrtArchiveID, $upload_id );
-    $sth     = $dhb->prepare( $insert_mri_upload_rel );
+    $sth     = $dbh->prepare( $insert_mri_upload_rel );
     $success = $sth->execute( @values );
 
     return $success;
 }
+
+
+
+
+
+
+
+sub insertBicMatlabHeader {
+    my ($self, $minc_file) = @_;
+
+    my $success;
+
+    # append values from the .m parameter file to the MINC header
+    foreach my $key ( keys %{ $self->{matlab_info} } ) {
+        my $arg = "matlab_param:" . $key;
+        my $val = $self->{matlab_info}->{$key};
+        $val = shell_quote $val;
+        $success = NeuroDB::MincUtilities::modify_header(
+            $arg, $val, $minc_file, '$3, $4, $5, $6'
+        );
+        return undef unless ( $success ); #TODO 1: exit code + logging
+    }
+
+    # insert proper scanner information
+    $success = NeuroDB::MincUtilities::modify_header(
+        'study:manufacturer',  $self->{study_info}->{manufacturer},
+        $minc_file,            '$3, $4, $5, $6'
+    );
+    return undef unless ( $success );
+    $success = NeuroDB::MincUtilities::modify_header(
+        'study:device_model',  $self->{study_info}->{scanner_model},
+        $minc_file,            '$3, $4, $5, $6'
+    );
+    return undef unless ( $success );
+    $success = NeuroDB::MincUtilities::modify_header(
+        'study:serial_no',     $self->{study_info}->{system_type},
+        $minc_file,            '$3, $4, $5, $6'
+    );
+
+    return $success;
+}
+
+
 
 1;
 

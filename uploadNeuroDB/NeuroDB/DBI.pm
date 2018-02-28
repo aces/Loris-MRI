@@ -70,4 +70,50 @@ sub getConfigSetting
     return $value;
 }
 
+
+
+
+=pod
+
+=head3 getHrrtUploadInfo($dbh, $upload_id)
+
+Fetches C<UploadLocation>, C<DecompressedLocation> and C<HrrtArchiveID> from
+the database based on the provided C<UploadID>.
+
+INPUTS: database handler and c<UploadID>
+
+RETURNS: undef if no entry was found for the given C<UploadID> or a hash
+containing C<UploadLocation>, C<DecompressedLocation> and C<HrrtArchiveID>
+information for the C<UploadID>
+
+=cut
+
+sub getHrrtUploadInfo {
+    my ($dbh, $upload_id) = @_;
+
+    # grep the UploadedLocation for the UploadID
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+SELECT UploadLocation, DecompressedLocation, HrrtArchiveID
+FROM mri_upload
+LEFT JOIN mri_upload_rel ON ( mri_upload.UploadID = mri_upload_rel.UploadID )
+WHERE mri_upload.UploadID=?
+QUERY
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+
+    # returns undef if no mri_upload entry found
+    return undef unless ($sth->rows > 0);
+
+    # grep the result of the query into $self->{upload_info} hash
+    my @result = $sth->fetchrow_array();
+    my $upload_info = {};
+    $upload_info->{upload_location}       = $result[0];
+    $upload_info->{decompressed_location} = $result[1];
+    $upload_info->{hrrt_archive_ID}       = $result[2];
+
+    return $upload_info;
+}
+
+
+
 1;
