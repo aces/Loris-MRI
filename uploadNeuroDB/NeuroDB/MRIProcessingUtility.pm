@@ -267,7 +267,7 @@ sub createTarchiveArray {
                 " DateAcquired, DicomArchiveID, PatientGender,".
                 " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
                 " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,".
-                " SourceLocation FROM tarchive WHERE $where";
+                " SourceLocation, ArchiveLocation FROM tarchive WHERE $where";
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -730,7 +730,7 @@ sub registerScanIntoDB {
                                         $minc_file,
                                         $prefix,
                                         $data_dir,
-					$tarchiveInfo->{'SourceLocation'}					
+					$tarchiveInfo->{'ArchiveLocation'}
                                      );
 
         ########################################################
@@ -746,7 +746,7 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path =  $tarchiveInfo->{SourceLocation};
+        $tarchive_path =  $tarchiveInfo->{ArchiveLocation};
         $tarchive_path =~ s/$data_dir\///i;
         $${minc_file}->setParameter(
             'tarchiveLocation', 
