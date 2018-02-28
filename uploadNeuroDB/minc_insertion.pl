@@ -513,17 +513,20 @@ if ((!defined$acquisitionProtocolIDFromProd)
 ################################################################
 ### Add series notification ####################################
 ################################################################
+my $date_field = $hrrt ? 'study:start_time' : 'acquisition_date';
 $message =
 	"\n" . $subjectIDsref->{'CandID'} . " " .
     	$subjectIDsref->{'PSCID'} ." " .
     	$subjectIDsref->{'visitLabel'} .
-    	"\tacquired " . $file->getParameter('acquisition_date') .
-    	"\t" . $file->getParameter('series_description') .
-	"\n";
-$notifier->spool('mri new series', $message, 0,
-    		'minc_insertion.pl', $upload_id, 'N', 
-		$notify_detailed);
-
+    	"\tacquired " . $file->getParameter($date_field);
+$message .= "\t" . $file->getParameter('series_description') unless ($hrrt);
+$message .= "\n";
+my $spool_type = $hrrt ? 'hrrt pet new series' : 'mri new series';
+$notifier->spool(
+    $spool_type,         $message,   0,
+    'minc_insertion.pl', $upload_id, 'N',
+    $notify_detailed
+);
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
 }

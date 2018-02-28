@@ -87,3 +87,19 @@ CREATE TABLE `mri_upload_rel` (
     FOREIGN KEY (`HrrtArchiveID`)
     REFERENCES `hrrt_archive` (`HrrtArchiveID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- Insert into notification type 'hrrt pet new series'
+INSERT INTO notification_types SET
+  Type        = 'hrrt pet new series',
+  private     = 0,
+  Description = 'New HRRT PET studies inserted into the database';
+
+
+-- Alter files table to add a HrrtArchiveID field that links HRRT MINC files
+-- to hrrt_archive tables
+ALTER TABLE files
+  ADD COLUMN `HrrtArchiveID` INT(11) DEFAULT NULL,
+  ADD KEY `FK_files_HrrtArchiveID_1` (`HrrtArchiveID`),
+  ADD CONSTRAINT `FK_files_HrrtArchiveID`
+    FOREIGN KEY (`HrrtArchiveID`) REFERENCES `hrrt_archive` (`HrrtArchiveID`);

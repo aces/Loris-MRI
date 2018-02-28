@@ -268,9 +268,10 @@ sub createTarchiveArray {
     if ($hrrt) {
         ($query = <<QUERY) =~ s/\n/ /gm;
         SELECT
-          PatientName,   CenterName,           SourceLocation,
-          DateAcquired,  md5sumArchive,        ScannerManufacturer,
-          ScannerModel,  ScannerSerialNumber,  ScannerSoftwareVersion
+          PatientName,    CenterName,            SourceLocation,
+          DateAcquired,   md5sumArchive,         ScannerManufacturer,
+          ScannerModel,   ScannerSerialNumber,   ScannerSoftwareVersion,
+          ArchiveLocation
         FROM
           hrrt_archive
         WHERE
@@ -712,7 +713,7 @@ sub registerScanIntoDB {
         || (defined(&Settings::isFileToBeRegisteredGivenProtocol)
             && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol)
            )
-        ) && $checks->[0] !~ /exclude/) {
+        ) && (!$checks->[0] || $checks->[0] !~ /exclude/)) {
 
         ########################################################
         # convert the textual scan_type into the scan_type id ##
