@@ -281,8 +281,9 @@ QUERY
             . " DateAcquired, DicomArchiveID, PatientGender,"
             . " ScannerManufacturer, ScannerModel, ScannerSerialNumber,"
             . " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,"
-            . " SourceLocation FROM tarchive WHERE $where";
+            . " SourceLocation, ArchiveLocation FROM tarchive WHERE $where";
     }
+
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -741,7 +742,7 @@ sub registerScanIntoDB {
         $minc_protocol_identified = $this->move_minc(
             \$minc,     $subjectIDsref, $acquisitionProtocol,
             $minc_file, $prefix,        $data_dir,
-            $hrrt,      $tarchiveInfo->{'SourceLocation'}
+            $hrrt,      $tarchiveInfo->{'ArchiveLocation'}
         );
 
         ########################################################
@@ -757,7 +758,7 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path =  $tarchiveInfo->{SourceLocation};
+        $tarchive_path =  $tarchiveInfo->{ArchiveLocation};
         $tarchive_path =~ s/$data_dir\///i;
         if ($hrrt) {
             $${minc_file}->setParameter(
