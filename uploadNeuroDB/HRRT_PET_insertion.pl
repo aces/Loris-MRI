@@ -10,7 +10,6 @@ use Getopt::Tabular;
 use File::Temp qw/ tempdir /;
 use Date::Parse;
 use File::Basename;
-use String::ShellQuote;
 
 
 ###### Import NeuroDB libraries to be used
@@ -270,44 +269,49 @@ mkdir $target_location unless ( -e $target_location );
 
 
 ##### Create the tar file
-#
-## determine where the name and path of the archived HRRT dataset
-#my $final_target  = $target_location
-#                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
-#                    . "_"      . basename($archive->{source_dir})
-#                    . ".tgz";
-#if ( -e $final_target ) {
-#    print "\nTarget already exists.\n\n";
-#    exit 2; #TODO 1: call the exit code from ExitCodes.pm
-#}
-#
-## create the tar file and get its md5sum
-#my $tar_cmd = "tar -czf $final_target $decompressed_location/*";
-#print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
-#system($tar_cmd);
-#my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
-#
-#
-#
-#
-###### Register the HRRT archive into the database
-#
-#print "\nAdding archive info into the database\n" if $verbose;
-#my $success = $archive->database( $dbh, $md5sumArchive, $upload_id );
-#
-#if ($success) {
-#    print "\nDone adding HRRT archive info into the database\n" if $verbose;
-#} else {
-#    print "\nThe database command failed\n";
-#    exit ; #TODO 1: call the exit code from ExitCodes.pm
-#}
+
+# determine where the name and path of the archived HRRT dataset
+my $final_target  = $target_location
+                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
+                    . "_"      . basename($archive->{source_dir})
+                    . ".tgz";
+if ( -e $final_target ) {
+    print "\nTarget already exists.\n\n";
+    exit 2; #TODO 1: call the exit code from ExitCodes.pm
+}
+
+# create the tar file and get its md5sum
+my $to_tar = $upload_info->{decompressed_location};
+my $tar_cmd = "tar -czf $final_target $to_tar/*";
+print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
+system($tar_cmd);
+my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
+
+
+
+
+##### Register the HRRT archive into the database
+
+print "\nAdding archive info into the database\n" if $verbose;
+my $archiveLocation = $final_target;
+$archiveLocation =~ s/$data_dir//g;
+my $success = $archive->database(
+    $dbh, $md5sumArchive, $archiveLocation, $upload_id
+);
+
+if ($success) {
+    print "\nDone adding HRRT archive info into the database\n" if $verbose;
+} else {
+    print "\nThe database command failed\n";
+    exit ; #TODO 1: call the exit code from ExitCodes.pm
+}
 
 
 
 
 ##### Loop through ECAT files
 
-my $success; # TODO: remove this once uncommenting above
+#my $success; # TODO: remove this once uncommenting above
 
 foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
 
@@ -339,6 +343,7 @@ MESSAGE
 
         # append values from the .m parameter file to the MINC header
         $success = $archive->insertBicMatlabHeader( $minc_file );
+        #TODO exit if undef success
 
         # grep the acquisition protocol from the MINC header
         $protocol = NeuroDB::MincUtilities::fetch_header_info(
@@ -355,10 +360,11 @@ MESSAGE
     # TODO: register MINC using minc_insertion.pl (need to test the command)
     my $minc_insert_cmd = "minc_insertion.pl "
                           . " -profile "  . $profile
-                          . " -mincPath"  . $minc_file
+                          . " -mincPath " . $minc_file
                           . " -uploadID " . $upload_id
                           . " -acquisition_protocol " . $acquisition_protocol
-                          . " -bypass_extra_file_checks";
+                          . " -bypass_extra_file_checks "
+                          . " -hrrt ";
     print $minc_insert_cmd;
 
 
@@ -369,7 +375,7 @@ MESSAGE
 
 # TODO: call the mass minc pic script
 
-
+# TODO: update MRI upload table
 
 
 

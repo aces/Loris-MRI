@@ -29,8 +29,9 @@ my $date = sprintf(
 my $debug       = 0;  
 my $message     = '';
 my $tarchive_srcloc = '';
-my $upload_id   = undef;
-my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
+my $upload_id;
+my $hrrt    = 0;
+my $verbose = 0;               # default, overwritten if scripts are run with -verbose
 my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
                                # with DETAILED OPTION in the front-end/imaging_uploader 
 my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
@@ -86,6 +87,9 @@ my @opt_table = (
 
                  ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
                   "from which this MINC was created"],
+
+                 ["-hrrt", "boolean", 1, \$hrrt, "Whether the MINC file " .
+                  "comes from an HRRT scanner"],
 
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
                   "Loosen the validity check of the tarchive allowing for the". 
@@ -242,7 +246,7 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 #################### Check is_valid column #####################
 ################################################################
 my ( $is_valid, $ArchiveLocation );
-if ($tarchive) {
+if ( $tarchive ) {
     # if the tarchive path is given as an argument, find the associated UploadID
     # and check if IsTarchiveValidated is set to 1.
     $ArchiveLocation = $tarchive;
@@ -272,7 +276,7 @@ if ($tarchive) {
     $sth->execute($tarchive_srcloc);
     $upload_id = $sth->fetchrow_array;
     ## end of setup IDs for notification_spool table
-} elsif ($upload_id) {
+} elsif ( $upload_id && !$hrrt ) {
     # if the uploadID is passed as an argument, verify that the tarchive was
     # validated
     (my $query = <<QUERY) =~ s/\n/ /gm;
@@ -290,6 +294,22 @@ QUERY
     my @array        = $sth->fetchrow_array;
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
+} elsif ($hrrt) {
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+      ha.ArchiveLocation
+    FROM mri_upload m
+      JOIN mri_upload_rel mur USING (UploadID)
+      JOIN hrrt_archive ha USING (HrrtArchiveID)
+    WHERE
+      m.UploadID = ?
+QUERY
+    print $query . "\n" if $debug;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+    my @array        = $sth->fetchrow_array;
+    $ArchiveLocation = $array[0];
+    $is_valid = 1; # if it is HRRT datasets, mark study as valid
 }
 
 if (($is_valid == 0) && ($force==0)) {
@@ -309,7 +329,7 @@ if (($is_valid == 0) && ($force==0)) {
 ############## Construct the tarchiveinfo Array ################
 ################################################################
 %tarchiveInfo = $utility->createTarchiveArray(
-                    $ArchiveLocation, $globArchiveLocation
+                    $ArchiveLocation, $globArchiveLocation, $hrrt
                 );
 
 ################################################################
@@ -323,8 +343,8 @@ my ($center_name, $centerID) = $utility->determinePSC(
 #### Determine the ScannerID ###################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
-                );
+       \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
+);
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
@@ -473,7 +493,8 @@ if($acquisitionProtocol =~ /unknown/) {
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
     \$file,               \%tarchiveInfo, $subjectIDsref,
     $acquisitionProtocol, $minc,          \@checks,
-    $reckless,            $sessionID,     $upload_id
+    $reckless,            $sessionID,     $upload_id,
+    $hrrt
 );
 
 if ((!defined$acquisitionProtocolIDFromProd)

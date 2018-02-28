@@ -3,7 +3,7 @@ use strict;
 
 package NeuroDB::MincUtilities;
 
-
+use File::Basename;
 
 =pod
 
@@ -115,3 +115,6 @@ sub ecat2minc {
     return undef unless ( -r $minc_file );
     return $minc_file;
 }
+
+
+1;

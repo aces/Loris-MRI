@@ -8,6 +8,9 @@ use File::Find;
 use Digest::MD5;
 use File::Type;
 use Date::Parse;
+use String::ShellQuote;
+
+
 use NeuroDB::MincUtilities;
 
 
@@ -288,7 +291,7 @@ sub md5sum {
 
 =cut
 sub database {
-    my ( $self, $dbh, $md5sumArchive, $upload_id ) = @_;
+    my ( $self, $dbh, $md5sumArchive, $archiveLocation, $upload_id ) = @_;
 
     ## check if hrrt archive already inserted based on md5sumArchive
     ( my $select_hrrtArchiveID = <<QUERY ) =~ s/\n/ /gm;
@@ -310,11 +313,14 @@ QUERY
     ## INSERT INTO hrrt_archive
     ( my $hrrt_archive_insert_query = <<QUERY ) =~ s/\n/ /gm;
     INSERT INTO hrrt_archive SET
-      PatientName   = ?,   CenterName        = ?,
-      CreatingUser  = ?,   SourceLocation    = ?,
-      EcatFileCount = ?,   NonEcatFileCount  = ?,
-      DateAcquired  = ?,   DateFirstArchived = NOW(),
-      md5sumArchive = ?,   DateLastArchived  = NOW()
+      PatientName         = ?,    CenterName        = ?,
+      CreatingUser        = ?,    SourceLocation    = ?,
+      EcatFileCount       = ?,    NonEcatFileCount  = ?,
+      ScannerManufacturer = ?,    ScannerModel      = ?,
+      ScannerSerialNumber = ?,    ScannerSoftwareVersion = '',
+      DateAcquired        = ?,    DateFirstArchived = NOW(),
+      md5sumArchive       = ?,    DateLastArchived  = NOW(),
+      ArchiveLocation     = ?
 QUERY
 
     my $study_info = $self->{study_info};
@@ -322,7 +328,9 @@ QUERY
         $study_info->{patient_name},    $study_info->{center_name},
         $self->{user},                  $self->{source_dir},
         $self->{ecat_count},            $self->{nonecat_count},
-        $study_info->{date_acquired},   $md5sumArchive
+        $study_info->{manufacturer},    $study_info->{scanner_model},
+        $study_info->{system_type},     $study_info->{date_acquired},
+        $md5sumArchive,                 $archiveLocation
     );
 
     $sth        = $dbh->prepare( $hrrt_archive_insert_query );
@@ -404,7 +412,7 @@ sub insertBicMatlabHeader {
         $minc_file,            '$3, $4, $5, $6'
     );
 
-    return $success;
+    return $success ? 1 : undef;
 }
 
 

@@ -258,16 +258,31 @@ sub createTarchiveArray {
 
     my $this = shift;
     my %tarchiveInfo;
-    my ($tarchive,$globArchiveLocation) = @_;
+    my ($tarchive, $globArchiveLocation, $hrrt) = @_;
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
         $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
     }
-    my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
-                " DateAcquired, DicomArchiveID, PatientGender,".
-                " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
-                " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,".
-                " SourceLocation FROM tarchive WHERE $where";
+
+    my $query;
+    if ($hrrt) {
+        ($query = <<QUERY) =~ s/\n/ /gm;
+        SELECT
+          PatientName,   CenterName,           SourceLocation,
+          DateAcquired,  md5sumArchive,        ScannerManufacturer,
+          ScannerModel,  ScannerSerialNumber,  ScannerSoftwareVersion
+        FROM
+          hrrt_archive
+        WHERE
+          $where
+QUERY
+    } else {
+        $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,"
+            . " DateAcquired, DicomArchiveID, PatientGender,"
+            . " ScannerManufacturer, ScannerModel, ScannerSerialNumber,"
+            . " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,"
+            . " SourceLocation FROM tarchive WHERE $where";
+    }
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -617,7 +632,7 @@ sub move_minc {
     
     my $this = shift;
     my ($minc,$subjectIDsref, $minc_type, $fileref,
-		$prefix,$data_dir, $tarchive_srcloc) = @_;
+		$prefix,$data_dir, $hrrt, $tarchive_srcloc) = @_;
     my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
     my $concat = "";
     my $message = '';
@@ -626,7 +641,7 @@ sub move_minc {
     ############################################################
     ### figure out where to put the files ######################
     ############################################################
-    $dir = $this->which_directory($subjectIDsref,$data_dir);
+    $dir = $this->which_directory($subjectIDsref, $data_dir, $hrrt);
     `mkdir -p -m 770 $dir/native`;
 
     ############################################################
@@ -634,7 +649,7 @@ sub move_minc {
     ############################################################
     @exts = split(/\./, basename($$minc));
     shift @exts;
-    $extension = join('.', @exts);
+    $extension = $hrrt ? pop @exts : join('.', @exts);
     $concat = '_concat' if $$minc =~ /_concat/;
     $new_dir = "$dir/native";
     $version = 1;
@@ -671,7 +686,7 @@ sub registerScanIntoDB {
     my $this = shift;
     my (
         $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
-        $minc, $checks,$reckless, $sessionID, $upload_id
+        $minc, $checks,$reckless, $sessionID, $upload_id, $hrrt
     ) = @_;
 
     my $data_dir = NeuroDB::DBI::getConfigSetting(
@@ -724,14 +739,10 @@ sub registerScanIntoDB {
         ##### rename and move files ############################
         ########################################################
         $minc_protocol_identified = $this->move_minc(
-                                        \$minc,
-                                        $subjectIDsref,
-                                        $acquisitionProtocol,
-                                        $minc_file,
-                                        $prefix,
-                                        $data_dir,
-					$tarchiveInfo->{'SourceLocation'}					
-                                     );
+            \$minc,     $subjectIDsref, $acquisitionProtocol,
+            $minc_file, $prefix,        $data_dir,
+            $hrrt,      $tarchiveInfo->{'SourceLocation'}
+        );
 
         ########################################################
         #################### set the new file_path #############
@@ -748,14 +759,26 @@ sub registerScanIntoDB {
         ########################################################
         $tarchive_path =  $tarchiveInfo->{SourceLocation};
         $tarchive_path =~ s/$data_dir\///i;
-        $${minc_file}->setParameter(
-            'tarchiveLocation', 
-            $tarchive_path
-        );
-        $${minc_file}->setParameter(
-            'tarchiveMD5', 
-            $tarchiveInfo->{'md5sumArchive'}
-        );
+        if ($hrrt) {
+            $${minc_file}->setParameter(
+                'hrrt_archiveLocation',
+                $tarchive_path
+            );
+            $${minc_file}->setParameter(
+                'hrrt_archiveMD5',
+                $tarchiveInfo->{'md5sumArchive'}
+            );
+        } else {
+            $${minc_file}->setParameter(
+                'tarchiveLocation',
+                $tarchive_path
+            );
+            $${minc_file}->setParameter(
+                'tarchiveMD5',
+                $tarchiveInfo->{'md5sumArchive'}
+            );
+        }
+
 
         ########################################################
         # register into the db fixme if I ever want a dry run ## 
@@ -1141,11 +1164,12 @@ sub validateArchive {
 ################################################################
 sub which_directory {
     my $this = shift;
-    my ($subjectIDsref,$data_dir) = @_;
+    my ( $subjectIDsref, $data_dir, $hrrt ) = @_;
     my %subjectIDs = %$subjectIDsref;
     my $dir = $data_dir;
-    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}/mri";
+    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}";
     $dir =~ s/ //;
+    $dir .= $hrrt ? "/pet" : "/mri";
     return $dir;
 }
 ################################################################
