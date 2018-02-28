@@ -138,3 +138,24 @@ sub  get_DTI_CandID_Visit {
         return  undef;
     }
 }
+
+
+
+sub determineHRRTprotocol {
+    my ( $protocol, $ecat_file ) = @_;
+
+    $protocol =~ s/'|\\|_|"|\s//g; # remove weird characters from protocol name
+
+    if ( $ecat_file =~ /Dfbp/i ) {
+        $protocol .= "FBP"; # add FBP reconstruction to filename
+    } else {
+        $protocol .= "OSEM"; # add OSEM reconstruction to filename
+    }
+
+    if ( $ecat_file =~ /_MC01/i ) {
+        $protocol .= "mc"; # add mc acronym for motion corrected datasets
+    }
+
+    return $protocol;
+}
+

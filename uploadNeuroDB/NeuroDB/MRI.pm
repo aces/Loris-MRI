@@ -774,8 +774,15 @@ sub register_db {
 
     # build the insert query
     my $query = "INSERT INTO files SET ";
-
-    foreach my $key ('File', 'SessionID','EchoTime', 'CoordinateSpace', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID', 'Caveat', 'SeriesUID', 'TarchiveSource','SourcePipeline','PipelineDate','SourceFileID', 'ScannerID') {
+    my @field_array = (
+        'File',            'SessionID',        'EchoTime',
+        'CoordinateSpace', 'OutputType',       'AcquisitionProtocolID',
+        'FileType',        'InsertedByUserID', 'Caveat',
+        'SeriesUID',       'TarchiveSource',   'HrrtArchiveID',
+        'SourcePipeline',  'PipelineDate',     'SourceFileID',
+        'ScannerID'
+    );
+    foreach my $key (@field_array) {
         # add the key=value pair to the query
         $query .= "$key=".$dbh->quote($${fileData{$key}}).", ";
     }
@@ -1207,7 +1214,7 @@ sub is_unique_hash {
 
 =pod
 
-=head3 make_pics($file_ref, $data_dir, $dest_dir, $horizontalPics)
+=head3 make_pics($file_ref, $data_dir, $dest_dir, $horizontalPics, $db)
 
 Generates check pics for the Imaging Browser module for the C<NeuroDB::File>
 object referenced by C<$file_ref>.
@@ -1583,6 +1590,58 @@ sub isDicomImage {
     }
 
     return \%isDicomImage;
+}
+
+
+=pod
+
+=head3 isEcatImage(@files_list)
+
+This method checks whether the files given as an argument are HRRT ECAT7 images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is an ECAT7 image, otherwise it will be set to
+false).
+
+INPUT: array with full path to the files
+
+RETURNS:
+  - %isEcatImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
+
+=cut
+
+sub isEcatImage {
+    my (@files_list) = @_;
+
+    # For now, the files list need to be written in a temporary file so that the
+    # command does not fail on large amount of files. If doing directly
+    # `ls @files_list | xargs file` then the argument list is too long at it does
+    # not return one file per line but many files in one line. Writing in a
+    # temporary file on which we run the command `cat` seems to be the only option
+    # that works at the moment...
+    my $tmp_file = $ENV{'TMPDIR'} . "/tmp_list";
+    open(my $fh, '>', $tmp_file) or die "Could not open file '$tmp_file' $!";
+    foreach my $file (@files_list) {
+        printf $fh "%s\n", quotemeta($file);
+    }
+    close($fh);
+
+    my $cmd = "cat $tmp_file | xargs file";
+    my @file_types = `$cmd`;
+    unlink $tmp_file;
+
+    my %isEcatImage;
+    foreach my $line (@file_types) {
+        my ($file, $type) = split(':', $line);
+
+        if ($type =~ /data$/ && $file =~ /\.v$/) {
+            $isEcatImage{$file} = 1;
+        } else {
+            $isEcatImage{$file} = 0;
+        }
+    }
+
+    return \%isEcatImage;
 }
 
 

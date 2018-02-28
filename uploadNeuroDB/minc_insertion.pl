@@ -108,8 +108,9 @@ my $date = sprintf(
 my $debug       = 0;  
 my $message     = '';
 my $upload_id;
-my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
-my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
+my $hrrt    = 0;
+my $verbose = 0;               # default, overwritten if scripts are run with -verbose
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed
                                # with DETAILED OPTION in the front-end/imaging_uploader 
 my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
                                # with SUMMARY Option in the front-end/imaging_uploader 
@@ -163,6 +164,9 @@ my @opt_table = (
                  ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
                   "from which this MINC was created"],
 
+                 ["-hrrt", "boolean", 1, \$hrrt, "Whether the MINC file " .
+                  "comes from an HRRT scanner"],
+
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
                   "Loosen the validity check of the tarchive allowing for the". 
                   " possibility that the tarchive was moved to a different". 
@@ -205,8 +209,8 @@ The program does the following:
 
 - Loads the created MINC file and then sets the appropriate parameter for
   the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime,
-                     PendingStaging, CoordinateSpace , OutputType , FileType
-                     ,TarchiveSource and Caveat)
+                     CoordinateSpace , OutputType , FileType,
+                     TarchiveSource and Caveat)
 - Extracts the correct acquisition protocol
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
@@ -333,47 +337,60 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 #################### Check is_valid column #####################
 ################################################################
 my ( $is_valid, $ArchiveLocation );
-if ($tarchive) {
-    # if the tarchive path is given as an argument, find the associated UploadID
+if ( $tarchive ) {
+    # if only the tarchive path is given as an argument, find the associated UploadID
     # and check if IsTarchiveValidated is set to 1.
     $ArchiveLocation = $tarchive;
-    $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
+    $ArchiveLocation =~ s/$tarchiveLibraryDir\/?//g;
 
-    my $where = "WHERE t.ArchiveLocation='$tarchive'";
+    my $where = "WHERE ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
-        $where = "WHERE t.ArchiveLocation LIKE '%" . basename($tarchive) . "'";
+        $where = "WHERE ArchiveLocation LIKE '%/" . quotemeta(basename($tarchive)) . "' "
+            . "OR ArchiveLocation = '" . quotemeta(basename($tarchive)) . "'";
     }
-    my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
-        "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
+    my $query = "SELECT IsTarchiveValidated, UploadID, SourceLocation "
+        . "FROM mri_upload "
+        . "JOIN tarchive USING (TarchiveID) $where ";
+    my $sth   = $dbh->prepare($query);
     print $query . "\n" if $debug;
-    $is_valid = $dbh->selectrow_array($query);
 
-    ## Setup  for the notification_spool table ##
-    # get the tarchive_srcloc from $tarchive
-    $query = "SELECT SourceLocation" .
-        " FROM tarchive t $where";
-    my $sth = $dbh->prepare($query);
     $sth->execute();
-    $tarchive_srcloc = $sth->fetchrow_array;
-    # get the $upload_id from $tarchive_srcloc
-    $query =
-        "SELECT UploadID FROM mri_upload "
-            . "WHERE DecompressedLocation =?";
-    $sth = $dbh->prepare($query);
-    $sth->execute($tarchive_srcloc);
-    $upload_id = $sth->fetchrow_array;
-    ## end of setup IDs for notification_spool table
-} elsif ($upload_id) {
+    my $errorMessage;
+    if ($sth->rows == 0) {
+        $errorMessage = $globArchiveLocation
+            ? "No mri_upload with the same archive location basename as '$tarchive'\n"
+            : "No mri_upload with archive location '$tarchive'\n";
+        $utility->writeErrorLog(
+            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        print STDERR $errorMessage;
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    } elsif ($sth->rows > 1) {
+        $errorMessage = "\nERROR: found more than one UploadID associated with "
+            . "this ArchiveLocation ($tarchive). Please specify the "
+            . "UploadID to use using the -uploadID option.\n\n";
+        $utility->writeErrorLog(
+            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        print STDERR $errorMessage;
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    } else {
+        my %row          = $sth->fetchrow_hashref();
+        $is_valid        = $row{isTarchiveValidated};
+        $upload_id       = $row{UploadID};
+    }
+
+} elsif ( $upload_id && !$hrrt ) {
     # if the uploadID is passed as an argument, verify that the tarchive was
     # validated
     (my $query = <<QUERY) =~ s/\n/ /gm;
     SELECT
-      m.IsTarchiveValidated,
-      t.ArchiveLocation
+      IsTarchiveValidated,
+      ArchiveLocation
     FROM
-      mri_upload m JOIN tarchive t ON (t.TarchiveID = m.TarchiveID)
+      mri_upload JOIN tarchive USING (TarchiveID)
     WHERE
-      m.UploadID = ?
+      UploadID = ?
 QUERY
     print $query . "\n" if $debug;
     my $sth = $dbh->prepare($query);
@@ -381,6 +398,23 @@ QUERY
     my @array        = $sth->fetchrow_array;
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
+
+} elsif ($hrrt) {
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+      ha.ArchiveLocation
+    FROM mri_upload m
+      JOIN mri_upload_rel mur USING (UploadID)
+      JOIN hrrt_archive ha USING (HrrtArchiveID)
+    WHERE
+      m.UploadID = ?
+QUERY
+    print $query . "\n" if $debug;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+    my @array        = $sth->fetchrow_array;
+    $ArchiveLocation = $array[0];
+    $is_valid = 1; # if it is HRRT datasets, mark study as valid
 }
 
 if (($is_valid == 0) && ($force==0)) {
@@ -397,17 +431,74 @@ if (($is_valid == 0) && ($force==0)) {
 }
 
 
+## Construct the tarchiveinfo Array and the MINC file object
 
+# Create the study info array
+%studyInfo = $utility->createTarchiveArray($ArchiveLocation, $globArchiveLocation, $hrrt);
 
 # Create the MINC file object and maps DICOM fields
 my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
+# if the file is derived from an HRRT scanner, copy the scanner info from the MINC
+# file hash to the %studyInfo hash
+if ($hrrt) {
+    $studyInfo{'ScannerManufacturer'} = $file->getParameter('study:manufacturer');
+    $studyInfo{'ScannerSerialNumber'} = $file->getParameter('study:serial_no');
+    $studyInfo{'ScannerModel'}        = $file->getParameter('study:device_model');
+}
+
+
+
+
+## Determine PSC, ScannerID and Subject IDs
+my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
+my $scannerID = $utility->determineScannerID(
+    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
+);
+my $subjectIDsref = $utility->determineSubjectID(
+    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
+);
+
+
 
 
 # filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
 $message = "\n--> filters out parameters of length > "
-           . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $minc\n";
+    . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $minc\n";
 print LOG $message if $verbose;
 $file->filterParameters();
+
+
+
+
+
+## Validate that the candidate exists and that PSCID matches CandID
+if (defined($subjectIDsref->{'CandMismatchError'})) {
+    my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
+
+    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
+    print LOG $message;
+    print LOG " -> WARNING: This candidate was invalid. Logging to
+              MRICandidateErrors table with reason $CandMismatchError";
+
+    my $logQuery = "INSERT INTO MRICandidateErrors".
+        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
+        "VALUES (?, ?, ?, ?, ?)";
+    my $candlogSth = $dbh->prepare($logQuery);
+    $candlogSth->execute(
+        $file->getParameter('series_instance_uid'),
+        $studyInfo{'TarchiveID'},
+        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
+        $studyInfo{'PatientName'},
+        $CandMismatchError
+    );
+
+    $notifier->spool('tarchive validation', $message, 0,
+        'minc_insertion.pl', $upload_id, 'Y',
+        $notify_notsummary);
+
+    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
+}
+
 
 
 
@@ -457,6 +548,36 @@ QUERY
 
 
 
+## Get the $sessionID
+my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
+    $subjectIDsref,
+    $studyInfo{'DateAcquired'},
+    \$dbh,
+    $db
+);
+
+# Copy the session info into the %$subjectIDsref hash array
+$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
+
+# Session cannot be retrieved from the DB and, if createVisitLabel is set to
+# 1, creation of a new session failed
+if (!$sessionRef) {
+    print STDERR $errMsg if $verbose;
+    print LOG $errMsg;
+    $notifier->spool(
+        'tarchive validation', "$errMsg. Minc insertion failed.", 0,
+        'minc_insertion.pl', $upload_id, 'Y',
+        $notify_notsummary
+    );
+    exit ($subjectIDsref->{'createVisitLabel'} == 1
+        ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
+        : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
+}
+
+
+
 
 # Grep information from the MINC header if not available in the studyInfo hash
 $studyInfo{'PatientName'}            //= $file->getParameter('patient:full_name');
@@ -470,79 +591,6 @@ $studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date')
 
 
 
-## Determine PSC, ScannerID and Subject IDs
-my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
-my $scannerID = $utility->determineScannerID(
-    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
-);
-my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
-);
-
-
-
-
-
-## Validate that the candidate exists and that PSCID matches CandID
-if (defined($subjectIDsref->{'CandMismatchError'})) {
-    my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
-
-    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
-    print LOG $message;
-    print LOG " -> WARNING: This candidate was invalid. Logging to
-              MRICandidateErrors table with reason $CandMismatchError";
-
-    my $logQuery = "INSERT INTO MRICandidateErrors".
-        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
-        "VALUES (?, ?, ?, ?, ?)";
-    my $candlogSth = $dbh->prepare($logQuery);
-    $candlogSth->execute(
-        $file->getParameter('series_instance_uid'),
-        $studyInfo{'TarchiveID'},
-        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
-        $studyInfo{'PatientName'},
-        $CandMismatchError
-    );
-
-    $notifier->spool('tarchive validation', $message, 0,
-        'minc_insertion.pl', $upload_id, 'Y',
-        $notify_notsummary);
-
-    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
-}
-
-
-
-
-################################################################
-####### Get the $sessionID  ####################################
-################################################################
-my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
-    $subjectIDsref, 
-    $studyInfo{'DateAcquired'},
-    $dbh,
-    $db
-);
-
-# Copy the session info into the %$subjectIDsref hash array
-$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
-$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
-$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
- 
-# Session cannot be retrieved from the DB and, if createVisitLabel is set to
-# 1, creation of a new session failed
-if (!$sessionRef) {
-    print STDERR $errMsg if $verbose;
-    print LOG $errMsg;
-    $notifier->spool(
-        'tarchive validation', "$errMsg. Minc insertion failed.", 0,
-        'minc_insertion.pl',   $upload_id, 'Y',
-        $notify_notsummary
-    );
-    exit ($subjectIDsref->{'createVisitLabel'} == 1
-        ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
-        : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
-} 
 
 ################################################################
 ############ Compute the md5 hash ##############################
@@ -563,16 +611,23 @@ if ($not_unique_message) {
 ## at this point things will appear in the database ############
 ## Set some file information ###################################
 ################################################################
-my $caveat = $acquisitionProtocol ? 1 : 0;
-$file->setFileData( 'Caveat',          $caveat                                    );
-$file->setFileData( 'ScannerID',       $scannerID                                 );
-$file->setFileData( 'SessionID',       $subjectIDsref->{'SessionID'}              );
-$file->setFileData( 'SeriesUID',       $file->getParameter('series_instance_uid') );
-$file->setFileData( 'EchoTime',        $file->getParameter('echo_time')           );
-$file->setFileData( 'CoordinateSpace', 'native'                                   );
-$file->setFileData( 'OutputType',      'native'                                   );
-$file->setFileData( 'FileType',        'mnc'                                      );
-$file->setFileData( 'TarchiveSource',  $studyInfo{'TarchiveID'}                   );
+$file->setFileData('ScannerID',       $scannerID                    );
+$file->setFileData('SessionID',       $subjectIDsref->{'SessionID'} );
+$file->setFileData('CoordinateSpace', 'native'                      );
+$file->setFileData('OutputType',      'native'                      );
+$file->setFileData('FileType',        'mnc'                         );
+my $caveat;
+if ($hrrt) {
+    $file->setFileData('HrrtArchiveID', $studyInfo{'HrrtArchiveID'});
+    $caveat = 0;
+} else {
+    $file->setFileData('SeriesUID',      $file->getParameter('series_instance_uid'));
+    $file->setFileData('EchoTime',       $file->getParameter('echo_time')          );
+    $file->setFileData('TarchiveSource', $studyInfo{'TarchiveID'}                  );
+    $caveat = $acquisitionProtocol ? 1 : 0;
+}
+$file->setFileData('Caveat', $caveat);
+
 
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
@@ -607,9 +662,10 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,               \%studyInfo                  , $subjectIDsref,
-    $acquisitionProtocol, $minc                        , $extra_validation_status,
-    $reckless,            $subjectIDsref->{'SessionID'}, $upload_id
+    \$file,               \%studyInfo,                   $subjectIDsref,
+    $acquisitionProtocol, $minc,                         $extra_validation_status,
+    $reckless,            $subjectIDsref->{'SessionID'}, $upload_id,
+    $hrrt
 );
 
 # if the scan was inserted into the files table and there is an
@@ -635,20 +691,25 @@ if ((!defined$acquisitionProtocolIDFromProd)
 ################################################################
 ### Add series notification ####################################
 ################################################################
+my $date_field = $hrrt ? 'study:start_time' : 'acquisition_date';
 $message = sprintf(
     "\n CandID: %s, PSCID: %s, Visit: %s, Acquisition Date: %s, Series Description %s\n",
     $subjectIDsref->{'CandID'},
     $subjectIDsref->{'PSCID'},
     $subjectIDsref->{'visitLabel'},
-    (defined $file->getParameter('acquisition_date')
-        ? $file->getParameter('acquisition_date') : 'UNKNOWN'),
+    (defined $file->getParameter($date_field)
+        ? $file->getParameter($date_field) : 'UNKNOWN'),
     (defined $file->getParameter('series_description')
         ? $file->getParameter('series_description') : 'UNKNOWN')
 );
-$notifier->spool('mri new series', $message, 0,
-            'minc_insertion.pl', $upload_id, 'N', 
-        $notify_detailed);
 
+
+my $spool_type = $hrrt ? 'hrrt pet new series' : 'mri new series';
+$notifier->spool(
+    $spool_type,         $message,   0,
+    'minc_insertion.pl', $upload_id, 'N',
+    $notify_detailed
+);
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
 }
@@ -667,7 +728,7 @@ if ($create_nii) {
 if ($create_minc_pics) {
     print "\nCreating Minc Pics\n" if $verbose;
     NeuroDB::MRI::make_pics(
-        \$file, $data_dir, "$data_dir/pic", $horizontalPics
+        \$file, $data_dir, "$data_dir/pic", $horizontalPics, $db
     );
 }
 

@@ -204,23 +204,16 @@ sub IsCandidateInfoValid {
     ############################################################
     ############### Check to see if the uploadID exists ########
     ############################################################
-    ( $query = <<QUERY ) =~ s/\n//gm;
-  SELECT
-    PatientName,           TarchiveID,
-    number_of_mincCreated, number_of_mincInserted,
-    IsPhantom,             Modality
-  FROM
-    mri_upload
-  LEFT JOIN
-    ImagingModality USING (ImagingModalityID)
-  WHERE
-    UploadID=?
-QUERY
+    $query =
+        "SELECT PatientName,TarchiveID,number_of_mincCreated,"
+      . "number_of_mincInserted,IsPhantom FROM mri_upload "
+      . " WHERE UploadID =?";
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
     $sth->execute( $this->{'upload_id'} );
     if ( $sth->rows > 0 ) {
         @row = $sth->fetchrow_array();
-    } else {
+    }
+    else {
         $message =
             "\nThe uploadID "
           . $this->{'upload_id'}
@@ -228,8 +221,6 @@ QUERY
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
-    # grep the study modality and add it to the imagingUpload object
-    $this->{'modality'} = $row[5];
 
     ###############################################################
     ####Check to see if the scan has been run #####################
@@ -241,9 +232,9 @@ QUERY
     if ( ( $row[1] ) || ( $row[2] ) ) {
 
         my $archived_file_path = '';
-        my $query              = "SELECT t.ArchiveLocation FROM tarchive t "
-                                 . " WHERE t.TarchiveID =?";
-        my $sth                = ${ $this->{'dbhr'} }->prepare($query);
+        my $query             = "SELECT t.ArchiveLocation FROM tarchive t "
+                              . " WHERE t.TarchiveID =?";
+        my $sth               = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute( $row[1] );   
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
@@ -277,17 +268,24 @@ QUERY
     my $isImage_hash    = NeuroDB::MRI::isDicomImage(@file_list);
     my @image_files     = grep { $$isImage_hash{$_} == 1 } keys %$isImage_hash;
     my @non_image_files = grep { $$isImage_hash{$_} == 0 } keys %$isImage_hash;
-    
-    # Issue warnings for files that are not DICOM images
-    foreach my $f (@non_image_files) {
-        $message = "\nWARNING: file '$f' is not a DICOM image: ignored.\n";
-        $this->spool($message, 'N', $notify_notsummary);
-	}
+
+    # if there are hrrt files, set 'is_hrrt' to 1, otherwise set it to 0
+    my $isEcat_hash    = NeuroDB::MRI::isEcatImage(@file_list);
+    my @ecat_files     = grep { $$isEcat_hash{$_} == 1 } keys %$isEcat_hash;
+    $this->{'is_hrrt'} = ( scalar @ecat_files > 0 ) ?  1 : 0;
+
+    # Issue warnings for files that are not DICOM images for non HRRT studies
+    unless ($this->{'is_hrrt'}) {
+        foreach my $f (@non_image_files) {
+            $message = "\nWARNING: file '$f' is not a DICOM image: ignored.\n";
+            $this->spool($message, 'N', $notify_notsummary);
+        }
+    }
 	
 	# Issue a warning for the total number of files that are not
 	# DICOM images
     my $files_not_dicom = scalar @non_image_files;
-    if ( ($this->{'modality'} =~ /DICOM/i) && ($files_not_dicom > 0) ) {
+    if ( (!$this->{'is_hrrt'}) && ($files_not_dicom > 0) ) {
         $message = "\nWARNING: There are $files_not_dicom file(s) which"
                    . " are not DICOM images: these will be ignored.\n";
         $this->spool($message, 'N', $notify_notsummary);
@@ -296,25 +294,22 @@ QUERY
     # check that the patient name was set properly in the DICOM files or the HRRT files
     my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
     my $patient_name  = $this->{'pname'};
-    if ($this->{'modality'} =~ /DICOM/i) {
+    if ($this->{'is_hrrt'}) {
+        # if modality is PET HRRT (i.e. there's at least one ECAT7 file), then check
+        # that all the files present in the PET directory have been named correctly
+        foreach my $file (@file_list) {
+            $files_with_unmatched_patient_name++ unless $this->HrrtPatientNameMatch($file);
+        }
+    } else {
+        # for DICOM files, check that the PatientName matches in all files
         foreach my $file (@image_files) {
-            if ($row[4] eq 'N' && !$this->PatientNameMatch($file, "^$patient_name")) {
+            if ($row[4] eq 'N' && !$this->DicomPatientNameMatch($file, "^$patient_name")) {
                 $files_with_unmatched_patient_name++;
-            } elsif ($row[4] eq 'Y' && !$this->PatientNameMatch($file, $phantom_regex)) {
+            } elsif ($row[4] eq 'Y' && !$this->DicomPatientNameMatch($file, $phantom_regex)) {
                 $files_with_unmatched_patient_name++;
             }
         }
-    } elsif ( $this->{'modality'} eq 'PET HRRT' ) {
-        # if modality is PET HRRT, then bypass files that don't have
-        # the patient in the filename (we already know which ones
-        # they are, at least for the BIC)
-        my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
-            . "script|ini|directnorm|up_mask";
-        next if ( $_ =~ /$exclude_regex/i );
-        $files_with_unmatched_patient_name++ if !($_ =~ /$patient_name/i);
-        print "\nNo patient name: " . $_ if !($_ =~ /$patient_name/i);
     }
-
 
     # return 0 if found at least one DICOM file without the proper patient name
     if ( $files_with_unmatched_patient_name > 0 ) {
@@ -338,7 +333,29 @@ QUERY
 }
 
 
+sub runHrrtInsertion {
+    my $this     = shift;
+    my ($is_bic) = @_;
 
+    my $configOB    = $this->{configOB};
+    my $bin_dirPath = $configOB->getMriCodePath();
+
+    my $command = $bin_dirPath . "/uploadNeuroDB/HRRT_PET_insertion.pl "
+                    . " -profile "   . $this->{'profile'}   . " "
+                    . " -upload_id " . $this->{'upload_id'} . " ";
+    $command .= " -bic " if ($is_bic);
+    $command .= " -verbose " if ($this->{'verbose'});
+
+    my $output = $this->runCommandWithExitCode($command);
+
+    return $output;
+}
+
+
+
+################################################################
+############################runDicomTar#########################
+################################################################
 =pod
 
 =head3 runDicomTar()
@@ -482,7 +499,7 @@ sub runTarchiveLoader {
 
 =pod
 
-=head3 PatientNameMatch($dicom_file, $expected_pname_regex)
+=head3 DicomPatientNameMatch($dicom_file, $expected_pname_regex)
 
 This method extracts the patient name field from the DICOM file header using
 C<dcmdump> and compares it with the patient name information stored in the
@@ -496,7 +513,7 @@ RETURNS: 1 on success, 0 on failure
 
 =cut
 
-sub PatientNameMatch {
+sub DicomPatientNameMatch {
     my $this         = shift;
     my ($dicom_file, $expected_pname_regex) = @_;
 
@@ -546,6 +563,26 @@ sub PatientNameMatch {
 
 }
 
+
+sub HrrtPatientNameMatch {
+    my $this   = shift;
+    my ($file) = @_;
+
+    # if the file name matches one of the following, return 1 as the patient
+    # name will not be in the filename anyway
+    my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
+                        . "script|ini|directnorm|up_mask";
+    return 1 if ( $file =~ /$exclude_regex/i );
+
+    # if the patient name matches with the filename return 1, otherwise return 0
+    ( $file =~ /$this->{'pname'}/i ) ? return 1 : return 0;
+}
+
+
+
+################################################################
+####################sourceEnvironment###########################
+################################################################
 =pod
 
 =head3 runCommandWithExitCode($command)
@@ -611,7 +648,9 @@ sub CleanUpDataIncomingDir {
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
     my $configOB          = $this->{configOB};
-    my $tarchive_location = $configOB->getTarchiveLibraryDir();
+    my $tarchive_location = $this->{'is_hrrt'}
+                                ? $configOB->getDataDirPath() . "/hrrtarchive"
+                                : $configOB->getTarchiveLibraryDir();
 
 
     ############################################################

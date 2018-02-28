@@ -459,16 +459,30 @@ sub createTarchiveArray {
 
     my $this = shift;
     my %tarchiveInfo;
-    my ($tarchive,$globArchiveLocation) = @_;
+    my ($tarchive, $globArchiveLocation, $hrrt) = @_;
     my $where = "ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
         $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
     }
-    my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
-                " DateAcquired, DicomArchiveID, PatientSex,".
-                " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
-                " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,".
-                " SourceLocation, ArchiveLocation FROM tarchive WHERE $where";
+
+    my $query;
+    if ($hrrt) {
+        ($query = <<QUERY) =~ s/\n/ /gm;
+        SELECT
+          PatientName,    CenterName,      DateAcquired,
+          Blake2bArchive, ArchiveLocation, HrrtArchiveID
+        FROM
+          hrrt_archive
+        WHERE
+          $where
+QUERY
+    } else {
+        $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,"
+            . " DateAcquired, DicomArchiveID, PatientSex,"
+            . " ScannerManufacturer, ScannerModel, ScannerSerialNumber,"
+            . " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,"
+            . " SourceLocation, ArchiveLocation FROM tarchive WHERE $where";
+    }
     if ($this->{debug}) {
         print $query . "\n";
     }
@@ -1087,11 +1101,10 @@ Renames and moves the MINC file.
 INPUTS:
   - $minc           : path to the MINC file
   - $subjectIDsref  : subject's ID hash ref
-  - $minc_type      : MINC file information hash ref
-  - $fileref        : file information hash ref
+  - $minc_type      : acquisition protocol
   - $prefix         : study prefix
   - $data_dir       : data directory (e.g. C</data/$PROJECT/data>)
-  - $tarchive_srcloc: DICOM archive source location
+  - $hrrt           : boolean, whether the file comes from a PET HRRT scanner
   - $upload_id      : upload ID of the study
 
 RETURNS: new name of the MINC file with path relative to C<$data_dir>
@@ -1101,8 +1114,7 @@ RETURNS: new name of the MINC file with path relative to C<$data_dir>
 sub move_minc {
     
     my $this = shift;
-    my ($minc,$subjectIDsref, $minc_type, $fileref,
-        $prefix,$data_dir, $upload_id) = @_;
+    my ($minc, $subjectIDsref, $minc_type, $prefix, $data_dir, $hrrt, $upload_id) = @_;
     my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
     my $concat = "";
     my $message = '';
@@ -1110,7 +1122,7 @@ sub move_minc {
     ############################################################
     ### figure out where to put the files ######################
     ############################################################
-    $dir = $this->which_directory($subjectIDsref,$data_dir);
+    $dir = $this->which_directory($subjectIDsref, $data_dir, $hrrt);
     `mkdir -p -m 770 $dir/native`;
 
     ############################################################
@@ -1118,7 +1130,7 @@ sub move_minc {
     ############################################################
     @exts = split(/\./, basename($$minc));
     shift @exts;
-    $extension = join('.', @exts);
+    $extension = $hrrt ? pop @exts : join('.', @exts);
     $concat = '_concat' if $$minc =~ /_concat/;
     $new_dir = "$dir/native";
     $version = 1;
@@ -1173,8 +1185,8 @@ sub registerScanIntoDB {
 
     my $this = shift;
     my (
-        $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
-        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id
+        $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol,
+        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id, $hrrt
     ) = @_;
 
 
@@ -1229,20 +1241,16 @@ sub registerScanIntoDB {
         ##### rename and move files ############################
         ########################################################
         $minc_protocol_identified = $this->move_minc(
-                                        \$minc,
-                                        $subjectIDsref,
-                                        $acquisitionProtocol,
-                                        $minc_file,
-                                        $prefix,
-                                        $data_dir,
-                                        $upload_id
-                                     );
+            \$minc,    $subjectIDsref, $acquisitionProtocol,
+            $prefix,   $data_dir,      $hrrt,
+            $upload_id
+        );
 
         ########################################################
         #################### set the new file_path #############
         ######################################################## 
-        $file_path   =   $minc;
-        $file_path      =~  s/$data_dir\///i;
+        $file_path =  $minc;
+        $file_path =~ s/$data_dir\///i;
         $${minc_file}->setFileData(
             'File', 
             $file_path
@@ -1251,13 +1259,13 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path = $tarchiveInfo->{ArchiveLocation};
+        $tarchive_path =  $tarchiveInfo->{ArchiveLocation};
+        my $md5sumField     = $hrrt ? 'hrrt_archiveLocation' : 'tarchiveLocation';
+        my $archiveLocField = $hrrt ? 'hrrt_archiveMD5'      : 'tarchiveMD5';
         if ($tarchive_path) {
             $tarchive_path =~ s/$data_dir\///i;
-            $${minc_file}->setParameter('tarchiveLocation', $tarchive_path);
-            $${minc_file}->setParameter(
-                'tarchiveMD5', $tarchiveInfo->{'md5sumArchive'}
-            );
+            $${minc_file}->setParameter($archiveLocField, $tarchive_path);
+            $${minc_file}->setParameter($md5sumField,     $tarchiveInfo->{'md5sumArchive'});
         }
 
         ########################################################
@@ -1723,6 +1731,7 @@ Determines where the MINC files to be registered into the database will go.
 INPUTS:
    - $subjectIDsref: subject's ID information hashref
    - $data_dir     : data directory (e.g. C</data/$PROJECT/data>)
+   - $hrrt         : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: the final directory in which the registered MINC files will go
 (typically C</data/$PROJECT/data/assembly/CandID/visit/mri/>)
@@ -1731,11 +1740,12 @@ RETURNS: the final directory in which the registered MINC files will go
 
 sub which_directory {
     my $this = shift;
-    my ($subjectIDsref,$data_dir) = @_;
+    my ( $subjectIDsref, $data_dir, $hrrt ) = @_;
     my %subjectIDs = %$subjectIDsref;
     my $dir = $data_dir;
-    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}/mri";
+    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}";
     $dir =~ s/ //;
+    $dir .= $hrrt ? "/pet" : "/mri";
     return $dir;
 }
 
@@ -1804,7 +1814,6 @@ sub validateCandidate {
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
         return $message;
-
     }
 
 

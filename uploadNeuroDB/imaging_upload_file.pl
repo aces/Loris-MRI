@@ -231,9 +231,10 @@ my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 ############### Decompress File ################################
 ################################################################
 ################################################################
-my $result = $file_decompress->Extract( 
-                $TmpDir_decompressed_folder 
+my $result = $file_decompress->Extract(
+                $TmpDir_decompressed_folder
              );
+
 
 ################################################################
 ############### Get Patient_name using UploadID#################
@@ -274,8 +275,7 @@ my $Notify = NeuroDB::Notify->new(
 
 my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
 if ( !($is_candinfovalid) ) {
-    $imaging_upload->updateMRIUploadTable(
-	'Inserting', 0);
+    $imaging_upload->updateMRIUploadTable('Inserting', 0);
     $message = "\nThe candidate info validation has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
@@ -286,7 +286,27 @@ $message = "\nThe candidate info validation has passed.\n";
 spool($message,'N', $notify_notsummary);
 
 
-if ( $imaging_upload->{'modality'} =~ /DICOM/i ) {
+
+if ( $imaging_upload->{'is_hrrt'}) {
+    # if the upload is an HRRT study, run HRRT_PET_insertion.pl
+
+    my @result = `grep -r BIC $TmpDir_decompressed_folder`;
+    my $bic = @result ? 1 : 0; # set $bic to 1 if dataset is from the BIC
+
+    $output = $imaging_upload->runHrrtInsertion($bic);
+    if ( !$output ) {
+        $imaging_upload->updateMRIUploadTable('Inserting', 0);
+        $message = "\nThe HRRT_PET_insertion.pl execution has failed\n";
+        spool($message, 'Y', $notify_notsummary);
+        print STDERR $message;
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+    }
+    $message = "\nThe HRRT_PET_insertion.pl execution has successfully completed\n";
+    spool($message, 'N', $notify_notsummary);
+
+} else {
+    # otherwise, it is a DICOM study so run dicomTar.pl and tarchiveLoader
+
     ################################################################
     ############### Run DicomTar  ##################################
     ################################################################
@@ -312,17 +332,10 @@ if ( $imaging_upload->{'modality'} =~ /DICOM/i ) {
         print STDERR $message;
         exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
     }
-} elsif ( $imaging_upload->{'modality'} eq "PET HRRT" ) {
-    print "\n\nPET PET PET\n\n";
-    #TODO: create a runHrrtPet into ImagingUpload.pm
+
 }
 
-################################################################
-### If we got this far, dicomTar and tarchiveLoader completed###
-#### Remove the uploaded file from the incoming directory#######
-################################################################
-#TODO: either move this function in the DICOM section or modify function to
-# clean up PET incoming dir
+
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";

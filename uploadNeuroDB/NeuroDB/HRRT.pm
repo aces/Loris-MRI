@@ -1,25 +1,30 @@
 use strict;
 use warnings;
 
-package NeuroDB::HRRTSUM;
+package NeuroDB::HRRT;
 
 use File::Basename;
 use File::Find;
-use Digest::MD5;
+use Digest::BLAKE2 qw(blake2b);
 use File::Type;
 use Date::Parse;
+use String::ShellQuote;
+use File::Copy;
+
+
+use NeuroDB::MincUtilities;
 
 
 =pod
 
-=head3 new($params, $source_dir, $target_dir, $bic) >> (constructor)
+=head3 new($params, $decompressed_dir, $target_dir, $bic) >> (constructor)
 
 Creates a new instance of this class.
 
 INPUTS:
-  - $source_dir : source directory of the HRRT study
-  - $target_dir : target directory where to save the HRRT study
-  - $bic        : boolean variable specifying if the dataset is a BIC dataset
+  - $decompressed_dir : decompressed directory of the HRRT study
+  - $target_dir       : target directory where to save the HRRT study
+  - $bic              : boolean variable specifying if the dataset is a BIC dataset
 
 RETURNS: new instance of this class.
 
@@ -27,16 +32,16 @@ RETURNS: new instance of this class.
 sub new {
     my $params = shift;
 
-    my ($source_dir, $target_dir, $bic) = @_;
+    my ($decompressed_dir, $target_dir, $bic) = @_;
 
     my $self = {};
     bless $self, $params;
 
     # set the source directory
-    $self->{source_dir} = $source_dir;
+    $self->{decompressed_dir} = $decompressed_dir;
 
     # get arrays of all files, ecat files only, and various file counts
-    $self->{hrrt_files}    = [ $self->hrrt_content_list($self->{source_dir}) ];
+    $self->{hrrt_files}    = [ $self->hrrt_content_list() ];
     $self->{ecat_files}    = [ $self->grep_ecat_files_only($bic) ];
     $self->{ecat_count}    = scalar @{ $self->{ecat_files}  };
     $self->{total_count}   = scalar @{ $self->{hrrt_files} };
@@ -70,24 +75,22 @@ sub new {
 
 =pod
 
-=head3 hrrt_content_list($source_dir)
+=head3 hrrt_content_list()
 
 Grep the list of files in the source directory and return it.
-
-INPUT: path to the source directory
 
 RETURNS: array of sorted files found in the source directory
 
 =cut
 sub hrrt_content_list {
-    my ($self, $source_dir) = @_;
+    my ($self) = @_;
 
     my @files;
 
     my $find_handler = sub {
         push @files, $File::Find::name if ( -f $File::Find::name );
     };
-    find($find_handler, $source_dir);
+    find($find_handler, $self->{decompressed_dir});
 
     my @sorted_files = sort @files;
 
@@ -144,7 +147,7 @@ $self->{header}->{filename} hash
 =cut
 sub read_ecat {
     my ( $self, $ecat_file, $bic ) = @_;
-
+    
     my @info = `lmhdr $ecat_file`;
     chomp( @info ); # remove carriage return of each element
 
@@ -264,18 +267,18 @@ sub read_matlab_file {
 
 =pod
 
-=head3 md5sum($filename)
+=head3 blake2b_hash($filename)
 
-Computes MD5 sum of a file and outputs a format similar to md5sum on Linux.
+Computes blake2b hash of a file and returns the blake2b hash.
 
 =cut
-sub md5sum {
+sub blake2b_hash {
     my ($filename) = @_;
 
     open(FILE, $filename) or die "Can't open '$filename': $!";
     binmode(FILE);
 
-    return Digest::MD5->new->addfile(*FILE)->hexdigest . "  $filename\n";
+    return Digest::BLAKE2->new->addfile(*FILE)->hexdigest;
 }
 
 
@@ -283,45 +286,45 @@ sub md5sum {
 
 =pod
 
-=head3 database($dbh, $today, $md5sumArchive)
+=head3 insert_hrrt_tables($dbh, $today, $blake2bArchive, $archiveLocation, $upload_id)
 
 =cut
-sub database {
-    my ( $self, $dbh, $md5sumArchive, $upload_id ) = @_;
+sub insert_hrrt_tables {
+    my ( $self, $dbh, $blake2bArchive, $archiveLocation, $upload_id ) = @_;
 
-    ## check if hrrt archive already inserted based on md5sumArchive
+    ## check if hrrt archive already inserted based on Blake2bArchive
     ( my $select_hrrtArchiveID = <<QUERY ) =~ s/\n/ /gm;
     SELECT HrrtArchiveID
     FROM   hrrt_archive
-    WHERE  md5sumArchive = ?
+    WHERE  Blake2bArchive = ?
 QUERY
     my $sth = $dbh->prepare( $select_hrrtArchiveID );
-    $sth->execute( $md5sumArchive) ;
+    $sth->execute( $blake2bArchive) ;
 
     if ($sth->rows > 0) {
         my @row = $sth->fetchrow_array();
         print "\n\n PROBLEM: This study has already been archived. "
               . "HrrtArchiveID corresponding to this study is $row[0]\n\n";
-        exit; #TODO 1: call ExitCode.pm to do proper exit code
+        return undef;
     }
 
 
     ## INSERT INTO hrrt_archive
     ( my $hrrt_archive_insert_query = <<QUERY ) =~ s/\n/ /gm;
     INSERT INTO hrrt_archive SET
-      PatientName   = ?,   CenterName        = ?,
-      CreatingUser  = ?,   SourceLocation    = ?,
-      EcatFileCount = ?,   NonEcatFileCount  = ?,
-      DateAcquired  = ?,   DateFirstArchived = NOW(),
-      md5sumArchive = ?,   DateLastArchived  = NOW()
+      PatientName         = ?,     CenterName        = ?,
+      CreatingUser        = ?,     EcatFileCount     = ?,
+      NonEcatFileCount    = ?,     DateAcquired      = ?,
+      Blake2bArchive      = ?,     ArchiveLocation   = ?,
+      DateArchived        = NOW()
 QUERY
 
     my $study_info = $self->{study_info};
     my @values = (
-        $study_info->{patient_name},    $study_info->{center_name},
-        $self->{user},                  $self->{source_dir},
-        $self->{ecat_count},            $self->{nonecat_count},
-        $study_info->{date_acquired},   $md5sumArchive
+        $study_info->{patient_name},  $study_info->{center_name},
+        $self->{user},                $self->{ecat_count},
+        $self->{nonecat_count},       $study_info->{date_acquired},
+        $blake2bArchive,              $archiveLocation
     );
 
     $sth        = $dbh->prepare( $hrrt_archive_insert_query );
@@ -332,7 +335,7 @@ QUERY
 
     ## SELECT the inserted HrrtArchiveID
     $sth = $dbh->prepare( $select_hrrtArchiveID );
-    $sth->execute( $md5sumArchive );
+    $sth->execute( $blake2bArchive );
     my $hrrtArchiveID = undef;
     if ($sth->rows > 0) {
         my @row        = $sth->fetchrow_array();
@@ -343,12 +346,12 @@ QUERY
     ## INSERT INTO hrrt_archive_files
     ( my $hrrt_archive_files_query = <<QUERY ) =~ s/\n/ /gm;
     INSERT INTO hrrt_archive_files SET
-      HrrtArchiveID = ?,   Filename = ?,  Md5Sum = ?
+      HrrtArchiveID = ?,   Filename = ?,  Blake2bHash = ?
 QUERY
     $sth = $dbh->prepare($hrrt_archive_files_query);
     foreach my $ecat_file ( @{ $self->{ecat_files} } ) {
-        my $md5sum = md5sum( $ecat_file );
-        @values    = ( $hrrtArchiveID, basename($ecat_file), $md5sum );
+        my $blake2b = blake2b_hash( $ecat_file );
+        @values     = ( $hrrtArchiveID, basename($ecat_file), $blake2b );
         $sth->execute( @values );
     }
 
@@ -359,11 +362,208 @@ QUERY
       HrrtArchiveID = ?,   UploadID = ?
 QUERY
     @values  = ( $hrrtArchiveID, $upload_id );
-    $sth     = $dhb->prepare( $insert_mri_upload_rel );
+    $sth     = $dbh->prepare( $insert_mri_upload_rel );
     $success = $sth->execute( @values );
 
-    return $success;
+    $success ? return $hrrtArchiveID : return undef;
 }
+
+
+
+
+
+
+
+sub insertBicMatlabHeader {
+    my ($self, $minc_file) = @_;
+
+    my $success;
+
+    # append values from the .m parameter file to the MINC header
+    foreach my $key ( keys %{ $self->{matlab_info} } ) {
+        my $arg = "matlab_param:" . $key;
+        my $val = $self->{matlab_info}->{$key};
+        $val = shell_quote $val;
+        $success = NeuroDB::MincUtilities::modify_header(
+            $arg, $val, $minc_file, '$3, $4, $5, $6'
+        );
+        return undef unless ( $success );
+    }
+
+    # insert proper scanner information
+    $success = NeuroDB::MincUtilities::modify_header(
+        'study:manufacturer',  $self->{study_info}->{manufacturer},
+        $minc_file,            '$3, $4, $5, $6'
+    );
+    return undef unless ( $success );
+    $success = NeuroDB::MincUtilities::modify_header(
+        'study:device_model',  $self->{study_info}->{scanner_model},
+        $minc_file,            '$3, $4, $5, $6'
+    );
+    return undef unless ( $success );
+    $success = NeuroDB::MincUtilities::modify_header(
+        'study:serial_no',     $self->{study_info}->{system_type},
+        $minc_file,            '$3, $4, $5, $6'
+    );
+
+    return $success ? 1 : undef;
+}
+
+
+
+
+sub appendEcatToRegisteredMinc {
+    my ($self, $fileID, $ecat_file, $data_dir, $dbh) = @_;
+
+    my $file = NeuroDB::File->new(\$dbh);
+    $file->loadFile($fileID);
+    my $ecat_new_path = $file->getFileDatum('File');
+    $ecat_new_path    =~ s/mnc$/v/g;
+    move($ecat_file, $data_dir . "/" . $ecat_new_path);
+    $file->setParameter('ecat_filename', $ecat_new_path);
+}
+
+
+#### TODO Move the queries function in OB...
+
+=pod
+
+=head3 getHrrtUploadInfo($dbh, $upload_id)
+
+Fetches C<UploadLocation>, C<DecompressedLocation> and C<HrrtArchiveID> from
+the database based on the provided C<UploadID>.
+
+INPUTS: database handler and c<UploadID>
+
+RETURNS: undef if no entry was found for the given C<UploadID> or a hash
+containing C<UploadLocation>, C<DecompressedLocation> and C<HrrtArchiveID>
+information for the C<UploadID>
+
+=cut
+
+sub getHrrtUploadInfo {
+    my ($dbh, $upload_id) = @_;
+
+    # grep the UploadedLocation for the UploadID
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT UploadLocation, DecompressedLocation, HrrtArchiveID
+    FROM mri_upload
+    LEFT JOIN mri_upload_rel ON ( mri_upload.UploadID = mri_upload_rel.UploadID )
+    WHERE mri_upload.UploadID=?
+QUERY
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+
+    # returns undef if no mri_upload entry found
+    return undef unless ($sth->rows > 0);
+
+    # grep the result of the query into $self->{upload_info} hash
+    my @result = $sth->fetchrow_array();
+    my $upload_info = {};
+    $upload_info->{upload_location}       = $result[0];
+    $upload_info->{decompressed_location} = $result[1];
+    $upload_info->{hrrt_archive_ID}       = $result[2];
+
+    return $upload_info;
+}
+
+
+
+sub getRegisteredFileIdUsingMd5hash {
+    my ( $md5hash, $dbh ) = @_;
+
+    (my $query = <<QUERY) =~ s/\n/ /g;
+    SELECT FileID
+    FROM   files
+      JOIN parameter_file USING (FileID)
+      JOIN parameter_type USING (ParameterTypeID)
+    WHERE  Name = 'md5hash' AND Value=?
+QUERY
+    my $sth = $dbh->prepare($query);
+    $sth->execute($md5hash);
+
+    # returns undef if no mri_upload entry found
+    return undef unless ($sth->rows > 0);
+
+    # grep the result of the query
+    my @result    = $sth->fetchrow_array();
+    my $fileID    = $result[0];
+
+    return $fileID;
+}
+
+
+
+sub getSessionIdFromFileId {
+    my ( $fileID, $dbh ) = @_;
+
+    my $query = "SELECT SessionID FROM files WHERE FileID=?";
+    my $sth   = $dbh->prepare($query);
+    $sth->execute($fileID);
+
+    # returns undef if no rows returned
+    return undef unless ($sth->rows > 0);
+
+    # grep the result of the query
+    my @result     = $sth->fetchrow_array();
+    my $sessionID = $result[0];
+
+    return $sessionID;
+
+}
+
+
+
+sub updateHrrtArchiveSessionID {
+    my ($hrrtArchiveID, $sessionID, $dbh) = @_;
+
+    my $query = "UPDATE hrrt_archive SET SessionID=? WHERE HrrtArchiveID=?";
+    my $sth   = $dbh->prepare($query);
+    $sth->execute($sessionID, $hrrtArchiveID);
+
+}
+
+
+sub updateHrrtUploadInfo {
+    my ($valuesRef, $upload_id, $dbh) = @_;
+
+    my @fields = ();
+    my @values = ();
+    foreach my $field (keys %$valuesRef) {
+        push(@fields, "$field=?");
+        push(@values, $$valuesRef{$field});
+    }
+
+    my $query  = sprintf(
+        "UPDATE mri_upload SET %s WHERE UploadID=%s",
+        join(',', @fields),
+        $upload_id
+    );
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@values);
+
+}
+
+
+sub getHrrtArchiveLocationFromHrrtArchiveID {
+    my ($hrrt_archive_id, $dbh) = @_;
+
+    my $query = "SELECT ArchiveLocation FROM hrrt_archive WHERE HrrtArchiveID=?";
+    my $sth   = $dbh->prepare($query);
+    $sth->execute($hrrt_archive_id);
+
+    # returns undef if no rows returned
+    return undef unless ($sth->rows > 0);
+
+    # grep the result of the query
+    my @result = $sth->fetchrow_array();
+    my $archive_location = $result[0];
+
+    return $archive_location;
+}
+
+
 
 1;
 
