@@ -143,12 +143,17 @@ sub getRawDTIFiles{
 
     ## Grab the mincs I want, a.k.a. with minc file with $DTI_volumes 
     my @DTI_frames  = split(',',$DTI_volumes);
+
+    # Filter the frames list: keep only the strings that are integers
+    # (this should not remove anything since the $DTI_volumes string is
+    # assumed to be a comma separated list of integers)
+    @DTI_frames = grep($_ =~ /^\s*\d+\s*$/, @DTI_frames);
     my @DTIs_list   = (); 
     foreach my $mnc (@$mincs_list) {
         if  (`mincinfo -dimnames $mnc` =~ m/time/)    {
             my $time    = `mincinfo -dimlength time $mnc`;
             chomp($time);
-            if  ($time ~~ \@DTI_frames) {
+            if (grep($time == $_, @DTI_frames)) {
                 push (@DTIs_list, $mnc);
             }
         }

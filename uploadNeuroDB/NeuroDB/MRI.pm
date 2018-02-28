@@ -460,11 +460,13 @@ RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr,$minc_location
+    ) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
     my $pscid = ${subjectref}->{'PSCID'};
     my $visit = ${subjectref}->{'visitLabel'};
+    my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
     my $objective = ${subjectref}->{'subprojectID'};
 
     # get parameters from minc header
@@ -587,7 +589,13 @@ sub identify_scan_db {
     }
 
     # if we got here, we're really clueless...
-    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID);
+    insert_violated_scans(
+        $dbhr,   $series_description, $minc_location,   $patient_name,
+        $candid, $pscid,              $tr,              $te,
+        $ti,     $slice_thickness,    $xstep,           $ystep,
+        $zstep,  $xspace,             $yspace,          $zspace,
+        $time,   $seriesUID,          $tarchiveID
+    );
 
     return 'unknown';
 }    
@@ -625,12 +633,36 @@ INPUTS:
 
 sub insert_violated_scans {
 
-   my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID) = @_;
-   my $query;
-   my $sth;
-    
-   $sth = $${dbhr}->prepare("INSERT INTO mri_protocol_violated_scans (CandID,PSCID,time_run,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range,time_range,SeriesUID) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-   my $success = $sth->execute($candid,$pscid,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$time,$seriesUID);
+    my ($dbhr,   $series_description, $minc_location, $patient_name,
+        $candid, $pscid,              $tr,            $te,
+        $ti,     $slice_thickness,    $xstep,         $ystep,
+        $zstep,  $xspace,             $yspace,        $zspace,
+        $time,   $seriesUID,          $tarchiveID) = @_;
+
+    (my $query = <<QUERY) =~ s/\n//gm;
+  INSERT INTO mri_protocol_violated_scans (
+    CandID,             PSCID,         TarchiveID,            time_run,
+    series_description, minc_location, PatientName,           TR_range,
+    TE_range,           TI_range,      slice_thickness_range, xspace_range,
+    yspace_range,       zspace_range,  xstep_range,           ystep_range,
+    zstep_range,        time_range,    SeriesUID
+  ) VALUES (
+    ?, ?, ?, now(),
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?
+  )
+QUERY
+
+    my $sth = $${dbhr}->prepare($query);
+    my $success = $sth->execute(
+        $candid,        $pscid,           $tarchiveID, $series_description,
+        $minc_location, $patient_name,    $tr,         $te,
+        $ti,            $slice_thickness, $xspace,     $yspace,
+        $zspace,        $xstep,           $ystep,      $zstep,
+        $time,          $seriesUID
+    );
 
 }
 
@@ -762,6 +794,7 @@ INPUTS: float 1, float 2 and the number of first decimals
 RETURNS: 1 if the numbers are relatively equal, 0 otherwise
 
 =cut
+
 sub floats_are_equal {
     my($f1, $f2, $nb_decimals) = @_;
 
