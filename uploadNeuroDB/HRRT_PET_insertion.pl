@@ -18,6 +18,7 @@ use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
 use NeuroDB::HRRT;
 use NeuroDB::MincUtilities;
+use NeuroDB::File;
 ##TODO 1: add line use NeuroDB::ExitCodes;
 
 
@@ -217,28 +218,29 @@ MESSAGE
 }
 
 # check that no HRRT archive ID is already associated to that UploadID
-if ( $upload_info->{hrrt_archive_ID} ) {
-
-    $message = <<MESSAGE;
-    ERROR: This HRRT study upload ID $upload_id appears to be already inserted
-    into the hrrt_archive tables
-    (HrrtArchiveID=$upload_info->{hrrt_archive_ID}).\n\n
-MESSAGE
-    # write error message in the log file
-    $utility->writeErrorLog(
-        $message, $HRRT_ARCHIVE_ALREADY_INSERTED, $log_file
-    );
-    ##TODO 1: call the exit code from ExitCodes.pm
-    # insert error message into notification spool table
-    $notifier->spool(
-        'HRRT_PET insertion'   , $message,   0,
-        'HRRT_PET_insertion.pl', $upload_id, 'Y',
-        'N'
-    );
-    ##TODO 1: call the exit code from ExitCodes.pm
-    exit $HRRT_ARCHIVE_ALREADY_INSERTED;
-
-}
+#TODO: uncomment
+#if ( $upload_info->{hrrt_archive_ID} ) {
+#
+#    $message = <<MESSAGE;
+#    ERROR: This HRRT study upload ID $upload_id appears to be already inserted
+#    into the hrrt_archive tables
+#    (HrrtArchiveID=$upload_info->{hrrt_archive_ID}).\n\n
+#MESSAGE
+#    # write error message in the log file
+#    $utility->writeErrorLog(
+#        $message, $HRRT_ARCHIVE_ALREADY_INSERTED, $log_file
+#    );
+#    ##TODO 1: call the exit code from ExitCodes.pm
+#    # insert error message into notification spool table
+#    $notifier->spool(
+#        'HRRT_PET insertion'   , $message,   0,
+#        'HRRT_PET_insertion.pl', $upload_id, 'Y',
+#        'N'
+#    );
+#    ##TODO 1: call the exit code from ExitCodes.pm
+#    exit $HRRT_ARCHIVE_ALREADY_INSERTED;
+#
+#}
 
 
 
@@ -270,41 +272,42 @@ mkdir $target_location unless ( -e $target_location );
 
 ##### Create the tar file
 
-# determine where the name and path of the archived HRRT dataset
-my $final_target  = $target_location
-                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
-                    . "_"      . basename($archive->{source_dir})
-                    . ".tgz";
-if ( -e $final_target ) {
-    print "\nTarget already exists.\n\n";
-    exit 2; #TODO 1: call the exit code from ExitCodes.pm
-}
-
-# create the tar file and get its md5sum
-my $to_tar = $upload_info->{decompressed_location};
-my $tar_cmd = "tar -czf $final_target $to_tar/*";
-print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
-system($tar_cmd);
-my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
-
-
-
-
-##### Register the HRRT archive into the database
-
-print "\nAdding archive info into the database\n" if $verbose;
-my $archiveLocation = $final_target;
-$archiveLocation =~ s/$data_dir//g;
-my $success = $archive->database(
-    $dbh, $md5sumArchive, $archiveLocation, $upload_id
-);
-
-if ($success) {
-    print "\nDone adding HRRT archive info into the database\n" if $verbose;
-} else {
-    print "\nThe database command failed\n";
-    exit ; #TODO 1: call the exit code from ExitCodes.pm
-}
+#TODO: uncomment
+## determine where the name and path of the archived HRRT dataset
+#my $final_target  = $target_location
+#                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
+#                    . "_"      . basename($archive->{source_dir})
+#                    . ".tgz";
+#if ( -e $final_target ) {
+#    print "\nTarget already exists.\n\n";
+#    exit 2; #TODO 1: call the exit code from ExitCodes.pm
+#}
+#
+## create the tar file and get its md5sum
+#my $to_tar = $upload_info->{decompressed_location};
+#my $tar_cmd = "tar -czf $final_target $to_tar/*";
+#print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
+#system($tar_cmd);
+#my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
+#
+#
+#
+#
+###### Register the HRRT archive into the database
+#
+#print "\nAdding archive info into the database\n" if $verbose;
+#my $archiveLocation = $final_target;
+#$archiveLocation =~ s/$data_dir//g;
+#my $success = $archive->database(
+#    $dbh, $md5sumArchive, $archiveLocation, $upload_id
+#);
+#
+#if ($success) {
+#    print "\nDone adding HRRT archive info into the database\n" if $verbose;
+#} else {
+#    print "\nThe database command failed\n";
+#    exit ; #TODO 1: call the exit code from ExitCodes.pm
+#}
 
 
 
@@ -312,6 +315,10 @@ if ($success) {
 ##### Loop through ECAT files
 
 #my $success; # TODO: remove this once uncommenting above
+
+my $success = 1;
+my $minc_created = 0;
+my $minc_inserted = 0;
 
 foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
 
@@ -336,6 +343,7 @@ MESSAGE
         ##TODO 1: call the exit code from ExitCodes.pm
         exit $MINC_FILE_NOT_FOUND;
     }
+    $minc_created++;
 
     # if it is a BIC dataset, we know a few things
     my $protocol;
@@ -357,25 +365,37 @@ MESSAGE
         $protocol, $ecat_file
     );
 
-    # TODO: register MINC using minc_insertion.pl (need to test the command)
+    # register MINC using minc_insertion.pl
     my $minc_insert_cmd = "minc_insertion.pl "
                           . " -profile "  . $profile
                           . " -mincPath " . $minc_file
                           . " -uploadID " . $upload_id
                           . " -acquisition_protocol " . $acquisition_protocol
+                          . " -create_minc_pics "
                           . " -bypass_extra_file_checks "
                           . " -hrrt ";
-    print $minc_insert_cmd;
+    #my $output = system($minc_insert_cmd);
+    #$output = $output >> 8;
+    #if ($output == 0) {
+    #    $minc_inserted++;
+    #}
 
+    # append the ecat file into the parameter file table
+    my $fileref = NeuroDB::File->new(\$dbh);
+    $fileref->loadFileFromDisk($minc_file);
+    my $fileID = NeuroDB::DBI::getRegisteredFileIDUsingMd5hash(
+        \$fileref, $dbh
+    );
 
-    # TODO: append the ecat file into the parameter file table
+    $archive->appendEcatToRegisteredMinc($fileID, $ecat_file, $data_dir, $dbh);
 
 }
 
 
-# TODO: call the mass minc pic script
 
 # TODO: update MRI upload table
+# update following fields: InsertionComplete = 1, number_of_mincInserted,
+# number_of_mincCreated, SessionID, Inserting = 0
 
 
 

@@ -769,8 +769,15 @@ sub register_db {
 
     # build the insert query
     my $query = "INSERT INTO files SET ";
-
-    foreach my $key ('File', 'SessionID','EchoTime', 'CoordinateSpace', 'OutputType', 'AcquisitionProtocolID', 'FileType', 'InsertedByUserID', 'Caveat', 'SeriesUID', 'TarchiveSource','SourcePipeline','PipelineDate','SourceFileID', 'ScannerID') {
+    my @field_array = (
+        'File',            'SessionID',        'EchoTime',
+        'CoordinateSpace', 'OutputType',       'AcquisitionProtocolID',
+        'FileType',        'InsertedByUserID', 'Caveat',
+        'SeriesUID',       'TarchiveSource',   'HrrtArchiveID',
+        'SourcePipeline',  'PipelineDate',     'SourceFileID',
+        'ScannerID'
+    );
+    foreach my $key (@field_array) {
         # add the key=value pair to the query
         $query .= "$key=".$dbh->quote($${fileData{$key}}).", ";
     }

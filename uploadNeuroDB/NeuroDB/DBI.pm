@@ -116,4 +116,32 @@ QUERY
 
 
 
+
+sub getRegisteredFileIDUsingMd5hash {
+    my ( $fileref, $dbh ) = @_;
+
+    my $md5hash = &NeuroDB::MRI::compute_hash($fileref);
+
+    (my $query = <<QUERY) =~ s/\n/ /g;
+    SELECT FileID
+    FROM   files
+      JOIN parameter_file USING (FileID)
+      JOIN parameter_type USING (ParameterTypeID)
+    WHERE  Name = 'md5hash' AND Value=?
+QUERY
+    my $sth = $dbh->prepare($query);
+    $sth->execute($md5hash);
+
+    # returns undef if no mri_upload entry found
+    return undef unless ($sth->rows > 0);
+
+    # grep the result of the query
+    my @result    = $sth->fetchrow_array();
+    my $fileID    = $result[0];
+
+    return $fileID;
+}
+
+
+
 1;

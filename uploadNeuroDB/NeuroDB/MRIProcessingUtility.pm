@@ -268,10 +268,10 @@ sub createTarchiveArray {
     if ($hrrt) {
         ($query = <<QUERY) =~ s/\n/ /gm;
         SELECT
-          PatientName,    CenterName,            SourceLocation,
-          DateAcquired,   md5sumArchive,         ScannerManufacturer,
-          ScannerModel,   ScannerSerialNumber,   ScannerSoftwareVersion,
-          ArchiveLocation
+          PatientName,      CenterName,            SourceLocation,
+          DateAcquired,     md5sumArchive,         ScannerManufacturer,
+          ScannerModel,     ScannerSerialNumber,   ScannerSoftwareVersion,
+          ArchiveLocation,  HrrtArchiveID
         FROM
           hrrt_archive
         WHERE
@@ -749,8 +749,8 @@ sub registerScanIntoDB {
         ########################################################
         #################### set the new file_path #############
         ######################################################## 
-        $file_path   =   $minc;
-        $file_path      =~  s/$data_dir\///i;
+        $file_path =  $minc;
+        $file_path =~ s/$data_dir\///i;
         $${minc_file}->setFileData(
             'File', 
             $file_path

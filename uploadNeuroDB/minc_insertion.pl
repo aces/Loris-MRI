@@ -443,20 +443,24 @@ if (!$unique) {
 ## at this point things will appear in the database ############
 ## Set some file information ###################################
 ################################################################
-$file->setFileData('ScannerID', $scannerID);
-$file->setFileData('SessionID', $sessionID);
-$file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
-$file->setFileData('EchoTime', $file->getParameter('echo_time'));
-$file->setFileData('PendingStaging', $requiresStaging);
+$file->setFileData('ScannerID',       $scannerID);
+$file->setFileData('SessionID',       $sessionID);
+$file->setFileData('PendingStaging',  $requiresStaging);
 $file->setFileData('CoordinateSpace', 'native');
-$file->setFileData('OutputType', 'native');
-$file->setFileData('FileType', 'mnc');
-$file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
-if (defined($acquisitionProtocol)) {
-    $file->setFileData('Caveat', 1);
+$file->setFileData('OutputType',      'native');
+$file->setFileData('FileType',        'mnc');
+my $caveat;
+if ($hrrt) {
+    $file->setFileData('HrrtArchiveID', $tarchiveInfo{'HrrtArchiveID'});
+    $caveat = 0;
 } else {
-    $file->setFileData('Caveat', 0);
+    $file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
+    $file->setFileData('EchoTime',  $file->getParameter('echo_time'));
+    $file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
+    $caveat = $acquisitionProtocol ? 1 : 0;
 }
+$file->setFileData('Caveat', $caveat);
+
 
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############

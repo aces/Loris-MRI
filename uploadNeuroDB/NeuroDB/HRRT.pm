@@ -9,6 +9,7 @@ use Digest::MD5;
 use File::Type;
 use Date::Parse;
 use String::ShellQuote;
+use File::Copy;
 
 
 use NeuroDB::MincUtilities;
@@ -414,6 +415,21 @@ sub insertBicMatlabHeader {
 
     return $success ? 1 : undef;
 }
+
+
+
+
+sub appendEcatToRegisteredMinc {
+    my ($self, $fileID, $ecat_file, $data_dir, $dbh) = @_;
+
+    my $file = NeuroDB::File->new(\$dbh);
+    $file->loadFile($fileID);
+    my $ecat_new_path = $file->getFileDatum('File');
+    $ecat_new_path    =~ s/mnc$/v/g;
+    move($ecat_file, $data_dir . "/" . $ecat_new_path);
+    $file->setParameter('ecat_filename', $ecat_new_path);
+}
+
 
 
 
