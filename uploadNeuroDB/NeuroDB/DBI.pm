@@ -93,10 +93,10 @@ sub getHrrtUploadInfo {
 
     # grep the UploadedLocation for the UploadID
     (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT UploadLocation, DecompressedLocation, HrrtArchiveID
-FROM mri_upload
-LEFT JOIN mri_upload_rel ON ( mri_upload.UploadID = mri_upload_rel.UploadID )
-WHERE mri_upload.UploadID=?
+    SELECT UploadLocation, DecompressedLocation, HrrtArchiveID
+    FROM mri_upload
+    LEFT JOIN mri_upload_rel ON ( mri_upload.UploadID = mri_upload_rel.UploadID )
+    WHERE mri_upload.UploadID=?
 QUERY
     my $sth = $dbh->prepare($query);
     $sth->execute($upload_id);
@@ -117,7 +117,7 @@ QUERY
 
 
 
-sub getRegisteredFileIDUsingMd5hash {
+sub getRegisteredFileIdUsingMd5hash {
     my ( $fileref, $dbh ) = @_;
 
     my $md5hash = &NeuroDB::MRI::compute_hash($fileref);
@@ -142,6 +142,58 @@ QUERY
     return $fileID;
 }
 
+
+
+sub getSessionIdFromFileId {
+    my ( $fileID, $dbh ) = @_;
+
+    my $query = "SELECT SessionID FROM files WHERE FileID=?";
+    my $sth   = $dbh->prepare($query);
+    $sth->execute($fileID);
+
+    # returns undef if no rows returned
+    return undef unless ($sth->rows > 0);
+
+    # grep the result of the query
+    my @result     = $sth->fetchrow_array();
+    my $sessionID = $result[0];
+
+    return $sessionID;
+
+}
+
+
+
+sub updateHrrtArchiveSessionID {
+    my ($hrrtArchiveID, $sessionID, $dbh) = @_;
+
+    my $query = "UPDATE hrrt_archive SET SessionID=? WHERE HrrtArchiveID=?";
+    my $sth   = $dbh->prepare($query);
+    $sth->execute($sessionID, $hrrtArchiveID);
+
+}
+
+
+sub updateHrrtUploadInfo {
+    my ($valuesRef, $upload_id, $dbh) = @_;
+
+    my @fields = ();
+    my @values = ();
+    foreach my $field (keys %$valuesRef) {
+        push(@fields, "$field=?");
+        push(@values, $$valuesRef{$field});
+    }
+
+    my $query  = sprintf(
+        "UPDATE mri_upload SET %s WHERE %s",
+        join(',', @fields),
+        $upload_id
+    );
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@values);
+
+}
 
 
 1;

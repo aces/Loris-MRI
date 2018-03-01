@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-package NeuroDB::HRRTSUM;
+package NeuroDB::HRRT;
 
 use File::Basename;
 use File::Find;
@@ -372,7 +372,7 @@ QUERY
     $sth     = $dbh->prepare( $insert_mri_upload_rel );
     $success = $sth->execute( @values );
 
-    return $success;
+    $success ? return $hrrtArchiveID : return undef;
 }
 
 
