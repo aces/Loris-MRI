@@ -235,7 +235,7 @@ if ($tarchiveid_count==0)  {
 #### Verify the archive using the checksum from database #######
 ################################################################
 ################################################################
-$utility->validateArchive($tarchive,\%tarchiveInfo);
+$utility->validateArchive($tarchive, \%tarchiveInfo, $upload_id);
 
 ################################################################
 ### Verify PSC information using whatever field ################ 
@@ -270,9 +270,7 @@ my $subjectIDsref = $utility->determineSubjectID(
 ################################################################
 ################################################################
 $utility->CreateMRICandidates(
-    $subjectIDsref,$gender,
-    \%tarchiveInfo,$User,
-    $centerID
+    $subjectIDsref, $gender, \%tarchiveInfo, $User, $centerID, $upload_id
 );
 
 ################################################################
@@ -283,9 +281,7 @@ $utility->CreateMRICandidates(
 ## correct here. ###############################################
 ################################################################
 ################################################################
-my $CandMismatchError= $utility->validateCandidate(
-				$subjectIDsref,
-				$tarchiveInfo{'SourceLocation'});
+my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
 if (defined $CandMismatchError) {
     print "$CandMismatchError \n";
     ##Note that the script will not exit, so that further down
@@ -295,7 +291,7 @@ if (defined $CandMismatchError) {
 ############ Get the SessionID #################################
 ################################################################
 my ($sessionID, $requiresStaging) = 
-    $utility->setMRISession($subjectIDsref, \%tarchiveInfo);
+    $utility->setMRISession($subjectIDsref, \%tarchiveInfo, $upload_id);
 
 ################################################################
 ### Extract the tarchive and feed the dicom data dir to ######## 
@@ -303,7 +299,8 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-                $tarchive, $tarchiveInfo{'SourceLocation'});
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id
+    );
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###
