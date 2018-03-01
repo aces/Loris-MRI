@@ -149,13 +149,11 @@ extracts it so data can actually be uploaded
 =cut
 sub extract_tarchive {
     my $this = shift;
-    my ($tarchive, $tarchive_srcloc, $seriesuid) = @_;
-    my $upload_id = undef;
+    my ($tarchive, $upload_id, $seriesuid) = @_;
     my $message = '';
     my $tarnames = '';
     # get the upload_id from the tarchive source location
     # to pass to the notification_spool
-    $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     $message = "\nExtracting tarchive $tarchive in $this->{TmpDir} \n";
     $this->spool($message, 'N', $upload_id, $notify_detailed);
     my $cmd = "cd $this->{TmpDir} ; tar -xf $tarchive";
@@ -197,11 +195,10 @@ sub extract_tarchive {
 sub extractAndParseTarchive {
 
     my $this = shift;
-    my ($tarchive, $tarchive_srcloc, $seriesuid) = @_;
-    # get the upload_id from the tarchive_srcloc to pass to notification_spool
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+    my ($tarchive, $tarchive_srcloc, $upload_id, $seriesuid) = @_;
+
     my $study_dir = $this->{TmpDir}  . "/" .
-        $this->extract_tarchive($tarchive, $tarchive_srcloc, $seriesuid);
+        $this->extract_tarchive($tarchive, $upload_id, $seriesuid);
     my $ExtractSuffix  = basename($tarchive, ".tar");
     # get rid of the tarchive Prefix 
     $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
@@ -599,9 +596,8 @@ sub update_mri_acquisition_dates {
 sub loadAndCreateObjectFile {
 
     my $this = shift;
-    my ($minc, $tarchive_srcloc) = @_;
+    my ($minc, $upload_id) = @_;
     my $message = '';
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
 
     ############################################################
     ################ create File object ########################
@@ -809,10 +805,9 @@ sub dicom_to_minc {
 
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,
-		$exclude,$mail_user, $tarchive_srcloc) = @_;
+		$exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd,$d2m_log,$exit_code);
     my $message = '';
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series".
                " -echo -image -file -series_descr -attvalue 0018 0024".
                " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 | grep -iv".
@@ -856,9 +851,8 @@ sub dicom_to_minc {
 sub get_mincs {
   
     my $this = shift;
-    my ($minc_files, $tarchive_srcloc) = @_;
+    my ($minc_files, $upload_id) = @_;
     my $message = '';
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     @$minc_files = ();
     opendir TMPDIR, $this->{TmpDir} ;
     my @files = readdir TMPDIR;
@@ -951,12 +945,10 @@ sub registerProgs() {
 sub moveAndUpdateTarchive {
 
     my $this = shift;
-    my ($tarchive_location,$tarchiveInfo) = @_;
+    my ($tarchive_location, $tarchiveInfo, $upload_id) = @_;
     my $query = '';
     my $message = '';
     my ($newTarchiveLocation, $newTarchiveFilename,$mvTarchiveCmd);
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     $message = "\nMoving tarchive into library\n";
     $this->spool($message, 'N', $upload_id, $notify_detailed);
     my $tarchivePath = NeuroDB::DBI::getConfigSetting(
@@ -1010,18 +1002,15 @@ sub CreateMRICandidates {
     ############################################################
     my $this = shift;
     my $query = '';
-    my ($subjectIDsref,$gender,$tarchiveInfo,$User,$centerID) = @_;
+    my ($subjectIDsref,$gender,$tarchiveInfo,$User,$centerID, $upload_id) = @_;
     my ($message);
-    my $tarchive_srcloc = '';
-    my $upload_id   = undef;
+
     if ($tarchiveInfo->{'PatientGender'} eq 'F') {
             $gender = "Female";
     } elsif ($tarchiveInfo->{'PatientGender'} eq 'M') {
         $gender = "Male";
     }
-    # get the upload_id from the tarchive_srcloc for notification_spool
-    $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+
     ################################################################
     ## Create non-existent candidate if the profile allows for #####
     ## Candidate creation ##########################################
@@ -1080,10 +1069,9 @@ sub CreateMRICandidates {
 sub setMRISession {
     my $this = shift;
     my $query = '';
-    my ($subjectIDsref, $tarchiveInfo) = @_;
+    my ($subjectIDsref, $tarchiveInfo, $upload_id) = @_;
     my $message = '';
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+
     ############################################################
     # This will actually create a visit count if it is not ##### 
     # provided through the IDs in the dicom header The count ### 
@@ -1133,9 +1121,8 @@ sub setMRISession {
 
 sub validateArchive {
     my $this = shift;
-    my ($tarchive,$tarchiveInfo) = @_;
-    my $tarchive_srcloc = $tarchiveInfo->{'SourceLocation'};
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+    my ($tarchive, $tarchiveInfo, $upload_id) = @_;
+
     my $message = "\n==> verifying dicom archive md5sum (checksum)\n";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
@@ -1179,7 +1166,7 @@ sub which_directory {
 
 sub validateCandidate {
     my $this = shift;
-    my ($subjectIDsref, $tarchive_srcloc)= @_;
+    my ($subjectIDsref)= @_;
     my $CandMismatchError = undef;
     
     ############################################################
@@ -1248,11 +1235,10 @@ sub computeSNR {
 
     my $this = shift;
     my ($row, $filename, $fileID, $base, $fullpath, $cmd, $message, $SNR, $SNR_old);
-    my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
+    my ($tarchiveID, $upload_id, $profile)= @_;
     my $data_dir = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'dataDirBasepath'
                         );
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
 
     my $query = "SELECT FileID, file from files f ";
     my $where = "WHERE f.TarchiveSource=?";
@@ -1309,8 +1295,7 @@ sub orderModalitiesByAcq {
 
     my $this = shift;
     my ($file, $acqProtID, $dataArr, $message, $sth);
-    my ($tarchiveID, $tarchive_srcloc)= @_;
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
+    my ($tarchiveID, $upload_id)= @_;
 
     my $queryAcqProt = "SELECT DISTINCT f.AcquisitionProtocolID ".
                         "FROM files f ".

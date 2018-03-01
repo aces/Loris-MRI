@@ -375,8 +375,7 @@ my $candlogSth = $dbh->prepare($logQuery);
 ################################################################
 #### Loads/Creates File object and maps dicom fields ###########
 ################################################################
-my $file = $utility->loadAndCreateObjectFile($minc,
-			$tarchiveInfo{'SourceLocation'});
+my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
 
 ################################################################
 ##### Optionally do extra filtering, if needed #################

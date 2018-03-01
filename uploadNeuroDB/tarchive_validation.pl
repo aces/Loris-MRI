@@ -179,6 +179,11 @@ $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
                     $globArchiveLocation
                 );
 
+# grep the upload_id from the tarchive's source location
+my $upload_id = NeuroDB::MRIProcessingUtility::getUploadIDUsingTarchiveSrcLoc(
+    $tarchiveInfo{SourceLocation}
+);
+
 ################################################################
 ############### Get the tarchive-id ############################
 ################################################################
@@ -230,14 +235,14 @@ if ($tarchiveid_count==0)  {
 #### Verify the archive using the checksum from database #######
 ################################################################
 ################################################################
-$utility->validateArchive($tarchive,\%tarchiveInfo);
+$utility->validateArchive($tarchive, \%tarchiveInfo, $upload_id);
 
 ################################################################
 ### Verify PSC information using whatever field ################ 
 ### contains site string #######################################
 ################################################################
 my ($center_name, $centerID) =
-    $utility->determinePSC(\%tarchiveInfo,1);
+    $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
 
 ################################################################
 ################################################################
@@ -246,8 +251,7 @@ my ($center_name, $centerID) =
 ################################################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,1,
-                    $centerID,$NewScanner
+        \%tarchiveInfo, 1, $centerID, $NewScanner, $upload_id
                 );
 
 ################################################################
@@ -256,8 +260,8 @@ my $scannerID = $utility->determineScannerID(
 ################################################################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,\%tarchiveInfo,1
-                    );
+        $scannerID, \%tarchiveInfo, 1, $upload_id
+);
 
 ################################################################
 ################################################################
@@ -266,9 +270,7 @@ my $subjectIDsref = $utility->determineSubjectID(
 ################################################################
 ################################################################
 $utility->CreateMRICandidates(
-    $subjectIDsref,$gender,
-    \%tarchiveInfo,$User,
-    $centerID
+    $subjectIDsref, $gender, \%tarchiveInfo, $User, $centerID, $upload_id
 );
 
 ################################################################
@@ -279,9 +281,7 @@ $utility->CreateMRICandidates(
 ## correct here. ###############################################
 ################################################################
 ################################################################
-my $CandMismatchError= $utility->validateCandidate(
-				$subjectIDsref,
-				$tarchiveInfo{'SourceLocation'});
+my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
 if (defined $CandMismatchError) {
     print "$CandMismatchError \n";
     ##Note that the script will not exit, so that further down
@@ -291,7 +291,7 @@ if (defined $CandMismatchError) {
 ############ Get the SessionID #################################
 ################################################################
 my ($sessionID, $requiresStaging) = 
-    $utility->setMRISession($subjectIDsref, \%tarchiveInfo);
+    $utility->setMRISession($subjectIDsref, \%tarchiveInfo, $upload_id);
 
 ################################################################
 ### Extract the tarchive and feed the dicom data dir to ######## 
@@ -299,7 +299,8 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-                $tarchive, $tarchiveInfo{'SourceLocation'});
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id
+    );
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###
