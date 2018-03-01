@@ -179,6 +179,11 @@ $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
                     $globArchiveLocation
                 );
 
+# grep the upload_id from the tarchive's source location
+my $upload_id = NeuroDB::MRIProcessingUtility::getUploadIDUsingTarchiveSrcLoc(
+    $tarchiveInfo{SourceLocation}
+);
+
 ################################################################
 ############### Get the tarchive-id ############################
 ################################################################
@@ -237,7 +242,7 @@ $utility->validateArchive($tarchive,\%tarchiveInfo);
 ### contains site string #######################################
 ################################################################
 my ($center_name, $centerID) =
-    $utility->determinePSC(\%tarchiveInfo,1);
+    $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
 
 ################################################################
 ################################################################
@@ -246,8 +251,7 @@ my ($center_name, $centerID) =
 ################################################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,1,
-                    $centerID,$NewScanner
+        \%tarchiveInfo, 1, $centerID, $NewScanner, $upload_id
                 );
 
 ################################################################
@@ -256,8 +260,8 @@ my $scannerID = $utility->determineScannerID(
 ################################################################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,\%tarchiveInfo,1
-                    );
+        $scannerID, \%tarchiveInfo, 1, $upload_id
+);
 
 ################################################################
 ################################################################
