@@ -634,11 +634,10 @@ sub move_minc {
     
     my $this = shift;
     my ($minc,$subjectIDsref, $minc_type, $fileref,
-		$prefix,$data_dir, $hrrt, $tarchive_srcloc) = @_;
+		$prefix,$data_dir, $hrrt, $upload_id) = @_;
     my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
     my $concat = "";
     my $message = '';
-    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
 
     ############################################################
     ### figure out where to put the files ######################
@@ -743,7 +742,7 @@ sub registerScanIntoDB {
         $minc_protocol_identified = $this->move_minc(
             \$minc,     $subjectIDsref, $acquisitionProtocol,
             $minc_file, $prefix,        $data_dir,
-            $hrrt,      $tarchiveInfo->{'ArchiveLocation'}
+            $hrrt,      $upload_id
         );
 
         ########################################################
