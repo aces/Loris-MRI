@@ -1,9 +1,12 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl -w
 # Zia Mohades 2014
 # zia.mohades@mcgill.ca
 # Perl tool to update the mri_upload table
 
 use strict;
+
+use constant GET_COUNT    => 1;
+use constant EXACT_MATCH  => 0;
 
 use Cwd qw/ abs_path /;
 use File::Basename qw/ dirname /;
@@ -14,7 +17,18 @@ use Getopt::Tabular;
 use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
-use NeuroDB::DBI;
+
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+use NeuroDB::objectBroker::TarchiveOB;
+use NeuroDB::objectBroker::MriUploadOB;
+
+use TryCatch;
+
+use DateTime;
 
 my $verbose = 0;
 my $profile    = undef;
@@ -22,14 +36,14 @@ my $source_location = '';
 my $tarchive = '';
 my $query = '';
 my $sth = undef;
-my $tarchiveID = 0;
 my $User             = `whoami`;
+chomp $User;
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
     =~ /: (\d+)\.(\d+)/;
 
 
-my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
-                               # or to glob them (like '%Loc')
+my $globArchiveLocation = EXACT_MATCH;   # whether to use strict ArchiveLocation strings
+                                         # or to glob them (like '%Loc')
 
 my $Help = <<HELP;
 *******************************************************************************
@@ -116,8 +130,14 @@ unless (-e $source_location) {
 ################################################################
 #####establish database connection if database option is set####
 ################################################################
-my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); 
 print "Connecting to database.\n" if $verbose;
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
 
 ################################################################
 #####check to see if the tarchiveid is already set or not#######
@@ -126,64 +146,55 @@ print "Connecting to database.\n" if $verbose;
 ################################################################
 
 # fetch tarchiveLibraryDir from ConfigSettings in the database
-my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                            \$dbh,'tarchiveLibraryDir'
-                            );
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+
 # determine tarchive path stored in the database (without tarchiveLibraryDir)
 my $tarchive_path = $tarchive;
-$tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;  
+$tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;
 
-my $where         = " WHERE t.ArchiveLocation =?";
+# Check if there is already an mri upload record for the tarchive
+my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
+my $resultRef = $mriUploadOB->getWithTarchive(
+    GET_COUNT, $tarchive_path, $globArchiveLocation
+);
 
-if ($globArchiveLocation) {
-    $where = " WHERE t.ArchiveLocation LIKE ?";
-    $tarchive_path = basename($tarchive);
-}
-
-($query = <<QUERY) =~ s/\n/ /gm;
-SELECT 
-  COUNT(*) 
-FROM 
-  mri_upload m 
-JOIN 
-  tarchive t ON (t.TarchiveID=m.TarchiveID) 
-QUERY
-$query .= $where;
-$sth = $dbh->prepare($query);
-$sth->execute($tarchive_path);
-my $count = $sth->fetchrow_array;
-if($count>0) {
-   print "\n\tERROR: the tarchive is already uploaded \n\n"; 
+if($resultRef->[0]->[0] > 0) {
+   print "\n\tERROR: the tarchive is already uploaded \n\n";
    exit 6;
-} 
-
+}
 
 ################################################################
 #####get the tarchiveid from tarchive table#####################
 ################################################################
-($query = <<QUERY) =~ s/\n/ /gm;
-SELECT 
-  t.TarchiveID 
-FROM 
-  tarchive t 
-QUERY
-$query .= $where;
-$sth = $dbh->prepare($query);
-$sth->execute("%".$tarchive_path."%");
-my $tarchiveID = $sth->fetchrow_array;
 
+my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $db);
+$resultRef = $tarchiveOB->getByTarchiveLocation(
+    ['TarchiveID'], $tarchive_path, $globArchiveLocation
+);
+
+if(@$resultRef != 1) {
+    die sprintf(
+        "Unexpected number of tarchive records with location %s found: %d\n",
+        $tarchive_path,
+        scalar(@$resultRef)
+    );
+}
+my $tarchiveID = $resultRef->[0]->[0];
 
 ################################################################
  #####populate the mri_upload columns with the correct values####
 ################################################################
-($query = <<QUERY) =~ s/\n/ /gm;
-INSERT INTO mri_upload 
-  (UploadedBy, UploadDate, TarchiveID, DecompressedLocation) 
-VALUES
-  (?, now(), ?, ?)
-QUERY
-my $mri_upload_insert = $dbh->prepare($query);
-$mri_upload_insert->execute($User,$tarchiveID,$source_location);
+
+$mriUploadOB->insert(
+    {
+      UploadedBy           => $User,
+      UploadDate           => DateTime->now()->strftime('%Y-%m-%d %H:%M:%S'),
+      TarchiveID           => $tarchiveID,
+      DecompressedLocation => $source_location
+    }
+);
 
 print "Done updateMRI_upload.pl execution!\n" if $verbose;
 exit 0;
