@@ -363,9 +363,7 @@ my $subjectIDsref = $utility->determineSubjectID(
 ################################################################
 
 my $CandMismatchError = undef;
-$CandMismatchError= $utility->validateCandidate(
-                                $subjectIDsref,
-                                $tarchiveInfo{'SourceLocation'});
+$CandMismatchError= $utility->validateCandidate($subjectIDsref);
 
 my $logQuery = "INSERT INTO MRICandidateErrors".
               "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".

@@ -10,7 +10,7 @@ use Getopt::Tabular;
 use File::Temp qw/ tempdir /;
 use Date::Parse;
 use File::Basename;
-
+use File::Path qw/make_path/;
 
 ###### Import NeuroDB libraries to be used
 use NeuroDB::DBI;
@@ -23,11 +23,16 @@ use NeuroDB::File;
 
 
 ##TODO 1: move those exit codes to ExitCodes.pm
+my $UNKNOW_PROTOCOL = 112; # use the one from ExitCodes.pm
 my $INVALID_UPLOAD_ID       = 150; # invalid upload ID
 my $INVALID_UPLOAD_LOCATION = 151; # invalid upload location
 my $INVALID_DECOMP_LOCATION = 152; # invalid decompressed location
-my $HRRT_ARCHIVE_ALREADY_INSERTED = 153; # if HRRT archive already exists in DB
-my $MINC_FILE_NOT_FOUND = 154; # if could not convert ECAT file into MINC
+my $MINC_FILE_NOT_FOUND     = 153; # if could not convert ECAT file into MINC
+my $MINC_INSERTION_FAILURE  = 154; # if MINC file insertion failure
+my $HRRT_ARCHIVE_ALREADY_INSERTED = 155; # if HRRT archive already exists in DB
+my $MATLAB_HEADER_INSERT_FAILURE  = 156; # if could not insert matlab info
+                                         # into the MINC header
+my $GET_SESSIONID_FROM_FILEID_FAILURE = 157; # no SessionID found for FileID
 
 ###### Table-driven argument parsing
 
@@ -155,7 +160,7 @@ my $utility  = NeuroDB::MRIProcessingUtility->new(
 # grep the UploadedLocation for the UploadID
 my $upload_info = NeuroDB::DBI::getHrrtUploadInfo( $dbh, $upload_id );
 
-# cheack that the upload ID was valid
+# check that the upload ID was valid
 unless ( $upload_info ) {
 
     # if no upload info, exits with message that did not find this upload ID
@@ -218,29 +223,28 @@ MESSAGE
 }
 
 # check that no HRRT archive ID is already associated to that UploadID
-# TODO: remove line comments
-#if ( $upload_info->{hrrt_archive_ID} ) {
-#
-#    $message = <<MESSAGE;
-#    ERROR: This HRRT study upload ID $upload_id appears to be already inserted
-#    into the hrrt_archive tables
-#    (HrrtArchiveID=$upload_info->{hrrt_archive_ID}).\n\n
-#MESSAGE
-#    # write error message in the log file
-#    $utility->writeErrorLog(
-#        $message, $HRRT_ARCHIVE_ALREADY_INSERTED, $log_file
-#    );
-#    ##TODO 1: call the exit code from ExitCodes.pm
-#    # insert error message into notification spool table
-#    $notifier->spool(
-#        'HRRT_PET insertion'   , $message,   0,
-#        'HRRT_PET_insertion.pl', $upload_id, 'Y',
-#        'N'
-#    );
-#    ##TODO 1: call the exit code from ExitCodes.pm
-#    exit $HRRT_ARCHIVE_ALREADY_INSERTED;
-#
-#}
+if ( $upload_info->{hrrt_archive_ID} ) {
+
+    $message = <<MESSAGE;
+    ERROR: This HRRT study upload ID $upload_id appears to be already inserted
+    into the hrrt_archive tables
+    (HrrtArchiveID=$upload_info->{hrrt_archive_ID}).\n\n
+MESSAGE
+    # write error message in the log file
+    $utility->writeErrorLog(
+        $message, $HRRT_ARCHIVE_ALREADY_INSERTED, $log_file
+    );
+    ##TODO 1: call the exit code from ExitCodes.pm
+    # insert error message into notification spool table
+    $notifier->spool(
+        'HRRT_PET insertion'   , $message,   0,
+        'HRRT_PET_insertion.pl', $upload_id, 'Y',
+        'N'
+    );
+    ##TODO 1: call the exit code from ExitCodes.pm
+    exit $HRRT_ARCHIVE_ALREADY_INSERTED;
+
+}
 
 
 
@@ -257,56 +261,58 @@ MESSAGE
 ##### Create the archive summary object
 
 # determine the target_location
-my $target_location = $data_dir . "/HRRTarchive/";
+my $target_location = $data_dir . "/hrrtarchive/";
 
 my $archive = NeuroDB::HRRT->new(
     $upload_info->{decompressed_location}, $target_location, $bic
 );
 
-##TODO uncomment this
-## grep the final target location directory from $archive and create the target
-## location directory if it does not exist yet
-#$target_location = $archive->{target_dir};
-#mkdir $target_location unless ( -e $target_location );
-#
-#
-###### Create the tar file
-#
-## determine where the name and path of the archived HRRT dataset
-#my $final_target  = $target_location
-#                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
-#                    . "_"      . basename($archive->{source_dir})
-#                    . ".tgz";
-#if ( -e $final_target ) {
-#    print "\nTarget already exists.\n\n";
-#    exit 2; #TODO 1: call the exit code from ExitCodes.pm
-#}
-#
-## create the tar file and get its md5sum
-#my $to_tar = $upload_info->{decompressed_location};
-#my $tar_cmd = "tar -czf $final_target $to_tar/*";
-#print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
-#system($tar_cmd);
-#my $md5sumArchive = NeuroDB::HRRTSUM::md5sum($final_target);
-#
-#
-#
-#
-###### Register the HRRT archive into the database
-#
-#print "\nAdding archive info into the database\n" if $verbose;
-#my $archiveLocation = $final_target;
-#$archiveLocation =~ s/$data_dir//g;
-#my $hrrtArchiveID = $archive->database(
-#    $dbh, $md5sumArchive, $archiveLocation, $upload_id
-#);
-#
-#if ($hrrtArchiveID) {
-#    print "\nDone adding HRRT archive info into the database\n" if $verbose;
-#} else {
-#    print "\nThe database command failed\n";
-#    exit ; #TODO 1: call the exit code from ExitCodes.pm
-#}
+# grep the final target location directory from $archive and create the target
+# location directory if it does not exist yet
+$target_location = $archive->{target_dir};
+make_path($target_location) unless ( -e $target_location );
+
+
+
+
+
+##### Create the tar file
+
+# determine where the name and path of the archived HRRT dataset
+my $final_target  = $target_location
+                    . "/HRRT_" . $archive->{study_info}->{date_acquired}
+                    . "_"      . basename($archive->{source_dir})
+                    . ".tgz";
+if ( -e $final_target ) {
+    print "\nTarget already exists.\n\n";
+    exit 2; #TODO 1: call the exit code from ExitCodes.pm
+}
+
+# create the tar file and get its md5sum
+my $to_tar = $upload_info->{decompressed_location};
+my $tar_cmd = "tar -czf $final_target $to_tar/*";
+print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
+system($tar_cmd);
+my $md5sumArchive = NeuroDB::HRRT::md5sum($final_target);
+
+
+
+
+##### Register the HRRT archive into the database
+
+print "\nAdding archive info into the database\n" if $verbose;
+my $archiveLocation = $final_target;
+$archiveLocation =~ s/$data_dir//g;
+my $hrrtArchiveID = $archive->database(
+    $dbh, $md5sumArchive, $archiveLocation, $upload_id
+);
+
+if ($hrrtArchiveID) {
+    print "\nDone adding HRRT archive info into the database\n" if $verbose;
+} else {
+    print "\nThe database command failed\n";
+    exit ; #TODO 1: call the exit code from ExitCodes.pm
+}
 
 
 
@@ -317,84 +323,168 @@ my $minc_created  = 0;
 my $minc_inserted = 0;
 my $sessionID;
 
-#foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
-#
-#    # check if there is a MINC file associated to the ECAT file
-#    my $minc_file = NeuroDB::MincUtilities::ecat2minc( $ecat_file );
-#    unless ( $minc_file ) {
-#        $message = <<MESSAGE;
-#    ERROR: MINC file $minc_file does not exist and could not be created based
-#    on $ecat_file.\n\n
-#MESSAGE
-#        # write error message in the log file
-#        $utility->writeErrorLog(
-#            $message, $MINC_FILE_NOT_FOUND, $log_file
-#        );
-#        ##TODO 1: call the exit code from ExitCodes.pm
-#        # insert error message into notification spool table
-#        $notifier->spool(
-#            'HRRT_PET insertion'   , $message,   0,
-#            'HRRT_PET_insertion.pl', $upload_id, 'Y',
-#            'N'
-#        );
-#        ##TODO 1: call the exit code from ExitCodes.pm
-#        exit $MINC_FILE_NOT_FOUND;
-#    }
-#    $minc_created++;
-#
-#    # if it is a BIC dataset, we know a few things
-#    my $protocol;
-#    if ($bic) {
-#
-#        # append values from the .m parameter file to the MINC header
-#        my $success = $archive->insertBicMatlabHeader( $minc_file );
-#        #TODO exit if undef success
-#
-#        # grep the acquisition protocol from the MINC header
-#        $protocol = NeuroDB::MincUtilities::fetch_header_info(
-#            'matlab_param:PROTOCOL', $minc_file, '$3, $4, $5, $6'
-#        );
-#
-#    }
-#
-#    # TODO: copy Settings option into profileTemplate
-#    my $acquisition_protocol = &Settings::determineHRRTprotocol(
-#        $protocol, $ecat_file
-#    );
-#
-#    # register MINC using minc_insertion.pl
-#    my $minc_insert_cmd = "minc_insertion.pl "
-#                          . " -profile "  . $profile
-#                          . " -mincPath " . $minc_file
-#                          . " -uploadID " . $upload_id
-#                          . " -acquisition_protocol " . $acquisition_protocol
-#                          . " -create_minc_pics "
-#                          . " -bypass_extra_file_checks "
-#                          . " -hrrt ";
-#    my $output = system($minc_insert_cmd);
-#    $output = $output >> 8;
-#    if ($output == 0) {
-#        $minc_inserted++;
-#    }
-#
-#    # append the ecat file into the parameter file table
-#    my $fileref = NeuroDB::File->new(\$dbh);
-#    $fileref->loadFileFromDisk($minc_file);
-#    my $fileID = NeuroDB::DBI::getRegisteredFileIdUsingMd5hash(\$fileref, $dbh);
-#    $archive->appendEcatToRegisteredMinc($fileID, $ecat_file, $data_dir, $dbh);
-#
-#    # grep the session ID associated to the file ID
-#    $sessionID = NeuroDB::DBI::getSessionIdFromFileId($fileID, $dbh);
-#}
+foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
 
-my $hrrtArchiveID=1; #TODO remove once uncommented everything above
-$sessionID = 9342;
-# update SessionID field of hrrt_archive with $sessionID
+    # check if there is a MINC file associated to the ECAT file
+    my $minc_file = NeuroDB::MincUtilities::ecat2minc( $ecat_file );
+    unless ( $minc_file ) {
+        $message = <<MESSAGE;
+    ERROR: MINC file $minc_file does not exist and could not be created based
+    on $ecat_file.\n\n
+MESSAGE
+        # write error message in the log file
+        $utility->writeErrorLog(
+            $message, $MINC_FILE_NOT_FOUND, $log_file
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        # insert error message into notification spool table
+        $notifier->spool(
+            'HRRT_PET insertion'   , $message,   0,
+            'HRRT_PET_insertion.pl', $upload_id, 'Y',
+            'N'
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        exit $MINC_FILE_NOT_FOUND;
+    }
+    $minc_created++;
+
+    # create a hash with MINC information (will contain md5hash of the MINC
+    # file to later be able to grep the FileID of the registered MINC and
+    # append the associated ECAT file in parameter_file)
+    my $mincref = NeuroDB::File->new(\$dbh);
+    $mincref->loadFileFromDisk($minc_file);
+
+    # if it is a BIC dataset, we know a few things
+    my $protocol;
+    if ($bic) {
+
+        # append values from the .m parameter file to the MINC header
+        my $success = $archive->insertBicMatlabHeader( $minc_file );
+        unless ($success) {
+            $message = <<MESSAGE;
+    ERROR: Matlab information could not be inserted into the header of file
+    $minc_file.\n\n
+MESSAGE
+            # write error message in the log file
+            $utility->writeErrorLog(
+                $message, $MATLAB_HEADER_INSERT_FAILURE, $log_file
+            );
+            ##TODO 1: call the exit code from ExitCodes.pm
+            # insert error message into notification spool table
+            $notifier->spool(
+                'HRRT_PET insertion'   , $message,   0,
+                'HRRT_PET_insertion.pl', $upload_id, 'Y',
+                'N'
+            );
+            ##TODO 1: call the exit code from ExitCodes.pm
+            exit $MATLAB_HEADER_INSERT_FAILURE;
+        }
+
+        # grep the acquisition protocol from the MINC header
+        $protocol = NeuroDB::MincUtilities::fetch_header_info(
+            'matlab_param:PROTOCOL', $minc_file, '$3, $4, $5, $6'
+        );
+        unless ($protocol) {
+            $message = "\tERROR: Protocol not found for $minc_file.\n\n";
+            # write error message in the log file
+            $utility->writeErrorLog(
+                $message, $UNKNOW_PROTOCOL, $log_file
+            );
+            ##TODO 1: call the exit code from ExitCodes.pm
+            # insert error message into notification spool table
+            $notifier->spool(
+                'HRRT_PET insertion'   , $message,   0,
+                'HRRT_PET_insertion.pl', $upload_id, 'Y',
+                'N'
+            );
+            ##TODO 1: call the exit code from ExitCodes.pm
+            exit $UNKNOW_PROTOCOL;
+        }
+
+    }
+
+    # TODO: copy Settings option into profileTemplate
+    my $acquisition_protocol = &Settings::determineHRRTprotocol(
+        $protocol, $ecat_file
+    );
+    unless ($acquisition_protocol) {
+        $message = "\tERROR: Protocol not found for $minc_file.\n\n";
+        # write error message in the log file
+        $utility->writeErrorLog(
+            $message, $UNKNOW_PROTOCOL, $log_file
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        # insert error message into notification spool table
+        $notifier->spool(
+            'HRRT_PET insertion'   , $message,   0,
+            'HRRT_PET_insertion.pl', $upload_id, 'Y',
+            'N'
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        exit $UNKNOW_PROTOCOL;
+    }
+
+
+    # register MINC using minc_insertion.pl
+    my $minc_insert_cmd = "minc_insertion.pl "
+                          . " -profile "  . $profile
+                          . " -mincPath " . $minc_file
+                          . " -uploadID " . $upload_id
+                          . " -acquisition_protocol " . $acquisition_protocol
+                          . " -create_minc_pics "
+                          . " -bypass_extra_file_checks "
+                          . " -hrrt ";
+    my $output = system($minc_insert_cmd);
+    $output = $output >> 8;
+    if ($output == 0) {
+        $minc_inserted++;
+    }
+
+    # append the ecat file into the parameter file table
+    my $fileID = NeuroDB::DBI::getRegisteredFileIdUsingMd5hash(\$mincref, $dbh);
+    unless ($fileID) {
+        $message = "\tERROR: $minc_file not inserted into the files table.\n\n";
+        # write error message in the log file
+        $utility->writeErrorLog(
+            $message, $MINC_INSERTION_FAILURE, $log_file
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        # insert error message into notification spool table
+        $notifier->spool(
+            'HRRT_PET insertion'   , $message,   0,
+            'HRRT_PET_insertion.pl', $upload_id, 'Y',
+            'N'
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        exit $MINC_INSERTION_FAILURE;
+    }
+    $archive->appendEcatToRegisteredMinc($fileID, $ecat_file, $data_dir, $dbh);
+
+    # grep the session ID associated to the file ID
+    $sessionID = NeuroDB::DBI::getSessionIdFromFileId($fileID, $dbh);
+    unless ($sessionID) {
+        $message = "\tERROR: could not find SessionID for FileID=$fileID.\n\n";
+        # write error message in the log file
+        $utility->writeErrorLog(
+            $message, $GET_SESSIONID_FROM_FILEID_FAILURE, $log_file
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        # insert error message into notification spool table
+        $notifier->spool(
+            'HRRT_PET insertion'   , $message,   0,
+            'HRRT_PET_insertion.pl', $upload_id, 'Y',
+            'N'
+        );
+        ##TODO 1: call the exit code from ExitCodes.pm
+        exit $GET_SESSIONID_FROM_FILEID_FAILURE;
+    }
+
+}
+
+# update the SessionID field of hrrt_archive with $sessionID
 NeuroDB::DBI::updateHrrtArchiveSessionID($hrrtArchiveID, $sessionID, $dbh);
 
-# TODO: update MRI upload table
-# update following fields: InsertionComplete = 1, number_of_mincInserted,
-# number_of_mincCreated, SessionID, Inserting = 0
+# update mri_upload table
 NeuroDB::DBI::updateHrrtUploadInfo(
     {
         "InsertionComplete"      => 1,
