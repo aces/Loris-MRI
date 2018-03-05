@@ -118,9 +118,7 @@ QUERY
 
 
 sub getRegisteredFileIdUsingMd5hash {
-    my ( $fileref, $dbh ) = @_;
-
-    my $md5hash = &NeuroDB::MRI::compute_hash($fileref);
+    my ( $md5hash, $dbh ) = @_;
 
     (my $query = <<QUERY) =~ s/\n/ /g;
     SELECT FileID

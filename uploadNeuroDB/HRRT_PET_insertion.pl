@@ -71,15 +71,15 @@ my @args_table = (
 
     ["Mandatory options", "section"],
 
-        ["-profile",   "string", 1, \$profile,   $profile_desc  ],
-        ["-upload_id", "string", 1, \$upload_id, $upload_id_desc],
+        ["-profile",   "string",  1, \$profile,   $profile_desc  ],
+        ["-upload_id", "string",  1, \$upload_id, $upload_id_desc],
 
     ["Advanced options", "section"],
 
-        ["-verbose", "boolean", 1, \$verbose, "Be verbose"  ],
+        ["-verbose",   "boolean", 1, \$verbose,   "Be verbose"  ],
 
     ["Optional options", "section"],
-        ["-bic_dataset", "boolean", 1, \$bic, $bic_desc]
+        ["-bic",       "boolean", 1, \$bic,       $bic_desc]
 
 );
 
@@ -348,11 +348,11 @@ MESSAGE
     }
     $minc_created++;
 
-    # create a hash with MINC information (will contain md5hash of the MINC
-    # file to later be able to grep the FileID of the registered MINC and
-    # append the associated ECAT file in parameter_file)
+    # create a hash with MINC information and compute MINC md5hash to be used
+    # later on to fetch the fileID of the registered MINC file.
     my $mincref = NeuroDB::File->new(\$dbh);
     $mincref->loadFileFromDisk($minc_file);
+    my $md5hash = &NeuroDB::MRI::compute_hash(\$mincref);
 
     # if it is a BIC dataset, we know a few things
     my $protocol;
@@ -441,7 +441,7 @@ MESSAGE
     }
 
     # append the ecat file into the parameter file table
-    my $fileID = NeuroDB::DBI::getRegisteredFileIdUsingMd5hash(\$mincref, $dbh);
+    my $fileID = NeuroDB::DBI::getRegisteredFileIdUsingMd5hash($md5hash, $dbh);
     unless ($fileID) {
         $message = "\tERROR: $minc_file not inserted into the files table.\n\n";
         # write error message in the log file
