@@ -163,7 +163,7 @@ if (!$profile) {
     exit 3; 
 }
 
-if ( ($tarchive && $upload_id) || (!$tarchive && !$upload_id) ) {
+if ( !($tarchive xor $upload_id) ) {
     print "\nERROR: You should either specify an upload ID or a tarchive ".
         "path. Make sure that you set only one of those options. ".
         "Upload will exit now.\n\n\n";
