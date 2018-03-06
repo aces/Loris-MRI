@@ -102,7 +102,7 @@ port used for the (upcoming) connection (defaults to 3306 if not provided)
 
 =back
 
-RETURNS: new instance of this class.
+RETURN: new instance of this class.
 
 =cut
 
@@ -175,7 +175,7 @@ the statement passed as parameter before sending the request to the database.
 INPUTS: select query to execute (containing the argument placeholders if any)
         list of arguments to replace the placeholders with.
 
-RETURNS: a reference to the array of records found. Each record is in fact a
+RETURN: a reference to the array of records found. Each record is in fact a
          reference to the list of values for the columns selected
 =cut
 
@@ -205,11 +205,11 @@ sub pselect {
 Inserts one record in a given database table with the specified column values.
 This method will throw a DatabaseException if the record cannot be inserted.
 
-INPUT: the name of the table in which to insert the record
-       a reference to a hash array describing the column names and their values
-       for the given record.
+INPUTS: the name of the table in which to insert the record.
+        a reference to a hash array describing the column names and their values
+        for the given record.
 
-RETURNS: the ID of the record inserted.
+RETURN: the ID of the record inserted.
 
 =cut
 
@@ -242,11 +242,11 @@ sub insertOne {
 Inserts one record in a given database table with the specified column values.
 This method will throw a C<DatabaseException> if the record cannot be inserted.
 
-INPUT: the name of the table in which to insert the record
-       a reference to an array containing the names of the columns whose values
-       will be modified by this C<insert> statement.
-       a reference to an array of array references. This "matrix" contains the
-       values of each column for each record.
+INPUTS: the name of the table in which to insert the record
+        a reference to an array containing the names of the columns whose values
+        will be modified by this C<insert> statement.
+        a reference to an array of array references. This "matrix" contains the
+        values of each column for each record.
 
 =cut
 

@@ -6,7 +6,6 @@
 use strict;
 
 use constant GET_COUNT    => 1;
-use constant EXACT_MATCH  => 0;
 
 use Cwd qw/ abs_path /;
 use File::Basename qw/ dirname /;
@@ -42,7 +41,7 @@ my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
     =~ /: (\d+)\.(\d+)/;
 
 
-my $globArchiveLocation = EXACT_MATCH;   # whether to use strict ArchiveLocation strings
+my $globArchiveLocation = 0;             # whether to use strict ArchiveLocation strings
                                          # or to glob them (like '%Loc')
 
 my $Help = <<HELP;

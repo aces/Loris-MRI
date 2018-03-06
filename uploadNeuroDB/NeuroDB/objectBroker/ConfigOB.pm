@@ -76,7 +76,7 @@ C<Database> object used to access the database.
 
 INPUT: the database object used to fetch the settings.
 
-RETURNS: new instance of this class.
+RETURN: new instance of this class.
 
 =cut
 
@@ -92,7 +92,7 @@ results (i.e. setting $setting does not exist).
 
 INPUT: name of the setting to fetch.
 
-RETURNS: the setting value (as a string). If the setting value is NULL, then this
+RETURN: the setting value (as a string). If the setting value is NULL, then this
          method will return C<undef>.
 
 =cut
@@ -111,7 +111,7 @@ my $getConfigSettingRef = sub {
     } catch(NeuroDB::DatabaseException $e) {
         NeuroDB::objectBroker::ObjectBrokerException->throw(
             errorMessage => sprintf("Failed to get config setting '%s': %s",
-                                    $setting, $e->errorMessage)
+                                    $setting, $e)
         );
     }
 
@@ -128,7 +128,7 @@ my $getConfigSettingRef = sub {
 
 Gets the tarchive library dir.
 
-RETURNS: value (string) of the tarchive library dir in the Config table.
+RETURN: value (string) of the tarchive library dir in the Config table.
 
 =cut
 
