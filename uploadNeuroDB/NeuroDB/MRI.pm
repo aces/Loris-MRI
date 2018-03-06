@@ -666,8 +666,8 @@ sub in_range
 
 
     if($range_string=~ /,/) {
-        print "Comma separated ranges, as found in $range_string, are no longer supported\n";
-        return 0;
+        print "Comma separated ranges, as found in $range_string, are no longer supported. Please remove. Exiting now\n";
+        exit 1; # TODO add this to the exit codes
     }
 
     chomp($range_string);
