@@ -51,7 +51,7 @@ $VERSION = 0.2;
 $FLOAT_EQUALS_NB_DECIMALS = 4;
 
 @EXPORT = qw();
-@EXPORT_OK = qw(identify_scan in_range_min_max get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
+@EXPORT_OK = qw(identify_scan in_min_max get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
 
 =pod
 B<getSubjectIDs( C<$patientName>, C<$scannerID>, C<$dbhr> )>
