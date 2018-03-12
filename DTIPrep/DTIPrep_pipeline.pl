@@ -79,7 +79,7 @@ if ( !@Settings::db ) {
 ($DTIPrepVersion)   = &identify_tool_version("DTIPrep", '\/(DTIPrep[A-Z0-9._]+)\/DTIPrep$')     if (!$DTIPrepVersion);
 # Exit with error message if $DTIPrepVersion was not set or found based on its absolute path
 if (!$DTIPrepVersion) {
-    print STDERR "$Usage\n\t ERROR: Pipeline version could not been determined "
+    print STDERR "$Usage\n\t ERROR: Pipeline version could not be determined "
                  . "via the path to DTIPrep binary. You need to specify which "
                  . "version of DTIPrep you will be using with -DTIPrepVersion "
                  . "option.\n\n";

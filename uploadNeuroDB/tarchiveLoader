@@ -248,7 +248,7 @@ if ($xlog) {
     $childPID = fork(); 
     if ($childPID == 0) { 
         exec("xterm -geometry 130x70 -e tail -f $logfile"); 
-        exit(0); 
+        exit $NeuroDB::ExitCodes::XLOG_FAILURE;
     } 
 }
 

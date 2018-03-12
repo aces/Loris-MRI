@@ -191,7 +191,7 @@ my ($registeredXMLprotocolID)   = &register_XMLProt($XMLProtocol,
                                                     "DTIPrep");
 if (!$registeredXMLprotocolID) {
     print LOG "\nERROR: no XML protocol file was registered in the database\n";
-    exit $NeuroDB::ExitCodes::XML_PROTOCOL_INSERT_FAILURE;
+    exit $NeuroDB::ExitCodes::FILE_REGISTRATION_FAILURE;
 } else {
     print LOG "\nRegistered XML protocol with ID $registeredXMLprotocolID.\n";
     $mri_files->{'Preproc'}{'QCProt'}{'xml'} = $registeredXMLprotocolID; 
@@ -216,7 +216,7 @@ my ($registeredXMLReportFile)   = &register_XMLFile($XMLReport,
                                                     $DTIPrepVersion);
 if (!$registeredXMLReportFile) {
     print LOG "\nERROR: no XML report file was registered in the database\n";
-    exit $NeuroDB::ExitCodes::XML_QCREPORT_INSERT_FAILURE;
+    exit $NeuroDB::ExitCodes::FILE_REGISTRATION_FAILURE;
 } else {
     print LOG "\nRegistered XML report $registeredXMLReportFile.\n";
     $mri_files->{'Preproc'}{'QCReport'}{'xml'}  = $registeredXMLReportFile;
@@ -239,7 +239,7 @@ my ($registeredQCReportFile)    = &register_QCReport($QCReport,
                                                      $DTIPrepVersion);
 if (!$registeredQCReportFile) {
     print LOG "\nERROR: no QC report file was registered in the database\n";
-    exit $NeuroDB::ExitCodes::TXT_QCREPORT_INSERT_FAILURE;
+    exit $NeuroDB::ExitCodes::FILE_REGISTRATION_FAILURE;
 } else {
     print LOG "\nRegistered QC report $registeredQCReportFile.\n";
     $mri_files->{'Preproc'}{'QCReport'}{'txt'}  = $registeredQCReportFile;

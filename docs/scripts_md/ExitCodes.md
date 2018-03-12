@@ -21,12 +21,13 @@ insertion scripts
 
 This class lists all the exit codes used by the imaging insertion scripts.
 
-The exit codes are organized per script, allowing 10 exit codes per script
-(note, not all of the possible exit codes are used by each script, giving
-some room to add some later on if needed). For each scripts, exit codes are
-organized based on their use (validation failures, database related failures,
-file related failures, script execution failures, study related failures,
-input error checking and setting failures).
+The exit codes are organized per script, together with a section that
+represents common failures to most scripts. (note, not all of the possible
+exit codes are used by each script, giving some room to add some later on if
+needed). For each script, exit codes are organized based on their use
+(validation failures, database related failures, file related failures,
+script execution failures, study related failures, input error checking and
+setting failures).
 
 Below is a list of the possible exit codes organized per script:
 

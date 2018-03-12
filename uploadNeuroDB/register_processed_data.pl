@@ -151,7 +151,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $psc    =   $center_name;
     if  (!$psc)     { 
         print LOG "\nERROR: No center found for this candidate \n\n"; 
-        exit $NeuroDB::ExitCodes::GET_PSC_FROM_SOURCEFILEID_FAILURE;
+        exit $NeuroDB::ExitCodes::GET_PSC_FAILURE;
     }
     print LOG  "\n==> Verifying acquisition center\n - Center Name  : $center_name\n - CenterID     : $centerID\n";
 }
@@ -182,7 +182,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 if  (!defined($scannerID))  {
     print LOG "\nERROR: could not determine scannerID based on sourceFileID "
               . "$sourceFileID.\n\n";
-    exit $NeuroDB::ExitCodes::GET_SCANNERID_FROM_SOURCEFILEID_FAILURE;
+    exit $NeuroDB::ExitCodes::GET_SCANNERID_FAILURE;
 }
 $file->setFileData('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
