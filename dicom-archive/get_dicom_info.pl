@@ -12,6 +12,7 @@ use FindBin;
 use Getopt::Tabular qw(GetOptions);
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
+use NeuroDB::ExitCodes;
 
 my $Help;
 my $Usage;
@@ -297,7 +298,10 @@ sub TwoArgInfoOption {
     my $element = shift @$rest;
 
     if (!defined($element) || !defined($group)) {
-        &cleanup_and_die("$option requires two arguments", 1);
+        &cleanup_and_die(
+            "$option requires two arguments",
+            $NeuroDB::ExitCodes::MISSING_ARG
+        );
     }
 
     push(@Variables, [$group, $element]);

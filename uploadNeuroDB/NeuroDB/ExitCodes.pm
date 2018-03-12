@@ -30,48 +30,48 @@ insertion scripts
 This class lists all the exit codes used by the imaging insertion scripts.
 
 The exit codes are organized per script, together with a section that
-represents common failures to most scripts. (note, not all of the possible
+represents common failures to most scripts. For each script, exit codes are
+organized based on their use (validation failures, database related failures,
+file related failures, script execution failures, study related failures,
+input error checking and setting failures). Note that not all of the possible
 exit codes are used by each script, giving some room to add some later on if
-needed). For each script, exit codes are organized based on their use
-(validation failures, database related failures, file related failures,
-script execution failures, study related failures, input error checking and
-setting failures).
+needed.
 
 Below is a list of the possible exit codes organized per script:
 
-1. Common exit codes to most insertion scripts (exit codes from 0 to 9, 0 =
+1. Common exit codes to most insertion scripts (exit codes from 0 to 19, 0 =
 exit script with success status)
 
-2. Exit codes from batch_uploads_imageuploader (exit codes from 10 to 19)
+2. Exit codes from batch_uploads_imageuploader (exit codes from 20 to 49)
 
 3. Exit codes from batch_uploads_tarchive (no exit codes available yet, exit
-codes will be from 20 to 29)
+codes will be from 60 to 69)
 
-4. Exit codes from dicom-archive/dicomTar.pl (exit codes from 30 to 39)
+4. Exit codes from dicom-archive/dicomTar.pl (exit codes from 80 to 89)
 
-5. Exit codes from dicom-archive/updateMRI_upload (exit codes from 40 to 49)
+5. Exit codes from dicom-archive/updateMRI_upload (exit codes from 100 to 119)
 
-6. Exit codes from DTIPrep/DTIPrep_pipeline.pl (exit codes from 50 to 59)
+6. Exit codes from DTIPrep/DTIPrep_pipeline.pl (exit codes from 120 to 139)
 
-7. Exit codes from DTIPrep/DTIPrepRegister.pl (exit codes from 60 to 69)
+7. Exit codes from DTIPrep/DTIPrepRegister.pl (exit codes from 140 to 159)
 
-8. Exit codes from uploadNeuroDB/imaging_upload_file.pl (exit codes from 70
-to 79)
+8. Exit codes from uploadNeuroDB/imaging_upload_file.pl (exit codes from 160
+to 179)
 
-9. Exit codes from uploadNeuroDB/NeuroDB/ImagingUpload.pm (exit codes from 80
-to 89)
+9. Exit codes from uploadNeuroDB/NeuroDB/ImagingUpload.pm (exit codes from 180
+to 199)
 
 10. Exit codes from uploadNeuroDB/NeuroDB/MRIProcessingUtility.pm (exit codes
- from 90 to 99)
+ from 200 to 219)
 
-11. Exit codes from uploadNeuroDB/minc_deletion.pl (exit codes from 100 to 109)
+11. Exit codes from uploadNeuroDB/minc_deletion.pl (exit codes from 220 to 239)
 
-12. Exit codes from uploadNeuroDB/minc_insertion.pl (exit codes from 110 to 119)
+12. Exit codes from uploadNeuroDB/minc_insertion.pl (exit codes from 230 to 259)
 
 13. Exit codes from uploadNeuroDB/register_processed_data.pl (exit codes from
-120 to 129)
+260 to 279)
 
-14. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 130 to 139)
+14. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 280 to 299)
 
 
 =head1 LICENSING
@@ -191,12 +191,6 @@ our $GET_OUTPUT_LIST_FAILURE     = 101; # if could not get the list of outputs
 our $MISSING_PREPROCESSED_FILES  = 102; # if some preprocess files are missing
 our $MISSING_POSTPROCESSED_FILES = 103; # if some post-process files are missing
 our $NO_TOOL_NAME_VERSION        = 104; # if tool name & version not available
-
-# database related failures
-our $XML_PROTOCOL_INSERT_FAILURE = 105; # if XML protocol insertion failed
-our $XML_QCREPORT_INSERT_FAILURE = 106; # if XML QC report insertion failed
-our $TXT_QCREPORT_INSERT_FAILURE = 107; # if text QC report insertion failed
-
 
 
 
@@ -318,5 +312,3 @@ our $NO_VALID_MINC_CREATED = 241; # if no valid MINC file was created
                                   # (non-localizers)
 our $NO_MINC_INSERTED      = 242; # if no MINC files was inserted (invalid
                                   # study)
-our $XLOG_FAILURE          = 243; # if xlog is set, failed to fork a tail to
-                                  # the log file
