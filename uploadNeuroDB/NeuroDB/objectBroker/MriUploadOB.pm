@@ -97,11 +97,12 @@ Fetches the entries in the C<mri_upload> table that have a specific archive
 location. This method throws a C<NeuroDB::objectBroker::ObjectBrokerException>
 if the operation could not be completed successfully.
 
-INPUT: a boolean indicating if only a count of the records found is needed
-       of the full record properties
-       the path of the archive location
-       a boolean indicating if a match is sought on the full archive name
-       or only the basename
+INPUTS:
+    - boolean indicating if only a count of the records found is needed
+      or the full record properties
+    - path of the archive location
+    - boolean indicating if a match is sought on the full archive name
+      or only the basename
 
 RETURNS: a reference to an array of array references. If C<$isCount> is true, then
          C<$returnValue->[0]->[0]> will contain the count of records sought. Otherwise

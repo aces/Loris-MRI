@@ -172,8 +172,9 @@ sub connect {
 Executes a select query on the database. This method will first C<prepare>
 the statement passed as parameter before sending the request to the database.
 
-INPUTS: select query to execute (containing the argument placeholders if any)
-        list of arguments to replace the placeholders with.
+INPUTS: 
+    - select query to execute (containing the argument placeholders if any)
+    - list of arguments to replace the placeholders with.
 
 RETURN: a reference to the array of records found. Each record is in fact a
          reference to the list of values for the columns selected
@@ -205,9 +206,10 @@ sub pselect {
 Inserts one record in a given database table with the specified column values.
 This method will throw a DatabaseException if the record cannot be inserted.
 
-INPUTS: the name of the table in which to insert the record.
-        a reference to a hash array describing the column names and their values
-        for the given record.
+INPUTS: 
+    - name of the table in which to insert the record.
+    - reference to a hash array describing the column names and their values
+      for the given record.
 
 RETURN: the ID of the record inserted.
 
@@ -242,10 +244,11 @@ sub insertOne {
 Inserts one record in a given database table with the specified column values.
 This method will throw a C<DatabaseException> if the record cannot be inserted.
 
-INPUTS: the name of the table in which to insert the record
-        a reference to an array containing the names of the columns whose values
-        will be modified by this C<insert> statement.
-        a reference to an array of array references. This "matrix" contains the
+INPUTS: 
+    - name of the table in which to insert the record
+    - reference to an array containing the names of the columns whose values
+      will be modified by this C<insert> statement.
+    - reference to an array of array references. This "matrix" contains the
         values of each column for each record.
 
 =cut
