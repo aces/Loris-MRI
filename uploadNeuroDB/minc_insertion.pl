@@ -84,6 +84,9 @@ my @opt_table = (
                  ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
                   " to tarchive-file"],
 
+                 ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
+                  "from which this MINC was created"],
+
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
                   "Loosen the validity check of the tarchive allowing for the". 
                   " possibility that the tarchive was moved to a different". 
@@ -124,11 +127,11 @@ Version :   $versionInfo
 
 The program does the following:
 
-- Loads the created minc file and then sets the appropriate parameter for 
+- Loads the created MINC file and then sets the appropriate parameter for
   the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
                      PendingStaging, CoordinateSpace , OutputType , FileType
                      ,TarchiveSource and Caveat)
-- Extracts the correct acquitionprotocol
+- Extracts the correct acquition protocol
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
 - Finally sets the series notification
@@ -160,8 +163,14 @@ if (!$profile) {
     exit 3; 
 }
 
+if ( !($tarchive xor $upload_id) ) {
+    print "\nERROR: You should either specify an upload ID or a tarchive ".
+        "path. Make sure that you set only one of those options. ".
+        "Upload will exit now.\n\n\n";
+    exit; #TODO 1: use exit code from ExitCodes once it is merged
+}
 
-unless (-e $tarchive) {
+if ($tarchive && !(-e $tarchive) ) {
     print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
           " the path to the archive is correct. Upload will exit now.\n\n\n";
     exit 4;
@@ -171,6 +180,9 @@ unless (-e $minc) {
           "path to the minc is correct. Upload will exit now.\n\n\n";
     exit 5;
 }
+
+
+
 
 ################################################################
 ############### Establish database connection ##################
@@ -204,6 +216,9 @@ my $logfile  = "$LogDir/$templog.log";
 print "\nlog dir is $LogDir and log file is $logfile \n" if $verbose;
 open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
+# strings needed for the logHeader, if not set, as an argument, use empty string
+my $source_data_for_log = $tarchive // "";
+my $upload_id_for_log = $upload_id // "";
 &logHeader();
 
 print LOG "\n==> Successfully connected to database \n" if $verbose;
@@ -226,34 +241,56 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 ################################################################
 #################### Check is_valid column #####################
 ################################################################
-my $ArchiveLocation = $tarchive;
-$ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
+my ( $is_valid, $ArchiveLocation );
+if ($tarchive) {
+    # if the tarchive path is given as an argument, find the associated UploadID
+    # and check if IsTarchiveValidated is set to 1.
+    $ArchiveLocation = $tarchive;
+    $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
 
-my $where = "WHERE t.ArchiveLocation='$tarchive'";
-if ($globArchiveLocation) {
-    $where = "WHERE t.ArchiveLocation LIKE '%".basename($tarchive)."'";
-}
-my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
-            "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
-print $query . "\n" if $debug;
-my $is_valid = $dbh->selectrow_array($query);
+    my $where = "WHERE t.ArchiveLocation='$tarchive'";
+    if ($globArchiveLocation) {
+        $where = "WHERE t.ArchiveLocation LIKE '%" . basename($tarchive) . "'";
+    }
+    my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
+        "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
+    print $query . "\n" if $debug;
+    $is_valid = $dbh->selectrow_array($query);
 
-## Setup  for the notification_spool table ##
-# get the tarchive_srcloc from $tarchive 
-$query = "SELECT SourceLocation".
+    ## Setup  for the notification_spool table ##
+    # get the tarchive_srcloc from $tarchive
+    $query = "SELECT SourceLocation" .
         " FROM tarchive t $where";
-my $sth = $dbh->prepare($query);
-$sth->execute();
-$tarchive_srcloc = $sth->fetchrow_array;
-# get the $upload_id from $tarchive_srcloc 
-$query =
-	"SELECT UploadID FROM mri_upload "
-	. "WHERE DecompressedLocation =?";
-$sth = $dbh->prepare($query);
-$sth->execute($tarchive_srcloc);
-$upload_id = $sth->fetchrow_array;
-## end of setup IDs for notification_spool table
-
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    $tarchive_srcloc = $sth->fetchrow_array;
+    # get the $upload_id from $tarchive_srcloc
+    $query =
+        "SELECT UploadID FROM mri_upload "
+            . "WHERE DecompressedLocation =?";
+    $sth = $dbh->prepare($query);
+    $sth->execute($tarchive_srcloc);
+    $upload_id = $sth->fetchrow_array;
+    ## end of setup IDs for notification_spool table
+} elsif ($upload_id) {
+    # if the uploadID is passed as an argument, verify that the tarchive was
+    # validated
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+      m.IsTarchiveValidated,
+      t.ArchiveLocation
+    FROM
+      mri_upload m JOIN tarchive t ON (t.TarchiveID = m.TarchiveID)
+    WHERE
+      m.UploadID = ?
+QUERY
+    print $query . "\n" if $debug;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+    my @array        = $sth->fetchrow_array;
+    $is_valid        = $array[0];
+    $ArchiveLocation = $array[1];
+}
 
 if (($is_valid == 0) && ($force==0)) {
     $message = "\n ERROR: The validation has failed. ".
@@ -278,21 +315,22 @@ if (($is_valid == 0) && ($force==0)) {
 ################################################################
 ############ Get the $center_name, $centerID ##############
 ################################################################
-my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+my ($center_name, $centerID) = $utility->determinePSC(
+                    \%tarchiveInfo, 0, $upload_id
+                );
 
 ################################################################
 #### Determine the ScannerID ###################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,0,$centerID,
-                    $NewScanner
+                    \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
                 );
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,\%tarchiveInfo,0
+                        $scannerID, \%tarchiveInfo, 0, $upload_id
                     );
 
 ################################################################
@@ -317,8 +355,7 @@ my $candlogSth = $dbh->prepare($logQuery);
 ################################################################
 #### Loads/Creates File object and maps dicom fields ###########
 ################################################################
-my $file = $utility->loadAndCreateObjectFile($minc,
-			$tarchiveInfo{'SourceLocation'});
+my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
 
 ################################################################
 ##### Optionally do extra filtering, if needed #################
@@ -370,8 +407,7 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
-my $unique = $utility->computeMd5Hash($file, 
-				$tarchiveInfo{'SourceLocation'});
+my $unique = $utility->computeMd5Hash( $file, $upload_id );
 if (!$unique) { 
     $message = "\n--> WARNING: This file has already been uploaded!\n";  
     print $message if $verbose;
@@ -408,10 +444,12 @@ if (defined($acquisitionProtocol)) {
   = $utility->getAcquisitionProtocol(
       $file,
       $subjectIDsref,
-      \%tarchiveInfo,$center_name,
+      \%tarchiveInfo,
+      $center_name,
       $minc,
       $acquisitionProtocol,
-      $bypass_extra_file_checks
+      $bypass_extra_file_checks,
+      $upload_id
     );
 
 
@@ -432,9 +470,9 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file, \%tarchiveInfo,$subjectIDsref, 
-    $acquisitionProtocol, $minc, \@checks, 
-    $reckless, $tarchive, $sessionID
+    \$file,               \%tarchiveInfo, $subjectIDsref,
+    $acquisitionProtocol, $minc,          \@checks,
+    $reckless,            $sessionID,     $upload_id
 );
 
 if ((!defined$acquisitionProtocolIDFromProd)
@@ -508,7 +546,8 @@ sub logHeader () {
             AUTOMATED DICOM DATA UPLOAD
 ----------------------------------------------------------------
 *** Date and time of upload    : $date
-*** Location of source data    : $tarchive
+*** Location of source data    : $source_data_for_log
 *** tmp dir location           : $TmpDir
+*** Upload ID of source data   : $upload_id_for_log
 ";
 }

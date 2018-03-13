@@ -342,24 +342,21 @@ if (($output != 0)  && ($force==0)) {
 ########## Get the $center_name, $centerID ################
 ################################################################
 my ($center_name, $centerID) =
-     $utility->determinePSC(\%tarchiveInfo,0);
+     $utility->determinePSC(\%tarchiveInfo, 0, $upload_id);
 
 ################################################################
 ######### Determine the ScannerID ##############################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,0,
-                    $centerID,
-                    $NewScanner
-                );
+        \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
+);
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,
-                        \%tarchiveInfo,0
-                    );
+        $scannerID, \%tarchiveInfo, 0, $upload_id
+);
 
 ################################################################
 ###### Get the SessionID #######################################
@@ -383,23 +380,23 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $seriesuid);
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id, $seriesuid
+    );
 
 
 ################################################################
 ##################### convert the dicom data to minc ###########
 ################################################################
 $utility->dicom_to_minc(
-    $study_dir,$converter,$get_dicom_info,
-    $exclude,$mail_user, $tarchiveInfo{'SourceLocation'});
+    $study_dir, $converter, $get_dicom_info, $exclude, $mail_user, $upload_id
+);
 
 
 ################################################################
 ############### get a list of mincs ############################
 ################################################################
 my @minc_files = ();
-$utility->get_mincs(\@minc_files,
-		     	 $tarchiveInfo{'SourceLocation'});
+$utility->get_mincs(\@minc_files, $upload_id);
 my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
@@ -442,8 +439,9 @@ foreach my $minc (@minc_files) {
     }
     elsif (!$valid_study) {
         $newTarchiveLocation = 
-            $utility->moveAndUpdateTarchive($tarchive,
-					\%tarchiveInfo);
+            $utility->moveAndUpdateTarchive(
+                $tarchive, \%tarchiveInfo, $upload_id
+            );
     }
     $tarchive = $newTarchiveLocation;
 
@@ -505,15 +503,12 @@ foreach my $minc (@minc_files) {
 ################################################################
 ############### Compute SNR on 3D modalities ###################
 ################################################################
-$utility->computeSNR($tarchiveInfo{TarchiveID},
-                         $tarchiveInfo{'SourceLocation'},
-			 $profile);
+$utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id, $profile);
 ################################################################
 ####### Add order of acquisition for similar modalities ########
 ####### within the same session based on series number #########
 ################################################################
-$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID},
-                         $tarchiveInfo{'SourceLocation'});
+$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID}, $upload_id);
 
 
 if ($valid_study) {
