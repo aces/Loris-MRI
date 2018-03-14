@@ -1,1 +1,0 @@
-# 5.0 - Pipeline trigger options
