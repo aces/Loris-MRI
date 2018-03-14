@@ -145,43 +145,46 @@ usage: $0 </path/to/DICOM-tarchive> [options]
 
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
+if (!$ENV{LORIS_CONFIG}) {
+	print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
+	exit 1;  # TODO replace by appropriate exit code from ExitCodes once it is defined
+}
+
+if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+    print $Help; 
+    print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";  
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+
+if (defined $tarchive && !(-e $tarchive) ) {
+    print STDERR "\nERROR: Could not find archive $tarchive. \nPlease, make sure "
+        . " the path to the archive is correct. Upload will exit now.\n\n\n";
+    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+}
+
+if ( !($tarchive xor $upload_id) ) {
+    print STDERR "\nERROR: You should either specify an upload ID or a tarchive "
+        . "path. Make sure that you set only one of those options. "
+        . "Upload will exit now.\n\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
+}
+
+if (!defined $minc || !-e $minc) {
+    print STDERR "$Usage\n\tERROR: You must specify a valid and existing "
+        . "MINC file with -minc.\n\n";  
+    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+}
 
 # input option error checking
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 
-if ( !$profile ) {
-    print $Help;
-    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
-    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
-}
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
                  . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
-
-if ( !($tarchive xor $upload_id) ) {
-    print "\nERROR: You should either specify an upload ID or a tarchive ".
-        "path. Make sure that you set only one of those options. ".
-        "Upload will exit now.\n\n\n";
-    exit; #TODO 1: use exit code from ExitCodes once it is merged
-}
-
-if ($tarchive && !(-e $tarchive) ) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
-          " the path to the archive is correct. Upload will exit now.\n\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
-}
-unless (-e $minc) {
-    print STDERR "\nERROR: Could not find minc $minc.\n"
-                 . "Please, make sure the path to the MINC file is valid.\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
-}
-
-
-
 
 ################################################################
 ############### Establish database connection ##################
@@ -194,6 +197,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my $data_dir = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
+
 if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'no_nii'))) {
     $no_nii = NeuroDB::DBI::getConfigSetting(
                        \$dbh,'no_nii'
@@ -249,13 +253,20 @@ if ($tarchive) {
 
     my $where = "WHERE t.ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
-        $where = "WHERE t.ArchiveLocation LIKE '%" . basename($tarchive) . "'";
+        $where = "WHERE t.ArchiveLocation LIKE '%/" . basename($tarchive) . "'";
     }
     my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
         "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
     print $query . "\n" if $debug;
     $is_valid = $dbh->selectrow_array($query);
 
+    if(!defined $is_valid) {
+		my $errorMessage = $globArchiveLocation
+		    ? "No mri_upload with the same archive location basename as '$tarchive'"
+		    : "No mri_upload with archive location '$tarchive'";
+		die "$errorMessage\n";
+	} 
+	
     ## Setup  for the notification_spool table ##
     # get the tarchive_srcloc from $tarchive
     $query = "SELECT SourceLocation" .
@@ -263,6 +274,14 @@ if ($tarchive) {
     my $sth = $dbh->prepare($query);
     $sth->execute();
     $tarchive_srcloc = $sth->fetchrow_array;
+    
+    if(!defined $tarchive_srcloc) {
+		my $errorMessage = $globArchiveLocation
+		    ? "No tarchive with the same source location basename as '$tarchive'"
+		    : "No tarchive with source location '$tarchive'";
+		die "$errorMessage\n";
+	} 
+
     # get the $upload_id from $tarchive_srcloc
     $query =
         "SELECT UploadID FROM mri_upload "
@@ -291,12 +310,11 @@ QUERY
     $ArchiveLocation = $array[1];
 }
 
-if (($is_valid == 0) && ($force==0)) {
+if ((!defined $is_valid || $is_valid == 0) && !$force) {
     $message = "\n ERROR: The validation has failed. ".
                "Either run the validation again and fix ".
                "the problem. Or use -force to force the ".
                "execution.\n\n";
-    print STDERR $message;
     $utility->writeErrorLog(
         $message, $NeuroDB::ExitCodes::INVALID_TARCHIVE, $logfile
     );
