@@ -620,8 +620,8 @@ sub register_minc {
 
 =head3 register_XMLFile($XMLFile, $raw_file, $data_dir, $QCReport, ...)
 
-Set parameters needed to register the XML report/protocol of DTIPrep
-and call registerFile to register the XML file via register_processed_data.pl. 
+Sets parameters needed to register the XML report/protocol of DTIPrep
+and calls registerFile to register the XML file via register_processed_data.pl.
 
 INPUT:
   - $XMLFile     : XML file to be registered

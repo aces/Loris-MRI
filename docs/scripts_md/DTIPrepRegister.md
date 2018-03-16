@@ -112,8 +112,8 @@ RETURNS: registered MINC file on success, undef otherwise
 
 ### register\_XMLFile($XMLFile, $raw\_file, $data\_dir, $QCReport, ...)
 
-Set parameters needed to register the XML report/protocol of DTIPrep
-and call registerFile to register the XML file via register\_processed\_data.pl. 
+Sets parameters needed to register the XML report/protocol of DTIPrep
+and calls registerFile to register the XML file via register\_processed\_data.pl.
 
 INPUT:
   - $XMLFile     : XML file to be registered
