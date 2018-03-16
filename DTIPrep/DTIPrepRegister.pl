@@ -24,10 +24,10 @@ Available options are:
 -anat_file      : native anatomical dataset used to create FA, RGB and
                    other post-processed maps using mincdiffusion tools
 
--DTIPrepVersion : DTIPrep version used if cannot be found in MINC
+-DTIPrepVersion : DTIPrep version used if it cannot be found in MINC
                    files' C<processing:pipeline> header field
 
--mincdiffusionVersion: mincdiffusion release version used if cannot be
+-mincdiffusionVersion: mincdiffusion release version used if it cannot be
                         found in minc files' C<processing:pipeline>
                         header field
 
@@ -372,15 +372,17 @@ exit 0;
 
 =head3 register_XMLProt($XMLProtocol, $data_dir, $tool)
 
-Registers XML protocol file into C<mri_processing_protocol> table. It will first
-check if protocol file was already registered in the database. If the protocol
-file is already registered in the database, it will return the
+Registers XML protocol file into the C<mri_processing_protocol> table. It will
+first check if protocol file was already registered in the database. If the
+protocol file is already registered in the database, it will return the
 ProcessProtocolID from the database. If the protocol file is not registered yet
 in the database, it will register it in the database and return the
 ProcessProtocolID of the registered protocol file.
 
-INPUT: XML protocol file of DTIPrep to be registered, data directory from the
-Config table, tool name of the protocol (a.k.a. "DTIPrep")
+INPUTS:
+  - $XMLProtocol: XML protocol file of DTIPrep to be registered
+  - $data_dir   : data directory from the C<Config> table, tool name of the
+                   protocol (a.k.a. "DTIPrep")
 
 RETURNS: ID of the registered protocol file
 
@@ -411,7 +413,7 @@ sub register_XMLProt {
 Registers protocol file into C<mri_processing_protocol> table and move the
 protocol to the C<$data_dir/protocols/DTIPrep> folder.
 
-INPUT:
+INPUTS:
   - $protocol: protocol file to be registered
   - $md5sum  : md5sum of the protocol file to be registered
   - $tool    : tool of the protocol file (DTIPrep)
@@ -484,11 +486,11 @@ sub fetchProtocolID {
 
 =head3 register_minc($minc, $raw_file, $data_dir, $inputs, ...)
 
-Set the different parameters needed for MINC files' registration
-and call C<&registerFile> to register the MINC file in the database
+Sets the different parameters needed for MINC files' registration
+and calls C<&registerFile> to register the MINC file in the database
 via C<register_processed_data.pl> script.
 
-INPUT:
+INPUTS:
   - $minc                  : MINC file to be registered
   - $raw_file              : source file of the MINC file to register
   - $data_dir              : data_dir directory from the config table
@@ -632,7 +634,7 @@ INPUT:
   - $toolName    : DTIPrep name & version used to process the DWI file
 
 RETURNS: the registered XNL file if it was registered in the database, undef
-otherwise
+          otherwise
 
 =cut
 
@@ -708,11 +710,11 @@ sub register_XMLFile {
 
 =head3 register_QCReport($QCReport, $raw_file, $data_dir, $inputs, ...)
 
-Set parameters needed to register the QCreport of DTIPrep and call
+Sets parameters needed to register the QCreport of DTIPrep and calls
 C<&registerFile> to register the QCreport file via
 C<register_processed_data.pl>.
 
-INPUT:
+INPUTS:
   - $QCReport    : QC report file to be registered
   - $raw_file    : native DWI file used to obtain the DTIPrep outputs
   - $data_dir    : data_dir from the config table
@@ -722,7 +724,7 @@ INPUT:
   - $toolName    : DTIPrep name & version used to process the DWI file
 
 RETURNS: registered QCReport file if it was registered in the database, undef
- otherwise
+          otherwise
 
 =cut
 
@@ -793,12 +795,13 @@ sub register_QCReport {
 =head3 getFiles($dti_file, $DTIrefs)
 
 This function checks that all the processing files exist on the filesystem and
-returns the files to be inserted in the database. When NRRD and MINC files were
+returns the files to be inserted in the database. When NRRD and MINC files are
 found, it will only return the MINC file. (NRRD files will be linked to the
 MINC file when inserting files in the database).
 
-INPUT: raw DTI dataset that is used as a key in C<$DTIrefs> hash; hash
-containing all output paths and tool information
+INPUTS:
+  - $dit_file: raw DTI dataset that is used as a key in C<$DTIrefs> hash
+  - $DTIref  : hash containing all output paths and tool information
 
 RETURNS:
   - $XMLProtocol    : DTIPrep XML protocol found in the file system
@@ -843,8 +846,11 @@ sub getFiles {
 Function that checks if all DTIPrep pre-processing files are present in the
 file system.
 
-INPUT: raw DTI dataset that is used as a key in $DTIrefs hash; hash
-containing all output paths and tool information
+INPUTS:
+  - $dti_file: raw DTI dataset that is used as a key in $DTIrefs hash
+  - DTIrefs  : hash containing all output paths and tool information
+  - mri_files: list of processed outputs to register or that have been
+                registered
 
 RETURNS:
   - $XMLProtocol: DTIPrep XML protocol found in the file system
@@ -903,8 +909,11 @@ sub checkPreprocessFiles {
 Function that checks if all postprocessing files (from DTIPrep or
 mincdiffusion) are present in the file system.
 
-INPUT: raw DTI dataset that is used as a key in $DTIrefs hash; hash
-containing all output paths and tool information
+INPUTS:
+  - $dti_file : raw DTI dataset that is used as a key in $DTIrefs hash
+  - $DTIrefs  : hash containing all output paths and tool information
+  - $mri_files: list of processed outputs to register or that
+                 have been registered
 
 RETURNS:
   - $RGB_minc       : RGB map
@@ -1025,11 +1034,13 @@ sub checkPostprocessFiles {
 Fetches the source FileID from the database based on the src_name file
 identified by getFileName.
 
-INPUT: output filename, source filename (file that has been used to obtain
-the output file $file)
+INPUTS:
+  - $file    : output filename
+  - $src_name: source filename (file that has been used to obtain the output
+                file $file)
 
 RETURNS: source File ID (file ID of the source file that has been used to
-obtain $file)
+          obtain $file)
 
 =cut
 
@@ -1062,13 +1073,15 @@ sub getFileID {
 
 =head3 getToolName($file)
 
-Fetches tool information stored either in the MINC's header or in the QCReport.
+Fetches tool information stored either in the MINC file's header or in the
+QCReport.
 
 INPUT: MINC or QC report to look for tool information
 
-RETURNS: name of the pipeline used to obtain $file (a.k.a. DTIPrepPipeline);
-name and version of the tool used to obtain $file (DTIPrep_v1.1.6,
-mincdiffusion_v...)
+RETURNS:
+  - $src_pipeline: name of the pipeline used to obtain $file (DTIPrepPipeline)
+  - $src_tool    : name and version of the tool used to obtain $file
+                    (DTIPrep_v1.1.6, mincdiffusion_v...)
 
 =cut
 
@@ -1098,13 +1111,15 @@ sub getToolName {
 
 =head3 getPipelineDate($file, $data_dir, $QCReport)
 
-Fetches the date at which DTIPrep pipeline was run either in the processed
-MINC's header or in the QCReport.
+Fetches the date at which the DTIPrep pipeline was run either in the processed
+MINC file's header or in the QCReport.
 
-INPUT: MINC or QC report to look for tool information; data_dir from the
-Config table; QC report created when $file was created
+INPUTS:
+  - MINC or QC report to look for tool information
+  - data_dir from the C<Config> table
+  - QC report created when C<$file> was created
 
-RETURNS: date at which the pipeline has been run to obtain $file
+RETURNS: date at which the pipeline has been run to obtain C<$file>
 
 =cut
 
@@ -1159,11 +1174,13 @@ sub getPipelineDate {
 
 =head3 insertReports($minc, $registeredXMLFile, $registeredQCReportFile)
 
-Inserts in the MINC header the path to DTIPrep's QC text and XML reports and XML
-protocol.
+Inserts the path to DTIPrep's QC text, XML reports and XML protocol in the
+MINC file's header.
 
-INPUT: minc file to modify header; path to the registered DTIPrep's XML
-report; path to the registered DTIPrep's QC text report
+INPUTS:
+  - $minc                  : MINC file for which the header should be modified
+  - $registeredXMLfile     : path to the registered DTIPrep's XML report
+  - $registeredQCReportFile: path to the registered DTIPrep's QC text report
 
 RETURNS:
  - $Txtreport_insert: 1 if on text report path insertion success,
@@ -1202,8 +1219,10 @@ of the directions rejected due to slice wise correlation, the directions
 rejected due to interlace correlation, and the directions rejected due to
 gradient wise correlation.
 
-INPUT: minc file in which the summary will be inserted; data_dir from the
-Config file; DTIPrep's QC report from which the summary will be extracted
+INPUTS:
+  - $minc     : MINC file in which the summary will be inserted
+  - $data_dir : C<data_dir> from the C<Config> table
+  - $XMLReport: DTIPrep's XML QC report from which the summary will be extracted
 
 RETURNS: 1 on success, undef on failure
 
@@ -1270,7 +1289,7 @@ sub insertPipelineSummary   {
 Registers file into the database via register_processed_data.pl with all
 options.
 
-INPUT:
+INPUTS:
   - $file           : file to be registered in the database
   - $src_fileID     : source file's FileID
   - $src_pipeline   : pipeline used to obtain the file
@@ -1339,9 +1358,9 @@ sub registerFile  {
 
 =head3 fetchRegisteredFile($src_fileID, $src_pipeline, $pipelineDate, ...)
 
-Fetches the registered file from the database to link it to the minc files.
+Fetches the registered file from the database to link it to the MINC files.
 
-INPUT:
+INPUTS:
  - $src_fileID     : FileID of the source native file
  - $src_pipeline   : pipeline name used to register the processed file
  - $pipelineDate   : pipeline data used to register the processed file
@@ -1392,11 +1411,24 @@ registered NRRD file (C<&register_minc> function will modify the MINC header to
 include this information) in addition to the links toward QC reports and
 protocol.
 
-INPUT: files to be registered ($minc, $nrrd); registered QC report files
-($registeredXMLReportFile, $registeredQCReportFile); $DTIPrepVersion used to
-produce the files
+INPUTS:
+  - $minc                   : MINC file to be registered
+  - $nrrd                   : NRRD file to be registered
+  - $raw_file               : raw DWI file used to create the MINC file to
+                               register
+  - $data_dir               : C<data_dir> from the C<Config> table
+  - $inputs                 : input files that were used to create the file to
+                               be registered (intermediary files)
+  - $registeredXMLProtocolID: registered XML protocol file
+  - $pipelineName           : name of the pipeline that created the file to be
+                               registered (DTIPrepPipeline)
+  - $DTIPrepVersion         : DTIPrep's version
+  - $registeredXMLReportFile: registered XML report file
+  - $registeredQCReport     : registered QC text file
+  - $scanType               : scan type to use to label/register the MINC file
 
-RETURNS: registered minc files or undef on insertion's failure
+
+RETURNS: registered MINC files or undef on insertion's failure
 
 =cut
 
@@ -1457,11 +1489,11 @@ sub register_DTIPrep_files {
 
 =head3 register_nrrd($nrrd, $raw_file, $data_dir, $QCReport, $inputs, ...)
 
-Set parameters needed to register the NRRD file produced by DTIPrep
-and call registerFile to register the NRRD file via
+Sets parameters needed to register the NRRD file produced by DTIPrep
+and calls registerFile to register the NRRD file via
 C<register_processed_data.pl>.
 
-INPUT:
+INPUTS:
   - $nrrd        : NRRD file to be registered
   - $raw_file    : native DWI file used to obtain the DTIPrep outputs
   - $data_dir    : data_dir from the config table
@@ -1546,11 +1578,11 @@ sub register_nrrd {
 
 =head3 register_Preproc($mri_files, $dti_file, $data_dir, ...)
 
-Gather all DTIPrep preprocessed files to be registered in the database
-and call C<&register_DTIPrep_files> on all of them. Will register first the
+Gathers all DTIPrep preprocessed files to be registered in the database
+and calls C<&register_DTIPrep_files> on all of them. Will register first the
 NRRD file and then the MINC file for each scan type.
 
-INPUT:
+INPUTS:
   - $mri_files   : hash containing all DTI output information
   - $dti_file    : native DWI file (that will be used as a key
                     for $mri_files)
@@ -1604,7 +1636,7 @@ used to obtain them. Will call C<&register_DTIPrep_files> if files to be
 registered are obtained via DTIPrep or C<&register_minc> if files to be
 registered are obtained using mincdiffusion tools.
 
-INPUT:
+INPUTS:
   - $mri_files   : hash with information about the files to be registered
   - $raw_file    : source raw image
   - $data_dir    : data directory from the Config table
@@ -1689,7 +1721,7 @@ sub register_images {
 Function that will return in a string the list of inputs used to process the
 data separated by ';'.
 
-INPUT:
+INPUTS:
   - $mri_files   : list of processed outputs to register or that
                     have been registered
   - $data_dir    : data directory from the Config table
@@ -1742,8 +1774,9 @@ Will check if md5sum has already been registered into the database.
 
 INPUT: md5sum of the file
 
-RETURNS: registered FileID matching md5sum and scan type of the registered
-FileID matching md5sum
+RETURNS:
+  - $registeredFile    : registered FileID matching md5sum
+  - $registeredScanType: scan type of the registered FileID matching md5sum
 
 =cut
 
