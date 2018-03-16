@@ -1,6 +1,6 @@
 # NAME
 
-register\_processed\_data.pl -- Inserts processed data and link it to the source
+register\_processed\_data.pl -- Inserts processed data and links it to the source
 data
 
 # SYNOPSIS
@@ -52,15 +52,19 @@ This script inserts processed data in the files and parameter\_file tables.
 
 This function returns the sessionID based on the provided sourceFileID.
 
-INPUT: source FileID, database handle
+INPUTS:
+  - $sourceFileID: source FileID
+  - $dbh         : database handle
 
 RETURNS: session ID
 
 ### getScannerID($sourceFileID, $dbh)
 
-This function gets ScannerID from the `files` table using sourceFileID
+This function gets the ScannerID from the `files` table using sourceFileID
 
-INPUT: source FileID, database handle
+INPUTS:
+  - $sourceFileID: source FileID
+  - $dbh         : database handle
 
 RETURNS: scanner ID
 
@@ -69,29 +73,37 @@ RETURNS: scanner ID
 This function returns the AcquisitionProtocolID of the file to register in the
 database based on scanType in the `mri_scan_type` table.
 
-INPUT: scan type, database handle
+INPUTS:
+  - $scanType: scan type
+  - $dbh     : database handle
 
 RETURNS: acquisition protocol ID
 
 ### fetchMincHeader($file, $field)
 
-This function parses the MINC header and look for specific field's value.
+This function parses the MINC header and looks for specific field's value.
 
-INPUT: MINC file, MINC header field
+INPUTS:
+  - $file : MINC file
+  - $field: MINC header field values
 
 RETURNS: MINC header value
 
 ### copy\_file($filename, $subjectIDsref, $scan\_type, $fileref)
 
-Move files to assembly folder.
+Moves files to `assembly` folder.
 
-INPUT: file to copy, subject ID hashref, scan type, file hash ref
+INPUTS:
+  - $filename     : file to copy
+  - $subjectIDsref: subject ID hashref
+  - $scan\_type    : scan type
+  - $fileref      : file hash ref
 
 RETURNS: file name of the copied file
 
 ### getSourceFilename($sourceFileID)
 
-Grep source file name from the database using SourceFileID.
+Greps source file name from the database using SourceFileID.
 
 INPUT: ID of the source file
 
@@ -107,10 +119,10 @@ RETURNS: directory where the MINC files will go
 
 ### insert\_intermedFiles($fileID, $inputFileIDs, $tool)
 
-Function that will insert into the `files_intermediary` table of the database,
-intermediary outputs that were used to obtain the processed file.
+Function that will insert the intermediary outputs that were used to obtain the
+processed file into the `files_intermediary` table of the database.
 
-INPUT:
+INPUTS:
   - $fileID      : fileID of the registered processed file
   - $inputFileIDs: array containing the list of input files that were
                     used to obtain the processed file
