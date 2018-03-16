@@ -34,14 +34,14 @@ perl DTIPrep_pipeline.p C<[options]>
 B<Notes:>
 
 - tool version options (C<-DTIPrepVersion> & C<-mincdiffusionVersion>)
-do not need to be set if it can be found directly in the path of the binary
+do not need to be set if they can be found directly in the path of the binary
 tools.
 
-- can run the script without the C<-runDTIPrep> option if don't want to run
-DTIPrep when calling the script.
+- the script can be run without the C<-runDTIPrep> option if execution of
+DTIPrep is not needed.
 
-- can run the script without the C<-registerFilesInDB> option if don't want
-to register DTIPrep outputs in the database.
+- the script cab be run without the C<-registerFilesInDB> option if
+registration of DTIPrep is not needed.
 
 =head1 DESCRIPTION
 
@@ -346,8 +346,9 @@ exit 0;
 
 Function that determines the tool version used for processing.
 
-INPUT: tool to search absolute path containing version information, string to
-match to determine tool version
+INPUTS:
+  - $tool : tool to search absolute path containing version information
+  - $match: string to match to determine tool version
 
 RETURNS: version of the tool found, or undef if version could not be
 determined based on the path
@@ -376,8 +377,8 @@ process. Relevant information will also be printed in the log file.
 
 INPUT: native directory of the dataset to process
 
-RETURNS: $candID & $visit_label information, or undef if could not find the
-site, CandID or visit label.
+RETURNS: $candID & $visit_label information, or undef if the script could not
+determine the site, CandID or visit label.
 
 =cut
 
@@ -411,9 +412,9 @@ C<outdir/ProtocolName/CandID/VisitLabel>
 
 - If $runDTIPrep is set, the function will create the output folders
 
-- If $runDTIPrep is not set, will check that the directory exists
+- If $runDTIPrep is not set, the function will check that the directory exists
 
-INPUT:
+INPUTS:
   - $outdir         : root directory for DTIPrep outputs (in
                        C</data/project/data/pipelines/DTIPrep/DTIPrep_version>)
   - $subjID         : candidate ID of the DTI dataset to be processed
@@ -452,11 +453,11 @@ sub getOutputDirectories {
 
 =head3 fetchData($nativedir, $DTI_volumes, $t1_scan_type, $QCoutdir, ...)
 
-Fetch the raw DWI datasets and foreach DWI, determine output names to be used
-and store them into a hash ($DTIrefs). Will also print relevant information
+Fetches the raw DWI datasets and foreach DWI, determines output names to be used
+and stores them into a hash ($DTIrefs). Will also print relevant information
 in the log file.
 
-INPUT:
+INPUTS:
   - $nativedir      : native directory to look for native DWI dataset
   - $DTI_volumes    : number of volumes expected in the DWI dataset
   - $t1_scan_type   : the scan type name of the T1 weighted dataset
@@ -499,10 +500,10 @@ sub fetchData {
 
 =head3 preprocessingPipeline($DTIs_list, $DTIrefs, $QCoutdir, ...)
 
-Function that creates the output folders, get the raw DTI files, convert them
-to NRRD and run DTIPrep using a C<bcheck> protocol and a C<nobcheck> protocol.
+Function that creates the output folders, gets the raw DTI files, converts them
+to NRRD and runs DTIPrep using a C<bcheck> protocol and a C<nobcheck> protocol.
 
-INPUT:
+INPUTS:
   - $DTIs_list      : list of DWI files to process for a given
                        CandID/Visit
   - $DTIrefs        : hash with output file names & paths for the
@@ -567,9 +568,9 @@ sub preprocessingPipeline {
 
 =head3 preproc_mnc2nrrd($raw_nrrd, $dti_file)
 
-Function that converts MINC raw DWI file to NRRD and log the conversion status.
+Function that converts MINC raw DWI file to NRRD and logs the conversion status.
 
-INPUT: raw NRRD file to create, raw DWI file to convert to NRRD
+INPUTS: raw NRRD file to create, raw DWI file to convert to NRRD
 
 RETURNS: 1 on success, undef on failure
 
@@ -597,7 +598,7 @@ sub preproc_mnc2nrrd {
 
 This function will call C<&DTI::runDTIPrep> to run DTIPrep on the raw NRRD file.
 
-INPUT:
+INPUTS:
   - $QCed_nrrd      : QCed DWI NRRD file to be created by DTIPrep
   - $raw_nrrd       : raw DWI NRRD file to process through DTIPrep
   - $DTIPrepProtocol: DTIPrep XML Protocol to use to run DTIPrep
@@ -628,7 +629,7 @@ sub preproc_DTIPrep {
 Function that will call C<&DTI::copyDTIPrepProtocol> if the XML protocol has
 not already been copied in DTIPrep QC outdir.
 
-INPUT:
+INPUTS:
   - $QCProt         : copied QC XML protocol (in QC output folder)
   - $QCoutdir       : QC output directory
   - $DTIPrepProtocol: DTIPrep XML protocol used to run DTIPrep
@@ -659,7 +660,7 @@ sub preproc_copyXMLprotocol {
 This function will check pre-processing outputs and call
 C<&convertPreproc2mnc>, which will convert and reinsert headers into MINC file.
 
-INPUT:
+INPUTS:
   - $DTIs_list      : list of raw DWI that were pre-processed
   - $DTIrefs        : hash with list of raw DTIs as a key &
                        corresponding output names as values
@@ -668,10 +669,11 @@ INPUT:
   - $DTIPrepProtocol: DTIPrep XML protocol used to run DTIPrep
   - $DTIPrepVersion : DTIPrep version that was run to pre-process images
 
-Output: - Will return undef if could not find preprocessed files
-           or convert it to MINC
-        - Will return 1 if conversion was a success and all
-           preprocessing files were found in QC output directory
+RETURNS:
+  - Will return undef if the function could not find preprocessed files
+     or convert them to MINC
+  - Will return 1 if conversion was a success and all
+     preprocessing files were found in QC output directory
 
 =cut
 
@@ -715,7 +717,7 @@ sub check_and_convertPreprocessedFiles {
 
 =head3 checkPreprocessOutputs($dti_file, $DTIrefs, $QCoutdir, ...)
 
-Check if all pre-processing DTIPrep files are in the output folder. They
+Checks if all pre-processing DTIPrep files are in the output folder. They
 should include:
   - QCed NRRD file
   - DTIPrep QC text report
@@ -724,7 +726,7 @@ should include:
 
 Relevant information will also be printed in the log file.
 
-INPUT:
+INPUTS:
   - $dti_file       : raw DWI file that was processed
   - $DTIrefs        : hash containing output names
   - $QCoutdir       : preprocessing output directory
@@ -773,9 +775,9 @@ sub checkPreprocessOutputs {
 =head3 convertPreproc2mnc($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion)
 
 This function will convert to MINC DTI QCed NRRD file from DTIPrep and reinsert
-all mincheader information.
+all MINC header information.
 
-INPUT:
+INPUTS:
   - $dti_file      : raw DWI file to be processed
   - $DTIrefs       : hash containing output names
   - $data_dir      : directory containing the raw dataset
@@ -830,7 +832,7 @@ Running post-processing pipeline that will check if post-processing outputs
 already exist. If they don't exist, it will call C<&runMincdiffusion> to run
 the mincdiffusion tools.
 
-INPUT:
+INPUTS:
   - $DTIs_list      : list with raw DWI to post-process
   - $DTIrefs        : hash containing output names and paths
   - $data_dir       : directory hosting raw DWI dataset
@@ -896,9 +898,9 @@ sub mincdiffusionPipeline {
 
 =head3 checkMincdiffusionPostProcessedOutputs($dti_file, $DTIrefs, $QCoutdir)
 
-Function that check if all outputs are present in the QC output directory.
+Function that checks if all outputs are present in the QC output directory.
 
-INPUT:
+INPUTS:
   - $dti_file: raw DWI dataset to use as a key in $DTIrefs
   - $DTIrefs : hash containing output names
   - $QCoutdir: QC output directory
@@ -948,7 +950,7 @@ sub checkMincdiffusionPostProcessedOutputs {
 
 Will create FA, MD and RGB maps.
 
-INPUT:
+INPUTS:
   - $dti_file       : raw DWI file that is used as a key in $DTIrefs
   - $DTIrefs        : hash containing output names and paths
   - $data_dir       : directory containing raw datasets
@@ -1026,11 +1028,11 @@ sub runMincdiffusionTools {
 
 =head3 check_and_convert_DTIPrep_postproc_outputs($DTIs_list, $DTIrefs, ...)
 
-Function that loop through DTI files acquired for the CandID and session to
-check if DTIPrep post processed NRRD files have been created and convert them
+Function that loops through DTI files acquired for the CandID and session to
+check if DTIPrep post processed NRRD files have been created and converts them
 to MINC files with relevant header information.
 
-INPUT:
+INPUTS:
   - $DTIs_list     : list of DTI files for the session and candidate
   - $DTIrefs       : hash containing references for DTI output naming
   - $data_dir      : directory containing the raw DTI dataset
