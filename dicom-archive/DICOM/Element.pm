@@ -60,7 +60,7 @@ BEGIN {
 
 Creates a new instance of this class.
 
-RETURNS: a DICOM::Element object
+RETURNS: a C<DICOM::Element> object
 
 =cut
 
@@ -75,9 +75,12 @@ sub new {
 
 =head3 fill($IN, $dictref, $big_endian_image)
 
-Fills in self from file.
+Fills in C<self> from file.
 
-INPUT: input file, DICOM dictionary, if big endian image
+INPUTS:
+  - $IN              : input file
+  - $dictref         : DICOM dictionary
+  - $big_endian_image: if big endian image
 
 RETURNS: element hash
 
@@ -148,12 +151,12 @@ sub fill {
 
 Reads Int.
 
-INPUT:
-  $IN   : input file stream.
-  $bytes: SHORT (2) or INT (4) bytes.
-  $len  : total number of bytes in the field.
+INPUTS:
+  - $IN   : input file stream.
+  - $bytes: SHORT (2) or INT (4) bytes.
+  - $len  : total number of bytes in the field.
 
-If fieldlength > bytelength, multiple values are read in and stored as a
+If C<fieldlength> > C<bytelength>, multiple values are read in and stored as a
 string representation of an array.
 
 RETURNS: string representation of an array
@@ -188,7 +191,9 @@ sub readInt {
 
 Writes Int into the output file C<$OUT>.
 
-INPUT: output file, number of bytes in the field
+INPUTS:
+  - $OUT  : output file
+  - $bytes: number of bytes in the field
 
 =cut
 
@@ -213,8 +218,10 @@ sub writeInt {
 
 Reads Float.
 
-INPUT: input file stream, format of the variable, total number of bytes in
-the field.
+INPUTS:
+  - $IN    : input file stream
+  - $format: format of the variable
+  - $len   : total number of bytes in the field
 
 RETURNS: string
 
@@ -239,14 +246,15 @@ Reads Sequence.
 
 Three different cases:
     - implicit Value Representation (VR), explicit length
-    - explicit VR, undefined length, items of defined length
-       (w/end delimiter)
+    - explicit VR, undefined length, items of defined length (w/end delimiter)
     - implicit VR, undefined length, items of undefined length
 
 
-INPUT: input file stream, total number of bytes in the field
+INPUTS:
+  - $IN : input file stream
+  - $len: total number of bytes in the field
 
-RETURNS: ??????
+RETURNS: 'skipped' string
 
 =cut
 
@@ -403,7 +411,7 @@ sub values {
 
 =head3 print()
 
-Prints formatted representation of element to stdout.
+Prints formatted representation of element to C<STDOUT>.
 
 =cut
 
@@ -422,7 +430,7 @@ sub print {
 Returns a string representation of the value field.
 
 RETURNS: string representation of the value field, or null if value field is
-binary
+          binary
 
 =cut
 
@@ -521,9 +529,9 @@ sub setValue {
 
 =head3 byteswap($valref)
 
-?????
+Swaps byte.
 
-INPUT: value reference???
+INPUT: value reference
 
 =cut
 

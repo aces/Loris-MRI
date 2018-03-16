@@ -26,13 +26,16 @@ Each element is a hash with the following keys:
 
 Creates a new instance of this class.
 
-RETURNS: a DICOM::Element object
+RETURNS: a `DICOM::Element` object
 
 ### fill($IN, $dictref, $big\_endian\_image)
 
-Fills in self from file.
+Fills in `self` from file.
 
-INPUT: input file, DICOM dictionary, if big endian image
+INPUTS:
+  - $IN              : input file
+  - $dictref         : DICOM dictionary
+  - $big\_endian\_image: if big endian image
 
 RETURNS: element hash
 
@@ -40,12 +43,12 @@ RETURNS: element hash
 
 Reads Int.
 
-INPUT:
-  $IN   : input file stream.
-  $bytes: SHORT (2) or INT (4) bytes.
-  $len  : total number of bytes in the field.
+INPUTS:
+  - $IN   : input file stream.
+  - $bytes: SHORT (2) or INT (4) bytes.
+  - $len  : total number of bytes in the field.
 
-If fieldlength > bytelength, multiple values are read in and stored as a
+If `fieldlength` > `bytelength`, multiple values are read in and stored as a
 string representation of an array.
 
 RETURNS: string representation of an array
@@ -54,14 +57,18 @@ RETURNS: string representation of an array
 
 Writes Int into the output file `$OUT`.
 
-INPUT: output file, number of bytes in the field
+INPUTS:
+  - $OUT  : output file
+  - $bytes: number of bytes in the field
 
 ### readFloat($IN, $format, $len)
 
 Reads Float.
 
-INPUT: input file stream, format of the variable, total number of bytes in
-the field.
+INPUTS:
+  - $IN    : input file stream
+  - $format: format of the variable
+  - $len   : total number of bytes in the field
 
 RETURNS: string
 
@@ -71,13 +78,14 @@ Reads Sequence.
 
 Three different cases:
     - implicit Value Representation (VR), explicit length
-    - explicit VR, undefined length, items of defined length
-       (w/end delimiter)
+    - explicit VR, undefined length, items of defined length (w/end delimiter)
     - implicit VR, undefined length, items of undefined length
 
-INPUT: input file stream, total number of bytes in the field
+INPUTS:
+  - $IN : input file stream
+  - $len: total number of bytes in the field
 
-RETURNS: ??????
+RETURNS: 'skipped' string
 
 ### readLength($IN)
 
@@ -97,14 +105,14 @@ RETURNS: values of each field
 
 ### print()
 
-Prints formatted representation of element to stdout.
+Prints formatted representation of element to `STDOUT`.
 
 ### valueString()
 
 Returns a string representation of the value field.
 
 RETURNS: string representation of the value field, or null if value field is
-binary
+          binary
 
 ### write($OUTFILE)
 
@@ -127,9 +135,9 @@ INPUT: value field
 
 ### byteswap($valref)
 
-?????
+Swaps byte.
 
-INPUT: value reference???
+INPUT: value reference
 
 # TO DO
 
