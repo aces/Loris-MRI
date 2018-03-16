@@ -27,8 +27,8 @@ DICOM::Fields -- Definitions of fields of DICOM headers.
 
 =head1 DESCRIPTION
 
-Definitions of fields of DICOM headers. Not for medical use. This file is
-provided purely for experimental use.
+Definitions of fields of DICOM headers. This file is provided purely for
+experimental use.
 
 Simply creating an array of:
 
