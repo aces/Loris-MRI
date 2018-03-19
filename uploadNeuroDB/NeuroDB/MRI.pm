@@ -652,9 +652,6 @@ Determines whether numerical value falls within the range described by
 C<range string>.  C<range string> is a concatenation of a hyphen-separated
 MIN and MAX values. 
 
-Determines whether numerical value falls within the range described by 
-C<$range_min> and C<$range_max>
-
 Returns: 1 if the value is in range, 0 otherwise
 
 =cut
