@@ -11,6 +11,7 @@ use lib "$FindBin::Bin";
 
 # These are to load the DTI & DBI modules to be used
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 use DTI::DTI;
 
 # Set default option values
@@ -56,33 +57,39 @@ my  @args_table = (
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
-GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
+GetOptions(\@args_table, \@ARGV, \@args)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 # input option error checking
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if  ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 33;
+if ( !$profile ) {
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if (!$profile) {
-    print "$Usage\n\tERROR: You must specify a profile.\n\n";  
-    exit 33;
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if  ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 if (!$DTIPrep_subdir) {
-    print "$Usage\n\tERROR: You must specify a DTIPrep subdirectory with processed files to be registered in the database.\n\n";
-    exit 33;
+    print STDERR "$Usage\n\tERROR: You must specify a DTIPrep subdirectory "
+                 . "with processed files to be registered in the database.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$dti_file) {
-    print "$Usage\n\tERROR: You must specify the raw DTI file that was processed through DTIPrep.\n\n";
-    exit 33;
+    print STDERR "$Usage\n\tERROR: You must specify the raw DTI file that was "
+                 . "processed through DTIPrep.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$DTIPrepProtocol) {
-    print "$Usage\n\tERROR: You must specify the XML DTIPrep protocol used by DTIPrep.\n\n";
-    exit 33;
+    print STDERR "$Usage\n\tERROR: You must specify the XML DTIPrep protocol "
+                 . "used by DTIPrep.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$DTIPrepVersion) {
-    print "$Usage\n\tERROR: You must specify the version of DTIPrep used to process the DTI files.\n\n";
-    exit 33;
+    print STDERR "$Usage\n\tERROR: You must specify the version of DTIPrep "
+                 . "used to process the DTI files.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 
@@ -124,7 +131,7 @@ print LOG "\n==> DTI output directory is: $DTIPrep_subdir\n";
 my ($protXMLrefs)   = &DTI::readDTIPrepXMLprot($DTIPrepProtocol);
 if (!$protXMLrefs) {
     print LOG "\n\tERROR: DTIPrep XML protocol could not be read.\n";
-    exit 33;
+    exit $NeuroDB::ExitCodes::UNREADABLE_DTIPREP_PROTOCOL;
 }
 
 # 1.b Create a hash containing names of all outputs created by DTIPrep/mincdiffusion pipeline
@@ -137,12 +144,14 @@ my ($DTIrefs)   = &DTI::createDTIhashref(@dti_files,
                                          $QCed2_step
                                         );
 if  (!$DTIrefs) {
-    print LOG "\nERROR:\n\tCould not determine a list of outputs for $dti_file.\n";
-    exit 33;
+    print LOG "\nERROR:\n\tCould not determine a list of outputs for "
+              . "$dti_file.\n";
+    exit $NeuroDB::ExitCodes::GET_OUTPUT_LIST_FAILURE;
 }
 if ((!$mincdiffVersion) && ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "mincdiffusion")) {
-    print LOG "\n$Usage\nERROR:\n\tYou must specify which version of mincdiffusion tools was used to post-process the DTI.\n";
-    exit 33;
+    print LOG "\n$Usage\nERROR:\n\tYou must specify which version of "
+              . "mincdiffusion tools was used to post-process the DTI.\n";
+    exit $NeuroDB::ExitCodes::NO_MINCDIFFUSION_VERSION;
 }
 
 
@@ -159,12 +168,13 @@ my  ($XMLProtocol, $QCReport, $XMLReport, $mri_files)   = &getFiles($dti_file, $
 # If $QCed_minc is not defined, means that getFiles returned undef for all output files => ERROR.
 if  (!$QCReport) {
     print LOG "\nERROR:\n\tSome process files are missing in $DTIPrep_subdir.\n";
-    exit 33;
+    exit $NeuroDB::ExitCodes::MISSING_PREPROCESSED_FILES;
 }
 # If $QCed2_step is set, QCed2_minc should be defined in %mri_files hash! 
 if  (($QCed2_step) && (!$mri_files->{'Preproc'}{'QCed2'}{'minc'})) {
-    print LOG "\nERROR:\n\tSecondary QCed DTIPrep nrrd & minc outputs are missing in $DTIPrep_subdir.\n";
-    exit 33;
+    print LOG "\nERROR:\n\tSecondary QCed DTIPrep nrrd & minc outputs are "
+              . "missing in $DTIPrep_subdir.\n";
+    exit $NeuroDB::ExitCodes::MISSING_POSTPROCESSED_FILES;
 }
 # => If we could pass step 2, then all the files to be registered were found in the filesystem!
 
@@ -181,7 +191,7 @@ my ($registeredXMLprotocolID)   = &register_XMLProt($XMLProtocol,
                                                     "DTIPrep");
 if (!$registeredXMLprotocolID) {
     print LOG "\nERROR: no XML protocol file was registered in the database\n";
-    exit 0;
+    exit $NeuroDB::ExitCodes::FILE_REGISTRATION_FAILURE;
 } else {
     print LOG "\nRegistered XML protocol with ID $registeredXMLprotocolID.\n";
     $mri_files->{'Preproc'}{'QCProt'}{'xml'} = $registeredXMLprotocolID; 
@@ -206,7 +216,7 @@ my ($registeredXMLReportFile)   = &register_XMLFile($XMLReport,
                                                     $DTIPrepVersion);
 if (!$registeredXMLReportFile) {
     print LOG "\nERROR: no XML report file was registered in the database\n";
-    exit 0;
+    exit $NeuroDB::ExitCodes::FILE_REGISTRATION_FAILURE;
 } else {
     print LOG "\nRegistered XML report $registeredXMLReportFile.\n";
     $mri_files->{'Preproc'}{'QCReport'}{'xml'}  = $registeredXMLReportFile;
@@ -229,7 +239,7 @@ my ($registeredQCReportFile)    = &register_QCReport($QCReport,
                                                      $DTIPrepVersion);
 if (!$registeredQCReportFile) {
     print LOG "\nERROR: no QC report file was registered in the database\n";
-    exit 0;
+    exit $NeuroDB::ExitCodes::FILE_REGISTRATION_FAILURE;
 } else {
     print LOG "\nRegistered QC report $registeredQCReportFile.\n";
     $mri_files->{'Preproc'}{'QCReport'}{'txt'}  = $registeredQCReportFile;
@@ -295,7 +305,7 @@ my ($postproc_registered,
                                                       );
 
 # Program is finished
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 
@@ -563,8 +573,9 @@ sub register_XMLFile {
 
     my  ($src_pipeline, $src_tool);
     if  (!$toolName)    {
-        print "WARNING: This should not happen as long as the pipeline versioning of DTIPrep is not fixed!"; 
-        exit 33; 
+        print STDERR "WARNING: This should not happen as long as the pipeline "
+                     . "versioning of DTIPrep is not fixed!";
+        exit $NeuroDB::ExitCodes::NO_TOOL_NAME_VERSION;
         # Will need to program this part once DTIPrep fixed!
         #($src_pipeline, $src_tool)=getToolName($XMLFile);
     }else   {
@@ -642,8 +653,9 @@ sub register_QCReport {
 
     my  ($src_pipeline, $src_tool);
     if  (!$toolName)    {
-        print "WARNING: This should not happen as long as the pipeline versioning of DTIPrep is not fixed!"; 
-        exit 33; 
+        print STDERR "WARNING: This should not happen as long as the pipeline "
+                     . "versioning of DTIPrep is not fixed!";
+        exit $NeuroDB::ExitCodes::NO_TOOL_NAME_VERSION;
         # Will need to program this part once DTIPrep fixed!
         #($src_pipeline, $src_tool)=getToolName($QCReport);
     }else   {
@@ -944,8 +956,12 @@ sub getToolName {
                                                   $file,
                                                   '$3');
     if  ((!$src_tool) && (!$src_pipeline))  {
-        print LOG "ERROR: no tool have been found in mincheader of $file. Check that the processing:pipeline field exits or specify which tool was used manually with the option -DTIPrepVersion or -mincdiffusionVersion as input of the script DTIPrepRegister.pl."; 
-        exit 33;
+        print LOG "ERROR: no tool have been found in mincheader of $file. "
+                  . "Check that the processing:pipeline field exits or specify "
+                  . "which tool was used manually with the option "
+                  . "-DTIPrepVersion or -mincdiffusionVersion as input of the "
+                  . "script DTIPrepRegister.pl.";
+        exit $NeuroDB::ExitCodes::NO_TOOL_NAME_VERSION;
     }else   {
         #remove leading spaces, trailing spaces and all instances of "
         $src_tool       =~s/"//g;
@@ -1314,8 +1330,9 @@ sub register_nrrd {
 
     my  ($src_pipeline, $src_tool);
     if  (!$toolName)    {
-        print "WARNING: This should not happen as long as the pipeline versioning of DTIPrep is not fixed!";
-        exit 33;
+        print STDERR "WARNING: This should not happen as long as the pipeline "
+                     . "versioning of DTIPrep is not fixed!";
+        exit $NeuroDB::ExitCodes::NO_TOOL_NAME_VERSION;
         # Will need to program this part once DTIPrep fixed!
         #($src_pipeline, $src_tool)=getToolName($XMLFile);
     }else   {

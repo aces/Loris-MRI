@@ -18,6 +18,8 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
+
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -104,28 +106,33 @@ usage: $0 </path/to/DICOM-tarchive> [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ############### input option error checking ####################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 2; 
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if (!$ARGV[0] || !$profile) { 
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
     print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid tarchive and an existing ".
-          "profile.\n\n";  
-    exit 3;  
+    print STDERR "$Usage\n\tERROR: You must specify a valid tarchive.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 $tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
-           "the path to the archive is correct. Upload will exit now.\n\n\n";
-    exit 4;
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is valid.\n\n";
+    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 
 ################################################################
@@ -319,7 +326,7 @@ my $mri_upload_update = $dbh->prepare($query);
 $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 sub logHeader () {
     print LOG "
