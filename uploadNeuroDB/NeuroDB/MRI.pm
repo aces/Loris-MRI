@@ -51,7 +51,7 @@ $VERSION = 0.2;
 $FLOAT_EQUALS_NB_DECIMALS = 4;
 
 @EXPORT = qw();
-@EXPORT_OK = qw(identify_scan in_min_max get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
+@EXPORT_OK = qw(identify_scan in_range get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
 
 =pod
 B<getSubjectIDs( C<$patientName>, C<$scannerID>, C<$dbhr> )>
@@ -491,17 +491,17 @@ sub identify_scan_db {
             print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
             print "\t";
             if($sd_regex && ($series_description =~ /$sd_regex/i)) {print "series_description\t";}
-            print &in_min_max($tr, $rowref->{'TR_min'}, $rowref->{'TR_max'}) ? "TR\t" : '';
-            print &in_min_max($te, $rowref->{'TE_min'}, $rowref->{'TR_max'}) ? "TE\t" : '';
-            print &in_min_max($ti, $rowref->{'TI_min'}, $rowref->{'TI_max'}) ? "TI\t" : '';
-            print &in_min_max($xspace, $rowref->{'xspace_min'}, $rowref->{'xspace_max'}) ? "xspace\t" : '';
-            print &in_min_max($yspace, $rowref->{'yspace_min'}, $rowref->{'yspace_max'}) ? "yspace\t" : '';
-            print &in_min_max($zspace, $rowref->{'zspace_min'}, $rowref->{'zspace_max'}) ? "zspace\t" : '';
-            print &in_min_max($slice_thickness, $rowref->{'slice_thickness_min'}, $rowref->{'slice_thickness_max'}) ? "ST\t" : '';
-            print &in_min_max($xstep, $rowref->{'xstep'}, $rowref->{'xstep_max'}) ? "xstep\t" : '';
-            print &in_min_max($ystep, $rowref->{'ystep_min'}, $rowref->{'ystep_max'}) ? "ystep\t" : '';
-            print &in_min_max($zstep, $rowref->{'zstep_min'}, $rowref->{'zstep_max'}) ? "zstep\t" : '';
-            print &in_min_max($time, $rowref->{'time_min'}, $rowref->{'time_max'}) ? "time\t" : '';
+            print &in_range($tr, "$rowref->{'TR_min'}-$rowref->{'TR_max'}") ? "TR\t" : '';
+            print &in_range($te, "$rowref->{'TE_min'}-$rowref->{'TR_max'}") ? "TE\t" : '';
+            print &in_range($ti, "$rowref->{'TI_min'}-$rowref->{'TI_max'}") ? "TI\t" : '';
+            print &in_range($xspace, "$rowref->{'xspace_min'}-$rowref->{'xspace_max'}") ? "xspace\t" : '';
+            print &in_range($yspace, "$rowref->{'yspace_min'}-$rowref->{'yspace_max'}") ? "yspace\t" : '';
+            print &in_range($zspace, "$rowref->{'zspace_min'}-$rowref->{'zspace_max'}") ? "zspace\t" : '';
+            print &in_range($slice_thickness, "$rowref->{'slice_thickness_min'}-$rowref->{'slice_thickness_max'}") ? "ST\t" : '';
+            print &in_range($xstep, "$rowref->{'xstep'}-$rowref->{'xstep_max'}") ? "xstep\t" : '';
+            print &in_range($ystep, "$rowref->{'ystep_min'}-$rowref->{'ystep_max'}") ? "ystep\t" : '';
+            print &in_range($zstep, "$rowref->{'zstep_min'}-$rowref->{'zstep_max'}") ? "zstep\t" : '';
+            print &in_range($time, "$rowref->{'time_min'}-$rowref->{'time_max'}") ? "time\t" : '';
             print "\n";
         }
         
@@ -511,19 +511,19 @@ sub identify_scan_db {
             }
 	}
 	else {
-         	if ((!$rowref->{'TR_range'} || &in_min_max($tr, $rowref->{'TR_min'}, $rowref->{'TR_max'}))
-                && (!$rowref->{'TE_min'} || &in_min_max($te, $rowref->{'TE_min'}, $rowref->{'TE_max'}))
-                && (!$rowref->{'TI_min'} || &in_min_max($ti, $rowref->{'TI_min'}, $rowref->{'TI_max'}))
-                && (!$rowref->{'slice_thickness_min'} || &in_min_max($slice_thickness, $rowref->{'slice_thickness_min'}, $rowref->{'slice_thickness_max'}))
+         	if ((!$rowref->{'TR_range'} || &in_range($tr, "$rowref->{'TR_min'}-$rowref->{'TR_max'}"))
+                && (!$rowref->{'TE_min'} || &in_range($te, "$rowref->{'TE_min'}-$rowref->{'TE_max'}"))
+                && (!$rowref->{'TI_min'} || &in_range($ti, "$rowref->{'TI_min'}-$rowref->{'TI_max'}"))
+                && (!$rowref->{'slice_thickness_min'} || &in_range($slice_thickness, "$rowref->{'slice_thickness_min'}-$rowref->{'slice_thickness_max'}"))
 
-                && (!$rowref->{'xspace_min'} || &in_min_max($xspace, $rowref->{'xspace_min'}, $rowref->{'xspace_max'}))
-                && (!$rowref->{'yspace_min'} || &in_min_max($yspace, $rowref->{'yspace_min'}, $rowref->{'yspace_max'}))
-                && (!$rowref->{'zspace_min'} || &in_min_max($zspace, $rowref->{'zspace_min'}, $rowref->{'zspace_max'}))
+                && (!$rowref->{'xspace_min'} || &in_range($xspace, "$rowref->{'xspace_min'}-$rowref->{'xspace_max'}"))
+                && (!$rowref->{'yspace_min'} || &in_range($yspace, "$rowref->{'yspace_min'}-$rowref->{'yspace_max'}"))
+                && (!$rowref->{'zspace_min'} || &in_range($zspace, "$rowref->{'zspace_min'}-$rowref->{'zspace_max'}"))
 
-                && (!$rowref->{'xstep_min'} || &in_min_max($xstep, $rowref->{'xstep_min'}, $rowref->{'xstep_max'}))
-                && (!$rowref->{'ystep_min'} || &in_min_max($ystep, $rowref->{'ystep_min'}, $rowref->{'ystep_max'}))
-                && (!$rowref->{'zstep_min'} || &in_min_max($zstep, $rowref->{'zstep_min'}, $rowref->{'zstep_max'}))
-                && (!$rowref->{'time_min'} || &in_min_max($time, $rowref->{'time_min'}, $rowref->{'time_max'}))) {
+                && (!$rowref->{'xstep_min'} || &in_range($xstep, "$rowref->{'xstep_min'}-$rowref->{'xstep_max'}"))
+                && (!$rowref->{'ystep_min'} || &in_range($ystep, "$rowref->{'ystep_min'}-$rowref->{'ystep_max'}"))
+                && (!$rowref->{'zstep_min'} || &in_range($zstep, "$rowref->{'zstep_min'}-$rowref->{'zstep_max'}"))
+                && (!$rowref->{'time_min'} || &in_range($time, "$rowref->{'time_min'}-$rowref->{'time_max'}"))) {
                     return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
             }
         }
@@ -647,10 +647,13 @@ sub scan_type_text_to_id {
 =pod
 
 B<in_range( C<$value>, C<$range_string> )>
+ 
+Determines whether numerical value falls within the range described by
+C<range string>.  C<range string> is a concatenation of a hyphen-separated
+MIN and MAX values. 
 
-determines whether numerical value falls within the range described by
-range string.  range string is a comma-seperated list of range units.
-a single range unit follows the syntax either "X" or "X-Y"
+Determines whether numerical value falls within the range described by 
+C<$range_min> and C<$range_max>
 
 Returns: 1 if the value is in range, 0 otherwise
 
@@ -661,51 +664,14 @@ sub in_range
     my ($value, $range_string) = @_;
     chomp($value);
 
-    print "This function is deprecated and is replaced with in_min_max to identify the mri_protocol\n";
-
     return 0 unless $range_string;
     return 0 unless defined($value);
 
-    my @ranges = split(/,/, $range_string);
 
-    my $range = 0;
-    foreach $range (@ranges) {
-       chomp($range);
-       if($range=~/^[0-9.]+$/) { ## single value element
-           return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
-       } else { ## range X-Y
-           $range =~ /([0-9.]+)-([0-9.]+)/;
-           return 1 if ($1 <= $value && $value <= $2) 
+    $range_sting =~ /([0-9.]+)-([0-9.]+)/;
+    return 1 if (($1 <= $value && $value <= $2) 
                || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
-               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
-       }
-    }
-
-    ## if we've gotten this far, we're out of range.
-    return 0;
-}
-
-B<in_min_max( C<$value>, C<$range_min>, C<$range_max> )>
-
-Determines whether numerical value falls within the range described by C<$range_min> and C<$range_max>
-
-Returns: 1 if the value is in range, 0 otherwise
-
-=cut
-
-sub in_min_max
-{
-    my ($value, $range_min, $range_max) = @_;
-    chomp($value);
-
-    return 0 unless $range_min;
-    return 0 unless $range_max;
-    return 0 unless defined($value);
-
-    return 1 if ($range_min <= $value && $value <= $range_max)
-        || ((&floats_are_equal($value, $range_min, $FLOAT_EQUALS_NB_DECIMALS))
-            &&
-           (&floats_are_equal($value, $range_max, $FLOAT_EQUALS_NB_DECIMALS)));
+               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS));
 
     ## if we've gotten this far, we're out of range.
     return 0;
