@@ -80,7 +80,6 @@ Fills in C<self> from file.
 INPUTS:
   - $IN              : input file
   - $dictref         : DICOM dictionary
-  - $big_endian_image: if big endian image
 
 RETURNS: element hash
 
@@ -88,7 +87,7 @@ RETURNS: element hash
 
 sub fill {
   my $this = shift;
-  my ($IN, $dictref, $big_endian_image) = @_;
+  my ($IN, $dictref) = @_;
   my %dict = %$dictref;
   #my ($group, $element, $offset, $code, $length, $name, $value, $header);
   my $vrstr;
@@ -149,7 +148,8 @@ sub fill {
 
 =head3 readInt($IN, $bytes, $len).
 
-Reads Int.
+Decodes one or more integers that were encoded as a string of bytes
+(2 or 4 bytes per number) in the file whose handle is passed as argument.
 
 INPUTS:
   - $IN   : input file stream.
@@ -159,7 +159,8 @@ INPUTS:
 If C<fieldlength> > C<bytelength>, multiple values are read in and stored as a
 string representation of an array.
 
-RETURNS: string representation of an array
+RETURNS: string representation of the array of decoded integers
+          (e.g. '[34, 65, 900]')
 
 =cut
 
@@ -189,11 +190,12 @@ sub readInt {
 
 =head3 writeInt($OUT, $bytes)
 
-Writes Int into the output file C<$OUT>.
+Encodes each integer stored in string C<$this->{'value'}> as a 2 or 4 byte
+string and writes them in a file
 
 INPUTS:
   - $OUT  : output file
-  - $bytes: number of bytes in the field
+  - $bytes: number of bytes (2 for shorts 4 for ints) in the field
 
 =cut
 
@@ -216,11 +218,13 @@ sub writeInt {
 
 =head3 readFloat($IN, $format, $len)
 
-Reads Float.
+Decodes a floating point number that was encoded as a string of bytes in the
+file whose handle is passed as argument.
 
 INPUTS:
   - $IN    : input file stream
-  - $format: format of the variable
+  - $format: format used when decoding (with Perl's C<unpack>) the number:
+              C<f> for floats and C<d> for doubles
   - $len   : total number of bytes in the field
 
 RETURNS: string
@@ -242,7 +246,10 @@ sub readFloat {
 
 =head3 readSequence($IN, $len)
 
-Reads Sequence.
+Skips over either a fixed number of bytes or over multiple sets of byte
+sequences delimited with specific byte values. When doing the latter,
+byte C<0x00000000> is used to signal the end of the set of sequences.
+The sequence of bytes read is always discarded.
 
 Three different cases:
     - implicit Value Representation (VR), explicit length
@@ -252,7 +259,8 @@ Three different cases:
 
 INPUTS:
   - $IN : input file stream
-  - $len: total number of bytes in the field
+  - $len: total number of bytes to skip, or 0 if all sequences should be
+           skipped until the delimiter C<0x00000000> is found
 
 RETURNS: 'skipped' string
 
@@ -310,7 +318,7 @@ sub readSequence {
 
 =head3 readLength($IN)
 
-Reads length.
+Reads the length of a VR from a file, as an integer encoded on 16 or 32 bits.
   - Implicit Value Representation (VR): Length is 4 byte int.
   - Explicit VR: 2 bytes hold VR, then 2 byte length.
 

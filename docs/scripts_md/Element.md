@@ -35,13 +35,13 @@ Fills in `self` from file.
 INPUTS:
   - $IN              : input file
   - $dictref         : DICOM dictionary
-  - $big\_endian\_image: if big endian image
 
 RETURNS: element hash
 
 ### readInt($IN, $bytes, $len).
 
-Reads Int.
+Decodes one or more integers that were encoded as a string of bytes
+(2 or 4 bytes per number) in the file whose handle is passed as argument.
 
 INPUTS:
   - $IN   : input file stream.
@@ -51,30 +51,37 @@ INPUTS:
 If `fieldlength` > `bytelength`, multiple values are read in and stored as a
 string representation of an array.
 
-RETURNS: string representation of an array
+RETURNS: string representation of the array of decoded integers
+          (e.g. '\[34, 65, 900\]')
 
 ### writeInt($OUT, $bytes)
 
-Writes Int into the output file `$OUT`.
+Encodes each integer stored in string `$this-`{'value'}> as a 2 or 4 byte
+string and writes them in a file
 
 INPUTS:
   - $OUT  : output file
-  - $bytes: number of bytes in the field
+  - $bytes: number of bytes (2 for shorts 4 for ints) in the field
 
 ### readFloat($IN, $format, $len)
 
-Reads Float.
+Decodes a floating point number that was encoded as a string of bytes in the
+file whose handle is passed as argument.
 
 INPUTS:
   - $IN    : input file stream
-  - $format: format of the variable
+  - $format: format used when decoding (with Perl's `unpack`) the number:
+              `f` for floats and `d` for doubles
   - $len   : total number of bytes in the field
 
 RETURNS: string
 
 ### readSequence($IN, $len)
 
-Reads Sequence.
+Skips over either a fixed number of bytes or over multiple sets of byte
+sequences delimited with specific byte values. When doing the latter,
+byte `0x00000000` is used to signal the end of the set of sequences.
+The sequence of bytes read is always discarded.
 
 Three different cases:
     - implicit Value Representation (VR), explicit length
@@ -83,13 +90,14 @@ Three different cases:
 
 INPUTS:
   - $IN : input file stream
-  - $len: total number of bytes in the field
+  - $len: total number of bytes to skip, or 0 if all sequences should be
+           skipped until the delimiter `0x00000000` is found
 
 RETURNS: 'skipped' string
 
 ### readLength($IN)
 
-Reads length.
+Reads the length of a VR from a file, as an integer encoded on 16 or 32 bits.
   - Implicit Value Representation (VR): Length is 4 byte int.
   - Explicit VR: 2 bytes hold VR, then 2 byte length.
 
