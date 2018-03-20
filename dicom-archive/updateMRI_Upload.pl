@@ -33,6 +33,9 @@ my $verbose = 0;
 my $profile    = undef;
 my $source_location = '';
 my $tarchive = '';
+# Default time zone long name. Can be changed with -timeZone
+# See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+my $timeZone = 'America/Montreal';
 my $query = '';
 my $sth = undef;
 my $User             = `whoami`;
@@ -78,7 +81,8 @@ my @arg_table =
       ["-sourceLocation", "string", 1, \$source_location, "The location".
        " where the uploaded file exists."],
       ["-tarchivePath","string",1, \$tarchive, "The absolute path to".
-       " tarchive-file"]
+       " tarchive-file"],
+      ["-timeZone","string",1, \$timeZone, "Long name for the time zone"]
     );
 
 # Parse arguments
@@ -88,6 +92,14 @@ my @arg_table =
 ################################################################
 ################# checking for profile settings#################
 ################################################################
+
+if ($timeZone and !DateTime::TimeZone->is_valid_name($timeZone)) {
+	print STDERR "Invalid time zone '$timeZone'. "
+	    . "See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
+	    . " for the list of valid time zones.\n";
+	exit 3;
+}
+
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ 
         package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" 
@@ -189,7 +201,8 @@ my $tarchiveID = $resultRef->[0]->[0];
 $mriUploadOB->insert(
     {
       UploadedBy           => $User,
-      UploadDate           => DateTime->now()->strftime('%Y-%m-%d %H:%M:%S'),
+      UploadDate           => DateTime->now(time_zone => $timeZone)
+                                      ->strftime('%Y-%m-%d %H:%M:%S'),
       TarchiveID           => $tarchiveID,
       DecompressedLocation => $source_location
     }
