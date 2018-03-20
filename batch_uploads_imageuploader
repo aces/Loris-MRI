@@ -6,6 +6,8 @@ use File::Basename;
 use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
+
 
 my $profile     = '';
 my $upload_id   = undef;
@@ -50,24 +52,24 @@ usage: ./batch_uploads_imageuploader -profile prod < list_of_scans.txt >log_batc
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################ Get config setting#############################
 ################################################################
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ( $profile && !@Settings::db ) {
-    print "\n\tERROR: You don't have a
-    configuration file named '$profile' in:
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-if (!$profile ) {
-    print $Help;
-    print "\n$Usage\n";
-    exit 3;
-}
 
 ################################################################
 ################ Establish database connection #################
@@ -151,27 +153,30 @@ foreach my $input (@resultsarray)
     ## 3) for non-phantoms, the patient name and path entries are identical; this mimics the imaging uploader in the front-end
     my ($base,$path,$type) = fileparse($fullpath, qr{\..*});
     if (($type ne '.tgz') && ($type ne '.tar.gz') && ($type ne '.zip')) {
-	    print "The file on line $counter is not of type .tgz, tar.gz, or .zip and will not be processed\n";
-	    exit(3);
+	print STDERR "The file on line $counter is not of type .tgz, tar.gz, or "
+                 . ".zip and will not be processed\n";
+	exit $NeuroDB::ExitCodes::UPLOADED_FILE_TYPE_FAILURE;
     }
     if (($phantom eq '') || (($phantom ne 'N') && ($phantom ne 'Y'))) {
-	    print "Make sure the Phantom entry is filled out " .
-	          "with Y if the scan if for a phantom, and N otherwise\n";
-	    exit(4);
+	print STDERR "Make sure the Phantom entry is filled out "
+	             . "with Y if the scan if for a phantom, and N otherwise\n";
+	exit $NeuroDB::ExitCodes::PHANTOM_ENTRY_FAILURE;
     }
     if ($phantom eq 'N') {
         if ($patientname ne (substr ($base, 0, length($patientname)))) {
-       	    print "Make sure the patient name $patientname " .
-	              "for non-phantom entries matches the start of the ".
-		          "filename $base in $path\n";
-	        exit(5);
+       	    print STDERR "Make sure the patient name $patientname for "
+	                     . "non-phantom entries matches the start of $base "
+	                     . "filename in $path\n";
+	        exit $NeuroDB::ExitCodes::PNAME_FILENAME_MISMATCH;
 	    }
-    } else {
+    }
+    else {
         if ($patientname ne '') {
-       	    print "Please leave the patient name blank " .
-	              "for phantom entries\n";
-	        exit(6);
-	    } else {
+       	    print STDERR "Please leave the patient name blank for phantom "
+       	                 . "entries\n";
+	        exit $NeuroDB::ExitCodes::PNAME_PHANTOM_MISMATCH;
+	    }
+	    else {
 	        $patientname = 'NULL';
 	    }
     }
@@ -286,5 +291,5 @@ sub getModality {
 }
 
 ## exit 0 for find to consider this -cmd true (in case we ever run it that way...)
-exit(0);
+exit $NeuroDB::ExitCodes::SUCCESS;
 

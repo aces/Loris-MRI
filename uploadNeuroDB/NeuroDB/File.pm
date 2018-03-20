@@ -224,33 +224,24 @@ sub getDatabaseHandleRef {
     return $this->{'dbhr'};
 }
 
+
 =pod
 
-B<loadFileFromDisk( C<$filename> )>
+=head3 getFileType($file)
 
-Reads the headers from the file specified by C<$filename> and loads the current object with the resultant parameters.
+Determines the imaging file type based on the extension of the file to insert
+and the list of available types in the ImagingFileTypes table of the database.
 
-Returns: 0 if any failure occurred or 1 otherwise
+INPUT: the path to the imaging file to determine the file type
+
+RETURNS: the type of the imaging file given as an argument
 
 =cut
 
-sub loadFileFromDisk {
-    my $this = shift;
-    my ($file) = @_;
+sub getFileType {
+    my ($this, $file) = @_;
+
     my $fileType;
-
-    # try to untaint the filename
-    if($file =~ /[\`;]/ || $file =~ /\.\./) {
-	croak("loadFileFromDisk: $file is not a valid filename");
-    }
-    unless($file =~ /^\//) {
-        croak("loadFileFromDisk: $file is not an absolute path");
-    }
-
-    # set fileData (at least, as much as possible)
-    my ($user) = getpwuid($UID);
-    $this->setFileData('InsertedByUserID', $user);
-    $this->setFileData('File', $file);
 
     # grep possible file types from the database
     (my $query = <<QUERY) =~ s/\n/ /gm;
@@ -267,6 +258,40 @@ QUERY
             $fileType = $fileTypeRow->{'type'};
         }
     }
+
+    return $fileType;
+}
+
+
+=pod
+
+B<loadFileFromDisk( C<$filename> )>
+
+Reads the headers from the file specified by C<$filename> and loads the current object with the resultant parameters.
+
+Returns: 0 if any failure occurred or 1 otherwise
+
+=cut
+
+sub loadFileFromDisk {
+    my $this = shift;
+    my ($file) = @_;
+
+    # try to untaint the filename
+    if($file =~ /[\`;]/ || $file =~ /\.\./) {
+	croak("loadFileFromDisk: $file is not a valid filename");
+    }
+    unless($file =~ /^\//) {
+        croak("loadFileFromDisk: $file is not an absolute path");
+    }
+
+    # set fileData (at least, as much as possible)
+    my ($user) = getpwuid($UID);
+    $this->setFileData('InsertedByUserID', $user);
+    $this->setFileData('File', $file);
+
+    # grep possible file types from the database
+    my $fileType = $this->getFileType($file);
     $this->setFileData('FileType', $fileType) if defined $fileType;
     
     # if the file is not a minc, then just we've done as much as we can...
