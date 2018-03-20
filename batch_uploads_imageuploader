@@ -192,7 +192,7 @@ foreach my $input (@resultsarray)
                      . "database. Note: spaces present in the modality name "
                      . "from the ImagingModality table should be replaced by "
                      . "underscores\n\n";
-        exit; ##TODO: implement proper exit code once ExitCodes.pm is merged
+        exit $NeuroDB::ExitCodes::BAD_MODALITY;
     }
 
     ## Populate the mri_upload table with necessary entries and get an upload_id

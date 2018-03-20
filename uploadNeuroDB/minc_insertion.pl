@@ -170,7 +170,7 @@ if ( !($tarchive xor $upload_id) ) {
     print "\nERROR: You should either specify an upload ID or a tarchive ".
         "path. Make sure that you set only one of those options. ".
         "Upload will exit now.\n\n\n";
-    exit; #TODO 1: use exit code from ExitCodes once it is merged
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 if ($tarchive && !(-e $tarchive) ) {

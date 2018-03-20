@@ -1,9 +1,3 @@
-# Generic TODOs:
-
-##TODO 1: once ExitCodes.pm class merged, replace exit codes by the variables
-# from that class
-
-
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -19,20 +13,8 @@ use NeuroDB::MRIProcessingUtility;
 use NeuroDB::HRRT;
 use NeuroDB::MincUtilities;
 use NeuroDB::File;
-##TODO 1: add line use NeuroDB::ExitCodes;
+use NeuroDB::ExitCodes;
 
-
-##TODO 1: move those exit codes to ExitCodes.pm
-my $UNKNOW_PROTOCOL = 112; # use the one from ExitCodes.pm
-my $INVALID_UPLOAD_ID       = 150; # invalid upload ID
-my $INVALID_UPLOAD_LOCATION = 151; # invalid upload location
-my $INVALID_DECOMP_LOCATION = 152; # invalid decompressed location
-my $MINC_FILE_NOT_FOUND     = 153; # if could not convert ECAT file into MINC
-my $MINC_INSERTION_FAILURE  = 154; # if MINC file insertion failure
-my $HRRT_ARCHIVE_ALREADY_INSERTED = 155; # if HRRT archive already exists in DB
-my $MATLAB_HEADER_INSERT_FAILURE  = 156; # if could not insert matlab info
-                                         # into the MINC header
-my $GET_SESSIONID_FROM_FILEID_FAILURE = 157; # no SessionID found for FileID
 
 ###### Table-driven argument parsing
 
@@ -41,6 +23,7 @@ my $profile;
 my $upload_id;
 my $verbose   = 0;
 my $bic       = 0;
+my $clobber   = 0;
 my @args;
 
 # Describe the usage to be displayed by Getopt::Tabular
@@ -65,6 +48,8 @@ my $profile_desc   = "name of config file in ./dicom-archive/.loris_mri.";
 my $upload_id_desc = "ID of the uploaded imaging archive containing the "
                      . "file given as argument with -file_path option";
 my $bic_desc       = "whether the datasets comes from the BIC HRRT scanner";
+my $clobber_desc   = "Use this option only if you want to replace the "
+                     . "resulting tarball!";
 
 # Initialize the arguments table
 my @args_table = (
@@ -77,6 +62,7 @@ my @args_table = (
     ["Advanced options", "section"],
 
         ["-verbose",   "boolean", 1, \$verbose,   "Be verbose"  ],
+        ["-clobber",   "boolean", 1, \$clobber,   $clobber_desc],
 
     ["Optional options", "section"],
         ["-bic",       "boolean", 1, \$bic,       $bic_desc]
@@ -84,21 +70,19 @@ my @args_table = (
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
-##TODO 1: replace exit 1 by $NeuroDB::ExitCodes::GETOPT_FAILURE
-GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
+GetOptions(\@args_table, \@ARGV, \@args) ||
+    exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 # Input option error checking
 if  (!$profile) {
-    print "$Usage\n\tERROR: You must specify a profile.\n\n";
-    ##TODO 1: replace exit 2 by $NeuroDB::ExitCodes::PROFILE_FAILURE
-    exit 2;
+    print STDERR "$Usage\n\tERROR: You must specify a profile.\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if  ($profile && !@Settings::db)    {
-    print "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
-    ##TODO 1: replace exit 4 by $NeuroDB::ExitCodes::DB_SETTING_FAILURE
-    exit 4;
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTING_FAILURE;
 }
 
 
@@ -168,15 +152,16 @@ unless ( $upload_info ) {
     ERROR: Invalid UploadID $upload_id.\n\n
 MESSAGE
     # write error message in the log file
-    $utility->writeErrorLog( $message, $INVALID_UPLOAD_ID, $log_file );
-    ##TODO 1: call the exit code from ExitCodes.pm
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::INVALID_UPLOAD_ID, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
         'HRRT_PET insertion'   , $message,   0,
         'HRRT_PET_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $INVALID_UPLOAD_ID; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::INVALID_UPLOAD_ID;
 
 }
 
@@ -188,16 +173,16 @@ unless ( -r $upload_info->{decompressed_location} ) {
     cannot be found or read for UploadID $upload_id.\n\n
 MESSAGE
     # write error message in the log file
-    $utility->writeErrorLog($message, $INVALID_DECOMP_LOCATION, $log_file);
-    ##TODO 1: call the exit code from ExitCodes.pm
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::INVALID_DECOMP_LOCATION, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
         'HRRT_PET insertion'   , $message,   0,
         'HRRT_PET_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    ##TODO 1: call the exit code from ExitCodes.pm
-    exit $INVALID_DECOMP_LOCATION;
+    exit $NeuroDB::ExitCodes::INVALID_DECOMP_LOCATION;
 
 }
 
@@ -209,16 +194,16 @@ unless ( -r $upload_info->{upload_location} ) {
     cannot be found or read for UploadID $upload_id.\n\n
 MESSAGE
     # write error message in the log file
-    $utility->writeErrorLog($message, $INVALID_UPLOAD_LOCATION, $log_file);
-    ##TODO 1: call the exit code from ExitCodes.pm
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::INVALID_UPLOAD_LOCATION, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
         'HRRT_PET insertion'   , $message,   0,
         'HRRT_PET_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    ##TODO 1: call the exit code from ExitCodes.pm
-    exit $INVALID_UPLOAD_LOCATION;
+    exit $NeuroDB::ExitCodes::INVALID_UPLOAD_LOCATION;
 
 }
 
@@ -232,17 +217,15 @@ if ( $upload_info->{hrrt_archive_ID} ) {
 MESSAGE
     # write error message in the log file
     $utility->writeErrorLog(
-        $message, $HRRT_ARCHIVE_ALREADY_INSERTED, $log_file
+        $message, $NeuroDB::ExitCodes::HRRT_ALREADY_INSERTED, $log_file
     );
-    ##TODO 1: call the exit code from ExitCodes.pm
     # insert error message into notification spool table
     $notifier->spool(
         'HRRT_PET insertion'   , $message,   0,
         'HRRT_PET_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    ##TODO 1: call the exit code from ExitCodes.pm
-    exit $HRRT_ARCHIVE_ALREADY_INSERTED;
+    exit $NeuroDB::ExitCodes::HRRT_ALREADY_INSERTED;
 
 }
 
@@ -283,9 +266,10 @@ my $final_target  = $target_location
                     . "/HRRT_" . $archive->{study_info}->{date_acquired}
                     . "_"      . basename($archive->{source_dir})
                     . ".tgz";
-if ( -e $final_target ) {
-    print "\nTarget already exists.\n\n";
-    exit 2; #TODO 1: call the exit code from ExitCodes.pm
+if ( -e $final_target && !$clobber ) {
+    print STDERR "\nTarget already exists. Use -clobber to overwrite!\n\n";
+    exit $NeuroDB::ExitCodes::TARGET_EXISTS_NO_CLOBBER;
+    # ExitCodes.pm
 }
 
 # create the tar file and get its md5sum
@@ -310,8 +294,8 @@ my $hrrtArchiveID = $archive->database(
 if ($hrrtArchiveID) {
     print "\nDone adding HRRT archive info into the database\n" if $verbose;
 } else {
-    print "\nThe database command failed\n";
-    exit ; #TODO 1: call the exit code from ExitCodes.pm
+    print STDERR "\nThe database command failed\n";
+    exit $NeuroDB::ExitCodes::HRRT_INSERTION_FAILURE;
 }
 
 
@@ -334,17 +318,15 @@ foreach my $ecat_file ( @{ $archive->{ecat_files} } ) {
 MESSAGE
         # write error message in the log file
         $utility->writeErrorLog(
-            $message, $MINC_FILE_NOT_FOUND, $log_file
+            $message, $NeuroDB::ExitCodes::MINC_FILE_NOT_FOUND, $log_file
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
         # insert error message into notification spool table
         $notifier->spool(
             'HRRT_PET insertion'   , $message,   0,
             'HRRT_PET_insertion.pl', $upload_id, 'Y',
             'N'
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
-        exit $MINC_FILE_NOT_FOUND;
+        exit $NeuroDB::ExitCodes::MINC_FILE_NOT_FOUND;
     }
     $minc_created++;
 
@@ -367,17 +349,16 @@ MESSAGE
 MESSAGE
             # write error message in the log file
             $utility->writeErrorLog(
-                $message, $MATLAB_HEADER_INSERT_FAILURE, $log_file
+                $message,  $NeuroDB::ExitCodes::HEADER_INSERT_FAILURE,
+                $log_file
             );
-            ##TODO 1: call the exit code from ExitCodes.pm
             # insert error message into notification spool table
             $notifier->spool(
                 'HRRT_PET insertion'   , $message,   0,
                 'HRRT_PET_insertion.pl', $upload_id, 'Y',
                 'N'
             );
-            ##TODO 1: call the exit code from ExitCodes.pm
-            exit $MATLAB_HEADER_INSERT_FAILURE;
+            exit $NeuroDB::ExitCodes::HEADER_INSERT_FAILURE;
         }
 
         # grep the acquisition protocol from the MINC header
@@ -388,17 +369,15 @@ MESSAGE
             $message = "\tERROR: Protocol not found for $minc_file.\n\n";
             # write error message in the log file
             $utility->writeErrorLog(
-                $message, $UNKNOW_PROTOCOL, $log_file
+                $message, $NeuroDB::ExitCodes::UNKNOW_PROTOCOL, $log_file
             );
-            ##TODO 1: call the exit code from ExitCodes.pm
             # insert error message into notification spool table
             $notifier->spool(
                 'HRRT_PET insertion'   , $message,   0,
                 'HRRT_PET_insertion.pl', $upload_id, 'Y',
                 'N'
             );
-            ##TODO 1: call the exit code from ExitCodes.pm
-            exit $UNKNOW_PROTOCOL;
+            exit $NeuroDB::ExitCodes::UNKNOW_PROTOCOL;
         }
 
     }
@@ -411,17 +390,15 @@ MESSAGE
         $message = "\tERROR: Protocol not found for $minc_file.\n\n";
         # write error message in the log file
         $utility->writeErrorLog(
-            $message, $UNKNOW_PROTOCOL, $log_file
+            $message, $NeuroDB::ExitCodes::UNKNOW_PROTOCOL, $log_file
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
         # insert error message into notification spool table
         $notifier->spool(
             'HRRT_PET insertion'   , $message,   0,
             'HRRT_PET_insertion.pl', $upload_id, 'Y',
             'N'
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
-        exit $UNKNOW_PROTOCOL;
+        exit $NeuroDB::ExitCodes::UNKNOW_PROTOCOL;
     }
 
 
@@ -446,17 +423,15 @@ MESSAGE
         $message = "\tERROR: $minc_file not inserted into the files table.\n\n";
         # write error message in the log file
         $utility->writeErrorLog(
-            $message, $MINC_INSERTION_FAILURE, $log_file
+            $message, $NeuroDB::ExitCodes::MINC_INSERTION_FAILURE, $log_file
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
         # insert error message into notification spool table
         $notifier->spool(
             'HRRT_PET insertion'   , $message,   0,
             'HRRT_PET_insertion.pl', $upload_id, 'Y',
             'N'
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
-        exit $MINC_INSERTION_FAILURE;
+        exit $NeuroDB::ExitCodes::MINC_INSERTION_FAILURE;
     }
     $archive->appendEcatToRegisteredMinc($fileID, $ecat_file, $data_dir, $dbh);
 
@@ -466,17 +441,16 @@ MESSAGE
         $message = "\tERROR: could not find SessionID for FileID=$fileID.\n\n";
         # write error message in the log file
         $utility->writeErrorLog(
-            $message, $GET_SESSIONID_FROM_FILEID_FAILURE, $log_file
+            $message, $NeuroDB::ExitCodes::GET_SESSIONID_FROM_FILEID_FAILURE,
+            $log_file
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
         # insert error message into notification spool table
         $notifier->spool(
             'HRRT_PET insertion'   , $message,   0,
             'HRRT_PET_insertion.pl', $upload_id, 'Y',
             'N'
         );
-        ##TODO 1: call the exit code from ExitCodes.pm
-        exit $GET_SESSIONID_FROM_FILEID_FAILURE;
+        exit $NeuroDB::ExitCodes::GET_SESSIONID_FROM_FILEID_FAILURE;
     }
 
 }
@@ -498,7 +472,7 @@ NeuroDB::DBI::updateHrrtUploadInfo(
 );
 
 
-exit 0; ##TODO 1: replace exit 0 by $NeuroDB::ExitCodes::$SUCCESS
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 

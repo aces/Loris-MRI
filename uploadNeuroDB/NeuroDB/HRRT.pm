@@ -307,7 +307,7 @@ QUERY
         my @row = $sth->fetchrow_array();
         print "\n\n PROBLEM: This study has already been archived. "
               . "HrrtArchiveID corresponding to this study is $row[0]\n\n";
-        exit; #TODO 1: call ExitCode.pm to do proper exit code
+        return undef;
     }
 
 
@@ -394,7 +394,7 @@ sub insertBicMatlabHeader {
         $success = NeuroDB::MincUtilities::modify_header(
             $arg, $val, $minc_file, '$3, $4, $5, $6'
         );
-        return undef unless ( $success ); #TODO 1: exit code + logging
+        return undef unless ( $success );
     }
 
     # insert proper scanner information

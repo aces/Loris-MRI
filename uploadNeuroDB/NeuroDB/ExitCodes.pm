@@ -123,6 +123,8 @@ our $PNAME_FILENAME_MISMATCH    = 22; # if patient name and beginning of
                                       # uploaded filename do not match
 our $PNAME_PHANTOM_MISMATCH     = 23; # if patient name provided in the text
                                       # file but phantom is set to 'Y'
+our $BAD_MODALITY               = 24; # if the modality provided in the text
+                                      # file does not exist in the database
 
 
 
@@ -291,12 +293,12 @@ our $PROTOCOL_NOT_IN_PROFILE = 223; # if the acquisition protocol could be
 our $INVALID_SOURCEFILEID = 240; # if source file ID argument is not valid
 
 # database related failures
-our $GET_SESSIONID_FROM_SOURCEFILEID_FAILURE = 241; # if failed to get SessionID
-                                                    # from the sourceFileID
-our $GET_ACQUISITION_PROTOCOL_ID_FAILURE     = 242; # if failed to determine the
-                                                    # acquisition protocol ID
-our $FILE_REGISTRATION_FAILURE               = 243; # if file registration
-                                                    # into the database failed
+our $GET_SESSIONID_FROM_FILEID_FAILURE   = 241; # if failed to get SessionID
+                                                # from the sourceFileID
+our $GET_ACQUISITION_PROTOCOL_ID_FAILURE = 242; # if failed to determine the
+                                                # acquisition protocol ID
+our $FILE_REGISTRATION_FAILURE           = 243; # if file registration
+                                                # into the database failed
 
 
 
@@ -313,3 +315,19 @@ our $NO_VALID_MINC_CREATED = 261; # if no valid MINC file was created
                                   # (non-localizers)
 our $NO_MINC_INSERTED      = 262; # if no MINC files was inserted (invalid
                                   # study)
+
+
+
+
+
+#### --- FROM uploadNeuroDB/HRRT_PET_insertion.pl
+our $INVALID_UPLOAD_ID       = 280; # invalid upload ID
+our $INVALID_UPLOAD_LOCATION = 281; # invalid upload location
+our $INVALID_DECOMP_LOCATION = 282; # invalid decompressed location
+our $MINC_FILE_NOT_FOUND     = 283; # if could not convert ECAT file into MINC
+our $MINC_INSERTION_FAILURE  = 284; # if MINC file insertion failure
+our $HRRT_ALREADY_INSERTED   = 285; # if HRRT archive already exists in DB
+our $HEADER_INSERT_FAILURE   = 286; # if could not insert matlab info into the
+                                    # MINC header
+our $HRRT_INSERTION_FAILURE  = 267; # if HRRT archive insertion into the
+                                    # database has failed
