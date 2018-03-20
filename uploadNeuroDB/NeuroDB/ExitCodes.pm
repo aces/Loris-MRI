@@ -73,6 +73,9 @@ to 179)
 
 14. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 260 to 279)
 
+15. Exit codes from uploadNeuroDB/HRRT_PET_insertion.pl (exit codes from 280
+to 300)
+
 
 =head1 LICENSING
 
@@ -329,5 +332,5 @@ our $MINC_INSERTION_FAILURE  = 284; # if MINC file insertion failure
 our $HRRT_ALREADY_INSERTED   = 285; # if HRRT archive already exists in DB
 our $HEADER_INSERT_FAILURE   = 286; # if could not insert matlab info into the
                                     # MINC header
-our $HRRT_INSERTION_FAILURE  = 267; # if HRRT archive insertion into the
+our $HRRT_INSERTION_FAILURE  = 287; # if HRRT archive insertion into the
                                     # database has failed
