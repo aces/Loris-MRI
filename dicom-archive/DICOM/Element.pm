@@ -324,7 +324,8 @@ Reads the length of a VR from a file, as an integer encoded on 16 or 32 bits.
 
 INPUT: input file stream
 
-RETURNS: the value field length, and length before value field
+RETURNS: the VR code (string of length 2) and the length of the associated
+          VR value
 
 =cut
 
@@ -397,9 +398,11 @@ sub readLength {
 
 =head3 values()
 
-Returns the values of each field of the object.
+Returns the properties of a VR: group, element, offset, code, length, name and
+value.
 
-RETURNS: values of each field
+RETURNS: the properties of a VR: group, element, offset, code, length, name and
+          value
 
 =cut
 
