@@ -253,7 +253,8 @@ if ($tarchive) {
 
     my $where = "WHERE t.ArchiveLocation='$tarchive'";
     if ($globArchiveLocation) {
-        $where = "WHERE t.ArchiveLocation LIKE '%/" . basename($tarchive) . "'";
+        $where = "WHERE t.ArchiveLocation LIKE '%/" . quotemeta(basename($tarchive)) . "' "
+            .    "OR t.ArchiveLocation LIKE '" . quotemeta(basename($tarchive)) . "'";
     }
     my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
         "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
