@@ -35,7 +35,7 @@ my $source_location = '';
 my $tarchive = '';
 # Default time zone long name. Can be changed with -timeZone
 # See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
-my $timeZone = 'America/Montreal';
+my $timeZone = 'local';
 my $query = '';
 my $sth = undef;
 my $User             = `whoami`;
@@ -93,7 +93,7 @@ my @arg_table =
 ################# checking for profile settings#################
 ################################################################
 
-if ($timeZone and !DateTime::TimeZone->is_valid_name($timeZone)) {
+if ($timeZone ne 'local' and !DateTime::TimeZone->is_valid_name($timeZone)) {
 	print STDERR "Invalid time zone '$timeZone'. "
 	    . "See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
 	    . " for the list of valid time zones.\n";
