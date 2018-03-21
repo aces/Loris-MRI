@@ -149,7 +149,7 @@ USAGE
 
 if (!$ENV{LORIS_CONFIG}) {
 	print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
-	exit 1;  # TODO replace by appropriate exit code from ExitCodes once it is defined
+	exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
 }
 
 if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {

@@ -106,6 +106,10 @@ our $ARG_FILE_DOES_NOT_EXIST = 5; # if file given as an argument does not exist
 # called from minc_insertion.pl & register_processed_data.pl
 our $FILE_NOT_UNIQUE = 6; # if file to register is not unique & already
                            # inserted
+                           
+# Used when an environment variable is either missing or has an invalid
+# value
+our $INVALID_ENVIRONMENT_VAR = 7;
 
 
 
