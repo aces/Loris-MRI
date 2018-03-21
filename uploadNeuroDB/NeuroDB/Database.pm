@@ -76,7 +76,7 @@ to the database specified. All parameters are required except 'port', which
 defaults to 3306 if not specified. If the user name, database name or host
 name are the empty string, the constructor will call C<die>.
 
-INPUT: a set of properties for the current database:
+INPUTS: a set of properties for the current database:
 
 =over
 
@@ -177,7 +177,7 @@ INPUTS:
     - list of arguments to replace the placeholders with.
 
 RETURN: a reference to the array of records found. Each record is in fact a
-         reference to the list of values for the columns selected
+        reference to the list of values for the columns selected
 =cut
 
 sub pselect {

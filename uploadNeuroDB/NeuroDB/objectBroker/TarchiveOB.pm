@@ -81,7 +81,7 @@ C<Database> object used to access the database.
 
 INPUT: the database object used to read/modify the C<tarchive> table.
 
-RETURNS: new instance of this class.
+RETURN: new instance of this class.
 
 =cut
 
@@ -93,7 +93,7 @@ has 'db' => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 
 Fetches the records from the C<tarchive> table that have a specific archive location.
 
-INPUT:
+INPUTS:
     - reference to an array of the column names to return for each record found.
       Each element of this array must exist in C<@TARCHIVE_FIELDS> or an exception
       will be thrown.
@@ -101,8 +101,8 @@ INPUT:
     - boolean indicating if an exact match is sought (false) or if only basenames
       should be used when comparing two archive locations (true)
 
-RETURNS: a reference to an array of array references. This "matrix" contains the
-         values of each colum for each record.
+RETURN: a reference to an array of array references. This "matrix" contains the
+        values of each colum for each record.
 
 =cut
 
