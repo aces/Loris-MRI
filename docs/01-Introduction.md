@@ -1,13 +1,16 @@
 # 1.0 - Introduction 
 
 ### 1.1 What is LORIS-MRI?
-LORIS-MRI is the backbone of the imaging component that makes up LORIS. 
+LORIS-MRI is the backbone of the imaging component that makes up LORIS.
+ It is maintained in a separate repository so that it can be installed on 
+ the file server and separated from the web server.
 These documents assume you have some
 knowledge regarding LORIS and a functioning installation. For information
 regarding LORIS itself, please consult the [LORIS wiki][1].
 
-LORIS-MRI is responsible for the processing, visualizing, and archiving
-of uploaded MRI scans. It expects an uploaded, compressed file containing
+LORIS-MRI is responsible for the insertion, visualization and archival of uploaded 
+imaging datasets.
+ It expects an uploaded, compressed file containing
 several [DICOM][2] files, processes this into [MINC][3] and [NII][4]
 files, and then archives these files onto the server. Knowledge of
 these file formats can be helpful, but are not necessary for using or
