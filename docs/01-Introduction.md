@@ -24,7 +24,7 @@ and links them with
 
 ### 1.2 How does LORIS-MRI work?  ![user_story](images/user_story.png)
 LORIS-MRI allows multiple ways to upload scans, more details about these
-options can be found [here.][05-PipelineLaunchOptions.md] First, users
+options can be found [here.](05-PipelineLaunchOptions.md) First, users
 upload a compressed (.tgz, .tar.gz, or .zip) DICOM folder to Imaging
 Uploader.  LORIS requires that the uploaded file name follow the naming
 convention PSCID_CANDID_VISIT-LABEL.  Assuming the upload went through
@@ -41,7 +41,7 @@ The pipeline can start automatically if the autolaunch configuration is
 set, otherwise
  manual intervention is required by a developer with backend access to
  the server (information on the scripts needed to run the pipeline can
- be found in the [Scripts section][04-Scripts.md] of the documentation).
+ be found in the [Scripts section](04-Scripts.md) of the documentation).
 
  First, the upload is prepped to be archived on the server. The
  PatientName in the
