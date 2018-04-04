@@ -220,7 +220,7 @@ our $TARCHIVELOADER_FAILURE  = 143; # if tarchiveLoader execution failed
 
 our $CLEANUP_UPLOAD_FAILURE  = 144; # if removal/clean up of the uploaded
                                     # file in the incoming folder failed
-
+our $HRRT_INSERTION_FAILURE  = 145; # if HRRT_PET_insertion.pl execution failed
 
 
 

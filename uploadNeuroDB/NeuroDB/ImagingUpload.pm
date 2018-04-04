@@ -9,6 +9,7 @@ use Path::Class;
 use File::Find;
 use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
 use File::Temp qw/ tempdir /;
 
 ## Define Constants ##
@@ -61,6 +62,7 @@ sub new {
     $self->{'upload_id'}            = $upload_id;
     $self->{'verbose'}              = $verbose;
     $self->{'profile'}              = $profile;
+
     return bless $self, $params;
 }
 
@@ -438,7 +440,7 @@ sub DicomPatientNameMatch {
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
         $this->spool($message, 'Y', $notify_notsummary);
-        exit 1;
+        exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname !~ /^$this->{'pname'}/) {
