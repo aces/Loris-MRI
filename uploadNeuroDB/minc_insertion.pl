@@ -26,7 +26,7 @@ my $date = sprintf(
                 "%4d-%02d-%02d %02d:%02d:%02d",
                 $year+1900,$mon+1,$mday,$hour,$min,$sec
            );
-my $debug       = 0;  
+my $debug       = 1;  
 my $message     = '';
 my $tarchive_srcloc = '';
 my $upload_id   = undef;
@@ -177,6 +177,14 @@ unless (-e $minc) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 ################################################################
 ########### Create the Specific Log File #######################
 ################################################################
@@ -212,7 +220,7 @@ print LOG "\n==> Successfully connected to database \n" if $verbose;
 ################## MRIProcessingUtility object #################
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  \$dbh,$debug,$TmpDir,$logfile,
+                  $db, \$dbh,$debug,$TmpDir,$logfile,
                   $verbose
               );
 

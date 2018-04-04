@@ -139,6 +139,60 @@ sub getWithTarchive {
 
 =pod
 
+=head3 get($isCount, $columnValuesRef))
+
+Fetches the entries in the C<mri_upload> table that have specific column
+values. This method throws a C<NeuroDB::objectBroker::ObjectBrokerException>
+if the operation could not be completed successfully.
+
+INPUTS:
+    - boolean indicating if only a count of the records found is needed
+      or the full record properties.
+    - reference to a hash array that contains the column values that the MRI records
+      should have in order to be part of the result set (key: column name, value: column
+      value).
+      
+RETURNS: either a count of the records found or a reference to an array of hashes, each 
+         hash being an MRI record found, with all the columns set to whatever was found
+         in the database.
+
+=cut
+
+sub get {
+	my($self, $isCount, $columnValuesRef) = @_;
+
+    my @where;
+    
+    if (%$columnValuesRef) {
+        foreach my $k (keys %$columnValuesRef) {
+            if(!grep($k eq $_, @MRI_UPLOAD_FIELDS)) {
+                NeuroDB::objectBroker::ObjectBrokerException->throw(
+                    errorMessage => "MRI upload get failed: invalid MRI upload field $k"
+                );
+            }
+            push(@where, "$k=?");
+        }
+	}
+
+    my $select = $isCount ? 'COUNT(*)' : '*';
+
+    my $query = "SELECT $select FROM mri_upload";
+    $query .= sprintf(' WHERE %s', join(' AND ', @where)) if @where;
+
+    try {
+        return $self->db->pselect($query, values(%$columnValuesRef));
+    } catch(NeuroDB::DatabaseException $e) {
+        NeuroDB::objectBroker::ObjectBrokerException->throw(
+            errorMessage => sprintf(
+                "Failed to retrieve mri upload records. Reason:\n%s",
+                $e
+            )
+        );
+    }
+}
+
+=pod
+
 =head3 insert($valuesRef)
 
 Inserts a new record in the C<mri_upload> table with the specified column values.
