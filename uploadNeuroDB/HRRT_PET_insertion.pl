@@ -269,15 +269,14 @@ my $final_target  = $target_location
 if ( -e $final_target && !$clobber ) {
     print STDERR "\nTarget already exists. Use -clobber to overwrite!\n\n";
     exit $NeuroDB::ExitCodes::TARGET_EXISTS_NO_CLOBBER;
-    # ExitCodes.pm
 }
 
-# create the tar file and get its md5sum
+# create the tar file and get its blake2b hash
 my $to_tar = $upload_info->{decompressed_location};
 my $tar_cmd = "tar -czf $final_target $to_tar/*";
 print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
 system($tar_cmd);
-my $md5sumArchive = NeuroDB::HRRT::md5sum($final_target);
+my $blake2bArchive = NeuroDB::HRRT::blake2b_hash($final_target);
 
 
 
@@ -288,7 +287,7 @@ print "\nAdding archive info into the database\n" if $verbose;
 my $archiveLocation = $final_target;
 $archiveLocation =~ s/$data_dir//g;
 my $hrrtArchiveID = $archive->database(
-    $dbh, $md5sumArchive, $archiveLocation, $upload_id
+    $dbh, $blake2bArchive, $archiveLocation, $upload_id
 );
 
 if ($hrrtArchiveID) {

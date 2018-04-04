@@ -16,7 +16,7 @@ INSERT INTO ImagingModality (Modality, Description) VALUES
 -- Alter the mri_upload table to insert FK column linking to ImagingModalityID
 ALTER TABLE `mri_upload`
   ADD COLUMN `ImagingModalityID` INT(11),
-  ADD CONSTRAINT `fk_ImaingModality`
+  ADD CONSTRAINT `fk_ImagingModality`
     FOREIGN KEY (`ImagingModalityID`)
     REFERENCES `ImagingModality` (`ImagingModalityID`);
 
@@ -31,23 +31,17 @@ UPDATE mri_upload SET
 
 -- Create the hrrt_archive and hrrt_archive_files tables
 CREATE TABLE `hrrt_archive` (
-  `HrrtArchiveID`          INT(11)      NOT NULL AUTO_INCREMENT,
-  `PatientName`            VARCHAR(255) NOT NULL DEFAULT '',
-  `CenterName`             VARCHAR(255) NOT NULL DEFAULT '',
-  `CreatingUser`           VARCHAR(255) NOT NULL DEFAULT '',
-  `SourceLocation`         VARCHAR(255) NOT NULL DEFAULT '',
-  `EcatFileCount`          INT(11)      NOT NULL DEFAULT '0',
-  `NonEcatFileCount`       INT(11)      NOT NULL DEFAULT '0',
-  `ScannerManufacturer`    VARCHAR(255) NOT NULL DEFAULT '',
-  `ScannerModel`           VARCHAR(255) NOT NULL DEFAULT '',
-  `ScannerSerialNumber`    VARCHAR(255) NOT NULL DEFAULT '',
-  `ScannerSoftwareVersion` VARCHAR(255) NOT NULL DEFAULT '',
-  `DateAcquired`           DATE                  DEFAULT NULL,
-  `DateFirstArchived`      DATETIME              DEFAULT NULL,
-  `DateLastArchived`       DATETIME              DEFAULT NULL,
-  `md5sumArchive`          VARCHAR(255)          DEFAULT NULL,
-  `ArchiveLocation`        VARCHAR(255)          DEFAULT NULL,
-  `SessionID`              INT(10) unsigned      DEFAULT NULL,
+  `HrrtArchiveID`     INT(11)          NOT NULL AUTO_INCREMENT,
+  `SessionID`         INT(10) unsigned          DEFAULT NULL,
+  `EcatFileCount`     INT(11)          NOT NULL DEFAULT '0',
+  `NonEcatFileCount`  INT(11)          NOT NULL DEFAULT '0',
+  `DateAcquired`      DATE                      DEFAULT NULL,
+  `DateArchived`      DATETIME                  DEFAULT NULL,
+  `PatientName`       VARCHAR(50)      NOT NULL DEFAULT '',
+  `CenterName`        VARCHAR(50)      NOT NULL DEFAULT '',
+  `CreatingUser`      VARCHAR(50)      NOT NULL DEFAULT '',
+  `Blake2bArchive`    VARCHAR(255)              DEFAULT NULL,
+  `ArchiveLocation`   VARCHAR(255)              DEFAULT NULL,
   PRIMARY KEY (`HrrtArchiveID`),
   KEY `patNam` (`CenterName`(10),`PatientName`(30)),
   KEY `FK_hrrt_archive_sessionID` (`SessionID`),
@@ -60,7 +54,7 @@ CREATE TABLE `hrrt_archive` (
 CREATE TABLE `hrrt_archive_files` (
   `HrrtArchiveFileID` INT(11)      NOT NULL AUTO_INCREMENT,
   `HrrtArchiveID`     INT(11)      NOT NULL DEFAULT '0',
-  `Md5Sum`            VARCHAR(255) NOT NULL,
+  `Blake2bHash`       VARCHAR(255) NOT NULL,
   `FileName`          VARCHAR(255) NOT NULL,
   PRIMARY KEY (`HrrtArchiveFileID`),
   KEY `HrrtArchiveID` (`HrrtArchiveID`),

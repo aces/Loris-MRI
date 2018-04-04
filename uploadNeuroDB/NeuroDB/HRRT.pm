@@ -5,7 +5,7 @@ package NeuroDB::HRRT;
 
 use File::Basename;
 use File::Find;
-use Digest::MD5;
+use Digest::BLAKE2 qw(blake2b);
 use File::Type;
 use Date::Parse;
 use String::ShellQuote;
@@ -150,6 +150,8 @@ $self->{header}->{filename} hash
 sub read_ecat {
     my ( $self, $ecat_file, $bic ) = @_;
 
+    print blake2b_hash($ecat_file);
+
     my @info = `lmhdr $ecat_file`;
     chomp( @info ); # remove carriage return of each element
 
@@ -269,18 +271,18 @@ sub read_matlab_file {
 
 =pod
 
-=head3 md5sum($filename)
+=head3 blake2b_hash($filename)
 
-Computes MD5 sum of a file and outputs a format similar to md5sum on Linux.
+Computes blake2b hash of a file and returns the blake2b hash.
 
 =cut
-sub md5sum {
+sub blake2b_hash {
     my ($filename) = @_;
 
     open(FILE, $filename) or die "Can't open '$filename': $!";
     binmode(FILE);
 
-    return Digest::MD5->new->addfile(*FILE)->hexdigest . "  $filename\n";
+    return Digest::BLAKE2->new->addfile(*FILE)->hexdigest;
 }
 
 
@@ -288,20 +290,20 @@ sub md5sum {
 
 =pod
 
-=head3 database($dbh, $today, $md5sumArchive)
+=head3 database($dbh, $today, $blake2bArchive, $archiveLocation, $upload_id)
 
 =cut
 sub database {
-    my ( $self, $dbh, $md5sumArchive, $archiveLocation, $upload_id ) = @_;
+    my ( $self, $dbh, $blake2bArchive, $archiveLocation, $upload_id ) = @_;
 
-    ## check if hrrt archive already inserted based on md5sumArchive
+    ## check if hrrt archive already inserted based on Blake2bArchive
     ( my $select_hrrtArchiveID = <<QUERY ) =~ s/\n/ /gm;
     SELECT HrrtArchiveID
     FROM   hrrt_archive
-    WHERE  md5sumArchive = ?
+    WHERE  Blake2bArchive = ?
 QUERY
     my $sth = $dbh->prepare( $select_hrrtArchiveID );
-    $sth->execute( $md5sumArchive) ;
+    $sth->execute( $blake2bArchive) ;
 
     if ($sth->rows > 0) {
         my @row = $sth->fetchrow_array();
@@ -314,24 +316,19 @@ QUERY
     ## INSERT INTO hrrt_archive
     ( my $hrrt_archive_insert_query = <<QUERY ) =~ s/\n/ /gm;
     INSERT INTO hrrt_archive SET
-      PatientName         = ?,    CenterName        = ?,
-      CreatingUser        = ?,    SourceLocation    = ?,
-      EcatFileCount       = ?,    NonEcatFileCount  = ?,
-      ScannerManufacturer = ?,    ScannerModel      = ?,
-      ScannerSerialNumber = ?,    ScannerSoftwareVersion = '',
-      DateAcquired        = ?,    DateFirstArchived = NOW(),
-      md5sumArchive       = ?,    DateLastArchived  = NOW(),
-      ArchiveLocation     = ?
+      PatientName         = ?,     CenterName        = ?,
+      CreatingUser        = ?,     EcatFileCount     = ?,
+      NonEcatFileCount    = ?,     DateAcquired      = ?,
+      Blake2bArchive      = ?,     ArchiveLocation   = ?,
+      DateArchived        = NOW()
 QUERY
 
     my $study_info = $self->{study_info};
     my @values = (
-        $study_info->{patient_name},    $study_info->{center_name},
-        $self->{user},                  $self->{source_dir},
-        $self->{ecat_count},            $self->{nonecat_count},
-        $study_info->{manufacturer},    $study_info->{scanner_model},
-        $study_info->{system_type},     $study_info->{date_acquired},
-        $md5sumArchive,                 $archiveLocation
+        $study_info->{patient_name},  $study_info->{center_name},
+        $self->{user},                $self->{ecat_count},
+        $self->{nonecat_count},       $study_info->{date_acquired},
+        $blake2bArchive,              $archiveLocation
     );
 
     $sth        = $dbh->prepare( $hrrt_archive_insert_query );
@@ -342,7 +339,7 @@ QUERY
 
     ## SELECT the inserted HrrtArchiveID
     $sth = $dbh->prepare( $select_hrrtArchiveID );
-    $sth->execute( $md5sumArchive );
+    $sth->execute( $blake2bArchive );
     my $hrrtArchiveID = undef;
     if ($sth->rows > 0) {
         my @row        = $sth->fetchrow_array();
@@ -353,12 +350,12 @@ QUERY
     ## INSERT INTO hrrt_archive_files
     ( my $hrrt_archive_files_query = <<QUERY ) =~ s/\n/ /gm;
     INSERT INTO hrrt_archive_files SET
-      HrrtArchiveID = ?,   Filename = ?,  Md5Sum = ?
+      HrrtArchiveID = ?,   Filename = ?,  Blake2bHash = ?
 QUERY
     $sth = $dbh->prepare($hrrt_archive_files_query);
     foreach my $ecat_file ( @{ $self->{ecat_files} } ) {
-        my $md5sum = md5sum( $ecat_file );
-        @values    = ( $hrrtArchiveID, basename($ecat_file), $md5sum );
+        my $blake2b = blake2b_hash( $ecat_file );
+        @values     = ( $hrrtArchiveID, basename($ecat_file), $blake2b );
         $sth->execute( @values );
     }
 
