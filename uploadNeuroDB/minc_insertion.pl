@@ -263,10 +263,16 @@ if ($tarchive) {
 
     if(!defined $is_valid) {
 		my $errorMessage = $globArchiveLocation
-		    ? "No mri_upload with the same archive location basename as '$tarchive'"
-		    : "No mri_upload with archive location '$tarchive'";
-		die "$errorMessage\n";
-	} 
+		    ? "No mri_upload with the same archive location basename as '$tarchive'\n"
+		    : "No mri_upload with archive location '$tarchive'\n";
+        $utility->writeErrorLog(
+                $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        $notifier->spool('tarchive validation', $errorMessage, 0,
+                         'minc_insertion.pl', $upload_id, 'Y', 
+                         $notify_notsummary);
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+ 	} 
 	
     ## Setup  for the notification_spool table ##
     # get the tarchive_srcloc from $tarchive
@@ -278,10 +284,17 @@ if ($tarchive) {
     
     if(!defined $tarchive_srcloc) {
 		my $errorMessage = $globArchiveLocation
-		    ? "No tarchive with the same source location basename as '$tarchive'"
-		    : "No tarchive with source location '$tarchive'";
-		die "$errorMessage\n";
-	} 
+		    ? "No tarchive with the same source location basename as '$tarchive'\n"
+		    : "No tarchive with source location '$tarchive'\n";
+		    
+        $utility->writeErrorLog(
+                $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        $notifier->spool('tarchive validation', $errorMessage, 0,
+                         'minc_insertion.pl', $upload_id, 'Y', 
+                         $notify_notsummary);
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    } 
 
     # get the $upload_id from $tarchive_srcloc
     $query =

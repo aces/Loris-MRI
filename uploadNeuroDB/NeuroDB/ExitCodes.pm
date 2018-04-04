@@ -111,6 +111,7 @@ our $FILE_NOT_UNIQUE = 6; # if file to register is not unique & already
 # value
 our $INVALID_ENVIRONMENT_VAR = 7;
 
+our $INVALID_ARG             = 8; # if one of the program argument is invalid
 
 
 
