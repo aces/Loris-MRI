@@ -1,3 +1,5 @@
+#! /usr/bin/perl
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -232,15 +234,6 @@ MESSAGE
 
 
 
-
-#TODO: move the BIC check commented here to the imagingUpload run PETHRRT script
-# check if the dataset comes from the BIC HRRT scanner
-#my @result = `grep -r BIC $decompressed_location`;
-#$bic = 1 if (@result); # set $bic to 1 if dataset is
-
-
-
-
 ##### Create the archive summary object
 
 # determine the target_location
@@ -294,7 +287,7 @@ if ($hrrtArchiveID) {
     print "\nDone adding HRRT archive info into the database\n" if $verbose;
 } else {
     print STDERR "\nThe database command failed\n";
-    exit $NeuroDB::ExitCodes::HRRT_INSERTION_FAILURE;
+    exit $NeuroDB::ExitCodes::HRRT_ARCHIVE_INSERTION_FAILURE;
 }
 
 

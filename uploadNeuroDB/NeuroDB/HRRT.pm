@@ -149,9 +149,7 @@ $self->{header}->{filename} hash
 =cut
 sub read_ecat {
     my ( $self, $ecat_file, $bic ) = @_;
-
-    print blake2b_hash($ecat_file);
-
+    
     my @info = `lmhdr $ecat_file`;
     chomp( @info ); # remove carriage return of each element
 

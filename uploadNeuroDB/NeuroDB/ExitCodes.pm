@@ -332,5 +332,5 @@ our $MINC_INSERTION_FAILURE  = 284; # if MINC file insertion failure
 our $HRRT_ALREADY_INSERTED   = 285; # if HRRT archive already exists in DB
 our $HEADER_INSERT_FAILURE   = 286; # if could not insert matlab info into the
                                     # MINC header
-our $HRRT_INSERTION_FAILURE  = 287; # if HRRT archive insertion into the
-                                    # database has failed
+our $HRRT_ARCHIVE_INSERTION_FAILURE = 287; # if HRRT archive insertion into the
+                                           # database has failed
