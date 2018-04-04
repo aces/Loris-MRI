@@ -9,9 +9,7 @@ use Path::Class;
 use File::Find;
 use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
-use NeuroDB::ExitCodes;
 use File::Temp qw/ tempdir /;
-
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -62,6 +60,7 @@ sub new {
     $self->{'pname'}                = $pname;
     $self->{'upload_id'}            = $upload_id;
     $self->{'verbose'}              = $verbose;
+    $self->{'profile'}              = $profile;
     return bless $self, $params;
 }
 
@@ -103,6 +102,7 @@ sub IsCandidateInfoValid {
     #########################Initialization#####################
     ############################################################
     my $files_not_dicom                   = 0;
+    my $files_are_hrrt                    = 0;
     my $files_with_unmatched_patient_name = 0;
     my $is_candinfovalid                  = 0;
     my @row                               = ();
@@ -127,23 +127,16 @@ sub IsCandidateInfoValid {
     ############################################################
     ############### Check to see if the uploadID exists ########
     ############################################################
-    ( $query = <<QUERY ) =~ s/\n//gm;
-  SELECT
-    PatientName,           TarchiveID,
-    number_of_mincCreated, number_of_mincInserted,
-    IsPhantom,             Modality
-  FROM
-    mri_upload
-  LEFT JOIN
-    ImagingModality USING (ImagingModalityID)
-  WHERE
-    UploadID=?
-QUERY
+    $query =
+        "SELECT PatientName,TarchiveID,number_of_mincCreated,"
+      . "number_of_mincInserted,IsPhantom FROM mri_upload "
+      . " WHERE UploadID =?";
     my $sth = ${ $this->{'dbhr'} }->prepare($query);
     $sth->execute( $this->{'upload_id'} );
     if ( $sth->rows > 0 ) {
         @row = $sth->fetchrow_array();
-    } else {
+    }
+    else {
         $message =
             "\nThe uploadID "
           . $this->{'upload_id'}
@@ -151,8 +144,6 @@ QUERY
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
-    # grep the study modality and add it to the imagingUpload object
-    $this->{'modality'} = $row[5];
 
     ############################################################
     ####Check to see if the scan has been run ##################
@@ -164,9 +155,9 @@ QUERY
     if ( ( $row[1] ) || ( $row[2] ) ) {
 
         my $archived_file_path = '';
-        my $query              = "SELECT t.ArchiveLocation FROM tarchive t "
-                                 . " WHERE t.TarchiveID =?";
-        my $sth                = ${ $this->{'dbhr'} }->prepare($query);
+        my $query             = "SELECT t.ArchiveLocation FROM tarchive t "
+                              . " WHERE t.TarchiveID =?";
+        my $sth               = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute( $row[1] );   
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
@@ -208,44 +199,36 @@ QUERY
         #1) Exlcude files starting with . (and ._ as a result)##
         #including the .DS_Store file###########################
         #2) Check to see if the file is of type DICOM###########
-        #for DICOM studies                          ############
         #3) Check to see if the header matches the patient-name#
         ########################################################
         if ( (basename($_) =~ /^\./)) {
             $cmd = "rm " . ($_);
             print "\n $cmd \n";
             system($cmd);
-        } else {
-            # go to next file if file matches "." or ".."
-            next unless ( ( $_ ne '.' ) && ( $_ ne '..' ) );
-            if ( ($this->{'modality'} =~ /DICOM/i) && (!$this->isDicom($_)) ) {
-                # count number of files that are not DICOMs if the
-                # uploaded study is of DICOM type (i.e. MRI DICOM, PET DICOM)
-                $files_not_dicom++;
-            } elsif ( $this->{'modality'} eq "PET HRRT" ) {
-                # if modality is PET HRRT, then bypass files that don't have
-                # the patient in the filename (we already know which ones
-                # they are, at least for the BIC)
-                my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
-                                    . "script|ini|directnorm|up_mask";
-                next if ( $_ =~ /$exclude_regex/i );
-                my $pname = $this->{'pname'};
-                $files_with_unmatched_patient_name++ if !($_ =~ /$pname/i);
-            } else {
-                #######################################################
-                #Validate the Patient-Name, only if it's not a phantom#
-                ############## and the file is of type DICOM###########
-                #######################################################
-                if ($row[4] eq 'N') {
-                    if (!$this->PatientNameMatch($_)) {
-                        $files_with_unmatched_patient_name++;
-                    }
+        }
+        else {
+            if ( ( $_ ne '.' ) && ( $_ ne '..' )) {
+
+                $files_not_dicom++ if ( !$this->isDicom($_) );
+                $files_are_hrrt++ if ( $this->isEcat($_));
+
+                if ( $this->isDicom($_)
+                     && $row[4] eq 'N'
+                     && !$this->DicomPatientNameMatch($_) )  {
+                    $files_with_unmatched_patient_name++
+                } elsif ( !$this->isDicom($_)
+                          && $row[4] eq 'N'
+                          && !$this->HrrtPatientNameMatch($_)) {
+                    $files_with_unmatched_patient_name++;
                 }
             }
         }
     }
 
-    if ( $files_not_dicom > 0 ) {
+    # if there are hrrt files, set 'is_hrrt' to 1, otherwise set it to 0
+    $this->{'is_hrrt'} = ( $files_are_hrrt > 0 ) ?  1 : 0;
+
+    if ( $files_not_dicom > 0 && $files_are_hrrt == 0 ) {
         $message = "\nERROR: There are $files_not_dicom file(s) which"
           . " are not of type DICOM \n";
         $this->spool($message, 'Y', $notify_notsummary);
@@ -271,6 +254,27 @@ QUERY
     $mri_upload_update->execute( $this->{'upload_id'} );
     return 1;    ##return true
 }
+
+
+sub runHrrtInsertion {
+    my $this     = shift;
+    my ($is_bic) = @_;
+
+    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
+        $this->{dbhr},'MRICodePath'
+    );
+
+    my $command = $bin_dirPath . "/uploadNeuroDB/HRRT_PET_insertion.pl "
+                    . " -profile "   . $this->{'profile'}   . " "
+                    . " -upload_id " . $this->{'upload_id'} . " ";
+    $command .= " -bic " if ($is_bic);
+    $command .= " -verbose " if ($this->{'verbose'});
+
+    my $output = $this->runCommandWithExitCode($command);
+
+    return $output;
+}
+
 
 
 ################################################################
@@ -410,7 +414,7 @@ sub runTarchiveLoader {
 #########################PatientNameMatch#######################
 ################################################################
 =pod
-PatientNameMatch()
+DicomPatientNameMatch()
 Description:
  - Extracts the patientname string from the dicom file header
    using dcmdump
@@ -426,7 +430,7 @@ Arguments:
  Returns: 0 if the validation fails and 1 if passes
 =cut
 
-sub PatientNameMatch {
+sub DicomPatientNameMatch {
     my $this         = shift;
     my ($dicom_file) = @_;
     my $cmd          = "dcmdump $dicom_file | grep PatientName";
@@ -434,7 +438,7 @@ sub PatientNameMatch {
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
         $this->spool($message, 'Y', $notify_notsummary);
-        exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
+        exit 1;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname !~ /^$this->{'pname'}/) {
@@ -447,6 +451,20 @@ sub PatientNameMatch {
     }
     return 1;     ##return true
 
+}
+
+sub HrrtPatientNameMatch {
+    my $this   = shift;
+    my ($file) = @_;
+
+    # if the file name matches one of the following, return 1 as the patient
+    # name will not be in the filename anyway
+    my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
+                        . "script|ini|directnorm|up_mask";
+    return 1 if ( $file =~ /$exclude_regex/i );
+
+    # if the patient name matches with the filename return 1, otherwise return 0
+    ( $file =~ /$this->{'pname'}/i ) ? return 1 : return 0;
 }
 
 ################################################################
@@ -470,11 +488,25 @@ sub isDicom {
     my $cmd    = "file $dicom_file";
     my $file_type    = `$cmd`;
     if ( !( $file_type =~ /DICOM medical imaging data$/ ) ) {
-        print "\n $dicom_file is not of type DICOM \n";
+        print "\n $dicom_file is not of type DICOM \n" if $this->{'verbose'};
         return 0;
     }
     return 1;
 }
+
+sub isEcat {
+    my $this = shift;
+    my ($file) = @_;
+
+    my $cmd       = "file $file";
+    my $file_type = `$cmd`;
+    if ( !( $file_type =~ /data$/ ) || !($file =~ /.v$/ ) ) {
+        # if file is not of type data or does not end with .v, not an ecat file
+        return 0;
+    }
+    return 1;
+}
+
 
 ################################################################
 ####################sourceEnvironment###########################
