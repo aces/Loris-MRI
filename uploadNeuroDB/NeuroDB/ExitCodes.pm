@@ -73,6 +73,9 @@ to 179)
 
 14. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 260 to 279)
 
+15. Exit codes from uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 280
+to 300)
+
 
 =head1 LICENSING
 
