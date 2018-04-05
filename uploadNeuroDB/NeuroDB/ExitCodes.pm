@@ -105,8 +105,10 @@ our $ARG_FILE_DOES_NOT_EXIST = 5; # if file given as an argument does not exist
 # database related failure
 # called from minc_insertion.pl & register_processed_data.pl
 our $FILE_NOT_UNIQUE = 6; # if file to register is not unique & already
-                           # inserted
+                          # inserted
 
+# other generic failure
+our $FILE_OR_FOLDER_DOES_NOT_EXIST = 6; # if file or folder does not exist
 
 
 
@@ -313,3 +315,12 @@ our $NO_VALID_MINC_CREATED = 261; # if no valid MINC file was created
                                   # (non-localizers)
 our $NO_MINC_INSERTED      = 262; # if no MINC files was inserted (invalid
                                   # study)
+
+
+
+
+
+
+#### --- FROM uploadNeuroDB/NeuroDB/bin/minc2jiv.pl
+
+our $REGISTER_PROGRAM_FAILURE = 280; # if MNI::Spawn::RegisterPrograms failed
