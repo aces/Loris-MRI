@@ -10,6 +10,7 @@ use File::Find;
 use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
 use NeuroDB::ExitCodes;
+use NeuroDB::DBI;
 use File::Temp qw/ tempdir /;
 
 
@@ -410,7 +411,12 @@ Arguments:
 sub PatientNameMatch {
     my $this         = shift;
     my ($dicom_file) = @_;
-    my $cmd          = "dcmdump $dicom_file | grep PatientName";
+
+    my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
+        $this->{'dbhr'},'lookupCenterNameUsing'
+    );
+
+    my $cmd = "dcmdump +P $lookupCenterNameUsing $dicom_file";
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
