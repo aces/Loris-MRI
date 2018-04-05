@@ -18,9 +18,10 @@ Available option is:
 
 =head1 DESCRIPTION
 
-This script will remove the root directory from the ArchiveLocation field
-in the tarchive table to make path to the tarchive relative. This should
-be used once, when updating the LORIS-MRI code.
+This script will remove the root directory from the C<ArchiveLocation> field
+in the C<tarchive> table to make the C<.tar> path a relative one. This should
+be used once to remove the root directory if the C<tarchive> table still has
+some C<ArchiveLocation> paths stored from the root directory.
 
 =head2 Methods
 
@@ -109,11 +110,11 @@ exit 0;
 
 =head3 getTarchiveList($dbh, $tarchiveLibraryDir)
 
-This function will grep all the TarchiveID and associated ArchiveLocation
-present in the tarchive table and will create a hash of this information
-including new ArchiveLocation to be inserted into the DB.
+This function will grep all the C<TarchiveID> and associated C<ArchiveLocation>
+present in the C<tarchive> table and will create a hash of this information
+including new C<ArchiveLocation> to be inserted into the database.
 
-INPUT: database handle, tarchives location
+INPUTS database handle, location of the C<tarchive> directory
 
 RETURNS: hash with tarchive information and new archive location
 
@@ -159,9 +160,9 @@ QUERY
 
 =head3 updateArchiveLocation($dbh, %tarchive_list)
 
-This function will update the tarchive table with the new ArchiveLocation.
+This function will update the C<tarchive> table with the new C<ArchiveLocation>.
 
-INPUT: database handle, hash with tarchive information.
+INPUTS: database handle, hash with C<tarchive> information.
 
 =cut
 

@@ -14,27 +14,28 @@ Available option is:
 
 # DESCRIPTION
 
-This script will remove the root directory from the ArchiveLocation field
-in the tarchive table to make path to the tarchive relative. This should
-be used once, when updating the LORIS-MRI code.
+This script will remove the root directory from the `ArchiveLocation` field
+in the `tarchive` table to make the `.tar` path a relative one. This should
+be used once to remove the root directory if the `tarchive` table still has
+some `ArchiveLocation` paths stored from the root directory.
 
 ## Methods
 
 ### getTarchiveList($dbh, $tarchiveLibraryDir)
 
-This function will grep all the TarchiveID and associated ArchiveLocation
-present in the tarchive table and will create a hash of this information
-including new ArchiveLocation to be inserted into the DB.
+This function will grep all the `TarchiveID` and associated `ArchiveLocation`
+present in the `tarchive` table and will create a hash of this information
+including new `ArchiveLocation` to be inserted into the database.
 
-INPUT: database handle, tarchives location
+INPUTS database handle, location of the `tarchive` directory
 
 RETURNS: hash with tarchive information and new archive location
 
 ### updateArchiveLocation($dbh, %tarchive\_list)
 
-This function will update the tarchive table with the new ArchiveLocation.
+This function will update the `tarchive` table with the new `ArchiveLocation`.
 
-INPUT: database handle, hash with tarchive information.
+INPUTS: database handle, hash with `tarchive` information.
 
 # TO DO
 
