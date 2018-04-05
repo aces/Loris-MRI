@@ -1,7 +1,7 @@
 # NAME
 
 database\_files\_update.pl -- Updates path stored in `files` and
-`parameter_file` tables so that they are relative to data\_dir
+`parameter_file` tables so that they are relative to `data_dir`
 
 # SYNOPSIS
 
@@ -14,7 +14,7 @@ Available option is:
 # DESCRIPTION
 
 This script updates the path stored in the `files` and `parameter_file`
-tables to remove the <\\$data\_dir> part of the path for security improvements.
+tables to remove the `$data_dir` part of the path for security improvements.
 
 ## Methods
 
@@ -22,7 +22,7 @@ tables to remove the <\\$data\_dir> part of the path for security improvements.
 
 Gets the list of MINC files to update the location in the `files` table.
 
-INPUT: data directory from the `Config` tables, database handle
+INPUTS: data directory from the `Config` tables, database handle
 
 RETURNS: hash of MINC locations, array of FileIDs
 
@@ -30,16 +30,16 @@ RETURNS: hash of MINC locations, array of FileIDs
 
 Updates the location of MINC files in the `files` table.
 
-INPUT: File ID, new MINC relative location, database handle
+INPUTS: File ID, new MINC relative location, database handle
 
 RETURNS: Number of rows affected by the update (should always be 1)
 
 ### get\_parameter\_files($data\_dir, $parameter\_type, $dbh)
 
-Gets list of JIV files to update location in `parameter_file` (remove root
-directory from path)
+Gets list of JIV files to update location in the `parameter_file` table by
+removing the root directory from the path.
 
-INPUT: data directory, parameter type name for the JIV, database handle
+INPUTS: data directory, parameter type name for the JIV, database handle
 
 RETURNS: hash of JIV file locations, array of FileIDs
 
@@ -47,7 +47,7 @@ RETURNS: hash of JIV file locations, array of FileIDs
 
 Updates the location of JIV files in the `parameter_file` table.
 
-INPUT:
+INPUTS:
   - $fileID           : FileID
   - $new\_file\_location: new location of the JIV file
   - $parameter\_type   : parameter type name for the JIV
