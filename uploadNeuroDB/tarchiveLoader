@@ -436,7 +436,7 @@ if (!defined($subjectIDsref->{'visitLabel'})) {
         \$dbh
     ); 
 }
-my ($sessionID, $requiresStaging) =
+my ($sessionID) =
     NeuroDB::MRI::getSessionID(
          $subjectIDsref, $tarchiveInfo{'DateAcquired'},
          \$dbh, $subjectIDsref->{'subprojectID'}

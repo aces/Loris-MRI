@@ -371,7 +371,7 @@ if (defined $CandMismatchError) {
 ################################################################
 ############ Get the SessionID #################################
 ################################################################
-my ($sessionID, $requiresStaging) = 
+my ($sessionID) =
     $utility->setMRISession($subjectIDsref, \%tarchiveInfo, $upload_id);
 
 ################################################################

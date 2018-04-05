@@ -1577,8 +1577,7 @@ sub setMRISession {
     $message = "\n==> Getting session ID\n";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-    my ($sessionID, $requiresStaging) =
-        NeuroDB::MRI::getSessionID(
+    my ($sessionID) = NeuroDB::MRI::getSessionID(
             $subjectIDsref, 
             $tarchiveInfo->{'DateAcquired'}, 
             $this->{dbhr}, 
@@ -1587,7 +1586,6 @@ sub setMRISession {
     $message = "\nSessionID: $sessionID\n";    
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-    # Staging: $requiresStaging\n";
     ############################################################
     # Make sure MRI Scan Done is set to yes, because now ####### 
     # there is data. ###########################################
@@ -1599,7 +1597,7 @@ sub setMRISession {
         }
         ${$this->{'dbhr'}}->do($query);
     }
-    return ($sessionID, $requiresStaging);
+    return ($sessionID);
 }
 
 
