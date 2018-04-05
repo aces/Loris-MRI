@@ -9,6 +9,7 @@ use File::Find;
 use Cwd;
 use NeuroDB::DBI;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
 
 my $verbose = 1;
 my $debug = 1;
@@ -43,7 +44,8 @@ Usage: $0 -help to list options
 USAGE
 
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################### input option error checking ################
@@ -52,7 +54,7 @@ USAGE
 if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named ".
           "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 ################################################################
@@ -139,4 +141,4 @@ else {
 }
 
 $dbh->disconnect();
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;

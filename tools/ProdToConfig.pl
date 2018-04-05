@@ -4,6 +4,7 @@ use warnings;
 no warnings 'once';
 use Getopt::Tabular;
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $profile   = '';
 
@@ -33,24 +34,26 @@ usage: tools/ProdToConfig.pl -profile $profile
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################ Get config setting#############################
 ################################################################
+if (!$profile ) {
+    print $Help;
+    print "\n$Usage\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ( $profile && !@Settings::db ) {
     print "\n\tERROR: You don't have a
     configuration file named '$profile' in:
     $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-if (!$profile ) {
-    print $Help;
-    print "\n$Usage\n";
-    exit 3;
-}
 
 ################################################################
 ################ Establish database connection #################
@@ -149,5 +152,5 @@ sub updateConfigFromProd {
     }
 }
 
-exit(0);
+exit $NeuroDB::ExitCodes::SUCCESS;
 
