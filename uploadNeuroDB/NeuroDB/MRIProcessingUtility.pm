@@ -1350,17 +1350,6 @@ sub computeDeepQC {
             $this->spool($message, 'N', $upload_id, $notify_detailed);
         }
     }
-
-
-    if ($acquisitionProtocol == $acqIDForT1Scan) {
-       my $req = HTTP::Request->new(GET => $server_endpoint);
-       my $resp = $ua->request($req);
-       if ($resp->is_success) {
-          my $deepqc_result = $resp->decoded_content;
-          $file->setParameter('DeepQC', $deepqc_result);
-       }
-    }
-
 }
 
 
