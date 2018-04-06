@@ -11,6 +11,7 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use Path::Class;
+use LWP::UserAgent;
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -1285,6 +1286,83 @@ sub computeSNR {
         }
     }
 }
+
+################################################################
+#######################  computeDeepQC #############################
+################################################################
+
+sub computeDeepQC {
+    my $this = shift;
+    my ($row, $filename, $fileID, $base, $fullpath, $message);
+    my ($tarchiveID, $profile)= @_;
+    my $data_dir = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'dataDirBasepath'
+                        );
+    my $ua = LWP::UserAgent->new;
+    # note: url must be changed to production version later
+    # note 2: include DeepQC modality in prod file
+    my $query1 =
+            "SELECT ID FROM mri_scan_type mst "
+            . "WHERE (mst.Scan_type LIKE 't1%') OR (mst.Scan_type LIKE %t1%)";
+    my $acqIDForT1Scan = ${$this->{'dbhr'}}->prepare($query1);
+    my $query2 = "SELECT FileID, file from files f ";
+    my $where = "WHERE f.TarchiveSource=?";
+    $query2 = $query2 . $where;
+
+    if ($this->{debug}) {
+        print $query2 . "\n";
+    }
+    my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query2);
+    $minc_file_arr->execute($tarchiveID);
+
+    while ($row = $minc_file_arr->fetchrow_hashref()) {
+        $filename = $row->{'file'};
+        $fileID = $row->{'FileID'};
+        $acqID = $row->{'AcquisitionProtocolID'};
+        $base = basename($filename);
+        $fullpath = $data_dir . "/" . $filename;
+        if ($acqID == $acqIDForT1Scan) {
+            my $url = 'http://127.0.0.1:5000/deepqc/$fileID';
+            my $DeepQC = $ua->post($url,
+              Content => [
+                'file' => [ $fullpath ]
+              ]
+            );
+            print "DeepQC Prediction is: $DeepQC \n" if ($this->{verbose});
+            my $file = NeuroDB::File->new($this->{dbhr});
+            $file->loadFile($fileID);
+            $SNR_old = $file->getParameter('DeepQC');
+            if ($DeepQC ne '') {
+                if (($DeepQC_old ne '') && ($DeepQC_old ne $DeepQC)) {
+                    $message = "The DeepQC value will be updated from " .
+                        "$DeepQC_old to $DeepQC. \n";
+                    $this->{LOG}->print($message);
+                    $this->spool($message, 'N', $upload_id, $notify_detailed);
+                }
+                $file->setParameter('DeepQC', $SNR);
+            }
+        }
+        else {
+            $message = "The DeepQC probability can not be computed for $base. ".
+                "The imaging modality is not ".
+                "supported by the DeepQC computation. \n";
+            $this->{LOG}->print($message);
+            $this->spool($message, 'N', $upload_id, $notify_detailed);
+        }
+    }
+
+
+    if ($acquisitionProtocol == $acqIDForT1Scan) {
+       my $req = HTTP::Request->new(GET => $server_endpoint);
+       my $resp = $ua->request($req);
+       if ($resp->is_success) {
+          my $deepqc_result = $resp->decoded_content;
+          $file->setParameter('DeepQC', $deepqc_result);
+       }
+    }
+
+}
+
 
 ################################################################
 ##########  Order Imaging Modalities By Acquisition ############
