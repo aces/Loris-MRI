@@ -101,7 +101,7 @@ if (-d $dcm_source && -d $targetlocation) {
     exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
 }
 
-# The tar target 
+# The tar target
 my $totar = basename($dcm_source);
 print "Source: ". $dcm_source . "\nTarget: ".  $targetlocation . "\n\n" if $verbose;
 my $ARCHIVEmd5sum = 'Provided in database only';
@@ -137,10 +137,11 @@ my $studyUnique = $summary->{'studyuid'};
 my $creator         = $summary->{user};
 my $sumTypeVersion  = $summary->{sumTypeVersion}; 
 
-my $byDate;
 # Determine how to name the archive... by acquisition date or by today's date.
-if ($todayDate) { $byDate = $today; } else { $byDate = $summary->{header}->{scandate}; } # wrap up the archive 
-my $finalTarget = "$targetlocation/DCM_${byDate}_$summary->{metaname}.tar";
+my $byDate      = $todayDate ? $today : $summary->{header}->{scandate};
+my $pname       = $summary->{header}->{pname};
+my $tarbasename = "${metaname}_$pname";
+my $finalTarget = "$targetlocation/DCM_${byDate}_$tarbasename.tar";
 
 if (-e $finalTarget && !$clobber) {
     print STDERR "\nTarget exists. Use clobber to overwrite!\n\n";
@@ -148,7 +149,7 @@ if (-e $finalTarget && !$clobber) {
 }
 
 # read acquisition metadata into variable 
-my $metafile = "$targetlocation/$metaname.meta";
+my $metafile = "$targetlocation/$tarbasename.meta";
 open META, ">$metafile";
 META->autoflush(1);
 select(META);
@@ -165,36 +166,36 @@ chomp($hostname,$system);
 chdir(dirname($dcm_source));
 print "You will archive the dir\t\t: $totar\n" if $verbose;
 # tar contents into tarball
-my $command = "tar -cf $targetlocation/$totar.tar $totar\n";
+my $command = "tar -cf $targetlocation/$tarbasename.tar $totar\n";
 print "\nYou are creating a tar with the following command: \n$command\n" if $verbose;
 `$command`;
 
 # chdir to targetlocation create md5sums gzip and wrap the whole thing up again into a retarred archive
 chdir($targetlocation);
 print "\ngetting md5sums and gzipping!!\n" if $verbose;
-my $DICOMmd5sum = DICOM::DCMSUM::md5sum($totar.".tar"); #`md5sum $totar.tar`;
-`gzip -nf $totar.tar`;
-my $zipsum =  DICOM::DCMSUM::md5sum($totar.".tar.gz");
+my $DICOMmd5sum = DICOM::DCMSUM::md5sum($tarbasename.".tar");
+`gzip -nf $tarbasename.tar`;
+my $zipsum =  DICOM::DCMSUM::md5sum($tarbasename.".tar.gz");
 
 # create tar info for the tarball NOT  containing md5 for archive tarball
-open TARINFO, ">$totar.log";
+open TARINFO, ">$tarbasename.log";
 select(TARINFO);
 &archive_head;
 close TARINFO;
 select(STDOUT);
-my $tarinfo = &read_file("$totar.log"); 
+my $tarinfo = &read_file("$tarbasename.log");
 
-my $retar = "tar cvf DCM\_$byDate\_$totar.tar $totar.meta $totar.log $totar.tar.gz";
+my $retar = "tar cvf DCM\_$byDate\_$tarbasename.tar $tarbasename.meta $tarbasename.log $tarbasename.tar.gz";
 `$retar`;
-$ARCHIVEmd5sum =  DICOM::DCMSUM::md5sum("DCM\_$byDate\_$totar.tar");
+$ARCHIVEmd5sum =  DICOM::DCMSUM::md5sum("DCM\_$byDate\_$tarbasename.tar");
 
 # create tar info for database containing md5 for archive tarball
-open TARINFO, ">$totar.log";
+open TARINFO, ">$tarbasename.log";
 select(TARINFO);
 &archive_head;
 close TARINFO;
 select(STDOUT);
-$tarinfo = &read_file("$totar.log"); 
+$tarinfo = &read_file("$tarbasename.log");
 print  $tarinfo if $verbose;
 
 
@@ -207,12 +208,16 @@ if ($dbase) {
     my $update          = 1 if $clobber;
     my $ArchiveLocation = $finalTarget;
     $ArchiveLocation    =~ s/$targetlocation\/?//g;
-    $success            = $summary->database($dbh, $metaname, $update, $tarTypeVersion, $tarinfo, $DICOMmd5sum, $ARCHIVEmd5sum, $ArchiveLocation, $neurodbCenterName);
+    $success            = $summary->database(
+        $dbh,              $metafile,    $update,        $tarTypeVersion,
+        $tarinfo,          $DICOMmd5sum, $ARCHIVEmd5sum, $ArchiveLocation,
+        $neurodbCenterName
+    );
 }
 
 # delete tmp files
 print "\nRemoving temporary files from target location\n\n" if $verbose;
-`rm -f $totar.tar.gz $totar.meta $totar.log`;
+`rm -f $tarbasename.tar.gz $tarbasename.meta $tarbasename.log`;
 
 # now report database failure (was not above to ensure temp files were erased)
 if ($dbase) {

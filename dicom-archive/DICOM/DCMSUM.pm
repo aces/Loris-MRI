@@ -75,11 +75,11 @@ sub new {
 =cut
 
 sub database {
-    my $self   = shift;
-    my $dbh    = shift;
-    my $meta   = shift;
-    my $update = shift;
-    
+    my $self     = shift;
+    my $dbh      = shift;
+    my $metafile = shift;
+    my $update   = shift;
+
     # these are only available if you run dicomTar
     my $tarType     = shift;
     my $tarLog      = shift;
@@ -133,8 +133,7 @@ QUERY
 
     # INSERT or UPDATE 
     # get acquisition metadata
-    my $sfile = "$self->{tmpdir}/$meta.meta";
-    my $metacontent = &read_file($sfile);
+    my $metacontent = &read_file($metafile);
     
     (my $common_query_part = <<QUERY) =~ s/\n/ /gm;  
       tarchive SET  
