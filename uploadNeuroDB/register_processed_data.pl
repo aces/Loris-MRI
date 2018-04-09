@@ -11,6 +11,7 @@ use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
 
+use NeuroDB::Database;
 
 my  $profile    = undef;
 my  $filename;
@@ -82,6 +83,14 @@ unless  (-r $filename)  { print "Cannot read $filename\n"; exit 1;}
 
 # Establish database connection
 my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
 
 # These settings are in the config file (profile)
 my $data_dir = NeuroDB::DBI::getConfigSetting(
@@ -262,7 +271,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     
     # make the browser pics
     print "Making browser pics\n";
-    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics);
+    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics, $db);
 }
 
 # tell the user we've done so and include the MRIID for reference

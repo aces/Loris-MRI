@@ -7,6 +7,9 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
+
+use NeuroDB::Database;
+
 ################################################################
 ################## Set stuff for GETOPT ########################
 ################################################################
@@ -59,6 +62,15 @@ if (!$profile) {
 ################################################################
 print "Connecting to database.\n" if $verbose;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 
 ################################################################
 # Where the pics should go #####################################
@@ -120,7 +132,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
     unless(
         &NeuroDB::MRI::make_pics(
             \$file, $data_dir, 
-            $pic_dir, $horizontalPics
+            $pic_dir, $horizontalPics, $db
         )
     ) {
         print "FAILURE!\n";
