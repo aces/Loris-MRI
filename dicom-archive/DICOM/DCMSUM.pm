@@ -75,18 +75,10 @@ sub new {
 =cut
 
 sub database {
-    my $self     = shift;
-    my $dbh      = shift;
-    my $metafile = shift;
-    my $update   = shift;
+    my ($self,   $dbh,    $metafile,  $update) = @_;
 
     # these are only available if you run dicomTar
-    my $tarType     = shift;
-    my $tarLog      = shift;
-    my $DCMmd5      = shift;
-    my $Archivemd5  = shift;
-    my $Archive     = shift;
-    my $neurodbCenterName = shift;
+    my ($tarType, $tarLog, $DCMmd5, $Archivemd5, $Archive, $neurodbCenterName) = @_;
 
     if(defined($neurodbCenterName)) {
         $neurodbCenterName = "'$neurodbCenterName'";

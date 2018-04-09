@@ -139,7 +139,7 @@ my $sumTypeVersion  = $summary->{sumTypeVersion};
 
 # Determine how to name the archive... by acquisition date or by today's date.
 my $byDate      = $todayDate ? $today : $summary->{header}->{scandate};
-my $pname       = $summary->{header}->{pname};
+my $pname       = quotemeta($summary->{header}->{pname});
 my $tarbasename = "${metaname}_$pname";
 my $finalTarget = "$targetlocation/DCM_${byDate}_$tarbasename.tar";
 
