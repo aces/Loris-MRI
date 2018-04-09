@@ -509,7 +509,7 @@ $utility->computeSNR($tarchiveInfo{TarchiveID},
                          $tarchiveInfo{'SourceLocation'},
 			 $profile);
 ################################################################
-############### Compute SNR on 3D modalities ###################
+############### Compute DeepQC on T1W MNC files ################
 ################################################################
 $utility->computeDeepQC($tarchiveInfo{TarchiveID},
                         $profile);
