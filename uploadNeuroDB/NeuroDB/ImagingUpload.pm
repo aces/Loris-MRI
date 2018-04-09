@@ -416,7 +416,9 @@ sub PatientNameMatch {
         $this->{'dbhr'},'lookupCenterNameUsing'
     );
 
-    my $cmd = "dcmdump +P $lookupCenterNameUsing $dicom_file";
+    my $cmd = sprintf("dcmdump +P %s %s",
+        quotemeta($lookupCenterNameUsing), quotemeta($dicom_file)
+    );
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
 	my $message = "\nThe patient name cannot be extracted \n";
