@@ -12,6 +12,7 @@ use NeuroDB::DBI;
 use NeuroDB::Notify;
 use Path::Class;
 use LWP::UserAgent;
+use JSON::PP ();
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -1290,48 +1291,49 @@ sub computeSNR {
 ################################################################
 #######################  computeDeepQC #############################
 ################################################################
-
 sub computeDeepQC {
     my $this = shift;
     my ($row, $filename, $fileID, $base, $fullpath, $message);
-    my ($tarchiveID, $profile)= @_;
+    my ($tarchiveID, $tarchive_srcloc, $profile)= @_;
     my $data_dir = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'dataDirBasepath'
                         );
+    my $upload_id = getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc);
     my $ua = LWP::UserAgent->new;
+    my $json = 'JSON::PP'->new;
     # note: url must be changed to production version later
     # note 2: include DeepQC modality in prod file
-    my $query1 =
-            "SELECT ID FROM mri_scan_type mst "
-            . "WHERE (mst.Scan_type LIKE 't1%') OR (mst.Scan_type LIKE %t1%)";
-    my $acqIDForT1Scan = ${$this->{'dbhr'}}->prepare($query1);
-    my $query2 = "SELECT FileID, file from files f ";
+    my $acqIDForT1Scan = 44;
+    my $query = "SELECT FileID, file, AcquisitionProtocolID from files f ";
     my $where = "WHERE f.TarchiveSource=?";
-    $query2 = $query2 . $where;
+    $query = $query . $where;
 
     if ($this->{debug}) {
-        print $query2 . "\n";
+        print $query . "\n";
     }
-    my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query2);
+    my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query);
     $minc_file_arr->execute($tarchiveID);
 
     while ($row = $minc_file_arr->fetchrow_hashref()) {
         $filename = $row->{'file'};
-        $fileID = $row->{'FileID'};
-        $acqID = $row->{'AcquisitionProtocolID'};
+        my $fileID = $row->{'FileID'};
+        my $acqID = $row->{'AcquisitionProtocolID'};
         $base = basename($filename);
         $fullpath = $data_dir . "/" . $filename;
         if ($acqID == $acqIDForT1Scan) {
-            my $url = 'http://127.0.0.1:5000/deepqc/$fileID';
-            my $DeepQC = $ua->post($url,
+            my $url = 'http://127.0.0.1:5000/deepqc/' . $fileID;
+            my $resp = $ua->post($url,
+              Content_Type => 'multipart/form-data',
               Content => [
                 'file' => [ $fullpath ]
               ]
             );
-            print "DeepQC Prediction is: $DeepQC \n" if ($this->{verbose});
+            my $DeepQC = $json->decode($resp->content);
+            $DeepQC = $DeepQC->{'prediction'};
+            print "DeepQC Prediction is: " . $DeepQC . "\n" if ($this->{verbose});
             my $file = NeuroDB::File->new($this->{dbhr});
             $file->loadFile($fileID);
-            $SNR_old = $file->getParameter('DeepQC');
+            my $DeepQC_old = $file->getParameter('DeepQC');
             if ($DeepQC ne '') {
                 if (($DeepQC_old ne '') && ($DeepQC_old ne $DeepQC)) {
                     $message = "The DeepQC value will be updated from " .
@@ -1339,7 +1341,7 @@ sub computeDeepQC {
                     $this->{LOG}->print($message);
                     $this->spool($message, 'N', $upload_id, $notify_detailed);
                 }
-                $file->setParameter('DeepQC', $SNR);
+                $file->setParameter('DeepQC', $DeepQC);
             }
         }
         else {
