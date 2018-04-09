@@ -191,12 +191,11 @@ if ( basename($expected_file) ne basename($uploaded_file)) {
 }
 
 ################################################################
-################ FileDecompress Object #########################
-################################################################
-#####################TO DOOO##################################
-####Check to see if the file is zipped or compressed before calling the
-#### decompress class
-#
+############ Todo: Check to see if the file is accessible#######
+## if not, it means that the front-end module###################
+## has not changed the user-group properly######################
+##Therefore return an error and log the error###################
+
 my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 
 ################################################################

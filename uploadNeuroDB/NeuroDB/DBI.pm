@@ -65,7 +65,6 @@ sub connect_to_db
     return $dbh;
 }
 
-
 =pod
 
 =head3 getConfigSetting($dbh, $name)
