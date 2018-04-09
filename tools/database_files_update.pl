@@ -18,7 +18,7 @@ Available option is:
 =head1 DESCRIPTION
 
 This script updates the path stored in the C<files> and C<parameter_file>
-tables to remove the C<$data_dir> part of the path for security improvements.
+tables to remove the C<data_dir> part of the path for security improvements.
 
 =head2 Methods
 

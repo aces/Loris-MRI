@@ -14,7 +14,7 @@ Available option is:
 # DESCRIPTION
 
 This script updates the path stored in the `files` and `parameter_file`
-tables to remove the `$data_dir` part of the path for security improvements.
+tables to remove the `data_dir` part of the path for security improvements.
 
 ## Methods
 
