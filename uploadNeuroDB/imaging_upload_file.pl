@@ -190,12 +190,6 @@ if ( basename($expected_file) ne basename($uploaded_file)) {
     exit 6;
 }
 
-################################################################
-############ Todo: Check to see if the file is accessible#######
-## if not, it means that the front-end module###################
-## has not changed the user-group properly######################
-##Therefore return an error and log the error###################
-
 my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 
 ################################################################
