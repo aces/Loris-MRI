@@ -89,7 +89,7 @@ sub new {
 
 Stores and process the command line options from hash ref.
 
-INPUT: an hash reference
+INPUT: a hash reference
 
 =cut
 
@@ -115,7 +115,7 @@ sub processOpts {
 
 Fills in hash with header members from given file.
 
-INPUT: file, (optionally, big endian image)
+INPUTS: file, (optionally, big endian image)
 
 RETURNS: 1 if duplication, 0 on success
 
@@ -185,7 +185,7 @@ sub write {
 
 =pod
 
-=head3 printContents($OUTFILE)
+=head3 printContents($outfile)
 
 Prints all elements, to disk if file handle supplied.
 
@@ -217,7 +217,7 @@ sub printContents {
 
 Returns a sorted array of references to element arrays.
 
-RETURNS: sorte array of references
+RETURNS: sorted array of references
 
 =cut
 
@@ -286,9 +286,9 @@ sub getIndex {
 
 =head3 value($gp, $el)
 
-Return value of the element at (group, element).
+Returns value of the element at (group, element).
 
-INPUT: group, element
+INPUTS: group, element
 
 RETURNS: value of the element
 
@@ -309,7 +309,7 @@ sub value {
 
 Returns field of given index from element.
 
-INPUT: group, element, field index.
+INPUTS: group, element, field index.
 
 RETURNS: field of given index from element
 
@@ -405,13 +405,15 @@ sub setElementValue {
 }
 
 
+# ------------------------------------------------------------------
+# Utility Functions (non-public)
+# ------------------------------------------------------------------
+
+
 =pod
 
 =head3 hexadecimally()
 
-------------------------------------------------------------------
-Utility Functions (non-public)
-------------------------------------------------------------------
 
 =cut
 
@@ -467,7 +469,8 @@ Add support for sequences (SQ) (currently being skipped)
 Better documentation of:
   - setIndex()
   - hexadecimally() -- non public?
-  - loop - doesn't do anything in non-graphical case. Is this used?
+  - loop - doesn't do anything in non-graphical case. investigate if this
+  function is used, if not, remove
 
 =head1 BUGS
 

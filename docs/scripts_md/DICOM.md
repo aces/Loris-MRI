@@ -38,13 +38,13 @@ RETURNS: a DICOM::DICOM object
 
 Stores and process the command line options from hash ref.
 
-INPUT: an hash reference
+INPUT: a hash reference
 
 ### fill($infile, $big\_endian\_image)
 
 Fills in hash with header members from given file.
 
-INPUT: file, (optionally, big endian image)
+INPUTS: file, (optionally, big endian image)
 
 RETURNS: 1 if duplication, 0 on success
 
@@ -56,7 +56,7 @@ is stored as is (possibly edited).
 
 INPUT: file to write into
 
-### printContents($OUTFILE)
+### printContents($outfile)
 
 Prints all elements, to disk if file handle supplied.
 
@@ -66,7 +66,7 @@ INPUT: file to print into
 
 Returns a sorted array of references to element arrays.
 
-RETURNS: sorte array of references
+RETURNS: sorted array of references
 
 ### setIndex($val)
 
@@ -84,9 +84,9 @@ RETURNS: sort index
 
 ### value($gp, $el)
 
-Return value of the element at (group, element).
+Returns value of the element at (group, element).
 
-INPUT: group, element
+INPUTS: group, element
 
 RETURNS: value of the element
 
@@ -94,7 +94,7 @@ RETURNS: value of the element
 
 Returns field of given index from element.
 
-INPUT: group, element, field index.
+INPUTS: group, element, field index.
 
 RETURNS: field of given index from element
 
@@ -125,10 +125,6 @@ INPUT: group, element, new value
 
 ### hexadecimally()
 
-\------------------------------------------------------------------
-Utility Functions (non-public)
-\------------------------------------------------------------------
-
 ### sortByField()
 
 Sort array of value by field.
@@ -149,7 +145,8 @@ Add support for sequences (SQ) (currently being skipped)
 Better documentation of:
   - setIndex()
   - hexadecimally() -- non public?
-  - loop - doesn't do anything in non-graphical case. Is this used?
+  - loop - doesn't do anything in non-graphical case. investigate if this
+  function is used, if not, remove
 
 # BUGS
 
