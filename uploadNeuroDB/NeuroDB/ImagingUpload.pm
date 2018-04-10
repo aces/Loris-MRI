@@ -427,7 +427,7 @@ sub PatientNameMatch {
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname !~ /^$this->{'pname'}/) {
-        my $message = "\nThe patient-name read ".
+        my $message = "\nThe $lookupCenterNameUsing read ".
                       "from the DICOM header does not start with " .
         	      $this->{'pname'} . 
                       " from the mri_upload table\n";
