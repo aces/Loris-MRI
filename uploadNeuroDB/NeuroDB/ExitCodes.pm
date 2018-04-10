@@ -110,9 +110,15 @@ our $ARG_FILE_DOES_NOT_EXIST = 5; # if file given as an argument does not exist
 our $FILE_NOT_UNIQUE = 6; # if file to register is not unique & already
                           # inserted
 
-# other generic failure
-our $FILE_OR_FOLDER_DOES_NOT_EXIST = 7; # if file or folder does not exist
+# Used when an environment variable is either missing or has an invalid
+# value
+our $INVALID_ENVIRONMENT_VAR = 7;
 
+our $INVALID_ARG             = 8; # if one of the program argument is invalid
+
+# other generic failure
+our $FILE_OR_FOLDER_DOES_NOT_EXIST = 9; # if file or folder does not exist
+                           
 
 
 
