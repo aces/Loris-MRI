@@ -268,10 +268,10 @@ Under the section `Path`:
 
 Click 'Submit' at the end of the Configuration page to save any changes.
 
-#### 2.3.5 FAQ
+#### 2.3.5 Troubleshooting guideline
 
 For common errors and frequently asked questions, please refer to the [Appendix
-  A](AppendixA-FAQ.md).
+  A](AppendixA-Troubleshooting_guideline.md).
 
 
 ## 2.4 Pipeline flow

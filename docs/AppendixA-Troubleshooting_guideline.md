@@ -1,4 +1,4 @@
-# Appendix A - FAQ
+# Appendix A - Troubleshooting guideline
 
 This section covers some of the most commonly encountered errors when running
 the insertion scripts. They are divided into 3 separate tables, with each table 
