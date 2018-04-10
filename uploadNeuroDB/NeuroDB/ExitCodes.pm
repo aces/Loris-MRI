@@ -111,7 +111,7 @@ our $FILE_NOT_UNIQUE = 6; # if file to register is not unique & already
                           # inserted
 
 # other generic failure
-our $FILE_OR_FOLDER_DOES_NOT_EXIST = 6; # if file or folder does not exist
+our $FILE_OR_FOLDER_DOES_NOT_EXIST = 7; # if file or folder does not exist
 
 
 
