@@ -77,29 +77,6 @@ sub new {
     return bless $self, $params;
 }
 
-=pod
-
-=head3 C<getMriScanTypeOB()>
-
-Fetches the MRI scan type object broker associated to the instance of this class. Note
-that if the object broker has not been created yet, this method will create it and store
-the value as a class attribute.
-
-RETURN: the MRI scan type object broker associated to the instance of this class.
-=cut
-
-sub getMriScanTypeOB {
-	my $self = shift;
-	
-	if(!$self->{'mriScanTypeOB'}) {
-		$self->{'mriScanTypeOB'} = NeuroDB::objectBroker::MriScanTypeOB->new(
-		    db => $self->{'db'}
-		);
-	}
-	
-	return $self->{'mriScanTypeOB'};
-}
-
 ################################################################
 ## writeErrorLog and update Notification Table##################
 ## this is a useful function that will close the log and write #

@@ -45,6 +45,7 @@ use Time::Local;
 use FindBin;
 
 use NeuroDB::objectBroker::MriScanTypeOB;
+use NeuroDB::UnexpectedValueException;
 
 $VERSION = 0.2;
 @ISA = qw(Exporter);
@@ -605,7 +606,7 @@ sub debug_inrange {
 
 =pod
 
-B<scan_type_id_to_text( C<$typeID>, C<$db> )>
+B<scan_type_id_to_text( C<$ID>, C<$db> )>
 
 Determines the type of the scan identified by scan type id
 
@@ -620,7 +621,21 @@ sub scan_type_id_to_text {
         db => $db
     );
     my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $ID });
-    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->[0] : 'unknown';
+    
+    # This is just to make sure that there is a scan type in the DB
+    # with name 'unknown' in case we can't find the one with ID $ID
+    $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
+
+    if(!@$mriScanTypeRef) {
+        NeuroDB::UnexpectedValueException->throw(
+            errorMessage => sprintf(
+                "Unknown acquisition protocol ID %d and scan type 'unknown' does not exist in the database",
+                $ID
+            ) 
+        );
+    }
+    
+    return $mriScanTypeRef->[0]->[1];
 }
 
 =pod
@@ -636,15 +651,18 @@ Returns: ID of the scan type
 sub scan_type_text_to_id {
     my($type, $db) = @_;
 
-    my $mriScanTypeRef = $this->getMriScanTypeOB()->get(
-        0, { Scan_type => $acquisitionProtocol }
+    my $mriScanTypeOB = NeuroDB::objectBroker::MriScanTypeOB->new(
+        db => $db
     );
-    $mriScanTypeRef = $this->getMriScanTypeOB()->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
+    my $mriScanTypeRef = $mriScanTypeOB->get(
+        0, { Scan_type => $type }
+    );
+    $mriScanTypeRef = $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
     if(!@$mriScanTypeRef) {
         NeuroDB::UnexpectedValueException->throw(
             errorMessage => sprintf(
                 "Unknown acquisition protocol %s and scan type 'unknown' does not exist in the database",
-                $acquisitionProtocol
+                $type
             ) 
         );
     }
