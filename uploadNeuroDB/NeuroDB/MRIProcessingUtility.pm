@@ -172,7 +172,7 @@ sub extract_tarchive {
         print STDERR $message;
         print @tars . "\n";
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-        exit $NeuroDB::ExitCodes::EXTRACT_ARCHIVE_FAILURE;
+        exit $NeuroDB::ExitCodes::EXTRACTION_FAILURE;
     }
 
     my $dcmtar = $tars[0];
@@ -226,10 +226,10 @@ sub determineSubjectID {
             my $message =  "\nERROR: Profile does not contain getSubjectIDs ".
                            "routine. Upload will exit now.\n\n";
             $this->writeErrorLog(
-                $message, $NeuroDB::ExitCodes::GET_SUBJECT_ID_FAILURE
+                $message, $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE
             );
 	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-	    exit $NeuroDB::ExitCodes::GET_SUBJECT_ID_FAILURE;
+	    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
         }
     }
     my $subjectIDsref = Settings::getSubjectIDs(
@@ -282,11 +282,11 @@ sub createTarchiveArray {
         my $message = "\nERROR: Only archived data can be uploaded.".
                       "This seems not to be a valid archive for this study!".
                       "\n\n";
-        $this->writeErrorLog($message, $NeuroDB::ExitCodes::TARCHIVE_NOT_IN_DB);
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
 	# no $tarchive can be fetched so $upload_id is undef
 	# in the notification_spool
         $this->spool($message, 'Y', undef, $notify_notsummary);
-        exit $NeuroDB::ExitCodes::TARCHIVE_NOT_IN_DB;
+        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
 
     return %tarchiveInfo;
@@ -313,10 +313,10 @@ sub determinePSC {
 
             my $message = "\nERROR: No center found for this candidate \n\n";
             $this->writeErrorLog(
-                $message, $NeuroDB::ExitCodes::GET_PSC_FAILURE
+                $message, $NeuroDB::ExitCodes::SELECT_FAILURE
             );
 	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit $NeuroDB::ExitCodes::GET_PSC_FAILURE;
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
         }
         my $message =
             "\n==> Verifying acquisition center\n-> " .
@@ -360,10 +360,10 @@ sub determineScannerID {
                           "your profile or this archive can not be ".
                           "uploaded.\n\n";
             $this->writeErrorLog(
-                $message, $NeuroDB::ExitCodes::GET_SCANNERID_FAILURE
+                $message, $NeuroDB::ExitCodes::SELECT_FAILURE
             );
        	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit $NeuroDB::ExitCodes::GET_SCANNERID_FAILURE;
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
         }
     }
     if ($to_log) {
@@ -1041,10 +1041,10 @@ sub CreateMRICandidates {
                        "The dicom header PatientName is: ". 
                        $tarchiveInfo->{'PatientName'}. "\n\n";
             $this->writeErrorLog(
-                $message, $NeuroDB::ExitCodes::CAND_REGISTRATION_FAILURE
+                $message, $NeuroDB::ExitCodes::INSERT_FAILURE
             );
             $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit $NeuroDB::ExitCodes::CAND_REGISTRATION_FAILURE;
+            exit $NeuroDB::ExitCodes::INSERT_FAILURE;
      }
 }
 
@@ -1126,9 +1126,9 @@ sub validateArchive {
         $message =  "\nerror: archive seems to be corrupted or modified. ".
                        "upload will exit now.\nplease read the creation logs ".
                        " for more  information!\n\n";
-        $this->writeErrorLog($message, $NeuroDB::ExitCodes::CORRUPTED_TARCHIVE);
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::CORRUPTED_FILE);
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-        exit $NeuroDB::ExitCodes::CORRUPTED_TARCHIVE;
+        exit $NeuroDB::ExitCodes::CORRUPTED_FILE;
     }
 }
 

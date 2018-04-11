@@ -98,7 +98,7 @@ if (-d $dcm_source && -d $targetlocation) {
     $targetlocation =~ s/^(.*)\/$/$1/;
 } else {
     print STDERR "\nERROR: source and target must be existing directories!\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 # The tar target 
@@ -220,7 +220,7 @@ if ($dbase) {
         print "\nDone adding archive info into database\n" if $verbose;
     } else {
         print STDERR "\nThe database command failed\n";
-        exit $NeuroDB::ExitCodes::TARCHIVE_INSERT_FAILURE;
+        exit $NeuroDB::ExitCodes::INSERT_FAILURE;
     }
 }
 
@@ -232,7 +232,7 @@ if ($mri_upload_update) {
     my $output = system($script);
     if ($output!=0)  {
         print STDERR "\n\tERROR: the script updateMRI_Upload.pl has failed\n\n";
-        exit $NeuroDB::ExitCodes::UPDATE_MRI_UPLOAD_FAILURE;
+        exit $NeuroDB::ExitCodes::UPDATE_FAILURE;
     }
 }
 

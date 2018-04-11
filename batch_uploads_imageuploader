@@ -148,7 +148,7 @@ foreach my $input (@resultsarray)
     if (($type ne '.tgz') && ($type ne '.tar.gz') && ($type ne '.zip')) {
 	print STDERR "The file on line $counter is not of type .tgz, tar.gz, or "
                  . ".zip and will not be processed\n";
-	exit $NeuroDB::ExitCodes::UPLOADED_FILE_TYPE_FAILURE;
+	exit $NeuroDB::ExitCodes::FILE_TYPE_CHECK_FAILURE;
     }
     if (($phantom eq '') || (($phantom ne 'N') && ($phantom ne 'Y'))) {
 	print STDERR "Make sure the Phantom entry is filled out "
@@ -167,7 +167,7 @@ foreach my $input (@resultsarray)
         if ($patientname ne '') {
        	    print STDERR "Please leave the patient name blank for phantom "
        	                 . "entries\n";
-	        exit $NeuroDB::ExitCodes::PNAME_PHANTOM_MISMATCH;
+	        exit $NeuroDB::ExitCodes::PNAME_FILENAME_MISMATCH;
 	}
 	else {
 	    $patientname = 'NULL';

@@ -129,7 +129,7 @@ unless ( -e $uploaded_file ) {
     print STDERR "\nERROR: Could not find the uploaded file $uploaded_file.\n"
                  . "Please, make sure the path to the uploaded file is "
                  . "valid.\n\n" ;
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
@@ -146,7 +146,7 @@ my $expected_file = getFilePathUsingUploadID($upload_id);
 if ( basename($expected_file) ne basename($uploaded_file)) {
     print STDERR "$Usage\nERROR: The specified upload_id $upload_id does not "
                  . "correspond to the provided file path $uploaded_file.\n\n";
-    exit $NeuroDB::ExitCodes::UPLOAD_ID_PATH_MISMATCH;
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 ################################################################
@@ -217,7 +217,7 @@ if ( !($is_candinfovalid) ) {
     $message = "\nThe candidate info validation has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
-    exit $NeuroDB::ExitCodes::INVALID_DICOM_CAND_INFO;
+    exit $NeuroDB::ExitCodes::INVALID_DICOM;
 }
 
 $message = "\nThe candidate info validation has passed.\n";
@@ -233,7 +233,7 @@ if ( !$output ) {
     $message = "\nThe dicomTar.pl execution has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
-    exit $NeuroDB::ExitCodes::DICOMTAR_FAILURE;
+    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 $message = "\nThe dicomTar.pl execution has successfully completed\n";
 spool($message,'N', $notify_notsummary);
@@ -247,7 +247,7 @@ if ( !$output ) {
     $message = "\nThe tarchiveLoader insertion script has failed.\n";
     spool($message,'Y', $notify_notsummary); 
     print STDERR $message;
-    exit $NeuroDB::ExitCodes::TARCHIVELOADER_FAILURE;
+    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
 ################################################################
@@ -259,7 +259,7 @@ if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
-    exit $NeuroDB::ExitCodes::CLEANUP_UPLOAD_FAILURE;
+    exit $NeuroDB::ExitCodes::CLEANUP_FAILURE;
 }
 $message = "\nThe uploaded file " . $uploaded_file . " has been removed\n\n";
 spool($message,'N', $notify_notsummary);

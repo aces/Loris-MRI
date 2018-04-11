@@ -102,7 +102,7 @@ if ( !@Settings::db ) {
 unless (-e $tarchive) {
     print STDERR "\nERROR: Could not find archive $tarchive.\n"
                  . "Please, make sure the path to the archive is valid.\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
@@ -111,7 +111,7 @@ unless (-e $tarchive) {
 unless (-e $source_location) {
     print STDERR "\nERROR: Could not find sourcelocation $source_location\n"
                  . "Please, make sure the sourcelocation is valid.\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 ################################################################
 #####establish database connection if database option is set####
@@ -154,7 +154,7 @@ $sth->execute($tarchive_path);
 my $count = $sth->fetchrow_array;
 if($count>0) {
    print STDERR "\n\tERROR: the tarchive is already uploaded \n\n";
-   exit $NeuroDB::ExitCodes::TARCHIVE_ALREADY_UPLOADED;
+   exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 } 
 
 
