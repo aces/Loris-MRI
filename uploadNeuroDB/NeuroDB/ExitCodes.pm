@@ -73,6 +73,9 @@ to 179)
 
 14. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 260 to 279)
 
+15. Exit codes from uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 280
+to 300)
+
 
 =head1 LICENSING
 
@@ -105,14 +108,17 @@ our $ARG_FILE_DOES_NOT_EXIST = 5; # if file given as an argument does not exist
 # database related failure
 # called from minc_insertion.pl & register_processed_data.pl
 our $FILE_NOT_UNIQUE = 6; # if file to register is not unique & already
-                           # inserted
-                           
+                          # inserted
+
 # Used when an environment variable is either missing or has an invalid
 # value
 our $INVALID_ENVIRONMENT_VAR = 7;
 
 our $INVALID_ARG             = 8; # if one of the program argument is invalid
 
+# other generic failure
+our $FILE_OR_FOLDER_DOES_NOT_EXIST = 9; # if file or folder does not exist
+                           
 
 
 
@@ -318,3 +324,12 @@ our $NO_VALID_MINC_CREATED = 261; # if no valid MINC file was created
                                   # (non-localizers)
 our $NO_MINC_INSERTED      = 262; # if no MINC files was inserted (invalid
                                   # study)
+
+
+
+
+
+
+#### --- FROM uploadNeuroDB/NeuroDB/bin/minc2jiv.pl
+
+our $REGISTER_PROGRAM_FAILURE = 280; # if MNI::Spawn::RegisterPrograms failed

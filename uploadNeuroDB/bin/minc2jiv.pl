@@ -39,10 +39,11 @@ use MNI::PathUtilities;
 use MNI::Spawn;
 use MNI::MincUtilities qw( :geometry :range);
 use MNI::MiscUtilities qw(:all);
+use NeuroDB::ExitCodes;
 
 
 MNI::Spawn::RegisterPrograms( [qw/ cp mincexpand mincextract gzip /] )
-    or exit 1;
+    or exit $NeuroDB::ExitCodes::REGISTER_PROGRAM_FAILURE;
 
 my $usage = <<USAGE;
 usage:  $ProgramName [options] mincfile1 [ mincfile2 ...]
@@ -68,7 +69,7 @@ my @options =
     ['-force', 'boolean', 0, \$force, "accept non-standard direction cosines (rotated coordinate axes) [default: $force]"],
   );
 GetOptions( \@options, \@ARGV ) 
-  or exit 1;
+  or exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 die "$usage\n" unless @ARGV > 0;
 
 
@@ -84,7 +85,7 @@ elsif( !$volume && $slices) {
 }
 else {
     print "nothing to do!\n";
-    exit 0;
+    exit $NeuroDB::ExitCodes::SUCCESS;
 }
 
 my $panel= 0;
@@ -93,7 +94,8 @@ my $norm_options= "-norm -range 0 255";
 my $compress= ($gzip ? "| gzip -c9 " : "") ;
 
 my %base_names_seen;
-MNI::FileUtilities::check_output_path("$TmpDir/") or exit 1;
+MNI::FileUtilities::check_output_path("$TmpDir/")
+    or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
 
 foreach my $in_mnc (@ARGV) {
 
@@ -109,7 +111,8 @@ foreach my $in_mnc (@ARGV) {
     # extracted the many-many slices ...)
     #
     my $local_file= "$TmpDir/${base}.mnc"; 
-    MNI::FileUtilities::check_output_path( $local_file) or exit 1;
+    MNI::FileUtilities::check_output_path( $local_file)
+        or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
     Spawn( ( $ext =~ m/mnc$/ ) ?  
 	   "cp $in_mnc $local_file" : 
 	   "mincexpand $in_mnc $local_file" 
@@ -151,7 +154,8 @@ foreach my $in_mnc (@ARGV) {
     $dir= $output_path;
 
     my $out_header = "$dir/${base}.header";
-    MNI::FileUtilities::check_output_path( $out_header) or exit 1;
+    MNI::FileUtilities::check_output_path( $out_header)
+        or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
     write_file( $out_header, $header );
     print "\nVolume header info written to $out_header\n\n"
 	if $Verbose;
@@ -188,7 +192,8 @@ foreach my $in_mnc (@ARGV) {
     for( $dim= 0 ; $dim < 3 ; ++$dim) {
 
 	$dir= "$output_path/$base/$slice_dirname{$dim}/";
-        MNI::FileUtilities::check_output_path($dir) or exit 1;
+        MNI::FileUtilities::check_output_path($dir)
+            or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
 
 	for( $s= 0 ; $s < $length[ $order->[$dim] ]; ++$s) {
 
@@ -212,7 +217,8 @@ foreach my $in_mnc (@ARGV) {
 } # for $in_mnc (@ARGV)
 
 if( $cfg_file) {
-    MNI::FileUtilities::check_output_path( $cfg_file) or exit 1;
+    MNI::FileUtilities::check_output_path( $cfg_file)
+        or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
     write_file( $cfg_file, $cfg );
     print "\nConfig file written to $cfg_file\n\n"
 	if $Verbose;
