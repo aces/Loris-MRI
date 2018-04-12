@@ -416,12 +416,13 @@ sub PatientNameMatch {
         $this->{'dbhr'},'lookupCenterNameUsing'
     );
 
-    my $cmd = sprintf("dcmdump +P %s %s",
+    my $cmd = sprintf("dcmdump +P %s -q %s",
         quotemeta($lookupCenterNameUsing), quotemeta($dicom_file)
     );
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
-	my $message = "\nThe patient name cannot be extracted \n";
+	my $message = "\nThe '$lookupCenterNameUsing' DICOM field cannot be "
+	              . "extracted from the DICOM file $dicom_file\n";
         $this->spool($message, 'Y', $notify_notsummary);
         exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
