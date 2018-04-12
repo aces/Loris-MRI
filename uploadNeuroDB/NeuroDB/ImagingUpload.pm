@@ -416,22 +416,31 @@ sub PatientNameMatch {
         $this->{'dbhr'},'lookupCenterNameUsing'
     );
 
+    unless ( $lookupCenterNameUsing ) {
+        my $message = "\nSetting 'lookupCenterNameUsing' is not set in the "
+                      . "Config module under the Imaging Pipeline section.";
+        $this->spool($message, 'Y', $notify_notsummary);
+        #TODO: once refactoring of exit code merged to minor, add the following
+        #TODO: MISSING_CONFIG_SETTING exit code in the generic database code
+        exit $NeuroDB::ExitCodes::MISSING_CONFIG_SETTING;
+    }
+
     my $cmd = sprintf("dcmdump +P %s -q %s",
         quotemeta($lookupCenterNameUsing), quotemeta($dicom_file)
     );
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
-	my $message = "\nThe '$lookupCenterNameUsing' DICOM field cannot be "
-	              . "extracted from the DICOM file $dicom_file\n";
+	    my $message = "\nThe '$lookupCenterNameUsing' DICOM field cannot be "
+	                  . "extracted from the DICOM file $dicom_file\n";
         $this->spool($message, 'Y', $notify_notsummary);
         exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname !~ /^$this->{'pname'}/) {
-        my $message = "\nThe $lookupCenterNameUsing read ".
-                      "from the DICOM header does not start with " .
-        	      $this->{'pname'} . 
-                      " from the mri_upload table\n";
+        my $message = "\nThe $lookupCenterNameUsing read "
+                      . "from the DICOM header does not start with "
+                      . $this->{'pname'}
+                      . " from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);
         return 0; ##return false
     }
