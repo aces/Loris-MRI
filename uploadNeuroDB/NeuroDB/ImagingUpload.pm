@@ -417,12 +417,22 @@ sub PatientNameMatch {
     );
 
     unless ( $lookupCenterNameUsing ) {
-        my $message = "\nSetting 'lookupCenterNameUsing' is not set in the "
-                      . "Config module under the Imaging Pipeline section.";
+        my $message = "\nConfig Setting 'lookupCenterNameUsing' is not set in "
+                      . "the Config module under the Imaging Pipeline section.";
         $this->spool($message, 'Y', $notify_notsummary);
         #TODO: once refactoring of exit code merged to minor, add the following
         #TODO: MISSING_CONFIG_SETTING exit code in the generic database code
         exit $NeuroDB::ExitCodes::MISSING_CONFIG_SETTING;
+    }
+
+    unless ($lookupCenterNameUsing =~ /PatientName|PatientID/i) {
+        my $message = "\nConfig setting 'lookupCenterNameUsing' is set to "
+                      . "$lookupCenterNameUsing but should be set to "
+                      . "either to either PatientID or PatientName";
+        $this->spool($message, 'Y', $notify_notsummary);
+        #TODO: once refactoring of exit code merged to minor, add the following
+        #TODO: BAD_CONFIG_SETTING exit code in the generic database code
+        exit $NeuroDB::ExitCodes::BAD_CONFIG_SETTING;
     }
 
     my $cmd = sprintf("dcmdump +P %s -q %s",
