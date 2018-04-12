@@ -51,7 +51,7 @@ Below is a list of the possible exit codes:
 
 5. Common file manipulation failures (exit codes from 60 to 79)
 
-6. Common other generic failures (exit codes from 80 to 149)
+6. Other common generic failures (exit codes from 80 to 149)
 
 
 ##### ---- SECTION 2: SCRIPT SPECIFIC EXIT CODES NOT COVERED IN SECTION 1
@@ -63,11 +63,11 @@ Below is a list of the possible exit codes:
 9. Exit codes from uploadNeuroDB/NeuroDB/ImagingUpload.pm (exit codes from
 170 to 179)
 
-11. Exit codes from uploadNeuroDB/minc_insertion.pl (exit codes from 180 to 189)
+10. Exit codes from uploadNeuroDB/minc_insertion.pl (exit codes from 180 to 189)
 
-12. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 190 to 199)
+11. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 190 to 199)
 
-13. Exit codes from uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200
+12. Exit codes from uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200
 to 210)
 
 
@@ -128,7 +128,7 @@ our $MISSING_FILES           = 63; # if there are missing files compared to
 our $UNREADABLE_FILE         = 64; # if could not properly read a file content
 
 
-## -- Common other generic failures (exit codes from 80 to 149)
+## -- Other common generic failures (exit codes from 80 to 149)
 our $CLEANUP_FAILURE           = 80; # if cleanup after script execution failed
 our $MISSING_TOOL_VERSION      = 81; # if missing the tool version information
 our $PROGRAM_EXECUTION_FAILURE = 82; # if script execution failed
