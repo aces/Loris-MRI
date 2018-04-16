@@ -251,6 +251,6 @@ sub insertIntoMRIUpload {
     return $upload_id;
 }
 
-## exit 0 for find to consider this -cmd true (in case we ever run it that way...)
+## exit $NeuroDB::ExitCodes::SUCCESS for find to consider this -cmd true (in case we ever run it that way...)
 exit $NeuroDB::ExitCodes::SUCCESS;
 

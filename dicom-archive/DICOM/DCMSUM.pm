@@ -23,6 +23,8 @@ use Digest::MD5;
 
 # more specific stuff
 use DICOM::DICOM;
+use NeuroDB::ExitCodes;
+
 
 # The constructor 
 sub new {
@@ -119,13 +121,14 @@ QUERY
 	    print "\n\nPROBLEM:\n The user \'$row[3]\' has already inserted this study. \n The unique study ID is $row[0]\n";
 	    print " This is the information retained from the first time the study was inserted:\n $row[1]\n\n";
 	    print " Last update of record :\n $row[2]\n\n";
-	    exit 33;
+	    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 	}
 	# do not allow to run diccomSummary with database option if the study has already been archived
 	elsif (!$Archivemd5 && $row[3] ne "") { 
 	    print "\n\n PROBLEM: This study has already been archived. You can only re-archive it using dicomTar!\n";
 	    print " This is the information retained from the first time the study has been archived:\n $row[1]\n\n";
-	    exit 33; }
+	    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
+        ; }
 	
     } else {
 	$update = 0;
@@ -437,7 +440,7 @@ sub dcm_count {
     }
     if ($count == 0) {
 	print "\n\t The target directory does not contain a single DICOM file. \n\n\n";
-	    exit 33;
+	    exit $NeuroDB::ExitCodes::MISSING_FILES;
     }
     else { return $count;}
 }
@@ -681,7 +684,7 @@ sub confirm_single_study {
 	foreach my $studyUID (keys(%hash)) {
 	    print "'$studyUID'\n";
 	}
-	exit 33; 
+	exit $NeuroDB::ExitCodes::FILE_TYPE_CHECK_FAILURE;
     }
     else {
 	my $studyid;
