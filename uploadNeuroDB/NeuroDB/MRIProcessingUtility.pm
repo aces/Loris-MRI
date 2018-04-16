@@ -12,9 +12,6 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 
-use NeuroDB::UnexpectedValueException;
-use NeuroDB::objectBroker::MriScanTypeOB;
-
 use Path::Class;
 use Scalar::Util qw(blessed);
 
@@ -71,8 +68,6 @@ sub new {
     $self->{'TmpDir'} = $TmpDir;
     $self->{'logfile'} = $logfile;
     $self->{'db'} = $db;
-    
-    $self->{'mriScanTypeOB'} = undef;
     
     return bless $self, $params;
 }
