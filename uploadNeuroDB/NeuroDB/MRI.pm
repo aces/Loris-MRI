@@ -44,6 +44,9 @@ use Carp;
 use Time::Local;
 use FindBin;
 
+use NeuroDB::objectBroker::MriScanTypeOB;
+use NeuroDB::UnexpectedValueException;
+
 $VERSION = 0.2;
 @ISA = qw(Exporter);
 
@@ -391,7 +394,7 @@ sub getObjective
 
 =pod
 
-B<identify_scan_db( C<$center_name>, C<$objective>, C<$fileref>, C<$dbhr> )>
+B<identify_scan_db( C<$center_name>, C<$objective>, C<$fileref>, C<$dbhr>, C<$db> )>
 
 Determines the type of the scan described by minc headers based on mri_protocol in the database
 
@@ -401,7 +404,7 @@ Returns: Textual name of scan type
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr,$minc_location
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location
     ) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
@@ -488,7 +491,7 @@ sub identify_scan_db {
     while($rowref = $sth->fetchrow_hashref()) {
         my $sd_regex = $rowref->{'series_description_regex'};
         if(0) {
-            print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
+            print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
             print "\t";
             if($sd_regex && ($series_description =~ /$sd_regex/i)) {print "series_description\t";}
             print &in_range($tr, $rowref->{'TR_range'}) ? "TR\t" : '';
@@ -507,7 +510,7 @@ sub identify_scan_db {
         
 	if ($sd_regex) {
             if ($series_description =~ /$sd_regex/i) {
-                return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
+                return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
 	}
 	else {
@@ -524,7 +527,7 @@ sub identify_scan_db {
                 && (!$rowref->{'ystep_range'} || &in_range($ystep, $rowref->{'ystep_range'}))
                 && (!$rowref->{'zstep_range'} || &in_range($zstep, $rowref->{'zstep_range'}))
                 && (!$rowref->{'time_range'} || &in_range($time, $rowref->{'time_range'}))) {
-                    return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
+                    return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
         }
     }
@@ -603,7 +606,7 @@ sub debug_inrange {
 
 =pod
 
-B<scan_type_id_to_text( C<$typeID>, C<$dbhr> )>
+B<scan_type_id_to_text( C<$ID>, C<$db> )>
 
 Determines the type of the scan identified by scan type id
 
@@ -612,19 +615,32 @@ Returns: Textual name of scan type
 =cut
 
 sub scan_type_id_to_text {
-    my ($ID, $dbhr) = @_;
+    my ($ID, $db) = @_;
 
-    my $query = "SELECT Scan_type FROM mri_scan_type WHERE ID='$ID'";
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-    return 'unknown' unless $sth->rows;
-    my @results = $sth->fetchrow_array();
-    return $results[0];
+    my $mriScanTypeOB = NeuroDB::objectBroker::MriScanTypeOB->new(
+        db => $db
+    );
+    my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $ID });
+    
+    # This is just to make sure that there is a scan type in the DB
+    # with name 'unknown' in case we can't find the one with ID $ID
+    $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
+
+    if(!@$mriScanTypeRef) {
+        NeuroDB::UnexpectedValueException->throw(
+            errorMessage => sprintf(
+                "Unknown acquisition protocol ID %d and scan type 'unknown' does not exist in the database",
+                $ID
+            ) 
+        );
+    }
+    
+    return $mriScanTypeRef->[0]->[1];
 }
 
 =pod
 
-B<scan_type_text_to_id( C<$type>, C<$dbhr> )>
+B<scan_type_text_to_id( C<$type>, C<$db> )>
 
 Determines the type of the scan identified by scan type
 
@@ -633,15 +649,25 @@ Returns: ID of the scan type
 =cut
 
 sub scan_type_text_to_id {
-    my $type = shift;
-    my $dbhr = shift;
+    my($type, $db) = @_;
 
-    my $query = "SELECT ID FROM mri_scan_type WHERE Scan_type='$type'";
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-    return &scan_type_text_to_id('unknown', $dbhr) unless $sth->rows;
-    my @results = $sth->fetchrow_array();
-    return $results[0];
+    my $mriScanTypeOB = NeuroDB::objectBroker::MriScanTypeOB->new(
+        db => $db
+    );
+    my $mriScanTypeRef = $mriScanTypeOB->get(
+        0, { Scan_type => $type }
+    );
+    $mriScanTypeRef = $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
+    if(!@$mriScanTypeRef) {
+        NeuroDB::UnexpectedValueException->throw(
+            errorMessage => sprintf(
+                "Unknown acquisition protocol %s and scan type 'unknown' does not exist in the database",
+                $type
+            ) 
+        );
+    }
+    
+    return $mriScanTypeRef->[0]->[0];
 }
 
 =pod
@@ -1157,7 +1183,7 @@ Returns: 1 if the pic was generated or 0 otherwise.
 =cut
 
 sub make_pics {
-    my ($fileref, $data_dir, $dest_dir, $horizontalPics) = @_;
+    my ($fileref, $data_dir, $dest_dir, $horizontalPics, $db) = @_;
     my $file = $$fileref;
     my $dbhr = $file->getDatabaseHandleRef();
     
@@ -1165,7 +1191,7 @@ sub make_pics {
     $sth->execute();
     my $rowhr = $sth->fetchrow_hashref();
     
-    my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('AcquisitionProtocolID'), $dbhr);
+    my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('AcquisitionProtocolID'), $db);
     my $minc = $data_dir . '/' . $file->getFileDatum('File');
     my $mincbase = basename($minc);
     $mincbase =~ s/\.mnc(\.gz)?$//;

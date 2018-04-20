@@ -19,6 +19,8 @@ use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
 
+use NeuroDB::Database;
+
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =localtime(time);
@@ -136,6 +138,14 @@ unless (-e $tarchive) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 ################################################################
 ########## Create the Specific Log File ########################
 ################################################################
@@ -160,7 +170,7 @@ print LOG "\n==> Successfully connected to database \n";
 ################ MRIProcessingUtility object ###################
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  \$dbh,$debug,$TmpDir,$logfile,
+                  $db, \$dbh,$debug,$TmpDir,$logfile,
                   $verbose
               );
 

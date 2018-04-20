@@ -6,11 +6,14 @@ use warnings;
 no warnings 'once';
 use Data::Dumper;
 use File::Basename;
+
 use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
+
 use Path::Class;
+use Scalar::Util qw(blessed);
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -23,11 +26,17 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 ################################################################
 sub new {
     my $params = shift;
-    my ($dbhr,$debug,$TmpDir,$logfile,$verbose) = @_;
+    my ($db, $dbhr,$debug,$TmpDir,$logfile,$verbose) = @_;
     unless(defined $dbhr) {
        croak(
            "Usage: ".$params."->new(\$databaseHandleReference)"
        );
+    }
+    
+    unless(defined $db && blessed($db) && $db->isa('NeuroDB::Database')) {
+        croak(
+           "Usage: ".$params."->new(\$databaseObject)"
+        );
     }
     my $self = {};
 
@@ -58,6 +67,8 @@ sub new {
     $self->{'debug'} = $debug;
     $self->{'TmpDir'} = $TmpDir;
     $self->{'logfile'} = $logfile;
+    $self->{'db'} = $db;
+    
     return bless $self, $params;
 }
 
@@ -438,6 +449,7 @@ sub getAcquisitionProtocol {
                                    $tarchiveInfoRef,
                                    $file, 
                                    $this->{dbhr}, 
+                                   $this->{'db'},
                                    $minc
                                  );
     }
@@ -449,9 +461,8 @@ sub getAcquisitionProtocol {
     my @checks = ();
     my $acquisitionProtocolID;
     if ($acquisitionProtocol !~ /unknown/) {
-        $acquisitionProtocolID =
-        &NeuroDB::MRI::scan_type_text_to_id(
-          $acquisitionProtocol, $this->{dbhr}
+        $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
+            $acquisitionProtocol, $this->{'db'}
         );
 
         if ($bypass_extra_file_checks == 0) {
@@ -714,7 +725,7 @@ sub registerScanIntoDB {
         ########################################################
         $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
                                         $acquisitionProtocol, 
-                                        $this->{dbhr}
+                                        $this->{'db'}
                                  );
         $${minc_file}->setFileData(
             'AcquisitionProtocolID', 
