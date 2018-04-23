@@ -425,10 +425,10 @@ sub PatientNameMatch {
         exit $NeuroDB::ExitCodes::MISSING_CONFIG_SETTING;
     }
 
-    unless ($lookupCenterNameUsing =~ /PatientName|PatientID/i) {
+    unless ($lookupCenterNameUsing =~ /^(PatientName|PatientID)$/i) {
         my $message = "\nConfig setting 'lookupCenterNameUsing' is set to "
                       . "$lookupCenterNameUsing but should be set to "
-                      . "either to either PatientID or PatientName";
+                      . "either PatientID or PatientName";
         $this->spool($message, 'Y', $notify_notsummary);
         #TODO: once refactoring of exit code merged to minor, add the following
         #TODO: BAD_CONFIG_SETTING exit code in the generic database code
