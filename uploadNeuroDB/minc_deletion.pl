@@ -113,7 +113,7 @@ if (!$seriesuid && !$fileid) {
 if ($seriesuid && $fileid) {
     print STDERR " ERROR: You cannot specify both -seriesuid and -fileid "
                  . "options.\n\n";
-    exit $NeuroDB::ExitCodes::FILEID_SERIESUID_ARG_FAILURE;
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 
