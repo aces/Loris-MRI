@@ -161,7 +161,7 @@ if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 if (defined $tarchive && !(-e $tarchive) ) {
     print STDERR "\nERROR: Could not find archive $tarchive. \nPlease, make sure "
         . " the path to the archive is correct. Upload will exit now.\n\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 if ( !($tarchive xor $upload_id) ) {
@@ -174,7 +174,7 @@ if ( !($tarchive xor $upload_id) ) {
 if (!defined $minc || !-e $minc) {
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing "
         . "MINC file with -minc.\n\n";  
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 # input option error checking
@@ -494,7 +494,7 @@ if($acquisitionProtocol =~ /unknown/) {
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion.pl', $upload_id, 'Y', 
                    $notify_notsummary);
-   exit $NeuroDB::ExitCodes::UNKNOW_PROTOCOL;
+   exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }
 
 ################################################################
@@ -519,7 +519,7 @@ if ((!defined$acquisitionProtocolIDFromProd)
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion', $upload_id, 'Y',
                    $notify_notsummary);
-    exit $NeuroDB::ExitCodes::PROTOCOL_NOT_IN_PROFILE;
+    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
 }
 ################################################################
 ### Add series notification ####################################

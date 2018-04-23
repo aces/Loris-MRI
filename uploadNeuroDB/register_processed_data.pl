@@ -80,13 +80,13 @@ unless  ($filename && $sourceFileID && $sourcePipeline && $scanType
 unless  ((defined($sourceFileID)) && ($sourceFileID =~ /^[0-9]+$/)) {
     print STDERR "Files to be registered require the -sourceFileID option "
                  . "with a valid FileID as an argument\n";
-    exit $NeuroDB::ExitCodes::INVALID_SOURCEFILEID;
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 # Make sure we have permission to read the file
 unless  (-r $filename)  {
     print STDERR "Cannot read $filename\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 # Establish database connection
@@ -151,7 +151,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $psc    =   $center_name;
     if  (!$psc)     { 
         print LOG "\nERROR: No center found for this candidate \n\n"; 
-        exit $NeuroDB::ExitCodes::GET_PSC_FAILURE;
+        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
     print LOG  "\n==> Verifying acquisition center\n - Center Name  : $center_name\n - CenterID     : $centerID\n";
 }
@@ -182,7 +182,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 if  (!defined($scannerID))  {
     print LOG "\nERROR: could not determine scannerID based on sourceFileID "
               . "$sourceFileID.\n\n";
-    exit $NeuroDB::ExitCodes::GET_SCANNERID_FAILURE;
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 $file->setFileData('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
@@ -197,7 +197,7 @@ if  (!defined($sessionID))  {
     print LOG "\nERROR: could not determine sessionID based on sourceFileID "
               . "$sourceFileID. Are you sure the sourceFile was registered "
               . "in DB?\n\n";
-    exit $NeuroDB::ExitCodes::GET_SESSIONID_FROM_SOURCEFILEID_FAILURE;
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 print LOG "\n==> Data found for candidate   : $subjectIDsref->{'CandID'} - Visit: $subjectIDsref->{'visitLabel'}\n";
 $file->setFileData('SessionID', $sessionID);
@@ -210,7 +210,7 @@ print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
 my  ($acqProtID)    =   getAcqProtID($scanType,$dbh);
 if  (!defined($acqProtID))  {
     print LOG "\nERROR: could not determine AcquisitionProtocolID based on scanType $scanType.\n\n";
-    exit $NeuroDB::ExitCodes::GET_ACQUISITION_PROTOCOL_ID_FAILURE;
+    exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }
 $file->setFileData('AcquisitionProtocolID',$acqProtID);
 print LOG "\t -> Set AcquisitionProtocolID to $acqProtID.\n";
@@ -257,7 +257,7 @@ unless  ($fileID)   {
     # tell the user something went wrong
     print LOG "\n==> FAILED TO REGISTER FILE $filename!\n\n";    
     # and exit
-    exit $NeuroDB::ExitCodes::FILE_REGISTRATION_FAILURE;
+    exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
 
 # Insert into files_intermediary the intermediary inputs stored in inputFileIDs.

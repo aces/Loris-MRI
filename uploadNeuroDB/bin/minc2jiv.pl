@@ -95,7 +95,7 @@ my $compress= ($gzip ? "| gzip -c9 " : "") ;
 
 my %base_names_seen;
 MNI::FileUtilities::check_output_path("$TmpDir/")
-    or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
+    or exit $NeuroDB::ExitCodes::INVALID_PATH;
 
 foreach my $in_mnc (@ARGV) {
 
@@ -112,7 +112,7 @@ foreach my $in_mnc (@ARGV) {
     #
     my $local_file= "$TmpDir/${base}.mnc"; 
     MNI::FileUtilities::check_output_path( $local_file)
-        or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
+        or exit $NeuroDB::ExitCodes::INVALID_PATH;
     Spawn( ( $ext =~ m/mnc$/ ) ?  
 	   "cp $in_mnc $local_file" : 
 	   "mincexpand $in_mnc $local_file" 
@@ -155,7 +155,7 @@ foreach my $in_mnc (@ARGV) {
 
     my $out_header = "$dir/${base}.header";
     MNI::FileUtilities::check_output_path( $out_header)
-        or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
+        or exit $NeuroDB::ExitCodes::INVALID_PATH;
     write_file( $out_header, $header );
     print "\nVolume header info written to $out_header\n\n"
 	if $Verbose;
@@ -193,7 +193,7 @@ foreach my $in_mnc (@ARGV) {
 
 	$dir= "$output_path/$base/$slice_dirname{$dim}/";
         MNI::FileUtilities::check_output_path($dir)
-            or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
+            or exit $NeuroDB::ExitCodes::INVALID_PATH;
 
 	for( $s= 0 ; $s < $length[ $order->[$dim] ]; ++$s) {
 
@@ -218,7 +218,7 @@ foreach my $in_mnc (@ARGV) {
 
 if( $cfg_file) {
     MNI::FileUtilities::check_output_path( $cfg_file)
-        or exit $NeuroDB::ExitCodes::FILE_OR_FOLDER_DOES_NOT_EXIST;
+        or exit $NeuroDB::ExitCodes::INVALID_PATH;
     write_file( $cfg_file, $cfg );
     print "\nConfig file written to $cfg_file\n\n"
 	if $Verbose;

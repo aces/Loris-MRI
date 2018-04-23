@@ -191,7 +191,7 @@ unless ($tarchive =~ m/$tarchivePath/i) {
 unless (-e $tarchive) {
     print STDERR "\nERROR: Could not find archive $tarchive.\n"
                  . "Please, make sure the path to the archive is correct.\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 
@@ -337,12 +337,12 @@ if (($output != 0)  && ($force==0)) {
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog(
-     $message, $NeuroDB::ExitCodes::TARCHIVE_VALIDATION_FAILURE, $logfile
+     $message, $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE, $logfile
  );
  $notifier->spool('tarchive validation', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
 		$notify_notsummary);
- exit $NeuroDB::ExitCodes::TARCHIVE_VALIDATION_FAILURE;
+ exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
 ################################################################
@@ -684,7 +684,7 @@ if (!$valid_study) {
     $notifier->spool('mri invalid study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y', 
 		    $notify_notsummary);
-    exit $NeuroDB::ExitCodes::NO_MINC_INSERTED;
+    exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
 
 ###############################################################

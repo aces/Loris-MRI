@@ -132,7 +132,7 @@ $tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
     print STDERR "\nERROR: Could not find archive $tarchive.\n"
                  . "Please, make sure the path to the archive is valid.\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
