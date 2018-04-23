@@ -430,8 +430,6 @@ sub PatientNameMatch {
                       . "$lookupCenterNameUsing but should be set to "
                       . "either PatientID or PatientName";
         $this->spool($message, 'Y', $notify_notsummary);
-        #TODO: once refactoring of exit code merged to minor, add the following
-        #TODO: BAD_CONFIG_SETTING exit code in the generic database code
         exit $NeuroDB::ExitCodes::BAD_CONFIG_SETTING;
     }
 
