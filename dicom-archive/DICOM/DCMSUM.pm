@@ -128,7 +128,7 @@ QUERY
 	    print "\n\n PROBLEM: This study has already been archived. You can only re-archive it using dicomTar!\n";
 	    print " This is the information retained from the first time the study has been archived:\n $row[1]\n\n";
 	    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
-        ; }
+    }
 	
     } else {
 	$update = 0;
@@ -684,7 +684,7 @@ sub confirm_single_study {
 	foreach my $studyUID (keys(%hash)) {
 	    print "'$studyUID'\n";
 	}
-	exit $NeuroDB::ExitCodes::FILE_TYPE_CHECK_FAILURE;
+	exit $NeuroDB::ExitCodes::NOT_A_SINGLE_STUDY;
     }
     else {
 	my $studyid;
