@@ -135,7 +135,7 @@ our $PROGRAM_EXECUTION_FAILURE = 82; # if script execution failed
 our $TARGET_EXISTS_NO_CLOBBER  = 83; # if tarchive already exists but option
                                      # -clobber was not set
 our $UNKNOWN_PROTOCOL          = 84; # if could not find acquisition protocol
-                                     # protocol of the file to be inserted
+                                     # of the file to be inserted
 our $NOT_A_SINGLE_STUDY        = 85; # if the upload regroups multiple studies
 
 
