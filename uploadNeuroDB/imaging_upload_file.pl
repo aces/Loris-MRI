@@ -1,4 +1,45 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+imaging_upload_file.pl -- a single step script for the imaging pre-processing
+and insertion pipeline sequence
+
+=head1 SYNOPSIS
+
+perl imaging_upload_file.pl </path/to/UploadedFile> `[options]`
+
+Available options are:
+
+-profile      : name of the config file in
+                C<../dicom-archive/.loris_mri>
+
+-upload_id    : The Upload ID of the given scan uploaded
+
+-verbose      : if set, be verbose
+
+
+=head1 DESCRIPTION
+
+The program does the following
+
+- Gets the location of the uploaded file (.zip, .tar.gz or .tgz)
+
+- Unzips the uploaded file
+
+- Uses the ImagingUpload class to :
+   1) Validate the uploaded file   (set the validation to true)
+   2) Run dicomTar.pl on the file  (set the dicomTar to true)
+   3) Run tarchiveLoader on the file (set the minc-created to true)
+   4) Removes the uploaded file once the previous steps have completed
+   5) Update the mri_upload table
+
+=head2 Methods
+
+=cut
+
 use strict;
 use warnings;
 use Carp;
@@ -32,18 +73,23 @@ my $date    = sprintf(
               );
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
-my $upload_id = undef;         # The uploadID
+my $upload_id = undef;  # The uploadID
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
      tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = '';
-my $verbose             = 0;           	# default for now, run with -verbose option to re-enable
-my $notify_detailed     = 'Y';		# notification_spool message flag for messages to be displayed 
-				       	# with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary   = 'N';         	# notification_spool message flag for messages to be displayed 
-				       	# with SUMMARY Option in the front-end/imaging_uploader 
+my $verbose             = 0;
+                        # default for now, run with -verbose option to re-enable
+my $notify_detailed     = 'Y';
+                        # notification_spool message flag for messages to be
+                        # displayed with DETAILED OPTION in the front-end/
+                        # imaging_uploader
+my $notify_notsummary   = 'N';
+                        # notification_spool message flag for messages to be
+				       	# displayed with SUMMARY Option in the front-end/
+                        # imaging_uploader
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -71,21 +117,25 @@ Version :   $versionInfo
 The program does the following
 
 - Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+
 - Unzips the uploaded file
-- Sources the Environment
+
 - Uses the ImagingUpload class to :
-   1) Validate the uploaded file   (set the validation to true)
-   2) Run dicomtar.pl on the file  (set the dicomtar to true)
+
+   1) Validate the uploaded file (set the validation to true)
+   2) Run dicomTar.pl on the file (set the dicomTar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
-   4) Removes the uploaded file once the previous steps have completed
+   4) Remove the uploaded file once the previous steps have completed
    5) Update the mri_upload table 
+
+Documentation: perldoc imaging_upload_file.pl
 
 HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/UploadedFile> -upload_id [options]
        $0 -help to list options
-Note:  Please make sure that the </path/to/UploadedFile> and the upload_id provided 
-correspond to the same upload entry.
+Note:  Please make sure that the </path/to/UploadedFile> and the upload_id
+provided correspond to the same upload entry.
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
 &Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
@@ -94,11 +144,6 @@ USAGE
 ############### input option error checking ####################
 ################################################################
 
-=pod
- 1) For those logs before getting the --dbh...they also need to 
-     -They need to be inserted
- 2) The -patient-name can be included for further validation
-=cut
 
 if ( !$profile ) {
     print $Help;
@@ -149,21 +194,6 @@ if ( basename($expected_file) ne basename($uploaded_file)) {
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
-################################################################
-############ Todo: Check to see if the file is accessible#######
-## if not, it means that the front-end module###################
-## has not changed the user-group properly######################
-##Therefore return an error and log the error###################
-################################################################
-
-
-################################################################
-################ FileDecompress Object #########################
-################################################################
-#####################TO DOOO##################################
-####Check to see if the file is zipped or compressed before calling the
-#### decompress class
-#
 my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 
 ################################################################
@@ -279,14 +309,15 @@ spool($message,'N', $notify_notsummary);
 ############### getPnameUsingUploadID###########################
 ################################################################
 =pod
-getPnameUsingUploadID()
-Description:
-  - Get the patient-name using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getPnameUsingUploadID($upload_id)
 
-  Returns: $patient_name : The patientName
+Function that gets the patient name using the upload ID
+
+INPUT   : $upload_id : The upload ID
+
+RETURNS : $patient_name : The patient name
+
 =cut
 
 
@@ -313,14 +344,16 @@ sub getPnameUsingUploadID {
 ############### getFilePathUsingUploadID########################
 ################################################################
 =pod
-getFilePathUsingUploadID()
-Description:
-  - Get the file path from the mri_upload table using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getFilePathUsingUploadID($upload_id)
 
-  Returns: $file_path : The full path to the uploaded file
+Functions that gets the file path from the `mri_upload` table using the upload
+ID
+
+INPUT   : $upload_id : The upload ID
+
+RETURNS : $file_path : The full path to the uploaded file
+
 =cut
 
 
@@ -348,14 +381,17 @@ sub getFilePathUsingUploadID {
 ###### get number_of_mincCreated & number_of_mincInserted ######
 ################################################################
 =pod
-getNumberOfMincFiles()
-Description:
-  - Get the count of minc files created and inserted using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getNumberOfMincFiles($upload_id)
 
-  Returns: $minc_created and $minc_inserted: count of minc created and inserted
+Function that gets the count of MINC files created and inserted using the
+upload ID
+
+INPUT   : $upload_id: The upload ID
+
+RETURNS : $minc_created and $minc_inserted: count of MINC files created and
+inserted
+
 =cut
 
 
@@ -388,17 +424,18 @@ sub getNumberOfMincFiles {
 ############### spool()#########################################
 ################################################################
 =pod
-spool()
-Description:
-   - Calls the Notify->spool function to log all messages 
 
-Arguments:
- $this      : Reference to the class
- $message   : Message to be logged in the database 
- $error     : if 'Y' it's an error log , 'N' otherwise
- $verb      : 'N' for summary messages, 'Y' for detailed messages (developers)
+=head3 spool()
 
- Returns    : NULL
+Function that calls the Notify->spool function to log all messages
+
+INPUTS:
+ - $this      : Reference to the class
+ - $message   : Message to be logged in the database
+ - $error     : If 'Y' it's an error log , 'N' otherwise
+ - $verb      : 'N' for summary messages, 
+                'Y' for detailed messages (developers)
+
 =cut
 
 sub spool  {
@@ -412,3 +449,29 @@ sub spool  {
 }
 
 exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Add a check that the uploaded scan file is accessible by the front end user
+(i.e. that the user-group is set properly on the upload directory). Throw an
+error and log it, otherwise.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

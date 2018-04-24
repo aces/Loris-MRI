@@ -1,5 +1,36 @@
 #!/usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+mass_pic.pl -- Generates check pic for the LORIS database system
+
+
+=head1 SYNOPSIS
+
+perl mass_pic.pl C<[options]>
+
+Available options are:
+
+-profile   : name of the config file in ../dicom-archive/.loris_mri
+
+-mincFileID: integer, minimum C<FileID> to operate on
+
+-maxFileID : integer, maximum C<FileID> to operate on
+
+-verbose   : be verbose
+
+
+=head1 DESCRIPTION
+
+This scripts will generate pics for every registered MINC file that have
+a C<FileID> from the C<files> table between the specified C<minFileID>
+and C<maxFileID>.
+
+=cut
+
+
 use strict;
 use FindBin;
 use lib "$FindBin::Bin";
@@ -18,9 +49,10 @@ my $minFileID  = undef;
 my $maxFileID  = undef;
 my $query;
 my $debug       = 0;
-my $Usage = "mass_pic.pl generates check pic images for NeuroDB for those ".
+my $Usage = "mass_pic.pl generates pic images for NeuroDB for those ".
             "files that are missing pics. ".
-            " \n\n See $0 -help for more info\n\n";
+            " \n\n See $0 -help for more info\n\n".
+            "Documentation: perldoc mass_pic.pl\n\n";
 
 my @arg_table =
     (
@@ -131,3 +163,27 @@ $dbh->disconnect();
 
 print "\nFinished mass_pic.pl execution\n" if $verbose;
 exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
+

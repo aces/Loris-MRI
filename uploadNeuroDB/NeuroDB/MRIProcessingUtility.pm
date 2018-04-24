@@ -1,4 +1,57 @@
 package NeuroDB::MRIProcessingUtility;
+
+
+=pod
+
+=head1 NAME
+
+NeuroDB::MRIProcessingUtility -- Provides an interface for MRI processing
+utilities
+
+=head1 SYNOPSIS
+
+  use NeuroDB::ProcessingUtility;
+
+  my $utility       = NeuroDB::MRIProcessingUtility->new(
+                        \$dbh,    $debug,  $TmpDir,
+                        $logfile, $LogDir, $verbose
+                      );
+
+  %tarchiveInfo     = $utility->createTarchiveArray(
+                        $ArchiveLocation, $globArchiveLocation
+                      );
+
+  my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+
+  my $scannerID     = $utility->determineScannerID(
+                        \%tarchiveInfo, 0,
+                        $centerID,      $NewScanner
+                      );
+
+  my $subjectIDsref = $utility->determineSubjectID(
+                        $scannerID,
+                        \%tarchiveInfo,
+                        0
+                      );
+
+  my $CandMismatchError = $utility->validateCandidate(
+                            $subjectIDsref,
+                            $tarchiveInfo{'SourceLocation'}
+                          );
+
+  $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+  $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
+
+=head1 DESCRIPTION
+
+Mishmash of MRI processing utility functions used mainly by the insertion
+scripts of LORIS.
+
+=head2 Methods
+
+=cut
+
+
 use English;
 use Carp;
 use strict;
@@ -20,9 +73,21 @@ my $notify_detailed   = 'Y'; # notification_spool message flag for messages to b
 my $notify_notsummary = 'N'; # notification_spool message flag for messages to be displayed 
                              # with SUMMARY Option in the front-end/imaging_uploader 
 
-################################################################
-#####################Constructor ###############################
-################################################################
+
+=pod
+
+=head3 new($dbhr, $debug, $TmpDir, $logfile, $verbose) >> (constructor)
+
+Creates a new instance of this class. The parameter `\$dbhr` is a reference
+to a DBI database handle, used to set the object's database handle, so that all
+the DB-driven methods will work.
+
+INPUT: DBI database handle
+
+RETURNS: new instance of this class.
+
+=cut
+
 sub new {
     my $params = shift;
     my ($dbhr,$debug,$TmpDir,$logfile,$verbose) = @_;
@@ -63,11 +128,18 @@ sub new {
     return bless $self, $params;
 }
 
-################################################################
-## writeErrorLog and update Notification Table##################
-## this is a useful function that will close the log and write #
-## error messages in case of abnormal program termination ######
-################################################################
+
+=pod
+
+=head3 writeErrorLog($message, $failStatus, $LogDir)
+
+Writes error log. This is a useful function that will close the log and write
+error messages in case of abnormal program termination.
+
+INPUTS: notification message, fail status of the process, log directory
+
+=cut
+
 sub writeErrorLog {
     my $this = shift;
     my ($message, $failStatus,$LogDir) = @_;
@@ -82,10 +154,18 @@ sub writeErrorLog {
 }
 
 
-#################################################################    
-## useful only if the visit label IS NOT encoded somewhere in ###
-## the patient ID or patient Name ###############################
-#################################################################    
+=pod
+
+=head3 lookupNextVisitLabel($candID, $dbhr)
+
+Will look up for the next visit label of candidate C<CandID>. Useful only if
+the visit label IS NOT encoded somewhere in the patient ID or patient name.
+
+INPUTS: candidate's CandID, database handle reference
+
+RETURNS: next visit label found for the candidate
+
+=cut
 
 sub lookupNextVisitLabel {
     my $this = shift;
@@ -106,9 +186,20 @@ sub lookupNextVisitLabel {
     return $visitLabel;
 }
 
-################################################################
-########### getFileNamesfromSeriesUID  #########################
-################################################################
+
+=pod
+
+=head3 getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
+
+Will extract from the C<tarchive_files> table a list of DICOM files
+matching a given SeriesUID.
+
+INPUTS: seriesUID, list of tar files
+
+RETURNS: list of DICOM files corresponding to the seriesUID
+
+=cut
+
 sub getFileNamesfromSeriesUID {
 
     # longest common prefix
@@ -142,13 +233,20 @@ sub getFileNamesfromSeriesUID {
     return $tarstring;
 }
 
-################################################################
-##################### extract_tarchive #########################
-################################################################
+
 =pod
-Most important function now. Gets the tarchive and
-extracts it so data can actually be uploaded
+
+=head3 extract_tarchive($tarchive, $tarchive_srcloc, $seriesuid)
+
+Extracts the DICOM archive so that data can actually be uploaded.
+
+INPUTS: path to the DICOM archive, source location from the C<tarchive> table,
+(optionally seriesUID)
+
+RETURNS: the extracted DICOM directory
+
 =cut
+
 sub extract_tarchive {
     my $this = shift;
     my ($tarchive, $upload_id, $seriesuid) = @_;
@@ -191,9 +289,19 @@ sub extract_tarchive {
 }
 
 
-################################################################
-############ sub extractAndParseTarchive #######################
-################################################################
+=pod
+
+=head3 extractAndParseTarchive($tarchive, $tarchive_srcloc, $seriesuid)
+
+Extracts and parses the tarchive.
+
+INPUTS: path to the tarchive, source location from the tarchive table,
+(optionally seriesUID)
+
+RETURNS: extract suffix, extracted DICOM directory, tarchive meta data header
+
+=cut
+
 sub extractAndParseTarchive {
 
     my $this = shift;
@@ -213,9 +321,21 @@ sub extractAndParseTarchive {
     return ($ExtractSuffix, $study_dir, $header);
 }
 
-################################################################
-################## determineSubjectID ##########################
-################################################################
+
+=pod
+
+=head3 determineSubjectID($scannerID, $tarchiveInfo, $to_log)
+
+Determines subject's ID based on scanner ID and tarchive information.
+
+INPUTS: scanner ID, tarchive information hashref, boolean if this step should
+be logged
+
+RETURNS: subject's ID hashref containing CandID, PSCID and Visit Label
+information
+
+=cut
+
 sub determineSubjectID {
 
     my $this = shift;
@@ -251,9 +371,18 @@ sub determineSubjectID {
 }
 
 
-################################################################
-################### createTarchiveArray ########################
-################################################################
+=pod
+
+=head3 createTarchiveArray($tarchive, $globArchiveLocation)
+
+Creates the tarchive information hashref.
+
+INPUTS: tarchive's path, globArchiveLocation argument specified when running
+the insertion scripts
+
+RETURNS: tarchive information hashref
+
+=cut
 
 sub createTarchiveArray {
 
@@ -292,9 +421,19 @@ sub createTarchiveArray {
     return %tarchiveInfo;
 }
 
-################################################################
-#################### determinePSC ##############################
-################################################################
+
+=pod
+
+=head3 determinePSC($tarchiveInfo, $to_log)
+
+Determines the PSC based on the tarchive information hashref.
+
+INPUTS: tarchive information hashref, whether this step should be logged
+
+RETURNS: array of two elements: center name and center ID
+
+=cut
+
 sub determinePSC {
 
     my $this = shift;
@@ -328,9 +467,24 @@ sub determinePSC {
     return ($center_name, $centerID);
 }
 
-################################################################
-################## determineScannerID ##########################
-################################################################
+
+=pod
+
+=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $NewScanner)
+
+Determines which scanner ID was used for DICOM acquisitions.
+
+INPUTS:
+  - $tarchiveInfo: tarchive information hashref
+  - $to_log      : whether this step should be logged
+  - $centerID    : center ID
+  - $NewScanner  : whether a new scanner entry should be created if the scanner
+                   used is a new scanner for the study
+
+RETURNS: scanner ID
+
+=cut
+
 sub determineScannerID {
 
     my $this = shift;
@@ -374,10 +528,15 @@ sub determineScannerID {
     return $scannerID;
 }
 
-################################################################
-####### get_acqusitions($study_dir, \@acquisitions) ############ 
-####### puts list of acq dirs in @acquisitions #################
-################################################################
+
+=pod
+
+=head3 get_acqusitions($study_dir, \@acquisitions)
+
+UNUSED
+
+=cut
+
 sub get_acquisitions {
     my $this = shift;
     my ($study_dir, $acquisitions) = @_;
@@ -389,9 +548,19 @@ sub get_acquisitions {
     }
 }
 
-################################################################
-################### compute the md5 hash #######################
-################################################################
+
+=pod
+
+=head3 computeMd5Hash($file, $tarchive_srcloc)
+
+Computes the MD5 hash of a file and makes sure it is unique.
+
+INPUTS: file to use to compute the MD5 hash, tarchive source location
+
+RETURNS: 1 if the file is unique, 0 otherwise
+
+=cut
+
 sub computeMd5Hash {
     my $this = shift;
     my ($file, $upload_id) = @_;
@@ -408,9 +577,30 @@ sub computeMd5Hash {
     return $unique;
 }
 
-################################################################
-#################### getAcquisitionProtocol ####################
-################################################################
+
+=pod
+
+=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, ...)
+
+Determines the acquisition protocol and acquisition protocol ID for the MINC
+file. If C<$acquisitionProtocol> is not set, it will look for the acquisition
+protocol in the C<mri_protocol> table based on the MINC header information
+using C<&NeuroDB::MRI::identify_scan_db>. If C<$bypass_extra_file_checks> is
+true, then it will bypass the additional protocol checks from the
+C<mri_protocol_checks> table using C<&extra_file_checks>.
+
+INPUTS:
+  - $file                    : file's information hashref
+  - $subjectIDsref           : subject's information hashref
+  - $tarchiveInfo            : tarchive's information hashref
+  - $center_name             : center name
+  - $minc                    : absolute path to the MINC file
+  - $acquisitionProtocol     : acquisition protocol if already knows it
+  - $bypass_extra_file_checks: boolean, if set bypass the extra checks
+
+RETURNS: acquisition protocol, acquisition protocol ID, array of extra checks
+
+=cut
 
 sub getAcquisitionProtocol {
    
@@ -474,12 +664,26 @@ sub getAcquisitionProtocol {
     return ($acquisitionProtocol, $acquisitionProtocolID, @checks);
 }
 
-################################################################
-######## extra_file_checks () ##################################
-######## Returns list of checks that failed, ###################
-######## We can't directly insert here because #################
-######## The file isn't registered in the database yet #########
-################################################################
+
+=pod
+
+=head3 extra_file_checks($scan_type, $file, $CandID, $Visit_Label, $PatientName)
+
+Returns the list of MRI protocol checks that failed. Can't directly insert
+this information here since the file isn't registered in the database yet.
+
+INPUTS:
+  - $scan_type  : scan type of the file
+  - $file       : file information hashref
+  - $CandID     : candidate's CandID
+  - $Visit_Label: visit label of the scan
+  - $PatientName: patient name of the scan
+
+RETURNS:
+  - pass, warn or exclude flag depending on the worst failed check
+  - array of failed checks if any were failed
+
+=cut
 
 sub extra_file_checks() {
       
@@ -546,9 +750,18 @@ sub extra_file_checks() {
     return ('pass', \@faillist);
 }
 
-################################################################
-################## update_mri_acquisition_dates ################
-################################################################
+
+
+=pod
+
+=head3 update_mri_acquisition_dates($sessionID, $acq_date)
+
+Updates the mri_acquisition_dates table by a new acquisition date C<$acq_date>.
+
+INPUTS: session ID, acquisition date
+
+=cut
+
 sub update_mri_acquisition_dates {
    
     my $this = shift;
@@ -580,9 +793,18 @@ sub update_mri_acquisition_dates {
     }
 }
 
-################################################################
-#################### loadAndCreateObjectFile ###################
-################################################################
+
+=pod
+
+=head3 loadAndCreateObjectFile($minc, $tarchive_srcloc)
+
+Loads and creates the object file.
+
+INPUTS: location of the minc file, tarchive source location
+
+RETURNS: file information hashref
+
+=cut
 
 sub loadAndCreateObjectFile {
 
@@ -613,10 +835,26 @@ sub loadAndCreateObjectFile {
     return $file;
 }
 
-################################################################
-#################### move_minc #################################
-#################### renames and moves $minc ###################
-################################################################
+
+=pod
+
+=head3 move_minc($minc, $subjectIDsref, $minc_type, $fileref, $prefix, ...)
+
+Renames and moves the MINC file.
+
+INPUTS:
+  - $minc           : path to the MINC file
+  - $subjectIDsref  : subject's ID hashref
+  - $minc_type      : MINC file information hashref
+  - $fileref        : file information hashref
+  - $prefix         : study prefix
+  - $data_dir       : data directory (typically /data/project/data)
+  - $tarchive_srcloc: tarchive source location
+
+RETURNS: new name of the MINC file with path relative to C<$data_dir>
+
+=cut
+
 sub move_minc {
     
     my $this = shift;
@@ -666,9 +904,27 @@ sub move_minc {
 }
 
 
-################################################################
-###################### registerScanIntoDB ######################
-################################################################
+=pod
+
+=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, ...)
+
+Registers the scan into the database.
+
+INPUTS:
+  - $minc_file          : MINC file information hashref
+  - $tarchiveInfo       : tarchive information hashref
+  - $subjectIDsref      : subject's ID information hashref
+  - $acquisitionProtocol: acquisition protocol
+  - $minc               : MINC file to register into the database
+  - $checks             : failed checks to register with the file
+  - $reckless           : boolean, if reckless or not
+  - $tarchive           : tarchive path
+  - $sessionID          : session ID of the MINC file
+
+RETURNS: acquisition protocol ID of the MINC file
+
+=cut
+
 sub registerScanIntoDB {
 
     my $this = shift;
@@ -780,9 +1036,22 @@ sub registerScanIntoDB {
     return $acquisitionProtocolID;
 }
 
-################################################################
-################## dicom_to_minc ###############################
-################################################################
+
+=pod
+
+=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, $exclude, ...)
+
+Converts a DICOM study into MINC files.
+
+INPUTS:
+  - $study_dir      : DICOM study directory to convert
+  - $converter      : converter to be used
+  - $get_dicom_info : get DICOM information setting from the Config table
+  - $exclude        : which files to exclude from the dcm2mnc command
+  - $mail_user      : mail of the user
+  - $tarchive_srcloc: tarchive source location
+
+=cut
 
 sub dicom_to_minc {
 
@@ -827,10 +1096,18 @@ sub dicom_to_minc {
     "### Dicom to MINC:\n$d2m_log");
     $this->spool($message, 'N', $upload_id, $notify_detailed);
 }
-################################################################
-####### get_mincs ##############################################
-######## returns a sorted list of mincfiles ####################
-################################################################
+
+
+=pod
+
+=head3 get_mincs($minc_files, $tarchive_srcloc)
+
+Greps the created MINC files and returns a sorted list of those MINC files.
+
+INPUTS: empty array to store the list of MINC files, tarchive source location
+
+=cut
+
 sub get_mincs {
   
     my $this = shift;
@@ -863,12 +1140,17 @@ sub get_mincs {
     $this->spool($message, 'N', $upload_id, $notify_detailed);
 }  
 
-################################################################
-########################## concat_mri ##########################
-################################################################
-## concat_mri(\@minc_files, $psc) -> concats & removes #########
-## pre-concat mincs ############################################
-################################################################
+
+=pod
+
+=head3 concat_mri($minc_files)
+
+Concats and removes pre-concat MINC files.
+
+INPUT: list of MINC files to concat
+
+=cut
+
 sub concat_mri {
   
     my $this = shift;
@@ -908,9 +1190,17 @@ sub concat_mri {
     );
 }
 
-################################################################
-###################### registerProgs ###########################
-################################################################
+
+=pod
+
+=head3 registerProgs(@toregister)
+
+Register programs.
+
+INPUT: program to register
+
+=cut
+
 sub registerProgs() {
     my $this = shift;
     my @toregister = @_;
@@ -922,9 +1212,19 @@ sub registerProgs() {
     }
 }
 
-################################################################
-############ moveAndUpdateTarchive #############################
-################################################################
+
+=pod
+
+=head3 moveAndUpdateTarchive($tarchive_location, $tarchiveInfo)
+
+Moves and updates the tarchive table with the new location of the tarchive.
+
+INPUTS: tarchive location, tarchive information hashref
+
+RETURNS: the new tarchive location
+
+=cut
+
 sub moveAndUpdateTarchive {
 
     my $this = shift;
@@ -976,9 +1276,22 @@ sub moveAndUpdateTarchive {
     return $newTarchiveLocation;
 }
 
-################################################################
-###################### CreateMRICandidates #####################
-################################################################
+
+=pod
+
+=head3 CreateMRICandidates($subjectIDsref, $gender, $tarchiveInfo, $User, ...)
+
+Registers a new candidate in the candidate table.
+
+INPUTS:
+  - $subjectIDsref: subject's ID information hashref
+  - $gender       : gender of the candidate
+  - $tarchiveInfo : tarchive information hashref
+  - $User         : user that is running the pipeline
+  - $centerID     : center ID
+
+=cut
+
 sub CreateMRICandidates {
     ############################################################
     ### Standardize gender (DICOM uses M/F, DB uses Male/Female)
@@ -1048,9 +1361,23 @@ sub CreateMRICandidates {
      }
 }
 
-################################################################
-###############################setMRISession####################
-################################################################
+
+=pod
+
+=head3 setMRISession($subjectIDsref, $tarchiveInfo)
+
+Sets the imaging session ID. This function will call
+C<&NeuroDB::MRI::getSessionID> which in turn will either:
+  - grep sessionID if visit for that candidate already exists, or
+  - create a new session if visit label does not exist for that
+     candidate yet
+
+INPUTS: subject's ID information hashref, tarchive information hashref
+
+RETURNS: session ID, if the new session requires staging
+
+=cut
+
 sub setMRISession {
     my $this = shift;
     my $query = '';
@@ -1100,9 +1427,19 @@ sub setMRISession {
     return ($sessionID, $requiresStaging);
 }
 
-################################################################
-###################### validateArchive #########################
-################################################################
+
+=pod
+
+=head3 validateArchive($tarchive, $tarchiveInfo)
+
+Validates the DICOM archive by comparing the MD5 of the C<$tarchive file> and
+the one stored in the tarchive information hashref C<$tarchiveInfo> derived
+from the database. The function will exits with an error message if the
+tarchive is not validated.
+
+INPUTS: tarchive file, tarchive information hashref
+
+=cut
 
 sub validateArchive {
     my $this = shift;
@@ -1132,9 +1469,21 @@ sub validateArchive {
     }
 }
 
-################################################################
-############## determines where the mincs will go... ###########
-################################################################
+
+=pod
+
+=head3 which_directory($subjectIDsref, $data_dir)
+
+Determines where the MINC files to be registered into the database will go.
+
+INPUTS: subject's ID information hashref, data directory (typically
+/data/project/data)
+
+RETURNS: the final directory in which the registered MINC files will go
+(typically /data/project/data/assembly/CandID/visit/mri/)
+
+=cut
+
 sub which_directory {
     my $this = shift;
     my ($subjectIDsref,$data_dir) = @_;
@@ -1144,9 +1493,22 @@ sub which_directory {
     $dir =~ s/ //;
     return $dir;
 }
-################################################################
-############# validateCandidate ################################
-################################################################
+
+
+=pod
+
+=head3 validateCandidate($subjectIDsref, $tarchive_srcloc)
+
+Check that the candidate's information derived from the patient name field of
+the DICOM files is valid (CandID and PSCID of the candidate should correspond
+to the same subject in the database).
+
+INPUTS: subject's ID information hashref, tarchive source location
+
+RETURNS: the candidate mismatch error, or undef if the candidate is validated
+or a phantom
+
+=cut
 
 sub validateCandidate {
     my $this = shift;
@@ -1211,9 +1573,17 @@ sub validateCandidate {
    return $CandMismatchError;
 }
 
-################################################################
-#################### computeSNR ################################
-################################################################
+
+=pod
+
+=head3 computeSNR($tarchiveID, $tarchive_srcloc, $profile)
+
+Computes the SNR on the modalities specified in the C<getSNRModalities()>
+routine of the C<$profile> file.
+
+INPUTS: tarchive ID, tarchive source location, configuration file (usually prod)
+
+=cut
 
 sub computeSNR {
 
@@ -1271,9 +1641,16 @@ sub computeSNR {
     }
 }
 
-################################################################
-##########  Order Imaging Modalities By Acquisition ############
-################################################################
+
+=pod
+
+=head3 orderModalitiesByAcq($tarchiveID, $tarchive_srcloc)
+
+Order imaging modalities by acquisition number.
+
+INPUTS: tarchive ID, tarchive source location
+
+=cut
 
 sub orderModalitiesByAcq {
 
@@ -1336,18 +1713,17 @@ sub orderModalitiesByAcq {
     }
 }
 
-################################################################
-################ getUploadIDUsingTarchiveSrcLoc#################
-################################################################
 =pod
-getUploadIDUsingTarchiveSrcLoc()
-Description:
-  - Get upload_id form the mri_upload table using tarchive SourceLocation
 
-Arguments:
-  $tarchive_srcloc: The Tarchive SourceLocation
+=head3 getUploadIDUsingTarchiveSrcLoc($tarchive_srcloc)
 
-  Returns: $upload_id : The upload_id from the mri_upload table
+Gets the upload ID form the C<mri_upload> table using the DICOM archive
+C<SourceLocation> specified in the C<tarchive> table.
+
+INPUT: DICOM archive's source location
+
+RETURNS: the found upload ID
+
 =cut
 
 
@@ -1377,21 +1753,21 @@ sub getUploadIDUsingTarchiveSrcLoc {
     return $upload_id;
 }
 
-################################################################
-#################spool##########################################
-################################################################
-=pod
-spool()
-Description:
-   - Calls the Notify->spool function to log all messages
 
-Arguments:
- $this      : Reference to the class
- $message   : Message to be logged in the database
- $error     : if 'Y' it's an error log , 'N' otherwise
- $upload_id: The upload_id
- $verb      : 'N' for few main messages, 'Y' for more messages (developers)
- Returns    : NULL
+=pod
+
+=head3 spool($message, $error, $upload_id, $verb)
+
+Calls the Notify->spool function to log all messages.
+
+INPUTS:
+  - $message   : message to be logged in the database
+  - $error     : if 'Y' it's an error log,
+                 'N' otherwise
+  - $upload_id : the upload_id
+  - $verb      : 'N' for few main messages,
+                 'Y' for more messages (developers)
+
 =cut
 
 sub spool  {
@@ -1407,3 +1783,29 @@ sub spool  {
 
 
 1;
+
+
+=pod
+
+=head1 TO DO
+
+Document the following functions:
+  - concat_mri($minc_files)
+  - registerProgs(@toregister)
+
+Remove function get_acqusitions($study_dir, \@acquisitions) that is not used
+
+=head1 BUGS
+
+None reported (or list of bugs)
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
