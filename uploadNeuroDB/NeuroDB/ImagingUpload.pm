@@ -420,8 +420,6 @@ sub PatientNameMatch {
         my $message = "\nConfig Setting 'lookupCenterNameUsing' is not set in "
                       . "the Config module under the Imaging Pipeline section.";
         $this->spool($message, 'Y', $notify_notsummary);
-        #TODO: once refactoring of exit code merged to minor, add the following
-        #TODO: MISSING_CONFIG_SETTING exit code in the generic database code
         exit $NeuroDB::ExitCodes::MISSING_CONFIG_SETTING;
     }
 

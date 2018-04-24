@@ -102,14 +102,16 @@ our $INVALID_ARG          = 6; # if one of the program arguments is invalid
 
 
 ## -- Common database related failures (exit codes from 20 to 39)
-our $FILE_NOT_UNIQUE    = 20; # if file to register is not unique & already
-                              # inserted
-our $INSERT_FAILURE     = 21; # if an INSERT query failed
-our $CORRUPTED_FILE     = 22; # if mismatch between the file's md5sum and the
-                              # hash stored in the database
-our $SELECT_FAILURE     = 23; # if a SELECT query did not return anything
-our $UPDATE_FAILURE     = 24; # if an UPDATE query failed
-our $BAD_CONFIG_SETTING = 25; # if bad config setting
+our $FILE_NOT_UNIQUE        = 20; # if file to register is not unique & already
+                                  # inserted
+our $INSERT_FAILURE         = 21; # if an INSERT query failed
+our $CORRUPTED_FILE         = 22; # if mismatch between the file's md5sum and
+                                  # the hash stored in the database
+our $SELECT_FAILURE         = 23; # if a SELECT query did not return anything
+our $UPDATE_FAILURE         = 24; # if an UPDATE query failed
+our $BAD_CONFIG_SETTING     = 25; # if bad config setting
+our $MISSING_CONFIG_SETTING = 26; # if config setting has not been set in the
+                                  # Config module
 
 
 ## -- Common configuration failures (exit codes from 40 to 59)
