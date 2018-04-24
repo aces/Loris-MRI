@@ -1,9 +1,43 @@
 #!/usr/bin/perl -w
+
+=pod
+
+=head1 NAME
+
+ProdToConfig.pl -- a script that populates the `Config` table in the database
+with entries from the $profile file.
+
+=head1 SYNOPSIS
+
+perl tools/ProdToConfig.pl `[options]`
+
+The available option is:
+
+-profile      : name of the config file in
+                C<../dicom-archive/.loris_mri>
+
+
+=head1 DESCRIPTION
+
+
+This script needs to be run once during the upgrade to LORIS-MRI v18.0.0. Its
+purpose is to remove some variables defined in the $profile file to the
+Configuration module within LORIS. This script assumes that the LORIS upgrade
+patch has been run, with table entries created and set to default values. This
+script will then update those values with those that already exist in the
+$profile file. If the table entry does not exist in the $profile, its value will
+be kept at the value of a new install.
+
+=head2 Methods
+
+=cut
+
 use strict;
 use warnings;
 no warnings 'once';
 use Getopt::Tabular;
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $profile   = '';
 
@@ -17,15 +51,18 @@ my @opt_table           = (
 
 my $Help = <<HELP;
 ******************************************************************************
-Populate the Config table in the database with entries from the $profile file
+Populates the Config table in the database with entries from the $profile file
 ******************************************************************************
 
-This script needs to be run once during the upgrade to LORIS-MRI v17.1. Its purpose
-is to remove some variables defined in the $profile file to the Configuration module
-within LORIS. This script assumes that the LORIS upgrade patch has been run, with 
-table entries created and set to default values. This script will then update those
-values with those that already exist in the $profile file. If the table entry does not
-exist in the $profile, it will be kept at the default value of a new install.
+This script needs to be run once during the upgrade to LORIS-MRI v18.0.0. Its
+purpose is to remove some variables defined in the $profile file to the
+Configuration module within LORIS. This script assumes that the LORIS upgrade
+patch has been run, with table entries created and set to default values. This
+script will then update those values with those that already exist in the
+$profile file. If the table entry does not exist in the $profile, its value will
+be kept at the value of a new install.
+
+Documentation: perldoc ProdToConfig.pl
 
 HELP
 my $Usage = <<USAGE;
@@ -33,23 +70,22 @@ usage: tools/ProdToConfig.pl -profile $profile
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################ Get config setting#############################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ( $profile && !@Settings::db ) {
-    print "\n\tERROR: You don't have a
-    configuration file named '$profile' in:
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
-}
-
-if (!$profile ) {
+if ( !$profile ) {
     print $Help;
-    print "\n$Usage\n";
-    exit 3;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 ################################################################
@@ -105,21 +141,19 @@ for my $index (0 .. $#config_name_arr) {
     updateConfigFromProd(\$dbh, $config_name, $config_value);
 }
 
-################################################################
-############### insertIntoMRIUpload ############################
-################################################################
-=pod
-updateConfigFromProd()
-Description:
-  - Update the default values in the Config table to what is inside 
-    the $profile file
 
-Arguments:
-  $config_name: Variable to set in the Config table
-  $config_value : value to set in the Config table
+=pod
+
+=head3 updateConfigFromProd($config_name, $config_value)
+
+Function that updates the values in the `Config` table for the columns as
+specified in the $config_name
+
+INPUTS   :
+ - $config_name     : Column to set in the Config table
+ - $config_value    : Value to use in the Config table
 
 =cut
-
 
 sub updateConfigFromProd {
 
@@ -149,5 +183,27 @@ sub updateConfigFromProd {
     }
 }
 
-exit(0);
+exit $NeuroDB::ExitCodes::SUCCESS;
 
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

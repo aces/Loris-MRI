@@ -3,6 +3,89 @@
 # zia.mohades@mcgill.ca
 # Perl tool to update the mri_upload table
 
+=pod
+
+=head1 NAME
+
+updateMRI_Upload.pl - updates database table C<mri_upload> according to an entry in table
+   C<tarchive>.
+
+=head1 SYNOPSIS
+
+updateMRI_Upload.pl [options] -profile prod -tarchivePath tarchivePath -source_location source_location
+
+=over 2
+
+=item *
+B<-profile prod> : (mandatory) path (absolute or relative to the current directory) of the 
+    profile file
+
+=item *
+B<-tarchivePath tarchivePath> : (mandatory) absolute path to the DICOM archive
+
+=item *
+B<-source_location source_location> : (mandatory) value to set column 
+    C<DecompressedLocation> for the newly created record in table C<mri_upload> (see below)
+    
+=item *
+B<-globLocation> : loosen the validity check of the DICOM archive allowing for the 
+     possibility that it was moved to a different directory.
+
+=item *
+B<-verbose> : be verbose
+
+=back 
+
+=head1 DESCRIPTION
+
+This script first starts by reading the F<prod> file (argument passed to the C<-profile> switch)
+to fetch the C<@db> variable, a Perl array containing four elements: the database
+name, the database user name used to connect to the database, the password and the 
+database hostname. It then checks for an entry in the C<tarchive> table with the same 
+C<ArchiveLocation> as the DICOM archive passed on the command line. Let C<T> be the 
+DICOM archive record found in the C<tarchive> table. The script will then proceed to scan table 
+C<mri_upload> for a record with the same C<tarchiveID> as C<T>'s. If there is none (which is the 
+expected outcome), it will insert a record in C<mri_upload> with the following properties/values:
+
+=over 2
+
+=item *
+C<UploadedBy> : Unix username of the person currently running F<updateMRI_upload.pl>
+   
+=item * 
+C<uploadDate>: timestamp representing the moment at which F<updateMRI_upload.pl> was run
+  
+=item *
+C<tarchiveID>: value of C<tarchiveID> for record C<T> in table C<tarchive>
+  
+=item *
+C<DecompressedLocation>: argument of the C<-source_location> switch passed on the command line
+  
+=back
+
+If there already is an entry in C<mri_upload> with the same C<ArchiveLocation> as C<T>'s, the script
+will exit with an error message saying that C<mri_upload> is already up to date with respect to
+C<T>. 
+
+=head1 TO DO
+
+Nothing.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Zia Mohades 2014 (zia.mohades@mcgill.ca),
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
+
 use strict;
 
 use constant GET_COUNT    => 1;
@@ -28,6 +111,9 @@ use NeuroDB::objectBroker::MriUploadOB;
 use TryCatch;
 
 use DateTime;
+
+use NeuroDB::ExitCodes;
+
 
 my $verbose = 0;
 my $profile    = undef;
@@ -87,7 +173,8 @@ my @arg_table =
 
 # Parse arguments
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@arg_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@arg_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################# checking for profile settings#################
@@ -100,43 +187,41 @@ if ($timeZone ne 'local' and !DateTime::TimeZone->is_valid_name($timeZone)) {
 	exit 3;
 }
 
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ 
         package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" 
     }
 }
 
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:
-            $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 2;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 } 
 
-################################################################
-################# if profile not specified######################
-################################################################
-if(!$profile) { 
-    print $Usage; print "\n\tERROR: You must specify an existing profile.\n\n";  
-    exit 3;  
-}
 
 ################################################################
 ################# if tarchive not specified#####################
 ################################################################
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the 
-            path to the archive is correct. Upload will exit now.\n\n\n";
-    exit 4;
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is valid.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
 #################if the sourcelocation is not set###############
 ################################################################
 unless (-e $source_location) {
-    print "\nERROR: Could not find sourcelocation $source_location \nPlease,
-           make sure the sourcelocation is correct. Upload will 
-           exit now.\n\n\n";
-    exit 5;
+    print STDERR "\nERROR: Could not find sourcelocation $source_location\n"
+                 . "Please, make sure the sourcelocation is valid.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 ################################################################
 #####establish database connection if database option is set####
@@ -209,4 +294,4 @@ $mriUploadOB->insert(
 );
 
 print "Done updateMRI_upload.pl execution!\n" if $verbose;
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
