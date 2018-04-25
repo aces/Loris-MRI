@@ -79,30 +79,40 @@ INPUTS: seriesUID, list of tar files
 
 RETURNS: list of DICOM files corresponding to the seriesUID
 
-### extract\_tarchive($tarchive, $tarchive\_srcloc, $seriesuid)
+### extract\_tarchive($tarchive, $upload\_id, $seriesuid)
 
 Extracts the DICOM archive so that data can actually be uploaded.
 
-INPUTS: path to the DICOM archive, source location from the `tarchive` table,
-(optionally seriesUID)
+INPUTS:
+  - $tarchive : path to the archive
+  - $upload\_id: upload ID of the study
+  - $seriesuid: optionally a series UID
 
 RETURNS: the extracted DICOM directory
 
-### extractAndParseTarchive($tarchive, $tarchive\_srcloc, $seriesuid)
+### extractAndParseTarchive($tarchive, $upload\_id, $seriesuid)
 
-Extracts and parses the tarchive.
+Extracts and parses the DICOM archive.
 
-INPUTS: path to the tarchive, source location from the tarchive table,
-(optionally seriesUID)
+INPUTS:
+  - $tarchive : path to the archive
+  - $upload\_id: upload ID of the study
+  - $seriesuid: optionally a series UID
 
-RETURNS: extract suffix, extracted DICOM directory, tarchive meta data header
+RETURNS:
+  - $ExtractSuffix: extract suffix
+  - $study\_dir    : extracted study directory
+  - $header       : study meta data header
 
-### determineSubjectID($scannerID, $tarchiveInfo, $to\_log)
+### determineSubjectID($scannerID, $tarchiveInfo, $to\_log, $upload\_id)
 
-Determines subject's ID based on scanner ID and tarchive information.
+Determines subject's ID based on scanner ID and archive information.
 
-INPUTS: scanner ID, tarchive information hashref, boolean if this step should
-be logged
+INPUTS:
+  - $scannerID   : scanner ID,
+  - $tarchiveInfo: archive information hashref,
+  - $to\_log      : boolean if this step should be logged
+  - $upload\_id   : upload ID of the study
 
 RETURNS: subject's ID hashref containing CandID, PSCID and Visit Label
 information
@@ -116,24 +126,28 @@ the insertion scripts
 
 RETURNS: tarchive information hashref
 
-### determinePSC($tarchiveInfo, $to\_log)
+### determinePSC($tarchiveInfo, $to\_log, $upload\_id)
 
-Determines the PSC based on the tarchive information hashref.
+Determines the PSC based on the DICOM archive information hashref.
 
-INPUTS: tarchive information hashref, whether this step should be logged
+INPUTS:
+  - $tarchiveInfo: archive information hashref
+  - $to\_log      : boolean, whether this step should be logged
+  - $upload\_id   : upload ID of the study
 
 RETURNS: array of two elements: center name and center ID
 
-### determineScannerID($tarchiveInfo, $to\_log, $centerID, $NewScanner)
+### determineScannerID($tarchiveInfo, $to\_log, $centerID, $NewScanner, ...)
 
 Determines which scanner ID was used for DICOM acquisitions.
 
 INPUTS:
-  - $tarchiveInfo: tarchive information hashref
+  - $tarchiveInfo: archive information hashref
   - $to\_log      : whether this step should be logged
   - $centerID    : center ID
   - $NewScanner  : whether a new scanner entry should be created if the scanner
                    used is a new scanner for the study
+  - $upload\_id   : upload ID of the study
 
 RETURNS: scanner ID
 
@@ -141,11 +155,11 @@ RETURNS: scanner ID
 
 UNUSED
 
-### computeMd5Hash($file, $tarchive\_srcloc)
+### computeMd5Hash($file, $upload\_id)
 
 Computes the MD5 hash of a file and makes sure it is unique.
 
-INPUTS: file to use to compute the MD5 hash, tarchive source location
+INPUTS: file to use to compute the MD5 hash, upload ID of the study
 
 RETURNS: 1 if the file is unique, 0 otherwise
 
@@ -166,6 +180,7 @@ INPUTS:
   - $minc                    : absolute path to the MINC file
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass\_extra\_file\_checks: boolean, if set bypass the extra checks
+  - $upload\_id               : upload ID of the study
 
 RETURNS: acquisition protocol, acquisition protocol ID, array of extra checks
 
@@ -191,11 +206,11 @@ Updates the mri\_acquisition\_dates table by a new acquisition date `$acq_date`.
 
 INPUTS: session ID, acquisition date
 
-### loadAndCreateObjectFile($minc, $tarchive\_srcloc)
+### loadAndCreateObjectFile($minc, $upload\_id)
 
 Loads and creates the object file.
 
-INPUTS: location of the minc file, tarchive source location
+INPUTS: location of the minc file, upload ID of the study
 
 RETURNS: file information hashref
 
@@ -211,6 +226,7 @@ INPUTS:
   - $prefix         : study prefix
   - $data\_dir       : data directory (typically /data/project/data)
   - $tarchive\_srcloc: tarchive source location
+  - $upload\_id      : upload ID of the study
 
 RETURNS: new name of the MINC file with path relative to `$data_dir`
 
@@ -226,8 +242,8 @@ INPUTS:
   - $minc               : MINC file to register into the database
   - $checks             : failed checks to register with the file
   - $reckless           : boolean, if reckless or not
-  - $tarchive           : tarchive path
   - $sessionID          : session ID of the MINC file
+  - $upload\_id          : upload ID of the study
 
 RETURNS: acquisition protocol ID of the MINC file
 
@@ -241,13 +257,13 @@ INPUTS:
   - $get\_dicom\_info : get DICOM information setting from the Config table
   - $exclude        : which files to exclude from the dcm2mnc command
   - $mail\_user      : mail of the user
-  - $tarchive\_srcloc: tarchive source location
+  - $upload\_id      : upload ID of the study
 
-### get\_mincs($minc\_files, $tarchive\_srcloc)
+### get\_mincs($minc\_files, $upload\_id)
 
 Greps the created MINC files and returns a sorted list of those MINC files.
 
-INPUTS: empty array to store the list of MINC files, tarchive source location
+INPUTS: empty array to store the list of MINC files, upload ID of the study
 
 ### concat\_mri($minc\_files)
 
@@ -261,13 +277,17 @@ Register programs.
 
 INPUT: program to register
 
-### moveAndUpdateTarchive($tarchive\_location, $tarchiveInfo)
+### moveAndUpdateTarchive($tarchive\_location, $tarchiveInfo, $upload\_id)
 
-Moves and updates the tarchive table with the new location of the tarchive.
+Moves and updates the `tarchive` table with the new location of the
+`tarchive`.
 
-INPUTS: tarchive location, tarchive information hashref
+INPUTS:
+  - $tarchive\_location: `tarchive location`,
+  - $tarchiveInfo     : `tarchive` information hashref,
+  - $upload\_id        : upload ID of the study
 
-RETURNS: the new tarchive location
+RETURNS: the new `tarchive` location
 
 ### CreateMRICandidates($subjectIDsref, $gender, $tarchiveInfo, $User, ...)
 
@@ -279,8 +299,9 @@ INPUTS:
   - $tarchiveInfo : tarchive information hashref
   - $User         : user that is running the pipeline
   - $centerID     : center ID
+  - upload\_id     : upload ID of the study
 
-### setMRISession($subjectIDsref, $tarchiveInfo)
+### setMRISession($subjectIDsref, $tarchiveInfo, $upload\_id)
 
 Sets the imaging session ID. This function will call
 `&NeuroDB::MRI::getSessionID` which in turn will either:
@@ -288,18 +309,24 @@ Sets the imaging session ID. This function will call
   - create a new session if visit label does not exist for that
      candidate yet
 
-INPUTS: subject's ID information hashref, tarchive information hashref
+INPUTS:
+  - $subjectIDsref: subject's ID information hashref
+  - $tarchiveInfo : archive information hashref
+  - $upload\_id    : upload ID of the study
 
 RETURNS: session ID, if the new session requires staging
 
-### validateArchive($tarchive, $tarchiveInfo)
+### validateArchive($tarchive, $tarchiveInfo, $upload\_id)
 
 Validates the DICOM archive by comparing the MD5 of the `$tarchive file` and
 the one stored in the tarchive information hashref `$tarchiveInfo` derived
 from the database. The function will exits with an error message if the
 tarchive is not validated.
 
-INPUTS: tarchive file, tarchive information hashref
+INPUTS:
+  - $tarchive    : archive file
+  - $tarchiveInfo: archive information hashref
+  - $upload\_id   : upload ID of the study
 
 ### which\_directory($subjectIDsref, $data\_dir)
 
@@ -322,18 +349,21 @@ INPUTS: subject's ID information hashref, tarchive source location
 RETURNS: the candidate mismatch error, or undef if the candidate is validated
 or a phantom
 
-### computeSNR($tarchiveID, $tarchive\_srcloc, $profile)
+### computeSNR($tarchiveID, $upload\_id, $profile)
 
 Computes the SNR on the modalities specified in the `getSNRModalities()`
 routine of the `$profile` file.
 
-INPUTS: tarchive ID, tarchive source location, configuration file (usually prod)
+INPUTS:
+  - $tarchiveID: archive ID
+  - $upload\_id : upload ID of the study
+  - $profile   : configuration file (usually prod)
 
-### orderModalitiesByAcq($tarchiveID, $tarchive\_srcloc)
+### orderModalitiesByAcq($tarchiveID, $upload\_id)
 
 Order imaging modalities by acquisition number.
 
-INPUTS: tarchive ID, tarchive source location
+INPUTS: archive ID, upload ID of the study
 
 ### getUploadIDUsingTarchiveSrcLoc($tarchive\_srcloc)
 
