@@ -110,6 +110,15 @@ Gets the database handle reference which the object is using internally.
 
 RETURNS: DBI database handle reference.
 
+### getFileType($file)
+
+Determines the imaging file type based on the extension of the file to insert
+and the list of available types in the ImagingFileTypes table of the database.
+
+INPUT: the path to the imaging file to determine the file type
+
+RETURNS: the type of the imaging file given as an argument
+
 ### loadFileFromDisk($filename)
 
 Reads the headers from the file specified by `$filename` and loads the current
