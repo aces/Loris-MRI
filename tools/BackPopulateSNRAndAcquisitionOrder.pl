@@ -1,5 +1,45 @@
 #! /usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+BackPopulateSNRAndAcquisitionOrder.pl -- a script that back populates the
+AcqOrderPerModality column of the files table, and the signal-to-noise ratio
+(SNR) values in the parameter_file table for inserted MINC files. The SNR is
+computed using MINC tools built-in algorithms.
+
+
+=head1 SYNOPSIS
+
+perl tools/BackPopulateSNRAndAcquisitionOrder.pl C<[options]>
+
+Available options are:
+
+-profile        : name of the config file in
+                  C<../dicom-archive/.loris_mri>
+
+-tarchive_id    : The Tarchive ID of the DICOM archive (.tar files) to be
+                  processed from the C<tarchive> table
+
+
+
+=head1 DESCRIPTION
+
+This script will back populate the C<files> table with entries for the
+C<AcqOrderPerModality> column; in reference to:
+https://github.com/aces/Loris-MRI/pull/160
+as well as populate the C<parameter_file> table with SNR entries in reference
+to:
+https://github.com/aces/Loris-MRI/pull/142
+It can take in TarchiveID as an argument if only a specific DICOM archive
+(.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
+the C<tarchive> table are processed.
+
+
+=cut
+
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -9,6 +49,7 @@ use File::Find;
 use Cwd;
 use NeuroDB::DBI;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
 
 my $verbose = 1;
 my $debug = 1;
@@ -21,19 +62,24 @@ my @opt_table = (
       "name of config file in ../dicom-archive/.loris_mri"
     ],
     [ "-tarchive_id", "string", 1, \$TarchiveID,
-      "tarchive_id of the .tar to be processed from tarchive table"
+      "tarchive_id of the DICOM archive (.tar files) to be processed from tarchive table"
     ]
 ); 
 
 my $Help = <<HELP;
 
-This script will back populate the files table with entries for 
-the AcqOrderPerModality column; in reference to: 
+This script will back populate the files table with entries for the
+AcqOrderPerModality column; in reference to:
 https://github.com/aces/Loris-MRI/pull/160
-as well as populate the parameter_file table with SNR entries 
-in reference to: https://github.com/aces/Loris-MRI/pull/142
-It can take in tarchiveID as an argument if only a specific .tar is to be 
-processed; otherwise, all .tar in the tarchive tables are processed.
+as well as populate the parameter_file table with SNR entries in reference to:
+https://github.com/aces/Loris-MRI/pull/142
+It can take in TarchiveID as an argument if only a specific DICOM archive
+(.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
+the tarchive table are processed.
+
+
+Documentation: perldoc BackPopulateSNRAndAcquisitionOrder.pl
+
 HELP
 
 my $Usage = <<USAGE;
@@ -43,16 +89,22 @@ Usage: $0 -help to list options
 USAGE
 
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################### input option error checking ################
 ################################################################
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named ".
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 ################################################################
@@ -139,4 +191,28 @@ else {
 }
 
 $dbh->disconnect();
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

@@ -3,24 +3,72 @@
 
 =pod
 
-TODO
+=head1 NAME
 
-- dicom_to_minc: change converter back to perl (or make configurable)
-- add a check for all programms that will be used (exists, but could 
-- be better....)
-- consider whether to add a check for registered protocols against the
-- tarchive db to save a few minutes of converting
-- also add an option to make it interactively query user to learn new protocols
-- this should be a separate program
-- add to config file whether or not to autocreate scanners
+tarchiveLoader -- this script performs the following:
 
-This script interacts with the NeuroDB database system. It will connect to/deal
-with/ modify contents of the
-following tables:
-session, parameter_file, parameter_type, parameter_type_category, files, 
-mri_staging, notification_spool
+- validation of the tarchive
+
+- conversion of DICOM datasets into MINC files
+
+- automated protocol checks against the entries in the C<mri_protocol> and
+optionally, C<mri_protocol_checks> tables.
+
+
+=head1 SYNOPSIS
+
+perl uploadNeuroDB/tarchiveLoader </path/to/DICOM-tarchive> C<[options]>
+
+
+Available options are:
+
+-profile                    : Name of the config file in
+                              C<../dicom-archive/.loris_mri>
+
+-force                      : Force the script to run even if the validation
+                              has failed
+
+-reckless                   : Upload data to database even if study protocol is
+                              not defined or violated
+
+-globLocation               : Loosen the validity check of the tarchive allowing
+                              for the possibility that the tarchive was moved to
+                              a different directory
+
+-noJIV                      : Prevent the JIVs from being created
+
+-newScanner                 : By default a new scanner will be registered if the
+                              data you upload requires it. You can risk turning
+                              it off
+
+-keeptmp                    : Keep temporary directory. Make sense if have
+                              infinite space on your server
+
+-xlog                       : Open an xterm with a tail on the current log file
+
+-verbose                    : If set, be verbose
+
+-seriesuid                  : Only insert this SeriesUID
+
+-acquisition_protocol       : Suggest the acquisition protocol to use
+
+-bypass_extra_file_checks   : Bypass extra_file_checks
+
+
+=head1 DESCRIPTION
+
+
+This script interacts with the NeuroDB database system. It will fetch or modify
+contents of the following tables:
+C<session>, C<parameter_file>, C<parameter_type>, C<parameter_type_category>,
+C<files>, C<mri_staging>, C<notification_spool>
+
+
+
+=head2 Methods
 
 =cut
+
 
 use strict;
 use warnings;
@@ -61,11 +109,16 @@ my $debug       = 0;
 my $message     = '';
 my $tarchive_srcloc = '';
 my $upload_id   = undef;
-my $verbose     = 0;           # default, overwritten if the scripts are run with -verbose
-my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
-                               # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
-                               # with SUMMARY Option in the front-end/imaging_uploader 
+my $verbose     = 0;           # default, overwritten if the scripts are run
+                               # with -verbose
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to
+                               # be displayed
+                               # with DETAILED OPTION in the front-end/
+                               # imaging_uploader
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to
+                               # be displayed
+                               # with SUMMARY Option in the front-end/
+                               # imaging_uploader
 my $profile     = 'prod';      # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -82,14 +135,16 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
 my $seriesuid   = undef;       # if you want to insert a specific SeriesUID
-my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
-my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
+my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks,
+                               # set to 1.
+my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses
+                               # the checks
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
-                  "name of config file in ../dicom-archive/.loris_mri"
+                  "Name of config file in ../dicom-archive/.loris_mri"
                  ],
-                 ["-force", "boolean", 1, \$force,"Forces the script to run ". 
+                 ["-force", "boolean", 1, \$force,"Force the script to run ".
                  "even if the validation has failed."],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,"Upload data to ".
@@ -100,15 +155,15 @@ my @opt_table = (
                   "the possibility that the tarchive was moved to a different".
                   " directory."
                  ],
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being".
+                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevent the JIVs from being".
                   "created."],
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
                  ],
                  ["Fancy options","section"],
-# fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
-# have infinite space on your server."],
+# fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temporay directory. Make
+# sense if have infinite space on your server."],
                  ["-xlog", "boolean", 1, \$xlog,"Open an xterm with a tail on".
                   "the current log file."
                  ],
@@ -118,7 +173,7 @@ my @opt_table = (
                  ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
                   "Suggest the acquisition protocol to use."],
                  ["-bypass_extra_file_checks", "boolean", 1, \$bypass_extra_file_checks,
-                  "Bypasses extra_file_checks."],
+                  "Bypass extra_file_checks."],
                  );
 
 my $Help = <<HELP;
@@ -144,7 +199,10 @@ performs a lot of magic on the acquisitions within it.
 - file relocation (to the MRI repository)
 - neuroDB mri database registration and JIVification.
 
+Documentation: perldoc tarchiveLoader
+
 HELP
+
 my $Usage = <<USAGE;
 usage: $0 </path/to/DICOM-tarchive> [options]
        $0 -help to list options
@@ -191,7 +249,7 @@ unless ($tarchive =~ m/$tarchivePath/i) {
 unless (-e $tarchive) {
     print STDERR "\nERROR: Could not find archive $tarchive.\n"
                  . "Please, make sure the path to the archive is correct.\n\n";
-    exit $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 
@@ -252,17 +310,15 @@ if ($xlog) {
     }
 }
 
-=pod
 ################################################################
-################################################################
- get useful information from the tarchive table  - The regex is 
-very study specific... !!!!!! fixme
- Fixme figure out a way to get rid of study specific ways of 
-extracting information ... if there is 
- This will query the tarchive and retrieve (hopefully) enough
- information to continue the upload.
+# get useful information from the tarchive table  - The regex is
+# very study specific... !!!!!! fixme
+# Fixme figure out a way to get rid of study specific ways of
+# extracting information ... if there is
+# This will query the tarchive and retrieve (hopefully) enough
+# information to continue the upload.
 # fixme documentation needed
-=cut
+################################################################
 
 ################################################################
 ################## Instantiate MRIProcessingUtility ############
@@ -337,12 +393,12 @@ if (($output != 0)  && ($force==0)) {
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
  $utility->writeErrorLog(
-     $message, $NeuroDB::ExitCodes::TARCHIVE_VALIDATION_FAILURE, $logfile
+     $message, $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE, $logfile
  );
  $notifier->spool('tarchive validation', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
 		$notify_notsummary);
- exit $NeuroDB::ExitCodes::TARCHIVE_VALIDATION_FAILURE;
+ exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
 ################################################################
@@ -684,7 +740,7 @@ if (!$valid_study) {
     $notifier->spool('mri invalid study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y', 
 		    $notify_notsummary);
-    exit $NeuroDB::ExitCodes::NO_MINC_INSERTED;
+    exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
 
 ###############################################################
@@ -700,6 +756,14 @@ $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 exit $NeuroDB::ExitCodes::SUCCESS;
 
 
+=pod
+
+=head3 logHeader()
+
+Function that adds a header with relevant information to the log file
+
+=cut
+
 sub logHeader () {
     print LOG "
     ----------------------------------------------------------------
@@ -710,3 +774,39 @@ sub logHeader () {
     *** tmp dir location           : $TmpDir
     ";
 }
+
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+- dicom_to_minc: change converter back to perl (or make configurable)
+
+- add a check for all programms that will be used (exists, but could
+  be better....)
+
+- consider whether to add a check for registered protocols against the
+  tarchive db to save a few minutes of converting
+
+- also add an option to make it interactively query user to learn new protocols
+
+- add to config file whether or not to autocreate scanners
+
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+J-Sebastian Muehlboeck based on Jonathan Harlap\'s process_uploads, LORIS
+community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut

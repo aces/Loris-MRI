@@ -83,7 +83,7 @@ if (!$DTIPrepVersion) {
                  . "via the path to DTIPrep binary. You need to specify which "
                  . "version of DTIPrep you will be using with -DTIPrepVersion "
                  . "option.\n\n";
-    exit $NeuroDB::ExitCodes::NO_DTIPREP_VERSION;
+    exit $NeuroDB::ExitCodes::MISSING_TOOL_VERSION;
 }
 
 # Establish database connection
@@ -169,14 +169,14 @@ foreach my $nativedir (@nativedirs)   {
         if (!$mincdiffVersion) {
             print STDERR "\n\tERROR: mincdiffusion tool's version could "
                   . "not be determined.\n\n";
-            exit $NeuroDB::ExitCodes::NO_MINCDIFFUSION_VERSION;
+            exit $NeuroDB::ExitCodes::MISSING_TOOL_VERSION;
         }
         # Exit program if $niak_path is not set
         if  (!$niak_path) {
             print STDERR "\n\tERROR: variable niak_path need to be set in the "
                          . "config file if you plan to use mincdiffusion tools "
                          . "to process the DTI files.\n\n";
-            exit $NeuroDB::ExitCodes::NO_NIAK_PATH;
+            exit $NeuroDB::ExitCodes::INVALID_PATH;
         }
     }
 
@@ -230,7 +230,7 @@ foreach my $nativedir (@nativedirs)   {
     } else {
         print LOG "\n\tERROR: Post processing tools won't be run for this dataset. \n";
         print LOG "--------------------------------\n";
-        exit $NeuroDB::ExitCodes::NO_POST_PROCESSING_TO_RUN;
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
     }
 
 

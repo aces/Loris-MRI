@@ -1,4 +1,51 @@
 #!/usr/bin/perl -w
+
+=pod
+
+=head1 NAME
+
+batch_uploads_imageuploader -- a script that runs imaging_upload_file.pl in
+batch mode
+
+=head1 SYNOPSIS
+
+./batch_uploads_imageuploader -profile prod < list_of_scans.txt > log_batch_imageuploader.txt 2>&1 `[options]`
+
+Available options are:
+
+-profile      : name of the config file in
+                C<../dicom-archive/.loris_mri>
+
+-verbose      : if set, be verbose
+
+
+=head1 DESCRIPTION
+
+
+This script runs the Loris-MRI insertion pipeline on multiple scans. The list of
+scans are provided through a text file (e.g. C<list_of_scans.txt>) with one scan
+details per line.
+The scan details includes the path to the scan, identification as to whether the
+scan is for a phantom (Y) or not (N), and the candidate name for non-phantom
+entries.
+
+Like the LORIS Imaging Uploader interface, this script also validates the
+candidate's name against the (start of the) filename and creates an entry in the
+C<mri_upload> table.
+
+An example of what C<list_of_scans.txt> might contain for 3 uploads to be
+inserted:
+
+ /data/incoming/PSC0001_123457_V1.tar.gz N PSC0000_123456_V1
+ /data/incoming/lego_Phantom_MNI_20140101.zip Y
+ /data/incoming/PSC0001_123457_V1_RES.tar.gz N PSC0000_123456_V1
+
+
+=head2 Methods
+
+=cut
+
+
 use strict;
 use warnings;
 no warnings 'once';
@@ -32,22 +79,29 @@ my $Help = <<HELP;
 Run imaging_upload_file.pl in batch mode
 ******************************************************************************
 
-This script runs the Loris-MRI insertion on multiple scans. The list of scans are 
-provided through a text file (e.g. list_of_scans.txt) with one scan details per line.
+This script runs the Loris-MRI insertion pipeline on multiple scans. The list of
+scans are provided through a text file (e.g. C<list_of_scans.txt>) with one scan
+details per line.
 The scan details includes the path to the scan, identification as to whether the
-scan is for a phantom (Y) or not (N), and the candidate name for non-phantom entries.
+scan is for a phantom (Y) or not (N), and the candidate name for non-phantom
+entries.
 
-Like the Loris Imaging Uploader interface, this script also validates the candidate 
-name against the (start of the) filename and creates an entry in the mri_upload table.
+Like the LORIS Imaging Uploader interface, this script also validates the
+candidate's name against the (start of the) filename and creates an entry in the
+mri_upload table.
 
-An example of what list_of_scans.txt might contain for 3 uploads to be inserted:
-/data/incoming/PSC0001_123457_V1.tar.gz N PSC0000_123456_V1
-/data/incoming/Lego_Phantom_MNI_20140101.zip Y
-/data/incoming/PSC0001_123457_V1_RES.tar.gz N PSC0000_123456_V1
+An example of what C<list_of_scans.txt> might contain for 3 uploads to be
+inserted:
+
+ /data/incoming/PSC0001_123457_V1.tar.gz N PSC0000_123456_V1
+ /data/incoming/Lego_Phantom_MNI_20140101.zip Y
+ /data/incoming/PSC0001_123457_V1_RES.tar.gz N PSC0000_123456_V1
+
+Documentation: perldoc batch_uploads_imageuploader
 
 HELP
 my $Usage = <<USAGE;
-usage: ./batch_uploads_imageuploader -profile prod < list_of_scans.txt >log_batch_imageuploader.txt 2>&1 [options]
+usage: ./batch_uploads_imageuploader -profile prod < list_of_scans.txt > log_batch_imageuploader.txt 2>&1 [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
@@ -148,7 +202,7 @@ foreach my $input (@resultsarray)
     if (($type ne '.tgz') && ($type ne '.tar.gz') && ($type ne '.zip')) {
 	print STDERR "The file on line $counter is not of type .tgz, tar.gz, or "
                  . ".zip and will not be processed\n";
-	exit $NeuroDB::ExitCodes::UPLOADED_FILE_TYPE_FAILURE;
+	exit $NeuroDB::ExitCodes::FILE_TYPE_CHECK_FAILURE;
     }
     if (($phantom eq '') || (($phantom ne 'N') && ($phantom ne 'Y'))) {
 	print STDERR "Make sure the Phantom entry is filled out "
@@ -167,7 +221,7 @@ foreach my $input (@resultsarray)
         if ($patientname ne '') {
        	    print STDERR "Please leave the patient name blank for phantom "
        	                 . "entries\n";
-	        exit $NeuroDB::ExitCodes::PNAME_PHANTOM_MISMATCH;
+	        exit $NeuroDB::ExitCodes::PNAME_FILENAME_MISMATCH;
 	}
 	else {
 	    $patientname = 'NULL';
@@ -213,19 +267,27 @@ close MAIL;
 ################################################################
 ############### insertIntoMRIUpload ############################
 ################################################################
+
 =pod
-insertIntoMRIUpload()
-Description:
-  - Insert into the mri_upload table entries for data coming
-    from batch_upload_imageuploader
 
-Arguments:
-  $patientname: The patient name
-  $phantom : 'Y' if the entry is for a phantom, and 'N' othwrwose
-  $fullpath: Path to the uploaded file
+=head3 insertIntoMRIUpload($patientname, $phantom, $fullpath)
 
-  Returns: $upload_id : The Upload ID
+Function that inserts into the C<mri_upload> table entries for data coming from
+the list of scans in the text file provided when calling
+batch_upload_imageuploader
+
+INPUTS  :
+    - $patientname  : The patient name
+    - $phantom      : 'Y' if the entry is for a phantom,
+                      'N' otherwise
+    - $fullpath     : Path to the uploaded file
+
+
+
+RETURNS: $upload_id : The upload ID
+
 =cut
+
 
 
 sub insertIntoMRIUpload {
@@ -251,6 +313,28 @@ sub insertIntoMRIUpload {
     return $upload_id;
 }
 
-## exit 0 for find to consider this -cmd true (in case we ever run it that way...)
+## exit $NeuroDB::ExitCodes::SUCCESS for find to consider this -cmd true (in case we ever run it that way...)
 exit $NeuroDB::ExitCodes::SUCCESS;
 
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
