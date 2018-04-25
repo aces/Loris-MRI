@@ -107,7 +107,7 @@ The program does the following:
 
 Deletes MINC files from LORIS by:
   - Moving the existing files (.mnc, .nii, .jpg, .header, .raw_byte.gz) to the
-    archive directory: /data/$PROJECT/data/archive/
+    archive directory: /data/\$PROJECT/data/archive/
   - Deleting all related data from parameter_file & files tables
   - Deleting data from files_qcstatus & feedback_mri_comments
     database tables if the -delqcdata option is set. In most cases
