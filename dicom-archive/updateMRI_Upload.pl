@@ -12,7 +12,7 @@ updateMRI_Upload.pl - updates database table C<mri_upload> according to an entry
 
 =head1 SYNOPSIS
 
-updateMRI_Upload.pl [options] -profile prod -tarchivePath tarchivePath -source_location source_location
+updateMRI_Upload.pl [options] -profile prod -tarchivePath tarchivePath -source_location source_location -timeZone tz
 
 =over 2
 
@@ -143,7 +143,7 @@ HELP
 my $Usage = "------------------------------------------
 $0 updates the mri_upload table to populate the fields
 
-Usage:\n\t $0 -profile <profile>
+Usage:\n\t $0 -profile <profile> -sourceLocation src -tarchivePath path [-verbose] [-globLocation] [-timeZone tz] 
 \n\n See $0 -help for more info\n\n";
 
 my @arg_table =

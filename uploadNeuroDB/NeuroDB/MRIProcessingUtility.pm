@@ -13,7 +13,7 @@ utilities
   use NeuroDB::ProcessingUtility;
 
   my $utility       = NeuroDB::MRIProcessingUtility->new(
-                        \$dbh,    $debug,  $TmpDir,
+                        $db, \$dbh,    $debug,  $TmpDir,
                         $logfile, $LogDir, $verbose
                       );
 
@@ -78,13 +78,20 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 
 =pod
 
-=head3 new($dbhr, $debug, $TmpDir, $logfile, $verbose) >> (constructor)
+=head3 new($db, $dbhr, $debug, $TmpDir, $logfile, $verbose, $profile) >> (constructor)
 
 Creates a new instance of this class. The parameter C<$dbhr> is a reference
 to a C<DBI> database handle, used to set the object's database handle, so that
 all the DB-driven methods will work.
 
-INPUT: C<DBI> database handle
+INPUT: 
+  - $db      : database object
+  - $dbhr    : DBI database handle reference
+  - $debug   : degug flag (1 for debug, 0 otherwise)
+  - $TmpDir  : temporay directory name (for tarchive extraction)
+  - $logfile : log file name
+  - $verbose : boolean flag for verbose behavior (1 lots of messages, 0 otherwise)
+  - $profile : path of the profile file
 
 RETURNS: new instance of this class.
 

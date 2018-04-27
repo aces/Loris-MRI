@@ -78,29 +78,11 @@ name are the empty string, the constructor will call C<die>.
 
 INPUTS: a set of properties for the current database:
 
-=over
-
-=item userName
-
-name of the user for the (upcoming) connection
-
-=item databaseName
-
-name of the database
-
-=item hostName
-
-name of the host on which the database resides
-
-=item password
-
-password for the (upcoming) connection
-
-=item port
-
-port used for the (upcoming) connection (defaults to 3306 if not provided)
-
-=back
+- name of the user for the (upcoming) connection
+- name of the database
+- name of the host on which the database resides
+- password for the (upcoming) connection
+- port used for the (upcoming) connection (defaults to 3306 if not provided)
 
 RETURN: new instance of this class.
 
@@ -333,3 +315,27 @@ sub DESTROY {
 }
 
 1;
+
+__END__
+
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

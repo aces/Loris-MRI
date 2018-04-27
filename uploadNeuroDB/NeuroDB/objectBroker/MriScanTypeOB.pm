@@ -86,6 +86,7 @@ RETURN: new instance of this class.
 has 'db' => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 
 =pod
+
 =head3 get($isCount, $columnValuesRef))
 Fetches the entries in the C<mri_upload> table that have specific column
 values. This method throws a C<NeuroDB::objectBroker::ObjectBrokerException>
@@ -142,3 +143,27 @@ sub get {
 }
 
 1;
+
+__END__
+
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
