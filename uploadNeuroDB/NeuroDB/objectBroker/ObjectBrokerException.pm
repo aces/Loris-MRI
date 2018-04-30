@@ -43,6 +43,8 @@ has 'errorMessage' => (is  => 'ro', isa => 'Str', required => 1);
 Default string representation of this exception: its associated error
 message.
 
+RETURN: string representation of this exception.
+
 =cut
 sub toString {
     my $self = shift;

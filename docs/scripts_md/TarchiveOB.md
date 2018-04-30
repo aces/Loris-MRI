@@ -1,6 +1,6 @@
 # NAME
 
-NeuroDB::objectBroker::TarchiveOB -- An object broker for tarchive records
+NeuroDB::objectBroker::TarchiveOB -- An object broker for `tarchive` records
 
 # SYNOPSIS
 
@@ -70,9 +70,9 @@ INPUTS:
     - reference to an array of the column names to return for each record found.
       Each element of this array must exist in `@TARCHIVE_FIELDS` or an exception
       will be thrown.
-    - path of the archive used during the search
+    - path of the archive used during the search.
     - boolean indicating if an exact match is sought (false) or if only basenames
-      should be used when comparing two archive locations (true)
+      should be used when comparing two archive locations (true).
 
 RETURN: a reference to an array of array references. This "matrix" contains the
         values of each colum for each record.

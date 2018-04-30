@@ -1,6 +1,6 @@
 # NAME
 
-NeuroDB::objectBroker::MriScanTypeOB -- An object broker for mri\_scan\_type records
+NeuroDB::objectBroker::MriScanTypeOB -- An object broker for `mri_scan_type` records
 
 # SYNOPSIS
 
@@ -63,9 +63,11 @@ INPUT: the database object used to query the `mri_scan_type` table.
 RETURN: new instance of this class.
 
 ### get($isCount, $columnValuesRef))
-Fetches the entries in the `mri_upload` table that have specific column
+
+Fetches the entries in the `mri_scan_type` table that have specific column
 values. This method throws a `NeuroDB::objectBroker::ObjectBrokerException`
 if the operation could not be completed successfully.
+
 INPUTS:
     - boolean indicating if only a count of the records found is needed
       or the full record properties.

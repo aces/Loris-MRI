@@ -1,7 +1,6 @@
 # NAME
 
-NeuroDB::UnexpectedValueException -- Exception used to signal that an unexpected value was found
-     during program execution.
+NeuroDB::UnexpectedValueException -- Exception used to signal that an unexpected value was found during program execution.
 
 # SYNOPSIS
 
@@ -24,9 +23,9 @@ a database query, reading text from a file, etc...
 
 Default representation of this exception when used in a string context.
 Among other things, the returned string will be used for uncaught exceptions
-that make a script die. Note that the returned string can be useful for debugging
-purposes when trying to diagnose why a particular SQL statement did not execute
-successfully.
+that make a script die. 
+
+RETURN: string representation of this exception.
 
 # TO DO
 

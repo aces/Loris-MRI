@@ -51,7 +51,7 @@ NeuroDB::objectBroker::MriUploadOB -- An object broker for MRI uploads
 
 =head1 DESCRIPTION
 
-This class provides a set of methods to either fetch or insert mri upload
+This class provides a set of methods to either fetch or insert MRI upload
 records. The operations are always performed on database table C<mri_upload>.
 Each method will throw a C<NeuroDB::objectBroker::ObjectBrokerException> if 
 the request could not be performed successfully.
@@ -101,21 +101,15 @@ if the operation could not be completed successfully.
 
 INPUTS:
     - boolean indicating if only a count of the records found is needed
-      or the full record properties
-    - path of the archive location
+      or the full record properties.
+    - path of the archive location.
     - boolean indicating if a match is sought on the full archive name
-      or only the basename
+      or only the basename.
 
-RETURNS: a reference to an array of hash references. Every hash contains the values
-        for a given row returned by the method call: the key/value pairs contain
-        the name of a column (see C<@MRI_UPLOAD_FIELDS>) and the value it 
-        holds, respectively. As an example, suppose array C<$r> contains the result of a
-        given call to this function, one would fetch the C<UploadedBy> value of the third
-        record returned using C<$r->[2]->{'UploadedBy'}>.
-        If the method is called with C<$isCount> set to true, then it will return
-        a reference to an array containing a single hash reference, its unique key being 
-        C<'COUNT(*)'> with the associated value set to the selected count.
-
+RETURNS: a reference to an array of array references. If C<$isCount> is true, then
+         C<< $returnValue->[0]->[0] >> will contain the count of records sought. Otherwise
+         C<< $returnValue->[x]->[y] >> will contain the value of the yth column (in array
+         C<@MRI_UPLOAD_FIELDS> for the xth record retrieved.
 =cut
 
 sub getWithTarchive {

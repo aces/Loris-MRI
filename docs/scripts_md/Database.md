@@ -45,10 +45,10 @@ NeuroDB::Database -- Provides a set of methods to run SQL statements on a databa
 
 # DESCRIPTION
 
-This class provides the basic SELECT, INSERT, UPDATE and DELETE methods
+This class provides the basic `SELECT`, `INSERT`, `UPDATE` and `DELETE` methods
 for all object brokers. The methods of this class should only be used by
-the object brokers themselves (except 'new' for creating a new database
-instance and 'connect'). Scripts and 'non-broker' classes that need access
+the object brokers themselves (except `new` for creating a new database
+instance and `connect`). Scripts and 'non-broker' classes that need access
 to the database should rely on an appropriate object broker class to handle
 the requests.
 
@@ -57,42 +57,41 @@ the requests.
 ### `new(userName => $u, databaseName => $d, hostname => $h, password => $pwd, port =>$port)`  (constructor)
 
 Create a new instance of this class, without actually trying to connect
-to the database specified. All parameters are required except 'port', which
+to the database specified. All parameters are required except `port`, which
 defaults to 3306 if not specified. If the user name, database name or host
 name are the empty string, the constructor will call `die`.
 
-INPUTS: a set of properties for the current database:
-
-\- name of the user for the (upcoming) connection
-\- name of the database
-\- name of the host on which the database resides
-\- password for the (upcoming) connection
-\- port used for the (upcoming) connection (defaults to 3306 if not provided)
+INPUTS:
+\- name of the user for the (upcoming) connection.
+\- name of the database.
+\- name of the host on which the database resides.
+\- password for the (upcoming) connection.
+\- port used for the (upcoming) connection (defaults to 3306 if not provided).
 
 RETURN: new instance of this class.
 
 ### `connect()`
 
 Attempts to connect to the database using the connection parameters passed
-at construction time. This method will throw a DatabaseException if the
+at construction time. This method will throw a `DatabaseException` if the
 connection could not be established.
 
 ### `pselect($query, @args)`
 
-Executes a select query on the database. This method will first `prepare`
+Executes a `SELECT` query on the database. This method will first `prepare`
 the statement passed as parameter before sending the request to the database.
 
 INPUTS: 
-    - select query to execute (containing the argument placeholders if any)
+    - `SELECT` query to execute (containing the argument placeholders if any).
     - list of arguments to replace the placeholders with.
 
 RETURN: a reference to the array of records found. Each record is in fact a
-        reference to the list of values for the columns selected
+        reference to the list of values for the columns selected.
 
 ### `insertOne($tableName, $valuesRef)`
 
 Inserts one record in a given database table with the specified column values.
-This method will throw a DatabaseException if the record cannot be inserted.
+This method will throw a `DatabaseException` if the record cannot be inserted.
 
 INPUTS: 
     - name of the table in which to insert the record.
@@ -107,9 +106,9 @@ Inserts one record in a given database table with the specified column values.
 This method will throw a `DatabaseException` if the record cannot be inserted.
 
 INPUTS: 
-    - name of the table in which to insert the record
+    - name of the table in which to insert the record.
     - reference to an array containing the names of the columns whose values
-      will be modified by this `insert` statement.
+      will be modified by this `INSERT` statement.
     - reference to an array of array references. This "matrix" contains the
         values of each column for each record.
 

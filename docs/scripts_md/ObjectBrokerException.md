@@ -28,6 +28,8 @@ it as expected.
 Default string representation of this exception: its associated error
 message.
 
+RETURN: string representation of this exception.
+
 # TO DO
 
 Nothing planned.
