@@ -17,6 +17,8 @@ use lib "$FindBin::Bin";
 
 use DICOM::DCMSUM;
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
+
 
 # version info from cvs
 my $version = 0;
@@ -65,22 +67,39 @@ my @arg_table =
      ["-version", "boolean", 1,   \$version, "Print cvs version number and exit."],
      );
 
-GetOptions(\@arg_table, \@ARGV) ||  exit 1;
+GetOptions(\@arg_table, \@ARGV) ||  exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 if ($version) { print "Version: $versionInfo\n"; exit; }
 
 # checking for profile settings
+if ( !$profile ) {
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33;
-} 
-# The source and the target dir have to be present and must be directories. The absolute path will be supplied if necessary
-if(scalar(@ARGV) != 2) { print "\nError: Missing source and/or target\n\n".$Usage; exit 1; } $dcm_source = abs_path($ARGV[0]); $targetlocation = abs_path($ARGV[1]);
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+# The source and the target dir have to be present and must be directories.
+# The absolute path will be supplied if necessary
+if(scalar(@ARGV) != 2) {
+    print STDERR $Usage . "\n\tERROR: Missing source and/or target\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
+}
+$dcm_source     = abs_path($ARGV[0]);
+$targetlocation = abs_path($ARGV[1]);
 #if (!$dcm_source || !$targetlocation) { print $Usage; exit 1; }
-if (-d $dcm_source && -d $targetlocation) { $dcm_source =~ s/^(.*)\/$/$1/; $targetlocation =~ s/^(.*)\/$/$1/; } 
-else { print "\nError: source and target must be existing directories!!\n\n"; exit 1; }
+if (-d $dcm_source && -d $targetlocation) {
+    $dcm_source =~ s/^(.*)\/$/$1/;
+    $targetlocation =~ s/^(.*)\/$/$1/;
+} else {
+    print STDERR "\nERROR: source and target must be existing directories!\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
 
 # The tar target 
 my $totar = basename($dcm_source);
@@ -123,7 +142,10 @@ my $byDate;
 if ($todayDate) { $byDate = $today; } else { $byDate = $summary->{header}->{scandate}; } # wrap up the archive 
 my $finalTarget = "$targetlocation/DCM_${byDate}_$summary->{metaname}.tar";
 
-if (-e $finalTarget && !$clobber) { print "\nTarget exists. Use clobber to overwrite!\n\n"; exit 2; }
+if (-e $finalTarget && !$clobber) {
+    print STDERR "\nTarget exists. Use clobber to overwrite!\n\n";
+    exit $NeuroDB::ExitCodes::TARGET_EXISTS_NO_CLOBBER;
+}
 
 # read acquisition metadata into variable 
 my $metafile = "$targetlocation/$metaname.meta";
@@ -194,8 +216,12 @@ print "\nRemoving temporary files from target location\n\n" if $verbose;
 
 # now report database failure (was not above to ensure temp files were erased)
 if ($dbase) {
-    if ($success) { print "\nDone adding archive info into database\n" if $verbose; }
-    else { print "\nThe database command failed\n"; exit 22; }
+    if ($success) {
+        print "\nDone adding archive info into database\n" if $verbose;
+    } else {
+        print STDERR "\nThe database command failed\n";
+        exit $NeuroDB::ExitCodes::INSERT_FAILURE;
+    }
 }
 
 # call the updateMRI_upload script###
@@ -205,13 +231,13 @@ if ($mri_upload_update) {
                  . " -sourceLocation $dcm_source";
     my $output = system($script);
     if ($output!=0)  {
-        print "\n\tERROR: the script updateMRI_Upload.pl has failed \n\n"; 
-        exit 33;
+        print STDERR "\n\tERROR: the script updateMRI_Upload.pl has failed\n\n";
+        exit $NeuroDB::ExitCodes::UPDATE_FAILURE;
     }
 }
 
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 # **************************************************************************************************************************  
 =pod 
 ################################################

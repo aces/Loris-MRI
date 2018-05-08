@@ -19,6 +19,7 @@ use NeuroDB::FileDecompress;
 use NeuroDB::DBI;
 use NeuroDB::ImagingUpload;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
 
 my $versionInfo = sprintf "%d revision %2d",
   q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/;
@@ -87,7 +88,8 @@ Note:  Please make sure that the </path/to/UploadedFile> and the upload_id provi
 correspond to the same upload entry.
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 ################################################################
 ############### input option error checking ####################
 ################################################################
@@ -98,33 +100,36 @@ USAGE
  2) The -patient-name can be included for further validation
 =cut
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ( $profile && !@Settings::db ) {
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
-}
-if ( !$ARGV[0] || !$profile ) {
+if ( !$profile ) {
     print $Help;
-    print "$Usage\n\tERROR: The path to the Uploaded"
-      . "file is not valid or there is no existing profile file \n\n";
-    exit 3;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: Missing path to the uploaded file "
+                 . "argument\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 if ( !$upload_id ) {
     print $Help;
-    print "$Usage\n\tERROR: The Upload_id is missing \n\n";
-    exit 4;
+    print STDERR "$Usage\n\tERROR: Missing -upload_id argument\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 $uploaded_file = abs_path( $ARGV[0] );
 unless ( -e $uploaded_file ) {
-    print "\nERROR: Could not find the uploaded file
-            $uploaded_file. \nPlease, make sure "
-      . "the path to the uploaded file is correct. 
-           Upload will exit now.\n\n\n";
-    exit 5;
+    print STDERR "\nERROR: Could not find the uploaded file $uploaded_file.\n"
+                 . "Please, make sure the path to the uploaded file is "
+                 . "valid.\n\n" ;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
@@ -139,10 +144,9 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my $expected_file = getFilePathUsingUploadID($upload_id);
 
 if ( basename($expected_file) ne basename($uploaded_file)) {
-    print "$Usage\nERROR: The specified upload_id $upload_id " .
-            "does not correspond to the provided file path " .
-            "$uploaded_file. \n\n";
-    exit 6;
+    print STDERR "$Usage\nERROR: The specified upload_id $upload_id does not "
+                 . "correspond to the provided file path $uploaded_file.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 ################################################################
@@ -210,13 +214,13 @@ my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
 if ( !($is_candinfovalid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\nThe candidate info validation has failed \n";
+    $message = "\nThe candidate info validation has failed.\n";
     spool($message,'Y', $notify_notsummary);
-    print $message;
-    exit 7;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::INVALID_DICOM;
 }
 
-$message = "\nThe candidate info validation has passed \n";
+$message = "\nThe candidate info validation has passed.\n";
 spool($message,'N', $notify_notsummary);
 
 ################################################################
@@ -226,12 +230,12 @@ $output = $imaging_upload->runDicomTar();
 if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\nThe dicomtar execution has failed\n";
+    $message = "\nThe dicomTar.pl execution has failed.\n";
     spool($message,'Y', $notify_notsummary);
-    print $message;
-    exit 8;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
-$message = "\nThe dicomtar execution has successfully completed\n";
+$message = "\nThe dicomTar.pl execution has successfully completed\n";
 spool($message,'N', $notify_notsummary);
 
 ################################################################
@@ -240,10 +244,10 @@ spool($message,'N', $notify_notsummary);
 $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
-    $message = "\nThe insertion scripts have failed\n";
+    $message = "\nThe tarchiveLoader insertion script has failed.\n";
     spool($message,'Y', $notify_notsummary); 
-    print $message;
-    exit 9;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
 ################################################################
@@ -254,8 +258,8 @@ my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";
     spool($message,'Y', $notify_notsummary);
-    print $message;
-    exit 10;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::CLEANUP_FAILURE;
 }
 $message = "\nThe uploaded file " . $uploaded_file . " has been removed\n\n";
 spool($message,'N', $notify_notsummary);
@@ -407,4 +411,4 @@ sub spool  {
     );
 }
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;

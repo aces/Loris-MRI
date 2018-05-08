@@ -224,6 +224,45 @@ sub getDatabaseHandleRef {
     return $this->{'dbhr'};
 }
 
+
+=pod
+
+=head3 getFileType($file)
+
+Determines the imaging file type based on the extension of the file to insert
+and the list of available types in the ImagingFileTypes table of the database.
+
+INPUT: the path to the imaging file to determine the file type
+
+RETURNS: the type of the imaging file given as an argument
+
+=cut
+
+sub getFileType {
+    my ($this, $file) = @_;
+
+    my $fileType;
+
+    # grep possible file types from the database
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT type
+    FROM   ImagingFileTypes
+QUERY
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute();
+
+    # else, loop through the different values from ImagingFileTypes table
+    # and see if $file matches one of the file types.
+    while (my $fileTypeRow = $sth->fetchrow_hashref()) {
+        if ($file =~ /\.$fileTypeRow->{'type'}(\.gz)?$/) {
+            $fileType = $fileTypeRow->{'type'};
+        }
+    }
+
+    return $fileType;
+}
+
+
 =pod
 
 B<loadFileFromDisk( C<$filename> )>
@@ -237,7 +276,6 @@ Returns: 0 if any failure occurred or 1 otherwise
 sub loadFileFromDisk {
     my $this = shift;
     my ($file) = @_;
-    my $fileType;
 
     # try to untaint the filename
     if($file =~ /[\`;]/ || $file =~ /\.\./) {
@@ -251,22 +289,9 @@ sub loadFileFromDisk {
     my ($user) = getpwuid($UID);
     $this->setFileData('InsertedByUserID', $user);
     $this->setFileData('File', $file);
-    
-    if($file =~ /\.mnc(\.gz)?$/) {
-        $fileType = 'mnc';
-    } elsif($file =~ /\.obj$/) {
-        $fileType = 'obj';
-    } elsif($file =~ /\.xfm$/) {
-        $fileType = 'xfm';
-    } elsif($file =~ /\.imp$/) {
-        $fileType = 'imp';
-    } elsif($file =~ /\.xml$/) {
-        $fileType = 'xml';
-    } elsif($file =~ /\.txt$/) {
-        $fileType = 'txt';
-    } elsif($file =~ /\.nrrd$/) {
-        $fileType = 'nrrd';
-    }
+
+    # grep possible file types from the database
+    my $fileType = $this->getFileType($file);
     $this->setFileData('FileType', $fileType) if defined $fileType;
     
     # if the file is not a minc, then just we've done as much as we can...

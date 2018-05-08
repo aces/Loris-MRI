@@ -18,6 +18,7 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
 
 my $sessionfilesfound = '';
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.3 $
@@ -82,32 +83,37 @@ usage: $0 [options] select|confirm
 
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################### input option error checking ################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a configuration file named ". 
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2; 
-}
-if (!$ARGV[0] || !$profile) { 
+if ( !$profile ) {
     print $Help;
-    print " ERROR: You must type select or confirm and have an ".
-          "existing profile.\n\n";
-    exit 3;  
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
+    print $Help;
+    print STDERR "\n\tERROR: You must type select or confirm.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$seriesuid && !$fileid) {
-    print " ERROR: You must specify either a seriesuid or a fileid ".
-          "option.\n\n";
-    exit 4;
+    print STDERR "\n\tERROR: You must specify either -seriesuid or -fileid "
+                 . "option.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if ($seriesuid && $fileid) {
-    print " ERROR: You cannot specify both a seriesuid and a fileid ".
-          "option.\n\n";
-    exit 5;
+    print STDERR " ERROR: You cannot specify both -seriesuid and -fileid "
+                 . "options.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 
@@ -401,3 +407,4 @@ if ($selORdel eq "DELETE ") {
     }
 }
 
+exit $NeuroDB::ExitCodes::SUCCESS;

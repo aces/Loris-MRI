@@ -15,6 +15,8 @@ use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
+
 
 my $verbose = 0;
 my $profile    = undef;
@@ -70,48 +72,46 @@ my @arg_table =
 
 # Parse arguments
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@arg_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@arg_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################# checking for profile settings#################
 ################################################################
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ 
         package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" 
     }
 }
 
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:
-            $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 2;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 } 
 
-################################################################
-################# if profile not specified######################
-################################################################
-if(!$profile) { 
-    print $Usage; print "\n\tERROR: You must specify an existing profile.\n\n";  
-    exit 3;  
-}
 
 ################################################################
 ################# if tarchive not specified#####################
 ################################################################
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure the 
-            path to the archive is correct. Upload will exit now.\n\n\n";
-    exit 4;
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is valid.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
 #################if the sourcelocation is not set###############
 ################################################################
 unless (-e $source_location) {
-    print "\nERROR: Could not find sourcelocation $source_location \nPlease,
-           make sure the sourcelocation is correct. Upload will 
-           exit now.\n\n\n";
-    exit 5;
+    print STDERR "\nERROR: Could not find sourcelocation $source_location\n"
+                 . "Please, make sure the sourcelocation is valid.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 ################################################################
 #####establish database connection if database option is set####
@@ -153,8 +153,8 @@ $sth = $dbh->prepare($query);
 $sth->execute($tarchive_path);
 my $count = $sth->fetchrow_array;
 if($count>0) {
-   print "\n\tERROR: the tarchive is already uploaded \n\n"; 
-   exit 6;
+   print STDERR "\n\tERROR: the tarchive is already uploaded \n\n";
+   exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 } 
 
 
@@ -186,4 +186,4 @@ my $mri_upload_insert = $dbh->prepare($query);
 $mri_upload_insert->execute($User,$tarchiveID,$source_location);
 
 print "Done updateMRI_upload.pl execution!\n" if $verbose;
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;

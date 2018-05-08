@@ -13,6 +13,7 @@ use Cwd 'abs_path';
 # These are to load the DBI & DTI modules to be used
 # use lib "$FindBin::Bin";
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 use DTI::DTI;
 
 
@@ -58,26 +59,31 @@ my @args_table      = (["-profile",             "string",   1,      \$profile,  
                       );
 
 Getopt::Tabular::SetHelp ($Usage, '');
-GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
+GetOptions(\@args_table, \@ARGV, \@args)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 
 # input options error checking
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named \"$profile\" in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 33;
+if ( !$profile ) {
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if (!$profile) {
-    print "$Usage\n\tERROR: You must specify a profile.\n\n";  
-    exit 33;
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 # Determine DTIPrepVersion from its absolute path if DTIPrepVersion is not given as an argument when calling the script
 ($DTIPrepVersion)   = &identify_tool_version("DTIPrep", '\/(DTIPrep[A-Z0-9._]+)\/DTIPrep$')     if (!$DTIPrepVersion);
 # Exit with error message if $DTIPrepVersion was not set or found based on its absolute path
 if (!$DTIPrepVersion) {
-    print "$Usage\n\t ERROR: Pipeline version could not been determined via the path to DTIPrep binary. You need to specify which version of DTIPrep you will be using with -version option.\n\n";  
-    exit 33;
+    print STDERR "$Usage\n\t ERROR: Pipeline version could not be determined "
+                 . "via the path to DTIPrep binary. You need to specify which "
+                 . "version of DTIPrep you will be using with -DTIPrepVersion "
+                 . "option.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_TOOL_VERSION;
 }
 
 # Establish database connection
@@ -159,11 +165,18 @@ foreach my $nativedir (@nativedirs)   {
     my $bCompute    = $protXMLrefs->{entry}->{DTI_bCompute}->{value};
     if (($bCompute eq 'No') && (!$mincdiffVersion)) {
         ($mincdiffVersion)  = &identify_tool_version("minctensor.pl", '\/(mincdiffusion-[A-Z0-9._-]+)\/');
-        # Exit program if $niak_path or mincdiffVersion is not set (needed to run minctensor)
+        # Exit program if mincdiffVersion is not set (needed to run minctensor)
+        if (!$mincdiffVersion) {
+            print STDERR "\n\tERROR: mincdiffusion tool's version could "
+                  . "not be determined.\n\n";
+            exit $NeuroDB::ExitCodes::MISSING_TOOL_VERSION;
+        }
+        # Exit program if $niak_path is not set
         if  (!$niak_path) {
-            print "\n\tERROR: variable niak_path need to be set in the config file if you plan to use mincdiffusion tools to process the DTI files.\n\n"    if (!$niak_path);
-            print "\n\tERROR: mincdiffusion tool's version could not be determined.\n\n"    if (!$mincdiffVersion);
-            exit 33;
+            print STDERR "\n\tERROR: variable niak_path need to be set in the "
+                         . "config file if you plan to use mincdiffusion tools "
+                         . "to process the DTI files.\n\n";
+            exit $NeuroDB::ExitCodes::INVALID_PATH;
         }
     }
 
@@ -217,7 +230,7 @@ foreach my $nativedir (@nativedirs)   {
     } else {
         print LOG "\n\tERROR: Post processing tools won't be run for this dataset. \n";
         print LOG "--------------------------------\n";
-        exit;
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
     }
 
 
@@ -242,7 +255,7 @@ foreach my $nativedir (@nativedirs)   {
 
 }
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 

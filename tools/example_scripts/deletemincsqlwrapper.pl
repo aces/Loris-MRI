@@ -8,6 +8,7 @@ use File::Basename;
 use File::Copy;
 use Term::ANSIColor qw(:constants);
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $profile = undef;
 my $insertminc;
@@ -44,7 +45,8 @@ usage: tools/example_scripts/deletemincsqlwrapper.pl -profile prod
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/" . $profile}
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);

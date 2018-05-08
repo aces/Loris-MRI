@@ -1,5 +1,7 @@
 #!/usr/bin/perl 
 
+use NeuroDB::ExitCodes;
+
 #---------------------------------------------------------------------------
 #@COPYRIGHT :
 #             Copyright 1996, Alex P. Zijdenbos
@@ -94,7 +96,7 @@ Usage:  $0 [<options>] <mincfiles>
 
 EOH
 
-if ($#ARGV < 1) { print $HelpInfo; exit; }
+if ($#ARGV < 1) { print $HelpInfo; exit $NeuroDB::ExitCodes::MISSING_ARG; }
 
 while (@ARGV) {
   $_ = shift;
