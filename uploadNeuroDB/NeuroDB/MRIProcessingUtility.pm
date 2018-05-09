@@ -1320,36 +1320,40 @@ sub computeDeepQC {
         my $acqID = $row->{'AcquisitionProtocolID'};
         $base = basename($filename);
         $fullpath = $data_dir . "/" . $filename;
-        if ($acqID == $acqIDForT1Scan) {
-            my $url = 'http://127.0.0.1:5000/deepqc/' . $fileID;
-            my $resp = $ua->post($url,
-              Content_Type => 'multipart/form-data',
-              Content => [
-                'file' => [ $fullpath ]
-              ]
-            );
-            my $DeepQC = $json->decode($resp->content);
-            $DeepQC = $DeepQC->{'prediction'};
-            print "DeepQC Prediction is: " . $DeepQC . "\n" if ($this->{verbose});
-            my $file = NeuroDB::File->new($this->{dbhr});
-            $file->loadFile($fileID);
-            my $DeepQC_old = $file->getParameter('DeepQC');
-            if ($DeepQC ne '') {
-                if (($DeepQC_old ne '') && ($DeepQC_old ne $DeepQC)) {
-                    $message = "The DeepQC value will be updated from " .
-                        "$DeepQC_old to $DeepQC. \n";
-                    $this->{LOG}->print($message);
-                    $this->spool($message, 'N', $upload_id, $notify_detailed);
+        if (-e $fullpath) {
+            if ($acqID == $acqIDForT1Scan) {
+                my $url = 'http://127.0.0.1:5000/deepqc/' . $fileID;
+                my $resp = $ua->post($url,
+                  Content_Type => 'multipart/form-data',
+                  Content => [
+                    'file' => [ $fullpath ]
+                  ]
+                );
+                my $DeepQC = $json->decode($resp->content);
+                $DeepQC = $DeepQC->{'prediction'};
+                print "DeepQC Prediction is: " . $DeepQC . "\n" if ($this->{verbose});
+                my $file = NeuroDB::File->new($this->{dbhr});
+                $file->loadFile($fileID);
+                my $DeepQC_old = $file->getParameter('DeepQC');
+                if ($DeepQC ne '') {
+                    if (($DeepQC_old ne '') && ($DeepQC_old ne $DeepQC)) {
+                        $message = "The DeepQC value will be updated from " .
+                            "$DeepQC_old to $DeepQC. \n";
+                        $this->{LOG}->print($message);
+                        $this->spool($message, 'N', $upload_id, $notify_detailed);
+                    }
+                    $file->setParameter('DeepQC', $DeepQC);
                 }
-                $file->setParameter('DeepQC', $DeepQC);
             }
-        }
-        else {
-            $message = "The DeepQC probability can not be computed for $base. ".
-                "The imaging modality is not ".
-                "supported by the DeepQC computation. \n";
-            $this->{LOG}->print($message);
-            $this->spool($message, 'N', $upload_id, $notify_detailed);
+            else {
+                $message = "The DeepQC probability can not be computed for $base. ".
+                    "The imaging modality is not ".
+                    "supported by the DeepQC computation. \n";
+                $this->{LOG}->print($message);
+                $this->spool($message, 'N', $upload_id, $notify_detailed);
+            }
+        } else {
+            print "File doesn't exist.\n"
         }
     }
 }
