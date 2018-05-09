@@ -3,24 +3,72 @@
 
 =pod
 
-TODO
+=head1 NAME
 
-- dicom_to_minc: change converter back to perl (or make configurable)
-- add a check for all programms that will be used (exists, but could 
-- be better....)
-- consider whether to add a check for registered protocols against the
-- tarchive db to save a few minutes of converting
-- also add an option to make it interactively query user to learn new protocols
-- this should be a separate program
-- add to config file whether or not to autocreate scanners
+tarchiveLoader -- this script performs the following:
 
-This script interacts with the NeuroDB database system. It will connect to/deal
-with/ modify contents of the
-following tables:
-session, parameter_file, parameter_type, parameter_type_category, files, 
-mri_staging, notification_spool
+- validation of the tarchive
+
+- conversion of DICOM datasets into MINC files
+
+- automated protocol checks against the entries in the C<mri_protocol> and
+optionally, C<mri_protocol_checks> tables.
+
+
+=head1 SYNOPSIS
+
+perl uploadNeuroDB/tarchiveLoader </path/to/DICOM-tarchive> C<[options]>
+
+
+Available options are:
+
+-profile                    : Name of the config file in
+                              C<../dicom-archive/.loris_mri>
+
+-force                      : Force the script to run even if the validation
+                              has failed
+
+-reckless                   : Upload data to database even if study protocol is
+                              not defined or violated
+
+-globLocation               : Loosen the validity check of the tarchive allowing
+                              for the possibility that the tarchive was moved to
+                              a different directory
+
+-noJIV                      : Prevent the JIVs from being created
+
+-newScanner                 : By default a new scanner will be registered if the
+                              data you upload requires it. You can risk turning
+                              it off
+
+-keeptmp                    : Keep temporary directory. Make sense if have
+                              infinite space on your server
+
+-xlog                       : Open an xterm with a tail on the current log file
+
+-verbose                    : If set, be verbose
+
+-seriesuid                  : Only insert this SeriesUID
+
+-acquisition_protocol       : Suggest the acquisition protocol to use
+
+-bypass_extra_file_checks   : Bypass extra_file_checks
+
+
+=head1 DESCRIPTION
+
+
+This script interacts with the NeuroDB database system. It will fetch or modify
+contents of the following tables:
+C<session>, C<parameter_file>, C<parameter_type>, C<parameter_type_category>,
+C<files>, C<mri_staging>, C<notification_spool>
+
+
+
+=head2 Methods
 
 =cut
+
 
 use strict;
 use warnings;
@@ -36,11 +84,15 @@ use Cwd qw/ abs_path /;
 # These are the NeuroDB modules to be used
 use lib "$FindBin::Bin";
 
+use NeuroDB::Database;
+
 use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
+
 # Turn on autoflush for standard output buffer so that we immediately see 
 #the results of print statements.
 $|++;
@@ -59,11 +111,16 @@ my $debug       = 0;
 my $message     = '';
 my $tarchive_srcloc = '';
 my $upload_id   = undef;
-my $verbose     = 0;           # default, overwritten if the scripts are run with -verbose
-my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
-                               # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
-                               # with SUMMARY Option in the front-end/imaging_uploader 
+my $verbose     = 0;           # default, overwritten if the scripts are run
+                               # with -verbose
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to
+                               # be displayed
+                               # with DETAILED OPTION in the front-end/
+                               # imaging_uploader
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to
+                               # be displayed
+                               # with SUMMARY Option in the front-end/
+                               # imaging_uploader
 my $profile     = 'prod';      # this should never be set unless you are in a
                                # stable production environment
 my $reckless    = 0;           # this is only for playing and testing. Don't 
@@ -80,14 +137,16 @@ my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
 my $seriesuid   = undef;       # if you want to insert a specific SeriesUID
-my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
-my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses the checks
+my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks,
+                               # set to 1.
+my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses
+                               # the checks
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
-                  "name of config file in ../dicom-archive/.loris_mri"
+                  "Name of config file in ../dicom-archive/.loris_mri"
                  ],
-                 ["-force", "boolean", 1, \$force,"Forces the script to run ". 
+                 ["-force", "boolean", 1, \$force,"Force the script to run ".
                  "even if the validation has failed."],
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,"Upload data to ".
@@ -98,15 +157,15 @@ my @opt_table = (
                   "the possibility that the tarchive was moved to a different".
                   " directory."
                  ],
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being".
+                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevent the JIVs from being".
                   "created."],
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
                  ],
                  ["Fancy options","section"],
-# fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temp dir. Makes sense if
-# have infinite space on your server."],
+# fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temporay directory. Make
+# sense if have infinite space on your server."],
                  ["-xlog", "boolean", 1, \$xlog,"Open an xterm with a tail on".
                   "the current log file."
                  ],
@@ -116,7 +175,7 @@ my @opt_table = (
                  ["-acquisition_protocol","string", 1, \$acquisitionProtocol,
                   "Suggest the acquisition protocol to use."],
                  ["-bypass_extra_file_checks", "boolean", 1, \$bypass_extra_file_checks,
-                  "Bypasses extra_file_checks."],
+                  "Bypass extra_file_checks."],
                  );
 
 my $Help = <<HELP;
@@ -142,36 +201,52 @@ performs a lot of magic on the acquisitions within it.
 - file relocation (to the MRI repository)
 - neuroDB mri database registration and JIVification.
 
+Documentation: perldoc tarchiveLoader
+
 HELP
+
 my $Usage = <<USAGE;
 usage: $0 </path/to/DICOM-tarchive> [options]
        $0 -help to list options
 
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################### input option error checking ################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a configuration file named ". 
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 2; 
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if (!$ARGV[0] || !$profile) { 
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
     print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid tarchive and an ".
-          "existing profile.\n\n";
-    exit 3;  
+    print STDERR "$Usage\n\tERROR: You must specify a valid tarchive.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 ################################################################
 ######### Establish database connection ########################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 $message ="\n==> Successfully connected to database \n";
 
 my $tarchive = $ARGV[0];
@@ -183,10 +258,9 @@ unless ($tarchive =~ m/$tarchivePath/i) {
 }
 
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \n ".
-          "Please, make sure the path to the archive is correct. ". 
-          "Upload will exit now.\n\n\n";
-    exit 4;
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is correct.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 
@@ -241,29 +315,27 @@ print LOG $message;
 my $childPID; 
 if ($xlog) { 
     $childPID = fork(); 
-    if ($childPID == 0) { 
-        exec("xterm -geometry 130x70 -e tail -f $logfile"); 
-        exit(0); 
-    } 
+    if ($childPID == 0) {
+        my $command = "xterm -geometry 130x70 -e tail -f $logfile";
+        exec($command) or die "Command $command failed: $!\n";
+    }
 }
 
-=pod
 ################################################################
-################################################################
- get useful information from the tarchive table  - The regex is 
-very study specific... !!!!!! fixme
- Fixme figure out a way to get rid of study specific ways of 
-extracting information ... if there is 
- This will query the tarchive and retrieve (hopefully) enough
- information to continue the upload.
+# get useful information from the tarchive table  - The regex is
+# very study specific... !!!!!! fixme
+# Fixme figure out a way to get rid of study specific ways of
+# extracting information ... if there is
+# This will query the tarchive and retrieve (hopefully) enough
+# information to continue the upload.
 # fixme documentation needed
-=cut
+################################################################
 
 ################################################################
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  \$dbh,$debug,$TmpDir,$logfile,
+                  $db, \$dbh,$debug,$TmpDir,$logfile,
                   $LogDir,$verbose
               );
 
@@ -331,35 +403,34 @@ if (($output != 0)  && ($force==0)) {
  $message = "\n ERROR: The validation has failed. Either re-run the ".
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
- $utility->writeErrorLog($message,5,$logfile); 
+ $utility->writeErrorLog(
+     $message, $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE, $logfile
+ );
  $notifier->spool('tarchive validation', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
 		$notify_notsummary);
- exit 5;
+ exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
 ################################################################
 ########## Get the $center_name, $centerID ################
 ################################################################
 my ($center_name, $centerID) =
-     $utility->determinePSC(\%tarchiveInfo,0);
+     $utility->determinePSC(\%tarchiveInfo, 0, $upload_id);
 
 ################################################################
 ######### Determine the ScannerID ##############################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,0,
-                    $centerID,
-                    $NewScanner
-                );
+        \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
+);
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,
-                        \%tarchiveInfo,0
-                    );
+        $scannerID, \%tarchiveInfo, 0, $upload_id
+);
 
 ################################################################
 ###### Get the SessionID #######################################
@@ -383,23 +454,23 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $seriesuid);
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id, $seriesuid
+    );
 
 
 ################################################################
 ##################### convert the dicom data to minc ###########
 ################################################################
 $utility->dicom_to_minc(
-    $study_dir,$converter,$get_dicom_info,
-    $exclude,$mail_user, $tarchiveInfo{'SourceLocation'});
+    $study_dir, $converter, $get_dicom_info, $exclude, $mail_user, $upload_id
+);
 
 
 ################################################################
 ############### get a list of mincs ############################
 ################################################################
 my @minc_files = ();
-$utility->get_mincs(\@minc_files,
-		     	 $tarchiveInfo{'SourceLocation'});
+$utility->get_mincs(\@minc_files, $upload_id);
 my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
@@ -415,11 +486,13 @@ if ($verbose){
 if ($mcount < 1) { 
     $message = "\nNo data could be converted into valid MINC files. ".
                "Localizers will not be considered! \n" ; 
-    $utility->writeErrorLog($message,6,$logfile); 
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
+    );
     $notifier->spool('tarchive loader', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y',
 		    $notify_notsummary);
-    exit 6; 
+    exit $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED;
 }
 
 ################################################################
@@ -442,8 +515,9 @@ foreach my $minc (@minc_files) {
     }
     elsif (!$valid_study) {
         $newTarchiveLocation = 
-            $utility->moveAndUpdateTarchive($tarchive,
-					\%tarchiveInfo);
+            $utility->moveAndUpdateTarchive(
+                $tarchive, \%tarchiveInfo, $upload_id
+            );
     }
     $tarchive = $newTarchiveLocation;
 
@@ -505,9 +579,7 @@ foreach my $minc (@minc_files) {
 ################################################################
 ############### Compute SNR on 3D modalities ###################
 ################################################################
-$utility->computeSNR($tarchiveInfo{TarchiveID},
-                         $tarchiveInfo{'SourceLocation'},
-			 $profile);
+$utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id, $profile);
 ################################################################
 ############### Compute DeepQC on T1W MNC files ################
 ################################################################
@@ -518,8 +590,7 @@ $utility->computeDeepQC($tarchiveInfo{TarchiveID},
 ####### Add order of acquisition for similar modalities ########
 ####### within the same session based on series number #########
 ################################################################
-$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID},
-                         $tarchiveInfo{'SourceLocation'});
+$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID}, $upload_id);
 
 
 if ($valid_study) {
@@ -682,11 +753,11 @@ if ($xlog) {
 
 if (!$valid_study) {
     $message =  "\n No Mincs inserted \n \n";
-    print ($message);
+    print STDERR ($message);
     $notifier->spool('mri invalid study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y', 
 		    $notify_notsummary);
-    exit 9;
+    exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
 
 ###############################################################
@@ -699,7 +770,17 @@ $query = $query . $where;
 my $mri_upload_update = $dbh->prepare($query);
 $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+=pod
+
+=head3 logHeader()
+
+Function that adds a header with relevant information to the log file
+
+=cut
+
 sub logHeader () {
     print LOG "
     ----------------------------------------------------------------
@@ -710,3 +791,39 @@ sub logHeader () {
     *** tmp dir location           : $TmpDir
     ";
 }
+
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+- dicom_to_minc: change converter back to perl (or make configurable)
+
+- add a check for all programms that will be used (exists, but could
+  be better....)
+
+- consider whether to add a check for registered protocols against the
+  tarchive db to save a few minutes of converting
+
+- also add an option to make it interactively query user to learn new protocols
+
+- add to config file whether or not to autocreate scanners
+
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+J-Sebastian Muehlboeck based on Jonathan Harlap\'s process_uploads, LORIS
+community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut

@@ -1,5 +1,36 @@
 #!/usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+mass_pic.pl -- Generates check pic for the LORIS database system
+
+
+=head1 SYNOPSIS
+
+perl mass_pic.pl C<[options]>
+
+Available options are:
+
+-profile   : name of the config file in ../dicom-archive/.loris_mri
+
+-mincFileID: integer, minimum C<FileID> to operate on
+
+-maxFileID : integer, maximum C<FileID> to operate on
+
+-verbose   : be verbose
+
+
+=head1 DESCRIPTION
+
+This scripts will generate pics for every registered MINC file that have
+a C<FileID> from the C<files> table between the specified C<minFileID>
+and C<maxFileID>.
+
+=cut
+
+
 use strict;
 use FindBin;
 use lib "$FindBin::Bin";
@@ -7,6 +38,10 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
+
+use NeuroDB::Database;
+use NeuroDB::ExitCodes;
+
 ################################################################
 ################## Set stuff for GETOPT ########################
 ################################################################
@@ -16,9 +51,10 @@ my $minFileID  = undef;
 my $maxFileID  = undef;
 my $query;
 my $debug       = 0;
-my $Usage = "mass_pic.pl generates check pic images for NeuroDB for those ".
+my $Usage = "mass_pic.pl generates pic images for NeuroDB for those ".
             "files that are missing pics. ".
-            " \n\n See $0 -help for more info\n\n";
+            " \n\n See $0 -help for more info\n\n".
+            "Documentation: perldoc mass_pic.pl\n\n";
 
 my @arg_table =
     (
@@ -34,31 +70,38 @@ my @arg_table =
          ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     );
 
-GetOptions(\@arg_table, \@ARGV) ||  exit 1;
+GetOptions(\@arg_table, \@ARGV) ||  exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################ checking for profile settings #################
 ################################################################
+if ( !$profile ) {
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' ". 
-          "in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 33;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 } 
-
-if (!$profile) { 
-    print $Usage; 
-    print "\n\tERROR: You must specify an existing profile.\n\n";  
-    exit 33;  
-}
 
 ################################################################
 # Establish database connection if database option is set ######
 ################################################################
 print "Connecting to database.\n" if $verbose;
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 
 ################################################################
 # Where the pics should go #####################################
@@ -120,7 +163,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
     unless(
         &NeuroDB::MRI::make_pics(
             \$file, $data_dir, 
-            $pic_dir, $horizontalPics
+            $pic_dir, $horizontalPics, $db
         )
     ) {
         print "FAILURE!\n";
@@ -130,4 +173,28 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 $dbh->disconnect();
 
 print "\nFinished mass_pic.pl execution\n" if $verbose;
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
+

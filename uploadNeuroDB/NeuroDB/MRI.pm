@@ -1,10 +1,12 @@
+package NeuroDB::MRI;
+
 =pod
 
 =head1 NAME
 
 NeuroDB::MRI -- A set of utility functions for performing common tasks
 relating to MRI data (particularly with regards to registering MRI
-files into the NeuroDB system)
+files into the LORIS system)
 
 =head1 SYNOPSIS
 
@@ -25,14 +27,13 @@ files into the NeuroDB system)
 
 =head1 DESCRIPTION
 
-Really a mishmash of utility functions, primarily used by
-process_uploads and all of its children
+Really a mishmash of utility functions, primarily used by C<process_uploads> and
+all of its children.
 
-=head1 METHODS
+=head2 Methods
 
 =cut
 
-package NeuroDB::MRI;
 
 use Exporter();
 use Math::Round;
@@ -44,6 +45,9 @@ use Carp;
 use Time::Local;
 use FindBin;
 
+use NeuroDB::objectBroker::MriScanTypeOB;
+use NeuroDB::UnexpectedValueException;
+
 $VERSION = 0.2;
 @ISA = qw(Exporter);
 
@@ -54,10 +58,19 @@ $FLOAT_EQUALS_NB_DECIMALS = 4;
 @EXPORT_OK = qw(identify_scan in_range get_headers get_info get_ids get_objective identify_scan_db scan_type_text_to_id scan_type_id_to_text register_db get_header_hash get_scanner_id get_psc compute_hash is_unique_hash make_pics select_volume);
 
 =pod
-B<getSubjectIDs( C<$patientName>, C<$scannerID>, C<$dbhr> )>
-Determines the cand id and visit label for the subject based on patient name and (for calibration data) scannerid.
-Returns: a reference to a hash containing elements including 'CandID', 'visitLabel' and 'visitNo', or, in the case of failure, undef
+
+=head3 getSubjectIDs($patientName, $scannerID, $dbhr)
+
+Determines the candidate ID and visit label for the subject based on patient
+name and (for calibration data) scannerID.
+
+INPUTS: patient name, scanner ID and database handle reference
+
+RETURNS: a reference to a hash containing elements including C<CandID>,
+C<visitLabel> and C<visitNo>, or, in the case of failure, C<undef>
+
 =cut
+
 sub getSubjectIDs {
     my ($patientName, $scannerID, $dbhr) = @_;
     my %subjectID;
@@ -85,10 +98,17 @@ sub getSubjectIDs {
 }
 
 =pod
-B<subjectIDIsValid( C<$CandID>, C<$PSCID>, C<$dbhr> )>
-    Verifies that the subject IDs match.
-    Returns: 1 if the ID pair matches, 0 otherwise
+
+=head3 subjectIDIsValid($CandID, $PSCID, $dbhr)
+
+Verifies that the subject IDs match.
+
+INPUTS: candidate's CandID, candidate's PSCID and the database handle reference
+
+RETURNS: 1 if the ID pair matches, 0 otherwise
+
 =cut
+
 sub subjectIDIsValid {
     my ($candID, $pscid, $visit_label, $dbhr, $create_visit_label) = @_;
     my $query = "SELECT COUNT(*) AS isValid FROM candidate WHERE CandID=".$${dbhr}->quote($candID)." AND PSCID=".$${dbhr}->quote($pscid);
@@ -109,10 +129,17 @@ sub subjectIDIsValid {
 }
 
 =pod
-B<subjectIDExists( C<$CandID>, C<$dbhr> )>
-    Verifies that the subject ID (CandID) exists.
-    Returns: 1 if the ID exists, 0 otherwise
+
+=head3 subjectIDExists($CandID, $dbhr)
+
+Verifies that the subject ID (CandID) exists.
+
+INPUTS: candidate's CandID and the database handle reference
+
+RETURNS: 1 if the ID exists, 0 otherwise
+
 =cut
+
 sub subjectIDExists {
     my ($candID, $dbhr) = @_;
     
@@ -125,10 +152,17 @@ sub subjectIDExists {
 }
 
 =pod
-B<getScannerCandID( C<$scannerID>, C<$dbhr> )>
-    Retrieves the candidate id for the given scanner
-    Returns: the CandID or (if none exists) undef
+
+=head3 getScannerCandID($scannerID, $dbhr)
+
+Retrieves the candidate (CandID) for the given scanner.
+
+INPUTS: the scanner ID and the database handle reference
+
+RETURNS: the CandID or (if none exists) undef
+
 =cut
+
 sub getScannerCandID {
     my ($scannerID, $dbhr) = @_;
     my $candID;
@@ -146,28 +180,38 @@ sub getScannerCandID {
 }
 
 =pod
-B<getSessionID( C<$subjectIDref>, C<$studyDate>, C<$dbhr>, C<$objective>, C<$noStagingCheck> )>
 
-    Gets (or creates) the session ID, given CandID and visitLabel
-    (contained inside the hashref C<$subjectIDref>).  Unless
-    C<$noStagingCheck> is true, it also determines whether staging is
-    required using the C<$studyDate> (formatted YYYYMMDD) to determine
-    whether staging is required based on a simple algorithm:
-    
-    If there exists a session with the same visit label, then that is the
-    session ID to use.  If any dates (either existing MRI data or simply a
-    date of visit) exist associated with that session, then if they are
-    outside of some (arbitrary) time window, staging is required.  If no
-    dates exist, no staging is required.
-    
-    If no sessions exist, then if there is any other date associated with
-    another session of the same subject within a time window, staging is
-    required.
-    
-    Otherwise, staging is not required.
+=head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective, ...)
 
-    Returns: a list of two items, (sessionID, requiresStaging)
+Gets (or creates) the session ID, given CandID and visitLabel (contained
+inside the hashref C<$subjectIDref>).  Unless C<$noStagingCheck> is true, it
+also determines whether staging is required using the C<$studyDate>
+(formatted YYYYMMDD) to determine whether staging is required based on a
+simple algorithm:
+
+=over 3
+
+- If there exists a session with the same visit label, then that is
+   the session ID to use.  If any dates (either existing MRI data or
+   simply a date of visit) exist associated with that session, then
+   if they are outside of some (arbitrary) time window, staging is
+   required.  If no dates exist, no staging is required.
+    
+- If no sessions exist, then if there is any other date associated
+   with another session of the same subject within a time window,
+   staging is required.
+    
+- Otherwise, staging is not required.
+
+=back
+
+INPUTS: hash reference of subject IDs, study date, database handle reference,
+the objective of the study and a no staging check flag.
+
+RETURNS: a list of two items, (sessionID, requiresStaging)
+
 =cut
+
 sub getSessionID {
     my ($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck) = @_;
     my ($sessionID, $requiresStaging, $studyDateJD);
@@ -306,7 +350,20 @@ sub getSessionID {
     return ($sessionID, $requiresStaging);
 }
 
-# tries to figure out if there may have been labelling problems which would put this file in a staging area that does not actually exist.
+=pod
+
+=head3 checkMRIStudyDates($studyDateJD, $dbhr, @fileIDs)
+
+This method tries to figure out if there may have been labelling problems which
+would put the files in a staging area that does not actually exist.
+
+INPUTS: study date, database handle reference and array of fileIDs to check the
+study date
+
+RETURNS: 1 if the file requires staging, 0 otherwise
+
+=cut
+
 sub checkMRIStudyDates {
     my ($studyDateJD, $dbhr, @fileIDs) = @_;
 
@@ -343,13 +400,14 @@ sub checkMRIStudyDates {
 
 =pod
 
-B<getObjective( C<$subjectIDsref>, C<$dbhr> )>
+=head3 getObjective($subjectIDsref, $dbhr)
 
-Attempts to determine the SubprojectID  of a timepoint given the
-subjectIDs hashref C<$subjectIDsref> and a database handle reference
-C<$dbhr>
+Attempts to determine the SubprojectID  of a timepoint given the subjectIDs
+hashref C<$subjectIDsref> and a database handle reference C<$dbhr>
 
-Returns: the determined objective, or 0
+INPUTS: subjectIDs hashref and database handle reference
+
+RETURNS: the determined objective, or 0
 
 =cut
 
@@ -391,21 +449,27 @@ sub getObjective
 
 =pod
 
-B<identify_scan_db( C<$center_name>, C<$objective>, C<$fileref>, C<$dbhr> )>
+=head3 identify_scan_db($center_name, $objective, $fileref, $dbhr)
 
-Determines the type of the scan described by minc headers based on mri_protocol in the database
+Determines the type of the scan described by MINC headers based on
+C<mri_protocol> table in the database.
 
-Returns: Textual name of scan type
+INPUTS: center's name, objective of the study, file hashref, database handle
+reference
+
+RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 =cut
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $fileref, $dbhr,$minc_location) = @_;
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location
+    ) = @_;
 
     my $candid = ${subjectref}->{'CandID'};
     my $pscid = ${subjectref}->{'PSCID'};
     my $visit = ${subjectref}->{'visitLabel'};
+    my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
     my $objective = ${subjectref}->{'subprojectID'};
 
     # get parameters from minc header
@@ -486,7 +550,7 @@ sub identify_scan_db {
     while($rowref = $sth->fetchrow_hashref()) {
         my $sd_regex = $rowref->{'series_description_regex'};
         if(0) {
-            print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
+            print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
             print "\t";
             if($sd_regex && ($series_description =~ /$sd_regex/i)) {print "series_description\t";}
             print &in_range($tr, $rowref->{'TR_range'}) ? "TR\t" : '';
@@ -505,7 +569,7 @@ sub identify_scan_db {
         
 	if ($sd_regex) {
             if ($series_description =~ /$sd_regex/i) {
-                return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
+                return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
 	}
 	else {
@@ -522,40 +586,102 @@ sub identify_scan_db {
                 && (!$rowref->{'ystep_range'} || &in_range($ystep, $rowref->{'ystep_range'}))
                 && (!$rowref->{'zstep_range'} || &in_range($zstep, $rowref->{'zstep_range'}))
                 && (!$rowref->{'time_range'} || &in_range($time, $rowref->{'time_range'}))) {
-                    return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
+                    return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
         }
     }
 
     # if we got here, we're really clueless...
-    insert_violated_scans($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID);
+    insert_violated_scans(
+        $dbhr,   $series_description, $minc_location,   $patient_name,
+        $candid, $pscid,              $tr,              $te,
+        $ti,     $slice_thickness,    $xstep,           $ystep,
+        $zstep,  $xspace,             $yspace,          $zspace,
+        $time,   $seriesUID,          $tarchiveID
+    );
 
     return 'unknown';
 }    
 
+=pod
+
+=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, ...)
+
+Inserts scans that do not correspond to any of the defined protocol from the 
+C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
+database.
+
+INPUTS:
+  - $dbhr           : database handle reference
+  - $series_desc    : series description of the scan
+  - $minc_location  : minc location of the file
+  - $patient_name   : patient name of the scan
+  - $candid         : candidate's CandID
+  - $pscid          : candidate's PSCID
+  - $visit          : visit of the scan
+  - $tr             : repetition time of the scan
+  - $te             : echo time of the scan
+  - $ti             : inversion time of the scan
+  - $slice_thickness: slice thickness of the image
+  - $xstep          : x-step of the image
+  - $ystep          : y-step of the image
+  - $zstep          : z-step of the image
+  - $xspace         : x-space of the image
+  - $yspace         : y-space of the image
+  - $zspace         : z-space of the image
+  - $time           : time dimension of the scan
+  - $seriesUID      : seriesUID of the scan
+
+=cut
 
 sub insert_violated_scans {
 
-   my ($dbhr,$series_description,$minc_location,$patient_name,$candid, $pscid,$visit,$tr,$te,$ti,$slice_thickness,$xstep,$ystep,$zstep,$xspace,$yspace,$zspace,$time,$seriesUID) = @_;
-   my $query;
-   my $sth;
-    
-   $sth = $${dbhr}->prepare("INSERT INTO mri_protocol_violated_scans (CandID,PSCID,time_run,series_description,minc_location,PatientName,TR_range,TE_range,TI_range,slice_thickness_range,xspace_range,yspace_range,zspace_range,xstep_range,ystep_range,zstep_range,time_range,SeriesUID) VALUES (?,?,now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-   my $success = $sth->execute($candid,$pscid,$series_description,$minc_location,$patient_name,$tr,$te,$ti,$slice_thickness,$xspace,$yspace,$zspace,$xstep,$ystep,$zstep,$time,$seriesUID);
+    my ($dbhr,   $series_description, $minc_location, $patient_name,
+        $candid, $pscid,              $tr,            $te,
+        $ti,     $slice_thickness,    $xstep,         $ystep,
+        $zstep,  $xspace,             $yspace,        $zspace,
+        $time,   $seriesUID,          $tarchiveID) = @_;
+
+    (my $query = <<QUERY) =~ s/\n//gm;
+  INSERT INTO mri_protocol_violated_scans (
+    CandID,             PSCID,         TarchiveID,            time_run,
+    series_description, minc_location, PatientName,           TR_range,
+    TE_range,           TI_range,      slice_thickness_range, xspace_range,
+    yspace_range,       zspace_range,  xstep_range,           ystep_range,
+    zstep_range,        time_range,    SeriesUID
+  ) VALUES (
+    ?, ?, ?, now(),
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?
+  )
+QUERY
+
+    my $sth = $${dbhr}->prepare($query);
+    my $success = $sth->execute(
+        $candid,        $pscid,           $tarchiveID, $series_description,
+        $minc_location, $patient_name,    $tr,         $te,
+        $ti,            $slice_thickness, $xspace,     $yspace,
+        $zspace,        $xstep,           $ystep,      $zstep,
+        $time,          $seriesUID
+    );
 
 }
-# ------------------------------ MNI Header ----------------------------------
-#@NAME       : debug_inrange
-#@INPUT      : scalar value, scalar range string
-#@OUTPUT     : prints $value [NOT] IN $range as appropriate
-#@RETURNS    : 
-#@DESCRIPTION: Debugging tool wrapped around &in_range()
-#@METHOD     : 
-#@GLOBALS    : 
-#@CALLS      : 
-#@CREATED    : 2003/03/18, Jonathan Harlap
-#@MODIFIED   : 
-#-----------------------------------------------------------------------------
+
+
+=pod
+
+=head3 debug_inrange($val, $range)
+
+Will evaluate whether the scalar C<$value> is in the specified C<$range>.
+
+INPUTS: scalar value, scalar range string
+
+RETURNS: 1 if in range, 0 if not in range
+
+=cut
+
 sub debug_inrange {
     my $val = shift;
     my $range = shift;
@@ -569,58 +695,89 @@ sub debug_inrange {
     }
 }
 
+
 =pod
 
-B<scan_type_id_to_text( C<$typeID>, C<$dbhr> )>
+=head3 scan_type_id_to_text($typeID, $dbhr)
 
-Determines the type of the scan identified by scan type id
+Determines the type of the scan identified by its scan type ID.
 
-Returns: Textual name of scan type
+INPUTS: scan type ID and database handle reference
+
+RETURNS: Textual name of scan type
 
 =cut
 
 sub scan_type_id_to_text {
-    my ($ID, $dbhr) = @_;
+    my ($ID, $db) = @_;
 
-    my $query = "SELECT Scan_type FROM mri_scan_type WHERE ID='$ID'";
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-    return 'unknown' unless $sth->rows;
-    my @results = $sth->fetchrow_array();
-    return $results[0];
+    my $mriScanTypeOB = NeuroDB::objectBroker::MriScanTypeOB->new(
+        db => $db
+    );
+    my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $ID });
+    
+    # This is just to make sure that there is a scan type in the DB
+    # with name 'unknown' in case we can't find the one with ID $ID
+    $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
+
+    if(!@$mriScanTypeRef) {
+        NeuroDB::UnexpectedValueException->throw(
+            errorMessage => sprintf(
+                "Unknown acquisition protocol ID %d and scan type 'unknown' does not exist in the database",
+                $ID
+            ) 
+        );
+    }
+    
+    return $mriScanTypeRef->[0]->[1];
 }
 
 =pod
 
-B<scan_type_text_to_id( C<$type>, C<$dbhr> )>
+=head3 scan_type_text_to_id($type, $dbhr)
 
-Determines the type of the scan identified by scan type
+Determines the type of the scan identified by scan type.
 
-Returns: ID of the scan type
+INPUTS: scan type and database handle reference
+
+RETURNS: ID of the scan type
 
 =cut
 
 sub scan_type_text_to_id {
-    my $type = shift;
-    my $dbhr = shift;
+    my($type, $db) = @_;
 
-    my $query = "SELECT ID FROM mri_scan_type WHERE Scan_type='$type'";
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-    return &scan_type_text_to_id('unknown', $dbhr) unless $sth->rows;
-    my @results = $sth->fetchrow_array();
-    return $results[0];
+    my $mriScanTypeOB = NeuroDB::objectBroker::MriScanTypeOB->new(
+        db => $db
+    );
+    my $mriScanTypeRef = $mriScanTypeOB->get(
+        0, { Scan_type => $type }
+    );
+    $mriScanTypeRef = $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
+    if(!@$mriScanTypeRef) {
+        NeuroDB::UnexpectedValueException->throw(
+            errorMessage => sprintf(
+                "Unknown acquisition protocol %s and scan type 'unknown' does not exist in the database",
+                $type
+            ) 
+        );
+    }
+    
+    return $mriScanTypeRef->[0]->[0];
 }
+
 
 =pod
 
-B<in_range( C<$value>, C<$range_string> )>
+=head3 in_range($value, $range_string)
 
-determines whether numerical value falls within the range described by
-range string.  range string is a comma-seperated list of range units.
-a single range unit follows the syntax either "X" or "X-Y"
+Determines whether numerical value falls within the range described by range
+string. Range string is a comma-separated list of range units. A single range
+unit follows the syntax either "X" or "X-Y".
 
-Returns: 1 if the value is in range, 0 otherwise
+INPUTS: numerical value and the range to use
+
+RETURNS: 1 if the value is in range, 0 otherwise
 
 =cut
 
@@ -653,34 +810,40 @@ sub in_range
 
 =pod
 
-B<floats_are_equal( C<$f1>, C<$f2>, C<$nb_decimals> )>
+=head3 floats_are_equal($f1, $f2, $nb_decimals)
 
-Checks whether f1 and f2 are equal (considers only the first nb_decimals decimals).
+Checks whether f1 and f2 are equal (considers only the first nb_decimals
+decimals).
 
-Returns: 1 if the numbers are relatively equal, 0 otherwise
+INPUTS: float 1, float 2 and the number of first decimals
+
+RETURNS: 1 if the numbers are relatively equal, 0 otherwise
 
 =cut
+
 sub floats_are_equal {
     my($f1, $f2, $nb_decimals) = @_;
 
     return sprintf("%.${nb_decimals}g", $f1) eq sprintf("%.${nb_decimals}g", $f2);
 }
 
-## string range_to_sql($field, $range_string) where $range_string follows the same format as in in_range
-## returns SQL appropriate to use as a WHERE condition. (SELECT ... WHERE range_to_sql(...))
-# ------------------------------ MNI Header ----------------------------------
-#@NAME       : range_to_sql
-#@INPUT      : scalar field, scalar range string
-#@OUTPUT     : 
-#@RETURNS    : scalar range sql string
-#@DESCRIPTION: generates a valid SQL WHERE expression to test $field against $range_string
-#              using the same $range_string syntax as &in_range()
-#@METHOD     : 
-#@GLOBALS    : 
-#@CALLS      : 
-#@CREATED    : 2003/01/18, Jonathan Harlap
-#@MODIFIED   : 
-#-----------------------------------------------------------------------------
+
+=pod
+
+=head3 range_to_sql($field, $range_string)
+
+Generates a valid SQL WHERE expression to test C<$field> against
+C<$range_string> using the same C<$range_string> syntax as C<&in_range()>.
+It returns a scalar range SQL string appropriate to use as a WHERE condition
+(C<SELECT ... WHERE range_to_sql(...)>).
+
+INPUTS: scalar field, scalar range string that follows the same format as in
+C<&in_range()>
+
+RETURNS: scalar range SQL string
+
+=cut
+
 sub range_to_sql {
     my ($field, $range_string) = @_;
     chomp($field);
@@ -712,11 +875,13 @@ sub range_to_sql {
 
 =pod
 
-B<register_db( C<$file_ref> )>
+=head3 register_db($file_ref)
 
-Registers the NeuroDB::File object referenced by C<$file_ref> into the database
+Registers the NeuroDB::File object referenced by C<$file_ref> into the database.
 
-Returns: 0 if the file is already registered, the new FileID otherwise
+INPUT: file hashref
+
+RETURNS: 0 if the file is already registered, the new FileID otherwise
 
 =cut
 
@@ -777,10 +942,12 @@ sub register_db {
 
 =pod
 
-B<mapDicomParameters( C<$file_ref> )>
+=head3 mapDicomParameters($file_ref)
 
-Maps dicom parameters to more meaningful names in the NeuroDB::File
-object referenced by C<$file_ref>.
+Maps DICOM parameters to more meaningful names in the NeuroDB::File object
+referenced by C<$file_ref>.
+
+INPUT: file hashref
 
 =cut
 
@@ -896,14 +1063,23 @@ sub mapDicomParameters {
 }
 =pod
 
-B<findScannerID( C<$manufacturer>, C<$model>, C<$serialNumber>, C<$softwareVersion>, C<$dbhr> )>
+=head3 findScannerID($manufacturer, $model, $serialNumber, ...)
 
-Finds the scannerID for the scanner as defined by C<$manufacturer>,
-C<$model>, C<$serialNumber>, C<$softwareVersion>, using the database
-attached to the DBI database handle reference C<$dbhr>.  If no
-scannerID exists, one will be created.
+Finds the scannerID for the scanner as defined by C<$manufacturer>, C<$model>,
+C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
+database handle reference C<$dbhr>. If no scannerID exists, one will be
+created.
 
-Returns: (int) scannerID
+INPUTS:
+  - $manufacturer   : scanner's manufacturer
+  - $model          : scanner's model
+  - $serialNumber   : scanner's serial number
+  - $softwareVersion: scanner's software version
+  - $centerID       : scanner's center ID
+  - $dbhr           : database handle reference
+  - $register_new   : if set, will call the function C<&registerScanner>
+
+RETURNS: (int) scanner ID
 
 =cut
 
@@ -927,13 +1103,21 @@ sub findScannerID {
 
 =pod
 
-B<registerScanner( C<$manufacturer>, C<$model>, C<$serialNumber>, C<$softwareVersion>, C<$dbhr> )>
+=head3 registerScanner($manufacturer, $model, $serialNumber, ...)
 
 Registers the scanner as defined by C<$manufacturer>, C<$model>,
-C<$serialNumber>, C<$softwareVersion>, into the database attached to
-the DBI database handle reference C<$dbhr>.
+C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
+database handle reference C<$dbhr>.
 
-Returns: (int) scannerID
+INPUTS:
+  - $manufacturer   : scanner's manufacturer
+  - $model          : scanner's model
+  - $serialNumber   : scanner's serial number
+  - $softwareVersion: scanner's software version
+  - $centerID       : scanner's center ID
+  - $dbhr           : database handle reference
+
+RETURNS: (int) scanner ID
 
 =cut
 
@@ -970,10 +1154,13 @@ sub registerScanner {
 
 =pod
 
-B<createNewCandID
+=head3 createNewCandID($dbhr)
 
+Creates a new CandID.
 
-Returns: (int) CandID
+INPUT: database handle reference
+
+RETURNS: (int) CandID
 
 =cut
 
@@ -993,12 +1180,16 @@ sub createNewCandID {
 
 =pod
 
-B<getPSC( C<$patientName>, C<$dbhr> )>
+=head3 getPSC($patientName, $dbhr)
 
-Look for the site alias in whatever field (usually patient name or patient_id) is provided 
-and return the MRI alias and CenterID
+Looks for the site alias in whatever field (usually patient_name or
+patient_id) is provided and return the MRI alias and CenterID.
 
-Returns: two element array: first is UNKN or the MRI alias of the PSC, second is the centerID or 0
+INPUTS: patient name, database handle reference
+
+RETURNS: a two element array:
+  - first is the MRI alias of the PSC or "UNKN"
+  - second is the centerID or 0
 
 =cut
 
@@ -1038,10 +1229,14 @@ sub getPSC {
 
 =pod
 
-B<compute_hash( C<$file_ref> )>
+=head3 compute_hash($file_ref)
 
-Semi-intelligently generates a hash (MD5 digest) for the NeuroDB::File object referenced
-by C<$file_ref>.
+Semi-intelligently generates a hash (MD5 digest) for the NeuroDB::File object
+referenced by C<$file_ref>.
+
+INPUT: file hashref
+
+RETURNS: the generated MD5 hash
 
 =cut
 
@@ -1084,12 +1279,15 @@ sub compute_hash {
 
 =pod
 
-B<is_unique_hash( C<$file_ref> )>
+=head3 is_unique_hash($file_ref)
 
 Determines if the file is unique using the hash (MD5 digest) from the
 NeuroDB::File object referenced by C<$file_ref>.
 
-Returns: 1 if the file is unique (or if hashes are not being tracked) or 0 otherwise.
+INPUT: file hashref
+
+RETURNS: 1 if the file is unique (or if hashes are not being tracked) or 0
+otherwise.
 
 =cut
 
@@ -1115,17 +1313,24 @@ sub is_unique_hash {
 
 =pod
 
-B<make_pics( C<$file_ref> )>
+=head3 make_pics($file_ref, $data_dir, $dest_dir, $horizontalPics)
 
-Generates check pics for the MRI browser for the NeuroDB::File object
-referenced by C<$file_ref>.
+Generates check pics for the Imaging Browser module for the C<NeuroDB::File>
+object referenced by C<$file_ref>.
 
-Returns: 1 if the pic was generated or 0 otherwise.
+INPUTS:
+  - $file_ref      : file hash ref
+  - $data_dir      : data directory (C</data/$PROJECT/data> typically)
+  - $dest_dir      : destination directory (C</data/$PROJECT/data/pic>
+                     typically)
+  - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
+
+RETURNS: 1 if the pic was generated or 0 otherwise.
 
 =cut
 
 sub make_pics {
-    my ($fileref, $data_dir, $dest_dir, $horizontalPics) = @_;
+    my ($fileref, $data_dir, $dest_dir, $horizontalPics, $db) = @_;
     my $file = $$fileref;
     my $dbhr = $file->getDatabaseHandleRef();
     
@@ -1133,7 +1338,7 @@ sub make_pics {
     $sth->execute();
     my $rowhr = $sth->fetchrow_hashref();
     
-    my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('AcquisitionProtocolID'), $dbhr);
+    my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('AcquisitionProtocolID'), $db);
     my $minc = $data_dir . '/' . $file->getFileDatum('File');
     my $mincbase = basename($minc);
     $mincbase =~ s/\.mnc(\.gz)?$//;
@@ -1158,11 +1363,21 @@ sub make_pics {
 
 =pod
 
-B<make_jiv( C<$file_ref> )>
-Generates JIV data for the MRI browser for the NeuroDB::File object
-referenced by C<$file_ref>.
-Returns: 1 if the JIV data was generated or 0 otherwise.
+=head3 make_jiv($file_ref, $data_dir, $dest_dir)
+
+Generates JIV data for the Imaging Browser module for the C<NeuroDB::File>
+object referenced by C<$file_ref>.
+
+INPUTS:
+  - $file_ref      : file hash ref
+  - $data_dir      : data directory (C</data/$PROJECT/data> typically)
+  - $dest_dir      : destination directory (C</data/$PROJECT/data/jiv>
+                     typically)
+
+RETURNS: 1 if the JIV data was generated or 0 otherwise.
+
 =cut
+
 sub make_jiv {
     my ($fileref, $data_dir, $dest_dir) = @_;
     my $file = $$fileref;
@@ -1204,10 +1419,16 @@ sub make_jiv {
 }
 
 =pod
-Creates NIfTI files associated with MINC files and append
-its path to the parameter_file table using the parameter_type
-"check_nii_filename".
+
+=head3 make_nii($fileref, $data_dir)
+
+Creates NIfTI files associated with MINC files and append its path to the
+parameter_file table using the parameter_type "check_nii_filename".
+
+INPUTS: file hashref and data directory (typically C</data/project/data>)
+
 =cut
+
 sub make_nii {
     my ($fileref, $data_dir)  = @_;
    
@@ -1228,8 +1449,21 @@ sub make_nii {
 }
 
 =pod
-Creates pics associated with MINC files
+
+=head3 make_minc_pics($dbhr, $TarchiveSource, $profile, $minFileID, ...)
+
+Creates pics associated with MINC files.
+
+INPUTS:
+  - $dbhr          : database handle reference
+  - $TarchiveSource: tarchiveID of the DICOM study
+  - $profile       : the profile (typically named C<prod>)
+  - $minFileID     : smaller FileID to be used to run C<mass_pic.pl>
+  - $debug         : boolean, whether in debug mode (1) or not (0)
+  - $verbose       : boolean, whether in verbose mode (1) or not (0)
+
 =cut
+
 sub make_minc_pics {
     my ($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose) = @_;
     my $where = "WHERE TarchiveSource = ? ";
@@ -1263,10 +1497,17 @@ sub make_minc_pics {
 }
 
 =pod
-B<DICOMDateToUnixTimestamp( C<$dicomDate> )>
-Converts a DICOM date field (YYYYMMDD) into a unix timestamp
-Returns: a unix timestamp (integer) or 0 if something went wrong
+
+=head3 DICOMDateToUnixTimestamp($dicomDate>
+
+Converts a DICOM date field (YYYYMMDD) into a unix timestamp.
+
+INPUT: DICOM date to convert
+
+RETURNS: a unix timestamp (integer) or 0 if something went wrong
+
 =cut
+
 sub DICOMDateToUnixTimestamp {
     my ($dicomDate) = @_;
 
@@ -1284,10 +1525,17 @@ sub DICOMDateToUnixTimestamp {
 }
 
 =pod
-B<lookupCandIDFromPSCID( C<$pscid> )>
-Looks up the CandID for a given PSCID
-Returns: the CandID or 0 if the PSCID does not exist
+
+=head3 lookupCandIDFromPSCID($pscid, $dbhr)
+
+Looks up the CandID for a given PSCID.
+
+INPUTS: candidate's PSCID, database handle reference
+
+RETURNS: the CandID or 0 if the PSCID does not exist
+
 =cut
+
 sub lookupCandIDFromPSCID {
     my ($pscid, $dbhr) = @_;
     my $candid = 0;
@@ -1316,16 +1564,23 @@ __END__
 =pod
 
 =head1 TO DO
-Update all subs without pod...
+
+Nothing planned.
+
 =head1 BUGS
+
 None reported.
-=head1 COPYRIGHT
+
+=head1 COPYRIGHT AND LICENSE
 
 Copyright (c) 2003-2004 by Jonathan Harlap, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 
+License: GPLv3
+
 =head1 AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
-
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca>  
+and McGill Centre for Integrative Neuroscience
 =cut    

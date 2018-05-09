@@ -10,7 +10,9 @@ use lib "$FindBin::Bin";
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
+use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
 
 my  $profile    = undef;
 my  $filename;
@@ -50,38 +52,54 @@ my  @args_table = (
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
-GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
+GetOptions(\@args_table, \@ARGV, \@args)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 # Input option error checking
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if  ($profile && !@Settings::db)    { 
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 33; 
+if ( !$profile ) {
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if  (!$profile) { 
-    print "$Usage\n\tERROR: You must specify a profile.\n\n";  
-    exit 33;
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if  ( !@Settings::db )    {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 # Make sure we have all the arguments we need
 unless  ($filename && $sourceFileID && $sourcePipeline && $scanType
          && $pipelineDate && $coordinateSpace && $outputType
          && $tool && $inputFileIDs)   {
-    print "$Usage\n\tERROR: -file, -sourceFileID, -sourcePipeline, -scanType, -pipelineDate -coordinateSpace, -outputType, -tool and -inputFileIDs must be specified.\n\n";
-    exit 33;
+    print STDERR "$Usage\n\tERROR: -file, -sourceFileID, -sourcePipeline, "
+                 . "-scanType, -pipelineDate -coordinateSpace, -outputType, "
+                 . "-tool & -inputFileIDs must be specified.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 # Make sure sourceFileID is valid
 unless  ((defined($sourceFileID)) && ($sourceFileID =~ /^[0-9]+$/)) {
-    print "Files to be registered require the -sourceFileID option with a valid FileID as an argument\n";
-    exit 1;
+    print STDERR "Files to be registered require the -sourceFileID option "
+                 . "with a valid FileID as an argument\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 # Make sure we have permission to read the file
-unless  (-r $filename)  { print "Cannot read $filename\n"; exit 1;}
+unless  (-r $filename)  {
+    print STDERR "Cannot read $filename\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
 
 # Establish database connection
 my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
 
 # These settings are in the config file (profile)
 my $data_dir = NeuroDB::DBI::getConfigSetting(
@@ -142,7 +160,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $psc    =   $center_name;
     if  (!$psc)     { 
         print LOG "\nERROR: No center found for this candidate \n\n"; 
-        exit 77; 
+        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
     print LOG  "\n==> Verifying acquisition center\n - Center Name  : $center_name\n - CenterID     : $centerID\n";
 }
@@ -171,8 +189,9 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 }
 
 if  (!defined($scannerID))  {
-    print LOG "\nERROR: could not determine scannerID based on sourceFileID $sourceFileID.\n\n";
-    exit 2;
+    print LOG "\nERROR: could not determine scannerID based on sourceFileID "
+              . "$sourceFileID.\n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 $file->setFileData('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
@@ -184,8 +203,10 @@ print LOG "\t -> Set ScannerID to $scannerID.\n";
 #                   - requiresStaging 
 my ($sessionID,$requiresStaging,$subjectIDsref)    =   getSessionID($sourceFileID,$dbh);
 if  (!defined($sessionID))  {
-    print LOG "\nERROR: could not determine sessionID based on sourceFileID $sourceFileID. Are you sure the sourceFile was registered in DB?\n\n";
-    exit 2;
+    print LOG "\nERROR: could not determine sessionID based on sourceFileID "
+              . "$sourceFileID. Are you sure the sourceFile was registered "
+              . "in DB?\n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 print LOG "\n==> Data found for candidate   : $subjectIDsref->{'CandID'} - Visit: $subjectIDsref->{'visitLabel'}\n";
 $file->setFileData('SessionID', $sessionID);
@@ -198,7 +219,7 @@ print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
 my  ($acqProtID)    =   getAcqProtID($scanType,$dbh);
 if  (!defined($acqProtID))  {
     print LOG "\nERROR: could not determine AcquisitionProtocolID based on scanType $scanType.\n\n";
-    exit 2;
+    exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }
 $file->setFileData('AcquisitionProtocolID',$acqProtID);
 print LOG "\t -> Set AcquisitionProtocolID to $acqProtID.\n";
@@ -224,7 +245,7 @@ $file->setParameter('md5hash', $md5hash);
 print LOG "\t -> Set md5hash to $md5hash.\n";
 if  (!NeuroDB::MRI::is_unique_hash(\$file)) {
     print LOG "\n==> $file is not a unique file and will not be added to database.\n\n";
-    exit 1;
+    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 }
 
 
@@ -245,7 +266,7 @@ unless  ($fileID)   {
     # tell the user something went wrong
     print LOG "\n==> FAILED TO REGISTER FILE $filename!\n\n";    
     # and exit
-    exit 1;
+    exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
 
 # Insert into files_intermediary the intermediary inputs stored in inputFileIDs.
@@ -262,7 +283,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     
     # make the browser pics
     print "Making browser pics\n";
-    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics);
+    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics, $db);
 }
 
 # tell the user we've done so and include the MRIID for reference
@@ -270,7 +291,7 @@ print LOG "\n ==> Registered $filename in database, given FileID: $fileID\n\n";
 
 # and exit
 $dbh->disconnect;
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 ###################################
