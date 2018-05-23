@@ -1,4 +1,66 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+tarchive_validation.pl -- Validates the tarchive against the one inserted in
+the LORIS database.
+
+=head1 SYNOPSIS
+
+perl tarchive_validation.pl C<[options]>
+
+Available options are:
+
+-profile     : name of the config file in ../dicom-archive/.loris-mri
+
+-reckless    : upload data to the database even if the study protocol
+               is not defined or if it is violated
+
+-globLocation: loosen the validity check of the tarchive allowing for
+               the possibility that the tarchive was moved to a
+               different directory
+
+-newScanner  : boolean, if set, register new scanners into the database
+
+-verbose     : boolean, if set, run the script in verbose mode
+
+=head1 DESCRIPTION
+
+The program does the following validations:
+
+- Verification of the DICOM study archive given as an argument to the script
+against the one inserted in the database using checksum
+
+- Verification of the PSC information using whatever field containing the site
+string (typically, the patient name or patient ID)
+
+- Verification of the ScannerID of the DICOM study archive (optionally
+creates a new scanner entry in the database if necessary)
+
+- Optionally, creation of candidates as needed and standardization of gender
+information when creating the candidates (DICOM uses M/F, LORIS database uses
+Male/Female)
+
+- Check of the CandID/PSCID match. It's possible that the CandID exists, but
+that CandID and PSCID do not correspond to the same candidate. This would
+fail further down silently, so we explicitly check that this information is
+correct here.
+
+- Validation of the SessionID
+
+- Optionally, completion of extra filtering on the DICOM dataset, if needed
+
+- Finally, the C<isTarchiveValidated> field in the C<mri_upload> table is set
+to C<TRUE> if the above validations were successful
+
+=head2 Methods
+
+
+=cut
+
+
 use strict;
 use warnings;
 use Carp;
@@ -18,6 +80,8 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
+
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -98,34 +162,41 @@ The program does the following validation
 
 - Finally the isTarchiveValidated is set true in the MRI_Upload table
 
+Documentation: perldoc tarchive_validation.pl
+
 HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/DICOM-tarchive> [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ############### input option error checking ####################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 2; 
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if (!$ARGV[0] || !$profile) { 
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
     print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid tarchive and an existing ".
-          "profile.\n\n";  
-    exit 3;  
+    print STDERR "$Usage\n\tERROR: You must specify a valid tarchive.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 $tarchive = abs_path($ARGV[0]);
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
-           "the path to the archive is correct. Upload will exit now.\n\n\n";
-    exit 4;
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is valid.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
@@ -179,6 +250,11 @@ $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
                     $globArchiveLocation
                 );
 
+# grep the upload_id from the tarchive's source location
+my $upload_id = NeuroDB::MRIProcessingUtility::getUploadIDUsingTarchiveSrcLoc(
+    $tarchiveInfo{SourceLocation}
+);
+
 ################################################################
 ############### Get the tarchive-id ############################
 ################################################################
@@ -230,14 +306,14 @@ if ($tarchiveid_count==0)  {
 #### Verify the archive using the checksum from database #######
 ################################################################
 ################################################################
-$utility->validateArchive($tarchive,\%tarchiveInfo);
+$utility->validateArchive($tarchive, \%tarchiveInfo, $upload_id);
 
 ################################################################
 ### Verify PSC information using whatever field ################ 
 ### contains site string #######################################
 ################################################################
 my ($center_name, $centerID) =
-    $utility->determinePSC(\%tarchiveInfo,1);
+    $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
 
 ################################################################
 ################################################################
@@ -246,8 +322,7 @@ my ($center_name, $centerID) =
 ################################################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,1,
-                    $centerID,$NewScanner
+        \%tarchiveInfo, 1, $centerID, $NewScanner, $upload_id
                 );
 
 ################################################################
@@ -256,8 +331,8 @@ my $scannerID = $utility->determineScannerID(
 ################################################################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,\%tarchiveInfo,1
-                    );
+        $scannerID, \%tarchiveInfo, 1, $upload_id
+);
 
 ################################################################
 ################################################################
@@ -266,9 +341,7 @@ my $subjectIDsref = $utility->determineSubjectID(
 ################################################################
 ################################################################
 $utility->CreateMRICandidates(
-    $subjectIDsref,$gender,
-    \%tarchiveInfo,$User,
-    $centerID
+    $subjectIDsref, $gender, \%tarchiveInfo, $User, $centerID, $upload_id
 );
 
 ################################################################
@@ -279,9 +352,7 @@ $utility->CreateMRICandidates(
 ## correct here. ###############################################
 ################################################################
 ################################################################
-my $CandMismatchError= $utility->validateCandidate(
-				$subjectIDsref,
-				$tarchiveInfo{'SourceLocation'});
+my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
 if (defined $CandMismatchError) {
     print "$CandMismatchError \n";
     ##Note that the script will not exit, so that further down
@@ -291,7 +362,7 @@ if (defined $CandMismatchError) {
 ############ Get the SessionID #################################
 ################################################################
 my ($sessionID, $requiresStaging) = 
-    $utility->setMRISession($subjectIDsref, \%tarchiveInfo);
+    $utility->setMRISession($subjectIDsref, \%tarchiveInfo, $upload_id);
 
 ################################################################
 ### Extract the tarchive and feed the dicom data dir to ######## 
@@ -299,7 +370,8 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-                $tarchive, $tarchiveInfo{'SourceLocation'});
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id
+    );
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###
@@ -318,7 +390,15 @@ my $mri_upload_update = $dbh->prepare($query);
 $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+=pod
+
+=head3 logHeader()
+
+Creates and prints the LOG header.
+
+=cut
 
 sub logHeader () {
     print LOG "
@@ -330,3 +410,27 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
+
+__END__
+
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
+

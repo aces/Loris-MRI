@@ -1,4 +1,48 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+minc_deletion.pl -- this script deletes files records from the database, and
+deletes and archives the backend files stored in C</data/$PROJECT/data/assembly/>.
+Files to be deleted can be specified either based on the series UID or the file
+ID.
+
+=head1 SYNOPSIS
+
+perl minc_deletion.pl C<[options]>
+
+Available options are:
+
+-profile    : name of the config file in
+              C<../dicom-archive/.loris_mri>
+
+-series_uid : the series UID of the file to be deleted
+
+-fileid     : the file ID of the file to be deleted
+
+
+=head1 DESCRIPTION
+
+This program deletes MINC files from LORIS by:
+  - Moving the existing files (C<.mnc>, C<.nii>, C<.jpg>, C<.header>,
+    C<.raw_byte.gz>) to the archive directory: C</data/$PROJECT/data/archive/>
+  - Deleting all related data from C<parameter_file> & C<files> tables
+  - Deleting data from C<files_qcstatus> & C<feedback_mri_comments>
+    database tables if the C<-delqcdata> option is set. In most cases
+    you would want to delete this when the images change
+  - Deleting C<mri_acquisition_dates> entry if it is the last file
+    removed from that session.
+
+Users can use the argument C<select> to view the record that could be removed
+from the database, or C<confirm> to acknowledge that the data in the database
+will be deleted once the script executes.
+
+
+=cut
+
+
 use strict;
 use warnings;
 use Carp;
@@ -18,6 +62,7 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
 
 my $sessionfilesfound = '';
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.3 $
@@ -60,20 +105,21 @@ Version :   $versionInfo
 
 The program does the following:
 
-Deletes minc files from Loris by:
-  - Moving the existing files to an archive directory.
-    .mnc .nii .jpg .header .raw_byte.gz
-  - Deleting all related data from 2 database tables.
-    parameter_file & files
-  - Deletes data from files_qcstatus & feedback_mri_comments
-    database tables if the -delqcdata is set. In most cases
-    you would want to delete this when the images changes.
-  - Deletes mri_acquisition_dates entry if it is the last file
+Deletes MINC files from LORIS by:
+  - Moving the existing files (.mnc, .nii, .jpg, .header, .raw_byte.gz) to the
+    archive directory: /data/$PROJECT/data/archive/
+  - Deleting all related data from parameter_file & files tables
+  - Deleting data from files_qcstatus & feedback_mri_comments
+    database tables if the -delqcdata option is set. In most cases
+    you would want to delete this when the images change
+  - Deleting mri_acquisition_dates entry if it is the last file
     removed from that session.
 
-Use the argument "select" to view the record that could be removed
-from the database.  Use "confirm" to acknowledge that the data in 
-the database will be deleted once the script executes.
+Users can use the argument "select" to view the record that could be removed
+from the database, or "confirm" to acknowledge that the data in the database
+will be deleted once the script executes.
+
+Documentation: perldoc minc_deletion.pl
 
 HELP
 my $Usage = <<USAGE;
@@ -82,32 +128,37 @@ usage: $0 [options] select|confirm
 
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################### input option error checking ################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a configuration file named ". 
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2; 
-}
-if (!$ARGV[0] || !$profile) { 
+if ( !$profile ) {
     print $Help;
-    print " ERROR: You must type select or confirm and have an ".
-          "existing profile.\n\n";
-    exit 3;  
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
+    print $Help;
+    print STDERR "\n\tERROR: You must type select or confirm.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if (!$seriesuid && !$fileid) {
-    print " ERROR: You must specify either a seriesuid or a fileid ".
-          "option.\n\n";
-    exit 4;
+    print STDERR "\n\tERROR: You must specify either -seriesuid or -fileid "
+                 . "option.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 if ($seriesuid && $fileid) {
-    print " ERROR: You cannot specify both a seriesuid and a fileid ".
-          "option.\n\n";
-    exit 5;
+    print STDERR " ERROR: You cannot specify both -seriesuid and -fileid "
+                 . "options.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 
@@ -401,3 +452,27 @@ if ($selORdel eq "DELETE ") {
     }
 }
 
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Gregory Luneau, the LORIS community <loris.info@mcin.ca> and McGill Centre
+for Integrative Neuroscience
+
+=cut
