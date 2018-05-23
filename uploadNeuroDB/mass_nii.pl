@@ -1,5 +1,33 @@
 #!/usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+mass_nii.pl -- Generates NIfTI files based on the MINC files available in the
+LORIS database and inserts them into the C<parameter_file> table.
+
+=head1 SYNOPSIS
+
+perl mass_nii.pl C<[options]>
+
+Available options are:
+
+-profile  : name of the config file in C<../dicom-archive/.loris_mri>
+
+-minFileID: specifies the minimum C<FileID> to operate on
+
+-maxFileID: specifies the maximum C<FileID> to operate on
+
+-verbose  : be verbose
+
+=head1 DESCRIPTION
+
+This script generates NIfTI images for the inserted MINC files with a FileID
+between the specified C<minFileID> and C<maxFileID>.
+
+=cut
+
 use strict;
 use FindBin;
 use lib "$FindBin::Bin";
@@ -7,6 +35,8 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
+use NeuroDB::ExitCodes;
+
 
 ## Starting the program
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.00 $
@@ -36,6 +66,8 @@ Author  :   Cécile Madjar based on mass_pic.pl.
                         for the inserted MINC images that 
                         are missing NIfTIs.
 
+Documentation: perldoc mass_nii.pl
+
 HELP
 
 my $Usage      = <<USAGE;
@@ -60,32 +92,28 @@ my @arg_table = (
     ["-verbose", "boolean", 1, \$verbose, "Be verbose."]
 );
 
-GetOptions(\@arg_table, \@ARGV) ||  exit 1;
+GetOptions(\@arg_table, \@ARGV) ||  exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 
 ################################################################
 # Checking for profile settings ################################
 ################################################################
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
 
-if ($profile && !@Settings::db) {
-    my $message = <<MESSAGE;
-
-  ERROR: You don't have a configuration file named "$profile"
-         in $ENV{LORIS_CONFIG}/.loris_mri/
-
-MESSAGE
-    print $message; 
-    exit 33;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 } 
 
-if (!$profile) { 
-    print $Usage; 
-    print "\n\tERROR: You must specify an existing profile.\n\n";  
-    exit 33;  
-}
 
 
 ################################################################
@@ -162,4 +190,27 @@ $dbh->disconnect();
 print "\n Finished mass_nii.pl execution\n" if $verbose;
 
 # Exit script
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
