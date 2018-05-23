@@ -36,7 +36,7 @@ The LORIS-MRI pipeline starts once the scans are uploaded to the server.
 The pipeline can start automatically if the autolaunch configuration is
 set, otherwise manual intervention is required by a developer with backend 
 access to the server. More details about these options and the scripts
-needed to run the pipeline can be found [here.](05-PipelineLaunchOptions.md). 
+needed to run the pipeline can be found [here](05-PipelineLaunchOptions.md). 
 
 Insertion progress can be tracked by the user through the Log Viewer in 
 Imaging Uploader, where descriptive messages can be consulted.
