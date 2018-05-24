@@ -746,9 +746,8 @@ sub scan_type_text_to_id {
 
 =head3 in_range($value, $range_string)
 
-Determines whether numerical value falls within the range described by
-range string.  Range string is a single range unit which follows the 
-syntax "X" or "X-Y"
+Determines whether numerical value falls within the range unit which 
+follows the syntax "X" or "X-Y"
 
 INPUTS: numerical value and the range to use
 
