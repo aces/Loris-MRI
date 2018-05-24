@@ -9,7 +9,6 @@ files into the LORIS system)
     use NeuroDB::File;
     use NeuroDB::MRI;
     use NeuroDB::DBI;
-    use NeuroDB::ExitCodes;
 
     my $dbh = NeuroDB::DBI::connect_to_db();
 

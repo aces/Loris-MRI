@@ -13,7 +13,6 @@ files into the LORIS system)
  use NeuroDB::File;
  use NeuroDB::MRI;
  use NeuroDB::DBI;
- use NeuroDB::ExitCodes;
 
  my $dbh = NeuroDB::DBI::connect_to_db();
 
@@ -765,8 +764,8 @@ sub in_range
 
 
     if($range_string=~ /,/) {
-        print STDERR "Comma separated ranges, as found in $range_string, are no longer supported. Please remove. Exiting now\n";
-        exit $NeuroDB::ExitCodes::BAD_PROTOCOL_SETTING;
+        print STDERR "Comma separated ranges, as found in '$range_string', are no longer supported. Please remove. Logging as a violated scan. \n";
+        return 0;
     }
 
     chomp($range_string);
