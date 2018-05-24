@@ -762,7 +762,10 @@ sub in_range
     return 0 unless $range_string;
     return 0 unless defined($value);
 
-
+    ## mri_protocol table is being normalized in steps. 
+    ## Until this is completed in full, do not allow projects
+    ## to put comma-separated values in the table columns.
+    ## If they do, LOG the specific scan type as a violated scan  
     if($range_string=~ /,/) {
         print STDERR "Comma separated ranges, as found in '$range_string', are no longer supported. Please remove. Logging as a violated scan. \n";
         return 0;
