@@ -763,7 +763,8 @@ sub in_range
     return 0 unless defined($value);
 
     ## mri_protocol table is being normalized in steps. 
-    ## Until this is completed in full, do not allow projects
+    ## Until this is completed in full and/or the database 
+    ## prevents such a setting, do not allow projects
     ## to put comma-separated values in the table columns.
     ## If they do, LOG the specific scan type as a violated scan  
     if($range_string=~ /,/) {
