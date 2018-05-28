@@ -529,7 +529,7 @@ sub identify_scan_db {
 
     
     # get the list of protocols for a site their scanner and subproject
-    $query = "SELECT Scan_type, ScannerID, Center_name, TR_min, TR_max, TE_minc, TE_max, TI_min, TI_max, slice_thickness_min, slice_thickness_max, xspace_min, xspace_max, yspace_min, yspace_max, zspace_min, zspace_max,
+    $query = "SELECT Scan_type, ScannerID, Center_name, TR_min, TR_max, TE_min, TE_max, TI_min, TI_max, slice_thickness_min, slice_thickness_max, xspace_min, xspace_max, yspace_min, yspace_max, zspace_min, zspace_max,
               xstep_min, xstep_max, ystep_min, ystep_max, zstep_min, zstep_max, time_min, time_max, series_description_regex
               FROM mri_protocol
               WHERE
@@ -570,19 +570,19 @@ sub identify_scan_db {
             }
 	}
 	else {
-         	if ((!$rowref->{'TR_range'} || &in_range($tr, "$rowref->{'TR_min'}-$rowref->{'TR_max'}"))
-                && (!$rowref->{'TE_min'} || &in_range($te, "$rowref->{'TE_min'}-$rowref->{'TE_max'}"))
-                && (!$rowref->{'TI_min'} || &in_range($ti, "$rowref->{'TI_min'}-$rowref->{'TI_max'}"))
-                && (!$rowref->{'slice_thickness_min'} || &in_range($slice_thickness, "$rowref->{'slice_thickness_min'}-$rowref->{'slice_thickness_max'}"))
+               if (((!$rowref->{'TR_min'} && !$rowref->{'TR_max'}) || &in_range($tr, "$rowref->{'TR_min'}-$rowref->{'TR_max'}"))
+                && ((!$rowref->{'TE_min'} && !$rowref->{'TE_max'}) || &in_range($te, "$rowref->{'TE_min'}-$rowref->{'TE_max'}"))
+                && ((!$rowref->{'TI_min'} && !$rowref->{'TI_max'}) || &in_range($ti, "$rowref->{'TI_min'}-$rowref->{'TI_max'}"))
+                && ((!$rowref->{'slice_thickness_min'} && !$rowref->{'slice_thickness_max'}) || &in_range($slice_thickness, "$rowref->{'slice_thickness_min'}-$rowref->{'slice_thickness_max'}"))
 
-                && (!$rowref->{'xspace_min'} || &in_range($xspace, "$rowref->{'xspace_min'}-$rowref->{'xspace_max'}"))
-                && (!$rowref->{'yspace_min'} || &in_range($yspace, "$rowref->{'yspace_min'}-$rowref->{'yspace_max'}"))
-                && (!$rowref->{'zspace_min'} || &in_range($zspace, "$rowref->{'zspace_min'}-$rowref->{'zspace_max'}"))
+                && ((!$rowref->{'xspace_min'} && !$rowref->{'xspace_max'}) || &in_range($xspace, "$rowref->{'xspace_min'}-$rowref->{'xspace_max'}"))
+                && ((!$rowref->{'yspace_min'} && !$rowref->{'yspace_max'}) || &in_range($yspace, "$rowref->{'yspace_min'}-$rowref->{'yspace_max'}"))
+                && ((!$rowref->{'zspace_min'} && !$rowref->{'zspace_max'}) || &in_range($zspace, "$rowref->{'zspace_min'}-$rowref->{'zspace_max'}"))
 
-                && (!$rowref->{'xstep_min'} || &in_range($xstep, "$rowref->{'xstep_min'}-$rowref->{'xstep_max'}"))
-                && (!$rowref->{'ystep_min'} || &in_range($ystep, "$rowref->{'ystep_min'}-$rowref->{'ystep_max'}"))
-                && (!$rowref->{'zstep_min'} || &in_range($zstep, "$rowref->{'zstep_min'}-$rowref->{'zstep_max'}"))
-                && (!$rowref->{'time_min'} || &in_range($time, "$rowref->{'time_min'}-$rowref->{'time_max'}"))) {
+                && ((!$rowref->{'xstep_min'} && !$rowref->{'xstep_max'}) || &in_range($xstep, "$rowref->{'xstep_min'}-$rowref->{'xstep_max'}"))
+                && ((!$rowref->{'ystep_min'} && !$rowref->{'ystep_max'}) || &in_range($ystep, "$rowref->{'ystep_min'}-$rowref->{'ystep_max'}"))
+                && ((!$rowref->{'zstep_min'} && !$rowref->{'zstep_max'}) || &in_range($zstep, "$rowref->{'zstep_min'}-$rowref->{'zstep_max'}"))
+                && ((!$rowref->{'time_min'} && !$rowref->{'time_max'}) || &in_range($time, "$rowref->{'time_min'}-$rowref->{'time_max'}"))) {
                     return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
             }
         }
