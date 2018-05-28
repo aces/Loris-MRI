@@ -1641,6 +1641,89 @@ sub computeSNR {
     }
 }
 
+=pod
+
+=head3 computeDeepQC($tarchiveID, $tarchive_srcloc, $profile)
+
+Calls the DeepQC app on T1 MNC files to get the probability of passing QC.
+
+INPUTS: tarchive ID, tarchive source location, configuration file (usually prod)
+
+=cut
+
+################################################################
+#######################  computeDeepQC #############################
+################################################################
+sub computeDeepQC {
+    my $this = shift;
+    my ($row, $filename, $fileID, $base, $fullpath, $message);
+    my ($tarchiveID, $upload_id, $profile)= @_;
+    my $data_dir = NeuroDB::DBI::getConfigSetting(
+                        $this->{dbhr},'dataDirBasepath'
+                        );
+    my $ua = LWP::UserAgent->new;
+    my $json = 'JSON::PP'->new;
+    # note: url must be changed to production version later
+    # note 2: include DeepQC modality in prod file
+    my $t1_scan_type = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr},'t1_scan_type'
+                            );
+    my $acqID_query = "SELECT ID FROM mri_scan_type WHERE Scan_type=?"
+    my $acqID_for_t1_scan = $($this->{'dbhr'}}->prepare($acqID_query);
+    $acqID_for_t1_scan->execute($t1_scan_type);
+
+    my $query = "SELECT FileID, file, AcquisitionProtocolID from files f WHERE f.TarchiveSource=?";
+
+    if ($this->{debug}) {
+        print $query . "\n";
+    }
+    my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query);
+    $minc_file_arr->execute($tarchiveID);
+
+    while ($row = $minc_file_arr->fetchrow_hashref()) {
+        $filename = $row->{'file'};
+        my $fileID = $row->{'FileID'};
+        my $acqID = $row->{'AcquisitionProtocolID'};
+        $base = basename($filename);
+        $fullpath = $data_dir . "/" . $filename;
+        if (-e $fullpath) {
+            if ($acqID == $acqID_for_t1_scan) {
+                my $url = 'http://127.0.0.1:5000/deepqc/' . $fileID;
+                my $resp = $ua->post($url,
+                  Content_Type => 'multipart/form-data',
+                  Content => [
+                    'file' => [ $fullpath ]
+                  ]
+                );
+                my $DeepQC = $json->decode($resp->content);
+                $DeepQC = $DeepQC->{'prediction'};
+                print "DeepQC Prediction is: " . $DeepQC . "\n" if ($this->{verbose});
+                my $file = NeuroDB::File->new($this->{dbhr});
+                $file->loadFile($fileID);
+                my $DeepQC_old = $file->getParameter('DeepQC');
+                if ($DeepQC ne '') {
+                    if (($DeepQC_old ne '') && ($DeepQC_old ne $DeepQC)) {
+                        $message = "The DeepQC value will be updated from " .
+                            "$DeepQC_old to $DeepQC. \n";
+                        $this->{LOG}->print($message);
+                        $this->spool($message, 'N', $upload_id, $notify_detailed);
+                    }
+                    $file->setParameter('DeepQC', $DeepQC);
+                }
+            }
+            else {
+                $message = "The DeepQC probability can not be computed for $base. ".
+                    "The imaging modality is not ".
+                    "supported by the DeepQC computation. \n";
+                $this->{LOG}->print($message);
+                $this->spool($message, 'N', $upload_id, $notify_detailed);
+            }
+        } else {
+            print "File doesn't exist.\n"
+        }
+    }
+}
+
 
 =pod
 

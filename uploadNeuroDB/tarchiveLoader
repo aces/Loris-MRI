@@ -570,6 +570,10 @@ foreach my $minc (@minc_files) {
 ################################################################
 $utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id, $profile);
 ################################################################
+############### Compute DeepQC on T1W images ###################
+################################################################
+$utility->computeDeepQC($tarchiveInfo{TarchiveID}, $profile);
+################################################################
 ####### Add order of acquisition for similar modalities ########
 ####### within the same session based on series number #########
 ################################################################
