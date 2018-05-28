@@ -764,10 +764,10 @@ sub in_range
     return 0 unless defined($value);
 
 
-    $range_sting =~ /([0-9.]+)-([0-9.]+)/;
-    return 1 if (($1 <= $value && $value <= $2) 
-               || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
-               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS));
+    my @range = split(/-/, $range_string);
+    return 1 if (($range[0] <= $value && $value <= $range[1]) 
+               || &floats_are_equal($value, $range[0], $FLOAT_EQUALS_NB_DECIMALS) 
+               || &floats_are_equal($value, $range[1], $FLOAT_EQUALS_NB_DECIMALS));
 
     ## if we've gotten this far, we're out of range.
     return 0;
