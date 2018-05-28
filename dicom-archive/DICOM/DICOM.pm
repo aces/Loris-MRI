@@ -393,7 +393,7 @@ sub fieldByName {
 
 Replaces value of given element.
 
-INPUT: group, element, new value
+INPUTS: group, element, new value
 
 =cut
 
@@ -466,7 +466,8 @@ The DICOM standard - http://medical.nema.org/
 =head1 TO DO
 
 Add support for sequences (SQ) (currently being skipped)
-Better documentation of:
+
+Better documentation for:
   - setIndex()
   - hexadecimally() -- non public?
   - loop - doesn't do anything in non-graphical case. investigate if this

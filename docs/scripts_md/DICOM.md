@@ -121,7 +121,7 @@ RETURNS: group and element number of field
 
 Replaces value of given element.
 
-INPUT: group, element, new value
+INPUTS: group, element, new value
 
 ### hexadecimally()
 
@@ -142,7 +142,8 @@ The DICOM standard - http://medical.nema.org/
 # TO DO
 
 Add support for sequences (SQ) (currently being skipped)
-Better documentation of:
+
+Better documentation for:
   - setIndex()
   - hexadecimally() -- non public?
   - loop - doesn't do anything in non-graphical case. investigate if this
