@@ -452,7 +452,7 @@ sub getAcqProtID    {
 
 =head3 fetchMincHeader($file, $field)
 
-This function parses the MINC header and looks for specific field's value.
+This function parses the MINC header and looks for a specific field value.
 
 INPUTS:
   - $file : MINC file
