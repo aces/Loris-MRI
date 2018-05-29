@@ -65,6 +65,8 @@ use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::ExitCodes;
 use Path::Class;
+use LWP::UserAgent;
+use JSON::PP ();
 
 
 ## Define Constants ##
@@ -1668,8 +1670,8 @@ sub computeDeepQC {
     my $t1_scan_type = NeuroDB::DBI::getConfigSetting(
                             $this->{dbhr},'t1_scan_type'
                             );
-    my $acqID_query = "SELECT ID FROM mri_scan_type WHERE Scan_type=?"
-    my $acqID_for_t1_scan = $($this->{'dbhr'}}->prepare($acqID_query);
+    my $acqID_query = "SELECT ID FROM mri_scan_type WHERE Scan_type=?";
+    my $acqID_for_t1_scan = ${$this->{'dbhr'}}->prepare($acqID_query);
     $acqID_for_t1_scan->execute($t1_scan_type);
 
     my $query = "SELECT FileID, file, AcquisitionProtocolID from files f WHERE f.TarchiveSource=?";
