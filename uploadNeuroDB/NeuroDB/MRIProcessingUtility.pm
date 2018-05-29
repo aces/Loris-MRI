@@ -1817,26 +1817,6 @@ sub isValidMRIProtocol  {
     }
 }
 
-=pod 
-    my $query = "SELECT TR_range, TE_range, TI_range, slice_thickness_range, 
-              xspace_range, yspace_range, zspace_range,
-              xstep_range, ystep_range, zstep_range, time_range
-              FROM mri_protocol";
-
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
-    if ($sth->rows > 0) {
-        my @rows = $sth->fetchall_arrayref();
-        foreach my $row (@rows) {
-            if ($row =~ /,/) { # if any value in the array has comma
-                return 0;
-            }
-        }
-        return 1;
-    }
-=cut
-
-
 1;
 
 

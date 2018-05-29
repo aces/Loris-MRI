@@ -356,6 +356,12 @@ INPUTS:
   - $verb      : 'N' for few main messages,
                  'Y' for more messages (developers)
 
+### isValidMRIProtocol()
+
+Ensures no column in the `mri_protocol` table has comma-separated values.
+
+RETURNS: 1 on success, 0 on failure
+
 # TO DO
 
 Document the following functions:

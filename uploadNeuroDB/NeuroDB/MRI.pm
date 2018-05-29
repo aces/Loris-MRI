@@ -745,8 +745,9 @@ sub scan_type_text_to_id {
 
 =head3 in_range($value, $range_string)
 
-Determines whether numerical value falls within the range unit which 
-follows the syntax "X" or "X-Y"
+Determines whether numerical value falls within the range described by range
+string. Range string is a comma-separated list of range units. A single range
+unit follows the syntax either "X" or "X-Y".
 
 INPUTS: numerical value and the range to use
 
@@ -762,27 +763,19 @@ sub in_range
     return 0 unless $range_string;
     return 0 unless defined($value);
 
-    ## mri_protocol table is being normalized in steps. 
-    ## Until this is completed in full and/or the database 
-    ## prevents such a setting, do not allow projects
-    ## to put comma-separated values in the table columns.
-    ## If they do, LOG the specific scan type as a violated scan  
-    if($range_string=~ /,/) {
-        print STDERR "Comma separated ranges, as found in '$range_string', " 
-                     . "are no longer supported. Please modify your "
-                     . "mri_protocol table accordingly. Logging the scan "
-                     . "as a violated scan for now. \n";
-        return 0;
-    }
+    my @ranges = split(/,/, $range_string);
 
-    chomp($range_string);
-    if($range_string=~/^[0-9.]+$/) { ## single value element
-        return 1 if &floats_are_equal($value, $range_string, $FLOAT_EQUALS_NB_DECIMALS);
-    } else { ## range X-Y
-        $range_string =~ /([0-9.]+)-([0-9.]+)/;
-        return 1 if ($1 <= $value && $value <= $2) 
-            || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
-            || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
+    my $range = 0;
+    foreach $range (@ranges) {
+       chomp($range);
+       if($range=~/^[0-9.]+$/) { ## single value element
+           return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
+       } else { ## range X-Y
+           $range =~ /([0-9.]+)-([0-9.]+)/;
+           return 1 if ($1 <= $value && $value <= $2) 
+               || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
+               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
+       }
     }
 
     ## if we've gotten this far, we're out of range.
@@ -1546,9 +1539,7 @@ __END__
 
 =head1 TO DO
 
-Proper error handling of the C<in_range()> function when an C<mri_protocol> 
-table column entry has comma-separated values in it. Refactor to throw an 
-exception when the codebase capabilities are extended to this class.
+Nothing planned.
 
 =head1 BUGS
 
