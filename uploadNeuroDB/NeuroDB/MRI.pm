@@ -768,7 +768,10 @@ sub in_range
     ## to put comma-separated values in the table columns.
     ## If they do, LOG the specific scan type as a violated scan  
     if($range_string=~ /,/) {
-        print STDERR "Comma separated ranges, as found in '$range_string', are no longer supported. Please remove. Logging as a violated scan. \n";
+        print STDERR "Comma separated ranges, as found in '$range_string', " 
+                     . "are no longer supported. Please modify your "
+                     . "mri_protocol table accordingly. Logging the scan "
+                     . "as a violated scan for now. \n";
         return 0;
     }
 
@@ -1543,7 +1546,9 @@ __END__
 
 =head1 TO DO
 
-Nothing planned.
+Proper error handling of the C<in_range()> function when an C<mri_protocol> 
+table column entry has comma-separated values in it. Refactor to throw an 
+exception when the codebase capabilities are extended to this class.
 
 =head1 BUGS
 

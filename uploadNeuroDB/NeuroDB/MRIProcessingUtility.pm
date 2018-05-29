@@ -1781,6 +1781,61 @@ sub spool  {
            'MRIProcessingUtility.pm', $upload_id, $error, $verb);
 }
 
+=pod
+
+=head3 isValidMRIProtocol()
+
+Ensures no column in the C<mri_protocol> table has comma-separated values.
+
+RETURNS: 1 on success, 0 on failure
+
+=cut
+
+sub isValidMRIProtocol  {
+    my $this = shift;
+
+    my $query = "SELECT COUNT(*) FROM mri_protocol 
+                WHERE TR_range LIKE '%,%'
+                OR TE_range LIKE '%,%'
+                OR TI_range LIKE '%,%'
+                OR slice_thickness_range LIKE '%,%'
+                OR xspace_range LIKE '%,%'
+                OR yspace_range LIKE '%,%'
+                OR zspace_range LIKE '%,%'
+                OR xstep_range LIKE '%,%'
+                OR ystep_range LIKE '%,%'
+                OR zstep_range LIKE '%,%'
+                OR time_range LIKE '%,%'";
+
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute();
+    my $count = $sth->fetchrow_array;
+    if ( $count > 0 ) {
+        return 0;  
+    } else {
+        return 1;
+    }
+}
+
+=pod 
+    my $query = "SELECT TR_range, TE_range, TI_range, slice_thickness_range, 
+              xspace_range, yspace_range, zspace_range,
+              xstep_range, ystep_range, zstep_range, time_range
+              FROM mri_protocol";
+
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute();
+    if ($sth->rows > 0) {
+        my @rows = $sth->fetchall_arrayref();
+        foreach my $row (@rows) {
+            if ($row =~ /,/) { # if any value in the array has comma
+                return 0;
+            }
+        }
+        return 1;
+    }
+=cut
+
 
 1;
 
