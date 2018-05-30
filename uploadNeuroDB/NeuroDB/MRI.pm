@@ -764,10 +764,10 @@ sub in_range
     return 0 unless defined($value);
 
     chomp($range_string);
-    if($range=~/^[0-9.]+$/) { ## single value element
+    if($range_string=~/^[0-9.]+$/) { ## single value element
         return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
-    } else { ## range X-Y
-        $range =~ /([0-9.]+)-([0-9.]+)/;
+    } else { ## range_string X-Y
+        $range_string =~ /([0-9.]+)-([0-9.]+)/;
         return 1 if ($1 <= $value && $value <= $2) 
             || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
             || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
