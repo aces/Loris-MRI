@@ -489,18 +489,17 @@ if ($mcount < 1) {
 # Make sure the mri_protocol table no longer has comma-separated
 ########################## values ##############################
 ################################################################
-my ($isMRIProtocolValid) = 
-    $utility->isValidMRIProtocol();
+my ($isMRIProtocolValid) = $utility->isValidMRIProtocol();
 
 if ( !($isMRIProtocolValid) ) {
-    my $message = "Comma separated ranges or values in the mri_protocol "
+    my $message = "\nComma separated ranges or values in the mri_protocol "
                   . "table are no longer supported. Please modify your "
                   . "mri_protocol table accordingly. Exiting now. \n";
     $notifier->spool('tarchive loader', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y',
 		    $notify_notsummary);
     print STDERR $message;
-    die;
+    exit $NeuroDB::BAD_PROTOCOL_SETTING;
 }
 
 ################################################################

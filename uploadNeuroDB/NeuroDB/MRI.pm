@@ -746,8 +746,8 @@ sub scan_type_text_to_id {
 =head3 in_range($value, $range_string)
 
 Determines whether numerical value falls within the range described by range
-string. Range string is a comma-separated list of range units. A single range
-unit follows the syntax either "X" or "X-Y".
+string. Range string is a single range unit which follows the syntax 
+"X" or "X-Y".
 
 INPUTS: numerical value and the range to use
 
@@ -763,19 +763,14 @@ sub in_range
     return 0 unless $range_string;
     return 0 unless defined($value);
 
-    my @ranges = split(/,/, $range_string);
-
-    my $range = 0;
-    foreach $range (@ranges) {
-       chomp($range);
-       if($range=~/^[0-9.]+$/) { ## single value element
-           return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
-       } else { ## range X-Y
-           $range =~ /([0-9.]+)-([0-9.]+)/;
-           return 1 if ($1 <= $value && $value <= $2) 
-               || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
-               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
-       }
+    chomp($range_string);
+    if($range=~/^[0-9.]+$/) { ## single value element
+        return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
+    } else { ## range X-Y
+        $range =~ /([0-9.]+)-([0-9.]+)/;
+        return 1 if ($1 <= $value && $value <= $2) 
+            || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
+            || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
     }
 
     ## if we've gotten this far, we're out of range.

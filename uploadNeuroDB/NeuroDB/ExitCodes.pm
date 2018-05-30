@@ -140,7 +140,7 @@ our $TARGET_EXISTS_NO_CLOBBER  = 83; # if tarchive already exists but option
 our $UNKNOWN_PROTOCOL          = 84; # if could not find acquisition protocol
                                      # of the file to be inserted
 our $NOT_A_SINGLE_STUDY        = 85; # if the upload regroups multiple studies
-
+our $BAD_PROTOCOL_SETTING      = 86; # unacceptable mri protocol table entry
 
 
 

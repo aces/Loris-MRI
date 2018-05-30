@@ -170,8 +170,8 @@ RETURNS: ID of the scan type
 ### in\_range($value, $range\_string)
 
 Determines whether numerical value falls within the range described by range
-string. Range string is a comma-separated list of range units. A single range
-unit follows the syntax either "X" or "X-Y".
+string. Range string is a single range unit which follows the syntax 
+"X" or "X-Y".
 
 INPUTS: numerical value and the range to use
 
