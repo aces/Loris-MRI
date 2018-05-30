@@ -126,9 +126,13 @@ if($sth->rows > 0) {
 	# Create tarchive list hash with old and new location
     while ( my $rowhr = $sth->fetchrow_hashref()) {
         my $TarchiveID = $rowhr->{'TarchiveID'};
+        my $SourceLocation = $rowhr->{'SourceLocation'};
 		print "Currently updating the DeepQC for applicable files in parameter_file table ".
             "for tarchiveID $TarchiveID\n";
-        $utility->computeDeepQC($TarchiveID, $profile);
+        my $upload_id = NeuroDB::MRIProcessingUtility::getUploadIDUsingTarchiveSrcLoc(
+                        $SourceLocation
+                    );
+        $utility->computeDeepQC($TarchiveID, $upload_id, $profile);
 		print "Finished updating DeepQC for for TarchiveID $TarchiveID\n";
 	}
 }
