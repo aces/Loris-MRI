@@ -51,7 +51,10 @@ use Path::Class;
 use File::Find;
 use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
+use NeuroDB::DBI;
 use File::Temp qw/ tempdir /;
+
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -445,19 +448,42 @@ RETURNS: 1 on success, 0 on failure
 sub PatientNameMatch {
     my $this         = shift;
     my ($dicom_file) = @_;
-    my $cmd          = "dcmdump $dicom_file | grep PatientName";
+
+    my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
+        $this->{'dbhr'},'lookupCenterNameUsing'
+    );
+
+    unless ( $lookupCenterNameUsing ) {
+        my $message = "\nConfig Setting 'lookupCenterNameUsing' is not set in "
+                      . "the Config module under the Imaging Pipeline section.";
+        $this->spool($message, 'Y', $notify_notsummary);
+        exit $NeuroDB::ExitCodes::MISSING_CONFIG_SETTING;
+    }
+
+    unless ($lookupCenterNameUsing =~ /^(PatientName|PatientID)$/i) {
+        my $message = "\nConfig setting 'lookupCenterNameUsing' is set to "
+                      . "$lookupCenterNameUsing but should be set to "
+                      . "either PatientID or PatientName";
+        $this->spool($message, 'Y', $notify_notsummary);
+        exit $NeuroDB::ExitCodes::BAD_CONFIG_SETTING;
+    }
+
+    my $cmd = sprintf("dcmdump +P %s -q %s",
+        quotemeta($lookupCenterNameUsing), quotemeta($dicom_file)
+    );
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
-	my $message = "\nThe patient name cannot be extracted \n";
+	    my $message = "\nThe '$lookupCenterNameUsing' DICOM field cannot be "
+	                  . "extracted from the DICOM file $dicom_file\n";
         $this->spool($message, 'Y', $notify_notsummary);
-        exit 1;
+        exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
     my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
     if ($pname !~ /^$this->{'pname'}/) {
-        my $message = "\nThe patient-name read ".
-                      "from the DICOM header does not start with " .
-        	      $this->{'pname'} . 
-                      " from the mri_upload table\n";
+        my $message = "\nThe $lookupCenterNameUsing read "
+                      . "from the DICOM header does not start with "
+                      . $this->{'pname'}
+                      . " from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);
         return 0; ##return false
     }

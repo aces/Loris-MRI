@@ -89,6 +89,8 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
+
 # Turn on autoflush for standard output buffer so that we immediately see 
 #the results of print statements.
 $|++;
@@ -207,23 +209,27 @@ usage: $0 </path/to/DICOM-tarchive> [options]
 
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################### input option error checking ################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a configuration file named ". 
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 2; 
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if (!$ARGV[0] || !$profile) { 
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
     print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid tarchive and an ".
-          "existing profile.\n\n";
-    exit 3;  
+    print STDERR "$Usage\n\tERROR: You must specify a valid tarchive.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 ################################################################
@@ -241,10 +247,9 @@ unless ($tarchive =~ m/$tarchivePath/i) {
 }
 
 unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \n ".
-          "Please, make sure the path to the archive is correct. ". 
-          "Upload will exit now.\n\n\n";
-    exit 4;
+    print STDERR "\nERROR: Could not find archive $tarchive.\n"
+                 . "Please, make sure the path to the archive is correct.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 
@@ -299,10 +304,10 @@ print LOG $message;
 my $childPID; 
 if ($xlog) { 
     $childPID = fork(); 
-    if ($childPID == 0) { 
-        exec("xterm -geometry 130x70 -e tail -f $logfile"); 
-        exit(0); 
-    } 
+    if ($childPID == 0) {
+        my $command = "xterm -geometry 130x70 -e tail -f $logfile";
+        exec($command) or die "Command $command failed: $!\n";
+    }
 }
 
 ################################################################
@@ -387,35 +392,34 @@ if (($output != 0)  && ($force==0)) {
  $message = "\n ERROR: The validation has failed. Either re-run the ".
             "validation again and fix the problem. Or re-run ".
             "tarchiveLoader using -force to force the execution.\n\n";
- $utility->writeErrorLog($message,5,$logfile); 
+ $utility->writeErrorLog(
+     $message, $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE, $logfile
+ );
  $notifier->spool('tarchive validation', $message, 0, 
 		'tarchiveLoader', $upload_id, 'Y',
 		$notify_notsummary);
- exit 5;
+ exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
 ################################################################
 ########## Get the $center_name, $centerID ################
 ################################################################
 my ($center_name, $centerID) =
-     $utility->determinePSC(\%tarchiveInfo,0);
+     $utility->determinePSC(\%tarchiveInfo, 0, $upload_id);
 
 ################################################################
 ######### Determine the ScannerID ##############################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,0,
-                    $centerID,
-                    $NewScanner
-                );
+        \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
+);
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,
-                        \%tarchiveInfo,0
-                    );
+        $scannerID, \%tarchiveInfo, 0, $upload_id
+);
 
 ################################################################
 ###### Get the SessionID #######################################
@@ -439,23 +443,23 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
     $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $seriesuid);
+        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id, $seriesuid
+    );
 
 
 ################################################################
 ##################### convert the dicom data to minc ###########
 ################################################################
 $utility->dicom_to_minc(
-    $study_dir,$converter,$get_dicom_info,
-    $exclude,$mail_user, $tarchiveInfo{'SourceLocation'});
+    $study_dir, $converter, $get_dicom_info, $exclude, $mail_user, $upload_id
+);
 
 
 ################################################################
 ############### get a list of mincs ############################
 ################################################################
 my @minc_files = ();
-$utility->get_mincs(\@minc_files,
-		     	 $tarchiveInfo{'SourceLocation'});
+$utility->get_mincs(\@minc_files, $upload_id);
 my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
@@ -471,11 +475,13 @@ if ($verbose){
 if ($mcount < 1) { 
     $message = "\nNo data could be converted into valid MINC files. ".
                "Localizers will not be considered! \n" ; 
-    $utility->writeErrorLog($message,6,$logfile); 
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
+    );
     $notifier->spool('tarchive loader', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y',
 		    $notify_notsummary);
-    exit 6; 
+    exit $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED;
 }
 
 ################################################################
@@ -498,8 +504,9 @@ foreach my $minc (@minc_files) {
     }
     elsif (!$valid_study) {
         $newTarchiveLocation = 
-            $utility->moveAndUpdateTarchive($tarchive,
-					\%tarchiveInfo);
+            $utility->moveAndUpdateTarchive(
+                $tarchive, \%tarchiveInfo, $upload_id
+            );
     }
     $tarchive = $newTarchiveLocation;
 
@@ -561,15 +568,12 @@ foreach my $minc (@minc_files) {
 ################################################################
 ############### Compute SNR on 3D modalities ###################
 ################################################################
-$utility->computeSNR($tarchiveInfo{TarchiveID},
-                         $tarchiveInfo{'SourceLocation'},
-			 $profile);
+$utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id, $profile);
 ################################################################
 ####### Add order of acquisition for similar modalities ########
 ####### within the same session based on series number #########
 ################################################################
-$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID},
-                         $tarchiveInfo{'SourceLocation'});
+$utility->orderModalitiesByAcq($tarchiveInfo{TarchiveID}, $upload_id);
 
 
 if ($valid_study) {
@@ -732,11 +736,11 @@ if ($xlog) {
 
 if (!$valid_study) {
     $message =  "\n No Mincs inserted \n \n";
-    print ($message);
+    print STDERR ($message);
     $notifier->spool('mri invalid study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y', 
 		    $notify_notsummary);
-    exit 9;
+    exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
 
 ###############################################################
@@ -749,7 +753,8 @@ $query = $query . $where;
 my $mri_upload_update = $dbh->prepare($query);
 $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
 
 =pod
 

@@ -49,6 +49,7 @@ use File::Find;
 use Cwd;
 use NeuroDB::DBI;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
 
 my $verbose = 1;
 my $debug = 1;
@@ -88,16 +89,22 @@ Usage: $0 -help to list options
 USAGE
 
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################### input option error checking ################
 ################################################################
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named ".
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 ################################################################
@@ -145,13 +152,13 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 
 # Query to grep all tarchive entries
 if (!defined($TarchiveID)) {
-    $query = "SELECT TarchiveID, ArchiveLocation " .
+    $query = "SELECT TarchiveID, ArchiveLocation, SourceLocation " .
         "FROM tarchive";
 }
 # Selecting tarchiveID is redundant here but it makes the while() loop
 # applicable to both cases; when a TarchiveID is specified or not
 else {
-    $query = "SELECT TarchiveID, ArchiveLocation " .
+    $query = "SELECT TarchiveID, ArchiveLocation, SourceLocation " .
         "FROM tarchive ".
         "WHERE TarchiveID = $TarchiveID ";
 }
@@ -162,13 +169,18 @@ $sth->execute();
 if($sth->rows > 0) {
 	# Create tarchive list hash with old and new location
     while ( my $rowhr = $sth->fetchrow_hashref()) {    
-        my $TarchiveID = $rowhr->{'TarchiveID'};
-        my $ArchLoc    = $rowhr->{'ArchiveLocation'};
+        $TarchiveID        = $rowhr->{'TarchiveID'};
+        my $ArchLoc        = $rowhr->{'ArchiveLocation'};
+        my $SourceLocation = $rowhr->{'SourceLocation'};
+        # grep the upload_id from the tarchive's source location
+        my $upload_id = NeuroDB::MRIProcessingUtility::getUploadIDUsingTarchiveSrcLoc(
+            $SourceLocation
+        );
 		print "Currently updating the SNR for applicable files in parameter_file table ".
             "for tarchiveID $TarchiveID at location $ArchLoc\n";    
-        $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+        $utility->computeSNR($TarchiveID, $upload_id, $profile);
 		print "Currently updating the Acquisition Order per modality in files table\n";    
-        $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
+        $utility->orderModalitiesByAcq($TarchiveID, $upload_id);
 
 		print "Finished updating back-populating SNR and Acquisition Order ".
             "per modality for TarchiveID $TarchiveID \n";
@@ -179,7 +191,7 @@ else {
 }
 
 $dbh->disconnect();
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 __END__

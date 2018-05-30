@@ -89,6 +89,8 @@ use strict;
 use warnings;
 no warnings 'once';
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
+
 
 #####Get config setting#######################################################
 # checking for profile settings
@@ -174,5 +176,5 @@ print MAIL "Subject: BATCH_UPLOADS_TARCHIVE: ".scalar(@submitted)." studies subm
 print MAIL join("\n", @submitted)."\n";
 close MAIL;
 
-## exit 0 for find to consider this -cmd true (in case we ever run it that way...)
-exit(0);
+## exit $NeuroDB::ExitCodes::SUCCESS for find to consider this -cmd true (in case we ever run it that way...)
+exit $NeuroDB::ExitCodes::SUCCESS;

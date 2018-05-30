@@ -42,6 +42,7 @@ use Cwd qw/ abs_path /;
 ################################################################
 use lib "$FindBin::Bin";
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $versionInfo = sprintf "%d revision %2d",
   q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/;
@@ -90,14 +91,19 @@ Documentation: perldoc imaging_upload_file_cronjob.pl
 
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 1;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 ################################################################
@@ -130,7 +136,7 @@ while(@row = $sth->fetchrow_array()) {
 	      Upload will exit now.\n\n\n";
     }
 }
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 

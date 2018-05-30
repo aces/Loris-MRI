@@ -38,6 +38,8 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
+use NeuroDB::ExitCodes;
+
 ################################################################
 ################## Set stuff for GETOPT ########################
 ################################################################
@@ -66,25 +68,23 @@ my @arg_table =
          ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     );
 
-GetOptions(\@arg_table, \@ARGV) ||  exit 1;
+GetOptions(\@arg_table, \@ARGV) ||  exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 ################################################################
 ################ checking for profile settings #################
 ################################################################
+if ( !$profile ) {
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
 	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a configuration file named '$profile' ". 
-          "in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 33;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 } 
-
-if (!$profile) { 
-    print $Usage; 
-    print "\n\tERROR: You must specify an existing profile.\n\n";  
-    exit 33;  
-}
 
 ################################################################
 # Establish database connection if database option is set ######
@@ -162,7 +162,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 $dbh->disconnect();
 
 print "\nFinished mass_pic.pl execution\n" if $verbose;
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 __END__
@@ -186,3 +186,4 @@ License: GPLv3
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
+

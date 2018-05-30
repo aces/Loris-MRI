@@ -87,6 +87,8 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
+
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
     =~ /: (\d+)\.(\d+)/;
@@ -123,7 +125,7 @@ my @checks      = ();          # Initialise the array
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $no_nii      = 1;           # skip NIfTI creation by default
+my $create_nii  = 0;           # skip NIfTI creation by default
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
@@ -153,6 +155,9 @@ my @opt_table = (
 
                  ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
                   " to tarchive-file"],
+
+                 ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
+                  "from which this MINC was created"],
 
                  ["-globLocation", "boolean", 1, \$globArchiveLocation,
                   "Loosen the validity check of the tarchive allowing for the". 
@@ -194,11 +199,11 @@ Version :   $versionInfo
 
 The program does the following:
 
-- Loads the created minc file and then sets the appropriate parameter for 
+- Loads the created MINC file and then sets the appropriate parameter for
   the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
                      PendingStaging, CoordinateSpace , OutputType , FileType
                      ,TarchiveSource and Caveat)
-- Extracts the correct acquitionprotocol
+- Extracts the correct acquition protocol
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
 - Finally sets the series notification
@@ -212,36 +217,45 @@ usage: $0 </path/to/DICOM-tarchive> [options]
 
 USAGE
 &Getopt::Tabular::SetHelp($Help, $Usage);
-&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit 1;
+&Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
+if (!$ENV{LORIS_CONFIG}) {
+	print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
+	exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
+}
+
+if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+    print $Help; 
+    print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";  
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+
+if (defined $tarchive && !(-e $tarchive) ) {
+    print STDERR "\nERROR: Could not find archive $tarchive. \nPlease, make sure "
+        . " the path to the archive is correct. Upload will exit now.\n\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
+
+if ( !($tarchive xor $upload_id) ) {
+    print STDERR "\nERROR: You should either specify an upload ID or a tarchive "
+        . "path. Make sure that you set only one of those options. "
+        . "Upload will exit now.\n\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
+}
+
+if (!defined $minc || !-e $minc) {
+    print STDERR "$Usage\n\tERROR: You must specify a valid and existing "
+        . "MINC file with -minc.\n\n";  
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
 
 # input option error checking
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 
-
-if ($profile && !@Settings::db) { 
-    print "\n\tERROR: You don't have a ".
-    "configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2; 
-}
-
-if (!$profile) { 
-    print $Help; 
-    print "$Usage\n\tERROR: You must specify a valid ".
-    "and existing profile.\n\n";  
-    exit 3; 
-}
-
-
-unless (-e $tarchive) {
-    print "\nERROR: Could not find archive $tarchive. \nPlease, make sure ".
-          " the path to the archive is correct. Upload will exit now.\n\n\n";
-    exit 4;
-}
-unless (-e $minc) {
-    print "\nERROR: Could not find minc $minc. \nPlease, make sure the ".
-          "path to the minc is correct. Upload will exit now.\n\n\n";
-    exit 5;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 ################################################################
@@ -255,10 +269,8 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my $data_dir = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
-if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'no_nii'))) {
-    $no_nii = NeuroDB::DBI::getConfigSetting(
-                       \$dbh,'no_nii'
-                        ) 
+if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii'))) {
+    $create_nii = NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii');
 }
 my $jiv_dir  = $data_dir.'/jiv';
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
@@ -276,6 +288,9 @@ my $logfile  = "$LogDir/$templog.log";
 print "\nlog dir is $LogDir and log file is $logfile \n" if $verbose;
 open LOG, ">>", $logfile or die "Error Opening $logfile";
 LOG->autoflush(1);
+# strings needed for the logHeader, if not set, as an argument, use empty string
+my $source_data_for_log = $tarchive // "";
+my $upload_id_for_log = $upload_id // "";
 &logHeader();
 
 print LOG "\n==> Successfully connected to database \n" if $verbose;
@@ -298,46 +313,98 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 ################################################################
 #################### Check is_valid column #####################
 ################################################################
-my $ArchiveLocation = $tarchive;
-$ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
+my ( $is_valid, $ArchiveLocation );
+if ($tarchive) {
+    # if the tarchive path is given as an argument, find the associated UploadID
+    # and check if IsTarchiveValidated is set to 1.
+    $ArchiveLocation = $tarchive;
+    $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
 
-my $where = "WHERE t.ArchiveLocation='$tarchive'";
-if ($globArchiveLocation) {
-    $where = "WHERE t.ArchiveLocation LIKE '%".basename($tarchive)."'";
-}
-my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
-            "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
-print $query . "\n" if $debug;
-my $is_valid = $dbh->selectrow_array($query);
+    my $where = "WHERE t.ArchiveLocation='$tarchive'";
+    if ($globArchiveLocation) {
+        $where = "WHERE t.ArchiveLocation LIKE '%/" . quotemeta(basename($tarchive)) . "' "
+            .    "OR t.ArchiveLocation = '" . quotemeta(basename($tarchive)) . "'";
+    }
+    my $query = "SELECT m.IsTarchiveValidated FROM mri_upload m " .
+        "JOIN tarchive t on (t.TarchiveID = m.TarchiveID) $where ";
+    print $query . "\n" if $debug;
+    $is_valid = $dbh->selectrow_array($query);
 
-## Setup  for the notification_spool table ##
-# get the tarchive_srcloc from $tarchive 
-$query = "SELECT SourceLocation".
+    if(!defined $is_valid) {
+		my $errorMessage = $globArchiveLocation
+		    ? "No mri_upload with the same archive location basename as '$tarchive'\n"
+		    : "No mri_upload with archive location '$tarchive'\n";
+        $utility->writeErrorLog(
+                $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        $notifier->spool('tarchive validation', $errorMessage, 0,
+                         'minc_insertion.pl', $upload_id, 'Y', 
+                         $notify_notsummary);
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+ 	} 
+	
+    ## Setup  for the notification_spool table ##
+    # get the tarchive_srcloc from $tarchive
+    $query = "SELECT SourceLocation" .
         " FROM tarchive t $where";
-my $sth = $dbh->prepare($query);
-$sth->execute();
-$tarchive_srcloc = $sth->fetchrow_array;
-# get the $upload_id from $tarchive_srcloc 
-$query =
-	"SELECT UploadID FROM mri_upload "
-	. "WHERE DecompressedLocation =?";
-$sth = $dbh->prepare($query);
-$sth->execute($tarchive_srcloc);
-$upload_id = $sth->fetchrow_array;
-## end of setup IDs for notification_spool table
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    $tarchive_srcloc = $sth->fetchrow_array;
+    
+    if(!defined $tarchive_srcloc) {
+		my $errorMessage = $globArchiveLocation
+		    ? "No tarchive with the same source location basename as '$tarchive'\n"
+		    : "No tarchive with source location '$tarchive'\n";
+		    
+        $utility->writeErrorLog(
+                $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        $notifier->spool('tarchive validation', $errorMessage, 0,
+                         'minc_insertion.pl', $upload_id, 'Y', 
+                         $notify_notsummary);
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    } 
 
+    # get the $upload_id from $tarchive_srcloc
+    $query =
+        "SELECT UploadID FROM mri_upload "
+            . "WHERE DecompressedLocation =?";
+    $sth = $dbh->prepare($query);
+    $sth->execute($tarchive_srcloc);
+    $upload_id = $sth->fetchrow_array;
+    ## end of setup IDs for notification_spool table
+} elsif ($upload_id) {
+    # if the uploadID is passed as an argument, verify that the tarchive was
+    # validated
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+      m.IsTarchiveValidated,
+      t.ArchiveLocation
+    FROM
+      mri_upload m JOIN tarchive t ON (t.TarchiveID = m.TarchiveID)
+    WHERE
+      m.UploadID = ?
+QUERY
+    print $query . "\n" if $debug;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+    my @array        = $sth->fetchrow_array;
+    $is_valid        = $array[0];
+    $ArchiveLocation = $array[1];
+}
 
-if (($is_valid == 0) && ($force==0)) {
+if ((!defined $is_valid || $is_valid == 0) && !$force) {
     $message = "\n ERROR: The validation has failed. ".
                "Either run the validation again and fix ".
                "the problem. Or use -force to force the ".
                "execution.\n\n";
-    print $message;
-    $utility->writeErrorLog($message,6,$logfile); 
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::INVALID_TARCHIVE, $logfile
+    );
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-    exit 6;
+    exit $NeuroDB::ExitCodes::INVALID_TARCHIVE;
 }
 
 ################################################################
@@ -350,21 +417,22 @@ if (($is_valid == 0) && ($force==0)) {
 ################################################################
 ############ Get the $center_name, $centerID ##############
 ################################################################
-my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+my ($center_name, $centerID) = $utility->determinePSC(
+                    \%tarchiveInfo, 0, $upload_id
+                );
 
 ################################################################
 #### Determine the ScannerID ###################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo,0,$centerID,
-                    $NewScanner
+                    \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
                 );
 
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID,\%tarchiveInfo,0
+                        $scannerID, \%tarchiveInfo, 0, $upload_id
                     );
 
 ################################################################
@@ -389,8 +457,7 @@ my $candlogSth = $dbh->prepare($logQuery);
 ################################################################
 #### Loads/Creates File object and maps dicom fields ###########
 ################################################################
-my $file = $utility->loadAndCreateObjectFile($minc,
-			$tarchiveInfo{'SourceLocation'});
+my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
 
 ################################################################
 ##### Optionally do extra filtering, if needed #################
@@ -426,7 +493,7 @@ if (defined($CandMismatchError)) {
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
 
-    exit 7 ;
+    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
 }
 
 ################################################################
@@ -442,16 +509,15 @@ my ($sessionID, $requiresStaging) =
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
-my $unique = $utility->computeMd5Hash($file, 
-				$tarchiveInfo{'SourceLocation'});
+my $unique = $utility->computeMd5Hash( $file, $upload_id );
 if (!$unique) { 
     $message = "\n--> WARNING: This file has already been uploaded!\n";  
-    print $message if $verbose;
+    print STDERR $message if $verbose;
     print LOG $message; 
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y', 
                     $notify_notsummary);
-    exit 8; 
+    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 } 
 
 ################################################################
@@ -480,10 +546,12 @@ if (defined($acquisitionProtocol)) {
   = $utility->getAcquisitionProtocol(
       $file,
       $subjectIDsref,
-      \%tarchiveInfo,$center_name,
+      \%tarchiveInfo,
+      $center_name,
       $minc,
       $acquisitionProtocol,
-      $bypass_extra_file_checks
+      $bypass_extra_file_checks,
+      $upload_id
     );
 
 
@@ -495,7 +563,7 @@ if($acquisitionProtocol =~ /unknown/) {
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion.pl', $upload_id, 'Y', 
                    $notify_notsummary);
-   exit 9;
+   exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }
 
 ################################################################
@@ -504,9 +572,9 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file, \%tarchiveInfo,$subjectIDsref, 
-    $acquisitionProtocol, $minc, \@checks, 
-    $reckless, $tarchive, $sessionID
+    \$file,               \%tarchiveInfo, $subjectIDsref,
+    $acquisitionProtocol, $minc,          \@checks,
+    $reckless,            $sessionID,     $upload_id
 );
 
 if ((!defined$acquisitionProtocolIDFromProd)
@@ -520,7 +588,7 @@ if ((!defined$acquisitionProtocolIDFromProd)
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion', $upload_id, 'Y',
                    $notify_notsummary);
-    exit 10;
+    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
 }
 ################################################################
 ### Add series notification ####################################
@@ -550,7 +618,7 @@ if (!$no_jiv) {
 ################################################################
 ###################### Creation of NIfTIs ######################
 ################################################################
-unless ($no_nii) {
+if ($create_nii) {
     print "\nCreating NIfTI files\n" if $verbose;
     NeuroDB::MRI::make_nii(\$file, $data_dir);
 }
@@ -572,7 +640,7 @@ if ($create_minc_pics) {
 ################################################################
 ################## Succesfully completed #######################
 ################################################################
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 =pod
@@ -589,8 +657,9 @@ sub logHeader () {
             AUTOMATED DICOM DATA UPLOAD
 ----------------------------------------------------------------
 *** Date and time of upload    : $date
-*** Location of source data    : $tarchive
+*** Location of source data    : $source_data_for_log
 *** tmp dir location           : $TmpDir
+*** Upload ID of source data   : $upload_id_for_log
 ";
 }
 

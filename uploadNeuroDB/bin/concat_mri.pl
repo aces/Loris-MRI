@@ -1,5 +1,7 @@
 #!/usr/bin/perl 
 
+use NeuroDB::ExitCodes;
+
 =pod
 
 =head1 NAME
@@ -194,7 +196,7 @@ Usage:  $0 [<options>] <mincfiles>
 
 EOH
 
-if ($#ARGV < 1) { print $HelpInfo; exit; }
+if ($#ARGV < 1) { print $HelpInfo; exit $NeuroDB::ExitCodes::MISSING_ARG; }
 
 while (@ARGV) {
   $_ = shift;
