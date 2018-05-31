@@ -126,6 +126,9 @@ $sth->execute($param_type_id);
 $row     = $sth->fetchrow_hashref();
 if ( !$row ) {
     print "\n==> succesfully deleted all JIV entries in parameter_file.\n";
+    $delete = "DELETE FROM parameter_type WHERE ParameterTypeID=?";
+    $delete_sth = $dbh->prepare($delete);
+    $delete_sth->execute($param_type_id);
 } else {
     print "\n==> could not delete all JIV entries in parameter_file.\n";
     exit;
