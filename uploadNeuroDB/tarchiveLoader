@@ -34,11 +34,9 @@ Available options are:
                            for the possibility that the tarchive was moved to
                            a different directory
 
--noJIV                   : Prevent the JIVs from being created
-
--newScanner              : By default a new scanner will be registered if the
-                           data you upload requires it. You can risk turning
-                           it off
+-newScanner                 : By default a new scanner will be registered if the
+                              data you upload requires it. You can risk turning
+                              it off
 
 -keeptmp                 : Keep temporary directory. Make sense if have
                            infinite space on your server
@@ -129,8 +127,6 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be 
-                               # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
 my $seriesuid   = undef;       # if you want to insert a specific SeriesUID
@@ -154,8 +150,6 @@ my @opt_table = (
                   "the possibility that the tarchive was moved to a different".
                   " directory."
                  ],
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevent the JIVs from being".
-                  "created."],
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
@@ -196,7 +190,7 @@ performs a lot of magic on the acquisitions within it.
 - dicom to minc conversion
 - miscellaneous header data extraction
 - file relocation (to the MRI repository)
-- neuroDB mri database registration and JIVification.
+- neuroDB mri database registration
 
 Documentation: perldoc tarchiveLoader
 
@@ -260,7 +254,6 @@ my $data_dir = NeuroDB::DBI::getConfigSetting(
                  \$dbh,'dataDirBasepath'
                  );
 my $pic_dir = $data_dir.'/pic';
-my $jiv_dir = $data_dir.'/jiv';
 my $prefix = NeuroDB::DBI::getConfigSetting(
                \$dbh,'prefix'
                );
@@ -522,10 +515,6 @@ foreach my $minc (@minc_files) {
 
     if ($globArchiveLocation) {
         $script .= " -globLocation";
-    }
-
-    if ($no_jiv) {
-        $script .= " -noJIV";
     }
  
     if ($verbose) {
