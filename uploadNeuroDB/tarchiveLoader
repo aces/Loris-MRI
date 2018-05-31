@@ -499,7 +499,7 @@ if ( !($isMRIProtocolValid) ) {
 		    'tarchiveLoader', $upload_id, 'Y',
 		    $notify_notsummary);
     print STDERR $message;
-    exit $NeuroDB::BAD_PROTOCOL_SETTING;
+    exit $NeuroDB::PROJECT_CUSTOMIZATION_FAILURE;
 }
 
 ################################################################

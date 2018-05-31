@@ -1828,7 +1828,10 @@ Document the following functions:
   - concat_mri($minc_files)
   - registerProgs(@toregister)
 
-Remove function get_acqusitions($study_dir, \@acquisitions) that is not used
+Remove the function get_acqusitions($study_dir, \@acquisitions) that is not used
+
+Remove the function isValidMRIProtocol() once the database schema is configured 
+to prevent users from entering non-conform entries in the C<mri_protocol> table
 
 =head1 BUGS
 
