@@ -42,6 +42,7 @@ use File::Basename;
 use Data::Dumper;
 use Carp;
 use Time::Local;
+use FindBin;
 
 $VERSION = 0.2;
 @ISA = qw(Exporter);
