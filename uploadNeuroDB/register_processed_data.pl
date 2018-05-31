@@ -154,7 +154,6 @@ my $data_dir = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
 my $pic_dir  =   $data_dir.'/pic';
-my $jiv_dir  =   $data_dir.'/jiv';
 my $prefix   = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'prefix'
                     );
