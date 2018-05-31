@@ -68,8 +68,8 @@ to 189)
 
 11. Exit codes from C<uploadNeuroDB/tarchiveLoader> (exit codes from 190 to 199)
 
-12. Exit codes from C<uploadNeuroDB/NeuroDB/bin/minc2jiv.pl> (exit codes from
-200 to 210)
+12. Exit codes from former scripts that have been removed (exit codes from 200
+to 210)
 
 
 =head1 LICENSING
@@ -186,6 +186,6 @@ our $NO_VALID_MINC_CREATED = 190; # if no valid MINC file was created
                                   # (non-localizers)
 
 
-## -- FROM uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200 to 210)
+## -- FROM former scripts that have been removed (exit codes from 200 to 210)
 
 our $REGISTER_PROGRAM_FAILURE = 200; # if MNI::Spawn::RegisterPrograms failed

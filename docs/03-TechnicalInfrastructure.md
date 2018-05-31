@@ -16,8 +16,6 @@ The root directory of the imaging part of a LORIS instance is typically
         |   |__ mri
         |__ data
             |__ assembly
-            |__ batch_output
-            |__ jiv
             |__ logs
                 |__ DTIPrep_pipeline*
                 |__ DTIPrep_register*
@@ -80,20 +78,6 @@ Incoming scans from the Imaging uploader module (or automatic cron jobs) are
   datasets.
   
   
-#### The `jiv` directory
-
-JIV images produced by the imaging insertion pipeline are organized per 
-  candidates in the `data/jiv` folder.
-    
-```
-## Content of the /data/$PROJECT/data/jiv directory
-.
-|__ CandID
-    |__ project_CandID_Visit_modality_number_fileid.header
-    |__ project_CandID_Visit_modality_number_fileid.raw_byte.gz
-```
-
-
 #### The `logs` directory
 
 The logs of the scripts are created under `data/logs` in `/data/$PROJECT`.
