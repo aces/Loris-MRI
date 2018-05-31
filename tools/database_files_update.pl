@@ -67,9 +67,8 @@ if  (!$profile) {
 my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # these settings are in the database and can be set in the Configuration module of LORIS
-my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
+my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
+$data_dir =~ s/\/$//;
 
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs";
