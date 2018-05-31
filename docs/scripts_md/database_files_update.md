@@ -36,21 +36,21 @@ RETURNS: Number of rows affected by the update (should always be 1)
 
 ### get\_parameter\_files($data\_dir, $parameter\_type, $dbh)
 
-Gets list of JIV files to update location in the `parameter_file` table by
+Gets list of PIC files to update location in the `parameter_file` table by
 removing the root directory from the path.
 
-INPUTS: data directory, parameter type name for the JIV, database handle
+INPUTS: data directory, parameter type name for the PIC, database handle
 
-RETURNS: hash of JIV file locations, array of FileIDs
+RETURNS: hash of PIC file locations, array of FileIDs
 
 ### update\_parameter\_file\_location($fileID, $new\_file\_location, ...)
 
-Updates the location of JIV files in the `parameter_file` table.
+Updates the location of PIC files in the `parameter_file` table.
 
 INPUTS:
   - $fileID           : FileID
-  - $new\_file\_location: new location of the JIV file
-  - $parameter\_type   : parameter type name for the JIV
+  - $new\_file\_location: new location of the PIC file
+  - $parameter\_type   : parameter type name for the PIC
   - $dbh              : database handle
 
 RETURNS: number of rows affected by the update (should always be 1)
