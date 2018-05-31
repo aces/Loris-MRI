@@ -19,8 +19,6 @@ Available options are:
 
 -force       : forces the script to run even if validation failed
 
--noJIV       : prevents the JIVs from being created
-
 -mincPath    : the absolute path to the MINC file
 
 -tarchivePath: the absolute path to the tarchive file
@@ -112,8 +110,6 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
-my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be 
-                               # created
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                # control freak
 my $xlog        = 0;           # default should be 0
@@ -145,9 +141,6 @@ my @opt_table = (
 
                  ["-force", "boolean", 1, \$force,"Forces the script to run". 
                  " even if the validation has failed."],
-
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being ".
-                  "created."],
   
                  ["-mincPath","string",1, \$minc, "The absolute path". 
                   " to minc-file"],
@@ -271,7 +264,6 @@ my $data_dir = NeuroDB::DBI::getConfigSetting(
 if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii'))) {
     $create_nii = NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii');
 }
-my $jiv_dir  = $data_dir.'/jiv';
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
@@ -603,13 +595,6 @@ $notifier->spool('mri new series', $message, 0,
 
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
-}
-################################################################
-###################### Creation of Jivs ########################
-################################################################
-if (!$no_jiv) {
-    print "\nMaking JIV\n" if $verbose;
-    NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
 }
 
 ################################################################
