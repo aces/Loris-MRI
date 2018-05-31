@@ -448,14 +448,11 @@ my $candlogSth = $dbh->prepare($logQuery);
 ################################################################
 my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
 
-################################################################
-##### Optionally do extra filtering, if needed #################
-################################################################
-if (defined(&Settings::filterParameters)) {
-    print LOG "\n--> using user-defined filterParameters for $minc\n"
-    if $verbose;
-    Settings::filterParameters(\$file);
-}
+# filters out parameters of length > 1000
+$message = "\n--> filters out parameters of length > 1000 for $minc\n";
+print LOG $message if $verbose;
+$file->filterParameters();
+
 
 ################################################################
 # We already know the PatientName is bad from step 5a, but #####

@@ -509,6 +509,27 @@ sub removeWhitespace {
         return @vars;
     }
 }
+
+=pod
+
+=head3 filterParameters
+
+Manipulates the NeuroDB::File object's parameters and removes all parameters of
+length > 1000
+
+=cut
+sub filterParameters {
+    my $this = shift;
+
+    my $parametersRef = $this->getParameters();
+
+    foreach my $key (keys %{$parametersRef}) {
+        if(($key ne 'header') && (length($parametersRef->{$key}) > 1000)) {
+            $this->removeParameter($key);
+        }
+    }
+}
+
     
 1;
 
