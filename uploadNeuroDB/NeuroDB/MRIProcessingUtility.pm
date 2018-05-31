@@ -1722,7 +1722,7 @@ sub computeDeepQC {
                 $this->spool($message, 'N', $upload_id, $notify_detailed);
             }
         } else {
-            print "File doesn't exist.\n"
+            print "File $fullpath not found in the filesystem.\n"
         }
     }
 }

@@ -9,6 +9,7 @@ use File::Find;
 use Cwd;
 use NeuroDB::DBI;
 use NeuroDB::MRIProcessingUtility;
+use NeuroDB::ExitCodes;
 
 my $verbose = 1;
 my $debug = 1;
@@ -116,11 +117,11 @@ if (!defined($TarchiveID)) {
 else {
     $query = "SELECT TarchiveID " .
         "FROM tarchive ".
-        "WHERE TarchiveID = $TarchiveID ";
+        "WHERE TarchiveID = ?";
 }
 
 my $sth = $dbh->prepare($query);
-$sth->execute();
+$sth->execute($TarchiveID);
 
 if($sth->rows > 0) {
 	# Create tarchive list hash with old and new location
@@ -133,11 +134,11 @@ if($sth->rows > 0) {
                         $SourceLocation
                     );
         $utility->computeDeepQC($TarchiveID, $upload_id, $profile);
-		print "Finished updating DeepQC for for TarchiveID $TarchiveID\n";
+		print "Finished updating DeepQC for TarchiveID $TarchiveID\n";
 	}
 }
 else {
-	print "No tarchives to be updated \n";
+	print "No tarchive to be updated \n";
 }
 
 $dbh->disconnect();
