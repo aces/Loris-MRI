@@ -254,7 +254,7 @@ if (defined $rvl && $rvl == 0) {
 }
 
 
-my ($tarchiveid, $sessionid, @pic_path, $jiv_header, $jiv_raw_byte, $file, $dir, $ext, $nii_file, @candid);
+my ($tarchiveid, $sessionid, @pic_path, $file, $dir, $ext, $nii_file, @candid);
 
 while (my $f = $sth->fetchrow_hashref()) {
   $tarchiveid   = $f->{'TarchiveSource'};
@@ -263,8 +263,6 @@ while (my $f = $sth->fetchrow_hashref()) {
     # can be given in a "WHERE FileID IN ()" syntax
   push(@files_FileID, $f->{'FileID'});
   @pic_path     = split /_check/, $f->{'VALUE'};
-  $jiv_header   = $pic_path[0] . ".header";
-  $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
   ($file, $dir, $ext) = fileparse($f->{'File'});
   $nii_file     = basename($file, ".mnc") . ".nii";
   @candid = split("/", $dir);
@@ -272,15 +270,12 @@ while (my $f = $sth->fetchrow_hashref()) {
     # Let's make directories
     make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
     make_path($data_dir . "/archive/pic/" . $candid[1]) unless(-d  $data_dir . "/archive/pic/" . $candid[1]);
-    make_path($data_dir . "/archive/jiv/" . $candid[1]) unless(-d  $data_dir . "/archive/jiv/" . $candid[1]);
 
     if (-e $data_dir . "/" . $dir . $nii_file) {
       rename($data_dir . "/" . $dir . $nii_file, $data_dir . "/archive/" . $dir . $nii_file);
     }
     rename($data_dir . "/"     . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
     rename($data_dir . "/pic/" . $f->{'VALUE'}, $data_dir . "/archive/pic/" . $f->{'VALUE'});
-    rename($data_dir . "/jiv/" . $jiv_header, $data_dir . "/archive/jiv/" . $jiv_header);
-    rename($data_dir . "/jiv/" . $jiv_raw_byte, $data_dir . "/archive/jiv/" . $jiv_raw_byte);
     print "\nMoving these files to archive:\n";
   } else {
     print "\nFiles that will be moved when rerunning the script using the confirm option:\n";
@@ -291,8 +286,6 @@ while (my $f = $sth->fetchrow_hashref()) {
     print $data_dir . "/"   . $dir . $nii_file . "\n";
   }
   print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
-  print $data_dir . "/jiv/" . $jiv_header . "\n";
-  print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
 }
 
 print "\nDelete from DB";
