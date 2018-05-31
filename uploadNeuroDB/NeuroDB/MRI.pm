@@ -1382,62 +1382,6 @@ sub make_pics {
 
 =pod
 
-=head3 make_jiv($file_ref, $data_dir, $dest_dir)
-
-Generates JIV data for the Imaging Browser module for the C<NeuroDB::File>
-object referenced by C<$file_ref>.
-
-INPUTS:
-  - $file_ref: file hash ref
-  - $data_dir: data directory (e.g. C</data/$PROJECT/data>)
-  - $dest_dir: destination directory (e.g. C</data/$PROJECT/data/jiv>)
-
-RETURNS: 1 if the JIV data was generated or 0 otherwise.
-
-=cut
-
-sub make_jiv {
-    my ($fileref, $data_dir, $dest_dir) = @_;
-    my $file = $$fileref;
-    my $dbhr = $file->getDatabaseHandleRef();
-
-    my $sth = $${dbhr}->prepare("SELECT CandID FROM session WHERE ID=".$file->getFileDatum('SessionID'));
-    $sth->execute();
-    
-    my $rowhr = $sth->fetchrow_hashref();
-    my $minc = $data_dir . '/' . $file->getFileDatum('File');
-    my $jiv = $dest_dir . '/' . $rowhr->{'CandID'};
-
-    # generate jiv into temp dir
-    my $tempdir = tempdir(CLEANUP=>1);
-    `$FindBin::Bin/bin/minc2jiv.pl -quiet -force -clobber -output_path $tempdir $minc`;
-
-    # rename jiv files to add fileid
-    opendir(DIR, $tempdir);
-    @files = grep { -f "$tempdir/$_" } readdir(DIR);
-    closedir DIR;
-
-    my $fileID = $file->getFileDatum('FileID');
-    if(defined($fileID)) {
-        foreach my $filename (@files) {
-            my ($newbase,undef,$newsuffix) = fileparse($filename,qw{.header .raw_byte.gz});
-            $newbase .= "_$fileID";
-            
-            `mv $tempdir/$filename $tempdir/$newbase$newsuffix`;
-        }
-    }
-
-    # relocate jiv files to jiv destination dir
-    unless (-e $jiv) { system("mkdir -p -m 770 $jiv"); return 0 unless -e $jiv; }
-    `mv $tempdir/* $jiv/`;
-
-    # update mri table
-    $file->setParameter('jiv_path', $rowhr->{'CandID'});
-    return 1;
-}
-
-=pod
-
 =head3 make_nii($fileref, $data_dir)
 
 Creates NIfTI files associated with MINC files and append its path to the
