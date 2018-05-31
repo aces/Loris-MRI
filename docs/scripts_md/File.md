@@ -113,7 +113,8 @@ RETURNS: DBI database handle reference.
 ### getFileType($file)
 
 Determines the imaging file type based on the extension of the file to insert
-and the list of available types in the ImagingFileTypes table of the database.
+and the list of available types in the `ImagingFileTypes` table of the
+database.
 
 INPUT: the path to the imaging file to determine the file type
 
