@@ -184,7 +184,7 @@ if ($timeZone ne 'local' and !DateTime::TimeZone->is_valid_name($timeZone)) {
 	print STDERR "Invalid time zone '$timeZone'. "
 	    . "See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
 	    . " for the list of valid time zones.\n";
-	exit 3;
+	exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 if ( !$profile ) {
@@ -258,7 +258,7 @@ my $resultRef = $mriUploadOB->getWithTarchive(
 
 if($resultRef->[0]->[0] > 0) {
    print "\n\tERROR: the tarchive is already uploaded \n\n";
-   exit 6;
+   exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 }
 
 ################################################################
