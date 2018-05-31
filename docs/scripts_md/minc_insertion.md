@@ -16,8 +16,6 @@ Available options are:
 
 \-force       : forces the script to run even if validation failed
 
-\-noJIV       : prevents the JIVs from being created
-
 \-mincPath    : the absolute path to the MINC file
 
 \-tarchivePath: the absolute path to the tarchive file

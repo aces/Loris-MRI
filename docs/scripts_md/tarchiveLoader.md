@@ -28,8 +28,6 @@ Available options are:
                               for the possibility that the tarchive was moved to
                               a different directory
 
-\-noJIV                      : Prevent the JIVs from being created
-
 \-newScanner                 : By default a new scanner will be registered if the
                               data you upload requires it. You can risk turning
                               it off
