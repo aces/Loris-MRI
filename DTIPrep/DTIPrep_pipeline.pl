@@ -173,28 +173,14 @@ if (!$DTIPrepVersion) {
 my  $dbh    =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # These settings are in the ConfigSettings table
-my  $data_dir       =   &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'dataDirBasepath'
-                        );
-my  $t1_scan_type   =   &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'t1_scan_type'
-                        );
-my  $DTI_volumes    =   &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'DTI_volumes'
-                        );
-my  $reject_thresh  =   &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'reject_thresh'
-                        );
-my  $niak_path      =   &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'niak_path'
-                        );
-my  $QCed2_step     =   &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'QCed2_step'
-                        );
-
-my  $site           =   &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'prefix'
-                        );
+my  $t1_scan_type  = &NeuroDB::DBI::getConfigSetting(\$dbh, 't1_scan_type');
+my  $DTI_volumes   = &NeuroDB::DBI::getConfigSetting(\$dbh, 'DTI_volumes');
+my  $reject_thresh = &NeuroDB::DBI::getConfigSetting(\$dbh, 'reject_thresh');
+my  $niak_path     = &NeuroDB::DBI::getConfigSetting(\$dbh, 'niak_path');
+my  $QCed2_step    = &NeuroDB::DBI::getConfigSetting(\$dbh,'QCed2_step');
+my  $site          = &NeuroDB::DBI::getConfigSetting(\$dbh, 'prefix');
+my  $data_dir      = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
+$data_dir          =~ s/\/$//;   # removing trailing / in $data_dir
 
 # Needed for log file
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)   =   localtime(time);
