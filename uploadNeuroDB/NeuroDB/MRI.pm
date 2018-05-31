@@ -529,8 +529,8 @@ sub identify_scan_db {
 
     
     # get the list of protocols for a site their scanner and subproject
-    $query = "SELECT Scan_type, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
-              xstep_range, ystep_range, zstep_range, time_range, series_description_regex
+    $query = "SELECT Scan_type, ScannerID, Center_name, TR_min, TR_max, TE_min, TE_max, TI_min, TI_max, slice_thickness_min, slice_thickness_max, xspace_min, xspace_max, yspace_min, yspace_max, zspace_min, zspace_max,
+              xstep_min, xstep_max, ystep_min, ystep_max, zstep_min, zstep_max, time_min, time_max, series_description_regex
               FROM mri_protocol
               WHERE
              (Center_name='$psc' AND ScannerID='$ScannerID')
@@ -550,17 +550,17 @@ sub identify_scan_db {
             print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
             print "\t";
             if($sd_regex && ($series_description =~ /$sd_regex/i)) {print "series_description\t";}
-            print &in_range($tr, $rowref->{'TR_range'}) ? "TR\t" : '';
-            print &in_range($te, $rowref->{'TE_range'}) ? "TE\t" : '';
-            print &in_range($ti, $rowref->{'TI_range'}) ? "TI\t" : '';
-            print &in_range($xspace, $rowref->{'xspace_range'}) ? "xspace\t" : '';
-            print &in_range($yspace, $rowref->{'yspace_range'}) ? "yspace\t" : '';
-            print &in_range($zspace, $rowref->{'zspace_range'}) ? "zspace\t" : '';
-            print &in_range($slice_thickness, $rowref->{'slice_thickness_range'}) ? "ST\t" : '';
-            print &in_range($xstep, $rowref->{'xstep_range'}) ? "xstep\t" : '';
-            print &in_range($ystep, $rowref->{'ystep_range'}) ? "ystep\t" : '';
-            print &in_range($zstep, $rowref->{'zstep_range'}) ? "zstep\t" : '';
-            print &in_range($time, $rowref->{'time_range'}) ? "time\t" : '';
+            print &in_range($tr, "$rowref->{'TR_min'}-$rowref->{'TR_max'}") ? "TR\t" : '';
+            print &in_range($te, "$rowref->{'TE_min'}-$rowref->{'TR_max'}") ? "TE\t" : '';
+            print &in_range($ti, "$rowref->{'TI_min'}-$rowref->{'TI_max'}") ? "TI\t" : '';
+            print &in_range($xspace, "$rowref->{'xspace_min'}-$rowref->{'xspace_max'}") ? "xspace\t" : '';
+            print &in_range($yspace, "$rowref->{'yspace_min'}-$rowref->{'yspace_max'}") ? "yspace\t" : '';
+            print &in_range($zspace, "$rowref->{'zspace_min'}-$rowref->{'zspace_max'}") ? "zspace\t" : '';
+            print &in_range($slice_thickness, "$rowref->{'slice_thickness_min'}-$rowref->{'slice_thickness_max'}") ? "ST\t" : '';
+            print &in_range($xstep, "$rowref->{'xstep'}-$rowref->{'xstep_max'}") ? "xstep\t" : '';
+            print &in_range($ystep, "$rowref->{'ystep_min'}-$rowref->{'ystep_max'}") ? "ystep\t" : '';
+            print &in_range($zstep, "$rowref->{'zstep_min'}-$rowref->{'zstep_max'}") ? "zstep\t" : '';
+            print &in_range($time, "$rowref->{'time_min'}-$rowref->{'time_max'}") ? "time\t" : '';
             print "\n";
         }
         
@@ -570,19 +570,19 @@ sub identify_scan_db {
             }
 	}
 	else {
-         	if ((!$rowref->{'TR_range'} || &in_range($tr, $rowref->{'TR_range'}))
-                && (!$rowref->{'TE_range'} || &in_range($te, $rowref->{'TE_range'}))
-                && (!$rowref->{'TI_range'} || &in_range($ti, $rowref->{'TI_range'}))
-                && (!$rowref->{'slice_thickness_range'} || &in_range($slice_thickness, $rowref->{'slice_thickness_range'}))
+               if (((!$rowref->{'TR_min'} && !$rowref->{'TR_max'}) || &in_range($tr, "$rowref->{'TR_min'}-$rowref->{'TR_max'}"))
+                && ((!$rowref->{'TE_min'} && !$rowref->{'TE_max'}) || &in_range($te, "$rowref->{'TE_min'}-$rowref->{'TE_max'}"))
+                && ((!$rowref->{'TI_min'} && !$rowref->{'TI_max'}) || &in_range($ti, "$rowref->{'TI_min'}-$rowref->{'TI_max'}"))
+                && ((!$rowref->{'slice_thickness_min'} && !$rowref->{'slice_thickness_max'}) || &in_range($slice_thickness, "$rowref->{'slice_thickness_min'}-$rowref->{'slice_thickness_max'}"))
 
-                && (!$rowref->{'xspace_range'} || &in_range($xspace, $rowref->{'xspace_range'}))
-                && (!$rowref->{'yspace_range'} || &in_range($yspace, $rowref->{'yspace_range'}))
-                && (!$rowref->{'zspace_range'} || &in_range($zspace, $rowref->{'zspace_range'}))
+                && ((!$rowref->{'xspace_min'} && !$rowref->{'xspace_max'}) || &in_range($xspace, "$rowref->{'xspace_min'}-$rowref->{'xspace_max'}"))
+                && ((!$rowref->{'yspace_min'} && !$rowref->{'yspace_max'}) || &in_range($yspace, "$rowref->{'yspace_min'}-$rowref->{'yspace_max'}"))
+                && ((!$rowref->{'zspace_min'} && !$rowref->{'zspace_max'}) || &in_range($zspace, "$rowref->{'zspace_min'}-$rowref->{'zspace_max'}"))
 
-                && (!$rowref->{'xstep_range'} || &in_range($xstep, $rowref->{'xstep_range'}))
-                && (!$rowref->{'ystep_range'} || &in_range($ystep, $rowref->{'ystep_range'}))
-                && (!$rowref->{'zstep_range'} || &in_range($zstep, $rowref->{'zstep_range'}))
-                && (!$rowref->{'time_range'} || &in_range($time, $rowref->{'time_range'}))) {
+                && ((!$rowref->{'xstep_min'} && !$rowref->{'xstep_max'}) || &in_range($xstep, "$rowref->{'xstep_min'}-$rowref->{'xstep_max'}"))
+                && ((!$rowref->{'ystep_min'} && !$rowref->{'ystep_max'}) || &in_range($ystep, "$rowref->{'ystep_min'}-$rowref->{'ystep_max'}"))
+                && ((!$rowref->{'zstep_min'} && !$rowref->{'zstep_max'}) || &in_range($zstep, "$rowref->{'zstep_min'}-$rowref->{'zstep_max'}"))
+                && ((!$rowref->{'time_min'} && !$rowref->{'time_max'}) || &in_range($time, "$rowref->{'time_min'}-$rowref->{'time_max'}"))) {
                     return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
             }
         }
@@ -745,9 +745,9 @@ sub scan_type_text_to_id {
 
 =head3 in_range($value, $range_string)
 
-Determines whether numerical value falls within the range described by range
-string. Range string is a comma-separated list of range units. A single range
-unit follows the syntax either "X" or "X-Y".
+Determines whether numerical value falls within the range described by
+C<range string>.  C<range string> is a concatenation of a hyphen-separated
+MIN and MAX values. 
 
 INPUTS: numerical value and the range to use
 
@@ -763,20 +763,11 @@ sub in_range
     return 0 unless $range_string;
     return 0 unless defined($value);
 
-    my @ranges = split(/,/, $range_string);
 
-    my $range = 0;
-    foreach $range (@ranges) {
-       chomp($range);
-       if($range=~/^[0-9.]+$/) { ## single value element
-           return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
-       } else { ## range X-Y
-           $range =~ /([0-9.]+)-([0-9.]+)/;
-           return 1 if ($1 <= $value && $value <= $2) 
-               || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
-               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
-       }
-    }
+    my @range = split(/-/, $range_string);
+    return 1 if (($range[0] <= $value && $value <= $range[1]) 
+               || &floats_are_equal($value, $range[0], $FLOAT_EQUALS_NB_DECIMALS) 
+               || &floats_are_equal($value, $range[1], $FLOAT_EQUALS_NB_DECIMALS));
 
     ## if we've gotten this far, we're out of range.
     return 0;
