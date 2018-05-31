@@ -765,7 +765,7 @@ sub in_range
 
     chomp($range_string);
     if($range_string=~/^[0-9.]+$/) { ## single value element
-        return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
+        return 1 if &floats_are_equal($value, $range_string, $FLOAT_EQUALS_NB_DECIMALS);
     } else { ## range_string X-Y
         $range_string =~ /([0-9.]+)-([0-9.]+)/;
         return 1 if ($1 <= $value && $value <= $2) 
