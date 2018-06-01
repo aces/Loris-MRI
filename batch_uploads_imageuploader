@@ -4,19 +4,18 @@
 
 =head1 NAME
 
-batch_uploads_imageuploader -- a script that runs imaging_upload_file.pl in
+batch_uploads_imageuploader -- a script that runs C<imaging_upload_file.pl> in
 batch mode
 
 =head1 SYNOPSIS
 
-./batch_uploads_imageuploader -profile prod < list_of_scans.txt > log_batch_imageuploader.txt 2>&1 `[options]`
+./batch_uploads_imageuploader -profile prod < list_of_scans.txt > log_batch_imageuploader.txt 2>&1 C[options]>
 
 Available options are:
 
--profile      : name of the config file in
-                C<../dicom-archive/.loris_mri>
+-profile: name of the config file in C<../dicom-archive/.loris_mri>
 
--verbose      : if set, be verbose
+-verbose: if set, be verbose
 
 
 =head1 DESCRIPTION
@@ -274,9 +273,9 @@ close MAIL;
 
 Function that inserts into the C<mri_upload> table entries for data coming from
 the list of scans in the text file provided when calling
-batch_upload_imageuploader
+C<batch_upload_imageuploader>
 
-INPUTS  :
+INPUTS:
     - $patientname  : The patient name
     - $phantom      : 'Y' if the entry is for a phantom,
                       'N' otherwise
@@ -319,14 +318,6 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

@@ -128,8 +128,8 @@ sub loadFile {
 
 =head3 findFile($filename)
 
-Finds the FileID pertaining to a file as defined by parameter C<$filename>,
-which is a full /path/to/file.
+Finds the C<FileID> pertaining to a file as defined by parameter C<$filename>,
+which is a full C</path/to/file>.
 
 INPUT: full path to the file to look for an ID in the database.
 
@@ -368,7 +368,9 @@ sub loadFileFromDisk {
 
 Sets the fileData property named C<$propertyName> to the value of C<$value>.
 
-INPUT: name of the fileData property, value of the fileData property to be set
+INPUTS:
+  - $paramName: name of the C<fileData> property
+  - $value    : value of the C<fileData> property to be set
 
 =cut
 
@@ -393,7 +395,9 @@ sub setFileData {
 
 Sets the parameter named C<$parameterName> to the value of C<$value>.
 
-INPUT: name of the parameter, value of the parameter to be set
+INPUTS:
+  - $paramName: name of the parameter
+  - $value    : value of the parameter to be set
 
 =cut
 
@@ -443,12 +447,12 @@ sub removeParameter {
 
 =head3 getParameterTypeID($parameter)
 
-Gets the ParameterTypeID for the parameter C<$parameter>.  If C<$parameter>
+Gets the C<ParameterTypeID> for the parameter C<$parameter>.  If C<$parameter>
 does not exist, it will be created.
 
 INPUT: name of the parameter type
 
-RETURNS: (int) ParameterTypeID
+RETURNS: C<ParameterTypeID> (int)
 
 =cut
 
@@ -518,9 +522,7 @@ __END__
 Other operations should be added: perhaps C<get*> methods for those fields in
 the C<files> table which are lookup fields.
 
-=head1 BUGS
-
-None reported.
+Fix comments written as #fixme in the code.
 
 =head1 COPYRIGHT AND LICENSE
 

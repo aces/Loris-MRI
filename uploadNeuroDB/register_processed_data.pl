@@ -13,7 +13,7 @@ perl register_processed_data.pl C<[options]>
 
 Available options are:
 
--profile        : name of config file in ../dicom-archive/.loris_mri
+-profile        : name of config file in C<../dicom-archive/.loris_mri>
 
 -file           : file that will be registered in the database
                    (full path from the root directory is required)
@@ -22,10 +22,10 @@ Available options are:
                    to obtain the file to be registered in the database
 
 -sourcePipeline : pipeline name that was used to obtain the file to be
-                   registered (example: DTIPrep_pipeline)
+                   registered (example: C<DTIPrep_pipeline>)
 
 -tool           : tool name and version that was used to obtain the
-                   file to be registered (example: DTIPrep_v1.1.6)
+                   file to be registered (example: C<DTIPrep_v1.1.6>)
 
 -pipelineDate   : date at which the processing pipeline was run
 
@@ -48,7 +48,7 @@ the database.
 
 =head1 DESCRIPTION
 
-This script inserts processed data in the files and parameter_file tables.
+This script inserts processed data in the C<files> and C<parameter_file> tables.
 
 =head2 Methods
 
@@ -350,7 +350,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 getSessionID($sourceFileID, $dbh)
 
-This function returns the sessionID based on the provided sourceFileID.
+This function returns the C<SessionID> based on the provided C<sourceFileID>.
 
 INPUTS:
   - $sourceFileID: source FileID
@@ -395,10 +395,11 @@ sub getSessionID    {
 
 =head3 getScannerID($sourceFileID, $dbh)
 
-This function gets the ScannerID from the C<files> table using sourceFileID
+This function gets the C<ScannerID> from the C<files> table using
+C<sourceFileID>.
 
 INPUTS:
-  - $sourceFileID: source FileID
+  - $sourceFileID: source C<FileID>
   - $dbh         : database handle
 
 RETURNS: scanner ID
@@ -429,8 +430,8 @@ sub getScannerID    {
 
 =head3 getAcqProtID($scanType, $dbh)
 
-This function returns the AcquisitionProtocolID of the file to register in the
-database based on scanType in the C<mri_scan_type> table.
+This function returns the C<AcquisitionProtocolID> of the file to register in
+the database based on C<scanType> in the C<mri_scan_type> table.
 
 INPUTS:
   - $scanType: scan type
@@ -496,7 +497,7 @@ Moves files to C<assembly> folder.
 
 INPUTS:
   - $filename     : file to copy
-  - $subjectIDsref: subject ID hashref
+  - $subjectIDsref: subject ID hash ref
   - $scan_type    : scan type
   - $fileref      : file hash ref
 
@@ -552,7 +553,7 @@ sub copy_file {
 
 =head3 getSourceFilename($sourceFileID)
 
-Greps source file name from the database using SourceFileID.
+Greps source file name from the database using C<SourceFileID>.
 
 INPUT: ID of the source file
 
@@ -590,7 +591,7 @@ sub getSourceFilename {
 
 Determines where the MINC files will go.
 
-INPUT: subject ID hashref
+INPUT: subject ID hash ref
 
 RETURNS: directory where the MINC files will go
 
@@ -650,14 +651,6 @@ sub insert_intermedFiles {
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

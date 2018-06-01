@@ -56,19 +56,20 @@ Below is a list of the possible exit codes:
 
 ##### ---- SECTION 2: SCRIPT SPECIFIC EXIT CODES NOT COVERED IN SECTION 1
 
-7. Exit codes from batch_uploads_imageuploader (exit codes from 150 to 159)
+7. Exit codes from C<batch_uploads_imageuploader> (exit codes from 150 to 159)
 
-8. Exit codes from DTIPrep/DTIPrepRegister.pl (exit codes from 160 to 169)
+8. Exit codes from C<DTIPrep/DTIPrepRegister.pl> (exit codes from 160 to 169)
 
-9. Exit codes from uploadNeuroDB/NeuroDB/ImagingUpload.pm (exit codes from
+9. Exit codes from C<uploadNeuroDB/NeuroDB/ImagingUpload.pm> (exit codes from
 170 to 179)
 
-10. Exit codes from uploadNeuroDB/minc_insertion.pl (exit codes from 180 to 189)
+10. Exit codes from C<uploadNeuroDB/minc_insertion.pl> (exit codes from 180
+to 189)
 
-11. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 190 to 199)
+11. Exit codes from C<uploadNeuroDB/tarchiveLoader> (exit codes from 190 to 199)
 
-12. Exit codes from uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200
-to 210)
+12. Exit codes from C<uploadNeuroDB/NeuroDB/bin/minc2jiv.pl> (exit codes from
+200 to 210)
 
 
 =head1 LICENSING
@@ -188,5 +189,3 @@ our $NO_VALID_MINC_CREATED = 190; # if no valid MINC file was created
 ## -- FROM uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200 to 210)
 
 our $REGISTER_PROGRAM_FAILURE = 200; # if MNI::Spawn::RegisterPrograms failed
-
-## -- FROM

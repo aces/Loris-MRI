@@ -35,9 +35,11 @@ use NeuroDB::ExitCodes;
 
 Creates a new instance of this class.
 
-INPUTS: DICOM directory, target location
+INPUTS:
+  - $dcm_dir: DICOM directory
+  - $tmp_dir: target location
 
-RETURNS: a DICOM::DCMSUM object
+RETURNS: a C<DICOM::DCMSUM> object
 
 =cut
 
@@ -86,18 +88,18 @@ sub new {
 
 =pod 
 
-=head3 database($dbh, $meta, $update, $tarType, $tarLog, $DCMmd5, ...)
+=head3 database($dbh, $meta, $update, $tarType, $tarLog, $DCMmd5, $Archivemd5, $Archive, $neurodbCenterName)
 
-Inserts or updates the tarchive tables.
+Inserts or updates the C<tarchive> tables.
 
 INPUTS:
   - $dbh              : database handle
   - $meta             : name of the .meta file
-  - $update           : set to 1 to update tarchive entry, 0 otherwise
+  - $update           : set to 1 to update C<tarchive> entry, 0 otherwise
   - $tarType          : tar type version
   - $tarLog           : name of the .log file
   - $DCMmd5           : DICOM MD5SUM
-  - $Archivemd5       : tarchive MD5SUM
+  - $Archivemd5       : DICOM archive MD5SUM
   - $Archive          : archive location
   - $neurodbCenterName: center name
 
@@ -431,7 +433,7 @@ QUERY
 
 =head3 read_file($file)
 
-Reads the content of a file (typically .meta file in the tarchive).
+Reads the content of a file (typically .meta file in the DICOM archive).
 
 INPUT: the file to be read
 
@@ -782,10 +784,10 @@ sub fill_header {
 =head3 confirm_single_study()
 
 Confirms that only one DICOM study is in the DICOM directory to be archived.
-Returns False if there is more than one StudyUID, otherwise it returns that
-StudyUID.
+Returns C<False> if there is more than one C<StudyUID>, otherwise it returns
+that C<StudyUID>.
 
-RETURNS: StudyUID found in the DICOM directory, or false if more than one
+RETURNS: C<StudyUID> found in the DICOM directory, or C<false> if more than one
 study was found
 
 =cut
@@ -1149,9 +1151,10 @@ sub date_format {
 
 =head3 md5sum($filename)
 
-Computes the MD5 sum of a file and outputs a format similar to md5sum on Linux.
+Computes the MD5 sum of a file and outputs a format similar to C<md5sum> on
+Linux.
 
-INPUT: file name to use to computer MD5 sum
+INPUT: file name to use to compute MD5 sum
 
 RETURNS: MD5 sum of the file
 
@@ -1171,10 +1174,6 @@ sub md5sum {
 =head1 TO DO
 
 Fix comments written as #fixme in the code.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

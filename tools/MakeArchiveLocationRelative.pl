@@ -6,7 +6,7 @@
 
 MakeArchiveLocationRelative.pl -- Removes the root directory from the
 C<ArchiveLocation> field in the C<tarchive> table to make the path to the
-tarchive relative.
+DICOM archive relative.
 
 =head1 SYNOPSIS
 
@@ -14,7 +14,7 @@ perl MakeArchiveLocationRelative.pl C<[options]>
 
 Available option is:
 
--profile: name of the config file in ../dicom-archive/.loris_mri
+-profile: name of the config file in C<../dicom-archive/.loris_mri>
 
 =head1 DESCRIPTION
 
@@ -114,7 +114,9 @@ This function will grep all the C<TarchiveID> and associated C<ArchiveLocation>
 present in the C<tarchive> table and will create a hash of this information
 including new C<ArchiveLocation> to be inserted into the database.
 
-INPUTS database handle, location of the C<tarchive> directory
+INPUTS:
+  - $dbh               : database handle
+  - $tarchiveLibraryDir: location of the C<tarchive> directory
 
 RETURNS: hash with tarchive information and new archive location
 
@@ -162,7 +164,9 @@ QUERY
 
 This function will update the C<tarchive> table with the new C<ArchiveLocation>.
 
-INPUTS: database handle, hash with C<tarchive> information.
+INPUTS:
+  - $dbh          : database handle
+  - %tarchive_list: hash with C<tarchive> information.
 
 =cut
 
@@ -199,14 +203,6 @@ QUERY
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

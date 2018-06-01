@@ -4,7 +4,8 @@
 
 =head1 NAME
 
-batch_uploads_tarchive - upload a batch of tarchives using script tarchiveLoader
+batch_uploads_tarchive - upload a batch of DICOM archives using script
+C<tarchiveLoader>
 
 =head1 SYNOPSIS
 
@@ -12,38 +13,39 @@ batch_uploads_tarchive - upload a batch of tarchives using script tarchiveLoader
 
 =head1 DESCRIPTION
 
-This script uploads a list of tarchive files to the database by calling script 
+This script uploads a list of DICOM archives to the database by calling script
 C<tarchiveLoader> on each file in succession. The list of files to process is read 
-from STDIN, one file name per line. Each file name is assumed to be a path relative 
-to C<tarchiveLibraryDir> (see below).
+from C<STDIN>, one file name per line. Each file name is assumed to be a path
+relative to C<tarchiveLibraryDir> (see below).
 
 The following settings of file F<$ENV{LORIS_CONFIG}/.loris-mri/prod> affect the 
-behvavior of batch_uploads_tarchive (where C<$ENV{LORIS_CONFIG}> is the value of
-the Unix environment variable LORIS_CONFIG):
+behvaviour of batch_uploads_tarchive (where C<$ENV{LORIS_CONFIG}> is the
+value of the Unix environment variable C<LORIS_CONFIG>):
 
 =over 4
 
 =item *
-B<dataDirBasepath> : controls where the STDOUT and STDERR of each qsub command
-  (see below) will go, namely in 
+B<dataDirBasepath> : controls where the C<STDOUT> and C<STDERR> of each qsub
+command (see below) will go, namely in
   F<< $dataDirBasepath/batch_output/tarstdout.log<index> >> and
   F<< $dataDirBasepath/batch_output/tarstderr.log<index> >>
-  (where C<< <index> >> is the index of the tarchive file processed, the first file having
-   index 1).
+  (where C<< <index> >> is the index of the DICOM archive processed, the
+  first file having index 1).
    
 =item * 
-B<tarchiveLibraryDir>: directory that contains the tarchive files to process. The path
-  of the files listed on STDIN should be relative to this directory.
+B<tarchiveLibraryDir>: directory that contains the DICOM archives to process.
+The path of the files listed on C<STDIN> should be relative to this directory.
   
 =item *
-B<is_qsub>: whether the output (STDOUT) of each tarchiveLoader command should be
-  processed by the qsub Unix command (allows batch execution of jobs on the 
-  Sun Grid Engine, if available). If set, then the qsub command will send its STDOUT
-  and STDERR according to the value of dataDirBasepath (see above). 
+B<is_qsub>: whether the output (STDOUT) of each C<tarchiveLoader> command
+should be processed by the C<qsub> Unix command (allows batch execution of jobs
+on the Sun Grid Engine, if available). If set, then the C<qsub> command will
+send its C<STDOUT> and C<STDERR> according to the value of C<dataDirBasepath>
+(see above).
   
 =item *
 B<mail_use>: upon completion of the script, an email will be sent to email address
-  $mail_user cointaining the list of files processed by batch_upload_tarchive
+  $mail_user containing the list of files processed by C<batch_uploads_tarchive>
   
 =back
 
@@ -69,10 +71,6 @@ The database hostname
 =head1 TO DO
 
 Code cleanup: remove unused C<-D> and C<-v> program arguments
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

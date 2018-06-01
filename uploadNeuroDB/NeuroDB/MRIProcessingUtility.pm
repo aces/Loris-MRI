@@ -78,7 +78,7 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 
 =head3 new($dbhr, $debug, $TmpDir, $logfile, $verbose) >> (constructor)
 
-Creates a new instance of this class. The parameter `\$dbhr` is a reference
+Creates a new instance of this class. The parameter C<$dbhr> is a reference
 to a DBI database handle, used to set the object's database handle, so that all
 the DB-driven methods will work.
 
@@ -136,7 +136,10 @@ sub new {
 Writes error log. This is a useful function that will close the log and write
 error messages in case of abnormal program termination.
 
-INPUTS: notification message, fail status of the process, log directory
+INPUTS:
+  - $message   : notification message
+  - $failStatus: fail status of the process
+  - $LogDir    : log directory
 
 =cut
 
@@ -156,12 +159,14 @@ sub writeErrorLog {
 
 =pod
 
-=head3 lookupNextVisitLabel($candID, $dbhr)
+=head3 lookupNextVisitLabel($CandID, $dbhr)
 
 Will look up for the next visit label of candidate C<CandID>. Useful only if
 the visit label IS NOT encoded somewhere in the patient ID or patient name.
 
-INPUTS: candidate's CandID, database handle reference
+INPUTS:
+  - $CandID: candidate's C<CandID>
+  - $dbhr  : database handle reference
 
 RETURNS: next visit label found for the candidate
 
@@ -192,11 +197,13 @@ sub lookupNextVisitLabel {
 =head3 getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
 
 Will extract from the C<tarchive_files> table a list of DICOM files
-matching a given SeriesUID.
+matching a given C<SeriesUID>.
 
-INPUTS: seriesUID, list of tar files
+INPUTS:
+  - $seriesUID  : C<SeriesUID> to use for matching
+  - @alltarfiles: list of DICOM files matching the C<SeriesUID>
 
-RETURNS: list of DICOM files corresponding to the seriesUID
+RETURNS: list of DICOM files corresponding to the C<SeriesUID>
 
 =cut
 
@@ -241,7 +248,7 @@ sub getFileNamesfromSeriesUID {
 Extracts the DICOM archive so that data can actually be uploaded.
 
 INPUTS:
-  - $tarchive : path to the archive
+  - $tarchive : path to the DICOM archive
   - $upload_id: upload ID of the study
   - $seriesuid: optionally a series UID
 
@@ -298,7 +305,7 @@ sub extract_tarchive {
 Extracts and parses the DICOM archive.
 
 INPUTS:
-  - $tarchive : path to the archive
+  - $tarchive : path to the DICOM archive
   - $upload_id: upload ID of the study
   - $seriesuid: optionally a series UID
 
@@ -333,15 +340,15 @@ sub extractAndParseTarchive {
 
 =head3 determineSubjectID($scannerID, $tarchiveInfo, $to_log, $upload_id)
 
-Determines subject's ID based on scanner ID and archive information.
+Determines subject's ID based on scanner ID and DICOM archive information.
 
 INPUTS:
   - $scannerID   : scanner ID,
-  - $tarchiveInfo: archive information hashref,
+  - $tarchiveInfo: DICOM archive information hash ref,
   - $to_log      : boolean if this step should be logged
   - $upload_id   : upload ID of the study
 
-RETURNS: subject's ID hashref containing CandID, PSCID and Visit Label
+RETURNS: subject's ID hash ref containing C<CandID>, C<PSCID> and Visit Label
 information
 
 =cut
@@ -385,12 +392,14 @@ sub determineSubjectID {
 
 =head3 createTarchiveArray($tarchive, $globArchiveLocation)
 
-Creates the tarchive information hashref.
+Creates the DICOM archive information hash ref.
 
-INPUTS: tarchive's path, globArchiveLocation argument specified when running
-the insertion scripts
+INPUTS:
+  - $tarchive           : tarchive's path
+  - $globArchiveLocation: globArchiveLocation argument specified when running
+                           the insertion scripts
 
-RETURNS: tarchive information hashref
+RETURNS: DICOM archive information hash ref
 
 =cut
 
@@ -436,10 +445,10 @@ sub createTarchiveArray {
 
 =head3 determinePSC($tarchiveInfo, $to_log, $upload_id)
 
-Determines the PSC based on the DICOM archive information hashref.
+Determines the PSC based on the DICOM archive information hash ref.
 
 INPUTS:
-  - $tarchiveInfo: archive information hashref
+  - $tarchiveInfo: DICOM archive information hash ref
   - $to_log      : boolean, whether this step should be logged
   - $upload_id   : upload ID of the study
 
@@ -483,12 +492,12 @@ sub determinePSC {
 
 =pod
 
-=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $NewScanner, ...)
+=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $NewScanner, $upload_id)
 
 Determines which scanner ID was used for DICOM acquisitions.
 
 INPUTS:
-  - $tarchiveInfo: archive information hashref
+  - $tarchiveInfo: archive information hash ref
   - $to_log      : whether this step should be logged
   - $centerID    : center ID
   - $NewScanner  : whether a new scanner entry should be created if the scanner
@@ -569,7 +578,9 @@ sub get_acquisitions {
 
 Computes the MD5 hash of a file and makes sure it is unique.
 
-INPUTS: file to use to compute the MD5 hash, upload ID of the study
+INPUTS:
+  - $file     : file to use to compute the MD5 hash
+  - $upload_id: upload ID of the study
 
 RETURNS: 1 if the file is unique, 0 otherwise
 
@@ -594,7 +605,7 @@ sub computeMd5Hash {
 
 =pod
 
-=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, ...)
+=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center_name, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If C<$acquisitionProtocol> is not set, it will look for the acquisition
@@ -604,16 +615,19 @@ true, then it will bypass the additional protocol checks from the
 C<mri_protocol_checks> table using C<&extra_file_checks>.
 
 INPUTS:
-  - $file                    : file's information hashref
-  - $subjectIDsref           : subject's information hashref
-  - $tarchiveInfo            : tarchive's information hashref
+  - $file                    : file's information hash ref
+  - $subjectIDsref           : subject's information hash ref
+  - $tarchiveInfo            : DICOM archive's information hash ref
   - $center_name             : center name
   - $minc                    : absolute path to the MINC file
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass_extra_file_checks: boolean, if set bypass the extra checks
   - $upload_id               : upload ID of the study
 
-RETURNS: acquisition protocol, acquisition protocol ID, array of extra checks
+RETURNS:
+  - $acquisitionProtocol  : acquisition protocol
+  - $acquisitionProtocolID: acquisition protocol ID
+  - @checks               : array of extra checks
 
 =cut
 
@@ -689,8 +703,8 @@ this information here since the file isn't registered in the database yet.
 
 INPUTS:
   - $scan_type  : scan type of the file
-  - $file       : file information hashref
-  - $CandID     : candidate's CandID
+  - $file       : file information hash ref
+  - $CandID     : candidate's C<CandID>
   - $Visit_Label: visit label of the scan
   - $PatientName: patient name of the scan
 
@@ -771,9 +785,12 @@ sub extra_file_checks() {
 
 =head3 update_mri_acquisition_dates($sessionID, $acq_date)
 
-Updates the mri_acquisition_dates table by a new acquisition date C<$acq_date>.
+Updates the C<mri_acquisition_dates> table by a new acquisition date
+C<$acq_date>.
 
-INPUTS: session ID, acquisition date
+INPUTS:
+  - $sessionID: session ID
+  - $acq_date : acquisition date
 
 =cut
 
@@ -815,9 +832,11 @@ sub update_mri_acquisition_dates {
 
 Loads and creates the object file.
 
-INPUTS: location of the minc file, upload ID of the study
+INPUTS:
+  - $minc     : location of the minc file
+  - $upload_id: upload ID of the study
 
-RETURNS: file information hashref
+RETURNS: file information hash ref
 
 =cut
 
@@ -853,18 +872,18 @@ sub loadAndCreateObjectFile {
 
 =pod
 
-=head3 move_minc($minc, $subjectIDsref, $minc_type, $fileref, $prefix, ...)
+=head3 move_minc($minc, $subjectIDsref, $minc_type, $fileref, $prefix, $data_dir, $tarchive_srcloc, $upload_id)
 
 Renames and moves the MINC file.
 
 INPUTS:
   - $minc           : path to the MINC file
-  - $subjectIDsref  : subject's ID hashref
-  - $minc_type      : MINC file information hashref
-  - $fileref        : file information hashref
+  - $subjectIDsref  : subject's ID hash ref
+  - $minc_type      : MINC file information hash ref
+  - $fileref        : file information hash ref
   - $prefix         : study prefix
-  - $data_dir       : data directory (typically /data/project/data)
-  - $tarchive_srcloc: tarchive source location
+  - $data_dir       : data directory (e.g. C</data/$PROJECT/data>)
+  - $tarchive_srcloc: DICOM archive source location
   - $upload_id      : upload ID of the study
 
 RETURNS: new name of the MINC file with path relative to C<$data_dir>
@@ -922,14 +941,14 @@ sub move_minc {
 
 =pod
 
-=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, ...)
+=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $checks, $reckless, $sessionID, $upload_id)
 
 Registers the scan into the database.
 
 INPUTS:
-  - $minc_file          : MINC file information hashref
-  - $tarchiveInfo       : tarchive information hashref
-  - $subjectIDsref      : subject's ID information hashref
+  - $minc_file          : MINC file information hash ref
+  - $tarchiveInfo       : tarchive information hash ref
+  - $subjectIDsref      : subject's ID information hash ref
   - $acquisitionProtocol: acquisition protocol
   - $minc               : MINC file to register into the database
   - $checks             : failed checks to register with the file
@@ -1055,15 +1074,15 @@ sub registerScanIntoDB {
 
 =pod
 
-=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, $exclude, ...)
+=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, $exclude, $mail_user, $upload_id)
 
 Converts a DICOM study into MINC files.
 
 INPUTS:
   - $study_dir      : DICOM study directory to convert
   - $converter      : converter to be used
-  - $get_dicom_info : get DICOM information setting from the Config table
-  - $exclude        : which files to exclude from the dcm2mnc command
+  - $get_dicom_info : get DICOM information setting from the C<Config> table
+  - $exclude        : which files to exclude from the C<dcm2mnc> command
   - $mail_user      : mail of the user
   - $upload_id      : upload ID of the study
 
@@ -1120,7 +1139,9 @@ sub dicom_to_minc {
 
 Greps the created MINC files and returns a sorted list of those MINC files.
 
-INPUTS: empty array to store the list of MINC files, upload ID of the study
+INPUTS:
+  - $minc_files: empty array to store the list of MINC files
+  - $upload_id : upload ID of the study
 
 =cut
 
@@ -1234,14 +1255,14 @@ sub registerProgs() {
 =head3 moveAndUpdateTarchive($tarchive_location, $tarchiveInfo, $upload_id)
 
 Moves and updates the C<tarchive> table with the new location of the
-C<tarchive>.
+DICOM archive.
 
 INPUTS:
-  - $tarchive_location: C<tarchive location>,
-  - $tarchiveInfo     : C<tarchive> information hashref,
+  - $tarchive_location: DICOM archive location
+  - $tarchiveInfo     : DICOM archive information hash ref
   - $upload_id        : upload ID of the study
 
-RETURNS: the new C<tarchive> location
+RETURNS: the new DICOM archive location
 
 =cut
 
@@ -1299,14 +1320,14 @@ sub moveAndUpdateTarchive {
 
 =pod
 
-=head3 CreateMRICandidates($subjectIDsref, $gender, $tarchiveInfo, $User, ...)
+=head3 CreateMRICandidates($subjectIDsref, $gender, $tarchiveInfo, $User, $centerID, $upload_id)
 
-Registers a new candidate in the candidate table.
+Registers a new candidate in the C<candidate> table.
 
 INPUTS:
-  - $subjectIDsref: subject's ID information hashref
+  - $subjectIDsref: subject's ID information hash ref
   - $gender       : gender of the candidate
-  - $tarchiveInfo : tarchive information hashref
+  - $tarchiveInfo : tarchive information hash ref
   - $User         : user that is running the pipeline
   - $centerID     : center ID
   - upload_id     : upload ID of the study
@@ -1389,16 +1410,17 @@ sub CreateMRICandidates {
 
 Sets the imaging session ID. This function will call
 C<&NeuroDB::MRI::getSessionID> which in turn will either:
-  - grep sessionID if visit for that candidate already exists, or
-  - create a new session if visit label does not exist for that
-     candidate yet
+  - grep the session ID if visit for that candidate already exists, or
+  - create a new session if visit label does not exist for that candidate yet
 
 INPUTS:
-  - $subjectIDsref: subject's ID information hashref
-  - $tarchiveInfo : archive information hashref
+  - $subjectIDsref: subject's ID information hashr ef
+  - $tarchiveInfo : DICOM archive information hash ref
   - $upload_id    : upload ID of the study
 
-RETURNS: session ID, if the new session requires staging
+RETURNS:
+  - $sessionID      : session ID
+  - $requiresStaging: whether the new session requires staging
 
 =cut
 
@@ -1457,13 +1479,13 @@ sub setMRISession {
 =head3 validateArchive($tarchive, $tarchiveInfo, $upload_id)
 
 Validates the DICOM archive by comparing the MD5 of the C<$tarchive file> and
-the one stored in the tarchive information hashref C<$tarchiveInfo> derived
+the one stored in the tarchive information hash ref C<$tarchiveInfo> derived
 from the database. The function will exits with an error message if the
-tarchive is not validated.
+DICOM archive is not validated.
 
 INPUTS:
-  - $tarchive    : archive file
-  - $tarchiveInfo: archive information hashref
+  - $tarchive    : DICOM archive file
+  - $tarchiveInfo: DICOM archive information hash ref
   - $upload_id   : upload ID of the study
 
 =cut
@@ -1503,11 +1525,12 @@ sub validateArchive {
 
 Determines where the MINC files to be registered into the database will go.
 
-INPUTS: subject's ID information hashref, data directory (typically
-/data/project/data)
+INPUTS:
+   - $subjectIDsref: subject's ID information hashref
+   - $data_dir     : data directory (e.g. C</data/$PROJECT/data>)
 
 RETURNS: the final directory in which the registered MINC files will go
-(typically /data/project/data/assembly/CandID/visit/mri/)
+(typically C</data/$PROJECT/data/assembly/CandID/visit/mri/>)
 
 =cut
 
@@ -1524,13 +1547,13 @@ sub which_directory {
 
 =pod
 
-=head3 validateCandidate($subjectIDsref, $tarchive_srcloc)
+=head3 validateCandidate($subjectIDsref)
 
 Check that the candidate's information derived from the patient name field of
-the DICOM files is valid (CandID and PSCID of the candidate should correspond
-to the same subject in the database).
+the DICOM files is valid (C<CandID> and C<PSCID> of the candidate should
+correspond to the same subject in the database).
 
-INPUTS: subject's ID information hashref, tarchive source location
+INPUT: subject's ID information hash ref
 
 RETURNS: the candidate mismatch error, or undef if the candidate is validated
 or a phantom
@@ -1609,7 +1632,7 @@ Computes the SNR on the modalities specified in the C<getSNRModalities()>
 routine of the C<$profile> file.
 
 INPUTS:
-  - $tarchiveID: archive ID
+  - $tarchiveID: DICOM archive ID
   - $upload_id : upload ID of the study
   - $profile   : configuration file (usually prod)
 
@@ -1678,7 +1701,9 @@ sub computeSNR {
 
 Order imaging modalities by acquisition number.
 
-INPUTS: archive ID, upload ID of the study
+INPUTS:
+  - $tarchiveID: DICOM archive ID
+  - $uploadID  : upload ID of the study
 
 =cut
 
@@ -1788,13 +1813,13 @@ sub getUploadIDUsingTarchiveSrcLoc {
 
 =head3 spool($message, $error, $upload_id, $verb)
 
-Calls the Notify->spool function to log all messages.
+Calls the C<Notify->spool> function to log all messages.
 
 INPUTS:
   - $message   : message to be logged in the database
-  - $error     : if 'Y' it's an error log,
+  - $error     : 'Y' for an error log,
                  'N' otherwise
-  - $upload_id : the upload_id
+  - $upload_id : the ID of the upload
   - $verb      : 'N' for few main messages,
                  'Y' for more messages (developers)
 
@@ -1825,9 +1850,7 @@ Document the following functions:
 
 Remove function get_acqusitions($study_dir, \@acquisitions) that is not used
 
-=head1 BUGS
-
-None reported (or list of bugs)
+Fix comments written as #fixme in the code
 
 =head1 LICENSING
 
