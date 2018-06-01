@@ -6,7 +6,7 @@ Dependencies and installation information are documented on the LORIS-MRI
   [README.md](../README.md) file.
 
 
-## 2.2 Configuration
+## <a name="configuration"></a> 2.2 Configuration
 
 Following a successful install, some configurations and customizations are 
 needed and outlined in the next three sub-sections.
@@ -206,7 +206,7 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
     Used for the DTIPrep pipeline
 
 
-## 2.3 Post-installation checks
+## <a name="post-installation-checks"> 2.3 Post-installation checks
 
 #### 2.3.1 Make sure the environment file is writable by Apache
 
