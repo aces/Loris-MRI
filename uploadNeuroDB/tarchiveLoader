@@ -442,9 +442,7 @@ my ($sessionID, $requiresStaging) =
 ###### Dir to the uploader #####################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id, $seriesuid
-    );
+    $utility->extractAndParseTarchive($tarchive, $upload_id, $seriesuid);
 
 
 ################################################################
