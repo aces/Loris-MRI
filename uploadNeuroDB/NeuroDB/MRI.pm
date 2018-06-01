@@ -729,7 +729,7 @@ sub scan_type_id_to_text {
         );
     }
     
-    return $mriScanTypeRef->[0]->[1];
+    return $mriScanTypeRef->[0]->{'Scan_type'};
 }
 
 =pod
@@ -763,7 +763,7 @@ sub scan_type_text_to_id {
         );
     }
     
-    return $mriScanTypeRef->[0]->[0];
+    return $mriScanTypeRef->[0]->{'ID'};
 }
 
 

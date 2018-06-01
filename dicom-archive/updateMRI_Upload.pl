@@ -100,6 +100,8 @@ use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
 
+use NeuroDB::MRI;
+
 use NeuroDB::Database;
 use NeuroDB::DatabaseException;
 
@@ -235,6 +237,9 @@ my $db = NeuroDB::Database->new(
 );
 $db->connect();
 
+my $xxxxx = &NeuroDB::MRI::scan_type_text_to_id('scout', $db);
+my $yyyyy = &NeuroDB::MRI::scan_type_id_to_text(52, $db);
+
 ################################################################
 #####check to see if the tarchiveid is already set or not#######
 ######if it's already in the mri_upload table then it will######
@@ -256,7 +261,7 @@ my $resultRef = $mriUploadOB->getWithTarchive(
     GET_COUNT, $tarchive_path, $globArchiveLocation
 );
 
-if($resultRef->[0]->[0] > 0) {
+if($resultRef->[0]->{'COUNT(*)'} > 0) {
    print "\n\tERROR: the tarchive is already uploaded \n\n";
    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 }
@@ -277,7 +282,7 @@ if(@$resultRef != 1) {
         scalar(@$resultRef)
     );
 }
-my $tarchiveID = $resultRef->[0]->[0];
+my $tarchiveID = $resultRef->[0]->{'TarchiveID'};
 
 ################################################################
  #####populate the mri_upload columns with the correct values####
