@@ -74,14 +74,15 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 
    Then source the .bashrc file.   
 
-**Installation complete!**
+**INSTALLATION COMPLETE!**
+
+For customizations and protocol configurations, refer to 
+[section 2.2](docs/02-Install.md#2.2-configuration)  of the
+[LORIS-MRI documentation](docs/scripts_md/).
 
 After having run the install script, it is possible to verify that certain
 fields were correctly populated by `imaging_install.sh`, please refer to
-[section 2.3](docs/scripts_md/02-Install.md#2.3-post-installation-checks) of the
+[section 2.3](docs/02-Install.md#2.3-post-installation-checks) of the
 [LORIS-MRI documentation](docs/scripts_md/).
 
-For customizations and protocol configurations, refer to 
-[section 2.2](docs/scripts_md/02-Install.md#2.2-configuration)  of the
-[LORIS-MRI documentation](docs/scripts_md/).
 
