@@ -1,6 +1,6 @@
-This Readme covers release 19.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 19.2 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
-This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 19.0.*.<br>
+This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 19.2.*.<br>
 For documentation and detailed setup information, please see the [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database)</b>.
 
 This repo can be installed on the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
@@ -66,10 +66,6 @@ Download the pre-compiled package for your operating system.  Install required d
   Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group.  To ensure this change takes effect, log out and log back into your terminal session before running the imaging pipeline.
 The installer will also set Apache group ownership of certain /data/ subdirectories.
 
-  After having run the install script, it is possible to verify that certain
-    fields were correctly populated by `imaging_install.sh` (see
-    [section 2.4](02-Install.md#2.4-post-installation-checks)).
-
 #### 4. Configure paths and environment
 
    Ensure that /home/lorisadmin/.bashrc includes the statement:
@@ -78,8 +74,14 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 
    Then source the .bashrc file.   
 
-<br>
-Installation complete.
+**Installation complete!**
 
-For customizations and protocol configurations, see LORIS Imaging Setup Guide : https://github.com/aces/Loris/wiki/Imaging-Database 
+After having run the install script, it is possible to verify that certain
+fields were correctly populated by `imaging_install.sh`, please refer to
+[section 2.3](docs/scripts_md/02-Install.md#2.3-post-installation-checks) of the
+[LORIS-MRI documentation](docs/scripts_md/).
+
+For customizations and protocol configurations, refer to 
+[section 2.2](docs/scripts_md/02-Install.md#2.2-configuration)  of the
+[LORIS-MRI documentation](docs/scripts_md/).
 
