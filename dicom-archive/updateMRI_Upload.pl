@@ -100,8 +100,6 @@ use File::Basename;
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
 
-use NeuroDB::MRI;
-
 use NeuroDB::Database;
 use NeuroDB::DatabaseException;
 
@@ -236,9 +234,6 @@ my $db = NeuroDB::Database->new(
     hostName     => $Settings::db[3]
 );
 $db->connect();
-
-my $xxxxx = &NeuroDB::MRI::scan_type_text_to_id('scout', $db);
-my $yyyyy = &NeuroDB::MRI::scan_type_id_to_text(52, $db);
 
 ################################################################
 #####check to see if the tarchiveid is already set or not#######
