@@ -156,14 +156,13 @@ if (!$DTIPrepVersion) {
 my  $dbh    =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # Needed for log file
-my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
-my  $log_dir     =  "$data_dir/logs/DTIPrep_register";
+my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
+$data_dir    =~ s/\/$//;   # removing trailing / in $data_dir
+my  $log_dir = "$data_dir/logs/DTIPrep_register";
 system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
-my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-my  $date        =  sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
-my  $log         =  "$log_dir/DTIregister$date.log";
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+my $date = sprintf("%4d-%02d-%02d_%02d:%02d:%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
+my $log  = "$log_dir/DTIregister$date.log";
 open(LOG,">>$log");
 print LOG "\n==> Successfully connected to database \n";
 print LOG "Log file, $date\n\n";
