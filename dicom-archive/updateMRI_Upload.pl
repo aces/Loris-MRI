@@ -256,7 +256,7 @@ my $resultRef = $mriUploadOB->getWithTarchive(
     GET_COUNT, $tarchive_path, $globArchiveLocation
 );
 
-if($resultRef->[0]->[0] > 0) {
+if($resultRef->[0]->{'COUNT(*)'} > 0) {
    print "\n\tERROR: the tarchive is already uploaded \n\n";
    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 }
@@ -277,7 +277,7 @@ if(@$resultRef != 1) {
         scalar(@$resultRef)
     );
 }
-my $tarchiveID = $resultRef->[0]->[0];
+my $tarchiveID = $resultRef->[0]->{'TarchiveID'};
 
 ################################################################
  #####populate the mri_upload columns with the correct values####

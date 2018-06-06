@@ -176,8 +176,15 @@ INPUTS:
     - select query to execute (containing the argument placeholders if any)
     - list of arguments to replace the placeholders with.
 
-RETURN: a reference to the array of records found. Each record is in fact a
-        reference to the list of values for the columns selected
+RETURN: a reference to an array of hash references. Every hash contains the values
+        for a given row returned by the select statement: the key/value pairs hold
+        the name of a column (as it appears in the C<SELECT> statement) and the value it 
+        contains, respectively. As an example, suppose array C<$r> is assigned the result 
+        of a C<pselect> call with query C<SELECT TarchiveId, SourceLocation FROM tarchive>.
+        One would fetch the C<TarchiveId> of the 4th record returned using C<$r->[3]->{'TarchiveId'}>.
+        If the query is of the form C<SELECT COUNT(*) FROM....>, then the method returns
+        a reference to an array containing a single hash reference, its unique key being 
+        C<'COUNT(*)'> with the associated value set to the selected count.
 =cut
 
 sub pselect {
@@ -188,7 +195,7 @@ sub pselect {
         my $sth = $self->dbh()->prepare($query);
         $sth->execute(@args);
 
-        return $sth->fetchall_arrayref;
+        return $sth->fetchall_arrayref({});
     } catch {
         NeuroDB::DatabaseException->throw(
             statement    => $query,

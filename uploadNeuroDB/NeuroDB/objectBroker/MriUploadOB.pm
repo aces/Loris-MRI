@@ -72,7 +72,9 @@ use NeuroDB::objectBroker::ObjectBrokerException;
 use TryCatch;
 
 # These are the only fields modified when inserting a new MRI upload record
-my @MRI_UPLOAD_FIELDS = ('UploadedBy' ,'UploadDate','TarchiveID','DecompressedLocation');
+my @MRI_UPLOAD_FIELDS = (
+    'UploadedBy' ,'UploadDate','TarchiveID','DecompressedLocation', 'UploadLocation', 'PatientName'
+);
 
 =pod
 
@@ -104,10 +106,15 @@ INPUTS:
     - boolean indicating if a match is sought on the full archive name
       or only the basename
 
-RETURNS: a reference to an array of array references. If C<$isCount> is true, then
-         C<$returnValue->[0]->[0]> will contain the count of records sought. Otherwise
-         C<$returnValue->[x]->[y]> will contain the value of the yth column (in array
-         C<@MRI_UPLOAD_FIELDS> for the xth record retrieved.
+RETURNS: a reference to an array of hash references. Every hash contains the values
+        for a given row returned by the method call: the key/value pairs contain
+        the name of a column (see C<@MRI_UPLOAD_FIELDS>) and the value it 
+        holds, respectively. As an example, suppose array C<$r> contains the result of a
+        given call to this function, one would fetch the C<UploadedBy> value of the third
+        record returned using C<$r->[2]->{'UploadedBy'}>.
+        If the method is called with C<$isCount> set to true, then it will return
+        a reference to an array containing a single hash reference, its unique key being 
+        C<'COUNT(*)'> with the associated value set to the selected count.
 
 =cut
 
@@ -171,7 +178,8 @@ sub insert {
     }
 
     try {
-        return $self->db->insertOne('mri_upload', $valuesRef);
+        my @results = $self->db->insertOne('mri_upload', $valuesRef);
+        return $results[0];
     } catch(NeuroDB::DatabaseException $e) {
         NeuroDB::objectBroker::ObjectBrokerException->throw(
             errorMessage => sprintf(

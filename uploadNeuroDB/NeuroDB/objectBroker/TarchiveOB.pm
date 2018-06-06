@@ -101,9 +101,12 @@ INPUTS:
     - boolean indicating if an exact match is sought (false) or if only basenames
       should be used when comparing two archive locations (true)
 
-RETURN: a reference to an array of array references. This "matrix" contains the
-        values of each colum for each record.
-
+RETURN: a reference to an array of hash references. Every hash contains the values for a given 
+        row returned by the function call: the key/value pairs contain the name of a column 
+        (as it appears in the array referenced by C<$fieldsRef>) and the value it holds, respectively.
+        As an example, suppose array C<$r> contains the result of a call to this method with 
+        C<@$fieldsRef> set to C<('TarchiveID', 'SourceLocation'> one would fetch the C<TarchiveID> 
+        of the 4th record returned using C<$r->[3]->{'TarchiveID'}>.
 =cut
 
 sub getByTarchiveLocation {

@@ -121,7 +121,7 @@ my $getConfigSettingRef = sub {
         );
     }
 
-    return $result->[0]->[0];
+    return $result->[0]->{'value'};
 };
 
 =head3 getTarchiveLibraryDir()
