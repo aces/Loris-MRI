@@ -266,7 +266,7 @@ Under the section `Path`:
  * `MINC files` (typically `/data/demo/data/`)
  * `Images` (typically `/data/demo/data/`)
 
-Click 'Submit' at the end of the Configuration page to save any changes.
+Click `Submit` at the end of the Configuration page to save any changes.
 
 #### 2.3.5 Troubleshooting guideline
 
