@@ -116,7 +116,7 @@ Patient Name/Patient ID header values are displayed in full, or show up as
 **INVALID-HIDDEN**.
 
 More detailed specifications can be consulted in the 
-[LORIS repository: DICOM Archive Specification](https://github.com/aces/Loris/blob/master/modules/dicom_arhive/README.md).
+[LORIS repository: DICOM Archive Specification](https://github.com/aces/Loris/blob/master/modules/dicom_archive/README.md).
 
 
 3. **Imaging Browser**
