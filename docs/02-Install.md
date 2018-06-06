@@ -32,61 +32,61 @@ If age is not a critical factor in study visit scheduling, define Min value as
 0, and Max value as 2147483647 (maximum `int`).
 
 
-Alternatively, LORIS provides a PHP script in its `tools/` directory 
-`populate_visit_windows.php` that can be used.
+Alternatively, LORIS provides a PHP script called `populate_visit_windows.php` 
+in its `tools/` directory that can be used.
 
 
 4. **`mri_scan_type`** and **`mri_protocol`** tables
 
-Ensure your `mri_scan_type` and `mri_protocol` tables contains an entry for 
+Ensure your `mri_scan_type` and `mri_protocol` tables contain an entry for 
 each type of scan in the study protocol.
 The `mri_protocol` table is used to identify incoming scans based on their 
-SeriesDescription **OR** scan parameter values (TE, TR, slice thickness, etc). 
+series description **OR** scan parameter values (TE, TR, slice thickness, etc). 
 By default, this table is populated with entries for t1, t2, fMRI and DTI, and 
-the columns defining expected scan parameters (e.g. `TE_Range`) are defined very 
-broadly.  
+the columns defining expected scan parameters (*e.g.* `TE_Range`) are defined 
+very broadly.  
 The `Scan_type` column values are defined in the `mri_scan_type` table 
-(e.g. 44=t1); do not include hyphens, spaces or periods in your 
+(*e.g.* 44=t1). Do not include hyphens, spaces or periods in your 
 `mri_scan_type.Scan_type` column values.
 
 5. **`Config`** table
 
 The `Config` table can also be accessed and customized from the LORIS front-end
-via the `Configuration` module, accessible under the Admin menu. Here are the 
+via the `Configuration` module, accessible under the `Admin` menu. Here are the 
 configuration settings that impact directly or indirectly the pipeline:
 
-Under the section `Study`:
+Under the `Study` section:
  * `ImagingUploader Auto Launch`: Used by the Imaging Uploader to automatically launch the insertion scripts on the uploaded scan
  
-Under the section `Paths`
+Under the `Paths` section: 
  * `Imaging Data`: Where the imaging data is stored; typically `/data/$PROJECT/data/`
  * `LORIS-MRI Code`: Where the MRI code base is installed; typically `/data/$PROJECT/bin/mri/`
  * `MRI-Upload Directory`: Where the uploaded scans get stored; typically `/data/incoming/`
  * `MINC Files`: Where the MINC images are stored; typically `/data/$PROJECT/data/`
  * `Images`: Where the images displayed in Imaging Browser are stored; typically `/data/$PROJECT/data/`
  
- Under the section `Imaging Modules`
+ Under the `Imaging Modules` section: 
   * `Patient ID regex`: Used by the DICOM Archive module to show/hide the PatientID info
   * `Patient name regex`: Used by the DICOM Archive module to show/hide the Patient Name info
   * `Lego phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
   * `Living phantom regex`: Used by the DICOM Archive module to show/hide the Patient Name info for phantoms
-  * `Imaging Browser Tabulated Scan Types`: Used by Imaging Browser main page which lists the different imaging sessions across candidates. This setting will determine which modalities will have their QC status displayed in that listing page
+  * `Imaging Browser Tabulated Scan Types`: Used by Imaging Browser's main page which lists the different imaging sessions across candidates. This setting will determine which modalities will have their QC status displayed in that listing page
      
- Under the section `Imaging Pipeline`
- * `Loris-MRI Data Directory`: Directory where imaging data is stored; typically `/data/$PROJECT/data/`
+ Under the `Imaging Pipeline` section: 
+ * `LORIS-MRI Data Directory`: Directory where imaging data is stored; typically `/data/$PROJECT/data/`
  * `Study Name`: Prefix to be used in all filenames inserted into the `files` table and visible in the front-end via the Imaging Browser module
  * `User to notify when executing the pipeline`: User email address to be used when notification is to be sent by the pipeline
  * `Full path to get_dicom_info.pl script`: Typically `/data/$PROJECT/bin/mri/dicom-arhive/get_dicom_info.pl`
  * `Horizontal pictures creation`: Used to pass or not pass the argument `-horizontal` to `mincpik` when generating pictures to be displayed in Imaging Browser. 
  * `NIfTI file creation`: Used to enable or disable automated NIfTI file creation
- * `dcm2mnc binary to use when converting`: Allows the user to specify the binary file to be used when converting DICOM files to MINC. The default setting is to use the binary provided by the MINC tools, namely `dcm2mnc
+ * `dcm2mnc binary to use when converting`: Allows the user to specify the binary file to be used when converting DICOM files to MINC. The default setting is to use the binary provided by the MINC tools, namely `dcm2mnc`
  * `Path to Tarchives`: Directory where the original DICOMs are archived; typically `/data/$PROJECT/data/tarchive/`
  * `Upload creation of candidates`: Enable or disable candidate creation into LORIS when running the insertion pipeline
  * `Project batch management used`: Enable or disable batch management
- * `If site is used`: Obsolete **To be confirmed**. This option used to allow the scans' incoming and archival paths to be configured based on the scanning sites
+ * `If site is used`: Obsolete **To be removed in the next release**. This  option used to allow the scans' incoming and archival paths to be configured based on the scanning sites
  * `Number of volumes in native DTI acquisitions`: Used by the DTIPrep pipeline
  * `Scan type of native T1 acquisition`: Name as specified in the `mri_scan_type` table. Used by the DTIPrep pipeline
- * `Max number of DTI rejected directions for passing QC`: Number of directions that can be rejected and still pass QC. Used by the DTIPrep pipeline
+ * `Max number of DTI rejected directions for passing QC`: Maximum number of directions that can be removed from a DTI scan to pass QC. Used by the DTIPrep pipeline
  * `NIAK Path`: Path to NIAK if MINC diffusion is to be run. Used by the DTIPrep pipeline
  * `Secondary QCed dataset`: Path where a secondary QC'ed dataset is to be stored. Used by the DTIPrep pipeline
 
@@ -97,7 +97,7 @@ Under the section `Paths`
 
 
 Projects can upload scans and launch the pipeline in a variety of options 
-detailed in [PipelineOptions](05-PipelineOptions.md). 
+detailed in the [PipelineLaunchOptions](05-PipelineLaunchOptions.md) section. 
 Irrespective of the project's choice as to whether the imaging scan is to be 
 uploaded through the Imaging Uploader GUI or not, pipeline insertion progress 
 can be consulted through a live 'Log Viewer' panel.
@@ -108,10 +108,10 @@ the [LORIS repository: Imaging Uploader Specification](https://github.com/aces/L
 
 2. **DICOM Archive**
 
-This LORIS module provides a front-end display of the details of the archived 
-DICOMs from the database `tarchive_*` tables. The only setting that impacts the 
-display of this module are the regex settings in the `Configuration` module 
-under the section `Imaging Modules`. These settings determine whether the 
+This LORIS module provides a front-end display with the details of the archived 
+DICOM study from the database `tarchive_*` tables. The only setting that 
+impacts the display of this module are the regex settings in the `Configuration` 
+module under the section `Imaging Modules`. These settings determine whether the 
 Patient Name/Patient ID header values are displayed in full, or show up as 
 **INVALID-HIDDEN**.
 
@@ -121,9 +121,10 @@ More detailed specifications can be consulted in the
 
 3. **Imaging Browser**
 
-Imaging Browser accesses the PIC images directly from the filesystem where they
-are stored. It also provides the option to doownload some files.  Ensure that:
-- `/data/$PROJ` directory and subdirectories are readable and executable by
+The Imaging Browser module accesses the screenshot (PIC) images directly from 
+the filesystem where they are stored. It also provides the option to download 
+some files. Ensure that:
+- `/data/$PROJECT` directory and subdirectories are readable and executable by
     the Apache linux user.
 - the Configuration module (*Paths*) `Imaging data`, `MINC files` and 
   `Images` settings are set (typically: `/data/$PROJECT/data/`). 
@@ -135,15 +136,15 @@ More detailed specifications can be consulted in the
 
 Brainbrowser displays the MINC images within the browser. It accesses those MINC 
 images directly from the filesystem. Ensure that:
-- `/data/$PROJ` directory and subdirectories are readable and executable by
+- `/data/$PROJECT` directory and subdirectories are readable and executable by
     the Apache linux user.
 - the Configuration module (*Paths*) `MINC files` setting is
-    `/data/$PROJ/data/`.
-- the _project/config.xml_ file (in the main LORIS codebase) contains the
+    `/data/$PROJECT/data/`.
+- the `project/config.xml` file (in the main LORIS codebase) contains the
       proper MINC toolkit path in the `<MINCToolsPath>` tagset.
       
 More detailed specifications can be consulted in the 
-[LORIS repository:Brainbrowser Specification](https://github.com/aces/Loris/blob/master/modules/brainbrowser/README.md).
+[LORIS repository: Brainbrowser Specification](https://github.com/aces/Loris/blob/master/modules/brainbrowser/README.md).
 
 
 5. **MRI Violated Scans**
@@ -153,11 +154,11 @@ Data loaded in this module gets populated automatically by the insertion
 scripts. As such, scans whose parameters can't be matched against the 
 `mri_protocol` table during the imaging insertion process, will be flagged as 
 protocol violations and will not have their MINC/NIfTI volumes loaded in the 
-database. The type of error (scan identification, protocol violation) will be 
-listed and can be reviewed from the front-end.
+Imaging Browser module. The type of error (scan identification, protocol 
+violation) will be listed and can be reviewed from the front-end.
 
 More detailed specifications can be consulted in the 
-[LORIS repository:MRI Violated Scans Specification](https://github.com/aces/Loris/blob/master/modules/mri_violations/README.md).
+[LORIS repository: MRI Violated Scans Specification](https://github.com/aces/Loris/blob/master/modules/mri_violations/README.md).
 
 
 ### 2.2.3 LORIS-MRI 
@@ -167,9 +168,9 @@ More detailed specifications can be consulted in the
 - `/data/*` subdirectories were created by the imaging install script. If not,
     it may be due to `root:root` ownership of the `/data/` mount on your
     system. Ensure these subdirectories are created manually, particularly:
-    `/data/$PROJ/data/*`, `/data/$PROJ/bin/mri/` and `/data/incoming/`
+    `/data/$PROJECT/data/*`, `/data/$PROJECT/bin/mri/` and `/data/incoming/`
 
-- `/data/$PROJ/` directory and subdirectories must be readable and executable
+- `/data/$PROJECT/` directory and subdirectories must be readable and executable
     by the Apache linux user. It may also help to ensure the `/data/` mount is
     executable. After any modifications, ensure you restart apache.
     
@@ -177,11 +178,11 @@ More detailed specifications can be consulted in the
 
 - `isFileToBeRegisteredGivenProtocol()`
 
-    * By default, any scan will be inserted if it matches an _mri_protocol_ 
+    * By default, any scan will be inserted if it matches an `mri_protocol` 
     table entry.
-    * To **whitelist/blacklist** specific scan types -- e.g. in the case of 
+    * To **whitelist/blacklist** specific scan types -- *e.g.* in the case of 
     protocol exclusion, case sensitivity or labelling variance -- modify the 
-    subroutine, e.g.:
+    subroutine, *e.g.*:
 
 ```perl
 if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'dti' or $acquisitionProtocol eq 'bold' or $acquisitionProtocol =~ /fmri/) { return 1; }
@@ -189,7 +190,7 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
 
 - `getSNRModalities()`
     
-    Routine to instruct the pipeline which 3-D modalities to include when 
+    Routine to instruct the pipeline which 3D modalities to include when 
     computing the signal-to-noise-ratio (SNR) on MINC images.
 
 - `getSubjectIDs()`
@@ -199,7 +200,7 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
 
 - `filterParameters()`
 
-    Routine that takes in a file as an object and removes all parameters of lenngth > 1000
+    Routine that takes in a file as an object and removes all parameters of length > 1000
     
 - `get_DTI_Site_CandID_Visit()`
 
@@ -224,9 +225,9 @@ To ensure that BrainBrowser can load MINC images, the MINC toolkit must be
   installed on a separate machine, ensure the MINC toolkit is installed in both
   locations.)
 
-Ensure the _project/config.xml_ file (in the main LORIS codebase) contains the
+Ensure the `project/config.xml` file (in the main LORIS codebase) contains the
   following tagset, specifying the MINC toolkit path local to the main LORIS
-  codebase (/opt/minc/ in this example):
+  codebase (`/opt/minc/` in this example):
 
 ```xml
 <!-- MINC TOOLS PATH -->
@@ -235,36 +236,36 @@ Ensure the _project/config.xml_ file (in the main LORIS codebase) contains the
 
 #### 2.3.3. Verify filesystem permissions
 
-Ensure that permissions on /data/$projectname and /data/incoming and their
+Ensure that permissions on /data/$PROJECT and /data/incoming and their
   subdirectories are set such that lorisadmin and the Apache linux user can
   read, write _and_ execute all contents.
 
-The following must be recursively owned by the lorisadmin user and by Apache
+The following must be recursively owned by the lorisadmin user and Apache
   group:
 
 ```bash
-/data/$projectname/data/
-/data/$projectname/bin/mri/
+/data/$PROJECT/data/
+/data/$PROJECT/bin/mri/
 /data/incoming/
-/data/$projectname/bin/mri/dicom-archive/.loris_mri/prod
+/data/$PROJECT/bin/mri/dicom-archive/.loris_mri/prod
 ```
 
 #### 2.3.4 Verify Configuration module settings for Imaging Pipeline
 
 In the LORIS front-end, under the Admin menu, go to the `Config` module.  Verify/set the following config settings (examples below illustrated for a project named `demo`):
 
-Under the section `Imaging Pipeline`:
- * `Loris-MRI Data Directory` (typically `/data/demo/data/`)
+Under the `Imaging Pipeline` section:
+ * `LORIS-MRI Data Directory` (typically `/data/$PROJECT/data/`)
  * `Study Name` (`exampleStudy`; this name will be appended as a prefix to the filenames in LORIS' Imaging Browser)
  * `User to notify when executing the pipeline`
- * `Full path to get_dicom_info.pl script`(typically `/data/demo/bin/mri/dicom-archive/get_dicom_info.pl`)
- * `Path to Tarchives` (typically `/data/demo/data/tarchive/`)
+ * `Full path to get_dicom_info.pl script`(typically `/data/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
+ * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
 
-Under the section `Path`:
- * `Imaging Data` (typically `/data/demo/data/`)
- * `LORIS-MRI Code`(typically `/data/demo/bin/mri/`)
- * `MINC files` (typically `/data/demo/data/`)
- * `Images` (typically `/data/demo/data/`)
+Under the `Path` section:
+ * `Imaging Data` (typically `/data/$PROJECT/data/`)
+ * `LORIS-MRI Code`(typically `/data/$PROJECT/bin/mri/`)
+ * `MINC files` (typically `/data/$PROJECT/data/`)
+ * `Images` (typically `/data/$PROJECT/data/`)
 
 Click 'Submit' at the end of the Configuration page to save any changes.
 
