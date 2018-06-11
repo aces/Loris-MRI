@@ -144,7 +144,6 @@ our $NOT_A_SINGLE_STUDY        = 85; # if the upload regroups multiple studies
 
 
 
-
 ##### ---- SECTION 2: SCRIPT SPECIFIC EXIT CODES NOT COVERED IN SECTION 1
 
 
@@ -188,5 +187,3 @@ our $NO_VALID_MINC_CREATED = 190; # if no valid MINC file was created
 ## -- FROM uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200 to 210)
 
 our $REGISTER_PROGRAM_FAILURE = 200; # if MNI::Spawn::RegisterPrograms failed
-
-## -- FROM

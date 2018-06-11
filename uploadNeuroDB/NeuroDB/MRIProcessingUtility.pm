@@ -1811,6 +1811,41 @@ sub spool  {
            'MRIProcessingUtility.pm', $upload_id, $error, $verb);
 }
 
+=pod
+
+=head3 isValidMRIProtocol()
+
+Ensures no column in the C<mri_protocol> table has comma-separated values.
+
+RETURNS: 1 on success, 0 on failure
+
+=cut
+
+sub isValidMRIProtocol  {
+    my $this = shift;
+
+    my $query = "SELECT COUNT(*) FROM mri_protocol 
+                WHERE TR_range LIKE '%,%'
+                OR TE_range LIKE '%,%'
+                OR TI_range LIKE '%,%'
+                OR slice_thickness_range LIKE '%,%'
+                OR xspace_range LIKE '%,%'
+                OR yspace_range LIKE '%,%'
+                OR zspace_range LIKE '%,%'
+                OR xstep_range LIKE '%,%'
+                OR ystep_range LIKE '%,%'
+                OR zstep_range LIKE '%,%'
+                OR time_range LIKE '%,%'";
+
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute();
+    my $count = $sth->fetchrow_array;
+    if ( $count > 0 ) {
+        return 0;  
+    } else {
+        return 1;
+    }
+}
 
 1;
 
@@ -1823,7 +1858,10 @@ Document the following functions:
   - concat_mri($minc_files)
   - registerProgs(@toregister)
 
-Remove function get_acqusitions($study_dir, \@acquisitions) that is not used
+Remove the function get_acqusitions($study_dir, \@acquisitions) that is not used
+
+Remove the function isValidMRIProtocol() once the database schema is configured 
+to prevent users from entering non-conform entries in the C<mri_protocol> table
 
 =head1 BUGS
 
