@@ -11,7 +11,7 @@ a functioning installation of the core LORIS codebase. For information
 regarding LORIS itself, please consult the [LORIS wiki][1].
 
 LORIS-MRI is a set of libraries, scripts, and settings responsible for the 
-insertion, organization, and archival of uploaded imaging datasets. 
+insertion, organization, and archiving of uploaded imaging datasets. 
 It expects an uploaded, compressed file containing 
 a [DICOM][2] scan session composed of many DICOM files. These DICOM files 
 will be archived on the server and converted to [MINC][3] and (optionally)
