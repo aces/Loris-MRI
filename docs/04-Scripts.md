@@ -127,7 +127,7 @@ See also: [MRI-PR#141](https://github.com/aces/Loris-MRI/pull/141) for more
    sufficient to just re-run the MINC/NIfTI loading step (`tarchiveLoader` or
     `batch_uploads_tarchive`). The pipeline steps must be re-run starting
     with `dicomTar.pl` (see section 5.4 of
-   [Pipeline triggering options](05-PipelineLaunchOptions.md)).
+   [Pipeline Triggering Options documentation](05-PipelineLaunchOptions.md)).
 
 In general, to re-load an imaging dataset through the pipeline from the start 
    (from `dicomTar.pl`) -- Ensure entries from the previous attempt to load the 

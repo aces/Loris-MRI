@@ -1,7 +1,7 @@
 This Readme covers release 19.2 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
 This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 19.2.*.<br>
-For documentation and detailed setup information, please see the [LORIS-MRI documentation](docs/)</b>.
+For documentation and detailed setup information, please see the [LORIS-MRI documentation](docs/) for your installed version</b>.
 
 This repo can be installed on the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
 
@@ -77,7 +77,7 @@ The installer will also set Apache group ownership of certain /data/ subdirector
 **INSTALLATION COMPLETE!**
 
 Please refer to the [Install](docs/02-Install.md) section in the 
-[LORIS-MRI documentation](docs/) for:
+[LORIS-MRI documentation](docs/) for your installed version for:
 - customizations and protocol configurations ([Section 2.2](docs/02-Install.md#configuration)).
 - verifying that certain fields were correctly populated by `imaging_install.sh`
 ([Section 2.3](docs/02-Install.md#post-installation-checks)).
