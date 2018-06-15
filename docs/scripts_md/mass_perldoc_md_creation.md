@@ -1,7 +1,7 @@
 # NAME
 
-mass\_perldoc\_md\_creation.pl -- Script to mass produce the .md files derived
-from the documentation of the perl scripts and libraries.
+mass\_perldoc\_md\_creation.pl -- Script to mass produce the `.md` files
+derived from the documentation of the perl scripts and libraries.
 
 # SYNOPSIS
 
@@ -15,11 +15,11 @@ Available options are:
 
 # DESCRIPTION
 
-This script will need to be run once per release to make sure the .md files
+This script will need to be run once per release to make sure the `.md` files
 derived from the documentation of the perl scripts and libraries are updated.
 
 If any new script have been added to a given release, make sure to include it
-in the variable called @script\_list at the beginning of the script.
+in the variable called `@script_list` at the beginning of the script.
 
 # LICENSING
 

@@ -163,14 +163,20 @@ my @md_list  = map { $md_path . basename($_, @suffixes) . ".md"} @script_list;
 
 
 ## loop through script array and create the .md files using pod2markdown
+my $git_add = "git add";
 for my $index (0 .. $#script_list) {
     my $script  = $script_list[$index];
     my $md_file = $md_list[$index];
     my $command =  "pod2markdown $script $md_file";
     print $command . '\n' if $verbose;
     system($command);
+    $git_add .= ' ' . $md_file . ' ';
+
 }
 
+my $message = "\n\tMD files created! \n\tTo add them to git, run the following "
+              . "command in the terminal: \n\n";
+print $message . $git_add . '\n';
 
 
 exit $NeuroDB::ExitCodes::SUCCESS;
