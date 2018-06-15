@@ -4,8 +4,8 @@
 
 =head1 NAME
 
-mass_perldoc_md_creation.pl -- Script to mass produce the .md files derived
-from the documentation of the perl scripts and libraries.
+mass_perldoc_md_creation.pl -- Script to mass produce the C<.md> files
+derived from the documentation of the perl scripts and libraries.
 
 =head1 SYNOPSIS
 
@@ -20,11 +20,11 @@ Available options are:
 
 =head1 DESCRIPTION
 
-This script will need to be run once per release to make sure the .md files
+This script will need to be run once per release to make sure the C<.md> files
 derived from the documentation of the perl scripts and libraries are updated.
 
 If any new script have been added to a given release, make sure to include it
-in the variable called @script_list at the beginning of the script.
+in the variable called C<@script_list> at the beginning of the script.
 
 =head1 LICENSING
 
@@ -114,7 +114,7 @@ Documentation: perldoc mass_perldoc_md_creation.pl
 
 HELP
 my $Usage = <<USAGE;
-usage: tools/mass_perldoc_md_creation.pl -profile \$profile
+usage: perl tools/mass_perldoc_md_creation.pl -profile \$profile
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
@@ -167,7 +167,7 @@ for my $index (0 .. $#script_list) {
     my $script  = $script_list[$index];
     my $md_file = $md_list[$index];
     my $command =  "pod2markdown $script $md_file";
-    print $command if $verbose;
+    print $command . '\n' if $verbose;
     system($command);
 }
 
