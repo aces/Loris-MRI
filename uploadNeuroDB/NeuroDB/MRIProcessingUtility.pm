@@ -35,8 +35,7 @@ utilities
                       );
 
   my $CandMismatchError = $utility->validateCandidate(
-                            $subjectIDsref,
-                            $tarchiveInfo{'SourceLocation'}
+                            $subjectIDsref
                           );
 
   $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
@@ -79,10 +78,10 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 =head3 new($dbhr, $debug, $TmpDir, $logfile, $verbose) >> (constructor)
 
 Creates a new instance of this class. The parameter C<$dbhr> is a reference
-to a DBI database handle, used to set the object's database handle, so that all
-the DB-driven methods will work.
+to a C<DBI> database handle, used to set the object's database handle, so that
+all the DB-driven methods will work.
 
-INPUT: DBI database handle
+INPUT: C<DBI> database handle
 
 RETURNS: new instance of this class.
 
@@ -1819,7 +1818,7 @@ INPUTS:
   - $message   : message to be logged in the database
   - $error     : 'Y' for an error log,
                  'N' otherwise
-  - $upload_id : the ID of the upload
+  - $upload_id : the upload ID
   - $verb      : 'N' for few main messages,
                  'Y' for more messages (developers)
 

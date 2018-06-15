@@ -509,8 +509,7 @@ INPUTS:
   - $registeredXMLFile     : registered DTIPrep XML report
   - $registeredQCReportFile: registered DTIPrep text report
   - $scanType              : scan type of the MINC file to register
-  - $registered_nrrd       : optional, registered NRRD file used to create
-                              the MINC file
+  - $registered_nrrd       : optional, registered NRRD file used to create the MINC file
 
 RETURNS: registered MINC file on success, undef otherwise
 
@@ -910,7 +909,7 @@ sub checkPreprocessFiles {
 
 =head3 checkPostprocessFiles($dti_file, $DTIrefs, $mri_files)
 
-Function that checks if all postprocessing files (from DTIPrep or
+Function that checks if all postprocessing files (from C<DTIPrep> or
 C<mincdiffusion>) are present in the file system.
 
 INPUTS:
@@ -1590,8 +1589,8 @@ INPUTS:
   - $data_dir    : data directory (e.g. C</data/$PROJECT/data>)
   - $pipelineName: pipeline name (C<DTIPrepPipeline>)
   - $toolName    : tool's name and version
-  - $process_step: processing step (C<'Preproc'> or C<'Postproc'>)
-  - $proc_file   : processed file key (C<'QCed'>, C<'QCed2'>...)
+  - $process_step: processing step (C<Preproc> or C<Postproc>)
+  - $proc_file   : processed file key (C<QCed>, C<QCed2>...)
 
 RETURNS: path to the MINC file that was registered
 

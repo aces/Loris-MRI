@@ -641,12 +641,12 @@ INPUTS:
   - $te             : echo time of the scan
   - $ti             : inversion time of the scan
   - $slice_thickness: slice thickness of the image
-  - $xstep          : x-step of the image
-  - $ystep          : y-step of the image
-  - $zstep          : z-step of the image
-  - $xspace         : x-space of the image
-  - $yspace         : y-space of the image
-  - $zspace         : z-space of the image
+  - $xstep          : C<x-step> of the image
+  - $ystep          : C<y-step> of the image
+  - $zstep          : C<z-step> of the image
+  - $xspace         : C<x-space> of the image
+  - $yspace         : C<y-space> of the image
+  - $zspace         : C<z-space> of the image
   - $time           : time dimension of the scan
   - $seriesUID      : C<SeriesUID> of the scan
 
@@ -1169,7 +1169,7 @@ Creates a new C<CandID>.
 
 INPUT: database handle reference
 
-RETURNS: (int) C<CandID>
+RETURNS: C<CandID> (int)
 
 =cut
 
@@ -1192,7 +1192,7 @@ sub createNewCandID {
 =head3 getPSC($patientName, $dbhr)
 
 Looks for the site alias in whatever field (usually C<patient_name> or
-C<patient_id>) is provided and return the MRI alias and C<CenterID>.
+C<patient_id>) is provided and return the C<MRI_alias> and C<CenterID>.
 
 INPUTS:
   - $patientName: patient name
@@ -1435,7 +1435,7 @@ Creates NIfTI files associated with MINC files and append its path to the
 C<parameter_file> table using the C<parameter_type> C<check_nii_filename>.
 
 INPUTS:
-  - $fileref : file hashref
+  - $fileref : file hash ref
   - $data_dir: data directory (e.g. C</data/$PROJECT/data>)
 
 =cut
