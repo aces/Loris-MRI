@@ -224,12 +224,12 @@ sub getRawDTIFiles{
 
 =head3 copyDTIPrepProtocol($DTIPrepProtocol, $QCProt)
 
-Function that will copy the DTIPrep protocol to the output directory of
-DTIPrep.
+Function that will copy the C<DTIPrep> protocol to the output directory of
+C<DTIPrep>.
 
 INPUTS:
-  - $DTIPrepProtocol: DTIPrep protocol to be copied
-  - $QCProt         : future path of copied DTIPrep protocol
+  - $DTIPrepProtocol: C<DTIPrep> protocol to be copied
+  - $QCProt         : future path of copied C<DTIPrep> protocol
 
 RETURNS: 1 on success, undef on failure
 
@@ -253,11 +253,11 @@ sub copyDTIPrepProtocol {
 
 =head3 readDTIPrepXMLprot($DTIPrepProtocol)
 
-Read DTIPrep XML protocol and return information into a hash.
+Read C<DTIPrep> XML protocol and return information into a hash.
 
-INPUT: XML protocol used (or that has been used) to run DTIPrep
+INPUT: XML protocol used (or that has been used) to run C<DTIPrep>
 
-RETURNS: reference to a hash containing DTIPrep protocol as follows:
+RETURNS: reference to a hash containing C<DTIPrep> protocol as follows:
 
   entry   => 'QC_QCOutputDirectory'     => {}
           => 'QC_QCedDWIFileNameSuffix' => {
@@ -316,9 +316,9 @@ INPUTS:
   - $DTIs_list      : list of native DTI files to be processed
   - $anat           : anatomical file to be used for processing
   - $QCoutdir       : processed output directory
-  - $DTIPrepProtocol: DTIPrep XML protocol used to run DTIPrep
-  - $protXMLrefs    : hash containing info about DTIPrep's protocol
-  - $QCed2_step     : optionally, step name at which DTIPrep will
+  - $DTIPrepProtocol: C<DTIPrep> XML protocol used to run C<DTIPrep>
+  - $protXMLrefs    : hash containing info about C<DTIPrep>'s protocol
+  - $QCed2_step     : optionally, step name at which C<DTIPrep> will
                        produce a secondary QCed file
 
 RETURNS: hash containing outputs naming convention
@@ -351,17 +351,18 @@ sub createDTIhashref {
 
 =head3 determinePreprocOutputs($QCoutdir, $dti_file, $DTIPrepProtocol, $protXMLrefs)
 
-Function that will determine pre processing output names (for either DTIPrep
+Function that will determine pre processing output names (for either C<DTIPrep>
 or C<mincdiffusion> postprocessing) and append them to C<$DTIrefs>.
 
 INPUTS:
   - $QCoutdir       : directory that will contain output files
   - $dti_file       : raw DWI file to be processed
-  - $DTIPrepProtocol: DTIPrep protocol to copy into output directory
-  - $protXMLrefs    : hash containing info from DTIPrep XML protocol
+  - $DTIPrepProtocol: C<DTIPrep> protocol to copy into output directory
+  - $protXMLrefs    : hash containing info from C<DTIPrep> XML protocol
                        (including suffix for the different outputs)
 
-RETURNS: $DTIrefs{$dti_file}{'Preproc'}{'Output'} fields for DTIPrep processing
+RETURNS: $DTIrefs{$dti_file}{'Preproc'}{'Output'} fields for C<DTIPrep>
+processing
 
 =cut
 
@@ -403,19 +404,19 @@ sub determinePreprocOutputs {
 
 =head3 determinePostprocOutputs($QCoutdir, $dti_file, $anat, $protXMLrefs)
 
-Function that will determine post processing output names (for either DTIPrep
+Function that will determine post processing output names (for either C<DTIPrep>
 or C<mincdiffusion> postprocessing) and append them to C<$DTIrefs>.
 
 INPUTS:
   - $QCoutdir   : directory that will contain output files
   - $dti_file   : raw DWI file to be processed
   - $anat       : T1 image to be used for C<mincdiffusion> postprocessing
-  - $protXMLrefs: hash containing info from DTIPrep XML protocol
+  - $protXMLrefs: hash containing info from C<DTIPrep> XML protocol
                    (including suffix for the different outputs)
 
 RETURNS:
   - $DTIrefs{$dti_file}{'Postproc'}{'Tool'} with postprocessing used
-  - $DTIrefs{$dti_file}{'Postproc'}{'Output'} fields for DTIPrep postprocessing
+  - $DTIrefs{$dti_file}{'Postproc'}{'Output'} fields for C<DTIPrep> postprocessing
 
 =cut
 
@@ -447,15 +448,15 @@ sub determinePostprocOutputs {
 
 =head3 determineDTIPrepPostprocOutputs($QCoutdir, $dti_file, $protXMLrefs)
 
-Function that will determine DTIPrep's postprocessing output names (based on
+Function that will determine C<DTIPrep>'s postprocessing output names (based on
 the XML protocol) and append them to C<$DTIrefs>
 
 INPUTS:
   - $QCoutdir   : directory that will contain output files
   - $dti_file   : raw DWI file to be processed
-  - $protXMLrefs: hash containing info from DTIPrep XML protocol
+  - $protXMLrefs: hash containing info from C<DTIPrep> XML protocol
 
-RETURNS: $DTIrefs{$dti_file}{'Postproc'}{'Output'} fields for DTIPrep
+RETURNS: $DTIrefs{$dti_file}{'Postproc'}{'Output'} fields for C<DTIPrep>
 postprocessing
 
 =cut
@@ -612,12 +613,12 @@ sub convert_DTI {
 
 =head3 runDTIPrep($raw_nrrd, $protocol, $QCed_nrrd, $QCed2_nrrd)
 
-Function that runs DTIPrep on NRRD file.
+Function that runs C<DTIPrep> on NRRD file.
 
 INPUTS:
-  - $raw_nrrd  : raw DTI NRRD file to be processed through DTIPrep
-  - $protocol  : DTIPrep protocol used
-  - $QCed_nrrd : QCed file produced by DTIPrep
+  - $raw_nrrd  : raw DTI NRRD file to be processed through C<DTIPrep>
+  - $protocol  : C<DTIPrep> protocol used
+  - $QCed_nrrd : QCed file produced by C<DTIPrep>
   - $QCed2_nrrd: optionally, secondary QCed file
 
 RETURNS: 1 on success, under on failure
@@ -661,8 +662,8 @@ INPUTS:
   - $raw_file      : raw DTI MINC file to grep header information
   - $data_dir      : data dir as defined in the profile file
   - $processed_minc: processed MINC file in which to insert header information
-  - $QC_report     : DTIPrep QC report text file
-  - $DTIPrepVersion: DTIPrep version used to obtain processed file
+  - $QC_report     : C<DTIPrep> QC report text file
+  - $DTIPrepVersion: C<DTIPrep> version used to obtain processed file
   - $is_anat       : if set, will only insert processing, patient & study info
 
 RETURNS: 1 on success, undef on failure
@@ -703,8 +704,8 @@ INPUTS:
   - $raw_dti       : raw DTI MINC file to grep header information from
   - $data_dir      : data dir as defined in the profile file
   - $processed_minc: processed MINC file in which to insert header info
-  - $QC_report     : DTIPrep QC report text file
-  - $DTIPrepVersion: DTIPrep version used to obtain processed file
+  - $QC_report     : C<DTIPrep> QC report text file
+  - $DTIPrepVersion: C<DTIPrep> version used to obtain processed file
 
 RETURNS: 1 on success, undef on failure
 
@@ -1070,14 +1071,14 @@ sub RGBpik_creation {
 
 =head3 convert_DTIPrep_postproc_outputs($dti_file, $DTIrefs, $data_dir, $DTIPrepVersion)
 
-This function will check if all DTIPrep NRRD files were created and convert
+This function will check if all C<DTIPrep> NRRD files were created and convert
 them into MINC files with relevant header information inserted.
 
 INPUTS:
-  - $dti_file      : raw DTI dataset that was processed through DTIPrep
+  - $dti_file      : raw DTI dataset that was processed through C<DTIPrep>
   - $DTIrefs       : hash containing information about output names
   - $data_dir      : directory containing raw DTI dataset
-  - $DTIPrepVersion: DTIPrep version used to process the DWI dataset
+  - $DTIPrepVersion: C<DTIPrep> version used to process the DWI dataset
 
 RETURNS:
   - $nrrds_found  : 1 if all NRRD outputs found, undef otherwise
@@ -1146,12 +1147,13 @@ sub convert_DTIPrep_postproc_outputs {
 
 =head3 getRejectedDirections($data_dir, $XMLReport)
 
-Summarize which directions were rejected by DTIPrep for slice-wise correlations,
+Summarize which directions were rejected by C<DTIPrep> for slice-wise
+correlations,
 inter-lace artifacts, inter-gradient artifacts.
 
 INPUTS:
   - $data_dir: data_dir defined in the config file
-  - $QCReport: DTIPrep's QC txt report to extract rejected directions
+  - $QCReport: C<DTIPrep>'s QC txt report to extract rejected directions
 
 RETURNS: 
   - number of directions rejected due to slice wise correlations
