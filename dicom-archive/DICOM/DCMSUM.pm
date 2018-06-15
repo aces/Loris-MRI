@@ -99,7 +99,7 @@ INPUTS:
   - $tarType          : tar type version
   - $tarLog           : name of the .log file
   - $DCMmd5           : DICOM MD5SUM
-  - $Archivemd5       : DICOM archive MD5SUM
+  - $Archivemd5       : DICOM archive MD5 sum
   - $Archive          : archive location
   - $neurodbCenterName: center name
 

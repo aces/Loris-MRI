@@ -47,11 +47,11 @@ Available options are:
 
 -verbose                 : If set, be verbose
 
--seriesuid               : Only insert this SeriesUID
+-seriesuid               : Only insert this C<SeriesUID>
 
 -acquisition_protocol    : Suggest the acquisition protocol to use
 
--bypass_extra_file_checks: Bypass extra_file_checks
+-bypass_extra_file_checks: Bypass C<extra_file_checks>
 
 
 =head1 DESCRIPTION

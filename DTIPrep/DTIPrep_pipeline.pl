@@ -728,9 +728,8 @@ INPUTS:
   - $QCoutdir       : pre-processing output directory
   - $DTIPrepProtocol: DTIPrep XML protocol that was used to run DTIPrep
 
-RETURNS:
-  - undef if at least one output file is missing
-  - 1 if all output files were found
+RETURNS: undef if at least one output file is missing; 1 if all output files
+were found
 
 =cut
 

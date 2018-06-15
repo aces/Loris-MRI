@@ -180,14 +180,14 @@ sub getAnatFile {
 =head3 getRawDTIFiles($nativedir, $DTI_volumes)
 
 Function that parses files in the native MRI directories and fetches DTI files.
-This function will also concatenate together multiple DTI files if DTI
-acquisition performed across several DTI scans.
+This function will also concatenate together multiple DTI files if the DTI
+acquisition was performed across several DTI scans.
 
 INPUTS:
   - $nativedir  : native directory
   - $DTI_volumes: DTI's number of volumes
 
-RETURNS: list of matching DTI files found in native directory
+RETURNS: list of matching DTI files found in the native directory
 
 =cut
 

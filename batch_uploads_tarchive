@@ -19,7 +19,7 @@ from C<STDIN>, one file name per line. Each file name is assumed to be a path
 relative to C<tarchiveLibraryDir> (see below).
 
 The following settings of file F<$ENV{LORIS_CONFIG}/.loris-mri/prod> affect the 
-behvaviour of batch_uploads_tarchive (where C<$ENV{LORIS_CONFIG}> is the
+behvaviour of C<batch_uploads_tarchive> (where C<$ENV{LORIS_CONFIG}> is the
 value of the Unix environment variable C<LORIS_CONFIG>):
 
 =over 4

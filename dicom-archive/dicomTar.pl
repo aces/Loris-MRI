@@ -24,7 +24,7 @@ Available options are:
                           Just trying will fail miserably
 
 -mri_upload_update      : Update the C<mri_upload> table by inserting the
-                          correct tarchiveID
+                          correct C<tarchiveID>
 
 -clobber                : Specify the name of the config file which resides in
                           C<.loris_mri> in the current directory
@@ -44,7 +44,7 @@ target directory which will be the archive location.
 
 - If the source contains only one valid STUDY worth of DICOM it will create a
   descriptive summary, a (gzipped) DICOM tarball. The tarball with the metadata
-  and a logfile will then be retarred into the final C<TARCHIVE>.
+  and a logfile will then be retarred into the final C<tarchive>.
 
 - MD5 sums are reported for every step.
 
