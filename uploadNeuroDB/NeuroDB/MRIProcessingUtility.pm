@@ -1849,7 +1849,7 @@ sub isValidMRIProtocol  {
     $sth->execute();
     my $count_mri_protocol_checks = $sth->fetchrow_array;
 
-    if ( $count > 0 || $count_mri_protocol_checks > 0) {
+    if ( $count_mri_protocol > 0 || $count_mri_protocol_checks > 0) {
         return 0;  
     } else {
         return 1;
