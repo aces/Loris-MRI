@@ -1191,10 +1191,10 @@ sub getPSC {
         
         my $sth = $${dbhr}->prepare($query);
         $sth->execute($PSCID, $visitLabel);
-	    if ( $sth->rows > 0) {
+        if ( $sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
-    	    return ($row->{'MRI_alias'},$row->{'CenterID'});
-	    }
+            return ($row->{'MRI_alias'},$row->{'CenterID'});
+        }
     }  
 
     ## Otherwise, use the patient name to match it to the site alias or MRI alias 
