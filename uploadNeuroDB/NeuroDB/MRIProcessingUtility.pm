@@ -1815,7 +1815,8 @@ sub spool  {
 
 =head3 isValidMRIProtocol()
 
-Ensures no column in the C<mri_protocol> table has comma-separated values.
+Ensures no column in the C<mri_protocol> nor the C<mri_protocol_checks> 
+tables has comma-separated values.
 
 RETURNS: 1 on success, 0 on failure
 
@@ -1839,8 +1840,16 @@ sub isValidMRIProtocol  {
 
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute();
-    my $count = $sth->fetchrow_array;
-    if ( $count > 0 ) {
+    my $count_mri_protocol = $sth->fetchrow_array;
+
+    $query = "SELECT COUNT(*) FROM mri_protocol_checks 
+                WHERE ValidRange LIKE '%,%'";
+
+    $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute();
+    my $count_mri_protocol_checks = $sth->fetchrow_array;
+
+    if ( $count > 0 || $count_mri_protocol_checks > 0) {
         return 0;  
     } else {
         return 1;

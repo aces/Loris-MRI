@@ -491,8 +491,8 @@ my ($isMRIProtocolValid) = $utility->isValidMRIProtocol();
 
 if ( !($isMRIProtocolValid) ) {
     my $message = "\nComma separated ranges or values in the mri_protocol "
-                  . "table are no longer supported. Please modify your "
-                  . "mri_protocol table accordingly. Exiting now. \n";
+                  . "and mri_protocol_checks tables are no longer supported. "
+                  . "Please modify your tables accordingly. Exiting now. \n";
     $notifier->spool('tarchive loader', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y',
 		    $notify_notsummary);
