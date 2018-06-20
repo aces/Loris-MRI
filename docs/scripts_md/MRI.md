@@ -257,10 +257,10 @@ RETURNS: (int) CandID
 
 ### getPSC($patientName, $dbhr)
 
-Looks for the site alias using the session table CenterID as a first
-resource, for the cases where it is created using the front-end,
-otherwise, find the site alias in whatever field (usually patient\_name 
-or patient\_id) is provided, and return the MRI alias and CenterID.
+Looks for the site alias using the `session` table `CenterID` as 
+a first resource, for the cases where it is created using the front-end,
+otherwise, find the site alias in whatever field (usually `patient_name` 
+or `patient_id`) is provided, and return the `MRI_alias` and `CenterID`.
 
 INPUTS: patient name, database handle reference
 

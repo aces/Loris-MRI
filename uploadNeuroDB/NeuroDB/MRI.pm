@@ -1156,10 +1156,10 @@ sub createNewCandID {
 
 =head3 getPSC($patientName, $dbhr)
 
-Looks for the site alias using the session table CenterID as a first
-resource, for the cases where it is created using the front-end,
-otherwise, find the site alias in whatever field (usually patient_name 
-or patient_id) is provided, and return the MRI alias and CenterID.
+Looks for the site alias using the C<session> table C<CenterID> as 
+a first resource, for the cases where it is created using the front-end,
+otherwise, find the site alias in whatever field (usually C<patient_name> 
+or C<patient_id>) is provided, and return the C<MRI_alias> and C<CenterID>.
 
 INPUTS: patient name, database handle reference
 
@@ -1184,13 +1184,13 @@ sub getPSC {
     ## Get the CenterID from the session table, if the PSCID and visit labels exist 
     ## and could be extracted  
     if ($PSCID && $visitLabel) {
-    	my $query = "SELECT s.CenterID,p.MRI_alias FROM session s 
+    	my $query = "SELECT s.CenterID, p.MRI_alias FROM session s 
                     JOIN psc p on p.CenterID=s.CenterID  
                     JOIN candidate c on c.CandID=s.CandID  
-                    WHERE c.PSCID = '$PSCID' AND s.Visit_label = '$visitLabel'";
-
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+        
         my $sth = $${dbhr}->prepare($query);
-	    $sth->execute();
+        $sth->execute($PSCID, $visitLabel);
 	    if ( $sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
     	    return ($row->{'MRI_alias'},$row->{'CenterID'});
