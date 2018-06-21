@@ -127,7 +127,7 @@ my @checks      = ();          # Initialise the array
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $no_nii      = 1;           # skip NIfTI creation by default
+my $create_nii  = 0;           # skip NIfTI creation by default
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
@@ -279,11 +279,8 @@ $db->connect();
 my $data_dir = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
-
-if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'no_nii'))) {
-    $no_nii = NeuroDB::DBI::getConfigSetting(
-                       \$dbh,'no_nii'
-                        ) 
+if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii'))) {
+    $create_nii = NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii');
 }
 my $jiv_dir  = $data_dir.'/jiv';
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
@@ -631,7 +628,7 @@ if (!$no_jiv) {
 ################################################################
 ###################### Creation of NIfTIs ######################
 ################################################################
-unless ($no_nii) {
+if ($create_nii) {
     print "\nCreating NIfTI files\n" if $verbose;
     NeuroDB::MRI::make_nii(\$file, $data_dir);
 }

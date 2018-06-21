@@ -379,9 +379,7 @@ my ($sessionID, $requiresStaging) =
 ### The uploader ###############################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id
-    );
+    $utility->extractAndParseTarchive($tarchive, $upload_id);
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###
