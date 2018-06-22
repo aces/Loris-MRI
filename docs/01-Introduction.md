@@ -29,8 +29,9 @@ collaboration between radiologists, clinicians and researchers.
 
 LORIS-MRI allows multiple ways to upload scans, but typically, users
 upload a compressed (.tgz, .tar.gz, or .zip) DICOM folder via the Imaging
-Uploader module. LORIS requires that the uploaded file name follow the naming
-convention `PSCID_CANDID_VISIT-LABEL`. 
+Uploader module that should be composed of **only** DICOM files. LORIS requires 
+that the uploaded file name follow the naming convention 
+`PSCID_CANDID_VISIT-LABEL`. 
 In addition, all DICOM datasets uploaded via the Imaging Uploader or 
 transferred on the LORIS-MRI server must be free of any identifying 
 information (*e.g.* patient name). A tool can be provided to the sites to 

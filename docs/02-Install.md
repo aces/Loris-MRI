@@ -154,8 +154,8 @@ Data loaded in this module gets populated automatically by the insertion
 scripts. As such, scans whose parameters can't be matched against the 
 `mri_protocol` table during the imaging insertion process, will be flagged as 
 protocol violations and will not have their MINC/NIfTI volumes loaded in the 
-Imaging Browser module. The type of error (scan identification, protocol 
-violation) will be listed and can be reviewed from the front-end.
+Imaging Browser modulle. Violated scans can be viewed and the type of error 
+(scan identification, protocol violation) can be reviewed from the front-end.
 
 More detailed specifications can be consulted in the 
 [LORIS repository: MRI Violated Scans Specification](https://github.com/aces/Loris/blob/master/modules/mri_violations/README.md).
@@ -168,7 +168,11 @@ More detailed specifications can be consulted in the
 - `/data/*` subdirectories were created by the imaging install script. If not,
     it may be due to `root:root` ownership of the `/data/` mount on your
     system. Ensure these subdirectories are created manually, particularly:
-    `/data/$PROJECT/data/*`, `/data/$PROJECT/bin/mri/` and `/data/incoming/`
+    `/data/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside 
+    `/data/$PROJECT/data/`, namely `trashbin`, `tarchive`, `pic`, `logs`, 
+    `jiv`, `assembly`, and `batch_output`.
+
+
 
 - `/data/$PROJECT/` directory and subdirectories must be readable and executable
     by the Apache linux user. It may also help to ensure the `/data/` mount is

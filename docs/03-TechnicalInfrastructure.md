@@ -10,20 +10,24 @@ The root directory of the imaging part of a LORIS instance is typically
 ## Imaging pipeline file directory structure
 /
 |__ data
+    |__ incoming
     |__ $PROJECT
         |__ bin
         |   |__ mri
         |__ data
-            |__ assembly
-            |__ incoming
+            |__ trashbin
+            |__ tarchive
+            |__ pic
             |__ jiv
             |__ logs
-            |__ pic
-            |__ pipelines
-            |__ protocols
-            |__ tarchive
-            |__ trashbin
+            |__ assembly
+            |__ batch_output
+            |__ pipelines`*`
+            |__ protocols`*`
 ```
+
+`*` _denotes optional directories that are not automatically created by the 
+install script_
 
 Within that project directory, there are typically two directories:
 
@@ -95,18 +99,22 @@ The logs of the scripts are created under `data/logs` in `/data/$PROJECT`.
 ```
 ## Content of the /data/$PROJECT/data/logs directory
 .
-|__ TarLoad.log
-    |__ DTIPrep_pipeline
-    |   |__ DTI_QC`date`.log
-    |   |__ DTI_QC`date`.log
-    |__ DTIPrep_register
-    |   |__ DTIregister`date`.log
-    |   |__ DTIregister`date`.log
-    |__ registerProcessed
-        |__ registerProcessed`date`.log
-        |__ registerProcessed`date`.log
+|__ TarLoad-`xx-xx-xxxxxx`.log
+|__ DTIPrep_pipeline`*`
+|   |__ DTI_QC`date`.log
+|   |__ DTI_QC`date`.log
+|__ DTIPrep_register`*`
+|   |__ DTIregister`date`.log
+|   |__ DTIregister`date`.log
+|__ registerProcessed`*`
+    |__ registerProcessed`date`.log
+    |__ registerProcessed`date`.log
 ```
 
+`*` _denotes optional directories that are not automatically created by the 
+install script_
+`HH-MM-xxxxxx` _where `HH` denotes the hour of the insertion, `MM` the 
+minutes of the insertion and `xxxxxx` a random alphanumeric string._
 
 #### The `pic` directory
 
