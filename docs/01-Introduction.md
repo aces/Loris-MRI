@@ -47,12 +47,16 @@ Insertion progress can be tracked by the user through the Log Viewer in the
 Imaging Uploader module, where descriptive messages can be consulted.
 The output of the main key steps in the insertion progress can also be consulted 
 through:
- - the LORIS DICOM Archive module for successfully archived DICOM datasets 
+ - the LORIS DICOM Archive module for successfully archived DICOM datasets`*` 
  - the Imaging Browser module for MINC files (generated from DICOM) that pass the 
 study-defined MRI protocol 
  - BrainBrowser using 3D or 4D navigation of these MINC files. More details on 
 BrainBrowser's capabilities can be found [here.][5]
 
+`*` Please note that while acquisitions with `localizer` as their series description 
+are included in the DICOM archival step, they are excluded in all the steps that start 
+at, and follow the DICOM to MINC conversion. In a future release, the list of series 
+description to exclude will become customizable by projects.  
 
 [1]: https://github.com/aces/Loris/wiki 
 [2]: http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html

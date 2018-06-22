@@ -7,7 +7,7 @@ invited to consult the documentation
 
 - at the terminal by typing:
 ```angular2html
-perldoc %SCRIPT_NAME%
+perldoc %/PATH/TO/THE/SCRIPT/SCRIPT_NAME%
 ```
 
 - in markdown format, on the [LORIS-MRI repository](../scripts_md/).
