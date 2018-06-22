@@ -154,7 +154,7 @@ Data loaded in this module gets populated automatically by the insertion
 scripts. As such, scans whose parameters can't be matched against the 
 `mri_protocol` table during the imaging insertion process, will be flagged as 
 protocol violations and will not have their MINC/NIfTI volumes loaded in the 
-Imaging Browser modulle. Violated scans can be viewed and the type of error 
+Imaging Browser module. Violated scans can be viewed and the type of error 
 (scan identification, protocol violation) can be reviewed from the front-end.
 
 More detailed specifications can be consulted in the 

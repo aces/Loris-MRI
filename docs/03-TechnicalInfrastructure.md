@@ -22,8 +22,8 @@ The root directory of the imaging part of a LORIS instance is typically
             |__ logs
             |__ assembly
             |__ batch_output
-            |__ pipelines`*`
-            |__ protocols`*`
+            |__ pipelines*
+            |__ protocols*
 ```
 
 `*` _denotes optional directories that are not automatically created by the 
@@ -99,22 +99,22 @@ The logs of the scripts are created under `data/logs` in `/data/$PROJECT`.
 ```
 ## Content of the /data/$PROJECT/data/logs directory
 .
-|__ TarLoad-`xx-xx-xxxxxx`.log
-|__ DTIPrep_pipeline`*`
+|__ TarLoad-`hh-mm-xxxxxx`.log
+|__ DTIPrep_pipeline*
 |   |__ DTI_QC`date`.log
 |   |__ DTI_QC`date`.log
-|__ DTIPrep_register`*`
+|__ DTIPrep_register*
 |   |__ DTIregister`date`.log
 |   |__ DTIregister`date`.log
-|__ registerProcessed`*`
+|__ registerProcessed*
     |__ registerProcessed`date`.log
     |__ registerProcessed`date`.log
 ```
 
 `*` _denotes optional directories that are not automatically created by the 
 install script_
-`HH-MM-xxxxxx` _where `HH` denotes the hour of the insertion, `MM` the 
-minutes of the insertion and `xxxxxx` a random alphanumeric string._
+`hh-mm-xxxxxx` _where_ `hh` _denotes the hour the insertion to the database 
+took place, _`mm` _the minutes, and_ `xxxxxx` _a random alphanumeric string._
 
 #### The `pic` directory
 
