@@ -114,7 +114,7 @@ The logs of the scripts are created under `data/logs` in `/data/$PROJECT`.
 `*` _denotes optional directories that are not automatically created by the 
 install script_
 `hh-mm-xxxxxx` _where_ `hh` _denotes the hour the insertion to the database 
-took place, _`mm` _the minutes, and_ `xxxxxx` _a random alphanumeric string._
+took place,_ `mm` _the minutes, and_ `xxxxxx` _a random alphanumeric string._
 
 #### The `pic` directory
 
