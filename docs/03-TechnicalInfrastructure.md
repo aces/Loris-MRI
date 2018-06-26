@@ -24,6 +24,7 @@ The root directory of the imaging part of a LORIS instance is typically
             |__ pic
             |__ tarchive
             |__ trashbin
+            |__ pipelines*
             |__ protocols*
 ```
 

@@ -170,7 +170,7 @@ More detailed specifications can be consulted in the
     system. Ensure these subdirectories are created manually, particularly:
     `/data/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside 
     `/data/$PROJECT/data/`, namely `assembly`, `batch_output`, `jiv`, `logs`,
-    `pic`, `tarchive`, `trashbin`, and `tarchive`.
+    `pic`, `tarchive`, and `trashbin`.
 
 
 - `/data/$PROJECT/` directory and subdirectories must be readable and executable
