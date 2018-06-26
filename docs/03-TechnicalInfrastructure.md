@@ -15,19 +15,20 @@ The root directory of the imaging part of a LORIS instance is typically
         |__ bin
         |   |__ mri
         |__ data
-            |__ trashbin
-            |__ tarchive
-            |__ pic
-            |__ jiv
-            |__ logs
             |__ assembly
             |__ batch_output
-            |__ pipelines*
+            |__ jiv
+            |__ logs
+                |__ DTIPrep_pipeline*
+                |__ DTIPrep_register*
+            |__ pic
+            |__ tarchive
+            |__ trashbin
             |__ protocols*
 ```
 
 `*` _denotes optional directories that are not automatically created by the 
-install script_
+install script. They are created when running the `DTIprep` pipeline_
 
 Within that project directory, there are typically two directories:
 

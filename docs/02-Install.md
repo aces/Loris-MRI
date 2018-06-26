@@ -169,9 +169,8 @@ More detailed specifications can be consulted in the
     it may be due to `root:root` ownership of the `/data/` mount on your
     system. Ensure these subdirectories are created manually, particularly:
     `/data/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside 
-    `/data/$PROJECT/data/`, namely `trashbin`, `tarchive`, `pic`, `logs`, 
-    `jiv`, `assembly`, and `batch_output`.
-
+    `/data/$PROJECT/data/`, namely `assembly`, `batch_output`, `jiv`, `logs`,
+    `pic`, `tarchive`, `trashbin`, and `tarchive`.
 
 
 - `/data/$PROJECT/` directory and subdirectories must be readable and executable
