@@ -65,15 +65,7 @@ C<DecompressedLocation>: argument of the C<-source_location> switch passed on th
 
 If there already is an entry in C<mri_upload> with the same C<ArchiveLocation> as C<T>'s, the script
 will exit with an error message saying that C<mri_upload> is already up to date with respect to
-C<T>. 
-
-=head1 TO DO
-
-Nothing.
-
-=head1 BUGS
-
-None reported.
+C<T>.
 
 =head1 LICENSING
 

@@ -42,7 +42,7 @@ my $VERSION = sprintf "%d.%03d", q$Revision: 1.1.1.1 $ =~ /: (\d+)\.(\d+)/;
 
 =head3 new($dbh) >> (constructor)
 
-Creates a new instance of this class. The parameter C<\$dbh> is a
+Creates a new instance of this class. The parameter C<$dbh> is a
 reference to a DBI database handle, used to set the object's database
 handle, so that all the DB-driven methods will work.
 
@@ -67,7 +67,7 @@ sub new {
 
 =pod
 
-=head3 spool($type, $message, $centerID, $origin, $processID, ...)
+=head3 spool($type, $message, $centerID, $origin, $processID, $isError, $isVerb)
 
 Spools a new notification message, C<$message>, into the C<notification_spool>
 table for notification type C<$type>. If C<$centerID> is specified, only
@@ -137,7 +137,7 @@ sub spool {
 
 =head3 getTypeID($type)
 
-Gets the notification typeID for the notification of type C<$type>.
+Gets the notification type ID for the notification of type C<$type>.
 
 INPUT: notification type
 
@@ -170,7 +170,7 @@ sub getTypeID {
 
 Gets the notification types for which there are unsent messages spooled.
 
-RETURNS: an array of hashrefs, each of which has keys C<NotificationTypeID> and
+RETURNS: an array of hash ref, each of which has keys C<NotificationTypeID> and
 C<SubjectLine> and C<CenterID>
 
 =cut
@@ -201,9 +201,11 @@ sub getSpooledTypes {
 Gets the spooled messages for a given C<NotificationTypeID> specified by
 C<$typeID>, optionally directed to the center specified by C<$centerID>.
 
-INPUTS: notification type ID, (optionally the center ID)
+INPUTS:
+  - $typeID  : notification type ID
+  - $centerID: the center ID (optional)
 
-RETURNS: an array of hashrefs, each of which has keys C<TimeSpooled> and
+RETURNS: an array of hash refs, each of which has keys C<TimeSpooled> and
 C<Message>
 
 =cut
@@ -235,10 +237,12 @@ sub getSpooledMessagesByTypeID {
 
 =head3 getRecipientsByTypeID($typeID, $centerID)
 
-Gets the recipient list for a given NotificationTypeID specified by
+Gets the recipient list for a given C<NotificationTypeID> specified by
 C<$typeID>, optionally directed to the center specified by C<$centerID>.
 
-INPUTS: notification type ID, (optionally the center ID)
+INPUTS:
+  - $typeID  : notification type ID
+  - $centerID: the center ID (optional)
 
 RETURNS: an array of email addresses
 
@@ -270,10 +274,12 @@ sub getRecipientsByTypeID {
 
 =head3 markMessagesAsSentByTypeID($typeID, $centerID)
 
-Marks all messages as sent with a given NotificationTypeID specified by
+Marks all messages as sent with a given C<NotificationTypeID> specified by
 C<$typeID> and optionally C<$centerID>.
 
-INPUTS: notification type ID, (optionally the center ID)
+INPUTS:
+  - $typeID  : notification type ID
+  - $centerID: the center ID (optional)
 
 =cut
 
@@ -293,14 +299,6 @@ sub markMessagesAsSentByTypeID {
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 COPYRIGHT
 

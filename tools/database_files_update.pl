@@ -13,7 +13,7 @@ perl database_files_update.pl C<[options]>
 
 Available option is:
 
--profile: name of the config file in ../dicom-archive/.loris_mri
+-profile: name of the config file in C<../dicom-archive/.loris_mri>
 
 =head1 DESCRIPTION
 
@@ -164,7 +164,9 @@ if  ($tarchive_location_refs) {
 
 Gets the list of MINC files to update the location in the C<files> table.
 
-INPUTS: data directory from the C<Config> tables, database handle
+INPUTS:
+  - $data_dir: data directory (e.g. C</data/$PROJECT/data>)
+  - $dbh     : database handle
 
 RETURNS: hash of MINC locations, array of FileIDs
 
@@ -201,7 +203,10 @@ sub get_minc_files {
 
 Updates the location of MINC files in the C<files> table.
 
-INPUTS: File ID, new MINC relative location, database handle
+INPUTS:
+  - $fileID           : file's ID
+  - $new_minc_location: new MINC relative location
+  - $dbh              : database handle
 
 RETURNS: Number of rows affected by the update (should always be 1)
 
@@ -227,9 +232,12 @@ sub update_minc_location {
 Gets list of JIV files to update location in the C<parameter_file> table by
 removing the root directory from the path.
 
-INPUTS: data directory, parameter type name for the JIV, database handle
+INPUTS:
+  - $data_dir      : data directory (e.g. C</data$PROJECT/data>)
+  - $parameter_type: name of the parameter type for the JIV
+  - $dbh           : database handle
 
-RETURNS: hash of JIV file locations, array of FileIDs
+RETURNS: hash of JIV file locations, array of C<FileIDs>
 
 =cut
 
@@ -264,12 +272,12 @@ sub get_parameter_files {
 
 =pod
 
-=head3 update_parameter_file_location($fileID, $new_file_location, ...)
+=head3 update_parameter_file_location($fileID, $new_file_location, $parameter_type, $dbh)
 
 Updates the location of JIV files in the C<parameter_file> table.
 
 INPUTS:
-  - $fileID           : FileID
+  - $fileID           : file's ID
   - $new_file_location: new location of the JIV file
   - $parameter_type   : parameter type name for the JIV
   - $dbh              : database handle
@@ -307,14 +315,6 @@ sub update_parameter_file_location {
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

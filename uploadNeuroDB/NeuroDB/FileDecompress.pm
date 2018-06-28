@@ -137,14 +137,6 @@ sub getType {
 
 =pod
 
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported
-
 =head1 COPYRIGHT AND LICENSE
 
 License: GPLv3

@@ -4,7 +4,7 @@ package DICOM::Element;
 
 =head1 NAME
 
-DICOM::Element -- Element routines for DICOM::DICOM module
+DICOM::Element -- Element routines for C<DICOM::DICOM> module
 
 =head1 SYNOPSIS
 
@@ -14,7 +14,7 @@ DICOM::Element -- Element routines for DICOM::DICOM module
 
 =head1 DESCRIPTION
 
-Element routines for DICOM::DICOM module to read binary DICOM headers.
+Element routines for C<DICOM::DICOM> module to read binary DICOM headers.
 
 Each element is a hash with the following keys:
   - group  : group (hex)
@@ -56,7 +56,7 @@ BEGIN {
 
 =pod
 
-=head3 new() (constructor)
+=head3 new() >> (constructor)
 
 Creates a new instance of this class.
 
@@ -73,7 +73,7 @@ sub new {
 
 =pod
 
-=head3 fill($IN, $dictref, $big_endian_image)
+=head3 fill($IN, $dictref)
 
 Fills in C<self> from file.
 
@@ -195,7 +195,7 @@ string and writes them in a file
 
 INPUTS:
   - $OUT  : output file
-  - $bytes: number of bytes (2 for shorts 4 for ints) in the field
+  - $bytes: number of bytes (2 for shorts 4 for integers) in the field
 
 =cut
 
@@ -573,10 +573,6 @@ Better documentation of the following functions:
   - readLength($IN)
   - writeInt($OUT, $bytes)
   - byteswap($valref)
-
-=head1 BUGS
-
-None reported (or list of bugs)
 
 =head1 LICENSING
 

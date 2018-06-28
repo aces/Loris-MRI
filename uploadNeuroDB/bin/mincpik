@@ -28,8 +28,8 @@ B<-clobber> : if it exists, overwrite the output file. An error is produced if F
 and this option is not used.
 
 =item *
-B<-fake> : do not actually run the command but instead print on STDOUT all the calls to the
- scripts and external tools (see above) issued to generate the image
+B<-fake> : do not actually run the command but instead print on C<STDOUT> all
+the calls to the scripts and external tools (see above) issued to generate the image
  
 =item *
 B<-slice index> : C<index> (starts at 0) of the slice to use to generate the image. Defaults to
@@ -44,8 +44,8 @@ B<-width width> : autoscale the image so it has a fixed width (in number of pixe
 If this option is used, then the scaling factor (C<-scale> option) is ignored.
 
 =item *
-B<-depth 8|16> : bitdepth for resulting image (8 or 16). This option should be used 
-on big-endian machines only.
+B<-depth 8|16> : bit depth for resulting image (8 or 16). This option should
+be used on big-endian machines only.
 
 =item *
 B<-title> : whether the image should be generated with a title or not
@@ -130,14 +130,6 @@ dimension stacked in a horizontal row.
 The F<outfile> command line argument is optional. If not specified, output will be a PNG image
 written to STDOUT. If F<outfile> is specified, the file extension will determine the type of
 the generated image (F<.jpg> for JPEG images, F<.gif> for GIF images, etc...)
-
-=head1 TO DO
-
-Nothing
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

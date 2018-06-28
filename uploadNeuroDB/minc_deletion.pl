@@ -15,12 +15,11 @@ perl minc_deletion.pl C<[options]>
 
 Available options are:
 
--profile    : name of the config file in
-              C<../dicom-archive/.loris_mri>
+-profile   : name of the config file in C<../dicom-archive/.loris_mri>
 
--series_uid : the series UID of the file to be deleted
+-series_uid: the series UID of the file to be deleted
 
--fileid     : the file ID of the file to be deleted
+-fileid    : the file ID of the file to be deleted
 
 
 =head1 DESCRIPTION
@@ -29,7 +28,7 @@ This program deletes MINC files from LORIS by:
   - Moving the existing files (C<.mnc>, C<.nii>, C<.jpg>, C<.header>,
     C<.raw_byte.gz>) to the archive directory: C</data/$PROJECT/data/archive/>
   - Deleting all related data from C<parameter_file> & C<files> tables
-  - Deleting data from C<files_qcstatus> & C<feedback_mri_comments>
+  - Deleting data from C<files_qcstatus> and C<feedback_mri_comments>
     database tables if the C<-delqcdata> option is set. In most cases
     you would want to delete this when the images change
   - Deleting C<mri_acquisition_dates> entry if it is the last file
@@ -458,21 +457,13 @@ __END__
 
 =pod
 
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
-
 =head1 LICENSING
 
 License: GPLv3
 
 =head1 AUTHORS
 
-Gregory Luneau, the LORIS community <loris.info@mcin.ca> and McGill Centre
-for Integrative Neuroscience
+Gregory Luneau,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut

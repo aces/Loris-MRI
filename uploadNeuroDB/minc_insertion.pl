@@ -12,8 +12,7 @@ perl minc_insertion.pl C<[options]>
 
 Available options are:
 
--profile     : name of the config file in
-               C<../dicom-archive/.loris_mri>
+-profile     : name of the config file in C<../dicom-archive/.loris_mri>
 
 -reckless    : uploads data to database even if study protocol
                is not defined or violated
@@ -645,7 +644,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 logHeader()
 
-Creates and prints the LOG header.
+Function that adds a header with relevant information to the log file.
 
 =cut
 
@@ -665,14 +664,6 @@ sub logHeader () {
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

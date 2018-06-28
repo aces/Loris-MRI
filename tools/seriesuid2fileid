@@ -6,28 +6,28 @@
 
 seriesuid2fileid -- a script that displays a report about the pipeline insertion
 progress and outcome (including MRI violation status) of imaging datasets, based
-on series UID(s) provided as STDIN.
+on series C<UID(s)> provided as C<STDIN>.
 
 =head1 SYNOPSIS
 
 perl tools/seriesuid2fileid
 
-There are no available options. Once the script is invoked, series UID can be
+There are no available options. Once the script is invoked, series C<UID> can be
 input to display the status. The C<$profile> file for database connection
 credentials is assumed to be C<prod>.
 
 
 =head1 DESCRIPTION
 
-The program takes series UID from STDIN and returns a report with:
+The program takes series C<UID> from C<STDIN> and returns a report with:
 
-  - SeriesUID
-  - SeriesDescription
-  - TarchiveID
-  - m_p_v_s_ID
-  - mri_v_log
-  - FileID
-  - FileName
+  - C<SeriesUID>
+  - C<SeriesDescription>
+  - C<TarchiveID>
+  - C<m_p_v_s_ID>
+  - C<mri_v_log>
+  - C<FileID>
+  - C<FileName>
 
 The C<m_p_v_s_ID> column displays, if present, the C<ID> record from the
 C<mri_protocol_violated_scans> table together with a count representing the
@@ -184,21 +184,13 @@ __END__
 
 =pod
 
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
-
 =head1 LICENSING
 
 License: GPLv3
 
 =head1 AUTHORS
 
-Gregory Luneau, LORIS community <loris.info@mcin.ca> and McGill Centre for
-Integrative Neuroscience
+Gregory Luneau,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut

@@ -57,14 +57,6 @@ END_DICOM_PRIVATE
 
 =pod
 
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
-
 =head1 LICENSING
 
 License: GPLv3
