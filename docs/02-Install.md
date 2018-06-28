@@ -205,9 +205,9 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
 
     Routine that takes in a file as an object and removes all parameters of length > 1000
     
-- `get_DTI_Site_CandID_Visit()`
+- `get_DTI_CandID_Visit()`
 
-    Used for the DTIPrep pipeline
+    Used by the DTIPrep pipeline
 
 
 ## <a name="post-installation-checks"> 2.3 Post-installation checks
