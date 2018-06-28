@@ -388,7 +388,8 @@ INPUTS:
 
 ### isValidMRIProtocol()
 
-Ensures no column in the `mri_protocol` table has comma-separated values.
+Ensures no column in the `mri_protocol` nor the `mri_protocol_checks` 
+tables has comma-separated values.
 
 RETURNS: 1 on success, 0 on failure
 
