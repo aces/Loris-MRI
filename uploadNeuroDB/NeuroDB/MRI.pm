@@ -1191,8 +1191,10 @@ sub createNewCandID {
 
 =head3 getPSC($patientName, $dbhr)
 
-Looks for the site alias in whatever field (usually C<patient_name> or
-C<patient_id>) is provided and return the C<MRI_alias> and C<CenterID>.
+Looks for the site alias using the C<session> table C<CenterID> as 
+a first resource, for the cases where it is created using the front-end,
+otherwise, find the site alias in whatever field (usually C<patient_name> 
+or C<patient_id>) is provided, and return the C<MRI_alias> and C<CenterID>.
 
 INPUTS:
   - $patientName: patient name
@@ -1206,34 +1208,41 @@ RETURNS: a two element array:
 
 sub getPSC {
     my ($patientName, $dbhr) = @_;
-    my $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
-    my $sth = $${dbhr}->prepare($query);
+
+    my $subjectIDsref = Settings::getSubjectIDs(
+                            $patientName,
+                            null,
+                            null,
+                            $dbhr
+                        );
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    my $visitLabel = $subjectIDsref->{'visitLabel'};
+
+    ## Get the CenterID from the session table, if the PSCID and visit labels exist 
+    ## and could be extracted  
+    if ($PSCID && $visitLabel) {
+    	my $query = "SELECT s.CenterID, p.MRI_alias FROM session s 
+                    JOIN psc p on p.CenterID=s.CenterID  
+                    JOIN candidate c on c.CandID=s.CandID  
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+        
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID, $visitLabel);
+        if ( $sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return ($row->{'MRI_alias'},$row->{'CenterID'});
+        }
+    }  
+
+    ## Otherwise, use the patient name to match it to the site alias or MRI alias 
+    $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
+    $sth = $${dbhr}->prepare($query);
     $sth->execute;
 
     while(my $row = $sth->fetchrow_hashref) {
         return ($row->{'MRI_alias'}, $row->{'CenterID'})
 	    if ($patientName =~ /$row->{'Alias'}/i) || ($patientName =~ /$row->{'MRI_alias'}/i);
     }
-
-    ###########################################################################	
-    ###Get the centerID using the PSCID########################################
-    ###########################################################################
-
-    #extract the PSCID from $patientName
-    $subjectIDsref = getSubjectIDs($patientName,null,$dbhr);
-    my $PSCID = $subjectIDsref->{'PSCID'};
-    if ($PSCID) {
-    ##Get the CenterID using PSCID
-	$query = "SELECT c.CenterID,p.MRI_alias FROM candidate c JOIN
-	psc p on p.CenterID=c.CenterID  WHERE c.PSCID = '$PSCID'";
-
-        $sth = $${dbhr}->prepare($query);
-	$sth->execute();
-	if ( $sth->rows > 0) {
-            my $row = $sth->fetchrow_hashref();
-	    return ($row->{'MRI_alias'},$row->{'CenterID'});
-	}
-    }  
 
     return ("UNKN", 0);
 }
