@@ -53,10 +53,12 @@ study-defined MRI protocol
  - BrainBrowser using 3D or 4D navigation of these MINC files. More details on 
 BrainBrowser's capabilities can be found [here.][5]
 
-`*` Please note that while acquisitions with `localizer` as their series description 
-are included in the DICOM archival step, they are excluded in all the steps that start 
-at, and follow the DICOM to MINC conversion. In a future release, the list of series 
-description to exclude will become customizable by projects.  
+`*` Please note that all acquisitions are included in the DICOM archival
+step (even the ones excluded at a further step of the pipeline). Specific
+acquisitions (such as localizers or scouts) can be excluded from the steps of
+the pipeline that start at, and follow the DICOM to MINC conversion and the
+rest of the pipeline by specifying them in the `excluded_series_description`
+field of the Config module (under the Imaging Pipeline section).
 
 [1]: https://github.com/aces/Loris/wiki 
 [2]: http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html
