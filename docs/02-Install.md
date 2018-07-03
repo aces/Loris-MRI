@@ -89,7 +89,7 @@ Under the `Paths` section:
  * `Max number of DTI rejected directions for passing QC`: Maximum number of directions that can be removed from a DTI scan to pass QC. Used by the DTIPrep pipeline
  * `NIAK Path`: Path to NIAK if MINC diffusion is to be run. Used by the DTIPrep pipeline
  * `Secondary QCed dataset`: Path where a secondary QC'ed dataset is to be stored. Used by the DTIPrep pipeline
-
+ * `excluded_series_description`: series descriptions to be excluded from the steps of the pipeline that start at, and follow the DICOM to MINC conversion
 
 ### 2.2.2 LORIS
 

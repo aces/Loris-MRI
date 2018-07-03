@@ -49,15 +49,14 @@ The output of the main key steps in the insertion progress can also be consulted
 through:
  - the LORIS DICOM Archive module for successfully archived DICOM datasets`*` 
  - the Imaging Browser module for MINC files (generated from DICOM) that pass the 
-study-defined MRI protocol 
+study-defined MRI protocol`*`
  - BrainBrowser using 3D or 4D navigation of these MINC files. More details on 
 BrainBrowser's capabilities can be found [here.][5]
 
 `*` Please note that all acquisitions are included in the DICOM archival
-step (even the ones excluded at a further step of the pipeline). Specific
-acquisitions (such as localizers or scouts) can be excluded from the steps of
-the pipeline that start at, and follow the DICOM to MINC conversion and the
-rest of the pipeline by specifying them in the `excluded_series_description`
+step. However, specific acquisitions (such as `localizers` or `scouts`) can be
+excluded from the steps of the pipeline that start at, and follow the DICOM to
+MINC conversion by specifying them in the `excluded_series_description`
 field of the Config module (under the Imaging Pipeline section).
 
 [1]: https://github.com/aces/Loris/wiki 
