@@ -95,7 +95,16 @@ sub getConfigSetting
     $query = $query . $where;
     my $sth = $$dbh->prepare($query);
     $sth->execute($name);
-    if ( $sth->rows > 0 ) {
+
+    if ( $sth->rows > 1 ){
+        # if more than one row returned, push data into an array that will be
+        #  dereferenced into $value
+        my @values;
+        while (my $row = $sth->fetchrow_array()) {
+            push (@values, $row);
+        }
+        $value = \@values;
+    } elsif ( $sth->rows > 0 ) {
         $value = $sth->fetchrow_array();
     }
     return $value;

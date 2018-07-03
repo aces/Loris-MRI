@@ -273,7 +273,9 @@ my $mail_user = NeuroDB::DBI::getConfigSetting(
 my $get_dicom_info = NeuroDB::DBI::getConfigSetting(
                  \$dbh,'get_dicom_info'
                  );
-my $exclude          = "localizer"; # case insensitive
+my $exclude          = NeuroDB::DBI::getConfigSetting(
+                        \$dbh, 'excluded_series_description'
+                       );
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my $User             = `whoami`;
 

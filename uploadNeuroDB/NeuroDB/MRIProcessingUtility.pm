@@ -1094,10 +1094,15 @@ sub dicom_to_minc {
 		$exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd,$d2m_log,$exit_code);
     my $message = '';
+
+    # create the excluded series description regex necessary to exclude the
+    # series description specified in the Config Setting
+    # excluded_series_description
+    my $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
     $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series".
                " -echo -image -file -series_descr -attvalue 0018 0024".
                " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 | grep -iv".
-               " $exclude | cut -f 5 | ";
+               " -E \"($excluded_regex)\" | cut -f 5 | ";
     
     ############################################################
     #### use some other converter if specified in the config ###
