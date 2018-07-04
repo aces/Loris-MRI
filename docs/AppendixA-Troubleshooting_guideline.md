@@ -12,7 +12,7 @@ _**Table 1: Common errors encountered during LORIS-MRI installation, and their p
 |:------|:------|:----------| 
 |`install_driver(mysql) failed: Can't locate DBD/mysql.pm`|Missing dependency|`sudo apt-get install libdbd-mysql-perl`|
 |`ERROR: You don't have a configuration file named 'prod' in: /data/%PROJECT%/bin/mri/dicom-archive/.loris_mri/`| Your `environment` file does not contain your actual LORIS-MRI project name. Instead, it contains the placeholder `%PROJECT%` as provided in the 'generic' file and/or your `environment` file is not sourced| Source the environment file located in `/data/$PROJECT/bin/mri/` after making sure that the `$PROJECT` variable is replaced with your LORIS-MRI project name|
-|`ERROR: You don't have a configuration file named 'prod' in: /data/loris-MRI/bin/mri/dicom-archive/.loris_mri/` *note*: `loris-MRI` is an example project name used in this illustration| Wrong file and/or directory permissions| Make sure that the `/data/loris-MRI/bin/mri` directory, and all directories within are readable by the user running the scripts (`lorisadmin` or the front-end `apache` user)|
+|`ERROR: You don't have a configuration file named 'prod' in: /data/loris-MRI/bin/mri/dicom-archive/.loris_mri/` *note*: `loris-MRI` is an example project name used in this illustration| Wrong file and/or directory permissions| Make sure that the `/data/$PROJECT/bin/mri` directory, and all directories within are readable by the user running the scripts (`lorisadmin` or the front-end `apache` user)|
 |`ERROR: You don't have a configuration file named 'prod' in: /data/loris-MRI/bin/mri/dicom-archive/.loris_mri/` *note*: `loris-MRI` is an example project name used in this illustration| Syntax error in the `prod` file in the customized routines (for example a missing closing bracket)| Check the routines that were customized for your project needs|
 |`DB connection failed`| Database credentials in the `prod` file were entered incorrectly during the install, or they were modified subsequently| Make sure that your `prod` file contains the correct database connection/credentials information in the `DATABASE Settings, Section I`|
 
@@ -23,7 +23,7 @@ _**Table 2: Common errors encountered due to missing LORIS (front-end) module se
 |:------|:------|:----------| 
 |Images thumbnails do not show up in Imaging Browser. They appear as a broken image icon|Wrong permissions to the `/data/$PROJECT/data/pic/` folder|Ensure that the `apache` user can read/execute the `pic` images folder|
 |Images thumbnails do not show up in Imaging Browser. They appear as a broken image icon|Wrong `Images` path under the `Paths` section in LORIS Configuration module|Ensure the path to the images is correct, typically `/data/$PROJECT/data/`|
-|4-D images (e.g. DTI, fMRI) in brainbrowser do not show any volumes (Play button not displayed)|Most likely a dcm2mnc conversion error|Post an issue on the [minc-toolkit Github Issues page](https://github.com/BIC-MNI/minc-toolkit/issues)|
+|4-D images (*e.g.* DTI, fMRI) in brainbrowser do not show any volumes (Play button not displayed)|Most likely a dcm2mnc conversion error|Post an issue on the [minc-toolkit Github Issues page](https://github.com/BIC-MNI/minc-toolkit/issues)|
 |Brainbrowser says `Loading…` but no image shows up|Wrong permissions to the `/data/$PROJECT/data/assembly/` folder|Ensure that the apache user can read/execute the MINC `assembly` images folder|
 |Brainbrowser says `Loading…` but no image shows up|Wrong `Images` path under the `Paths` section in LORIS Configuration module|Ensure the path to the MINC images is correct, typically `/data/$PROJECT/data/`| 
 |Brainbrowser says `Loading…` but no image shows up|The `config.xml` in LORIS does not have the MINC Toolkit Path set properly|Fill out the path `<MINCToolsPath>` to the MINC Toolkit Installation in the `config.xml` (on the LORIS side). The last trailing `/` in the path is mandatory|
@@ -42,7 +42,7 @@ _**Table 3: Common errors encountered during execution of the LORIS-MRi insertio
 |My uploaded DICOM study contains 6 modalities but only 5 were inserted. The 6th modality was not converted to MINC, neither inserted into the MRI Violated Scans module. In addition, during insertion, the message `Number of MINC files that will be considered for inserting into the database: 5` is displayed, confirming that only 5 files are considered|The missing modality is probably a `localizer` acquisition. `tarchiveLoader` is specifically 'instructed' to exclude this modality|No action needed. This is the expected behavior of the LORIS-MRI insertion pipeline|
 |My uploaded DICOM study contains 6 modalities but only 5 were inserted. The 6th modality was not converted to MINC, neither inserted into the MRI Violated Scans module. In addition, during insertion, the message `Number of MINC files that will be considered for inserting into the database: 5` is displayed, confirming that only 5 files are considered|Probably the DICOM headers have blank SeriesNumber. LORIS-MRI generates MINC files and names them temporarily (in intermediate insertion steps) based on their SeriesNumber, before it proceeds to renaming them once the protocol is identified from the `mri_protocol` table. Having no SeriesNumber defaults to `0`, causing overwrites on the intermediate MINC files generated|Ensure that your DICOM headers include a non-blank SeriesNumber for every acquisition in that specific study|
 |`The target directory does not contain a single DICOM file`|Probably the DICOM headers have blank StudyUID. The logic of insertion within LORIS-MRI depends on a StudyUID header|Ensure that your DICOM headers include a non-blank StudyUID header|
-|My resting-state fMRI scans are tagged as task fMRI although I have 2 entries in the `mri_protocol` table|The resting-state scan has parameters that match those of the task entry of the `mri_protocol` table, and the task-related entry in the `mri_protocol` table precedes that of the resting-state fMRI|Make sure the `mri_protocol` table has parameters that discern between all the study acquired modalities in an **exclusive** manner (i.e. no two row entries have overlapping parameters across all their columns)|
+|My resting-state fMRI scans are tagged as task fMRI although I have 2 entries in the `mri_protocol` table|The resting-state scan has parameters that match those of the task entry of the `mri_protocol` table, and the task-related entry in the `mri_protocol` table precedes that of the resting-state fMRI|Make sure the `mri_protocol` table has parameters that discern between all the study acquired modalities in an **exclusive** manner (*i.e.* no two row entries have overlapping parameters across all their columns)|
 |`no MINCs inserted`|Possibly all the MINC images are violated scans|Check the details of the image headers (from the MRI Violated Scans module or using `mincheader`) against the `mri_protocol` table entries, and adjust the table protocol parameters accordingly|
 
 
@@ -52,8 +52,8 @@ Key configuration points to verify:
 
 - Depending on your operating system, some dependencies might be missing.
     During initial troubleshooting of the imaging pipeline, note any related
-    error messages (e.g. `install_driver(mysql) failed: Can't locate DBD/mysql
-   .pm`) and install missing packages as needed (e.g.
+    error messages (*e.g.* `install_driver(mysql) failed: Can't locate DBD/mysql
+   .pm`) and install missing packages as needed (*e.g.*
    `sudo apt-get install libdbi-perl`, `sudo apt-get install libdbd-mysql-perl`,
     `sudo apt-get install libarchive-zip-perl`).
 
@@ -72,22 +72,22 @@ Verify in the Imaging Browser's View Session page that a `jpg` showing 3 slice
   orientations displays properly; if not, verify your permissions and restart
   apache:
 ```
-sudo chmod o+r /data/$PROJ/bin
-sudo chmod o+r /data/$PROJ/data
+sudo chmod o+r /data/$PROJECT/bin
+sudo chmod o+r /data/$PROJECT/data
 sudo service apache2 restart
 ```
 
-If download links do not work, ensure that the `/data/$PROJ/data/assembly`
+If download links do not work, ensure that the `/data/$PROJECT/data/assembly`
   directory and subdirectories are executable.
 
 ### A.3 Logs troubleshooting notes
 
 Error and output messages from the imaging insertion scripts are logged in files
-  created under the `/data/$PROJ/data/logs/` directory. To view messages from
+  created under the `/data/$PROJECT/data/logs/` directory. To view messages from
   the last script run, consult the most recent log file modified in this
-  directory. These log files reference an *uploadID* used to identify each
+  directory. These log files reference an `uploadID` used to identify each
   imaging dataset -- consult the `mri_upload` database table to look up which
-  uploadID has been assigned to your scans.
+  `uploadID` has been assigned to your scans.
 
 ***Caveat:*** When the imaging insertion pipeline is auto-launched by the
   Imaging Uploader module, the pipeline scripts' log files are output to
@@ -100,7 +100,7 @@ Error and output messages from the imaging insertion scripts are logged in files
 If upload was successful but issues were encountered with the imaging insertion
   pipeline scripts:
 
-- CentOS: check for additional dependencies/configurations (e.g. DICOM
+- CentOS: check for additional dependencies/configurations (*e.g.* DICOM
     Dictionary path) in the detailed
     [CentOS Imaging Installation transcript](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript)
 - Manually re-run the entire pipeline sequence using the 
