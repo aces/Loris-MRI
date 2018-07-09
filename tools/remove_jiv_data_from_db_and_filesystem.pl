@@ -5,13 +5,12 @@
 
 =head1 NAME
 
-MakeArchiveLocationRelative.pl -- Removes the root directory from the
-C<ArchiveLocation> field in the C<tarchive> table to make the path to the
-tarchive relative.
+remove_jiv_data_from_db_and_filesystem.pl -- Cleans up the JIV data from the
+database tables and the filesystem
 
 =head1 SYNOPSIS
 
-perl MakeArchiveLocationRelative.pl C<[options]>
+perl remove_jiv_data_from_db_and_filesystem.pl C<[options]>
 
 Available option is:
 
@@ -19,10 +18,10 @@ Available option is:
 
 =head1 DESCRIPTION
 
-This script will remove the root directory from the C<ArchiveLocation> field
-in the C<tarchive> table to make the C<.tar> path a relative one. This should
-be used once to remove the root directory if the C<tarchive> table still has
-some C<ArchiveLocation> paths stored from the root directory.
+This script will remove the JIV files from the parameter_file table and the
+filesystem for projects that wish to clean up and remove completely the JIV
+data produced in the past. From now on, JIV datasets will not be produced
+anymore.
 
 =head2 Methods
 

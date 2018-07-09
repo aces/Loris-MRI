@@ -16,6 +16,7 @@ The root directory of the imaging part of a LORIS instance is typically
         |   |__ mri
         |__ data
             |__ assembly
+            |__ batch_output
             |__ logs
                 |__ DTIPrep_pipeline*
                 |__ DTIPrep_register*
