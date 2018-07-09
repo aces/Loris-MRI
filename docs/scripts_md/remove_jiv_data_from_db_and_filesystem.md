@@ -13,9 +13,10 @@ Available option is:
 
 # DESCRIPTION
 
-This script will remove the JIV files from the parameter\_file table and the
-filesystem for projects that wish to clean up and remove completely the JIV
-data produced in the past. From now on, JIV datasets will not be produced
-anymore.
+This script will remove the JIV files from the `parameter_file` table and
+move them to the `$data_dir/archive/jiv` directory of the filesystem for
+projects that wish to clean up the JIV data produced in the past. Note that
+from release 20.0, JIV datasets will not be produced anymore by the imaging
+insertion scripts.
 
 ## Methods

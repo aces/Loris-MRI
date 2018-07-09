@@ -18,10 +18,11 @@ Available option is:
 
 =head1 DESCRIPTION
 
-This script will remove the JIV files from the parameter_file table and the
-filesystem for projects that wish to clean up and remove completely the JIV
-data produced in the past. From now on, JIV datasets will not be produced
-anymore.
+This script will remove the JIV files from the C<parameter_file> table and
+move them to the C<$data_dir/archive/jiv> directory of the filesystem for
+projects that wish to clean up the JIV data produced in the past. Note that
+from release 20.0, JIV datasets will not be produced anymore by the imaging
+insertion scripts.
 
 =head2 Methods
 
@@ -31,7 +32,7 @@ use strict;
 use warnings;
 
 use Getopt::Tabular;
-use File::Path qw(remove_tree);
+use File::Copy;
 
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
@@ -50,7 +51,7 @@ my @opt_table = (
 my $Help = <<HELP;
 
 This script will remove entries in the parameter_file table for the JIV files
- and remove the JIV directory in data_dir.
+ and backup the JIV directory in /data/project/data to the archive folder.
 
 Documentation: perldoc remove_jiv_data_from_db_and_filesystem.pl
 
@@ -136,12 +137,13 @@ if ( !$row ) {
 
 
 
-## delete the JIV directory from the filesystem
+## backup the JIV directory to the archive directory on the filesystem
 # grep the data_dir from the Configuration module of LORIS
 my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
 $data_dir    =~ s/\/$//;
 my $jiv_dir  = $data_dir . "/jiv";
-remove_tree($jiv_dir) if (-d $jiv_dir);
+my $jiv_bkp  = $data_dir . "/archive/jiv";
+move($jiv_dir, $jiv_bkp) if (-d $jiv_dir);
 
 
 
