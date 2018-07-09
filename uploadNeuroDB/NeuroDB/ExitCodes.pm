@@ -183,7 +183,7 @@ our $CANDIDATE_MISMATCH = 181; # if candidate PSCID and CandID do not match
 
 # file related failures
 our $NO_VALID_MINC_CREATED = 190; # if no valid MINC file was created
-                                  # (non-localizers)
+                                  # (excluding project-specified acquisitions)
 
 
 ## -- FROM uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200 to 210)
