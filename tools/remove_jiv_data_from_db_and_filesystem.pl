@@ -142,7 +142,7 @@ if ( !$row ) {
 my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
 $data_dir    =~ s/\/$//;
 my $jiv_dir  = $data_dir . "/jiv";
-my $jiv_bkp  = $data_dir . "/archive/jiv";
+my $jiv_bkp  = $data_dir . "/archive/bkp_jiv_produced_before_LORIS_20.0";
 move($jiv_dir, $jiv_bkp) if (-d $jiv_dir);
 
 
