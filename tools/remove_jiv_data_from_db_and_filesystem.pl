@@ -19,7 +19,7 @@ Available option is:
 =head1 DESCRIPTION
 
 This script will remove the JIV files from the C<parameter_file> table and
-move them to the C<$data_dir/archive/jiv> directory of the filesystem for
+move them to the C<$data_dir/archive/bkp_jiv_produced_before_LORIS_20.0> directory of the filesystem for
 projects that wish to clean up the JIV data produced in the past. Note that
 from release 20.0, JIV datasets will not be produced anymore by the imaging
 insertion scripts.
@@ -99,7 +99,7 @@ $sth->execute();
 
 my $row = $sth->fetchrow_hashref();
 if ( !$row ) {
-    print "\n==> did not find any entry in the parameter_type table with "
+    print "\n==> Did not find any entry in the parameter_type table with "
           . "Name='jiv_path'. Exiting now.\n";
     exit $NeuroDB::ExitCodes::SUCCESS;
 }
@@ -113,7 +113,7 @@ $query = "SELECT * FROM parameter_file WHERE ParameterTypeID=?";
 $sth   = $dbh->prepare($query);
 $sth->execute($param_type_id);
 $row        = $sth->fetchrow_hashref();
-my $message = "\n==> did not find any JIV entries in table parameter_file.\n";
+my $message = "\n==> Did not find any JIV entries in table parameter_file.\n";
 print $message if ( !$row );
 
 # delete entries from parameter_file
@@ -125,12 +125,12 @@ $delete_sth->execute($param_type_id);
 $sth->execute($param_type_id);
 $row     = $sth->fetchrow_hashref();
 if ( !$row ) {
-    print "\n==> succesfully deleted all JIV entries in parameter_file.\n";
+    print "\n==> Succesfully deleted all JIV entries in parameter_file.\n";
     $delete = "DELETE FROM parameter_type WHERE ParameterTypeID=?";
     $delete_sth = $dbh->prepare($delete);
     $delete_sth->execute($param_type_id);
 } else {
-    print "\n==> could not delete all JIV entries in parameter_file.\n";
+    print "\n==> Could not delete all JIV entries in parameter_file.\n";
     exit;
 }
 
@@ -144,7 +144,12 @@ $data_dir    =~ s/\/$//;
 my $jiv_dir  = $data_dir . "/jiv";
 my $jiv_bkp  = $data_dir . "/archive/bkp_jiv_produced_before_LORIS_20.0";
 move($jiv_dir, $jiv_bkp) if (-d $jiv_dir);
-
+if (-d $jiv_bkp) {
+    print "\n==> Successfully backed up the jiv directory to $jiv_bkp.\n";   
+} else {
+    print "\n==> ERROR: could not back up the jiv directory to $jiv_bkp.\n";    
+    exit;
+}
 
 
 

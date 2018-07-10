@@ -14,7 +14,7 @@ Available option is:
 # DESCRIPTION
 
 This script will remove the JIV files from the `parameter_file` table and
-move them to the `$data_dir/archive/jiv` directory of the filesystem for
+move them to the `$data_dir/archive/bkp_jiv_produced_before_LORIS_20.0` directory of the filesystem for
 projects that wish to clean up the JIV data produced in the past. Note that
 from release 20.0, JIV datasets will not be produced anymore by the imaging
 insertion scripts.
