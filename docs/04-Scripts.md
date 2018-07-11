@@ -143,7 +143,7 @@ In general, to re-load an imaging dataset through the pipeline from the start
 
 It is also recommended to remove from the `tarchive` directory the last generated
   `*.tar` package for this dataset, as well as files in the `assembly/`, `pic/`, 
-  `jiv/`, and `trashbin/` directories.
+  and `trashbin/` directories.
 
 If any Quality Control flags or comments exist for these scans, you may also
   wish to delete specific records from `files_qcstatus` and the `mri_feedback_*`

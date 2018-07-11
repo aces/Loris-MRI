@@ -301,19 +301,6 @@ INPUTS:
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
 
-### make\_jiv($file\_ref, $data\_dir, $dest\_dir)
-
-Generates JIV data for the Imaging Browser module for the `NeuroDB::File`
-object referenced by `$file_ref`.
-
-INPUTS:
-  - $file\_ref      : file hash ref
-  - $data\_dir      : data directory (`/data/$PROJECT/data` typically)
-  - $dest\_dir      : destination directory (`/data/$PROJECT/data/jiv`
-                     typically)
-
-RETURNS: 1 if the JIV data was generated or 0 otherwise.
-
 ### make\_nii($fileref, $data\_dir)
 
 Creates NIfTI files associated with MINC files and append its path to the

@@ -98,24 +98,6 @@ if  ($minc_location_refs) {
     print LOG "No file was found with a path starting from the root directory (i.e. including $data_dir)\n";
 }
 
-#### Updating jiv location in parameter_file table ####
-my  ($jiv_location_refs, $fileIDs_jiv)  =   get_parameter_files($data_dir, 'jiv_path', $dbh);
-
-if  ($jiv_location_refs) {
-    foreach my $fileID (@$fileIDs_jiv) {
-        my  $new_jiv_location  =   $jiv_location_refs->{$fileID};
-        $new_jiv_location      =~  s/$data_dir\///i;
-        my  ($rows_affected)   =   update_parameter_file_location($fileID, $new_jiv_location, 'jiv_path', $dbh); # update jiv location in parameter_file table.
-        if  ($rows_affected ==  1)  { 
-            print LOG "Updated jiv location with $fileID FileID to $new_jiv_location.\n";
-        } else {
-            print LOG "ERROR: $rows_affected while updating jiv location with $fileID FileID to $new_jiv_location.\n";
-        }
-    }
-} else {
-    print LOG "No jiv was found with a path starting from the root directory (i.e. including $data_dir)\n";
-}
-
 #### Updating pic location in parameter_file table ####
 my  ($pic_location_refs, $fileIDs_pic)  =   get_parameter_files($data_dir, 'check_pic_filename', $dbh);
 
@@ -229,15 +211,15 @@ sub update_minc_location {
 
 =head3 get_parameter_files($data_dir, $parameter_type, $dbh)
 
-Gets list of JIV files to update location in the C<parameter_file> table by
+Gets list of PIC files to update location in the C<parameter_file> table by
 removing the root directory from the path.
 
 INPUTS:
   - $data_dir      : data directory (e.g. C</data$PROJECT/data>)
-  - $parameter_type: name of the parameter type for the JIV
+  - $parameter_type: name of the parameter type for the PIC
   - $dbh           : database handle
 
-RETURNS: hash of JIV file locations, array of C<FileIDs>
+RETURNS: hash of PIC file locations, array of C<FileIDs>
 
 =cut
 
@@ -274,12 +256,12 @@ sub get_parameter_files {
 
 =head3 update_parameter_file_location($fileID, $new_file_location, $parameter_type, $dbh)
 
-Updates the location of JIV files in the C<parameter_file> table.
+Updates the location of PIC files in the C<parameter_file> table.
 
 INPUTS:
   - $fileID           : file's ID
-  - $new_file_location: new location of the JIV file
-  - $parameter_type   : parameter type name for the JIV
+  - $new_file_location: new location of the PIC file
+  - $parameter_type   : parameter type name for the PIC
   - $dbh              : database handle
 
 RETURNS: number of rows affected by the update (should always be 1)

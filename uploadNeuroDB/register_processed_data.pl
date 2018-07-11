@@ -154,7 +154,6 @@ my $data_dir = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
 my $pic_dir  =   $data_dir.'/pic';
-my $jiv_dir  =   $data_dir.'/jiv';
 my $prefix   = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'prefix'
                     );
@@ -325,10 +324,6 @@ my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'horizontalPics'
                         );
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
-    # Jivify
-    print LOG "Making JIV\n";
-    &NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
-    
     # make the browser pics
     print "Making browser pics\n";
     &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics);
