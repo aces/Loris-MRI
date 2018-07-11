@@ -471,9 +471,12 @@ if ($verbose){
 ################################################################
 # If no good data was found stop processing and write error log.
 ################################################################
-if ($mcount < 1) { 
-    $message = "\nNo data could be converted into valid MINC files. ".
-               "Localizers will not be considered! \n" ; 
+if ($mcount < 1) {
+    $message = "\nNo data could be converted into valid MINC files. ";
+    if ($exclude && @$exclude) {
+        my $excluded_series = join(',', map {quotemeta($_)} @$exclude);
+        $message .= "$excluded_series will not be considered! \n" ;
+    }
     $utility->writeErrorLog(
         $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
     );
