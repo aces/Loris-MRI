@@ -46,7 +46,7 @@ By default, this table is populated with entries for t1, t2, fMRI and DTI, and
 the columns defining expected scan parameters (*e.g.* `TE_Range`) are defined 
 very broadly.  
 The `Scan_type` column values are defined in the `mri_scan_type` table 
-(*e.g.* 44=t1). Do not include hyphens, spaces or periods in your 
+(*e.g.* 44=t1). Do not include commas, hyphens, spaces or periods in your 
 `mri_scan_type.Scan_type` column values.
 
 5. **`Config`** table
@@ -83,13 +83,13 @@ Under the `Paths` section:
  * `Path to Tarchives`: Directory where the original DICOMs are archived; typically `/data/$PROJECT/data/tarchive/`
  * `Upload creation of candidates`: Enable or disable candidate creation into LORIS when running the insertion pipeline
  * `Project batch management used`: Enable or disable batch management
- * `If site is used`: Obsolete **To be removed in the next release**. This  option used to allow the scans' incoming and archival paths to be configured based on the scanning sites
  * `Number of volumes in native DTI acquisitions`: Used by the DTIPrep pipeline
  * `Scan type of native T1 acquisition`: Name as specified in the `mri_scan_type` table. Used by the DTIPrep pipeline
  * `Max number of DTI rejected directions for passing QC`: Maximum number of directions that can be removed from a DTI scan to pass QC. Used by the DTIPrep pipeline
  * `NIAK Path`: Path to NIAK if MINC diffusion is to be run. Used by the DTIPrep pipeline
  * `Secondary QCed dataset`: Path where a secondary QC'ed dataset is to be stored. Used by the DTIPrep pipeline
  * `excluded_series_description`: series descriptions to be excluded from the steps of the pipeline that start at, and follow the DICOM to MINC conversion
+ * `ComputeDeepQC`: Enable or disable the automated computation of image quality control. Feature to be integrated in the code base in a **future** release.
 
 ### 2.2.2 LORIS
 
