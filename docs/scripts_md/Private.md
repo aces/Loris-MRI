@@ -30,14 +30,6 @@ Example format:
     0000   0000   UL   1      GroupLength
     ...
 
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
-
 # LICENSING
 
 License: GPLv3

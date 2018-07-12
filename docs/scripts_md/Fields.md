@@ -49,14 +49,6 @@ Simply creating an array of:
     0000   0903   US   1      ErrorID
     ...
 
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
-
 # LICENSING
 
 License: GPLv3

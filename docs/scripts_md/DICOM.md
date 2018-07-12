@@ -15,7 +15,7 @@ medical image files conforming to DICOM standards.
 
 DICOM (Digital Imaging and Communications in Medicine) is a standard
 designed to allow medical image files to be transferred, stored and
-viewed on different makes of computers. Perl is a multiplatform
+viewed on different makes of computers. Perl is a multi-platform
 language that excels at system tasks such as file manipulation. It's
 easy to learn, particularly if you are familiar with C or the Unix
 shells and utility programs.
@@ -28,11 +28,11 @@ disk.
 
 ## Methods
 
-### new()
+### new() >> (constructor)
 
 Creates a new instance of this class.
 
-RETURNS: a DICOM::DICOM object
+RETURNS: a `DICOM::DICOM` object
 
 ### processOpts($href)
 
@@ -44,14 +44,16 @@ INPUT: a hash reference
 
 Fills in hash with header members from given file.
 
-INPUTS: file, (optionally, big endian image)
+INPUTS:
+  - $infile          : file
+  - $big\_endian\_image: big endian image (optional)
 
 RETURNS: 1 if duplication, 0 on success
 
 ### write($outfile)
 
 Writes currently open file to given file name, or to current name if no new
-name specified.  All fields before value are written verbatim; value field
+name specified. All fields before value are written verbatim; value field
 is stored as is (possibly edited).
 
 INPUT: file to write into
@@ -86,7 +88,9 @@ RETURNS: sort index
 
 Returns value of the element at (group, element).
 
-INPUTS: group, element
+INPUTS:
+  - $gp: group
+  - $el: element
 
 RETURNS: value of the element
 
@@ -94,7 +98,10 @@ RETURNS: value of the element
 
 Returns field of given index from element.
 
-INPUTS: group, element, field index.
+INPUTS:
+  - $gp       : group
+  - $el       : element
+  - $fieldname: field index
 
 RETURNS: field of given index from element
 
@@ -121,7 +128,10 @@ RETURNS: group and element number of field
 
 Replaces value of given element.
 
-INPUTS: group, element, new value
+INPUTS:
+  - $gp      : group
+  - $el      : element
+  - $newvalue: new value
 
 ### hexadecimally()
 
@@ -148,10 +158,6 @@ Better documentation for:
   - hexadecimally() -- non public?
   - loop - doesn't do anything in non-graphical case. investigate if this
   function is used, if not, remove
-
-# BUGS
-
-None reported.
 
 # COPYRIGHT AND LICENSE
 

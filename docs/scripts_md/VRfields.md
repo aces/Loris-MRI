@@ -54,14 +54,6 @@ Simply creating an array of DICOM Value Representations:
     US    'Unsigned Short'         2      1      1        1
     UT    'Unlimited Text'         0      0      0        0
 
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
-
 # LICENSING
 
 License: GPLv3

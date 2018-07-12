@@ -2,7 +2,7 @@
 
 tarchiveLoader -- this script performs the following:
 
-\- validation of the tarchive
+\- validation of the DICOM archive
 
 \- conversion of DICOM datasets into MINC files
 
@@ -15,39 +15,38 @@ perl uploadNeuroDB/tarchiveLoader &lt;/path/to/DICOM-tarchive> `[options]`
 
 Available options are:
 
-\-profile                    : Name of the config file in
-                              `../dicom-archive/.loris_mri`
+\-profile                 : Name of the config file in `../dicom-archive/.loris_mri`
 
-\-force                      : Force the script to run even if the validation
-                              has failed
+\-force                   : Force the script to run even if the validation
+                           has failed
 
-\-reckless                   : Upload data to database even if study protocol is
-                              not defined or violated
+\-reckless                : Upload data to database even if study protocol is
+                           not defined or violated
 
-\-globLocation               : Loosen the validity check of the tarchive allowing
-                              for the possibility that the tarchive was moved to
-                              a different directory
+\-globLocation            : Loosen the validity check of the tarchive allowing
+                           for the possibility that the tarchive was moved to
+                           a different directory
 
 \-newScanner                 : By default a new scanner will be registered if the
                               data you upload requires it. You can risk turning
                               it off
 
-\-keeptmp                    : Keep temporary directory. Make sense if have
-                              infinite space on your server
+\-keeptmp                 : Keep temporary directory. Make sense if have
+                           infinite space on your server
 
-\-xlog                       : Open an xterm with a tail on the current log file
+\-xlog                    : Open an xterm with a tail on the current log file
 
-\-verbose                    : If set, be verbose
+\-verbose                 : If set, be verbose
 
-\-seriesuid                  : Only insert this SeriesUID
+\-seriesuid               : Only insert this `SeriesUID`
 
-\-acquisition\_protocol       : Suggest the acquisition protocol to use
+\-acquisition\_protocol    : Suggest the acquisition protocol to use
 
-\-bypass\_extra\_file\_checks   : Bypass extra\_file\_checks
+\-bypass\_extra\_file\_checks: Bypass `extra_file_checks`
 
 # DESCRIPTION
 
-This script interacts with the NeuroDB database system. It will fetch or modify
+This script interacts with the LORIS database system. It will fetch or modify
 contents of the following tables:
 `session`, `parameter_file`, `parameter_type`, `parameter_type_category`,
 `files`, `mri_staging`, `notification_spool`
@@ -56,7 +55,7 @@ contents of the following tables:
 
 ### logHeader()
 
-Function that adds a header with relevant information to the log file
+Function that adds a header with relevant information to the log file.
 
 # TO DO
 
@@ -72,9 +71,7 @@ Function that adds a header with relevant information to the log file
 
 \- add to config file whether or not to autocreate scanners
 
-# BUGS
-
-None reported.
+\- fix comments written as #fixme in the code
 
 # LICENSING
 

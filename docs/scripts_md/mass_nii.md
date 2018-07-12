@@ -19,16 +19,8 @@ Available options are:
 
 # DESCRIPTION
 
-This script generates NIfTI images for the inserted MINC files with a FileID
+This script generates NIfTI images for the inserted MINC files with a `FileID`
 between the specified `minFileID` and `maxFileID`.
-
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
 
 # LICENSING
 
