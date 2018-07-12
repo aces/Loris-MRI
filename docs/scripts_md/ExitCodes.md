@@ -58,7 +58,7 @@ Below is a list of the possible exit codes:
 
 11\. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 190 to 199)
 
-12\. Exit codes from former scripts that have been removed (exit codes from 200
+12\. Exit codes from uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200
 to 210)
 
 # LICENSING

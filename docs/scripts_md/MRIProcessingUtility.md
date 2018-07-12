@@ -386,13 +386,23 @@ INPUTS:
   - $verb      : 'N' for few main messages,
                  'Y' for more messages (developers)
 
+### isValidMRIProtocol()
+
+Ensures no column in the `mri_protocol` nor the `mri_protocol_checks` 
+tables has comma-separated values.
+
+RETURNS: 1 on success, 0 on failure
+
 # TO DO
 
 Document the following functions:
   - concat\_mri($minc\_files)
   - registerProgs(@toregister)
 
-Remove function get\_acqusitions($study\_dir, \\@acquisitions) that is not used
+Remove the function get\_acqusitions($study\_dir, \\@acquisitions) that is not used
+
+Remove the function isValidMRIProtocol() once the database schema is configured 
+to prevent users from entering non-conform entries in the `mri_protocol` table
 
 # BUGS
 

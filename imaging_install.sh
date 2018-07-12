@@ -71,6 +71,9 @@ sudo -S cpan install Time::JulianDay
 sudo -S cpan install Path::Class
 sudo -S cpan install Archive::Extract
 sudo -S cpan install Archive::Zip
+sudo -S cpan install Pod::Perldoc
+sudo -S cpan install Pod::Markdown
+sudo -S cpan install Pod::Usage
 echo
 
 #######################################################################################

@@ -145,7 +145,6 @@ our $NOT_A_SINGLE_STUDY        = 85; # if the upload regroups multiple studies
 
 
 
-
 ##### ---- SECTION 2: SCRIPT SPECIFIC EXIT CODES NOT COVERED IN SECTION 1
 
 
