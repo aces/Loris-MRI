@@ -1092,17 +1092,22 @@ sub dicom_to_minc {
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,
 		$exclude,$mail_user, $upload_id) = @_;
-    my ($d2m_cmd,$d2m_log,$exit_code);
+    my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
     # create the excluded series description regex necessary to exclude the
     # series description specified in the Config Setting
     # excluded_series_description
-    my $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
+    if ($exclude && ref($exclude) eq 'ARRAY') {
+        $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
+    } elsif ($exclude) {
+        $excluded_regex = $exclude;
+    }
     $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series".
                " -echo -image -file -series_descr -attvalue 0018 0024".
-               " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 | grep -iv".
-               " -E \"($excluded_regex)\" | cut -f 5 | ";
+               " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 ";
+    $d2m_cmd .= " | grep -v -E \"($excluded_regex)\"" if ($excluded_regex);
+    $d2m_cmd .= " | cut -f 5 | ";
     
     ############################################################
     #### use some other converter if specified in the config ###
