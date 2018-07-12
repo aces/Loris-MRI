@@ -17,16 +17,16 @@ options that affect the behaviour of `mincpik` is as follows:
 - **-verbose** : be verbose
 - **-clobber** : if it exists, overwrite the output file. An error is produced if `outfile` exists
 and this option is not used.
-- **-fake** : do not actually run the command but instead print on STDOUT all the calls to the
- scripts and external tools (see above) issued to generate the image
+- **-fake** : do not actually run the command but instead print on `STDOUT` all
+the calls to the scripts and external tools (see above) issued to generate the image
 - **-slice index** : `index` (starts at 0) of the slice to use to generate the image. Defaults to
 `int(n/2)` (where `n` is the total number of slices) if not specified.
 - **-scale scale** : scaling factor to use when generating the image. Defaults to 2. 
 Note that this option is ignored if `-width` is used (see below)
 - **-width width** : autoscale the image so it has a fixed width (in number of pixels). 
 If this option is used, then the scaling factor (`-scale` option) is ignored.
-- **-depth 8|16** : bitdepth for resulting image (8 or 16). This option should be used 
-on big-endian machines only.
+- **-depth 8|16** : bit depth for resulting image (8 or 16). This option should
+be used on big-endian machines only.
 - **-title** : whether the image should be generated with a title or not
 - **-title\_text title** : title text for the generated image
 - **-title\_size size** : font size (in pt.) to use when generating the image title
@@ -72,14 +72,6 @@ dimension stacked in a horizontal row.
 The `outfile` command line argument is optional. If not specified, output will be a PNG image
 written to STDOUT. If `outfile` is specified, the file extension will determine the type of
 the generated image (`.jpg` for JPEG images, `.gif` for GIF images, etc...)
-
-# TO DO
-
-Nothing
-
-# BUGS
-
-None reported.
 
 # LICENSING
 

@@ -63,8 +63,8 @@ RETURNS: 0 if no file was found, 1 otherwise.
 
 ### findFile($filename)
 
-Finds the FileID pertaining to a file as defined by parameter `$filename`,
-which is a full /path/to/file.
+Finds the `FileID` pertaining to a file as defined by parameter `$filename`,
+which is a full `/path/to/file`.
 
 INPUT: full path to the file to look for an ID in the database.
 
@@ -133,13 +133,17 @@ RETURNS: 0 if any failure occurred or 1 otherwise.
 
 Sets the fileData property named `$propertyName` to the value of `$value`.
 
-INPUT: name of the fileData property, value of the fileData property to be set
+INPUTS:
+  - $paramName: name of the `fileData` property
+  - $value    : value of the `fileData` property to be set
 
 ### setParameter($parameterName, $value)
 
 Sets the parameter named `$parameterName` to the value of `$value`.
 
-INPUT: name of the parameter, value of the parameter to be set
+INPUTS:
+  - $paramName: name of the parameter
+  - $value    : value of the parameter to be set
 
 ### removeParameter($parameterName)
 
@@ -149,12 +153,12 @@ INPUT: name of the parameter to remove
 
 ### getParameterTypeID($parameter)
 
-Gets the ParameterTypeID for the parameter `$parameter`.  If `$parameter`
+Gets the `ParameterTypeID` for the parameter `$parameter`.  If `$parameter`
 does not exist, it will be created.
 
 INPUT: name of the parameter type
 
-RETURNS: (int) ParameterTypeID
+RETURNS: `ParameterTypeID` (int)
 
 ### removeWhitespace($value)
 
@@ -169,9 +173,7 @@ RETURNS: string or array of the value without white spaces
 Other operations should be added: perhaps `get*` methods for those fields in
 the `files` table which are lookup fields.
 
-# BUGS
-
-None reported.
+Fix comments written as #fixme in the code.
 
 # COPYRIGHT AND LICENSE
 

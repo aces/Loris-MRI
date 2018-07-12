@@ -9,7 +9,7 @@ perl register\_processed\_data.pl `[options]`
 
 Available options are:
 
-\-profile        : name of config file in ../dicom-archive/.loris\_mri
+\-profile        : name of config file in `../dicom-archive/.loris_mri`
 
 \-file           : file that will be registered in the database
                    (full path from the root directory is required)
@@ -18,10 +18,10 @@ Available options are:
                    to obtain the file to be registered in the database
 
 \-sourcePipeline : pipeline name that was used to obtain the file to be
-                   registered (example: DTIPrep\_pipeline)
+                   registered (example: `DTIPrep_pipeline`)
 
 \-tool           : tool name and version that was used to obtain the
-                   file to be registered (example: DTIPrep\_v1.1.6)
+                   file to be registered (example: `DTIPrep_v1.1.6`)
 
 \-pipelineDate   : date at which the processing pipeline was run
 
@@ -44,13 +44,13 @@ the database.
 
 # DESCRIPTION
 
-This script inserts processed data in the files and parameter\_file tables.
+This script inserts processed data in the `files` and `parameter_file` tables.
 
 ## Methods
 
 ### getSessionID($sourceFileID, $dbh)
 
-This function returns the sessionID based on the provided sourceFileID.
+This function returns the `SessionID` based on the provided `sourceFileID`.
 
 INPUTS:
   - $sourceFileID: source FileID
@@ -60,18 +60,19 @@ RETURNS: session ID
 
 ### getScannerID($sourceFileID, $dbh)
 
-This function gets the ScannerID from the `files` table using sourceFileID
+This function gets the `ScannerID` from the `files` table using
+`sourceFileID`.
 
 INPUTS:
-  - $sourceFileID: source FileID
+  - $sourceFileID: source `FileID`
   - $dbh         : database handle
 
 RETURNS: scanner ID
 
 ### getAcqProtID($scanType, $dbh)
 
-This function returns the AcquisitionProtocolID of the file to register in the
-database based on scanType in the `mri_scan_type` table.
+This function returns the `AcquisitionProtocolID` of the file to register in
+the database based on `scanType` in the `mri_scan_type` table.
 
 INPUTS:
   - $scanType: scan type
@@ -95,7 +96,7 @@ Moves files to `assembly` folder.
 
 INPUTS:
   - $filename     : file to copy
-  - $subjectIDsref: subject ID hashref
+  - $subjectIDsref: subject ID hash ref
   - $scan\_type    : scan type
   - $fileref      : file hash ref
 
@@ -103,7 +104,7 @@ RETURNS: file name of the copied file
 
 ### getSourceFilename($sourceFileID)
 
-Greps source file name from the database using SourceFileID.
+Greps source file name from the database using `SourceFileID`.
 
 INPUT: ID of the source file
 
@@ -113,7 +114,7 @@ RETURNS: name of the source file
 
 Determines where the MINC files will go.
 
-INPUT: subject ID hashref
+INPUT: subject ID hash ref
 
 RETURNS: directory where the MINC files will go
 
@@ -129,14 +130,6 @@ INPUTS:
   - $tool        : tool that was used to obtain the processed file
 
 RETURNS: 1 on success, undef on failure
-
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
 
 # LICENSING
 

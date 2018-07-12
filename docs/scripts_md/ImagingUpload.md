@@ -42,10 +42,10 @@ moved to a final destination directory.
 INPUTS:
   - $dbhr                : database handler
   - $uploaded\_temp\_folder: temporary directory of the upload
-  - $upload\_id           : uploadID from the mri\_upload table
+  - $upload\_id           : `uploadID` from the `mri_upload` table
   - $pname               : patient name
-  - $profile             : name of the configuration file
-                          (typically `prod`)
+  - $profile             : name of the configuration file in
+                            `/data/$PROJECT/data` (typically `prod`)
 
 RETURNS: new instance of this class
 
@@ -62,7 +62,7 @@ RETURNS: 1 on success, 0 on failure
 
 This method executes the following actions:
  - Runs `dicomTar.pl` with `-clobber -database -profile prod` options
- - Extracts the TarchiveID of the DICOM archive created by `dicomTar.pl`
+ - Extracts the `TarchiveID` of the DICOM archive created by `dicomTar.pl`
  - Updates the `mri_upload` table if `dicomTar.pl` ran successfully
 
 RETURNS: 1 on success, 0 on failure
@@ -86,7 +86,7 @@ RETURNS: 1 on success, 0 on failure
 
 This method extracts the patient name field from the DICOM file header using
 `dcmdump` and compares it with the patient name information stored in the
-mri\_upload table.
+`mri_upload` table.
 
 INPUT: full path to the DICOM file
 
@@ -112,17 +112,17 @@ RETURNS: the exit code of the command
 ### runCommand($command)
 
 This method will run any linux command given as an argument using back-tilt
-and will return the back-tilt return value (which is STDOUT).
+and will return the back-tilt return value (which is `STDOUT`).
 
 INPUT: the linux command to be executed
 
-RETURNS: back-tilt return value (STDOUT)
+RETURNS: back-tilt return value (`STDOUT`)
 
 ### CleanUpDataIncomingDir($uploaded\_file)
 
 This method cleans up and removes the uploaded file from the data directory
 once the uploaded file has been inserted into the database and saved in the
-tarchive folder.
+`tarchive` folder.
 
 RETURNS: 1 on success, 0 on failure
 
@@ -146,14 +146,6 @@ This method updates the `mri_upload` table with `$value` for the field
 INPUTS:
  - $field: name of the column in the table to be updated
  - $value: value of the column to be set
-
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported
 
 # COPYRIGHT AND LICENSE
 

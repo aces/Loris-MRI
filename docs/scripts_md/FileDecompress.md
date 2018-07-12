@@ -58,14 +58,6 @@ This function will return the type of the archive
 
 RETURNS: type of the archive
 
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported
-
 # COPYRIGHT AND LICENSE
 
 License: GPLv3

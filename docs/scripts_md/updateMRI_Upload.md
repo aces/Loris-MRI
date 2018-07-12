@@ -34,15 +34,7 @@ expected outcome), it will insert a record in `mri_upload` with the following pr
 
 If there already is an entry in `mri_upload` with the same `ArchiveLocation` as `T`'s, the script
 will exit with an error message saying that `mri_upload` is already up to date with respect to
-`T`. 
-
-# TO DO
-
-Nothing.
-
-# BUGS
-
-None reported.
+`T`.
 
 # LICENSING
 

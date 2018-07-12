@@ -1,6 +1,6 @@
 # NAME
 
-DICOM::Element -- Element routines for DICOM::DICOM module
+DICOM::Element -- Element routines for `DICOM::DICOM` module
 
 # SYNOPSIS
 
@@ -8,7 +8,7 @@ DICOM::Element -- Element routines for DICOM::DICOM module
 
 # DESCRIPTION
 
-Element routines for DICOM::DICOM module to read binary DICOM headers.
+Element routines for `DICOM::DICOM` module to read binary DICOM headers.
 
 Each element is a hash with the following keys:
   - group  : group (hex)
@@ -22,13 +22,13 @@ Each element is a hash with the following keys:
 
 ## Methods
 
-### new() (constructor)
+### new() >> (constructor)
 
 Creates a new instance of this class.
 
 RETURNS: a `DICOM::Element` object
 
-### fill($IN, $dictref, $big\_endian\_image)
+### fill($IN, $dictref)
 
 Fills in `self` from file.
 
@@ -61,7 +61,7 @@ string and writes them in a file
 
 INPUTS:
   - $OUT  : output file
-  - $bytes: number of bytes (2 for shorts 4 for ints) in the field
+  - $bytes: number of bytes (2 for shorts 4 for integers) in the field
 
 ### readFloat($IN, $format, $len)
 
@@ -159,10 +159,6 @@ Better documentation of the following functions:
   - readLength($IN)
   - writeInt($OUT, $bytes)
   - byteswap($valref)
-
-# BUGS
-
-None reported (or list of bugs)
 
 # LICENSING
 

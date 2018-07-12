@@ -9,8 +9,8 @@ concat\_mri.pl \[options\] \[minc\_files\]
 - **-debug** : print commands but do not execute them
 - **-verbose** : print additional information while running
 - **-compress** : compress resulting output files with `gzip`
-- **-stdin** : do not read the names of the MINC files on the commmand line but read them
-from STDIN instead
+- **-stdin** : do not read the names of the MINC files on the command line but read them
+from `STDIN` instead
 - **-postfix text** : create output file names using the file name without its extension, followed
 by `text` and the extension. For example, if `-postfix _test` is used and the file name
 passed on the command line is `scan.mnc`, the resulting output file will be `scan_test.mnc`.
@@ -34,7 +34,7 @@ automatically.
 
 # DESCRIPTION
 
-This script parses the MINC files passed on the command line (or read from STDIN) and 
+This script parses the MINC files passed on the command line (or read from `STDIN`) and
 uses `mincinfo` to extract specific header information from each of them. It then groups
 together the files that have identical values for the following properties: 
 patient name, study ID, contrast agent flag (unless `-ignorecontrast` is specified, see 
@@ -45,14 +45,6 @@ a given group and for which stacking or interleaving occurs in the slice directi
 will be the first element in the list of dimension names). Note that `mincresample` might 
 be called on a specific file before the actual merging takes place (see `-nonslicetolerance`
 above). Finally, note that merging of the MINC files is done with `mincconcat`. 
-
-# TO DO
-
-Nothing.
-
-# BUGS
-
-None reported.
 
 # LICENSING
 
