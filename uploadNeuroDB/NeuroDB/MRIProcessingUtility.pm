@@ -1099,16 +1099,16 @@ sub dicom_to_minc {
     # series description specified in the Config Setting
     # excluded_series_description
     if ($exclude && ref($exclude) eq 'ARRAY') {
-        $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
+        $excluded_regex = join('\s+$|', map { quotemeta($_) }@$exclude) . '\s+$';
     } elsif ($exclude) {
-        $excluded_regex = $exclude;
+        $excluded_regex = $exclude . '\s+$';
     }
     $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series".
-               " -echo -image -file -series_descr -attvalue 0018 0024".
+               " -echo -image -file -attvalue 0018 0024 -series_descr ".
                " -stdin | sort -n -k1 -k2 -k6 -k3 -k7 -k4 ";
     $d2m_cmd .= " | grep -iv -E \"($excluded_regex)\"" if ($excluded_regex);
     $d2m_cmd .= " | cut -f 5 | ";
-    
+
     ############################################################
     #### use some other converter if specified in the config ###
     ############################################################
