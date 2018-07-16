@@ -1099,7 +1099,7 @@ sub dicom_to_minc {
     # series description specified in the Config Setting
     # excluded_series_description
     if ($exclude && ref($exclude) eq 'ARRAY') {
-        $excluded_regex = join('\s+$|', map { quotemeta($_) }@$exclude) . '\s+$';
+        $excluded_regex = join('\s+$|', map { "\t\Q$_\E" } @$exclude) . '\s+$';
     } elsif ($exclude) {
         $excluded_regex = $exclude . '\s+$';
     }
