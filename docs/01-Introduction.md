@@ -57,7 +57,9 @@ BrainBrowser's capabilities can be found [here.][5]
 step. However, specific acquisitions (such as `localizers` or `scouts`) can be
 excluded from the steps of the pipeline that start at, and follow the DICOM to
 MINC conversion by specifying them in the `excluded_series_description`
-field of the Config module (under the Imaging Pipeline section).
+field of the Config module (under the Imaging Pipeline section). Note that what
+the series descriptions entered in that Config field need to be an exact match
+of the series description DICOM field.
 
 [1]: https://github.com/aces/Loris/wiki 
 [2]: http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html

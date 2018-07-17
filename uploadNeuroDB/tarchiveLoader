@@ -466,9 +466,11 @@ if ($verbose){
 ################################################################
 if ($mcount < 1) {
     $message = "\nNo data could be converted into valid MINC files.\n";
-    if ($exclude && @$exclude) {
-        my $excluded_series = join(',', map {quotemeta($_)} @$exclude);
+    if ($exclude && ref($exclude) eq 'ARRAY') {
+        my $excluded_series = join(', ', map {quotemeta($_)} @$exclude);
         $message .= "$excluded_series will not be considered! \n" ;
+    } elsif ($exclude) {
+        $message .= "$exclude will not be considered! \n";
     }
     $utility->writeErrorLog(
         $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
