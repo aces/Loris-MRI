@@ -4,13 +4,28 @@ use strict;
 use warnings;
 use NeuroDB::DBI;
 use NeuroDB::MRI;
+use NeuroDB::File;
 
-my $scan_type=72;
+
+
+my $scan_type   = 72;
+my $pname       = "MTL0572_308556_PREBL00";
+my $candID      = 308556;
+my $visit_label = "PREBL00";
 
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
 
 my $dbh     = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my $message = "\n==> Successfully connected to database \n";
+
+# load minc file (not part of MRI code)
+my $minc = "/data/preventAD/data/assembly/308556/PREBL00/mri/native/PreventAD_308556_PREBL00_greT2star_001.mnc";
+my $file = NeuroDB::File->new(\$dbh);
+$file->loadFileFromDisk($minc);
+NeuroDB::MRI::mapDicomParameters(\$file);
+$file->setFileData('SeriesUID',      "1.3.12.2.1107.5.2.32.35442.2016072715533638881993475.0.0.0"),
+$file->setFileData('TarchiveSource', "4002133"),
+$file->setFileData('File',           "assembly/308556/PREBL00/mri/native/PreventAD_308556_PREBL00_greT2star_001.mnc"),
 
 ############# BEGINNING OF THE LOGIC ###########
 
@@ -36,26 +51,27 @@ while (my $check = $sth->fetchrow_hashref()) {
 ## Step 2 - loop through all exclude headers for the scan type to check if in
 #  valid range
 
-my %validExcludeFields = loop_through_protocol_violations(
-    $scan_type, 'exclude', @exclude_headers #, $file
+my %validExcludeFields = loop_through_protocol_violations_checks(
+    $dbh, $scan_type, 'exclude', \@exclude_headers, $file
 );
 
 ## if there are any reasons to exclude the scan, log it to mri_violations
 if (%validExcludeFields) {
     print "yeah";
-
-    return ('exclude', )
+    my $logging_summary = insert_into_mri_violations_log(
+        $dbh, \%validExcludeFields, 'exclude', $pname, $candID, $visit_label, $file
+    );
+    #return ('exclude', );
 }
 
-my %validWarningFields = loop_through_protocol_violations(
-    $scan_type, 'warning', @warning_headers #, $file
+my %validWarningFields = loop_through_protocol_violations_checks(
+    $dbh, $scan_type, 'warning', \@warning_headers, $file
 );
 
 exit 0;
 
-sub loop_through_protocol_violations {
-    my ($scan_type, $severity, @headers) = @_;
-    # my ($scan_type, $severity, $headers, $file) = @_;
+sub loop_through_protocol_violations_checks {
+    my ($dbh, $scan_type, $severity, $headers, $file) = @_;
 
     my %valid_fields; # will store all information about what fails
 
@@ -67,10 +83,9 @@ sub loop_through_protocol_violations {
     # loop through all severity headers for the scan type and check if in the
     # value of the header in the file fits one of the valid range present in
     # mri_protocol_checks
-    foreach my $header (@headers) {
+    foreach my $header (@$headers) {
         # get the value from the file
-        #my $value = $file->getParameter($header);
-        my $value = 512;
+        my $value = $file->getParameter($header);
 
         # execute query for $scan_type, $severity, $header
         $sth->execute($scan_type, $severity, $header);
@@ -110,9 +125,64 @@ sub loop_through_protocol_violations {
         # header and severity
         next if $is_valid;
 
+        $valid_fields{$header}{ScanType}    = $scan_type;
+        $valid_fields{$header}{HeaderValue} = $value;
         $valid_fields{$header}{ValidRanges} = \@failed_valid_ranges;
         $valid_fields{$header}{ValidRegexs} = \@failed_valid_regexs;
     }
 
     return %valid_fields;
+}
+
+sub insert_into_mri_violations_log {
+    my ($dbh, $valid_fields, $severity, $pname, $candID, $visit_label, $file) = @_;
+
+    my $log_query = "INSERT INTO mri_violations_log"
+                    . "("
+                        . "SeriesUID, TarchiveID,  MincFile,   PatientName, "
+                        . " CandID,   Visit_label, Scan_type,  Severity, "
+                        . " Header,   Value,       ValidRange, ValidRegex "
+                    . ") VALUES ("
+                        . " ?,        ?,           ?,          ?, "
+                        . " ?,        ?,           ?,          ?, "
+                        . " ?,        ?,           ?,          ? "
+                    . ")";
+#    if ($this->{debug}) {
+#        print $query . "\n";
+#    }
+    my $log_sth = $dbh->prepare($log_query);
+
+    # foreach header, concatenate arrays of ranges into a string
+    foreach my $header (keys(%$valid_fields)) {
+        my $valid_range_str  = "NULL";
+        my $valid_regex_str  = "NULL";
+        my @valid_range_list = @{ $valid_fields->{$header}{ValidRanges} };
+        my @valid_regex_list = @{ $valid_fields->{$header}{ValidRegexs} };
+
+        if (@valid_range_list) {
+            $valid_range_str = join(',', @valid_range_list);
+        }
+        if (@valid_regex_list) {
+            $valid_regex_str = join(',', @valid_regex_list);
+        }
+        $file->setFileData('Caveat', 1) if ($severity eq 'warning');
+
+        $log_sth->execute(
+            $file->getFileDatum('SeriesUID'),
+            $file->getFileDatum('TarchiveSource'),
+            $file->getFileDatum('File'),
+            $pname,
+            $candID,
+            $visit_label,
+            $valid_fields->{$header}{ScanType},
+            $severity,
+            $header,
+            $valid_fields->{$header}{HeaderValue},
+            $valid_range_str,
+            $valid_regex_str
+        );
+    }
+
+    # TODO create a summary to then return and print into the LOG
+
 }
