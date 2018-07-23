@@ -193,9 +193,9 @@ INPUTS:
   - $upload\_id               : upload ID of the study
 
 RETURNS:
-  - $acquisitionProtocol  : acquisition protocol
-  - $acquisitionProtocolID: acquisition protocol ID
-  - @checks               : array of extra checks
+  - $acquisitionProtocol     : acquisition protocol
+  - $acquisitionProtocolID   : acquisition protocol ID
+  - $extra\_validation\_status : extra validation status ("pass", "exclude", "warn")
 
 ### extra\_file\_checks($scan\_type, $file, $CandID, $Visit\_Label, $PatientName)
 
@@ -212,6 +212,35 @@ INPUTS:
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
   - array of failed checks if any were failed
+
+### loop\_through\_protocol\_violations\_checks($scan\_type, $severity, $headers, $file)
+
+Loops through all protocol violations checks for a given severity and creates
+a hash with all the checks that need to be applied on that specific scan type
+and severity.
+
+INPUTS:
+  - $scan\_type: scan type of the file
+  - $severity : severity of the checks we want to loop through (exclude or warning)
+  - $headers  : list of different headers found in the `mri_protocol_checks`
+                table for a given scan type
+  - $file     : file information hash ref
+
+RETURNS: a hash with all information about the checks for a given scan type
+and severity
+
+### insert\_into\_mri\_violations\_log($valid\_fields, $severity, $pname, $candID, $visit\_label, $file)
+
+For a given protocol failure, it will insert into the `mri_violations_log`
+table all the information about the scan and the protocol violation.
+
+INPUTS:
+  - $valid\_fields: string with valid values for the header and scan type
+  - $severity    : severity of the violation ("exclude" or "warning")
+  - $pname       : Patient name associated with the scan
+  - $candID      : `CandID` associated with the scan
+  - $visit\_label : visit label associated with the scan
+  - $file        : information about the scan
 
 ### update\_mri\_acquisition\_dates($sessionID, $acq\_date)
 
@@ -248,20 +277,21 @@ INPUTS:
 
 RETURNS: new name of the MINC file with path relative to `$data_dir`
 
-### registerScanIntoDB($minc\_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $checks, $reckless, $sessionID, $upload\_id)
+### registerScanIntoDB($minc\_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra\_validation\_status, $reckless, $sessionID, $upload\_id)
 
 Registers the scan into the database.
 
 INPUTS:
-  - $minc\_file          : MINC file information hash ref
-  - $tarchiveInfo       : tarchive information hash ref
-  - $subjectIDsref      : subject's ID information hash ref
-  - $acquisitionProtocol: acquisition protocol
-  - $minc               : MINC file to register into the database
-  - $checks             : failed checks to register with the file
-  - $reckless           : boolean, if reckless or not
-  - $sessionID          : session ID of the MINC file
-  - $upload\_id          : upload ID of the study
+  - $minc\_file               : MINC file information hash ref
+  - $tarchiveInfo            : tarchive information hash ref
+  - $subjectIDsref           : subject's ID information hash ref
+  - $acquisitionProtocol     : acquisition protocol
+  - $minc                    : MINC file to register into the database
+  - $$extra\_validation\_status: extra validation status (if 'exclude', then
+                               will not register the scan in the files table)
+  - $reckless                : boolean, if reckless or not
+  - $sessionID               : session ID of the MINC file
+  - $upload\_id               : upload ID of the study
 
 RETURNS: acquisition protocol ID of the MINC file
 
