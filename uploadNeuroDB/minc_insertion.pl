@@ -116,7 +116,7 @@ my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
 my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
-my @checks      = ();          # Initialise the array
+my $extra_validation_status;   # Initialise the extra validation status
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
@@ -531,7 +531,7 @@ if (defined($acquisitionProtocol)) {
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
 ################################################################
-($acquisitionProtocol,$acquisitionProtocolID,@checks)
+($acquisitionProtocol, $acquisitionProtocolID, $extra_validation_status)
   = $utility->getAcquisitionProtocol(
       $file,
       $subjectIDsref,
@@ -562,7 +562,7 @@ if($acquisitionProtocol =~ /unknown/) {
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
     \$file,               \%tarchiveInfo, $subjectIDsref,
-    $acquisitionProtocol, $minc,          \@checks,
+    $acquisitionProtocol, $minc,          $extra_validation_status,
     $reckless,            $sessionID,     $upload_id
 );
 

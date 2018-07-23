@@ -48,8 +48,9 @@ while (my $check = $sth->fetchrow_hashref()) {
     push(@warning_headers, $check->{'Header'});
 }
 
-## Step 2 - loop through all exclude headers for the scan type to check if in
-#  valid range
+## Step 2 - loop through all headers with 'exclude' severity for the scan type
+# to check if the value in the file is in the valid range. If it is not in a
+# valid range, then will return 'exclude'
 
 my %validExcludeFields = loop_through_protocol_violations_checks(
     $dbh, $scan_type, 'exclude', \@exclude_headers, $file
@@ -57,16 +58,31 @@ my %validExcludeFields = loop_through_protocol_violations_checks(
 
 ## if there are any reasons to exclude the scan, log it to mri_violations
 if (%validExcludeFields) {
-    print "yeah";
-    my $logging_summary = insert_into_mri_violations_log(
+    insert_into_mri_violations_log(
         $dbh, \%validExcludeFields, 'exclude', $pname, $candID, $visit_label, $file
     );
-    #return ('exclude', );
+    return ('exclude');
 }
+
+## Step 3 - loop through all headers with 'warning' severity for the scan type
+# to check if the value in the file is in the valid range. If it is not in a
+# valid range, then will return 'warn'
 
 my %validWarningFields = loop_through_protocol_violations_checks(
     $dbh, $scan_type, 'warning', \@warning_headers, $file
 );
+
+if (%validWarningFields) {
+    insert_into_mri_violations_log(
+        $dbh, \%validWarningFields, 'warning', $pname, $candID, $visit_label, $file
+    );
+    return ('warn');
+}
+
+## Step 4 - if we end up here, then the file passes the extra validation
+# checks and return 'pass'
+
+return ('pass');
 
 exit 0;
 
@@ -182,7 +198,4 @@ sub insert_into_mri_violations_log {
             $valid_regex_str
         );
     }
-
-    # TODO create a summary to then return and print into the LOG
-
 }
