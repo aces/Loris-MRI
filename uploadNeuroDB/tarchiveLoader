@@ -604,8 +604,8 @@ if ($valid_study) {
 
     my $sth = $dbh->prepare($query);
     $sth->execute($tarchiveInfo{TarchiveID});
-    my $oldCount = $sth->rows == 0 ? 0 : $sth->fetchrow_array;
-    my $newCount = $minc_inserted + $oldCount;
+    my $oldCount = $sth->fetchrow_hashref->{'number_of_mincInserted'};
+    my $newCount = $minc_inserted + ($oldCount ? $oldCount : 0);
 
     $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
                  "number_of_mincCreated=? ";
