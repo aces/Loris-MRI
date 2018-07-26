@@ -820,44 +820,26 @@ sub loop_through_protocol_violations_checks {
         $sth->execute($scan_type, $severity, $header);
 
         # grep all valid ranges and regex to compare with value in the file
-        my (@valid_ranges, @valid_regexs);
-        while (my $check = $sth->fetchrow_hashref()) {
-            push(@valid_ranges, $check->{'ValidRange'}) if $check->{'ValidRange'};
-            push(@valid_regexs, $check->{'ValidRegex'}) if $check->{'ValidRegex'};
-        }
+        my @rows = @{ $sth->fetchall_arrayref(
+            { ValidRange => 1, ValidRegex => 1 }
+        ) };
+        my @valid_ranges = grep($_->{'ValidRange'}, @rows);
+        my @valid_regexs = grep($_->{'ValidRegex'}, @rows);
 
         # go to the next header if did not find any checks for that scan
         # type, severity and header
         next if (!@valid_ranges && !@valid_regexs);
 
         # loop through all checks
-        my $is_valid;
-        my (@failed_valid_ranges, @failed_valid_regexs);
-        foreach my $valid_range (@valid_ranges) {
-            if ($valid_range && (NeuroDB::MRI::in_range($value,
-                $valid_range))) {
-                $is_valid = 1;
-            } else {
-                push(@failed_valid_ranges, $valid_range);
-            }
-        }
-        foreach my $valid_regex (@valid_regexs) {
-            if ($valid_regex && $value =~ /$valid_regex/) {
-                $is_valid = 1;
-            } else {
-                push(@failed_valid_regexs, $valid_regex);
-            }
-        }
+        next if grep(NeuroDB::MRI::in_range($value, $_->{'ValidRange'}), @valid_ranges);
+        next if grep($value =~ /$_->{'ValidRegex'}/, @valid_regexs);
 
-        # go to the next header if the value from the file fits the
-        # value in one of the valid ranges or regex set for that scan type,
-        # header and severity
-        next if $is_valid;
-
-        $valid_fields{$header}{ScanType}    = $scan_type;
-        $valid_fields{$header}{HeaderValue} = $value;
-        $valid_fields{$header}{ValidRanges} = \@failed_valid_ranges;
-        $valid_fields{$header}{ValidRegexs} = \@failed_valid_regexs;
+        $valid_fields{$header} = {
+            ScanType    => $scan_type,
+            HeaderValue => $value,
+            ValidRanges => [ map { $_->{'ValidRange'} } @valid_ranges ],
+            ValidRegexs => [ map { $_->{'ValidRegex'} } @valid_regexs ]
+        };
     }
 
     return %valid_fields;
