@@ -681,7 +681,7 @@ sub getAcquisitionProtocol {
 	  $this->{LOG}->print($message);
 	  # 'warn' and 'exclude' are errors, while 'pass' is not
 	  # log in the notification_spool_table the $Verbose flag accordingly
-	  if (!($extra_validation_status eq 'pass')){
+	  if ($extra_validation_status ne 'pass'){
 	          $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 	  }
 	  else{
@@ -730,50 +730,25 @@ sub extra_file_checks() {
         print $query . "\n";
     }
 
-    # grep the excluded headers from mri_protocol_check for the scan type
-    my @exclude_headers;
-    $sth->execute($scan_type, 'exclude');
-    while (my $check = $sth->fetchrow_hashref()) {
-        push(@exclude_headers, $check->{'Header'});
-    }
-
-    # grep the warning headers from mri_protocol_check for the scan type
-    my @warning_headers;
-    $sth->execute($scan_type, 'warning');
-    while (my $check = $sth->fetchrow_hashref()) {
-        push(@warning_headers, $check->{'Header'});
-    }
-
-    ## Step 2 - loop through all headers with 'exclude' severity for the scan type
-    # to check if the value in the file is in the valid range. If it is not in a
-    # valid range, then will return 'exclude'
-    my %validExcludeFields = $this->loop_through_protocol_violations_checks(
-        $scan_type, 'exclude', \@exclude_headers, $file
-    );
-
-    ## if there are any reasons to exclude the scan, log it to mri_violations
-    if (%validExcludeFields) {
-        $this->insert_into_mri_violations_log(
-            \%validExcludeFields, 'exclude', $pname, $candID, $visit_label, $file
+    # Step 2 - loop through all severities and grep headers, valid fields and
+    # check if the scan is valid. If the scan is not valid, then, return the
+    # severity of the failure.
+    foreach my $severity (qw/exclude warning/) {
+        $sth->execute($scan_type, $severity);
+        my @headers = map { $_->{'Header'} } @{ $sth->fetchall_arrayref({}) };
+        my %validFields = $this->loop_through_protocol_violations_checks(
+            $scan_type, $severity, \@headers, $file
         );
-        return ('exclude');
+        if (%validFields) {
+            $this->insert_into_mri_violations_log(
+                \%validFields, $severity, $pname, $candID, $visit_label, $file
+            );
+            $severity = 'warn' if $severity eq 'warning';
+            return $severity;
+        }
     }
 
-    ## Step 3 - loop through all headers with 'warning' severity for the scan type
-    # to check if the value in the file is in the valid range. If it is not in a
-    # valid range, then will return 'warn'
-    my %validWarningFields = $this->loop_through_protocol_violations_checks(
-        $scan_type, 'warning', \@warning_headers, $file
-    );
-
-    if (%validWarningFields) {
-        $this->insert_into_mri_violations_log(
-            \%validWarningFields, 'warning', $pname, $candID, $visit_label, $file
-        );
-        return ('warn');
-    }
-
-    ## Step 4 - if we end up here, then the file passes the extra validation
+    ## Step 3 - if we end up here, then the file passes the extra validation
     # checks and return 'pass'
     return ('pass');
 }
