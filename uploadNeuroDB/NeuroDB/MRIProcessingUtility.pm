@@ -743,7 +743,6 @@ sub extra_file_checks() {
             $this->insert_into_mri_violations_log(
                 \%validFields, $severity, $pname, $candID, $visit_label, $file
             );
-            $severity = 'warn' if $severity eq 'warning';
             return $severity;
         }
     }
