@@ -383,7 +383,8 @@ sub determineSubjectID {
                             $tarchiveInfo->{'PatientName'},
                             $tarchiveInfo->{'PatientID'},
                             $scannerID,
-                            $this->{dbhr}
+                            $this->{dbhr},
+                            $this->{'db'}
                         );
     if ($to_log) {
         my $message = "\n==> Data found for candidate   : ".
@@ -477,7 +478,8 @@ sub determinePSC {
     my ($center_name, $centerID) =
     NeuroDB::MRI::getPSC(
         $tarchiveInfo->{$lookupCenterNameUsing},
-        $this->{dbhr}
+        $this->{dbhr},
+        $this->{'db'}
     );
     if ($to_log) {
         if (!$center_name) {
@@ -538,7 +540,8 @@ sub determineScannerID {
             $tarchiveInfo->{'ScannerSoftwareVersion'},
             $centerID,
             $this->{dbhr},
-            $NewScanner 
+            $NewScanner,
+            $this->{'db'}
         );
     if ($scannerID == 0) {
         if ($to_log) {
@@ -1581,7 +1584,8 @@ sub setMRISession {
             $subjectIDsref, 
             $tarchiveInfo->{'DateAcquired'}, 
             $this->{dbhr}, 
-            $subjectIDsref->{'subprojectID'}
+            $subjectIDsref->{'subprojectID'},
+            $this->{'db'}
         );
     $message = "\nSessionID: $sessionID\n";    
     $this->{LOG}->print($message);
