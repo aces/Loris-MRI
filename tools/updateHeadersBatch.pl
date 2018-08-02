@@ -4,6 +4,60 @@
 # Perl tool to update headers in a dicomTar archive en masse.
 # $Id: updateHeadersBatch.pl 4 2007-12-11 20:21:51Z jharlap $
 
+=pod
+
+=head1 NAME
+
+updateHeadersBatch.pl -- updates DICOM headers for an entire study or a
+specific series in a DICOM archive
+
+
+=head1 SYNOPSIS
+
+perl tools/updateHeadersBatch.pl C<[options]> C<[/path/to/DICOM/or/TARCHIVE]>
+
+Available options are:
+
+-keys    : The number of key fields in the spec file, used to defined the
+			matching... Note that 1 key consists of two columns, the first
+			being the field name (formatted as '(XXXX,YYYY)') and the second
+			being its value.
+
+-specfile: The specifications file. Format is one series per line, tab
+            separated fields. First field is the series number. Then every
+            pair of fields is the DICOM field name (as known to C<dcmtk>) and
+            new value, respectively.
+
+-database: Enable C<dicomTar>'s database features
+
+-profile : Name of the config file in C<../dicom-archive/.loris_mri>
+
+-verbose : Be verbose
+
+-version : Print version and revision number and exit
+
+=head1 DESCRIPTION
+
+A script that updates DICOM headers for an entire study or a specific series
+in a DICOM archive. If run with the C<-database> option, it will update the
+C<tarchive> tables with the updated DICOM archive.
+
+
+=head1 TODO
+
+Make sure this works as expected.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Jonathan Harlap, LORIS community <loris.info@mcin.ca> and McGill Centre for
+Integrative Neuroscience
+
+=cut
+
 use strict;
 
 use Cwd qw/ abs_path /;
