@@ -626,7 +626,7 @@ INPUTS:
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
   - $acquisitionProtocolID   : acquisition protocol ID
-  - $extra_validation_status : extra validation status ("pass", "exclude", "warn")
+  - $extra_validation_status : extra validation status ("pass", "exclude", "warning")
 
 =cut
 

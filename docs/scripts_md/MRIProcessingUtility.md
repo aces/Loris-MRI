@@ -195,7 +195,7 @@ INPUTS:
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
   - $acquisitionProtocolID   : acquisition protocol ID
-  - $extra\_validation\_status : extra validation status ("pass", "exclude", "warn")
+  - $extra\_validation\_status : extra validation status ("pass", "exclude", "warning")
 
 ### extra\_file\_checks($scan\_type, $file, $CandID, $Visit\_Label, $PatientName)
 
