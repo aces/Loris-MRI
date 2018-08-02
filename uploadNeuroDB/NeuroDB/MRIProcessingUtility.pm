@@ -624,9 +624,9 @@ INPUTS:
   - $upload_id               : upload ID of the study
 
 RETURNS:
-  - $acquisitionProtocol  : acquisition protocol
-  - $acquisitionProtocolID: acquisition protocol ID
-  - @checks               : array of extra checks
+  - $acquisitionProtocol     : acquisition protocol
+  - $acquisitionProtocolID   : acquisition protocol ID
+  - $extra_validation_status : extra validation status ("pass", "exclude", "warning")
 
 =cut
 
@@ -660,7 +660,7 @@ sub getAcquisitionProtocol {
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
 
-    my @checks = ();
+    my $extra_validation_status;
     my $acquisitionProtocolID;
     if ($acquisitionProtocol !~ /unknown/) {
         $acquisitionProtocolID =
@@ -669,7 +669,7 @@ sub getAcquisitionProtocol {
         );
 
         if ($bypass_extra_file_checks == 0) {
-          @checks = $this->extra_file_checks(
+            $extra_validation_status = $this->extra_file_checks(
                         $acquisitionProtocolID, 
                         $file, 
                         $subjectIDsref->{'CandID'}, 
@@ -677,11 +677,11 @@ sub getAcquisitionProtocol {
                         $tarchiveInfoRef->{'PatientName'}
                     );
           $message = "\nextra_file_checks from table mri_protocol_check " .
-                     "logged in table mri_violations_log: $checks[0]\n";
+                     "logged in table mri_violations_log: $extra_validation_status\n";
 	  $this->{LOG}->print($message);
 	  # 'warn' and 'exclude' are errors, while 'pass' is not
 	  # log in the notification_spool_table the $Verbose flag accordingly
-	  if (!($checks[0] eq 'pass')){
+	  if ($extra_validation_status ne 'pass'){
 	          $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 	  }
 	  else{
@@ -689,7 +689,7 @@ sub getAcquisitionProtocol {
 	  }
         }
     }
-    return ($acquisitionProtocol, $acquisitionProtocolID, @checks);
+    return ($acquisitionProtocol, $acquisitionProtocolID, $extra_validation_status);
 }
 
 
@@ -715,67 +715,175 @@ RETURNS:
 
 sub extra_file_checks() {
       
-    my $this = shift;
-    my $scan_type = shift;
-    my $file = shift;
-    my $CandID = shift;
-    my $Visit_Label = shift;
-    my $PatientName = shift;
+    my $this        = shift;
+    my $scan_type   = shift;
+    my $file        = shift;
+    my $candID      = shift;
+    my $visit_label = shift;
+    my $pname       = shift;
 
-    my $query = "SELECT * FROM mri_protocol_checks WHERE Scan_type=?";
-    my $log_query = "INSERT INTO mri_violations_log".
-                    "(SeriesUID, TarchiveID, MincFile, PatientName,".
-                    " CandID, Visit_label, CheckID,  Scan_type,".
-                    " Severity, Header, Value, ValidRange,ValidRegex)".
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    ## Step 1 - select all distinct exclude and warning headers for the scan type
+    my $query = "SELECT DISTINCT(Header) FROM mri_protocol_checks "
+                . "WHERE Scan_type=? AND Severity=?";
+    my $sth   = ${$this->{'dbhr'}}->prepare($query);
     if ($this->{debug}) {
         print $query . "\n";
     }
-    my $worst_warning = 0;
-    my @faillist;
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
-    my $logsth = ${$this->{'dbhr'}}->prepare($log_query);
-    $sth->execute($scan_type);
-    while(my $check = $sth->fetchrow_hashref()) {
-        my $value = $file->getParameter($check->{'Header'});
-        if (($check->{'ValidRange'}
-            && (!NeuroDB::MRI::in_range($value, $check->{'ValidRange'})))
-            || ($check->{'ValidRegex'} && $value !~ /$check->{'ValidRegex'}/)) 
-            {
-                if ($check->{'Severity'} =~ /exclude/) {
-                    $worst_warning = 2;
-                } elsif (
-                    $check->{'Severity'} =~ /warning/ 
-                    && $worst_warning < 2
-                  ) {
-                    $worst_warning = 1;
-                    $file->setFileData('Caveat', 1);
-                }
-                $logsth->execute(
-                        $file->getFileDatum('SeriesUID'),
-                        $file->getFileDatum('TarchiveSource'),
-                        $file->getFileDatum('File'),
-                        $PatientName,
-                        $CandID,
-                        $Visit_Label,
-                        $check->{'ID'},
-                        $check->{'Scan_type'},
-                        $check->{'Severity'},
-                        $check->{'Header'},
-                        $value,
-                        $check->{'ValidRange'},
-                        $check->{'ValidRegex'}
-                );
-                push(@faillist, $check->{'ID'});
 
-            }
+    # Step 2 - loop through all severities and grep headers, valid fields and
+    # check if the scan is valid. If the scan is not valid, then, return the
+    # severity of the failure.
+    foreach my $severity (qw/exclude warning/) {
+        $sth->execute($scan_type, $severity);
+        my @headers = map { $_->{'Header'} } @{ $sth->fetchall_arrayref({}) };
+        my %validFields = $this->loop_through_protocol_violations_checks(
+            $scan_type, $severity, \@headers, $file
+        );
+        if (%validFields) {
+            $this->insert_into_mri_violations_log(
+                \%validFields, $severity, $pname, $candID, $visit_label, $file
+            );
+            return $severity;
+        }
     }
-    if ($worst_warning == 1) {
-        return ('warn', \@faillist);
-    } elsif ($worst_warning == 2) {
-        return ('exclude', \@faillist);
+
+    ## Step 3 - if we end up here, then the file passes the extra validation
+    # checks and return 'pass'
+    return ('pass');
+}
+
+
+=pod
+
+=head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file)
+
+Loops through all protocol violations checks for a given severity and creates
+a hash with all the checks that need to be applied on that specific scan type
+and severity.
+
+INPUTS:
+  - $scan_type: scan type of the file
+  - $severity : severity of the checks we want to loop through (exclude or warning)
+  - $headers  : list of different headers found in the C<mri_protocol_checks>
+                table for a given scan type
+  - $file     : file information hash ref
+
+RETURNS: a hash with all information about the checks for a given scan type
+and severity
+
+=cut
+
+sub loop_through_protocol_violations_checks {
+    my ($this, $scan_type, $severity, $headers, $file) = @_;
+
+    my %valid_fields; # will store all information about what fails
+
+    # query to fetch list of valid protocols in mri_protocol_checks table
+    my $query = "SELECT * FROM mri_protocol_checks "
+                . "WHERE Scan_type=? AND Severity=? AND Header=?";
+    my $sth   = ${$this->{'dbhr'}}->prepare($query);
+
+    # loop through all severity headers for the scan type and check if in the
+    # value of the header in the file fits one of the valid range present in
+    # mri_protocol_checks
+    foreach my $header (@$headers) {
+        # get the value from the file
+        my $value = $file->getParameter($header);
+
+        # execute query for $scan_type, $severity, $header
+        $sth->execute($scan_type, $severity, $header);
+
+        # grep all valid ranges and regex to compare with value in the file
+        my @rows = @{ $sth->fetchall_arrayref(
+            { ValidRange => 1, ValidRegex => 1 }
+        ) };
+        my @valid_ranges = grep($_->{'ValidRange'}, @rows);
+        my @valid_regexs = grep($_->{'ValidRegex'}, @rows);
+
+        # go to the next header if did not find any checks for that scan
+        # type, severity and header
+        next if (!@valid_ranges && !@valid_regexs);
+
+        # loop through all checks
+        next if grep(NeuroDB::MRI::in_range($value, $_->{'ValidRange'}), @valid_ranges);
+        next if grep($value =~ /$_->{'ValidRegex'}/, @valid_regexs);
+
+        $valid_fields{$header} = {
+            ScanType    => $scan_type,
+            HeaderValue => $value,
+            ValidRanges => [ map { $_->{'ValidRange'} } @valid_ranges ],
+            ValidRegexs => [ map { $_->{'ValidRegex'} } @valid_regexs ]
+        };
     }
-    return ('pass', \@faillist);
+
+    return %valid_fields;
+}
+
+=pod
+
+=head3 insert_into_mri_violations_log($valid_fields, $severity, $pname, $candID, $visit_label, $file)
+
+For a given protocol failure, it will insert into the C<mri_violations_log>
+table all the information about the scan and the protocol violation.
+
+INPUTS:
+  - $valid_fields: string with valid values for the header and scan type
+  - $severity    : severity of the violation ("exclude" or "warning")
+  - $pname       : Patient name associated with the scan
+  - $candID      : C<CandID> associated with the scan
+  - $visit_label : visit label associated with the scan
+  - $file        : information about the scan
+
+=cut
+
+sub insert_into_mri_violations_log {
+    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file) = @_;
+
+    my $query = "INSERT INTO mri_violations_log"
+                    . "("
+                    . "SeriesUID, TarchiveID,  MincFile,   PatientName, "
+                    . " CandID,   Visit_label, Scan_type,  Severity, "
+                    . " Header,   Value,       ValidRange, ValidRegex "
+                    . ") VALUES ("
+                    . " ?,        ?,           ?,          ?, "
+                    . " ?,        ?,           ?,          ?, "
+                    . " ?,        ?,           ?,          ? "
+                    . ")";
+    if ($this->{debug}) {
+        print $query . "\n";
+    }
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+
+    # foreach header, concatenate arrays of ranges into a string
+    foreach my $header (keys(%$valid_fields)) {
+        my $valid_range_str  = "NULL";
+        my $valid_regex_str  = "NULL";
+        my @valid_range_list = @{ $valid_fields->{$header}{ValidRanges} };
+        my @valid_regex_list = @{ $valid_fields->{$header}{ValidRegexs} };
+
+        if (@valid_range_list) {
+            $valid_range_str = join(',', @valid_range_list);
+        }
+        if (@valid_regex_list) {
+            $valid_regex_str = join(',', @valid_regex_list);
+        }
+        $file->setFileData('Caveat', 1) if ($severity eq 'warning');
+
+        $sth->execute(
+            $file->getFileDatum('SeriesUID'),
+            $file->getFileDatum('TarchiveSource'),
+            $file->getFileDatum('File'),
+            $pname,
+            $candID,
+            $visit_label,
+            $valid_fields->{$header}{ScanType},
+            $severity,
+            $header,
+            $valid_fields->{$header}{HeaderValue},
+            $valid_range_str,
+            $valid_regex_str
+        );
+    }
 }
 
 
@@ -940,20 +1048,21 @@ sub move_minc {
 
 =pod
 
-=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $checks, $reckless, $sessionID, $upload_id)
+=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra_validation_status, $reckless, $sessionID, $upload_id)
 
 Registers the scan into the database.
 
 INPUTS:
-  - $minc_file          : MINC file information hash ref
-  - $tarchiveInfo       : tarchive information hash ref
-  - $subjectIDsref      : subject's ID information hash ref
-  - $acquisitionProtocol: acquisition protocol
-  - $minc               : MINC file to register into the database
-  - $checks             : failed checks to register with the file
-  - $reckless           : boolean, if reckless or not
-  - $sessionID          : session ID of the MINC file
-  - $upload_id          : upload ID of the study
+  - $minc_file               : MINC file information hash ref
+  - $tarchiveInfo            : tarchive information hash ref
+  - $subjectIDsref           : subject's ID information hash ref
+  - $acquisitionProtocol     : acquisition protocol
+  - $minc                    : MINC file to register into the database
+  - $$extra_validation_status: extra validation status (if 'exclude', then
+                               will not register the scan in the files table)
+  - $reckless                : boolean, if reckless or not
+  - $sessionID               : session ID of the MINC file
+  - $upload_id               : upload ID of the study
 
 RETURNS: acquisition protocol ID of the MINC file
 
@@ -964,7 +1073,7 @@ sub registerScanIntoDB {
     my $this = shift;
     my (
         $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
-        $minc, $checks,$reckless, $sessionID, $upload_id
+        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id
     ) = @_;
 
     my $data_dir = NeuroDB::DBI::getConfigSetting(
@@ -989,7 +1098,7 @@ sub registerScanIntoDB {
         || (defined(&Settings::isFileToBeRegisteredGivenProtocol)
             && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol)
            )
-        ) && $checks->[0] !~ /exclude/) {
+        ) && $extra_validation_status !~ /exclude/) {
 
         ########################################################
         # convert the textual scan_type into the scan_type id ##
