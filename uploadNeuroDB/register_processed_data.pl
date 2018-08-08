@@ -1,5 +1,60 @@
 #!/usr/bin/perl -w
 
+=pod
+
+=head1 NAME
+
+register_processed_data.pl -- Inserts processed data and links it to the source
+data
+
+=head1 SYNOPSIS
+
+perl register_processed_data.pl C<[options]>
+
+Available options are:
+
+-profile        : name of config file in C<../dicom-archive/.loris_mri>
+
+-file           : file that will be registered in the database
+                   (full path from the root directory is required)
+
+-sourceFileID   : FileID of the raw input dataset that was processed
+                   to obtain the file to be registered in the database
+
+-sourcePipeline : pipeline name that was used to obtain the file to be
+                   registered (example: C<DTIPrep_pipeline>)
+
+-tool           : tool name and version that was used to obtain the
+                   file to be registered (example: C<DTIPrep_v1.1.6>)
+
+-pipelineDate   : date at which the processing pipeline was run
+
+-coordinateSpace: space coordinate of the file
+                   (i.e. linear, nonlinear or native)
+
+-scanType       : file scan type stored in the C<mri_scan_type> table
+                   (i.e. QCedDTI, RGBqc, TxtQCReport, XMLQCReport...)
+
+-outputType     : output type to be registered in the database
+                   (i.e. QCed, processed, QCReport)
+
+-inputFileIDs   : list of input fileIDs used to obtain the file to
+                   be registered (each fileID separated by ';')
+
+-protocolID     : ID of the registered protocol used to process data
+
+Note: All options are required as they will be necessary to insert a file in
+the database.
+
+=head1 DESCRIPTION
+
+This script inserts processed data in the C<files> and C<parameter_file> tables.
+
+=head2 Methods
+
+=cut
+
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -10,6 +65,7 @@ use lib "$FindBin::Bin";
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
+use NeuroDB::ExitCodes;
 
 
 my  $profile    = undef;
@@ -33,6 +89,8 @@ Usage: perl register_processed_data.pl [options]
 
 -help for options
 
+Documentation: perldoc register_processed_data.pl
+
 USAGE
 
 my  @args_table = (
@@ -50,35 +108,43 @@ my  @args_table = (
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
-GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
+GetOptions(\@args_table, \@ARGV, \@args)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 # Input option error checking
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if  ($profile && !@Settings::db)    { 
-    print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-    exit 33; 
+if ( !$profile ) {
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if  (!$profile) { 
-    print "$Usage\n\tERROR: You must specify a profile.\n\n";  
-    exit 33;
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if  ( !@Settings::db )    {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 # Make sure we have all the arguments we need
 unless  ($filename && $sourceFileID && $sourcePipeline && $scanType
          && $pipelineDate && $coordinateSpace && $outputType
          && $tool && $inputFileIDs)   {
-    print "$Usage\n\tERROR: -file, -sourceFileID, -sourcePipeline, -scanType, -pipelineDate -coordinateSpace, -outputType, -tool and -inputFileIDs must be specified.\n\n";
-    exit 33;
+    print STDERR "$Usage\n\tERROR: -file, -sourceFileID, -sourcePipeline, "
+                 . "-scanType, -pipelineDate -coordinateSpace, -outputType, "
+                 . "-tool & -inputFileIDs must be specified.\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 # Make sure sourceFileID is valid
 unless  ((defined($sourceFileID)) && ($sourceFileID =~ /^[0-9]+$/)) {
-    print "Files to be registered require the -sourceFileID option with a valid FileID as an argument\n";
-    exit 1;
+    print STDERR "Files to be registered require the -sourceFileID option "
+                 . "with a valid FileID as an argument\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 # Make sure we have permission to read the file
-unless  (-r $filename)  { print "Cannot read $filename\n"; exit 1;}
+unless  (-r $filename)  {
+    print STDERR "Cannot read $filename\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
 
 # Establish database connection
 my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
@@ -88,7 +154,6 @@ my $data_dir = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
 my $pic_dir  =   $data_dir.'/pic';
-my $jiv_dir  =   $data_dir.'/jiv';
 my $prefix   = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'prefix'
                     );
@@ -142,7 +207,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $psc    =   $center_name;
     if  (!$psc)     { 
         print LOG "\nERROR: No center found for this candidate \n\n"; 
-        exit 77; 
+        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
     print LOG  "\n==> Verifying acquisition center\n - Center Name  : $center_name\n - CenterID     : $centerID\n";
 }
@@ -171,8 +236,9 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 }
 
 if  (!defined($scannerID))  {
-    print LOG "\nERROR: could not determine scannerID based on sourceFileID $sourceFileID.\n\n";
-    exit 2;
+    print LOG "\nERROR: could not determine scannerID based on sourceFileID "
+              . "$sourceFileID.\n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 $file->setFileData('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
@@ -184,8 +250,10 @@ print LOG "\t -> Set ScannerID to $scannerID.\n";
 #                   - requiresStaging 
 my ($sessionID,$requiresStaging,$subjectIDsref)    =   getSessionID($sourceFileID,$dbh);
 if  (!defined($sessionID))  {
-    print LOG "\nERROR: could not determine sessionID based on sourceFileID $sourceFileID. Are you sure the sourceFile was registered in DB?\n\n";
-    exit 2;
+    print LOG "\nERROR: could not determine sessionID based on sourceFileID "
+              . "$sourceFileID. Are you sure the sourceFile was registered "
+              . "in DB?\n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 print LOG "\n==> Data found for candidate   : $subjectIDsref->{'CandID'} - Visit: $subjectIDsref->{'visitLabel'}\n";
 $file->setFileData('SessionID', $sessionID);
@@ -198,7 +266,7 @@ print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
 my  ($acqProtID)    =   getAcqProtID($scanType,$dbh);
 if  (!defined($acqProtID))  {
     print LOG "\nERROR: could not determine AcquisitionProtocolID based on scanType $scanType.\n\n";
-    exit 2;
+    exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }
 $file->setFileData('AcquisitionProtocolID',$acqProtID);
 print LOG "\t -> Set AcquisitionProtocolID to $acqProtID.\n";
@@ -224,7 +292,7 @@ $file->setParameter('md5hash', $md5hash);
 print LOG "\t -> Set md5hash to $md5hash.\n";
 if  (!NeuroDB::MRI::is_unique_hash(\$file)) {
     print LOG "\n==> $file is not a unique file and will not be added to database.\n\n";
-    exit 1;
+    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 }
 
 
@@ -245,7 +313,7 @@ unless  ($fileID)   {
     # tell the user something went wrong
     print LOG "\n==> FAILED TO REGISTER FILE $filename!\n\n";    
     # and exit
-    exit 1;
+    exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
 
 # Insert into files_intermediary the intermediary inputs stored in inputFileIDs.
@@ -256,10 +324,6 @@ my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
                         \$dbh,'horizontalPics'
                         );
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
-    # Jivify
-    print LOG "Making JIV\n";
-    &NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
-    
     # make the browser pics
     print "Making browser pics\n";
     &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics);
@@ -270,15 +334,27 @@ print LOG "\n ==> Registered $filename in database, given FileID: $fileID\n\n";
 
 # and exit
 $dbh->disconnect;
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 ###################################
 ##           Functions           ##
 ###################################
+
 =pod
-This function returns the sessionID based on sourceFileID.
+
+=head3 getSessionID($sourceFileID, $dbh)
+
+This function returns the C<SessionID> based on the provided C<sourceFileID>.
+
+INPUTS:
+  - $sourceFileID: source FileID
+  - $dbh         : database handle
+
+RETURNS: session ID
+
 =cut
+
 sub getSessionID    {
     my  ($sourceFileID,$dbh)    =   @_;
     
@@ -311,8 +387,20 @@ sub getSessionID    {
 
 
 =pod
-This function gets ScannerID from files using sourceFileID
+
+=head3 getScannerID($sourceFileID, $dbh)
+
+This function gets the C<ScannerID> from the C<files> table using
+C<sourceFileID>.
+
+INPUTS:
+  - $sourceFileID: source C<FileID>
+  - $dbh         : database handle
+
+RETURNS: scanner ID
+
 =cut
+
 sub getScannerID    {
     my  ($sourceFileID,$dbh)    =   @_;    
 
@@ -332,9 +420,22 @@ sub getScannerID    {
     return  ($scannerID);
 }
 
+
 =pod
-This function returns the AcquisitionProtocolID of the file to register in DB based on scanType in mri_scan_type.
+
+=head3 getAcqProtID($scanType, $dbh)
+
+This function returns the C<AcquisitionProtocolID> of the file to register in
+the database based on C<scanType> in the C<mri_scan_type> table.
+
+INPUTS:
+  - $scanType: scan type
+  - $dbh     : database handle
+
+RETURNS: acquisition protocol ID
+
 =cut
+
 sub getAcqProtID    {
     my  ($scanType,$dbh)    =   @_;
 
@@ -354,9 +455,21 @@ sub getAcqProtID    {
     return  ($acqProtID);
 }
 
+
 =pod
-This function parses the mincheader and look for specific field's value.
+
+=head3 fetchMincHeader($file, $field)
+
+This function parses the MINC header and looks for a specific field value.
+
+INPUTS:
+  - $file : MINC file
+  - $field: MINC header field values
+
+RETURNS: MINC header value
+
 =cut
+
 sub fetchMincHeader {
     my  ($file,$field)  =   @_;
 
@@ -370,9 +483,23 @@ sub fetchMincHeader {
     return  $value;
 }    
 
+
 =pod
-Move files to assembly folder.
+
+=head3 copy_file($filename, $subjectIDsref, $scan_type, $fileref)
+
+Moves files to C<assembly> folder.
+
+INPUTS:
+  - $filename     : file to copy
+  - $subjectIDsref: subject ID hash ref
+  - $scan_type    : scan type
+  - $fileref      : file hash ref
+
+RETURNS: file name of the copied file
+
 =cut
+
 sub copy_file {
     my ($filename, $subjectIDsref, $scan_type, $fileref)    =   @_;
 
@@ -417,12 +544,18 @@ sub copy_file {
 }
 
 
-
 =pod
-Grep source file name from the database using SourceFileID.
-Input:  $sourceFileID
-Output: $filename
+
+=head3 getSourceFilename($sourceFileID)
+
+Greps source file name from the database using C<SourceFileID>.
+
+INPUT: ID of the source file
+
+RETURNS: name of the source file
+
 =cut
+
 sub getSourceFilename {
     my ($sourceFileID) = @_;
 
@@ -447,10 +580,18 @@ sub getSourceFilename {
 }
 
 
-
 =pod
-Determines where the mincs will go...
+
+=head3 which_directory($subjectIDsref)
+
+Determines where the MINC files will go.
+
+INPUT: subject ID hash ref
+
+RETURNS: directory where the MINC files will go
+
 =cut
+
 sub which_directory {
     my ($subjectIDsref) =   @_;
     
@@ -465,13 +606,22 @@ sub which_directory {
 
 
 =pod
-Function that will insert into the files_intermediary table of the database, intermediary outputs that were used to obtain the processed file.
-- Input:  - fileID : fileID of the registered processed file
-          - inputFileIDs : array containing the list of input files that were used to obtain the processed file
-          - tool : tool that was used to obtain the processed file
-- Output: - return undef if insertion did not succeed
-          - return 1 if insertion into the intermediary table succeeded. 
+
+=head3 insert_intermedFiles($fileID, $inputFileIDs, $tool)
+
+Function that will insert the intermediary outputs that were used to obtain the
+processed file into the C<files_intermediary> table of the database.
+
+INPUTS:
+  - $fileID      : fileID of the registered processed file
+  - $inputFileIDs: array containing the list of input files that were
+                    used to obtain the processed file
+  - $tool        : tool that was used to obtain the processed file
+
+RETURNS: 1 on success, undef on failure
+
 =cut
+
 sub insert_intermedFiles {
     my ($fileID, $inputFileIDs, $tool) = @_;
 
@@ -491,3 +641,18 @@ sub insert_intermedFiles {
 
     return 1;
 }
+
+
+__END__
+
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut

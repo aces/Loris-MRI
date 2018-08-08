@@ -1,10 +1,51 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+imaging_upload_file.pl -- a single step script for the imaging pre-processing
+and insertion pipeline sequence
+
+=head1 SYNOPSIS
+
+perl imaging_upload_file.pl </path/to/UploadedFile> C<[options]>
+
+Available options are:
+
+-profile      : name of the config file in C<../dicom-archive/.loris_mri>
+
+-upload_id    : The Upload ID of the given scan uploaded
+
+-verbose      : if set, be verbose
+
+
+=head1 DESCRIPTION
+
+The program does the following:
+
+- Gets the location of the uploaded file (.zip, .tar.gz or .tgz)
+
+- Unzips the uploaded file
+
+- Uses the C<ImagingUpload> class to:
+   1) Validate the uploaded file   (set the validation to true)
+   2) Run C<dicomTar.pl> on the file  (set the C<dicomTar> to true)
+   3) Run C<tarchiveLoader> on the file (set the minc-created to true)
+   4) Remove the uploaded file once the previous steps have completed
+   5) Update the C<mri_upload> table
+
+=head2 Methods
+
+=cut
+
 use strict;
 use warnings;
 use Carp;
 use Getopt::Tabular;
 use FileHandle;
 use File::Temp qw/ tempdir /;
+use File::Basename;
 use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
@@ -18,6 +59,7 @@ use NeuroDB::FileDecompress;
 use NeuroDB::DBI;
 use NeuroDB::ImagingUpload;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
 
 my $versionInfo = sprintf "%d revision %2d",
   q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/;
@@ -30,18 +72,23 @@ my $date    = sprintf(
               );
 my $profile = undef;    # this should never be set unless you are in a
                         # stable production environment
-my $upload_id = undef;         # The uploadID
+my $upload_id = undef;  # The uploadID
 my $template  = "ImagingUpload-$hour-$min-XXXXXX";    # for tempdir
 my $TmpDir_decompressed_folder =
      tempdir( $template, TMPDIR => 1, CLEANUP => 1 );
 my $output              = undef;
 my $uploaded_file       = undef;
 my $message             = '';
-my $verbose             = 0;           	# default for now, run with -verbose option to re-enable
-my $notify_detailed     = 'Y';		# notification_spool message flag for messages to be displayed 
-				       	# with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary   = 'N';         	# notification_spool message flag for messages to be displayed 
-				       	# with SUMMARY Option in the front-end/imaging_uploader 
+my $verbose             = 0;
+                        # default for now, run with -verbose option to re-enable
+my $notify_detailed     = 'Y';
+                        # notification_spool message flag for messages to be
+                        # displayed with DETAILED OPTION in the front-end/
+                        # imaging_uploader
+my $notify_notsummary   = 'N';
+                        # notification_spool message flag for messages to be
+				       	# displayed with SUMMARY Option in the front-end/
+                        # imaging_uploader
 my @opt_table           = (
     [ "Basic options", "section" ],
     [
@@ -69,59 +116,64 @@ Version :   $versionInfo
 The program does the following
 
 - Gets the location of the uploaded file (.zip,.tar.gz or .tgz)
+
 - Unzips the uploaded file
-- Sources the Environment
-- Uses the ImagaingUpload class to :
-   1) Validate the uploaded file   (set the validation to true)
-   2) Run dicomtar.pl on the file  (set the dicomtar to true)
+
+- Uses the ImagingUpload class to :
+
+   1) Validate the uploaded file (set the validation to true)
+   2) Run dicomTar.pl on the file (set the dicomTar to true)
    3) Run tarchiveLoader on the file (set the minc-created to true)
-   4) Removes the uploaded file once the previous steps have completed
+   4) Remove the uploaded file once the previous steps have completed
    5) Update the mri_upload table 
+
+Documentation: perldoc imaging_upload_file.pl
 
 HELP
 my $Usage = <<USAGE;
 usage: $0 </path/to/UploadedFile> -upload_id [options]
        $0 -help to list options
+Note:  Please make sure that the </path/to/UploadedFile> and the upload_id
+provided correspond to the same upload entry.
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 ################################################################
 ############### input option error checking ####################
 ################################################################
 
-=pod
- 1) For those logs before getting the --dbh...they also need to 
-     -They need to be inserted
- 2) The -patient-name can be included for further validation
-=cut
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ( $profile && !@Settings::db ) {
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 2;
-}
-if ( !$ARGV[0] || !$profile ) {
+if ( !$profile ) {
     print $Help;
-    print "$Usage\n\tERROR: The path to the Uploaded"
-      . "file is not valid or there is no existing profile file \n\n";
-    exit 3;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+if ( !$ARGV[0] ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: Missing path to the uploaded file "
+                 . "argument\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 if ( !$upload_id ) {
     print $Help;
-    print "$Usage\n\tERROR: The Upload_id is missing \n\n";
-    exit 4;
+    print STDERR "$Usage\n\tERROR: Missing -upload_id argument\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 $uploaded_file = abs_path( $ARGV[0] );
 unless ( -e $uploaded_file ) {
-    print "\nERROR: Could not find the uploaded file
-            $uploaded_file. \nPlease, make sure "
-      . "the path to the uploaded file is correct. 
-           Upload will exit now.\n\n\n";
-    exit 5;
+    print STDERR "\nERROR: Could not find the uploaded file $uploaded_file.\n"
+                 . "Please, make sure the path to the uploaded file is "
+                 . "valid.\n\n" ;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 ################################################################
@@ -130,20 +182,17 @@ unless ( -e $uploaded_file ) {
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 ################################################################
-############ Todo: Check to see if the file is accessible#######
-## if not, it means that the front-end module###################
-## has not changed the user-group properly######################
-##Therefore return an error and log the error###################
+####Check that UploadID and path to the file are consistent#####
+####i.e. they refer to the same entry in the mri_upload table###
 ################################################################
+my $expected_file = getFilePathUsingUploadID($upload_id);
 
+if ( basename($expected_file) ne basename($uploaded_file)) {
+    print STDERR "$Usage\nERROR: The specified upload_id $upload_id does not "
+                 . "correspond to the provided file path $uploaded_file.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
 
-################################################################
-################ FileDecompress Object #########################
-################################################################
-#####################TO DOOO##################################
-####Check to see if the file is zipped or compressed before calling the
-#### decompress class
-#
 my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 
 ################################################################
@@ -194,13 +243,13 @@ my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
 if ( !($is_candinfovalid) ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\nThe candidate info validation has failed \n";
+    $message = "\nThe candidate info validation has failed.\n";
     spool($message,'Y', $notify_notsummary);
-    print $message;
-    exit 6;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::INVALID_DICOM;
 }
 
-$message = "\nThe candidate info validation has passed \n";
+$message = "\nThe candidate info validation has passed.\n";
 spool($message,'N', $notify_notsummary);
 
 ################################################################
@@ -210,12 +259,12 @@ $output = $imaging_upload->runDicomTar();
 if ( !$output ) {
     $imaging_upload->updateMRIUploadTable(
 	'Inserting', 0);
-    $message = "\nThe dicomtar execution has failed\n";
+    $message = "\nThe dicomTar.pl execution has failed.\n";
     spool($message,'Y', $notify_notsummary);
-    print $message;
-    exit 7;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
-$message = "\nThe dicomtar execution has successfully completed\n";
+$message = "\nThe dicomTar.pl execution has successfully completed\n";
 spool($message,'N', $notify_notsummary);
 
 ################################################################
@@ -224,10 +273,10 @@ spool($message,'N', $notify_notsummary);
 $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
-    $message = "\nThe insertion scripts have failed\n";
+    $message = "\nThe tarchiveLoader insertion script has failed.\n";
     spool($message,'Y', $notify_notsummary); 
-    print $message;
-    exit 8;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
 ################################################################
@@ -238,8 +287,8 @@ my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";
     spool($message,'Y', $notify_notsummary);
-    print $message;
-    exit 9;
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::CLEANUP_FAILURE;
 }
 $message = "\nThe uploaded file " . $uploaded_file . " has been removed\n\n";
 spool($message,'N', $notify_notsummary);
@@ -259,14 +308,15 @@ spool($message,'N', $notify_notsummary);
 ############### getPnameUsingUploadID###########################
 ################################################################
 =pod
-getPnameUsingUploadID()
-Description:
-  - Get the patient-name using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getPnameUsingUploadID($upload_id)
 
-  Returns: $patient_name : The patientName
+Function that gets the patient name using the upload ID
+
+INPUT: The upload ID
+
+RETURNS: The patient name
+
 =cut
 
 
@@ -289,19 +339,59 @@ sub getPnameUsingUploadID {
     return $patient_name;
 }
 
+################################################################
+############### getFilePathUsingUploadID########################
+################################################################
+=pod
+
+=head3 getFilePathUsingUploadID($upload_id)
+
+Functions that gets the file path from the `mri_upload` table using the upload
+ID
+
+INPUT: The upload ID
+
+RETURNS: The full path to the uploaded file
+
+=cut
+
+
+sub getFilePathUsingUploadID {
+
+    my $upload_id = shift;
+    my ( $file_path, $query ) = '';
+
+    if ($upload_id) {
+        ########################################################
+        #######Extract File with full path using upload_id######
+        ########################################################
+        $query = "SELECT UploadLocation FROM mri_upload WHERE UploadID =?";
+        my $sth = $dbh->prepare($query);
+        $sth->execute($upload_id);
+        if ( $sth->rows > 0 ) {
+            $file_path = $sth->fetchrow_array();
+        }
+    }
+    return $file_path;
+}
+
 
 ################################################################
 ###### get number_of_mincCreated & number_of_mincInserted ######
 ################################################################
 =pod
-getNumberOfMincFiles()
-Description:
-  - Get the count of minc files created and inserted using the upload_id
 
-Arguments:
-  $upload_id: The Upload ID
+=head3 getNumberOfMincFiles($upload_id)
 
-  Returns: $minc_created and $minc_inserted: count of minc created and inserted
+Function that gets the count of MINC files created and inserted using the
+upload ID
+
+INPUT: The upload ID
+
+RETURNS:
+  - $minc_created : count of MINC files created
+  - $minc_inserted: count of MINC files inserted
+
 =cut
 
 
@@ -334,17 +424,18 @@ sub getNumberOfMincFiles {
 ############### spool()#########################################
 ################################################################
 =pod
-spool()
-Description:
-   - Calls the Notify->spool function to log all messages 
 
-Arguments:
- $this      : Reference to the class
- $message   : Message to be logged in the database 
- $error     : if 'Y' it's an error log , 'N' otherwise
- $verb      : 'N' for summary messages, 'Y' for detailed messages (developers)
+=head3 spool()
 
- Returns    : NULL
+Function that calls the C<Notify->spool> function to log all messages
+
+INPUTS:
+ - $this   : Reference to the class
+ - $message: Message to be logged in the database
+ - $error  : If 'Y' it's an error log , 'N' otherwise
+ - $verb   : 'N' for summary messages,
+             'Y' for detailed messages (developers)
+
 =cut
 
 sub spool  {
@@ -357,4 +448,26 @@ sub spool  {
     );
 }
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+__END__
+
+=pod
+
+=head1 TO DO
+
+Add a check that the uploaded scan file is accessible by the front end user
+(i.e. that the user-group is set properly on the upload directory). Throw an
+error and log it, otherwise.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

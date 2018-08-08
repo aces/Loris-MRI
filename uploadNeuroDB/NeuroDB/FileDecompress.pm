@@ -1,4 +1,32 @@
 package NeuroDB::FileDecompress;
+
+=pod
+
+=head1 NAME
+
+NeuroDB::FileDecompress -- Provides an interface to the file decompression of
+LORIS-MRI
+
+=head1 SYNOPSIS
+
+  use NeuroDB::FileDecompress;
+
+  my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
+
+  my $extract = $file_decompress->Extract($decompressed_folder);
+
+  my $archived_files = $file_decompress->getArchivedFiles($decompressed_folder);
+
+  my $extract_directory = $file_decompress->getExtractedDirectory($decompressed_folder);
+
+=head1 DESCRIPTION
+
+This library regroups utilities for manipulation of archived datasets.
+
+=head2 Methods
+
+=cut
+
 use English;
 use Carp;
 use strict;
@@ -8,9 +36,19 @@ use Path::Class;
 use Archive::Extract;
 use Archive::Zip;
 
-################################################################
-#####################Constructor ###############################
-################################################################
+
+=pod
+
+=head3 new($file_path) >> (constructor)
+
+Create a new instance of this class.
+
+INPUT: path of the file to extract.
+
+RETURNS: an C<Archive::Extract> object on success, or FALSE on failure
+
+=cut
+
 sub new {
     my $params = shift;
     my ($file_path) = @_;
@@ -22,44 +60,38 @@ sub new {
     return bless $self, $params;
 }
 
-################################################################
-#####################Extract()##################################
-################################################################
+
 =pod
-Extract()
-Description:
-  - This function will automatically detect the file-type
-    and will decompress the file by calling the appropriate
-    function under the hood and return false if the decompression
-    fails and true otherwise.
-Arguments:
-  $this              : reference to the class
-  $destination_folder: Full path to the destination folder
-  Returns            : True if success and false otherwise
+
+=head3 Extract($destination_folder)
+
+This function will automatically detect the file-type and will decompress the
+file by calling the appropriate function under the hood.
+
+INPUT: full path to the destination folder
+
+RETURNS: TRUE on success, FALSE on failure
+
 =cut
 
 sub Extract  {
     my $this = shift;
     my ($destination_folder) = @_;
-    #####################################################
-    ##Check to see if the destination folder exists######
-    #####################################################
+
+    # Check to see if the destination folder exists
     return $this->{'extract_object'}->extract(to=>$destination_folder);
 }
 
 
-################################################################
-#####################getArchivedFiles()#########################
-################################################################
 =pod
-getArchivedFiles()
-Description:
-  - This function will return an array ref with the paths of 
-    all the files in the archive.
 
-Arguments:
-  $this              : reference to the class
-  Returns            : Array of a files
+=head3 getArchivedFiles()
+
+This function will return an array ref with the paths of all the files in the
+archive.
+
+RETURNS: array of archived files
+
 =cut
 
 sub getArchivedFiles {
@@ -67,18 +99,16 @@ sub getArchivedFiles {
     return  $this->{'extract_object'}->files;
 }
 
-################################################################
-#####################getExtractedDirectory()####################
-################################################################
-=pod
-getExtractedDirectory()
-Description:
-  - It will return the directory that the files will be extracted
-    to. 
 
-Arguments:
-  $this              : Reference to the class
-  Returns            : Path to the folder where file will be extracted
+=pod
+
+=head3 getExtractedDirectory()
+
+This function will return the path to the directory where the files will be
+extracted to.
+
+RETURNS: path to the folder where file will be extracted
+
 =cut
 
 sub getExtractedDirectory {
@@ -86,17 +116,15 @@ sub getExtractedDirectory {
     return $this->{'extract_object'}->extract_path();
 }
 
-################################################################
-#####################getType()##################################
-################################################################
-=pod
-getType()
-Description:
-  - This function will return the type of the archive
 
-Arguments:
-  $this              : reference to the class
-  Returns            : The type of the archive
+=pod
+
+=head3 getType()
+
+This function will return the type of the archive
+
+RETURNS: type of the archive
+
 =cut
 
 
@@ -105,3 +133,16 @@ sub getType {
     return  $this->{'extract_object'}->type;
 }
 1; 
+
+
+=pod
+
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
