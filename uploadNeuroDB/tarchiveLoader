@@ -81,6 +81,8 @@ use Cwd qw/ abs_path /;
 # These are the NeuroDB modules to be used
 use lib "$FindBin::Bin";
 
+use NeuroDB::Database;
+
 use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::DBI;
@@ -229,6 +231,15 @@ if ( !$ARGV[0] ) {
 ######### Establish database connection ########################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 $message ="\n==> Successfully connected to database \n";
 
 my $tarchive = $ARGV[0];
@@ -318,7 +329,7 @@ if ($xlog) {
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  \$dbh,$debug,$TmpDir,$logfile,
+                  $db, \$dbh,$debug,$TmpDir,$logfile,
                   $LogDir,$verbose
               );
 

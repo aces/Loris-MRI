@@ -49,6 +49,8 @@ use NeuroDB::DBI;
 use NeuroDB::MRIProcessingUtility;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+
 my $verbose = 1;
 my $debug = 1;
 my $profile = undef;
@@ -109,6 +111,14 @@ if ( !@Settings::db ) {
 ######### Establish database connection ########################
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
 print "\nSuccessfully connected to database \n";
 
 ################################################################
@@ -139,7 +149,7 @@ my $logfile  = "$LogDir/$templog.log";
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  \$dbh,$debug,$TmpDir,$logfile,
+                  $db, \$dbh,$debug,$TmpDir,$logfile,
                   $LogDir,$verbose
               );
 
