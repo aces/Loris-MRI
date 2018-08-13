@@ -8,15 +8,12 @@ perl minc\_insertion.pl `[options]`
 
 Available options are:
 
-\-profile     : name of the config file in
-               `../dicom-archive/.loris_mri`
+\-profile     : name of the config file in `../dicom-archive/.loris_mri`
 
 \-reckless    : uploads data to database even if study protocol
                is not defined or violated
 
 \-force       : forces the script to run even if validation failed
-
-\-noJIV       : prevents the JIVs from being created
 
 \-mincPath    : the absolute path to the MINC file
 
@@ -64,15 +61,7 @@ and setting extra parameters
 
 ### logHeader()
 
-Creates and prints the LOG header.
-
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
+Function that adds a header with relevant information to the log file.
 
 # LICENSING
 

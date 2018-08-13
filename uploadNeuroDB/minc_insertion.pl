@@ -12,15 +12,12 @@ perl minc_insertion.pl C<[options]>
 
 Available options are:
 
--profile     : name of the config file in
-               C<../dicom-archive/.loris_mri>
+-profile     : name of the config file in C<../dicom-archive/.loris_mri>
 
 -reckless    : uploads data to database even if study protocol
                is not defined or violated
 
 -force       : forces the script to run even if validation failed
-
--noJIV       : prevents the JIVs from being created
 
 -mincPath    : the absolute path to the MINC file
 
@@ -115,19 +112,17 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
-my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be 
-                               # created
 my $NewScanner  = 1;           # This should be the default unless you are a 
                                # control freak
 my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
 my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
-my @checks      = ();          # Initialise the array
+my $extra_validation_status;   # Initialise the extra validation status
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $no_nii      = 1;           # skip NIfTI creation by default
+my $create_nii  = 0;           # skip NIfTI creation by default
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%tarchiveInfo,$minc);
 
@@ -148,9 +143,6 @@ my @opt_table = (
 
                  ["-force", "boolean", 1, \$force,"Forces the script to run". 
                  " even if the validation has failed."],
-
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevents the JIVs from being ".
-                  "created."],
   
                  ["-mincPath","string",1, \$minc, "The absolute path". 
                   " to minc-file"],
@@ -279,13 +271,9 @@ $db->connect();
 my $data_dir = NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
-
-if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'no_nii'))) {
-    $no_nii = NeuroDB::DBI::getConfigSetting(
-                       \$dbh,'no_nii'
-                        ) 
+if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii'))) {
+    $create_nii = NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii');
 }
-my $jiv_dir  = $data_dir.'/jiv';
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
@@ -458,9 +446,7 @@ my $subjectIDsref = $utility->determineSubjectID(
 ################################################################
 
 my $CandMismatchError = undef;
-$CandMismatchError= $utility->validateCandidate(
-                                $subjectIDsref,
-                                $tarchiveInfo{'SourceLocation'});
+$CandMismatchError= $utility->validateCandidate($subjectIDsref);
 
 my $logQuery = "INSERT INTO MRICandidateErrors".
               "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
@@ -555,7 +541,7 @@ if (defined($acquisitionProtocol)) {
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
 ################################################################
-($acquisitionProtocol,$acquisitionProtocolID,@checks)
+($acquisitionProtocol, $acquisitionProtocolID, $extra_validation_status)
   = $utility->getAcquisitionProtocol(
       $file,
       $subjectIDsref,
@@ -586,7 +572,7 @@ if($acquisitionProtocol =~ /unknown/) {
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
     \$file,               \%tarchiveInfo, $subjectIDsref,
-    $acquisitionProtocol, $minc,          \@checks,
+    $acquisitionProtocol, $minc,          $extra_validation_status,
     $reckless,            $sessionID,     $upload_id
 );
 
@@ -620,18 +606,11 @@ $notifier->spool('mri new series', $message, 0,
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
 }
-################################################################
-###################### Creation of Jivs ########################
-################################################################
-if (!$no_jiv) {
-    print "\nMaking JIV\n" if $verbose;
-    NeuroDB::MRI::make_jiv(\$file, $data_dir, $jiv_dir);
-}
 
 ################################################################
 ###################### Creation of NIfTIs ######################
 ################################################################
-unless ($no_nii) {
+if ($create_nii) {
     print "\nCreating NIfTI files\n" if $verbose;
     NeuroDB::MRI::make_nii(\$file, $data_dir);
 }
@@ -660,7 +639,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 logHeader()
 
-Creates and prints the LOG header.
+Function that adds a header with relevant information to the log file.
 
 =cut
 
@@ -680,14 +659,6 @@ sub logHeader () {
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

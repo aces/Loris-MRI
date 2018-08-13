@@ -15,12 +15,11 @@ perl minc_deletion.pl C<[options]>
 
 Available options are:
 
--profile    : name of the config file in
-              C<../dicom-archive/.loris_mri>
+-profile   : name of the config file in C<../dicom-archive/.loris_mri>
 
--series_uid : the series UID of the file to be deleted
+-series_uid: the series UID of the file to be deleted
 
--fileid     : the file ID of the file to be deleted
+-fileid    : the file ID of the file to be deleted
 
 
 =head1 DESCRIPTION
@@ -29,7 +28,7 @@ This program deletes MINC files from LORIS by:
   - Moving the existing files (C<.mnc>, C<.nii>, C<.jpg>, C<.header>,
     C<.raw_byte.gz>) to the archive directory: C</data/$PROJECT/data/archive/>
   - Deleting all related data from C<parameter_file> & C<files> tables
-  - Deleting data from C<files_qcstatus> & C<feedback_mri_comments>
+  - Deleting data from C<files_qcstatus> and C<feedback_mri_comments>
     database tables if the C<-delqcdata> option is set. In most cases
     you would want to delete this when the images change
   - Deleting C<mri_acquisition_dates> entry if it is the last file
@@ -107,7 +106,7 @@ The program does the following:
 
 Deletes MINC files from LORIS by:
   - Moving the existing files (.mnc, .nii, .jpg, .header, .raw_byte.gz) to the
-    archive directory: /data/$PROJECT/data/archive/
+    archive directory: /data/\$PROJECT/data/archive/
   - Deleting all related data from parameter_file & files tables
   - Deleting data from files_qcstatus & feedback_mri_comments
     database tables if the -delqcdata option is set. In most cases
@@ -255,7 +254,7 @@ if (defined $rvl && $rvl == 0) {
 }
 
 
-my ($tarchiveid, $sessionid, @pic_path, $jiv_header, $jiv_raw_byte, $file, $dir, $ext, $nii_file, @candid);
+my ($tarchiveid, $sessionid, @pic_path, $file, $dir, $ext, $nii_file, @candid);
 
 while (my $f = $sth->fetchrow_hashref()) {
   $tarchiveid   = $f->{'TarchiveSource'};
@@ -264,8 +263,6 @@ while (my $f = $sth->fetchrow_hashref()) {
     # can be given in a "WHERE FileID IN ()" syntax
   push(@files_FileID, $f->{'FileID'});
   @pic_path     = split /_check/, $f->{'VALUE'};
-  $jiv_header   = $pic_path[0] . ".header";
-  $jiv_raw_byte = $pic_path[0] . ".raw_byte.gz";
   ($file, $dir, $ext) = fileparse($f->{'File'});
   $nii_file     = basename($file, ".mnc") . ".nii";
   @candid = split("/", $dir);
@@ -273,15 +270,12 @@ while (my $f = $sth->fetchrow_hashref()) {
     # Let's make directories
     make_path($data_dir . "/archive/"     . $dir) unless(-d  $data_dir . "/archive/"     . $dir);
     make_path($data_dir . "/archive/pic/" . $candid[1]) unless(-d  $data_dir . "/archive/pic/" . $candid[1]);
-    make_path($data_dir . "/archive/jiv/" . $candid[1]) unless(-d  $data_dir . "/archive/jiv/" . $candid[1]);
 
     if (-e $data_dir . "/" . $dir . $nii_file) {
       rename($data_dir . "/" . $dir . $nii_file, $data_dir . "/archive/" . $dir . $nii_file);
     }
     rename($data_dir . "/"     . $f->{'File'}, $data_dir . "/archive/" . $f->{'File'});
     rename($data_dir . "/pic/" . $f->{'VALUE'}, $data_dir . "/archive/pic/" . $f->{'VALUE'});
-    rename($data_dir . "/jiv/" . $jiv_header, $data_dir . "/archive/jiv/" . $jiv_header);
-    rename($data_dir . "/jiv/" . $jiv_raw_byte, $data_dir . "/archive/jiv/" . $jiv_raw_byte);
     print "\nMoving these files to archive:\n";
   } else {
     print "\nFiles that will be moved when rerunning the script using the confirm option:\n";
@@ -292,8 +286,6 @@ while (my $f = $sth->fetchrow_hashref()) {
     print $data_dir . "/"   . $dir . $nii_file . "\n";
   }
   print $data_dir . "/pic/" . $f->{'VALUE'} . "\n";
-  print $data_dir . "/jiv/" . $jiv_header . "\n";
-  print $data_dir . "/jiv/" . $jiv_raw_byte . "\n";
 }
 
 print "\nDelete from DB";
@@ -458,21 +450,13 @@ __END__
 
 =pod
 
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
-
 =head1 LICENSING
 
 License: GPLv3
 
 =head1 AUTHORS
 
-Gregory Luneau, the LORIS community <loris.info@mcin.ca> and McGill Centre
-for Integrative Neuroscience
+Gregory Luneau,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut

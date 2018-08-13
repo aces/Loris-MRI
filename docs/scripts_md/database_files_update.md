@@ -9,7 +9,7 @@ perl database\_files\_update.pl `[options]`
 
 Available option is:
 
-\-profile: name of the config file in ../dicom-archive/.loris\_mri
+\-profile: name of the config file in `../dicom-archive/.loris_mri`
 
 # DESCRIPTION
 
@@ -22,7 +22,9 @@ tables to remove the `data_dir` part of the path for security improvements.
 
 Gets the list of MINC files to update the location in the `files` table.
 
-INPUTS: data directory from the `Config` tables, database handle
+INPUTS:
+  - $data\_dir: data directory (e.g. `/data/$PROJECT/data`)
+  - $dbh     : database handle
 
 RETURNS: hash of MINC locations, array of FileIDs
 
@@ -30,38 +32,36 @@ RETURNS: hash of MINC locations, array of FileIDs
 
 Updates the location of MINC files in the `files` table.
 
-INPUTS: File ID, new MINC relative location, database handle
+INPUTS:
+  - $fileID           : file's ID
+  - $new\_minc\_location: new MINC relative location
+  - $dbh              : database handle
 
 RETURNS: Number of rows affected by the update (should always be 1)
 
 ### get\_parameter\_files($data\_dir, $parameter\_type, $dbh)
 
-Gets list of JIV files to update location in the `parameter_file` table by
+Gets list of PIC files to update location in the `parameter_file` table by
 removing the root directory from the path.
 
-INPUTS: data directory, parameter type name for the JIV, database handle
+INPUTS:
+  - $data\_dir      : data directory (e.g. `/data$PROJECT/data`)
+  - $parameter\_type: name of the parameter type for the PIC
+  - $dbh           : database handle
 
-RETURNS: hash of JIV file locations, array of FileIDs
+RETURNS: hash of PIC file locations, array of `FileIDs`
 
-### update\_parameter\_file\_location($fileID, $new\_file\_location, ...)
+### update\_parameter\_file\_location($fileID, $new\_file\_location, $parameter\_type, $dbh)
 
-Updates the location of JIV files in the `parameter_file` table.
+Updates the location of PIC files in the `parameter_file` table.
 
 INPUTS:
-  - $fileID           : FileID
-  - $new\_file\_location: new location of the JIV file
-  - $parameter\_type   : parameter type name for the JIV
+  - $fileID           : file's ID
+  - $new\_file\_location: new location of the PIC file
+  - $parameter\_type   : parameter type name for the PIC
   - $dbh              : database handle
 
 RETURNS: number of rows affected by the update (should always be 1)
-
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
 
 # LICENSING
 

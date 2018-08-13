@@ -5,24 +5,23 @@
 =head1 NAME
 
 imaging_upload_file_cronjob.pl -- a wrapper script that calls the single step
-script `imaging_upload_file.pl` for uploaded scans on which the insertion
+script C<imaging_upload_file.pl> for uploaded scans on which the insertion
 pipeline has not been launched.
 
 =head1 SYNOPSIS
 
-perl imaging_upload_file_cronjob.pl `[options]`
+perl imaging_upload_file_cronjob.pl C<[options]>
 
 Available options are:
 
--profile      : Name of the config file in
-                C<../dicom-archive/.loris_mri>
+-profile      : Name of the config file in C<../dicom-archive/.loris_mri>
 
 -verbose      : If set, be verbose
 
 
 =head1 DESCRIPTION
 
-The program gets a series of rows from `mri_upload` on which the insertion
+The program gets a series of rows from C<mri_upload> on which the insertion
 pipeline has not been run yet, and launches it.
 
 =cut
@@ -143,14 +142,6 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

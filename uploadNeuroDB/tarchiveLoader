@@ -7,7 +7,7 @@
 
 tarchiveLoader -- this script performs the following:
 
-- validation of the tarchive
+- validation of the DICOM archive
 
 - conversion of DICOM datasets into MINC files
 
@@ -22,43 +22,40 @@ perl uploadNeuroDB/tarchiveLoader </path/to/DICOM-tarchive> C<[options]>
 
 Available options are:
 
--profile                    : Name of the config file in
-                              C<../dicom-archive/.loris_mri>
+-profile                 : Name of the config file in C<../dicom-archive/.loris_mri>
 
--force                      : Force the script to run even if the validation
-                              has failed
+-force                   : Force the script to run even if the validation
+                           has failed
 
--reckless                   : Upload data to database even if study protocol is
-                              not defined or violated
+-reckless                : Upload data to database even if study protocol is
+                           not defined or violated
 
--globLocation               : Loosen the validity check of the tarchive allowing
-                              for the possibility that the tarchive was moved to
-                              a different directory
-
--noJIV                      : Prevent the JIVs from being created
+-globLocation            : Loosen the validity check of the tarchive allowing
+                           for the possibility that the tarchive was moved to
+                           a different directory
 
 -newScanner                 : By default a new scanner will be registered if the
                               data you upload requires it. You can risk turning
                               it off
 
--keeptmp                    : Keep temporary directory. Make sense if have
-                              infinite space on your server
+-keeptmp                 : Keep temporary directory. Make sense if have
+                           infinite space on your server
 
--xlog                       : Open an xterm with a tail on the current log file
+-xlog                    : Open an xterm with a tail on the current log file
 
--verbose                    : If set, be verbose
+-verbose                 : If set, be verbose
 
--seriesuid                  : Only insert this SeriesUID
+-seriesuid               : Only insert this C<SeriesUID>
 
--acquisition_protocol       : Suggest the acquisition protocol to use
+-acquisition_protocol    : Suggest the acquisition protocol to use
 
--bypass_extra_file_checks   : Bypass extra_file_checks
+-bypass_extra_file_checks: Bypass C<extra_file_checks>
 
 
 =head1 DESCRIPTION
 
 
-This script interacts with the NeuroDB database system. It will fetch or modify
+This script interacts with the LORIS database system. It will fetch or modify
 contents of the following tables:
 C<session>, C<parameter_file>, C<parameter_type>, C<parameter_type_category>,
 C<files>, C<mri_staging>, C<notification_spool>
@@ -132,8 +129,6 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $no_jiv      = 0;           # Should bet set to 1, if jivs should not be 
-                               # created
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
 my $seriesuid   = undef;       # if you want to insert a specific SeriesUID
@@ -157,8 +152,6 @@ my @opt_table = (
                   "the possibility that the tarchive was moved to a different".
                   " directory."
                  ],
-                 ["-noJIV", "boolean", 1, \$no_jiv,"Prevent the JIVs from being".
-                  "created."],
                  ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
                    " new scanner will be registered if the data you upload".
                    " requires it. You can risk turning it off."
@@ -199,7 +192,7 @@ performs a lot of magic on the acquisitions within it.
 - dicom to minc conversion
 - miscellaneous header data extraction
 - file relocation (to the MRI repository)
-- neuroDB mri database registration and JIVification.
+- neuroDB mri database registration
 
 Documentation: perldoc tarchiveLoader
 
@@ -272,7 +265,6 @@ my $data_dir = NeuroDB::DBI::getConfigSetting(
                  \$dbh,'dataDirBasepath'
                  );
 my $pic_dir = $data_dir.'/pic';
-my $jiv_dir = $data_dir.'/jiv';
 my $prefix = NeuroDB::DBI::getConfigSetting(
                \$dbh,'prefix'
                );
@@ -285,7 +277,9 @@ my $mail_user = NeuroDB::DBI::getConfigSetting(
 my $get_dicom_info = NeuroDB::DBI::getConfigSetting(
                  \$dbh,'get_dicom_info'
                  );
-my $exclude          = "localizer"; # case insensitive
+my $exclude          = NeuroDB::DBI::getConfigSetting(
+                        \$dbh, 'excluded_series_description'
+                       );
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my $User             = `whoami`;
 
@@ -453,9 +447,7 @@ my ($sessionID, $requiresStaging) =
 ###### Dir to the uploader #####################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id, $seriesuid
-    );
+    $utility->extractAndParseTarchive($tarchive, $upload_id, $seriesuid);
 
 
 ################################################################
@@ -483,9 +475,14 @@ if ($verbose){
 ################################################################
 # If no good data was found stop processing and write error log.
 ################################################################
-if ($mcount < 1) { 
-    $message = "\nNo data could be converted into valid MINC files. ".
-               "Localizers will not be considered! \n" ; 
+if ($mcount < 1) {
+    $message = "\nNo data could be converted into valid MINC files.\n";
+    if ($exclude && ref($exclude) eq 'ARRAY') {
+        my $excluded_series = join(', ', map {quotemeta($_)} @$exclude);
+        $message .= "$excluded_series will not be considered! \n" ;
+    } elsif ($exclude) {
+        $message .= "$exclude will not be considered! \n";
+    }
     $utility->writeErrorLog(
         $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
     );
@@ -493,6 +490,24 @@ if ($mcount < 1) {
 		    'tarchiveLoader', $upload_id, 'Y',
 		    $notify_notsummary);
     exit $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED;
+}
+
+################################################################
+################################################################
+# Make sure the mri_protocol table no longer has comma-separated
+########################## values ##############################
+################################################################
+my ($isMRIProtocolValid) = $utility->isValidMRIProtocol();
+
+if ( !($isMRIProtocolValid) ) {
+    my $message = "\nComma separated ranges or values in the mri_protocol "
+                  . "and mri_protocol_checks tables are no longer supported. "
+                  . "Please modify your tables accordingly. Exiting now. \n";
+    $notifier->spool('tarchive loader', $message, 0,
+		    'tarchiveLoader', $upload_id, 'Y',
+		    $notify_notsummary);
+    print STDERR $message;
+    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
 }
 
 ################################################################
@@ -534,10 +549,6 @@ foreach my $minc (@minc_files) {
 
     if ($globArchiveLocation) {
         $script .= " -globLocation";
-    }
-
-    if ($no_jiv) {
-        $script .= " -noJIV";
     }
  
     if ($verbose) {
@@ -604,8 +615,8 @@ if ($valid_study) {
 
     my $sth = $dbh->prepare($query);
     $sth->execute($tarchiveInfo{TarchiveID});
-    my $oldCount = $sth->fetchrow_array;
-    my $newCount = $minc_inserted + $oldCount;
+    my $oldCount = $sth->fetchrow_hashref->{'number_of_mincInserted'};
+    my $newCount = $minc_inserted + ($oldCount ? $oldCount : 0);
 
     $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
                  "number_of_mincCreated=? ";
@@ -771,7 +782,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 logHeader()
 
-Function that adds a header with relevant information to the log file
+Function that adds a header with relevant information to the log file.
 
 =cut
 
@@ -806,10 +817,7 @@ __END__
 
 - add to config file whether or not to autocreate scanners
 
-
-=head1 BUGS
-
-None reported.
+- fix comments written as #fixme in the code
 
 =head1 LICENSING
 

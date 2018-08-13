@@ -9,12 +9,11 @@ and insertion pipeline sequence
 
 =head1 SYNOPSIS
 
-perl imaging_upload_file.pl </path/to/UploadedFile> `[options]`
+perl imaging_upload_file.pl </path/to/UploadedFile> C<[options]>
 
 Available options are:
 
--profile      : name of the config file in
-                C<../dicom-archive/.loris_mri>
+-profile      : name of the config file in C<../dicom-archive/.loris_mri>
 
 -upload_id    : The Upload ID of the given scan uploaded
 
@@ -23,18 +22,18 @@ Available options are:
 
 =head1 DESCRIPTION
 
-The program does the following
+The program does the following:
 
 - Gets the location of the uploaded file (.zip, .tar.gz or .tgz)
 
 - Unzips the uploaded file
 
-- Uses the ImagingUpload class to :
+- Uses the C<ImagingUpload> class to:
    1) Validate the uploaded file   (set the validation to true)
-   2) Run dicomTar.pl on the file  (set the dicomTar to true)
-   3) Run tarchiveLoader on the file (set the minc-created to true)
-   4) Removes the uploaded file once the previous steps have completed
-   5) Update the mri_upload table
+   2) Run C<dicomTar.pl> on the file  (set the C<dicomTar> to true)
+   3) Run C<tarchiveLoader> on the file (set the minc-created to true)
+   4) Remove the uploaded file once the previous steps have completed
+   5) Update the C<mri_upload> table
 
 =head2 Methods
 
@@ -314,9 +313,9 @@ spool($message,'N', $notify_notsummary);
 
 Function that gets the patient name using the upload ID
 
-INPUT   : $upload_id : The upload ID
+INPUT: The upload ID
 
-RETURNS : $patient_name : The patient name
+RETURNS: The patient name
 
 =cut
 
@@ -350,9 +349,9 @@ sub getPnameUsingUploadID {
 Functions that gets the file path from the `mri_upload` table using the upload
 ID
 
-INPUT   : $upload_id : The upload ID
+INPUT: The upload ID
 
-RETURNS : $file_path : The full path to the uploaded file
+RETURNS: The full path to the uploaded file
 
 =cut
 
@@ -387,10 +386,11 @@ sub getFilePathUsingUploadID {
 Function that gets the count of MINC files created and inserted using the
 upload ID
 
-INPUT   : $upload_id: The upload ID
+INPUT: The upload ID
 
-RETURNS : $minc_created and $minc_inserted: count of MINC files created and
-inserted
+RETURNS:
+  - $minc_created : count of MINC files created
+  - $minc_inserted: count of MINC files inserted
 
 =cut
 
@@ -427,14 +427,14 @@ sub getNumberOfMincFiles {
 
 =head3 spool()
 
-Function that calls the Notify->spool function to log all messages
+Function that calls the C<Notify->spool> function to log all messages
 
 INPUTS:
- - $this      : Reference to the class
- - $message   : Message to be logged in the database
- - $error     : If 'Y' it's an error log , 'N' otherwise
- - $verb      : 'N' for summary messages, 
-                'Y' for detailed messages (developers)
+ - $this   : Reference to the class
+ - $message: Message to be logged in the database
+ - $error  : If 'Y' it's an error log , 'N' otherwise
+ - $verb   : 'N' for summary messages,
+             'Y' for detailed messages (developers)
 
 =cut
 
@@ -460,10 +460,6 @@ __END__
 Add a check that the uploaded scan file is accessible by the front end user
 (i.e. that the user-group is set properly on the upload directory). Throw an
 error and log it, otherwise.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

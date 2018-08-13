@@ -13,7 +13,7 @@ perl tarchive_validation.pl C<[options]>
 
 Available options are:
 
--profile     : name of the config file in ../dicom-archive/.loris-mri
+-profile     : name of the config file in C<../dicom-archive/.loris-mri>
 
 -reckless    : upload data to the database even if the study protocol
                is not defined or if it is violated
@@ -36,19 +36,19 @@ against the one inserted in the database using checksum
 - Verification of the PSC information using whatever field containing the site
 string (typically, the patient name or patient ID)
 
-- Verification of the ScannerID of the DICOM study archive (optionally
+- Verification of the C<ScannerID> of the DICOM study archive (optionally
 creates a new scanner entry in the database if necessary)
 
 - Optionally, creation of candidates as needed and standardization of gender
 information when creating the candidates (DICOM uses M/F, LORIS database uses
 Male/Female)
 
-- Check of the CandID/PSCID match. It's possible that the CandID exists, but
-that CandID and PSCID do not correspond to the same candidate. This would
-fail further down silently, so we explicitly check that this information is
-correct here.
+- Check of the C<CandID>/C<PSCID> match. It's possible that the C<CandID>
+exists, but that C<CandID> and C<PSCID> do not correspond to the same
+candidate. This would fail further down silently, so we explicitly check that
+this information is correct here.
 
-- Validation of the SessionID
+- Validation of the C<SessionID>
 
 - Optionally, completion of extra filtering on the DICOM dataset, if needed
 
@@ -379,9 +379,7 @@ my ($sessionID, $requiresStaging) =
 ### The uploader ###############################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id
-    );
+    $utility->extractAndParseTarchive($tarchive, $upload_id);
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###
@@ -406,7 +404,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 logHeader()
 
-Creates and prints the LOG header.
+Function that adds a header with relevant information to the log file.
 
 =cut
 
@@ -425,14 +423,6 @@ __END__
 
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

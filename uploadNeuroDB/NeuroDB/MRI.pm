@@ -62,9 +62,12 @@ $FLOAT_EQUALS_NB_DECIMALS = 4;
 =head3 getSubjectIDs($patientName, $scannerID, $dbhr)
 
 Determines the candidate ID and visit label for the subject based on patient
-name and (for calibration data) scannerID.
+name and (for calibration data) scanner ID.
 
-INPUTS: patient name, scanner ID and database handle reference
+INPUTS:
+  - $patientName: patient name
+  - $scannerID  : scanner ID
+  - $dbhr       : database handle reference
 
 RETURNS: a reference to a hash containing elements including C<CandID>,
 C<visitLabel> and C<visitNo>, or, in the case of failure, C<undef>
@@ -99,11 +102,16 @@ sub getSubjectIDs {
 
 =pod
 
-=head3 subjectIDIsValid($CandID, $PSCID, $dbhr)
+=head3 subjectIDIsValid($CandID, $PSCID, $visit_label, $dbhr, $create_visit_label)
 
 Verifies that the subject IDs match.
 
-INPUTS: candidate's CandID, candidate's PSCID and the database handle reference
+INPUTS:
+  - $candID            : candidate's C<CandID>
+  - $pscid             : candidate's C<PSCID>
+  - $visit_label       : visit label
+  - $dbhr              : the database handle reference
+  - $create_visit_label: boolean, if true, will create the visit label
 
 RETURNS: 1 if the ID pair matches, 0 otherwise
 
@@ -132,9 +140,11 @@ sub subjectIDIsValid {
 
 =head3 subjectIDExists($CandID, $dbhr)
 
-Verifies that the subject ID (CandID) exists.
+Verifies that the subject ID (C<CandID>) exists.
 
-INPUTS: candidate's CandID and the database handle reference
+INPUTS:
+  - $candID: candidate's C<CandID>
+  - $dbhr  : the database handle reference
 
 RETURNS: 1 if the ID exists, 0 otherwise
 
@@ -155,11 +165,11 @@ sub subjectIDExists {
 
 =head3 getScannerCandID($scannerID, $dbhr)
 
-Retrieves the candidate (CandID) for the given scanner.
+Retrieves the candidate (C<CandID>) for the given scanner.
 
 INPUTS: the scanner ID and the database handle reference
 
-RETURNS: the CandID or (if none exists) undef
+RETURNS: the C<CandID> or (if none exists) undef
 
 =cut
 
@@ -181,10 +191,10 @@ sub getScannerCandID {
 
 =pod
 
-=head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective, ...)
+=head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck)
 
-Gets (or creates) the session ID, given CandID and visitLabel (contained
-inside the hashref C<$subjectIDref>).  Unless C<$noStagingCheck> is true, it
+Gets (or creates) the session ID, given C<CandID> and visit label (contained
+inside the hash ref C<$subjectIDref>).  Unless C<$noStagingCheck> is true, it
 also determines whether staging is required using the C<$studyDate>
 (formatted YYYYMMDD) to determine whether staging is required based on a
 simple algorithm:
@@ -205,10 +215,14 @@ simple algorithm:
 
 =back
 
-INPUTS: hash reference of subject IDs, study date, database handle reference,
-the objective of the study and a no staging check flag.
+INPUTS:
+  - $subjectIDref  : hash reference of subject IDs
+  - $studyDate     : study date
+  - $dbhr          : database handle reference
+  - $objective     : the objective of the study
+  - $noStagingCheck: a no staging check flag
 
-RETURNS: a list of two items, (sessionID, requiresStaging)
+RETURNS: a list of two items, (C<sessionID>, C<requiresStaging>)
 
 =cut
 
@@ -357,8 +371,10 @@ sub getSessionID {
 This method tries to figure out if there may have been labelling problems which
 would put the files in a staging area that does not actually exist.
 
-INPUTS: study date, database handle reference and array of fileIDs to check the
-study date
+INPUTS:
+  - $studyDateJD: study date
+  - $dbhr       : database handle reference
+  - @fileIDs    : array of C<fileIDs> to check the study date
 
 RETURNS: 1 if the file requires staging, 0 otherwise
 
@@ -402,10 +418,12 @@ sub checkMRIStudyDates {
 
 =head3 getObjective($subjectIDsref, $dbhr)
 
-Attempts to determine the SubprojectID  of a timepoint given the subjectIDs
-hashref C<$subjectIDsref> and a database handle reference C<$dbhr>
+Attempts to determine the C<SubprojectID> of a timepoint given the subject IDs
+hash ref C<$subjectIDsref> and a database handle reference C<$dbhr>
 
-INPUTS: subjectIDs hashref and database handle reference
+INPUTS:
+  - $subjectIDsref: subjectIDs hashref
+  - $dbhr         : database handle reference
 
 RETURNS: the determined objective, or 0
 
@@ -454,8 +472,11 @@ sub getObjective
 Determines the type of the scan described by MINC headers based on
 C<mri_protocol> table in the database.
 
-INPUTS: center's name, objective of the study, file hashref, database handle
-reference
+INPUTS:
+  - $center_name: center's name
+  - $objective  : objective of the study
+  - $fileref    : file hash ref
+  - $dbhr       : database handle reference
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 
@@ -605,7 +626,7 @@ sub identify_scan_db {
 
 =pod
 
-=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, ...)
+=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID)
 
 Inserts scans that do not correspond to any of the defined protocol from the 
 C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
@@ -614,23 +635,23 @@ database.
 INPUTS:
   - $dbhr           : database handle reference
   - $series_desc    : series description of the scan
-  - $minc_location  : minc location of the file
+  - $minc_location  : location of the MINC file
   - $patient_name   : patient name of the scan
-  - $candid         : candidate's CandID
-  - $pscid          : candidate's PSCID
+  - $candid         : candidate's C<CandID>
+  - $pscid          : candidate's C<PSCID>
   - $visit          : visit of the scan
   - $tr             : repetition time of the scan
   - $te             : echo time of the scan
   - $ti             : inversion time of the scan
   - $slice_thickness: slice thickness of the image
-  - $xstep          : x-step of the image
-  - $ystep          : y-step of the image
-  - $zstep          : z-step of the image
-  - $xspace         : x-space of the image
-  - $yspace         : y-space of the image
-  - $zspace         : z-space of the image
+  - $xstep          : C<x-step> of the image
+  - $ystep          : C<y-step> of the image
+  - $zstep          : C<z-step> of the image
+  - $xspace         : C<x-space> of the image
+  - $yspace         : C<y-space> of the image
+  - $zspace         : C<z-space> of the image
   - $time           : time dimension of the scan
-  - $seriesUID      : seriesUID of the scan
+  - $seriesUID      : C<SeriesUID> of the scan
 
 =cut
 
@@ -676,7 +697,9 @@ QUERY
 
 Will evaluate whether the scalar C<$value> is in the specified C<$range>.
 
-INPUTS: scalar value, scalar range string
+INPUTS:
+  - $val  : scalar value to evaluate
+  - $range: scalar range string
 
 RETURNS: 1 if in range, 0 if not in range
 
@@ -702,7 +725,9 @@ sub debug_inrange {
 
 Determines the type of the scan identified by its scan type ID.
 
-INPUTS: scan type ID and database handle reference
+INPUTS:
+  - $typeID: scan type ID
+  - $dbhr  : database handle reference
 
 RETURNS: Textual name of scan type
 
@@ -738,7 +763,9 @@ sub scan_type_id_to_text {
 
 Determines the type of the scan identified by scan type.
 
-INPUTS: scan type and database handle reference
+INPUTS:
+  - $type: scan type
+  - $dbhr: database handle reference
 
 RETURNS: ID of the scan type
 
@@ -772,10 +799,12 @@ sub scan_type_text_to_id {
 =head3 in_range($value, $range_string)
 
 Determines whether numerical value falls within the range described by range
-string. Range string is a comma-separated list of range units. A single range
-unit follows the syntax either "X" or "X-Y".
+string. Range string is a single range unit which follows the syntax 
+"X" or "X-Y".
 
-INPUTS: numerical value and the range to use
+INPUTS:
+  - $value       : numerical value to evaluate
+  - $range_string: the range to use
 
 RETURNS: 1 if the value is in range, 0 otherwise
 
@@ -789,19 +818,14 @@ sub in_range
     return 0 unless $range_string;
     return 0 unless defined($value);
 
-    my @ranges = split(/,/, $range_string);
-
-    my $range = 0;
-    foreach $range (@ranges) {
-       chomp($range);
-       if($range=~/^[0-9.]+$/) { ## single value element
-           return 1 if &floats_are_equal($value, $range, $FLOAT_EQUALS_NB_DECIMALS);
-       } else { ## range X-Y
-           $range =~ /([0-9.]+)-([0-9.]+)/;
-           return 1 if ($1 <= $value && $value <= $2) 
-               || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
-               || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
-       }
+    chomp($range_string);
+    if($range_string=~/^[0-9.]+$/) { ## single value element
+        return 1 if &floats_are_equal($value, $range_string, $FLOAT_EQUALS_NB_DECIMALS);
+    } else { ## range_string X-Y
+        $range_string =~ /([0-9.]+)-([0-9.]+)/;
+        return 1 if ($1 <= $value && $value <= $2) 
+            || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
+            || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
     }
 
     ## if we've gotten this far, we're out of range.
@@ -812,10 +836,13 @@ sub in_range
 
 =head3 floats_are_equal($f1, $f2, $nb_decimals)
 
-Checks whether f1 and f2 are equal (considers only the first nb_decimals
-decimals).
+Checks whether float 1 and float 2 are equal (considers only the first
+C<$nb_decimals> decimals).
 
-INPUTS: float 1, float 2 and the number of first decimals
+INPUTS:
+  - $f1         : float 1
+  - $f2         : float 2
+  - $nb_decimals: the number of first decimals
 
 RETURNS: 1 if the numbers are relatively equal, 0 otherwise
 
@@ -837,8 +864,10 @@ C<$range_string> using the same C<$range_string> syntax as C<&in_range()>.
 It returns a scalar range SQL string appropriate to use as a WHERE condition
 (C<SELECT ... WHERE range_to_sql(...)>).
 
-INPUTS: scalar field, scalar range string that follows the same format as in
-C<&in_range()>
+INPUTS:
+  - $field       : scalar field
+  - $range_string: scalar range string that follows the same format as in
+                    C<&in_range()>
 
 RETURNS: scalar range SQL string
 
@@ -877,11 +906,12 @@ sub range_to_sql {
 
 =head3 register_db($file_ref)
 
-Registers the NeuroDB::File object referenced by C<$file_ref> into the database.
+Registers the C<NeuroDB::File> object referenced by C<$file_ref> into the
+database.
 
-INPUT: file hashref
+INPUT: file hash ref
 
-RETURNS: 0 if the file is already registered, the new FileID otherwise
+RETURNS: 0 if the file is already registered, the new C<FileID> otherwise
 
 =cut
 
@@ -944,10 +974,10 @@ sub register_db {
 
 =head3 mapDicomParameters($file_ref)
 
-Maps DICOM parameters to more meaningful names in the NeuroDB::File object
+Maps DICOM parameters to more meaningful names in the C<NeuroDB::File> object
 referenced by C<$file_ref>.
 
-INPUT: file hashref
+INPUT: file hash ref
 
 =cut
 
@@ -1063,11 +1093,11 @@ sub mapDicomParameters {
 }
 =pod
 
-=head3 findScannerID($manufacturer, $model, $serialNumber, ...)
+=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new)
 
-Finds the scannerID for the scanner as defined by C<$manufacturer>, C<$model>,
+Finds the scanner ID for the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
-database handle reference C<$dbhr>. If no scannerID exists, one will be
+database handle reference C<$dbhr>. If no scanner ID exists, one will be
 created.
 
 INPUTS:
@@ -1103,7 +1133,7 @@ sub findScannerID {
 
 =pod
 
-=head3 registerScanner($manufacturer, $model, $serialNumber, ...)
+=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr)
 
 Registers the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
@@ -1156,11 +1186,11 @@ sub registerScanner {
 
 =head3 createNewCandID($dbhr)
 
-Creates a new CandID.
+Creates a new C<CandID>.
 
 INPUT: database handle reference
 
-RETURNS: (int) CandID
+RETURNS: C<CandID> (int)
 
 =cut
 
@@ -1182,47 +1212,58 @@ sub createNewCandID {
 
 =head3 getPSC($patientName, $dbhr)
 
-Looks for the site alias in whatever field (usually patient_name or
-patient_id) is provided and return the MRI alias and CenterID.
+Looks for the site alias using the C<session> table C<CenterID> as 
+a first resource, for the cases where it is created using the front-end,
+otherwise, find the site alias in whatever field (usually C<patient_name> 
+or C<patient_id>) is provided, and return the C<MRI_alias> and C<CenterID>.
 
-INPUTS: patient name, database handle reference
+INPUTS:
+  - $patientName: patient name
+  - $dbhr       : database handle reference
 
 RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
-  - second is the centerID or 0
+  - second is the C<CenterID> or 0
 
 =cut
 
 sub getPSC {
     my ($patientName, $dbhr) = @_;
-    my $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
-    my $sth = $${dbhr}->prepare($query);
+
+    my $subjectIDsref = Settings::getSubjectIDs(
+                            $patientName,
+                            null,
+                            null,
+                            $dbhr
+                        );
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    my $visitLabel = $subjectIDsref->{'visitLabel'};
+
+    ## Get the CenterID from the session table, if the PSCID and visit labels exist 
+    ## and could be extracted  
+    if ($PSCID && $visitLabel) {
+    	my $query = "SELECT s.CenterID, p.MRI_alias FROM session s 
+                    JOIN psc p on p.CenterID=s.CenterID  
+                    JOIN candidate c on c.CandID=s.CandID  
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+        
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID, $visitLabel);
+        if ( $sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return ($row->{'MRI_alias'},$row->{'CenterID'});
+        }
+    }  
+
+    ## Otherwise, use the patient name to match it to the site alias or MRI alias 
+    $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
+    $sth = $${dbhr}->prepare($query);
     $sth->execute;
 
     while(my $row = $sth->fetchrow_hashref) {
         return ($row->{'MRI_alias'}, $row->{'CenterID'})
 	    if ($patientName =~ /$row->{'Alias'}/i) || ($patientName =~ /$row->{'MRI_alias'}/i);
     }
-
-    ###########################################################################	
-    ###Get the centerID using the PSCID########################################
-    ###########################################################################
-
-    #extract the PSCID from $patientName
-    $subjectIDsref = getSubjectIDs($patientName,null,$dbhr);
-    my $PSCID = $subjectIDsref->{'PSCID'};
-    if ($PSCID) {
-    ##Get the CenterID using PSCID
-	$query = "SELECT c.CenterID,p.MRI_alias FROM candidate c JOIN
-	psc p on p.CenterID=c.CenterID  WHERE c.PSCID = '$PSCID'";
-
-        $sth = $${dbhr}->prepare($query);
-	$sth->execute();
-	if ( $sth->rows > 0) {
-            my $row = $sth->fetchrow_hashref();
-	    return ($row->{'MRI_alias'},$row->{'CenterID'});
-	}
-    }  
 
     return ("UNKN", 0);
 }
@@ -1231,10 +1272,10 @@ sub getPSC {
 
 =head3 compute_hash($file_ref)
 
-Semi-intelligently generates a hash (MD5 digest) for the NeuroDB::File object
+Semi-intelligently generates a hash (MD5 digest) for the C<NeuroDB::File> object
 referenced by C<$file_ref>.
 
-INPUT: file hashref
+INPUT: file hash ref
 
 RETURNS: the generated MD5 hash
 
@@ -1282,7 +1323,7 @@ sub compute_hash {
 =head3 is_unique_hash($file_ref)
 
 Determines if the file is unique using the hash (MD5 digest) from the
-NeuroDB::File object referenced by C<$file_ref>.
+C<NeuroDB::File> object referenced by C<$file_ref>.
 
 INPUT: file hashref
 
@@ -1320,9 +1361,8 @@ object referenced by C<$file_ref>.
 
 INPUTS:
   - $file_ref      : file hash ref
-  - $data_dir      : data directory (C</data/$PROJECT/data> typically)
-  - $dest_dir      : destination directory (C</data/$PROJECT/data/pic>
-                     typically)
+  - $data_dir      : data directory (e.g. C</data/$PROJECT/data>)
+  - $dest_dir      : destination directory (e.g. C</data/$PROJECT/data/pic>)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
@@ -1363,69 +1403,14 @@ sub make_pics {
 
 =pod
 
-=head3 make_jiv($file_ref, $data_dir, $dest_dir)
-
-Generates JIV data for the Imaging Browser module for the C<NeuroDB::File>
-object referenced by C<$file_ref>.
-
-INPUTS:
-  - $file_ref      : file hash ref
-  - $data_dir      : data directory (C</data/$PROJECT/data> typically)
-  - $dest_dir      : destination directory (C</data/$PROJECT/data/jiv>
-                     typically)
-
-RETURNS: 1 if the JIV data was generated or 0 otherwise.
-
-=cut
-
-sub make_jiv {
-    my ($fileref, $data_dir, $dest_dir) = @_;
-    my $file = $$fileref;
-    my $dbhr = $file->getDatabaseHandleRef();
-
-    my $sth = $${dbhr}->prepare("SELECT CandID FROM session WHERE ID=".$file->getFileDatum('SessionID'));
-    $sth->execute();
-    
-    my $rowhr = $sth->fetchrow_hashref();
-    my $minc = $data_dir . '/' . $file->getFileDatum('File');
-    my $jiv = $dest_dir . '/' . $rowhr->{'CandID'};
-
-    # generate jiv into temp dir
-    my $tempdir = tempdir(CLEANUP=>1);
-    `$FindBin::Bin/bin/minc2jiv.pl -quiet -force -clobber -output_path $tempdir $minc`;
-
-    # rename jiv files to add fileid
-    opendir(DIR, $tempdir);
-    @files = grep { -f "$tempdir/$_" } readdir(DIR);
-    closedir DIR;
-
-    my $fileID = $file->getFileDatum('FileID');
-    if(defined($fileID)) {
-        foreach my $filename (@files) {
-            my ($newbase,undef,$newsuffix) = fileparse($filename,qw{.header .raw_byte.gz});
-            $newbase .= "_$fileID";
-            
-            `mv $tempdir/$filename $tempdir/$newbase$newsuffix`;
-        }
-    }
-
-    # relocate jiv files to jiv destination dir
-    unless (-e $jiv) { system("mkdir -p -m 770 $jiv"); return 0 unless -e $jiv; }
-    `mv $tempdir/* $jiv/`;
-
-    # update mri table
-    $file->setParameter('jiv_path', $rowhr->{'CandID'});
-    return 1;
-}
-
-=pod
-
 =head3 make_nii($fileref, $data_dir)
 
 Creates NIfTI files associated with MINC files and append its path to the
-parameter_file table using the parameter_type "check_nii_filename".
+C<parameter_file> table using the C<parameter_type> C<check_nii_filename>.
 
-INPUTS: file hashref and data directory (typically C</data/project/data>)
+INPUTS:
+  - $fileref : file hash ref
+  - $data_dir: data directory (e.g. C</data/$PROJECT/data>)
 
 =cut
 
@@ -1450,15 +1435,15 @@ sub make_nii {
 
 =pod
 
-=head3 make_minc_pics($dbhr, $TarchiveSource, $profile, $minFileID, ...)
+=head3 make_minc_pics($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose)
 
 Creates pics associated with MINC files.
 
 INPUTS:
   - $dbhr          : database handle reference
-  - $TarchiveSource: tarchiveID of the DICOM study
-  - $profile       : the profile (typically named C<prod>)
-  - $minFileID     : smaller FileID to be used to run C<mass_pic.pl>
+  - $TarchiveSource: C<TarchiveID> of the DICOM study
+  - $profile       : the profile file (typically named C<prod>)
+  - $minFileID     : smaller C<FileID> to be used to run C<mass_pic.pl>
   - $debug         : boolean, whether in debug mode (1) or not (0)
   - $verbose       : boolean, whether in verbose mode (1) or not (0)
 
@@ -1528,11 +1513,13 @@ sub DICOMDateToUnixTimestamp {
 
 =head3 lookupCandIDFromPSCID($pscid, $dbhr)
 
-Looks up the CandID for a given PSCID.
+Looks up the C<CandID> for a given C<PSCID>.
 
-INPUTS: candidate's PSCID, database handle reference
+INPUTS:
+  - $pscid: candidate's C<PSCID>
+  - $dbhr : database handle reference
 
-RETURNS: the CandID or 0 if the PSCID does not exist
+RETURNS: the C<CandID> or 0 if the C<PSCID> does not exist
 
 =cut
 
@@ -1565,11 +1552,7 @@ __END__
 
 =head1 TO DO
 
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
+Fix comments written as #fixme in the code.
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -1581,6 +1564,5 @@ License: GPLv3
 =head1 AUTHORS
 
 Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
-LORIS community <loris.info@mcin.ca>  
-and McGill Centre for Integrative Neuroscience
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 =cut    

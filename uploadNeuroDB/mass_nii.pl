@@ -23,7 +23,7 @@ Available options are:
 
 =head1 DESCRIPTION
 
-This script generates NIfTI images for the inserted MINC files with a FileID
+This script generates NIfTI images for the inserted MINC files with a C<FileID>
 between the specified C<minFileID> and C<maxFileID>.
 
 =cut
@@ -196,14 +196,6 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

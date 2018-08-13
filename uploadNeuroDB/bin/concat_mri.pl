@@ -28,8 +28,8 @@ B<-verbose> : print additional information while running
 B<-compress> : compress resulting output files with C<gzip>
     
 =item *
-B<-stdin> : do not read the names of the MINC files on the commmand line but read them
-from STDIN instead
+B<-stdin> : do not read the names of the MINC files on the command line but read them
+from C<STDIN> instead
 
 =item *
 B<-postfix text> : create output file names using the file name without its extension, followed
@@ -71,7 +71,7 @@ automatically.
 
 =head1 DESCRIPTION
 
-This script parses the MINC files passed on the command line (or read from STDIN) and 
+This script parses the MINC files passed on the command line (or read from C<STDIN>) and
 uses C<mincinfo> to extract specific header information from each of them. It then groups
 together the files that have identical values for the following properties: 
 patient name, study ID, contrast agent flag (unless C<-ignorecontrast> is specified, see 
@@ -82,14 +82,6 @@ a given group and for which stacking or interleaving occurs in the slice directi
 will be the first element in the list of dimension names). Note that C<mincresample> might 
 be called on a specific file before the actual merging takes place (see C<-nonslicetolerance>
 above). Finally, note that merging of the MINC files is done with C<mincconcat>. 
-
-=head1 TO DO
-
-Nothing.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

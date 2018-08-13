@@ -34,7 +34,7 @@ uploadNeuroDB/imaging_upload_file.pl -profile prod -upload_id $UploadIDID /PATH/
 ```
 
 where `$UploadID` is the number corresponding to the `UploadID` column in the 
-Imaging Uploader table, and `/PATH/TO/UPLOAD/` is typically the 
+Imaging Uploader (`mri_upload`) table, and `/PATH/TO/UPLOAD/` is typically the 
 `/data/incoming/` directory.
 
 This is a typical option for a project prospectively collecting data with 
@@ -68,12 +68,12 @@ pre-scheduled times, as per the project's requirements).
 
 The insertion pipeline can also be triggered using the command:
 ```
-./batch_uploads_imageuploader -profile prod < scans_list.txt >log_batch_imageuploader.txt 2>&1 
+./batch_uploads_imageuploader -profile prod < scans_list.txt > log_batch_imageuploader.txt 2>&1 
 
 ```
 
 This is an option that addresses retrospectively collected data where uploading 
-hundreds of scans, one scan at a time, using the LORIS Imaging Uploader a 
+hundreds of scans, one scan at a time, using the LORIS Imaging Uploader 
 user-friendly interface is impractical. It is also the option of choice for 
 prospective studies that want to benefit from tracking scans through the Imaging 
 Uploader while automating the upload and insertion process without a user/GUI 
@@ -89,7 +89,7 @@ by spaces:
 
 1. the full path to the zipped DICOM dataset (`.zip`, `.tgz`, `.tar.gz`), 
 2. Y or N depending on whether the scan is for a phantom or not, and
-3. the patient name following the PSCID_CandID_VisitLabel LORIS convention for 
+3. the patient name following the `PSCID_CandID_VisitLabel` LORIS convention for 
 real candidates. Leave BLANK for phantoms.
 
 

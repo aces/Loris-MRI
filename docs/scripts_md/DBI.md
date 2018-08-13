@@ -22,21 +22,27 @@ the LORIS-MRI code base and the LORIS backend database.
 
 ### connect\_to\_db($db\_name, $db\_user, $db\_pass, $db\_host)
 
-This method connects to the LORIS database ($db\_database) on host ($db\_host)
-as username ($db\_user) & password ($db\_pass). The function dies with a
-database connection error when the connection failed or returns a DBI database
-handler.
+This method connects to the LORIS database (`$db_database`) on host
+(`$db_host`) as username (`$db_user`) & password (`$db_pass`). The function
+dies with a database connection error when the connection failed or returns a
+DBI database handler.
 
-INPUT: optional: database, username, password, host
+INPUTS:
+  - $db\_name: database name (optional)
+  - $db\_user: database user (optional)
+  - $db\_pass: password for `$db_user` (optional)
+  - $db\_host: database host (optional)
 
 RETURNS: DBI database handler when connection is successful
 
 ### getConfigSetting($dbh, $name)
 
-This method fetches the value ($value) stored in the `Config` table for a
-specific config setting ($name) specified as an input.
+This method fetches the value (`$value`) stored in the `Config` table for a
+specific config setting (`$name`) specified as an input.
 
-INPUT: database handler, name of the config setting
+INPUTS:
+  - $dbh : database handler
+  - $name: name of the config setting
 
 RETURNS: value corresponding to the config setting in the `Config` table
          of LORIS
@@ -44,10 +50,6 @@ RETURNS: value corresponding to the config setting in the `Config` table
 # TO DO
 
 Expand the package with more functions.
-
-# BUGS
-
-None reported
 
 # COPYRIGHT AND LICENSE
 

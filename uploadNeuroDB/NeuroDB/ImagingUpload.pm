@@ -78,10 +78,10 @@ moved to a final destination directory.
 INPUTS:
   - $dbhr                : database handler
   - $uploaded_temp_folder: temporary directory of the upload
-  - $upload_id           : uploadID from the mri_upload table
+  - $upload_id           : C<uploadID> from the C<mri_upload> table
   - $pname               : patient name
-  - $profile             : name of the configuration file
-                          (typically C<prod>)
+  - $profile             : name of the configuration file in
+                            C</data/$PROJECT/data> (typically C<prod>)
 
 RETURNS: new instance of this class
 
@@ -310,7 +310,7 @@ sub IsCandidateInfoValid {
 
 This method executes the following actions:
  - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
- - Extracts the TarchiveID of the DICOM archive created by C<dicomTar.pl>
+ - Extracts the C<TarchiveID> of the DICOM archive created by C<dicomTar.pl>
  - Updates the C<mri_upload> table if C<dicomTar.pl> ran successfully
 
 RETURNS: 1 on success, 0 on failure
@@ -437,7 +437,7 @@ sub runTarchiveLoader {
 
 This method extracts the patient name field from the DICOM file header using
 C<dcmdump> and compares it with the patient name information stored in the
-mri_upload table.
+C<mri_upload> table.
 
 INPUT: full path to the DICOM file
 
@@ -543,11 +543,11 @@ sub runCommandWithExitCode {
 =head3 runCommand($command)
 
 This method will run any linux command given as an argument using back-tilt
-and will return the back-tilt return value (which is STDOUT).
+and will return the back-tilt return value (which is C<STDOUT>).
 
 INPUT: the linux command to be executed
 
-RETURNS: back-tilt return value (STDOUT)
+RETURNS: back-tilt return value (C<STDOUT>)
 
 =cut
 
@@ -565,7 +565,7 @@ sub runCommand {
 
 This method cleans up and removes the uploaded file from the data directory
 once the uploaded file has been inserted into the database and saved in the
-tarchive folder.
+C<tarchive> folder.
 
 RETURNS: 1 on success, 0 on failure
 
@@ -671,14 +671,6 @@ sub updateMRIUploadTable  {
 
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported
 
 =head1 COPYRIGHT AND LICENSE
 

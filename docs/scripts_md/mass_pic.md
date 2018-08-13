@@ -8,7 +8,7 @@ perl mass\_pic.pl `[options]`
 
 Available options are:
 
-\-profile   : name of the config file in ../dicom-archive/.loris\_mri
+\-profile   : name of the config file in `../dicom-archive/.loris_mri`
 
 \-mincFileID: integer, minimum `FileID` to operate on
 
@@ -21,14 +21,6 @@ Available options are:
 This scripts will generate pics for every registered MINC file that have
 a `FileID` from the `files` table between the specified `minFileID`
 and `maxFileID`.
-
-# TO DO
-
-Nothing planned.
-
-# BUGS
-
-None reported.
 
 # LICENSING
 

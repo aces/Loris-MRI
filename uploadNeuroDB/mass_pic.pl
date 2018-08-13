@@ -13,7 +13,7 @@ perl mass_pic.pl C<[options]>
 
 Available options are:
 
--profile   : name of the config file in ../dicom-archive/.loris_mri
+-profile   : name of the config file in C<../dicom-archive/.loris_mri>
 
 -mincFileID: integer, minimum C<FileID> to operate on
 
@@ -179,14 +179,6 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 

@@ -43,22 +43,23 @@ Below is a list of the possible exit codes:
 
 5\. Common file manipulation failures (exit codes from 60 to 79)
 
-6\. Common other generic failures (exit codes from 80 to 149)
+6\. Other common generic failures (exit codes from 80 to 149)
 
 \##### ---- SECTION 2: SCRIPT SPECIFIC EXIT CODES NOT COVERED IN SECTION 1
 
-7\. Exit codes from batch\_uploads\_imageuploader (exit codes from 150 to 159)
+7\. Exit codes from `batch_uploads_imageuploader` (exit codes from 150 to 159)
 
-8\. Exit codes from DTIPrep/DTIPrepRegister.pl (exit codes from 160 to 169)
+8\. Exit codes from `DTIPrep/DTIPrepRegister.pl` (exit codes from 160 to 169)
 
-9\. Exit codes from uploadNeuroDB/NeuroDB/ImagingUpload.pm (exit codes from
+9\. Exit codes from `uploadNeuroDB/NeuroDB/ImagingUpload.pm` (exit codes from
 170 to 179)
 
-11\. Exit codes from uploadNeuroDB/minc\_insertion.pl (exit codes from 180 to 189)
+10\. Exit codes from `uploadNeuroDB/minc_insertion.pl` (exit codes from 180
+to 189)
 
-12\. Exit codes from uploadNeuroDB/tarchiveLoader (exit codes from 190 to 199)
+11\. Exit codes from `uploadNeuroDB/tarchiveLoader` (exit codes from 190 to 199)
 
-13\. Exit codes from uploadNeuroDB/NeuroDB/bin/minc2jiv.pl (exit codes from 200
+12\. Exit codes from former scripts that have been removed (exit codes from 200
 to 210)
 
 # LICENSING

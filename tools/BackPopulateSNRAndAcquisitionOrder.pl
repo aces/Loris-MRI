@@ -5,9 +5,9 @@
 =head1 NAME
 
 BackPopulateSNRAndAcquisitionOrder.pl -- a script that back populates the
-AcqOrderPerModality column of the files table, and the signal-to-noise ratio
-(SNR) values in the parameter_file table for inserted MINC files. The SNR is
-computed using MINC tools built-in algorithms.
+C<AcqOrderPerModality> column of the C<files> table, and the signal-to-noise
+ratio (SNR) values in the C<parameter_file> table for inserted MINC files. The
+SNR is computed using MINC tools built-in algorithms.
 
 
 =head1 SYNOPSIS
@@ -16,11 +16,10 @@ perl tools/BackPopulateSNRAndAcquisitionOrder.pl C<[options]>
 
 Available options are:
 
--profile        : name of the config file in
-                  C<../dicom-archive/.loris_mri>
+-profile    : name of the config file in C<../dicom-archive/.loris_mri>
 
--tarchive_id    : The Tarchive ID of the DICOM archive (.tar files) to be
-                  processed from the C<tarchive> table
+-tarchive_id: ID of the DICOM archive (.tar file) to be processed from the
+               C<tarchive> table
 
 
 
@@ -30,11 +29,10 @@ This script will back populate the C<files> table with entries for the
 C<AcqOrderPerModality> column; in reference to:
 https://github.com/aces/Loris-MRI/pull/160
 as well as populate the C<parameter_file> table with SNR entries in reference
-to:
-https://github.com/aces/Loris-MRI/pull/142
-It can take in TarchiveID as an argument if only a specific DICOM archive
-(.tar files) is to be processed; otherwise, all DICOM archives (.tar files) in
-the C<tarchive> table are processed.
+to: https://github.com/aces/Loris-MRI/pull/142
+It can take in C<TarchiveID> as an argument if only a specific DICOM archive
+(.tar files) is to be processed; otherwise, all DICOM archives (C<tar>
+files) in the C<tarchive> table are processed.
 
 
 =cut
@@ -207,14 +205,6 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 __END__
 
 =pod
-
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
 
 =head1 LICENSING
 
