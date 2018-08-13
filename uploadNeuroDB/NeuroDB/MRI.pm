@@ -1394,8 +1394,10 @@ sub make_nii {
     # Get MINC filename and NIfTI filename
     my $file = $$fileref;
     my $minc  = $file->getFileDatum('File');
-    my $nifti = $minc;
-    $nifti    =~ s/mnc$/nii/g;
+    my ($nifti, $bval_file, $bvec_file) = map { $minc }(0 .. 2);
+    $nifti     =~ s/mnc$/nii/g;
+    $bval_file =~ s/mnc$/bval/g;
+    $bvec_file =~ s/mnc$/bvec/g;
 
     #  mnc2nii command
     my $m2n_cmd = "mnc2nii -nii -quiet " .
@@ -1403,9 +1405,123 @@ sub make_nii {
                     $data_dir . "/" . $nifti;
     system($m2n_cmd);
 
+    # create complementary nifti files for DWI acquisitions
+    my $bval_success = create_dwi_nifti_bval_file($fileref, $data_dir . '/' . $bval_file);
+    my $bvec_success = create_dwi_nifti_bvec_file($fileref, $data_dir . '/' . $bvec_file);
+
     # update mri table (parameter_file table)
     $file->setParameter('check_nii_filename', $nifti);
+    $file->setParameter('check_bval_filename', $bval_file) if $bval_success;
+    $file->setParameter('check_bvec_filename', $bvec_file) if $bvec_success;
 }
+
+
+=pod
+
+=head3 create_dwi_nifti_bval_file($file_ref, $bval_file)
+
+Creates the NIfTI C<.bval> file required for DWI acquisitions based on the
+returned value of C<acquisition:bvalues>.
+
+INPUTS:
+  - $file_ref : file hash ref
+  - $bval_file: path to the C<.bval> file to write into
+
+RETURNS:
+  - undef if no C<acquisition:bvalues> were found (skipping the creation
+    of the C<.bval> file since there is nothing to write into)
+  - 1 after the C<.bval> file was created
+
+=cut
+
+sub create_dwi_nifti_bval_file {
+    my ($file_ref, $bval_file) = @_;
+
+    # grep bvals from the header acquisition:bvalues
+    my $file  = $$file_ref;
+    my $bvals = $file->getParameter('acquisition:bvalues');
+
+    return undef unless $bvals;
+
+    # clean up the bvals string
+    $bvals =~ s/\.\,//g; # remove all '.,' from the string
+    $bvals =~ s/\.$//g;  # remove the last trailing '.' from the string
+
+    # print bvals into bval_file
+    write_to_file($bval_file, $bvals, '>');
+
+    return 1 if (-e $bval_file);
+}
+
+
+=pod
+
+=head3 create_dwi_nifti_bvec_file($file_ref, $bvec_file)
+
+Creates the NIfTI C<.bvec> file required for DWI acquisitions based on the
+returned value of C<acquisition:direction_x>, C<acquisition:direction_y> and
+C<acquisition:direction_z>.
+
+INPUTS:
+  - $file_ref : file hash ref
+  - $bvec_file: path to the C<.bvec> file to write into
+
+RETURNS:
+  - undef if no C<acquisition:direction_x>, C<acquisition:direction_y> and
+    C<acquisition:direction_z> were found (skipping the creation
+    of the C<.bvec> file since there is nothing to write into)
+  - 1 after the C<.bvec> file was created
+
+=cut
+
+sub create_dwi_nifti_bvec_file {
+    my ($file_ref, $bvec_file) = @_;
+
+    # grep bvecs from headers acquisition:direction_x, y and z
+    my $file  = $$file_ref;
+    my @bvecs = (
+        $file->getParameter('acquisition:direction_x'),
+        $file->getParameter('acquisition:direction_y'),
+        $file->getParameter('acquisition:direction_z')
+    );
+
+    return undef unless @bvecs;
+
+    # loop through all bvecs, clean them up and print them into the bvec file
+    my $mode = '>';
+    foreach my $bvec (@bvecs) {
+        $bvec =~ s/^\"+|\"$//g;
+        write_to_file($bvec_file, $bvec . "\n", $mode);
+        $mode = '>>'; # set to 0 to append to the file the other rows
+    }
+
+    return 1 if (-e $bvec_file);
+}
+
+
+=pod
+
+=head3 write_to_file($file, $value, $mode)
+
+This method writes into a file C<$file> values stored in C<$value>. The mode
+in which the file should be open with is specified in C<$mode>.
+
+INPUTS:
+  - $file : output file to write into
+  - $value: value that needs to be written in the file
+  - $mode : mode with which the file should be open with (C<'\>'> or C<'\>\>'>)
+
+=cut
+
+sub write_to_file {
+    my ($file, $value, $mode) = @_;
+
+    open(FILE, $mode, $file) or die "Could not open file $file $!";
+    print FILE $value;
+    close FILE;
+}
+
+
 
 =pod
 
