@@ -1,19 +1,34 @@
-# Element.pm ver 0.3
-# Andrew Crabb (ahc@jhu.edu), May 2002.
-# Element routines for DICOM.pm: a Perl module to read DICOM headers.
-# $Id: Element.pm 4 2007-12-11 20:21:51Z jharlap $
-
-# Each element is a hash with the following keys:
-#   group	Group (hex).
-#   element	Element within group (hex).
-#   offset	Offset from file start (dec).
-#   code	Field code eg 'US', 'UI'.
-#   length	Field value length (dec).
-#   name	Field descriptive name.
-#   value	Value.
-#   header	All bytes up to value, for easy writing.
-
 package DICOM::Element;
+
+=pod
+
+=head1 NAME
+
+DICOM::Element -- Element routines for C<DICOM::DICOM> module
+
+=head1 SYNOPSIS
+
+  use DICOM::Element;
+
+
+
+=head1 DESCRIPTION
+
+Element routines for C<DICOM::DICOM> module to read binary DICOM headers.
+
+Each element is a hash with the following keys:
+  - group  : group (hex)
+  - element: element within group (hex)
+  - offset : offset from file start (dec)
+  - code   : field code eg 'US', 'UI'
+  - length : field value length (dec)
+  - name   : field descriptive name
+  - value  : value
+  - header : all bytes up to value, for easy writing
+
+=head2 Methods
+
+=cut
 
 use strict;
 use DICOM::VRfields;
@@ -38,17 +53,41 @@ BEGIN {
   }
 }
 
+
+=pod
+
+=head3 new() >> (constructor)
+
+Creates a new instance of this class.
+
+RETURNS: a C<DICOM::Element> object
+
+=cut
+
 sub new {
   my $type = shift;
   my $self = {};
   return bless $self, $type;
 }
 
-# Fill in self from file.
+
+=pod
+
+=head3 fill($IN, $dictref)
+
+Fills in C<self> from file.
+
+INPUTS:
+  - $IN              : input file
+  - $dictref         : DICOM dictionary
+
+RETURNS: element hash
+
+=cut
 
 sub fill {
   my $this = shift;
-  my ($IN, $dictref, $big_endian_image) = @_;
+  my ($IN, $dictref) = @_;
   my %dict = %$dictref;
   #my ($group, $element, $offset, $code, $length, $name, $value, $header);
   my $vrstr;
@@ -104,12 +143,26 @@ sub fill {
   return $this;
 }
 
-# readInt(instream, bytelength, fieldlength).
-#   instream:	Input file stream.
-#   bytelength: SHORT (2) or INT (4) bytes.
-#   fieldlength:Total number of bytes in the field.
-# If fieldlength > bytelength, multiple values are read in and
-# stored as a string representation of an array.
+
+=pod
+
+=head3 readInt($IN, $bytes, $len).
+
+Decodes one or more integers that were encoded as a string of bytes
+(2 or 4 bytes per number) in the file whose handle is passed as argument.
+
+INPUTS:
+  - $IN   : input file stream.
+  - $bytes: SHORT (2) or INT (4) bytes.
+  - $len  : total number of bytes in the field.
+
+If C<fieldlength> > C<bytelength>, multiple values are read in and stored as a
+string representation of an array.
+
+RETURNS: string representation of the array of decoded integers
+          (e.g. '[34, 65, 900]')
+
+=cut
 
 sub readInt {
   my ($IN, $bytes, $len) = @_;
@@ -132,6 +185,20 @@ sub readInt {
   return $val;
 }
 
+
+=pod
+
+=head3 writeInt($OUT, $bytes)
+
+Encodes each integer stored in string C<$this->{'value'}> as a 2 or 4 byte
+string and writes them in a file
+
+INPUTS:
+  - $OUT  : output file
+  - $bytes: number of bytes (2 for shorts 4 for integers) in the field
+
+=cut
+
 sub writeInt {
   my ($this, $OUT, $bytes) = @_;
   my $val = $this->{value};
@@ -146,6 +213,24 @@ sub writeInt {
   }
 }
 
+
+=pod
+
+=head3 readFloat($IN, $format, $len)
+
+Decodes a floating point number that was encoded as a string of bytes in the
+file whose handle is passed as argument.
+
+INPUTS:
+  - $IN    : input file stream
+  - $format: format used when decoding (with Perl's C<unpack>) the number:
+              C<f> for floats and C<d> for doubles
+  - $len   : total number of bytes in the field
+
+RETURNS: string
+
+=cut
+
 sub readFloat {
     my ($IN, $format, $len) = @_;
     my ($buff, $val);
@@ -155,6 +240,31 @@ sub readFloat {
     $val = unpack($format, $buff);
     return sprintf("%e", $val);
 }
+
+
+=pod
+
+=head3 readSequence($IN, $len)
+
+Skips over either a fixed number of bytes or over multiple sets of byte
+sequences delimited with specific byte values. When doing the latter,
+byte C<0x00000000> is used to signal the end of the set of sequences.
+The sequence of bytes read is always discarded.
+
+Three different cases:
+    - implicit Value Representation (VR), explicit length
+    - explicit VR, undefined length, items of defined length (w/end delimiter)
+    - implicit VR, undefined length, items of undefined length
+
+
+INPUTS:
+  - $IN : input file stream
+  - $len: total number of bytes to skip, or 0 if all sequences should be
+           skipped until the delimiter C<0x00000000> is found
+
+RETURNS: 'skipped' string
+
+=cut
 
 sub readSequence {
     my ($IN, $len) = @_;
@@ -204,9 +314,20 @@ sub readSequence {
 }
 
 
-# Return the Value Field length, and length before Value Field.
-# Implicit VR: Length is 4 byte int.
-# Explicit VR: 2 bytes hold VR, then 2 byte length.
+=pod
+
+=head3 readLength($IN)
+
+Reads the length of a VR from a file, as an integer encoded on 16 or 32 bits.
+  - Implicit Value Representation (VR): Length is 4 byte int.
+  - Explicit VR: 2 bytes hold VR, then 2 byte length.
+
+INPUT: input file stream
+
+RETURNS: the VR code (string of length 2) and the length of the associated
+          VR value
+
+=cut
 
 sub readLength {
   my ($IN) = @_;
@@ -272,7 +393,18 @@ sub readLength {
   return ($vrstr, $length);
 }
 
-# Return the values of each field.
+
+=pod
+
+=head3 values()
+
+Returns the properties of a VR: group, element, offset, code, length, name and
+value.
+
+RETURNS: the properties of a VR: group, element, offset, code, length, name and
+          value
+
+=cut
 
 sub values {
   my $this = shift;
@@ -285,7 +417,14 @@ sub values {
   return @vals;
 }
 
-# Print formatted representation of element to stdout.
+
+=pod
+
+=head3 print()
+
+Prints formatted representation of element to C<STDOUT>.
+
+=cut
 
 sub print {
   my $this = shift;
@@ -294,7 +433,17 @@ sub print {
   printf "(%04X, %04X) %s %6d: %-33s = %s\n", hex($gp), hex($el), $code, $len, $name, $val;
 }
 
-# Return a string representation of the value field (null if binary).
+
+=pod
+
+=head3 valueString()
+
+Returns a string representation of the value field.
+
+RETURNS: string representation of the value field, or null if value field is
+          binary
+
+=cut
 
 sub valueString {
   my $this = shift;
@@ -318,8 +467,17 @@ sub valueString {
   return $value;
 }
 
-# Write this data element to disk.  All fields up to value are stored in 
-# immutable field 'header' - write this to disk then value field.
+
+=pod
+
+=head3 write($OUTFILE)
+
+Writes this data element to disk. All fields up to value are stored in
+immutable field 'header' - write this to disk then value field.
+
+INPUT: output file
+
+=cut
 
 sub write {
   my ($this, $OUTFILE) = @_;
@@ -341,13 +499,33 @@ sub write {
   }
 }
 
+
+=pod
+
+=head3 value()
+
+Returns the value of the field.
+
+RETURNS: value field
+
+=cut
+
 sub value {
   my $this = shift;
 
   return $this->{'value'};
 }
 
-# Set the value field of this element.  Truncates to max length.
+
+=pod
+
+=head3 setValue($value)
+
+Sets the value field of this element. Truncates to max length.
+
+INPUT: value field
+
+=cut
 
 sub setValue {
   my $this = shift;
@@ -356,6 +534,17 @@ sub setValue {
 
   $this->{'value'} = $value;
 }
+
+
+=pod
+
+=head3 byteswap($valref)
+
+Swaps byte.
+
+INPUT: value reference
+
+=cut
 
 sub byteswap {
     my ($valref) = @_;
@@ -373,3 +562,25 @@ sub byteswap {
 1;
 __END__
 
+=pod
+
+=head1 TO DO
+
+Better documentation of the following functions:
+  - readInt()
+  - readFloat()
+  - readSequence($IN, $len)
+  - readLength($IN)
+  - writeInt($OUT, $bytes)
+  - byteswap($valref)
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Andrew Crabb (ahc@jhu.edu),
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut

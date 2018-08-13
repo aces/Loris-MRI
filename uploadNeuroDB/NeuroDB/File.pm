@@ -7,7 +7,8 @@ use Carp;
 
 =head1 NAME
 
-NeuroDB::File -- Provides an interface to the MRI file management subsystem of NeuroDB
+NeuroDB::File -- Provides an interface to the MRI file management subsystem of
+LORIS
 
 =head1 SYNOPSIS
 
@@ -39,14 +40,14 @@ NeuroDB::File -- Provides an interface to the MRI file management subsystem of N
 
 =head1 DESCRIPTION
 
-This class defines a BIC MRI (or related) file (minc, bicobj, xfm,
-etc) as represented within the NeuroDB database system.
+This class defines a MRI (or related) file (minc, bicobj, xfm,
+etc) as represented within the LORIS database system.
 
 B<Note:> if a developer does something naughty (such as leaving out
 the database handle ref when instantiating a new object or so on) the
 class will croak.
 
-=head1 METHODS
+=head2 Methods
 
 =cut
 
@@ -57,13 +58,15 @@ my $VERSION = sprintf "%d.%03d", q$Revision: 1.6 $ =~ /: (\d+)\.(\d+)/;
 
 =pod
 
-B<new( \$dbh )> (constructor)
+=head3 new(\$dbh) >> (constructor)
 
-Create a new instance of this class.  The parameter C<\$dbh> is a
+Create a new instance of this class. The parameter C<\$dbh> is a
 reference to a DBI database handle, used to set the object's database
 handle, so that all the DB-driven methods will work.
 
-Returns: new instance of this class.
+INPUT: DBI database handle.
+
+RETURNS: new instance of this class.
 
 =cut
 
@@ -81,10 +84,14 @@ sub new {
 
 =pod
 
-B<loadFile( C<$fileID> )>
+=head3 loadFile($fileID)
 
 Load the object with all the data pertaining to a file as defined by
 parameter C<$fileID>.
+
+INPUT: ID of the file to load.
+
+RETURNS: 0 if no file was found, 1 otherwise.
 
 =cut
 
@@ -119,12 +126,14 @@ sub loadFile {
 
 =pod
 
-B<findFile( $filename )>
+=head3 findFile($filename)
 
-Finds the FileID pertaining to a file as defined by
-parameter C<$filename>, which is a full /path/to/file.
+Finds the C<FileID> pertaining to a file as defined by parameter C<$filename>,
+which is a full C</path/to/file>.
 
-Returns: (int) FileID or undef if no file was found.
+INPUT: full path to the file to look for an ID in the database.
+
+RETURNS: (int) FileID or undef if no file was found.
 
 =cut
 
@@ -147,11 +156,12 @@ sub findFile {
 
 =pod
 
-B<getFileData( )>
+=head3 getFileData()
 
 Gets the set of file data (data from the C<files> table in the database).
 
-Returns: hashref of the contents of the record in the C<files> table for the loaded file.
+RETURNS: hashref of the contents of the record in the C<files> table for the
+loaded file.
 
 =cut
 
@@ -162,11 +172,14 @@ sub getFileData {
 
 =pod
 
-B<getFileDatum( C<$datumName> )>
+=head3 getFileDatum($datumName)
 
-Gets one element from the file data (data from the C<files> table in the database).
+Gets one element from the file data (data from the C<files> table in the
+database).
 
-Returns: scalar of the particular datum requested pertaining to the loaded file.
+INPUT: name of the element to get.
+
+RETURNS: scalar of the particular datum requested pertaining to the loaded file.
 
 =cut
 
@@ -179,11 +192,15 @@ sub getFileDatum {
 
 =pod
 
-B<getParameter( C<$parameterName> )>
+=head3 getParameter($parameterName)
 
-Gets one element from the file's parameters (data from the C<parameter_file> table in the database).
+Gets one element from the file's parameters (data from the C<parameter_file>
+table in the database).
 
-Returns: scalar of the particular parameter requested pertaining to the loaded file.
+INPUT: name of the element from the file's parameter
+
+RETURNS: scalar of the particular parameter requested pertaining to the loaded
+file.
 
 =cut
 
@@ -196,11 +213,13 @@ sub getParameter {
 
 =pod
 
-B<getParameters( )>
+=head3 getParameters()
 
-Gets the set of parameters for the loaded file (data from the C<parameter_file> table in the database).
+Gets the set of parameters for the loaded file (data from the C<parameter_file>
+table in the database).
 
-Returns: hashref of the records in the C<parameter_file> table for the loaded file.
+RETURNS: hashref of the records in the C<parameter_file> table for the loaded
+file.
 
 =cut
 
@@ -211,11 +230,11 @@ sub getParameters {
 
 =pod
 
-B<getDatabaseHandleRef( )>
+=head3 getDatabaseHandleRef()
 
 Gets the database handle reference which the object is using internally.
 
-Returns: DBI database handle reference
+RETURNS: DBI database handle reference.
 
 =cut
 
@@ -230,7 +249,8 @@ sub getDatabaseHandleRef {
 =head3 getFileType($file)
 
 Determines the imaging file type based on the extension of the file to insert
-and the list of available types in the ImagingFileTypes table of the database.
+and the list of available types in the C<ImagingFileTypes> table of the
+database.
 
 INPUT: the path to the imaging file to determine the file type
 
@@ -265,11 +285,14 @@ QUERY
 
 =pod
 
-B<loadFileFromDisk( C<$filename> )>
+=head3 loadFileFromDisk($filename)
 
-Reads the headers from the file specified by C<$filename> and loads the current object with the resultant parameters.
+Reads the headers from the file specified by C<$filename> and loads the current
+object with the resultant parameters.
 
-Returns: 0 if any failure occurred or 1 otherwise
+INPUT: file to read the headers from.
+
+RETURNS: 0 if any failure occurred or 1 otherwise.
 
 =cut
 
@@ -305,14 +328,12 @@ sub loadFileFromDisk {
     foreach my $attribute (@attributes) {
         if($attribute =~ /\s*(\w*:\w+) = (.*)$/s) {
             $this->setParameter($1, $2);
-=pod
-#fixme debug if ever we run into weird values again
-            if (length($2) < 1000) {
-             #   print length($2)."\n";
-                print "$1\t\t\t---->\t\'" . $this->getParameter($1). "\'\t\n";
-            }
-#end fixme
-=cut
+#            fixme debug if ever we run into weird values again
+#            if (length($2) < 1000) {
+#             #   print length($2)."\n";
+#                print "$1\t\t\t---->\t\'" . $this->getParameter($1). "\'\t\n";
+#            }
+#            end fixme
         }
     }
     # get dimension lengths
@@ -343,9 +364,13 @@ sub loadFileFromDisk {
 
 =pod
 
-B<setFileData( C<$propertyName>, C<$value> )>
+=head3 setFileData($propertyName, $value)
 
 Sets the fileData property named C<$propertyName> to the value of C<$value>.
+
+INPUTS:
+  - $paramName: name of the C<fileData> property
+  - $value    : value of the C<fileData> property to be set
 
 =cut
 
@@ -366,9 +391,13 @@ sub setFileData {
 
 =pod
 
-B<setParameter( C<$parameterName>, C<$value> )>
+=head3 setParameter($parameterName, $value)
 
 Sets the parameter named C<$parameterName> to the value of C<$value>.
+
+INPUTS:
+  - $paramName: name of the parameter
+  - $value    : value of the parameter to be set
 
 =cut
 
@@ -399,9 +428,11 @@ sub setParameter {
 
 =pod
 
-B<removeParameter( C<$parameterName> )>
+=head3 removeParameter($parameterName)
 
 Removes the parameter named C<$parameterName>.
+
+INPUT: name of the parameter to remove
 
 =cut
 
@@ -414,12 +445,14 @@ sub removeParameter {
 
 =pod
 
-B<getParameterTypeID( C<$parameter> )>
+=head3 getParameterTypeID($parameter)
 
-Gets the ParameterTypeID for the parameter C<$parameter>.  If
-C<$parameter> does not exist, it will be created.
+Gets the C<ParameterTypeID> for the parameter C<$parameter>.  If C<$parameter>
+does not exist, it will be created.
 
-Returns: (int) ParameterTypeID
+INPUT: name of the parameter type
+
+RETURNS: C<ParameterTypeID> (int)
 
 =cut
 
@@ -447,6 +480,18 @@ sub getParameterTypeID {
     }
 }
 	
+
+=pod
+
+=head3 removeWhitespace($value)
+
+Removes white space from variable C<$value>.
+
+INPUT: variable to remove white space from (string or array)
+
+RETURNS: string or array of the value without white spaces
+
+=cut
 sub removeWhitespace {
     my @vars = @_;
     foreach my $var (@vars) {
@@ -474,19 +519,22 @@ __END__
 
 =head1 TO DO
 
-Other operations should be added: perhaps get* methods for those fields in the C<files> table which are lookup fields.
+Other operations should be added: perhaps C<get*> methods for those fields in
+the C<files> table which are lookup fields.
 
-=head1 BUGS
+Fix comments written as #fixme in the code.
 
-None reported.
-
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
 
 Copyright (c) 2004,2005 by Jonathan Harlap, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 
+License: GPLv3
+
 =head1 AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
 
 =cut    

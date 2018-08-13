@@ -1,5 +1,33 @@
 #!/usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+mass_nii.pl -- Generates NIfTI files based on the MINC files available in the
+LORIS database and inserts them into the C<parameter_file> table.
+
+=head1 SYNOPSIS
+
+perl mass_nii.pl C<[options]>
+
+Available options are:
+
+-profile  : name of the config file in C<../dicom-archive/.loris_mri>
+
+-minFileID: specifies the minimum C<FileID> to operate on
+
+-maxFileID: specifies the maximum C<FileID> to operate on
+
+-verbose  : be verbose
+
+=head1 DESCRIPTION
+
+This script generates NIfTI images for the inserted MINC files with a C<FileID>
+between the specified C<minFileID> and C<maxFileID>.
+
+=cut
+
 use strict;
 use FindBin;
 use lib "$FindBin::Bin";
@@ -37,6 +65,8 @@ Author  :   Cécile Madjar based on mass_pic.pl.
                         This script generates NIfTI images 
                         for the inserted MINC images that 
                         are missing NIfTIs.
+
+Documentation: perldoc mass_nii.pl
 
 HELP
 
@@ -161,3 +191,18 @@ print "\n Finished mass_nii.pl execution\n" if $verbose;
 
 # Exit script
 exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+__END__
+
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut

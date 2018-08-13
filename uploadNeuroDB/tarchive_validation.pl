@@ -1,4 +1,66 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+tarchive_validation.pl -- Validates the tarchive against the one inserted in
+the LORIS database.
+
+=head1 SYNOPSIS
+
+perl tarchive_validation.pl C<[options]>
+
+Available options are:
+
+-profile     : name of the config file in C<../dicom-archive/.loris-mri>
+
+-reckless    : upload data to the database even if the study protocol
+               is not defined or if it is violated
+
+-globLocation: loosen the validity check of the tarchive allowing for
+               the possibility that the tarchive was moved to a
+               different directory
+
+-newScanner  : boolean, if set, register new scanners into the database
+
+-verbose     : boolean, if set, run the script in verbose mode
+
+=head1 DESCRIPTION
+
+The program does the following validations:
+
+- Verification of the DICOM study archive given as an argument to the script
+against the one inserted in the database using checksum
+
+- Verification of the PSC information using whatever field containing the site
+string (typically, the patient name or patient ID)
+
+- Verification of the C<ScannerID> of the DICOM study archive (optionally
+creates a new scanner entry in the database if necessary)
+
+- Optionally, creation of candidates as needed and standardization of gender
+information when creating the candidates (DICOM uses M/F, LORIS database uses
+Male/Female)
+
+- Check of the C<CandID>/C<PSCID> match. It's possible that the C<CandID>
+exists, but that C<CandID> and C<PSCID> do not correspond to the same
+candidate. This would fail further down silently, so we explicitly check that
+this information is correct here.
+
+- Validation of the C<SessionID>
+
+- Optionally, completion of extra filtering on the DICOM dataset, if needed
+
+- Finally, the C<isTarchiveValidated> field in the C<mri_upload> table is set
+to C<TRUE> if the above validations were successful
+
+=head2 Methods
+
+
+=cut
+
+
 use strict;
 use warnings;
 use Carp;
@@ -99,6 +161,8 @@ The program does the following validation
 - Optionally do extra filtering on the dicom data, if needed
 
 - Finally the isTarchiveValidated is set true in the MRI_Upload table
+
+Documentation: perldoc tarchive_validation.pl
 
 HELP
 my $Usage = <<USAGE;
@@ -305,9 +369,7 @@ my ($sessionID, $requiresStaging) =
 ### The uploader ###############################################
 ################################################################
 my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive(
-        $tarchive, $tarchiveInfo{'SourceLocation'}, $upload_id
-    );
+    $utility->extractAndParseTarchive($tarchive, $upload_id);
 
 ################################################################
 # Optionally do extra filtering on the dicom data, if needed ###
@@ -328,6 +390,14 @@ $mri_upload_update->execute($tarchiveInfo{TarchiveID});
 
 exit $NeuroDB::ExitCodes::SUCCESS;
 
+=pod
+
+=head3 logHeader()
+
+Function that adds a header with relevant information to the log file.
+
+=cut
+
 sub logHeader () {
     print LOG "
 ----------------------------------------------------------------
@@ -338,3 +408,19 @@ sub logHeader () {
 *** tmp dir location           : $TmpDir
 ";
 }
+
+__END__
+
+
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
+

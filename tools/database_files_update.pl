@@ -1,5 +1,30 @@
 #! /usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+database_files_update.pl -- Updates path stored in C<files> and
+C<parameter_file> tables so that they are relative to C<data_dir>
+
+=head1 SYNOPSIS
+
+perl database_files_update.pl C<[options]>
+
+Available option is:
+
+-profile: name of the config file in C<../dicom-archive/.loris_mri>
+
+=head1 DESCRIPTION
+
+This script updates the path stored in the C<files> and C<parameter_file>
+tables to remove the C<data_dir> part of the path for security improvements.
+
+=head2 Methods
+
+=cut
+
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -10,9 +35,12 @@ my @args;
 
 my $Usage   =   <<USAGE;
 
-This script updates the path stored in the files and parameter_file tables to remove the \$data_dir part of the path for security improvements.
+This script updates the path stored in the files and parameter_file tables to
+remove the \$data_dir part of the path for security improvements.
 
 Usage: perl database_files_update.pl [options]
+
+Documentation: perldoc database_files_update.pl
 
 -help for options
 
@@ -39,9 +67,8 @@ if  (!$profile) {
 my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 # these settings are in the database and can be set in the Configuration module of LORIS
-my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
+my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
+$data_dir =~ s/\/$//;
 
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs";
@@ -69,24 +96,6 @@ if  ($minc_location_refs) {
     }
 } else {
     print LOG "No file was found with a path starting from the root directory (i.e. including $data_dir)\n";
-}
-
-#### Updating jiv location in parameter_file table ####
-my  ($jiv_location_refs, $fileIDs_jiv)  =   get_parameter_files($data_dir, 'jiv_path', $dbh);
-
-if  ($jiv_location_refs) {
-    foreach my $fileID (@$fileIDs_jiv) {
-        my  $new_jiv_location  =   $jiv_location_refs->{$fileID};
-        $new_jiv_location      =~  s/$data_dir\///i;
-        my  ($rows_affected)   =   update_parameter_file_location($fileID, $new_jiv_location, 'jiv_path', $dbh); # update jiv location in parameter_file table.
-        if  ($rows_affected ==  1)  { 
-            print LOG "Updated jiv location with $fileID FileID to $new_jiv_location.\n";
-        } else {
-            print LOG "ERROR: $rows_affected while updating jiv location with $fileID FileID to $new_jiv_location.\n";
-        }
-    }
-} else {
-    print LOG "No jiv was found with a path starting from the root directory (i.e. including $data_dir)\n";
 }
 
 #### Updating pic location in parameter_file table ####
@@ -132,8 +141,19 @@ if  ($tarchive_location_refs) {
 ###############
 
 =pod
-Get list of minc files to update location in the files table.
+
+=head3 get_minc_files($data_dir, $dbh)
+
+Gets the list of MINC files to update the location in the C<files> table.
+
+INPUTS:
+  - $data_dir: data directory (e.g. C</data/$PROJECT/data>)
+  - $dbh     : database handle
+
+RETURNS: hash of MINC locations, array of FileIDs
+
 =cut
+
 sub get_minc_files {
     my  ($data_dir, $dbh)   =   @_;
 
@@ -158,11 +178,24 @@ sub get_minc_files {
     return  (\%minc_locations, \@fileIDs);
 }
 
+
 =pod
-Update location of minc files in the files table.
+
+=head3 update_minc_location($fileID, $new_minc_location, $dbh)
+
+Updates the location of MINC files in the C<files> table.
+
+INPUTS:
+  - $fileID           : file's ID
+  - $new_minc_location: new MINC relative location
+  - $dbh              : database handle
+
+RETURNS: Number of rows affected by the update (should always be 1)
+
 =cut
+
 sub update_minc_location {
-    my  ($fileID, $new_minc_location, $dbh) =   @_;                # update minc location in files table.
+    my  ($fileID, $new_minc_location, $dbh) =   @_;  # update minc location in files table.
 
     my  $query          =   "UPDATE files " .
                             "SET File=? " .
@@ -173,9 +206,23 @@ sub update_minc_location {
     return  ($rows_affected);
 }
 
+
 =pod
-Get list of jivs to update location in parameter_file (remove root directory from path)
+
+=head3 get_parameter_files($data_dir, $parameter_type, $dbh)
+
+Gets list of PIC files to update location in the C<parameter_file> table by
+removing the root directory from the path.
+
+INPUTS:
+  - $data_dir      : data directory (e.g. C</data$PROJECT/data>)
+  - $parameter_type: name of the parameter type for the PIC
+  - $dbh           : database handle
+
+RETURNS: hash of PIC file locations, array of C<FileIDs>
+
 =cut
+
 sub get_parameter_files {
     my  ($data_dir, $parameter_type, $dbh)  =   @_;
 
@@ -204,9 +251,23 @@ sub get_parameter_files {
     return  (\%file_locations, \@fileIDs);
 }
 
+
 =pod
-Update location of jiv files in parameter_file
+
+=head3 update_parameter_file_location($fileID, $new_file_location, $parameter_type, $dbh)
+
+Updates the location of PIC files in the C<parameter_file> table.
+
+INPUTS:
+  - $fileID           : file's ID
+  - $new_file_location: new location of the PIC file
+  - $parameter_type   : parameter type name for the PIC
+  - $dbh              : database handle
+
+RETURNS: number of rows affected by the update (should always be 1)
+
 =cut
+
 sub update_parameter_file_location {
     my  ($fileID, $new_file_location, $parameter_type, $dbh) =   @_; 
 
@@ -232,3 +293,17 @@ sub update_parameter_file_location {
     return  ($rows_affected);   
 }
 
+
+__END__
+
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
