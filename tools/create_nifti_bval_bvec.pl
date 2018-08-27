@@ -71,7 +71,7 @@ This will check if the configuration flag for NIfTI files creation is set to
 need to accompany the NIfTI DWI files (bug in mnc2nii that do not create
 those files so we create them ourselves based on values present in the MINC
 header for acquisition:bvalues, acquisition:direction_x,
-acquisition:direction_y and acquisition:direction_z.
+acquisition:direction_y and acquisition:direction_z).
 
 Documentation: perldoc create_nifti_bval_bvec.pl
 
