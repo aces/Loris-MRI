@@ -256,8 +256,7 @@ print LOG "\t -> Set ScannerID to $scannerID.\n";
 # ----- STEP 4: Determine using sourceFileID: 
 #                   - subject's identifiers 
 #                   - sessionID 
-#                   - requiresStaging 
-my ($sessionID,$requiresStaging,$subjectIDsref)    =   getSessionID($sourceFileID,$dbh);
+my ($sessionID,$subjectIDsref)    =   getSessionID($sourceFileID,$dbh);
 if  (!defined($sessionID))  {
     print LOG "\nERROR: could not determine sessionID based on sourceFileID "
               . "$sourceFileID. Are you sure the sourceFile was registered "
@@ -388,10 +387,7 @@ sub getSessionID    {
         return undef;
     }
 
-    # set requiresStaging to null as long as don't have any more information on this field
-    my $requiresStaging =   0;
-
-    return  ($sessionID,$requiresStaging,\%subjectIDsref);
+    return  ($sessionID, \%subjectIDsref);
 }
 
 

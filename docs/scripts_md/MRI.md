@@ -74,44 +74,16 @@ RETURNS: the `CandID` or (if none exists) undef
 
 ### getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck)
 
-Gets (or creates) the session ID, given `CandID` and visit label (contained
-inside the hash ref `$subjectIDref`).  Unless `$noStagingCheck` is true, it
-also determines whether staging is required using the `$studyDate`
-(formatted YYYYMMDD) to determine whether staging is required based on a
-simple algorithm:
-
-> \- If there exists a session with the same visit label, then that is
->    the session ID to use.  If any dates (either existing MRI data or
->    simply a date of visit) exist associated with that session, then
->    if they are outside of some (arbitrary) time window, staging is
->    required.  If no dates exist, no staging is required.
->
-> \- If no sessions exist, then if there is any other date associated
->    with another session of the same subject within a time window,
->    staging is required.
->
-> \- Otherwise, staging is not required.
+Gets (or creates) the session ID, given CandID and visitLabel (contained
+inside the hashref `$subjectIDref`). 
 
 INPUTS:
-  - $subjectIDref  : hash reference of subject IDs
-  - $studyDate     : study date
-  - $dbhr          : database handle reference
-  - $objective     : the objective of the study
-  - $noStagingCheck: a no staging check flag
+  - $subjectIDref: hash reference of subject IDs
+  - $studyDate   : study date
+  - $dbhr        : database handle reference
+  - $objective   : the objective of the study
 
-RETURNS: a list of two items, (`sessionID`, `requiresStaging`)
-
-### checkMRIStudyDates($studyDateJD, $dbhr, @fileIDs)
-
-This method tries to figure out if there may have been labelling problems which
-would put the files in a staging area that does not actually exist.
-
-INPUTS:
-  - $studyDateJD: study date
-  - $dbhr       : database handle reference
-  - @fileIDs    : array of `fileIDs` to check the study date
-
-RETURNS: 1 if the file requires staging, 0 otherwise
+RETURNS: the session ID of the visit
 
 ### getObjective($subjectIDsref, $dbhr)
 

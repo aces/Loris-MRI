@@ -195,8 +195,8 @@ The program does the following:
 
 - Loads the created MINC file and then sets the appropriate parameter for
   the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
-                     PendingStaging, CoordinateSpace , OutputType , FileType
-                     ,TarchiveSource and Caveat)
+                     CoordinateSpace , OutputType , FileType,
+                     TarchiveSource and Caveat)
 - Extracts the correct acquition protocol
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
@@ -496,10 +496,9 @@ if (defined($CandMismatchError)) {
 }
 
 ################################################################
-####### Get the $sessionID and $requiresStaging ################
+####### Get the $sessionID  ####################################
 ################################################################
-my ($sessionID, $requiresStaging) =
-    NeuroDB::MRI::getSessionID( 
+my ($sessionID) = NeuroDB::MRI::getSessionID(
         $subjectIDsref, 
         $tarchiveInfo{'DateAcquired'},
         \$dbh, $subjectIDsref->{'subprojectID'}
@@ -527,7 +526,6 @@ $file->setFileData('ScannerID', $scannerID);
 $file->setFileData('SessionID', $sessionID);
 $file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
 $file->setFileData('EchoTime', $file->getParameter('echo_time'));
-$file->setFileData('PendingStaging', $requiresStaging);
 $file->setFileData('CoordinateSpace', 'native');
 $file->setFileData('OutputType', 'native');
 $file->setFileData('FileType', 'mnc');

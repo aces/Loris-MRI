@@ -193,42 +193,22 @@ sub getScannerCandID {
 
 =head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck)
 
-Gets (or creates) the session ID, given C<CandID> and visit label (contained
-inside the hash ref C<$subjectIDref>).  Unless C<$noStagingCheck> is true, it
-also determines whether staging is required using the C<$studyDate>
-(formatted YYYYMMDD) to determine whether staging is required based on a
-simple algorithm:
-
-=over 3
-
-- If there exists a session with the same visit label, then that is
-   the session ID to use.  If any dates (either existing MRI data or
-   simply a date of visit) exist associated with that session, then
-   if they are outside of some (arbitrary) time window, staging is
-   required.  If no dates exist, no staging is required.
-    
-- If no sessions exist, then if there is any other date associated
-   with another session of the same subject within a time window,
-   staging is required.
-    
-- Otherwise, staging is not required.
-
-=back
+Gets (or creates) the session ID, given CandID and visitLabel (contained
+inside the hashref C<$subjectIDref>). 
 
 INPUTS:
-  - $subjectIDref  : hash reference of subject IDs
-  - $studyDate     : study date
-  - $dbhr          : database handle reference
-  - $objective     : the objective of the study
-  - $noStagingCheck: a no staging check flag
+  - $subjectIDref: hash reference of subject IDs
+  - $studyDate   : study date
+  - $dbhr        : database handle reference
+  - $objective   : the objective of the study
 
-RETURNS: a list of two items, (C<sessionID>, C<requiresStaging>)
+RETURNS: the session ID of the visit
 
 =cut
 
 sub getSessionID {
-    my ($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck) = @_;
-    my ($sessionID, $requiresStaging, $studyDateJD);
+    my ($subjectIDref, $studyDate, $dbhr, $objective) = @_;
+    my ($sessionID, $studyDateJD);
     my ($query, $sth);
     my $dbh = $$dbhr;
     
@@ -239,7 +219,6 @@ sub getSessionID {
 
 ##### if it finds an existing session it does this:
     if($sth->rows > 0) {
-	$requiresStaging = 1 unless $noStagingCheck;
 	my $timepoint = $sth->fetchrow_hashref();
 	$sessionID = $timepoint->{'ID'};
 	$sth->finish();
@@ -253,17 +232,10 @@ sub getSessionID {
 	if(defined($studyDate) && $studyDate =~ /^(\d{4})(\d{2})(\d{2})/) {
 	    # compute the julian date of the study
 	    $studyDateJD = julian_day($1, $2, $3);
-	} else {
-	    # no study date, so no staging
-	    $requiresStaging = 0;
-	}
-	# staging not required if the study date matches the timepoint date of visit
-	if(defined($studyDateJD) and defined($timepointJD) and $studyDateJD == $timepointJD) {
-	    $requiresStaging = 0;
 	}
 	
 	# check dates of other files
-	if(defined($studyDateJD) and $requiresStaging == 1) {
+	if(defined($studyDateJD)) {
 	    # get the set of files 
 	    $query = "SELECT FileID FROM files WHERE SessionID=$sessionID AND FileType='mnc' AND OutputType='native'";
 	    $sth = $dbh->prepare($query);
@@ -273,16 +245,13 @@ sub getSessionID {
 		my @files = ();
 		while(my $filehr = $sth->fetchrow_hashref()) { push @files, $filehr->{'FileID'}; }
 		$sth->finish();
-		
-		# run the check
-		$requiresStaging = checkMRIStudyDates($studyDateJD, $dbhr, @files);
+
 	    }
 	}
 
 #####  if there is no existing session, which always happens if you create candidates based on incoming data
     } else {
-	$requiresStaging = 0;
-	
+
 	# determine the visit number and centerID for the next session
         my $newVisitNo = 0;
         my $centerID = 0;
@@ -329,7 +298,7 @@ sub getSessionID {
 	$subjectIDref->{'visitNo'} = $newVisitNo; # add visit number to subjectIDref
 	
 	# check dates of other files
-	if(defined($studyDateJD) and !$noStagingCheck) {
+	if(defined($studyDateJD)) {
 	    # get the set of sessions for the subject
 	    $query = "SELECT ID FROM session WHERE CandID=$subjectIDref->{'CandID'} AND Active='Y'";
 	    $sth = $dbh->prepare($query);
@@ -350,69 +319,14 @@ sub getSessionID {
 		    while(my $filearray = $sth->fetchrow_array()) { push @files, $filearray[0]; }
 		    
 		    $sth->finish();
-		    
-		    # run the check - note it's backwards (!) because this
-		    # time we're looking for mris in other studies which
-		    # are confounding rather than mris in this study which
-		    # are supporting
-		    $requiresStaging = !checkMRIStudyDates($studyDateJD, $dbhr, @files);
 		} # end if sth->rows (files)
 	    } # end if sth->rows (sessionIDs)
 	} # end if defined studyDateJD
     }
     
-    return ($sessionID, $requiresStaging);
+    return ($sessionID);
 }
 
-=pod
-
-=head3 checkMRIStudyDates($studyDateJD, $dbhr, @fileIDs)
-
-This method tries to figure out if there may have been labelling problems which
-would put the files in a staging area that does not actually exist.
-
-INPUTS:
-  - $studyDateJD: study date
-  - $dbhr       : database handle reference
-  - @fileIDs    : array of C<fileIDs> to check the study date
-
-RETURNS: 1 if the file requires staging, 0 otherwise
-
-=cut
-
-sub checkMRIStudyDates {
-    my ($studyDateJD, $dbhr, @fileIDs) = @_;
-
-    if(scalar(@fileIDs) == 0) {
-	carp "No fileIDs passed in to checkMRIStudyDates\n";
-	return 0;
-    }
-    
-    my $requiresStaging = 1;
-    my $file = NeuroDB::File->new($dbhr);
-    my $studyDateID = $file->getParameterTypeID('study_date');
-    
-    # check the other files
-    my $query = "SELECT DISTINCT Value FROM parameter_file WHERE ParameterTypeID=$studyDateID AND FileID IN (".join(',', @fileIDs).")";
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-    
-    if($sth->rows > 0) {
-      LOOP_FILES: {
-	  while(my $row = $sth->fetchrow_hashref()) {
-	      if($row->{'Value'} =~ /^(\d{4})(\d{2})(\d{2})/) {
-		  my $eventJD = julian_day($1, $2, $3);
-		  if($eventJD == $studyDateJD) {
-		      $requiresStaging = 0;
-		      last LOOP_FILES;
-		  }
-	      }
-	  } # end while
-      } # end LOOP_FILES
-    } # end if $sth->rows (parameters)
-    
-    return $requiresStaging;
-}
 
 =pod
 
