@@ -339,13 +339,13 @@ INPUTS:
 
 RETURNS: the new DICOM archive location
 
-### CreateMRICandidates($subjectIDsref, $gender, $tarchiveInfo, $User, $centerID, $upload\_id)
+### CreateMRICandidates($subjectIDsref, $sex, $tarchiveInfo, $User, $centerID, $upload\_id)
 
 Registers a new candidate in the `candidate` table.
 
 INPUTS:
   - $subjectIDsref: subject's ID information hash ref
-  - $gender       : gender of the candidate
+  - $sex          : sex of the candidate
   - $tarchiveInfo : tarchive information hash ref
   - $User         : user that is running the pipeline
   - $centerID     : center ID

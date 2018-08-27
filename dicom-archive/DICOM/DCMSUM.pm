@@ -174,7 +174,7 @@ QUERY
       tarchive SET  
         DicomArchiveID = ?,       PatientName = ?,
         PatientID = ?,            PatientDoB = ?,
-        PatientGender = ?,        DateAcquired = ?,
+        PatientSex = ?,           DateAcquired = ?,
         ScannerManufacturer = ?,  ScannerModel = ?,
         ScannerSerialNumber = ?,  ScannerSoftwareVersion = ?,
         CenterName = ?,           AcquisitionCount = ?,

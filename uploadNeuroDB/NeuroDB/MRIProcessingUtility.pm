@@ -423,7 +423,7 @@ sub createTarchiveArray {
         $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
     }
     my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
-                " DateAcquired, DicomArchiveID, PatientGender,".
+                " DateAcquired, DicomArchiveID, PatientSex,".
                 " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
                 " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,".
                 " SourceLocation, ArchiveLocation FROM tarchive WHERE $where";
@@ -1449,13 +1449,13 @@ sub moveAndUpdateTarchive {
 
 =pod
 
-=head3 CreateMRICandidates($subjectIDsref, $gender, $tarchiveInfo, $User, $centerID, $upload_id)
+=head3 CreateMRICandidates($subjectIDsref, $sex, $tarchiveInfo, $User, $centerID, $upload_id)
 
 Registers a new candidate in the C<candidate> table.
 
 INPUTS:
   - $subjectIDsref: subject's ID information hash ref
-  - $gender       : gender of the candidate
+  - $sex          : sex of the candidate
   - $tarchiveInfo : tarchive information hash ref
   - $User         : user that is running the pipeline
   - $centerID     : center ID
@@ -1465,17 +1465,17 @@ INPUTS:
 
 sub CreateMRICandidates {
     ############################################################
-    ### Standardize gender (DICOM uses M/F, DB uses Male/Female)
+    ### Standardize sex (DICOM uses M/F, DB uses Male/Female)
     ############################################################
     my $this = shift;
     my $query = '';
-    my ($subjectIDsref,$gender,$tarchiveInfo,$User,$centerID, $upload_id) = @_;
+    my ($subjectIDsref,$sex,$tarchiveInfo,$User,$centerID, $upload_id) = @_;
     my ($message);
 
-    if ($tarchiveInfo->{'PatientGender'} eq 'F') {
-            $gender = "Female";
-    } elsif ($tarchiveInfo->{'PatientGender'} eq 'M') {
-        $gender = "Male";
+    if ($tarchiveInfo->{'PatientSex'} eq 'F') {
+            $sex = "Female";
+    } elsif ($tarchiveInfo->{'PatientSex'} eq 'M') {
+        $sex = "Male";
     }
 
     ################################################################
@@ -1494,13 +1494,13 @@ sub CreateMRICandidates {
                 NeuroDB::MRI::createNewCandID($this->{dbhr});
             }
             $query = "INSERT INTO candidate ".
-                     "(CandID, PSCID, DoB, Gender,CenterID, Date_active,".
+                     "(CandID, PSCID, DoB, Sex,CenterID, Date_active,".
                      " Date_registered, UserID,Entity_type) ".
                      "VALUES(" . 
                      ${$this->{'dbhr'}}->quote($subjectIDsref->{'CandID'}).",".
                      ${$this->{'dbhr'}}->quote($subjectIDsref->{'PSCID'}).",".
                      ${$this->{'dbhr'}}->quote($tarchiveInfo->{'PatientDoB'}) ."," .
-                     ${$this->{'dbhr'}}->quote($gender).",". 
+                     ${$this->{'dbhr'}}->quote($sex).",".
                      ${$this->{'dbhr'}}->quote($centerID). 
                      ", NOW(), NOW(), '$User', 'Human')";
             

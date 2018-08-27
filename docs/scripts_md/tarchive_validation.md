@@ -35,7 +35,7 @@ string (typically, the patient name or patient ID)
 \- Verification of the `ScannerID` of the DICOM study archive (optionally
 creates a new scanner entry in the database if necessary)
 
-\- Optionally, creation of candidates as needed and standardization of gender
+\- Optionally, creation of candidates as needed and standardization of sex
 information when creating the candidates (DICOM uses M/F, LORIS database uses
 Male/Female)
 
