@@ -17,7 +17,7 @@ by `getTableName()`.
 
 INPUTS:
    - reference to a hash array that contains the column values for the record to insert.
-     Each key must be a valid field (i.e that exsists in the array returned by `getColumnNames()`
+     Each key must be a valid field (i.e that exists in the array returned by `getColumnNames()`
      and each value is the value for the given field. Use `undef` to set a field to `NULL`.
 
 RETURNS: 

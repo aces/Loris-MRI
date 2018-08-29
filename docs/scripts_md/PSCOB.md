@@ -5,7 +5,10 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table `ps
 # SYNOPSIS
 
     use NeuroDB::Database;
+    use NeuroDB::DatabaseException;
     use NeuroDB::objectBroker::PSCOB;
+    use NeuroDB::objectBroker::ObjectBrokerException;
+    
     use TryCatch;
 
     my $db = NeuroDB::Database->new(
@@ -36,7 +39,20 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table `ps
     my $pscRef;
     try {
         $pscRef = $pscOB->get(
-            { Alias => 'DCC' }
+            { MRI_alias => 'my_alias' }
+        );
+        foreach (@$pscRef) {
+            printf "ID for PSC named $_->{'Name'} is $_->{'ID'}\n";
+        }
+
+        # Fetch the PSC with a NULL Alias
+        $pscRef = $pscOB->get(
+            { Alias => undef }
+        );
+        
+        # Fetch all PSCs except the DCC
+        $pscRef = $pscOB->get(
+            { Name => { NOT => 'Data Coordinating Center' } }
         );
     } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
         die sprintf(
@@ -49,19 +65,10 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table `ps
 
 This class provides a set of methods to fetch records from the `psc`
 table. If an operation cannot be executed successfully, a `NeuroDB::objectBroker::ObjectBrokerException`
-will be thrown. See the documentation for `GetRole` and `InsertRole` for information on how to perform
-basic `INSERT`/`SELECT` operations using this object broker.
+will be thrown. See the documentation for `GetRole` for information on how to perform
+basic `SELECT` operations using this object broker.
 
 ## Methods
-
-### new(db => $db) >> (constructor inherited from `ObjectBroker`)
-
-Create a new instance of this class. The only parameter to provide is the
-`Database` object used to access the database.
-
-INPUT: the database object used to query the `psc` table.
-
-RETURN: new instance of this class.
 
 ### getTableName()
 

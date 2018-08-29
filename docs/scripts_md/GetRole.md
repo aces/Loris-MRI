@@ -9,9 +9,9 @@ NeuroDB::objectBroker::GetRole -- A role for basic SELECT operations on the data
 This class provides methods used to accomplish basic `SELECT` operations on the database.
 It allows the retrieval of records using a simple `WHERE` clause of the form 
 `WHERE constraint_1 AND constraint_2 AND ... AND constraint_n`.
-Subparts of the where clause can only be ANDed (OR is not supported). Each subpart of the 
-`WHERE` clause specifies that a field must be either equal to a given value, not equal to a 
-given value, NULL or NOT NULL. 
+Subparts of the `WHERE` clause can only be combined with `AND` (`OR` is not supported). 
+Each subpart of the `WHERE` clause specifies that a field must be either equal to a given 
+value, not equal to a given value, NULL or NOT NULL. 
 
 Classes using this role must implement methods `getColumnNames()`, `getTableName()` and `db()`.
 
@@ -52,27 +52,27 @@ INPUTS:
    - Reference on the hash of all field constraints.
    - Name of the field for which a string representation is sought.
    - Reference on the array of all constraints (in string form).
-   - Reference on the array of values each field in $columnValuesRef must be
+   - Reference on the array of values each field in `$columnValuesRef` must be
      equal or not equal to.
 
 RETURNS: 
-   - Nothing (adds an element to @$whereRef).
+   - Nothing (adds an element to `@$whereRef`).
 
 ### addWhereFunction($columnValuesRef, $k, $whereRef, $valsRef)
 
 Gets the string representation of a constraint that uses an SQL function or operator.
-Currently, only the operator `NOT` (i.e. field NOT equal to a given value or NOT NULL) is 
+Currently, only the operator `NOT` (i.e. field `NOT` equal to a given value or `NOT NULL`) is 
 supported.
 
 INPUTS:
    - Reference on the hash of all field constraints
    - Name of the field for which a string representation is sought.
    - Reference on the array of all constraints (in string form)
-   - Reference on the array of values each field in $columnValuesRef must be
+   - Reference on the array of values each field in `$columnValuesRef` must be
      equal or not equal to.
 
 RETURNS: 
-   - Nothing. Updates arrays @$whereRef (and @$valsRef if necessary).
+   - Nothing. Updates arrays `@$whereRef` (and `@$valsRef` if necessary).
 
 ### addWhereNotEquals($columnValuesRef, $k, $whereRef, $valsRef)
 
@@ -84,11 +84,11 @@ INPUTS:
    - Reference on the hash of all field constraints
    - Name of the field for which a string representation is sought.
    - Reference on the array of all constraints (in string form)
-   - Reference on the array of values each field in $columnValuesRef must be
+   - Reference on the array of values each field in `$columnValuesRef` must be
      equal or not equal to.
 
 RETURNS: 
-   - Nothing. Updates arrays @$whereRef (and @$valsRef if necessary).
+   - Nothing. Updates arrays `@$whereRef` (and `@$valsRef` if necessary).
 
 ### get($columnValuesRef)
 

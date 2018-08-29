@@ -9,7 +9,10 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table C<p
 =head1 SYNOPSIS
 
   use NeuroDB::Database;
+  use NeuroDB::DatabaseException;
   use NeuroDB::objectBroker::PSCOB;
+  use NeuroDB::objectBroker::ObjectBrokerException;
+  
   use TryCatch;
 
   my $db = NeuroDB::Database->new(
@@ -40,7 +43,20 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table C<p
   my $pscRef;
   try {
       $pscRef = $pscOB->get(
-          { Alias => 'DCC' }
+          { MRI_alias => 'my_alias' }
+      );
+      foreach (@$pscRef) {
+          printf "ID for PSC named $_->{'Name'} is $_->{'ID'}\n";
+      }
+
+      # Fetch the PSC with a NULL Alias
+      $pscRef = $pscOB->get(
+          { Alias => undef }
+      );
+      
+      # Fetch all PSCs except the DCC
+      $pscRef = $pscOB->get(
+          { Name => { NOT => 'Data Coordinating Center' } }
       );
   } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
       die sprintf(
@@ -53,8 +69,8 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table C<p
 
 This class provides a set of methods to fetch records from the C<psc>
 table. If an operation cannot be executed successfully, a C<NeuroDB::objectBroker::ObjectBrokerException>
-will be thrown. See the documentation for C<GetRole> and C<InsertRole> for information on how to perform
-basic C<INSERT>/C<SELECT> operations using this object broker.
+will be thrown. See the documentation for C<GetRole> for information on how to perform
+basic C<SELECT> operations using this object broker.
 
 =head2 Methods
 
@@ -71,20 +87,6 @@ use TryCatch;
 my $TABLE_NAME = "psc";
 
 my @COLUMN_NAMES = qw(CenterID Name Alias MRI_alias);
-
-=pod
-
-=head3 new(db => $db) >> (constructor inherited from C<ObjectBroker>)
-
-Create a new instance of this class. The only parameter to provide is the
-C<Database> object used to access the database.
-
-INPUT: the database object used to query the C<psc> table.
-
-RETURN: new instance of this class.
-
-=cut
-
 
 =pod
 

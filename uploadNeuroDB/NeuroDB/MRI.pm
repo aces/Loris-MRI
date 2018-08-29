@@ -47,6 +47,7 @@ use FindBin;
 
 use NeuroDB::objectBroker::MriScanTypeOB;
 use NeuroDB::objectBroker::MriScannerOB;
+use NeuroDB::objectBroker::PSCOB;
 use NeuroDB::UnexpectedValueException;
 
 $VERSION = 0.2;
@@ -1157,13 +1158,13 @@ sub getPSC {
     }  
 
     ## Otherwise, use the patient name to match it to the site alias or MRI alias 
-    $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
-    $sth = $${dbhr}->prepare($query);
-    $sth->execute;
+    my $pscOB   = NeuroDB::objectBroker::PSCOB->new( db => $db );
+    my $pscsRef = $pscOB->get({ MRI_alias => { NOT => '' } });
 
-    while(my $row = $sth->fetchrow_hashref) {
-        return ($row->{'MRI_alias'}, $row->{'CenterID'})
-	    if ($patientName =~ /$row->{'Alias'}/i) || ($patientName =~ /$row->{'MRI_alias'}/i);
+    foreach my $psc (@$pscsRef) {
+        if ($patientName =~ /$psc->{'Alias'}/i || $patientName =~ /$psc->{'MRI_alias'}/i) {
+            return ($psc->{'MRI_alias'}, $psc->{'CenterID'}); 
+		}
     }
 
     return ("UNKN", 0);

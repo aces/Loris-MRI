@@ -10,6 +10,9 @@ NeuroDB::objectBroker::MriScannerOB -- An object broker for mri_scanner records
 
   use NeuroDB::Database;
   use NeuroDB::objectBroker::MriScannerOB;
+  use NeuroDB::DatabaseException;
+  use NeuroDB::objectBroker::ObjectBrokerException;
+  
   use TryCatch;
 
   my $db = NeuroDB::Database->new(
@@ -40,8 +43,31 @@ NeuroDB::objectBroker::MriScannerOB -- An object broker for mri_scanner records
   my $mriScannerRef;
   try {
       $mriScannerRef = $mriScannerOB->get(
-          { CandID => 655660 }
+          { Software => 'my_software' }
       );
+      foreach(@$mriScannerRef) {
+          print "ID for scanner model $_->{'Model'} is $_->{'ID'}\n";
+      }
+      
+      # Fetch the scanner with a NULL manufacturer
+      $mriScannerRef = $mriScannerOB->get(
+          { Manufacturer => undef }
+      );
+      
+      # Fetch the scanners with a CandID != 999999
+      $mriScannerRef = $mriScannerOB->get(
+          { CandID => { NOT => 999999 } }
+      );
+      
+      # Create a new scanner with the given properties
+      mriScannerOB->insertOne({
+          ID            => 7,
+          Manufacturer  => 'SIEMENS',
+          Model         => 'Prisma_fit',
+          Serial_number => 67094,
+          Software      => 'syngo MR E11',
+          CandID        => 151581
+      });
   } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
       die sprintf(
           "Failed to retrieve mri_scanner records: %s",
@@ -70,20 +96,6 @@ use TryCatch;
 my $TABLE_NAME = "mri_scanner";
 
 my @COLUMN_NAMES = qw(ID Manufacturer Model Serial_number Software CandID);
-
-=pod
-
-=head3 new(db => $db) >> (constructor inherited from C<ObjectBroker>)
-
-Creates a new instance of this class. The only parameter to provide is the
-C<Database> object used to access the database.
-
-INPUT: the database object used to query the C<mri_scanner> table.
-
-RETURN: new instance of this class.
-
-=cut
-
 
 =pod
 

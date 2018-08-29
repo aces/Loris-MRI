@@ -6,6 +6,9 @@ NeuroDB::objectBroker::MriScannerOB -- An object broker for mri\_scanner records
 
     use NeuroDB::Database;
     use NeuroDB::objectBroker::MriScannerOB;
+    use NeuroDB::DatabaseException;
+    use NeuroDB::objectBroker::ObjectBrokerException;
+    
     use TryCatch;
 
     my $db = NeuroDB::Database->new(
@@ -36,8 +39,31 @@ NeuroDB::objectBroker::MriScannerOB -- An object broker for mri\_scanner records
     my $mriScannerRef;
     try {
         $mriScannerRef = $mriScannerOB->get(
-            { CandID => 655660 }
+            { Software => 'my_software' }
         );
+        foreach(@$mriScannerRef) {
+            print "ID for scanner model $_->{'Model'} is $_->{'ID'}\n";
+        }
+        
+        # Fetch the scanner with a NULL manufacturer
+        $mriScannerRef = $mriScannerOB->get(
+            { Manufacturer => undef }
+        );
+        
+        # Fetch the scanners with a CandID != 999999
+        $mriScannerRef = $mriScannerOB->get(
+            { CandID => { NOT => 999999 } }
+        );
+        
+        # Create a new scanner with the given properties
+        mriScannerOB->insertOne({
+            ID            => 7,
+            Manufacturer  => 'SIEMENS',
+            Model         => 'Prisma_fit',
+            Serial_number => 67094,
+            Software      => 'syngo MR E11',
+            CandID        => 151581
+        });
     } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
         die sprintf(
             "Failed to retrieve mri_scanner records: %s",
@@ -51,15 +77,6 @@ This class provides a set of methods to fetch records from the `mri_scanner`
 table. If an operation cannot be executed successfully, a `NeuroDB::objectBroker::ObjectBrokerException`
 will be thrown. See the documentation for `GetRole` and `InsertRole` for information on how to perform
 basic `INSERT`/`SELECT` operations using this object broker.
-
-### new(db => $db) >> (constructor inherited from `ObjectBroker`)
-
-Creates a new instance of this class. The only parameter to provide is the
-`Database` object used to access the database.
-
-INPUT: the database object used to query the `mri_scanner` table.
-
-RETURN: new instance of this class.
 
 ### getTableName()
 

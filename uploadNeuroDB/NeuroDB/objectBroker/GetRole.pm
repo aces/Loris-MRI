@@ -13,9 +13,9 @@ NeuroDB::objectBroker::GetRole -- A role for basic SELECT operations on the data
 This class provides methods used to accomplish basic C<SELECT> operations on the database.
 It allows the retrieval of records using a simple C<WHERE> clause of the form 
 C<WHERE constraint_1 AND constraint_2 AND ... AND constraint_n>.
-Subparts of the where clause can only be ANDed (OR is not supported). Each subpart of the 
-C<WHERE> clause specifies that a field must be either equal to a given value, not equal to a 
-given value, NULL or NOT NULL. 
+Subparts of the C<WHERE> clause can only be combined with C<AND> (C<OR> is not supported). 
+Each subpart of the C<WHERE> clause specifies that a field must be either equal to a given 
+value, not equal to a given value, NULL or NOT NULL. 
 
 Classes using this role must implement methods C<getColumnNames()>, C<getTableName()> and C<db()>.
 
@@ -59,6 +59,7 @@ RETURNS:
      If the method is called with C<$isCount> set to true, then it will return
      a reference to an array containing a single hash reference, its unique key being 
      C<'COUNT(*)'> with the associated value set to the selected count.
+     
 =cut
 
 my $getRef = sub {
@@ -84,8 +85,12 @@ my $getRef = sub {
             # Update @where and @vals with the current constraint in %$columnValuesRef
             my $val = $columnValuesRef->{$k};
             my $valType = ref($val);
-            if($valType eq '')        { $self->addWhereEquals(  $columnValuesRef, $k, \@where, \@vals); }
-		    elsif($valType eq 'HASH') { $self->addWhereFunction($columnValuesRef, $k, \@where, \@vals); }
+            if ($valType eq '') { 
+				$self->addWhereEquals(  $columnValuesRef, $k, \@where, \@vals); 
+		    }
+		    elsif ($valType eq 'HASH') { 
+				$self->addWhereFunction($columnValuesRef, $k, \@where, \@vals); 
+		    }
 			else {
                 NeuroDB::objectBroker::ObjectBrokerException->throw(
                     errorMessage => sprintf(
@@ -130,11 +135,11 @@ INPUTS:
    - Reference on the hash of all field constraints.
    - Name of the field for which a string representation is sought.
    - Reference on the array of all constraints (in string form).
-   - Reference on the array of values each field in $columnValuesRef must be
+   - Reference on the array of values each field in C<$columnValuesRef> must be
      equal or not equal to.
       
 RETURNS: 
-   - Nothing (adds an element to @$whereRef).
+   - Nothing (adds an element to C<@$whereRef>).
 
 =cut
 
@@ -154,18 +159,18 @@ sub addWhereEquals {
 =head3 addWhereFunction($columnValuesRef, $k, $whereRef, $valsRef)
 
 Gets the string representation of a constraint that uses an SQL function or operator.
-Currently, only the operator C<NOT> (i.e. field NOT equal to a given value or NOT NULL) is 
+Currently, only the operator C<NOT> (i.e. field C<NOT> equal to a given value or C<NOT NULL>) is 
 supported.
 
 INPUTS:
    - Reference on the hash of all field constraints
    - Name of the field for which a string representation is sought.
    - Reference on the array of all constraints (in string form)
-   - Reference on the array of values each field in $columnValuesRef must be
+   - Reference on the array of values each field in C<$columnValuesRef> must be
      equal or not equal to.
       
 RETURNS: 
-   - Nothing. Updates arrays @$whereRef (and @$valsRef if necessary).
+   - Nothing. Updates arrays C<@$whereRef> (and C<@$valsRef> if necessary).
 
 =cut
 
@@ -207,11 +212,11 @@ INPUTS:
    - Reference on the hash of all field constraints
    - Name of the field for which a string representation is sought.
    - Reference on the array of all constraints (in string form)
-   - Reference on the array of values each field in $columnValuesRef must be
+   - Reference on the array of values each field in C<$columnValuesRef> must be
      equal or not equal to.
       
 RETURNS: 
-   - Nothing. Updates arrays @$whereRef (and @$valsRef if necessary).
+   - Nothing. Updates arrays C<@$whereRef> (and C<@$valsRef> if necessary).
 
 =cut
 sub addWhereNotEquals {
