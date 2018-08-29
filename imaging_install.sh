@@ -74,6 +74,7 @@ sudo -S cpan install Archive::Zip
 sudo -S cpan install Pod::Perldoc
 sudo -S cpan install Pod::Markdown
 sudo -S cpan install Pod::Usage
+sudo -S cpan install JSON
 echo
 
 #######################################################################################
