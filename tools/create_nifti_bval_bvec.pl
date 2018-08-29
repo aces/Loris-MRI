@@ -152,10 +152,7 @@ QUERY
 my $sth = $dbh->prepare($query);
 $sth->execute('acquisition:bvalues');
 
-my @file_ids;
-while( my $fileID = $sth->fetchrow_array) {
-    push @file_ids, $fileID;
-}
+my @file_ids = map { $_->{'FileID'} }  @{ $sth->fetchall_arrayref( {} ) };
 
 unless (@file_ids) {
     print "\n No files were found with header 'acquisition:bvalues' so no need "
@@ -174,24 +171,30 @@ foreach my $file_id (@file_ids) {
 
     # determine paths for bval/bvec files
     my $minc = $file->getFileDatum('File');
-    my ($bval_file, $bvec_file) = map { $minc }(0 .. 1);
-    $bval_file =~ s/mnc$/bval/g;
-    $bvec_file =~ s/mnc$/bvec/g;
+    my ($bval_file, $bvec_file) = ($minc) x 2;
+    $bval_file =~ s/mnc$/bval/;
+    $bvec_file =~ s/mnc$/bvec/;
 
     # create complementary nifti files for DWI acquisitions
     my $bval_success = NeuroDB::MRI::create_dwi_nifti_bval_file(
-        \$file, $data_dir . '/' . $bval_file
+        \$file, "$data_dir/$bval_file"
     );
     my $bvec_success = NeuroDB::MRI::create_dwi_nifti_bvec_file(
-        \$file, $data_dir . '/' . $bvec_file
+        \$file, "$data_dir/$bvec_file"
     );
-    if ($bval_success && $bvec_success) {
-        print "\n==> Succesfully created bval/bvec files for $minc \n";
+
+    # check if bval/bvec created & update parameter_file table with their paths
+    if ($bval_success) {
+        print "\n==> Successfully created bval file for $minc \n";
+        # update parameter_file table with bval path
+        $file->setParameter('check_bval_filename', $bval_file);
+    }
+    if ($bvec_success) {
+        print "\n==> Successfully created bvec file for $minc \n";
+        # update parameter_file table with bvec path
+        $file->setParameter('check_bvec_filename', $bvec_file);
     }
 
-    # update parameter_file table with bvec/bval paths
-    $file->setParameter('check_bval_filename', $bval_file) if $bval_success;
-    $file->setParameter('check_bvec_filename', $bvec_file) if $bvec_success;
 }
 
 

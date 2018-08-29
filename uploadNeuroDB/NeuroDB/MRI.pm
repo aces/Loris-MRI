@@ -1394,20 +1394,18 @@ sub make_nii {
     # Get MINC filename and NIfTI filename
     my $file = $$fileref;
     my $minc  = $file->getFileDatum('File');
-    my ($nifti, $bval_file, $bvec_file) = map { $minc }(0 .. 2);
-    $nifti     =~ s/mnc$/nii/g;
-    $bval_file =~ s/mnc$/bval/g;
-    $bvec_file =~ s/mnc$/bvec/g;
+    my ($nifti, $bval_file, $bvec_file) = ($minc) x 3;
+    $nifti     =~ s/mnc$/nii/;
+    $bval_file =~ s/mnc$/bval/;
+    $bvec_file =~ s/mnc$/bvec/;
 
     #  mnc2nii command
-    my $m2n_cmd = "mnc2nii -nii -quiet " .
-                    $data_dir . "/" . $minc . " " .
-                    $data_dir . "/" . $nifti;
+    my $m2n_cmd = "mnc2nii -nii -quiet $data_dir/$minc $data_dir/$nifti";
     system($m2n_cmd);
 
     # create complementary nifti files for DWI acquisitions
-    my $bval_success = create_dwi_nifti_bval_file($fileref, $data_dir . '/' . $bval_file);
-    my $bvec_success = create_dwi_nifti_bvec_file($fileref, $data_dir . '/' . $bvec_file);
+    my $bval_success = create_dwi_nifti_bval_file($fileref, "$data_dir/$bval_file");
+    my $bvec_success = create_dwi_nifti_bvec_file($fileref, "$data_dir/$bvec_file");
 
     # update mri table (parameter_file table)
     $file->setParameter('check_nii_filename', $nifti);
@@ -1445,12 +1443,14 @@ sub create_dwi_nifti_bval_file {
 
     # clean up the bvals string
     $bvals =~ s/\.\,//g; # remove all '.,' from the string
-    $bvals =~ s/\.$//g;  # remove the last trailing '.' from the string
+    $bvals =~ s/\.$//;   # remove the last trailing '.' from the string
 
     # print bvals into bval_file
-    write_to_file($bval_file, $bvals, '>');
+    open(FILE, '>', $bval_file) or die "Could not open file $bval_file $!";
+    print FILE $bvals;
+    close FILE;
 
-    return 1 if (-e $bval_file);
+    return -e $bval_file;
 }
 
 
@@ -1485,42 +1485,16 @@ sub create_dwi_nifti_bvec_file {
         $file->getParameter('acquisition:direction_z')
     );
 
-    return undef unless @bvecs;
+    return undef unless ($bvecs[0] && $bvecs[1] && $bvecs[2]);
 
     # loop through all bvecs, clean them up and print them into the bvec file
-    my $mode = '>';
-    foreach my $bvec (@bvecs) {
-        $bvec =~ s/^\"+|\"$//g;
-        write_to_file($bvec_file, $bvec . "\n", $mode);
-        $mode = '>>'; # set to 0 to append to the file the other rows
-    }
+    s/^\"+|\"$//g for @bvecs;
+    open(OUT, '>', $bvec_file) or die "Cannot write to file $bvec_file: $!\n";
+    print OUT map { "$_\n" } @bvecs;
+    close(OUT);
 
-    return 1 if (-e $bvec_file);
+    return -e $bvec_file;
 }
-
-
-=pod
-
-=head3 write_to_file($file, $value, $mode)
-
-This method writes into a file C<$file> values stored in C<$value>. The mode
-in which the file should be open with is specified in C<$mode>.
-
-INPUTS:
-  - $file : output file to write into
-  - $value: value that needs to be written in the file
-  - $mode : mode with which the file should be open with (C<'\>'> or C<'\>\>'>)
-
-=cut
-
-sub write_to_file {
-    my ($file, $value, $mode) = @_;
-
-    open(FILE, $mode, $file) or die "Could not open file $file $!";
-    print FILE $value;
-    close FILE;
-}
-
 
 
 =pod
