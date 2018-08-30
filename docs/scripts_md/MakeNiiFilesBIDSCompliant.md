@@ -5,7 +5,7 @@ dataset from the MINCs in the `assembly/` directory
 
 # SYNOPSIS
 
-perl imaging\_upload\_file.pl `[options]`
+perl tools/MakeNIIFilesBIDSCompliant.pl `[options]`
 
 Available options are:
 

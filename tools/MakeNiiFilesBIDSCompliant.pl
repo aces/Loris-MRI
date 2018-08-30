@@ -9,7 +9,7 @@ dataset from the MINCs in the C<assembly/> directory
 
 =head1 SYNOPSIS
 
-perl imaging_upload_file.pl C<[options]>
+perl tools/MakeNIIFilesBIDSCompliant.pl C<[options]>
 
 Available options are:
 
@@ -440,7 +440,9 @@ QUERY
             my (@headerNameArr, $headerNameArr,
                 @headerNameDBArr, $headerNameDBArr,
                 @headerNameMINCArr, $headerNameMINCArr,
-                $headerName, $headerNameDB, $headerNameMINC, $headerVal, $headerFile);
+                $headerName, $headerNameDB,
+                $headerNameMINC, $headerVal,
+                $headerFile);
 
 
             $headerFile         = $nifti;
@@ -515,7 +517,7 @@ QUERY
             }
             
             # If manufacturer is Philips, then add SliceOrder to the JSON manually
-            ######## This is just the BETA version #########
+            ######## This is just for the BETA version #########
             ## See the TODO section for improvements needed in the future on SliceOrder ##
             if ($manufacturerPhilips == 1) {
                 $extraHeader = "SliceOrder";
