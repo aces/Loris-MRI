@@ -197,6 +197,7 @@ INPUTS:
   - $studyDate   : study date
   - $dbhr        : database handle reference
   - $objective   : the objective of the study
+  - $db          : database object
 
 RETURNS: the session ID of the visit
 
@@ -995,7 +996,7 @@ sub mapDicomParameters {
 }
 =pod
 
-=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new)
+=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new, $db)
 
 Finds the scanner ID for the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
@@ -1039,7 +1040,7 @@ sub findScannerID {
 
 =pod
 
-=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr)
+=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
 
 Registers the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
@@ -1052,7 +1053,7 @@ INPUTS:
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
-  - $db             : database obnject
+  - $db             : database object
 
 RETURNS: (int) scanner ID
 
@@ -1112,7 +1113,7 @@ sub createNewCandID {
 
 =pod
 
-=head3 getPSC($patientName, $dbhr)
+=head3 getPSC($patientName, $dbhr, $db)
 
 Looks for the site alias using the C<session> table C<CenterID> as 
 a first resource, for the cases where it is created using the front-end,
@@ -1122,6 +1123,7 @@ or C<patient_id>) is provided, and return the C<MRI_alias> and C<CenterID>.
 INPUTS:
   - $patientName: patient name
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
@@ -1134,6 +1136,7 @@ sub getPSC {
 
     my $subjectIDsref = Settings::getSubjectIDs(
                             $patientName,
+                            null,
                             null,
                             $dbhr,
                             $db
