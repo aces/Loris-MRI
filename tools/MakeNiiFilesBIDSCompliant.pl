@@ -399,7 +399,7 @@ QUERY
         # for example, task-rest for resting state fMRI
         # or task-memory for memory task fMRI
         # Exclude ASL as these are under 'func' for BIDS but will not have BIDSScanTypeSubCategory
-        if ($BIDSCategory eq 'func' && $BIDSScanType =~ m/asl/i) {
+        if ($BIDSCategory eq 'func' && $BIDSScanType !~ m/asl/i) {
             if ($BIDSSubCategory) {
                 $replace = $BIDSSubCategory . "_run-";
             }
@@ -545,7 +545,7 @@ QUERY
             } 
 
             # for fMRI, we need to add TaskName which is e.g task-rest in the case of resting-state fMRI
-            if ($BIDSCategory eq 'func') {
+            if ($BIDSCategory eq 'func' && $BIDSScanType !~ m/asl/i) {
                 $extraHeader = "TaskName";
                 $extraHeader =~ s/^\"+|\"$//g;
                 $extraHeaderVal = "rest";
