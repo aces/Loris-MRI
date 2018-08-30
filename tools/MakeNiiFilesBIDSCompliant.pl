@@ -152,7 +152,7 @@ if (-d  $destDir) {
         "and OVERWRITING EXISTING ONES*******\n";
 }
 else {
-    make_path(quotemeta($destDir));
+    make_path($destDir);
 }
 
 # Get the LORIS-MRI version number from the VERSION file
@@ -170,7 +170,7 @@ close($fh);
 my $dataDescFileName = "dataset_description.json";
 my $dataDescFile     = $destDir . "/" . $dataDescFileName;
 print "\n*******Creating the dataset description file $dataDescFile *******\n";
-open DATADESCINFO, ">$dataDescFile";
+open DATADESCINFO, ">$dataDescFile" or die "Can not write file $dataDescFile: $!\n";
 DATADESCINFO->autoflush(1);
 select(DATADESCINFO);
 select(STDOUT);
