@@ -1,5 +1,50 @@
 #! /usr/bin/perl
 
+=pod
+
+=head1 NAME
+
+MakeNIIFilesBIDSCompliant.pl -- a script that creates a BIDS compliant imaging
+dataset from the MINCs in the C<assembly/> directory
+
+=head1 SYNOPSIS
+
+perl imaging_upload_file.pl C<[options]>
+
+Available options are:
+
+-profile                : name of the config file in C<../dicom-archive/.loris_mri>
+
+-tarchive_id            : The ID of the DICOM archive to be converted into BIDS
+                        dataset (optional, if not set, convert all DICOM archives)
+
+-dataaset_name          : Name/Description of the dataset about to be generated
+                        in BIDS format; for example BIDS_First_Sample_Data. The
+                        BIDS data will be stored in a directory called the C<dataset_name>
+
+-slice_order_philips    : Philips scanners do not have the C<SliceOrder> in their
+                        DICOMs so provide it as an argument; C<ascending> or
+                        C<descending> is expected; otherwise, it will be logged
+                        in the JSON as C<Not Supplied>"
+
+-verbose                : if set, be verbose
+
+
+=head1 DESCRIPTION
+
+This **BETA** version script will create a BIDS compliant NII file structure of
+the MINC files currently present in the `assembly/` directory. If the argument
+`tarchive_id` is specified, only the images from that archive will be processed,
+otherwise, all files in `assembly/` will be included in the BIDS structure,
+while though all the 'tarchive_id`'s in the 'tarchive` table.
+
+Running this script requires JSON library for Perl.
+Run `sudo apt-get install libjson-perl` to get it.
+
+=head2 Methods
+
+=cut
+
 use strict;
 use warnings;
 use Getopt::Tabular;
@@ -194,13 +239,20 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 
 =pod
+
+=head3 getFileList($dbh, $dataDir, $givenTarchiveID)
+
 This function will grep all the C<TarchiveID> and associated C<ArchiveLocation>
 present in the C<tarchive> table and will create a hash of this information
-including new C<ArchiveLocation> to be inserted into the DB.
-Input:  - $dbh             = database handler
-        - $dataDir         = where the imaging files are located
-        - $givenTarchiveID = the C<TarchiveID> under consideration
-Output: - %file_list       = hash with files for a given C<TarchiveID>
+including new C<ArchiveLocation> to be inserted into the database.
+
+INPUTS:
+    - $dbh             : database handler
+    - $dataDir         : where the imaging files are located
+    - $givenTarchiveID : the C<TarchiveID> under consideration
+
+RETURNS:
+    - %file_list       : hash with files for a given C<TarchiveID>
 
 =cut
 
@@ -266,14 +318,19 @@ QUERY
 }
 
 =pod
+
+=head3 makeNIIAndHeader($dbh, %file_list)
+
 This function will make NIfTI files out of the MINC files and puts them in BIDS
 format.
 It also creates a .json file for each NIfTI file by getting the header values
 from the C<parameter_file> table. Header information is selected based on the
-BIDS document (http://bids.neuroimaging.io/bids_spec1.0.2.pdf ;
+BIDS document (http://bids.neuroimaging.io/bids_spec1.0.2.pdf;
 pages 14 through 17).
-Input:  - $dbh = database handler
-        - $file_list = hash with files' information.
+
+INPUTS:
+    - $dbh          : database handler
+    - $file_list    : hash with files' information.
 
 =cut
 
@@ -532,17 +589,23 @@ QUERY
 }
 
 =pod
-This function will create C<bval> and C<bvec> files from a DWI input file, in a BIDS
-compliant manner. The values (bval OR bvec) will be fetched from the database
-C<parameter_file> table.
-     &fetchBVAL_BVEC( $dbh, $bvFile, $fileID, $destDirFinal, @headerNameBVECDBArr);
-Input:  - $dbh = database handler
-        - $bvfile               = bval or bvec filename
-        - $nifti                = original NIfTI file
-        - $fileID               = ID of the file from the C<files> table
-        - $destDirFinal         = final directory destination for the file to be generated
-        - @headerNameBVECDBArr  = array for the names of the database parameter to be
-                                  fetched (bvalues for bval and x, y, z direction for bvec)
+
+=head3 fetchBVAL_BVEC($dbh, $bvFile, $fileID, $destDirFinal, @headerNameBVECDBArr)
+
+This function will create C<bval> and C<bvec> files from a DWI input file, in a
+BIDS compliant manner. The values (bval OR bvec) will be fetched from the
+database C<parameter_file> table.
+
+INPUTS:
+    - $dbh                  : database handler
+    - $bvfile               : bval or bvec filename
+    - $nifti                : original NIfTI file
+    - $fileID               : ID of the file from the C<files> table
+    - $destDirFinal         : final directory destination for the file to be
+                              generated
+    - @headerNameBVECDBArr  : array for the names of the database parameter to
+                              be fetched (bvalues for bval and x, y, z direction
+                              for bvec)
 
 =cut
 
@@ -592,8 +655,18 @@ QUERY
 }
 
 =pod
+
+=head3 fetchMincHeader($file,$field)
+
 This function parses the MINC header and looks for specific field's value.
 **This is a modified version of the function from register_processed_data.pl**
+
+INPUTS:
+  - $file : MINC file to get header value from
+  - $field: header to fetch value from
+
+RETURNS:
+  - $value : header value from C$field>
 
 =cut
 
@@ -609,6 +682,8 @@ sub fetchMincHeader {
     return  $value;
 }
 
+__END__
+
 =pod
 
 =head1 TO DO
@@ -621,7 +696,8 @@ per site basis.
 - Need to add to the multi-echo sequences a JSON file with the echo time within,
 as well as the originator NIfTI parent file. In addition, we need to check from
 the database if the sequence is indeed a multi-echo and require the
-C<BIDSMultiEcho> column set by the project in the C<BIDS_mri_scan_type_rel> table.
+C<BIDSMultiEcho> column set by the project in the C<BIDS_mri_scan_type_rel>
+table.
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -632,4 +708,3 @@ License: GPLv3
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
-
