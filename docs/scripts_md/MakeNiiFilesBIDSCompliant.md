@@ -27,11 +27,11 @@ Available options are:
 
 # DESCRIPTION
 
-This \*\*BETA\*\* version script will create a BIDS compliant NII file structure of
-the MINC files currently present in the \`assembly/\` directory. If the argument
-\`tarchive\_id\` is specified, only the images from that archive will be processed,
-otherwise, all files in \`assembly/\` will be included in the BIDS structure,
-while though all the 'tarchive\_id\`'s in the 'tarchive\` table.
+This \*\*BETA\*\* version script will create a BIDS compliant NIfTI file structure of
+the MINC files currently present in the \`assembly\` directory. If the argument
+\`tarchive\_id\` is specified, only the images from that archive will be processed.
+Otherwise, all files in \`assembly\` will be included in the BIDS structure,
+while looping though all the 'tarchive\_id\`'s in the 'tarchive\` table.
 
 Running this script requires JSON library for Perl.
 Run \`sudo apt-get install libjson-perl\` to get it.

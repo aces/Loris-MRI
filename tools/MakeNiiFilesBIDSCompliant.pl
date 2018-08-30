@@ -32,11 +32,11 @@ Available options are:
 
 =head1 DESCRIPTION
 
-This **BETA** version script will create a BIDS compliant NII file structure of
-the MINC files currently present in the `assembly/` directory. If the argument
-`tarchive_id` is specified, only the images from that archive will be processed,
-otherwise, all files in `assembly/` will be included in the BIDS structure,
-while though all the 'tarchive_id`'s in the 'tarchive` table.
+This **BETA** version script will create a BIDS compliant NIfTI file structure of
+the MINC files currently present in the `assembly` directory. If the argument
+`tarchive_id` is specified, only the images from that archive will be processed.
+Otherwise, all files in `assembly` will be included in the BIDS structure,
+while looping though all the 'tarchive_id`'s in the 'tarchive` table.
 
 Running this script requires JSON library for Perl.
 Run `sudo apt-get install libjson-perl` to get it.
@@ -83,10 +83,10 @@ my @opt_table = (
 my $Help = <<HELP;
 
 This **BETA** version script will create a BIDS compliant NII file structure of
-the MINC files currently present in the `assembly/` directory. If the argument
-`tarchive_id` is specified, only the images from that archive will be processed,
-otherwise, all files in `assembly/` will be included in the BIDS structure,
-while though all the 'tarchive_id`'s in the 'tarchive` table.
+the MINC files currently present in the `assembly` directory. If the argument
+`tarchive_id` is specified, only the images from that archive will be processed.
+Otherwise, all files in `assembly` will be included in the BIDS structure,
+while looping though all the 'tarchive_id`'s in the 'tarchive` table.
 
 Running this script requires JSON library for Perl.
 Run `sudo apt-get install libjson-perl` to get it.
@@ -123,7 +123,7 @@ if ( !@Settings::db ) {
 if ( !$datasetName ) {
     print $Help;
     print "$Usage\n\tERROR: The dataset name needs to be provided. "
-        . "it is required by BIDS specifications to populate the "
+        . "It is required by the BIDS specifications to populate the "
         . "dataset_description.json file \n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
@@ -142,9 +142,9 @@ $dataDir =~ s/\/$//g;
 $binDir  =~ s/\/$//g;
 
 # Make destination directory for the NIfTI files
-# same level as assembly/ directory but named as BIDS/
-my $destDir = $dataDir . "/BIDS";
-make_path($destDir) unless(-d  $destDir);
+# same level as assembly/ directory but named as BIDS_export/
+my $destDir = $dataDir . "/BIDS_export";
+make_path($destDir) unless(-d $destDir);
 # Append to the destination directory name
 $destDir = $destDir . "/" . $datasetName;
 if (-d  $destDir) {
@@ -155,7 +155,7 @@ else {
     make_path(quotemeta($destDir));
 }
 
-# Get the LORIS-MRI version number from the VERSON file
+# Get the LORIS-MRI version number from the VERSION file
 my $MRIVersion;
 my $versionFile = $binDir . '/VERSION';
 open(my $fh, '<', $versionFile) or die "cannot open file $versionFile";
@@ -194,7 +194,7 @@ if (!defined($tarchiveID)) {
 SELECT DISTINCT
   TarchiveID
 FROM
-  tarchive t
+  tarchive
 QUERY
     # Prepare and execute query
     $sth = $dbh->prepare($query);
@@ -205,7 +205,7 @@ else{
 SELECT DISTINCT
   TarchiveID
 FROM
-  tarchive t
+  tarchive
 WHERE
   TarchiveID = ?
 QUERY
@@ -216,7 +216,7 @@ QUERY
 while ( my $rowhr = $sth->fetchrow_hashref()) {
     my $givenTarchiveID = $rowhr->{'TarchiveID'};
     print "\n*******Currently creating a BIDS directory of NIfTI files for ".
-            "tarchiveID $givenTarchiveID********\n";
+            "TarchiveID $givenTarchiveID********\n";
 
     # Grep files list in a hash
     # If no TarchiveID is given loop through all
@@ -227,12 +227,12 @@ while ( my $rowhr = $sth->fetchrow_hashref()) {
     # Make NIfTI files and JSON headers out of those MINC
     &makeNIIAndHeader( $dbh, %file_list);
     if (defined($tarchiveID)) {
-        print "\nFinished tarchiveID $givenTarchiveID\n";
+        print "\nFinished processing TarchiveID $givenTarchiveID\n";
     }
 }
 
 if (!defined($tarchiveID)) {
-    print "\nFinished all Tarchives\n";
+    print "\nFinished processing all tarchives\n";
 }
 $dbh->disconnect();
 exit $NeuroDB::ExitCodes::SUCCESS;
@@ -298,19 +298,12 @@ QUERY
     my $i = 0;
     
     while ( my $rowhr = $sth->fetchrow_hashref()) {
-        my $fileID            = $rowhr->{'FileID'};
-        my $fileName          = $rowhr->{'File'};
-        my $fileAcqProtocolID = $rowhr->{'AcquisitionProtocolID'};
-        my $fileCandID        = $rowhr->{'CandID'};
-        my $fileSessionID     = $rowhr->{'SessionID'};
-        my $fileVisitLabel    = $rowhr->{'Visit_label'};
-    
-        $file_list{$i}{'fileID'}                = $fileID;
-        $file_list{$i}{'file'}                  = $fileName;
-        $file_list{$i}{'AcquisitionProtocolID'} = $fileAcqProtocolID;
-        $file_list{$i}{'candID'}                = $fileCandID;
-        $file_list{$i}{'sessionID'}             = $fileSessionID;
-        $file_list{$i}{'visitLabel'}            = $fileVisitLabel;
+        $file_list{$i}{'fileID'}                = $rowhr->{'FileID'};
+        $file_list{$i}{'file'}                  = $rowhr->{'File'};
+        $file_list{$i}{'AcquisitionProtocolID'} = $rowhr->{'AcquisitionProtocolID'};
+        $file_list{$i}{'candID'}                = $rowhr->{'CandID'};
+        $file_list{$i}{'sessionID'}             = $rowhr->{'SessionID'};
+        $file_list{$i}{'visitLabel'}            = $rowhr->{'Visit_label'};
         $i++;
     }
     return %file_list;
