@@ -358,6 +358,11 @@ QUERY
         my $sth = $dbh->prepare($query);
         $sth->execute($fileAcqProtocolID);
         my $rowhr               = $sth->fetchrow_hashref();
+        unless ($rowhr) {
+            print "$minc will not be converted into BIDS as no entries were found "
+                  . "in the BIDS_mri_scan_type_rel table for that scan type.\n";
+            next;
+        }
         $mriScanType            = $rowhr->{'Scan_type'};
         $BIDSCategory           = $rowhr->{'BIDSCategory'};
         $BIDSSubCategory        = $rowhr->{'BIDSScanTypeSubCategory'};
@@ -492,16 +497,12 @@ QUERY
                 $headerVal    =   &fetchMincHeader($mincFileName,$headerNameMINC);
                 # Some headers need to be explicitely converted to floats in Perl
                 # so json_encode does not add the double quotation around them
-                if (($headerNameMINC eq 'acquisition:repetition_time') ||
-                    ($headerNameMINC eq 'acquisition:echo_time') ||
-                    ($headerNameMINC eq 'acquisition:inversion_time') ||
-                    ($headerNameMINC eq 'dicom_0x0018:el_0x1314')) {
-                        $headerVal *= 1;
-                }
+                my @convertToFloat = [
+                    'acquisition:repetition_time', 'acquisition:echo_time',
+                    'acquisition:inversion_time',  'dicom_0x0018:el_0x1314'
+                ];
+                $headerVal *= 1 if ($headerVal && $headerNameMINC ~~ @convertToFloat);
 
-
-#                if (defined($headerVal) && ($headerVal ne '')) {
-#                if (defined($headerVal) && ($headerVal != '')) {
                 if (defined($headerVal)) {
                     $header_hash{$headerName} = $headerVal;
                         print "     $headerName was found for $mincFileName with value $headerVal\n" if $verbose;
@@ -531,8 +532,8 @@ QUERY
                     Logging in the JSON as 'Not Supplied' \n" if $verbose;
                 }
                 $header_hash{$extraHeader} = $extraHeaderVal;
-                    print "    $extraHeaderVal was added for Philips Scanners'
-                    $extraHeader \n" if $verbose;
+                print "    $extraHeaderVal was added for Philips Scanners'
+                $extraHeader \n" if $verbose;
             } else {
                 # get the SliceTiming from the proper header
                 # split on the ',', remove trailing '.' if exists, and add [] to make it a list
@@ -540,7 +541,7 @@ QUERY
                 $extraHeader    = "SliceTiming";
                 $headerVal      =  &fetchMincHeader($mincFileName,$headerNameMINC);
                 $headerVal = [map {1 * $_} split(",", $headerVal)];
-                    print "    SliceTiming $headerVal was added \n" if $verbose;
+                print "    SliceTiming $headerVal was added \n" if $verbose;
                 $header_hash{$extraHeader} = $headerVal;
             } 
 
