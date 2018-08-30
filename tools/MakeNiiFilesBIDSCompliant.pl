@@ -399,7 +399,7 @@ QUERY
         # for example, task-rest for resting state fMRI
         # or task-memory for memory task fMRI
         # Exclude ASL as these are under 'func' for BIDS but will not have BIDSScanTypeSubCategory
-        if ($BIDSCategory eq 'func' && $BIDSScanType =~ m/asl/i) {
+        if ($BIDSCategory eq 'func' && $BIDSScanType !~ m/asl/i) {
             if ($BIDSSubCategory) {
                 $replace = $BIDSSubCategory . "_run-";
             }
@@ -472,7 +472,7 @@ QUERY
             @headerNameArr = (
                 "RepetitionTime","Manufacturer",
                 "ManufacturerModelName","MagneticFieldStrength",
-                 "DeviceSerialNumber","SoftwareVersions",
+                "DeviceSerialNumber","SoftwareVersions",
                 "ReceiveCoilName","PulseSequenceType",
                 "EchoTime","InversionTime",
                 "FlipAngle", "InstitutionName",
@@ -540,18 +540,25 @@ QUERY
                 $extraHeader    = "SliceTiming";
                 $headerVal      =  &fetchMincHeader($mincFileName,$headerNameMINC);
                 $headerVal = [map {1 * $_} split(",", $headerVal)];
-                    print "    SliceTiming $headerVal was added \n" if $verbose;;
+                    print "    SliceTiming $headerVal was added \n" if $verbose;
                 $header_hash{$extraHeader} = $headerVal;
             } 
 
             # for fMRI, we need to add TaskName which is e.g task-rest in the case of resting-state fMRI
-            if ($BIDSCategory eq 'func') {
+            if ($BIDSCategory eq 'func' && $BIDSScanType !~ m/asl/i) {
                 $extraHeader = "TaskName";
                 $extraHeader =~ s/^\"+|\"$//g;
-                $extraHeaderVal = "rest";
+                # Assumes the SubCategory for funct BIDS categories in the BIDS
+                # database tables follow the naming convention
+                # `task-rest` or `task-memory`,
+                $extraHeaderVal = $BIDSSubCategory;
+                # so strip the `task-` part to get the TaskName
+                # $extraHeaderVal =~ s/^task-//;
+                # OR in general, strip everything up until and including the first hyphen
+                $extraHeaderVal =~ s/^[^-]+\-//;
                 $header_hash{$extraHeader} = $extraHeaderVal;
                     print "    TASKNAME added for bold: $extraHeader
-                    with value $extraHeaderVal\n" if $verbose;;
+                    with value $extraHeaderVal\n" if $verbose;
             }
             $currentHeaderJSON = encode_json \%header_hash;
             print HEADERINFO "$currentHeaderJSON";
