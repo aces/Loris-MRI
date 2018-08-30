@@ -91,7 +91,7 @@ while looping though all the 'tarchive_id`'s in the 'tarchive` table.
 Running this script requires JSON library for Perl.
 Run `sudo apt-get install libjson-perl` to get it.
 
-Documentation: perldoc MakeNIIFilesBIDSCompliant.pl
+Documentation: perldoc tools/MakeNIIFilesBIDSCompliant.pl
 
 HELP
 
