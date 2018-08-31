@@ -18,7 +18,7 @@ Available options are:
 -tarchive_id            : The ID of the DICOM archive to be converted into BIDS
                         dataset (optional, if not set, convert all DICOM archives)
 
--dataaset_name          : Name/Description of the dataset about to be generated
+-dataset_name           : Name/Description of the dataset about to be generated
                         in BIDS format; for example BIDS_First_Sample_Data. The
                         BIDS data will be stored in a directory called the C<dataset_name>
 
@@ -43,7 +43,7 @@ be populated and customized as per the project acquisitions. Keep the following
 restrictions/expectations in mind when populating the two database tables.
 
 C<bids_category> will house the different imaging "categories" which a default
-install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries cna be
+install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries can be
 added as more imaging categories are supported by the BIDS standards.
 
 For the C<bids_mri_scan_type_rel> table, functional modalities such as
@@ -114,7 +114,7 @@ be populated and customized as per the project acquisitions. Keep the following
 restrictions/expectations in mind when populating the two database tables.
 
 C<bids_category> will house the different imaging "categories" which a default
-install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries cna be
+install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries can be
 added as more imaging categories are supported by the BIDS standards.
 
 For the C<bids_mri_scan_type_rel> table, functional modalities such as
@@ -289,11 +289,13 @@ present in the C<tarchive> table and will create a hash of this information
 including new C<ArchiveLocation> to be inserted into the database.
 
 INPUTS:
+
     - $dbh             : database handler
     - $dataDir         : where the imaging files are located
     - $givenTarchiveID : the C<TarchiveID> under consideration
 
 RETURNS:
+
     - %file_list       : hash with files for a given C<TarchiveID>
 
 =cut
@@ -364,6 +366,7 @@ BIDS document (http://bids.neuroimaging.io/bids_spec1.0.2.pdf;
 pages 14 through 17).
 
 INPUTS:
+
     - $dbh          : database handler
     - $file_list    : hash with files' information.
 
@@ -653,6 +656,7 @@ BIDS compliant manner. The values (bval OR bvec) will be fetched from the
 database C<parameter_file> table.
 
 INPUTS:
+
     - $dbh                  : database handler
     - $bvfile               : bval or bvec filename
     - $nifti                : original NIfTI file
@@ -718,10 +722,12 @@ This function parses the MINC header and looks for specific field's value.
 **This is a modified version of the function from register_processed_data.pl**
 
 INPUTS:
+
   - $file : MINC file to get header value from
   - $field: header to fetch value from
 
 RETURNS:
+
   - $value : header value from C$field>
 
 =cut
@@ -744,16 +750,16 @@ __END__
 
 =head1 TO DO
 
-- Make the SliceOrder, which is currently an argument at the command line,
-more robust (such as making it adaptable across manufacturers that might not
-have this header present in the DICOMs, not just Philips like is currently the
-case in this script. In addition, this variable can/should be defined on a site
-per site basis.
-- Need to add to the multi-echo sequences a JSON file with the echo time within,
-as well as the originator NIfTI parent file. In addition, we need to check from
-the database if the sequence is indeed a multi-echo and require the
-C<BIDSMultiEcho> column set by the project in the C<bids_mri_scan_type_rel>
-table.
+    - Make the SliceOrder, which is currently an argument at the command line,
+    more robust (such as making it adaptable across manufacturers that might not
+    have this header present in the DICOMs, not just Philips like is currently the
+    case in this script. In addition, this variable can/should be defined on a site
+    per site basis.
+    - Need to add to the multi-echo sequences a JSON file with the echo time within,
+    as well as the originator NIfTI parent file. In addition, we need to check from
+    the database if the sequence is indeed a multi-echo and require the
+    C<BIDSMultiEcho> column set by the project in the C<bids_mri_scan_type_rel>
+    table.
 
 =head1 COPYRIGHT AND LICENSE
 
