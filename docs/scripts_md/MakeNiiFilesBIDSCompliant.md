@@ -33,6 +33,27 @@ the MINC files currently present in the \`assembly\` directory. If the argument
 Otherwise, all files in \`assembly\` will be included in the BIDS structure,
 while looping though all the 'tarchive\_id\`'s in the 'tarchive\` table.
 
+he script expects the tables `bids_category` and `bids_mri_scan_type_rel` to
+be populated and customized as per the project acquisitions. Keep the following
+restrictions/expectations in mind when populating the two database tables.
+
+`bids_category` will house the different imaging "categories" which a default
+install would set to `anat`, `func`, `dwi`, and `fmap`. More entries cna be
+added as more imaging categories are supported by the BIDS standards.
+
+For the `bids_mri_scan_type_rel` table, functional modalities such as
+resting-state fMRI and task fMRI expect their BIDSScanTypeSubCategory column be
+filled as follows: a hyphen concatenated string, with the first part describing
+the BIDS imaging sub-category, "task" as an example here, and the second
+describing this sub-category, "rest" or "memory" as an example. Note that the
+second part after the hyphen is used in the JSON file for the header "TaskName".
+Multi-echo sequences would be expected to see their `BIDSMultiEcho` column
+filled with "echo-1", "echo-2", etc...
+
+Filling out these values properly as outlined in this description is mandatory
+as these values will be used to rename the NIfTI file, as per the BIDS
+requirements.
+
 Running this script requires JSON library for Perl.
 Run \`sudo apt-get install libjson-perl\` to get it.
 
@@ -104,7 +125,7 @@ per site basis.
 \- Need to add to the multi-echo sequences a JSON file with the echo time within,
 as well as the originator NIfTI parent file. In addition, we need to check from
 the database if the sequence is indeed a multi-echo and require the
-`BIDSMultiEcho` column set by the project in the `BIDS_mri_scan_type_rel`
+`BIDSMultiEcho` column set by the project in the `bids_mri_scan_type_rel`
 table.
 
 # COPYRIGHT AND LICENSE

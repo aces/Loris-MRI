@@ -38,6 +38,27 @@ the MINC files currently present in the `assembly` directory. If the argument
 Otherwise, all files in `assembly` will be included in the BIDS structure,
 while looping though all the 'tarchive_id`'s in the 'tarchive` table.
 
+he script expects the tables C<bids_category> and C<bids_mri_scan_type_rel> to
+be populated and customized as per the project acquisitions. Keep the following
+restrictions/expectations in mind when populating the two database tables.
+
+C<bids_category> will house the different imaging "categories" which a default
+install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries cna be
+added as more imaging categories are supported by the BIDS standards.
+
+For the C<bids_mri_scan_type_rel> table, functional modalities such as
+resting-state fMRI and task fMRI expect their BIDSScanTypeSubCategory column be
+filled as follows: a hyphen concatenated string, with the first part describing
+the BIDS imaging sub-category, "task" as an example here, and the second
+describing this sub-category, "rest" or "memory" as an example. Note that the
+second part after the hyphen is used in the JSON file for the header "TaskName".
+Multi-echo sequences would be expected to see their C<BIDSMultiEcho> column
+filled with "echo-1", "echo-2", etc...
+
+Filling out these values properly as outlined in this description is mandatory
+as these values will be used to rename the NIfTI file, as per the BIDS
+requirements.
+
 Running this script requires JSON library for Perl.
 Run `sudo apt-get install libjson-perl` to get it.
 
@@ -56,8 +77,8 @@ use JSON;
 
 my $profile             = undef;
 my $tarchiveID          = undef;
-my $BIDSVersion         = "1.1.1";
-my $LORISScriptVersion  = "0.1"; # Still a Beta version
+my $BIDSVersion         = "1.1.1 & BEP0001";
+my $LORISScriptVersion  = "0.1"; # Still a BETA version
 my $datasetName         = undef;
 my $sliceOrderPhilips   = "Not Supplied";
 my $verbose             = 0;
@@ -87,6 +108,27 @@ the MINC files currently present in the `assembly` directory. If the argument
 `tarchive_id` is specified, only the images from that archive will be processed.
 Otherwise, all files in `assembly` will be included in the BIDS structure,
 while looping though all the 'tarchive_id`'s in the 'tarchive` table.
+
+The script expects the tables C<bids_category> and C<bids_mri_scan_type_rel> to
+be populated and customized as per the project acquisitions. Keep the following
+restrictions/expectations in mind when populating the two database tables.
+
+C<bids_category> will house the different imaging "categories" which a default
+install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries cna be
+added as more imaging categories are supported by the BIDS standards.
+
+For the C<bids_mri_scan_type_rel> table, functional modalities such as
+resting-state fMRI and task fMRI expect their BIDSScanTypeSubCategory column be
+filled as follows: a hyphen concatenated string, with the first part describing
+the BIDS imaging sub-category, "task" as an example here, and the second
+describing this sub-category, "rest" or "memory" as an example. Note that the
+second part after the hyphen is used in the JSON file for the header "TaskName".
+Multi-echo sequences would be expected to see their C<BIDSMultiEcho> column
+filled with "echo-1", "echo-2", etc...
+
+Filling out these values properly as outlined in this description is mandatory
+as these values will be used to rename the NIfTI file, as per the BIDS
+requirements.
 
 Running this script requires JSON library for Perl.
 Run `sudo apt-get install libjson-perl` to get it.
@@ -348,7 +390,7 @@ SELECT
   bmstr.BIDSMultiEcho,
   mst.Scan_type
 FROM
-  BIDS_mri_scan_type_rel bmstr
+  bids_mri_scan_type_rel bmstr
 JOIN
   mri_scan_type mst ON mst.ID = bmstr.MRIScanTypeID
 WHERE
@@ -360,7 +402,7 @@ QUERY
         my $rowhr               = $sth->fetchrow_hashref();
         unless ($rowhr) {
             print "$minc will not be converted into BIDS as no entries were found "
-                  . "in the BIDS_mri_scan_type_rel table for that scan type.\n";
+                  . "in the bids_mri_scan_type_rel table for that scan type.\n";
             next;
         }
         $mriScanType            = $rowhr->{'Scan_type'};
@@ -540,8 +582,19 @@ QUERY
                 $headerNameMINC = 'dicom_0x0019:el_0x1029';
                 $extraHeader    = "SliceTiming";
                 $headerVal      =  &fetchMincHeader($mincFileName,$headerNameMINC);
-                $headerVal = [map {1 * $_} split(",", $headerVal)];
-                print "    SliceTiming $headerVal was added \n" if $verbose;
+                # Some earlier dcm2mnc converters created SliceTiming with values
+                # such as 0b, -91b, -5b, etc... so those MINC headers with `b`
+                # in them, do not report, just report that is it not supplied
+                # due likely to a dcm2mnc error
+                # print this message, even if NOT in verbose mode to let the user know
+                if ($headerVal =~ m/b/ ) {
+                    $headerVal = "not supplied as the values read from the MINC header seem erroneous, due most likely to a dcm2mnc conversion problem";
+                    print "    SliceTiming is " .  $headerVal . "\n";
+                }
+                else {
+                    $headerVal = [ map {1 * $_} split(",", $headerVal) ];
+                    print "    SliceTiming $headerVal was added \n" if $verbose;
+                }
                 $header_hash{$extraHeader} = $headerVal;
             } 
 
@@ -699,7 +752,7 @@ per site basis.
 - Need to add to the multi-echo sequences a JSON file with the echo time within,
 as well as the originator NIfTI parent file. In addition, we need to check from
 the database if the sequence is indeed a multi-echo and require the
-C<BIDSMultiEcho> column set by the project in the C<BIDS_mri_scan_type_rel>
+C<BIDSMultiEcho> column set by the project in the C<bids_mri_scan_type_rel>
 table.
 
 =head1 COPYRIGHT AND LICENSE
