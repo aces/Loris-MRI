@@ -28,12 +28,13 @@ Available options are:
 # DESCRIPTION
 
 This \*\*BETA\*\* version script will create a BIDS compliant NIfTI file structure of
-the MINC files currently present in the \`assembly\` directory. If the argument
-\`tarchive\_id\` is specified, only the images from that archive will be processed.
-Otherwise, all files in \`assembly\` will be included in the BIDS structure,
-while looping though all the 'tarchive\_id\`'s in the 'tarchive\` table.
+the MINC files currently present in the `assembly` directory. If the argument
+`tarchive_id` is specified, only the images from that archive will be
+processed. Otherwise, all files in `assembly` will be included in the BIDS
+structure, while looping though all the `tarchive_id`'s in the `tarchive`
+table.
 
-he script expects the tables `bids_category` and `bids_mri_scan_type_rel` to
+The script expects the tables `bids_category` and `bids_mri_scan_type_rel` to
 be populated and customized as per the project acquisitions. Keep the following
 restrictions/expectations in mind when populating the two database tables.
 
@@ -55,7 +56,7 @@ as these values will be used to rename the NIfTI file, as per the BIDS
 requirements.
 
 Running this script requires JSON library for Perl.
-Run \`sudo apt-get install libjson-perl\` to get it.
+Run `sudo apt-get install libjson-perl` to get it.
 
 ## Methods
 
@@ -66,14 +67,12 @@ present in the `tarchive` table and will create a hash of this information
 including new `ArchiveLocation` to be inserted into the database.
 
 INPUTS:
-
     - $dbh             : database handler
     - $dataDir         : where the imaging files are located
-    - $givenTarchiveID : the C<TarchiveID> under consideration
+    - $givenTarchiveID : the `TarchiveID` under consideration
 
 RETURNS:
-
-    - %file_list       : hash with files for a given C<TarchiveID>
+    - %file\_list       : hash with files for a given `TarchiveID`
 
 ### makeNIIAndHeader($dbh, %file\_list)
 
@@ -81,13 +80,13 @@ This function will make NIfTI files out of the MINC files and puts them in BIDS
 format.
 It also creates a .json file for each NIfTI file by getting the header values
 from the `parameter_file` table. Header information is selected based on the
-BIDS document (http://bids.neuroimaging.io/bids\_spec1.0.2.pdf;
-pages 14 through 17).
+BIDS document (
+[BIDS specifications](http://bids.neuroimaging.io/bids_spec1.0.2.pdf); page
+14 through 17).
 
 INPUTS:
-
     - $dbh          : database handler
-    - $file_list    : hash with files' information.
+    - $file\_list    : hash with files' information.
 
 ### fetchBVAL\_BVEC($dbh, $bvFile, $fileID, $destDirFinal, @headerNameBVECDBArr)
 
@@ -96,11 +95,10 @@ BIDS compliant manner. The values (bval OR bvec) will be fetched from the
 database `parameter_file` table.
 
 INPUTS:
-
     - $dbh                  : database handler
     - $bvfile               : bval or bvec filename
     - $nifti                : original NIfTI file
-    - $fileID               : ID of the file from the C<files> table
+    - $fileID               : ID of the file from the `files` table
     - $destDirFinal         : final directory destination for the file to be
                               generated
     - @headerNameBVECDBArr  : array for the names of the database parameter to
@@ -110,16 +108,14 @@ INPUTS:
 ### fetchMincHeader($file,$field)
 
 This function parses the MINC header and looks for specific field's value.
-\*\*This is a modified version of the function from register\_processed\_data.pl\*\*
+NOTE: This is a modified version of the function from register\_processed\_data.pl
 
 INPUTS:
-
-    - $file : MINC file to get header value from
-    - $field: header to fetch value from
+  - $file : MINC file to get header value from
+  - $field: header to fetch value from
 
 RETURNS:
-
-    - $value : header value from C$field>
+  - $value : header value from C$field>
 
 # TO DO
 

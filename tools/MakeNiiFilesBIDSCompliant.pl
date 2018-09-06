@@ -33,12 +33,13 @@ Available options are:
 =head1 DESCRIPTION
 
 This **BETA** version script will create a BIDS compliant NIfTI file structure of
-the MINC files currently present in the `assembly` directory. If the argument
-`tarchive_id` is specified, only the images from that archive will be processed.
-Otherwise, all files in `assembly` will be included in the BIDS structure,
-while looping though all the 'tarchive_id`'s in the 'tarchive` table.
+the MINC files currently present in the C<assembly> directory. If the argument
+C<tarchive_id> is specified, only the images from that archive will be
+processed. Otherwise, all files in C<assembly> will be included in the BIDS
+structure, while looping though all the C<tarchive_id>'s in the C<tarchive>
+table.
 
-he script expects the tables C<bids_category> and C<bids_mri_scan_type_rel> to
+The script expects the tables C<bids_category> and C<bids_mri_scan_type_rel> to
 be populated and customized as per the project acquisitions. Keep the following
 restrictions/expectations in mind when populating the two database tables.
 
@@ -60,7 +61,7 @@ as these values will be used to rename the NIfTI file, as per the BIDS
 requirements.
 
 Running this script requires JSON library for Perl.
-Run `sudo apt-get install libjson-perl` to get it.
+Run C<sudo apt-get install libjson-perl> to get it.
 
 =head2 Methods
 
@@ -104,10 +105,10 @@ my @opt_table = (
 my $Help = <<HELP;
 
 This **BETA** version script will create a BIDS compliant NII file structure of
-the MINC files currently present in the `assembly` directory. If the argument
-`tarchive_id` is specified, only the images from that archive will be processed.
-Otherwise, all files in `assembly` will be included in the BIDS structure,
-while looping though all the 'tarchive_id`'s in the 'tarchive` table.
+the MINC files currently present in the assembly directory. If the argument
+tarchive_id is specified, only the images from that archive will be processed.
+Otherwise, all files in assembly will be included in the BIDS structure,
+while looping though all the tarchive_id's in the tarchive table.
 
 The script expects the tables C<bids_category> and C<bids_mri_scan_type_rel> to
 be populated and customized as per the project acquisitions. Keep the following
@@ -131,7 +132,7 @@ as these values will be used to rename the NIfTI file, as per the BIDS
 requirements.
 
 Running this script requires JSON library for Perl.
-Run `sudo apt-get install libjson-perl` to get it.
+Run sudo apt-get install libjson-perl to get it.
 
 Documentation: perldoc tools/MakeNIIFilesBIDSCompliant.pl
 
@@ -289,13 +290,11 @@ present in the C<tarchive> table and will create a hash of this information
 including new C<ArchiveLocation> to be inserted into the database.
 
 INPUTS:
-
     - $dbh             : database handler
     - $dataDir         : where the imaging files are located
     - $givenTarchiveID : the C<TarchiveID> under consideration
 
 RETURNS:
-
     - %file_list       : hash with files for a given C<TarchiveID>
 
 =cut
@@ -362,11 +361,11 @@ This function will make NIfTI files out of the MINC files and puts them in BIDS
 format.
 It also creates a .json file for each NIfTI file by getting the header values
 from the C<parameter_file> table. Header information is selected based on the
-BIDS document (http://bids.neuroimaging.io/bids_spec1.0.2.pdf;
-pages 14 through 17).
+BIDS document (
+L<BIDS specifications|http://bids.neuroimaging.io/bids_spec1.0.2.pdf>; page
+14 through 17).
 
 INPUTS:
-
     - $dbh          : database handler
     - $file_list    : hash with files' information.
 
@@ -656,7 +655,6 @@ BIDS compliant manner. The values (bval OR bvec) will be fetched from the
 database C<parameter_file> table.
 
 INPUTS:
-
     - $dbh                  : database handler
     - $bvfile               : bval or bvec filename
     - $nifti                : original NIfTI file
@@ -719,15 +717,13 @@ QUERY
 =head3 fetchMincHeader($file,$field)
 
 This function parses the MINC header and looks for specific field's value.
-**This is a modified version of the function from register_processed_data.pl**
+NOTE: This is a modified version of the function from register_processed_data.pl
 
 INPUTS:
-
   - $file : MINC file to get header value from
   - $field: header to fetch value from
 
 RETURNS:
-
   - $value : header value from C$field>
 
 =cut
