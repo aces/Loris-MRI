@@ -80,8 +80,8 @@ This function will make NIfTI files out of the MINC files and puts them in BIDS
 format.
 It also creates a .json file for each NIfTI file by getting the header values
 from the `parameter_file` table. Header information is selected based on the
-BIDS document (
-[BIDS specifications](http://bids.neuroimaging.io/bids_spec1.0.2.pdf); page
+BIDS document
+([BIDS specifications](http://bids.neuroimaging.io/bids_spec1.0.2.pdf); page
 14 through 17).
 
 INPUTS:
