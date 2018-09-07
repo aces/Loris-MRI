@@ -454,5 +454,16 @@ entry will be inserted in this table. This table is linked to the
 ![PhysiologicalTaskTables](images/PhysiologicalTaskTables.png)
 
 
+### 3.2.2.5 The `physiological_archive` table
+
+The `physiological_archive` table will contain the path to the archive of all BIDS 
+files for a given physiological file (including the electrode.tsv, channel.tsv and 
+event.tsv files that comes with the electrophysiological recording). It was decided
+to create an archive of those files for easier download directly from the View 
+Session page of the Electrophysiological Browser module. This table is linked to the
+`physiological_file` table via the `PhysiologicalFileID` foreign key.
+
+![PhysiologicalArchiveTable](images/PhysiologicalArchiveTable.png)
+
 
 [1]: http://bids.neuroimaging.io/bids_spec.pdf
