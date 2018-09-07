@@ -16,6 +16,7 @@ The root directory of the imaging part of a LORIS instance is typically
         |   |__ mri
         |__ data
             |__ assembly
+            |__ bids_imports
             |__ batch_output
             |__ logs
                 |__ DTIPrep_pipeline*
@@ -77,6 +78,25 @@ Incoming scans from the Imaging uploader module (or automatic cron jobs) are
   stored in an `incoming` directory. Once the pipeline has successfully run,
   data in the incoming folder are removed to avoid duplication of raw imaging
   datasets.
+  
+  
+#### The `bids_imports` directory
+
+Every BIDS data structure imported into LORIS will be stored in the 
+`bids_imports` directory. Within that directory, each imported BIDS structure 
+will be contained into a sub-directory that will be named based on the 
+following information:
+- the "Name" field of the `dataset_description.json` BIDS file (for example 
+"Example BIDS Dataset")
+- the "BIDSVersion" field of the `dataset_description.json` BIDS file (for 
+example "1.0.2")
+For the example mentioned here, the sub-directory would be named: 
+`Example_BIDS_Dataset_BIDSVersion_1.0.2` (Note how spaces present in the 
+"Name" field were replaced by underscores in the sub-directory name)
+
+Within that BIDS sub-directory, the file system structure will follow the 
+[BIDS specification][1].
+
   
   
 #### The `logs` directory
@@ -189,7 +209,9 @@ The database infrastructure is divided in six main components based on the
 ![overall_DB_structure](images/overall_DB_structure.png)
 
 
-### 3.2.1 MRI upload table
+### 3.2.1 Database infrastructure for the MRI/PET insertion pipeline
+
+#### 3.2.1.1 MRI upload table
 
 Summary information about the imaging upload status can be found in the 
   `mri_upload` table. This includes links to the DICOM archive tables (described 
@@ -200,7 +222,7 @@ Summary information about the imaging upload status can be found in the
 ![mri_upload_tables](images/mri_upload_tables.png)
 
 
-### 3.2.2 Tarchive tables
+#### 3.2.1.2 Tarchive tables
 
 The first step to insert a new imaging session into the database is the 
   insertion of the DICOM study. In the database, all information related to a
@@ -232,7 +254,7 @@ Note: the `SessionID` field of the `tarchive` table is populated once at least
   described in 3.2.3.
 
 
-### 3.2.3 Files tables
+#### 3.2.1.2 Files tables
 
 The second step to insert a new imaging session into the database is the 
   conversion of the DICOM study into the MINC files that will be inserted based 
@@ -284,7 +306,7 @@ Once an image has been inserted into the database, it is possible to view it
   directly via the _Imaging Browser_ module under the _Imaging_ menu. 
 
 
-### 3.2.4 MRI violation tables
+#### 3.2.1.4 MRI violation tables
 
 In the event a scan does not match any of the protocol mentioned in the 
   `mri_protocol` table, LORIS automatically flags it as a violated scan.
@@ -317,7 +339,7 @@ In the event a scan does not match any of the protocol mentioned in the
  
 ![violated_tables](images/violated_tables.png)
 
-### 3.2.5 Quality Control (QC) tables
+#### 3.2.1.5 Quality Control (QC) tables
 
 In the _Imaging Browser_ module, it is possible to view the images via
   _BrainBrowser_ and directly perform quality control of the images. The quality
@@ -336,7 +358,7 @@ In the _Imaging Browser_ module, it is possible to view the images via
 ![qc_tables](images/QC_tables.png)
 
 
-### 3.2.6 Processed data tables
+#### 3.2.1.6 Processed data tables
 
 Any native scan inserted into the `files` table can be processed and the output
   of this processing can be inserted into the database and linked to the native
@@ -357,3 +379,80 @@ Any native scan inserted into the `files` table can be processed and the output
       to the `type` field of the `ImagingFileTypes` table.
   
 ![processed_tables](images/Processed_data_tables.png)
+
+
+### 3.2.2 Database infrastructure for the electrophysiology insertion pipeline
+
+The database infrastructure for the electrophysiology data is composed of 
+five main tables: 
+- `physiological_file` and `physiological_parameter_file`: contain information 
+specific to the electrophysiology file and a link to the `session` table
+- `physiological_channel`: contains information regarding the channels used 
+to record the electrophysiology data if any provided in the BIDS structure
+- `physiological_electrode`: contains information regarding the electrodes 
+used to record the electrophysiology data if any provided in the BIDS structure
+- `physiological_task_event`: contains information about the task events that 
+were used during the recording if any task was used in the paradigm
+
+![OverallPhysiologicalTables](images/OverallPhysiologicalTables.png)
+
+
+### 3.2.2.1 The `physiological_file` and `physiological_parameter_file` tables
+
+These two tables regroups information about the electrophysiology files. 
+Typically, the `physiology_file` will store one recording per row linking it 
+to the `session` table. This table is also linked to the following tables 
+using the `PhysiologicalFileID` key:
+- `physiological_modality`: storing information about the recording modality 
+(*e.g.* 'eeg', 'meg', 'ieeg'...)
+- `physiological_output_type`: storing information about the BIDS output type 
+(*e.g.* 'raw' or 'derivatives')
+- `ImagingFileType`: storing the file type of the electrophysiology recording
+ (*e.g.* 'set', 'bdf', 'cnt', 'edf', 'vhdr', 'vsm'...)
+- `physiological_parameter_file`: containing all the information stored in the 
+BIDS JSON sidecar file of the electrophysiology recording
+
+![PhysiologicalMainTables](images/PhysiologicalMainTables.png)
+
+
+### 3.2.2.2 The `physiological_channel` tables
+
+The `physiological_channel` table is populated using data from the 
+`*_channels.tsv` BIDS file when present with the electrophysiology recording. 
+If the `*_channels.tsv` file is not present in the BIDS dataset, then no 
+entry will be inserted in this table. This table is linked to the 
+`physiological_file` table via the `PhysiologicalFileID` foreign key. In 
+additional, `physiological_channel` is link to the following tables:
+- `physiological_status_type`: this table contains two entries specifying the 
+channel status ('good' and 'bad')
+- `physiological_channel_type`: this contains information about the channel 
+type that was used during the recording (*e.g.* 'EEG', 'ECG', 'MEGMAG', 'ECOG'
+...) along with their description 
+
+![PhysiologicalChannelTables](images/PhysiologicalChannelTables.png)
+
+
+### 3.2.2.3 The `physiological_electrode` table
+
+The `physiological_electrode` table is populated using data from the 
+`*_electrodes.tsv` BIDS file when present with the electrophysiology recording. 
+If the `*_electrodes.tsv` file is not present in the BIDS dataset, then no 
+entry will be inserted in this table. This table is linked to the 
+`physiological_file` table via the `PhysiologicalFileID` foreign key.
+
+![PhysiologicalElectrodeTables](images/PhysiologicalElectrodeTables.png)
+
+
+### 3.2.2.4 The `physiological_task_event` table
+
+The `physiological_task_event` table is populated using data from the 
+`*_events.tsv` BIDS file when present with the electrophysiology recording. 
+If the `*_events.tsv` file is not present in the BIDS dataset, then no 
+entry will be inserted in this table. This table is linked to the 
+`physiological_file` table via the `PhysiologicalFileID` foreign key.
+
+![PhysiologicalTaskTables](images/PhysiologicalTaskTables.png)
+
+
+
+[1]: http://bids.neuroimaging.io/bids_spec.pdf
