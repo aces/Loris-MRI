@@ -1,15 +1,21 @@
 #!/usr/bin/env python
 
+"""Script to import BIDS structure into LORIS."""
+
 import os
 import sys
 import getopt
 import lib.exitcode
 import lib.utilities
-from lib.database  import Database
-from lib.candidate import Candidate
+from lib.database   import Database
+from lib.candidate  import Candidate
 from lib.bidsreader import BidsReader
-from lib.session   import Session
-from lib.eeg import Eeg
+from lib.session    import Session
+from lib.eeg        import Eeg
+
+
+__license__ = "GPLv3"
+
 
 sys.path.append('/home/user/python')
 
@@ -18,7 +24,6 @@ sys.path.append('/home/user/python')
 #sys.tracebacklimit = 0
 
 def main():
-
     bids_dir    = ''
     verbose     = False
     createcand  = False

@@ -1,3 +1,5 @@
+"""Deals with EEG BIDS datasets and register them into the database."""
+
 import os
 import json
 import time
@@ -14,11 +16,90 @@ from lib.physiological import Physiological
 from lib.bidsreader    import BidsReader
 
 
+__license__ = "GPLv3"
+
+
 class Eeg:
+    """
+    This class reads the BIDS EEG data structure and register the EEG datasets
+    into the database by calling the lib.physiological class.
+
+    :Example:
+
+        from lib.bidsreader import BidsReader
+        from lib.eeg        import Eeg
+        from lib.database   import Database
+
+        # database connection
+        db = Database(config_file.mysql, verbose)
+        db.connect()
+
+        # grep config settings from the Config module
+        default_bids_vl = db.get_config('default_bids_vl')
+        data_dir        = db.get_config('dataDirBasepath')
+
+        # load the BIDS directory
+        bids_reader = BidsReader(bids_dir)
+
+        # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
+        loris_bids_root_dir = create_loris_bids_directory(
+            bids_reader, data_dir, verbose
+        )
+        for row in bids_reader.cand_session_modalities_list:
+            for modality in row['modalities']:
+                if modality == 'eeg':
+                    bids_session = row['bids_ses_id']
+                    visit_label = bids_session if bids_session else default_bids_vl
+                    loris_bids_eeg_rel_dir = "sub-" + row['bids_sub_id'] + "/" + \
+                                             "ses-" + visit_label + "/eeg/"
+                    lib.utilities.create_dir(
+                        loris_bids_root_dir + loris_bids_eeg_rel_dir, verbose
+                    )
+                    Eeg(
+                        bids_reader   = bids_reader,
+                        bids_sub_id   = row['bids_sub_id'],
+                        bids_ses_id   = row['bids_ses_id'],
+                        bids_modality = modality,
+                        db            = db,
+                        verbose       = verbose,
+                        data_dir      = data_dir,
+                        default_visit_label    = default_bids_vl,
+                        loris_bids_eeg_rel_dir = loris_bids_eeg_rel_dir,
+                        loris_bids_root_dir    = loris_bids_root_dir
+                    )
+
+        # disconnect from the database
+        db.disconnect()
+    """
 
     def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
                  verbose, data_dir, default_visit_label,
                  loris_bids_eeg_rel_dir, loris_bids_root_dir):
+        """
+        Constructor method for the Eeg class.
+
+        :param bids_reader  : dictionary with BIDS reader information
+         :type bids_reader  : dict
+        :param bids_sub_id  : BIDS subject ID (that will be used as PSCID)
+         :type bids_sub_id  : str
+        :param bids_ses_id  : BIDS session ID (that will be used for the visit label)
+         :type bids_ses_id  : str
+        :param bids_modality: BIDS modality (a.k.a. EEG)
+         :tyoe bids_modality: str
+        :param db           : Database class object
+         :type db           : object
+        :param verbose      : whether to be verbose
+         :type verbose      : bool
+        :param data_dir     : LORIS data directory path (usually /data/PROJECT/data)
+         :type data_dir     : str
+        :param default_visit_label   : default visit label to be used if no BIDS
+                                       session are present in the BIDS structure
+         :type default_visit_label   : str
+        :param loris_bids_eeg_rel_dir: LORIS BIDS EEG relative dir path to data_dir
+         :type loris_bids_eeg_rel_dir: str
+        :param loris_bids_root_dir   : LORIS BIDS root directory path
+         :type loris_bids_root_dir   : str
+        """
 
         # load bids objects
         self.bids_reader   = bids_reader

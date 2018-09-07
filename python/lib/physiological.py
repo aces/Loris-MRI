@@ -1,10 +1,58 @@
+"""This class performs database queries for BIDS physiological dataset (EEG, MEG...)
+"""
+
 import time
 import sys
 
 
+__license__ = "GPLv3"
+
+
 class Physiological:
+    """
+    This class performs database queries for BIDS physiological dataset (EEG,
+    MEG...).
+
+    :Example:
+
+        from lib.physiological import Physiological
+        from lib.database      import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        physiological = Physiological(db, verbose)
+
+        # Get file type for the physiological file
+        file_type = physiological.get_file_type(eeg_file)
+
+        # get output type ID for the physiological file
+        output_type = physiological.get_output_type_id(derivatives)
+
+        # grep a PhysiologicalFileID based on a blake2b hash
+        file_id = physiological.grep_file_id_from_hash(blake2)
+
+        # grep the modality ID for a BIDS modality
+        modality_id = physiological.get_modality(bids_modality)
+
+        # insert electrode file into physiological_electrode
+        physiological.insert_electrode_file(
+            electrode_data, electrode_path, physiological_file_id, blake2
+        )
+
+        ...
+    """
 
     def __init__(self, db, verbose):
+        """
+        Constructor method for the Physiological class.
+
+        :param db     : Database class object
+         :type db     : object
+        :param verbose: whether to be verbose
+         :type verbose: bool
+        """
 
         self.db      = db
         self.verbose = verbose

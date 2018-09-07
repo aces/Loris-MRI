@@ -1,3 +1,5 @@
+"""Allows LORIS database connectivity for LORIS-MRI python code base"""
+
 import MySQLdb
 import sys
 import mysql.connector
@@ -6,60 +8,72 @@ from mysql.connector.cursor import MySQLCursorPrepared
 import lib.exitcode
 
 
-"""
-How to use this class.
-
-  from lib.database import Database
-
-  db = Database(config.mysql, verbose)
-  
-  db.connect()
-  
-    # to select data corresponding to specific parameters
-    results = db.pselect(
-        "SELECT CandID FROM candidate WHERE Active = %s AND Gender = %s",
-        ('Y', 'Male')
-    )
-    
-    # to select data without any specific parameter
-    results = db.pselect(
-        "SELECT CandID FROM candidate"
-    ) # args is optional in db.pselect
-    
-    # to insert multiple rows
-    db.insert(
-        'media',
-        ('session_id', 'file_name', 'data_dir'),
-        [
-            ('6834', 'bla', 'bndjf'),
-            ('6834', 'blu', 'blui')
-        ]
-    )
-    
-    # to insert one row and return the last inserted ID
-    last_id = db.insert(
-        'media',
-        ('session_id', 'file_name', 'data_dir'),
-        [
-            ('6834', 'bla', 'bndjf')
-        ],
-        True
-    ) # get_last_id is default to False in db.insert
-    
-    # to update data 
-    db.update(
-        "UPDATE media SET file_name = %s WHERE ID = %s,
-        ('filename.txt', '1')
-    )
-    
-  db.disconnect()
-
-"""
+__license__ = "GPLv3"
 
 
 class Database:
+    """
+    This class performs common tasks related to database connectivity between
+    the LORIS-MRI python code base and the LORIS backend database.
+
+    :Example:
+
+        from lib.database import Database
+
+        db = Database(config.mysql, verbose)
+
+        db.connect()
+
+        # to select data corresponding to specific parameters
+        results = db.pselect(
+            "SELECT CandID FROM candidate WHERE Active = %s AND Gender = %s",
+            ('Y', 'Male')
+        )
+
+        # to select data without any specific parameter
+        results = db.pselect(
+            "SELECT CandID FROM candidate"
+        ) # args is optional in db.pselect
+
+        # to insert multiple rows
+        db.insert(
+            'media',
+            ('session_id', 'file_name', 'data_dir'),
+            [
+                ('6834', 'bla', 'bndjf'),
+                ('6834', 'blu', 'blui')
+            ]
+        )
+
+        # to insert one row and return the last inserted ID
+        last_id = db.insert(
+            'media',
+            ('session_id', 'file_name', 'data_dir'),
+            [
+                ('6834', 'bla', 'bndjf')
+            ],
+            True
+        ) # get_last_id is default to False in db.insert
+
+        # to update data
+        db.update(
+            "UPDATE media SET file_name = %s WHERE ID = %s,
+            ('filename.txt', '1')
+        )
+
+        db.disconnect()
+    """
 
     def __init__(self, credentials, verbose):
+        """
+        Constructor method for the Database class.
+
+        :param credentials: LORIS database credentials
+         :type credentials: dict
+        :param verbose    : whether to be verbose or not
+         :type verbose    : bool
+        """
+
         self.verbose = verbose
 
         # grep database credentials

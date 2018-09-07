@@ -1,3 +1,5 @@
+"""Set of utility functions."""
+
 import os
 import sys
 import csv
@@ -5,6 +7,9 @@ import shutil
 import filecmp
 import tarfile
 import lib.exitcode
+
+
+__license__ = "GPLv3"
 
 
 def read_tsv_file(tsv_file):

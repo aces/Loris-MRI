@@ -1,10 +1,50 @@
+"""This class gather functions for candidate handling."""
+
 import random
 import lib.exitcode
 
 
+__license__ = "GPLv3"
+
+
 class Candidate:
+    """
+    This class gather functions that interact with the database and allow candidate
+    creation or to fetch candidate information directly from the database.
+
+    :Example:
+
+        from lib.candidate import Candidate
+        from lib.database  import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        candidate = Candidate(verbose=verbose, psc_id=bids_sub_id)
+
+        # grep the candidate info from the LORIS database
+        loris_cand_info = candidate.get_candidate_info_from_loris(db)
+
+        # disconnect from the database
+        db.disconnect()
+    """
 
     def __init__(self, verbose, psc_id=None, cand_id=None, sex=None, dob=None):
+        """
+        Constructor method for the Candidate class.
+
+        :param verbose: whether to be verbose
+         :type verbose: bool
+        :param psc_id : candidate's PSCID
+         :type psc_id : str
+        :param cand_id: candidate's CandID
+         :type cand_id: int
+        :param sex    : candidate's sex
+         :type sex    : str
+        :param dob    : candidate's date of birth
+         :type dob    : str
+        """
         self.verbose = verbose
 
         # create the candidate object

@@ -1,3 +1,5 @@
+"""Reads a BIDS structure into a data dictionary using bids.grabbids."""
+
 import csv
 import random
 import re
@@ -10,10 +12,31 @@ import lib.utilities as utilities
 from bids.grabbids import BIDSLayout
 
 
+__license__ = "GPLv3"
+
 
 class BidsReader:
+    """
+    This class reads a BIDS structure into a data dictionary using BIDS grabbids.
+    This dictionary will then be used to determine what to register into the
+    database.
+
+    :Example:
+
+        from lib.bidsreader import BidsReader
+
+        # load the BIDS directory
+        bids_reader = BidsReader(bids_dir)
+    """
 
     def __init__(self, bids_dir):
+        """
+        Constructor method for the BidsReader class.
+
+        :param bids_dir: path to the BIDS structure to read
+         :type bids_dir: str
+        """
+
         self.bids_dir    = bids_dir
         self.bids_layout = self.load_bids_data()
 
