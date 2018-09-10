@@ -91,14 +91,9 @@ echo "Creating the data directories"
 echo
 
 #####################################################################################
-###############incoming directory using sites########################################
+###############incoming directory ###################################################
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
-echo "Creating incoming director(y/ies)"
- for s in $site; do 
-  sudo -S su $USER -c "mkdir -m 770 -p /data/incoming/$s/incoming"
- done
-echo
 
 ###################################################################################
 #######set environment variables under .bashrc#####################################
