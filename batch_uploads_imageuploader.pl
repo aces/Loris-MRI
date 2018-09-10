@@ -100,7 +100,7 @@ Documentation: perldoc batch_uploads_imageuploader
 
 HELP
 my $Usage = <<USAGE;
-usage: ./batch_uploads_imageuploader -profile prod < list_of_scans.txt > log_batch_imageuploader.txt 2>&1 [options]
+usage: ./batch_uploads_imageuploader.pl -profile prod < list_of_scans.txt > log_batch_imageuploader.txt 2>&1 [options]
        $0 -help to list options
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
@@ -268,6 +268,10 @@ close MAIL;
 ################################################################
 
 =pod
+insertIntoMRIUpload()
+Description:
+  - Insert into the mri_upload table entries for data coming
+    from batch_upload_imageuploader.pl
 
 =head3 insertIntoMRIUpload($patientname, $phantom, $fullpath)
 

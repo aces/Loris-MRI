@@ -1036,7 +1036,7 @@ sub mincdiff_minctensor {
 
 =head3 RGBpik_creation($dti_file, $DTIrefs)
 
-Function that runs C<mincpik> on the RGB map.
+Function that runs C<mincpik.pl> on the RGB map.
 
 INPUTS:
   - $dti_file: hash key to use to fetch file names (e.g. raw DWI file)
@@ -1055,8 +1055,8 @@ sub RGBpik_creation {
         # 2. output file
     my $rgb_pic = $DTIrefs->{$dti_file}{'Postproc'}{'rgb_pic'};   
 
-    # Run mincpik on the RGB map
-    `mincpik -triplanar -horizontal $RGB $rgb_pic`;
+    # Run mincpik.pl on the RGB map
+    `mincpik.pl -triplanar -horizontal $RGB $rgb_pic`;
 
     # Check that the RGB pik was created
     if (-e $rgb_pic) {

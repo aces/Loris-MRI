@@ -159,8 +159,8 @@ if ($sthF->rows > 0) {
     print $minc_delete_log . "\n";
 
     if ($insertminc) {
-      # Running tarchiveLoader on the archived tar as a whole will only insert new minc files that are not already in the files table 
-      my $tar_loader_cmd  = "uploadNeuroDB/tarchiveLoader -profile " . $profile . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
+      # Running tarchiveLoader.pl on the archived tar as a whole will only insert new minc files that are not already in the files table 
+      my $tar_loader_cmd  = "uploadNeuroDB/tarchiveLoader.pl -profile " . $profile . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
       print $tar_loader_cmd . "\n";
       my $tar_loader_log  = `$tar_loader_cmd`;
       print $tar_loader_log . "\n";

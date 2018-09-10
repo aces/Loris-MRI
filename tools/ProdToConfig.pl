@@ -133,7 +133,7 @@ my ($config_name, $config_value);
     ## Populate the mri_upload table with necessary entries and get an upload_id 
 for my $index (0 .. $#config_name_arr) {
     $config_name = $config_name_arr[$index];
-    ## This value was called if_sge in the default profileTemplate, but should be called is_qsub
+    ## This value was called if_sge in the default profileTemplate.pl, but should be called is_qsub
     if ($config_name eq "if_sge" ) {
         $config_name = "is_qsub";
     }

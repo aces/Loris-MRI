@@ -1289,7 +1289,7 @@ sub get_mincs {
     my @files_list;
     foreach my $file (@files) {
         next unless $file =~ /\.mnc(\.gz)?$/;
-        my $cmd= "Mincinfo_wrapper -quiet -tab -file -date $this->{TmpDir}/$file";
+        my $cmd= "Mincinfo_wrapper.pl -quiet -tab -file -date $this->{TmpDir}/$file";
         push @files_list, `$cmd`;
     }
     open SORTER, "|sort -nk2 | cut -f1 > $this->{TmpDir}/sortlist";

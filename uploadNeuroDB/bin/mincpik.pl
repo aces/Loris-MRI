@@ -209,16 +209,16 @@ $Help = <<HELP;
 | To display a default view, transverse slicing, middle slice
 | using display. (display is part of the Imagemagick package)
 |
-|    \$ mincpik infile.mnc PNG:- | display -
+|    \$ mincpik.pl infile.mnc PNG:- | display -
 |
 | To generate a PNG file of the 15th coronal slice
 |
-|    \$ mincpik -slice 15 -coronal infile.mnc outfile.png
+|    \$ mincpik.pl -slice 15 -coronal infile.mnc outfile.png
 |
 | To generate a JPG file using the hotmetal lookup table
 |    with the image range 0 to 100
 |
-|    \$ mincpik -lookup '-hotmetal' -image_range 0 100 infile.mnc outfile.jpg
+|    \$ mincpik.pl -lookup '-hotmetal' -image_range 0 100 infile.mnc outfile.jpg
 |
 | ImageMagick:  http://www.wizards.dupont.com/cristy/ImageMagick.html
 |    NB: ImageMagick should be compiled without 16-bit quanta.
@@ -612,7 +612,7 @@ if(defined($opt{'anot_bar'})){
    
 
    # make .miff bar image (whoa... recursion!)
-   &do_cmd('mincpik', '-clobber',
+   &do_cmd('mincpik.pl', '-clobber',
            '-scale', 1,
            (defined($opt{'lookup'})) ? ('-lookup', $opt{'lookup'}) : (),
            "$tmpdir/bar.mnc", "$tmpdir/bar.png");

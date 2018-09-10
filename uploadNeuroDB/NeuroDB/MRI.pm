@@ -1299,7 +1299,7 @@ sub make_pics {
     my $check_pic_filename = $mincbase."_check.jpg";
     my $do_horizontal = "";
     $do_horizontal = "-horizontal" if $horizontalPics;
-    my $cmd = "$FindBin::Bin/bin/mincpik -triplanar $do_horizontal $minc MIFF:- | convert -box black -font Courier -pointsize 12 -stroke white -draw 'text 10,15 \"$rowhr->{'CandID'}.$rowhr->{'Visit_label'}.$acquisitionProtocol\"' MIFF:- $pic/$check_pic_filename";
+    my $cmd = "$FindBin::Bin/bin/mincpik.pl -triplanar $do_horizontal $minc MIFF:- | convert -box black -font Courier -pointsize 12 -stroke white -draw 'text 10,15 \"$rowhr->{'CandID'}.$rowhr->{'Visit_label'}.$acquisitionProtocol\"' MIFF:- $pic/$check_pic_filename";
     `$cmd`;
     # update mri table
     $file->setParameter('check_pic_filename', $rowhr->{'CandID'}.'/'.$check_pic_filename);

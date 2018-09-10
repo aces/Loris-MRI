@@ -1,5 +1,5 @@
 #! /usr/bin/perl
-# $Id: tarchiveLoader,v 1.24 2007/12/18 16:00:21 sebas Exp $
+# $Id: tarchiveLoader.pl,v 1.24 2007/12/18 16:00:21 sebas Exp $
 
 =pod
 
@@ -284,7 +284,7 @@ my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my $User             = `whoami`;
 
 # fixme there are better ways 
-my @progs = ("convert", "Mincinfo_wrapper", "mincpik", $converter);
+my @progs = ("convert", "Mincinfo_wrapper.pl", "mincpik.pl", $converter);
 # create the temp dir
 my $TmpDir = tempdir(
                  $template, TMPDIR => 1, CLEANUP => 1 
@@ -396,12 +396,12 @@ $upload_id = $sth->fetchrow_array;
 if (($output != 0)  && ($force==0)) {
  $message = "\n ERROR: The validation has failed. Either re-run the ".
             "validation again and fix the problem. Or re-run ".
-            "tarchiveLoader using -force to force the execution.\n\n";
+            "tarchiveLoader.pl using -force to force the execution.\n\n";
  $utility->writeErrorLog(
      $message, $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE, $logfile
  );
  $notifier->spool('tarchive validation', $message, 0, 
-		'tarchiveLoader', $upload_id, 'Y',
+		'tarchiveLoader.pl', $upload_id, 'Y',
 		$notify_notsummary);
  exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
@@ -467,7 +467,7 @@ my $mcount = $#minc_files + 1;
 $message = "\nNumber of MINC files that will be considered for inserting ".
       "into the database: $mcount\n";
 $notifier->spool('tarchive loader', $message, 0,
-		'tarchiveLoader', $upload_id, 'N', 
+		'tarchiveLoader.pl', $upload_id, 'N',
 		$notify_detailed);
 if ($verbose){
     print $message;
@@ -487,7 +487,7 @@ if ($mcount < 1) {
         $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
     );
     $notifier->spool('tarchive loader', $message, 0,
-		    'tarchiveLoader', $upload_id, 'Y',
+		    'tarchiveLoader.pl', $upload_id, 'Y',
 		    $notify_notsummary);
     exit $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED;
 }
@@ -651,7 +651,7 @@ if ($valid_study) {
             "\tacquired ". $tarchiveInfo{'DateAcquired'} .
 	    "\n";
     $notifier->spool('mri new study', $message, 0,
-		    'tarchiveLoader', $upload_id, 'N', 
+		    'tarchiveLoader.pl', $upload_id, 'N',
 		    $notify_detailed);
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
@@ -682,7 +682,7 @@ if ($valid_study) {
             " was deemed invalid\n\n". $study_dir .
 	    "\n";
     $notifier->spool('mri invalid study', $message, 0,
-		    'tarchiveLoader', $upload_id, 'Y', 
+		    'tarchiveLoader.pl', $upload_id, 'Y',
 		    $notify_notsummary);
 }
 
@@ -723,7 +723,7 @@ if (scalar(@leftovers) > 0) {
     $message = "\n==> LEFTOVERS: ".scalar(@leftovers).
     "\n --> Moving leftovers to $trashdir\n";
     $notifier->spool('tarchive loader', $message, 0,
-		    'tarchiveLoader', $upload_id, 'Y', 
+		    'tarchiveLoader.pl', $upload_id, 'Y',
 		    $notify_notsummary);
     print LOG $message;
     `mkdir -p -m 770 $trashdir`;
@@ -736,9 +736,9 @@ if (scalar(@leftovers) > 0) {
     print MAIL "Files left over:\n".join("", @leftovers)."\n";
     close MAIL;
 }
-$message ="\n==> Done tarchiveLoader execution!  Removing $TmpDir.\n";
+$message ="\n==> Done tarchiveLoader.pl execution!  Removing $TmpDir.\n";
 $notifier->spool('tarchive loader', $message, 0,
-		'tarchiveLoader', $upload_id, 'N', 
+		'tarchiveLoader.pl', $upload_id, 'N',
 		$notify_detailed);
 print LOG $message;
 close LOG;
@@ -760,7 +760,7 @@ if (!$valid_study) {
     $message =  "\n No Mincs inserted \n \n";
     print STDERR ($message);
     $notifier->spool('mri invalid study', $message, 0,
-		    'tarchiveLoader', $upload_id, 'Y', 
+		    'tarchiveLoader.pl', $upload_id, 'Y',
 		    $notify_notsummary);
     exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
