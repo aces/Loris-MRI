@@ -88,14 +88,66 @@ use warnings;
 no warnings 'once';
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
+use Getopt::Tabular;
+
+
+my $profile = undef;
+my $verbose = 0;
+my $profile_desc = "name of the config file in ../dicom-archive/.loris_mri";
+
+my @opt_table = (
+  [ "Basic options", "section" ],
+    [ "-profile", "string",  1, \$profile, $profile_desc],
+    [ "-verbose", "boolean", 1, \$verbose, "Be verbose."]
+);
+
+my $Help = <<HELP;
+
+******************************************************************************
+Run tarchiveLoader in batch mode
+******************************************************************************
+
+This script runs tarchiveLoader insertion on multiple DICOM archives. The list
+of DICOM archives are provided through a text file (e.g. tarchive_list.txt)
+with one DICOM archive per line. DICOM archives are specified as the relative
+path to the DICOM archive from the tarchive directory
+(/data/project/data/tarchive).
+
+An example of what tarchive_list.txt might contain for 3 DICOM archives to be
+inserted:
+DCM_2015-09-10_MTL0709_475639_V1.tar
+DCM_2015-09-10_MTL0709_475639_V2.tar
+DCM_2015-09-10_MTL0709_475639_V3.tar
+
+HELP
+
+my $Usage = <<USAGE;
+
+usage: ./batch_uploads_tarchive -profile prod < tarchive_list.txt
+       $0 -help to list options
+
+USAGE
+
+&Getopt::Tabular::SetHelp( $Help, $Usage );
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
 
 
 #####Get config setting#######################################################
 # checking for profile settings
-if(-f "$ENV{LORIS_CONFIG}/.loris_mri/prod") {
-    { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/prod" }
-} ##Possibly the script can exit if the prod doesn't exist
-#######################################################################################
+if (!$profile ) {
+    print "You need to specify a profile file using the option '-profile'\n";
+    print $Help;
+    print "\n$Usage\n";
+    exit 3;
+}
+
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ($profile && !@Settings::db) {
+    print "\n\tERROR: You don't have a configuration file named ".
+        "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
+    exit 2;
+}
+
 
 ################################################################
 ######### Establish database connection ########################
@@ -104,7 +156,7 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print "\nSuccessfully connected to database \n";
 
 # define project space
-my ($debug, $verbose) = (0,0);
+my ($debug) = (0);
 my $data_dir = &NeuroDB::DBI::getConfigSetting(
                     \$dbh,'dataDirBasepath'
                     );
@@ -155,7 +207,7 @@ foreach my $input (@inputs)
 
     $input =~ s/\t/ /;
     $input =~ s/$tarchiveLibraryDir//;
-    my $command = "tarchiveLoader.pl -globLocation -profile prod $tarchiveLibraryDir/$input";
+    my $command = "tarchiveLoader.pl -globLocation -profile $profile $tarchiveLibraryDir/$input";
     ##if qsub is enabled use it
     if ($is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";

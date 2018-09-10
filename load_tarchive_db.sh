@@ -1,15 +1,16 @@
 #!/bin/bash
 
 site=$1
+profile=$2
 
-if [ -z "$site" ]
+if [ ! $# == 2 ]
 then
-echo "Usage: $0 <site>"
+echo "Usage: $0 <site> <profile>"
 exit 1
 fi
 
 
-PREFIX=$(grep '$prefix' $LORIS_CONFIG/.loris_mri/prod | awk '{print $3}' | sed 's/"//g' | sed 's/;//g')
+PREFIX=$(grep '$prefix' $LORIS_CONFIG/.loris_mri/$profile | awk '{print $3}' | sed 's/"//g' | sed 's/;//g')
 
 tempdir=$TMPDIR/load_tarchive_db.$$
 mkdir -p $tempdir

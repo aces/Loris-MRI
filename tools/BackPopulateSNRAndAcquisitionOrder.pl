@@ -149,8 +149,7 @@ my $logfile  = "$LogDir/$templog.log";
 ################## Instantiate MRIProcessingUtility ############
 ################################################################
 my $utility = NeuroDB::MRIProcessingUtility->new(
-                  $db, \$dbh,$debug,$TmpDir,$logfile,
-                  $LogDir,$verbose
+                  $db, \$dbh, $debug, $TmpDir, $logfile, $verbose, $profile
               );
 
 ################################################################

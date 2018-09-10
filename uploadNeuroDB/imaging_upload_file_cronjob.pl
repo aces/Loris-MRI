@@ -121,8 +121,7 @@ $sth->execute();
 while(@row = $sth->fetchrow_array()) { 
 
     if ( -e $row[1] ) {
-	my $command =
-        "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
+	my $command = "imaging_upload_file.pl -upload_id $row[0] -profile $profile $row[1]";
 	if ($verbose){
 	    $command .= " -verbose";
             print "\n" . $command . "\n";

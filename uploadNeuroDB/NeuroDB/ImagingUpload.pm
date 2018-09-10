@@ -107,12 +107,13 @@ sub new {
     ############### Create a Notify Object #####################
     ############################################################
 
-    my $Notify 			    = NeuroDB::Notify->new( $dbhr );
-    $self->{'Notify'} 		    = $Notify;
+    my $Notify = NeuroDB::Notify->new( $dbhr );
+    $self->{'Notify'} 		        = $Notify;
     $self->{'uploaded_temp_folder'} = $uploaded_temp_folder;
     $self->{'dbhr'}                 = $dbhr;
     $self->{'pname'}                = $pname;
     $self->{'upload_id'}            = $upload_id;
+    $self->{'profile'}              = $profile;
     $self->{'verbose'}              = $verbose;
     return bless $self, $params;
 }
@@ -133,7 +134,7 @@ RETURNS: 1 on success, 0 on failure
 
 sub IsCandidateInfoValid {
     my $this = shift;
-    my ($message,$query,$where) = '';
+    my ($message, $query, $where) = '';
     ############################################################
     ####Set the Inserting flag to true##########################
     #Which means that the scan is going through the pipeline####
@@ -224,7 +225,7 @@ sub IsCandidateInfoValid {
         my $command =
             $bin_dirPath
             . "/uploadNeuroDB/tarchiveLoader.pl"
-            . " -globLocation -profile prod $archived_file_path";
+            . " -globLocation -profile $this->{'profile'} $archived_file_path";
 
         if ($this->{verbose}){
             $command .= " -verbose";
@@ -332,7 +333,7 @@ sub runDicomTar {
       $bin_dirPath . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
         $dicomtar . " " . $this->{'uploaded_temp_folder'} 
-      . " $tarchive_location -clobber -database -profile prod";
+      . " $tarchive_location -clobber -database -profile $this->{'profile'}";
     if ($this->{verbose}) {
         $command .= " -verbose";
     }
@@ -418,7 +419,7 @@ sub runTarchiveLoader {
     my $command =
         $bin_dirPath
       . "/uploadNeuroDB/tarchiveLoader.pl"
-      . " -globLocation -profile prod $archived_file_path";
+      . " -globLocation -profile $this->{'profile'} $archived_file_path";
 
     if ($this->{verbose}){
         $command .= " -verbose";
