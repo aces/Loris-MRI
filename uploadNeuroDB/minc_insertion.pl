@@ -501,7 +501,8 @@ if (defined($CandMismatchError)) {
 my ($sessionID) = NeuroDB::MRI::getSessionID(
         $subjectIDsref, 
         $tarchiveInfo{'DateAcquired'},
-        \$dbh, $subjectIDsref->{'subprojectID'}
+        \$dbh, $subjectIDsref->{'subprojectID'},
+        $db
    );
 
 ################################################################

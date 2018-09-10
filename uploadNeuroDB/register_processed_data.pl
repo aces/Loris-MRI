@@ -212,7 +212,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     }elsif  ($lookupCenterName eq 'PatientID')      {
         $patientInfo    =   fetchMincHeader($filename,'patient:identification');
     }
-    ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh);
+    ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh, $db);
     my  $psc    =   $center_name;
     if  (!$psc)     { 
         print LOG "\nERROR: No center found for this candidate \n\n"; 

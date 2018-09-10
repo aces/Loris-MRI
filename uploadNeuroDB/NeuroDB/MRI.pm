@@ -46,6 +46,8 @@ use Time::Local;
 use FindBin;
 
 use NeuroDB::objectBroker::MriScanTypeOB;
+use NeuroDB::objectBroker::MriScannerOB;
+use NeuroDB::objectBroker::PSCOB;
 use NeuroDB::UnexpectedValueException;
 
 $VERSION = 0.2;
@@ -59,7 +61,7 @@ $FLOAT_EQUALS_NB_DECIMALS = 4;
 
 =pod
 
-=head3 getSubjectIDs($patientName, $scannerID, $dbhr)
+=head3 getSubjectIDs($patientName, $scannerID, $dbhr, $db)
 
 Determines the candidate ID and visit label for the subject based on patient
 name and (for calibration data) scanner ID.
@@ -68,6 +70,7 @@ INPUTS:
   - $patientName: patient name
   - $scannerID  : scanner ID
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: a reference to a hash containing elements including C<CandID>,
 C<visitLabel> and C<visitNo>, or, in the case of failure, C<undef>
@@ -75,11 +78,11 @@ C<visitLabel> and C<visitNo>, or, in the case of failure, C<undef>
 =cut
 
 sub getSubjectIDs {
-    my ($patientName, $scannerID, $dbhr) = @_;
+    my ($patientName, $scannerID, $dbhr, $db) = @_;
     my %subjectID;
 # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
     if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
-	$subjectID{'CandID'} = my_trim(getScannerCandID($scannerID, $dbhr));
+	$subjectID{'CandID'} = my_trim(getScannerCandID($scannerID, $db));
 	$subjectID{'visitLabel'} = my_trim($patientName);
 # subject data       	
 # old versions of this
@@ -163,30 +166,23 @@ sub subjectIDExists {
 
 =pod
 
-=head3 getScannerCandID($scannerID, $dbhr)
+=head3 getScannerCandID($scannerID, $db)
 
 Retrieves the candidate (C<CandID>) for the given scanner.
 
-INPUTS: the scanner ID and the database handle reference
+INPUTS: the scanner ID and the database object
 
 RETURNS: the C<CandID> or (if none exists) undef
 
 =cut
 
 sub getScannerCandID {
-    my ($scannerID, $dbhr) = @_;
-    my $candID;
+    my ($scannerID, $db) = @_;
     
-    my $query = "SELECT CandID FROM mri_scanner WHERE ID=$scannerID";
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-    
-    if($sth->rows > 0) {
-	my $rowref = $sth->fetchrow_hashref();
-	return $rowref->{'CandID'};
-    } else {
-	return undef;
-    }
+    my $mriScannerOB = 
+        NeuroDB::objectBroker::MriScannerOB->new(db => $db);
+    my $resultRef = $mriScannerOB->get(0, {ID => $scannerID});
+    return @$resultRef ? $resultRef->[0]->{'CandID'} : undef;
 }
 
 =pod
@@ -201,13 +197,14 @@ INPUTS:
   - $studyDate   : study date
   - $dbhr        : database handle reference
   - $objective   : the objective of the study
+  - $db          : database object
 
 RETURNS: the session ID of the visit
 
 =cut
 
 sub getSessionID {
-    my ($subjectIDref, $studyDate, $dbhr, $objective) = @_;
+    my ($subjectIDref, $studyDate, $dbhr, $objective, $db) = @_;
     my ($sessionID, $studyDateJD);
     my ($query, $sth);
     my $dbh = $$dbhr;
@@ -258,7 +255,7 @@ sub getSessionID {
 	
         if($subjectIDref->{'visitLabel'} =~ /PHA/i or $subjectIDref->{'visitLabel'} =~ /TEST/i) {
 	    # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
-            my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr);
+            my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr, $db);
             $centerID = $pscInfo[1];
         }
 	# fixme ask Jon ... is this still useful?
@@ -447,24 +444,16 @@ sub identify_scan_db {
     my $n_slices = 0;
     
     # get ScannerID from DB
-    my $manufacturer = ${fileref}->getParameter('manufacturer');
-    my $model = ${fileref}->getParameter('manufacturer_model_name');
-    my $serial_number = ${fileref}->getParameter('device_serial_number');
-    my $software = ${fileref}->getParameter('software_versions');
-    
-    my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer='$manufacturer' AND Model='$model' AND Serial_number='$serial_number' AND Software='$software'";
-    
-    
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
+    my $resultsRef = $mriScannerOB->get( {
+        Manufacturer  => $fileref->getParameter('manufacturer'),
+        Model         => $fileref->getParameter('manufacturer_model_name'),
+        Serial_number => $fileref->getParameter('device_serial_number'),
+        Software      => $fileref->getParameter('software_versions')
+	});
     
     # default ScannerID to 0 if we have no better clue.
-    my $ScannerID = 0;
-    if($sth->rows>0) {
-        my @results = $sth->fetchrow_array();
-        $ScannerID=$results[0];
-    }
-
+    my $ScannerID = @$resultsRef> 0 ? $resultsRef->[0]->{'ID'} : 0;
     
     # get the list of protocols for a site their scanner and subproject
     $query = "SELECT Scan_type, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
@@ -1007,7 +996,7 @@ sub mapDicomParameters {
 }
 =pod
 
-=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new)
+=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new, $db)
 
 Finds the scanner ID for the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
@@ -1022,32 +1011,36 @@ INPUTS:
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
   - $register_new   : if set, will call the function C<&registerScanner>
+  - $db             : database object
 
 RETURNS: (int) scanner ID
 
 =cut
 
 sub findScannerID {
-    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new) = @_;
+    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new, $db) = @_;
 
-    my $scanner_id = 0;
+    my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
+    my $resultsRef = $mriScannerOB->get( {
+		Manufacturer  => $manufacturer,
+		Model         => $model,
+		Software      => $softwareVersion,
+		Serial_number => $serialNumber
+	});
+	
+	# Scanner exists
+    return $resultsRef->[0]->{'ID'} if @$resultsRef;
 
-    my @results = ();
-    my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer=".$${dbhr}->quote($manufacturer)." AND Model=".$${dbhr}->quote($model)." AND Software=".$${dbhr}->quote($softwareVersion)." AND Serial_number=".$${dbhr}->quote($serialNumber);
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-    @results = $sth->fetchrow_array();
-    $scanner_id = $results[0] if $results[0];
-
-    # only register new scanners when told to do so !!!
-    if ($register_new) { $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr) unless $scanner_id };
+    # Scanner does not exist and we don't want to register a new one: ID defaults to 0
+    return 0 if !$register_new;
     
-    return $scanner_id;
+    # Register new scanner and return its ID
+    return registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db); 
 }
 
 =pod
 
-=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr)
+=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
 
 Registers the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
@@ -1060,40 +1053,36 @@ INPUTS:
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
+  - $db             : database object
 
 RETURNS: (int) scanner ID
 
 =cut
 
 sub registerScanner {
-    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr) = @_;
+    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db) = @_;
     # my $scanner_id = 0;
     my @results = ();
     my $dbh = $$dbhr;
-    my $candID = 'NULL';
-
-    # find the CandID associated with this serial number
-    my $query = "SELECT CandID FROM mri_scanner WHERE Serial_number=".$dbh->quote($serialNumber)." LIMIT 1";
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-    if($sth->rows > 0) {
-        my @row = $sth->fetchrow_array();
-        $candID = $row[0];
-    }
-    $sth->finish();
+    
+    my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
+    my $resultsRef = $mriScannerOB->get( { Serial_number => $serialNumber } );
+    my $candID = @$resultsRef > 0 ? $resultsRef->[0]->{'CandID'} : undef;
 
     # create a new candidate for the scanner if it does not exist.
-    if(!defined($candID) || ($candID eq 'NULL')) {
-	$candID = createNewCandID($dbhr);
-	$query = "INSERT INTO candidate (CandID, PSCID, CenterID, Date_active, Date_registered, UserID, Entity_type) VALUES ($candID, 'scanner', $centerID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
-	$dbh->do($query);
+    if(!defined($candID)) {
+	    $candID = createNewCandID($dbhr);
+	    $query = "INSERT INTO candidate (CandID, PSCID, CenterID, Date_active, Date_registered, UserID, Entity_type) VALUES ($candID, 'scanner', $centerID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
+	    $dbh->do($query);
     }	
-    # register scanner as new
-    $query = "INSERT INTO mri_scanner (Manufacturer, Model, Serial_number, Software, CandID) VALUES (".$dbh->quote($manufacturer).",".$dbh->quote($model).","
-              .$dbh->quote($serialNumber).",".$dbh->quote($softwareVersion).",".$dbh->quote($candID).")";
-    $dbh->do($query);
-    # get id of scanner
-    return $dbh->{'mysql_insertid'};
+    
+    return $mriScannerOB->insertOne({
+		Manufacturer  => $manufacturer,
+		Model         => $model,
+		Serial_number => $serialNumber,
+		Software      => $softwareVersion,
+		CandID        => $candID
+	});
 }
 
 =pod
@@ -1124,7 +1113,7 @@ sub createNewCandID {
 
 =pod
 
-=head3 getPSC($patientName, $dbhr)
+=head3 getPSC($patientName, $dbhr, $db)
 
 Looks for the site alias using the C<session> table C<CenterID> as 
 a first resource, for the cases where it is created using the front-end,
@@ -1134,6 +1123,7 @@ or C<patient_id>) is provided, and return the C<MRI_alias> and C<CenterID>.
 INPUTS:
   - $patientName: patient name
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
@@ -1142,13 +1132,14 @@ RETURNS: a two element array:
 =cut
 
 sub getPSC {
-    my ($patientName, $dbhr) = @_;
+    my ($patientName, $dbhr, $db) = @_;
 
     my $subjectIDsref = Settings::getSubjectIDs(
                             $patientName,
                             null,
                             null,
-                            $dbhr
+                            $dbhr,
+                            $db
                         );
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
@@ -1170,13 +1161,13 @@ sub getPSC {
     }  
 
     ## Otherwise, use the patient name to match it to the site alias or MRI alias 
-    $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
-    $sth = $${dbhr}->prepare($query);
-    $sth->execute;
+    my $pscOB   = NeuroDB::objectBroker::PSCOB->new( db => $db );
+    my $pscsRef = $pscOB->get({ MRI_alias => { NOT => '' } });
 
-    while(my $row = $sth->fetchrow_hashref) {
-        return ($row->{'MRI_alias'}, $row->{'CenterID'})
-	    if ($patientName =~ /$row->{'Alias'}/i) || ($patientName =~ /$row->{'MRI_alias'}/i);
+    foreach my $psc (@$pscsRef) {
+        if ($patientName =~ /$psc->{'Alias'}/i || $patientName =~ /$psc->{'MRI_alias'}/i) {
+            return ($psc->{'MRI_alias'}, $psc->{'CenterID'}); 
+		}
     }
 
     return ("UNKN", 0);

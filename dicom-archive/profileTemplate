@@ -44,7 +44,7 @@ sub getSNRModalities {
 # extracts the subject and timepoint identifiers from the patient name 
 # assumes identifers are stored as <PSCID>_<DCCID>_<visit> in PatientName field, where <visit> is 3 digits.
 sub getSubjectIDs {
-    my ($patientName, $patientID, $scannerID, $dbhr) = @_;
+    my ($patientName, $patientID, $scannerID, $dbhr, $db) = @_;
 
     my %subjectID; # Will stored subject IDs.
     
@@ -56,7 +56,7 @@ sub getSubjectIDs {
      #      b. 0 if imaging pipeline should not create the visit label (when visit label has not been created yet in the database. 
     if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
 
-        $subjectID{'CandID'}    = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $dbhr));
+        $subjectID{'CandID'}    = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $db));
         $subjectID{'visitLabel'}= NeuroDB::MRI::my_trim($patientName);
         $subjectID{'createVisitLabel'} = 1; 
 

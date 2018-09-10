@@ -28,7 +28,7 @@ all of its children.
 
 ## Methods
 
-### getSubjectIDs($patientName, $scannerID, $dbhr)
+### getSubjectIDs($patientName, $scannerID, $dbhr, $db)
 
 Determines the candidate ID and visit label for the subject based on patient
 name and (for calibration data) scanner ID.
@@ -37,6 +37,7 @@ INPUTS:
   - $patientName: patient name
   - $scannerID  : scanner ID
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: a reference to a hash containing elements including `CandID`,
 `visitLabel` and `visitNo`, or, in the case of failure, `undef`
@@ -64,11 +65,11 @@ INPUTS:
 
 RETURNS: 1 if the ID exists, 0 otherwise
 
-### getScannerCandID($scannerID, $dbhr)
+### getScannerCandID($scannerID, $db)
 
 Retrieves the candidate (`CandID`) for the given scanner.
 
-INPUTS: the scanner ID and the database handle reference
+INPUTS: the scanner ID and the database object
 
 RETURNS: the `CandID` or (if none exists) undef
 
@@ -82,6 +83,7 @@ INPUTS:
   - $studyDate   : study date
   - $dbhr        : database handle reference
   - $objective   : the objective of the study
+  - $db          : database object
 
 RETURNS: the session ID of the visit
 
@@ -220,7 +222,7 @@ referenced by `$file_ref`.
 
 INPUT: file hash ref
 
-### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register\_new)
+### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register\_new, $db)
 
 Finds the scanner ID for the scanner as defined by `$manufacturer`, `$model`,
 `$serialNumber`, `$softwareVersion`, using the database attached to the DBI
@@ -235,10 +237,11 @@ INPUTS:
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
   - $register\_new   : if set, will call the function `&registerScanner`
+  - $db             : database object
 
 RETURNS: (int) scanner ID
 
-### registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr)
+### registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
 
 Registers the scanner as defined by `$manufacturer`, `$model`,
 `$serialNumber`, `$softwareVersion`, into the database attached to the DBI
@@ -251,6 +254,7 @@ INPUTS:
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
+  - $db             : database object
 
 RETURNS: (int) scanner ID
 
@@ -262,7 +266,7 @@ INPUT: database handle reference
 
 RETURNS: `CandID` (int)
 
-### getPSC($patientName, $dbhr)
+### getPSC($patientName, $dbhr, $db)
 
 Looks for the site alias using the `session` table `CenterID` as 
 a first resource, for the cases where it is created using the front-end,
@@ -272,6 +276,7 @@ or `patient_id`) is provided, and return the `MRI_alias` and `CenterID`.
 INPUTS:
   - $patientName: patient name
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
