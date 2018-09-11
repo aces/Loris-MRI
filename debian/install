@@ -1,0 +1,8 @@
+auto usr/share/loris-mri/
+dicom-archive usr/share/loris-mri/
+DTIPrep usr/share/loris-mri/ # can we skip this one for now maybe?
+MNI usr/share/loris-mri/
+tools usr/share/loris-mri/
+uploadNeuroDB usr/share/loris-mri/
+
+# what about the scripts directly in loris-mri?

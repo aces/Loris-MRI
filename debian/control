@@ -1,0 +1,26 @@
+Source: loris-mri
+Maintainer: Loris Team <info.loris@mcgill.ca>
+Uploaders: Samir Das <samir.das@mcgill.ca>
+Section: science
+Priority: optional
+Build-Depends: dbhelper (>= 9~)
+Standards-Version: 4.1.0
+Vcs-Browser: https://github.com/aces/Loris-MRI
+Vcs-Git: https://github.com/aces/Loris-MRI.git
+Homepage: http://loris.ca
+
+Package: loris-mri
+Architecture: all
+Depends: loris
+         libmath-round-perl
+         libgetopt-tabular-perl
+         libtime-parsedate-perl
+         libarchive-extract-perl
+         libarchive-zip-perl
+         libpath-class-perl
+         libdbi-perl
+         libdbd-mysql-perl
+         minc-tools
+         dcmtk
+         ${misc:Depends}
+Description: imaging insertion pipelines for the LORIS system.
