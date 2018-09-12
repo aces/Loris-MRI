@@ -266,11 +266,15 @@ sub IsCandidateInfoValid {
             ############## and the file is of type DICOM###########
             #######################################################
                     if ($row[4] eq 'N') {
-                        if ( !$this->PatientNameMatch($_, $this->{'pname'}) ) {
+                        # make sure the regex used for PatientNameMatch starts
+                        # with $this->{'pname'}
+                        if (!$this->PatientNameMatch($_, "^$this->{'pname'}")) {
                             $files_with_unmatched_patient_name++;
                         }
                     } elsif ($row[4] eq 'Y') {
-                        if ( !$this->PatientNameMatch($_, "phantom")) {
+                        # make sure the regex used for PatientNameMatch
+                        # includes "phantom" string
+                        if (!$this->PatientNameMatch($_, "phantom")) {
                             $files_with_unmatched_patient_name++;
                         }
                     }
@@ -485,7 +489,7 @@ sub PatientNameMatch {
         exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
     my ($l,$dicom_pname,$t) = split /\[(.*?)\]/, $patient_name_string;
-    if ($dicom_pname !~ /^$expected_pname_regex/) {
+    if ($dicom_pname !~ /$expected_pname_regex/) {
         my $message = "\nThe $lookupCenterNameUsing read "
                       . "from the DICOM header does not start with "
                       . $expected_pname_regex
