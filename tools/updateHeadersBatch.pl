@@ -18,7 +18,7 @@ perl tools/updateHeadersBatch.pl C<[options]> C<[/path/to/DICOM/or/TARCHIVE]>
 
 Available options are:
 
--keys    : The number of key fields in the spec file, used to defined the
+-keys    : The number of key fields in the spec file, used to define the
 			matching... Note that 1 key consists of two columns, the first
 			being the field name (formatted as '(XXXX,YYYY)') and the second
 			being its value.

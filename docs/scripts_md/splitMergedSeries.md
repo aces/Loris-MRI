@@ -32,7 +32,7 @@ fields of difficult to separate series. Specifically, the specfile will:
    multi-echo sequence
 2\. Insert or modify a field if multiple repeats of the same sequence are
    present (and not otherwise separated). The user can select which field
-   is modified by selecting on of the sequence splitting options.
+   is modified by selecting one of the sequence splitting options.
 
 The resulting `specfile` can be used as input to `updateHeadersBatch.pl`.
 

@@ -15,7 +15,7 @@ perl tools/dicomDescribe.pl C<[/path/to/DICOM/file]>
 =head1 DESCRIPTION
 
 This script takes a DICOM file as an argument, parses it using the
-C<DICOM::DICOM> library and print the content of the DICOM header in the
+C<DICOM::DICOM> library and prints the content of the DICOM header in the
 terminal.
 
 =head1 LICENSING

@@ -9,7 +9,7 @@ perl tools/dicomDescribe.pl `[/path/to/DICOM/file]`
 # DESCRIPTION
 
 This script takes a DICOM file as an argument, parses it using the
-`DICOM::DICOM` library and print the content of the DICOM header in the
+`DICOM::DICOM` library and prints the content of the DICOM header in the
 terminal.
 
 # LICENSING
