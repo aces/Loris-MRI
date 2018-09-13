@@ -54,8 +54,9 @@ class will croak.
 
 use strict;
 
+use constant MAX_DICOM_PARAMETER_LENGTH => 1000;
+
 my $VERSION = sprintf "%d.%03d", q$Revision: 1.6 $ =~ /: (\d+)\.(\d+)/;
-my $MAX_DICOM_PARAMETER_LENGTH = 1000;
 
 =pod
 
@@ -526,7 +527,7 @@ sub filterParameters {
 
     foreach my $key (keys %{$parametersRef}) {
         if(($key ne 'header')
-            && (length($parametersRef->{$key}) > $MAX_DICOM_PARAMETER_LENGTH)) {
+            && (length($parametersRef->{$key}) > MAX_DICOM_PARAMETER_LENGTH)) {
             $this->removeParameter($key);
         }
     }

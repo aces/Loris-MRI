@@ -448,8 +448,9 @@ my $candlogSth = $dbh->prepare($logQuery);
 ################################################################
 my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
 
-# filters out parameters of length > 1000
-$message = "\n--> filters out parameters of length > 1000 for $minc\n";
+# filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
+$message = "\n--> filters out parameters of length > "
+           . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $minc\n";
 print LOG $message if $verbose;
 $file->filterParameters();
 
