@@ -374,7 +374,7 @@ INPUTS:
 sub makeNIIAndHeader {
     
     my ( $dbh, %file_list) = @_;
-    my ($row, $mriScanType, $BIDSCategory, $BIDSSubCategory, $BIDSScanType, $BIDSMultiEchoCategory, $destDirFinal);
+    my ($row, $mriScanType, $BIDSCategory, $BIDSSubCategory, $BIDSScanType, $BIDSEchoNumber, $destDirFinal);
     foreach $row (keys %file_list) {
         my $fileID            = $file_list{$row}{'fileID'};
         my $minc              = $file_list{$row}{'file'};
@@ -386,32 +386,32 @@ sub makeNIIAndHeader {
         ( my $query = <<QUERY ) =~ s/\n/ /g;
 SELECT
   bmstr.MRIScanTypeID,
-  bmstr.BIDSCategory,
-  bmstr.BIDSScanTypeSubCategory,
-  bmstr.BIDSScanType,
-  bmstr.BIDSMultiEcho,
+  bids_category.BIDSCategoryName,
+  bids_scan_type_subcategory.BIDSScanTypeSubCategory,
+  bids_scan_type.BIDSScanType,
+  bmstr.BIDSEchoNumber,
   mst.Scan_type
-FROM
-  bids_mri_scan_type_rel bmstr
-JOIN
-  mri_scan_type mst ON mst.ID = bmstr.MRIScanTypeID
-WHERE
-  mst.ID = ?
+FROM       bids_mri_scan_type_rel bmstr
+JOIN       mri_scan_type mst          ON mst.ID = bmstr.MRIScanTypeID
+JOIN       bids_category              USING (BIDSCategoryID)
+JOIN       bids_scan_type             USING (BIDSScanTypeID)
+LEFT JOIN  bids_scan_type_subcategory USING (BIDSScanTypeSubCategoryID)
+WHERE      mst.ID = ?
 QUERY
         # Prepare and execute query
         my $sth = $dbh->prepare($query);
         $sth->execute($fileAcqProtocolID);
-        my $rowhr               = $sth->fetchrow_hashref();
+        my $rowhr = $sth->fetchrow_hashref();
         unless ($rowhr) {
             print "$minc will not be converted into BIDS as no entries were found "
                   . "in the bids_mri_scan_type_rel table for that scan type.\n";
             next;
         }
-        $mriScanType            = $rowhr->{'Scan_type'};
-        $BIDSCategory           = $rowhr->{'BIDSCategory'};
-        $BIDSSubCategory        = $rowhr->{'BIDSScanTypeSubCategory'};
-        $BIDSScanType           = $rowhr->{'BIDSScanType'};
-        $BIDSMultiEchoCategory  = $rowhr->{'BIDSMultiEcho'};
+        $mriScanType     = $rowhr->{'Scan_type'};
+        $BIDSCategory    = $rowhr->{'BIDSCategoryName'};
+        $BIDSSubCategory = $rowhr->{'BIDSScanTypeSubCategory'};
+        $BIDSScanType    = $rowhr->{'BIDSScanType'};
+        $BIDSEchoNumber  = $rowhr->{'BIDSEchoNumber'};
 
         my $mincBase            = basename($minc);
         my $nifti               = $mincBase;
@@ -425,18 +425,15 @@ QUERY
 
         # Remove prefix; i.e project name; and add sub- and ses- in front of
         # CandID and Visit label
-        my $remove            = $prefix . "_" . $candID . "_" . $visitLabelOrig;
-        my $replace;
+        my $remove  = $prefix . "_" . $candID . "_" . $visitLabelOrig;
+        my $replace = "sub-" . $candID . "_ses-" . $visitLabel;
         # sequences with multi-echo need to have echo-1. echo-2, etc... appended to the filename
         # TODO: add a check if the sequence is indeed a multi-echo (check SeriesUID
         # and EchoTime from the database), and if not set, issue an error
         # and exit and ask the project to set the BIDSMultiEcho for these sequences
         # Also need to add .JSON for those multi-echo files
-        if ($BIDSMultiEchoCategory) {
-            $replace           = "sub-" . $candID . "_ses-" . $visitLabel . "_" . $BIDSMultiEchoCategory;
-        }
-        else {
-            $replace           = "sub-" . $candID . "_ses-" . $visitLabel;
+        if ($BIDSEchoNumber) {
+            $replace .= "_echo-" . $BIDSEchoNumber;
         }
         $nifti                =~ s/$remove/$replace/g;
 
