@@ -1446,7 +1446,7 @@ sub create_dwi_nifti_bval_file {
     $bvals =~ s/\.$//;   # remove the last trailing '.' from the string
 
     # print bvals into bval_file
-    open(FILE, '>', $bval_file) or die "Could not open file $bval_file $!";
+    open(FILE, '>', $bval_file) or die "Could not open file $bval_file: $!\n";
     print FILE $bvals;
     close FILE;
 
