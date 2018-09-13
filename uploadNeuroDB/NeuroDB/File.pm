@@ -55,6 +55,7 @@ class will croak.
 use strict;
 
 my $VERSION = sprintf "%d.%03d", q$Revision: 1.6 $ =~ /: (\d+)\.(\d+)/;
+my $MAX_DICOM_PARAMETER_LENGTH = 1000;
 
 =pod
 
@@ -515,7 +516,7 @@ sub removeWhitespace {
 =head3 filterParameters
 
 Manipulates the NeuroDB::File object's parameters and removes all parameters of
-length > 1000
+length > $MAX_DICOM_PARAMETER_LENGTH
 
 =cut
 sub filterParameters {
@@ -524,7 +525,8 @@ sub filterParameters {
     my $parametersRef = $this->getParameters();
 
     foreach my $key (keys %{$parametersRef}) {
-        if(($key ne 'header') && (length($parametersRef->{$key}) > 1000)) {
+        if(($key ne 'header')
+            && (length($parametersRef->{$key}) > $MAX_DICOM_PARAMETER_LENGTH)) {
             $this->removeParameter($key);
         }
     }
