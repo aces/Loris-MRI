@@ -274,7 +274,15 @@ sub IsCandidateInfoValid {
                     } elsif ($row[4] eq 'Y') {
                         # make sure the regex used for PatientNameMatch
                         # includes "phantom" string
-                        if (!$this->PatientNameMatch($_, "phantom")) {
+                        my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr}, 'LegoPhantomRegex'
+                        );
+                        my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr}, 'LivingPhantomRegex'
+                        );
+                        my $phantom_regex =
+                            "($lego_phantom_regex)|($living_phantom_regex)";
+                        if (!$this->PatientNameMatch($_, $phantom_regex)) {
                             $files_with_unmatched_patient_name++;
                         }
                     }
