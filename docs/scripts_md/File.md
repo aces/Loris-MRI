@@ -168,6 +168,11 @@ INPUT: variable to remove white space from (string or array)
 
 RETURNS: string or array of the value without white spaces
 
+### filterParameters
+
+Manipulates the NeuroDB::File object's parameters and removes all parameters of
+length > 1000
+
 # TO DO
 
 Other operations should be added: perhaps `get*` methods for those fields in
