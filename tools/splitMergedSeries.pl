@@ -62,9 +62,7 @@ use strict;
 use Cwd qw/ abs_path /;
 use File::Basename qw/ basename /;
 use File::Temp qw/ tempdir /;
-use FindBin;
 use Getopt::Tabular;
-use lib "$FindBin::Bin";
 use DICOM::DICOM qw/ dicom_fields dicom_private /;
 use IO::File;
 
@@ -146,7 +144,7 @@ elsif (! -d $Dir) {
 }
 
 # Get relevant dicom fields and sort first by echo time, then image number
-my @ParamList = `find $Dir -type f | $FindBin::Bin/get_dicom_info.pl -stdin -studyuid -series -series_description -sequence_name -tr -te -image -echo -slicepos -slice_thickness`;
+my @ParamList = `find $Dir -type f | get_dicom_info.pl -stdin -studyuid -series -series_description -sequence_name -tr -te -image -echo -slicepos -slice_thickness`;
 
 die "Unable to extract any parameters from the files in $Dir; this doesn't look good\n"
     if (! @ParamList);

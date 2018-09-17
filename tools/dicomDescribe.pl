@@ -30,8 +30,6 @@ Neuroscience
 =cut
 
 
-use FindBin;
-use lib "$FindBin::Bin";
 use DICOM::DICOM;
 
 $dicom = DICOM->new();

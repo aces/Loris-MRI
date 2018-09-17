@@ -64,13 +64,13 @@ use Cwd qw/ abs_path /;
 use File::Basename qw/ dirname /;
 use File::Find;
 use File::Temp qw/ tempdir /;
-use FindBin;
 use Getopt::Tabular;
 
 use Data::Dumper;
 
-use lib "$FindBin::Bin";
 use DICOM::DICOM;
+use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $verbose = 0;
 my $database = 0;
@@ -108,6 +108,26 @@ unless((scalar(@leftovers) == 1) && defined($specfile) ) {
 	 print $Usage;
 	 exit(1);
 }
+
+################################################################
+################### input option error checking ################
+################################################################
+if ( !$profile ) {
+	print $Usage;
+	print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+	exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+	print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+		. "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+	exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+
+# connect to the database
+my $dbh         = &NeuroDB::DBI::connect_to_db(@Settings::db);
+my $bin_dirPath = NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
+$bin_dirPath    =~ s/\/$//;
 
 my %setTable;
 my @keys;
@@ -159,7 +179,7 @@ find($find_handler, "$tempdir/$dcmdir");
 # rebuild the tarchive
 print "Rebuilding tarchive\n" if $verbose;
 my $targetdir = dirname($tarchive);
-my $DICOMTAR = $FindBin::Bin . "/dicomTar.pl";
+my $DICOMTAR = $bin_dirPath . "/dicom-archive/dicomTar.pl";
 my $cmd = "$DICOMTAR $tempdir/$dcmdir $targetdir -clobber";
 if($database) {
 	 $cmd .= " -database";
