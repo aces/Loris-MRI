@@ -62,11 +62,11 @@ defaults to 3306 if not specified. If the user name, database name or host
 name are the empty string, the constructor will call `die`.
 
 INPUTS:
-\- name of the user for the (upcoming) connection.
-\- name of the database.
-\- name of the host on which the database resides.
-\- password for the (upcoming) connection.
-\- port used for the (upcoming) connection (defaults to 3306 if not provided).
+  - name of the user for the (upcoming) connection.
+  - name of the database.
+  - name of the host on which the database resides.
+  - password for the (upcoming) connection.
+  - port used for the (upcoming) connection (defaults to 3306 if not provided).
 
 RETURN: new instance of this class.
 
@@ -82,8 +82,8 @@ Executes a `SELECT` query on the database. This method will first `prepare`
 the statement passed as parameter before sending the request to the database.
 
 INPUTS: 
-    - `SELECT` query to execute (containing the argument placeholders if any).
-    - list of arguments to replace the placeholders with.
+  - `SELECT` query to execute (containing the argument placeholders if any).
+  - list of arguments to replace the placeholders with.
 
 RETURN: a reference to the array of records found. Each record is in fact a
         reference to the list of values for the columns selected.
@@ -94,9 +94,9 @@ Inserts one record in a given database table with the specified column values.
 This method will throw a `DatabaseException` if the record cannot be inserted.
 
 INPUTS: 
-    - name of the table in which to insert the record.
-    - reference to a hash array describing the column names and their values
-      for the given record.
+  - name of the table in which to insert the record.
+  - reference to a hash array describing the column names and their values
+    for the given record.
 
 RETURN: the ID of the record inserted.
 
@@ -106,11 +106,11 @@ Inserts one record in a given database table with the specified column values.
 This method will throw a `DatabaseException` if the record cannot be inserted.
 
 INPUTS: 
-    - name of the table in which to insert the record.
-    - reference to an array containing the names of the columns whose values
-      will be modified by this `INSERT` statement.
-    - reference to an array of array references. This "matrix" contains the
-        values of each column for each record.
+  - name of the table in which to insert the record.
+  - reference to an array containing the names of the columns whose values
+    will be modified by this `INSERT` statement.
+  - reference to an array of array references. This "matrix" contains the
+    values of each column for each record.
 
 ### `disconnect()`
 
