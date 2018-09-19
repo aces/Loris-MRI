@@ -177,6 +177,16 @@ class Eeg:
         )
         loris_vl_info = session.get_session_info_from_loris(self.db)
 
+        if not loris_vl_info:
+            message = "ERROR: visit label " + visit_label + "does not exist in " + \
+                      "the session table for candidate "  + self.cand_id         + \
+                      "\nPlease make sure the visit label is created in the "    + \
+                      "database or run bids_import.py with the -s option -s if " + \
+                      "you wish that the insertion pipeline creates the visit "  + \
+                      "label in the session table."
+            print(message)
+            exit(lib.exitcode.SELECT_FAILURE)
+
         return loris_vl_info['ID']
 
     def grep_bids_files(self, bids_type):

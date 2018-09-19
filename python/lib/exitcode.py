@@ -15,6 +15,8 @@ MISSING_ARG         = 3  # if missing script's argument(s)
 DB_SETTINGS_FAILURE = 4  # if DB settings in profile file are not set
 INVALID_PATH        = 5  # if path to file or folder does not exist
 INVALID_ARG         = 6  # if one of the program argument is invalid
+INVALID_IMPORT      = 7  # if an import statement failed
+
 
 # -- Common database related failures (exit codes from 20 to 39)
 FILE_NOT_UNIQUE = 20  # if file to register is not unique & already inserted

@@ -9,8 +9,14 @@ import sys
 
 import lib.exitcode
 import lib.utilities as utilities
-from bids.grabbids import BIDSLayout
-
+try:
+    from bids.layout import BIDSLayout
+except ImportError:
+    try:
+        from bids.grabbids import BIDSLayout
+    except ImportError:
+        print("Could not find bids.layout or bids.grabbids")
+        exit(lib.exitcode.INVALID_IMPORT)
 
 __license__ = "GPLv3"
 
