@@ -2,10 +2,10 @@
 
 import os
 import json
-import time
 import getpass
 import string
 from pyblake2 import blake2b
+from dateutil.parser import parse
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -264,10 +264,11 @@ class Eeg:
         # archive all files in a tar ball for downloading all files at once
         files_to_archive = (
             self.data_dir + eeg_file_path,
-            self.data_dir + electrode_file_path,
             self.data_dir + channel_file_path,
             self.data_dir + event_file_path
         )
+        if electrode_file_path:
+            files_to_archive = files_to_archive + (self.data_dir + electrode_file_path,)
         if fdt_file_path:  # add the fdt file path to the tuple if present
             files_to_archive = files_to_archive + (self.data_dir + fdt_file_path,)
         archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
@@ -383,6 +384,14 @@ class Eeg:
             for entry in entries:
                 if os.path.basename(eeg_file) in entry['filename']:
                     eeg_acq_time = entry['acq_time']
+                    try:
+                        eeg_acq_time = parse(eeg_acq_time)
+                    except ValueError as e:
+                        message = "ERROR: could not convert acquisition time '" + \
+                                  eeg_acq_time + \
+                                  "' to datetime: " + str(e)
+                        print(message)
+                        exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
 
         # if file type is set and fdt file exists, append fdt path to the
         # eeg_file_data dictionary
@@ -403,7 +412,7 @@ class Eeg:
         # inserting it
         result         = physiological.grep_file_id_from_hash(blake2)
         physio_file_id = result['PhysiologicalFileID'] if result else None
-        eeg_path       = result['File']                if result else None
+        eeg_path       = result['FilePath']            if result else None
         if not physio_file_id:
             # grep the modality ID from physiological_modality table
             modality_id = physiological.get_modality(self.bids_modality)
@@ -417,9 +426,8 @@ class Eeg:
             # physiological_file and physiological_parameter_file tables
             eeg_file_info = {
                 'FileType'       : file_type,
-                'File'           : eeg_path,
+                'FilePath'       : eeg_path,
                 'SessionID'      : self.session_id,
-                'InsertTime'     : int(time.time()),
                 'AcquisitionTime': eeg_acq_time,
                 'InsertedByUser' : getpass.getuser(),
                 'PhysiologicalOutputTypeID': output_type,
@@ -480,7 +488,7 @@ class Eeg:
             result = physiological.grep_electrode_from_physiological_file_id(
                 physiological_file_id
             )
-            electrode_path = result[0]['File'] if result else None
+            electrode_path = result[0]['FilePath'] if result else None
             electrode_data = utilities.read_tsv_file(electrode_file)
             if not result:
                 # copy the electrode file to the LORIS BIDS import directory
@@ -545,7 +553,7 @@ class Eeg:
             result = physiological.grep_channel_from_physiological_file_id(
                 physiological_file_id
             )
-            channel_path = result[0]['File'] if result else None
+            channel_path = result[0]['FilePath'] if result else None
             channel_data = utilities.read_tsv_file(channel_file)
             if not result:
                 # copy the channel file to the LORIS BIDS import directory
@@ -610,7 +618,7 @@ class Eeg:
             result = physiological.grep_event_from_physiological_file_id(
                 physiological_file_id
             )
-            event_path = result[0]['File'] if result else None
+            event_path = result[0]['FilePath'] if result else None
             event_data = utilities.read_tsv_file(event_file)
             if not result:
                 # copy the event file to the LORIS BIDS import directory
@@ -750,8 +758,7 @@ class Eeg:
         blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
         archive_info = {
             'PhysiologicalFileID': eeg_file_id,
-            'InsertTime'         : int(time.time()),
             'Blake2bHash'        : blake2,
-            'File'               : archive_rel_name
+            'FilePath'           : archive_rel_name
         }
         physiological.insert_archive_file(archive_info)

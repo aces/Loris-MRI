@@ -1,7 +1,6 @@
 """This class performs database queries for BIDS physiological dataset (EEG, MEG...)
 """
 
-import time
 import sys
 
 
@@ -134,7 +133,7 @@ class Physiological:
 
         query = "SELECT PhysiologicalOutputTypeID "  + \
                   " FROM physiological_output_type " + \
-                  " WHERE OutputType = %s"
+                  " WHERE OutputTypeName = %s"
         where = ['derivatives',] if derivatives else ['raw',]
         output_types = self.db.pselect(query=query, args=where)
 
@@ -152,7 +151,7 @@ class Physiological:
          :rtype: int
         """
 
-        query = "SELECT pf.PhysiologicalFileID, pf.File "     \
+        query = "SELECT pf.PhysiologicalFileID, pf.FilePath "     \
                 "FROM physiological_file AS pf "     \
                 "JOIN physiological_parameter_file " \
                     "USING (PhysiologicalFileID) "   \
@@ -219,10 +218,10 @@ class Physiological:
         # physiological_parameter_file
         parameter_type_id = self.get_parameter_type_id(parameter_name)
         parameter_file_fields = (
-            'PhysiologicalFileID', 'ParameterTypeID', 'InsertTime', 'Value'
+            'PhysiologicalFileID', 'ParameterTypeID', 'Value'
         )
         parameter_file_values = (
-            physiological_file_id, parameter_type_id, int(time.time()), value
+            physiological_file_id, parameter_type_id, value
         )
         self.db.insert(
             table_name='physiological_parameter_file',
@@ -361,17 +360,22 @@ class Physiological:
 
         # gather values that need to be inserted into physiological_electrode table
         electrode_fields = (
-            'PhysiologicalFileID', 'Name',     'X', 'Y', 'Z',
-            'Type',                'Material', 'File'
+            'PhysiologicalFileID', 'Name', 'X',        'Y',        'Z',
+            'Impedance',           'Type', 'Material', 'FilePath'
         )
         electrode_values = []
         for row in electrode_data:
+            optional_fields = ('type', 'material', 'impedance')
+            for field in optional_fields:
+                if field not in row.keys():
+                    row[field] = None
             values_tuple = (
                 str(physiological_file_id),
                 row['name'],
                 row['x'],
                 row['y'],
                 row['z'],
+                row['impedance'],
                 row['type'],
                 row['material'],
                 electrode_file
@@ -416,14 +420,15 @@ class Physiological:
             'LowCutoff',                 'HighCutoff',
             'ManualFlag',                'Notch',
             'StatusDescription',         'Unit',
-            'SoftwareFilters',           'File'
+            'SoftwareFilters',           'Reference',
+            'FilePath'
         )
         channel_values = []
         for row in channel_data:
             physio_channel_type = self.db.pselect(
                 query="SELECT PhysiologicalChannelTypeID "
                       " FROM physiological_channel_type "
-                      " WHERE ChannelType = %s",
+                      " WHERE ChannelTypeName = %s",
                 args=(row['type'],)
             )
             physio_status_type_id = None
@@ -438,7 +443,8 @@ class Physiological:
             optional_fields = (
                 'description',        'sampling_frequency', 'low_cutoff',
                 'high_cutoff',        'manual',             'notch',
-                'status_description', 'software_filters',   'unit'
+                'status_description', 'software_filters',   'unit',
+                'reference'
             )
             for field in optional_fields:
                 if field not in row.keys():
@@ -462,6 +468,7 @@ class Physiological:
                 row['status_description'],
                 row['unit'],
                 row['software_filters'],
+                row['reference'],
                 channel_file
             )
             channel_values.append(values_tuple)
@@ -497,14 +504,15 @@ class Physiological:
         """
 
         event_fields = (
-            'PhysiologicalFileID', 'Onset',     'Duration', 'TrialType',
-            'ResponseTime',        'EventCode', 'Sample',   'File'
+            'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
+            'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
+            'EventType',           'FilePath'
         )
         event_values = []
         for row in event_data:
             optional_fields = (
-                'trial_type', 'response_time',
-                'event_code', 'sample'
+                'trial_type',  'response_time', 'event_code',
+                'event_value', 'event_sample',  'event_type'
             )
             for field in optional_fields:
                 if field not in row.keys():
@@ -520,7 +528,9 @@ class Physiological:
                 row['trial_type'],
                 row['response_time'],
                 row['event_code'],
-                row['sample'],
+                row['event_value'],
+                row['event_sample'],
+                row['event_type'],
                 event_file
             )
             event_values.append(values_tuple)
