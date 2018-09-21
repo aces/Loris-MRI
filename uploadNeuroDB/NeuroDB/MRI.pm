@@ -378,16 +378,18 @@ sub getObjective
 
 =pod
 
-=head3 identify_scan_db($center_name, $objective, $fileref, $dbhr)
+=head3 identify_scan_db($center_name, $objective, $fileref, $dbhr, $db, $minc_location)
 
 Determines the type of the scan described by MINC headers based on
 C<mri_protocol> table in the database.
 
 INPUTS:
-  - $center_name: center's name
-  - $objective  : objective of the study
-  - $fileref    : file hash ref
-  - $dbhr       : database handle reference
+  - $center_name   : center's name
+  - $objective     : objective of the study
+  - $fileref       : file hash ref
+  - $dbhr          : database handle reference
+  - $db            : database object
+  - $minc_location : location of the MINC files
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 
@@ -624,25 +626,25 @@ sub debug_inrange {
 
 =pod
 
-=head3 scan_type_id_to_text($typeID, $dbhr)
+=head3 scan_type_id_to_text($typeID, $db)
 
 Determines the type of the scan identified by its scan type ID.
 
 INPUTS:
   - $typeID: scan type ID
-  - $dbhr  : database handle reference
+  - $db    : database object
 
 RETURNS: Textual name of scan type
 
 =cut
 
 sub scan_type_id_to_text {
-    my ($ID, $db) = @_;
+    my ($typeID, $db) = @_;
 
     my $mriScanTypeOB = NeuroDB::objectBroker::MriScanTypeOB->new(
         db => $db
     );
-    my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $ID });
+    my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $typeID });
     
     # This is just to make sure that there is a scan type in the DB
     # with name 'unknown' in case we can't find the one with ID $ID
@@ -652,7 +654,7 @@ sub scan_type_id_to_text {
         NeuroDB::UnexpectedValueException->throw(
             errorMessage => sprintf(
                 "Unknown acquisition protocol ID %d and scan type 'unknown' does not exist in the database",
-                $ID
+                $typeID
             ) 
         );
     }
@@ -668,7 +670,7 @@ Determines the type of the scan identified by scan type.
 
 INPUTS:
   - $type: scan type
-  - $dbhr: database handle reference
+  - $db  : database object
 
 RETURNS: ID of the scan type
 
@@ -1269,6 +1271,7 @@ INPUTS:
   - $data_dir      : data directory (e.g. C</data/$PROJECT/data>)
   - $dest_dir      : destination directory (e.g. C</data/$PROJECT/data/pic>)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
+  - $db            : database object used to interact with the database.
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
 

@@ -98,16 +98,18 @@ INPUTS:
 
 RETURNS: the determined objective, or 0
 
-### identify\_scan\_db($center\_name, $objective, $fileref, $dbhr)
+### identify\_scan\_db($center\_name, $objective, $fileref, $dbhr, $db, $minc\_location)
 
 Determines the type of the scan described by MINC headers based on
 `mri_protocol` table in the database.
 
 INPUTS:
-  - $center\_name: center's name
-  - $objective  : objective of the study
-  - $fileref    : file hash ref
-  - $dbhr       : database handle reference
+  - $center\_name   : center's name
+  - $objective     : objective of the study
+  - $fileref       : file hash ref
+  - $dbhr          : database handle reference
+  - $db            : database object
+  - $minc\_location : location of the MINC files
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
@@ -148,13 +150,13 @@ INPUTS:
 
 RETURNS: 1 if in range, 0 if not in range
 
-### scan\_type\_id\_to\_text($typeID, $dbhr)
+### scan\_type\_id\_to\_text($typeID, $db)
 
 Determines the type of the scan identified by its scan type ID.
 
 INPUTS:
   - $typeID: scan type ID
-  - $dbhr  : database handle reference
+  - $db    : database object
 
 RETURNS: Textual name of scan type
 
@@ -164,7 +166,7 @@ Determines the type of the scan identified by scan type.
 
 INPUTS:
   - $type: scan type
-  - $dbhr: database handle reference
+  - $db  : database object
 
 RETURNS: ID of the scan type
 
@@ -311,6 +313,7 @@ INPUTS:
   - $data\_dir      : data directory (e.g. `/data/$PROJECT/data`)
   - $dest\_dir      : destination directory (e.g. `/data/$PROJECT/data/pic`)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
+  - $db            : database object used to interact with the database.
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
 

@@ -49,10 +49,10 @@ NeuroDB::Database -- Provides a set of methods to run SQL statements on a databa
 
 =head1 DESCRIPTION
 
-This class provides the basic SELECT, INSERT, UPDATE and DELETE methods
+This class provides the basic C<SELECT>, C<INSERT>, C<UPDATE> and C<DELETE> methods
 for all object brokers. The methods of this class should only be used by
-the object brokers themselves (except 'new' for creating a new database
-instance and 'connect'). Scripts and 'non-broker' classes that need access
+the object brokers themselves (except C<new> for creating a new database
+instance and C<connect>). Scripts and 'non-broker' classes that need access
 to the database should rely on an appropriate object broker class to handle
 the requests.
 
@@ -72,35 +72,16 @@ use constant DEFAULT_DB_PORT => 3306;
 =head3 C<< new(userName => $u, databaseName => $d, hostname => $h, password => $pwd, port =>$port) >>  (constructor)
 
 Create a new instance of this class, without actually trying to connect
-to the database specified. All parameters are required except 'port', which
+to the database specified. All parameters are required except C<port>, which
 defaults to 3306 if not specified. If the user name, database name or host
 name are the empty string, the constructor will call C<die>.
 
-INPUTS: a set of properties for the current database:
-
-=over
-
-=item userName
-
-name of the user for the (upcoming) connection
-
-=item databaseName
-
-name of the database
-
-=item hostName
-
-name of the host on which the database resides
-
-=item password
-
-password for the (upcoming) connection
-
-=item port
-
-port used for the (upcoming) connection (defaults to 3306 if not provided)
-
-=back
+INPUTS:
+  - name of the user for the (upcoming) connection.
+  - name of the database.
+  - name of the host on which the database resides.
+  - password for the (upcoming) connection.
+  - port used for the (upcoming) connection (defaults to 3306 if not provided).
 
 RETURN: new instance of this class.
 
@@ -131,7 +112,7 @@ sub BUILD {
 =head3 C<connect()>
 
 Attempts to connect to the database using the connection parameters passed
-at construction time. This method will throw a DatabaseException if the
+at construction time. This method will throw a C<DatabaseException> if the
 connection could not be established.
 
 =cut
@@ -169,22 +150,15 @@ sub connect {
 
 =head3 C<pselect($query, @args)>
 
-Executes a select query on the database. This method will first C<prepare>
+Executes a C<SELECT> query on the database. This method will first C<prepare>
 the statement passed as parameter before sending the request to the database.
 
 INPUTS: 
-    - select query to execute (containing the argument placeholders if any)
-    - list of arguments to replace the placeholders with.
+  - C<SELECT> query to execute (containing the argument placeholders if any).
+  - list of arguments to replace the placeholders with.
 
-RETURN: a reference to an array of hash references. Every hash contains the values
-        for a given row returned by the select statement: the key/value pairs hold
-        the name of a column (as it appears in the C<SELECT> statement) and the value it 
-        contains, respectively. As an example, suppose array C<$r> is assigned the result 
-        of a C<pselect> call with query C<SELECT TarchiveId, SourceLocation FROM tarchive>.
-        One would fetch the C<TarchiveId> of the 4th record returned using C<$r->[3]->{'TarchiveId'}>.
-        If the query is of the form C<SELECT COUNT(*) FROM....>, then the method returns
-        a reference to an array containing a single hash reference, its unique key being 
-        C<'COUNT(*)'> with the associated value set to the selected count.
+RETURN: a reference to the array of records found. Each record is in fact a
+        reference to the list of values for the columns selected.
 =cut
 
 sub pselect {
@@ -211,12 +185,12 @@ sub pselect {
 =head3 C<insertOne($tableName, $valuesRef)>
 
 Inserts one record in a given database table with the specified column values.
-This method will throw a DatabaseException if the record cannot be inserted.
+This method will throw a C<DatabaseException> if the record cannot be inserted.
 
 INPUTS: 
-    - name of the table in which to insert the record.
-    - reference to a hash array describing the column names and their values
-      for the given record.
+  - name of the table in which to insert the record.
+  - reference to a hash array describing the column names and their values
+    for the given record.
 
 RETURN: the ID of the record inserted.
 
@@ -252,11 +226,11 @@ Inserts one record in a given database table with the specified column values.
 This method will throw a C<DatabaseException> if the record cannot be inserted.
 
 INPUTS: 
-    - name of the table in which to insert the record
-    - reference to an array containing the names of the columns whose values
-      will be modified by this C<insert> statement.
-    - reference to an array of array references. This "matrix" contains the
-        values of each column for each record.
+  - name of the table in which to insert the record.
+  - reference to an array containing the names of the columns whose values
+    will be modified by this C<INSERT> statement.
+  - reference to an array of array references. This "matrix" contains the
+    values of each column for each record.
 
 =cut
 
@@ -333,3 +307,27 @@ sub DESTROY {
 }
 
 1;
+
+__END__
+
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

@@ -4,7 +4,7 @@ package NeuroDB::objectBroker::TarchiveOB;
 
 =head1 NAME
 
-NeuroDB::objectBroker::TarchiveOB -- An object broker for tarchive records
+NeuroDB::objectBroker::TarchiveOB -- An object broker for C<tarchive> records
 
 =head1 SYNOPSIS
 
@@ -97,9 +97,9 @@ INPUTS:
     - reference to an array of the column names to return for each record found.
       Each element of this array must exist in C<@TARCHIVE_FIELDS> or an exception
       will be thrown.
-    - path of the archive used during the search
+    - path of the archive used during the search.
     - boolean indicating if an exact match is sought (false) or if only basenames
-      should be used when comparing two archive locations (true)
+      should be used when comparing two archive locations (true).
 
 RETURN: a reference to an array of hash references. Every hash contains the values for a given 
         row returned by the function call: the key/value pairs contain the name of a column 
@@ -142,3 +142,27 @@ sub getByTarchiveLocation {
 }
 
 1;
+
+__END__
+
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

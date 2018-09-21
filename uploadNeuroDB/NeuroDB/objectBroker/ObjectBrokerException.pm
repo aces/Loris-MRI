@@ -43,6 +43,8 @@ has 'errorMessage' => (is  => 'ro', isa => 'Str', required => 1);
 Default string representation of this exception: its associated error
 message.
 
+RETURN: string representation of this exception.
+
 =cut
 sub toString {
     my $self = shift;
@@ -54,4 +56,28 @@ sub toString {
 };
 
 1;
-1;
+
+__END__
+
+
+=pod
+
+=head1 TO DO
+
+Nothing planned.
+
+=head1 BUGS
+
+None reported.
+
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
+
