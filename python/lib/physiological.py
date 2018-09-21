@@ -453,6 +453,10 @@ class Physiological:
                     row[field] = 1
                 elif field == 'manual' and row[field] == 'FALSE':
                     row[field] = 0
+                if field == 'high_cutoff' and row[field] == 'Inf':
+                    # replace 'Inf' by the maximum float value to be stored in the
+                    # physiological_channel table (a.k.a. 99999.999)
+                    row[field] = 99999.999
                     
             values_tuple = (
                 str(physiological_file_id),
