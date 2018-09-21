@@ -37,18 +37,46 @@ Alternatively, LORIS provides a PHP script called `populate_visit_windows.php`
 in its `tools/` directory that can be used.
 
 
-4. **`mri_scan_type`** and **`mri_protocol`** tables
+4. **`mri_scan_type`**, **`mri_protocol`** and **`mri_protocol_checks`** tables
 
-Ensure your `mri_scan_type` and `mri_protocol` tables contain an entry for 
-each type of scan in the study protocol.
-The `mri_protocol` table is used to identify incoming scans based on their 
-series description **OR** scan parameter values (TE, TR, slice thickness, etc). 
-By default, this table is populated with entries for t1, t2, fMRI and DTI, and 
-the columns defining expected scan parameters (*e.g.* `TE_Range`) are defined 
-very broadly.  
-The `Scan_type` column values are defined in the `mri_scan_type` table 
-(*e.g.* 44=t1). Do not include commas, hyphens, spaces or periods in your 
-`mri_scan_type.Scan_type` column values.
+> - `mri_scan_type`: this table is a lookup table that stores the name of
+the acquisition (*e.g.* t1, t2, flair...). Do not include commas, hyphens,
+spaces or periods in your `mri_scan_type.Scan_type` column values.The ID
+present in this table will be used in the `mri_protocol` and
+`mri_protocol_checks` tables described below.
+
+> - `mri_protocol`: this table is used to identify incoming scans based
+on their series description **OR** scan parameter values (TE, TR,
+slice thickness, etc). By default, this table is populated with entries for t1,
+t2, fMRI and DTI, and the columns defining expected scan parameters
+(*e.g.* `TE_min`, `TE_max`) are defined very broadly.
+
+> - `mri_protocol_checks`: this table allows further checking on the acquisition
+once the scan type has been identified in order to flag certain scans based on
+additional parameters found in the header. For example, let's say a scan has been
+identified with the `mri_protocol` table to be a `t1`. Additional headers could
+be checked in order to flag with a caveat or exclude the scan based on the value
+of that header.
+
+**Behaviour of the `*Min` and `*Max` columns of the `mri_protocol` and
+`mri_protocol_checks` tables:**
+
+> - if for a given parameter (*e.g.* TR) a `*Min` **AND** a `*Max` value have
+been specified, then it will check if the parameter of the scan falls into the
+range \[Min-Max].
+
+> - if for a given parameter, a `*Min` is provided but not a `*Max` then the
+imaging pipeline will check if the parameter of the scan is higher than
+the `*Min` value specified in the table.
+
+> - if for a given parameter, a `*Max` is provided but not a `*Min` then the
+imaging pipeline will check if the parameter of the scan is lower than
+the `*Max` value specified in the table.
+
+> - if for a given parameter, both `*Min` and `*Max` are set to `NULL`, then
+there will be no constraint on that header.
+
+
 
 5. **`Config`** table
 

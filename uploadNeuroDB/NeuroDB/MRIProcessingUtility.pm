@@ -814,25 +814,28 @@ sub loop_through_protocol_violations_checks {
         $sth->execute($scan_type, $severity, $header);
 
         # grep all valid ranges and regex to compare with value in the file
-        my @rows = @{ $sth->fetchall_arrayref(
-            { ValidRange => 1, ValidRegex => 1 }
-        ) };
-        my @valid_ranges = grep($_->{'ValidRange'}, @rows);
-        my @valid_regexs = grep($_->{'ValidRegex'}, @rows);
+        my (@valid_ranges, @valid_regexs);
+        while (my $row= $sth->fetchrow_hashref) {
+            if (defined $row->{'ValidMin'} || defined $row->{'ValidMax'}) {
+                my $valid_range = "$row->{'ValidMin'}-$row->{'ValidMax'}";
+                push(@valid_ranges, $valid_range);
+            }
+            push(@valid_regexs, $row->{'ValidRegex'}) if $row->{'ValidRegex'};
+        }
 
         # go to the next header if did not find any checks for that scan
         # type, severity and header
         next if (!@valid_ranges && !@valid_regexs);
 
         # loop through all checks
-        next if grep(NeuroDB::MRI::in_range($value, $_->{'ValidRange'}), @valid_ranges);
-        next if grep($value =~ /$_->{'ValidRegex'}/, @valid_regexs);
+        next if grep(NeuroDB::MRI::in_range($value, $_), @valid_ranges);
+        next if grep($value =~ /$_/, @valid_regexs);
 
         $valid_fields{$header} = {
             ScanType    => $scan_type,
             HeaderValue => $value,
-            ValidRanges => [ map { $_->{'ValidRange'} } @valid_ranges ],
-            ValidRegexs => [ map { $_->{'ValidRegex'} } @valid_regexs ]
+            ValidRanges => [ map { $_ } @valid_ranges ],
+            ValidRegexs => [ map { $_ } @valid_regexs ]
         };
     }
 
