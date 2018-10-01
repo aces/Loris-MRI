@@ -4,19 +4,73 @@
 # Perl tool to update headers in a dicomTar archive en masse.
 # $Id: updateHeadersBatch.pl 4 2007-12-11 20:21:51Z jharlap $
 
+=pod
+
+=head1 NAME
+
+updateHeadersBatch.pl -- updates DICOM headers for an entire study or a
+specific series in a DICOM archive
+
+
+=head1 SYNOPSIS
+
+perl tools/updateHeadersBatch.pl C<[options]> C<[/path/to/DICOM/or/TARCHIVE]>
+
+Available options are:
+
+-keys    : The number of key fields in the spec file, used to define the
+			matching... Note that 1 key consists of two columns, the first
+			being the field name (formatted as '(XXXX,YYYY)') and the second
+			being its value.
+
+-specfile: The specifications file. Format is one series per line, tab
+            separated fields. First field is the series number. Then every
+            pair of fields is the DICOM field name (as known to C<dcmtk>) and
+            new value, respectively.
+
+-database: Enable C<dicomTar>'s database features
+
+-profile : Name of the config file in C<../dicom-archive/.loris_mri>
+
+-verbose : Be verbose
+
+-version : Print version and revision number and exit
+
+=head1 DESCRIPTION
+
+A script that updates DICOM headers for an entire study or a specific series
+in a DICOM archive. If run with the C<-database> option, it will update the
+C<tarchive> tables with the updated DICOM archive.
+
+
+=head1 TODO
+
+Make sure this works as expected.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Jonathan Harlap, LORIS community <loris.info@mcin.ca> and McGill Centre for
+Integrative Neuroscience
+
+=cut
+
 use strict;
 
 use Cwd qw/ abs_path /;
 use File::Basename qw/ dirname /;
 use File::Find;
 use File::Temp qw/ tempdir /;
-use FindBin;
 use Getopt::Tabular;
 
 use Data::Dumper;
 
-use lib "$FindBin::Bin";
 use DICOM::DICOM;
+use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $verbose = 0;
 my $database = 0;
@@ -54,6 +108,26 @@ unless((scalar(@leftovers) == 1) && defined($specfile) ) {
 	 print $Usage;
 	 exit(1);
 }
+
+################################################################
+################### input option error checking ################
+################################################################
+if ( !$profile ) {
+	print $Usage;
+	print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+	exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
+{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if ( !@Settings::db ) {
+	print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+		. "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+	exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
+}
+
+# connect to the database
+my $dbh         = &NeuroDB::DBI::connect_to_db(@Settings::db);
+my $bin_dirPath = NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
+$bin_dirPath    =~ s/\/$//;
 
 my %setTable;
 my @keys;
@@ -105,7 +179,7 @@ find($find_handler, "$tempdir/$dcmdir");
 # rebuild the tarchive
 print "Rebuilding tarchive\n" if $verbose;
 my $targetdir = dirname($tarchive);
-my $DICOMTAR = $FindBin::Bin . "/dicomTar.pl";
+my $DICOMTAR = $bin_dirPath . "/dicom-archive/dicomTar.pl";
 my $cmd = "$DICOMTAR $tempdir/$dcmdir $targetdir -clobber";
 if($database) {
 	 $cmd .= " -database";

@@ -12,7 +12,6 @@ use strict;
 use warnings;
 use Getopt::Tabular;
 use File::Basename;
-use FindBin;
 
 ## NeuroDB modules
 use NeuroDB::File;
