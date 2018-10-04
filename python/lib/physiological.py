@@ -2,7 +2,7 @@
 """
 
 import sys
-
+import re
 
 __license__ = "GPLv3"
 
@@ -457,6 +457,10 @@ class Physiological:
                     # replace 'Inf' by the maximum float value to be stored in the
                     # physiological_channel table (a.k.a. 99999.999)
                     row[field] = 99999.999
+                if field == 'notch' and re.match(r"n.?a", row[field], re.IGNORECASE):
+                    # replace n/a, N/A, na, NA by None which will translate to NULL
+                    # in the physiological_channel table
+                    rowp[field] = None
                     
             values_tuple = (
                 str(physiological_file_id),
