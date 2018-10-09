@@ -360,8 +360,11 @@ class Physiological:
 
         # gather values that need to be inserted into physiological_electrode table
         electrode_fields = (
-            'PhysiologicalFileID', 'Name', 'X',        'Y',        'Z',
-            'Impedance',           'Type', 'Material', 'FilePath'
+            'PhysiologicalFileID',              'PhysiologicalElectrodeTypeID',
+            'PhysiologicalElectrodeMaterialID', 'Name',
+            'X',                                'Y',
+            'Z',                                'Impedance',
+            'FilePath'
         )
         electrode_values = []
         for row in electrode_data:
@@ -369,15 +372,28 @@ class Physiological:
             for field in optional_fields:
                 if field not in row.keys():
                     row[field] = None
+                if field == 'type':
+                    row['type_id'] = self.grep_id_from_lookup_table(
+                        id_field_name       = 'PhysiologicalElectrodeTypeID',
+                        table_name          = 'physiological_electrode_type',
+                        where_field_name    = 'ElectrodeType',
+                        where_value         = row['type'],
+                        insert_if_not_found = True
+                    )
+                if field == 'material':
+                    row['material_id'] = self.grep_id_from_lookup_table(
+                        id_field_name       = 'PhysiologicalElectrodeMaterialID',
+                        table_name          = 'physiological_electrode_material',
+                        where_field_name    = 'ElectrodeMaterial',
+                        where_value         = row['material'],
+                        insert_if_not_found = True
+                    )
+
             values_tuple = (
-                str(physiological_file_id),
-                row['name'],
-                row['x'],
-                row['y'],
-                row['z'],
-                row['impedance'],
-                row['type'],
-                row['material'],
+                str(physiological_file_id), row['type_id'],
+                row['material_id'],         row['name'],
+                row['x'],                   row['y'],
+                row['z'],                   row['impedance'],
                 electrode_file
             )
             electrode_values.append(values_tuple)
@@ -420,8 +436,7 @@ class Physiological:
             'LowCutoff',                 'HighCutoff',
             'ManualFlag',                'Notch',
             'StatusDescription',         'Unit',
-            'SoftwareFilters',           'Reference',
-            'FilePath'
+            'Reference',                 'FilePath'
         )
         channel_values = []
         for row in channel_data:
@@ -443,8 +458,7 @@ class Physiological:
             optional_fields = (
                 'description',        'sampling_frequency', 'low_cutoff',
                 'high_cutoff',        'manual',             'notch',
-                'status_description', 'software_filters',   'unit',
-                'reference'
+                'status_description', 'unit',               'reference'
             )
             for field in optional_fields:
                 if field not in row.keys():
@@ -457,10 +471,12 @@ class Physiological:
                     # replace 'Inf' by the maximum float value to be stored in the
                     # physiological_channel table (a.k.a. 99999.999)
                     row[field] = 99999.999
-                if field == 'notch' and re.match(r"n.?a", row[field], re.IGNORECASE):
+                if field == 'notch' and row[field] and re.match(r"n.?a",
+                                                                row[field],
+                                                                re.IGNORECASE):
                     # replace n/a, N/A, na, NA by None which will translate to NULL
                     # in the physiological_channel table
-                    rowp[field] = None
+                    row[field] = None
                     
             values_tuple = (
                 str(physiological_file_id),
@@ -475,7 +491,6 @@ class Physiological:
                 row['notch'],
                 row['status_description'],
                 row['unit'],
-                row['software_filters'],
                 row['reference'],
                 channel_file
             )
@@ -623,3 +638,23 @@ class Physiological:
 
         # return the result
         return results[0] if results else None
+
+    def grep_id_from_lookup_table(self, id_field_name, table_name, where_field_name,
+                                  where_value, insert_if_not_found):
+
+        query = "SELECT  " + id_field_name    + " " \
+                "FROM    " + table_name       + " "  \
+                "WHERE   " + where_field_name + " = %s"
+        result = self.db.pselect(query=query, args=(where_value,))
+        id = result[0][id_field_name] if result else None
+
+        if not id and insert_if_not_found:
+            id = self.db.insert(
+                table_name   = table_name,
+                column_names = (where_field_name,),
+                values       = (where_value,),
+                get_last_id  = True
+            )
+            print(id)
+
+        return id
