@@ -9,6 +9,7 @@ This repo can be installed on the same VM as the main LORIS codebase, or on a di
  * Perl
  * Python 3 with pip3 and virtualenv (step 2 below)
  * MINC toolkit (step 3 below)
+ * DICOM toolkit (step 4 below)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
