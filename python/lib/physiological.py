@@ -373,7 +373,7 @@ class Physiological:
                 if field not in row.keys():
                     row[field] = None
                 if field == 'type':
-                    row['type_id'] = self.grep_id_from_lookup_table(
+                    row['type_id'] = self.db.grep_id_from_lookup_table(
                         id_field_name       = 'PhysiologicalElectrodeTypeID',
                         table_name          = 'physiological_electrode_type',
                         where_field_name    = 'ElectrodeType',
@@ -381,7 +381,7 @@ class Physiological:
                         insert_if_not_found = True
                     )
                 if field == 'material':
-                    row['material_id'] = self.grep_id_from_lookup_table(
+                    row['material_id'] = self.db.grep_id_from_lookup_table(
                         id_field_name       = 'PhysiologicalElectrodeMaterialID',
                         table_name          = 'physiological_electrode_material',
                         where_field_name    = 'ElectrodeMaterial',
@@ -440,21 +440,22 @@ class Physiological:
         )
         channel_values = []
         for row in channel_data:
-            physio_channel_type = self.db.pselect(
-                query="SELECT PhysiologicalChannelTypeID "
-                      " FROM physiological_channel_type "
-                      " WHERE ChannelTypeName = %s",
-                args=(row['type'],)
+            physio_channel_type_id = self.db.grep_id_from_lookup_table(
+                id_field_name       = 'PhysiologicalChannelTypeID',
+                table_name          = 'physiological_channel_type',
+                where_field_name    = 'ChannelTypeName',
+                where_value         = row['type'],
+                insert_if_not_found = False
             )
             physio_status_type_id = None
             if 'status' in row.keys():
-                result = self.db.pselect(
-                    query="SELECT PhysiologicalStatusTypeID "
-                          " FROM physiological_status_type "
-                          " WHERE ChannelStatus = %s",
-                    args=(row['status'],)
+                physio_status_type_id = self.db.grep_id_from_lookup_table(
+                    id_field_name       = 'PhysiologicalStatusTypeID',
+                    table_name          = 'physiological_status_type',
+                    where_field_name    = 'ChannelStatus',
+                    where_value         = row['status'],
+                    insert_if_not_found = False
                 )
-                physio_status_type_id = result[0]['PhysiologicalStatusTypeID']
             optional_fields = (
                 'description',        'sampling_frequency', 'low_cutoff',
                 'high_cutoff',        'manual',             'notch',
@@ -480,7 +481,7 @@ class Physiological:
                     
             values_tuple = (
                 str(physiological_file_id),
-                str(physio_channel_type[0]['PhysiologicalChannelTypeID']),
+                str(physio_channel_type_id),
                 physio_status_type_id,
                 row['name'],
                 row['description'],
@@ -639,22 +640,4 @@ class Physiological:
         # return the result
         return results[0] if results else None
 
-    def grep_id_from_lookup_table(self, id_field_name, table_name, where_field_name,
-                                  where_value, insert_if_not_found):
 
-        query = "SELECT  " + id_field_name    + " " \
-                "FROM    " + table_name       + " "  \
-                "WHERE   " + where_field_name + " = %s"
-        result = self.db.pselect(query=query, args=(where_value,))
-        id = result[0][id_field_name] if result else None
-
-        if not id and insert_if_not_found:
-            id = self.db.insert(
-                table_name   = table_name,
-                column_names = (where_field_name,),
-                values       = (where_value,),
-                get_last_id  = True
-            )
-            print(id)
-
-        return id

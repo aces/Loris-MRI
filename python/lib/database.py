@@ -236,6 +236,45 @@ class Database:
 
         return config_value[0]['Value'] if config_value else None
 
+    def grep_id_from_lookup_table(self, id_field_name, table_name, where_field_name,
+                                  where_value, insert_if_not_found=None):
+        """
+        Greps an ID from a given lookup table based on the provided value.
+
+        :param id_field_name      : name of the ID field in the table
+         :type id_field_name      : str
+        :param table_name         : name of the lookup table
+         :type table_name         : str
+        :param where_field_name   : name of the field to use to find the ID
+         :type where_field_name   : str
+        :param where_value        : value of the field to use to find the ID
+         :type where_value        : str
+        :param insert_if_not_found: whether to insert a new row in the lookup table
+                                    if no entry was found for the provided value
+         :type insert_if_not_found: bool
+
+        :return: ID found in the lookup table
+         :rtype: int
+
+        """
+
+        query = "SELECT  " + id_field_name    + " " \
+                "FROM    " + table_name       + " " \
+                "WHERE   " + where_field_name + " = %s"
+
+        result = self.pselect(query=query, args=(where_value,))
+        id     = result[0][id_field_name] if result else None
+
+        if not id and insert_if_not_found:
+            id = self.insert(
+                table_name   = table_name,
+                column_names = (where_field_name,),
+                values       = (where_value,),
+                get_last_id  = True
+            )
+
+        return id
+
     def disconnect(self):
         """
         Terminates the connection previously instantiated to the database if a
