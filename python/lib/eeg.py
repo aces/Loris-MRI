@@ -381,7 +381,14 @@ class Eeg:
         file_type = physiological.get_file_type(eeg_file)
 
         # grep the output type from the physiological_output_type table
-        output_type = physiological.get_output_type_id(derivatives)
+        output_type = 'derivatives' if derivatives else 'raw'
+        output_type_id = self.db.grep_id_from_lookup_table(
+            id_field_name       = 'PhysiologicalOutputTypeID',
+            table_name          = 'physiological_output_type',
+            where_field_name    = 'OutputTypeName',
+            where_value         = output_type,
+            insert_if_not_found = False
+        )
 
         # check if a tsv with acquisition dates is available for the subject
         bids_layout = self.bids_layout
@@ -425,7 +432,13 @@ class Eeg:
         eeg_path       = result['FilePath']            if result else None
         if not physio_file_id:
             # grep the modality ID from physiological_modality table
-            modality_id = physiological.get_modality(self.bids_modality)
+            modality_id = self.db.grep_id_from_lookup_table(
+                id_field_name       = 'PhysiologicalModalityID',
+                table_name          = 'physiological_modality',
+                where_field_name    = 'PhysiologicalModality',
+                where_value         = self.bids_modality,
+                insert_if_not_found = False
+            )
 
             # copy the eeg_file to the LORIS BIDS import directory
             eeg_path = self.copy_file_to_loris_bids_dir(
@@ -440,7 +453,7 @@ class Eeg:
                 'SessionID'      : self.session_id,
                 'AcquisitionTime': eeg_acq_time,
                 'InsertedByUser' : getpass.getuser(),
-                'PhysiologicalOutputTypeID': output_type,
+                'PhysiologicalOutputTypeID': output_type_id,
                 'PhysiologicalModalityID'  : modality_id
             }
             physio_file_id = physiological.insert_physiological_file(

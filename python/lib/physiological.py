@@ -26,14 +26,8 @@ class Physiological:
         # Get file type for the physiological file
         file_type = physiological.get_file_type(eeg_file)
 
-        # get output type ID for the physiological file
-        output_type = physiological.get_output_type_id(derivatives)
-
         # grep a PhysiologicalFileID based on a blake2b hash
         file_id = physiological.grep_file_id_from_hash(blake2)
-
-        # grep the modality ID for a BIDS modality
-        modality_id = physiological.get_modality(bids_modality)
 
         # insert electrode file into physiological_electrode
         physiological.insert_electrode_file(
@@ -55,37 +49,6 @@ class Physiological:
 
         self.db      = db
         self.verbose = verbose
-
-    def get_modality(self, modality):
-        """
-        Greps the modality ID from the physiological_modality table. If
-        db_modality cannot be found, the script will exit with error message
-        and error code.
-
-        :param modality: name of the modality to look for
-         :type modality: str
-
-        :return: modality ID from the physiological_modality
-         :rtype: int
-        """
-
-        db_modality = self.db.pselect(
-            query="SELECT PhysiologicalModalityID "
-                  "FROM physiological_modality "
-                  "WHERE PhysiologicalModality = %s",
-            args=(modality,)
-        )
-
-        # if the modality cannot be found in the database, exit now
-        if not db_modality:
-            message = "\nERROR: Modality " + modality + " does not " \
-                      "exist in physiological_modality database table\n"
-            print(message)
-            sys.exit(lib.exitcode.SELECT_FAILURE)
-
-        modality_id = db_modality[0]['PhysiologicalModalityID']
-
-        return modality_id
 
     def get_file_type(self, file):
         """
@@ -118,26 +81,6 @@ class Physiological:
             sys.exit(lib.exitcode.SELECT_FAILURE)
 
         return file_type
-
-    def get_output_type_id(self, derivatives):
-        """
-        Returns the PhysiologicalOutputTypeID for derivatives or raw datasets.
-
-        :param derivatives: whether to fetch the PhysiologicalOutputTypeID for
-                            'derivatives' (if set) or 'raw' (if not set)
-         :type derivatives: bool
-
-        :return: PhysiologicalOutputTypeID associated to the output type
-         :rtype: int
-        """
-
-        query = "SELECT PhysiologicalOutputTypeID "  + \
-                  " FROM physiological_output_type " + \
-                  " WHERE OutputTypeName = %s"
-        where = ['derivatives',] if derivatives else ['raw',]
-        output_types = self.db.pselect(query=query, args=where)
-
-        return output_types[0]['PhysiologicalOutputTypeID']
 
     def grep_file_id_from_hash(self, blake2b_hash):
         """
