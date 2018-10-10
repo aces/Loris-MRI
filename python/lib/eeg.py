@@ -272,15 +272,15 @@ class Eeg:
         fdt_file_path = results['Value'] if results else None
 
         # archive all files in a tar ball for downloading all files at once
-        files_to_archive = (
-            self.data_dir + eeg_file_path,
-            self.data_dir + channel_file_path,
-            self.data_dir + event_file_path
-        )
+        files_to_archive = (self.data_dir + eeg_file_path,)
         if electrode_file_path:
             files_to_archive = files_to_archive + (self.data_dir + electrode_file_path,)
         if fdt_file_path:  # add the fdt file path to the tuple if present
             files_to_archive = files_to_archive + (self.data_dir + fdt_file_path,)
+        if event_file_path:
+            files_to_archive = files_to_archive + (self.data_dir + event_file_path,)
+        if channel_file_path:
+            files_to_archive = files_to_archive + (self.data_dir + channel_file_path,)
         archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
         self.create_and_insert_archive(
             files_to_archive, archive_rel_name, eeg_file_id
