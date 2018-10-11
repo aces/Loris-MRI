@@ -422,7 +422,7 @@ The `physiological_channel` table is populated using data from the
 If the `*_channels.tsv` file is not present in the BIDS dataset, then no 
 entry will be inserted in this table. This table is linked to the 
 `physiological_file` table via the `PhysiologicalFileID` foreign key. In 
-additional, `physiological_channel` is link to the following tables:
+addition, `physiological_channel` is linked to the following tables:
 - `physiological_status_type`: this table contains two entries specifying the 
 channel status ('good' and 'bad')
 - `physiological_channel_type`: this contains information about the channel 
@@ -438,7 +438,13 @@ The `physiological_electrode` table is populated using data from the
 `*_electrodes.tsv` BIDS file when present with the electrophysiology recording. 
 If the `*_electrodes.tsv` file is not present in the BIDS dataset, then no 
 entry will be inserted in this table. This table is linked to the 
-`physiological_file` table via the `PhysiologicalFileID` foreign key.
+`physiological_file` table via the `PhysiologicalFileID` foreign key. In
+addition, `physiological_electrode` is linked to the following tables:
+- `physiological_electrode_type`: this table will store the different electrode
+types found in the `*_electrode.tsv` file. Each entry in that table is unique.
+- `physiological_electrode_material`: this table will store the different
+electrode materials found in the `*_electrode.tsv` file. Each entry in that
+table is unique.
 
 ![PhysiologicalElectrodeTables](images/PhysiologicalElectrodeTables.png)
 
