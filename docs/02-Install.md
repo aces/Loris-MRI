@@ -276,8 +276,7 @@ Under the `Imaging Pipeline` section:
  * `User to notify when executing the pipeline`
  * `Full path to get_dicom_info.pl script`(typically `/data/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
  * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
- * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting 
-   the project's desire)
+ * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting)
 
 Under the `Path` section:
  * `Imaging Data` (typically `/data/$PROJECT/data/`)
@@ -352,9 +351,9 @@ customization, it could handle other types of electrophysiology modalities.
 Typically, electrophysiology data insertion into LORIS is performed via the 
 following steps:
 
-1. Given the possible large size of a BIDS structure, the best way to upload that 
-data would probably be to transfer the BIDS structure onto the LORIS server 
-directly.
+1. Transfer the BIDS-format data to the LORIS server via commandline. Due to the 
+large size of electrophysiological/BIDS data, a suitable browser-based uploader is 
+not presently available.
 
 2. Run the BIDS import script to import the electrophysiology data into the 
 `physiological_*` tables of LORIS. More details about this import script can 

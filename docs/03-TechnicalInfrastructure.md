@@ -399,8 +399,8 @@ were used during the recording if any task was used in the paradigm
 
 ### 3.2.2.1 The `physiological_file` and `physiological_parameter_file` tables
 
-These two tables regroups information about the electrophysiology files. 
-Typically, the `physiology_file` will store one recording per row linking it 
+These two tables regroup information about the electrophysiology files. 
+Typically, the `physiologcal_file` table will store one recording per row linking it 
 to the `session` table. This table is also linked to the following tables 
 using the `PhysiologicalFileID` key:
 - `physiological_modality`: storing information about the recording modality 
@@ -415,7 +415,7 @@ BIDS JSON sidecar file of the electrophysiology recording
 ![PhysiologicalMainTables](images/PhysiologicalMainTables.png)
 
 
-### 3.2.2.2 The `physiological_channel` tables
+### 3.2.2.2 The `physiological_channel` table
 
 The `physiological_channel` table is populated using data from the 
 `*_channels.tsv` BIDS file when present with the electrophysiology recording. 
