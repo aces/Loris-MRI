@@ -105,5 +105,5 @@ def create_archive(files_to_archive, archive_rel_name, data_dir):
         tar = tarfile.open(data_dir + archive_rel_name, "w:gz")
         for file in files_to_archive:
             filename = os.path.basename(file)
-            tar.addfile(tarfile.TarInfo(filename), open(file))
+            tar.add(file, arcname=filename, recursive=False)
         tar.close()
