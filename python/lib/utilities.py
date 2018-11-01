@@ -6,6 +6,8 @@ import csv
 import shutil
 import filecmp
 import tarfile
+import scipy.io
+import numpy
 import lib.exitcode
 
 
@@ -88,6 +90,7 @@ def create_dir(dir_name, verbose):
 
     return dir_name
 
+
 def create_archive(files_to_archive, archive_rel_name, data_dir):
     """
     Creates an archive with the files listed in the files_to_archive tuple.
@@ -107,3 +110,31 @@ def create_archive(files_to_archive, archive_rel_name, data_dir):
             filename = os.path.basename(file)
             tar.add(file, arcname=filename, recursive=False)
         tar.close()
+
+
+def update_set_file_path_info(set_file, fdt_file):
+    """
+    Updates the path info of the set file with the correct filenames for .set and
+    .fdt files (for cases that had to be relabelled to include a Visit Label at
+    the time of import.
+
+    :param set_file: complete path of the .set file
+     :type set_file: str
+    :param fdt_file: complete path of the .fdt file
+     :type fdt_file: str
+    """
+
+    # grep the basename without the extension of set_file
+    basename = os.path.splitext(os.path.basename(set_file))[0]
+
+    # read the .set EEG file using scipy
+    dataset = scipy.io.loadmat(set_file)
+
+    # update the EEG paths in the .set file
+    dataset['EEG'][0][0][1]  = numpy.array(basename + ".set")
+    if fdt_file:
+        dataset['EEG'][0][0][15] = numpy.array(basename + ".fdt")
+        dataset['EEG'][0][0][-1] = numpy.array(basename + ".fdt")
+
+    # write the new .set file with the correct path info
+    scipy.io.savemat(set_file, dataset, False)

@@ -460,6 +460,16 @@ class Eeg:
                 eeg_file_info, eeg_file_data
             )
 
+        # if the EEG file was a set file, then update the filename for the .set
+        # and .fdt files in the .set file so it can find the proper file for
+        # visualization and analyses
+        if file_type == 'set':
+            set_full_path = self.data_dir + eeg_path
+            fdt_full_path = eeg_file_data['fdt_file']
+            if fdt_full_path:
+                fdt_full_path = self.data_dir + eeg_file_data['fdt_file']
+            utilities.update_set_file_path_info(set_full_path, fdt_full_path)
+
         return {'file_id': physio_file_id, 'eeg_path': eeg_path }
 
     def fetch_and_insert_electrode_file(
