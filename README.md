@@ -7,8 +7,9 @@ This repo can be installed on the same VM as the main LORIS codebase, or on a di
 
 # System Requirements
  * Perl
- * MINC toolkit (step 2 below)
- * DICOM toolkit (step 3 below)
+ * Python 3 with pip3 and virtualenv (step 2 below)
+ * MINC toolkit (step 3 below)
+ * DICOM toolkit (step 4 below)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
@@ -28,7 +29,16 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
    git clone -b master https://github.com/aces/Loris-MRI.git mri
    ```
 
-#### 2. Install MINC toolkit from http://bic-mni.github.io/ 
+#### 2. Install Python 3 with `pip` and `virtualenv`
+
+```bash
+sudo apt-get install python3 
+sudo apt-get install python3-dev
+sudo apt-get install python3-pip
+sudo pip3 install virtualenv
+```
+
+#### 3. Install MINC toolkit from http://bic-mni.github.io/ 
 
 Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
 
@@ -42,7 +52,7 @@ Download the pre-compiled package for your operating system.  Install required d
 
   where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
 
-#### 3. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
+#### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
    ```bash 
    cd /data/$projectname/bin/mri/
@@ -66,7 +76,7 @@ Download the pre-compiled package for your operating system.  Install required d
   Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group.  To ensure this change takes effect, log out and log back into your terminal session before running the imaging pipeline.
 The installer will also set Apache group ownership of certain /data/ subdirectories.
 
-#### 4. Configure paths and environment
+#### 5. Configure paths and environment
 
    Ensure that /home/lorisadmin/.bashrc includes the statement:
 
