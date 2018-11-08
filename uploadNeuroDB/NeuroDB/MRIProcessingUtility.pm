@@ -1148,16 +1148,14 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path =  $tarchiveInfo->{ArchiveLocation};
-        $tarchive_path =~ s/$data_dir\///i;
-        $${minc_file}->setParameter(
-            'tarchiveLocation', 
-            $tarchive_path
-        );
-        $${minc_file}->setParameter(
-            'tarchiveMD5', 
-            $tarchiveInfo->{'md5sumArchive'}
-        );
+        $tarchive_path = $tarchiveInfo->{ArchiveLocation};
+        if ($tarchive_path) {
+            $tarchive_path =~ s/$data_dir\///i;
+            $${minc_file}->setParameter('tarchiveLocation', $tarchive_path);
+            $${minc_file}->setParameter(
+                'tarchiveMD5', $tarchiveInfo->{'md5sumArchive'}
+            );
+        }
 
         ########################################################
         # register into the db fixme if I ever want a dry run ## 
