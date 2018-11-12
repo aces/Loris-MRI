@@ -4,6 +4,55 @@
 # Perl tool based on DCMSUM.pm and DICOM.pm to create a summary report for a given dir containing dicoms
 # @VERSION : $Id: dicomSummary.pl 4 2007-12-11 20:21:51Z jharlap $
 
+=pod
+
+=head1 NAME
+
+dicomSummary.pl -- prints out an informative summary for DICOMs in a given directory
+
+=head1 SYNOPSIS
+
+perl dicomSummary.pl </PATH/TO/DICOM/DIR> [ -compare </PATH/TO/DICOM/COMPARE/DIR> ] [ -tmp </PATH/TO/TMP/DIR> ] `[options]`
+
+Available options are:
+
+-comparedir: path to another DICOM directory to compare with
+
+-dbcompare : run a comparison with entries int he database
+
+-database  : use the database
+
+-dbreplace : use this option only if the DICOM data changed and need to be updated
+             in the database
+
+-profile   : specify the name of the config file residing in C<.loris_mri> of the
+             current directory
+
+-tmp       : to specify a temporary directory. It will contain the summaries if
+             used with -noscreen option
+
+-xdiff     : to see with tkdiff the result of the two folders comparison or the
+             comparison with the database content with
+
+-batch     : run in batch mode if set. Will log differences to a /tmp/diff.log file.
+
+-verbose   : be verbose if set
+
+-version   : print CVS version number and exit
+
+
+=head1 DESCRIPTION
+
+A tool for producing an informative summary for DICOMs in a given directory
+(scanner information, acquisitions list, acquisitions parameters...). This tool
+can also compare the DICOM data present in two directories or compare the DICOM
+data present in a given directory and what is stored in the database.
+
+
+=head2 Methods
+
+=cut
+
 use strict;
 use Cwd qw/ abs_path /;
 use FindBin;
@@ -199,11 +248,20 @@ if ($batch && $metaFiles[1] && $returnVal == 99) {
 exit $returnVal;
 
 ######################################################################### end main ####################
-=pod 
-################################################
-Read archive metadata from database
-################################################
-=cut 
+
+=pod
+
+=head3 read_db_metadata($StudyUID)
+
+Reads the information stored in the database for a given StudyUID.
+
+INPUT: the DICOM Study Instance UID (StudyUID)
+
+RETURNS: path to the file where the result of the query (i.e. the DICOM metadata
+         found) has been printed
+
+=cut
+
 sub read_db_metadata {
 # establish database connection if database option is set
     my $dbh;
@@ -234,11 +292,19 @@ QUERY
     else { return undef; }
 }
 
-=pod 
-################################################
-Compare dicomSummary version Numbers
-################################################
-=cut 
+=pod
+
+=head3 version_conflict($StudyUID)
+
+Compares DICOM summary version numbers for a given StudyUID.
+
+INPUT: the DICOM Study Instance UID (StudyUID)
+
+RETURNS: the version number of the DICOM summary found in the database if the
+         version is different from the current version of the script, 0 otherwise
+
+=cut
+
 sub version_conflict {
 # establish database connection if database option is set
     my $dbh;
@@ -262,6 +328,14 @@ QUERY
     else { return 0; }
 }
 
+=pod
+
+=head3 silly_head()
+
+Print out a header to the DICOM summary.
+
+=cut
+
 sub silly_head {
     print  <<HEAD;
 * * * * * * * * * * * * * *
@@ -273,7 +347,19 @@ HEAD
 }
 
 
+=pod
 
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+J-Sebastian Muehlboeck,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
 
 
 

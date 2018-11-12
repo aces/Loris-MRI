@@ -63,6 +63,7 @@ my @script_list = (
     'dicom-archive/dicomTar.pl',
     'dicom-archive/updateMRI_Upload.pl',
     'tools/BackPopulateSNRAndAcquisitionOrder.pl',
+    'tools/dicomSummary.pl',
     'tools/MakeArchiveLocationRelative.pl',
     'tools/ProdToConfig.pl',
     'tools/database_files_update.pl',
