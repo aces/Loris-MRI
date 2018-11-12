@@ -271,7 +271,8 @@ sub getSessionID {
                 # fixme add some debug messages if this is to be kept
                 print "Set newVisitNo = $newVisitNo and centerID = $centerID\n";
             } else {
-                $query = "SELECT CenterID FROM candidate WHERE CandID=".$dbh->quote($subjectIDref->{'CandID'});
+                $query = "SELECT RegistrationCenterID AS CenterID FROM candidate "
+                         . "WHERE CandID=" . $dbh->quote($subjectIDref->{'CandID'});
                 $sth = $dbh->prepare($query);
                 $sth->execute();
                 if($sth->rows > 0) {
@@ -1074,7 +1075,12 @@ sub registerScanner {
     # create a new candidate for the scanner if it does not exist.
     if(!defined($candID)) {
 	    $candID = createNewCandID($dbhr);
-	    $query = "INSERT INTO candidate (CandID, PSCID, CenterID, Date_active, Date_registered, UserID, Entity_type) VALUES ($candID, 'scanner', $centerID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
+	    $query = "INSERT INTO candidate "
+                 . "(CandID,          PSCID,  RegistrationCenterID, Date_active,  "
+                 . " Date_registered, UserID, Entity_type                       ) "
+                 . "VALUES "
+                 . "($candID, 'scanner',      $centerID,  NOW(),   "
+                 . " NOW(),   'NeuroDB::MRI', 'Scanner'          ) ";
 	    $dbh->do($query);
     }	
     

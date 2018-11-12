@@ -1503,8 +1503,8 @@ sub CreateMRICandidates {
                 NeuroDB::MRI::createNewCandID($this->{dbhr});
             }
             $query = "INSERT INTO candidate ".
-                     "(CandID, PSCID, DoB, Sex,CenterID, Date_active,".
-                     " Date_registered, UserID,Entity_type) ".
+                     "(CandID, PSCID, DoB, Sex, RegistrationCenterID, ".
+                     "Date_active, Date_registered, UserID, Entity_type) ".
                      "VALUES(" . 
                      ${$this->{'dbhr'}}->quote($subjectIDsref->{'CandID'}).",".
                      ${$this->{'dbhr'}}->quote($subjectIDsref->{'PSCID'}).",".
