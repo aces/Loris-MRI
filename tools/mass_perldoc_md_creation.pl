@@ -62,6 +62,7 @@ my @script_list = (
     'dicom-archive/DICOM/VRfields.pm',
     'dicom-archive/dicomSummary.pl',
     'dicom-archive/dicomTar.pl',
+    'dicom-archive/get_dicom_info.pl',
     'dicom-archive/updateMRI_Upload.pl',
     'tools/BackPopulateSNRAndAcquisitionOrder.pl',
     'tools/create_nifti_bval_bvec.pl',
