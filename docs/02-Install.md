@@ -213,10 +213,6 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
 
     Routine to parse candidate’s PSCID, CandID, Center (determined from the PSCID), and visit 
     label. 
-
-- `filterParameters()`
-
-    Routine that takes in a file as an object and removes all parameters of length > 1000
     
 - `get_DTI_CandID_Visit()`
 
