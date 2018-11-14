@@ -326,6 +326,46 @@ INPUTS:
   - $fileref : file hash ref
   - $data\_dir: data directory (e.g. `/data/$PROJECT/data`)
 
+### create\_dwi\_nifti\_bval\_file($file\_ref, $bval\_file)
+
+Creates the NIfTI `.bval` file required for DWI acquisitions based on the
+returned value of `acquisition:bvalues`.
+
+INPUTS:
+  - $file\_ref : file hash ref
+  - $bval\_file: path to the `.bval` file to write into
+
+RETURNS:
+  - undef if no `acquisition:bvalues` were found (skipping the creation
+    of the `.bval` file since there is nothing to write into)
+  - 1 after the `.bval` file was created
+
+### create\_dwi\_nifti\_bvec\_file($file\_ref, $bvec\_file)
+
+Creates the NIfTI `.bvec` file required for DWI acquisitions based on the
+returned value of `acquisition:direction_x`, `acquisition:direction_y` and
+`acquisition:direction_z`.
+
+INPUTS:
+  - $file\_ref : file hash ref
+  - $bvec\_file: path to the `.bvec` file to write into
+
+RETURNS:
+  - undef if no `acquisition:direction_x`, `acquisition:direction_y` and
+    `acquisition:direction_z` were found (skipping the creation
+    of the `.bvec` file since there is nothing to write into)
+  - 1 after the `.bvec` file was created
+
+### write\_to\_file($file, $value, $mode)
+
+This method writes into a file `$file` values stored in `$value`. The mode
+in which the file should be open with is specified in `$mode`.
+
+INPUTS:
+  - $file : output file to write into
+  - $value: value that needs to be written in the file
+  - $mode : mode with which the file should be open with (`'\`'> or `'\`\\>'>)
+
 ### make\_minc\_pics($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose)
 
 Creates pics associated with MINC files.

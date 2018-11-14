@@ -267,8 +267,24 @@ sub IsCandidateInfoValid {
             ############## and the file is of type DICOM###########
             #######################################################
                     if ($row[4] eq 'N') {
-                        if ( !$this->PatientNameMatch($_) ) {
-                                $files_with_unmatched_patient_name++;
+                        # make sure the regex used for PatientNameMatch starts
+                        # with $this->{'pname'}
+                        if (!$this->PatientNameMatch($_, "^$this->{'pname'}")) {
+                            $files_with_unmatched_patient_name++;
+                        }
+                    } elsif ($row[4] eq 'Y') {
+                        # make sure the regex used for PatientNameMatch
+                        # includes "phantom" string
+                        my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr}, 'LegoPhantomRegex'
+                        );
+                        my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr}, 'LivingPhantomRegex'
+                        );
+                        my $phantom_regex =
+                            "($lego_phantom_regex)|($living_phantom_regex)";
+                        if (!$this->PatientNameMatch($_, $phantom_regex)) {
+                            $files_with_unmatched_patient_name++;
                         }
                     }
                 }
@@ -434,13 +450,15 @@ sub runTarchiveLoader {
 
 =pod
 
-=head3 PatientNameMatch($dicom_file)
+=head3 PatientNameMatch($dicom_file, $expected_pname_regex)
 
 This method extracts the patient name field from the DICOM file header using
 C<dcmdump> and compares it with the patient name information stored in the
 C<mri_upload> table.
 
-INPUT: full path to the DICOM file
+INPUTS:
+  - $dicom_file          : full path to the DICOM file
+  - $expected_pname_regex: expected patient name regex to find in the DICOM file
 
 RETURNS: 1 on success, 0 on failure
 
@@ -448,7 +466,7 @@ RETURNS: 1 on success, 0 on failure
 
 sub PatientNameMatch {
     my $this         = shift;
-    my ($dicom_file) = @_;
+    my ($dicom_file, $expected_pname_regex) = @_;
 
     my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
         $this->{'dbhr'},'lookupCenterNameUsing'
@@ -479,11 +497,11 @@ sub PatientNameMatch {
         $this->spool($message, 'Y', $notify_notsummary);
         exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
-    my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
-    if ($pname !~ /^$this->{'pname'}/) {
+    my ($l,$dicom_pname,$t) = split /\[(.*?)\]/, $patient_name_string;
+    if ($dicom_pname !~ /$expected_pname_regex/) {
         my $message = "\nThe $lookupCenterNameUsing read "
                       . "from the DICOM header does not start with "
-                      . $this->{'pname'}
+                      . $expected_pname_regex
                       . " from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);
         return 0; ##return false

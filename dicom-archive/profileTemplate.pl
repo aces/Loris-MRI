@@ -108,23 +108,6 @@ sub isFileToBeRegisteredGivenProtocol {
 }
 
 # ----------- OPTIONAL SUBROUTINE
-# Takes a NeuroDB::File object, and manipulates its parameters
-# in this case, removes all parameters of length > 1000
-sub filterParameters {
-    my $fileRef = shift;
-    my $file = $$fileRef;
-    my $parametersRef = $file->getParameters();
-
-    foreach my $key (keys %{$parametersRef}) {
-        if(($key ne 'header') && (length($parametersRef->{$key}) > 1000)) {
-            #print "\n\tFilter active on: $key with length ".length($parametersRef->{$key})."\n"; 
-            $file->removeParameter($key);
-        }
-    }
-}
-
-
-# ----------- OPTIONAL SUBROUTINE
 # Fetch CandID and Visit info from DTI folder.
 sub  get_DTI_CandID_Visit {
     my ($native_dir) =   @_;

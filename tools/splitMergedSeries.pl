@@ -1,15 +1,68 @@
 #!/usr/bin/perl 
-# Perl tool to update headers for multi-echo data without echo numbers
-# Derived from Sebas' LDZfix.pl
-# $Id: $
+
+=pod
+
+=head1 NAME
+
+splitMergedSeries.pl -- a script that goes through the supplied directory
+with DICOM files (or the supplied DICOM archive) and generates a specfile which
+can be used to fix the DICOM fields of difficult to separate series.
+
+
+=head1 SYNOPSIS
+
+perl tools/splitMergedSeries.pl C<[options]> C<[/path/to/DICOM/or/TARCHIVE]> C<[specfile_name]>
+
+Available options are:
+
+-series : Split series by generating new series numbers [default]
+
+-seqnam : Split series by modifying the sequence name
+
+-echo   : Split series by generating new echo numbers
+
+-clobber: Overwrite the existing C<specfile>
+
+-verbose: Be verbose
+
+-debug  : Be even more verbose
+
+
+=head1 DESCRIPTION
+
+This script goes through the supplied directory with DICOM files (or supplied
+DICOM archive) and generates a C<specfile> which can be used to fix the DICOM
+fields of difficult to separate series. Specifically, the specfile will:
+
+1. Insert C<EchoNumber> values in case this field was not set for a
+   multi-echo sequence
+2. Insert or modify a field if multiple repeats of the same sequence are
+   present (and not otherwise separated). The user can select which field
+   is modified by selecting one of the sequence splitting options.
+
+The resulting C<specfile> can be used as input to C<updateHeadersBatch.pl>.
+
+
+=head1 TODO
+
+Make fully sure this works as expected.
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
 
 use strict;
 use Cwd qw/ abs_path /;
 use File::Basename qw/ basename /;
 use File::Temp qw/ tempdir /;
-use FindBin;
 use Getopt::Tabular;
-use lib "$FindBin::Bin";
 use DICOM::DICOM qw/ dicom_fields dicom_private /;
 use IO::File;
 
@@ -91,7 +144,7 @@ elsif (! -d $Dir) {
 }
 
 # Get relevant dicom fields and sort first by echo time, then image number
-my @ParamList = `find $Dir -type f | $FindBin::Bin/get_dicom_info.pl -stdin -studyuid -series -series_description -sequence_name -tr -te -image -echo -slicepos -slice_thickness`;
+my @ParamList = `find $Dir -type f | get_dicom_info.pl -stdin -studyuid -series -series_description -sequence_name -tr -te -image -echo -slicepos -slice_thickness`;
 
 die "Unable to extract any parameters from the files in $Dir; this doesn't look good\n"
     if (! @ParamList);

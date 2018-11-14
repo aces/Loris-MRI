@@ -6,13 +6,11 @@
 
 use strict;
 use Cwd qw/ abs_path /;
-use FindBin;
 use Getopt::Tabular;
 use FileHandle;
 use File::Temp qw/ tempdir /;
 use File::Basename;
 
-use lib "$FindBin::Bin";
 use DICOM::DICOM;
 use DICOM::DCMSUM;
 use NeuroDB::DBI;

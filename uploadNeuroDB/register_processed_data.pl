@@ -191,11 +191,11 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     &NeuroDB::MRI::mapDicomParameters(\$file);
     print LOG "\n==>Mapped DICOM parameters\n";
 
-    # Optionally do extra filtering, if needed
-    if  (defined(&Settings::filterParameters))  {
-        print LOG "\t -> using user-defined filterParameters for $filename\n" ;
-        Settings::filterParameters(\$file);     
-    }
+    # filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
+    print LOG "\t -> filters out parameters of length > "
+              . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $filename\n";
+    $file->filterParameters();
+
 }
 
 
