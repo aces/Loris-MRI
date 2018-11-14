@@ -4,6 +4,44 @@
 # Perl tool to update headers in a dicomTar archive.
 # $Id: updateHeaders.pl 4 2007-12-11 20:21:51Z jharlap $
 
+=pod
+
+=head1 NAME
+
+updateHeaders.pl -- updates DICOM headers for an entire study or a specific series
+in a DICOM archive
+
+
+=head1 SYNOPSIS
+
+perl tools/updateHeaders.pl C<[options]> C<[/path/to/DICOM/or/TARCHIVE]>
+
+Available options are:
+
+-series  : applies the update only to the series with the specified series number
+
+-set     : set a header field to a value (-set <field name> <value>). Field name
+		   should be specified either as '(xxxx,yyyy)' or using names recognized
+		   by dcmtk. May be called more than once.
+
+-database: Enable C<dicomTar>'s database features
+
+-profile : Name of the config file in C<../dicom-archive/.loris_mri>
+
+-verbose : Be verbose
+
+-version : Print version and revision number and exit
+
+=head1 DESCRIPTION
+
+A script that updates DICOM headers for an entire study or a specific series
+in a DICOM archive. If run with the C<-database> option, it will update the
+C<tarchive> tables with the updated DICOM archive.
+
+=head1 METHODS
+
+=cut
+
 use strict;
 
 use Cwd qw/ abs_path /;
@@ -47,11 +85,12 @@ my @arg_table =
 
 
 # Parse arguments
-&GetOptions(\@arg_table, \@ARGV, \@leftovers) || exit 1;
+&GetOptions(\@arg_table, \@ARGV, \@leftovers)
+	|| exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 unless(scalar(@leftovers) == 1) {
 	 print $Usage;
-	 exit(1);
+	 exit($NeuroDB::ExitCodes::GETOPT_FAILURE);
 }
 
 ################################################################
@@ -70,13 +109,17 @@ if ( !@Settings::db ) {
 }
 
 # connect to the database
-my $dbh         = &NeuroDB::DBI::connect_to_db(@Settings::db);
-my $bin_dirPath = NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
-$bin_dirPath    =~ s/\/$//;
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# grep config info
+my $bin_dirPath        = &NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath'       );
+my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(\$dbh,'tarchiveLibraryDir');
+$tarchiveLibraryDir    =~ s/\/$//g;
+$bin_dirPath           =~ s/\/$//;
 
 my $tarchive = $leftovers[0];
 unless($tarchive =~ /^\//) {
-  $tarchive = abs_path(dirname($tarchive)) . '/' . basename($tarchive);
+  $tarchive = "$tarchiveLibraryDir/$tarchive";
 }
 print "Operating on tarchive $tarchive\n" if $verbose;
 
@@ -121,7 +164,7 @@ find($find_handler, "$tempdir/$dcmdir");
 
 if(scalar(@filesToUpdate) == 0) {
 	 print "Error: No files to be modified.  Aborting.\n";
-	 exit(1);
+	 exit($NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE);
 }
 
 # update the files
@@ -134,7 +177,7 @@ foreach my $file (@filesToUpdate) {
 print "Rebuilding tarchive\n" if $verbose;
 my $targetdir = dirname($tarchive);
 my $DICOMTAR  = $bin_dirPath . "/dicom-archive/dicomTar.pl";
-my $cmd = "$DICOMTAR $tempdir/$dcmdir $targetdir -clobber -centerName";
+my $cmd = "$DICOMTAR $tempdir/$dcmdir $targetdir -clobber ";
 if($database) {
 	 $cmd .= " -database";
 }
@@ -147,12 +190,25 @@ print "Executing $cmd\n" if $verbose;
 my $exitCode = $?>> 8;
 if($exitCode != 0) {
 	 print "Error occurred during dicomTar!  Exit code was $exitCode\n" if $verbose;
-	 exit 1;
+	 exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
 
+=pod
 
+=head3 extract_tarchive($tarchive, $tempdir)
+
+Extracts the DICOM archive given as an argument in a temporary directory and
+returns the extracted DICOM directory.
+
+INPUTS:
+  - $tarchive: the DICOM archive to extract
+  - $tempdir : the temporary directory to extract the DICOM archive into
+
+RETURNS: the extracted DICOM directory
+
+=cut
 
 sub extract_tarchive {
 	 my ($tarchive, $tempdir) = @_;
@@ -178,6 +234,18 @@ sub extract_tarchive {
 	 
 	 return $dcmdir;
 }
+
+=pod
+
+=head3 update_file_headers($file, $setRef)
+
+Updates the headers of a DICOM file given as an argument to that function.
+
+INPUTS:
+  - $file  : DICOM file to update headers information
+  - $setRef: set of headers/values to update in the DICOM file
+
+=cut
 
 sub update_file_headers {
 	 my ($file, $setRef) = @_;
@@ -205,13 +273,35 @@ sub update_file_headers {
 	 }
 }
 
-sub handle_version_option {
-	 my ($opt, $args) = @_;
+=pod
 
+=head3 handle_version_option()
+
+Handles the -version option of the GetOpt table.
+
+=cut
+
+sub handle_version_option {
 	 my $versionInfo = sprintf "%d", q$Revision: 4 $ =~ /: (\d+)/;
 	 print "Version $versionInfo\n";
 	 exit(0);
 }
+
+=pod
+
+=head3 handle_set_options($opt, $args)
+
+Handle the -set option of the GetOpt table. It makes sure that two arguments are
+following the -set option and stores the <field name>/<new value> information into a
+C<@setList> array.
+
+INPUTS:
+  - $opt : the name of the option (a.k.a. -set)
+  - $args: array of arguments following the name of the option in the GetOpt table
+
+RETURNS: 0 if did not find two arguments after the C<$opt> option, 1 otherwise
+
+=cut
 
 sub handle_set_options {	 
 	 my ($opt, $args) = @_;
@@ -225,9 +315,35 @@ sub handle_set_options {
 	 return 1;
 }
 
+=pod
+
+=head3 trimwhitespace($string)
+
+Removes leading and trailing spaces in a string.
+
+INPUTS: the string to modify
+
+RETURNS: the string without leading and trailing spaces
+
+=cut
+
 sub trimwhitespace {
 	my $string = shift;
 	$string =~ s/^\s+//;
 	$string =~ s/\s+$//;
 	return $string;
 }
+
+
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Jonathan Harlap, LORIS community <loris.info@mcin.ca> and McGill Centre for
+Integrative Neuroscience
+
+=cut
