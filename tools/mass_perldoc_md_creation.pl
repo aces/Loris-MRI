@@ -78,6 +78,7 @@ my @script_list = (
     'uploadNeuroDB/NeuroDB/Notify.pm',
     'uploadNeuroDB/bin/concat_mri.pl',
     'uploadNeuroDB/bin/mincpik',
+    'uploadNeuroDB/imaging_non_minc_insertion.pl',
     'uploadNeuroDB/imaging_upload_file.pl',
     'uploadNeuroDB/imaging_upload_file_cronjob.pl',
     'uploadNeuroDB/mass_nii.pl',

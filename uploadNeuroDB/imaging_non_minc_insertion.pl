@@ -1,9 +1,73 @@
+#! /usr/bin/perl
 
-# Generic TODOs:
+=pod
 
-##TODO 1: once ExitCodes.pm class merged, replace exit codes by the variables
-# from that class
+=head1 NAME
 
+imaging_non_minc_insertion.pl -- Insert a non-MINC imaging file into the files table
+
+=head1 SYNOPSIS
+
+perl imaging_non_minc_insertion.pl C<[options]>
+
+Available options are:
+
+-profile      : name of the config file in C<../dicom-archive/.loris-mri> (required)
+
+-file_path    : file to register into the database (full path from the root
+               directory is required) (required)
+
+-upload_id    : ID of the uploaded imaging archive containing the file given as
+               argument with C<-file_path> option (required)
+
+-output_type  : file's output type (e.g. native, qc, processed...) (required)
+
+-scan_type    : file's scan type (from the C<mri_scan_type> table) (required)
+
+-date_acquired: acquisition date for the file (C<YYYY-MM-DD>) (required)
+
+-scanner_id   : ID of the scanner stored in the mri_scanner table (required)
+
+-coordin_space: coordinate space of the file to register (e.g. native, linear,
+                nonlinear, nativeT1) (required)
+
+-reckless     : upload data to the database even if the study protocol
+               is not defined or if it is violated
+
+-verbose      : boolean, if set, run the script in verbose mode
+
+-patient_name : patient name, if cannot be found in the file name (in the form of
+                C<PSCID_CandID_VisitLabel>) (optional)
+
+-metadata_file: file that can be read to look for metadata information to attach
+                to the file to be inserted (optional)
+
+=head1 DESCRIPTION
+
+This script inserts a file in the files and parameter_file tables. Optionally, a
+metadata JSON file can be provided and that metadata will be stored in the
+parameter_file table.
+
+An example of a JSON metadata file would be:
+{
+  "tr": 2000,
+  "te": 30,
+  "slice_thickness": 2
+}
+
+Note that in order to be able to insert a scan with this script, you need to
+provide the following information:
+- path to the file
+- upload ID associated to that file
+- output type of that file (native, qc, processed...)
+- the scan type of the file (from mri_scan_type)
+- the acquisition date of the file
+- the scanner ID this file was acquired with
+- the coordinate space of the file (native, linear, nonlinear, nativeT1...)
+
+=head2 Methods
+
+=cut
 
 use strict;
 use warnings;
@@ -11,23 +75,15 @@ use Getopt::Tabular;
 use File::Basename;
 use File::Temp qw/ tempdir /;
 use Date::Parse;
+use JSON;
 
 ###### Import NeuroDB libraries to be used
 use NeuroDB::DBI;
 use NeuroDB::MRI;
 use NeuroDB::File;
 use NeuroDB::MRIProcessingUtility;
-##TODO 1: add line use NeuroDB::ExitCodes;
+use NeuroDB::ExitCodes;
 
-
-##TODO 1: move those exit codes to ExitCodes.pm
-my $INVALID_SCANNER_ID     = 140; # new
-my $PROTOCOL_ID_NOT_FOUND  = 141; # new
-my $GET_SESSION_ID_FAILURE = 142; # new
-my $INVALID_UPLOAD_ID      = 143; # new
-my $GET_SUBJECT_ID_FAILURE = 96;  # same as MRIProcessingUtility.pm
-my $CANDIDATE_MISMATCH     = 111; # same as minc_insertion.pl
-my $FILE_NOT_UNIQUE        = 6;
 
 ###### Table-driven argument parsing
 
@@ -51,7 +107,7 @@ my  $Usage  =   <<USAGE;
 
 This script inserts a file in the files and parameter_file tables.
 
-Usage: perl file_insertion.pl [options]
+Usage: perl imaging_non_minc_insertion.pl [options]
 
 -help for options
 
@@ -103,66 +159,61 @@ my @args_table = (
 );
 
 Getopt::Tabular::SetHelp ($Usage, '');
-##TODO 1: replace exit 1 by $NeuroDB::ExitCodes::GETOPT_FAILURE
-GetOptions(\@args_table, \@ARGV, \@args) || exit 1;
+GetOptions(\@args_table, \@ARGV, \@args)
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 # Input option error checking
-if  (!$profile) {
+if  ( !$profile ) {
     print STDERR "$Usage\n\tERROR: You must specify a profile.\n\n";
-    ##TODO 1: replace exit 2 by $NeuroDB::ExitCodes::PROFILE_FAILURE
-    exit 2;
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if  ($profile && !@Settings::db)    {
+if  ( !@Settings::db )    {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
                  . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
-    ##TODO 1: replace exit 4 by $NeuroDB::ExitCodes::DB_SETTING_FAILURE
-    exit 4;
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 # Make sure that all the arguments that we need are set
 unless ( $file_path ) {
     print STDERR "$Usage\n\tERROR: missing -file_path argument\n\n";
-    exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $output_type ) {
     print STDERR "$Usage\n\tERROR: missing -output_type argument\n\n";
-    exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $scan_type ) {
     print STDERR "$Usage\n\tERROR: missing -scan_type argument\n\n";
-    exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $date_acquired ) {
     print STDERR "$Usage\n\tERROR: missing -date_acquired argument\n\n";
-    exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $scanner_id ) {
     print STDERR "$Usage\n\tERROR: missing -scanner_ID argument\n\n";
-    exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $coordin_space ) {
     print STDERR "$Usage\n\tERROR: missing -coordin_space argument\n\n";
-    exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $upload_id ) {
     print STDERR "$Usage\n\tERROR: missing -upload_id argument\n\n";
-    exit 3; ##TODO 1: replace exit 3 by $NeuroDB::ExitCodes::MISSING_ARG
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 # Make sure the files specified as an argument exist and are readable
 unless (-r $file_path) {
     print STDERR "$Usage\n\tERROR: You must specify a valid file path to "
                  . "insert using the -file_path option.\n\n";
-    ##TODO 1: replace exit 5 by $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST
-    exit 5;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 # Make sure that the metadata file is readable if it is set
 if ( $metadata_file && !(-r $metadata_file) ){
-    print STDERR "\n\tERROR: The metadata file does not exist in the "
-                 . "filesystem.\n\n";
-    ##TODO 1: replace exit 5 by $NeuroDB::ExitCodes::ARG_FILE_DOES_NOT_EXIST
-    exit 5;
+    print STDERR "\n\tERROR: The metadata file does not exist in the filesystem.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 
@@ -226,14 +277,16 @@ unless ($sth->rows > 0) {
     # if no row returned, exits with message that did not find this scanner ID
     $message = "\n\tERROR: Invalid ScannerID $scanner_id.\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $INVALID_SCANNER_ID, $log_file );
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::SELECT_FAILURE, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion'   , $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion'   , $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $INVALID_SCANNER_ID; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 
 
@@ -247,14 +300,16 @@ unless ($sth->rows > 0) {
     # if no row returned, exits with message that did not find this upload ID
     $message = "\n\tERROR: Invalid UploadID $upload_id.\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $INVALID_UPLOAD_ID, $log_file );
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::SELECT_FAILURE, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion'   , $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion'   , $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $INVALID_UPLOAD_ID; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 
 
@@ -267,19 +322,19 @@ my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, \$dbh);
 if ($acqProtocolID =~ /unknown/){
     $message = "\n\tERROR: no AcquisitionProtocolID found for $scan_type.\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $PROTOCOL_ID_NOT_FOUND, $log_file );
+    $utility->writeErrorLog( $message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL, $log_file );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion',    $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion',    $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $PROTOCOL_ID_NOT_FOUND; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 } else {
     $message = "\nFound protocol ID $acqProtocolID for $scan_type.\n\n";
     $notifier->spool(
-        'file insertion',    $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion',    $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'Y'
     )
 }
@@ -306,10 +361,21 @@ my ($file_name, $dir_name) = fileparse($file_path);
 
 
 
-###### Determine the metadata to be stored in parameter_file
+###### Determine the metadata to be stored in parameter_file if a JSON metadata
+###### file is provided
 
-##TODO: read a simply ASCII or JSON file to grep the metadata (would be
-# created by the overall insertion scripts like PET_loader etc...)
+if ($metadata_file) {
+    # read the JSON file into $json
+    local $/;  # Enable 'slurp' mode
+    open( FILE, $metadata_file ) or die "Could not open file: $!";
+    my $json = <FILE>;
+    close( FILE );
+
+    my $metadata = decode_json($json);
+    foreach my $parameter (sort keys $metadata) {
+        $file->setParameter( $parameter, $metadata->{$parameter} );
+    }
+}
 
 
 
@@ -332,14 +398,16 @@ unless ($subjectIDsref){
     # exits if could not determine subject IDs
     $message = "\n\tERROR: could not determine subject IDs for $file_path.\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $GET_SUBJECT_ID_FAILURE, $log_file );
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::GET_SUBJECT_ID_FAILURE, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion'   , $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion'   , $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $GET_SUBJECT_ID_FAILURE; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::GET_SUBJECT_ID_FAILURE;
 }
 
 # check whether there is a candidate IDs mismatch error
@@ -351,41 +419,42 @@ if ($CandMismatchError){
     # exits if there is a mismatch in candidate IDs
     $message = "\n\tERROR: Candidate IDs mismatch for $file_path.\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $CANDIDATE_MISMATCH, $log_file );
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::CANDIDATE_MISMATCH, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion'   , $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion'   , $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $CANDIDATE_MISMATCH; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
 } else {
     $message = "Validation of candidate information has passed.\n\n";
     $notifier->spool(
-        'file insertion',    $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion',    $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     )
 }
 
 # determine the session ID
 my ($session_id, $requiresStaging) = NeuroDB::MRI::getSessionID(
-                                        $subjectIDsref,
-                                        $date_acquired,
-                                        \$dbh,
-                                        $subjectIDsref->{'subprojectID'}
+    $subjectIDsref, $date_acquired, \$dbh, $subjectIDsref->{'subprojectID'}
 );
 unless ($session_id) {
     $message = "\n\tERROR: Could not determine session ID for $file_path.\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $GET_SESSION_ID_FAILURE, $log_file );
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion'   , $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion'   , $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $GET_SESSION_ID_FAILURE; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE;
 }
 
 
@@ -398,14 +467,16 @@ my $unique = $utility->computeMd5Hash($file, $info{'SourceLocation'});
 if (!$unique) {
     $message = "\n\tERROR: This file has already been uploaded!\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $FILE_NOT_UNIQUE, $log_file );
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::FILE_NOT_UNIQUE, $log_file
+    );
     # insert error message into notification spool table
     $notifier->spool(
-        'file insertion'   , $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion'   , $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
-    exit $FILE_NOT_UNIQUE; ##TODO 1: call the exit code from ExitCodes.pm
+    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 }
 
 
@@ -424,8 +495,8 @@ print $message if $verbose;
 print LOG $message;
 
 $notifier->spool(
-    'file insertion',    $message,   0,
-    'file_insertion.pl', $upload_id, 'Y',
+    'imaging non minc file insertion',    $message,   0,
+    'imaging_non_minc_insertion.pl', $upload_id, 'Y',
     'Y'
 );
 
@@ -459,8 +530,8 @@ if ( $acquisitionProtocolIDFromProd ) {
     my $registered_file = $file->getFileDatum('File');
     $message = "Registered file $registered_file successfully.\n\n";
     $notifier->spool(
-        'file insertion',    $message,   0,
-        'file_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion',    $message,   0,
+        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
 }
@@ -468,12 +539,25 @@ if ( $acquisitionProtocolIDFromProd ) {
 
 
 
-exit 0; ##TODO 1: replace exit 0 by $NeuroDB::ExitCodes::$SUCCESS
+exit $NeuroDB::ExitCodes::SUCCESS;
 
 
+=pod
 
+=head3 logHeader()
+
+Prints the following header in the log file.
+
+----------------------------------------------------------------
+            AUTOMATED FILE INSERTION
+----------------------------------------------------------------
+*** Date and time of insertion : $today
+*** tmp dir location           : $TmpDir
+
+=cut
 
 sub logHeader () {
+
     print LOG "
 ----------------------------------------------------------------
             AUTOMATED FILE INSERTION
@@ -481,4 +565,19 @@ sub logHeader () {
 *** Date and time of insertion : $today
 *** tmp dir location           : $TmpDir
 ";
+
 }
+
+
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
+
