@@ -1,8 +1,14 @@
-export PATH=%MINC_TOOLKIT_DIR%/bin:/data/%PROJECT%/bin/mri:/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/dicom-archive:$PATH
-export PERL5LIB=/data/%PROJECT%/bin/mri/uploadNeuroDB:$PERL5LIB
+export PATH=%MINC_TOOLKIT_DIR%/bin:/data/%PROJECT%/bin/mri:/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/uploadNeuroDB/bin:/data/%PROJECT%/bin/mri/dicom-archive:/data/%PROJECT%/bin/mri/python:$PATH
+export PERL5LIB=/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/dicom-archive:$PERL5LIB
 export TMPDIR=/tmp
 export LORIS_CONFIG=/data/%PROJECT%/bin/mri/dicom-archive
 
+# for the Python scripts
+export LORIS_MRI=/data/%PROJECT%/bin/mri
+export PYTHONPATH=$PYTHONPATH:/data/%PROJECT%/bin/mri/python
+source /data/%PROJECT%/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
+
+# to source the MINC toolkit
 source %MINC_TOOLKIT_DIR%/minc-toolkit-config.sh
 umask 0002
 

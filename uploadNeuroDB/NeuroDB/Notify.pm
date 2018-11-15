@@ -1,21 +1,34 @@
 package NeuroDB::Notify;
 
+
 =pod
 
 =head1 NAME
 
-NeuroDB::Notify -- Provides an interface to the email notification subsystem of NeuroDB
+NeuroDB::Notify -- Provides an interface to the email notification subsystem
+of LORIS
 
 =head1 SYNOPSIS
 
-TBD
+  use NeuroDB::Notify;
+
+  my $notifier = NeuroDB::Notify->new(\$dbh);
+
+  my $message           = "Some kind of message from tarchive validation";
+  my $upload_id         = 123456;
+  my $notify_notsummary = 'N';
+  $notifier->spool('tarchive validation', $message,   0,
+  		   'tarchiveLoader',      $upload_id, 'Y',
+  		   $notify_notsummary
+  	          );
+
 
 =head1 DESCRIPTION
 
-This class defines an interface into the email notification subsystem
-of NeuroDB - particularly with regards to spooling new messages.
+This class defines an interface into the email notification subsystem of
+LORIS - particularly with regards to spooling new messages.
 
-=head1 METHODS
+=head2 Methods
 
 =cut
 
@@ -24,15 +37,18 @@ use Carp;
 use Data::Dumper;
 my $VERSION = sprintf "%d.%03d", q$Revision: 1.1.1.1 $ =~ /: (\d+)\.(\d+)/;
 
+
 =pod
 
-B<new( \$dbh )> (constructor)
+=head3 new($dbh) >> (constructor)
 
-Create a new instance of this class.  The parameter C<\$dbh> is a
+Creates a new instance of this class. The parameter C<$dbh> is a
 reference to a DBI database handle, used to set the object's database
 handle, so that all the DB-driven methods will work.
 
-Returns: new instance of this class.
+INPUT: DBI database handle
+
+RETURNS: new instance of this class.
 
 =cut
 
@@ -48,15 +64,25 @@ sub new {
     return bless $self, $params;
 }
 
+
 =pod
 
-B<spool( C<$type>, C<$message>, C<$centerID>, C<$origin>, C<$processID>, C<$isError>, C<$isVerb> )>
+=head3 spool($type, $message, $centerID, $origin, $processID, $isError, $isVerb)
 
-Spools a new notification message, C<$message>, into the spool for
-notification type C<$type>.  If C<$centerID> is specified, only
+Spools a new notification message, C<$message>, into the C<notification_spool>
+table for notification type C<$type>. If C<$centerID> is specified, only
 recipients in that site will receive the message.
 
-Returns: 1 on success, 0 on failure
+INPUTS:
+  - $type     : notification type
+  - $message  : notification message
+  - $centerID : center ID
+  - $origin   : notification origin
+  - $processID: process ID
+  - $isError  : if the notification is an error
+  - $isVerb   : if verbose is set
+
+RETURNS: 1 on success, 0 on failure
 
 =cut
 
@@ -106,13 +132,16 @@ sub spool {
     return 1;
 }
 
+
 =pod
 
-B<getTypeID( C<$type> )>
+=head3 getTypeID($type)
 
-Gets the notification typeID for the notification of type C<$type>.
+Gets the notification type ID for the notification of type C<$type>.
 
-Returns: the notification typeID, or undef is none exists
+INPUT: notification type
+
+RETURNS: the notification typeID, or undef if none exists
 
 =cut
 
@@ -134,13 +163,15 @@ sub getTypeID {
     }
 }
 
+
 =pod
 
-B<getSpooledTypes()>
+=head3 getSpooledTypes()
 
 Gets the notification types for which there are unsent messages spooled.
 
-Returns: an array of hashrefs, each of which has keys NotificationTypeID and SubjectLine and CenterID
+RETURNS: an array of hash ref, each of which has keys C<NotificationTypeID> and
+C<SubjectLine> and C<CenterID>
 
 =cut
 
@@ -162,15 +193,20 @@ sub getSpooledTypes {
     return @types;
 }
 
+
 =pod
 
-B<getSpooledMessagesByTypeID( C<$typeID> )>
+=head3 getSpooledMessagesByTypeID($typeID, $centerID)
 
-Gets the spooled messages for a given NotificationTypeID specified by
-C<$typeID>, optionally directed to the center specified by
-C<$centerID>.
+Gets the spooled messages for a given C<NotificationTypeID> specified by
+C<$typeID>, optionally directed to the center specified by C<$centerID>.
 
-Returns: an array of hashrefs, each of which has keys TimeSpooled and Message
+INPUTS:
+  - $typeID  : notification type ID
+  - $centerID: the center ID (optional)
+
+RETURNS: an array of hash refs, each of which has keys C<TimeSpooled> and
+C<Message>
 
 =cut
 
@@ -196,14 +232,19 @@ sub getSpooledMessagesByTypeID {
     return @messages;
 }
 
+
 =pod
 
-B<getRecipientsByTypeID( C<$typeID>, C<$centerID> )>
+=head3 getRecipientsByTypeID($typeID, $centerID)
 
-Gets the recipient list for a given NotificationTypeID specified by
+Gets the recipient list for a given C<NotificationTypeID> specified by
 C<$typeID>, optionally directed to the center specified by C<$centerID>.
- 
-Returns: an array of email addresses
+
+INPUTS:
+  - $typeID  : notification type ID
+  - $centerID: the center ID (optional)
+
+RETURNS: an array of email addresses
 
 =cut
 
@@ -228,11 +269,17 @@ sub getRecipientsByTypeID {
     return @recipients;
 }
 
+
 =pod
 
-B<markMessagesAsSentByTypeID( C<$typeID>, C<$centerID> )>
+=head3 markMessagesAsSentByTypeID($typeID, $centerID)
 
-Marks all messages as sent with a given NotificationTypeID specified by C<$typeID> and optionally C<$centerID>.
+Marks all messages as sent with a given C<NotificationTypeID> specified by
+C<$typeID> and optionally C<$centerID>.
+
+INPUTS:
+  - $typeID  : notification type ID
+  - $centerID: the center ID (optional)
 
 =cut
 
@@ -253,21 +300,16 @@ __END__
 
 =pod
 
-=head1 TO DO
-
-Nothing planned.
-
-=head1 BUGS
-
-None reported.
-
 =head1 COPYRIGHT
 
 Copyright (c) 2004 by Jonathan Harlap, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 
+License: GPLv3
+
 =head1 AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut    

@@ -1,4 +1,31 @@
 #! /usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+imaging_upload_file_cronjob.pl -- a wrapper script that calls the single step
+script C<imaging_upload_file.pl> for uploaded scans on which the insertion
+pipeline has not been launched.
+
+=head1 SYNOPSIS
+
+perl imaging_upload_file_cronjob.pl C<[options]>
+
+Available options are:
+
+-profile      : Name of the config file in C<../dicom-archive/.loris_mri>
+
+-verbose      : If set, be verbose
+
+
+=head1 DESCRIPTION
+
+The program gets a series of rows from C<mri_upload> on which the insertion
+pipeline has not been run yet, and launches it.
+
+=cut
+
 use strict;
 use warnings;
 use Carp;
@@ -14,6 +41,7 @@ use Cwd qw/ abs_path /;
 ################################################################
 use lib "$FindBin::Bin";
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $versionInfo = sprintf "%d revision %2d",
   q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/;
@@ -57,16 +85,24 @@ have insertion completed
 HELP
 my $Usage = <<USAGE;
        $0 -help to list options
+
+Documentation: perldoc imaging_upload_file_cronjob.pl
+
 USAGE
 &Getopt::Tabular::SetHelp( $Help, $Usage );
-&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV ) || exit 1;
+&Getopt::Tabular::GetOptions( \@opt_table, \@ARGV )
+    || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
+if ( !$profile ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
+    exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
+}
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if ($profile && !@Settings::db) {
-    print "\n\tERROR: You don't have a 
-    configuration file named '$profile' in:  
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
-    exit 1;
+if ( !@Settings::db ) {
+    print STDERR "\n\tERROR: You don't have a \@db setting in the file "
+                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+    exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
 ################################################################
@@ -85,7 +121,8 @@ $sth->execute();
 while(@row = $sth->fetchrow_array()) { 
 
     if ( -e $row[1] ) {
-	my $command = "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
+	my $command =
+        "imaging_upload_file.pl -upload_id $row[0] -profile prod $row[1]";
 	if ($verbose){
 	    $command .= " -verbose";
             print "\n" . $command . "\n";
@@ -98,4 +135,21 @@ while(@row = $sth->fetchrow_array()) {
 	      Upload will exit now.\n\n\n";
     }
 }
-exit 0;
+exit $NeuroDB::ExitCodes::SUCCESS;
+
+
+
+__END__
+
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

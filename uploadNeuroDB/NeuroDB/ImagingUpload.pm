@@ -1,4 +1,46 @@
 package NeuroDB::ImagingUpload;
+
+
+=pod
+
+=head1 NAME
+
+NeuroDB::ImagingUpload -- Provides an interface to the uploaded imaging file
+
+=head1 SYNOPSIS
+
+  use NeuroDB::ImagingUpload;
+
+  my $imaging_upload = &NeuroDB::ImagingUpload->new(
+                         \$dbh,
+                         $TmpDir_decompressed_folder,
+                         $upload_id,
+                         $patient_name,
+                         $profile,
+                         $verbose
+                       );
+
+  my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
+
+  my $output = $imaging_upload->runDicomTar();
+  $imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output );
+
+
+  my $output = $imaging_upload->runTarchiveLoader();
+  $imaging_upload->updateMRIUploadTable('Inserting', 0) if ( !$output);
+
+  my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
+
+
+=head1 DESCRIPTION
+
+This library regroups utilities for manipulation of the uploaded imaging file
+and updates of the C<mri_upload> table according to the upload status.
+
+=head2 Methods
+
+=cut
+
 use English;
 use Carp;
 use strict;
@@ -9,7 +51,10 @@ use Path::Class;
 use File::Find;
 use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
+use NeuroDB::ExitCodes;
+use NeuroDB::DBI;
 use File::Temp qw/ tempdir /;
+
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -20,19 +65,28 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 ################################################################
 #####################Constructor ###############################
 ################################################################
+
+
 =pod
-Description:
-    -The constructor needs the location of the uploaded file
-     Which will be in a uploaded_temp_folder and 
-     once the validation passes, the File will be moved to a
-     final destination directory
-Arguments:
-  $dbhr :
-  $uploaded_temp_folder:
-  $upload_id:
-  $pname: 
-  $profile:
+
+=head3 new($dbhr, $uploaded_temp_folder, $upload_id, ...) >> (constructor)
+
+Creates a new instance of this class. This constructor needs the location of
+the uploaded file. Once the uploaded file has been validated, it will be
+moved to a final destination directory.
+
+INPUTS:
+  - $dbhr                : database handler
+  - $uploaded_temp_folder: temporary directory of the upload
+  - $upload_id           : C<uploadID> from the C<mri_upload> table
+  - $pname               : patient name
+  - $profile             : name of the configuration file in
+                            C</data/$PROJECT/data> (typically C<prod>)
+
+RETURNS: new instance of this class
+
 =cut
+
 sub new {
     my $params = shift;
     my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile, $verbose ) = @_;
@@ -63,23 +117,20 @@ sub new {
     return bless $self, $params;
 }
 
-################################################################
-#####################IsCandidateInfoValid#######################
-################################################################
+
 =pod
-IsCandidateInfoValid()
-Description:
- Validates the File to be uploaded:
- If the validation passes the following will happen:
-  1) Copy the file from tmp folder to the /data/incoming
-  2) Set the IsCandidateInfoValidated to true in the 
-     mri_upload table
 
-Arguments:
- $this: reference to the class
+=head3 IsCandidateInfoValid()
 
- Returns: 0 if the validation fails and 1 if passes
+Validates the File to be uploaded. If the validation passes, the following
+actions will happen:
+  1) Copy the file from C<tmp> folder to C</data/incoming>
+  2) Set C<IsCandidateInfoValidated> to TRUE in the C<mri_upload> table
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
+
 sub IsCandidateInfoValid {
     my $this = shift;
     my ($message,$query,$where) = '';
@@ -215,8 +266,24 @@ sub IsCandidateInfoValid {
             ############## and the file is of type DICOM###########
             #######################################################
                     if ($row[4] eq 'N') {
-                        if ( !$this->PatientNameMatch($_) ) {
-                                $files_with_unmatched_patient_name++;
+                        # make sure the regex used for PatientNameMatch starts
+                        # with $this->{'pname'}
+                        if (!$this->PatientNameMatch($_, "^$this->{'pname'}")) {
+                            $files_with_unmatched_patient_name++;
+                        }
+                    } elsif ($row[4] eq 'Y') {
+                        # make sure the regex used for PatientNameMatch
+                        # includes "phantom" string
+                        my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr}, 'LegoPhantomRegex'
+                        );
+                        my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                            $this->{dbhr}, 'LivingPhantomRegex'
+                        );
+                        my $phantom_regex =
+                            "($lego_phantom_regex)|($living_phantom_regex)";
+                        if (!$this->PatientNameMatch($_, $phantom_regex)) {
+                            $files_with_unmatched_patient_name++;
                         }
                     }
                 }
@@ -252,21 +319,20 @@ sub IsCandidateInfoValid {
 }
 
 
-################################################################
-############################runDicomTar#########################
-################################################################
+
 =pod
-runDicomTar()
-Description:
- -Extracts tarchiveID using pname
- -Runs dicomTar.pl with -clobber -database -profile prod options
- -If successfull it updates MRI_upload table accordingly
 
-Arguments:
- $this: reference to the class
+=head3 runDicomTar()
 
- Returns: 0 if the validation fails and 1 if it passes
+This method executes the following actions:
+ - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
+ - Extracts the C<TarchiveID> of the DICOM archive created by C<dicomTar.pl>
+ - Updates the C<mri_upload> table if C<dicomTar.pl> ran successfully
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
+
 sub runDicomTar {
     my $this              = shift;
     my $tarchive_id       = undef;
@@ -314,21 +380,18 @@ sub runDicomTar {
     return 0;
 }
 
-################################################################
-###################getTarchiveFileLocation######################
-################################################################
+
 =pod
-getTarchiveFileLocation()
-Description:
- -Extracts tarchiveID using pname
- -Runs dicomTar.pl with clobber -database -profile prod options
- -If successfull it updates MRI_upload Table accordingly
 
-Arguments:
- $this: reference to the class
+=head3 getTarchiveFileLocation()
 
- Returns: 0 if the validation fails and 1 if passes
+This method fetches the location of the archive from the C<tarchive> table of
+the database.
+
+RETURNS: the archive location
+
 =cut
+
 sub getTarchiveFileLocation {
     my $this             = shift;
     my $archive_location = '';
@@ -349,19 +412,17 @@ sub getTarchiveFileLocation {
     return $archive_location;
 }
 
-################################################################
-######################runTarchiveLoader#########################
-################################################################
+
 =pod
- runTarchiveLoader()
-Description:
- -Runs tarchiveLoader with clobber -profile prod option
- -If successfull it updates MRI_upload Table accordingly
 
-Arguments:
- $this: reference to the class
+=head3 runTarchiveLoader()
 
- Returns: 0 if the validation fails and 1 if passes
+This methods will call C<tarchiveLoader> with the C<-clobber -profile prod>
+options and update the C<mri_upload> table accordingly if C<tarchiveLoader> ran
+successfully.
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
 
 sub runTarchiveLoader {
@@ -385,42 +446,62 @@ sub runTarchiveLoader {
     return 0;
 }
 
-################################################################
-#########################PatientNameMatch#######################
-################################################################
+
 =pod
-PatientNameMatch()
-Description:
- - Extracts the patientname string from the dicom file header
-   using dcmdump
- - Uses regex to parse the string in order to the get the appropriate 
-   patientname from the obtained string
- - returns the 1 if the extracted patient-name matches
-   $this->{'pname'} object, 0 otherwise
 
-Arguments:
- $this: reference to the class
- $dicom_file: The full path to the dicom-file
+=head3 PatientNameMatch($dicom_file, $expected_pname_regex)
 
- Returns: 0 if the validation fails and 1 if passes
+This method extracts the patient name field from the DICOM file header using
+C<dcmdump> and compares it with the patient name information stored in the
+C<mri_upload> table.
+
+INPUTS:
+  - $dicom_file          : full path to the DICOM file
+  - $expected_pname_regex: expected patient name regex to find in the DICOM file
+
+RETURNS: 1 on success, 0 on failure
+
 =cut
 
 sub PatientNameMatch {
     my $this         = shift;
-    my ($dicom_file) = @_;
-    my $cmd          = "dcmdump $dicom_file | grep PatientName";
+    my ($dicom_file, $expected_pname_regex) = @_;
+
+    my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
+        $this->{'dbhr'},'lookupCenterNameUsing'
+    );
+
+    unless ( $lookupCenterNameUsing ) {
+        my $message = "\nConfig Setting 'lookupCenterNameUsing' is not set in "
+                      . "the Config module under the Imaging Pipeline section.";
+        $this->spool($message, 'Y', $notify_notsummary);
+        exit $NeuroDB::ExitCodes::MISSING_CONFIG_SETTING;
+    }
+
+    unless ($lookupCenterNameUsing =~ /^(PatientName|PatientID)$/i) {
+        my $message = "\nConfig setting 'lookupCenterNameUsing' is set to "
+                      . "$lookupCenterNameUsing but should be set to "
+                      . "either PatientID or PatientName";
+        $this->spool($message, 'Y', $notify_notsummary);
+        exit $NeuroDB::ExitCodes::BAD_CONFIG_SETTING;
+    }
+
+    my $cmd = sprintf("dcmdump +P %s -q %s",
+        quotemeta($lookupCenterNameUsing), quotemeta($dicom_file)
+    );
     my $patient_name_string =  `$cmd`;
     if (!($patient_name_string)) {
-	my $message = "\nThe patient name cannot be extracted \n";
+	    my $message = "\nThe '$lookupCenterNameUsing' DICOM field cannot be "
+	                  . "extracted from the DICOM file $dicom_file\n";
         $this->spool($message, 'Y', $notify_notsummary);
-        exit 1;
+        exit $NeuroDB::ExitCodes::DICOM_PNAME_EXTRACTION_FAILURE;
     }
-    my ($l,$pname,$t) = split /\[(.*?)\]/, $patient_name_string;
-    if ($pname !~ /^$this->{'pname'}/) {
-        my $message = "\nThe patient-name read ".
-                      "from the DICOM header does not start with " .
-        	      $this->{'pname'} . 
-                      " from the mri_upload table\n";
+    my ($l,$dicom_pname,$t) = split /\[(.*?)\]/, $patient_name_string;
+    if ($dicom_pname !~ /$expected_pname_regex/) {
+        my $message = "\nThe $lookupCenterNameUsing read "
+                      . "from the DICOM header does not start with "
+                      . $expected_pname_regex
+                      . " from the mri_upload table\n";
     	$this->spool($message, 'Y', $notify_notsummary);
         return 0; ##return false
     }
@@ -428,19 +509,17 @@ sub PatientNameMatch {
 
 }
 
-################################################################
-########################isDicom#################################
-################################################################
+
 =pod
-isDicom()
-Description:
- - checks to see if the file is of type DICOM 
 
-Arguments:
- $this: reference to the class
- $dicom_file: The path to the dicom-file
+=head3 isDicom($dicom_file)
 
- Returns: 0 if the file is not of type DICOM and 1 otherwise
+This method checks whether the file given as an argument is of type DICOM.
+
+INPUT: full path to the DICOM file
+
+RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
+
 =cut
 
 sub isDicom {
@@ -455,44 +534,16 @@ sub isDicom {
     return 1;
 }
 
-################################################################
-####################sourceEnvironment###########################
-################################################################
 =pod
-sourceEnvironment()
-Description:
-   - sources the environment file 
 
-Arguments:
- $this      : Reference to the class
+=head3 runCommandWithExitCode($command)
 
- Returns    : NULL
-=cut
+This method will run any linux command given as an argument using the
+C<system()> method and will return the proper exit code.
 
-sub sourceEnvironment {
-    my $this            = shift;
-    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'MRICodePath'
-                        );
-    my $cmd =   "source  " . $bin_dirPath."/". "environment";
-    $this->runCommand($cmd);
-}
+INPUT: the linux command to be executed
 
-
-################################################################
-#######################runCommandWithExitCode###################
-################################################################
-=pod
-runCommandWithExitCode()
-Description:
-   - Runs the linux command using system and 
-     returns the proper exit code 
-
-Arguments:
- $this      : Reference to the class
- $command   : The linux command to be executed
-
- Returns    : NULL
+RETURNS: the exit code of the command
 
 =cut
 
@@ -504,20 +555,18 @@ sub runCommandWithExitCode {
     return $output >> 8;    ##returns the exit code
 }
 
-################################################################
-######################runCommand################################
-################################################################
+
 =pod
-runCommand()
-Description:
-   - Runs the linux command using back-tilt
-   - Note: Backtilt return value is STDOUT 
 
-Arguments:
- $this      : Reference to the class
- $command   : The linux command to be executed
+=head3 runCommand($command)
 
- Returns    : NULL
+This method will run any linux command given as an argument using back-tilt
+and will return the back-tilt return value (which is C<STDOUT>).
+
+INPUT: the linux command to be executed
+
+RETURNS: back-tilt return value (C<STDOUT>)
+
 =cut
 
 sub runCommand {
@@ -527,19 +576,16 @@ sub runCommand {
     return `$command`;
 }
 
-################################################################
-####################CleanUpDataIncomingDir######################
-################################################################
+
 =pod
-CleanUpDataIncomingDir()
-Description:
-   - Cleans Up and removes the uploaded file from the data  
-     directory once it is inserted into the database
 
-Arguments:
- $this      : Reference to the class
+=head3 CleanUpDataIncomingDir($uploaded_file)
 
-Returns: 1 if the uploaded file removal was successful and 0 otherwise
+This method cleans up and removes the uploaded file from the data directory
+once the uploaded file has been inserted into the database and saved in the
+C<tarchive> folder.
+
+RETURNS: 1 on success, 0 on failure
 
 =cut
 
@@ -584,20 +630,20 @@ sub CleanUpDataIncomingDir {
 }
 
 
-################################################################
-#################spool##########################################
-################################################################
 =pod
-spool()
-Description:
-   - Calls the Notify->spool function to log all messages 
 
-Arguments:
- $this      : Reference to the class
- $message   : Message to be logged in the database 
- $error     : if 'Y' it's an error log , 'N' otherwise
- $verb      : 'N' for few main messages, 'Y' for more messages (developers)
- Returns    : NULL
+=head3 spool($message, $error, $verb)
+
+This method calls the C<< Notify->spool >> function to log all messages
+returned by the insertion scripts.
+
+INPUTS:
+ - $message: message to be logged in the database
+ - $error  : 'Y' for an error log ,
+             'N' otherwise
+ - $verb   : 'N' for few main messages,
+             'Y' for more messages (for developers)
+
 =cut
 
 sub spool  {
@@ -612,19 +658,17 @@ sub spool  {
 }
 
 
-################################################################
-#################updateMRIUploadTable###########################
-################################################################
 =pod
-updateMRIUploadTable()
-Description:
-   - Update the mri_upload table 
 
-Arguments:
- $this      : Reference to the class
- $field     : Name of the column in the table 
- $value     : Value of the column to be set
- Returns    : NULL
+=head3 updateMRIUploadTable($field, $value)
+
+This method updates the C<mri_upload> table with C<$value> for the field
+C<$field>.
+
+INPUTS:
+ - $field: name of the column in the table to be updated
+ - $value: value of the column to be set
+
 =cut
 
 sub updateMRIUploadTable  {
@@ -642,3 +686,16 @@ sub updateMRIUploadTable  {
 }
 
 1;
+
+
+=pod
+
+=head1 COPYRIGHT AND LICENSE
+
+License: GPLv3
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut
