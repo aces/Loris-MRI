@@ -37,18 +37,19 @@ Available options are:
 A tool for producing an informative summary for DICOMs in a given directory
 (scanner information, acquisitions list, acquisitions parameters...). This tool
 can also compare the DICOM data present in two directories or compare the DICOM
-data present in a given directory and what is stored in the database.
+data present in a given directory with what is stored in the database.
 
-## Methods
+## METHODS
 
 ### read\_db\_metadata($StudyUID)
 
-Reads the information stored in the database for a given StudyUID.
+Accesses the database and gets the path of the file containing the metadata for
+the given StudyUID.
 
 INPUT: the DICOM Study Instance UID (StudyUID)
 
-RETURNS: path to the file where the result of the query (i.e. the DICOM metadata
-         found) has been printed
+RETURNS: the path of the file containing the metadata for the given StudyUID or
+         undef if none is found.
 
 ### version\_conflict($StudyUID)
 
