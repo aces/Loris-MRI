@@ -60,6 +60,7 @@ my @script_list = (
     'dicom-archive/DICOM/Fields.pm',
     'dicom-archive/DICOM/Private.pm',
     'dicom-archive/DICOM/VRfields.pm',
+    'dicom-archive/dicomSummary.pl',
     'dicom-archive/dicomTar.pl',
     'dicom-archive/updateMRI_Upload.pl',
     'tools/BackPopulateSNRAndAcquisitionOrder.pl',
