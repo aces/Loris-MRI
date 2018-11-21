@@ -1,4 +1,4 @@
-export PATH=%MINC_TOOLKIT_DIR%/bin:/data/%PROJECT%/bin/mri:/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/uploadNeuroDB/bin:/data/%PROJECT%/bin/mri/dicom-archive:/data/%PROJECT%/bin/mri/python:$PATH
+export PATH=%MINC_TOOLKIT_DIR%/bin:/data/%PROJECT%/bin/mri:/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/uploadNeuroDB/bin:/data/%PROJECT%/bin/mri/dicom-archive:/data/%PROJECT%/bin/mri/python:/data/preventAD/bin/mri/python/react-series-data-viewer:$PATH
 export PERL5LIB=/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/dicom-archive:$PERL5LIB
 export TMPDIR=/tmp
 export LORIS_CONFIG=/data/%PROJECT%/bin/mri/dicom-archive

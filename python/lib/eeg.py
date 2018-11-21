@@ -286,6 +286,10 @@ class Eeg:
             files_to_archive, archive_rel_name, eeg_file_id
         )
 
+        # create data chunks for React visualization in
+        # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
+        physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
+
     def register_derivatives_data(self):
         """
         Registers processed EEG data into the following tables:
@@ -378,7 +382,7 @@ class Eeg:
             eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
         # greps the file type from the ImagingFileTypes table
-        file_type = physiological.get_file_type(eeg_file)
+        file_type = physiological.determine_file_type(eeg_file)
 
         # grep the output type from the physiological_output_type table
         output_type = 'derivatives' if derivatives else 'raw'
