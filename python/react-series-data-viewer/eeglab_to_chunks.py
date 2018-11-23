@@ -1,14 +1,3 @@
-
-"""
-Script to chunk EEG data in smaller bits for the React viewer of LORIS.
-
-This script was extracted on November 20th, 2018 from the master branch of the
-following Github repository https://github.com/ArminTaheri/react-series-data-viewer.
-
-Author: Armin Taheri; armin.taheri@mcgill.ca
-"""
-
-
 import argparse
 import errno
 import json
@@ -175,7 +164,7 @@ def write_chunks(chunk_dir, channel_chunks_list):
 # Specific code
 
 def load_channels(path):
-    return mne.io.read_raw_eeglab(path, preload=True)
+    return mne.io.read_raw_eeglab(path, preload=False)
 
 
 def eeglab_to_chunks(path, chunk_size):
