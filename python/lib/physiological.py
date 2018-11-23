@@ -660,7 +660,6 @@ class Physiological:
             chunk_path = chunk_root_dir \
                            + os.path.splitext(os.path.basename(file_path))[0] \
                            + '.chunks'
-            print(chunk_path)
             if file_type == 'set':
                 script = os.environ['LORIS_MRI'] \
                          + '/python/react-series-data-viewer/eeglab_to_chunks.py'
