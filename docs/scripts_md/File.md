@@ -171,7 +171,7 @@ RETURNS: string or array of the value without white spaces
 ### filterParameters
 
 Manipulates the NeuroDB::File object's parameters and removes all parameters of
-length > 1000
+length > $MAX\_DICOM\_PARAMETER\_LENGTH
 
 # TO DO
 
