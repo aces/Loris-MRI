@@ -1,3 +1,13 @@
+"""
+Script to chunk EEG data in smaller bits for the React viewer of LORIS.
+
+This script was extracted on November 20th, 2018 from the master branch of the
+following Github repository https://github.com/ArminTaheri/react-series-data-viewer.
+
+Author: Armin Taheri; armin.taheri@mcgill.ca
+"""
+
+
 import argparse
 import errno
 import json
