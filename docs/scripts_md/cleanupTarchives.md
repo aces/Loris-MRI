@@ -66,8 +66,8 @@ that was inserted in the past by the `tarchiveLoader`.
 
 INPUT: `ArchiveLocation` that was stored in the `tarchive` table of the database.
 
-RETURNS: the DICOM archive basename to use to look for duplicate DICOM archives in
-         the `tarchive` library directory of the filesystem
+RETURNS: the DICOM archive basename to use when looking for duplicate DICOM archives
+         in the `tarchive` library directory of the filesystem
 
 ### identifyDuplicates($tarchive\_db, $tarchivesList\_db, $tarFileList)
 
@@ -75,10 +75,10 @@ Function that will identify the duplicate DICOM archives present in the filesyst
 
 INPUTS:
   - $tarchive\_db     : DICOM archive file stored in the database's `tarchive` table
-  - $tarchivesList\_db: hash with the list of DICOM archives location stored in the
+  - $tarchivesList\_db: hash with the list of DICOM archives locations stored in the
                        database (keys of the hash) and their corresponding md5sum
                        (values of the hash)
-  - tarFileList      : list of DICOM archives found in the filesystem that matches
+  - tarFileList      : list of DICOM archives found in the filesystem that match
                        the basename of `$tarchive_db`
 
 RETURNS:

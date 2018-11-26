@@ -129,7 +129,7 @@ print LOG "\n==> Successfully connected to database \n";
 ####     Main program     ####
 ##############################
 
-# Get the list of DICOM archives the tarchive table of the database and stores
+# Gets the list of DICOM archives from the tarchive table of the database and stores
 # the ArchiveLocation and md5sumArchive fields in a hash where ArchiveLocation will
 # be the key of the hash and md5sumArchive will be the value of the hash.
 my ($tarchivesList_db) = &selectTarchives($dbh, $tarchiveLibraryDir);
@@ -300,8 +300,8 @@ that was inserted in the past by the C<tarchiveLoader>.
 
 INPUT: C<ArchiveLocation> that was stored in the C<tarchive> table of the database.
 
-RETURNS: the DICOM archive basename to use to look for duplicate DICOM archives in
-         the C<tarchive> library directory of the filesystem
+RETURNS: the DICOM archive basename to use when looking for duplicate DICOM archives
+         in the C<tarchive> library directory of the filesystem
 
 =cut
 
@@ -329,10 +329,10 @@ Function that will identify the duplicate DICOM archives present in the filesyst
 
 INPUTS:
   - $tarchive_db     : DICOM archive file stored in the database's C<tarchive> table
-  - $tarchivesList_db: hash with the list of DICOM archives location stored in the
+  - $tarchivesList_db: hash with the list of DICOM archives locations stored in the
                        database (keys of the hash) and their corresponding md5sum
                        (values of the hash)
-  - tarFileList      : list of DICOM archives found in the filesystem that matches
+  - tarFileList      : list of DICOM archives found in the filesystem that match
                        the basename of C<$tarchive_db>
 
 RETURNS:
