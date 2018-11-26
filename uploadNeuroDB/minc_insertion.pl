@@ -17,7 +17,7 @@ Available options are:
 -reckless    : uploads data to database even if study protocol
                is not defined or violated
 
--force       : forces the script to run even if validation failed
+-force       : forces the script to run even if DICOM archive validation failed
 
 -mincPath    : the absolute path to the MINC file
 
@@ -120,9 +120,8 @@ my $extra_validation_status;   # Initialise the extra validation status
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
-my $create_nii  = 0;           # skip NIfTI creation by default
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my ($tarchive,%tarchiveInfo,$minc);
+my ($tarchive,%studyInfo,$minc);
 
 ################################################################
 #### These settings are in a config file (profile) #############
@@ -140,7 +139,7 @@ my @opt_table = (
                  "defined or violated."],
 
                  ["-force", "boolean", 1, \$force,"Forces the script to run". 
-                 " even if the validation has failed."],
+                 " even if the DICOM archive validation has failed."],
   
                  ["-mincPath","string",1, \$minc, "The absolute path". 
                   " to minc-file"],
@@ -228,10 +227,11 @@ if (defined $tarchive && !(-e $tarchive) ) {
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
-if ( !($tarchive xor $upload_id) ) {
-    print STDERR "\nERROR: You should either specify an upload ID or a tarchive "
-        . "path. Make sure that you set only one of those options. "
-        . "Upload will exit now.\n\n\n";
+if ( !($tarchive xor $upload_id xor $force) ) {
+    print STDERR "\nERROR: You should either specify an upload ID or a DICOM "
+        . "archive path or use the -force option (if no upload ID or DICOM archive "
+        . "are available for the MINC file). Make sure that you set only "
+        . "one of those options. Upload will exit now.\n\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
@@ -255,23 +255,22 @@ if ( !@Settings::db ) {
 ################################################################
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
+
+## Grep Config Settings
+my $data_dir           = NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath'   );
+my $create_nii         = NeuroDB::DBI::getConfigSetting(\$dbh, 'create_nii'        );
+my $horizontalPics     = NeuroDB::DBI::getConfigSetting(\$dbh, 'horizontalPics'    );
+my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(\$dbh, 'tarchiveLibraryDir');
+$tarchiveLibraryDir    =~ s/\/$//g;
+
 ################################################################
 ########### Create the Specific Log File #######################
 ################################################################
-my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
-if (defined (NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii'))) {
-    $create_nii = NeuroDB::DBI::getConfigSetting(\$dbh,'create_nii');
-}
 my $TmpDir   = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs";
-my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                       \$dbh,'tarchiveLibraryDir'
-                       );
-$tarchiveLibraryDir    =~ s/\/$//g;
+
 if (!-d $LogDir) { 
     mkdir($LogDir, 0770); 
 }
@@ -364,6 +363,12 @@ if ($tarchive) {
     $sth->execute($tarchive_srcloc);
     $upload_id = $sth->fetchrow_array;
     ## end of setup IDs for notification_spool table
+
+    # load the DICOM archive information from the tarchive table in studyInfo object
+    %studyInfo = $utility->createTarchiveArray(
+        $ArchiveLocation, $globArchiveLocation
+    );
+
 } elsif ($upload_id) {
     # if the uploadID is passed as an argument, verify that the tarchive was
     # validated
@@ -382,71 +387,31 @@ QUERY
     my @array        = $sth->fetchrow_array;
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
+
+    # create the studyInfo object
+    %studyInfo = $utility->createTarchiveArray(
+        $ArchiveLocation, $globArchiveLocation
+    );
 }
 
 if ((!defined $is_valid || $is_valid == 0) && !$force) {
-    $message = "\n ERROR: The validation has failed. ".
-               "Either run the validation again and fix ".
-               "the problem. Or use -force to force the ".
-               "execution.\n\n";
+    $message = "\n ERROR: The validation has failed. Either run the validation again"
+               . "and fix the problem or use -force to force the insertion.\n\n";
     $utility->writeErrorLog(
         $message, $NeuroDB::ExitCodes::INVALID_TARCHIVE, $logfile
     );
     $notifier->spool('tarchive validation', $message, 0,
-                    'minc_insertion.pl', $upload_id, 'Y', 
+                    'minc_insertion.pl', $upload_id, 'Y',
                     $notify_notsummary);
     exit $NeuroDB::ExitCodes::INVALID_TARCHIVE;
 }
 
-################################################################
-############## Construct the tarchiveinfo Array ################
-################################################################
-%tarchiveInfo = $utility->createTarchiveArray(
-                    $ArchiveLocation, $globArchiveLocation
-                );
 
-################################################################
-############ Get the $center_name, $centerID ##############
-################################################################
-my ($center_name, $centerID) = $utility->determinePSC(
-                    \%tarchiveInfo, 0, $upload_id
-                );
 
-################################################################
-#### Determine the ScannerID ###################################
-################################################################
-my $scannerID = $utility->determineScannerID(
-                    \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
-                );
 
-################################################################
-###### Construct the $subjectIDsref array ######################
-################################################################
-my $subjectIDsref = $utility->determineSubjectID(
-                        $scannerID, \%tarchiveInfo, 0, $upload_id
-                    );
-
-################################################################
-################# Define the $CandMismatchError ################
-################################################################
-# Check the CandID/PSCID Match It's possible that the CandID ### 
-# exists, but doesn't match the PSCID. This will fail further ##
-# down silently, so we explicitly check that the data is #######
-# correct here #################################################
-################################################################
-
-my $CandMismatchError = undef;
-$CandMismatchError= $utility->validateCandidate($subjectIDsref);
-
-my $logQuery = "INSERT INTO MRICandidateErrors".
-              "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
-              "VALUES (?, ?, ?, ?, ?)";
-my $candlogSth = $dbh->prepare($logQuery);
-
-################################################################
-#### Loads/Creates File object and maps dicom fields ###########
-################################################################
+# Create the MINC file object and maps DICOM fields
 my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
+
 
 # filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
 $message = "\n--> filters out parameters of length > "
@@ -455,33 +420,107 @@ print LOG $message if $verbose;
 $file->filterParameters();
 
 
-################################################################
-# We already know the PatientName is bad from step 5a, but #####
-# had to wait until this point so that we have the #############
-# SeriesUID and MincFile name to compute the md5 hash. Do it ###
-# before computing the hash because there's no point in ########
-# going that far if we already know it's fault. ################
-################################################################
+
+
+# If studyInfo is not defined (a.k.a. no uploadID or tarchiveID associated with
+# this MINC file), verify that the seriesUID of the MINC file we want to insert is
+# not present in the tarchive_series table. If it is, then exit with proper message.
+if (!%studyInfo) {
+    my $seriesUID = $file->getParameter('series_instance_uid');
+    my $echo_time = $file->getParameter('acquisition:echo_time') * 1000;
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+      ArchiveLocation
+    FROM
+      tarchive
+    WHERE
+      TarchiveID = (
+                     SELECT TarchiveID
+                     FROM tarchive_series
+                     WHERE SeriesUID=? AND EchoTime=?
+                   )
+QUERY
+    print $query if $verbose;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($seriesUID, $echo_time);
+    my @array        = $sth->fetchrow_array;
+    my $archiveLocation = $array[0];
+
+    if ($archiveLocation) {
+        $message = "\nERROR: found a DICOM archive containing DICOMs with the same "
+                   . "SeriesUID ('$seriesUID') as the one present in the MINC file. "
+                   . "The DICOM archive location containing those DICOM files is "
+                   . "'$archiveLocation'. Please rerun the minc_insertion.pl "
+                   . "with either -tarchivePath or -uploadID option.\n\n";
+        $utility->writeErrorLog(
+            $message, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        $notifier->spool(
+            'tarchive validation', $message,   0,
+            'minc_insertion.pl',   $upload_id, 'Y',
+            $notify_notsummary
+        );
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    }
+}
+
+
+
+# Grep information from the MINC header if not available in the studyInfo hash
+$studyInfo{'PatientName'}            //= $file->getParameter('patient:full_name');
+$studyInfo{'PatientID'}              //= $file->getParameter('patient:identification');
+$studyInfo{'ScannerManufacturer'}    //= $file->getParameter('study:manufacturer');
+$studyInfo{'ScannerModel'}           //= $file->getParameter('study:device_model');
+$studyInfo{'ScannerSerialNumber'}    //= $file->getParameter('study:serial_no');
+$studyInfo{'ScannerSoftwareVersion'} //= $file->getParameter('study:software_version');
+$studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date');
+
+
+
+
+## Determine PSC, ScannerID and Subject IDs
+my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
+my $scannerID = $utility->determineScannerID(
+    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
+);
+my $subjectIDsref = $utility->determineSubjectID(
+    $scannerID, \%studyInfo, 0, $upload_id
+);
+
+
+
+
+
+## Validate that the candidate exists and that PSCID matches CandID
+my $CandMismatchError = $utility->validateCandidate($subjectIDsref);
 
 if (defined($CandMismatchError)) {
     $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
     print LOG $message;
     print LOG " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
+
+    my $logQuery = "INSERT INTO MRICandidateErrors".
+        "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
+        "VALUES (?, ?, ?, ?, ?)";
+    my $candlogSth = $dbh->prepare($logQuery);
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
-        $tarchiveInfo{'TarchiveID'},
+        $studyInfo{'TarchiveID'},
         $minc,
-        $tarchiveInfo{'PatientName'},
+        $studyInfo{'PatientName'},
         $CandMismatchError
     );
-    
+
     $notifier->spool('tarchive validation', $message, 0,
-                    'minc_insertion.pl', $upload_id, 'Y', 
-                    $notify_notsummary);
+        'minc_insertion.pl', $upload_id, 'Y',
+        $notify_notsummary);
 
     exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
 }
+
+
+
 
 ################################################################
 ####### Get the $sessionID and $requiresStaging ################
@@ -489,7 +528,7 @@ if (defined($CandMismatchError)) {
 my ($sessionID, $requiresStaging) =
     NeuroDB::MRI::getSessionID( 
         $subjectIDsref, 
-        $tarchiveInfo{'DateAcquired'},
+        $studyInfo{'DateAcquired'},
         \$dbh, $subjectIDsref->{'subprojectID'}
    );
 
@@ -511,20 +550,17 @@ if (!$unique) {
 ## at this point things will appear in the database ############
 ## Set some file information ###################################
 ################################################################
-$file->setFileData('ScannerID', $scannerID);
-$file->setFileData('SessionID', $sessionID);
-$file->setFileData('SeriesUID', $file->getParameter('series_instance_uid'));
-$file->setFileData('EchoTime', $file->getParameter('echo_time'));
-$file->setFileData('PendingStaging', $requiresStaging);
-$file->setFileData('CoordinateSpace', 'native');
-$file->setFileData('OutputType', 'native');
-$file->setFileData('FileType', 'mnc');
-$file->setFileData('TarchiveSource', $tarchiveInfo{'TarchiveID'});
-if (defined($acquisitionProtocol)) {
-    $file->setFileData('Caveat', 1);
-} else {
-    $file->setFileData('Caveat', 0);
-}
+my $caveat = $acquisitionProtocol ? 1 : 0;
+$file->setFileData( 'Caveat',          $caveat                                    );
+$file->setFileData( 'ScannerID',       $scannerID                                 );
+$file->setFileData( 'SessionID',       $sessionID                                 );
+$file->setFileData( 'SeriesUID',       $file->getParameter('series_instance_uid') );
+$file->setFileData( 'EchoTime',        $file->getParameter('echo_time')           );
+$file->setFileData( 'PendingStaging',  $requiresStaging                           );
+$file->setFileData( 'CoordinateSpace', 'native'                                   );
+$file->setFileData( 'OutputType',      'native'                                   );
+$file->setFileData( 'FileType',        'mnc'                                      );
+$file->setFileData( 'TarchiveSource',  $studyInfo{'TarchiveID'}                   );
 
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
@@ -533,7 +569,7 @@ if (defined($acquisitionProtocol)) {
   = $utility->getAcquisitionProtocol(
       $file,
       $subjectIDsref,
-      \%tarchiveInfo,
+      \%studyInfo,
       $center_name,
       $minc,
       $acquisitionProtocol,
@@ -559,7 +595,7 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,               \%tarchiveInfo, $subjectIDsref,
+    \$file,               \%studyInfo, $subjectIDsref,
     $acquisitionProtocol, $minc,          $extra_validation_status,
     $reckless,            $sessionID,     $upload_id
 );
@@ -608,13 +644,9 @@ if ($create_nii) {
 ################################################################
 if ($create_minc_pics) {
     print "\nCreating Minc Pics\n" if $verbose;
-    NeuroDB::MRI::make_minc_pics(\$dbh,
-                                  $tarchiveInfo{TarchiveID},
-                                  $profile,
-                                  1,
-                                  $debug,
-                                  $verbose);
-    # Set minFileID to 1: minFileID $row[1] & maxFileID $row[1]
+    NeuroDB::MRI::make_pics(
+        \$file, $data_dir, "$data_dir/pic", $horizontalPics
+    );
 }
 
 ################################################################
