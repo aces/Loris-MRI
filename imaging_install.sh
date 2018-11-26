@@ -89,6 +89,9 @@ pip3 install mysqlclient
 pip3 install mysql-connector
 pip3 install pybids
 pip3 install pyblake2
+pip3 install mne
+pip3 install google
+pip3 install protobuf
 # deactivate the virtualenv for now
 deactivate
 

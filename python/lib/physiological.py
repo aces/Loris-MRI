@@ -3,6 +3,8 @@
 
 import sys
 import re
+import os
+import subprocess
 
 __license__ = "GPLv3"
 
@@ -50,9 +52,9 @@ class Physiological:
         self.db      = db
         self.verbose = verbose
 
-    def get_file_type(self, file):
+    def determine_file_type(self, file):
         """
-        Greps all file types defined in the ImagingFileTypes table and check
+        Greps all file types defined in the ImagingFileTypes table and checks
         if the file matches one of the file type. If no match is found, the
         script will exit with error message and error code.
 
@@ -583,4 +585,102 @@ class Physiological:
         # return the result
         return results[0] if results else None
 
+    def grep_file_type_from_file_id(self, physiological_file_id):
+        """
+        Greps the file type stored in the physiological_file table using its
+        PhysiologicalFileID.
 
+        :param physiological_file_id: PhysiologicalFileID associated with the file
+         :type physiological_file_id: int
+
+        :return: file type of the file with PhysiologicalFileID
+         :rtype: str
+        """
+
+        query = "SELECT FileType " \
+                "FROM physiological_file " \
+                "WHERE PhysiologicalFileID = %s"
+
+        results = self.db.pselect(query=query, args=(physiological_file_id,))
+
+        # return the result
+        return results[0]['FileType'] if results else None
+
+    def grep_file_path_from_file_id(self, physiological_file_id):
+        """
+        Greps the file path stored in the physiological_file table using its
+        PhysiologicalFileID.
+
+        :param physiological_file_id: PhysiologicalFileID associated with the file
+         :type physiological_file_id: int
+
+        :return: file type of the file with PhysiologicalFileID
+         :rtype: str
+        """
+
+        query = "SELECT FilePath " \
+                "FROM physiological_file " \
+                "WHERE PhysiologicalFileID = %s"
+
+        results = self.db.pselect(query=query, args=(physiological_file_id,))
+
+        # return the result
+        return results[0]['FilePath'] if results else None
+
+    def create_chunks_for_visualization(self, physio_file_id, data_dir):
+        """
+        Calls chunking scripts if no chunk datasets yet available for
+        PhysiologicalFileID based on the file type of the original
+        electrophysiology dataset.
+
+        :param physio_file_id: PhysiologicalFileID of the dataset to chunk
+         :type physio_file_id: int
+        :param data_dir      : LORIS data directory (/data/%PROJECT%/data)
+         :type data_dir      : str
+        """
+
+        # check if chunks already exists for this PhysiologicalFileID
+        results    = self.grep_parameter_value_from_file_id(
+            physio_file_id, 'electrophyiology_chunked_dataset_path'
+        )
+        chunk_path = results['Value'] if results else None
+
+        # determine which script to run based on the file type
+        command   = None
+        script    = None
+        if not chunk_path:
+            file_type    = self.grep_file_type_from_file_id(physio_file_id)
+            file_path    = self.grep_file_path_from_file_id(physio_file_id)
+            # the bids_rel_dir is the first two directories in file_path (
+            # bids_imports/BIDS_dataset_name_BIDSVersion)
+            bids_rel_dir   = file_path.split('/')[0] + '/' + file_path.split('/')[1]
+            chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
+            # the final chunk path will be /data/%PROJECT%/data/bids_imports
+            # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
+            chunk_path = chunk_root_dir \
+                           + os.path.splitext(os.path.basename(file_path))[0] \
+                           + '.chunks'
+            if file_type == 'set':
+                script = os.environ['LORIS_MRI'] \
+                         + '/python/react-series-data-viewer/eeglab_to_chunks.py'
+                command = 'python ' + script + ' ' + data_dir + file_path + \
+                          ' --destination ' + chunk_root_dir
+
+        # chunk the electrophysiology dataset if a command was determined above
+        if command:
+            try:
+                subprocess.call(
+                    command,                       shell=True,
+                    stdout=open(os.devnull, 'wb'), stderr=open(os.devnull, 'wb')
+                )
+            except subprocess.CalledProcessError:
+                print('ERROR: ' + script + ' execution failure')
+            except OSError:
+                print('ERROR: ' + script + ' not found')
+
+            if os.path.isdir(chunk_path):
+                self.insert_physio_parameter_file(
+                    physiological_file_id = physio_file_id,
+                    parameter_name        = 'electrophyiology_chunked_dataset_path',
+                    value                 = chunk_path.replace(data_dir,'')
+                )
