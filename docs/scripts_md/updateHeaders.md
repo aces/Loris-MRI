@@ -33,7 +33,7 @@ in a DICOM archive. If run with the `-database` option, it will update the
 
 ### extract\_tarchive($tarchive, $tempdir)
 
-Extracts the DICOM archive given as an argument in a temporary directory and
+Extracts the DICOM archive passed as an argument in a temporary directory and
 returns the extracted DICOM directory.
 
 INPUTS:
@@ -47,7 +47,7 @@ RETURNS: the extracted DICOM directory
 Updates the headers of a DICOM file given as an argument to that function.
 
 INPUTS:
-  - $file  : DICOM file to update headers information
+  - $file  : DICOM file in which to update headers information
   - $setRef: set of headers/values to update in the DICOM file
 
 ### handle\_version\_option()
