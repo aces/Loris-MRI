@@ -873,7 +873,7 @@ sub modify_header {
     my $hdr_val = NeuroDB::MRI::fetch_header_info($minc, $argument, $awk);
 
     # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
-    my  $cmd = "minc_modify_header -sinsert $argument=$value $minc";
+    my  $cmd = "minc_modify_header -sinsert $argument=" . quotemeta($value) . " $minc";
     system($cmd) unless (($hdr_val) && ($value eq $hdr_val));
 
     # check if header information was indeed inserted in minc file
