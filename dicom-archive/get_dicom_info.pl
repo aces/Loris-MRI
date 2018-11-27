@@ -466,12 +466,15 @@ sub SetupArgTables
 
 Greps the group and element information from the GetOpt table options specified.
 
-INPUTS: array with group and element information from the GetOpt table.
+INPUTS:
+  - $option: name of the option
+  - $rest  : array with group and element information from the GetOpt table
+  - @addr  : array with group and element information from the GetOpt table.
 
 =cut
 
 sub InfoOption {
-    my (@addr) = @_;
+    my ($option, $rest, @addr) = @_;
     
     my $group = shift @addr;
     my $element = shift @addr;
