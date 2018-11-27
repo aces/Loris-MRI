@@ -144,7 +144,10 @@ RETURNS: an array with all the options of the script
 
 Greps the group and element information from the GetOpt table options specified.
 
-INPUTS: array with group and element information from the GetOpt table.
+INPUTS:
+  - $option: name of the option
+  - $rest  : array with group and element information from the GetOpt table
+  - @addr  : array with group and element information from the GetOpt table.
 
 ### TwoArgInfoOption($option, $rest)
 
