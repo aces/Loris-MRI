@@ -63,6 +63,7 @@ use Date::Parse;
 use MNI::Startup        qw(nocputimes);
 use MNI::Spawn;
 use MNI::FileUtilities  qw(check_output_dirs);
+use NeuroDB::MRI;
 
 @ISA        = qw(Exporter);
 
@@ -720,7 +721,9 @@ sub insertProcessInfo {
     my ($sourceFile_insert) = &DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
-    my  ($seriesUID)        = &DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
+    my  ($seriesUID) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, 'dicom_0x0020:el_0x000e', '$3, $4, $5, $6'
+    );
     my ($seriesUID_insert)  = &DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
 
     # 3) processing:pipeline used
@@ -768,11 +771,15 @@ sub insertAcqInfo {
     my  ($raw_dti, $processed_minc) = @_;
 
     # 1) insertion of acquisition:b_value 
-    my ($b_value)       = DTI::fetch_header_info('acquisition:b_value',$raw_dti,'$3, $4, $5, $6');
+    my ($b_value) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, 'acquisition:b_value', '$3, $4, $5, $6'
+    );
     my ($bvalue_insert) = DTI::modify_header('acquisition:b_value', $b_value, $processed_minc, '$3, $4, $5, $6');
 
     # 2) insertion of acquisition:delay_in_TR 
-    my ($delay_in_tr)   = DTI::fetch_header_info('acquisition:delay_in_TR',$raw_dti,'$3, $4, $5, $6');
+    my ($delay_in_tr) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, 'acquisition:delay_in_TR', '$3, $4, $5, $6'
+    );
     my ($delaytr_insert)= DTI::modify_header('acquisition:delay_in_TR', $delay_in_tr, $processed_minc, '$3, $4, $5, $6');
 
     # 3) insertion of all the remaining acquisition:* arguments 
@@ -808,10 +815,14 @@ sub insertFieldList {
     my  ($raw_dti, $processed_minc, $minc_field) = @_;
 
     # fetches list of arguments starting with $minc_field (i.e. 'patient:'; 'study:' ...)
-    my  ($arguments) =   DTI::fetch_header_info($minc_field, $raw_dti, '$1, $2');
+    my  ($arguments) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, $minc_field, '$1, $2'
+    );
 
     # fetches list of values with arguments starting with $minc_field. Don't remove semi_colon (last option of fetch_header_info).
-    my  ($values) =   DTI::fetch_header_info($minc_field, $raw_dti, '$3, $4, $5, $6, $7', 1);
+    my  ($values) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, $minc_field, '$3, $4, $5, $6, $7', 1
+    );
 
     my  ($arguments_list, $arguments_list_size) =   get_header_list('=', $arguments);
     my  ($values_list, $values_list_size)       =   get_header_list(';', $values);
@@ -859,52 +870,19 @@ sub modify_header {
     my  ($argument, $value, $minc, $awk) =   @_;
     
     # check if header information not already in minc file
-    my $hdr_val =   &DTI::fetch_header_info($argument, $minc, $awk);
+    my $hdr_val = &NeuroDB::MRI::fetch_header_info($minc, $argument, $awk);
 
     # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
-    my  $cmd    =   "minc_modify_header -sinsert $argument=$value $minc";
+    my $cmd = "minc_modify_header -sinsert $argument=" . quotemeta($value) . " $minc";
     system($cmd)    unless (($hdr_val) && ($value eq $hdr_val));
 
     # check if header information was indeed inserted in minc file
-    my $hdr_val2 =   &DTI::fetch_header_info($argument, $minc, $awk);
+    my $hdr_val2 = &NeuroDB::MRI::fetch_header_info($minc, $argument, $awk);
     if ($hdr_val2) {
         return 1;
     } else {
         return undef;
     }
-}
-
-
-=pod
-
-=head3 fetch_header_info($field, $minc, $awk, $keep_semicolon)
-
-Function that fetches header information in MINC file.
-
-INPUTS:
-  - $field: field to look for in MINC header
-  - $minc : MINC file
-  - $awk  : awk info to check if argument inserted in MINC header
-  - $keep_semicolon: if set, keep ";" at the end of extracted value
-
-RETURNS: value of the field found in the MINC header
-
-=cut
-
-sub fetch_header_info {
-    my  ($field, $minc, $awk, $keep_semicolon)  =   @_;
-
-    my  $val    =   `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
-    my  $value  =   $val    if  $val !~ /^\s*"*\s*"*\s*$/;
-    if ($value) {
-        $value  =~  s/^\s+//;                           # remove leading spaces
-        $value  =~  s/\s+$//;                           # remove trailing spaces
-        $value  =~  s/;//   unless ($keep_semicolon);   # remove ";" unless $keep_semicolon is defined
-    } else {
-        return undef;
-    }
-
-    return  ($value);
 }
 
 

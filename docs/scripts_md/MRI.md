@@ -386,6 +386,18 @@ INPUTS:
 
 RETURNS: the `CandID` or 0 if the `PSCID` does not exist
 
+### fetch\_minc\_header\_info($minc, $field, $awk, $keep\_semicolon)
+
+Function that fetches header information in MINC file.
+
+INPUTS:
+  - $minc : MINC file
+  - $field: field name to look for in MINC header (or 'all' to grep all headers)
+  - $awk  : awk info to check if argument inserted in MINC header
+  - $keep\_semicolon: if set, keep ";" at the end of extracted value
+
+RETURNS: value of the field found in the MINC header
+
 # TO DO
 
 Fix comments written as #fixme in the code.

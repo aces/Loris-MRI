@@ -1540,6 +1540,42 @@ sub my_trim {
 	return $str;
 }
 
+=pod
+
+=head3 fetch_minc_header_info($minc, $field, $awk, $keep_semicolon)
+
+Function that fetches header information in MINC file.
+
+INPUTS:
+  - $minc : MINC file
+  - $field: field name to look for in MINC header (or 'all' to grep all headers)
+  - $awk  : awk info to check if argument inserted in MINC header
+  - $keep_semicolon: if set, keep ";" at the end of extracted value
+
+RETURNS: value of the field found in the MINC header
+
+=cut
+
+sub fetch_header_info {
+    my ($minc, $field, $awk, $keep_semicolon) = @_;
+    my $value;
+    if ($field eq 'all') {
+        # run mincheader and return all the content of the command
+        $value = `mincheader -data "$minc"`;
+    }
+    else {
+        # fetch a particular header value, remove extra spaces and optionally
+        # the semicolon
+        my $val = `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
+        $value = $val if $val !~ /^\s*"*\s*"*\s*$/;
+        return undef unless ($value); # return undef if no value found
+        $value =~ s/"//g;     # remove "
+        $value =~ s/^\s+//;   # remove leading spaces
+        $value =~ s/\s+$//;   # remove trailing spaces
+        $value =~ s/;// unless ($keep_semicolon);  # remove ";" unless $keep_semicolon is defined
+    }
+    return $value;
+}
 
 1;
 

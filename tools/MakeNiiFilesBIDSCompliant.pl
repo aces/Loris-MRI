@@ -73,6 +73,7 @@ use Getopt::Tabular;
 use File::Path qw/ make_path /;
 use File::Basename;
 use NeuroDB::DBI;
+use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 use JSON;
 
@@ -535,7 +536,9 @@ QUERY
                 $headerName   =~ s/^\"+|\"$//g;
                 print "Adding now $headerName header to $headerFile\n" if $verbose;
 
-                $headerVal    =   &fetchMincHeader($mincFileName,$headerNameMINC);
+                $headerVal = NeuroDB::MRI::fetch_header_info(
+                    $mincFileName, $headerNameMINC, '$3, $4, $5, $6'
+                );
                 # Some headers need to be explicitely converted to floats in Perl
                 # so json_encode does not add the double quotation around them
                 my @convertToFloat = [
@@ -580,7 +583,9 @@ QUERY
                 # split on the ',', remove trailing '.' if exists, and add [] to make it a list
                 $headerNameMINC = 'dicom_0x0019:el_0x1029';
                 $extraHeader    = "SliceTiming";
-                $headerVal      =  &fetchMincHeader($mincFileName,$headerNameMINC);
+                $headerVal      =  &NeuroDB::MRI::fetch_header_info(
+                    $mincFileName, $headerNameMINC, '$3, $4, $5, $6'
+                );
                 # Some earlier dcm2mnc converters created SliceTiming with values
                 # such as 0b, -91b, -5b, etc... so those MINC headers with `b`
                 # in them, do not report, just report that is it not supplied
@@ -709,33 +714,6 @@ QUERY
     close BVINFO;
 }
 
-=pod
-
-=head3 fetchMincHeader($file,$field)
-
-This function parses the MINC header and looks for specific field's value.
-NOTE: This is a modified version of the function from register_processed_data.pl
-
-INPUTS:
-  - $file : MINC file to get header value from
-  - $field: header to fetch value from
-
-RETURNS:
-  - $value : header value from C$field>
-
-=cut
-
-sub fetchMincHeader {
-    my  ($file,$field)  =   @_;
-
-    my  $value  =   `mincheader $file | grep '$field' | cut -d= -f2- |sed -e 's/^ //'`;
-    $value=~s/"//g;    #remove "
-    $value=~s/^\s+//; #remove leading spaces
-    $value=~s/\s+$//; #remove trailing spaces
-    $value=~s/;//;    #remove ;
-
-    return  $value;
-}
 
 __END__
 
