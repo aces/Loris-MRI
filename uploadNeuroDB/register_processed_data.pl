@@ -197,11 +197,15 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $lookupCenterName       =   NeuroDB::DBI::getConfigSetting(
                                     \$dbh,'lookupCenterNameUsing'
                                     );
-    my  $patientInfo;
-    if      ($lookupCenterName eq 'PatientName')    {
-        $patientInfo    =   fetchMincHeader($filename,'patient:full_name');
-    }elsif  ($lookupCenterName eq 'PatientID')      {
-        $patientInfo    =   fetchMincHeader($filename,'patient:identification');
+    my $patientInfo;
+    if ($lookupCenterName eq 'PatientName') {
+        $patientInfo = NeuroDB::MRI::fetch_header_info(
+            $filename, 'patient:full_name', '$3, $4, $5, $6'
+        );
+    }elsif ($lookupCenterName eq 'PatientID') {
+        $patientInfo = NeuroDB::MRI::fetch_header_info(
+            $filename,'patient:identification', '$3, $4, $5, $6'
+        );
     }
     ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh);
     my  $psc    =   $center_name;
@@ -221,10 +225,18 @@ my $scannerID;
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  %scannerInfo;
     my  $register_new   =   0;  # This does not allow to register new sanner since files are supposed to be children from files (and scanner)  already entered in the database. Should add it as an option? 
-    $scannerInfo{'ScannerManufacturer'}     =   fetchMincHeader($filename,'study:manufacturer');
-    $scannerInfo{'ScannerModel'}            =   fetchMincHeader($filename,'study:device_model');
-    $scannerInfo{'ScannerSerialNumber'}     =   fetchMincHeader($filename,'study:serial_no');
-    $scannerInfo{'ScannerSoftwareVersion'}  =   fetchMincHeader($filename,'study:software_version');
+    $scannerInfo{'ScannerManufacturer'}    = NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:manufacturer', '$3, $4, $5, $6'
+    );
+    $scannerInfo{'ScannerModel'}           = NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:device_model', '$3, $4, $5, $6'
+    );
+    $scannerInfo{'ScannerSerialNumber'}    = NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:serial_no', '$3, $4, $5, $6'
+    );
+    $scannerInfo{'ScannerSoftwareVersion'} = NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:software_version', '$3, $4, $5, $6'
+    );
     $scannerID  =   NeuroDB::MRI::findScannerID($scannerInfo{'ScannerManufacturer'},
                                                 $scannerInfo{'ScannerModel'},
                                                 $scannerInfo{'ScannerSerialNumber'},
@@ -454,34 +466,6 @@ sub getAcqProtID    {
 
     return  ($acqProtID);
 }
-
-
-=pod
-
-=head3 fetchMincHeader($file, $field)
-
-This function parses the MINC header and looks for a specific field value.
-
-INPUTS:
-  - $file : MINC file
-  - $field: MINC header field values
-
-RETURNS: MINC header value
-
-=cut
-
-sub fetchMincHeader {
-    my  ($file,$field)  =   @_;
-
-    my  $value  =   `mincheader $file | grep '$field' | awk '{print \$3, \$4, \$5, \$6}' | tr '\n' ' '`;
-
-    $value=~s/"//g;    #remove "
-    $value=~s/^\s+//; #remove leading spaces
-    $value=~s/\s+$//; #remove trailing spaces
-    $value=~s/;//;    #remove ;
-
-    return  $value;
-}    
 
 
 =pod
