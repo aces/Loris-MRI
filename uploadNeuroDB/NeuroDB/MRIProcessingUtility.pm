@@ -1774,13 +1774,13 @@ QUERY
     $minc_file_arr->execute($tarchiveID);
 
     while (my $row = $minc_file_arr->fetchrow_hashref()) {
-        my $filename     = $row->{'file'};
+        my $filename     = $row->{'File'};
         my $fileID       = $row->{'FileID'};
-        my $fileScanType = $row->{'AcquisitionProtocolID'};
+        my $fileScanType = $row->{'Scan_type'};
         my $base         = basename($filename);
         my $fullpath     = "$data_dir/$filename";
         my $message;
-        if ( grep(/$fileScanType/, $modalities) ) {
+        if ( grep(/$fileScanType/, @{$modalities}) ) {
             my $cmd = "noise_estimate --snr $fullpath";
             my $SNR = `$cmd`;
             $SNR =~ s/\n//g;
@@ -1800,7 +1800,7 @@ QUERY
             $message = "The SNR can not be computed for $base as the imaging "
                        . "modality is not supported by the SNR computation. The "
                        . "supported modalities for your projects are "
-                       . join(',', $modalities);
+                       . join(',', $modalities) . ".\n";
             $this->{LOG}->print($message);
             $this->spool($message, 'N', $upload_id, $notify_detailed);
         }
