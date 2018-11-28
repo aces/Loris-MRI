@@ -33,7 +33,7 @@ utilities
                               $subjectIDsref
                             );
 
-    $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+    $utility->computeSNR($TarchiveID, $ArchLoc);
     $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
 
 # DESCRIPTION
@@ -401,15 +401,14 @@ INPUT: subject's ID information hash ref
 RETURNS: the candidate mismatch error, or undef if the candidate is validated
 or a phantom
 
-### computeSNR($tarchiveID, $upload\_id, $profile)
+### computeSNR($tarchiveID, $upload\_id)
 
-Computes the SNR on the modalities specified in the `getSNRModalities()`
-routine of the `$profile` file.
+Computes the SNR on the modalities specified in the Config module under the
+section Imaging Pipeline in the field called 'compute\_snr\_modalities'.
 
 INPUTS:
   - $tarchiveID: DICOM archive ID
   - $upload\_id : upload ID of the study
-  - $profile   : configuration file (usually prod)
 
 ### orderModalitiesByAcq($tarchiveID, $upload\_id)
 

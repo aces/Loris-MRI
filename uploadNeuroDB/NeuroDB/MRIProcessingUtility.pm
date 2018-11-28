@@ -38,7 +38,7 @@ utilities
                             $subjectIDsref
                           );
 
-  $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+  $utility->computeSNR($TarchiveID, $ArchLoc);
   $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
 
 =head1 DESCRIPTION
@@ -1742,68 +1742,65 @@ sub validateCandidate {
 
 =pod
 
-=head3 computeSNR($tarchiveID, $upload_id, $profile)
+=head3 computeSNR($tarchiveID, $upload_id)
 
-Computes the SNR on the modalities specified in the C<getSNRModalities()>
-routine of the C<$profile> file.
+Computes the SNR on the modalities specified in the Config module under the
+section Imaging Pipeline in the field called 'compute_snr_modalities'.
 
 INPUTS:
   - $tarchiveID: DICOM archive ID
   - $upload_id : upload ID of the study
-  - $profile   : configuration file (usually prod)
 
 =cut
 
 sub computeSNR {
 
     my $this = shift;
-    my ($row, $filename, $fileID, $base, $fullpath, $cmd, $message, $SNR, $SNR_old);
-    my ($tarchiveID, $upload_id, $profile)= @_;
-    my $data_dir = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'dataDirBasepath'
-                        );
+    my ($tarchiveID, $upload_id) = @_;
 
-    my $query = "SELECT FileID, file from files f ";
-    my $where = "WHERE f.TarchiveSource=?";
-    $query = $query . $where;
+    my $data_dir   = NeuroDB::DBI::getConfigSetting($this->{dbhr},'dataDirBasepath');
+    my $modalities = NeuroDB::DBI::getConfigSetting(
+        $this->{dbhr}, 'compute_snr_modalities'
+    );
 
-    if ($this->{debug}) {
-        print $query . "\n";
-    }
-
+    (my $query = <<QUERY) =~ s/\n//gm;
+  SELECT    FileID, File, Scan_type
+  FROM      files f
+  JOIN      mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID)
+  WHERE     f.TarchiveSource=?
+QUERY
+    print $query . "\n" if ($this->{debug});
     my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query);
     $minc_file_arr->execute($tarchiveID);
 
-    while ($row = $minc_file_arr->fetchrow_hashref()) {
-        $filename = $row->{'file'};
-        $fileID = $row->{'FileID'};
-        $base = basename($filename);
-        $fullpath = $data_dir . "/" . $filename;
-        if (defined(&Settings::getSNRModalities)
-            && Settings::getSNRModalities($base)) {
-                $cmd = "noise_estimate --snr $fullpath";
-                $SNR = `$cmd`;
-                $SNR =~ s/\n//g;
-                print "$cmd \n" if ($this->{verbose});
-                print "SNR is: $SNR \n" if ($this->{verbose});
-                my $file = NeuroDB::File->new($this->{dbhr});
-                $file->loadFile($fileID);
-                $SNR_old = $file->getParameter('SNR');
-                if ($SNR ne '') {
-                    if (($SNR_old ne '') && ($SNR_old ne $SNR)) {
-                        $message = "The SNR value will be updated from " .
-                            "$SNR_old to $SNR. \n";
-                        $this->{LOG}->print($message);
-                        $this->spool($message, 'N', $upload_id, $notify_detailed);
-                    }
-                    $file->setParameter('SNR', $SNR);
+    while (my $row = $minc_file_arr->fetchrow_hashref()) {
+        my $filename     = $row->{'file'};
+        my $fileID       = $row->{'FileID'};
+        my $fileScanType = $row->{'AcquisitionProtocolID'};
+        my $base         = basename($filename);
+        my $fullpath     = "$data_dir/$filename";
+        my $message;
+        if ( grep(/$fileScanType/, $modalities) ) {
+            my $cmd = "noise_estimate --snr $fullpath";
+            my $SNR = `$cmd`;
+            $SNR =~ s/\n//g;
+            print "$cmd \nSNR is: $SNR \n" if ($this->{verbose});
+            my $file = NeuroDB::File->new($this->{dbhr});
+            $file->loadFile($fileID);
+            my $SNR_old = $file->getParameter('SNR');
+            if ($SNR ne '') {
+                $file->setParameter('SNR', $SNR);
+                if (($SNR_old ne '') && ($SNR_old ne $SNR)) {
+                    $message = "The SNR value was updated from $SNR_old to $SNR.\n";
+                    $this->{LOG}->print($message);
+                    $this->spool($message, 'N', $upload_id, $notify_detailed);
                 }
-        }
-        else {
-            $message = "The SNR can not be computed for $base. ".
-                "Either the getSNRModalities is not defined in your ".
-                "$profile file, or the imaging modality is not ".
-                "supported by the SNR computation. \n";
+            }
+        } else {
+            $message = "The SNR can not be computed for $base as the imaging "
+                       . "modality is not supported by the SNR computation. The "
+                       . "supported modalities for your projects are "
+                       . join(',', $modalities);
             $this->{LOG}->print($message);
             $this->spool($message, 'N', $upload_id, $notify_detailed);
         }
