@@ -193,7 +193,7 @@ sub lookupNextVisitLabel {
 
 =pod
 
-=head3 getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
+=head3 getDICOMFileNamesfromSeriesUID($seriesuid, @alltarfiles)
 
 Will extract from the C<tarchive_files> table a list of DICOM files
 matching a given C<SeriesUID>.
@@ -206,7 +206,7 @@ RETURNS: list of DICOM files corresponding to the C<SeriesUID>
 
 =cut
 
-sub getFileNamesfromSeriesUID {
+sub getDICOMFileNamesfromSeriesUID {
 
     # longest common prefix
     sub LCP {
@@ -288,7 +288,7 @@ sub extract_tarchive {
     if (defined($seriesuid)) {
         print "seriesuid: $seriesuid\n" if $this->{verbose};
         my @alltarfiles = `cd $this->{TmpDir} ; tar -tzf $dcmtar`;
-        $tarnames = getFileNamesfromSeriesUID($seriesuid, @alltarfiles);
+        $tarnames = getDICOMFileNamesfromSeriesUID($seriesuid, @alltarfiles);
         print "tarnames: $tarnames\n" if $this->{verbose};
     }
 
@@ -1996,6 +1996,60 @@ sub isValidMRIProtocol  {
         return 1;
     }
 }
+
+=pod
+
+=head3 is_file_unique($file, $upload_id)
+
+Queries the C<files> and C<parameter_file> tables to make sure that no imaging
+datasets with the same C<SeriesUID> and C<EchoTime> or the same C<MD5sum> hash
+can be found in the database already. If there is a match, it will return a
+message with the information about why the file is not unique. If there is no
+match, then it will return undef.
+
+INPUTS:
+  - $file     : the file object from the C<NeuroDB::File> package
+  - $upload_id: the C<UploadID> associated to the file
+
+RETURNS: a message with the reason why the file is not unique or undef
+
+=cut
+
+sub is_file_unique {
+
+    my $this = shift;
+    my ($file, $upload_id) = @_;
+
+    my $seriesUID = $file->getParameter( 'series_instance_uid' );
+    my $echo_time = $file->getParameter( 'echo_time'           );
+
+    # check that no files are already in the files table with the same SeriesUID
+    # and EchoTime
+    my $query     = "SELECT File FROM files WHERE SeriesUID=? AND EchoTime=?";
+    my $sth       = ${$this->{'dbhr'}}->prepare( $query );
+    $sth->execute( $seriesUID, $echo_time );
+    my $results = $sth->fetchrow_array;
+    my $message;
+    if (defined $results) {
+        $message = "\n--> ERROR: there is already a file registered in the files "
+                   . "table with SeriesUID='$seriesUID' and EchoTime='$echo_time'.\n"
+                   . "\tThe already registered file is '$results'\n";
+        return $message;
+    }
+
+    # compute the MD5sum
+    my $unique = $this->computeMd5Hash( $file, $upload_id );
+    if (!$unique) {
+        my $filename = $file->getFileDatum( 'File'    );
+        my $md5hash  = $file->getParameter( 'md5hash' );
+        $message  = "\n--> ERROR: there is already a file registered in the files "
+                   . "table with the same MD5 hash ($md5hash) as '$filename'.\n";
+        return $message;
+    }
+
+    return undef;
+}
+
 
 1;
 
