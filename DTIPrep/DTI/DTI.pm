@@ -162,14 +162,14 @@ RETURNS:
 sub getAnatFile {
     my ($nativedir, $t1_scan_type)  = @_;
 
-    # Fetch files in native directory that matched t1_scan_type
-    my $anat_list   = DTI::getFilesList($nativedir, $t1_scan_type);
+    # Fetch files in native directory that matched t1_scan_type and MINC file type
+    my $anat_list = DTI::getFilesList($nativedir, "\_$t1_scan_type\_.*mnc\$");
 
     # Return undef if no anat found, first anat otherwise
     if (@$anat_list == 0) { 
         return undef; 
     } else { 
-        my $anat    = @$anat_list[0];
+        my $anat = @$anat_list[0];
         return $anat;
     }
 }
