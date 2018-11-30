@@ -247,55 +247,50 @@ sub IsCandidateInfoValid {
         ########################################################
         #1) Exlcude files starting with . (and ._ as a result)##
         #including the .DS_Store file###########################
-        #2) Check to see if the file is of type DICOM###########
+        #2) Exclude files that are not of type DICOM ###########
         #3) Check to see if the header matches the patient-name#
         ########################################################
-        if ( (basename($_) =~ /^\./)) {
+        if ( (basename($_) =~ /^\./) || !$this->isDicom($_)) {
             $cmd = "rm " . ($_);
             print "\n $cmd \n";
             system($cmd);
+            # increment counter only for non-DICOM files that do not
+            # start with '.'
+            $files_not_dicom++ if basename($_) !~ /^\./;
         }
         else {
-            if ( ( $_ ne '.' ) && ( $_ ne '..' )) {
-                if ( !$this->isDicom($_) ) {
-                    $files_not_dicom++;
-                }
-    	        else {
             #######################################################
             #Validate the Patient-Name, only if it's not a phantom#
             ############## and the file is of type DICOM###########
             #######################################################
-                    if ($row[4] eq 'N') {
-                        # make sure the regex used for PatientNameMatch starts
-                        # with $this->{'pname'}
-                        if (!$this->PatientNameMatch($_, "^$this->{'pname'}")) {
-                            $files_with_unmatched_patient_name++;
-                        }
-                    } elsif ($row[4] eq 'Y') {
-                        # make sure the regex used for PatientNameMatch
-                        # includes "phantom" string
-                        my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr}, 'LegoPhantomRegex'
-                        );
-                        my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr}, 'LivingPhantomRegex'
-                        );
-                        my $phantom_regex =
-                            "($lego_phantom_regex)|($living_phantom_regex)";
-                        if (!$this->PatientNameMatch($_, $phantom_regex)) {
-                            $files_with_unmatched_patient_name++;
-                        }
-                    }
+            if ($row[4] eq 'N') {
+                # make sure the regex used for PatientNameMatch starts
+                # with $this->{'pname'}
+                if (!$this->PatientNameMatch($_, "^$this->{'pname'}")) {
+                   $files_with_unmatched_patient_name++;
+                }
+            } elsif ($row[4] eq 'Y') {
+                # make sure the regex used for PatientNameMatch
+                # includes "phantom" string
+                my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                    $this->{dbhr}, 'LegoPhantomRegex'
+                );
+                my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
+                    $this->{dbhr}, 'LivingPhantomRegex'
+                );
+                my $phantom_regex =
+                    "($lego_phantom_regex)|($living_phantom_regex)";
+                if (!$this->PatientNameMatch($_, $phantom_regex)) {
+                    $files_with_unmatched_patient_name++;
                 }
             }
         }
     }
 
     if ( $files_not_dicom > 0 ) {
-        $message = "\nERROR: There are $files_not_dicom file(s) which"
-          . " are not of type DICOM \n";
-        $this->spool($message, 'Y', $notify_notsummary);
-        return 0;
+        $message = "\nWARNING: There are $files_not_dicom file(s) which"
+          . " are not of type DICOM: these will be ignored\n";
+        $this->spool($message, 'N', $notify_notsummary);
     }
 
     if ( $files_with_unmatched_patient_name > 0 ) {
