@@ -146,8 +146,8 @@ Greps the group and element information from the GetOpt table options specified.
 
 INPUTS:
   - $option: name of the option
-  - $rest  : array with group and element information from the GetOpt table
-  - @addr  : array with group and element information from the GetOpt table.
+  - $rest  : reference to the remaining arguments of the command line
+  - @addr  : array reference with DICOM group & element from the GetOpt option
 
 ### TwoArgInfoOption($option, $rest)
 
