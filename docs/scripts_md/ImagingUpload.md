@@ -82,13 +82,15 @@ successfully.
 
 RETURNS: 1 on success, 0 on failure
 
-### PatientNameMatch($dicom\_file)
+### PatientNameMatch($dicom\_file, $expected\_pname\_regex)
 
 This method extracts the patient name field from the DICOM file header using
 `dcmdump` and compares it with the patient name information stored in the
 `mri_upload` table.
 
-INPUT: full path to the DICOM file
+INPUTS:
+  - $dicom\_file          : full path to the DICOM file
+  - $expected\_pname\_regex: expected patient name regex to find in the DICOM file
 
 RETURNS: 1 on success, 0 on failure
 

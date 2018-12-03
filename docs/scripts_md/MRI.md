@@ -356,16 +356,6 @@ RETURNS:
     of the `.bvec` file since there is nothing to write into)
   - 1 after the `.bvec` file was created
 
-### write\_to\_file($file, $value, $mode)
-
-This method writes into a file `$file` values stored in `$value`. The mode
-in which the file should be open with is specified in `$mode`.
-
-INPUTS:
-  - $file : output file to write into
-  - $value: value that needs to be written in the file
-  - $mode : mode with which the file should be open with (`'\`'> or `'\`\\>'>)
-
 ### make\_minc\_pics($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose)
 
 Creates pics associated with MINC files.
