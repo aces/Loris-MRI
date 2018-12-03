@@ -148,7 +148,7 @@ unless  (-r $filename)  {
 }
 
 # Establish database connection
-my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 my $db = NeuroDB::Database->new(
     databaseName => $Settings::db[0],
@@ -229,17 +229,16 @@ my $scannerID;
 
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  %scannerInfo;
-    my  $register_new   =   0;  # This does not allow to register new sanner since files are supposed to be children from files (and scanner)  already entered in the database. Should add it as an option? 
     $scannerInfo{'ScannerManufacturer'}     =   fetchMincHeader($filename,'study:manufacturer');
     $scannerInfo{'ScannerModel'}            =   fetchMincHeader($filename,'study:device_model');
     $scannerInfo{'ScannerSerialNumber'}     =   fetchMincHeader($filename,'study:serial_no');
     $scannerInfo{'ScannerSoftwareVersion'}  =   fetchMincHeader($filename,'study:software_version');
-    $scannerID  =   NeuroDB::MRI::findScannerID($scannerInfo{'ScannerManufacturer'},
-                                                $scannerInfo{'ScannerModel'},
-                                                $scannerInfo{'ScannerSerialNumber'},
-                                                $scannerInfo{'ScannerSoftwareVersion'},
-                                                $centerID,\$dbh,0
-                                                );
+    $scannerID = NeuroDB::MRI::findScannerID(
+        $scannerInfo{'ScannerManufacturer'}, $scannerInfo{'ScannerModel'},
+        $scannerInfo{'ScannerSerialNumber'}, $scannerInfo{'ScannerSoftwareVersion'},
+        $centerID,                           \$dbh,
+        0,                                   $db
+    );
 }else   {
     $scannerID  =   getScannerID($sourceFileID,$dbh);
 }
