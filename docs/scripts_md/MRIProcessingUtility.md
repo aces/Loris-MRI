@@ -74,7 +74,7 @@ INPUTS:
 
 RETURNS: next visit label found for the candidate
 
-### getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
+### getDICOMFileNamesfromSeriesUID($seriesuid, @alltarfiles)
 
 Will extract from the `tarchive_files` table a list of DICOM files
 matching a given `SeriesUID`.
@@ -446,6 +446,20 @@ Ensures no column in the `mri_protocol` nor the `mri_protocol_checks`
 tables has comma-separated values.
 
 RETURNS: 1 on success, 0 on failure
+
+### is\_file\_unique($file, $upload\_id)
+
+Queries the `files` and `parameter_file` tables to make sure that no imaging
+datasets with the same `SeriesUID` and `EchoTime` or the same `MD5sum` hash
+can be found in the database already. If there is a match, it will return a
+message with the information about why the file is not unique. If there is no
+match, then it will return undef.
+
+INPUTS:
+  - $file     : the file object from the `NeuroDB::File` package
+  - $upload\_id: the `UploadID` associated to the file
+
+RETURNS: a message with the reason why the file is not unique or undef
 
 # TO DO
 

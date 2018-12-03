@@ -532,17 +532,19 @@ my ($sessionID, $requiresStaging) =
         \$dbh, $subjectIDsref->{'subprojectID'}
    );
 
+
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
-my $unique = $utility->computeMd5Hash( $file, $upload_id );
-if (!$unique) { 
-    $message = "\n--> WARNING: This file has already been uploaded!\n";  
-    print STDERR $message if $verbose;
-    print LOG $message; 
-    $notifier->spool('tarchive validation', $message, 0,
-                    'minc_insertion.pl', $upload_id, 'Y', 
-                    $notify_notsummary);
+my $not_unique_message = $utility->is_file_unique( $file, $upload_id );
+if ($not_unique_message) {
+    print STDERR $not_unique_message if $verbose;
+    print LOG $not_unique_message;
+    $notifier->spool(
+        'tarchive validation', $not_unique_message, 0,
+        'minc_insertion.pl',   $upload_id,          'Y',
+        $notify_notsummary
+    );
     exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 } 
 
