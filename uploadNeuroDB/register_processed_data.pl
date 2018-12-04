@@ -209,11 +209,11 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my $patientInfo;
     if ($lookupCenterName eq 'PatientName') {
         $patientInfo = &NeuroDB::MRI::fetch_header_info(
-            $filename, 'patient:full_name', '$3, $4, $5, $6'
+            $filename, 'patient:full_name'
         );
     }elsif ($lookupCenterName eq 'PatientID') {
         $patientInfo = &NeuroDB::MRI::fetch_header_info(
-            $filename, 'patient:identification', '$3, $4, $5, $6'
+            $filename, 'patient:identification'
         );
     }
     ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh, $db);
@@ -234,16 +234,16 @@ my $scannerID;
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  %scannerInfo;
     $scannerInfo{'ScannerManufacturer'} = &NeuroDB::MRI::fetch_header_info(
-        $filename, 'study:manufacturer', '$3, $4, $5, $6'
+        $filename, 'study:manufacturer'
     );
     $scannerInfo{'ScannerModel'} = &NeuroDB::MRI::fetch_header_info(
-        $filename, 'study:device_model', '$3, $4, $5, $6'
+        $filename, 'study:device_model'
     );
     $scannerInfo{'ScannerSerialNumber'} = &NeuroDB::MRI::fetch_header_info(
-        $filename, 'study:serial_no', '$3, $4, $5, $6'
+        $filename, 'study:serial_no'
     );
     $scannerInfo{'ScannerSoftwareVersion'} = &NeuroDB::MRI::fetch_header_info(
-        $filename, 'study:software_version', '$3, $4, $5, $6'
+        $filename, 'study:software_version'
     );
     $scannerID  =   NeuroDB::MRI::findScannerID(
         $scannerInfo{'ScannerManufacturer'}, $scannerInfo{'ScannerModel'},

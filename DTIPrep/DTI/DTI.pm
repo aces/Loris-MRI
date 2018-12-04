@@ -718,26 +718,36 @@ sub insertProcessInfo {
     # 1) processing:sourceFile
     my  $sourceFile         =   $raw_dti;
     $sourceFile             =~  s/$data_dir//i;
-    my ($sourceFile_insert) = &DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
+    my ($sourceFile_insert) = &DTI::modify_header(
+        'processing:sourceFile', $sourceFile, $processed_minc
+    );
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
     my  ($seriesUID) = &NeuroDB::MRI::fetch_header_info(
-        $raw_dti, 'dicom_0x0020:el_0x000e', '$3, $4, $5, $6'
+        $raw_dti, 'dicom_0x0020:el_0x000e'
     );
-    my ($seriesUID_insert)  = &DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
+    my ($seriesUID_insert)  = &DTI::modify_header(
+        'processing:sourceSeriesUID', $seriesUID, $processed_minc
+    );
 
     # 3) processing:pipeline used
-    my ($pipeline_insert)   = &DTI::modify_header('processing:pipeline', 'DTIPrepPipeline', $processed_minc, '$3, $4, $5, $6');
+    my ($pipeline_insert)   = &DTI::modify_header(
+        'processing:pipeline', 'DTIPrepPipeline', $processed_minc
+    );
     
     # 4) processing:tool used
-    my ($tool_insert)       = &DTI::modify_header('processing:tool', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
+    my ($tool_insert)       = &DTI::modify_header(
+        'processing:tool', $DTIPrepVersion, $processed_minc
+    );
 
     # 5) processing:processing_date (when DTIPrep was run)
     my  $check_line         =   `cat $QC_report | grep "Check Time"`;
     $check_line             =~  s/Check Time://;  # Only keep date info in $check_line.
     my ($ss,$mm,$hh,$day,$month,$year,$zone)    =   strptime($check_line);
     my $processingDate      =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
-    my ($date_insert)       = &DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
+    my ($date_insert)       = &DTI::modify_header(
+        'processing:processing_date', $processingDate, $processed_minc
+    );
 
     if (($sourceFile_insert) 
      && ($seriesUID_insert) 
@@ -772,15 +782,19 @@ sub insertAcqInfo {
 
     # 1) insertion of acquisition:b_value 
     my ($b_value) = &NeuroDB::MRI::fetch_header_info(
-        $raw_dti, 'acquisition:b_value', '$3, $4, $5, $6'
+        $raw_dti, 'acquisition:b_value'
     );
-    my ($bvalue_insert) = DTI::modify_header('acquisition:b_value', $b_value, $processed_minc, '$3, $4, $5, $6');
+    my ($bvalue_insert) = DTI::modify_header(
+        'acquisition:b_value', $b_value, $processed_minc
+    );
 
     # 2) insertion of acquisition:delay_in_TR 
     my ($delay_in_tr) = &NeuroDB::MRI::fetch_header_info(
-        $raw_dti, 'acquisition:delay_in_TR', '$3, $4, $5, $6'
+        $raw_dti, 'acquisition:delay_in_TR'
     );
-    my ($delaytr_insert)= DTI::modify_header('acquisition:delay_in_TR', $delay_in_tr, $processed_minc, '$3, $4, $5, $6');
+    my ($delaytr_insert)= DTI::modify_header(
+        'acquisition:delay_in_TR', $delay_in_tr, $processed_minc
+    );
 
     # 3) insertion of all the remaining acquisition:* arguments 
     #    [except acquisition:bvalues, acquisition:b_matrix and acquisition:direction* (already in header from nrrd2minc conversion)]
@@ -815,14 +829,10 @@ sub insertFieldList {
     my  ($raw_dti, $processed_minc, $minc_field) = @_;
 
     # fetches list of arguments starting with $minc_field (i.e. 'patient:'; 'study:' ...)
-    my  ($arguments) = &NeuroDB::MRI::fetch_header_info(
-        $raw_dti, $minc_field, '$1, $2'
-    );
+    my  ($arguments) = &NeuroDB::MRI::fetch_header_info($raw_dti, $minc_field);
 
     # fetches list of values with arguments starting with $minc_field. Don't remove semi_colon (last option of fetch_header_info).
-    my  ($values) = &NeuroDB::MRI::fetch_header_info(
-        $raw_dti, $minc_field, '$3, $4, $5, $6, $7', 1
-    );
+    my  ($values) = &NeuroDB::MRI::fetch_header_info($raw_dti, $minc_field, 1);
 
     my  ($arguments_list, $arguments_list_size) =   get_header_list('=', $arguments);
     my  ($values_list, $values_list_size)       =   get_header_list(';', $values);
@@ -832,7 +842,9 @@ sub insertFieldList {
         for (my $i=0;   $i<$arguments_list_size;    $i++)   {
             my  $argument   =   @$arguments_list[$i];
             my  $value      =   @$values_list[$i];
-            my ($insert)    = DTI::modify_header($argument, $value, $processed_minc, '$3, $4, $5, $6');
+            my ($insert)    = DTI::modify_header(
+                $argument, $value, $processed_minc
+            );
             # store in array @insert_failure the arguments that were not successfully inserted in the mincheader
             push (@insert_failure, $argument) if (!$insert);
         }
@@ -851,7 +863,7 @@ sub insertFieldList {
 
 =pod
 
-=head3 modify_header($argument, $value, $minc, $awk)
+=head3 modify_header($argument, $value, $minc)
 
 Function that runs C<minc_modify_header> and inserts MINC header information if
 not already inserted.
@@ -860,24 +872,23 @@ INPUTS:
   - $argument: argument to be inserted in MINC header
   - $value   : value of the argument to be inserted in MINC header
   - $minc    : MINC file
-  - $awk     : awk info to check if the argument was inserted in MINC header
 
 RETURNS: 1 if argument was inserted in the MINC header, undef otherwise
 
 =cut
 
 sub modify_header {
-    my  ($argument, $value, $minc, $awk) =   @_;
+    my  ($argument, $value, $minc) =   @_;
     
     # check if header information not already in minc file
-    my $hdr_val = &NeuroDB::MRI::fetch_header_info($minc, $argument, $awk);
+    my $hdr_val = &NeuroDB::MRI::fetch_header_info($minc, $argument);
 
     # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
     my $cmd = "minc_modify_header -sinsert $argument=" . quotemeta($value) . " $minc";
     system($cmd)    unless (($hdr_val) && ($value eq $hdr_val));
 
     # check if header information was indeed inserted in minc file
-    my $hdr_val2 = &NeuroDB::MRI::fetch_header_info($minc, $argument, $awk);
+    my $hdr_val2 = &NeuroDB::MRI::fetch_header_info($minc, $argument);
     if ($hdr_val2) {
         return 1;
     } else {

@@ -537,7 +537,7 @@ QUERY
                 print "Adding now $headerName header to $headerFile\n" if $verbose;
 
                 $headerVal = NeuroDB::MRI::fetch_header_info(
-                    $mincFileName, $headerNameMINC, '$3, $4, $5, $6'
+                    $mincFileName, $headerNameMINC
                 );
                 # Some headers need to be explicitely converted to floats in Perl
                 # so json_encode does not add the double quotation around them
@@ -584,7 +584,7 @@ QUERY
                 $headerNameMINC = 'dicom_0x0019:el_0x1029';
                 $extraHeader    = "SliceTiming";
                 $headerVal      =  &NeuroDB::MRI::fetch_header_info(
-                    $mincFileName, $headerNameMINC, '$3, $4, $5, $6'
+                    $mincFileName, $headerNameMINC
                 );
                 # Some earlier dcm2mnc converters created SliceTiming with values
                 # such as 0b, -91b, -5b, etc... so those MINC headers with `b`
