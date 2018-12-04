@@ -829,13 +829,15 @@ sub insertFieldList {
     my  ($raw_dti, $processed_minc, $minc_field) = @_;
 
     # fetches list of arguments starting with $minc_field (i.e. 'patient:'; 'study:' ...)
-    my  ($arguments) = &NeuroDB::MRI::fetch_header_info($raw_dti, $minc_field);
+    my  ($arguments) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, $minc_field, 0, 1
+    );
 
     # fetches list of values with arguments starting with $minc_field. Don't remove semi_colon (last option of fetch_header_info).
     my  ($values) = &NeuroDB::MRI::fetch_header_info($raw_dti, $minc_field, 1);
 
-    my  ($arguments_list, $arguments_list_size) =   get_header_list('=', $arguments);
-    my  ($values_list, $values_list_size)       =   get_header_list(';', $values);
+    my  ($arguments_list, $arguments_list_size) = get_header_list('\cI\cI', $arguments);
+    my  ($values_list, $values_list_size)       = get_header_list(';',      $values);
 
     my  @insert_failure;
     if  ($arguments_list_size   ==  $values_list_size)  {

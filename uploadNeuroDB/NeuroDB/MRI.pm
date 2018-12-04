@@ -1542,21 +1542,23 @@ sub my_trim {
 
 =pod
 
-=head3 fetch_minc_header_info($minc, $field, $keep_semicolon)
+=head3 fetch_minc_header_info($minc, $field, $keep_semicolon, $get_arg_name)
 
 Function that fetches header information in MINC file.
 
 INPUTS:
   - $minc : MINC file
-  - $field: field name to look for in MINC header (or 'all' to grep all headers)
-  - $keep_semicolon: if set, keep ";" at the end of extracted value
+  - $field: string to look for in MINC header (or 'all' to grep all headers)
+  - $keep_semicolon: if set, keeps ";" at the end of extracted value
+  - $get_arg_name  : if set, returns the MINC header field name
 
-RETURNS: value of the field found in the MINC header
+
+RETURNS: value (or header name) of the field found in the MINC header
 
 =cut
 
 sub fetch_header_info {
-    my ($minc, $field, $keep_semicolon) = @_;
+    my ($minc, $field, $keep_semicolon, $header_part) = @_;
 
     my $value;
     if ($field eq 'all') {
@@ -1565,8 +1567,9 @@ sub fetch_header_info {
     } else {
         # fetch a particular header value, remove extra spaces and optionally
         # the semicolon
-        my $val = `mincheader -data "$minc" | grep "$field" | cut -d= -f2 | tr '\n' ' '`;
-        $value = my_trim($val) if $val !~ /^\s*"*\s*"*\s*$/;
+        my $cut_opt = $header_part ? "-f1" : "-f2";
+        my $val = `mincheader -data "$minc" | grep "$field" | cut -d= $cut_opt | tr '\n' ' '`;
+        $value  = my_trim($val) if $val !~ /^\s*"*\s*"*\s*$/;
         return undef unless ($value);  # return undef if no value found
         $value =~ s/"//g;  # remove "
         $value =~ s/;// unless ($keep_semicolon);  # remove ";"
