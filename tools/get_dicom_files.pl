@@ -182,8 +182,9 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
       or die "Extraction of compressed archive from $tarchiveLibraryDir/$archiveLocation in directory $tmpExtractDir failed: $?";
     print "done\n";
     
-    # Fetch all the MINC files in the archive whose acquisition protocols
-    # match the scan types of interest
+    # Fetch all the MINC files created out of the DICOM archive whose 
+    # acquisition protocolswhose acquisition protocols match the scan types
+    # of interest
     $query = "SELECT f.File, tf.FileName "
            . "FROM files f "
            . "JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) "
