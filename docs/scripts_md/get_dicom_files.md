@@ -8,28 +8,32 @@ perl get\_dicom\_files.pl \[-n patient\_name\_patterns\] \[-t scan\_type\_patter
 
 Available options are:
 
-\-p      : name of the config file in `../dicom-archive/.loris_mri` (typically `prod`)
-\-n      : comma separated list of MySQL patterns for the patient names that a DICOM file
-          has to have in order to be extracted. A DICOM file only has to match one of the 
-          patterns to be extracted. If no pattern is specified, then the patient name is 
-          not used to determine which DICOM files to extract. This option must be used if
-          no scan type patterns were specified with -t (see below).
-\-t      : comma separated list of MySQL patterns of the acquisition protocols (scan types
-          names) that a DICOM file has to have in order to be extracted. A DICOM file only
-          has to match one of the patterns to be extracted. If no pattern is specified, then
-          the scan type name is not used to determine which DICOM files to extract. This option
-          must be used if no patient name patterns were specified via -n (sdee above).
-\-d      : extract the files in directory `<dir_argument>/get_dicom_files.pl.<UNIX_process_number>`
-          For example with `-d /data/tmp`, the DICOM files will be extracted in 
-          `/data/tmp/get_dicom_files.pl.67888` (assuming 67888 is the process number). 
-          By default, dir\_argument is set to the value of the environment variable `TMPDIR`.
-\-o      : basename of the final `tar.gz` file to produce, in the current directory (defaults to 
-          `dicoms.tar.gz`).
+    -p      : name of the config file in C<../dicom-archive/.loris_mri> (typically C<prod>)
+
+    -n      : comma separated list of MySQL patterns for the patient names that a DICOM file
+             has to have in order to be extracted. A DICOM file only has to match one of the 
+             patterns to be extracted. If no pattern is specified, then the patient name is 
+             not used to determine which DICOM files to extract. This option must be used if
+             no scan type patterns were specified with -t (see below).
+             
+    -t      : comma separated list of MySQL patterns of the acquisition protocols (scan types
+             names) that a DICOM file has to have in order to be extracted. A DICOM file only
+             has to match one of the patterns to be extracted. If no pattern is specified, then
+             the scan type name is not used to determine which DICOM files to extract. This option
+             must be used if no patient name patterns were specified via -n (see above).
+             
+    -d      : extract the files in directory C<< <dir_argument>/get_dicom_files.pl.<UNIX_process_number> >>
+             For example with C<-d /data/tmp>, the DICOM files will be extracted in 
+             C</data/tmp/get_dicom_files.pl.67888> (assuming 67888 is the process number). 
+             By default, dir_argument is set to the value of the environment variable C<TMPDIR>.
+             
+    -o      : basename of the final C<tar.gz> file to produce, in the current directory (defaults to 
+             C<dicoms.tar.gz>).
 
 # DESCRIPTION
 
 This script first connects to the database to build the list of DICOM archives for which
-the patient names match the list of patterns specified as argument or all DICOM archives if
+the patient names match the list of patterns specified as argument, or all DICOM archives if
 no patterns were specified. The script will then examine these DICOM archives and look for the 
 MINC files whose scan types (acquisition protocol names) match the list of patterns passed as 
 argument, or all MINC files for that archive if -t was not used. It then extracts the DICOM files
