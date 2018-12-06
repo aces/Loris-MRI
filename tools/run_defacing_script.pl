@@ -43,9 +43,19 @@ use warnings;
 use Getopt::Tabular;
 use File::Basename;
 use File::Path 'make_path';
+use File::Temp 'tempdir';
+
 
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
+
+#-----------------------------------------------#
+# Triggers the deletion of the tmp extract dir  #
+# if something like CTRL-C is pressed during    #
+# execution of the script                       #
+#-----------------------------------------------#
+use sigtrap 'handler' => \&rmTmpDefaceDir, 'normal-signals';
+
 
 my $profile;
 my $session_ids;
@@ -139,10 +149,10 @@ unless ($ref_scan_type && $to_deface) {
 
 ## get environment variables
 
-my $tmp_dir    = $ENV{'TMPDIR'};
+my $tmp_dir_var    = $ENV{'TMPDIR'};
 my $mni_models = $ENV{'MNI_MODELS'};
 my $beastlib   = $ENV{'BEASTLIB'};
-unless ($mni_models && $beastlib && $tmp_dir) {
+unless ($mni_models && $beastlib && $tmp_dir_var) {
     print STDERR "\n==> ERROR: the environment variables 'TMPDIR', 'MNI_MODELS' and "
                  . "'BEASTLIB' are required to be set for the defacing script to "
                  . "run. Please make sure you updated your environment file with "
@@ -150,6 +160,19 @@ unless ($mni_models && $beastlib && $tmp_dir) {
                  . "before running this script.\n";
     exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
 }
+
+
+
+## create the tmp directory where the outputs of the deface pipeline will be
+# temporarily stored (before insertion in the database)
+#my $tmp_dir = &tempdir('deface-XXXXXXXX', TMPDIR => 1, CLEANUP => 1);
+my $tmp_dir = '/data/not_backed_up/deface-MbPAr_e8';
+# TODO set cleanup to 1 once done programming
+
+
+## get today's date
+my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime();
+my $today = sprintf( "%4d-%02d-%02d", $year + 1900, $mon + 1, $mday );
 
 
 
@@ -170,15 +193,20 @@ foreach my $session_id (keys %files_hash) {
     my ($candID, $visit) = grep_candID_visit_from_SessionID($session_id);
 
     # grep the t1 file of reference for the defacing (first FileID for t1 scan type)
-    my $ref_file = grep_t1_ref_file(\%session_files, $ref_scan_type);
+    my (%ref_file) = grep_t1_ref_file(\%session_files, $ref_scan_type);
 
     # determine where the result of the deface command will go
     my ($output_basedir, $output_basename) = determine_output_dir_and_basename(
-        $tmp_dir, $candID, $visit, $ref_file, $ref_scan_type
+        $tmp_dir, $candID, $visit, \%ref_file, $ref_scan_type
     );
 
     # run the deface command
-    create_the_deface_command($ref_file, \%session_files, $output_basename);
+    my (%defaced_images) = deface_session(
+        \%ref_file, \%session_files, $output_basename
+    );
+
+    # registers the output of the defacing script
+    register_defaced_files(\%defaced_images);
 }
 
 
@@ -274,11 +302,17 @@ sub grep_t1_ref_file {
 
     my %t1_files   = %{ $$session_files{$ref_t1_scan_type} };
     my @t1_fileIDs = sort( grep( defined $t1_files{$_}, keys %t1_files ) );
-    my $ref_fileID = $t1_fileIDs[0];
-    my $ref_file   = $t1_files{$ref_fileID};
-    delete $$session_files{$ref_t1_scan_type}{$ref_fileID};
+    my %ref_file   = (
+        "FileID"    => $t1_fileIDs[0],
+        "File"      => $t1_files{$t1_fileIDs[0]},
+        "Scan_type" => $ref_t1_scan_type
+    );
 
-    return $ref_file;
+
+    # remove that reference file from the hash of other files to deface
+    delete $$session_files{$ref_t1_scan_type}{$t1_fileIDs[0]};
+
+    return %ref_file;
 }
 
 sub determine_output_dir_and_basename {
@@ -289,18 +323,18 @@ sub determine_output_dir_and_basename {
     make_path($output_basedir) unless (-e $output_basedir);
 
     # determine the output base name for the *_deface_grid_0.mnc output
-    my $output_basename = $output_basedir . basename($ref_file);
-    $output_basename    =~ s/_${ref_t1_scan_type}_\d\d\d\.mnc//i;
+    my $output_basename = $output_basedir . basename($$ref_file{File});
+    $output_basename    =~ s/_$$ref_file{Scan_type}_\d\d\d\.mnc//i;
 
     # return the output base directory and output basename
     return $output_basedir, $output_basename;
 }
 
-sub create_the_deface_command {
+sub deface_session {
     my ($ref_file, $session_files, $output_basename) = @_;
 
     # initialize the command with the t1 reference file
-    my $cmd = "deface_minipipe.pl $data_dir/$ref_file ";
+    my $cmd = "deface_minipipe.pl $data_dir/$$ref_file{File} ";
 
     # then add all other files that need to be defaced to the command
     foreach my $scan_type (keys $session_files) {
@@ -316,5 +350,79 @@ sub create_the_deface_command {
         . " --model mni_icbm152_t1_tal_nlin_sym_09c "
         . " --model-dir $mni_models";
 
-    system($cmd);
+ #   system($cmd);
+
+    my %defaced_images = fetch_defaced_files(
+        $ref_file, $session_files, $output_basename
+    );
+
+    return %defaced_images;
+}
+
+sub fetch_defaced_files {
+    my ($ref_file, $session_files, $output_basename) = @_;
+
+    my $deface_dir = dirname($output_basename);
+    my $deface_ref = $deface_dir . '/' . basename($$ref_file{File});
+    $deface_ref    =~ s/\.mnc$/_defaced\.mnc/;
+
+    my %defaced_images;
+    $defaced_images{$deface_ref}{InputFileID} = $$ref_file{FileID};
+    $defaced_images{$deface_ref}{Scan_type}   = $$ref_file{Scan_type};
+
+    foreach my $scan_type (keys $session_files) {
+        my %files = %{ $$session_files{$scan_type} };
+        foreach my $fileID (keys %files) {
+            my $deface_file   = $deface_dir . '/' . basename($files{$fileID});
+            $deface_file      =~ s/\.mnc$/_defaced\.mnc/;
+            $defaced_images{$deface_file}{InputFileID} = $fileID;
+            $defaced_images{$deface_file}{Scan_type}    = $scan_type;
+        }
+    }
+
+    return %defaced_images;
+}
+
+sub register_defaced_files {
+    my ($defaced_images) = @_;
+
+    my $register_cmd = "register_processed_data.pl "
+                       . " -profile $profile "
+                       . " -sourcePipeline MINC_deface "
+                       . " -tool 'uploadNeuroDB/bin/deface_minipipe.pl' "
+                       . " -pipelineDate $today "
+                       . " -coordinateSpace native "
+                       . " -outputType defaced ";
+
+    foreach my $file (keys $defaced_images) {
+        my $input_fileID = $$defaced_images{$file}{InputFileID};
+        my $scan_type    = $$defaced_images{$file}{Scan_type} . "-defaced";
+
+        # verify that the scan type exists in mri_scan_type, if not create it
+        create_defaced_scan_type($scan_type);
+
+        # append file, scan type, sourceFileID & inputFileIDs to the command
+        $register_cmd .= " -inputFileIDs $input_fileID "
+                         . " -sourceFileID $input_fileID"
+                         . " -scanType $scan_type "
+                         . " -file $file";
+
+        # register the scan in the DB
+        system($register_cmd);
+    }
+}
+
+sub create_defaced_scan_type {
+    my ($scan_type) = @_;
+
+    my $select     = "SELECT COUNT(*) FROM mri_scan_type WHERE Scan_type = ?";
+    my $select_sth = $dbh->prepare($select);
+    $select_sth->execute($scan_type);
+
+    my ($count) = $select_sth->fetchrow_array;
+    unless ($count) {
+        my $insert = "INSERT INTO mri_scan_type SET Scan_type = ?";
+        my $sth    = $dbh->prepare($insert);
+        $sth->execute($scan_type);
+    }
 }
