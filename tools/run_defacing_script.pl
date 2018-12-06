@@ -25,15 +25,7 @@ This script will create defaced images for anatomical acquisitions that are
 specified in the Config module of LORIS.
 
 
-=head1 LICENSING
-
-License: GPLv3
-
-
-=head1 AUTHORS
-
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
-Neuroscience
+=head1 METHODS
 
 =cut
 
@@ -197,7 +189,7 @@ foreach my $session_id (keys %files_hash) {
 
     # determine where the result of the deface command will go
     my ($output_basedir, $output_basename) = determine_output_dir_and_basename(
-        $tmp_dir, $candID, $visit, \%ref_file, $ref_scan_type
+        $tmp_dir, $candID, $visit, \%ref_file
     );
 
     # run the deface command
@@ -211,6 +203,7 @@ foreach my $session_id (keys %files_hash) {
 
 
 exit $NeuroDB::ExitCodes::SUCCESS;
+
 
 
 =pod
@@ -233,6 +226,7 @@ RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
               {t1}                      # t1 scan type key
                 {$FileID} = $File_path  # key = FileID 1; value = MINC file 1 path
                 {$FileID} = $File_path  # key = FileID 2; value = MINC file 2 path
+
 =cut
 
 sub grep_FileIDs_to_deface {
@@ -285,6 +279,20 @@ sub grep_FileIDs_to_deface {
     return %file_id_hash
 }
 
+
+=pod
+
+=head3 grep_candID_visit_from_SessionID($session_id)
+
+Greps the candidate's C<CandID> and the visit label corresponding to the
+C<SessionID> given as input.
+
+INPUT: the session ID to use to look for C<CandID> and visit label
+
+RETURNS: the candidate's C<CandID> and the session visit label
+
+=cut
+
 sub grep_candID_visit_from_SessionID {
     my ($session_id) = @_;
 
@@ -297,9 +305,27 @@ sub grep_candID_visit_from_SessionID {
     return $cand_id, $visit_label;
 }
 
+
+=pod
+
+=head3 grep_t1_ref_file($session_files, $ref_t1_scan_type)
+
+Grep the first t1w image from C<$session_files> to use it as a reference image for
+C<deface_minipipe.pl>.
+
+INPUTS:
+  - $session_files   : list of files to deface
+  - $ref_t1_scan_type: LORIS scan type of the t1w file to use as a reference
+                       for C<deface_minipipe.pl>
+
+RETURNS: hash with information for the reference t1w image
+
+=cut
+
 sub grep_t1_ref_file {
     my ($session_files, $ref_t1_scan_type) = @_;
 
+    # grep the first t1w image to use as a reference when executing deface_minipipe.pl
     my %t1_files   = %{ $$session_files{$ref_t1_scan_type} };
     my @t1_fileIDs = sort( grep( defined $t1_files{$_}, keys %t1_files ) );
     my %ref_file   = (
@@ -308,15 +334,35 @@ sub grep_t1_ref_file {
         "Scan_type" => $ref_t1_scan_type
     );
 
-
     # remove that reference file from the hash of other files to deface
     delete $$session_files{$ref_t1_scan_type}{$t1_fileIDs[0]};
 
     return %ref_file;
 }
 
+
+=pod
+
+=head3 determine_output_dir_and_basename($root_dir, $candID, $visit, $ref_file)
+
+Determine the output directory path and basename to be used by C<deface_minipipe.pl>.
+
+INPUTS:
+  - $root_dir: root directory (usually a temporary directory where defaced outputs
+               will be created)
+  - $candID  : candidate's C<CandID>
+  - $visit   : candidate's visit label
+  - $ref_file: hash with information about the reference t1 file to use to deface
+
+RETURNS:
+  - $output_basedir : output base C<CandID/VisitLabel> directory where defaced images
+                      will be created
+  - $output_basename: basename to be used to create the C<_deface_grid_0.mnc> file
+
+=cut
+
 sub determine_output_dir_and_basename {
-    my ($root_dir, $candID, $visit, $ref_file, $ref_t1_scan_type) = @_;
+    my ($root_dir, $candID, $visit, $ref_file) = @_;
 
     # determine output base directory and create it if it does not exist yet
     my $output_basedir  = "$root_dir/$candID/$visit/";
@@ -329,6 +375,23 @@ sub determine_output_dir_and_basename {
     # return the output base directory and output basename
     return $output_basedir, $output_basename;
 }
+
+
+=pod
+
+=head3 deface_session($ref_file, $session_files, $output_basename)
+
+Function that will run C<deface_minipipe.pl> on all anatomical images of the session
+and will return all defaced outputs in a hash.
+
+INPUTS:
+  - $ref_file       : hash with info about the reference t1w file used to deface
+  - $session_files  : list of other files than the reference t1w file to deface
+  - $output_basename: output basename to be used by C<deface_minipipe.pl>
+
+RETURNS: hash of defaced images with relevant information necessary to register them
+
+=cut
 
 sub deface_session {
     my ($ref_file, $session_files, $output_basename) = @_;
@@ -359,6 +422,25 @@ sub deface_session {
     return %defaced_images;
 }
 
+
+=pod
+
+=head3 fetch_defaced_files($ref_file, $session_files, $output_basename)
+
+Function that will determine the name of the defaced outputs and check that the
+defaced outputs indeed exists in the file system. If all files are found in the
+filesystem, it will return a hash with all information necessary for registration
+of the defaced image.
+
+INPUTS:
+  - $ref_file       : hash with info about the reference t1w file used to deface
+  - $session_files  : list of other files than the reference t1w file to deface
+  - $output_basename: output basename to be used by C<deface_minipipe.pl>
+
+RETURNS: hash of defaced images with relevant information necessary to register them
+
+=cut
+
 sub fetch_defaced_files {
     my ($ref_file, $session_files, $output_basename) = @_;
 
@@ -366,10 +448,14 @@ sub fetch_defaced_files {
     my $deface_ref = $deface_dir . '/' . basename($$ref_file{File});
     $deface_ref    =~ s/\.mnc$/_defaced\.mnc/;
 
+    # create a hash with all information about the defaced images and add the
+    # reference t1 defaced image to it
     my %defaced_images;
+    # append the reference t1 defaced image to the hash
     $defaced_images{$deface_ref}{InputFileID} = $$ref_file{FileID};
     $defaced_images{$deface_ref}{Scan_type}   = $$ref_file{Scan_type};
 
+    # for each files in $session_files, append the defaced images to the hash
     foreach my $scan_type (keys $session_files) {
         my %files = %{ $$session_files{$scan_type} };
         foreach my $fileID (keys %files) {
@@ -380,8 +466,24 @@ sub fetch_defaced_files {
         }
     }
 
+    # make sure all the files can be found on the filesystem
+    foreach my $file (keys %defaced_images) {
+        return undef unless (-e $file);
+    }
+
     return %defaced_images;
 }
+
+
+=pod
+
+=head3 register_defaced_files($defaced_images)
+
+Registers the defaced images using C<register_processed_data.pl>.
+
+INPUT: hash with the defaced images storing their input FileID and scan type
+
+=cut
 
 sub register_defaced_files {
     my ($defaced_images) = @_;
@@ -412,6 +514,18 @@ sub register_defaced_files {
     }
 }
 
+
+=pod
+
+=head3 create_defaced_scan_type($scan_type)
+
+Function that inserts a new scan type in C<mri_scan_type> if the scan type does not
+already exists in C<mri_scan_type>.
+
+INPUT: the scan type to look for or insert in the C<mri_scan_type> table
+
+=cut
+
 sub create_defaced_scan_type {
     my ($scan_type) = @_;
 
@@ -426,3 +540,21 @@ sub create_defaced_scan_type {
         $sth->execute($scan_type);
     }
 }
+
+
+
+=pod
+
+
+=head1 LICENSING
+
+License: GPLv3
+
+
+=head1 AUTHORS
+
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+
+=cut
