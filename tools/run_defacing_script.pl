@@ -48,6 +48,32 @@ use NeuroDB::ExitCodes;
 #-----------------------------------------------#
 use sigtrap 'handler' => \&rmTmpDefaceDir, 'normal-signals';
 
+# These are hardcoded as examples of how to deal with special modalities:
+# - MP2RAGE inversion scans produces a distortion and a normalized image, only the
+#   normalized image should be defaced (no face on the distortion image).
+# - quantitative multi-echo T2star produces a phase and a magnitude image for each
+#   echo. In that case, only the magnitude files should be defaced (no face on the
+#   phase image so should not deface)
+# These 2 variables will be used when grepping the list of FileIDs to deface (in
+# function grep_FileIDs_to_deface
+## TODO document this better
+my %SPECIAL_ACQUISITIONS = (
+    'MP2RAGEinv1'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
+    'MP2RAGEinv2'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
+    'qT2starEcho1'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho2'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho3'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho4'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho5'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho6'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho7'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho8'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho9'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho10' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho11' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'qT2starEcho12' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND'
+);
+
 
 my $profile;
 my $session_ids;
@@ -172,7 +198,7 @@ my $today = sprintf( "%4d-%02d-%02d", $year + 1900, $mon + 1, $mday );
 
 print "\n==> Fetching all FileIDs to deface.\n" if $verbose;
 my @session_ids = defined $session_ids ? split(",", $session_ids) : ();
-my %files_hash = grep_FileIDs_to_deface(\@session_ids, $to_deface);
+my %files_hash  = grep_FileIDs_to_deface(\@session_ids, $to_deface);
 
 
 
@@ -243,14 +269,35 @@ RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
 sub grep_FileIDs_to_deface {
     my ($session_id_arr, $modalities_to_deface_arr) = @_;
 
+    # separate the special modalities specified in %SPECIAL_ACQUISITIONS from the
+    # standard scan types
+    my @special_scan_types = keys %SPECIAL_ACQUISITIONS;
+    my @special_cases;
+    foreach my $special (@special_scan_types) {
+        # push the special modalities to a new array @special_cases
+        push @special_cases, grep(/$special/, @$modalities_to_deface_arr);
+        # remove the special modalities from the modalities array as they will be
+        # dealt with differently than standard modalities
+        @$modalities_to_deface_arr = grep(! /$special/, @$modalities_to_deface_arr);
+    }
+
     # base query
     my $query = "SELECT  SessionID, FileID, Scan_type, File "
                 . "FROM  files f "
-                . "JOIN  mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID)";
+                . "JOIN  mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID) "
+                . "JOIN  parameter_file pf USING (FileID) "
+                . "JOIN  parameter_type pt USING (ParameterTypeID) "
+                . "WHERE pt.Name='acquisition:image_type' ";
 
-    # add where close for the different scan types to deface
+    # add where close for the different standard scan types to deface
     my @where = map { "mst.Scan_type = ?" } @$modalities_to_deface_arr;
-    $query   .= sprintf(" WHERE (%s) ", join(" OR ", @where));
+    $query   .= sprintf(" AND ( %s ", join(" OR ", @where));
+
+    # add where close for the different non-standard scan types to deface
+    # where we will restrict the images to be defaced to the ones with a face base
+    # on parameter_type 'acquisition:image_type'
+    @where  = map { "(mst.Scan_type = ? AND pf.Value LIKE ?)" } @special_cases;
+    $query .= sprintf(" OR %s ) ", join(" OR ", @where));
 
     # add where close for the session IDs specified to the script if -sessionIDs was set
     if ($session_id_arr) {
@@ -266,6 +313,14 @@ sub grep_FileIDs_to_deface {
         # bind scan type parameters
         $idx++;
         $sth->bind_param($idx, $scan_type);
+    }
+    foreach my $special_scan_type (@special_cases) {
+        # bind scan type parameter
+        $idx++;
+        $sth->bind_param($idx, $special_scan_type);
+        # bind parameter file value parameter
+        $idx++;
+        $sth->bind_param($idx, $SPECIAL_ACQUISITIONS{$special_scan_type});
     }
     if ($session_id_arr) {
         foreach my $session_id (@$session_id_arr) {
