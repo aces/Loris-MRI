@@ -184,6 +184,17 @@ foreach my $session_id (keys %files_hash) {
     # grep the CandID and VisitLabel for the dataset
     my ($candID, $visit) = grep_candID_visit_from_SessionID($session_id);
 
+    # verify that the files are not already defaced
+    my ($already_defaced) = check_if_deface_files_already_in_db(
+        \%session_files, $session_id
+    );
+    if ($already_defaced) {
+        print STDERR "\n==> WARNING: The files for SessionID $session_id have "
+                     . "already been defaced and registered in LORIS. Skipping "
+                     . "defacing for this session.\n";
+        next;
+    }
+
     # grep the t1 file of reference for the defacing (first FileID for t1 scan type)
     my (%ref_file) = grep_t1_ref_file(\%session_files, $ref_scan_type);
 
@@ -305,6 +316,34 @@ sub grep_candID_visit_from_SessionID {
     return $cand_id, $visit_label;
 }
 
+
+
+sub check_if_deface_files_already_in_db {
+    my ($session_files, $session_id) = @_;
+
+    my @defaced_scan_types = map { $_ . '-defaced' } keys $session_files;
+
+    # base query
+    my $query = "SELECT COUNT(*) "
+                 . " FROM files f "
+                 . " JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ";
+
+    # add where close for the different defaced scan types
+    my @where = map { "mst.Scan_type = ?" } @defaced_scan_types;
+    $query   .= sprintf(" WHERE (%s) ", join(" OR ", @where));
+    $query   .= " AND SessionID = ?";
+
+    # prepare and execute the query
+    my $sth   = $dbh->prepare($query);
+    my @params = @defaced_scan_types;
+    push @params, $session_id;
+    $sth->execute(@params);
+
+    # grep the results
+    my ($count) = $sth->fetchrow_array;
+
+    return $count ? 1 : 0;
+}
 
 =pod
 
