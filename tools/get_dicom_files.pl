@@ -183,7 +183,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     
     # Extract only the .tar.gz archive from the main archive (ignore the 
     # meta data and log file)
-    print "Extracting compressed archive contained in $tmpExtractDir...";
+    print "Extracting compressed archive contained in $tarchiveLibraryDir/$archiveLocation...";
     system("tar xf $tarchiveLibraryDir/$archiveLocation -C $tmpExtractDir --wildcards \\*.tar.gz") == 0 
       or die "Extraction of compressed archive from $tarchiveLibraryDir/$archiveLocation in directory $tmpExtractDir failed: $?";
     print "done\n";
