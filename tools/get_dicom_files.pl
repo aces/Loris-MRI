@@ -207,33 +207,43 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     my $filesRef = {};
     foreach my $fileRowRef (@{ $sth->fetchall_arrayref }) {
         my($mincFile, $dicomFilename) = @$fileRowRef;
+        chomp $dicomFilename;
             
         $filesRef->{$mincFile} = [] unless defined $filesRef->{$mincFile};
         push(@{ $filesRef->{$mincFile} }, $dicomFilename);
     }
     
-    # Foreach MINC file build a tar file with the set of DICOM files
+    # Foreach MINC file extract the set of DICOM files
     # that were used to produce it (found above)
     foreach my $file (keys %$filesRef) {
         # Build file that contains the list of paths of the DICOM files to
         # extact from the archive
-        my @dicomFilePatterns = map { "*/$_" } @{ $filesRef->{$file} };
         my($fileBaseName) = $file =~ /\/([^\/]+).mnc$/;
         my $fileList = "$tmpExtractDir/$fileBaseName.dicom";
         open(FILE_LIST, ">$fileList") or die "Cannot write file $fileList: $!\n";
-        foreach( @dicomFilePatterns) {
-            print FILE_LIST "$_\n";
+        
+        open(LIST_TAR_CONTENT, "tar ztf $tmpExtractDir/*.tar.gz|") 
+            or die "Cannot run command tar tf $tmpExtractDir/*.tar.gz:$?\n";
+        while (<LIST_TAR_CONTENT>) {
+            chomp;
+            my($fileName, $dirName, $suffix) = fileparse($_);
+            print FILE_LIST "$_\n" if grep($_ eq $fileName, @{ $filesRef->{$file} });
         }
         close(FILE_LIST);
+        close(LIST_TAR_CONTENT);
         
         # Extract from the inner tar the DICOMs who names are listed in
         # $tmpExtractDir/$fileBaseName.dicom
         my($outSubDir) = $file =~ /_([^_]+_\d+).mnc$/;
         my $outDir = "$tmpExtractDir/$pscid/$visitLabel/$dateAcquired/$outSubDir";
+        
+        # --files-from: file containing the path of the files to extract
+        # --transform: put all extracted files in $outDir
+        # --absolute-path: since we are extracting in $outDir and since
+        #                  $outDir is an absolute path, we need this option otherwise
+        #                  tar will refuse to extract
         my $cmd = "tar zxf $tmpExtractDir/*.tar.gz"
-                . " --no-recursion "
-                . " --wildcards"
-                . " --files-from=$fileList "
+                . " --files-from=$fileList "   
                 . " --absolute-names "
                 . " --transform='s#^.*/#$outDir/#'";
         print "Extracting DICOM files for $file...";
