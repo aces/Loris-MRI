@@ -41,12 +41,7 @@ use File::Temp 'tempdir';
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 
-#-----------------------------------------------#
-# Triggers the deletion of the tmp extract dir  #
-# if something like CTRL-C is pressed during    #
-# execution of the script                       #
-#-----------------------------------------------#
-use sigtrap 'handler' => \&rmTmpDefaceDir, 'normal-signals';
+
 
 # These are hardcoded as examples of how to deal with special modalities:
 # - MP2RAGE inversion scans produces a distortion and a normalized image, only the
@@ -75,10 +70,12 @@ my %SPECIAL_ACQUISITIONS = (
 );
 
 
+
+
 my $profile;
 my $session_ids;
-my $verbose        = 0;
-my $profile_desc   = "Name of the config file in ../dicom-archive/.loris_mri";
+my $verbose          = 0;
+my $profile_desc     = "Name of the config file in ../dicom-archive/.loris_mri";
 my $session_ids_desc = "Comma-separated list of SessionIDs on which to run the "
                        . "defacing algorithm (if not set, will deface images for "
                        . "all SessionIDs present in the database)";
@@ -183,12 +180,13 @@ unless ($mni_models && $beastlib && $tmp_dir_var) {
 
 ## create the tmp directory where the outputs of the deface pipeline will be
 # temporarily stored (before insertion in the database)
-#my $tmp_dir = &tempdir('deface-XXXXXXXX', TMPDIR => 1, CLEANUP => 1);
-my $tmp_dir = '/data/not_backed_up/deface-MbPAr_e8';
-# TODO set cleanup to 1 once done programming
+
+my $tmp_dir = &tempdir('deface-XXXXXXXX', TMPDIR => 1, CLEANUP => 1);
+
 
 
 ## get today's date
+
 my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime();
 my $today = sprintf( "%4d-%02d-%02d", $year + 1900, $mon + 1, $mday );
 
@@ -203,6 +201,7 @@ my %files_hash  = grep_FileIDs_to_deface(\@session_ids, $to_deface);
 
 
 ## Loop through SessionIDs
+
 foreach my $session_id (keys %files_hash) {
     # extract the hash of the list of files to deface for that session ID
     my %session_files = %{ $files_hash{$session_id} };
@@ -372,6 +371,20 @@ sub grep_candID_visit_from_SessionID {
 }
 
 
+=pod
+
+=head3 check_if_deface_files_already_in_db($session_files, $session_id)
+
+Checks whether there are already defaced images present in the database for
+the session.
+
+INPUTS:
+  - $session_files: list of files to deface
+  - $session_id   : the session ID to use to look for defaced images in C<files>
+
+RETURNS: 1 if there are defaced images found, 0 otherwise
+
+=cut
 
 sub check_if_deface_files_already_in_db {
     my ($session_files, $session_id) = @_;
