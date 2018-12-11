@@ -325,7 +325,7 @@ sub loadFileFromDisk {
     }
     
     # get the set of attributes
-    my $header = `mincheader -data "$file"`;
+    my $header = &NeuroDB::MRI::fetch_header_info($file, 'all');
     my @attributes = split(/;\n/s, $header);
     foreach my $attribute (@attributes) {
         if($attribute =~ /\s*(\w*:\w+) = (.*)$/s) {

@@ -206,11 +206,15 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $lookupCenterName       =   NeuroDB::DBI::getConfigSetting(
                                     \$dbh,'lookupCenterNameUsing'
                                     );
-    my  $patientInfo;
-    if      ($lookupCenterName eq 'PatientName')    {
-        $patientInfo    =   fetchMincHeader($filename,'patient:full_name');
-    }elsif  ($lookupCenterName eq 'PatientID')      {
-        $patientInfo    =   fetchMincHeader($filename,'patient:identification');
+    my $patientInfo;
+    if ($lookupCenterName eq 'PatientName') {
+        $patientInfo = &NeuroDB::MRI::fetch_header_info(
+            $filename, 'patient:full_name'
+        );
+    }elsif ($lookupCenterName eq 'PatientID') {
+        $patientInfo = &NeuroDB::MRI::fetch_header_info(
+            $filename, 'patient:identification'
+        );
     }
     ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh, $db);
     my  $psc    =   $center_name;
@@ -229,11 +233,19 @@ my $scannerID;
 
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  %scannerInfo;
-    $scannerInfo{'ScannerManufacturer'}     =   fetchMincHeader($filename,'study:manufacturer');
-    $scannerInfo{'ScannerModel'}            =   fetchMincHeader($filename,'study:device_model');
-    $scannerInfo{'ScannerSerialNumber'}     =   fetchMincHeader($filename,'study:serial_no');
-    $scannerInfo{'ScannerSoftwareVersion'}  =   fetchMincHeader($filename,'study:software_version');
-    $scannerID = NeuroDB::MRI::findScannerID(
+    $scannerInfo{'ScannerManufacturer'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:manufacturer'
+    );
+    $scannerInfo{'ScannerModel'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:device_model'
+    );
+    $scannerInfo{'ScannerSerialNumber'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:serial_no'
+    );
+    $scannerInfo{'ScannerSoftwareVersion'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:software_version'
+    );
+    $scannerID  =   NeuroDB::MRI::findScannerID(
         $scannerInfo{'ScannerManufacturer'}, $scannerInfo{'ScannerModel'},
         $scannerInfo{'ScannerSerialNumber'}, $scannerInfo{'ScannerSoftwareVersion'},
         $centerID,                           \$dbh,
@@ -458,34 +470,6 @@ sub getAcqProtID    {
 
     return  ($acqProtID);
 }
-
-
-=pod
-
-=head3 fetchMincHeader($file, $field)
-
-This function parses the MINC header and looks for a specific field value.
-
-INPUTS:
-  - $file : MINC file
-  - $field: MINC header field values
-
-RETURNS: MINC header value
-
-=cut
-
-sub fetchMincHeader {
-    my  ($file,$field)  =   @_;
-
-    my  $value  =   `mincheader $file | grep '$field' | awk '{print \$3, \$4, \$5, \$6}' | tr '\n' ' '`;
-
-    $value=~s/"//g;    #remove "
-    $value=~s/^\s+//; #remove leading spaces
-    $value=~s/\s+$//; #remove trailing spaces
-    $value=~s/;//;    #remove ;
-
-    return  $value;
-}    
 
 
 =pod

@@ -311,7 +311,7 @@ INPUTS:
 
 RETURNS: 1 on success, undef on failure
 
-### modify\_header($argument, $value, $minc, $awk)
+### modify\_header($argument, $value, $minc)
 
 Function that runs `minc_modify_header` and inserts MINC header information if
 not already inserted.
@@ -320,21 +320,8 @@ INPUTS:
   - $argument: argument to be inserted in MINC header
   - $value   : value of the argument to be inserted in MINC header
   - $minc    : MINC file
-  - $awk     : awk info to check if the argument was inserted in MINC header
 
 RETURNS: 1 if argument was inserted in the MINC header, undef otherwise
-
-### fetch\_header\_info($field, $minc, $awk, $keep\_semicolon)
-
-Function that fetches header information in MINC file.
-
-INPUTS:
-  - $field: field to look for in MINC header
-  - $minc : MINC file
-  - $awk  : awk info to check if argument inserted in MINC header
-  - $keep\_semicolon: if set, keep ";" at the end of extracted value
-
-RETURNS: value of the field found in the MINC header
 
 ### get\_header\_list($splitter, $fields)
 
