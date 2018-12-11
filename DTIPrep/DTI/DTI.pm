@@ -166,12 +166,7 @@ sub getAnatFile {
     my $anat_list = DTI::getFilesList($nativedir, "\_$t1_scan_type\_.*mnc\$");
 
     # Return undef if no anat found, first anat otherwise
-    if (@$anat_list == 0) { 
-        return undef; 
-    } else { 
-        my $anat = @$anat_list[0];
-        return $anat;
-    }
+    return @$anat_list ? @$anat_list[0] : undef;
 }
 
 
