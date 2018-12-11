@@ -205,11 +205,14 @@ my @outDirs = ();
 foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     my($pscid, $visitLabel, $dateAcquired, $archiveLocation, $tarchiveId) = @$tarchiveRowRef;
     
+    my($innerTar) = $archiveLocation =~ /\/DCM_\d+-\d+-\d+_([^\/]+)\.tar$/;
+    $innerTar .= '.tar.gz';
+    
     # Extract only the .tar.gz archive from the main archive (ignore the 
     # meta data and log file)
-    print "Extracting compressed archive contained in $tarchiveLibraryDir/$archiveLocation...";
-    system("tar xf $tarchiveLibraryDir/$archiveLocation -C $tmpExtractDir --wildcards \\*.tar.gz") == 0 
-      or die "Extraction of compressed archive from $tarchiveLibraryDir/$archiveLocation in directory $tmpExtractDir failed: $?";
+    print "Extracting $innerTar in $tmpExtractDir...";
+    system("tar xf $tarchiveLibraryDir/$archiveLocation -C $tmpExtractDir $innerTar") == 0 
+      or die "Extraction of $innerTar in $tmpExtractDir failed: $?";
     print "done\n";
     
     # Fetch all the MINC files created out of the DICOM archive whose 
@@ -246,8 +249,8 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         my $fileList = "$tmpExtractDir/$fileBaseName.dicom";
         open(FILE_LIST, ">$fileList") or die "Cannot write file $fileList: $!\n";
         
-        open(LIST_TAR_CONTENT, "tar ztf $tmpExtractDir/*.tar.gz|") 
-            or die "Cannot run command tar tf $tmpExtractDir/*.tar.gz:$?\n";
+        open(LIST_TAR_CONTENT, "tar ztf $tmpExtractDir/$innerTar|") 
+            or die "Cannot run command tar tf $tmpExtractDir/$innerTar: $?\n";
         while (<LIST_TAR_CONTENT>) {
             chomp;
             my($fileName, $dirName, $suffix) = fileparse($_);
@@ -266,13 +269,13 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         # --absolute-path: since we are extracting in $outDir and since
         #                  $outDir is an absolute path, we need this option otherwise
         #                  tar will refuse to extract
-        my $cmd = "tar zxf $tmpExtractDir/*.tar.gz"
+        my $cmd = "tar zxf $tmpExtractDir/$innerTar"
                 . " --files-from=$fileList "   
                 . " --absolute-names "
                 . " --transform='s#^.*/#$outDir/#'";
         print "Extracting DICOM files for $file...";
         system($cmd) == 0 
-            or die "Failed to extract DICOM files for MINC file $file from archive in $tmpExtractDir: $?\n";
+            or die "Failed to extract DICOM files for MINC file $file from $tmpExtractDir/$innerTar: $?\n";
         print "done.\n";
         
         push(@outDirs, "$pscid/$visitLabel/$dateAcquired/$outSubDir");
