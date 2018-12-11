@@ -199,7 +199,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 extract_tarchive($tarchive, $tempdir)
 
-Extracts the DICOM archive passed as an argument in a temporary directory and
+Extracts the DICOM archive passed as argument in a temporary directory and
 returns the extracted DICOM directory.
 
 INPUTS:
@@ -239,7 +239,7 @@ sub extract_tarchive {
 
 =head3 update_file_headers($file, $setRef)
 
-Updates the headers of a DICOM file given as an argument to that function.
+Updates the headers of a DICOM file given as argument to that function.
 
 INPUTS:
   - $file  : DICOM file in which to update headers information
