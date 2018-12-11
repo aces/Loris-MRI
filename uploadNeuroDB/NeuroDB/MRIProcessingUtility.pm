@@ -1780,7 +1780,7 @@ QUERY
         my $base         = basename($filename);
         my $fullpath     = "$data_dir/$filename";
         my $message;
-        if ( grep(/$fileScanType/, @{$modalities}) ) {
+        if ( grep($_ eq $fileScanType, @{$modalities}) ) {
             my $cmd = "noise_estimate --snr $fullpath";
             my $SNR = `$cmd`;
             $SNR =~ s/\n//g;
