@@ -65,11 +65,10 @@ use File::Temp qw/tempdir/;
 
 use Getopt::Tabular;
 
-#-----------------------------------------------#
-# Triggers the deletion of the tmp extract dir  #
-# if something like CTRL-C is pressed during    #
-# execution of the script                       #
-#-----------------------------------------------#
+# If the absolute value of the difference between two floating 
+# point numbers is lower than this, the two numbers are considered
+# equal
+my $FLOAT_EQUALS_THRESHOLD = 0.00001;
 
 my $patientNames;
 my $scanTypes;
@@ -148,27 +147,52 @@ my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(\$dbh, 'tarchiveLibraryD
 # Create the directory where DICOM files will be extracted #
 #----------------------------------------------------------#
 my $tmpExtractDir = tempdir("$0.XXXX", DIR => $tmpExtractBaseDir, CLEANUP => 1);
-#my $tmpExtractDir = sprintf("%s/%s.%d", $tmpExtractBaseDir, basename($0), $$);
-#mkdir $tmpExtractDir or die "Cannot create directory $tmpExtractDir: $!\n";
 
 #------------------------------------------------------------#
 # Get the list of tarchives for which the patient names      #
-# match the list of supplied patterns (or all tarchives if   #
-# no patterns were specified)                                #
+# match the list of supplied patterns and/or the list of     #
+# scan type patterns                                         #
 #------------------------------------------------------------#
 my $query = "SELECT c.PSCID, s.Visit_label, t.DateAcquired, t.ArchiveLocation, t.TarchiveID, t.PatientName "
           . "FROM tarchive t "
           . "JOIN session s ON (t.SessionID=s.ID) "
-          . "JOIN candidate c ON (c.CandID=s.CandID) ";
+          . "JOIN candidate c ON (c.CandID=s.CandID) "
+          . "WHERE 1=1";
+          
+# Add patient name clause (if any)          
 if(@patientNames) {
     my @where = map { "t.PatientName LIKE ?" } @patientNames;
-    $query .= sprintf("WHERE (%s)", join(" OR ", @where));
+    $query .= sprintf(" AND (%s)", join(" OR ", @where));
+}
+
+# Add scan type clause (if any)
+if(@scanTypes) {
+	my @where = map { "mst.Scan_type LIKE ?" } @scanTypes;
+	
+	# This query will return 1 iff the archive contains at least one
+	# file with a scan type whose name matches the conditions imposed
+	# via -t
+	my $innerQuery = "SELECT 1 "
+	               . "FROM files f "
+	               . "JOIN mri_scan_type mst ON(mst.ID=f.AcquisitionProtocolID) "
+	               . "WHERE f.TarchiveSource=t.TarchiveID "
+	               . "AND (" . join(" OR " , @where) . ")";
+	$query .= " AND EXISTS($innerQuery)";
 }
 my $sth = $dbh->prepare($query);
 
+# Bind patient name patterns placeholders to their actual values
 if(@patientNames) {
     for(my $p=0; $p<@patientNames; $p++) {
         $sth->bind_param($p+1, $patientNames[$p]);
+    }
+}
+
+# Bind scan type patterns placeholders to their actual values
+if(@scanTypes) {
+    for(my $t=0; $t<@scanTypes; $t++) {
+		my $placeHolderIndex = $t + scalar(@patientNames) + 1;
+        $sth->bind_param($placeHolderIndex, $scanTypes[$t]);
     }
 }
 $sth->execute();
@@ -194,7 +218,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     $query = "SELECT f.File, tf.FileName "
            . "FROM files f "
            . "JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) "
-           . "JOIN tarchive_series ts ON (f.SeriesUID=ts.SeriesUID AND f.EchoTime*1000=ts.EchoTime) "
+           . "JOIN tarchive_series ts ON (f.SeriesUID=ts.SeriesUID AND ABS(f.EchoTime*1000 - ts.EchoTime) < $FLOAT_EQUALS_THRESHOLD) "
            . "JOIN tarchive_files tf USING (TarchiveSeriesID) "
            . "WHERE f.TarchiveSource = ?";
     my @where = map { "mst.Scan_type LIKE ?" } @scanTypes;
@@ -256,7 +280,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
 }
 
 if(!@outDirs) {
-    print "No DICOM files match the specified criterias specifed via -t and/or -n. No .tar.gz file created.\n";
+    print "No DICOM files match the criteria specifed via -t and/or -n. No .tar.gz file created.\n";
 } else {
     # Make a big tar of all the extracted DICOMs that match the patient name patterns
     # and scan type name patterns
