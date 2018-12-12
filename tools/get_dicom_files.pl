@@ -212,7 +212,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     # meta data and log file)
     print "Extracting $innerTar in $tmpExtractDir...";
     system("tar xf $tarchiveLibraryDir/$archiveLocation -C $tmpExtractDir $innerTar") == 0 
-      or die "Extraction of $innerTar in $tmpExtractDir failed: $?";
+      or die "Extraction of $innerTar in $tmpExtractDir failed: $?\n";
     print "done\n";
     
     # Fetch all the MINC files created out of the DICOM archive whose 
