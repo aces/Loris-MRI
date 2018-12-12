@@ -71,6 +71,7 @@ my @script_list = (
     'tools/ProdToConfig.pl',
     'tools/database_files_update.pl',
     'tools/dicomDescribe.pl',
+    'tools/get_dicom_files.pl',
     'tools/MakeArchiveLocationRelative.pl',
     'tools/mass_perldoc_md_creation.pl',
     'tools/ProdToConfig.pl',
