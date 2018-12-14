@@ -1280,7 +1280,9 @@ sub compute_hash {
 	$ctx->add($file->getParameter('patient:birthdate'));          # Patient DOB
 	$ctx->add($file->getParameter('study_instance_uid'));         # StudyInstanceUID
 	$ctx->add($file->getParameter('series_description'));         # SeriesDescription
-    $ctx->add($file->getParameter('processing:intergradient_rejected')); 
+    if ($file->getParameter('processing:intergradient_rejected')) {
+        $ctx->add($file->getParameter('processing:intergradient_rejected'));
+    }
     # processing:intergradient_rejected minc field is the only field
     # separating a noRegQCedDTI and a QCedDTI minc file.
     }
