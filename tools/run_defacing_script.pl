@@ -52,7 +52,7 @@ use NeuroDB::ExitCodes;
 # These 2 variables will be used when grepping the list of FileIDs to deface (in
 # function grep_FileIDs_to_deface
 ## TODO document this better
-my %SPECIAL_ACQUISITIONS = (
+my %SPECIAL_ACQUISITIONS_FILTER = (
     'MP2RAGEinv1'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
     'MP2RAGEinv2'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
     'qT2starEcho1'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
@@ -68,6 +68,10 @@ my %SPECIAL_ACQUISITIONS = (
     'qT2starEcho11' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
     'qT2starEcho12' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND'
 );
+
+# These are hardcoded as examples of how to deal with multi-contrast acquisitions
+# such as multi-echo acquisitions or MP2RAGE
+my @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES = ( "MP2RAGE", "qT2star" );
 
 
 
@@ -270,7 +274,7 @@ sub grep_FileIDs_to_deface {
 
     # separate the special modalities specified in %SPECIAL_ACQUISITIONS from the
     # standard scan types
-    my @special_scan_types = keys %SPECIAL_ACQUISITIONS;
+    my @special_scan_types = keys %SPECIAL_ACQUISITIONS_FILTER;
     my @special_cases;
     foreach my $special (@special_scan_types) {
         # push the special modalities to a new array @special_cases
@@ -319,7 +323,7 @@ sub grep_FileIDs_to_deface {
         $sth->bind_param($idx, $special_scan_type);
         # bind parameter file value parameter
         $idx++;
-        $sth->bind_param($idx, $SPECIAL_ACQUISITIONS{$special_scan_type});
+        $sth->bind_param($idx, $SPECIAL_ACQUISITIONS_FILTER{$special_scan_type});
     }
     if ($session_id_arr) {
         foreach my $session_id (@$session_id_arr) {
@@ -506,13 +510,23 @@ sub deface_session {
     # initialize the command with the t1 reference file
     my $cmd = "deface_minipipe.pl $data_dir/$$ref_file{File} ";
 
-    # then add all other files that need to be defaced to the command
-    foreach my $scan_type (keys $session_files) {
-        my %files = %{ $$session_files{$scan_type} };
-        foreach my $fileID (keys %files) {
-            my $file_relative_path = $$session_files{$scan_type}{$fileID};
-            $cmd .= " $data_dir/$file_relative_path ";
+    # add multi-constrast modalities to cmd line & remove them from $session_files
+    foreach my $multi (@MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES) {
+        my @scan_types         = keys $session_files;
+        my @matching_types     = grep (/$multi/i, @scan_types);
+        my @non_matching_types = grep (!/$multi/i, @scan_types);
+        my (@multi_files_list, @other_files);
+        foreach my $match (@matching_types) {
+            # for each multi-contrast modality found, grep the file path
+            my %files   = %{ $$session_files{$match} };
+            push(@multi_files_list, map { "$data_dir/$files{$_}" } keys %files);
         }
+        foreach my $non_match (@non_matching_types) {
+            my %files = %{ $$session_files{$non_match} };
+            push(@other_files, map { "$data_dir/$files{$_}" } keys %files);
+        }
+        $cmd .= " " . join(",", @multi_files_list) if @multi_files_list;
+        $cmd .= " " . join(" ", @other_files)      if @other_files;
     }
 
     # then finalize the command with the output basename and additional options
@@ -520,7 +534,7 @@ sub deface_session {
         . " --model mni_icbm152_t1_tal_nlin_sym_09c "
         . " --model-dir $mni_models";
 
- #   system($cmd);
+   system($cmd);
 
     my %defaced_images = fetch_defaced_files(
         $ref_file, $session_files, $output_basename
