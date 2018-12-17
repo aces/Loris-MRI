@@ -138,7 +138,8 @@ foreach my $filename (@input_list) {
         &convert_coordinates(&split_dicom_list(&trim($dicom->value('0020', '0032'))));
     my $computeSlicePos = grep($_->[1] eq 'slicepos', @Variables);
     if (scalar(@position) != 3 && $computeSlicePos) {
-       warn "Warning: The file: $filename is not DICOM!\n";
+       warn "Warning: DICOM header (0020,0032) not found in $filename: "
+           . "slice position cannot be computed. Skipping file.\n";
        push my @croft, $filename;
        next;
    }
