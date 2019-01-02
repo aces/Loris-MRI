@@ -79,6 +79,7 @@ my @script_list = (
     'tools/seriesuid2fileid',
     'tools/splitMergedSeries.pl',
     'tools/updateHeadersBatch.pl',
+    'tools/updateHeaders.pl',
     'uploadNeuroDB/NeuroDB/DBI.pm',
     'uploadNeuroDB/NeuroDB/ExitCodes.pm',
     'uploadNeuroDB/NeuroDB/File.pm',
