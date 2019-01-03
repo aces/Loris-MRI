@@ -100,7 +100,7 @@ my $tarchive = '';
 my $query = '';
 my $sth = undef;
 my $tarchiveID = 0;
-my $User             = `whoami`;
+my $User             = getpwuid($>);
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
     =~ /: (\d+)\.(\d+)/;
 

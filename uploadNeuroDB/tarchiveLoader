@@ -270,7 +270,7 @@ my $exclude          = NeuroDB::DBI::getConfigSetting(
                         \$dbh, 'excluded_series_description'
                        );
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my $User             = `whoami`;
+my $User             = getpwuid($>);
 
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo_wrapper", "mincpik", $converter);
