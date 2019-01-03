@@ -136,8 +136,10 @@ foreach my $filename (@input_list) {
     my(@position) = 
 	# ImagePositionPatient (0x0020, 0x0032)
         &convert_coordinates(&split_dicom_list(&trim($dicom->value('0020', '0032'))));
-    if (scalar(@position) != 3) {
-       warn "Warning: The file: $filename is not DICOM!\n";
+    my $computeSlicePos = grep($_->[1] eq 'slicepos', @Variables);
+    if (scalar(@position) != 3 && $computeSlicePos) {
+       warn "Warning: DICOM header (0020,0032) not found in $filename: "
+           . "slice position cannot be computed. Skipping file.\n";
        push my @croft, $filename;
        next;
    }
@@ -153,7 +155,7 @@ foreach my $filename (@input_list) {
     my(@normal) = 
        &vector_cross_product(\@column, \@row);
     my @slc_dircos = &get_dircos(@normal);
-    my $slicepos = &vector_dot_product(\@position, \@slc_dircos);
+    my $slicepos = &vector_dot_product(\@position, \@slc_dircos) if $computeSlicePos;
 
     # Print out variable labels
     if(!$PrintedLabels && $PrintLabels) {
