@@ -106,7 +106,7 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($gender, $tarchive,%tarchiveInfo);
-my $User             = `whoami`; 
+my $User             = getpwuid($>); 
 
 my @opt_table = (
                  ["Basic options","section"],
