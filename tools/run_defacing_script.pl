@@ -44,15 +44,17 @@ use NeuroDB::ExitCodes;
 
 
 # These are hardcoded as examples of how to deal with special modalities:
+# - Siemens field-map modality produces a phase and two magnitude files. Only the
+#   magnitude images should be defaced (no face on the phase image).
 # - MP2RAGE inversion scans produces a distortion and a normalized image, only the
 #   normalized image should be defaced (no face on the distortion image).
 # - quantitative multi-echo T2star produces a phase and a magnitude image for each
 #   echo. In that case, only the magnitude files should be defaced (no face on the
 #   phase image so should not deface)
-# These 2 variables will be used when grepping the list of FileIDs to deface (in
-# function grep_FileIDs_to_deface
-## TODO document this better
+# The %SPECIAL_ACQUISITIONS_FILTER variable has been created to filter out the
+# correct FileIDs of the images that need to be defaced for those special modalities
 my %SPECIAL_ACQUISITIONS_FILTER = (
+    'fieldmap'      => 'ORIGINAL\\PRIMARY\\M\\ND',
     'MP2RAGEinv1'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
     'MP2RAGEinv2'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
     'qT2starEcho1'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
@@ -69,9 +71,13 @@ my %SPECIAL_ACQUISITIONS_FILTER = (
     'qT2starEcho12' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND'
 );
 
-# These are hardcoded as examples of how to deal with multi-contrast acquisitions
-# such as multi-echo acquisitions or MP2RAGE
-my @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES = ( "MP2RAGE", "qT2star" );
+# The @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES variable will store the base names
+# of multi-contrast acquisitions such as MP2RAGE, qT2star or fieldmap. These will
+# allow to call the deface_minipipe.pl tool properly for multi-contrast
+# acquisition (a.k.a. fieldmap_file1,fieldmap_file2) which will tell the
+# deface_minipipe.pl script to not create 2 XFMs but instead reuse the XFM from
+# fieldmap_file1 to register fieldmap_file2
+my @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES = ( "fieldmap", "MP2RAGE", "qT2star" );
 
 
 
