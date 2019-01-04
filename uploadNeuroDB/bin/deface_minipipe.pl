@@ -87,7 +87,9 @@ my @other_scans = grep(! /,/, @ARGV);    # grep the non-multi-contrast, non mp2r
                                          # (arguments without ,)
 
 # create the directory where the final outputs will be saved
-mkdir($output_dir) unless (-e $output_dir);
+unless (-e $output_dir) {
+  mkdir($output_dir) or print "\nCould not create directory '$output_dir'. Error is: '$!'\n";
+}
 
 
 
@@ -96,7 +98,7 @@ mkdir($output_dir) unless (-e $output_dir);
 # determine the output grid file name
 my $out_grid = "${output_base}_deface_grid_0.mnc"; # full path to final grid file
 # determine final path to defaced t1w
-my $out_t1w         = "$output_dir/" . basename($t1w, '.mnc') . "_defaced.mnc";
+my $out_t1w = "$output_dir/" . basename($t1w, '.mnc') . "_defaced.mnc";
 # determine final paths for multi-echo acquisitions
 my %images_hash;
 foreach my $modality (@multi_echo_scans) {
@@ -119,8 +121,7 @@ foreach my $modality (@other_scans) {
 my $t1w_xfm;
 foreach my $option (@xfms) {
   my @array = split(',', $option);
-  my $scan  = $array[0];
-  my $xfm   = $array[1];
+  my ($scan, $xfm) = @array[0,1];
   if ($t1w =~ m/$scan/) {
     # set the T1W XFM if the scan matches the T1W image provided as a reference
     $t1w_xfm = $xfm;
