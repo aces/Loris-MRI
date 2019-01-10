@@ -119,6 +119,8 @@ JOIN tarchive t ON f.TarchiveSource=t.TarchiveID';
 my $sth = $dbh->prepare($query);
 $sth->execute();
 
+my @failures = ();
+
 while (my @f = $sth->fetchrow_array()) {
     my ($fileID, $archiveLocation, $scannerID, $minc) = @f;
 
@@ -150,10 +152,14 @@ while (my @f = $sth->fetchrow_array()) {
         $bypass_extra_file_checks
     );
     if ($acquisitionProtocol =~ /unknown/) {
+        push(@failures, $minc);
         print "F: $minc , P: $acquisitionProtocol \n";
+    } else {
+        print "protocol: $acquisitionProtocol \n center: $centerName \n";
     }
 }
 
+print join("\n", @failures);
 =pod
 
 =head3 logHeader()
