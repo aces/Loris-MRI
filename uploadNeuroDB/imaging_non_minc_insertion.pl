@@ -269,11 +269,8 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 
 
 
-##### Verify that the provided scanner ID refers to a valid scanner entry
-my $query = "SELECT ID FROM mri_scanner WHERE ID=?";
-my $sth = $dbh->prepare($query);
-$sth->execute($scanner_id);
-unless ($sth->rows > 0) {
+##### Exit if the provided scanner ID does not refer to a valid scanner entry
+unless ( defined NeuroDB::MRI::getScannerCandID($scanner_id, \$dbh) ) {
     # if no row returned, exits with message that did not find this scanner ID
     $message = "\n\tERROR: Invalid ScannerID $scanner_id.\n\n";
     # write error message in the log file
@@ -293,8 +290,8 @@ unless ($sth->rows > 0) {
 
 
 ##### Verify that the upload ID refers to a valid upload ID
-$query = "SELECT UploadID FROM mri_upload WHERE UploadID=?";
-$sth = $dbh->prepare($query);
+my $query = "SELECT UploadID FROM mri_upload WHERE UploadID=?";
+my $sth = $dbh->prepare($query);
 $sth->execute($upload_id);
 unless ($sth->rows > 0) {
     # if no row returned, exits with message that did not find this upload ID

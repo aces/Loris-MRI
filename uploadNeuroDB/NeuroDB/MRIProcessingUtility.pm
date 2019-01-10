@@ -1169,12 +1169,9 @@ sub registerScanIntoDB {
         ########################################################
         ### update mri_acquisition_dates table #################
         ########################################################
-        my $acquisition_date = undef;
-        if ($tarchiveInfo->{'DateAcquired'}) {
-            $acquisition_date = $tarchiveInfo->{'DateAcquired'};
-        } elsif ($${minc_file}->getParameter('AcquisitionDate')) {
-            $acquisition_date = $${minc_file}->getParameter('AcquisitionDate');
-        }
+        my $acquisition_date = $tarchiveInfo->{'DateAcquired'}
+            // $${minc_file}->getParameter('AcquisitionDate')
+            // undef;
         $this->update_mri_acquisition_dates(
             $sessionID,
             $acquisition_date
