@@ -39,7 +39,7 @@ string (typically, the patient name or patient ID)
 - Verification of the C<ScannerID> of the DICOM study archive (optionally
 creates a new scanner entry in the database if necessary)
 
-- Optionally, creation of candidates as needed and standardization of gender
+- Optionally, creation of candidates as needed and standardization of sex
 information when creating the candidates (DICOM uses M/F, LORIS database uses
 Male/Female)
 
@@ -107,7 +107,7 @@ my $NewScanner  = 1;           # This should be the default unless you are a
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my ($gender, $tarchive,%tarchiveInfo);
+my ($sex, $tarchive,%tarchiveInfo);
 my $User             = `whoami`; 
 
 my @opt_table = (
@@ -151,7 +151,7 @@ The program does the following validation
 
 - Verify/determine the ScannerID (optionally create a new one if necessary)
 
-- Optionally create candidates as needed Standardize gender (DICOM uses M/F, 
+- Optionally create candidates as needed Standardize sex (DICOM uses M/F,
   DB uses Male/Female)
 
 - Check the CandID/PSCID Match It's possible that the CandID exists, but 
@@ -345,12 +345,12 @@ my $subjectIDsref = $utility->determineSubjectID(
 
 ################################################################
 ################################################################
-## Optionally create candidates as needed Standardize gender ###
+## Optionally create candidates as needed Standardize sex    ###
 ## (DICOM uses M/F, DB uses Male/Female) #######################
 ################################################################
 ################################################################
 $utility->CreateMRICandidates(
-    $subjectIDsref, $gender, \%tarchiveInfo, $User, $centerID, $upload_id
+    $subjectIDsref, $sex, \%tarchiveInfo, $User, $centerID, $upload_id
 );
 
 ################################################################
