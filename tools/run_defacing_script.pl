@@ -174,9 +174,7 @@ unless ($ref_scan_type && $to_deface) {
 
 ## get environment variables
 
-my $tmp_dir_var    = $ENV{'TMPDIR'};
-my $mni_models = $ENV{'MNI_MODELS'};
-my $beastlib   = $ENV{'BEASTLIB'};
+my ($tmp_dir_var, $mni_models, $beastlib) = @ENV{'TMPDIR', 'MNI_MODELS', 'BEASTLIB'};
 unless ($mni_models && $beastlib && $tmp_dir_var) {
     print STDERR "\n==> ERROR: the environment variables 'TMPDIR', 'MNI_MODELS' and "
                  . "'BEASTLIB' are required to be set for the defacing script to "
@@ -206,6 +204,14 @@ my $today = sprintf( "%4d-%02d-%02d", $year + 1900, $mon + 1, $mday );
 
 print "\n==> Fetching all FileIDs to deface.\n" if $verbose;
 my @session_ids = defined $session_ids ? split(",", $session_ids) : ();
+
+unless ($to_deface) {
+    print "\nNo modalities were set to be defaced in the Config module. Make sure"
+          . " to select modalities to deface in the Config module under the imaging"
+          . " pipeline section (setting called modalities_to_deface. \n\n";
+    exit $NeuroDB::ExitCodes::SUCCESS;
+}
+
 my %files_hash  = grep_FileIDs_to_deface(\@session_ids, $to_deface);
 
 
@@ -215,6 +221,9 @@ my %files_hash  = grep_FileIDs_to_deface(\@session_ids, $to_deface);
 foreach my $session_id (keys %files_hash) {
     # extract the hash of the list of files to deface for that session ID
     my %session_files = %{ $files_hash{$session_id} };
+
+    # go to the next session ID if no files to deface for that session ID
+    next unless (%session_files);
 
     # grep the CandID and VisitLabel for the dataset
     my ($candID, $visit) = grep_candID_visit_from_SessionID($session_id);
@@ -296,19 +305,26 @@ sub grep_FileIDs_to_deface {
                 . "JOIN  mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID) "
                 . "JOIN  parameter_file pf USING (FileID) "
                 . "JOIN  parameter_type pt USING (ParameterTypeID) "
-                . "WHERE pt.Name='acquisition:image_type' ";
+                . "WHERE pt.Name='acquisition:image_type' AND ( ";
 
-    # add where close for the different standard scan types to deface
-    my @where = map { "mst.Scan_type = ?" } @$modalities_to_deface_arr;
-    $query   .= sprintf(" AND ( %s ", join(" OR ", @where));
+    # add where clause for the different standard scan types to deface
+    my @where;
+    if (@$modalities_to_deface_arr) {
+        @where = map { "mst.Scan_type = ?" } @$modalities_to_deface_arr;
+        $query   .= sprintf(" %s ", join(" OR ", @where));
+    }
 
-    # add where close for the different non-standard scan types to deface
-    # where we will restrict the images to be defaced to the ones with a face base
+    # add where clause for the different non-standard scan types to deface
+    # where we will restrict the images to be defaced to the ones with a face based
     # on parameter_type 'acquisition:image_type'
-    @where  = map { "(mst.Scan_type = ? AND pf.Value LIKE ?)" } @special_cases;
-    $query .= sprintf(" OR %s ) ", join(" OR ", @where));
+    if (@special_cases) {
+        @where  = map { "(mst.Scan_type = ? AND pf.Value LIKE ?)" } @special_cases;
+        $query .= sprintf(" OR %s ", join(" OR ", @where));
+    }
+    $query .= ")";  # closing the brackets of the modalities WHERE part of the query
 
-    # add where close for the session IDs specified to the script if -sessionIDs was set
+    # add where clause for the session IDs specified to the script if -sessionIDs
+    # was set
     if ($session_id_arr) {
         @where  = map { "f.SessionID = ?" } @$session_id_arr;
         $query .= sprintf(" AND (%s) ", join(" OR ", @where));
@@ -316,30 +332,16 @@ sub grep_FileIDs_to_deface {
 
     my $sth = $dbh->prepare($query);
 
-    # bind parameters
-    my $idx = 0;
-    foreach my $scan_type (@$modalities_to_deface_arr) {
-        # bind scan type parameters
-        $idx++;
-        $sth->bind_param($idx, $scan_type);
-    }
+    # create array of parameters
+    my @bind_param = @$modalities_to_deface_arr;
     foreach my $special_scan_type (@special_cases) {
-        # bind scan type parameter
-        $idx++;
-        $sth->bind_param($idx, $special_scan_type);
-        # bind parameter file value parameter
-        $idx++;
-        $sth->bind_param($idx, $SPECIAL_ACQUISITIONS_FILTER{$special_scan_type});
+        push @bind_param, $special_scan_type;
+        push @bind_param, $SPECIAL_ACQUISITIONS_FILTER{$special_scan_type};
     }
-    if ($session_id_arr) {
-        foreach my $session_id (@$session_id_arr) {
-            # bind sessionID parameters if -sessionIDs set when running the script
-            $idx++;
-            $sth->bind_param($idx, $session_id);
-        }
-    }
+    push @bind_param, @$session_id_arr;
 
-    $sth->execute();
+    # execute the query
+    $sth->execute(@bind_param);
 
     # grep the list of FileIDs on which to run defacing
     my %file_id_hash;
@@ -406,16 +408,14 @@ sub check_if_deface_files_already_in_db {
                  . " FROM files f "
                  . " JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ";
 
-    # add where close for the different defaced scan types
+    # add where clause for the different defaced scan types
     my @where = map { "mst.Scan_type = ?" } @defaced_scan_types;
     $query   .= sprintf(" WHERE (%s) ", join(" OR ", @where));
     $query   .= " AND SessionID = ?";
 
     # prepare and execute the query
     my $sth   = $dbh->prepare($query);
-    my @params = @defaced_scan_types;
-    push @params, $session_id;
-    $sth->execute(@params);
+    $sth->execute(@defaced_scan_types, $session_id);
 
     # grep the results
     my ($count) = $sth->fetchrow_array;
@@ -483,7 +483,10 @@ sub determine_output_dir_and_basename {
 
     # determine output base directory and create it if it does not exist yet
     my $output_basedir  = "$root_dir/$candID/$visit/";
-    make_path($output_basedir) unless (-e $output_basedir);
+    unless (-e $output_basedir) {
+        make_path($output_basedir)
+            or die "Could not create directory $output_basedir: $!";
+    }
 
     # determine the output base name for the *_deface_grid_0.mnc output
     my $output_basename = $output_basedir . basename($$ref_file{File});
@@ -540,7 +543,11 @@ sub deface_session {
         . " --model mni_icbm152_t1_tal_nlin_sym_09c "
         . " --model-dir $mni_models";
 
-   system($cmd);
+    my $exit_code = system($cmd);
+    if ($exit_code != 0) {
+        print "\nAn error occurred when running deface_minipipe.pl. Exiting now\n\n";
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+    }
 
     my %defaced_images = fetch_defaced_files(
         $ref_file, $session_files, $output_basename
@@ -637,7 +644,12 @@ sub register_defaced_files {
                          . " -file $file";
 
         # register the scan in the DB
-        system($register_cmd);
+        my $exit_code = system($register_cmd);
+        if ($exit_code != 0) {
+            print "\nAn error occurred when running register_processed_data.pl."
+                  . " Error Code was: " . $exit_code >> 8 . "Exiting now\n\n";
+            exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+        }
     }
 }
 
