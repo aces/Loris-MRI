@@ -12,35 +12,35 @@ perl imaging_non_minc_insertion.pl C<[options]>
 
 Available options are:
 
--profile      : name of the config file in C<../dicom-archive/.loris-mri> (required)
+-profile       : name of the config file in C<../dicom-archive/.loris-mri> (required)
 
--file_path    : file to register into the database (full path from the root
-               directory is required) (required)
+-file_path     : file to register into the database (full path from the root
+                 directory is required) (required)
 
--upload_id    : ID of the uploaded imaging archive containing the file given as
-               argument with C<-file_path> option (required)
+-upload_id     : ID of the uploaded imaging archive containing the file given as
+                 argument with C<-file_path> option (required)
 
--output_type  : file's output type (e.g. native, qc, processed...) (required)
+-output_type   : file's output type (e.g. native, qc, processed...) (required)
 
--scan_type    : file's scan type (from the C<mri_scan_type> table) (required)
+-scan_type     : file's scan type (from the C<mri_scan_type> table) (required)
 
--date_acquired: acquisition date for the file (C<YYYY-MM-DD>) (required)
+-date_acquired : acquisition date for the file (C<YYYY-MM-DD>) (required)
 
--scanner_id   : ID of the scanner stored in the mri_scanner table (required)
+-scanner_id    : ID of the scanner stored in the mri_scanner table (required)
 
--coordin_space: coordinate space of the file to register (e.g. native, linear,
-                nonlinear, nativeT1) (required)
+-coordin_space : coordinate space of the file to register (e.g. native, linear,
+                 nonlinear, nativeT1) (required)
 
--reckless     : upload data to the database even if the study protocol
-               is not defined or if it is violated
+-reckless      : upload data to the database even if the study protocol
+                 is not defined or if it is violated
 
--verbose      : boolean, if set, run the script in verbose mode
+-verbose       : boolean, if set, run the script in verbose mode
 
--patient_name : patient name, if cannot be found in the file name (in the form of
-                C<PSCID_CandID_VisitLabel>) (optional)
+-patient_name  : patient name, if cannot be found in the file name (in the form of
+                 C<PSCID_CandID_VisitLabel>) (optional)
 
--metadata_file: file that can be read to look for metadata information to attach
-                to the file to be inserted (optional)
+-metadata_file : file that can be read to look for metadata information to attach
+                 to the file to be inserted (optional)
 
 =head1 DESCRIPTION
 
@@ -174,7 +174,7 @@ if  ( !@Settings::db )    {
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-# Make sure that all the arguments that we need are set
+# Ensure that all the arguments that we need are set
 unless ( $file_path ) {
     print STDERR "$Usage\n\tERROR: missing -file_path argument\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
@@ -204,13 +204,13 @@ unless ( $upload_id ) {
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
-# Make sure the files specified as an argument exist and are readable
+# Ensure the files specified as an argument exist and are readable
 unless (-r $file_path) {
     print STDERR "$Usage\n\tERROR: You must specify a valid file path to "
                  . "insert using the -file_path option.\n\n";
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
-# Make sure that the metadata file is readable if it is set
+# Ensure that the metadata file is readable if it is set
 if ( $metadata_file && !(-r $metadata_file) ){
     print STDERR "\n\tERROR: The metadata file does not exist in the filesystem.\n\n";
     exit $NeuroDB::ExitCodes::INVALID_PATH;
@@ -543,13 +543,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 logHeader()
 
-Prints the following header in the log file.
-
-----------------------------------------------------------------
-            AUTOMATED FILE INSERTION
-----------------------------------------------------------------
-*** Date and time of insertion : $today
-*** tmp dir location           : $TmpDir
+Prints the log file's header with time of insertion and temp directory location.
 
 =cut
 
