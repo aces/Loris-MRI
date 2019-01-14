@@ -165,7 +165,7 @@ unless ($ref_scan_type && $to_deface) {
     print STDERR "\n==> ERROR: you need to configure both the "
                  . "reference_scan_type_for_defacing & modalities_to_deface config "
                  . "settings in the imaging pipeline section of the Config module.\n"
-                 . "If these configurations are not present, make sure you have run "
+                 . "If these configurations are not present, ensure you have run "
                  . "all the patches coming with the LORIS release you are using.\n";
     exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
@@ -178,7 +178,7 @@ my ($tmp_dir_var, $mni_models, $beastlib) = @ENV{'TMPDIR', 'MNI_MODELS', 'BEASTL
 unless ($mni_models && $beastlib && $tmp_dir_var) {
     print STDERR "\n==> ERROR: the environment variables 'TMPDIR', 'MNI_MODELS' and "
                  . "'BEASTLIB' are required to be set for the defacing script to "
-                 . "run. Please make sure you updated your environment file with "
+                 . "run. Please ensure you updated your environment file with "
                  . "the proper variables and that you source your environment file "
                  . "before running this script.\n";
     exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
@@ -206,7 +206,7 @@ print "\n==> Fetching all FileIDs to deface.\n" if $verbose;
 my @session_ids = defined $session_ids ? split(",", $session_ids) : ();
 
 unless ($to_deface) {
-    print "\nNo modalities were set to be defaced in the Config module. Make sure"
+    print "\nNo modalities were set to be defaced in the Config module. Ensure"
           . " to select modalities to deface in the Config module under the imaging"
           . " pipeline section (setting called modalities_to_deface. \n\n";
     exit $NeuroDB::ExitCodes::SUCCESS;
@@ -600,7 +600,7 @@ sub fetch_defaced_files {
         }
     }
 
-    # make sure all the files can be found on the filesystem
+    # ensure all the files can be found on the filesystem
     foreach my $file (keys %defaced_images) {
         return undef unless (-e $file);
     }
