@@ -5,13 +5,15 @@ acquisitions specified in the Config module of LORIS.
 
 # SYNOPSIS
 
-perl tools/run\_defacing\_script.pl `[options]`
+`perl tools/run_defacing_script.pl [options]`
 
 Available options are:
 
-\-profile     : name of the config file in `../dicom-archive/.loris_mri`
-\-tarchive\_ids: comma-separated list of MySQL TarchiveIDs
-\-verbose     : be verbose
+`-profile`     : name of the config file in `../dicom-archive/.loris_mri`
+
+`-tarchive_ids`: comma-separated list of MySQL `TarchiveID`s
+
+`-verbose`     : be verbose
 
 # DESCRIPTION
 
@@ -32,12 +34,13 @@ INPUTS:
 
 RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
          organized in a hash as follows:
-            {0123}                      # sessionID key
-              {flair}                   # flair scan type key
-                {$FileID} = $File\_path  # key = FileID; value = MINC file path
-              {t1}                      # t1 scan type key
-                {$FileID} = $File\_path  # key = FileID 1; value = MINC file 1 path
-                {$FileID} = $File\_path  # key = FileID 2; value = MINC file 2 path
+
+    {0123}                          # sessionID key
+        {flair}                     # flair scan type key
+            {$FileID} = $File_path  # key = FileID; value = MINC file path
+        {t1}                        # t1 scan type key
+            {$FileID} = $File_path  # key = FileID 1; value = MINC file 1 path
+            {$FileID} = $File_path  # key = FileID 2; value = MINC file 2 path
 
 ### grep\_candID\_visit\_from\_SessionID($session\_id)
 
