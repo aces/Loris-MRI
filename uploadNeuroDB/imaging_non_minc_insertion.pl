@@ -192,7 +192,7 @@ unless ( $date_acquired ) {
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $scanner_id ) {
-    print STDERR "$Usage\n\tERROR: missing -scanner_ID argument\n\n";
+    print STDERR "$Usage\n\tERROR: missing -scanner_id argument\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 unless ( $coordin_space ) {
@@ -391,7 +391,7 @@ my %info = (
 
 # determine subject ID information
 my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
-unless ($subjectIDsref){
+unless (%$subjectIDsref){
     # exits if could not determine subject IDs
     $message = "\n\tERROR: could not determine subject IDs for $file_path.\n\n";
     # write error message in the log file
@@ -409,9 +409,7 @@ unless ($subjectIDsref){
 
 # check whether there is a candidate IDs mismatch error
 my $CandMismatchError;
-$CandMismatchError = $utility->validateCandidate(
-                        $subjectIDsref, $info{'SourceLocation'}
-);
+$CandMismatchError = $utility->validateCandidate($subjectIDsref);
 if ($CandMismatchError){
     # exits if there is a mismatch in candidate IDs
     $message = "\n\tERROR: Candidate IDs mismatch for $file_path.\n\n";
@@ -520,8 +518,8 @@ $file->setFileData( 'OutputType', $output_type );
 # until we end up with a case where this should not be the case.
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
     \$file,     undef,    $subjectIDsref, $scan_type,
-    $file_path, ['pass'], $reckless,      undef,
-    $session_id
+    $file_path, ['pass'], $reckless,      $session_id,
+    $upload_id
 );
 if ( $acquisitionProtocolIDFromProd ) {
     my $registered_file = $file->getFileDatum('File');
