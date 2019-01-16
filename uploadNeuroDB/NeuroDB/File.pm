@@ -479,7 +479,7 @@ sub getParameterTypeID {
         $query = "INSERT INTO parameter_type (Name, Type, Description, SourceFrom, Queryable) VALUES (".$dbh->quote($paramType).", 'text', ".$dbh->quote("$paramType magically created by NeuroDB::File").", 'parameter_file', 0)";
         $dbh->do($query);
 
-        # grep the inserted ParameterTypeID and update parameter_category_rel
+        # link the inserted ParameterTypeID to a parameter type category
         my $param_type_id = $dbh->{'mysql_insertid'};
         $query = "INSERT INTO parameter_type_category_rel "
                  . " (ParameterTypeID, ParameterTypeCategoryID) "
