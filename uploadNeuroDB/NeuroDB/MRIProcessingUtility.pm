@@ -378,6 +378,7 @@ not exists and C<createCandidates> config option is set to yes)
 (it will return a C<CandMismatchError> if there is one)
 
 INPUTS:
+  - $dbh         : database handle
   - $scannerID   : scanner ID,
   - $tarchiveInfo: DICOM archive information hash ref,
   - $to_log      : boolean if this step should be logged
@@ -761,11 +762,10 @@ Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
 
 INPUTS:
-  - $scan_type  : scan type of the file
-  - $file       : file information hash ref
-  - $CandID     : candidate's C<CandID>
-  - $Visit_Label: visit label of the scan
-  - $PatientName: patient name of the scan
+  - $scan_type    : scan type of the file
+  - $file         : file information hash ref
+  - $subjectIdsref: context information for the scan
+  - $pname        : patient name found in the scan header
 
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
@@ -775,16 +775,31 @@ RETURNS:
 
 sub extra_file_checks() {
       
-    my $this        = shift;
-    my $scan_type   = shift;
-    my $file        = shift;
-    my $candID      = shift;
-    my $visit_label = shift;
-    my $pname       = shift;
+    my $this          = shift;
+    my $scan_type     = shift;
+    my $file          = shift;
+    my $subjectIDsref = shift;
+    my $pname         = shift;
+    
+    my $candID        = $subjectIDsref->{'CandID'};
+    my $projectID     = $subjectIDsref->{'ProjectID'};
+    my $subprojectID  = $subjectIDsref->{'SubprojectID'};
+    my $visitLabel    = $subjectIDsref->{'visitLabel'};
 
     ## Step 1 - select all distinct exclude and warning headers for the scan type
-    my $query = "SELECT DISTINCT(Header) FROM mri_protocol_checks "
-                . "WHERE Scan_type=? AND Severity=?";
+    my $query = "SELECT DISTINCT(mpc.Header) FROM mri_protocol_checks mpc "
+        . "JOIN mri_protocol_checks_group_rel mpcgr ON (mpc.ID=mpcgr.MriProtocolChecksGroupID) "
+        . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
+        . "WHERE Scan_type=? AND Severity=?";
+    $query .= defined $projectID
+        ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
+        : ' AND mpcgt.ProjectID IS NULL';
+    $query .= defined $subprojectID
+        ? ' AND (mpcgt.SubprojectID IS NULL OR mpcgt.SubprojectID = ?)'
+        : ' AND mpcgt.SubprojectID IS NULL';
+    $query .= defined $visitLabel
+        ? ' AND (mpcgt.Visit_label IS NULL OR mpcgt.Visit_label = ?)'
+        : ' AND mpcgt.Visit_label IS NULL';
     my $sth   = ${$this->{'dbhr'}}->prepare($query);
     if ($this->{debug}) {
         print $query . "\n";
@@ -794,14 +809,19 @@ sub extra_file_checks() {
     # check if the scan is valid. If the scan is not valid, then, return the
     # severity of the failure.
     foreach my $severity (qw/exclude warning/) {
-        $sth->execute($scan_type, $severity);
+		my @bindValues = ($scan_type, $severity);
+		push(@bindValues, $projectID)    if defined $projectID;
+		push(@bindValues, $subprojectID) if defined $subprojectID;
+		push(@bindValues, $visitLabel)   if defined $visitLabel;
+        $sth->execute(@bindValues);
+        
         my @headers = map { $_->{'Header'} } @{ $sth->fetchall_arrayref({}) };
         my %validFields = $this->loop_through_protocol_violations_checks(
-            $scan_type, $severity, \@headers, $file
+            $scan_type, $severity, \@headers, $file, $projectID, $subprojectID, $visitLabel
         );
         if (%validFields) {
             $this->insert_into_mri_violations_log(
-                \%validFields, $severity, $pname, $candID, $visit_label, $file
+                \%validFields, $severity, $pname, $candID, $visitLabel, $file
             );
             return $severity;
         }
@@ -854,11 +874,14 @@ a hash with all the checks that need to be applied on that specific scan type
 and severity.
 
 INPUTS:
-  - $scan_type: scan type of the file
-  - $severity : severity of the checks we want to loop through (exclude or warning)
-  - $headers  : list of different headers found in the C<mri_protocol_checks>
-                table for a given scan type
-  - $file     : file information hash ref
+  - $scan_type   : scan type of the file
+  - $severity    : severity of the checks we want to loop through (exclude or warning)
+  - $headers     : list of different headers found in the C<mri_protocol_checks>
+                   table for a given scan type
+  - $file        : file information hash ref
+  - $projectID   : candidate's project ID
+  - $subprojectID: session's subproject ID
+  - $visitLabel  : session name
 
 RETURNS: a hash with all information about the checks for a given scan type
 and severity
@@ -866,13 +889,24 @@ and severity
 =cut
 
 sub loop_through_protocol_violations_checks {
-    my ($this, $scan_type, $severity, $headers, $file) = @_;
+    my ($this, $scan_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel) = @_;
 
     my %valid_fields; # will store all information about what fails
 
-    # query to fetch list of valid protocols in mri_protocol_checks table
-    my $query = "SELECT * FROM mri_protocol_checks "
-                . "WHERE Scan_type=? AND Severity=? AND Header=?";
+    # query to fetch list of valid protocol checks in mri_protocol_checks table
+    my $query = "SELECT * FROM mri_protocol_checks mpc "
+        . "JOIN mri_protocol_checks_group_rel mpcgr ON (mpc.ID=mpcgr.MriProtocolChecksGroupID) "
+        . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
+        . "WHERE mpc.Scan_type=? AND mpc.Severity=? AND mpc.Header=?";
+    $query .= defined $projectID
+        ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
+        : ' AND mpcgt.ProjectID IS NULL';
+    $query .= defined $subprojectID
+        ? ' AND (mpcgt.SubprojectID IS NULL OR mpcgt.SubprojectID = ?)'
+        : ' AND mpcgt.SubprojectID IS NULL';
+    $query .= defined $visitLabel
+        ? ' AND (mpcgt.Visit_label IS NULL OR mpcgt.Visit_label = ?)'
+        : ' AND mpcgt.Visit_label IS NULL';
     my $sth   = ${$this->{'dbhr'}}->prepare($query);
 
     # loop through all severity headers for the scan type and check if in the
@@ -882,8 +916,13 @@ sub loop_through_protocol_violations_checks {
         # get the value from the file
         my $value = $file->getParameter($header);
 
-        # execute query for $scan_type, $severity, $header
-        $sth->execute($scan_type, $severity, $header);
+        # execute query for $scan_type, $severity, $header and (possibly)
+        # $projectID, $subprojectID and $visitLabel
+        my @bindValues = ($scan_type, $severity, $header);
+        push(@bindValues, $projectID)    if defined $projectID;
+        push(@bindValues, $subprojectID) if defined $subprojectID;
+        push(@bindValues, $visitLabel)   if defined $visitLabel;
+        $sth->execute(@bindValues);
 
         # grep all valid ranges and regex to compare with value in the file
         my (@valid_ranges, @valid_regexs);

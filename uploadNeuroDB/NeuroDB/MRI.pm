@@ -307,12 +307,20 @@ Determines the type of the scan described by MINC headers based on
 C<mri_protocol> table in the database.
 
 INPUTS:
+<<<<<<< 62b452b14a0221a858e299cc6f885a0a413b99f0
   - $center_name   : center's name
   - $objective     : objective of the study
   - $fileref       : file hash ref
   - $dbhr          : database handle reference
   - $db            : database object
   - $minc_location : location of the MINC files
+=======
+  - $center_name  : center's name
+  - $objective    : objective of the study
+  - $fileref      : file hash ref
+  - $dbhr         : database handle reference
+  - $minc_location: path to the MINC file
+>>>>>>> Add support for multiple MRI protocols.
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 
@@ -320,14 +328,20 @@ RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 sub identify_scan_db {
 
+<<<<<<< 62b452b14a0221a858e299cc6f885a0a413b99f0
     my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location
+=======
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $minc_location
+>>>>>>> Add support for multiple MRI protocols.
     ) = @_;
 
-    my $candid = ${subjectref}->{'CandID'};
-    my $pscid = ${subjectref}->{'PSCID'};
-    my $visit = ${subjectref}->{'visitLabel'};
-    my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
-    my $objective = ${subjectref}->{'subprojectID'};
+    my $candid       = ${subjectref}->{'CandID'};
+    my $pscid        = ${subjectref}->{'PSCID'};
+    my $visitLabel   = ${subjectref}->{'visitLabel'};
+    my $projectID    = ${subjectref}->{'ProjectID'};
+    my $subprojectID = ${subjectref}->{'SubprojectID'};
+    
+    my $tarchiveID   = $tarchiveInfoRef->{'TarchiveID'};
 
     # get parameters from minc header
     my $patient_name =  ${fileref}->getParameter('patient_name');
@@ -370,6 +384,7 @@ sub identify_scan_db {
     my $n_slices = 0;
 
     # get ScannerID from DB
+<<<<<<< 62b452b14a0221a858e299cc6f885a0a413b99f0
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( {
         Manufacturer  => $fileref->getParameter('manufacturer'),
@@ -389,8 +404,65 @@ sub identify_scan_db {
               OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
               ORDER BY Center_name ASC, ScannerID DESC";
 
-    $sth = $${dbhr}->prepare($query);
+=======
+    my $manufacturer  = ${fileref}->getParameter('manufacturer');
+    my $model         = ${fileref}->getParameter('manufacturer_model_name');
+    my $serial_number = ${fileref}->getParameter('device_serial_number');
+    my $software      = ${fileref}->getParameter('software_versions');
+
+    my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer='$manufacturer' AND Model='$model' AND Serial_number='$serial_number' AND Software='$software'";
+
+
+    my $sth = $${dbhr}->prepare($query);
     $sth->execute();
+
+    # default ScannerID to 0 if we have no better clue.
+    my $ScannerID = 0;
+    if($sth->rows>0) {
+        my @results = $sth->fetchrow_array();
+        $ScannerID=$results[0];
+    }
+
+    #===========================================================#
+    # Get the list of lines in the mri_protocol table that      #
+    # apply to the given scan based on the center name, project # 
+    # ID, subproject ID and visit label                         #
+    #===========================================================#
+    ($query = <<QUERY) =~ s/\n/ /gm;
+    SELECT mp.Scan_type, mp.ScannerID, mp.Center_name, 
+           mp.TR_range, mp.TE_range, mp.TI_range, mp.slice_thickness_range,
+           mp.xspace_range, mp.yspace_range, mp.zspace_range,
+           mp.xstep_range, mp.ystep_range, mp.zstep_range, 
+           mp.time_range, mp.series_description_regex
+    FROM mri_protocol mp
+    JOIN mri_protocol_group_rel mpgr ON (mp.ID=mpgr.MriProtocolID)
+    JOIN mri_protocol_group_target mpgt USING(MriProtocolGroupID)
+    WHERE
+        (Center_name = ? AND ScannerID = ?)
+    OR  ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
+QUERY
+
+    $query .= defined $projectID
+        ? ' AND (mpgt.ProjectID IS NULL OR mpgt.ProjectID = ?)'
+        : ' AND mpgt.ProjectID IS NULL';
+    $query .= defined $subprojectID
+        ? ' AND (mpgt.SubprojectID IS NULL OR mpgt.SubprojectID = ?)'
+        : ' AND mpgt.SubprojectID IS NULL';
+    $query .= defined $visitLabel
+        ? ' AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = ?)'
+        : ' AND mpgt.Visit_label IS NULL';
+        
+    $query .=  ' ORDER BY Center_name ASC, ScannerID DESC';
+
+    my @bindValues = ($psc, $ScannerID);
+    push(@bindValues, $projectID)    if defined $projectID;
+    push(@bindValues, $subprojectID) if defined $subprojectID;
+    push(@bindValues, $visitLabel)   if defined $visitLabel;
+    
+>>>>>>> Add support for multiple MRI protocols.
+    $sth = $${dbhr}->prepare($query);
+    $sth->execute(@bindValues);
+    
     return 'unknown' unless $sth->rows>0;
 
     # check against all possible scan types

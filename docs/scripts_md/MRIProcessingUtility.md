@@ -127,6 +127,7 @@ not exists and `createCandidates` config option is set to yes)
 (it will return a `CandMismatchError` if there is one)
 
 INPUTS:
+  - $dbh         : database handle
   - $scannerID   : scanner ID,
   - $tarchiveInfo: DICOM archive information hash ref,
   - $to\_log      : boolean if this step should be logged
@@ -217,11 +218,10 @@ Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
 
 INPUTS:
-  - $scan\_type  : scan type of the file
-  - $file       : file information hash ref
-  - $CandID     : candidate's `CandID`
-  - $Visit\_Label: visit label of the scan
-  - $PatientName: patient name of the scan
+  - $scan\_type    : scan type of the file
+  - $file         : file information hash ref
+  - $subjectIdsref: context information for the scan
+  - $pname        : patient name found in the scan header
 
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
@@ -247,11 +247,14 @@ a hash with all the checks that need to be applied on that specific scan type
 and severity.
 
 INPUTS:
-  - $scan\_type: scan type of the file
-  - $severity : severity of the checks we want to loop through (exclude or warning)
-  - $headers  : list of different headers found in the `mri_protocol_checks`
-                table for a given scan type
-  - $file     : file information hash ref
+  - $scan\_type   : scan type of the file
+  - $severity    : severity of the checks we want to loop through (exclude or warning)
+  - $headers     : list of different headers found in the `mri_protocol_checks`
+                   table for a given scan type
+  - $file        : file information hash ref
+  - $projectID   : candidate's project ID
+  - $subprojectID: session's subproject ID
+  - $visitLabel  : session name
 
 RETURNS: a hash with all information about the checks for a given scan type
 and severity
