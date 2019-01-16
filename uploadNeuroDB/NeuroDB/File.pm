@@ -478,7 +478,18 @@ sub getParameterTypeID {
         my ($user) = getpwuid($UID);
         $query = "INSERT INTO parameter_type (Name, Type, Description, SourceFrom, Queryable) VALUES (".$dbh->quote($paramType).", 'text', ".$dbh->quote("$paramType magically created by NeuroDB::File").", 'parameter_file', 0)";
         $dbh->do($query);
-        return $dbh->{'mysql_insertid'};
+
+        # grep the inserted ParameterTypeID and update parameter_category_rel
+        my $param_type_id = $dbh->{'mysql_insertid'};
+        $query = "INSERT INTO parameter_type_category_rel "
+                 . " (ParameterTypeID, ParameterTypeCategoryID) "
+                 . " SELECT ?, ParameterTypeCategoryID "
+                    . " FROM parameter_type_category "
+                    . " WHERE Name='MRI Variables'";
+        $sth = $dbh->prepare($query);
+        $sth->execute($param_type_id);
+
+        return $param_type_id;
     }
 }
 	
