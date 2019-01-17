@@ -229,8 +229,7 @@ class Physiological:
     def get_parameter_type_category_id(self):
         """
         Greps ParameterTypeCategoryID from parameter_type_category table.
-        If no ParameterTypeCategoryID were found, the script will create it in
-        parameter_type_category.
+        If no ParameterTypeCategoryID was found, it will return None.
 
         :return: ParameterTypeCategoryID
          :rtype: int
@@ -242,18 +241,11 @@ class Physiological:
                   'WHERE Name = %s ',
             args=('Electrophysiology Variables',)
         )
-        if category_result:
-            category_id = category_result[0]['ParameterTypeCategoryID']
-        else:
-            # if no results, create an entry in parameter_type_category
-            category_id = self.db.insert(
-                table_name   = 'parameter_type_category',
-                column_names = ('Name', 'Type'),
-                values       = ('Electrophysiology Variables', 'Metavars'),
-                get_last_id  = True
-            )
+        
+        if not category_result:
+            return None
 
-        return category_id
+        return category_result[0]['ParameterTypeCategoryID']
 
     def grep_electrode_from_physiological_file_id(self, physiological_file_id):
         """
