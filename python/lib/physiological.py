@@ -215,7 +215,37 @@ class Physiological:
                 get_last_id  = True
             )
 
+            # link the parameter_type_id to a parameter type category
+            category_id = self.get_parameter_type_category_id()
+            self.db.insert(
+                table_name   = 'parameter_type_category_rel',
+                column_names = ('ParameterTypeCategoryID', 'ParameterTypeID'),
+                values       = (category_id, parameter_type_id),
+                get_last_id  = False
+            )
+
         return parameter_type_id
+
+    def get_parameter_type_category_id(self):
+        """
+        Greps ParameterTypeCategoryID from parameter_type_category table.
+        If no ParameterTypeCategoryID was found, it will return None.
+
+        :return: ParameterTypeCategoryID
+         :rtype: int
+        """
+
+        category_result = self.db.pselect(
+            query='SELECT ParameterTypeCategoryID '
+                  'FROM parameter_type_category '
+                  'WHERE Name = %s ',
+            args=('Electrophysiology Variables',)
+        )
+        
+        if not category_result:
+            return None
+
+        return category_result[0]['ParameterTypeCategoryID']
 
     def grep_electrode_from_physiological_file_id(self, physiological_file_id):
         """
