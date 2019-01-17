@@ -132,6 +132,8 @@ foreach my $filename (@input_list) {
     my $dicom = DICOM->new();
     $dicom->fill($filename);
 
+    next if ($dicom->value('0008','103E') eq 'PhoenixZIPReport');
+
     # Get slice position and orientation (row and column vectors)
     my(@position) = 
 	# ImagePositionPatient (0x0020, 0x0032)
