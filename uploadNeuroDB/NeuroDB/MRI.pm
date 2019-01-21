@@ -1607,6 +1607,38 @@ sub my_trim {
 }
 
 
+=pod
+
+=head3 isDicom(@files_list)
+
+This method checks whether the list of files given as an argument is of type DICOM.
+
+INPUT: array with full path to the DICOM files
+
+RETURNS:
+  - @dicom_files    : array with the list of DICOM medical imaging data files
+  - @non_dicom_files: array with the list of non-DICOM files
+
+=cut
+
+sub isDicom {
+    my (@files_list) = @_;
+
+    my $cmd = "file " . join(' ', @files_list);
+    my @file_types = `$cmd`;
+
+    my @dicom_files;
+    my @non_dicom_files;
+    foreach my $line (@file_types) {
+        my ($file, $type) = split(':', $line);
+        push @dicom_files, $file     if ($type =~ /DICOM medical imaging data$/);
+        push @non_dicom_files, $file if (!$type =~ /DICOM medical imaging data$/);
+    }
+
+    return \@dicom_files, \@non_dicom_files;
+}
+
+
 1;
 
 __END__

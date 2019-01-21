@@ -1211,9 +1211,6 @@ sub dicom_to_minc {
         $excluded_regex = $exclude;
     }
     $d2m_cmd = "find $study_dir -type f " .
-               " | xargs file {} \; " .
-               " | grep 'DICOM medical imaging data' " .
-               " | cut -d: -f1 " .
                " | $get_dicom_info -studyuid -series -echo -image -file " .
                " -attvalue 0018 0024 -series_descr -stdin" .
                " | sort -n -k1 -k2 -k7 -k3 -k6 -k4 ";

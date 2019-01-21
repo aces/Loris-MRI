@@ -94,14 +94,6 @@ INPUTS:
 
 RETURNS: 1 on success, 0 on failure
 
-### isDicom($dicom\_file)
-
-This method checks whether the file given as an argument is of type DICOM.
-
-INPUT: full path to the DICOM file
-
-RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
-
 ### runCommandWithExitCode($command)
 
 This method will run any linux command given as an argument using the

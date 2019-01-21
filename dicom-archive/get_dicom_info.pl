@@ -93,6 +93,7 @@ use FindBin;
 use Getopt::Tabular qw(GetOptions);
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
+use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
 my $Help;
@@ -128,11 +129,13 @@ if(@Variables <= 0)
     die "Please specify one or more fields to display\n";
 }
 
-foreach my $filename (@input_list) {
+my ($dicom_files, $non_dicom_files) = NeuroDB::MRI::isDicom(@input_list);
+
+foreach my $filename (@$dicom_files) {
     my $dicom = DICOM->new();
     $dicom->fill($filename);
 
-    next if ($dicom->value('0008','103E') eq 'PhoenixZIPReport');
+    next unless ($dicom->value('7fe0','0010'));
 
     # Get slice position and orientation (row and column vectors)
     my(@position) = 

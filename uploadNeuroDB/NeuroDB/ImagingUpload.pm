@@ -53,6 +53,7 @@ use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
 use NeuroDB::ExitCodes;
 use NeuroDB::DBI;
+use NeuroDB::MRI;
 use File::Temp qw/ tempdir /;
 
 
@@ -151,9 +152,7 @@ sub IsCandidateInfoValid {
     ############################################################
     #########################Initialization#####################
     ############################################################
-    my $files_not_dicom                   = 0;
     my $files_with_unmatched_patient_name = 0;
-    my $is_candinfovalid                  = 0;
     my @row                               = ();
 
     ############################################################
@@ -243,61 +242,35 @@ sub IsCandidateInfoValid {
         return 0;
     }
 
-    foreach (@file_list) {
-        ########################################################
-        #1) Exlcude files starting with . (and ._ as a result)##
-        #including the .DS_Store file###########################
-        #2) Check to see if the file is of type DICOM###########
-        #3) Check to see if the header matches the patient-name#
-        ########################################################
-        if ( (basename($_) =~ /^\./)) {
-            $cmd = "rm " . ($_);
-            print "\n $cmd \n";
-            system($cmd);
-        }
-        else {
-            if ( ( $_ ne '.' ) && ( $_ ne '..' )) {
-                if ( !$this->isDicom($_) ) {
-                    $files_not_dicom++;
-                }
-    	        else {
-            #######################################################
-            #Validate the Patient-Name, only if it's not a phantom#
-            ############## and the file is of type DICOM###########
-            #######################################################
-                    if ($row[4] eq 'N') {
-                        # make sure the regex used for PatientNameMatch starts
-                        # with $this->{'pname'}
-                        if (!$this->PatientNameMatch($_, "^$this->{'pname'}")) {
-                            $files_with_unmatched_patient_name++;
-                        }
-                    } elsif ($row[4] eq 'Y') {
-                        # make sure the regex used for PatientNameMatch
-                        # includes "phantom" string
-                        my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr}, 'LegoPhantomRegex'
-                        );
-                        my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr}, 'LivingPhantomRegex'
-                        );
-                        my $phantom_regex =
-                            "($lego_phantom_regex)|($living_phantom_regex)";
-                        if (!$this->PatientNameMatch($_, $phantom_regex)) {
-                            $files_with_unmatched_patient_name++;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    my ($dicom_files, $non_dicom_files) = NeuroDB::MRI::isDicom(@file_list);
 
-    if ( $files_not_dicom > 0 ) {
+    # return 0 if found at least one non-DICOM file
+    my $files_not_dicom = scalar @$non_dicom_files;
+    if ($files_not_dicom > 0 ) {
         $message = "\nERROR: There are $files_not_dicom file(s) which"
-          . " are not of type DICOM \n";
+            . " are not of type DICOM \n";
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
     }
 
+    # check that the patient name was set properly in the DICOM files
+    my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
+        $this->{dbhr}, 'LegoPhantomRegex'
+    );
+    my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
+        $this->{dbhr}, 'LivingPhantomRegex'
+    );
+    my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
+    my $patient_name  = $this->{'pname'};
+    foreach my $file (@$dicom_files) {
+        if ($row[4] eq 'N' && !$this->PatientNameMatch($file, "^$patient_name")) {
+            $files_with_unmatched_patient_name++;
+        } elsif ($row[4] eq 'Y' && !$this->PatientNameMatch($file, $phantom_regex)) {
+            $files_with_unmatched_patient_name++;
+        }
+    }
+
+    # return 0 if found at least one DICOM file without the proper patient name
     if ( $files_with_unmatched_patient_name > 0 ) {
         $message =
             "\nERROR: There are $files_with_unmatched_patient_name file(s)"
@@ -507,31 +480,6 @@ sub PatientNameMatch {
     }
     return 1;     ##return true
 
-}
-
-
-=pod
-
-=head3 isDicom($dicom_file)
-
-This method checks whether the file given as an argument is of type DICOM.
-
-INPUT: full path to the DICOM file
-
-RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
-
-=cut
-
-sub isDicom {
-    my $this         = shift;
-    my ($dicom_file) = @_;
-    my $cmd    = "file $dicom_file";
-    my $file_type    = `$cmd`;
-    if ( !( $file_type =~ /DICOM medical imaging data$/ ) ) {
-        print "\n $dicom_file is not of type DICOM \n";
-        return 0;
-    }
-    return 1;
 }
 
 =pod
