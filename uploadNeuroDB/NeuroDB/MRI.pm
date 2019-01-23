@@ -1612,23 +1612,23 @@ sub my_trim {
 
 =head3 isDicomImage(@files_list)
 
-This method checks whether the files given as an argument are of type DICOM. All
-DICOM image files will be returned in the array @image_files. Non-DICOM image or
-DICOM scanner reports that are not images will be returned in the array
-@non_image_files.
+This method checks whether the files given as an argument are DICOM images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is a DICOM image, otherwise it will be set to
+false).
 
 INPUT: array with full path to the DICOM files
 
 RETURNS:
-  - @image_files    : array with the list of DICOM medical imaging data images
-  - @non_image_files: array with the list of non-DICOM images
+  - %isDicomImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
 
 =cut
 
 sub isDicomImage {
     my (@files_list) = @_;
 
-    my $cmd = "file " . join(' ', @files_list);
+    my $cmd = "ls @files_list | xargs file";
     my @file_types = `$cmd`;
 
     my %isDicomImage;

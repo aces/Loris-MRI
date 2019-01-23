@@ -406,15 +406,18 @@ INPUTS:
 
 RETURNS: the `CandID` or 0 if the `PSCID` does not exist
 
-### isDicom(@files\_list)
+### isDicomImage(@files\_list)
 
-This method checks whether the list of files given as an argument is of type DICOM.
+This method checks whether the files given as an argument are DICOM images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is a DICOM image, otherwise it will be set to
+false).
 
 INPUT: array with full path to the DICOM files
 
 RETURNS:
-  - @dicom\_files    : array with the list of DICOM medical imaging data files
-  - @non\_dicom\_files: array with the list of non-DICOM files
+  - %isDicomImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
 
 # TO DO
 
