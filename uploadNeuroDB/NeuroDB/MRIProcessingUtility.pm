@@ -1213,9 +1213,10 @@ sub dicom_to_minc {
     } elsif ($exclude) {
         $excluded_regex = $exclude;
     }
-    $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series".
-               " -echo -image -file -attvalue 0018 0024 -series_descr ".
-               " -stdin | sort -n -k1 -k2 -k7 -k3 -k6 -k4 ";
+    $d2m_cmd = "find $study_dir -type f " .
+               " | $get_dicom_info -studyuid -series -echo -image -file " .
+               " -attvalue 0018 0024 -series_descr -stdin" .
+               " | sort -n -k1 -k2 -k7 -k3 -k6 -k4 ";
     $d2m_cmd .= ' | grep -iv -P "\t(' . $excluded_regex . ')\s*$"' if ($excluded_regex);
     $d2m_cmd .= " | cut -f 5 | ";
 

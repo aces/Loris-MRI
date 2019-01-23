@@ -44,6 +44,7 @@ use Data::Dumper;
 use Carp;
 use Time::Local;
 use FindBin;
+use DICOM::DICOM;
 
 $VERSION = 0.2;
 @ISA = qw(Exporter);
@@ -1604,6 +1605,51 @@ sub my_trim {
 	$str =~ s/^\s+//;
 	$str =~ s/\s+$//;
 	return $str;
+}
+
+
+=pod
+
+=head3 isDicomImage(@files_list)
+
+This method checks whether the files given as an argument are DICOM images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is a DICOM image, otherwise it will be set to
+false).
+
+INPUT: array with full path to the DICOM files
+
+RETURNS:
+  - %isDicomImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
+
+=cut
+
+sub isDicomImage {
+    my (@files_list) = @_;
+
+    my $cmd = "ls @files_list | xargs file";
+    my @file_types = `$cmd`;
+
+    my %isDicomImage;
+    foreach my $line (@file_types) {
+        my ($file, $type) = split(':', $line);
+
+        unless ($type =~ /DICOM medical imaging data$/) {
+            $isDicomImage{$file} = 0;
+            next;
+        }
+
+        my $dicom = DICOM->new();
+        $dicom->fill($file);
+        if ($dicom->value('7fe0','0010')) {
+            $isDicomImage{$file} = 1;
+        } else {
+            $isDicomImage{$file} = 0;
+        }
+    }
+
+    return \%isDicomImage;
 }
 
 
