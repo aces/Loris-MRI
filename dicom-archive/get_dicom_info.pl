@@ -129,13 +129,13 @@ if(@Variables <= 0)
     die "Please specify one or more fields to display\n";
 }
 
-my ($dicom_files, $non_dicom_files) = NeuroDB::MRI::isDicom(@input_list);
+my $isImage_hash = NeuroDB::MRI::isDicomImage(@input_list);
+my @image_files  = grep { $$isImage_hash{$_} == 1 } keys $isImage_hash;
 
-foreach my $filename (@$dicom_files) {
+
+foreach my $filename (@image_files) {
     my $dicom = DICOM->new();
     $dicom->fill($filename);
-
-    next unless ($dicom->value('7fe0','0010'));
 
     # Get slice position and orientation (row and column vectors)
     my(@position) = 

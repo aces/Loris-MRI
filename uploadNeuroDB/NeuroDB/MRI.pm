@@ -44,6 +44,7 @@ use Data::Dumper;
 use Carp;
 use Time::Local;
 use FindBin;
+use DICOM::DICOM;
 
 $VERSION = 0.2;
 @ISA = qw(Exporter);
@@ -1609,33 +1610,46 @@ sub my_trim {
 
 =pod
 
-=head3 isDicom(@files_list)
+=head3 isDicomImage(@files_list)
 
-This method checks whether the list of files given as an argument is of type DICOM.
+This method checks whether the files given as an argument are of type DICOM. All
+DICOM image files will be returned in the array @image_files. Non-DICOM image or
+DICOM scanner reports that are not images will be returned in the array
+@non_image_files.
 
 INPUT: array with full path to the DICOM files
 
 RETURNS:
-  - @dicom_files    : array with the list of DICOM medical imaging data files
-  - @non_dicom_files: array with the list of non-DICOM files
+  - @image_files    : array with the list of DICOM medical imaging data images
+  - @non_image_files: array with the list of non-DICOM images
 
 =cut
 
-sub isDicom {
+sub isDicomImage {
     my (@files_list) = @_;
 
     my $cmd = "file " . join(' ', @files_list);
     my @file_types = `$cmd`;
 
-    my @dicom_files;
-    my @non_dicom_files;
+    my %isDicomImage;
     foreach my $line (@file_types) {
         my ($file, $type) = split(':', $line);
-        push @dicom_files, $file     if ($type =~ /DICOM medical imaging data$/);
-        push @non_dicom_files, $file if (!$type =~ /DICOM medical imaging data$/);
+
+        unless ($type =~ /DICOM medical imaging data$/) {
+            $isDicomImage{$file} = 0;
+            next;
+        }
+
+        my $dicom = DICOM->new();
+        $dicom->fill($file);
+        if ($dicom->value('7fe0','0010')) {
+            $isDicomImage{$file} = 1;
+        } else {
+            $isDicomImage{$file} = 0;
+        }
     }
 
-    return \@dicom_files, \@non_dicom_files;
+    return \%isDicomImage;
 }
 
 

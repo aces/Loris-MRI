@@ -242,15 +242,16 @@ sub IsCandidateInfoValid {
         return 0;
     }
 
-    my ($dicom_files, $non_dicom_files) = NeuroDB::MRI::isDicom(@file_list);
-
-    # return 0 if found at least one non-DICOM file
-    my $files_not_dicom = scalar @$non_dicom_files;
+    my $isImage_hash    = NeuroDB::MRI::isDicomImage(@file_list);
+    my @image_files     = grep { $$isImage_hash{$_} == 1 } keys $isImage_hash;
+    my @non_image_files = grep { $$isImage_hash{$_} == 0 } keys $isImage_hash;
+    
+    # return 0 if found at least one non-DICOM image file
+    my $files_not_dicom = scalar @non_image_files;
     if ($files_not_dicom > 0 ) {
-        $message = "\nERROR: There are $files_not_dicom file(s) which"
-            . " are not of type DICOM \n";
-        $this->spool($message, 'Y', $notify_notsummary);
-        return 0;
+        $message = "\nWARNING: There are $files_not_dicom file(s) which"
+                   . " are not DICOM images: these will be ignored.\n";
+        $this->spool($message, 'N', $notify_notsummary);
     }
 
     # check that the patient name was set properly in the DICOM files
@@ -262,7 +263,7 @@ sub IsCandidateInfoValid {
     );
     my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
     my $patient_name  = $this->{'pname'};
-    foreach my $file (@$dicom_files) {
+    foreach my $file (@image_files) {
         if ($row[4] eq 'N' && !$this->PatientNameMatch($file, "^$patient_name")) {
             $files_with_unmatched_patient_name++;
         } elsif ($row[4] eq 'Y' && !$this->PatientNameMatch($file, $phantom_regex)) {
