@@ -243,10 +243,17 @@ sub IsCandidateInfoValid {
     }
 
     my $isImage_hash    = NeuroDB::MRI::isDicomImage(@file_list);
-    my @image_files     = grep { $$isImage_hash{$_} == 1 } keys $isImage_hash;
-    my @non_image_files = grep { $$isImage_hash{$_} == 0 } keys $isImage_hash;
+    my @image_files     = grep { $$isImage_hash{$_} == 1 } keys %$isImage_hash;
+    my @non_image_files = grep { $$isImage_hash{$_} == 0 } keys %$isImage_hash;
     
-    # return 0 if found at least one non-DICOM image file
+    # Issue warnings for files that are not DICOM images
+    foreach my $f (@non_image_files) {
+        $message = "\nWARNING: file '$f' is not a DICOM image: ignored.\n";
+        $this->spool($message, 'N', $notify_notsummary);
+	}
+	
+	# Issue a warning for the total number of files that are not
+	# DICOM images
     my $files_not_dicom = scalar @non_image_files;
     if ($files_not_dicom > 0 ) {
         $message = "\nWARNING: There are $files_not_dicom file(s) which"
