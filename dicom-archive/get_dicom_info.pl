@@ -130,7 +130,7 @@ if(@Variables <= 0)
 }
 
 my $isImage_hash = NeuroDB::MRI::isDicomImage(@input_list);
-my @image_files  = grep { $$isImage_hash{$_} == 1 } keys $isImage_hash;
+my @image_files  = grep { $$isImage_hash{$_} == 1 } keys %$isImage_hash;
 
 
 foreach my $filename (@image_files) {

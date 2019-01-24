@@ -211,8 +211,8 @@ USAGE
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 if (!$ENV{LORIS_CONFIG}) {
-	print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
-	exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
+    print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
 }
 
 if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
@@ -321,9 +321,9 @@ if ($tarchive) {
     $is_valid = $dbh->selectrow_array($query);
 
     if(!defined $is_valid) {
-		my $errorMessage = $globArchiveLocation
-		    ? "No mri_upload with the same archive location basename as '$tarchive'\n"
-		    : "No mri_upload with archive location '$tarchive'\n";
+        my $errorMessage = $globArchiveLocation
+            ? "No mri_upload with the same archive location basename as '$tarchive'\n"
+            : "No mri_upload with archive location '$tarchive'\n";
         $utility->writeErrorLog(
                 $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
         );
@@ -331,8 +331,8 @@ if ($tarchive) {
                          'minc_insertion.pl', $upload_id, 'Y', 
                          $notify_notsummary);
         exit $NeuroDB::ExitCodes::INVALID_ARG;
- 	} 
-	
+    } 
+    
     ## Setup  for the notification_spool table ##
     # get the tarchive_srcloc from $tarchive
     $query = "SELECT SourceLocation" .
@@ -342,10 +342,10 @@ if ($tarchive) {
     $tarchive_srcloc = $sth->fetchrow_array;
     
     if(!defined $tarchive_srcloc) {
-		my $errorMessage = $globArchiveLocation
-		    ? "No tarchive with the same source location basename as '$tarchive'\n"
-		    : "No tarchive with source location '$tarchive'\n";
-		    
+        my $errorMessage = $globArchiveLocation
+            ? "No tarchive with the same source location basename as '$tarchive'\n"
+            : "No tarchive with source location '$tarchive'\n";
+            
         $utility->writeErrorLog(
                 $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
         );
@@ -618,16 +618,19 @@ if ((!defined$acquisitionProtocolIDFromProd)
 ################################################################
 ### Add series notification ####################################
 ################################################################
-$message =
-	"\n" . $subjectIDsref->{'CandID'} . " " .
-    	$subjectIDsref->{'PSCID'} ." " .
-    	$subjectIDsref->{'visitLabel'} .
-    	"\tacquired " . $file->getParameter('acquisition_date') .
-    	"\t" . $file->getParameter('series_description') .
-	"\n";
+$message = sprintf(
+    "\n CandID: %s, PSCID: %s, Visit: %s, Acquisition Date: %s, Series Description %s\n",
+    $subjectIDsref->{'CandID'},
+    $subjectIDsref->{'PSCID'},
+    $subjectIDsref->{'visitLabel'},
+    (defined $file->getParameter('acquisition_date')
+        ? $file->getParameter('acquisition_date') : 'UNKNOWN'),
+    (defined $file->getParameter('series_description')
+        ? $file->getParameter('series_description') : 'UNKNOWN')
+);
 $notifier->spool('mri new series', $message, 0,
-    		'minc_insertion.pl', $upload_id, 'N', 
-		$notify_detailed);
+            'minc_insertion.pl', $upload_id, 'N', 
+        $notify_detailed);
 
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
