@@ -30,7 +30,9 @@ Available options are:
 -d       : extract the files in directory C<< <dir_argument>/get_dicom_files.pl.<UNIX_process_number> >>
            For example with C<-d /data/tmp>, the DICOM files will be extracted in 
            C</data/tmp/get_dicom_files.pl.67888> (assuming 67888 is the process number). 
-           By default, dir_argument is set to the value of the environment variable C<TMPDIR>.
+           By default, dir_argument is set to the value of the environment variable C<TMPDIR>. Note 
+           that the directory argument has to exist and be writeable, otherwise the script will issue
+           an error and abort.
           
 -o       : basename of the final C<tar.gz> file to produce, in the current directory (defaults to 
            C<dicoms.tar.gz>).
