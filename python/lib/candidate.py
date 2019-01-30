@@ -165,6 +165,14 @@ class Candidate:
             self.sex = 'Female'
 
     def grep_bids_dob(self, subject_info):
+        """
+        Greps the date of birth from the BIDS structure and add it to self.dob which
+        will be inserted into the DoB field of the candidate table
+
+        :param subject_info: dictionary with all information present in the BIDS
+                             participants.tsv file for a given candidate
+         :type subject_info: dict
+        """
 
         dob_names = ['date_of_birth', 'birth_date', 'dob']
         for name in dob_names:

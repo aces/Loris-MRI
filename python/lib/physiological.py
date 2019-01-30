@@ -404,7 +404,7 @@ class Physiological:
             optional_fields = (
                 'description',        'sampling_frequency', 'low_cutoff',
                 'high_cutoff',        'manual',             'notch',
-                'status_description', 'unit',               'reference'
+                'status_description', 'units',              'reference'
             )
             for field in optional_fields:
                 if field not in row.keys():
@@ -436,7 +436,7 @@ class Physiological:
                 row['manual'],
                 row['notch'],
                 row['status_description'],
-                row['unit'],
+                row['units'],
                 row['reference'],
                 channel_file
             )
