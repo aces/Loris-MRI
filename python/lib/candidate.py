@@ -1,6 +1,7 @@
 """This class gather functions for candidate handling."""
 
 import random
+from dateutil.parser import parse
 import lib.exitcode
 
 
@@ -76,10 +77,9 @@ class Candidate:
         for row in participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue
+            self.grep_bids_dob(row)
             if 'sex' in row:
                 self.map_sex(row['sex'])
-            if 'dob' in row:
-                self.dob = row['dob']
             if 'age' in row:
                 self.age = row['age']
             if 'site' in row:
@@ -118,7 +118,7 @@ class Candidate:
             insert_col = insert_col + ('Gender',)
             insert_val = insert_val + (self.sex,)
         if self.dob:
-            insert_col = insert_col + ('DoB')
+            insert_col = insert_col + ('DoB',)
             insert_val = insert_val + (self.dob,)
 
         db.insert(
@@ -158,11 +158,19 @@ class Candidate:
          :type sex: str
         """
 
-        if sex.lower in ('m', 'male'):
+        if sex.lower() in ('m', 'male'):
             self.sex = 'Male'
 
-        if sex.lower in ('f', 'female'):
+        if sex.lower() in ('f', 'female'):
             self.sex = 'Female'
+
+    def grep_bids_dob(self, subject_info):
+
+        dob_names = ['date_of_birth', 'birth_date', 'dob']
+        for name in dob_names:
+            if name in subject_info:
+                dob   = parse(subject_info[name])
+                self.dob = dob.strftime('%Y-%m-%d')
 
     @staticmethod
     def generate_cand_id(db):
