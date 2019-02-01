@@ -1637,7 +1637,7 @@ sub isDicomImage {
     my $tmp_file = $ENV{'TMPDIR'} . "/tmp_list";
     open(my $fh, '>', $tmp_file) or die "Could not open file '$tmp_file' $!";
     foreach my $file (@files_list) {
-        print $fh "$file\n";
+        printf $fh "%s\n", quotemeta($file);
     }
     close($fh);
 
