@@ -1628,8 +1628,22 @@ RETURNS:
 sub isDicomImage {
     my (@files_list) = @_;
 
-    my $cmd = "ls @files_list | xargs file";
+    # For now, the files list need to be written in a temporary file so that the
+    # command does not fail on large amount of files. If doing directly
+    # `ls @files_list | xargs file` then the argument list is too long at it does
+    # not return one file per line but many files in one line. Writing in a
+    # temporary file on which we run the command `cat` seems to be the only option
+    # that works at the moment...
+    my $tmp_file = $ENV{'TMPDIR'} . "/tmp_list";
+    open(my $fh, '>', $tmp_file) or die "Could not open file '$tmp_file' $!";
+    foreach my $file (@files_list) {
+        printf $fh "%s\n", quotemeta($file);
+    }
+    close($fh);
+
+    my $cmd = "cat $tmp_file | xargs file";
     my @file_types = `$cmd`;
+    unlink $tmp_file;
 
     my %isDicomImage;
     foreach my $line (@file_types) {
