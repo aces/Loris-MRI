@@ -44,6 +44,7 @@ use Data::Dumper;
 use Carp;
 use Time::Local;
 use FindBin;
+use DICOM::DICOM;
 
 $VERSION = 0.2;
 @ISA = qw(Exporter);
@@ -1604,6 +1605,65 @@ sub my_trim {
 	$str =~ s/^\s+//;
 	$str =~ s/\s+$//;
 	return $str;
+}
+
+
+=pod
+
+=head3 isDicomImage(@files_list)
+
+This method checks whether the files given as an argument are DICOM images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is a DICOM image, otherwise it will be set to
+false).
+
+INPUT: array with full path to the DICOM files
+
+RETURNS:
+  - %isDicomImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
+
+=cut
+
+sub isDicomImage {
+    my (@files_list) = @_;
+
+    # For now, the files list need to be written in a temporary file so that the
+    # command does not fail on large amount of files. If doing directly
+    # `ls @files_list | xargs file` then the argument list is too long at it does
+    # not return one file per line but many files in one line. Writing in a
+    # temporary file on which we run the command `cat` seems to be the only option
+    # that works at the moment...
+    my $tmp_file = $ENV{'TMPDIR'} . "/tmp_list";
+    open(my $fh, '>', $tmp_file) or die "Could not open file '$tmp_file' $!";
+    foreach my $file (@files_list) {
+        printf $fh "%s\n", quotemeta($file);
+    }
+    close($fh);
+
+    my $cmd = "cat $tmp_file | xargs file";
+    my @file_types = `$cmd`;
+    unlink $tmp_file;
+
+    my %isDicomImage;
+    foreach my $line (@file_types) {
+        my ($file, $type) = split(':', $line);
+
+        unless ($type =~ /DICOM medical imaging data$/) {
+            $isDicomImage{$file} = 0;
+            next;
+        }
+
+        my $dicom = DICOM->new();
+        $dicom->fill($file);
+        if ($dicom->value('7fe0','0010')) {
+            $isDicomImage{$file} = 1;
+        } else {
+            $isDicomImage{$file} = 0;
+        }
+    }
+
+    return \%isDicomImage;
 }
 
 

@@ -93,6 +93,7 @@ use FindBin;
 use Getopt::Tabular qw(GetOptions);
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
+use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
 my $Help;
@@ -128,7 +129,11 @@ if(@Variables <= 0)
     die "Please specify one or more fields to display\n";
 }
 
-foreach my $filename (@input_list) {
+my $isImage_hash = NeuroDB::MRI::isDicomImage(@input_list);
+my @image_files  = grep { $$isImage_hash{$_} == 1 } keys %$isImage_hash;
+
+
+foreach my $filename (@image_files) {
     my $dicom = DICOM->new();
     $dicom->fill($filename);
 

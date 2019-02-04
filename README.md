@@ -35,6 +35,7 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
 sudo apt-get install python3 
 sudo apt-get install python3-dev
 sudo apt-get install python3-pip
+sudo apt-get install libmysqlclient-dev
 sudo pip3 install virtualenv
 ```
 
