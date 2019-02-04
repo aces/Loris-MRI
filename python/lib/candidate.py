@@ -115,7 +115,7 @@ class Candidate:
         insert_val = (self.psc_id, str(self.cand_id), str(self.center_id))
 
         if self.sex:
-            insert_col = insert_col + ('Gender',)
+            insert_col = insert_col + ('Sex',)
             insert_val = insert_val + (self.sex,)
         if self.dob:
             insert_col = insert_col + ('DoB',)
