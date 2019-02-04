@@ -26,7 +26,7 @@ class Database:
 
         # to select data corresponding to specific parameters
         results = db.pselect(
-            "SELECT CandID FROM candidate WHERE Active = %s AND Gender = %s",
+            "SELECT CandID FROM candidate WHERE Active = %s AND Sex = %s",
             ('Y', 'Male')
         )
 
