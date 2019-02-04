@@ -398,6 +398,19 @@ INPUTS:
 
 RETURNS: value (or header name) of the field found in the MINC header
 
+### isDicomImage(@files\_list)
+
+This method checks whether the files given as an argument are DICOM images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is a DICOM image, otherwise it will be set to
+false).
+
+INPUT: array with full path to the DICOM files
+
+RETURNS:
+  - %isDicomImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
+
 # TO DO
 
 Fix comments written as #fixme in the code.

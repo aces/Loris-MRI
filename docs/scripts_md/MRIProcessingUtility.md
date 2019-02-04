@@ -33,7 +33,7 @@ utilities
                               $subjectIDsref
                             );
 
-    $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+    $utility->computeSNR($TarchiveID, $ArchLoc);
     $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
 
 # DESCRIPTION
@@ -81,7 +81,7 @@ INPUTS:
 
 RETURNS: next visit label found for the candidate
 
-### getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
+### getDICOMFileNamesfromSeriesUID($seriesuid, @alltarfiles)
 
 Will extract from the `tarchive_files` table a list of DICOM files
 matching a given `SeriesUID`.
@@ -408,15 +408,14 @@ INPUT: subject's ID information hash ref
 RETURNS: the candidate mismatch error, or undef if the candidate is validated
 or a phantom
 
-### computeSNR($tarchiveID, $upload\_id, $profile)
+### computeSNR($tarchiveID, $upload\_id)
 
-Computes the SNR on the modalities specified in the `getSNRModalities()`
-routine of the `$profile` file.
+Computes the SNR on the modalities specified in the Config module under the
+section Imaging Pipeline in the field called 'compute\_snr\_modalities'.
 
 INPUTS:
   - $tarchiveID: DICOM archive ID
   - $upload\_id : upload ID of the study
-  - $profile   : configuration file (usually prod)
 
 ### orderModalitiesByAcq($tarchiveID, $upload\_id)
 
@@ -453,6 +452,20 @@ Ensures no column in the `mri_protocol` nor the `mri_protocol_checks`
 tables has comma-separated values.
 
 RETURNS: 1 on success, 0 on failure
+
+### is\_file\_unique($file, $upload\_id)
+
+Queries the `files` and `parameter_file` tables to make sure that no imaging
+datasets with the same `SeriesUID` and `EchoTime` or the same `MD5sum` hash
+can be found in the database already. If there is a match, it will return a
+message with the information about why the file is not unique. If there is no
+match, then it will return undef.
+
+INPUTS:
+  - $file     : the file object from the `NeuroDB::File` package
+  - $upload\_id: the `UploadID` associated to the file
+
+RETURNS: a message with the reason why the file is not unique or undef
 
 # TO DO
 

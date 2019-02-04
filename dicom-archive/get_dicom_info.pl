@@ -6,12 +6,94 @@
 # with routines for reading in data structures, specific to the input
 # file format.
 #
+
+=pod
+
+=head1 NAME
+
+get_dicom_info.pl -- reads information out of the DICOM file headers
+
+=head1 SYNOPSIS
+
+perl get_dicom_info.pl [options] <dicomfile> [<dicomfile> ...]
+
+Available options are:
+
+-image    : print image number
+
+-exam     : print exam number
+
+-studyuid : print study UID
+
+-series   : print series number
+
+-echo: print echo number
+
+-width: print width
+
+-height: print height
+
+-slicepos: print slice position
+
+-slice_thickness: print slice thickness
+
+-tr                : print repetition time (TR)
+
+-te                : print echo time (TE)
+
+-ti                : print inversion time (TI)
+
+-date              : print acquisition date
+
+-time              : print acquisition time
+
+-file              : print file name
+
+-pname             : print patient name
+
+-pdob              : print patient date of birth
+
+-pid               : print patient ID
+
+-institution       : print institution name
+
+-series_description: print series description
+
+-sequence_name     : print sequence name
+
+-scanner           : print scanner
+
+-attvalue          : print the value(s) of the specified attribute
+
+-stdin             : use STDIN for the list of DICOM files
+
+-labels            : print one line of labels before the rest of the output
+
+-error_string      : string to use for reporting empty fields
+
+
+-verbose                : Be verbose if set
+
+-version                : Print CVS version number and exit
+
+
+=head1 DESCRIPTION
+
+A tool to read information out of the DICOM file headers.
+
+
+=head2 Methods
+
+=cut
+
+
 $VERSION = sprintf "%d", q$Revision: 8 $ =~ /: (\d+)/;
 
 use FindBin;
 use Getopt::Tabular qw(GetOptions);
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
+use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
 my $Help;
@@ -47,7 +129,11 @@ if(@Variables <= 0)
     die "Please specify one or more fields to display\n";
 }
 
-foreach my $filename (@input_list) {
+my $isImage_hash = NeuroDB::MRI::isDicomImage(@input_list);
+my @image_files  = grep { $$isImage_hash{$_} == 1 } keys %$isImage_hash;
+
+
+foreach my $filename (@image_files) {
     my $dicom = DICOM->new();
     $dicom->fill($filename);
 
@@ -55,8 +141,10 @@ foreach my $filename (@input_list) {
     my(@position) = 
 	# ImagePositionPatient (0x0020, 0x0032)
         &convert_coordinates(&split_dicom_list(&trim($dicom->value('0020', '0032'))));
-    if (scalar(@position) != 3) {
-       warn "Warning: The file: $filename is not DICOM!\n";
+    my $computeSlicePos = grep($_->[1] eq 'slicepos', @Variables);
+    if (scalar(@position) != 3 && $computeSlicePos) {
+       warn "Warning: DICOM header (0020,0032) not found in $filename: "
+           . "slice position cannot be computed. Skipping file.\n";
        push my @croft, $filename;
        next;
    }
@@ -72,7 +160,7 @@ foreach my $filename (@input_list) {
     my(@normal) = 
        &vector_cross_product(\@column, \@row);
     my @slc_dircos = &get_dircos(@normal);
-    my $slicepos = &vector_dot_product(\@position, \@slc_dircos);
+    my $slicepos = &vector_dot_product(\@position, \@slc_dircos) if $computeSlicePos;
 
     # Print out variable labels
     if(!$PrintedLabels && $PrintLabels) {
@@ -110,7 +198,19 @@ foreach my $filename (@input_list) {
 }
 &showcroft();
 
-# Subroutine to clean up files and exit
+
+=pod
+
+=head3 cleanup_and_die($message, $status)
+
+Subroutine to clean up files and exit.
+
+INPUTS:
+  - $message: message to be printed in STDERR
+  - $status : status code to use to exit the script
+
+=cut
+
 sub cleanup_and_die {
 
     # Get message to print and exit status
@@ -133,9 +233,18 @@ sub cleanup_and_die {
     exit($status);
 }
 
-# Subroutine to get a direction cosine from a vector, correcting for
-# magnitude and direction if needed (the direction cosine should point
-# along the positive direction of the nearest axis)
+=pod
+
+=head3 get_dircos()
+
+Subroutine to get a direction cosine from a vector, correcting for
+magnitude and direction if needed (the direction cosine should point
+along the positive direction of the nearest axis).
+
+RETURNS: X, Y and Z cosines
+
+=cut
+
 sub get_dircos {
     if (scalar(@_) != 3) {
         die "Argument error in get_dircos\n";
@@ -160,7 +269,18 @@ sub get_dircos {
     return ($xcos, $ycos, $zcos);
 }
 
-# Routine to convert world coordinates
+=pod
+
+=head3 convert_coordinates(@coords)
+
+Routine that multiplies X and Y world coordinates by -1.
+
+INPUT: array with world coordinates
+
+RETURNS: array with converted coordinates
+
+=cut
+
 sub convert_coordinates {
     my(@coords) = @_;
     $coords[0] *= -1;
@@ -168,7 +288,20 @@ sub convert_coordinates {
     return @coords;
 }
 
-# Routine to compute a dot product
+=pod
+
+=head3 vector_dot_product($vec1, $vec2)
+
+Routine to compute the dot product of two vectors.
+
+INPUTS:
+  - $vec1: vector 1
+  - $vec2: vector 2
+
+RESULTS: result of the dot product
+
+=cut
+
 sub vector_dot_product {
     my($vec1, $vec2) = @_;
     my($result, $i);
@@ -179,7 +312,20 @@ sub vector_dot_product {
     return $result;
 }
 
-# Routine to compute a vector cross product
+=pod
+
+=head3 vector_cross_product($vec1, $vec2)
+
+Routine to compute a vector cross product
+
+INPUTS:
+  - $vec1: vector 1
+  - $vec2: vector 2
+
+RESULTS: result of the vector cross product
+
+=cut
+
 sub vector_cross_product {
     my($vec1, $vec2) = @_;
     my(@result);
@@ -190,6 +336,18 @@ sub vector_cross_product {
     return @result;
 }
 
+=pod
+
+=head3 trim($input)
+
+Remove leading and trailing spaces from the $input variable
+
+INPUT: string to remove leading and trailing spaces from
+
+RETURNS: string without leading and trailing spaces
+
+=cut
+
 sub trim {
     local($input) = @_;
     $input =~ s/^\s+//;
@@ -197,11 +355,30 @@ sub trim {
     return $input;
 }
 
+=pod
+
+=head3 showcroft()
+
+Accessor for field C<@croft>.
+
+=cut
+
 sub showcroft {
     return @croft;
 }
 
-# Routine to split a DICOM list into a perl list
+=pod
+
+=head3 split_dicom_list($dlist)
+
+Routine to split a DICOM list of values into a perl array using C<\\>.
+
+INPUT: list of DICOM values
+
+RETURNS: array of DICOM values if multiple values or DICOM value if only one value
+
+=cut
+
 sub split_dicom_list {
     my($dlist) = @_;
     my(@values) = split(/\\/, $dlist);
@@ -211,6 +388,16 @@ sub split_dicom_list {
 
     return (scalar(@values) > 1) ? @values : $values[0];
 }
+
+=pod
+
+=head3 SetupArgTables()
+
+To set up the arguments to the GetOpt table.
+
+RETURNS: an array with all the options of the script
+
+=cut
 
 sub SetupArgTables
 {
@@ -280,6 +467,18 @@ sub SetupArgTables
    return @args;
 }
 
+=pod
+
+=head3 InfoOption(@addr)
+
+Greps the group and element information from the GetOpt table options specified.
+
+INPUTS:
+  - $option: name of the option
+  - $rest  : reference to the remaining arguments of the command line
+  - @addr  : array reference with DICOM group & element from the GetOpt option
+
+=cut
 
 sub InfoOption {
     my ($option, $rest, @addr) = @_;
@@ -290,6 +489,19 @@ sub InfoOption {
 
     1;
 }
+
+=pod
+
+=head3 TwoArgInfoOption($option, $rest)
+
+Greps the group and element information from the GetOpt table options specified
+and checks that the two arguments required by the option have been set.
+
+INPUTS:
+  - $option: name of the option that requires two arguments
+  - $rest  : array with group and element information from the GetOpt table
+
+=cut
 
 sub TwoArgInfoOption {
     my ($option, $rest) = @_;
@@ -309,6 +521,13 @@ sub TwoArgInfoOption {
     1;
 }
 
+=pod
+
+=head3 CreateInfoText()
+
+Creates the information text to be displayed by GetOpt to describe the script/
+
+=cut
 
 sub CreateInfoText
 {
@@ -330,3 +549,16 @@ HELP
    &Getopt::Tabular::SetHelp ($Help, $Usage);
 }
 
+=pod
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Jonathan Harlap,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut

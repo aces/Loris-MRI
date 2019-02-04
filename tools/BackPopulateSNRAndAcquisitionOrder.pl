@@ -185,7 +185,7 @@ if($sth->rows > 0) {
         );
 		print "Currently updating the SNR for applicable files in parameter_file table ".
             "for tarchiveID $TarchiveID at location $ArchLoc\n";    
-        $utility->computeSNR($TarchiveID, $upload_id, $profile);
+        $utility->computeSNR($TarchiveID, $upload_id);
 		print "Currently updating the Acquisition Order per modality in files table\n";    
         $utility->orderModalitiesByAcq($TarchiveID, $upload_id);
 

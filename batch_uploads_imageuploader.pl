@@ -296,7 +296,7 @@ RETURNS: $upload_id : The upload ID
 sub insertIntoMRIUpload {
 
     my ( $dbhr, $patientname, $phantom, $fullpath ) = @_;
-    my $User = `whoami`;
+    my $User = getpwuid($>);
 
     my $query = "INSERT INTO mri_upload ".
                 "(UploadedBy, UploadDate, PatientName, ".

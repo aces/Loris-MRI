@@ -38,7 +38,7 @@ utilities
                             $subjectIDsref
                           );
 
-  $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+  $utility->computeSNR($TarchiveID, $ArchLoc);
   $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
 
 =head1 DESCRIPTION
@@ -210,7 +210,7 @@ sub lookupNextVisitLabel {
 
 =pod
 
-=head3 getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
+=head3 getDICOMFileNamesfromSeriesUID($seriesuid, @alltarfiles)
 
 Will extract from the C<tarchive_files> table a list of DICOM files
 matching a given C<SeriesUID>.
@@ -223,7 +223,7 @@ RETURNS: list of DICOM files corresponding to the C<SeriesUID>
 
 =cut
 
-sub getFileNamesfromSeriesUID {
+sub getDICOMFileNamesfromSeriesUID {
 
     # longest common prefix
     sub LCP {
@@ -305,7 +305,7 @@ sub extract_tarchive {
     if (defined($seriesuid)) {
         print "seriesuid: $seriesuid\n" if $this->{verbose};
         my @alltarfiles = `cd $this->{TmpDir} ; tar -tzf $dcmtar`;
-        $tarnames = getFileNamesfromSeriesUID($seriesuid, @alltarfiles);
+        $tarnames = getDICOMFileNamesfromSeriesUID($seriesuid, @alltarfiles);
         print "tarnames: $tarnames\n" if $this->{verbose};
     }
 
@@ -1168,16 +1168,14 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path =  $tarchiveInfo->{ArchiveLocation};
-        $tarchive_path =~ s/$data_dir\///i;
-        $${minc_file}->setParameter(
-            'tarchiveLocation', 
-            $tarchive_path
-        );
-        $${minc_file}->setParameter(
-            'tarchiveMD5', 
-            $tarchiveInfo->{'md5sumArchive'}
-        );
+        $tarchive_path = $tarchiveInfo->{ArchiveLocation};
+        if ($tarchive_path) {
+            $tarchive_path =~ s/$data_dir\///i;
+            $${minc_file}->setParameter('tarchiveLocation', $tarchive_path);
+            $${minc_file}->setParameter(
+                'tarchiveMD5', $tarchiveInfo->{'md5sumArchive'}
+            );
+        }
 
         ########################################################
         # register into the db fixme if I ever want a dry run ## 
@@ -1191,9 +1189,12 @@ sub registerScanIntoDB {
         ########################################################
         ### update mri_acquisition_dates table #################
         ########################################################
+        my $acquisition_date = $tarchiveInfo->{'DateAcquired'}
+            // $${minc_file}->getParameter('AcquisitionDate')
+            // undef;
         $this->update_mri_acquisition_dates(
-            $sessionID, 
-            $tarchiveInfo->{'DateAcquired'}
+            $sessionID,
+            $acquisition_date
         );
     }
     return $acquisitionProtocolID;
@@ -1232,9 +1233,10 @@ sub dicom_to_minc {
     } elsif ($exclude) {
         $excluded_regex = $exclude;
     }
-    $d2m_cmd = "find $study_dir -type f | $get_dicom_info -studyuid -series".
-               " -echo -image -file -attvalue 0018 0024 -series_descr ".
-               " -stdin | sort -n -k1 -k2 -k7 -k3 -k6 -k4 ";
+    $d2m_cmd = "find $study_dir -type f " .
+               " | $get_dicom_info -studyuid -series -echo -image -file " .
+               " -attvalue 0018 0024 -series_descr -stdin" .
+               " | sort -n -k1 -k2 -k7 -k3 -k6 -k4 ";
     $d2m_cmd .= ' | grep -iv -P "\t(' . $excluded_regex . ')\s*$"' if ($excluded_regex);
     $d2m_cmd .= " | cut -f 5 | ";
 
@@ -1763,68 +1765,65 @@ sub validateCandidate {
 
 =pod
 
-=head3 computeSNR($tarchiveID, $upload_id, $profile)
+=head3 computeSNR($tarchiveID, $upload_id)
 
-Computes the SNR on the modalities specified in the C<getSNRModalities()>
-routine of the C<$profile> file.
+Computes the SNR on the modalities specified in the Config module under the
+section Imaging Pipeline in the field called 'compute_snr_modalities'.
 
 INPUTS:
   - $tarchiveID: DICOM archive ID
   - $upload_id : upload ID of the study
-  - $profile   : configuration file (usually prod)
 
 =cut
 
 sub computeSNR {
 
     my $this = shift;
-    my ($row, $filename, $fileID, $base, $fullpath, $cmd, $message, $SNR, $SNR_old);
-    my ($tarchiveID, $upload_id, $profile)= @_;
-    my $data_dir = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'dataDirBasepath'
-                        );
+    my ($tarchiveID, $upload_id) = @_;
 
-    my $query = "SELECT FileID, file from files f ";
-    my $where = "WHERE f.TarchiveSource=?";
-    $query = $query . $where;
+    my $data_dir   = NeuroDB::DBI::getConfigSetting($this->{dbhr},'dataDirBasepath');
+    my $modalities = NeuroDB::DBI::getConfigSetting(
+        $this->{dbhr}, 'compute_snr_modalities'
+    );
 
-    if ($this->{debug}) {
-        print $query . "\n";
-    }
-
+    (my $query = <<QUERY) =~ s/\n//gm;
+  SELECT    FileID, File, Scan_type
+  FROM      files f
+  JOIN      mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID)
+  WHERE     f.TarchiveSource=?
+QUERY
+    print $query . "\n" if ($this->{debug});
     my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query);
     $minc_file_arr->execute($tarchiveID);
 
-    while ($row = $minc_file_arr->fetchrow_hashref()) {
-        $filename = $row->{'file'};
-        $fileID = $row->{'FileID'};
-        $base = basename($filename);
-        $fullpath = $data_dir . "/" . $filename;
-        if (defined(&Settings::getSNRModalities)
-            && Settings::getSNRModalities($base)) {
-                $cmd = "noise_estimate --snr $fullpath";
-                $SNR = `$cmd`;
-                $SNR =~ s/\n//g;
-                print "$cmd \n" if ($this->{verbose});
-                print "SNR is: $SNR \n" if ($this->{verbose});
-                my $file = NeuroDB::File->new($this->{dbhr});
-                $file->loadFile($fileID);
-                $SNR_old = $file->getParameter('SNR');
-                if ($SNR ne '') {
-                    if (($SNR_old ne '') && ($SNR_old ne $SNR)) {
-                        $message = "The SNR value will be updated from " .
-                            "$SNR_old to $SNR. \n";
-                        $this->{LOG}->print($message);
-                        $this->spool($message, 'N', $upload_id, $notify_detailed);
-                    }
-                    $file->setParameter('SNR', $SNR);
+    while (my $row = $minc_file_arr->fetchrow_hashref()) {
+        my $filename     = $row->{'File'};
+        my $fileID       = $row->{'FileID'};
+        my $fileScanType = $row->{'Scan_type'};
+        my $base         = basename($filename);
+        my $fullpath     = "$data_dir/$filename";
+        my $message;
+        if ( grep($_ eq $fileScanType, @$modalities) ) {
+            my $cmd = "noise_estimate --snr $fullpath";
+            my $SNR = `$cmd`;
+            $SNR =~ s/\n//g;
+            print "$cmd \nSNR is: $SNR \n" if ($this->{verbose});
+            my $file = NeuroDB::File->new($this->{dbhr});
+            $file->loadFile($fileID);
+            my $SNR_old = $file->getParameter('SNR');
+            if ($SNR ne '') {
+                $file->setParameter('SNR', $SNR);
+                if (($SNR_old ne '') && ($SNR_old ne $SNR)) {
+                    $message = "The SNR value was updated from $SNR_old to $SNR.\n";
+                    $this->{LOG}->print($message);
+                    $this->spool($message, 'N', $upload_id, $notify_detailed);
                 }
-        }
-        else {
-            $message = "The SNR can not be computed for $base. ".
-                "Either the getSNRModalities is not defined in your ".
-                "$profile file, or the imaging modality is not ".
-                "supported by the SNR computation. \n";
+            }
+        } else {
+            $message = "The SNR can not be computed for $base as the imaging "
+                       . "modality is not supported by the SNR computation. The "
+                       . "supported modalities for your projects are "
+                       . join(', ', @$modalities) . ".\n";
             $this->{LOG}->print($message);
             $this->spool($message, 'N', $upload_id, $notify_detailed);
         }
@@ -2017,6 +2016,60 @@ sub isValidMRIProtocol  {
         return 1;
     }
 }
+
+=pod
+
+=head3 is_file_unique($file, $upload_id)
+
+Queries the C<files> and C<parameter_file> tables to make sure that no imaging
+datasets with the same C<SeriesUID> and C<EchoTime> or the same C<MD5sum> hash
+can be found in the database already. If there is a match, it will return a
+message with the information about why the file is not unique. If there is no
+match, then it will return undef.
+
+INPUTS:
+  - $file     : the file object from the C<NeuroDB::File> package
+  - $upload_id: the C<UploadID> associated to the file
+
+RETURNS: a message with the reason why the file is not unique or undef
+
+=cut
+
+sub is_file_unique {
+
+    my $this = shift;
+    my ($file, $upload_id) = @_;
+
+    my $seriesUID = $file->getParameter( 'series_instance_uid' );
+    my $echo_time = $file->getParameter( 'echo_time'           );
+
+    # check that no files are already in the files table with the same SeriesUID
+    # and EchoTime
+    my $query     = "SELECT File FROM files WHERE SeriesUID=? AND EchoTime=?";
+    my $sth       = ${$this->{'dbhr'}}->prepare( $query );
+    $sth->execute( $seriesUID, $echo_time );
+    my $results = $sth->fetchrow_array;
+    my $message;
+    if (defined $results) {
+        $message = "\n--> ERROR: there is already a file registered in the files "
+                   . "table with SeriesUID='$seriesUID' and EchoTime='$echo_time'.\n"
+                   . "\tThe already registered file is '$results'\n";
+        return $message;
+    }
+
+    # compute the MD5sum
+    my $unique = $this->computeMd5Hash( $file, $upload_id );
+    if (!$unique) {
+        my $filename = $file->getFileDatum( 'File'    );
+        my $md5hash  = $file->getParameter( 'md5hash' );
+        $message  = "\n--> ERROR: there is already a file registered in the files "
+                   . "table with the same MD5 hash ($md5hash) as '$filename'.\n";
+        return $message;
+    }
+
+    return undef;
+}
+
 
 1;
 

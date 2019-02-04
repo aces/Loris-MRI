@@ -276,7 +276,7 @@ my $exclude          = NeuroDB::DBI::getConfigSetting(
                         \$dbh, 'excluded_series_description'
                        );
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my $User             = `whoami`;
+my $User             = getpwuid($>);
 
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo_wrapper.pl", "mincpik.pl", $converter);
@@ -584,7 +584,7 @@ foreach my $minc (@minc_files) {
 ################################################################
 ############### Compute SNR on 3D modalities ###################
 ################################################################
-$utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id, $profile);
+$utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id);
 ################################################################
 ####### Add order of acquisition for similar modalities ########
 ####### within the same session based on series number #########

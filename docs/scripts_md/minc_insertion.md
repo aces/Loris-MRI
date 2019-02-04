@@ -13,7 +13,7 @@ Available options are:
 \-reckless    : uploads data to database even if study protocol
                is not defined or violated
 
-\-force       : forces the script to run even if validation failed
+\-force       : forces the script to run even if DICOM archive validation failed
 
 \-mincPath    : the absolute path to the MINC file
 

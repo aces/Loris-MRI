@@ -115,8 +115,7 @@ my $tarchive = '';
 my $timeZone = 'local';
 my $query = '';
 my $sth = undef;
-my $User             = `whoami`;
-chomp $User;
+my $User = getpwuid($>);
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
     =~ /: (\d+)\.(\d+)/;
 

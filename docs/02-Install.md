@@ -12,6 +12,7 @@ Following a successful install, some configurations and customizations are
 needed and outlined in the next three sub-sections.
 
 ### 2.2.1 Database
+
 The following tables in the database need to be configured properly for the 
 insertion pipeline to successfully insert scans.
 
@@ -90,6 +91,10 @@ Under the `Paths` section:
  * `Secondary QCed dataset`: Path where a secondary QC'ed dataset is to be stored. Used by the DTIPrep pipeline
  * `excluded_series_description`: series descriptions to be excluded from the steps of the pipeline that start at, and follow the DICOM to MINC conversion. Note that the series description entered in that field need to be an exact match of what is present in the DICOM series description field.
  * `ComputeDeepQC`: Enable or disable the automated computation of image quality control. Feature to be integrated in the code base in a **future** release.
+ * `Default visit label for BIDS dataset`: the visit directory in BIDS 
+    structure is optional in the case of only one visit for the whole dataset. In
+    this case, we need to specify to LORIS what would be the default visit label 
+    the project wants to use to store the electrophysiology datasets (*e.g.* V01).
 
 ### 2.2.2 LORIS
 
@@ -161,6 +166,14 @@ More detailed specifications can be consulted in the
 [LORIS repository: MRI Violated Scans Specification](https://github.com/aces/Loris/blob/master/modules/mri_violations/README.md).
 
 
+6. **Electrophysiology Browser**
+
+No configuration setting is needed for the Electrophysiology Browser module. 
+Data loaded in this module get populated automatically by the BIDS insertion 
+scripts (in the `python` directory). It accesses data stored in the 
+`physiological_*` tables.
+
+
 ### 2.2.3 LORIS-MRI 
 
 #### Filesystem
@@ -190,11 +203,6 @@ More detailed specifications can be consulted in the
 ```perl
 if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'dti' or $acquisitionProtocol eq 'bold' or $acquisitionProtocol =~ /fmri/) { return 1; }
 ```
-
-- `getSNRModalities()`
-    
-    Routine to instruct the pipeline which 3D modalities to include when 
-    computing the signal-to-noise-ratio (SNR) on MINC images.
 
 - `getSubjectIDs()`
 
@@ -259,6 +267,7 @@ Under the `Imaging Pipeline` section:
  * `User to notify when executing the pipeline`
  * `Full path to get_dicom_info.pl script`(typically `/data/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
  * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
+ * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting)
 
 Under the `Path` section:
  * `Imaging Data` (typically `/data/$PROJECT/data/`)
@@ -275,6 +284,8 @@ For common errors and frequently asked questions, please refer to the [Appendix
 
 
 ## 2.4 Pipeline flow
+
+### 2.4.1 DICOM insertion (MRI/PET)
 
 The pipeline was initially designed for **raw DICOM MRI data**, collected by a
   longitudinally-organized multi-site study with a defined imaging acquisition
@@ -321,3 +332,20 @@ The graph below shows the different modules mentioned above with the
 
 ![pipeline_flow](images/overall_flow.png)
 
+
+### 2.4.2 BIDS insertion (Electrophysiology)
+
+This pipeline was initially designed to import EEG datasets organized in a 
+BIDS structure into LORIS. With slight modifications and further 
+customization, it could handle other types of electrophysiology modalities.
+
+Typically, electrophysiology data insertion into LORIS is performed via the 
+following steps:
+
+1. Transfer the BIDS-format data to the LORIS server via commandline. Due to the 
+large size of electrophysiological/BIDS data, a suitable browser-based uploader is 
+not presently available.
+
+2. Run the BIDS import script to import the electrophysiology data into the 
+`physiological_*` tables of LORIS. More details about this import script can 
+be found in the [Scripts](04-Scripts.md) section.
