@@ -107,7 +107,7 @@ my $queryF = <<SQL;
   LEFT JOIN parameter_type AS pt using (ParameterTypeID)
   LEFT JOIN files_qcstatus AS q using (FileID)
   LEFT JOIN session AS s ON (f.SessionID=s.ID)
-  LEFT JOIN psc AS c ON (c.CenterID=s.CenterID)
+  LEFT JOIN psc AS c ON (c.RegistrationCenterID=s.CenterID)
   LEFT JOIN mri_scan_type AS m ON (m.ID=f.AcquisitionProtocolID)
   LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
   WHERE pt.Name = 'acquisition:slice_thickness'
