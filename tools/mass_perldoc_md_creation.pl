@@ -73,6 +73,7 @@ my @script_list = (
     'tools/MakeArchiveLocationRelative.pl',
     'tools/ProdToConfig.pl',
     'tools/database_files_update.pl',
+    'tools/delete_mri_upload.pl',
     'tools/dicomDescribe.pl',
     'tools/get_dicom_files.pl',
     'tools/MakeArchiveLocationRelative.pl',

@@ -1645,6 +1645,26 @@ sub get_trashbin_file_rel_path {
     return $new_rel_path;
 }
 
+=pod
+
+=head3 deleteFiles(@files)
+
+Deletes a set of files from the file system. A warning will be issued for every file
+that could not be deleted.
+
+INPUTS:
+
+  - @files: list of files to delete.
+  
+=cut
+sub deleteFiles {
+	my(@files) = @_;
+	
+	foreach(@files) {
+		unlink $_ or warn "Warning! File '$_' could not be deleted: $!\n";
+	}
+}
+
 1;
 
 __END__
