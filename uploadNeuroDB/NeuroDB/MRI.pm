@@ -139,51 +139,51 @@ sub getSessionID {
 
 ##### if it finds an existing session it does this:
     if($sth->rows > 0) {
-	my $timepoint = $sth->fetchrow_hashref();
-	$sessionID = $timepoint->{'ID'};
-	$sth->finish();
+    my $timepoint = $sth->fetchrow_hashref();
+    $sessionID = $timepoint->{'ID'};
+    $sth->finish();
 
-	# check dates, to determine if staging is required
-	# check date of visit, if available
-	if($timepoint->{'Date_visit'}) {
-	    my @visitDate = split(/-/, $timepoint->{'Date_visit'});
-	    my $timepointJD = julian_day($visitDate[0], $visitDate[1], $visitDate[2]);
-	}
-	if(defined($studyDate) && $studyDate =~ /^(\d{4})(\d{2})(\d{2})/) {
-	    # compute the julian date of the study
-	    $studyDateJD = julian_day($1, $2, $3);
-	}
+    # check dates, to determine if staging is required
+    # check date of visit, if available
+    if($timepoint->{'Date_visit'}) {
+        my @visitDate = split(/-/, $timepoint->{'Date_visit'});
+        my $timepointJD = julian_day($visitDate[0], $visitDate[1], $visitDate[2]);
+    }
+    if(defined($studyDate) && $studyDate =~ /^(\d{4})(\d{2})(\d{2})/) {
+        # compute the julian date of the study
+        $studyDateJD = julian_day($1, $2, $3);
+    }
 
-	# check dates of other files
-	if(defined($studyDateJD)) {
-	    # get the set of files 
-	    $query = "SELECT FileID FROM files WHERE SessionID=$sessionID AND FileType='mnc' AND OutputType='native'";
-	    $sth = $dbh->prepare($query);
-	    $sth->execute();
+    # check dates of other files
+    if(defined($studyDateJD)) {
+        # get the set of files 
+        $query = "SELECT FileID FROM files WHERE SessionID=$sessionID AND FileType='mnc' AND OutputType='native'";
+        $sth = $dbh->prepare($query);
+        $sth->execute();
 
-	    if($sth->rows > 0) {
-		my @files = ();
-		while(my $filehr = $sth->fetchrow_hashref()) { push @files, $filehr->{'FileID'}; }
-		$sth->finish();
+        if($sth->rows > 0) {
+        my @files = ();
+        while(my $filehr = $sth->fetchrow_hashref()) { push @files, $filehr->{'FileID'}; }
+        $sth->finish();
 
-	    }
-	}
+        }
+    }
 
 #####  if there is no existing session, which always happens if you create candidates based on incoming data
     } else {
 
-	# determine the visit number and centerID for the next session
+    # determine the visit number and centerID for the next session
         my $newVisitNo = 0;
         my $centerID = 0;
-
+    
         if($subjectIDref->{'visitLabel'} =~ /PHA/i or $subjectIDref->{'visitLabel'} =~ /TEST/i) {
-	    # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
+        # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
             my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr, $db);
             $centerID = $pscInfo[1];
         }
-	# fixme ask Jon ... is this still useful?
-    # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
-	if($centerID == 0) {
+        # fixme ask Jon ... is this still useful?
+        # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
+        if($centerID == 0) {
             $query = "SELECT IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, CenterID FROM session WHERE CandID=".$dbh->quote($subjectIDref->{'CandID'})." GROUP BY CandID, CenterID";
             $sth = $dbh->prepare($query);
             $sth->execute();
@@ -208,41 +208,41 @@ sub getSessionID {
                 }
             }
         }
-
+    
         $newVisitNo = 1 unless $newVisitNo;
         $centerID = 0 unless $centerID;
 
-#### insert the new session setting Current_stage to 'Not started' because that column is important to the behavioural data entry gui.
-	$query = "INSERT INTO session SET CandID=".$dbh->quote($subjectIDref->{'CandID'}).", Visit_label=".$dbh->quote($subjectIDref->{'visitLabel'}).", CenterID=$centerID, VisitNo=$newVisitNo, Current_stage='Not Started', Scan_done='Y', Submitted='N', SubprojectID=".$dbh->quote($objective);
- 	$dbh->do($query); # execute query
-	$sessionID = $dbh->{'mysql_insertid'}; # retain id of inserted row
-	$subjectIDref->{'visitNo'} = $newVisitNo; # add visit number to subjectIDref
+        #### insert the new session setting Current_stage to 'Not started' because that column is important to the behavioural data entry gui.
+        $query = "INSERT INTO session SET CandID=".$dbh->quote($subjectIDref->{'CandID'}).", Visit_label=".$dbh->quote($subjectIDref->{'visitLabel'}).", CenterID=$centerID, VisitNo=$newVisitNo, Current_stage='Not Started', Scan_done='Y', Submitted='N', SubprojectID=".$dbh->quote($objective);
+        $dbh->do($query); # execute query
+        $sessionID = $dbh->{'mysql_insertid'}; # retain id of inserted row
+        $subjectIDref->{'visitNo'} = $newVisitNo; # add visit number to subjectIDref
 
-	# check dates of other files
-	if(defined($studyDateJD)) {
-	    # get the set of sessions for the subject
-	    $query = "SELECT ID FROM session WHERE CandID=$subjectIDref->{'CandID'} AND Active='Y'";
-	    $sth = $dbh->prepare($query);
-	    $sth->execute();
+        # check dates of other files
+        if(defined($studyDateJD)) {
+            # get the set of sessions for the subject
+            $query = "SELECT ID FROM session WHERE CandID=$subjectIDref->{'CandID'} AND Active='Y'";
+            $sth = $dbh->prepare($query);
+            $sth->execute();
 
-	    if($sth->rows > 0) {
-		my @sessionIDs = ();
-		while(my $session = $sth->fetchrow_array()) { push @sessionIDs, $session[0]; }
-		$sth->finish();
+            if($sth->rows > 0) {
+                my @sessionIDs = ();
+                while(my $session = $sth->fetchrow_array()) { push @sessionIDs, $session[0]; }
+                $sth->finish();
 
-		# get the set of files
-		$query = "SELECT FileID FROM files WHERE SessionID IN (".join(',', @sessionIDs)." AND FileType='mnc' AND OutputType='native'";
-		$sth = $dbh->prepare($query);
-		$sth->execute();
+                # get the set of files
+                $query = "SELECT FileID FROM files WHERE SessionID IN (".join(',', @sessionIDs)." AND FileType='mnc' AND OutputType='native'";
+                $sth = $dbh->prepare($query);
+                $sth->execute();
 
-		if($sth->rows > 0) {
-		    my @files = ();
-		    while(my $filearray = $sth->fetchrow_array()) { push @files, $filearray[0]; }
+                if($sth->rows > 0) {
+                    my @files = ();
+                    while(my $filearray = $sth->fetchrow_array()) { push @files, $filearray[0]; }
 
-		    $sth->finish();
-		} # end if sth->rows (files)
-	    } # end if sth->rows (sessionIDs)
-	} # end if defined studyDateJD
+                    $sth->finish();
+                } # end if sth->rows (files)
+            } # end if sth->rows (sessionIDs)
+        } # end if defined studyDateJD
     }
 
     return ($sessionID);
@@ -270,7 +270,7 @@ sub getObjective
     my $objective = 0;
     my %subjectIDs = %$subjectIDsref;
     if($subjectIDs{'visitLabel'} =~ /PHA/i or $subjectIDs{'visitLabel'} =~ /TEST/i) {
-	return 0;
+    return 0;
     }
 
     my $query = "SELECT SubprojectID FROM session WHERE CandID='$subjectIDs{'CandID'}' AND Visit_label='$subjectIDs{'visitLabel'}' AND Active='Y' ORDER BY ID DESC LIMIT 1";
@@ -307,20 +307,12 @@ Determines the type of the scan described by MINC headers based on
 C<mri_protocol> table in the database.
 
 INPUTS:
-<<<<<<< 62b452b14a0221a858e299cc6f885a0a413b99f0
   - $center_name   : center's name
   - $objective     : objective of the study
   - $fileref       : file hash ref
   - $dbhr          : database handle reference
   - $db            : database object
   - $minc_location : location of the MINC files
-=======
-  - $center_name  : center's name
-  - $objective    : objective of the study
-  - $fileref      : file hash ref
-  - $dbhr         : database handle reference
-  - $minc_location: path to the MINC file
->>>>>>> Add support for multiple MRI protocols.
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 
@@ -328,11 +320,7 @@ RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 sub identify_scan_db {
 
-<<<<<<< 62b452b14a0221a858e299cc6f885a0a413b99f0
     my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location
-=======
-    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $minc_location
->>>>>>> Add support for multiple MRI protocols.
     ) = @_;
 
     my $candid       = ${subjectref}->{'CandID'};
@@ -384,45 +372,17 @@ sub identify_scan_db {
     my $n_slices = 0;
 
     # get ScannerID from DB
-<<<<<<< 62b452b14a0221a858e299cc6f885a0a413b99f0
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( {
         Manufacturer  => $fileref->getParameter('manufacturer'),
         Model         => $fileref->getParameter('manufacturer_model_name'),
         Serial_number => $fileref->getParameter('device_serial_number'),
         Software      => $fileref->getParameter('software_versions')
-	});
+    });
     
     # default ScannerID to 0 if we have no better clue.
     my $ScannerID = @$resultsRef> 0 ? $resultsRef->[0]->{'ID'} : 0;
     
-    # get the list of protocols for a site their scanner and subproject
-    $query = "SELECT *
-              FROM mri_protocol
-              WHERE
-             (Center_name='$psc' AND ScannerID='$ScannerID')
-              OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
-              ORDER BY Center_name ASC, ScannerID DESC";
-
-=======
-    my $manufacturer  = ${fileref}->getParameter('manufacturer');
-    my $model         = ${fileref}->getParameter('manufacturer_model_name');
-    my $serial_number = ${fileref}->getParameter('device_serial_number');
-    my $software      = ${fileref}->getParameter('software_versions');
-
-    my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer='$manufacturer' AND Model='$model' AND Serial_number='$serial_number' AND Software='$software'";
-
-
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-
-    # default ScannerID to 0 if we have no better clue.
-    my $ScannerID = 0;
-    if($sth->rows>0) {
-        my @results = $sth->fetchrow_array();
-        $ScannerID=$results[0];
-    }
-
     #===========================================================#
     # Get the list of lines in the mri_protocol table that      #
     # apply to the given scan based on the center name, project # 
@@ -436,7 +396,7 @@ sub identify_scan_db {
            mp.time_range, mp.series_description_regex
     FROM mri_protocol mp
     JOIN mri_protocol_group_rel mpgr ON (mp.ID=mpgr.MriProtocolID)
-    JOIN mri_protocol_group_target mpgt USING(MriProtocolGroupID)
+    JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)
     WHERE
         (Center_name = ? AND ScannerID = ?)
     OR  ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
@@ -459,7 +419,6 @@ QUERY
     push(@bindValues, $subprojectID) if defined $subprojectID;
     push(@bindValues, $visitLabel)   if defined $visitLabel;
     
->>>>>>> Add support for multiple MRI protocols.
     $sth = $${dbhr}->prepare($query);
     $sth->execute(@bindValues);
     
@@ -513,13 +472,13 @@ QUERY
             print "\n";
         }
 
-	    if ($sd_regex) {
+        if ($sd_regex) {
             if ($series_description =~ /$sd_regex/i) {
                 return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
 
-	    } else {
-         	if ( &in_range($tr,              "$tr_min-$tr_max"                  )
+        } else {
+            if ( &in_range($tr,              "$tr_min-$tr_max"                  )
               && &in_range($te,              "$te_min-$te_max"                  )
               && &in_range($ti,              "$ti_min-$ti_max"                  )
               && &in_range($xspace,          "$xspace_min-$xspace_max"          )
@@ -801,7 +760,7 @@ sub register_db {
 
     # make sure this file isn't registered
     if(defined($fileData->{'FileID'}) && $fileData->{'FileID'} > 0) {
-	return 0;
+    return 0;
     }
 
     # build the insert query
@@ -823,23 +782,23 @@ sub register_db {
 
     # if there are any parameters to save
     if(scalar(keys(%$params)) > 0) {
-	# build the insert query
-	$query = "INSERT INTO parameter_file (FileID, ParameterTypeID, Value, InsertTime) VALUES ";
-	foreach my $key (keys %$params) {
-	    # skip the parameter if it is not defined
-	    next unless defined $${params{$key}};
+    # build the insert query
+    $query = "INSERT INTO parameter_file (FileID, ParameterTypeID, Value, InsertTime) VALUES ";
+    foreach my $key (keys %$params) {
+        # skip the parameter if it is not defined
+        next unless defined $${params{$key}};
 
-	    # add the parameter to the query
-	    my $typeID = $file->getParameterTypeID($key);
-	    my $value = '';
-	    $value = $dbh->quote($${params{$key}});
+        # add the parameter to the query
+        my $typeID = $file->getParameterTypeID($key);
+        my $value = '';
+        $value = $dbh->quote($${params{$key}});
+        
+        if($query =~ /\)$/) { $query .= ",\n"; }
 
-	    if($query =~ /\)$/) { $query .= ",\n"; }
-
-	    $query .= "($fileID, $typeID, $value, UNIX_TIMESTAMP())";
-	}
-	# run query
-	$dbh->do($query);
+        $query .= "($fileID, $typeID, $value, UNIX_TIMESTAMP())";
+    }
+    # run query
+    $dbh->do($query);
     }
     return $fileID;
 }
@@ -951,11 +910,11 @@ sub mapDicomParameters {
 
     # map parameters, removing the old params if they start with 'dicom'
     foreach my $key (keys %map_hash) {
-	my $value = $file->getParameter($map_hash{$key});
-	if(defined $value) {
-	    $file->setParameter($key, $value);
-	    $file->removeParameter($map_hash{$key}) if($map_hash{$key} =~ /^dicom/);
-	}
+    my $value = $file->getParameter($map_hash{$key});
+    if(defined $value) {
+        $file->setParameter($key, $value);
+        $file->removeParameter($map_hash{$key}) if($map_hash{$key} =~ /^dicom/);
+    }
     }
     my $patientName = $file->getParameter('patient_name');
     $patientName =~ s/[\?\(\)\\\/\^]//g;
@@ -993,13 +952,13 @@ sub findScannerID {
 
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( {
-		Manufacturer  => $manufacturer,
-		Model         => $model,
-		Software      => $softwareVersion,
-		Serial_number => $serialNumber
-	});
-	
-	# Scanner exists
+        Manufacturer  => $manufacturer,
+        Model         => $model,
+        Software      => $softwareVersion,
+        Serial_number => $serialNumber
+    });
+    
+    # Scanner exists
     return $resultsRef->[0]->{'ID'} if @$resultsRef;
 
     # Scanner does not exist and we don't want to register a new one: ID defaults to 0
@@ -1044,23 +1003,23 @@ sub registerScanner {
 
     # create a new candidate for the scanner if it does not exist.
     if(!defined($candID) || ($candID eq 'NULL')) {
-	    $candID = createNewCandID($dbhr);
-	    $query = "INSERT INTO candidate "
+        $candID = createNewCandID($dbhr);
+        $query = "INSERT INTO candidate "
                  . "(CandID,          PSCID,  RegistrationCenterID, Date_active,  "
                  . " Date_registered, UserID, Entity_type                       ) "
                  . "VALUES "
                  . "($candID, 'scanner',      $centerID,  NOW(),   "
                  . " NOW(),   'NeuroDB::MRI', 'Scanner'          ) ";
-	    $dbh->do($query);
-    }	
+        $dbh->do($query);
+    }   
     
     return $mriScannerOB->insertOne({
-		Manufacturer  => $manufacturer,
-		Model         => $model,
-		Serial_number => $serialNumber,
-		Software      => $softwareVersion,
-		CandID        => $candID
-	});
+        Manufacturer  => $manufacturer,
+        Model         => $model,
+        Serial_number => $serialNumber,
+        Software      => $softwareVersion,
+        CandID        => $candID
+    });
 }
 
 =pod
@@ -1081,9 +1040,9 @@ sub createNewCandID {
 
     my $sth = $${dbhr}->prepare("SELECT CandID FROM candidate WHERE CandID = ?");
     while(1) {
-	$candID = int(rand 899999) + 100000;
-	$sth->execute($candID);
-	last if $sth->rows == 0;
+    $candID = int(rand 899999) + 100000;
+    $sth->execute($candID);
+    last if $sth->rows == 0;
     }
 
     return $candID;
@@ -1125,9 +1084,9 @@ sub getPSC {
     ## Get the CenterID from the session table, if the PSCID and visit labels exist
     ## and could be extracted
     if ($PSCID && $visitLabel) {
-    	my $query = "SELECT s.CenterID, p.MRI_alias FROM session s
-                    JOIN psc p on p.CenterID=s.CenterID
-                    JOIN candidate c on c.CandID=s.CandID
+        my $query = "SELECT s.CenterID, p.MRI_alias FROM session s 
+                    JOIN psc p on p.CenterID=s.CenterID  
+                    JOIN candidate c on c.CandID=s.CandID  
                     WHERE c.PSCID = ? AND s.Visit_label = ?";
 
         my $sth = $${dbhr}->prepare($query);
@@ -1145,7 +1104,7 @@ sub getPSC {
     foreach my $psc (@$pscsRef) {
         if ($patientName =~ /$psc->{'Alias'}/i || $patientName =~ /$psc->{'MRI_alias'}/i) {
             return ($psc->{'MRI_alias'}, $psc->{'CenterID'}); 
-		}
+        }
     }
 
     return ("UNKN", 0);
@@ -1181,14 +1140,14 @@ sub compute_hash {
 
     # add some minc header fields that we care about to the digest
     if($fileType eq 'mnc') {
-	$ctx->add($file->getParameter('patient:full_name'));          # PatientName
-	$ctx->add($file->getParameter('study:start_time'));           # StudyDateTime
-	$ctx->add($file->getParameter('patient:identification'));     # PatientID
+    $ctx->add($file->getParameter('patient:full_name'));          # PatientName
+    $ctx->add($file->getParameter('study:start_time'));           # StudyDateTime
+    $ctx->add($file->getParameter('patient:identification'));     # PatientID
     $ctx->add($file->getParameter('patient:sex'));                # Patient Sex
     $ctx->add($file->getParameter('patient:age'));                # Patient Age
-	$ctx->add($file->getParameter('patient:birthdate'));          # Patient DOB
-	$ctx->add($file->getParameter('study_instance_uid'));         # StudyInstanceUID
-	$ctx->add($file->getParameter('series_description'));         # SeriesDescription
+    $ctx->add($file->getParameter('patient:birthdate'));          # Patient DOB
+    $ctx->add($file->getParameter('study_instance_uid'));         # StudyInstanceUID
+    $ctx->add($file->getParameter('series_description'));         # SeriesDescription
     if (defined $file->getParameter('processing:intergradient_rejected')) {
         $ctx->add($file->getParameter('processing:intergradient_rejected'));
     }
@@ -1474,7 +1433,7 @@ sub make_minc_pics {
                      "-profile $profile";
         if ($verbose) {
             $script .= " -verbose";
-	}
+    }
 
         ############################################################
         ## Note: system call returns the process ID ################
@@ -1515,10 +1474,10 @@ sub DICOMDateToUnixTimestamp {
 }
 
 sub my_trim {
-	my ($str) = @_;
-	$str =~ s/^\s+//;
-	$str =~ s/\s+$//;
-	return $str;
+    my ($str) = @_;
+    $str =~ s/^\s+//;
+    $str =~ s/\s+$//;
+    return $str;
 }
 
 =pod
@@ -1655,11 +1614,11 @@ INPUTS:
   
 =cut
 sub deleteFiles {
-	my(@files) = @_;
-	
-	foreach(@files) {
-		unlink $_ or warn "Warning! File '$_' could not be deleted: $!\n";
-	}
+    my(@files) = @_;
+    
+    foreach(@files) {
+        unlink $_ or warn "Warning! File '$_' could not be deleted: $!\n";
+    }
 }
 
 1;

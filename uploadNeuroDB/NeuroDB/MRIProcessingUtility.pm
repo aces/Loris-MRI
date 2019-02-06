@@ -404,8 +404,8 @@ sub determineSubjectID {
             $this->writeErrorLog(
                 $message, $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE
             );
-	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-	    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
+        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+        exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
         }
     }
 
@@ -484,8 +484,8 @@ sub createTarchiveArray {
                       "This seems not to be a valid archive for this study!".
                       "\n\n";
         $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
-	# no $tarchive can be fetched so $upload_id is undef
-	# in the notification_spool
+        # no $tarchive can be fetched so $upload_id is undef
+        # in the notification_spool
         $this->spool($message, 'Y', undef, $notify_notsummary);
         exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
@@ -535,16 +535,16 @@ sub determinePSC {
             $this->writeErrorLog(
                 $message, $NeuroDB::ExitCodes::SELECT_FAILURE
             );
-	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
-        }
-        my $message =
-            "\n==> Verifying acquisition center\n-> " .
-            "Center Name : $center_name\n-> CenterID ".
-            " : $centerID\n";
-	$this->{LOG}->print($message);
-	$this->spool($message, 'N', $upload_id, $notify_detailed);
+            $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+                exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+            }
+            my $message = "\n==> Verifying acquisition center\n-> " .
+                          "Center Name : $center_name\n-> CenterID ".
+                          " : $centerID\n";
+            $this->{LOG}->print($message);
+            $this->spool($message, 'N', $upload_id, $notify_detailed);
     }
+    
     return ($center_name, $centerID);
 }
 
@@ -599,7 +599,7 @@ sub determineScannerID {
             $this->writeErrorLog(
                 $message, $NeuroDB::ExitCodes::SELECT_FAILURE
             );
-       	    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+            $this->spool($message, 'Y', $upload_id, $notify_notsummary);
             exit $NeuroDB::ExitCodes::SELECT_FAILURE;
         }
     }
@@ -627,7 +627,7 @@ sub get_acquisitions {
     split("\n", `find $study_dir -type d -name \\*.ACQ`);
     my $message = "Acquisitions: ".join("\n", @$acquisitions)."\n";
     if ($this->{verbose}){
-	    $this->{LOG}->print($message);
+        $this->{LOG}->print($message);
     }
 }
 
@@ -731,25 +731,27 @@ sub getAcquisitionProtocol {
 
         if ($bypass_extra_file_checks == 0) {
             $extra_validation_status = $this->extra_file_checks(
-                        $acquisitionProtocolID, 
-                        $file, 
-                        $subjectIDsref->{'CandID'}, 
-                        $subjectIDsref->{'visitLabel'},
-                        $tarchiveInfoRef->{'PatientName'}
-                    );
-          $message = "\nextra_file_checks from table mri_protocol_check " .
+                $acquisitionProtocolID, 
+                $file, 
+                $subjectIDsref->{'CandID'}, 
+                $subjectIDsref->{'visitLabel'},
+                $tarchiveInfoRef->{'PatientName'}
+            );
+            $message = "\nextra_file_checks from table mri_protocol_check " .
                      "logged in table mri_violations_log: $extra_validation_status\n";
-	  $this->{LOG}->print($message);
-	  # 'warn' and 'exclude' are errors, while 'pass' is not
-	  # log in the notification_spool_table the $Verbose flag accordingly
-	  if ($extra_validation_status ne 'pass'){
-	          $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-	  }
-	  else{
-	          $this->spool($message, 'N', $upload_id, $notify_detailed);
-	  }
+            $this->{LOG}->print($message);
+            
+            # 'warn' and 'exclude' are errors, while 'pass' is not
+            # log in the notification_spool_table the $Verbose flag accordingly
+            if ($extra_validation_status ne 'pass'){
+                $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+            }
+            else {
+                $this->spool($message, 'N', $upload_id, $notify_detailed);
+            }
         }
     }
+    
     return ($acquisitionProtocol, $acquisitionProtocolID, $extra_validation_status);
 }
 
@@ -809,10 +811,10 @@ sub extra_file_checks() {
     # check if the scan is valid. If the scan is not valid, then, return the
     # severity of the failure.
     foreach my $severity (qw/exclude warning/) {
-		my @bindValues = ($scan_type, $severity);
-		push(@bindValues, $projectID)    if defined $projectID;
-		push(@bindValues, $subprojectID) if defined $subprojectID;
-		push(@bindValues, $visitLabel)   if defined $visitLabel;
+        my @bindValues = ($scan_type, $severity);
+        push(@bindValues, $projectID)    if defined $projectID;
+        push(@bindValues, $subprojectID) if defined $subprojectID;
+        push(@bindValues, $visitLabel)   if defined $visitLabel;
         $sth->execute(@bindValues);
         
         my @headers = map { $_->{'Header'} } @{ $sth->fetchall_arrayref({}) };
@@ -894,7 +896,7 @@ sub loop_through_protocol_violations_checks {
     my %valid_fields; # will store all information about what fails
 
     # query to fetch list of valid protocol checks in mri_protocol_checks table
-    my $query = "SELECT * FROM mri_protocol_checks mpc "
+    my $query = "SELECT ValidRange, ValidRegex FROM mri_protocol_checks mpc "
         . "JOIN mri_protocol_checks_group_rel mpcgr ON (mpc.ID=mpcgr.MriProtocolChecksGroupID) "
         . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
         . "WHERE mpc.Scan_type=? AND mpc.Severity=? AND mpc.Header=?";
@@ -1056,7 +1058,7 @@ sub loadAndCreateObjectFile {
     ############################################################
     ########## load File object ################################
     ############################################################
-    $message = 	"\n==> Loading file from disk $minc\n";
+    $message =  "\n==> Loading file from disk $minc\n";
     $this->{LOG}->print($message); 
     $this->spool($message, 'N', $upload_id, $notify_detailed);
     $file->loadFileFromDisk($minc);
@@ -1096,7 +1098,7 @@ sub move_minc {
     
     my $this = shift;
     my ($minc,$subjectIDsref, $minc_type, $fileref,
-		$prefix,$data_dir, $upload_id) = @_;
+        $prefix,$data_dir, $upload_id) = @_;
     my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
     my $concat = "";
     my $message = '';
@@ -1210,7 +1212,7 @@ sub registerScanIntoDB {
         );
         
         $message = "\nAcq protocol: $acquisitionProtocol " 
-			. "- ID: $acquisitionProtocolID\n";
+            . "- ID: $acquisitionProtocolID\n";
         $this->spool($message, 'N', $upload_id, $notify_detailed);
 
         ########################################################
@@ -1288,7 +1290,7 @@ sub dicom_to_minc {
 
     my $this = shift;
     my ($study_dir, $converter,$get_dicom_info,
-		$exclude,$mail_user, $upload_id) = @_;
+        $exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
@@ -2008,12 +2010,12 @@ sub getUploadIDUsingTarchiveSrcLoc {
         ########################################################
         ###Extract upload_id using tarchive source location#####
         ########################################################
-	$query = "SELECT UploadID FROM mri_upload "
-        	. "WHERE DecompressedLocation =?";
-	my $sth = $dbh->prepare($query);
-     	$sth->execute($tarchive_srcloc);
+    $query = "SELECT UploadID FROM mri_upload "
+            . "WHERE DecompressedLocation =?";
+    my $sth = $dbh->prepare($query);
+        $sth->execute($tarchive_srcloc);
         if ( $sth->rows > 0 ) {
-     	   $upload_id = $sth->fetchrow_array;
+           $upload_id = $sth->fetchrow_array;
         }
     }
     return $upload_id;
@@ -2041,7 +2043,7 @@ sub spool  {
     my ( $message, $error, $upload_id, $verb ) = @_;
 
     if ($error eq 'Y'){
- 	print "Spool message is: $message \n";
+    print "Spool message is: $message \n";
     }
     $this->{'Notify'}->spool('mri upload processing class', $message, 0,
            'MRIProcessingUtility.pm', $upload_id, $error, $verb);
