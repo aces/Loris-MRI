@@ -183,6 +183,8 @@ foreach my $modality (keys %images_hash) {
       $images_hash{$modality}{Model} = $model_t2w;
     } elsif (basename($scan) =~ /pd/i) {
       $images_hash{$modality}{Model} = $model_pdw;
+    } else {
+      $images_hash{$modality}{Model} = $model_t1w;
     }
   }
 }
