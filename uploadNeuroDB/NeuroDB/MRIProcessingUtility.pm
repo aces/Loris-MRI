@@ -1398,6 +1398,10 @@ sub moveAndUpdateTarchive {
     my $tarchivePath = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'tarchiveLibraryDir'
                         );
+    # return the current tarchive location if no dates are available
+    return $tarchive_location unless ($tarchiveInfo->{'DateAcquired'});
+
+    # move the tarchive in a year subfolder
     $newTarchiveLocation = $tarchivePath ."/".
     substr($tarchiveInfo->{'DateAcquired'}, 0, 4);
     ############################################################
