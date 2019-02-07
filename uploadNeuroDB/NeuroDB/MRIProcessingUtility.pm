@@ -912,26 +912,34 @@ sub update_mri_acquisition_dates {
     ############################################################
     # get the registered acquisition date for this session #####
     ############################################################
-    my $query = "SELECT s.ID, m.AcquisitionDate FROM session AS s LEFT OUTER".
-                " JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)". 
-                " WHERE s.ID='$sessionID' AND s.Active='Y' AND".
-                " (m.AcquisitionDate > '$acq_date'". 
-                " OR m.AcquisitionDate IS NULL) AND '$acq_date'>0";
-    
+    my $query = "SELECT s.ID, m.AcquisitionDate "
+                . " FROM session AS s "
+                . " LEFT OUTER JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)"
+                . " WHERE s.ID=? AND s.Active='Y'";
+    my @values = ($sessionID);
+    if ($acq_date) {
+        $query .= " AND (m.AcquisitionDate > ?"
+                  . " OR m.AcquisitionDate IS NULL) AND ?>0";
+        push @values, ($acq_date, $acq_date);
+    } else {
+        $query .= " AND m.AcquisitionDate is NULL";
+    }
+
     if ($this->{debug}) {
         print $query . "\n";
     }
 
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+    $sth->execute(@values);
     ############################################################
     ### if we found a session, it needs updating or inserting, #
     ### so we use replace into. ################################
     ############################################################
     if ($sth->rows > 0) {
-        my $query = "REPLACE INTO mri_acquisition_dates".
-                    " SET AcquisitionDate='$acq_date', SessionID='$sessionID'";
-        ${$this->{'dbhr'}}->do($query);
+        $query = "REPLACE INTO mri_acquisition_dates".
+                    " SET AcquisitionDate=?, SessionID=?";
+        $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($acq_date, $sessionID);
     }
 }
 
@@ -1175,10 +1183,7 @@ sub registerScanIntoDB {
         my $acquisition_date = $tarchiveInfo->{'DateAcquired'}
             // $${minc_file}->getParameter('AcquisitionDate')
             // undef;
-        $this->update_mri_acquisition_dates(
-            $sessionID,
-            $acquisition_date
-        ) if $acquisition_date;
+        $this->update_mri_acquisition_dates($sessionID, $acquisition_date);
     }
     return $acquisitionProtocolID;
 }
