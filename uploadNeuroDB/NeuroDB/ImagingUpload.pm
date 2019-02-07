@@ -306,7 +306,7 @@ sub IsCandidateInfoValid {
 =head3 runDicomTar()
 
 This method executes the following actions:
- - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
+ - Runs C<dicomTar.pl> with C<-database -profile prod> options
  - Extracts the C<TarchiveID> of the DICOM archive created by C<dicomTar.pl>
  - Updates the C<mri_upload> table if C<dicomTar.pl> ran successfully
 
@@ -329,7 +329,7 @@ sub runDicomTar {
       $bin_dirPath . "/" . "dicom-archive" . "/" . "dicomTar.pl";
     my $command =
         $dicomtar . " " . $this->{'uploaded_temp_folder'} 
-      . " $tarchive_location -clobber -database -profile prod";
+      . " $tarchive_location -database -profile prod";
     if ($this->{verbose}) {
         $command .= " -verbose";
     }
