@@ -324,7 +324,7 @@ sub extractAndParseTarchive {
         $this->extract_tarchive($tarchive, $upload_id, $seriesuid);
     my $ExtractSuffix  = basename($tarchive, ".tar");
     # get rid of the tarchive Prefix 
-    $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
+    $ExtractSuffix =~ s/DCM_(\d{4}-\d{2}-\d{2})?_//;
     my $info       = "head -n 12 $this->{TmpDir}/${ExtractSuffix}.meta";
     my $header     = `$info`;
     my $message = "\n$header\n";
@@ -375,11 +375,14 @@ sub determineSubjectID {
                             $this->{dbhr}
                         );
     if ($to_log) {
-        my $message = "\n==> Data found for candidate   : ".
-                            "CandID: ". $subjectIDsref->{'CandID'} .
-                            "- PSCID: ". $subjectIDsref->{'PSCID'} . "- Visit: ".
-                            $subjectIDsref->{'visitLabel'} . "- Acquired : ".
-                            $tarchiveInfo->{'DateAcquired'} . "\n";
+        my $message = sprintf(
+            "\n==> Data found for candidate CandID: %s, PSCID %s, Visit %s, Acquisition Date %s\n ",
+            $subjectIDsref->{'CandID'},
+            $subjectIDsref->{'PSCID'},
+            $subjectIDsref->{'visitLabel'},
+            (defined $tarchiveInfo->{'DateAcquired'}
+                ? $tarchiveInfo->{'DateAcquired'} : 'UNKNOWN')
+        );
 	$this->{LOG}->print($message);
         $this->spool($message, 'N', $upload_id, $notify_detailed);
     }
@@ -1175,7 +1178,7 @@ sub registerScanIntoDB {
         $this->update_mri_acquisition_dates(
             $sessionID,
             $acquisition_date
-        );
+        ) if $acquisition_date;
     }
     return $acquisitionProtocolID;
 }
@@ -1277,7 +1280,7 @@ sub get_mincs {
     my @files_list;
     foreach my $file (@files) {
         next unless $file =~ /\.mnc(\.gz)?$/;
-        my $cmd= "Mincinfo_wrapper -quiet -tab -file -date $this->{TmpDir}/$file";
+        my $cmd= "Mincinfo_wrapper -quiet -tab -file -attvalue acquisition:acquisition_id $this->{TmpDir}/$file";
         push @files_list, `$cmd`;
     }
     open SORTER, "|sort -nk2 | cut -f1 > $this->{TmpDir}/sortlist";
@@ -1398,6 +1401,10 @@ sub moveAndUpdateTarchive {
     my $tarchivePath = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'tarchiveLibraryDir'
                         );
+    # return the current tarchive location if no dates are available
+    return $tarchive_location unless ($tarchiveInfo->{'DateAcquired'});
+
+    # move the tarchive in a year subfolder
     $newTarchiveLocation = $tarchivePath ."/".
     substr($tarchiveInfo->{'DateAcquired'}, 0, 4);
     ############################################################
