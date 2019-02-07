@@ -324,7 +324,7 @@ sub extractAndParseTarchive {
         $this->extract_tarchive($tarchive, $upload_id, $seriesuid);
     my $ExtractSuffix  = basename($tarchive, ".tar");
     # get rid of the tarchive Prefix 
-    $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
+    $ExtractSuffix =~ s/DCM_(\d{4}-\d{2}-\d{2})?_//;
     my $info       = "head -n 12 $this->{TmpDir}/${ExtractSuffix}.meta";
     my $header     = `$info`;
     my $message = "\n$header\n";
