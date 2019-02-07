@@ -37,6 +37,22 @@ INPUTS:
 
 RETURNS: 1 on success
 
+### is\_study\_unique($dbh, $update, $Archivemd5)
+
+Verifies that the DICOM study is already registered in the `tarchive` tables
+using the StudyUID field of the DICOM files. If the study is already present in the
+`tarchive` tables but `-clobber` was not when running &lt;dicomTar.pl> or that we are
+using &lt;dicomSummary.pl>, it will return the appropriate error message.
+
+INPUTS:
+  - $dbh       : database handle
+  - $update    : set to 1 to update `tarchive` entry, 0 otherwise
+  - $Archivemd5: DICOM archive MD5 sum
+
+RETURNS:
+  - $unique\_study: set to 0 if the study was found in the database, 1 otherwise
+  - $message     : error message or undef if no error found
+
 ### read\_file($file)
 
 Reads the content of a file (typically .meta file in the DICOM archive).

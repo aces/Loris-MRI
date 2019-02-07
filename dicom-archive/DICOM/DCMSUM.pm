@@ -130,7 +130,7 @@ sub database {
     # whether the query worked fine
     my $success = undef;
     # check if this StudyUID is already in your database
-    my ($unique_study, $message) = $self->is_study_unique($dbh, $update);
+    my ($unique_study, $message) = $self->is_study_unique($dbh, $update, $Archivemd5);
     if (!$unique_study && !$update) {
         # if the study is not unique and update is not set it means the script
         # should stop running and display the error message
@@ -404,6 +404,27 @@ QUERY
     }
     return $success; # if query worked this will return 1;
 }
+
+=pod
+
+=head3 is_study_unique($dbh, $update, $Archivemd5)
+
+Verifies that the DICOM study is already registered in the C<tarchive> tables
+using the StudyUID field of the DICOM files. If the study is already present in the
+C<tarchive> tables but C<-clobber> was not when running <dicomTar.pl> or that we are
+using <dicomSummary.pl>, it will return the appropriate error message.
+
+INPUTS:
+  - $dbh       : database handle
+  - $update    : set to 1 to update C<tarchive> entry, 0 otherwise
+  - $Archivemd5: DICOM archive MD5 sum
+
+RETURNS:
+  - $unique_study: set to 0 if the study was found in the database, 1 otherwise
+  - $message     : error message or undef if no error found
+
+
+=cut
 
 sub is_study_unique {
     my ($self, $dbh, $update, $Archivemd5) = @_;

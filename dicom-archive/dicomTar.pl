@@ -216,7 +216,7 @@ my $sumTypeVersion  = $summary->{sumTypeVersion};
 # check if the study is already uploaded in the tarchive tables
 if ($dbase) {
     $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-    my ($unique_study, $message) = $summary->is_study_unique($dbh, $clobber);
+    my ($unique_study, $message) = $summary->is_study_unique($dbh, $clobber, undef);
     # if there is a message returned, it means the script should stop running
     # and display the error message as the study is not unique
     if (!$unique_study && !$clobber) {
