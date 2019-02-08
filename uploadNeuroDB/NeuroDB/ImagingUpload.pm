@@ -322,7 +322,6 @@ sub runDicomTar {
     my $tarchive_location = NeuroDB::DBI::getConfigSetting(
                             $this->{dbhr},'tarchiveLibraryDir'
                             );
-    my $bin_dirPath = NeuroDB::DBI::getConfigSetting($this->{dbhr},'MRICodePath');
     my $command = sprintf(
         "dicomTar.pl %s %s -database -profile %s",
         quotemeta($this->{'uploaded_temp_folder'}),
