@@ -581,7 +581,7 @@ if ($valid_study) {
     print $query . "\n" if $debug;
 
     my $mri_upload_update = $dbh->prepare($query);
-    $mri_upload_update->execute($newCount, $mcount, $tarchiveInfo{TarchiveID});
+    $mri_upload_update->execute($newCount, $mcount, $upload_id);
  
     ############################################################
     ############# Create minc-pics #############################
