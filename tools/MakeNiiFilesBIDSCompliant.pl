@@ -596,7 +596,7 @@ QUERY
                     print "    SliceTiming is " .  $headerVal . "\n";
                 }
                 else {
-                    $headerVal = [ map {1 * $_} split(",", $headerVal) ];
+                    $headerVal = [ map {$_ / 1000} split(",", $headerVal) ];
                     print "    SliceTiming $headerVal was added \n" if $verbose;
                 }
                 $header_hash{$extraHeader} = $headerVal;
