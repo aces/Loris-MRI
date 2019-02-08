@@ -523,10 +523,8 @@ foreach my $minc (@minc_files) {
     ###########################################################
     ############# Call the minc_insertion script ##############
     ###########################################################
-
     $script = sprintf(
-        "minc_insertion.pl -tarchivePath %s -mincPath %s -profile %s -uploadID %s",
-        quotemeta($tarchive),
+        "minc_insertion.pl -mincPath %s -profile %s -uploadID %s",
         quotemeta($minc),
         quotemeta($profile),
         quotemeta($upload_id)
@@ -569,7 +567,7 @@ if ($valid_study) {
     ### And number_of_mincInserted #############################
     ############################################################
 
-    my $query = "SELECT number_of_mincInserted FROM mri_upload WHERE Upload=?";
+    my $query = "SELECT number_of_mincInserted FROM mri_upload WHERE UploadID=?";
     print $query . "\n" if $debug;
 
     my $sth = $dbh->prepare($query);
@@ -579,7 +577,7 @@ if ($valid_study) {
 
     $query = "UPDATE mri_upload "
              . " SET number_of_mincInserted=?, number_of_mincCreated=? "
-             . " WHERE Upload=?";
+             . " WHERE UploadID=?";
     print $query . "\n" if $debug;
 
     my $mri_upload_update = $dbh->prepare($query);
