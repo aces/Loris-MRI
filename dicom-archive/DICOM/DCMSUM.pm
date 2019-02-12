@@ -411,8 +411,8 @@ QUERY
 
 Verifies that the DICOM study is already registered in the C<tarchive> tables
 using the StudyUID field of the DICOM files. If the study is already present in the
-C<tarchive> tables but C<-clobber> was not when running <dicomTar.pl> or that we are
-using <dicomSummary.pl>, it will return the appropriate error message.
+C<tarchive> tables but C<-clobber> was not when running C<dicomTar.pl> or that we are
+using C<dicomSummary.pl>, it will return the appropriate error message.
 
 INPUTS:
   - $dbh       : database handle

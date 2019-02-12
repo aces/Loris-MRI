@@ -41,8 +41,8 @@ RETURNS: 1 on success
 
 Verifies that the DICOM study is already registered in the `tarchive` tables
 using the StudyUID field of the DICOM files. If the study is already present in the
-`tarchive` tables but `-clobber` was not when running &lt;dicomTar.pl> or that we are
-using &lt;dicomSummary.pl>, it will return the appropriate error message.
+`tarchive` tables but `-clobber` was not when running `dicomTar.pl` or that we are
+using `dicomSummary.pl`, it will return the appropriate error message.
 
 INPUTS:
   - $dbh       : database handle
