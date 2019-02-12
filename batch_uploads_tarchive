@@ -143,19 +143,34 @@ my $counter = 0;
 ## foreach series, batch magic
 foreach my $input (@inputs)
 {
+    chomp($input);
+    my @linearray = split(' ', $input);
+    my $tarchive  = $linearray[0];
+    $tarchive     =~ s/\t/ /;
+    $tarchive     =~ s/$tarchiveLibraryDir//;
+    my $upload_id = $linearray[1];
+
+    if (!$tarchive || !$upload_id) {
+        print STDERR "\nERROR: need to provide the ArchiveLocation and its "
+                     . "associated UploadID separated by a space.\n\n";
+        exit $NeuroDB::ExitCodes::MISSING_ARG;
+    }
+
     $counter++;
     $stdout = $stdoutbase.$counter;
     $stderr = $stderrbase.$counter;
 
-    #$stdout = '/dev/null';
-    #$stderr = '/dev/null';
-
-    ## this is where the subprocesses are created...  should basically run processor script with study directory as argument.
+    ## this is where the subprocesses are created...
+    ## should basically run processor script with study directory as argument.
     ## processor will do all the real magic
 
-    $input =~ s/\t/ /;
-    $input =~ s/$tarchiveLibraryDir//;
-    my $command = "tarchiveLoader -globLocation -profile prod $tarchiveLibraryDir/$input";
+    my $tarchive_path = "$tarchiveLibraryDir/$tarchive";
+    my $command = sprintf(
+        "tarchiveLoader -globLocation -profile %s -uploadID %s %s",
+        'prod',
+        quotemeta($upload_id),
+        quotemeta($tarchive_path)
+    );
     ##if qsub is enabled use it
     if ($is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";

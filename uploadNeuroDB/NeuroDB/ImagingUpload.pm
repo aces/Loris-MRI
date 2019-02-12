@@ -220,14 +220,14 @@ sub IsCandidateInfoValid {
             $archived_file_path = ($tarchivePath . "/" . $archived_file_path);
         }
 
-        my $command =
-            $bin_dirPath
-            . "/uploadNeuroDB/tarchiveLoader"
-            . " -globLocation -profile prod $archived_file_path";
-
-        if ($this->{verbose}){
-            $command .= " -verbose";
-        }
+        my $command = sprintf(
+            "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+            quotemeta($bin_dirPath),
+            'prod',
+            quotemeta($archived_file_path),
+            quotemeta($this->{upload_id})
+        );
+        $command .= " -verbose" if $this->{verbose};
 
         $message =
             "\nThe Scan for the uploadID "
@@ -407,19 +407,19 @@ RETURNS: 1 on success, 0 on failure
 =cut
 
 sub runTarchiveLoader {
-    my $this               = shift;
+    my $this = shift;
     my $archived_file_path = $this->getTarchiveFileLocation();
     my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'MRICodePath'
                         );
-    my $command =
-        $bin_dirPath
-      . "/uploadNeuroDB/tarchiveLoader"
-      . " -globLocation -profile prod $archived_file_path";
-
-    if ($this->{verbose}){
-        $command .= " -verbose";
-    }
+    my $command = sprintf(
+        "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+        quotemeta($bin_dirPath),
+        'prod',
+        quotemeta($archived_file_path),
+        quotemeta($this->{upload_id})
+    );
+    $command .= " -verbose" if $this->{verbose};
     my $output = $this->runCommandWithExitCode($command);
     if ( $output == 0 ) {
         return 1;
