@@ -134,7 +134,7 @@ sub database {
     if (!$unique_study && !$update) {
         # if the study is not unique and update is not set it means the script
         # should stop running and display the error message
-        print $message;
+        print STDERR $message;
         exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
     }
     # the tarchive is unique so set update to false since it will need an insert
@@ -409,7 +409,7 @@ QUERY
 
 =head3 is_study_unique($dbh, $update, $Archivemd5)
 
-Verifies that the DICOM study is already registered in the C<tarchive> tables
+Verifies if the DICOM study is already registered in the C<tarchive> table
 using the StudyUID field of the DICOM files. If the study is already present in the
 C<tarchive> tables but C<-clobber> was not when running C<dicomTar.pl> or that we are
 using C<dicomSummary.pl>, it will return the appropriate error message.

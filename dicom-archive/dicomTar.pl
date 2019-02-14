@@ -220,7 +220,7 @@ if ($dbase) {
     # if there is a message returned, it means the script should stop running
     # and display the error message as the study is not unique
     if (!$unique_study && !$clobber) {
-        print $message;
+        print STDERR $message;
         exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
     }
     $dbh->disconnect();
