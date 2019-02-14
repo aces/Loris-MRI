@@ -380,8 +380,7 @@ sub determineSubjectID {
             $subjectIDsref->{'CandID'},
             $subjectIDsref->{'PSCID'},
             $subjectIDsref->{'visitLabel'},
-            (defined $tarchiveInfo->{'DateAcquired'}
-                ? $tarchiveInfo->{'DateAcquired'} : 'UNKNOWN')
+            $tarchiveInfo->{'DateAcquired'} // 'UNKNOWN'
         );
 	$this->{LOG}->print($message);
         $this->spool($message, 'N', $upload_id, $notify_detailed);

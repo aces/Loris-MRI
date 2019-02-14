@@ -638,8 +638,7 @@ if ($valid_study) {
         $subjectIDsref->{'CandID'},
         $subjectIDsref->{'PSCID'},
         $subjectIDsref->{'visitLabel'},
-        (defined $tarchiveInfo{'DateAcquired'}
-            ? $tarchiveInfo{'DateAcquired'} : 'UNKNOWN')
+        $tarchiveInfo{'DateAcquired'} // 'UNKNOWN'
     );
     $notifier->spool('mri new study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'N', 
@@ -670,8 +669,7 @@ if ($valid_study) {
     $message = sprintf(
         "\n %s acquired %s was deemed invalid\n\n%s\n",
         $tarchive,
-        (defined $tarchiveInfo{'DateAcquired'}
-            ? $tarchiveInfo{'DateAcquired'} : 'UNKNOWN'),
+        $tarchiveInfo{'DateAcquired'} // 'UNKNOWN',
         $study_dir
     );
     $notifier->spool('mri invalid study', $message, 0,
