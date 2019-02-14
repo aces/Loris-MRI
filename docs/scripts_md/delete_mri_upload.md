@@ -1,6 +1,6 @@
 # NAME
 
-delete\_mri\_upload.pl -- Delete eveything that was produced by the MRI pipeline for a given MRI upload
+delete\_mri\_upload.pl -- Delete everything that was produced by the MRI pipeline for a given MRI upload
 
 # SYNOPSIS
 
@@ -30,24 +30,25 @@ If the script finds a file that is listed in the database but that does not exis
 readable, the script will issue an error message and abort, leaving the file system and database untouched. 
 This behaviour can be changed with option `-i`. By default, the script will create a backup of all the files 
 that it plans to delete before actually deleting them. Use option `-n` to perform a 'hard' delete (i.e. no backup).
-The backup file name will be `mri_upload.<UPLOAD_ID`.tar.gz>. Note that the file paths inside this backup archive
+The backup file name will be `mri_upload.<UPLOAD_ID>.tar.gz`. Note that the file paths inside this backup archive
 are absolute.
 
 ## Methods
 
 ### hasQcOrComment($dbh, $tarchiveID)
 
-Determines if a tarchive has QC information associated to it by looking at the
-contents of tables `files_qcstatus` and `feedback_mri_comments`.
+Determines if any of the MINC files associated to the `tarchive` have QC 
+information associated to them by looking at the contents of tables 
+`files_qcstatus` and `feedback_mri_comments`.
 
 INPUTS:
 
     - $dbhr  : database handle reference.
-    - $tarchiveID: ID of the tarchive.
+    - $tarchiveID: ID of the C<tarchive>.
 
 RETURNS:
 
-    1 if there is QC information associated to the archive, 0 otherwise.
+    1 if there is QC information associated to the C<tarchive>, 0 otherwise.
 
 ### getFilesRef($dbh, $tarchiveID, $dataDirBasePath)
 
@@ -133,7 +134,7 @@ INPUTS:
 This method deletes all information in the database associated to the given archive. More specifically, it 
 deletes records from tables `notification_spool`, `tarchive_files`, `tarchive_series`, `files_intermediary`
 `parameter_file`, `files`, `mri_protocol_violated_scans`, `mri_violations_log`, `MRICandidateErrors`
-`mri_upload` and `tarchive`. It will also set the CScan\_done> value of the scan's session to 'N' if the upload
+`mri_upload` and `tarchive`. It will also set the `Scan_done` value of the scan's session to 'N' if the upload
 is the last upload tied to that session. All the delete/update operations are done inside a single transaction so 
 either they all succeed or they all fail (and a rollback is performed).
 
@@ -142,7 +143,7 @@ INPUTS:
     - $dbh       : database handle.
     - $uploadId  : ID of the upload to delete.
     - $tarchiveID: ID of the tarchive to delete.
-    - $sessionID : ID of the session associated to the scan,
+    - $sessionID : ID of the session associated to the scan.
     - $filesRef: reference to the array that contains all files in table C<files> associated to
                  the upload.
     - $intermediaryFilesRef: reference to the array that contains all files in table C<files_intermediary>
@@ -154,7 +155,7 @@ INPUTS:
 ### deleteUploadFiles($archiveLocation, $filesRef, $intermediaryFilesRef, $picFilesRef)
 
 This method deletes form the file system all the files tied to the upload that were listed in
-tables `files`, `files_intermediary` and &lt;parameter\_file>, along with the back up of the 
+tables `files`, `files_intermediary` and `parameter_file`, along with the back up of the 
 archive created by the MRI pipeline when the upload was processed. A warning is issued for any
 file that could not be deleted.
 

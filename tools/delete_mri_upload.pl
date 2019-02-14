@@ -4,7 +4,7 @@
 
 =head1 NAME
 
-delete_mri_upload.pl -- Delete eveything that was produced by the MRI pipeline for a given MRI upload
+delete_mri_upload.pl -- Delete everything that was produced by the MRI pipeline for a given MRI upload
 
 =head1 SYNOPSIS
 
@@ -35,7 +35,7 @@ If the script finds a file that is listed in the database but that does not exis
 readable, the script will issue an error message and abort, leaving the file system and database untouched. 
 This behaviour can be changed with option C<-i>. By default, the script will create a backup of all the files 
 that it plans to delete before actually deleting them. Use option C<-n> to perform a 'hard' delete (i.e. no backup).
-The backup file name will be C<mri_upload.<UPLOAD_ID>.tar.gz>. Note that the file paths inside this backup archive
+The backup file name will be C<< mri_upload.<UPLOAD_ID>.tar.gz >>. Note that the file paths inside this backup archive
 are absolute.
 
 =head2 Methods
@@ -87,8 +87,8 @@ USAGE
 &Getopt::Tabular::GetOptions(\@opt_table, \@ARGV) || exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 if(@ARGV != 1) {
-	print "$usage";
-	exit $NeuroDB::ExitCodes::MISSING_ARG;
+    print "$usage";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 my $uploadID = $ARGV[0];
@@ -97,8 +97,8 @@ my $uploadID = $ARGV[0];
 # Validate all command line arguments  #
 #======================================#
 if (!$ENV{LORIS_CONFIG}) {
-	print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
-	exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
+    print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
 }
 
 if (!-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
@@ -135,13 +135,13 @@ $sth->execute($uploadID);
 my($tarchiveID, $archiveLocation, $sessionID) = $sth->fetchrow_array();
 
 if($sth->rows == 0) {
-	print STDERR "No upload found in table mri_upload with upload ID '$uploadID'\n";
-	exit $NeuroDB::ExitCodes::INVALID_ARG;
+    print STDERR "No upload found in table mri_upload with upload ID '$uploadID'\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 if(!$tarchiveID) {
-	print STDERR "No tarchive ID found in table mri_upload for upload with ID $uploadID\n";
-	exit $NeuroDB::ExitCodes::INVALID_ARG;
+    print STDERR "No tarchive ID found in table mri_upload for upload with ID $uploadID\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 if(!defined $tarchiveLibraryDir && $archiveLocation !~ /^\//) {
@@ -159,9 +159,9 @@ $archiveLocation = "$tarchiveLibraryDir/$archiveLocation" unless $archiveLocatio
 #===================================================#
 
 if(&hasQcOrComment($dbh, $uploadID, $tarchiveID)) {
-	print STDERR "Cannot delete upload '$uploadID': there is QC information"
+    print STDERR "Cannot delete upload '$uploadID': there is QC information"
         . " associated to that archive\n";
-	exit $NeuroDB::ExitCodes::INVALID_ARG;
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 #===========================================#
@@ -187,23 +187,24 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 hasQcOrComment($dbh, $tarchiveID)
 
-Determines if a tarchive has QC information associated to it by looking at the
-contents of tables C<files_qcstatus> and C<feedback_mri_comments>.
+Determines if any of the MINC files associated to the C<tarchive> have QC 
+information associated to them by looking at the contents of tables 
+C<files_qcstatus> and C<feedback_mri_comments>.
 
 INPUTS:
 
-  - $dbhr  : database handle reference.
-  - $tarchiveID: ID of the tarchive.
+  - $dbh: database handle reference.
+  - $tarchiveID: ID of the C<tarchive>.
 
 RETURNS:
 
-  1 if there is QC information associated to the archive, 0 otherwise.
+  1 if there is QC information associated to the DICOM archive, 0 otherwise.
 
 =cut
 sub hasQcOrComment {
-	my($dbh, $tarchiveID) = @_;
-	
-	#=========================================#
+    my($dbh, $tarchiveID) = @_;
+    
+    #=========================================#
     # Fetch contents of tables files_qcstatus #
     # and feedback_mri_comments               #
     #=========================================#
@@ -224,7 +225,7 @@ QUERY
 
     my $rowsRef = $dbh->selectall_arrayref($query, undef, $tarchiveID, $tarchiveID);
 
-	return @$rowsRef > 0;
+    return @$rowsRef > 0;
 }
 
 =pod
@@ -248,19 +249,19 @@ RETURNS:
 
 =cut
 sub getFilesRef {
-	my($dbh, $tarchiveID, $dataDirBasePath) = @_;
-	
-	# Get FileID and File path of each files in files directly tied
-	# to $tarchiveId
+    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    
+    # Get FileID and File path of each files in files directly tied
+    # to $tarchiveId
     $query = 'SELECT FileID, File FROM files WHERE TarchiveSource = ?';
     my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
 
-	# Make sure all paths are absolute paths
+    # Make sure all paths are absolute paths
     foreach(@$filesRef) {
-		$_->{'File'} = "$dataDirBasePath/$_->{'File'}" unless $_->{'File'} =~ /^\//;
-	} 
-	
-	return $filesRef;   
+        $_->{'File'} = "$dataDirBasePath/$_->{'File'}" unless $_->{'File'} =~ /^\//;
+    } 
+    
+    return $filesRef;   
 }
 
 =pod
@@ -285,22 +286,22 @@ RETURNS:
 
 =cut
 sub getIntermediaryFilesRef {
-	my($dbh, $tarchiveID, $dataDirBasePath) = @_;
-	
-	# This should get all files in table files_intermediary that are tied
-	# indirectly to the tarchive with ID $tarchiveId
+    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    
+    # This should get all files in table files_intermediary that are tied
+    # indirectly to the tarchive with ID $tarchiveId
     my $query = 'SELECT fi.IntermedID, f.FileID, f.File FROM files_intermediary fi '
         .       'JOIN files f ON (fi.Output_FileID=f.FileID) '
         .       'WHERE f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)';
 
-	my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
+    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
 
-	# Make sure all paths are absolute paths
+    # Make sure all paths are absolute paths
     foreach(@$filesRef) {
-		$_->{'File'} = "$dataDirBasePath/$_->{'File'}" unless $_->{'File'} =~ /^\//;
-	} 
-	
-	return $filesRef;   
+        $_->{'File'} = "$dataDirBasePath/$_->{'File'}" unless $_->{'File'} =~ /^\//;
+    } 
+    
+    return $filesRef;   
 }
 
 =pod
@@ -325,33 +326,33 @@ RETURNS:
 
 =cut
 sub getPicFilesRef {
-	my($dbh, $tarchiveID, $dataDirBasePath) = @_;
-	
-	# Get all files in parameter_file with parameter_type set to
-	# 'check_pic_filename' that are tied (indirectly) to the tarchive
-	# with ID $tarchiveId
+    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    
+    # Get all files in parameter_file with parameter_type set to
+    # 'check_pic_filename' that are tied (indirectly) to the tarchive
+    # with ID $tarchiveId
     (my $query =<<QUERY) =~ s/\s+/ /g;
         SELECT FileID, Value FROM parameter_file pf
-	    JOIN files f USING (FileID)
+        JOIN files f USING (FileID)
         JOIN parameter_type AS pt
         ON (pt.ParameterTypeID=pf.ParameterTypeID)
         WHERE pt.Name='check_pic_filename'
-	    AND (
-	            f.TarchiveSource = ? 
-	         OR f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)
-	    )
+        AND (
+                f.TarchiveSource = ? 
+             OR f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)
+        )
 QUERY
 
-	my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID, $tarchiveID);
-	
-	# Make sure all paths are absolute paths
-	foreach(@$filesRef) {
-		if($_->{'Value'} !~ /^\//) {
-		    $_->{'Value'} = sprintf("%s/%s/%s", $dataDirBasePath, PIC_SUBDIR, $_->{'Value'});
-	    }
-	}
-	
-	return $filesRef;
+    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID, $tarchiveID);
+    
+    # Make sure all paths are absolute paths
+    foreach(@$filesRef) {
+        if($_->{'Value'} !~ /^\//) {
+            $_->{'Value'} = sprintf("%s/%s/%s", $dataDirBasePath, PIC_SUBDIR, $_->{'Value'});
+        }
+    }
+    
+    return $filesRef;
 }
 
 =pod
@@ -368,9 +369,9 @@ RETURNS:
 
 =cut
 sub getBackupFileName {
-	my($uploadID) = @_;
-	
-	return "mri_upload.$uploadID.tar.gz";
+    my($uploadID) = @_;
+    
+    return "mri_upload.$uploadID.tar.gz";
 }
 
 =pod
@@ -393,52 +394,52 @@ INPUTS:
                   
 =cut
 sub backupFiles {
-	my($uploadId, $archiveLocation, $filesRef, $intermediaryFilesRef, $picFilesRef) = @_;
-	
-	# Put in @files the absolutes paths of all files in tables files, intermediary_files
-	# and parameter_files that are tied to the archive
-	# Also put in @files the archive itself
-	my @files = map { $_->{'File'} } @$filesRef;
-	push(@files, map { $_->{'File'} } @$intermediaryFilesRef);
-	push(@files, map { $_->{'Value'} } @$picFilesRef);
-	push(@files, $archiveLocation);
-	
-	foreach my $f (@files) {
-		# If file does not exist (i.e database and file system are not in sync)
-		if(!-e $f) {
-			if($dieOnFileError) {
-				print STDERR "Cannot backup database files:\n";
-				print STDERR "\tFile $f is in the database but was not found in $dataDirBasepath. Aborting.\n";
-				exit $NeuroDB::ExitCodes::MISSING_FILES;
-			}
-			warn "Warning! File $f was not found in $dataDirBasepath (will not be backed up)\n";
-		} elsif(!-r $f) {
-			if($dieOnFileError) {
-				print STDERR "Cannot backup database files:\n";
-				print STDERR "\tFile $f is in database but is not readable. Aborting.\n";
-				exit $NeuroDB::ExitCodes::UNREADABLE_FILE;
-			}
-			warn "Warning! File $f is not readable (will not be backed up)\n";
-		}
-	}
-	
-	# Create a temporary file that will list the absolute paths of all
-	# files to backup (archive). 
+    my($uploadId, $archiveLocation, $filesRef, $intermediaryFilesRef, $picFilesRef) = @_;
+    
+    # Put in @files the absolutes paths of all files in tables files, intermediary_files
+    # and parameter_files that are tied to the archive
+    # Also put in @files the archive itself
+    my @files = map { $_->{'File'} } @$filesRef;
+    push(@files, map { $_->{'File'} } @$intermediaryFilesRef);
+    push(@files, map { $_->{'Value'} } @$picFilesRef);
+    push(@files, $archiveLocation);
+    
+    foreach my $f (@files) {
+        # If file does not exist (i.e database and file system are not in sync)
+        if(!-e $f) {
+            if($dieOnFileError) {
+                print STDERR "Cannot backup database files:\n";
+                print STDERR "\tFile $f is in the database but was not found in $dataDirBasepath. Aborting.\n";
+                exit $NeuroDB::ExitCodes::MISSING_FILES;
+            }
+            warn "Warning! File $f was not found in $dataDirBasepath (will not be backed up)\n";
+        } elsif(!-r $f) {
+            if($dieOnFileError) {
+                print STDERR "Cannot backup database files:\n";
+                print STDERR "\tFile $f is in database but is not readable. Aborting.\n";
+                exit $NeuroDB::ExitCodes::UNREADABLE_FILE;
+            }
+            warn "Warning! File $f is not readable (will not be backed up)\n";
+        }
+    }
+    
+    # Create a temporary file that will list the absolute paths of all
+    # files to backup (archive). 
     my($fh, $tmpFileName) = tempfile("$0.filelistXXXX", UNLINK => 1);
     foreach(@files) {
-		print $fh "$_\n";
-	}
-	close($fh);
-	
-	# Put all files in a big compressed tar ball
+        print $fh "$_\n";
+    }
+    close($fh);
+    
+    # Put all files in a big compressed tar ball
     my $filesBackupPath = &getBackupFileName($uploadID);
     print "Backing up files related to upload $uploadID...\n";
-	if(system('tar', 'zcvf', $filesBackupPath, '--absolute-names', '--files-from', $tmpFileName)) {
-	    print STDERR "backup command failed: $!\n";
-	    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+    if(system('tar', 'zcvf', $filesBackupPath, '--absolute-names', '--files-from', $tmpFileName)) {
+        print STDERR "backup command failed: $!\n";
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
     } 
 
-	print "File $filesBackupPath successfully created.\n";
+    print "File $filesBackupPath successfully created.\n";
 }
 
 =pod
@@ -448,7 +449,7 @@ sub backupFiles {
 This method deletes all information in the database associated to the given archive. More specifically, it 
 deletes records from tables C<notification_spool>, C<tarchive_files>, C<tarchive_series>, C<files_intermediary>
 C<parameter_file>, C<files>, C<mri_protocol_violated_scans>, C<mri_violations_log>, C<MRICandidateErrors>
-C<mri_upload> and C<tarchive>. It will also set the CScan_done> value of the scan's session to 'N' if the upload
+C<mri_upload> and C<tarchive>. It will also set the C<Scan_done> value of the scan's session to 'N' if the upload
 is the last upload tied to that session. All the delete/update operations are done inside a single transaction so 
 either they all succeed or they all fail (and a rollback is performed).
 
@@ -457,7 +458,7 @@ INPUTS:
   - $dbh       : database handle.
   - $uploadId  : ID of the upload to delete.
   - $tarchiveID: ID of the tarchive to delete.
-  - $sessionID : ID of the session associated to the scan,
+  - $sessionID : ID of the session associated to the scan.
   - $filesRef: reference to the array that contains all files in table C<files> associated to
                the upload.
   - $intermediaryFilesRef: reference to the array that contains all files in table C<files_intermediary>
@@ -467,70 +468,70 @@ INPUTS:
                   
 =cut
 sub deleteUploadInDatabase {
-	my($dbh, $uploadID, $tarchiveID, $sessionID, $intermediaryFilesRef, $picFilesRef)= @_;
-	
-	$dbh->{'AutoCommit'} = 0;
-	
-	my $query = "DELETE FROM notification_spool WHERE ProcessID = ?";
-	$dbh->do($query, undef, $uploadID);
-	
-	$query = "DELETE FROM tarchive_files WHERE TarchiveID = ?";
-	$dbh->do($query, undef, $tarchiveID);
-	
-	$query = "DELETE FROM tarchive_series WHERE TarchiveID = ?";
-	$dbh->do($query, undef, $tarchiveID);
-	
-	if(@$intermediaryFilesRef) {
-		my @intermediaryFileIds = map { $_->{'IntermedID'} } @$intermediaryFilesRef;
-		$query = sprintf(
-		    'DELETE FROM files_intermediary WHERE IntermedID IN (%s)', 
-		    join(',', map { '?' } (1..@intermediaryFileIds))
-		);
-		$dbh->do($query, undef, @intermediaryFileIds);
+    my($dbh, $uploadID, $tarchiveID, $sessionID, $intermediaryFilesRef, $picFilesRef)= @_;
+    
+    $dbh->{'AutoCommit'} = 0;
+    
+    my $query = "DELETE FROM notification_spool WHERE ProcessID = ?";
+    $dbh->do($query, undef, $uploadID);
+    
+    $query = "DELETE FROM tarchive_files WHERE TarchiveID = ?";
+    $dbh->do($query, undef, $tarchiveID);
+    
+    $query = "DELETE FROM tarchive_series WHERE TarchiveID = ?";
+    $dbh->do($query, undef, $tarchiveID);
+    
+    if(@$intermediaryFilesRef) {
+        my @intermediaryFileIds = map { $_->{'IntermedID'} } @$intermediaryFilesRef;
+        $query = sprintf(
+            'DELETE FROM files_intermediary WHERE IntermedID IN (%s)', 
+            join(',', map { '?' } (1..@intermediaryFileIds))
+        );
+        $dbh->do($query, undef, @intermediaryFileIds);
     }
     
- 	if(@$picFilesRef) {
-	    $query  = sprintf(
-	        "DELETE FROM parameter_file WHERE FileID IN (%s)",
-	        join(',', map { '?' } (1..@$picFilesRef))
-	    );
-	    $dbh->do($query, undef, map { $_->{'FileID'} } @$picFilesRef);
-	}
-	   	
-	$query = sprintf(
-	    "DELETE FROM files WHERE FileID IN (%s)",
-	     join(',', map { '?' } (1..@$intermediaryFilesRef))
-	);
-	$dbh->do($query, undef, map { $_->{'FileID'} } @$intermediaryFilesRef);
-	$query = "DELETE FROM files WHERE TarchiveSource = ?";
-	$dbh->do($query, undef, $tarchiveID);
-	
-	$query = "DELETE FROM mri_protocol_violated_scans WHERE TarchiveID = ?";
-	$dbh->do($query, undef, $tarchiveID);
-	
-	$query = "DELETE FROM mri_violations_log WHERE TarchiveID = ?";
-	$dbh->do($query, undef, $tarchiveID);
-	
-	$query = "DELETE FROM MRICandidateErrors WHERE TarchiveID = ?";
-	$dbh->do($query, undef, $tarchiveID);
-	
-	$query = "DELETE FROM mri_upload WHERE UploadID = ?";
-	$dbh->do($query, undef, $uploadID);
-	
-	$query = "DELETE FROM tarchive WHERE TarchiveID = ?";
-	$dbh->do($query, undef, $tarchiveID);
-	
-	# If the upload to delete is the last upload that was part of the 
-	# session associated to it, then set the session's 'Scan_done' flag
-	# to 'N'
-	$query = "SELECT UploadID FROM mri_upload WHERE SessionID = ?";
-	my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $sessionID);
-	if(@$rowsRef == 0) {
-	    $query = "UPDATE session SET Scan_done = 'N' WHERE ID = ?";
-	    $dbh->do($query, undef, $sessionID);
-	}
-	
-	$dbh->commit;
+    if(@$picFilesRef) {
+        $query  = sprintf(
+            "DELETE FROM parameter_file WHERE FileID IN (%s)",
+            join(',', map { '?' } (1..@$picFilesRef))
+        );
+        $dbh->do($query, undef, map { $_->{'FileID'} } @$picFilesRef);
+    }
+        
+    $query = sprintf(
+        "DELETE FROM files WHERE FileID IN (%s)",
+         join(',', map { '?' } (1..@$intermediaryFilesRef))
+    );
+    $dbh->do($query, undef, map { $_->{'FileID'} } @$intermediaryFilesRef);
+    $query = "DELETE FROM files WHERE TarchiveSource = ?";
+    $dbh->do($query, undef, $tarchiveID);
+    
+    $query = "DELETE FROM mri_protocol_violated_scans WHERE TarchiveID = ?";
+    $dbh->do($query, undef, $tarchiveID);
+    
+    $query = "DELETE FROM mri_violations_log WHERE TarchiveID = ?";
+    $dbh->do($query, undef, $tarchiveID);
+    
+    $query = "DELETE FROM MRICandidateErrors WHERE TarchiveID = ?";
+    $dbh->do($query, undef, $tarchiveID);
+    
+    $query = "DELETE FROM mri_upload WHERE UploadID = ?";
+    $dbh->do($query, undef, $uploadID);
+    
+    $query = "DELETE FROM tarchive WHERE TarchiveID = ?";
+    $dbh->do($query, undef, $tarchiveID);
+    
+    # If the upload to delete is the last upload that was part of the 
+    # session associated to it, then set the session's 'Scan_done' flag
+    # to 'N'.
+    $query = "SELECT UploadID FROM mri_upload WHERE SessionID = ?";
+    my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $sessionID);
+    if(@$rowsRef == 0) {
+        $query = "UPDATE session SET Scan_done = 'N' WHERE ID = ?";
+        $dbh->do($query, undef, $sessionID);
+    }
+    
+    $dbh->commit;
     $dbh->{'AutoCommit'} = 0;
 }
 
@@ -539,7 +540,7 @@ sub deleteUploadInDatabase {
 =head3 deleteUploadFiles($archiveLocation, $filesRef, $intermediaryFilesRef, $picFilesRef)
 
 This method deletes form the file system all the files tied to the upload that were listed in
-tables C<files>, C<files_intermediary> and <parameter_file>, along with the back up of the 
+tables C<files>, C<files_intermediary> and C<parameter_file>, along with the back up of the 
 archive created by the MRI pipeline when the upload was processed. A warning is issued for any
 file that could not be deleted.
 
@@ -556,16 +557,16 @@ INPUTS:
                   
 =cut
 sub deleteUploadFiles {
-	my($archiveLocation, $filesRef, $intermediaryFilesRef, $picFilesRef) = @_;
-	
-	# Delete all files. A warning will be issued for every file that could not be
-	# deleted
-	NeuroDB::MRI::deleteFiles( map { $_->{'File'} }  @$filesRef);
-	NeuroDB::MRI::deleteFiles( map { $_->{'File'} }  @$intermediaryFilesRef);
-	NeuroDB::MRI::deleteFiles( map { $_->{'Value'} } @$picFilesRef);
-	
-	# Delete the backed up archive
-	NeuroDB::MRI::deleteFiles($archiveLocation);
+    my($archiveLocation, $filesRef, $intermediaryFilesRef, $picFilesRef) = @_;
+    
+    # Delete all files. A warning will be issued for every file that could not be
+    # deleted
+    NeuroDB::MRI::deleteFiles( map { $_->{'File'} }  @$filesRef);
+    NeuroDB::MRI::deleteFiles( map { $_->{'File'} }  @$intermediaryFilesRef);
+    NeuroDB::MRI::deleteFiles( map { $_->{'Value'} } @$picFilesRef);
+    
+    # Delete the backed up archive
+    NeuroDB::MRI::deleteFiles($archiveLocation);
 }
 
 
