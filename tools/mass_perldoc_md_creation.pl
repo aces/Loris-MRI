@@ -67,6 +67,7 @@ my @script_list = (
     'tools/BackPopulateSNRAndAcquisitionOrder.pl',
     'tools/create_nifti_bval_bvec.pl',
     'tools/cleanupTarchives.pl',
+    'tools/cleanup_paths_of_violation_tables.pl',
     'tools/MakeArchiveLocationRelative.pl',
     'tools/ProdToConfig.pl',
     'tools/database_files_update.pl',

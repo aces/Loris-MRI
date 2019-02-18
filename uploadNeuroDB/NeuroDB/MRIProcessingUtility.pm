@@ -755,6 +755,38 @@ sub extra_file_checks() {
 
 =pod
 
+=head3 update_mri_violations_log_MincFile_path($file_ref)
+
+This function updates the C<MincFile> field of the C<mri_violations_log> table
+with the file path present in the files table.
+
+Note: this needs to be updated as by default the path is set to be in the C<trashbin>
+directory when inserting into the C<mri_violations_log> table. However, if the
+worst violation is set to 'warning', the MINC file will get inserted into the
+C<files> table and moved to the C<assembly> directory, therefore it needs to be
+updated in the C<mri_violations_log> table.
+
+INPUTS: file handle reference to the NeuroDB::File object
+
+=cut
+
+sub update_mri_violations_log_MincFile_path {
+    my ($this, $file_ref) = @_;
+
+    my $seriesUID = $file_ref->getParameter('series_instance_uid');
+    my $file_path = $file_ref->getFileDatum('File');
+
+    # TODO: in a different PR, should add the echo time to the mri_violation table
+    # TODO: and add the echo time in the where part of the statement
+    my $query = "UPDATE mri_violations_log SET MincFile = ? WHERE SeriesUID = ?";
+    my $sth   = ${$this->{'dbhr'}}->prepare($query);
+
+    $sth->execute($file_path, $seriesUID);
+}
+
+
+=pod
+
 =head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file)
 
 Loops through all protocol violations checks for a given severity and creates
@@ -839,6 +871,11 @@ INPUTS:
 sub insert_into_mri_violations_log {
     my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file) = @_;
 
+    # determine the future relative path when the file will be moved to
+    # data_dir/trashbin at the end of the script's execution
+    my $file_path     = $file->getFileDatum('File');
+    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($file_path);
+
     my $query = "INSERT INTO mri_violations_log"
                     . "("
                     . "SeriesUID, TarchiveID,  MincFile,   PatientName, "
@@ -872,7 +909,7 @@ sub insert_into_mri_violations_log {
         $sth->execute(
             $file->getFileDatum('SeriesUID'),
             $file->getFileDatum('TarchiveSource'),
-            $file->getFileDatum('File'),
+            $file_rel_path,
             $pname,
             $candID,
             $visit_label,
