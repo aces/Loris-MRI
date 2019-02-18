@@ -40,7 +40,7 @@ RETURNS: 1 on success
 ### is\_study\_unique($dbh, $update, $Archivemd5)
 
 Verifies if the DICOM study is already registered in the `tarchive` table
-using the StudyUID field of the DICOM files. If the study is already present in the
+using the `StudyUID` field of the DICOM files. If the study is already present in the
 `tarchive` tables but `-clobber` was not when running `dicomTar.pl` or that we are
 using `dicomSummary.pl`, it will return the appropriate error message.
 
