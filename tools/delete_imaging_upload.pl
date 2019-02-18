@@ -33,7 +33,8 @@ on the command line from the following tables: C<notification_spool>, C<tarchive
 C<tarchive_files>, C<files_intermediary>, C<parameter_file>, C<files>, C<mri_violated_scans>
 C<mri_violations_log>, C<MRICandidateErrors>, C<mri_upload> and C<tarchive>. It will also delete from
 the file system the files that are associated to the upload and are listed in tables C<files>
-C<files_intermediary> and C<parameter_file>, along with the archive itself, whose path is stored in 
+C<files_intermediary>, C<parameter_file>, C<MRICandidateErrors>, C<mri_violations_log>
+C<mri_protocol_violated_scans> along with the archive itself, whose path is stored in 
 table C<tarchive>. The script will abort and will not delete anything if there is QC information
 associated to the upload(s) (i.e entries in tables C<files_qcstatus> or C<feedback_mri_comments>).
 If the script finds a file that is listed in the database but that does not exist on the file system or
@@ -81,7 +82,7 @@ my @opt_table = (
      . 'into an archive named "mri_upload.<uploadID>.tar.gz", in the '
      . 'current directory'],
     ['-uploadID', 'string', 1, \$uploadIDList,
-     'comma-separated list of upload IDs to delete']
+     'comma-separated list of upload IDs to delete. All the uploads must be associated to the same archive.']
 );
 
 my $Help = <<HELP;
@@ -254,13 +255,11 @@ information associated to them by looking at the contents of tables
 C<files_qcstatus> and C<feedback_mri_comments>.
 
 INPUTS:
-
   - $dbh: database handle reference.
   - $tarchiveID: ID of the DICOM archive.
 
 RETURNS:
-
-  1 if there is QC information associated to the DICOM archive, 0 otherwise.
+  - 1 if there is QC information associated to the DICOM archive, 0 otherwise.
 
 =cut
 sub hasQcOrComment {
@@ -298,15 +297,13 @@ Get the absolute paths of all the files associated to an archive that are listed
 table C<files>.
 
 INPUTS:
-
   - $dbhr  : database handle reference.
   - $tarchiveID: ID of the DICOM archive.
-  - $dataDirBasePath: config value of setting 'dataDirBasePath'.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS: 
-
- an array of hash references. Each hash has two keys: 'FileID' => ID of a file in table files
- and 'File' => absolute path of the file with the given ID.
+ - an array of hash references. Each hash has two keys: C<FileID> => ID of a file in table C<files>
+ and C<File> => absolute path of the file with the given ID.
 
 =cut
 sub getFilesRef {
@@ -333,16 +330,14 @@ Get the absolute paths of all the intermediary files associated to an archive
 that are listed in table C<files_intermediary>.
 
 INPUTS:
-
   - $dbhr  : database handle reference.
   - $tarchiveID: ID of the DICOM archive.
-  - $dataDirBasePath: config value of setting 'dataDirBasePath'.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS: 
-
-  an array of hash references. Each hash has three keys: 'IntermedID' => ID of a file in 
-  table files_intermediary , 'FileID' => ID of this file in table files and 
-  'File' => absolute path of the file with the given ID.
+  - an array of hash references. Each hash has three keys: C<IntermedID> => ID of a file in 
+  table C<files_intermediary>, C<FileID> => ID of this file in table C<files> and 
+  C<File> => absolute path of the file with the given ID.
 
 =cut
 sub getIntermediaryFilesRef {
@@ -368,20 +363,17 @@ sub getIntermediaryFilesRef {
 
 =head3 getParameterFilesRef($dbh, $tarchiveID, $dataDirBasePath)
 
-Gets the absolute paths of all the files associated to an archive 
-that are listed in table C<parameter_file> and have a parameter
-type set to C<check_pic_filename>.
+Gets the absolute paths of all the files associated to an archive that are listed in table
+C<parameter_file> and have a parameter type set to C<check_pic_filename>.
 
 INPUTS:
-
   - $dbhr  : database handle reference.
   - $tarchiveID: ID of the DICOM archive.
-  - $dataDirBasePath: config value of setting 'dataDirBasePath'.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS: 
-
-  an array of hash references. Each hash has two keys: 'FileID' => FileID of a file 
-  in table parameter_file and 'Value' => absolute path of the file with the given ID.
+  - an array of hash references. Each hash has two keys: C<FileID> => FileID of a file 
+  in table C<parameter_file> and C<Value> => absolute path of the file with the given ID.
 
 =cut
 sub getParameterFilesRef {
@@ -422,15 +414,13 @@ Get the absolute paths of all the files associated to an archive that are listed
 table C<mri_protocol_violated_scans>.
 
 INPUTS:
-
   - $dbhr  : database handle reference.
   - $tarchiveID: ID of the DICOM archive.
-  - $dataDirBasePath: config value of setting 'dataDirBasePath'.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS: 
-
- an array of hash references. Each hash has one key: 'minc_location' => location (absolute path)
- of a MINC file found in table mri_protocol_violated_scans.
+ - an array of hash references. Each hash has one key: C<minc_location> => location (absolute path)
+ of a MINC file found in table C<mri_protocol_violated_scans>.
 
 =cut
 sub getMriProtocolViolatedScansFilesRef {
@@ -454,18 +444,16 @@ sub getMriProtocolViolatedScansFilesRef {
 =head3 getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath)
 
 Get the absolute paths of all the files associated to an archive that are listed in 
-table C<mri_protocol_violations_log>.
+table C<mri_violations_log>.
 
 INPUTS:
-
   - $dbhr  : database handle reference.
   - $tarchiveID: ID of the DICOM archive.
-  - $dataDirBasePath: config value of setting 'dataDirBasePath'.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS: 
-
- an array of hash references. Each hash has one key: 'MincFile' => location (absolute path)
- of a MINC file found in table mri_violations_log.
+ an array of hash references. Each hash has one key: C<MincFile> => location (absolute path)
+ of a MINC file found in table C<mri_violations_log>.
 
 =cut
 sub getMriViolationsLogFilesRef {
@@ -492,15 +480,13 @@ Get the absolute paths of all the files associated to an archive that are listed
 table C<MRICandidateErrors>.
 
 INPUTS:
-
   - $dbhr  : database handle reference.
   - $tarchiveID: ID of the DICOM archive.
-  - $dataDirBasePath: config value of setting 'dataDirBasePath'.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS: 
-
- an array of hash references. Each hash has one key: 'MincFile' => location (absolute path)
- of a MINC file found in table MRICandidateErrors.
+ - an array of hash references. Each hash has one key: C<MincFile> => location (absolute path)
+ of a MINC file found in table C<MRICandidateErrors>.
 
 =cut
 sub getMRICandidateErrorsFilesRef {
@@ -526,13 +512,11 @@ Gets the name of the backup compressed file that will contain a copy of all the 
 that the script will delete.
 
 INPUTS:
-
-  - $tarchiveID: ID of the DICOM archive (in table tarchive) associated to the upload(s) passed on the command line.
+  - $tarchiveID: ID of the DICOM archive (in table C<tarchive>) associated to the upload(s) passed on the command line.
 
 
 RETURNS: 
-
-  backup file name.
+  - backup file name.
 
 =cut
 sub getBackupFileName {
@@ -549,15 +533,14 @@ Backs up all the files associated to the archive before deleting them. The backe
 be stored in a C<.tar.gz> archive where all paths are relative to C</> (i.e absolute paths).
 
 INPUTS:
-
   - $archiveLocation: full path of the archive associated to the upload(s) passed on the
-                      command line (computed using the ArchiveLocation value in table 
-                      tarchive for the given archive).
-  - $filePathsRef: reference to the array that contains the absolute paths of all files found in table
-                   files, files_intermediary, parameter_file, mri_protocol_violated_scans
-                   mri_violations_log and MRICandidateErrors that are tied to the upload(s) passed
+                      command line (computed using the C<ArchiveLocation> value in table 
+                      C<tarchive> for the given archive).
+  - $filePathsRef: reference to the array that contains the absolute paths of all files found in tables
+                   C<files>, C<files_intermediary>, C<parameter_file>, C<mri_protocol_violated_scans>
+                   C<mri_violations_log> and C<MRICandidateErrors> that are tied to the upload(s) passed
                    on the command line.
-  - $tarchiveID: ID of the DICOM archive (in table tarchive) associated to the upload(s) passed on the command line.
+  - $tarchiveID: ID of the DICOM archive (in table C<tarchive>) associated to the upload(s) passed on the command line.
                  
 =cut
 sub backupFiles {
@@ -618,23 +601,22 @@ sub backupFiles {
 =head3 deleteUploadsInDatabase($dbh, $uploadsRef, $tarchiveID, $filePathsRef)
 
 This method deletes all information in the database associated to the given upload(s). More specifically, it 
-deletes records from tables C<notification_spool>, C<tarchive_files>, C<tarchive_series>, C<files_intermediary>
+deletes records from tables C<notification_spool>, C<tarchive_files>, C<tarchive_series>, C<files_intermediary>,
 C<parameter_file>, C<files>, C<mri_protocol_violated_scans>, C<mri_violations_log>, C<MRICandidateErrors>
 C<mri_upload> and C<tarchive>. It will also set the C<Scan_done> value of the scan's session to 'N' for each upload
 that is the last upload tied to that session. All the delete/update operations are done inside a single transaction so 
 either they all succeed or they all fail (and a rollback is performed).
 
 INPUTS:
- 
   - $dbh       : database handle.
   - $uploadsRef: reference on a hash of hashes containing the uploads to delete. Accessed like this:
-                 $uploadsRef->{'1002'}->{'TarchiveID'} (this would return the TarchiveID of the mri_upload
-                 with ID 1002). The properties stored for each hash are: UploadID, TarchiveID, ArchiveLocation
-                 and SessionID.
+                 C<< $uploadsRef->{'1002'}->{'TarchiveID'} >>(this would return the C<TarchiveID> of the C<mri_upload>
+                 with ID 1002). The properties stored for each hash are: C<UploadID>, C<TarchiveID>, C<ArchiveLocation>
+                 and C<SessionID>.
   - $tarchiveID: ID of the DICOM archive to delete.
-  - $filePathsRef: reference to the array that contains the absolute paths of all files found in table
-                   files, files_intermediary, parameter_file, mri_protocol_violated_scans
-                   mri_violations_log and MRICandidateErrors that are tied to the upload(s) passed
+  - $filePathsRef: reference to the array that contains the absolute paths of all files found in tables
+                   C<files>, C<files_intermediary>, C<parameter_file>, C<mri_protocol_violated_scans>
+                   C<mri_violations_log> and C<MRICandidateErrors> that are tied to the upload(s) passed
                    on the command line.
                   
 =cut
@@ -724,13 +706,12 @@ found in table C<tarchive> tied to all the upload(s) passed on the command line 
 A warning is issued for any file that could not be deleted.
 
 INPUTS:
- 
   - $archiveLocation: full path of the archive associated to the upload(s) passed on the
-                      command line (computed using the ArchiveLocation value in table 
-                      tarchive for the given archive).
-  - $filePathsRef: reference to the array that contains the absolute paths of all files found in table
-                   files, files_intermediary, parameter_file, mri_protocol_violated_scans
-                   mri_violations_log and MRICandidateErrors that are tied to the upload(s) passed
+                      command line (computed using the C<ArchiveLocation> value in table 
+                      C<tarchive> for the given archive).
+  - $filePathsRef: reference to the array that contains the absolute paths of all files found in tables
+                   C<files>, C<files_intermediary>, C<parameter_file>, C<mri_protocol_violated_scans>
+                   C<mri_violations_log> and C<MRICandidateErrors> that are tied to the upload(s) passed
                    on the command line.
                   
 =cut
