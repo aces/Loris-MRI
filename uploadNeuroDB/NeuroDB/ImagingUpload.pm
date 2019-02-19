@@ -306,7 +306,7 @@ sub IsCandidateInfoValid {
 =head3 runDicomTar()
 
 This method executes the following actions:
- - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
+ - Runs C<dicomTar.pl> with C<-database -profile prod> options
  - Extracts the C<TarchiveID> of the DICOM archive created by C<dicomTar.pl>
  - Updates the C<mri_upload> table if C<dicomTar.pl> ran successfully
 
@@ -322,17 +322,13 @@ sub runDicomTar {
     my $tarchive_location = NeuroDB::DBI::getConfigSetting(
                             $this->{dbhr},'tarchiveLibraryDir'
                             );
-    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'MRICodePath'
-                        );
-    my $dicomtar = 
-      $bin_dirPath . "/" . "dicom-archive" . "/" . "dicomTar.pl";
-    my $command =
-        $dicomtar . " " . $this->{'uploaded_temp_folder'} 
-      . " $tarchive_location -clobber -database -profile prod";
-    if ($this->{verbose}) {
-        $command .= " -verbose";
-    }
+    my $command = sprintf(
+        "dicomTar.pl %s %s -database -profile %s",
+        quotemeta($this->{'uploaded_temp_folder'}),
+        quotemeta($tarchive_location),
+        'prod'
+    );
+    $command .= " -verbose" if $this->{verbose};
     my $output = $this->runCommandWithExitCode($command);
 
     if ( $output == 0 ) {
