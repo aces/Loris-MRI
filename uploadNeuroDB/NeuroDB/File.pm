@@ -537,7 +537,7 @@ sub filterParameters {
     my $parametersRef = $this->getParameters();
 
     foreach my $key (keys %{$parametersRef}) {
-        if(($key ne 'header')
+        if(($key ne 'header') && (defined length($parametersRef->{$key}))
             && (length($parametersRef->{$key}) > MAX_DICOM_PARAMETER_LENGTH)) {
             $this->removeParameter($key);
         }
