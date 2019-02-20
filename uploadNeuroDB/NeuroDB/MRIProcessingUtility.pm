@@ -908,32 +908,36 @@ sub update_mri_acquisition_dates {
     my $this = shift;
     my ($sessionID, $acq_date) = @_;
 
-    ############################################################
-    # get the registered acquisition date for this session #####
-    ############################################################
+    #####################################################################
+    # set acquisition date to undef if the date is '0000-00-00', '' or 0
+    #####################################################################
+    if ( defined $acq_date
+            && ($acq_date eq '0000-00-00' || $acq_date eq '' || $acq_date == 0) ) {
+        $acq_date = undef;
+    }
+
+    #######################################################
+    # get the registered acquisition date for this session
+    #######################################################
     my $query = "SELECT s.ID, m.AcquisitionDate "
                 . " FROM session AS s "
                 . " LEFT OUTER JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)"
-                . " WHERE s.ID=? AND s.Active='Y'";
-    my @values = ($sessionID);
+                . " WHERE s.ID = ? AND s.Active = 'Y'";
+
     if ($acq_date) {
-        $query .= " AND (m.AcquisitionDate > ?"
-                  . " OR m.AcquisitionDate IS NULL) AND ?>0";
-        push @values, ($acq_date, $acq_date);
+        $query .= " AND (m.AcquisitionDate > ? OR m.AcquisitionDate IS NULL)";
     } else {
-        $query .= " AND m.AcquisitionDate is NULL";
+        $query .= " AND m.AcquisitionDate IS NULL";
     }
 
-    if ($this->{debug}) {
-        print $query . "\n";
-    }
+    print "$query\n" if ($this->{debug});
 
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute(@values);
-    ############################################################
-    ### if we found a session, it needs updating or inserting, #
-    ### so we use replace into. ################################
-    ############################################################
+    $sth->execute($sessionID, $acq_date);
+
+    ################################################################################
+    # if we found a session, it needs updating or inserting, so we use replace into
+    ################################################################################
     if ($sth->rows > 0) {
         $query = "REPLACE INTO mri_acquisition_dates".
                     " SET AcquisitionDate=?, SessionID=?";
@@ -1278,15 +1282,25 @@ sub get_mincs {
     my ($minc_files, $upload_id) = @_;
     my $message = '';
     @$minc_files = ();
+
     opendir TMPDIR, $this->{TmpDir} ;
     my @files = readdir TMPDIR;
     closedir TMPDIR;
+
     my @files_list;
     foreach my $file (@files) {
+
         next unless $file =~ /\.mnc(\.gz)?$/;
-        my $cmd= "Mincinfo_wrapper -quiet -tab -file -attvalue acquisition:acquisition_id $this->{TmpDir}/$file";
+
+        my $cmd = sprintf(
+            'Mincinfo_wrapper -quiet -tab -file -attvalue %s %s',
+            'acquisition:acquisition_id',
+            quotemeta("$this->{TmpDir}/$file")
+        );
         push @files_list, `$cmd`;
+
     }
+
     open SORTER, "|sort -nk2 | cut -f1 > $this->{TmpDir}/sortlist";
     print SORTER join("", @files_list);
     close SORTER;
@@ -1297,7 +1311,9 @@ sub get_mincs {
         push @$minc_files, $line;
     }
     close SORTLIST;
+
     `rm -f $this->{TmpDir}/sortlist`;
+
     $message = "\n### These MINC files have been created: \n".
         join("\n", @$minc_files)."\n";
     $this->{LOG}->print($message);
