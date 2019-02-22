@@ -4,7 +4,7 @@
 
 =head1 NAME
 
-MRIProtocolRerunner.pl -- Reruns MRI protocol checks on all existing MINC insertions
+MRIProtocolRerunner.pl -- Reruns MRI protocol checks on all existing MINC insertions & violations
 
 =head1 SYNOPSIS
 
@@ -24,6 +24,8 @@ use lib "$FindBin::Bin";
 use NeuroDB::File;
 use NeuroDB::DBI;
 use NeuroDB::MRIProcessingUtility;
+use POSIX;
+use File::Basename;
 
 my $profile = undef;
 my $verbose = 0;
@@ -113,16 +115,24 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ############### Get list of files which passed #################
 ############### protocol checks ################################
 ################################################################
-my $query = 'SELECT FileID, ArchiveLocation, ScannerID, File FROM files f
-JOIN tarchive t ON f.TarchiveSource=t.TarchiveID';
+my $query = 'SELECT
+                FileID,
+                ArchiveLocation,
+                ScannerID,
+                File,
+                PatientName,
+                Scan_type
+            FROM files f
+            JOIN tarchive t ON f.TarchiveSource=t.TarchiveID
+            JOIN mri_scan_type m ON f.AcquisitionProtocolID=m.ID';
 
 my $sth = $dbh->prepare($query);
 $sth->execute();
 
-my @failures = ();
+my %failures;
 
 while (my @f = $sth->fetchrow_array()) {
-    my ($fileID, $archiveLocation, $scannerID, $minc) = @f;
+    my ($fileID, $archiveLocation, $scannerID, $minc, $patientName, $scanType) = @f;
 
     my $file = NeuroDB::File->new(\$dbh);
 
@@ -138,28 +148,44 @@ while (my @f = $sth->fetchrow_array()) {
 
     my ($centerName, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-    my $acquisitionProtocol = undef;
+    my $newScanType = undef;
     my $bypass_extra_file_checks = 0;
 
-    ($acquisitionProtocol)
+    ($newScanType)
         = $utility->getAcquisitionProtocol(
         $file,
         $subjectIDsref,
         \%tarchiveInfo,
         $centerName,
         $minc,
-        $acquisitionProtocol,
+        $newScanType,
         $bypass_extra_file_checks
     );
-    if ($acquisitionProtocol =~ /unknown/) {
-        push(@failures, $minc);
-        print "F: $minc , P: $acquisitionProtocol \n";
-    } else {
-        print "protocol: $acquisitionProtocol \n center: $centerName \n";
+    if ($newScanType =~ /unknown/) {
+        if (exists($failures{$patientName})) {
+            push(@{ $failures{$patientName} }, $minc);
+        } else {
+            my @arr = ($minc);
+            $failures{$patientName} = [@arr];
+        }
     }
 }
+my $date = POSIX::strftime('%F', localtime());
+my $filename = "newly_violated_scans_$date.txt";
+open (my $fh, '>', $filename);
+foreach my $patient (keys(%failures)) {
+    print $fh "$patient\n";
+    my @files = @{ $failures{$patient} };
+    foreach (@files) {
+        my $file = basename($_);
+        print $fh "\t $file \n";
+    }
+    print $fh "\n";
+}
 
-print join("\n", @failures);
+
+
+# print join("\n", @failures);
 =pod
 
 =head3 logHeader()
