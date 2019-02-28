@@ -597,12 +597,13 @@ if ($valid_study) {
     ############################################################
     # spool a new study message ################################
     ############################################################
-    $message =             
-	    "\n" . $subjectIDsref->{'CandID'} . 
-            " " . $subjectIDsref->{'PSCID'} .
-            " " . $subjectIDsref->{'visitLabel'} .
-            "\tacquired ". $tarchiveInfo{'DateAcquired'} .
-	    "\n";
+    $message = sprintf(
+        "\n CandID: %s, PSCID: %s, Visit: %s, Acquisition Date: %s\n",
+        $subjectIDsref->{'CandID'},
+        $subjectIDsref->{'PSCID'},
+        $subjectIDsref->{'visitLabel'},
+        $tarchiveInfo{'DateAcquired'} // 'UNKNOWN'
+    );
     $notifier->spool('mri new study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'N', 
 		    $notify_detailed);
@@ -625,11 +626,12 @@ if ($valid_study) {
     ## spool a failure message This has been changed to tarchive
     ## instead of using patientName ############################
     ############################################################
-    $message = 
-	    "\n" . $tarchive. " acquired ". 
-            $tarchiveInfo{'DateAcquired'} .
-            " was deemed invalid\n\n". $study_dir .
-	    "\n";
+    $message = sprintf(
+        "\n %s acquired %s was deemed invalid\n\n%s\n",
+        $tarchive,
+        $tarchiveInfo{'DateAcquired'} // 'UNKNOWN',
+        $study_dir
+    );
     $notifier->spool('mri invalid study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y', 
 		    $notify_notsummary);
@@ -638,19 +640,14 @@ if ($valid_study) {
 ################################################################
 # make final logfile name without overwriting phantom logs #####
 ################################################################
-my $final_logfile = $center_name."_".$tarchiveInfo{'DateAcquired'}.
-                    '_'.$subjectIDsref->{'CandID'};
-if ($subjectIDsref->{'isPhantom'}) { 
-    $final_logfile = $subjectIDsref->{'PSCID'}."_".
-    $tarchiveInfo{'DateAcquired'}.'_'.$subjectIDsref->{'CandID'}; 
-}
-
-################################################################
-### tarchiveLocation ###########################################
-### if something went wrong and there is no acq date and CandID 
-################################################################
-unless($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) { 
-    $final_logfile .= '_'.$temp[$#temp]; 
+my $final_logfile = $center_name;
+unless ($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) {
+    ### if something went wrong and there is no acq date or CandID
+    $final_logfile .= '_'.$temp[$#temp];
+} else {
+    $final_logfile .= $subjectIDsref->{'PSCID'} if $subjectIDsref->{'isPhantom'};
+    $final_logfile .= $tarchiveInfo{'DateAcquired'};
+    $final_logfile .= $subjectIDsref->{'CandID'};
 }
 $final_logfile .= '.log.gz';
 

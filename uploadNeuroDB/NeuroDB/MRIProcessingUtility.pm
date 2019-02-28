@@ -324,7 +324,7 @@ sub extractAndParseTarchive {
         $this->extract_tarchive($tarchive, $upload_id, $seriesuid);
     my $ExtractSuffix  = basename($tarchive, ".tar");
     # get rid of the tarchive Prefix 
-    $ExtractSuffix =~ s/DCM_(\d){4}-(\d){2}-(\d){2}_//;
+    $ExtractSuffix =~ s/DCM_(\d{4}-\d{2}-\d{2})?_//;
     my $info       = "head -n 12 $this->{TmpDir}/${ExtractSuffix}.meta";
     my $header     = `$info`;
     my $message = "\n$header\n";
@@ -375,11 +375,13 @@ sub determineSubjectID {
                             $this->{dbhr}
                         );
     if ($to_log) {
-        my $message = "\n==> Data found for candidate   : ".
-                            "CandID: ". $subjectIDsref->{'CandID'} .
-                            "- PSCID: ". $subjectIDsref->{'PSCID'} . "- Visit: ".
-                            $subjectIDsref->{'visitLabel'} . "- Acquired : ".
-                            $tarchiveInfo->{'DateAcquired'} . "\n";
+        my $message = sprintf(
+            "\n==> Data found for candidate CandID: %s, PSCID %s, Visit %s, Acquisition Date %s\n ",
+            $subjectIDsref->{'CandID'},
+            $subjectIDsref->{'PSCID'},
+            $subjectIDsref->{'visitLabel'},
+            $tarchiveInfo->{'DateAcquired'} // 'UNKNOWN'
+        );
 	$this->{LOG}->print($message);
         $this->spool($message, 'N', $upload_id, $notify_detailed);
     }
@@ -906,29 +908,41 @@ sub update_mri_acquisition_dates {
     my $this = shift;
     my ($sessionID, $acq_date) = @_;
 
-    ############################################################
-    # get the registered acquisition date for this session #####
-    ############################################################
-    my $query = "SELECT s.ID, m.AcquisitionDate FROM session AS s LEFT OUTER".
-                " JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)". 
-                " WHERE s.ID='$sessionID' AND s.Active='Y' AND".
-                " (m.AcquisitionDate > '$acq_date'". 
-                " OR m.AcquisitionDate IS NULL) AND '$acq_date'>0";
-    
-    if ($this->{debug}) {
-        print $query . "\n";
+    #####################################################################
+    # set acquisition date to undef if the date is '0000-00-00', '' or 0
+    #####################################################################
+    if ( defined $acq_date
+            && ($acq_date eq '0000-00-00' || $acq_date eq '' || $acq_date == 0) ) {
+        $acq_date = undef;
     }
 
+    #######################################################
+    # get the registered acquisition date for this session
+    #######################################################
+    my $query = "SELECT s.ID, m.AcquisitionDate "
+                . " FROM session AS s "
+                . " LEFT OUTER JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)"
+                . " WHERE s.ID = ? AND s.Active = 'Y'";
+
+    if ($acq_date) {
+        $query .= " AND (m.AcquisitionDate > ? OR m.AcquisitionDate IS NULL)";
+    } else {
+        $query .= " AND m.AcquisitionDate IS NULL";
+    }
+
+    print "$query\n" if ($this->{debug});
+
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
-    ############################################################
-    ### if we found a session, it needs updating or inserting, #
-    ### so we use replace into. ################################
-    ############################################################
+    $sth->execute($sessionID, $acq_date);
+
+    ################################################################################
+    # if we found a session, it needs updating or inserting, so we use replace into
+    ################################################################################
     if ($sth->rows > 0) {
-        my $query = "REPLACE INTO mri_acquisition_dates".
-                    " SET AcquisitionDate='$acq_date', SessionID='$sessionID'";
-        ${$this->{'dbhr'}}->do($query);
+        $query = "REPLACE INTO mri_acquisition_dates".
+                    " SET AcquisitionDate=?, SessionID=?";
+        $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($acq_date, $sessionID);
     }
 }
 
@@ -1172,10 +1186,7 @@ sub registerScanIntoDB {
         my $acquisition_date = $tarchiveInfo->{'DateAcquired'}
             // $${minc_file}->getParameter('AcquisitionDate')
             // undef;
-        $this->update_mri_acquisition_dates(
-            $sessionID,
-            $acquisition_date
-        );
+        $this->update_mri_acquisition_dates($sessionID, $acquisition_date);
     }
     return $acquisitionProtocolID;
 }
@@ -1271,15 +1282,25 @@ sub get_mincs {
     my ($minc_files, $upload_id) = @_;
     my $message = '';
     @$minc_files = ();
+
     opendir TMPDIR, $this->{TmpDir} ;
     my @files = readdir TMPDIR;
     closedir TMPDIR;
+
     my @files_list;
     foreach my $file (@files) {
+
         next unless $file =~ /\.mnc(\.gz)?$/;
-        my $cmd= "Mincinfo_wrapper -quiet -tab -file -date $this->{TmpDir}/$file";
+
+        my $cmd = sprintf(
+            'Mincinfo_wrapper -quiet -tab -file -attvalue %s %s',
+            'acquisition:acquisition_id',
+            quotemeta("$this->{TmpDir}/$file")
+        );
         push @files_list, `$cmd`;
+
     }
+
     open SORTER, "|sort -nk2 | cut -f1 > $this->{TmpDir}/sortlist";
     print SORTER join("", @files_list);
     close SORTER;
@@ -1290,7 +1311,9 @@ sub get_mincs {
         push @$minc_files, $line;
     }
     close SORTLIST;
+
     `rm -f $this->{TmpDir}/sortlist`;
+
     $message = "\n### These MINC files have been created: \n".
         join("\n", @$minc_files)."\n";
     $this->{LOG}->print($message);
@@ -1398,6 +1421,10 @@ sub moveAndUpdateTarchive {
     my $tarchivePath = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'tarchiveLibraryDir'
                         );
+    # return the current tarchive location if no dates are available
+    return $tarchive_location unless ($tarchiveInfo->{'DateAcquired'});
+
+    # move the tarchive in a year subfolder
     $newTarchiveLocation = $tarchivePath ."/".
     substr($tarchiveInfo->{'DateAcquired'}, 0, 4);
     ############################################################
