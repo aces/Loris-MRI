@@ -1685,35 +1685,42 @@ sub validateCandidate {
     my ($subjectIDsref)= @_;
     my $CandMismatchError = undef;
     
-    ############################################################
-    ################## Check if CandID exists ##################
-    ############################################################
+    #################################################################
+    ## Check if CandID exists
+    #################################################################
     my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'CandID'});
     print "candidate id " . $subjectIDsref->{'CandID'} . "\n" 
 	if ($this->{verbose});
-    my @CandIDCheck = $sth->fetchrow_array;
     if ($sth->rows == 0) {
         print LOG  "\n\n=> Could not find candidate with CandID =".
-                   " $subjectIDsref->{'CandID'} in database";
+                   " $subjectIDsref->{'CandID'} in database\n";
         $CandMismatchError = 'CandID does not exist';
         return $CandMismatchError;
     }
     
-    ############################################################
-    ################ Check if PSCID exists #####################
-    ############################################################
-
+    #################################################################
+    ### Check if PSCID exists and that PSCID and CandID of the scan
+    # refers to the same candidate
+    #################################################################
     $query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'PSCID'});
     if ($sth->rows == 0) {
-        print "\n\n=> No PSCID";
+        print LOG "\n=> No PSCID\n";
         $CandMismatchError= 'PSCID does not exist';
         return $CandMismatchError;
-    } 
-    
+    } else {
+        # Check that the PSCID and CandID refers to the same candidate
+        my $rowref = $sth->fetchrow_hashref;
+        unless ($rowref->{'CandID'} == $subjectIDsref->{'CandID'}) {
+            $CandMismatchError = 'PSCID and CandID of the image mismatch\n';
+            print LOG "\n=> $CandMismatchError";
+            return $CandMismatchError;
+        }
+    }
+
     ############################################################
     ################ No Checking if the subject is Phantom #####
     ############################################################
@@ -1733,11 +1740,11 @@ sub validateCandidate {
     $sth =  ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'visitLabel'});
     if (($sth->rows == 0) && (!$subjectIDsref->{'createVisitLabel'})) {
-        print "\n\n=> No Visit label";
+        print LOG "\n=> No Visit label\n";
         $CandMismatchError= 'Visit label does not exist';
         return $CandMismatchError;
     } elsif (($sth->rows == 0) && ($subjectIDsref->{'createVisitLabel'})) {
-        print "\n\n=> Will create visit label $subjectIDsref->{'visitLabel'}";
+        print LOG "\n=> Will create visit label $subjectIDsref->{'visitLabel'}\n";
     } 
 
    return $CandMismatchError;
