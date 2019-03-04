@@ -485,13 +485,13 @@ if (defined($CandMismatchError)) {
               MRICandidateErrors table with reason $CandMismatchError";
 
     my $logQuery = "INSERT INTO MRICandidateErrors".
-        "(SeriesUID, TarchiveID,MincFile, PatientName, Reason) ".
+        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
         "VALUES (?, ?, ?, ?, ?)";
     my $candlogSth = $dbh->prepare($logQuery);
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
         $studyInfo{'TarchiveID'},
-        $minc,
+        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
         $studyInfo{'PatientName'},
         $CandMismatchError
     );
@@ -581,10 +581,17 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,               \%studyInfo, $subjectIDsref,
+    \$file,               \%studyInfo,    $subjectIDsref,
     $acquisitionProtocol, $minc,          $extra_validation_status,
     $reckless,            $sessionID,     $upload_id
 );
+
+# if the scan was inserted into the files table and there is an
+# extra_validation_status set to 'warning', update the mri_violations_log table
+# MincFile field with the path of the file in the assembly directory
+if (defined $acquisitionProtocolIDFromProd && $extra_validation_status eq 'warning') {
+    $utility->update_mri_violations_log_MincFile_path($file);
+}
 
 if ((!defined$acquisitionProtocolIDFromProd)
    && (defined(&Settings::isFileToBeRegisteredGivenProtocol))

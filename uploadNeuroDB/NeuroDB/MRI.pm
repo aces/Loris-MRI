@@ -79,7 +79,7 @@ sub getSubjectIDs {
     if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
 	$subjectID{'CandID'} = my_trim(getScannerCandID($scannerID, $dbhr));
 	$subjectID{'visitLabel'} = my_trim($patientName);
-# subject data       	
+# subject data
 # old versions of this
 # qnts /([A-Z-]{3,4}\s+\d+)_(\d+)_([^_ ]+)/) or nihpd =~ /(\w{3}\d+)_(\d+)_([^_ ]+)/)
     } elsif ($patientName =~ /([^_]+)_(\d+)_([^_ ]+)/) {
@@ -94,7 +94,7 @@ sub getSubjectIDs {
     $sth->execute();
     my $row = $sth->fetchrow_hashref();
     $subjectID{'visitNo'} = $row->{'VisitNo'};
-    
+
     return \%subjectID;
 }
 
@@ -120,15 +120,15 @@ sub subjectIDIsValid {
     my $query = "SELECT COUNT(*) AS isValid FROM candidate WHERE CandID=".$${dbhr}->quote($candID)." AND PSCID=".$${dbhr}->quote($pscid);
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
-    
+
     my $rowhr = $sth->fetchrow_hashref();
-    
-    # Check that visit label exists in the database if don't want to create visit labels via imaging pipeline 
+
+    # Check that visit label exists in the database if don't want to create visit labels via imaging pipeline
     if (($rowhr->{'isValid'} == 1) && (!$create_visit_label)) {
         $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE BINARY Visit_label=".$${dbhr}->quote($visit_label);
         $sth = $${dbhr}->prepare($query);
         $sth->execute();
-    
+
         $rowhr = $sth->fetchrow_hashref();
     }
     return $rowhr->{'isValid'} == 1;
@@ -150,11 +150,11 @@ RETURNS: 1 if the ID exists, 0 otherwise
 
 sub subjectIDExists {
     my ($candID, $dbhr) = @_;
-    
+
     my $query = "SELECT COUNT(*) AS idExists FROM candidate WHERE CandID=".$${dbhr}->quote($candID);
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
-    
+
     my $rowhr = $sth->fetchrow_hashref();
     return $rowhr->{'idExists'} > 0;
 }
@@ -174,11 +174,11 @@ RETURNS: the C<CandID> or (if none exists) undef
 sub getScannerCandID {
     my ($scannerID, $dbhr) = @_;
     my $candID;
-    
+
     my $query = "SELECT CandID FROM mri_scanner WHERE ID=$scannerID";
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
-    
+
     if($sth->rows > 0) {
 	my $rowref = $sth->fetchrow_hashref();
 	return $rowref->{'CandID'};
@@ -204,11 +204,11 @@ simple algorithm:
    simply a date of visit) exist associated with that session, then
    if they are outside of some (arbitrary) time window, staging is
    required.  If no dates exist, no staging is required.
-    
+
 - If no sessions exist, then if there is any other date associated
    with another session of the same subject within a time window,
    staging is required.
-    
+
 - Otherwise, staging is not required.
 
 =back
@@ -229,7 +229,7 @@ sub getSessionID {
     my ($sessionID, $requiresStaging, $studyDateJD);
     my ($query, $sth);
     my $dbh = $$dbhr;
-    
+
 # find a matching timepoint
     $query = "SELECT ID, Date_visit, Visit FROM session WHERE CandID=$subjectIDref->{'CandID'} AND LOWER(Visit_label)=LOWER(".$dbh->quote($subjectIDref->{'visitLabel'}).") AND Active='Y'";
     $sth = $dbh->prepare($query);
@@ -241,7 +241,7 @@ sub getSessionID {
 	my $timepoint = $sth->fetchrow_hashref();
 	$sessionID = $timepoint->{'ID'};
 	$sth->finish();
-	
+
 	# check dates, to determine if staging is required
 	# check date of visit, if available
 	if($timepoint->{'Date_visit'}) {
@@ -259,19 +259,19 @@ sub getSessionID {
 	if(defined($studyDateJD) and defined($timepointJD) and $studyDateJD == $timepointJD) {
 	    $requiresStaging = 0;
 	}
-	
+
 	# check dates of other files
 	if(defined($studyDateJD) and $requiresStaging == 1) {
-	    # get the set of files 
+	    # get the set of files
 	    $query = "SELECT FileID FROM files WHERE SessionID=$sessionID AND FileType='mnc' AND OutputType='native'";
 	    $sth = $dbh->prepare($query);
 	    $sth->execute();
-	    
+
 	    if($sth->rows > 0) {
 		my @files = ();
 		while(my $filehr = $sth->fetchrow_hashref()) { push @files, $filehr->{'FileID'}; }
 		$sth->finish();
-		
+
 		# run the check
 		$requiresStaging = checkMRIStudyDates($studyDateJD, $dbhr, @files);
 	    }
@@ -280,11 +280,11 @@ sub getSessionID {
 #####  if there is no existing session, which always happens if you create candidates based on incoming data
     } else {
 	$requiresStaging = 0;
-	
+
 	# determine the visit number and centerID for the next session
         my $newVisitNo = 0;
         my $centerID = 0;
-	
+
         if($subjectIDref->{'visitLabel'} =~ /PHA/i or $subjectIDref->{'visitLabel'} =~ /TEST/i) {
 	    # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
             my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr);
@@ -316,7 +316,7 @@ sub getSessionID {
                 }
             }
         }
-	
+
         $newVisitNo = 1 unless $newVisitNo;
         $centerID = 0 unless $centerID;
 
@@ -325,30 +325,30 @@ sub getSessionID {
  	$dbh->do($query); # execute query
 	$sessionID = $dbh->{'mysql_insertid'}; # retain id of inserted row
 	$subjectIDref->{'visitNo'} = $newVisitNo; # add visit number to subjectIDref
-	
+
 	# check dates of other files
 	if(defined($studyDateJD) and !$noStagingCheck) {
 	    # get the set of sessions for the subject
 	    $query = "SELECT ID FROM session WHERE CandID=$subjectIDref->{'CandID'} AND Active='Y'";
 	    $sth = $dbh->prepare($query);
 	    $sth->execute();
-	    
+
 	    if($sth->rows > 0) {
 		my @sessionIDs = ();
 		while(my $session = $sth->fetchrow_array()) { push @sessionIDs, $session[0]; }
 		$sth->finish();
-		
-		# get the set of files 
+
+		# get the set of files
 		$query = "SELECT FileID FROM files WHERE SessionID IN (".join(',', @sessionIDs)." AND FileType='mnc' AND OutputType='native'";
 		$sth = $dbh->prepare($query);
 		$sth->execute();
-		
+
 		if($sth->rows > 0) {
 		    my @files = ();
 		    while(my $filearray = $sth->fetchrow_array()) { push @files, $filearray[0]; }
-		    
+
 		    $sth->finish();
-		    
+
 		    # run the check - note it's backwards (!) because this
 		    # time we're looking for mris in other studies which
 		    # are confounding rather than mris in this study which
@@ -358,7 +358,7 @@ sub getSessionID {
 	    } # end if sth->rows (sessionIDs)
 	} # end if defined studyDateJD
     }
-    
+
     return ($sessionID, $requiresStaging);
 }
 
@@ -385,16 +385,16 @@ sub checkMRIStudyDates {
 	carp "No fileIDs passed in to checkMRIStudyDates\n";
 	return 0;
     }
-    
+
     my $requiresStaging = 1;
     my $file = NeuroDB::File->new($dbhr);
     my $studyDateID = $file->getParameterTypeID('study_date');
-    
+
     # check the other files
     my $query = "SELECT DISTINCT Value FROM parameter_file WHERE ParameterTypeID=$studyDateID AND FileID IN (".join(',', @fileIDs).")";
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
-    
+
     if($sth->rows > 0) {
       LOOP_FILES: {
 	  while(my $row = $sth->fetchrow_hashref()) {
@@ -408,7 +408,7 @@ sub checkMRIStudyDates {
 	  } # end while
       } # end LOOP_FILES
     } # end if $sth->rows (parameters)
-    
+
     return $requiresStaging;
 }
 
@@ -436,30 +436,30 @@ sub getObjective
     if($subjectIDs{'visitLabel'} =~ /PHA/i or $subjectIDs{'visitLabel'} =~ /TEST/i) {
 	return 0;
     }
-    
+
     my $query = "SELECT SubprojectID FROM session WHERE CandID='$subjectIDs{'CandID'}' AND Visit_label='$subjectIDs{'visitLabel'}' AND Active='Y' ORDER BY ID DESC LIMIT 1";
     my $sth = $${dbhr}->prepare($query) or die "Can't prepare $query: ".$${dbhr}->errstr."\n";
-    
+
     $sth->execute();
-    
+
     if($sth->rows > 0) {
         @results = $sth->fetchrow_array();
     }
-    
+
     $objective = $results[0] if $results[0];
-    
+
     unless($objective>0) {
         # there probably isn't a valid row for this visit...
         $query = "SELECT SubprojectID FROM session WHERE CandID='$subjectIDs{'CandID'}' AND Active='Y' ORDER BY ID DESC LIMIT 1";
         $sth = $${dbhr}->prepare($query);
         $sth->execute();
-        
+
         @results = $sth->fetchrow_array();
-	
+
         $objective = $results[0] if $results[0];
     }
     return $objective;
-    
+
 }
 
 
@@ -493,7 +493,7 @@ sub identify_scan_db {
 
     # get parameters from minc header
     my $patient_name =  ${fileref}->getParameter('patient_name');
-    
+
     my $xstep = ${fileref}->getParameter('xstep');
     my $ystep = ${fileref}->getParameter('ystep');
     my $zstep = ${fileref}->getParameter('zstep');
@@ -504,7 +504,7 @@ sub identify_scan_db {
     my $slice_thickness = ${fileref}->getParameter('slice_thickness');
     my $seriesUID = ${fileref}->getParameter('series_instance_uid');
     my $series_description = ${fileref}->getParameter('series_description');
-    
+
     # get parameters specific to MRIs
     my ($tr, $te, $ti, $time);
     if ($fileref->{parameters}{modality} eq "MR") {
@@ -514,7 +514,7 @@ sub identify_scan_db {
         if (defined($tr)) {  $tr = &Math::Round::nearest(0.01, $tr*1000);  }
         if (defined($te)) {  $te = &Math::Round::nearest(0.01, $te*1000);  }
         if (defined($ti)) {  $ti = &Math::Round::nearest(0.01, $ti*1000);  }
-        $time = ${fileref}->getParameter('time'); 
+        $time = ${fileref}->getParameter('time');
     } elsif ($fileref->{parameters}{modality} eq "PT") {
         # Place to add stuff specific to PET images
     }
@@ -526,22 +526,22 @@ sub identify_scan_db {
         print "xspace:\t$xspace\nyspace:\t$yspace\nzspace:\t$zspace\n";
         print "xstep:\t$xstep\nystep:\t$ystep\nzstep:\t$zstep\n";
     }
-    
+
     # compute n_slices from DIMnele's
     my $n_slices = 0;
-    
+
     # get ScannerID from DB
     my $manufacturer = ${fileref}->getParameter('manufacturer');
     my $model = ${fileref}->getParameter('manufacturer_model_name');
     my $serial_number = ${fileref}->getParameter('device_serial_number');
     my $software = ${fileref}->getParameter('software_versions');
-    
+
     my $query = "SELECT ID FROM mri_scanner WHERE Manufacturer='$manufacturer' AND Model='$model' AND Serial_number='$serial_number' AND Software='$software'";
-    
-    
+
+
     my $sth = $${dbhr}->prepare($query);
     $sth->execute();
-    
+
     # default ScannerID to 0 if we have no better clue.
     my $ScannerID = 0;
     if($sth->rows>0) {
@@ -549,7 +549,7 @@ sub identify_scan_db {
         $ScannerID=$results[0];
     }
 
-    
+
     # get the list of protocols for a site their scanner and subproject
     $query = "SELECT Scan_type, ScannerID, Center_name, TR_range, TE_range, TI_range, slice_thickness_range, xspace_range, yspace_range, zspace_range,
               xstep_range, ystep_range, zstep_range, time_range, series_description_regex
@@ -562,7 +562,7 @@ sub identify_scan_db {
     $sth = $${dbhr}->prepare($query);
     $sth->execute();
     return 'unknown' unless $sth->rows>0;
-    
+
     # check against all possible scan types
     my $rowref;
 
@@ -585,7 +585,7 @@ sub identify_scan_db {
             print &in_range($time, $rowref->{'time_range'}) ? "time\t" : '';
             print "\n";
         }
-        
+
 	if ($sd_regex) {
             if ($series_description =~ /$sd_regex/i) {
                 return &scan_type_id_to_text($rowref->{'Scan_type'}, $dbhr);
@@ -620,13 +620,13 @@ sub identify_scan_db {
     );
 
     return 'unknown';
-}    
+}
 
 =pod
 
 =head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID)
 
-Inserts scans that do not correspond to any of the defined protocol from the 
+Inserts scans that do not correspond to any of the defined protocol from the
 C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
 database.
 
@@ -661,6 +661,10 @@ sub insert_violated_scans {
         $zstep,  $xspace,             $yspace,        $zspace,
         $time,   $seriesUID,          $tarchiveID) = @_;
 
+    # determine the future relative path when the file will be moved to
+    # data_dir/trashbin at the end of the script's execution
+    my $file_rel_path = get_trashbin_file_rel_path($minc_location);
+
     (my $query = <<QUERY) =~ s/\n//gm;
   INSERT INTO mri_protocol_violated_scans (
     CandID,             PSCID,         TarchiveID,            time_run,
@@ -680,7 +684,7 @@ QUERY
     my $sth = $${dbhr}->prepare($query);
     my $success = $sth->execute(
         $candid,        $pscid,           $tarchiveID, $series_description,
-        $minc_location, $patient_name,    $tr,         $te,
+        $file_rel_path, $patient_name,    $tr,         $te,
         $ti,            $slice_thickness, $xspace,     $yspace,
         $zspace,        $xstep,           $ystep,      $zstep,
         $time,          $seriesUID
@@ -774,7 +778,7 @@ sub scan_type_text_to_id {
 =head3 in_range($value, $range_string)
 
 Determines whether numerical value falls within the range described by range
-string. Range string is a single range unit which follows the syntax 
+string. Range string is a single range unit which follows the syntax
 "X" or "X-Y".
 
 INPUTS:
@@ -798,8 +802,8 @@ sub in_range
         return 1 if &floats_are_equal($value, $range_string, $FLOAT_EQUALS_NB_DECIMALS);
     } else { ## range_string X-Y
         $range_string =~ /([0-9.]+)-([0-9.]+)/;
-        return 1 if ($1 <= $value && $value <= $2) 
-            || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS) 
+        return 1 if ($1 <= $value && $value <= $2)
+            || &floats_are_equal($value, $1, $FLOAT_EQUALS_NB_DECIMALS)
             || &floats_are_equal($value, $2, $FLOAT_EQUALS_NB_DECIMALS);
     }
 
@@ -921,7 +925,7 @@ sub register_db {
 
     # retrieve the file's parameters
     my $params = $file->getParameters();
-   
+
     # if there are any parameters to save
     if(scalar(keys(%$params)) > 0) {
 	# build the insert query
@@ -934,7 +938,7 @@ sub register_db {
 	    my $typeID = $file->getParameterTypeID($key);
 	    my $value = '';
 	    $value = $dbh->quote($${params{$key}});
-	    
+
 	    if($query =~ /\)$/) { $query .= ",\n"; }
 
 	    $query .= "($fileID, $typeID, $value, UNIX_TIMESTAMP())";
@@ -963,11 +967,11 @@ sub mapDicomParameters {
     my (%map_hash);
         %map_hash=
     (
-     xstep => 'xspace:step', 
+     xstep => 'xspace:step',
      ystep => 'yspace:step',
      zstep => 'zspace:step',
 
-     xstart => 'xspace:start', 
+     xstart => 'xspace:start',
      ystart => 'yspace:start',
      zstart => 'zspace:start',
 
@@ -1048,7 +1052,7 @@ sub mapDicomParameters {
      window_center => 'dicom_0x0028:el_0x1050',
      window_width => 'dicom_0x0028:el_0x1051',
      window_center_width_explanation => 'dicom_0x0028:el_0x1055'
-    );   
+    );
 
     # map parameters, removing the old params if they start with 'dicom'
     foreach my $key (keys %map_hash) {
@@ -1061,7 +1065,7 @@ sub mapDicomParameters {
     my $patientName = $file->getParameter('patient_name');
     $patientName =~ s/[\?\(\)\\\/\^]//g;
     $file->setParameter('patient_name', $patientName);
-    
+
     $patientName = $file->getParameter('patient:full_name');
     $patientName =~ s/[\?\(\)\\\/\^]//g;
     $file->setParameter('patient:full_name', $patientName);
@@ -1102,7 +1106,7 @@ sub findScannerID {
 
     # only register new scanners when told to do so !!!
     if ($register_new) { $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr) unless $scanner_id };
-    
+
     return $scanner_id;
 }
 
@@ -1148,7 +1152,7 @@ sub registerScanner {
 	$candID = createNewCandID($dbhr);
 	$query = "INSERT INTO candidate (CandID, PSCID, CenterID, Date_active, Date_registered, UserID, Entity_type) VALUES ($candID, 'scanner', $centerID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
 	$dbh->do($query);
-    }	
+    }
     # register scanner as new
     $query = "INSERT INTO mri_scanner (Manufacturer, Model, Serial_number, Software, CandID) VALUES (".$dbh->quote($manufacturer).",".$dbh->quote($model).","
               .$dbh->quote($serialNumber).",".$dbh->quote($softwareVersion).",".$dbh->quote($candID).")";
@@ -1187,9 +1191,9 @@ sub createNewCandID {
 
 =head3 getPSC($patientName, $dbhr)
 
-Looks for the site alias using the C<session> table C<CenterID> as 
+Looks for the site alias using the C<session> table C<CenterID> as
 a first resource, for the cases where it is created using the front-end,
-otherwise, find the site alias in whatever field (usually C<patient_name> 
+otherwise, find the site alias in whatever field (usually C<patient_name>
 or C<patient_id>) is provided, and return the C<MRI_alias> and C<CenterID>.
 
 INPUTS:
@@ -1214,23 +1218,23 @@ sub getPSC {
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
 
-    ## Get the CenterID from the session table, if the PSCID and visit labels exist 
-    ## and could be extracted  
+    ## Get the CenterID from the session table, if the PSCID and visit labels exist
+    ## and could be extracted
     if ($PSCID && $visitLabel) {
-    	my $query = "SELECT s.CenterID, p.MRI_alias FROM session s 
-                    JOIN psc p on p.CenterID=s.CenterID  
-                    JOIN candidate c on c.CandID=s.CandID  
+    	my $query = "SELECT s.CenterID, p.MRI_alias FROM session s
+                    JOIN psc p on p.CenterID=s.CenterID
+                    JOIN candidate c on c.CandID=s.CandID
                     WHERE c.PSCID = ? AND s.Visit_label = ?";
-        
+
         my $sth = $${dbhr}->prepare($query);
         $sth->execute($PSCID, $visitLabel);
         if ( $sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
             return ($row->{'MRI_alias'},$row->{'CenterID'});
         }
-    }  
+    }
 
-    ## Otherwise, use the patient name to match it to the site alias or MRI alias 
+    ## Otherwise, use the patient name to match it to the site alias or MRI alias
     $query = "SELECT CenterID, Alias, MRI_alias FROM psc WHERE mri_alias<>''";
     $sth = $${dbhr}->prepare($query);
     $sth->execute;
@@ -1313,7 +1317,7 @@ sub is_unique_hash {
     my ($file_ref) = @_;
     my $file = $$file_ref;
     my $dbhr = $file->getDatabaseHandleRef();
-    
+
     my $hash = $file->getParameter('md5hash');
     my $hashParameterTypeID = $file->getParameterTypeID('md5hash');
 
@@ -1324,7 +1328,7 @@ sub is_unique_hash {
     $sth->execute();
 
     my @res = $sth->fetchrow_array();
-    
+
     return 0 if $res[0] > 0;
     return 1;
 }
@@ -1350,11 +1354,11 @@ sub make_pics {
     my ($fileref, $data_dir, $dest_dir, $horizontalPics) = @_;
     my $file = $$fileref;
     my $dbhr = $file->getDatabaseHandleRef();
-    
+
     my $sth = $${dbhr}->prepare("SELECT CandID, Visit_label FROM session WHERE ID=".$file->getFileDatum('SessionID'));
     $sth->execute();
     my $rowhr = $sth->fetchrow_hashref();
-    
+
     my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('AcquisitionProtocolID'), $dbhr);
     my $minc = $data_dir . '/' . $file->getFileDatum('File');
     my $mincbase = basename($minc);
@@ -1393,7 +1397,7 @@ INPUTS:
 
 sub make_nii {
     my ($fileref, $data_dir)  = @_;
-   
+
     # Get MINC filename and NIfTI filename
     my $file = $$fileref;
     my $minc  = $file->getFileDatum('File');
@@ -1521,8 +1525,8 @@ sub make_minc_pics {
     my $where = "WHERE TarchiveSource = ? ";
     my $query = "SELECT Min(FileID) AS min, Max(FileID) as max FROM files ";
     $query    = $query . $where;
-    if ($debug) {		
-        print $query . "\n";		
+    if ($debug) {
+        print $query . "\n";
     }
     my $sth   = $${dbhr}->prepare($query);
     $sth->execute($TarchiveSource);
@@ -1534,8 +1538,8 @@ sub make_minc_pics {
     if (@row) {
         $script = "mass_pic.pl -minFileID $row[$minFileID] -maxFileID $row[1] ".
                      "-profile $profile";
-        if ($verbose) {		
-            $script .= " -verbose";		
+        if ($verbose) {
+            $script .= " -verbose";
 	}
 
         ############################################################
@@ -1669,6 +1673,30 @@ sub isDicomImage {
 }
 
 
+=pod
+
+=head3 get_trashbin_file_rel_path($file)
+
+Determines and returns the relative path of a file moved to trashbin at the end of
+the insertion pipeline.
+
+INPUT: path to a given file
+
+RETURNS: the relative path of the file moved to the trashbin directory
+
+=cut
+
+sub get_trashbin_file_rel_path {
+    my ($file) = @_;
+
+    my @directories  = split(/\//, $file);
+    my $new_rel_path = "trashbin"
+                       . "/" . $directories[$#directories-1]
+                       . "/" . $directories[$#directories];
+
+    return $new_rel_path;
+}
+
 1;
 
 __END__
@@ -1691,4 +1719,4 @@ License: GPLv3
 
 Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
-=cut    
+=cut
