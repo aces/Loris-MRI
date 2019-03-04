@@ -747,7 +747,7 @@ sub deleteUploadsInDatabase {
     $dbh->do($query, undef, map { $_->{'SessionID'} } @sessionIDs );
     
     $dbh->commit;
-    $dbh->{'AutoCommit'} = 0;
+    $dbh->{'AutoCommit'} = 1;
 }
 
 =pod
