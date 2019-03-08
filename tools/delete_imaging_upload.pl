@@ -152,10 +152,18 @@ if ( !@Settings::db ) {
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-#==================================#
-# Establish database connection    #
-#==================================#
+#====================================#
+# Establish database connection.     #
+#====================================#
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# Die as soon as a DB operation fails. As a side-effect, any trasaction that has not
+# been commited at that point will automatically be rolled back
+$dbh->{'RaiseError'} = 1;
+
+# Do not print an error message when a DB error occurs since the error message 
+# will be printed when the program dies anyway 
+$dbh->{'PrintError'} = 0;
 
 my $dataDirBasepath    = NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
 $dataDirBasepath =~ s!/$!!;
@@ -242,7 +250,8 @@ $files{'tarchive'}                    = [
 ];
 
 #=============================================================================#
-# Verify that all files found in the variuous tables exist on the file system #
+#=============================================================================#
+# Verify that all files found in the various tables exist on the file system  #
 #=============================================================================#
 
 my $missingFilesRef = &setFileExistenceStatus(\%files);
@@ -429,11 +438,11 @@ sub getParameterFilesRef {
     # 'check_pic_filename' that are tied (indirectly) to the tarchive
     # with ID $tarchiveId
     (my $query =<<QUERY) =~ s/\s+/ /g;
-        SELECT FileID, Value FROM parameter_file pf
+        SELECT FileID, Value, pt.Name FROM parameter_file pf
         JOIN files f USING (FileID)
         JOIN parameter_type AS pt
         USING (ParameterTypeID)
-        WHERE pt.Name='check_pic_filename'
+        WHERE pt.Name IN ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename')
         AND (
                 f.TarchiveSource = ? 
              OR f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)
@@ -444,8 +453,10 @@ QUERY
     
     # Set full path of every file
     foreach(@$filesRef) {
+		my $fileBasePath = $_->{'Name'} eq 'check_pic_filename'
+		    ? $dataDirBasePath . PIC_SUBDIR : $dataDirBasePath;
         $_->{'FullPath'} = $_->{'Value'} =~ /^\//
-            ? $_->{'Value'} : sprintf("%s/%s/%s", $dataDirBasePath, PIC_SUBDIR, $_->{'Value'});
+            ? $_->{'Value'} : sprintf("%s/%s", $fileBasePath, $_->{'Value'});
     }
     
     return $filesRef;
@@ -675,7 +686,9 @@ INPUTS:
 sub deleteUploadsInDatabase {
     my($dbh, $uploadsRef, $filesRef)= @_;
     
-    $dbh->{'AutoCommit'} = 0;
+    # This starts a DB transaction. All operations are delayed until
+    # commit is called
+    $dbh->begin_work;
     
     my $query = "DELETE FROM notification_spool WHERE ProcessID IN ("
               . join(',', ('?') x keys %$uploadsRef)
@@ -705,9 +718,25 @@ sub deleteUploadsInDatabase {
             'DELETE FROM files_intermediary WHERE IntermedID IN (%s)', 
             join(',', ('?') x @intermediaryFileIDs)
         );
-        $dbh->do($query, undef, @intermediaryFileIDs);     
+        $dbh->do($query, undef, @intermediaryFileIDs);
 
         my @fileID = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
+        
+        #==================================================================#
+        # If there's anything in parameter_file associated to the files    #
+        # deleted from files_intermediary, delete it also                  #
+        #==================================================================#
+       $query  = sprintf(
+            "DELETE FROM parameter_file WHERE FileID IN (%s)",
+            join(',', ('?') x @fileID)
+        );
+        
+        $dbh->do($query, undef, @fileID);
+        
+        #================================================================#
+        # Delete the entries in files associated to the entries deleted  #
+        # from files_intermediary                                        #
+        #================================================================#
         $query = sprintf(
             "DELETE FROM files WHERE FileID IN (%s)",
             join(',', ('?') x @fileID)
@@ -715,6 +744,15 @@ sub deleteUploadsInDatabase {
         $dbh->do($query, undef, @fileID);
     }
             
+    #===========================================================================#
+    # Before deleting the files in table files with                             #
+    # TarchiveSource=$tarchiveID, we have to delete any entry in parameter_file #
+    # that is related to these files                                            #
+    #===========================================================================#
+    $query = "DELETE FROM parameter_file "
+           . "WHERE FileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)";
+    $dbh->do($query, undef, $tarchiveID);
+    
     $query = "DELETE FROM files WHERE TarchiveSource = ?";
     $dbh->do($query, undef, $tarchiveID);
     
@@ -747,7 +785,6 @@ sub deleteUploadsInDatabase {
     $dbh->do($query, undef, map { $_->{'SessionID'} } @sessionIDs );
     
     $dbh->commit;
-    $dbh->{'AutoCommit'} = 1;
 }
 
 =pod
