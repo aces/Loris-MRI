@@ -478,7 +478,18 @@ sub getParameterTypeID {
         my ($user) = getpwuid($UID);
         $query = "INSERT INTO parameter_type (Name, Type, Description, SourceFrom, Queryable) VALUES (".$dbh->quote($paramType).", 'text', ".$dbh->quote("$paramType magically created by NeuroDB::File").", 'parameter_file', 0)";
         $dbh->do($query);
-        return $dbh->{'mysql_insertid'};
+
+        # link the inserted ParameterTypeID to a parameter type category
+        my $param_type_id = $dbh->{'mysql_insertid'};
+        $query = "INSERT INTO parameter_type_category_rel "
+                 . " (ParameterTypeID, ParameterTypeCategoryID) "
+                 . " SELECT ?, ParameterTypeCategoryID "
+                    . " FROM parameter_type_category "
+                    . " WHERE Name='MRI Variables'";
+        $sth = $dbh->prepare($query);
+        $sth->execute($param_type_id);
+
+        return $param_type_id;
     }
 }
 	
@@ -526,7 +537,7 @@ sub filterParameters {
     my $parametersRef = $this->getParameters();
 
     foreach my $key (keys %{$parametersRef}) {
-        if(($key ne 'header')
+        if(($key ne 'header') && (defined length($parametersRef->{$key}))
             && (length($parametersRef->{$key}) > MAX_DICOM_PARAMETER_LENGTH)) {
             $this->removeParameter($key);
         }

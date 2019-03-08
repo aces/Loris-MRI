@@ -376,16 +376,6 @@ RETURNS:
     of the `.bvec` file since there is nothing to write into)
   - 1 after the `.bvec` file was created
 
-### write\_to\_file($file, $value, $mode)
-
-This method writes into a file `$file` values stored in `$value`. The mode
-in which the file should be open with is specified in `$mode`.
-
-INPUTS:
-  - $file : output file to write into
-  - $value: value that needs to be written in the file
-  - $mode : mode with which the file should be open with (`'\`'> or `'\`\\>'>)
-
 ### make\_minc\_pics($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose)
 
 Creates pics associated with MINC files.
@@ -415,6 +405,19 @@ INPUTS:
   - $dbhr : database handle reference
 
 RETURNS: the `CandID` or 0 if the `PSCID` does not exist
+
+### isDicomImage(@files\_list)
+
+This method checks whether the files given as an argument are DICOM images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is a DICOM image, otherwise it will be set to
+false).
+
+INPUT: array with full path to the DICOM files
+
+RETURNS:
+  - %isDicomImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
 
 # TO DO
 

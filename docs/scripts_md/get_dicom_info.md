@@ -144,7 +144,10 @@ RETURNS: an array with all the options of the script
 
 Greps the group and element information from the GetOpt table options specified.
 
-INPUTS: array with group and element information from the GetOpt table.
+INPUTS:
+  - $option: name of the option
+  - $rest  : reference to the remaining arguments of the command line
+  - @addr  : array reference with DICOM group & element from the GetOpt option
 
 ### TwoArgInfoOption($option, $rest)
 

@@ -93,6 +93,7 @@ use FindBin;
 use Getopt::Tabular qw(GetOptions);
 use lib "$FindBin::Bin";
 use DICOM::DICOM;
+use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
 my $Help;
@@ -128,7 +129,11 @@ if(@Variables <= 0)
     die "Please specify one or more fields to display\n";
 }
 
-foreach my $filename (@input_list) {
+my $isImage_hash = NeuroDB::MRI::isDicomImage(@input_list);
+my @image_files  = grep { $$isImage_hash{$_} == 1 } keys %$isImage_hash;
+
+
+foreach my $filename (@image_files) {
     my $dicom = DICOM->new();
     $dicom->fill($filename);
 
@@ -136,8 +141,10 @@ foreach my $filename (@input_list) {
     my(@position) = 
 	# ImagePositionPatient (0x0020, 0x0032)
         &convert_coordinates(&split_dicom_list(&trim($dicom->value('0020', '0032'))));
-    if (scalar(@position) != 3) {
-       warn "Warning: The file: $filename is not DICOM!\n";
+    my $computeSlicePos = grep($_->[1] eq 'slicepos', @Variables);
+    if (scalar(@position) != 3 && $computeSlicePos) {
+       warn "Warning: DICOM header (0020,0032) not found in $filename: "
+           . "slice position cannot be computed. Skipping file.\n";
        push my @croft, $filename;
        next;
    }
@@ -153,7 +160,7 @@ foreach my $filename (@input_list) {
     my(@normal) = 
        &vector_cross_product(\@column, \@row);
     my @slc_dircos = &get_dircos(@normal);
-    my $slicepos = &vector_dot_product(\@position, \@slc_dircos);
+    my $slicepos = &vector_dot_product(\@position, \@slc_dircos) if $computeSlicePos;
 
     # Print out variable labels
     if(!$PrintedLabels && $PrintLabels) {
@@ -466,12 +473,15 @@ sub SetupArgTables
 
 Greps the group and element information from the GetOpt table options specified.
 
-INPUTS: array with group and element information from the GetOpt table.
+INPUTS:
+  - $option: name of the option
+  - $rest  : reference to the remaining arguments of the command line
+  - @addr  : array reference with DICOM group & element from the GetOpt option
 
 =cut
 
 sub InfoOption {
-    my (@addr) = @_;
+    my ($option, $rest, @addr) = @_;
     
     my $group = shift @addr;
     my $element = shift @addr;

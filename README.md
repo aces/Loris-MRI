@@ -1,6 +1,6 @@
-This Readme covers release 20.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 20.1 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
-This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 20.0.*.<br>
+This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 20.1.*.<br>
 For documentation and detailed setup information, please see the [LORIS-MRI documentation](docs/) for your installed version</b>.
 
 This repo can be installed on the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
@@ -35,6 +35,7 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
 sudo apt-get install python3 
 sudo apt-get install python3-dev
 sudo apt-get install python3-pip
+sudo apt-get install libmysqlclient-dev
 sudo pip3 install virtualenv
 ```
 
@@ -51,6 +52,13 @@ Download the pre-compiled package for your operating system.  Install required d
   `source $mincToolsDirectory/minc-toolkit-config.csh`,
 
   where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
+
+For the defacing scripts, you will also need to download the pre-compiled `bic-mni-models` and `beast` data and model packages for you operation system.
+
+   ```bash
+   sudo dpkg -i bic-mni-models-<version>.deb
+   sudo dpkg -i beast-library-<version>.deb
+   ```
 
 #### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 

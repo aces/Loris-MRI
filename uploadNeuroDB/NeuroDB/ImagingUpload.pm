@@ -53,6 +53,7 @@ use NeuroDB::FileDecompress;
 use NeuroDB::Notify;
 use NeuroDB::ExitCodes;
 use NeuroDB::DBI;
+use NeuroDB::MRI;
 use File::Temp qw/ tempdir /;
 
 
@@ -151,9 +152,7 @@ sub IsCandidateInfoValid {
     ############################################################
     #########################Initialization#####################
     ############################################################
-    my $files_not_dicom                   = 0;
     my $files_with_unmatched_patient_name = 0;
-    my $is_candinfovalid                  = 0;
     my @row                               = ();
 
     ############################################################
@@ -221,14 +220,14 @@ sub IsCandidateInfoValid {
             $archived_file_path = ($tarchivePath . "/" . $archived_file_path);
         }
 
-        my $command =
-            $bin_dirPath
-            . "/uploadNeuroDB/tarchiveLoader"
-            . " -globLocation -profile prod $archived_file_path";
-
-        if ($this->{verbose}){
-            $command .= " -verbose";
-        }
+        my $command = sprintf(
+            "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+            quotemeta($bin_dirPath),
+            'prod',
+            quotemeta($archived_file_path),
+            quotemeta($this->{upload_id})
+        );
+        $command .= " -verbose" if $this->{verbose};
 
         $message =
             "\nThe Scan for the uploadID "
@@ -243,61 +242,43 @@ sub IsCandidateInfoValid {
         return 0;
     }
 
-    foreach (@file_list) {
-        ########################################################
-        #1) Exlcude files starting with . (and ._ as a result)##
-        #including the .DS_Store file###########################
-        #2) Check to see if the file is of type DICOM###########
-        #3) Check to see if the header matches the patient-name#
-        ########################################################
-        if ( (basename($_) =~ /^\./)) {
-            $cmd = "rm " . ($_);
-            print "\n $cmd \n";
-            system($cmd);
-        }
-        else {
-            if ( ( $_ ne '.' ) && ( $_ ne '..' )) {
-                if ( !$this->isDicom($_) ) {
-                    $files_not_dicom++;
-                }
-    	        else {
-            #######################################################
-            #Validate the Patient-Name, only if it's not a phantom#
-            ############## and the file is of type DICOM###########
-            #######################################################
-                    if ($row[4] eq 'N') {
-                        # make sure the regex used for PatientNameMatch starts
-                        # with $this->{'pname'}
-                        if (!$this->PatientNameMatch($_, "^$this->{'pname'}")) {
-                            $files_with_unmatched_patient_name++;
-                        }
-                    } elsif ($row[4] eq 'Y') {
-                        # make sure the regex used for PatientNameMatch
-                        # includes "phantom" string
-                        my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr}, 'LegoPhantomRegex'
-                        );
-                        my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr}, 'LivingPhantomRegex'
-                        );
-                        my $phantom_regex =
-                            "($lego_phantom_regex)|($living_phantom_regex)";
-                        if (!$this->PatientNameMatch($_, $phantom_regex)) {
-                            $files_with_unmatched_patient_name++;
-                        }
-                    }
-                }
-            }
+    my $isImage_hash    = NeuroDB::MRI::isDicomImage(@file_list);
+    my @image_files     = grep { $$isImage_hash{$_} == 1 } keys %$isImage_hash;
+    my @non_image_files = grep { $$isImage_hash{$_} == 0 } keys %$isImage_hash;
+    
+    # Issue warnings for files that are not DICOM images
+    foreach my $f (@non_image_files) {
+        $message = "\nWARNING: file '$f' is not a DICOM image: ignored.\n";
+        $this->spool($message, 'N', $notify_notsummary);
+	}
+	
+	# Issue a warning for the total number of files that are not
+	# DICOM images
+    my $files_not_dicom = scalar @non_image_files;
+    if ($files_not_dicom > 0 ) {
+        $message = "\nWARNING: There are $files_not_dicom file(s) which"
+                   . " are not DICOM images: these will be ignored.\n";
+        $this->spool($message, 'N', $notify_notsummary);
+    }
+
+    # check that the patient name was set properly in the DICOM files
+    my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
+        $this->{dbhr}, 'LegoPhantomRegex'
+    );
+    my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
+        $this->{dbhr}, 'LivingPhantomRegex'
+    );
+    my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
+    my $patient_name  = $this->{'pname'};
+    foreach my $file (@image_files) {
+        if ($row[4] eq 'N' && !$this->PatientNameMatch($file, "^$patient_name")) {
+            $files_with_unmatched_patient_name++;
+        } elsif ($row[4] eq 'Y' && !$this->PatientNameMatch($file, $phantom_regex)) {
+            $files_with_unmatched_patient_name++;
         }
     }
 
-    if ( $files_not_dicom > 0 ) {
-        $message = "\nERROR: There are $files_not_dicom file(s) which"
-          . " are not of type DICOM \n";
-        $this->spool($message, 'Y', $notify_notsummary);
-        return 0;
-    }
-
+    # return 0 if found at least one DICOM file without the proper patient name
     if ( $files_with_unmatched_patient_name > 0 ) {
         $message =
             "\nERROR: There are $files_with_unmatched_patient_name file(s)"
@@ -325,7 +306,7 @@ sub IsCandidateInfoValid {
 =head3 runDicomTar()
 
 This method executes the following actions:
- - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
+ - Runs C<dicomTar.pl> with C<-database -profile prod> options
  - Extracts the C<TarchiveID> of the DICOM archive created by C<dicomTar.pl>
  - Updates the C<mri_upload> table if C<dicomTar.pl> ran successfully
 
@@ -341,17 +322,13 @@ sub runDicomTar {
     my $tarchive_location = NeuroDB::DBI::getConfigSetting(
                             $this->{dbhr},'tarchiveLibraryDir'
                             );
-    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'MRICodePath'
-                        );
-    my $dicomtar = 
-      $bin_dirPath . "/" . "dicom-archive" . "/" . "dicomTar.pl";
-    my $command =
-        $dicomtar . " " . $this->{'uploaded_temp_folder'} 
-      . " $tarchive_location -clobber -database -profile prod";
-    if ($this->{verbose}) {
-        $command .= " -verbose";
-    }
+    my $command = sprintf(
+        "dicomTar.pl %s %s -database -profile %s",
+        quotemeta($this->{'uploaded_temp_folder'}),
+        quotemeta($tarchive_location),
+        'prod'
+    );
+    $command .= " -verbose" if $this->{verbose};
     my $output = $this->runCommandWithExitCode($command);
 
     if ( $output == 0 ) {
@@ -426,19 +403,19 @@ RETURNS: 1 on success, 0 on failure
 =cut
 
 sub runTarchiveLoader {
-    my $this               = shift;
+    my $this = shift;
     my $archived_file_path = $this->getTarchiveFileLocation();
     my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'MRICodePath'
                         );
-    my $command =
-        $bin_dirPath
-      . "/uploadNeuroDB/tarchiveLoader"
-      . " -globLocation -profile prod $archived_file_path";
-
-    if ($this->{verbose}){
-        $command .= " -verbose";
-    }
+    my $command = sprintf(
+        "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+        quotemeta($bin_dirPath),
+        'prod',
+        quotemeta($archived_file_path),
+        quotemeta($this->{upload_id})
+    );
+    $command .= " -verbose" if $this->{verbose};
     my $output = $this->runCommandWithExitCode($command);
     if ( $output == 0 ) {
         return 1;
@@ -507,31 +484,6 @@ sub PatientNameMatch {
     }
     return 1;     ##return true
 
-}
-
-
-=pod
-
-=head3 isDicom($dicom_file)
-
-This method checks whether the file given as an argument is of type DICOM.
-
-INPUT: full path to the DICOM file
-
-RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
-
-=cut
-
-sub isDicom {
-    my $this         = shift;
-    my ($dicom_file) = @_;
-    my $cmd    = "file $dicom_file";
-    my $file_type    = `$cmd`;
-    if ( !( $file_type =~ /DICOM medical imaging data$/ ) ) {
-        print "\n $dicom_file is not of type DICOM \n";
-        return 0;
-    }
-    return 1;
 }
 
 =pod

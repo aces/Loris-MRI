@@ -204,11 +204,6 @@ scripts (in the `python` directory). It accesses data stored in the
 if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'dti' or $acquisitionProtocol eq 'bold' or $acquisitionProtocol =~ /fmri/) { return 1; }
 ```
 
-- `getSNRModalities()`
-    
-    Routine to instruct the pipeline which 3D modalities to include when 
-    computing the signal-to-noise-ratio (SNR) on MINC images.
-
 - `getSubjectIDs()`
 
     Routine to parse candidate’s PSCID, CandID, Center (determined from the PSCID), and visit 

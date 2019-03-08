@@ -24,6 +24,8 @@ Available options are:
 
 -profile                 : Name of the config file in C<../dicom-archive/.loris_mri>
 
+-uploadID                : UploadID associated to this upload
+
 -force                   : Force the script to run even if the validation
                            has failed
 
@@ -34,9 +36,9 @@ Available options are:
                            for the possibility that the tarchive was moved to
                            a different directory
 
--newScanner                 : By default a new scanner will be registered if the
-                              data you upload requires it. You can risk turning
-                              it off
+-newScanner              : By default a new scanner will be registered if the
+                           data you upload requires it. You can risk turning
+                           it off
 
 -keeptmp                 : Keep temporary directory. Make sense if have
                            infinite space on your server
@@ -104,8 +106,7 @@ my $date        = sprintf(
                   );
 my $debug       = 0;  
 my $message     = '';
-my $tarchive_srcloc = '';
-my $upload_id   = undef;
+my $upload_id;
 my $verbose     = 0;           # default, overwritten if the scripts are run
                                # with -verbose
 my $notify_detailed   = 'Y';   # notification_spool message flag for messages to
@@ -139,6 +140,8 @@ my @opt_table = (
                  ["-profile     ","string",1, \$profile,
                   "Name of config file in ../dicom-archive/.loris_mri"
                  ],
+                 ["-uploadID", "string", 1, \$upload_id, "UploadID associated to ".
+                 "this upload."],
                  ["-force", "boolean", 1, \$force,"Force the script to run ".
                  "even if the validation has failed."],
                  ["Advanced options","section"],
@@ -213,6 +216,11 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
+if ( !$upload_id ) {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: missing -uploadID argument\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
+}
 { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
@@ -270,7 +278,7 @@ my $exclude          = NeuroDB::DBI::getConfigSetting(
                         \$dbh, 'excluded_series_description'
                        );
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
-my $User             = `whoami`;
+my $User             = getpwuid($>);
 
 # fixme there are better ways 
 my @progs = ("convert", "Mincinfo_wrapper", "mincpik", $converter);
@@ -349,15 +357,15 @@ my %tarchiveInfo = $utility->createTarchiveArray(
 ################################################################
 ################## Call the validation script ##################
 ################################################################
-my $script = "tarchive_validation.pl $tarchive -profile $profile";
+my $script = sprintf(
+    "tarchive_validation.pl %s -profile %s -uploadID %s",
+    quotemeta($tarchive),
+    quotemeta($profile),
+    quotemeta($upload_id)
+);
+$script .= " -globLocation " if ($globArchiveLocation);
+$script .= " -verbose " if ($verbose);
 
-if ($globArchiveLocation) {
-    $script .= " -globLocation";
-}
-
-if ($verbose) {
-    $script .= " -verbose";
-}
 ################################################################
 ###### Note: system call returns the process ID ################
 ###### To the actual exit value, shift right by ################
@@ -365,19 +373,6 @@ if ($verbose) {
 ################################################################
 my $output = system($script); 
 $output = $output >> 8;
-
-################################################################
-### get the UploadID to log in the notification spool table ####
-################################################################
-# first get the tarchive SourceLocation from $tarchiveInfo 
-$tarchive_srcloc = $tarchiveInfo{'SourceLocation'};
-# then get the upload_id from tarchive_srcloc
-my $query =
-        "SELECT UploadID FROM mri_upload "
-        . "WHERE DecompressedLocation =?";
-my $sth = $dbh->prepare($query);
-$sth->execute($tarchive_srcloc);
-$upload_id = $sth->fetchrow_array;
 
 ################################################################
 #############Exit if the is_valid is false and $force is not####
@@ -528,50 +523,28 @@ foreach my $minc (@minc_files) {
     ###########################################################
     ############# Call the minc_insertion script ##############
     ###########################################################
-
-    $script = "minc_insertion.pl -tarchivePath $tarchive ".
-              "-mincPath $minc -profile $profile";
-
-    if ($force) {
-        $script .= " -force";
-    }
-
-    if ($globArchiveLocation) {
-        $script .= " -globLocation";
-    }
- 
-    if ($verbose) {
-        $script .= " -verbose";
-    }
-
+    $script = sprintf(
+        "minc_insertion.pl -mincPath %s -profile %s -uploadID %s",
+        quotemeta($minc),
+        quotemeta($profile),
+        quotemeta($upload_id)
+    );
+    $script .= " -force"                    if $force;
+    $script .= " -globLocation"             if $globArchiveLocation;
+    $script .= " -verbose"                  if $verbose;
+    $script .= " -bypass_extra_file_checks" if $bypass_extra_file_checks;
     if ($acquisitionProtocol) {
-        $script .= " -acquisition_protocol " . $acquisitionProtocol;
+        $script .= " -acquisition_protocol " . quotemeta($acquisitionProtocol);
     }
 
-    if ($bypass_extra_file_checks) {
-        $script .= " -bypass_extra_file_checks";
-    }
-
-    # Should be kept last
-    if ($debug) {
-        print $script . "\n";
-    }
-    ###########################################################
-    ## Note: system call returns the process ID ###############
-    ## To get the actual exit value, shift right by eight as ##
-    ## done below #############################################
-    ###########################################################
-
-    $output = system($script);
-    $output = $output >> 8;
-    ###########################################################
-    #### if the return code of the script is 0 ################
-    #### mark the study as valid because this means at least ##
-    #### one volume will be inserted into the DB ##############
-    ###########################################################
+    print $script . "\n" if $debug;
+    $output = system($script); # system call returns the process ID
+    $output = $output >> 8;    # to get actual exit value, need to shift right by 8
     if ($output==0) {
-       $minc_inserted++;
-       $valid_study = 1;
+        # if the script's return code = 0, mark the study as valid as at least
+        # one MINC file was inserted into the DB
+        $minc_inserted++;
+        $valid_study = 1;
     }
 
 } # end foreach $minc
@@ -579,7 +552,7 @@ foreach my $minc (@minc_files) {
 ################################################################
 ############### Compute SNR on 3D modalities ###################
 ################################################################
-$utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id, $profile);
+$utility->computeSNR($tarchiveInfo{TarchiveID}, $upload_id);
 ################################################################
 ####### Add order of acquisition for similar modalities ########
 ####### within the same session based on series number #########
@@ -593,31 +566,22 @@ if ($valid_study) {
     ### Update the number_of_mincCreated #######################
     ### And number_of_mincInserted #############################
     ############################################################
-    my $where = "WHERE TarchiveID=?";
 
-    $query =
-        "SELECT number_of_mincInserted FROM mri_upload ";
-    $query = $query . $where;
-    if ($debug) {
-        print $query . "\n";
-    }
+    my $query = "SELECT number_of_mincInserted FROM mri_upload WHERE UploadID=?";
+    print $query . "\n" if $debug;
 
     my $sth = $dbh->prepare($query);
-    $sth->execute($tarchiveInfo{TarchiveID});
+    $sth->execute($upload_id);
     my $oldCount = $sth->fetchrow_hashref->{'number_of_mincInserted'};
     my $newCount = $minc_inserted + ($oldCount ? $oldCount : 0);
 
-    $query = "UPDATE mri_upload SET number_of_mincInserted=?, ".
-                 "number_of_mincCreated=? ";
-    $query = $query . $where;
-    if ($debug) {
-        print $query . "\n";
-    }
+    $query = "UPDATE mri_upload "
+             . " SET number_of_mincInserted=?, number_of_mincCreated=? "
+             . " WHERE UploadID=?";
+    print $query . "\n" if $debug;
 
     my $mri_upload_update = $dbh->prepare($query);
-    $mri_upload_update->execute(
-               $newCount,$mcount,$tarchiveInfo{TarchiveID}
-    );
+    $mri_upload_update->execute($newCount, $mcount, $upload_id);
  
     ############################################################
     ############# Create minc-pics #############################
@@ -633,43 +597,41 @@ if ($valid_study) {
     ############################################################
     # spool a new study message ################################
     ############################################################
-    $message =             
-	    "\n" . $subjectIDsref->{'CandID'} . 
-            " " . $subjectIDsref->{'PSCID'} .
-            " " . $subjectIDsref->{'visitLabel'} .
-            "\tacquired ". $tarchiveInfo{'DateAcquired'} .
-	    "\n";
+    $message = sprintf(
+        "\n CandID: %s, PSCID: %s, Visit: %s, Acquisition Date: %s\n",
+        $subjectIDsref->{'CandID'},
+        $subjectIDsref->{'PSCID'},
+        $subjectIDsref->{'visitLabel'},
+        $tarchiveInfo{'DateAcquired'} // 'UNKNOWN'
+    );
     $notifier->spool('mri new study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'N', 
 		    $notify_detailed);
+
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
-     $where = "WHERE t.TarchiveID=?";
-     $query = "UPDATE tarchive t ".
-            "JOIN mri_upload m ON (m.tarchiveID=t.tarchiveID) ".
-            "SET t.SessionID =?, m.sessionID=? ";
-     $query = $query . $where;
-     if ($debug) {
-        print $query . "\n";
-     }
-     my $session_update = $dbh->prepare($query);
-     $session_update->execute(
-              $sessionID,
-              $sessionID,
-              $tarchiveInfo{'TarchiveID'}
-     );
+    $query = "UPDATE tarchive SET SessionID=? WHERE TarchiveID=?";
+    $sth   = $dbh->prepare($query);
+    print $query . "\n" if $debug;
+    $sth->execute($sessionID, $tarchiveInfo{'TarchiveID'});
+
+    $query = "UPDATE mri_upload SET SessionID=? WHERE UploadID=?";
+    $sth   = $dbh->prepare($query);
+    print $query . "\n" if $debug;
+    $sth->execute($sessionID, $upload_id);
 
 } else {
     ############################################################
     ## spool a failure message This has been changed to tarchive
     ## instead of using patientName ############################
     ############################################################
-    $message = 
-	    "\n" . $tarchive. " acquired ". 
-            $tarchiveInfo{'DateAcquired'} .
-            " was deemed invalid\n\n". $study_dir .
-	    "\n";
+    $message = sprintf(
+        "\n %s acquired %s was deemed invalid\n\n%s\n",
+        $tarchive,
+        $tarchiveInfo{'DateAcquired'} // 'UNKNOWN',
+        $study_dir
+    );
     $notifier->spool('mri invalid study', $message, 0,
 		    'tarchiveLoader', $upload_id, 'Y', 
 		    $notify_notsummary);
@@ -678,19 +640,14 @@ if ($valid_study) {
 ################################################################
 # make final logfile name without overwriting phantom logs #####
 ################################################################
-my $final_logfile = $center_name."_".$tarchiveInfo{'DateAcquired'}.
-                    '_'.$subjectIDsref->{'CandID'};
-if ($subjectIDsref->{'isPhantom'}) { 
-    $final_logfile = $subjectIDsref->{'PSCID'}."_".
-    $tarchiveInfo{'DateAcquired'}.'_'.$subjectIDsref->{'CandID'}; 
-}
-
-################################################################
-### tarchiveLocation ###########################################
-### if something went wrong and there is no acq date and CandID 
-################################################################
-unless($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) { 
-    $final_logfile .= '_'.$temp[$#temp]; 
+my $final_logfile = $center_name;
+unless ($tarchiveInfo{'DateAcquired'} && $subjectIDsref->{'CandID'}) {
+    ### if something went wrong and there is no acq date or CandID
+    $final_logfile .= '_'.$temp[$#temp];
+} else {
+    $final_logfile .= $subjectIDsref->{'PSCID'} if $subjectIDsref->{'isPhantom'};
+    $final_logfile .= $tarchiveInfo{'DateAcquired'};
+    $final_logfile .= $subjectIDsref->{'CandID'};
 }
 $final_logfile .= '.log.gz';
 
@@ -757,12 +714,10 @@ if (!$valid_study) {
 ###############################################################
 ### Set Processed to 1 in mri_upload table#####################
 ###############################################################
-my $where = "WHERE TarchiveID=?";
-$query = "UPDATE mri_upload SET InsertionComplete=1 ";
-$query = $query . $where;
+my $query = "UPDATE mri_upload SET InsertionComplete=1 WHERE UploadID=?";
 
 my $mri_upload_update = $dbh->prepare($query);
-$mri_upload_update->execute($tarchiveInfo{TarchiveID});
+$mri_upload_update->execute($upload_id);
 
 exit $NeuroDB::ExitCodes::SUCCESS;
 

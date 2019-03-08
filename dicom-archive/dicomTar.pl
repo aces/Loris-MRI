@@ -26,7 +26,10 @@ Available options are:
 -mri_upload_update      : Update the C<mri_upload> table by inserting the
                           correct C<tarchiveID>
 
--clobber                : Specify the name of the config file which resides in
+-clobber                : Use this option only if you want to replace the
+                          resulting tarball!
+
+-profile                : Specify the name of the config file which resides in
                           C<.loris_mri> in the current directory
 
 -centerName             : Specify the symbolic center name to be stored
@@ -209,6 +212,19 @@ my $sumTypeVersion = $summary->{'sumTypeVersion'};
 my $studyUnique = $summary->{'studyuid'};
 my $creator         = $summary->{user};
 my $sumTypeVersion  = $summary->{sumTypeVersion}; 
+
+# check if the study is already uploaded in the tarchive tables
+if ($dbase) {
+    $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+    my ($unique_study, $message) = $summary->is_study_unique($dbh, $clobber, undef);
+    # if there is a message returned, it means the script should stop running
+    # and display the error message as the study is not unique
+    if (!$unique_study && !$clobber) {
+        print STDERR $message;
+        exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
+    }
+    $dbh->disconnect();
+}
 
 my $byDate;
 # Determine how to name the archive... by acquisition date or by today's date.
