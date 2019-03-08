@@ -27,12 +27,13 @@ Available options are:
            the scan type name is not used to determine which DICOM files to extract. This option
            must be used if no patient name patterns were specified via C<-n> (see above).
           
--d       : extract the files in directory C<< <dir_argument>/get_dicom_files.pl.<UNIX_process_number> >>
-           For example with C<-d /data/tmp>, the DICOM files will be extracted in 
-           C</data/tmp/get_dicom_files.pl.67888> (assuming 67888 is the process number). 
-           By default, dir_argument is set to the value of the environment variable C<TMPDIR>. Note 
-           that the directory argument has to exist and be writeable, otherwise the script will issue
-           an error and abort.
+-d       : extract the files in directory C<< <dir_argument>/get_dicom_files.pl.<random_string> >>
+           For example with C<-d /data/tmp>, the DICOM files might be extracted in 
+           C</data/tmp/get_dicom_files.pl.n1d4>. By default, dir_argument is set to the value of
+           the environment variable C<TMPDIR>. Since the UNIX program C<tar> has known limitations 
+           with NFS file systems (incorrect reports of files that changed while they are archived), the
+           argument to C<-d> should not be a directory that resides on an NFS mounted file system.
+           Failure to do so might result in C<get_dicom_files.pl> failing.
           
 -o       : basename of the final C<tar.gz> file to produce, in the current directory (defaults to 
            C<dicoms.tar.gz>).
@@ -64,6 +65,7 @@ use NeuroDB::ExitCodes;
 use File::Path;
 use File::Basename;
 use File::Temp qw/tempdir/;
+use File::Path 'rmtree';
 
 use Getopt::Tabular;
 
@@ -203,7 +205,8 @@ $sth->execute();
 # Process each tarchive and extract the DICOMs associated #
 # to the scan types of interest                           #
 #---------------------------------------------------------#
-my @outDirs = ();
+my $nbDirsArchived = 0;
+my $outTarFile = "$outTarBasename.tar";
 foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     my($pscid, $visitLabel, $dateAcquired, $archiveLocation, $tarchiveId) = @$tarchiveRowRef;
     
@@ -213,8 +216,13 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     # Extract only the .tar.gz archive from the main archive (ignore the 
     # meta data and log file)
     print "Extracting $innerTar in $tmpExtractDir...";
-    system("tar xf $tarchiveLibraryDir/$archiveLocation -C $tmpExtractDir $innerTar") == 0 
-      or die "Extraction of $innerTar in $tmpExtractDir failed: $?\n";
+    my $cmd = sprintf(
+        "tar xf %s -C %s %s",
+        quotemeta("$tarchiveLibraryDir/$archiveLocation"),
+        quotemeta($tmpExtractDir),
+        quotemeta($innerTar)
+    );
+    system($cmd) == 0 or die "Extraction of '$innerTar' in '$tmpExtractDir' failed: $?";
     print "done\n";
     
     # Fetch all the MINC files created out of the DICOM archive whose 
@@ -271,36 +279,41 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         # --absolute-path: since we are extracting in $outDir and since
         #                  $outDir is an absolute path, we need this option otherwise
         #                  tar will refuse to extract
-        my $cmd = "tar zxf $tmpExtractDir/$innerTar"
-                . " --files-from=$fileList "   
-                . " --absolute-names "
-                . " --transform='s#^.*/#$outDir/#'";
+        $cmd = "tar zxf $tmpExtractDir/$innerTar"
+             . " --files-from=$fileList "   
+             . " --absolute-names "
+             . " --transform='s#^.*/#$outDir/#'";
         print "Extracting DICOM files for $file...";
         system($cmd) == 0 
             or die "Failed to extract DICOM files for MINC file $file from $tmpExtractDir/$innerTar: $?\n";
         print "done.\n";
-        
-        push(@outDirs, "$pscid/$visitLabel/$dateAcquired/$outSubDir");
+
+        my $tarOptions = $nbDirsArchived ? 'rf' : 'cf';
+        $cmd = sprintf(
+            "tar $tarOptions %s -C %s --absolute-names %s",
+            quotemeta($outTarFile),
+            quotemeta($tmpExtractDir),
+            quotemeta("$pscid/$visitLabel/$dateAcquired/$outSubDir")
+        );
+        print "Archiving $outDir...";
+        system($cmd) == 0 or die "Failed to write DICOM files found in $outDir in archive $outTarFile: $?\n";
+        print "done\n";
+        $nbDirsArchived++;
+
+        # Delete the outDir every time so that the temporary extract dir does not grow too big
+        rmtree($outDir);
+        unlink($fileList) or warn "Warning! Could not delete '$tmpExtractDir/$innerTar'\n";
     }
+   
+    unlink("$tmpExtractDir/$innerTar") or warn "Warning! Could not delete '$tmpExtractDir/$innerTar'\n";
 }
 
-if(!@outDirs) {
+if(!$nbDirsArchived) {
     print "No DICOM files match the criteria specifed via -t and/or -n. No .tar.gz file created.\n";
 } else {
-    # Make a big tar of all the extracted DICOMs that match the patient name patterns
-    # and scan type name patterns
-    my $outTarFile = "$outTarBasename.tar.gz";
-    my $outDirsFile = "$tmpExtractDir/out_dirs.$$.txt";
-    open(OUT_DIRS_FILE, ">$outDirsFile") or die "Cannot write to file $outDirsFile: $!\n";
-    foreach(@outDirs) {
-        print OUT_DIRS_FILE "$_\n";
-    }
-    close(OUT_DIRS_FILE);
-
-    print "Writing $outTarFile...";
-    my $cmd = "tar zcf $outTarFile -C $tmpExtractDir --files-from=$outDirsFile";
-    system($cmd) == 0 or die "Failed to archive DICOM files in $outTarFile: $?\n";
-    print "done\n";
+    my $cmd = sprintf("gzip -f %s", quotemeta($outTarFile));
+    system($cmd) == 0 or die "Failed to run $cmd\n";
+    printf("Wrote %s.gz", quotemeta($outTarFile));
 }
 
 exit $NeuroDB::ExitCodes::SUCCESS;
