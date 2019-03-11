@@ -525,17 +525,17 @@ sub identify_scan_db {
             }
 
 	    } else {
-         	if ( &in_range($tr, "$tr_min-$tr_max")
-                 && &in_range($te, "$te_min-$te_max")
-                 && &in_range($tr, "$ti_min-$ti_max")
-                 && &in_range($tr, "$xspace_min-$xspace_max")
-                 && &in_range($tr, "$yspace_min-$yspace_max")
-                 && &in_range($tr, "$zspace_min-$zspace_max")
-                 && &in_range($tr, "$xstep_min-$xstep_max")
-                 && &in_range($tr, "$ystep_min-$ystep_max")
-                 && &in_range($tr, "$zstep_min-$zstep_max")
-                 && &in_range($tr, "$time_min-$time_max")
-                 && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
+         	if ( &in_range($tr,              "$tr_min-$tr_max"                  )
+              && &in_range($te,              "$te_min-$te_max"                  )
+              && &in_range($ti,              "$ti_min-$ti_max"                  )
+              && &in_range($xspace,          "$xspace_min-$xspace_max"          )
+              && &in_range($yspace,          "$yspace_min-$yspace_max"          )
+              && &in_range($zspace,          "$zspace_min-$zspace_max"          )
+              && &in_range($xstep,           "$xstep_min-$xstep_max"            )
+              && &in_range($ystep,           "$ystep_min-$ystep_max"            )
+              && &in_range($zstep,           "$zstep_min-$zstep_max"            )
+              && &in_range($time,            "$time_min-$time_max"              )
+              && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
             ) {
                     return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
