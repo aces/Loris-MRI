@@ -8,7 +8,7 @@ delete_mri_upload.pl -- Delete everything that was produced by the imaging pipel
 
 =head1 SYNOPSIS
 
-perl delete_mri_upload.pl [-profile file] [-ignore] [-nobackup] [-uploadID lis_of_uploadIDs]
+perl delete_mri_upload.pl [-profile file] [-ignore] [-nobackup] [-protocol] [-form] [-uploadID lis_of_uploadIDs]
 
 Available options are:
 
@@ -25,7 +25,16 @@ Available options are:
 -uploadID    : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. Program will 
                abort if the the list contains an upload ID that does not exist. Also, all upload IDs must
                have the same C<tarchive> ID.
-
+               
+-protocol    : delete the imaging protocol(s) in table C<mri_processing_protocol> associated to either the
+               upload(s) specified via the C<-uploadID> option or any file that was produced using this (these)
+               upload(s). Let F be the set of files directly or inderectly associated to the upload(s) to delete.
+               This option must be used if there is at least one record in C<mri_processing_protocol> that is tied
+               only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
+               do not have a protocol associated to them, the switch is ignored if used.
+               
+-form        : delete the entries in C<mri_parameter_form> associated to the upload(s) passed on
+               the command line, if any (default is NOT to delete them).
 
 =head1 DESCRIPTION
 
@@ -35,16 +44,16 @@ message and exit if multiple upload IDs are passed on the command line and they 
 same C<TarchiveID> or if one of the upload ID does not exist. The script will remove the records associated
 to the imaging upload whose IDs are passed on the command line from the following tables:
 C<notification_spool>, C<tarchive_series>, C<tarchive_files>, C<files_intermediary>, C<parameter_file>
-C<files>, C<mri_violated_scans>, C<mri_violations_log>, C<MRICandidateErrors>, C<mri_upload> and C<tarchive>.
-It will also delete from the file system the files found in this set of tables (including the archive itself).
-The script will abort and will not delete anything if there is QC information associated to the upload(s)
-(i.e entries in tables C<files_qcstatus> or C<feedback_mri_comments>). If the script finds a file that is listed
-in the database but that does not exist on the file system, the script will issue an error message and exit, leaving
-the file system and database untouched. This behaviour can be changed with option C<-ignore>. By default, the script
-will create a backup of all the files that it plans to delete before actually deleting them. Use option C<-nobackup>
-to perform a 'hard' delete (i.e. no backup). The backup file name will be C<< imaging_upload.<TARCHIVE_ID>.tar.gz >>.
-Note that the file paths inside this backup archive are absolute. To restore the files in the archive, one must use
-C<tar> with option C<--absolute-names>.
+C<files>, C<mri_violated_scans>, C<mri_violations_log>, C<MRICandidateErrors>, C<mri_upload>, C<tarchive> and
+C<mri_processing_protocol>. It will also delete from the file system the files found in this set of tables 
+(including the archive itself). The script will abort and will not delete anything if there is QC information 
+associated to the upload(s) (i.e entries in tables C<files_qcstatus> or C<feedback_mri_comments>). If the script
+finds a file that is listed in the database but that does not exist on the file system, the script will issue an
+error message and exit, leaving the file system and database untouched. This behaviour can be changed with option 
+C<-ignore>. By default, the script will create a backup of all the files that it plans to delete before actually 
+deleting them. Use option C<-nobackup> to perform a 'hard' delete (i.e. no backup). The backup file name will be 
+C<< imaging_upload.<TARCHIVE_ID>.tar.gz >>. Note that the file paths inside this backup archive are absolute. To 
+restore the files in the archive, one must use C<tar> with option C<--absolute-names>.
 
 =head2 Methods
 
@@ -61,12 +70,17 @@ use Getopt::Tabular;
 
 use File::Temp qw/tempfile/;
 
-use constant DEFAULT_PROFILE           => 'prod';
-use constant DEFAULT_DIE_ON_FILE_ERROR => 1;
-use constant DEFAULT_NO_BACKUP         => 0;
+use constant DEFAULT_PROFILE                   => 'prod';
+use constant DEFAULT_DIE_ON_FILE_ERROR         => 1;
+use constant DEFAULT_NO_BACKUP                 => 0;
+use constant DEFAULT_DELETE_PROTOCOLS          => 0;
+use constant DEFAULT_DELETE_MRI_PARAMETER_FORM => 0;
 
 use constant PIC_SUBDIR                => 'pic';
 
+# These are the tables that contain references to files related to the uploads.
+# Note that the script also deletes entries in mri_parameter_form even though
+# this table is not listed here.
 my @PROCESSED_TABLES = (
     'files',
     'files_intermediary',
@@ -74,13 +88,16 @@ my @PROCESSED_TABLES = (
     'mri_protocol_violated_scans',
     'mri_violations_log',
     'MRICandidateErrors',
-    'tarchive'
+    'tarchive',
+    'mri_processing_protocol'
 );
 
-my $profile        = DEFAULT_PROFILE;
-my $dieOnFileError = DEFAULT_DIE_ON_FILE_ERROR;
-my $noBackup       = DEFAULT_NO_BACKUP;
-my $uploadIDList   = undef;
+my $profile                = DEFAULT_PROFILE;
+my $dieOnFileError         = DEFAULT_DIE_ON_FILE_ERROR;
+my $noBackup               = DEFAULT_NO_BACKUP;
+my $deleteProtocols        = DEFAULT_DELETE_PROTOCOLS;
+my $deleteMriParameterForm = DEFAULT_DELETE_MRI_PARAMETER_FORM;
+my $uploadIDList           = undef;
 
 my @opt_table = (
     ['-profile' , 'string'  , 1, \$profile, 
@@ -93,14 +110,18 @@ my @opt_table = (
      . 'into an archive named "imaging_upload.<TarchiveID>.tar.gz", in the '
      . 'current directory'],
     ['-uploadID', 'string', 1, \$uploadIDList,
-     'Comma-separated list of upload IDs to delete. All the uploads must be associated to the same archive.']
+     'Comma-separated list of upload IDs to delete. All the uploads must be associated to the same archive.'],
+    ['-protocol', 'const', 1, \$deleteProtocols,
+     'Delete the entries in mri_processing_protocols tied to the upload(s) specified via -uploadID.'],
+    ['-form', 'const', 1, \$deleteMriParameterForm,
+     'Delete the entries in mri_parameter_form tied to the upload(s) specified via -uploadID.']
 );
 
 my $Help = <<HELP;
 HELP
 
 my $usage = <<USAGE;
-Usage: $0 [-profile profile] [-ignore] [-nobackup] [-uploadID uploadIDList]
+Usage: $0 [-profile profile] [-ignore] [-nobackup] [-protocol] [-form] [-uploadID uploadIDList]
 USAGE
 
 &Getopt::Tabular::SetHelp($Help, $usage);
@@ -248,8 +269,25 @@ $files{'tarchive'}                    = [
         'TarchiveID'      => $tarchiveID
     }
 ];
+$files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
 
-#=============================================================================#
+
+#========================================================================#
+# Make sure that -protocol option is used if:                            #
+# 1. There is at least one processing protocol associated to the files   #
+#    to delete.                                                          #
+# 2. This protocol is associated *only* to one or more of the files that #
+#    are going to deleted.                                               #
+#========================================================================#
+if(@{ $files{'mri_processing_protocol'} } && !$deleteProtocols) {
+    my $msg = sprintf(
+        "%s found for the %s to delete: you must use -protocol\n",
+        (@{ $files{'mri_processing_protocol'} } > 1 ? 'Processing protocols' : 'Processing protocol'),
+        (@uploadID > 1 ? 'uploads' : 'upload')
+    );
+    die "$msg\n";
+}
+
 #=============================================================================#
 # Verify that all files found in the various tables exist on the file system  #
 #=============================================================================#
@@ -267,7 +305,7 @@ if(@$missingFilesRef) {
     }
     
     die "Error! $msg\nAborting.\n" if $dieOnFileError;
-    warn "Warning! $msg\n";
+    print STDERR "Warning! $msg\n";
 }
 
 &backupFiles(\%files) unless $noBackup;
@@ -276,7 +314,7 @@ if(@$missingFilesRef) {
 # Delete everything associated to the upload(s) in the  #
 # database                                              #
 #=======================================================#
-&deleteUploadsInDatabase($dbh, $uploadsRef, \%files);
+&deleteUploadsInDatabase($dbh, $uploadsRef, \%files, $deleteMriParameterForm);
 
 #=======================================================#
 # Delete everything associated to the upload(s) in the  #
@@ -295,6 +333,81 @@ printf(
     $uploadIdsString
 );
 exit $NeuroDB::ExitCodes::SUCCESS;
+
+=pod
+
+=head3 getMriProcessingProtocolFilesRef($dbh, $filesRef)
+
+Finds the list of C<ProcessingProtocolID> to delete, namely those in table
+C<mri_processing_protocol> associated to the files to delete, and *only* to 
+those files that are not going to be deleted.
+
+INPUTS:
+  - $dbh: database handle reference.
+  - $filesRef: reference to the array that contains the file informations for all the files
+  that are associated to the upload(s) passed on the command line.
+
+RETURNS:
+ - reference on an array that contains the C<ProcessingProtocolID> in table C<mri_processing_protocol>
+   associated to the files to delete. This array has two keys: C<ProcessProtocolID> => the protocol 
+   process ID found table C<mri_processing_protocol> and C<FullPath> => the value of C<ProtocolFile>
+   in the same table.
+
+=cut
+
+sub getMriProcessingProtocolFilesRef {
+    my($dbh, $filesRef) = @_;
+    
+    my %fileID;
+    foreach my $t (@PROCESSED_TABLES) {
+        foreach my $f (@{ $filesRef->{$t} }) {
+            $fileID{ $f->{'FileID'} } = 1 if defined $f->{'FileID'};
+        }
+    }
+    
+    return [] if !%fileID;
+    
+    my $query = 'SELECT DISTINCT(mpp.ProcessProtocolID), mpp.ProtocolFile AS FullPath '
+              . 'FROM files f '
+              . 'JOIN mri_processing_protocol mpp USING (ProcessProtocolID) '
+              . 'WHERE f.FileID IN ('
+              . join(',', ('?') x keys %fileID)
+              . ') AND f.ProcessProtocolID IS NOT NULL';
+    
+    # This varaiable will contain all the protocols associated to the files that will be
+    # deleted. Note that these protocols might also be associated to files that are *not* 
+    # going to be deleted
+    my $protocolsRef = $dbh->selectall_arrayref($query, { 'Slice' => {} }, keys %fileID);
+    
+    return [] unless @$protocolsRef;
+    
+    # Now get the list of protocols in @$protocolsRef that are also associated to files
+    # that are not going to de deleted
+    $query = 'SELECT ProcessProtocolID '
+           . 'FROM files '
+           . 'WHERE ProcessProtocolID IN ('
+           . join(',', ('?') x @$protocolsRef)
+           . ') '
+           . 'AND FileID NOT IN ('
+           . join(',', ('?') x keys %fileID)
+           . ')';
+    
+    my $protocolsNotDeletedRef = $dbh->selectcol_arrayref(
+        $query, 
+        { 'Columns' => [1] },
+        (map { $_->{'ProcessProtocolID'} } @$protocolsRef), 
+        keys %fileID
+    );
+    
+    # Eliminate from @$protocolsRef the entries of that are also in @$protocolsNotDeletedRef
+    for(my $i=$#{ $protocolsRef }; $i >= 0; $i--) { 
+        if(grep($_ == $protocolsRef->[$i]->{'ProcessProtocolID'}, @$protocolsNotDeletedRef)) {
+            splice(@$protocolsRef, $i, 1);
+        }
+    }
+    
+    return $protocolsRef;
+}
 
 =pod
 
@@ -453,8 +566,8 @@ QUERY
     
     # Set full path of every file
     foreach(@$filesRef) {
-		my $fileBasePath = $_->{'Name'} eq 'check_pic_filename'
-		    ? $dataDirBasePath . PIC_SUBDIR : $dataDirBasePath;
+        my $fileBasePath = $_->{'Name'} eq 'check_pic_filename'
+            ? $dataDirBasePath . PIC_SUBDIR : $dataDirBasePath;
         $_->{'FullPath'} = $_->{'Value'} =~ /^\//
             ? $_->{'Value'} : sprintf("%s/%s", $fileBasePath, $_->{'Value'});
     }
@@ -603,7 +716,7 @@ RETURNS:
                  
 =cut
 sub setFileExistenceStatus {
-    my($filesRef) = @_;
+    my($filesRef, $protocolsRef) = @_;
     
     my @missingFiles;
     foreach my $t (@PROCESSED_TABLES) {
@@ -669,9 +782,10 @@ sub backupFiles {
 This method deletes all information in the database associated to the given upload(s). More specifically, it 
 deletes records from tables C<notification_spool>, C<tarchive_files>, C<tarchive_series>, C<files_intermediary>,
 C<parameter_file>, C<files>, C<mri_protocol_violated_scans>, C<mri_violations_log>, C<MRICandidateErrors>
-C<mri_upload> and C<tarchive>. It will also set the C<Scan_done> value of the scan's session to 'N' for each upload
-that is the last upload tied to that session. All the delete/update operations are done inside a single transaction so 
-either they all succeed or they all fail (and a rollback is performed).
+C<mri_upload> and C<tarchive>, C<mri_processing_protocol> and C<mri_parameter_form> (the later is done only if requested).
+It will also set the C<Scan_done> value of the scan's session to 'N' for each upload that is the last upload tied to 
+that session. All the delete/update operations are done inside a single transaction so either they all succeed or they 
+all fail (and a rollback is performed).
 
 INPUTS:
   - $dbh       : database handle.
@@ -681,10 +795,11 @@ INPUTS:
                  and C<SessionID>.
   - $filesRef: reference to the array that contains the file informations for all the files
   that are associated to the upload(s) passed on the command line.
+  - $deleteForm: whether to delete the C<mri_parameter_form> entries associated to the upload(s) passed on the command line.
                   
 =cut
 sub deleteUploadsInDatabase {
-    my($dbh, $uploadsRef, $filesRef)= @_;
+    my($dbh, $uploadsRef, $filesRef, $deleteMriParameterForm)= @_;
     
     # This starts a DB transaction. All operations are delayed until
     # commit is called
@@ -752,10 +867,19 @@ sub deleteUploadsInDatabase {
     $query = "DELETE FROM parameter_file "
            . "WHERE FileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)";
     $dbh->do($query, undef, $tarchiveID);
-    
+        
     $query = "DELETE FROM files WHERE TarchiveSource = ?";
     $dbh->do($query, undef, $tarchiveID);
     
+    my @protocolIDs = map { $_->{'ProcessProtocolID'} } @{ $filesRef->{'mri_processing_protocol'} };
+    if(@protocolIDs) {
+        $query = sprintf(
+            "DELETE FROM mri_processing_protocol WHERE ProcessProtocolID IN (%s)",
+            join(',', ('?') x @protocolIDs)
+        );
+        $dbh->do($query, undef, @protocolIDs);
+    }
+ 
     $query = "DELETE FROM mri_protocol_violated_scans WHERE TarchiveID = ?";
     $dbh->do($query, undef, $tarchiveID);
     
@@ -764,6 +888,32 @@ sub deleteUploadsInDatabase {
     
     $query = "DELETE FROM MRICandidateErrors WHERE TarchiveID = ?";
     $dbh->do($query, undef, $tarchiveID);
+    
+    # Delete the entries in mri_parameter_form and flag if requested
+    if($deleteMriParameterForm) {
+        $query = "DELETE FROM mri_parameter_form "
+               . "WHERE CommentID IN ( "
+               . "   SELECT f.CommentID FROM flag f "
+               . "   JOIN session s ON (s.ID=f.SessionID) "
+               . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
+               . "   WHERE f.Test_name='mri_parameter_form' "
+               . "   AND mu.UploadID IN( " 
+               .     join(',', map { '?' } keys %$uploadsRef)
+               . "   ) "
+               . ")";
+        $dbh->do($query, undef, keys %$uploadsRef);
+
+        $query = "DELETE FROM flag "
+               . "WHERE test_name = 'mri_parameter_form' "
+               . "AND SessionID IN ("
+               . "   SELECT s.ID FROM session s "
+               . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
+               . "   WHERE mu.UploadID IN( " 
+               .     join(',', map { '?' } keys %$uploadsRef)
+               . "   ) "
+               . ")";
+        $dbh->do($query, undef, keys %$uploadsRef);
+    }
     
     $query = sprintf(
         "DELETE FROM mri_upload WHERE UploadID IN (%s)",
