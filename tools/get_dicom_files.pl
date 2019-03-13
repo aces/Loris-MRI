@@ -146,6 +146,7 @@ my @scanTypes          = defined $scanTypes    ? split(',', $scanTypes)    : ();
 my $dbh                = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
 my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(\$dbh, 'tarchiveLibraryDir');
+$tarchiveLibraryDir =~ s#\/$##;
 
 #----------------------------------------------------------#
 # Create the directory where DICOM files will be extracted #
@@ -217,8 +218,9 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     # meta data and log file)
     print "Extracting $innerTar in $tmpExtractDir...";
     my $cmd = sprintf(
-        "tar xf %s -C %s %s",
-        quotemeta("$tarchiveLibraryDir/$archiveLocation"),
+        "tar xf %s/%s -C %s %s",
+        quotemeta($tarchiveLibraryDir),
+        quotemeta($archiveLocation),
         quotemeta($tmpExtractDir),
         quotemeta($innerTar)
     );
@@ -259,8 +261,8 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         my $fileList = "$tmpExtractDir/$fileBaseName.dicom";
         open(FILE_LIST, ">$fileList") or die "Cannot write file $fileList: $!\n";
         
-        open(LIST_TAR_CONTENT, "tar ztf $tmpExtractDir/$innerTar|") 
-            or die "Cannot run command tar tf $tmpExtractDir/$innerTar: $?\n";
+        my $tarCmd = sprintf("tar ztf %s/%s", quotemeta($tmpExtractDir), quotemeta($innerTar));
+        open(LIST_TAR_CONTENT, "$tarCmd|") or die "Cannot run command $tarCmd: $?\n";
         while (<LIST_TAR_CONTENT>) {
             chomp;
             my($fileName, $dirName, $suffix) = fileparse($_);
@@ -279,10 +281,12 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         # --absolute-path: since we are extracting in $outDir and since
         #                  $outDir is an absolute path, we need this option otherwise
         #                  tar will refuse to extract
-        $cmd = "tar zxf $tmpExtractDir/$innerTar"
-             . " --files-from=$fileList "   
-             . " --absolute-names "
-             . " --transform='s#^.*/#$outDir/#'";
+        $cmd = sprintf(
+            "tar zxf %s/%s --files-from=%s --absolute-names --transform='s#^.*/#$outDir/#'",
+            quotemeta($tmpExtractDir),
+            quotemeta($innerTar),
+            quotemeta($fileList) 
+        );
         print "Extracting DICOM files for $file...";
         system($cmd) == 0 
             or die "Failed to extract DICOM files for MINC file $file from $tmpExtractDir/$innerTar: $?\n";
@@ -313,7 +317,7 @@ if(!$nbDirsArchived) {
 } else {
     my $cmd = sprintf("gzip -f %s", quotemeta($outTarFile));
     system($cmd) == 0 or die "Failed to run $cmd\n";
-    printf("Wrote %s.gz", quotemeta($outTarFile));
+    printf("Wrote %s.gz\n", quotemeta($outTarFile));
 }
 
 exit $NeuroDB::ExitCodes::SUCCESS;
