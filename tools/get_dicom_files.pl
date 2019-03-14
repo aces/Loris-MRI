@@ -9,7 +9,7 @@ get_dicom_files.pl - extracts DICOM files for specific patient names/scan types
 
 =head1 SYNOPSIS
 
-perl get_dicom_files.pl [-n patient_name_patterns] [-t scan_type_patterns] [-d tmp_dir] [-o tarBasename] -profile profile
+perl get_dicom_files.pl [-n patient_name_patterns] [-t scan_type_patterns] [-d tmp_dir] [-o tarBasename] [-p] -profile profile
 
 Available options are:
 
@@ -37,6 +37,9 @@ Available options are:
           
 -o       : basename of the final C<tar.gz> file to produce, in the current directory (defaults to 
            C<dicoms.tar.gz>).
+           
+-p       : when storing a DICOM file in the archive, use the PSCID of the candidate as one of the 
+           components of the file path (default is to use the DCCID).
 
 =head1 DESCRIPTION
 
@@ -48,11 +51,12 @@ argument, or all MINC files for that archive if C<-t> was not used. It then extr
 associated to each MINC file and writes them in the extraction directory (see C<-d> option), in a 
 subdirectory with name
 
-C<< <pscid>/<visit_label>/<acquisition_date>/<protocol>_<minc_index> >>
+C<< <dccid>/<visit_label>/<acquisition_date>/<protocol>_<minc_index>_<series_description >>
 
 where C<< <minc_index> >> is the index number of the MINC file to which the DICOMs are associated: 
 e.g. for file C<loris_300001_V4_DtiSA_002.mnc>, the MINC index is 2 (i.e. the second MINC file with 
-scan type C<DtiSA>). Finally, a C<.tar.gz> that contains all the DICOM files that were extracted is 
+scan type C<DtiSA>). Note that the C<dccid> subdirectory in the file path can be changed to C<PSCID>
+with option C<-p>. Finally, a C<.tar.gz> that contains all the DICOM files that were extracted is 
 created.
 
 =head2 Methods
@@ -79,6 +83,7 @@ my $scanTypes;
 my $profile;
 my $tmpExtractBaseDir;
 my $outTarBasename    = 'dicoms';
+my $usePSCID          = 0;
 
 my @opt_table           = (
     ["-profile", "string", 1, \$profile,
@@ -90,7 +95,9 @@ my @opt_table           = (
     ["-d", "string", 1,   \$tmpExtractBaseDir, 
         "base path of the temporary directory where files are extracted"],   
     ["-o", "string", 1,   \$outTarBasename, 
-        "base path of the final .tar.gz file to produce (defaults to 'dicoms')"],   
+        "base path of the final .tar.gz file to produce (defaults to 'dicoms')"], 
+    ["-p", "const" , 1,   \$usePSCID, 
+        "include the PSCID in the components of the archived DICOM file paths"]
 );
 
 my $Help = <<HELP;
@@ -105,15 +112,16 @@ argument, or all MINC files for that archive if -t was not used. It then extract
 associated to each MINC file and writes them in the extraction directory (see -d option), in a 
 subdirectory with name
 
-<pscid>/<visit_label>/<acquisition_date>/<protocol>_<minc_index>
+<dccid>/<visit_label>/<acquisition_date>/<protocol>_<minc_index>_<series_description>
 
 where <minc_index> is the index number of the MINC file to which the DICOMs are associated: e.g. for
 file 'loris_300001_V4_DtiSA_002.mnc', the MINC index is 2 (i.e. the second MINC file with scan type
-'DtiSA'). Finally, a '.tar.gz' that contains all the DICOM files that were extracted is created.
+'DtiSA'). Note that the dccid subdirectory in the file path can be changed to PSCID with option -p.
+Finally, a '.tar.gz' that contains all the DICOM files that were extracted is created.
 
 HELP
 my $Usage = <<USAGE;
-#~ perl get_dicom_files.pl [-n patient_name_patterns] [-t scan_type_patterns] [-d tmp_dir] [-o tarBasename] -profile profile
+#~ perl get_dicom_files.pl [-n patient_name_patterns] [-t scan_type_patterns] [-d tmp_dir] [-o tarBasename] [-p] -profile profile
 USAGE
 
 
@@ -158,7 +166,7 @@ my $tmpExtractDir = tempdir("$0.XXXX", DIR => $tmpExtractBaseDir, CLEANUP => 1);
 # match the list of supplied patterns and/or the list of     #
 # scan type patterns                                         #
 #------------------------------------------------------------#
-my $query = "SELECT c.PSCID, s.Visit_label, t.DateAcquired, t.ArchiveLocation, t.TarchiveID, t.PatientName "
+my $query = "SELECT c.PSCID, c.CandID, s.Visit_label, t.DateAcquired, t.ArchiveLocation, t.TarchiveID, t.PatientName "
           . "FROM tarchive t "
           . "JOIN session s ON (t.SessionID=s.ID) "
           . "JOIN candidate c ON (c.CandID=s.CandID) "
@@ -172,17 +180,17 @@ if(@patientNames) {
 
 # Add scan type clause (if any)
 if(@scanTypes) {
-	my @where = map { "mst.Scan_type LIKE ?" } @scanTypes;
-	
-	# This query will return 1 iff the archive contains at least one
-	# file with a scan type whose name matches the conditions imposed
-	# via -t
-	my $innerQuery = "SELECT 1 "
-	               . "FROM files f "
-	               . "JOIN mri_scan_type mst ON(mst.ID=f.AcquisitionProtocolID) "
-	               . "WHERE f.TarchiveSource=t.TarchiveID "
-	               . "AND (" . join(" OR " , @where) . ")";
-	$query .= " AND EXISTS($innerQuery)";
+    my @where = map { "mst.Scan_type LIKE ?" } @scanTypes;
+    
+    # This query will return 1 iff the archive contains at least one
+    # file with a scan type whose name matches the conditions imposed
+    # via -t
+    my $innerQuery = "SELECT 1 "
+                   . "FROM files f "
+                   . "JOIN mri_scan_type mst ON(mst.ID=f.AcquisitionProtocolID) "
+                   . "WHERE f.TarchiveSource=t.TarchiveID "
+                   . "AND (" . join(" OR " , @where) . ")";
+    $query .= " AND EXISTS($innerQuery)";
 }
 my $sth = $dbh->prepare($query);
 
@@ -196,7 +204,7 @@ if(@patientNames) {
 # Bind scan type patterns placeholders to their actual values
 if(@scanTypes) {
     for(my $t=0; $t<@scanTypes; $t++) {
-		my $placeHolderIndex = $t + scalar(@patientNames) + 1;
+        my $placeHolderIndex = $t + scalar(@patientNames) + 1;
         $sth->bind_param($placeHolderIndex, $scanTypes[$t]);
     }
 }
@@ -209,7 +217,7 @@ $sth->execute();
 my $nbDirsArchived = 0;
 my $outTarFile = "$outTarBasename.tar";
 foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
-    my($pscid, $visitLabel, $dateAcquired, $archiveLocation, $tarchiveId) = @$tarchiveRowRef;
+    my($pscid, $candid, $visitLabel, $dateAcquired, $archiveLocation, $tarchiveId) = @$tarchiveRowRef;
     
     my($innerTar) = $archiveLocation =~ /\/DCM_\d+-\d+-\d+_([^\/]+)\.tar$/;
     $innerTar .= '.tar.gz';
@@ -230,7 +238,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     # Fetch all the MINC files created out of the DICOM archive whose 
     # acquisition protocols match the scan types
     # of interest
-    $query = "SELECT f.File, tf.FileName "
+    $query = "SELECT DISTINCT f.File, tf.FileName, ts.SeriesDescription "
            . "FROM files f "
            . "JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) "
            . "JOIN tarchive_series ts ON (f.SeriesUID=ts.SeriesUID AND ABS(f.EchoTime*1000 - ts.EchoTime) < $FLOAT_EQUALS_THRESHOLD) "
@@ -245,11 +253,12 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     # same SeriesDescriptionUID as X and store them in @{ $filesRef->{$mincFile} }
     my $filesRef = {};
     foreach my $fileRowRef (@{ $sth->fetchall_arrayref }) {
-        my($mincFile, $dicomFilename) = @$fileRowRef;
+        my($mincFile, $dicomFilename, $seriesDescription) = @$fileRowRef;
         chomp $dicomFilename;
             
-        $filesRef->{$mincFile} = [] unless defined $filesRef->{$mincFile};
-        push(@{ $filesRef->{$mincFile} }, $dicomFilename);
+        $filesRef->{$mincFile}->{'SeriesDescription'} = $seriesDescription;
+        $filesRef->{$mincFile}->{'DICOM'}             = [] unless defined $filesRef->{$mincFile}->{'DICOM'};
+        push(@{ $filesRef->{$mincFile}->{'DICOM'} }, $dicomFilename);
     }
     
     # Foreach MINC file extract the set of DICOM files
@@ -266,7 +275,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         while (<LIST_TAR_CONTENT>) {
             chomp;
             my($fileName, $dirName, $suffix) = fileparse($_);
-            print FILE_LIST "$_\n" if grep($_ eq $fileName, @{ $filesRef->{$file} });
+            print FILE_LIST "$_\n" if grep($_ eq $fileName, @{ $filesRef->{$file}->{'DICOM'} });
         }
         close(FILE_LIST);
         close(LIST_TAR_CONTENT);
@@ -274,7 +283,10 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         # Extract from the inner tar the DICOMs who names are listed in
         # $tmpExtractDir/$fileBaseName.dicom
         my($outSubDir) = $file =~ /_([^_]+_\d+).mnc$/;
-        my $outDir = "$tmpExtractDir/$pscid/$visitLabel/$dateAcquired/$outSubDir";
+        $outSubDir .= sprintf("_%s", $filesRef->{$file}->{'SeriesDescription'});
+        
+        my $id = $usePSCID ? $pscid : $candid;
+        my $outDir = "$tmpExtractDir/$id/$visitLabel/$dateAcquired/$outSubDir";
         
         # --files-from: file containing the path of the files to extract
         # --transform: put all extracted files in $outDir
@@ -297,7 +309,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
             "tar $tarOptions %s -C %s --absolute-names %s",
             quotemeta($outTarFile),
             quotemeta($tmpExtractDir),
-            quotemeta("$pscid/$visitLabel/$dateAcquired/$outSubDir")
+            quotemeta("$id/$visitLabel/$dateAcquired/$outSubDir")
         );
         print "Archiving $outDir...";
         system($cmd) == 0 or die "Failed to write DICOM files found in $outDir in archive $outTarFile: $?\n";
@@ -317,7 +329,7 @@ if(!$nbDirsArchived) {
 } else {
     my $cmd = sprintf("gzip -f %s", quotemeta($outTarFile));
     system($cmd) == 0 or die "Failed to run $cmd\n";
-    printf("Wrote %s.gz\n", quotemeta($outTarFile));
+    printf("Wrote %s.gz\n", $outTarFile);
 }
 
 exit $NeuroDB::ExitCodes::SUCCESS;

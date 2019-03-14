@@ -4,7 +4,7 @@ get\_dicom\_files.pl - extracts DICOM files for specific patient names/scan type
 
 # SYNOPSIS
 
-perl get\_dicom\_files.pl \[-n patient\_name\_patterns\] \[-t scan\_type\_patterns\] \[-d tmp\_dir\] \[-o tarBasename\] -profile profile
+perl get\_dicom\_files.pl \[-n patient\_name\_patterns\] \[-t scan\_type\_patterns\] \[-d tmp\_dir\] \[-o tarBasename\] \[-p\] -profile profile
 
 Available options are:
 
@@ -22,15 +22,19 @@ Available options are:
            the scan type name is not used to determine which DICOM files to extract. This option
            must be used if no patient name patterns were specified via `-n` (see above).
 
-\-d       : extract the files in directory `<dir_argument>/get_dicom_files.pl.<UNIX_process_number>`
-           For example with `-d /data/tmp`, the DICOM files will be extracted in 
-           `/data/tmp/get_dicom_files.pl.67888` (assuming 67888 is the process number). 
-           By default, dir\_argument is set to the value of the environment variable `TMPDIR`. Note 
-           that the directory argument has to exist and be writeable, otherwise the script will issue
-           an error and abort.
+\-d       : extract the files in directory `<dir_argument>/get_dicom_files.pl.<random_string>`
+           For example with `-d /data/tmp`, the DICOM files might be extracted in 
+           `/data/tmp/get_dicom_files.pl.n1d4`. By default, dir\_argument is set to the value of
+           the environment variable `TMPDIR`. Since the UNIX program `tar` has known limitations 
+           with NFS file systems (incorrect reports of files that changed while they are archived), the
+           argument to `-d` should not be a directory that resides on an NFS mounted file system.
+           Failure to do so might result in `get_dicom_files.pl` failing.
 
 \-o       : basename of the final `tar.gz` file to produce, in the current directory (defaults to 
            `dicoms.tar.gz`).
+
+\-p       : when storing a DICOM file in the archive, use the PSCID of the candidate as one of the 
+           components of the file path (default is to use the DCCID).
 
 # DESCRIPTION
 
@@ -42,11 +46,12 @@ argument, or all MINC files for that archive if `-t` was not used. It then extra
 associated to each MINC file and writes them in the extraction directory (see `-d` option), in a 
 subdirectory with name
 
-`<pscid>/<visit_label>/<acquisition_date>/<protocol>_<minc_index>`
+`<dccid>/<visit_label>/<acquisition_date>/<protocol>_<minc_index>_<series_description`
 
 where `<minc_index>` is the index number of the MINC file to which the DICOMs are associated: 
 e.g. for file `loris_300001_V4_DtiSA_002.mnc`, the MINC index is 2 (i.e. the second MINC file with 
-scan type `DtiSA`). Finally, a `.tar.gz` that contains all the DICOM files that were extracted is 
+scan type `DtiSA`). Note that the `dccid` subdirectory in the file path can be changed to `PSCID`
+with option `-p`. Finally, a `.tar.gz` that contains all the DICOM files that were extracted is 
 created.
 
 ## Methods
