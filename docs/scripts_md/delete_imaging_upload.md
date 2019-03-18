@@ -24,7 +24,7 @@ Available options are:
 
 \-protocol    : delete the imaging protocol(s) in table `mri_processing_protocol` associated to either the
                upload(s) specified via the `-uploadID` option or any file that was produced using this (these)
-               upload(s). Let F be the set of files directly or inderectly associated to the upload(s) to delete.
+               upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
                This option must be used if there is at least one record in `mri_processing_protocol` that is tied
                only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
                do not have a protocol associated to them, the switch is ignored if used.
@@ -40,16 +40,17 @@ message and exit if multiple upload IDs are passed on the command line and they 
 same `TarchiveID` or if one of the upload ID does not exist. The script will remove the records associated
 to the imaging upload whose IDs are passed on the command line from the following tables:
 `notification_spool`, `tarchive_series`, `tarchive_files`, `files_intermediary`, `parameter_file`
-`files`, `mri_violated_scans`, `mri_violations_log`, `MRICandidateErrors`, `mri_upload`, `tarchive` and
-`mri_processing_protocol`. It will also delete from the file system the files found in this set of tables 
-(including the archive itself). The script will abort and will not delete anything if there is QC information 
-associated to the upload(s) (i.e entries in tables `files_qcstatus` or `feedback_mri_comments`). If the script
-finds a file that is listed in the database but that does not exist on the file system, the script will issue an
-error message and exit, leaving the file system and database untouched. This behaviour can be changed with option 
-`-ignore`. By default, the script will create a backup of all the files that it plans to delete before actually 
-deleting them. Use option `-nobackup` to perform a 'hard' delete (i.e. no backup). The backup file name will be 
-`imaging_upload.<TARCHIVE_ID>.tar.gz`. Note that the file paths inside this backup archive are absolute. To 
-restore the files in the archive, one must use `tar` with option `--absolute-names`.
+`files`, `mri_violated_scans`, `mri_violations_log`, `MRICandidateErrors`, `mri_upload` and `tarchive`.
+In addition, entries in `mri_processing_protocol` and `mri_parameter_form` will be deleted if the switches
+`-protocol` and `-form` are used, respectively. The script will also delete from the file system the files 
+found in this set of tables (including the archive itself). No deletion will take place and the script will abort
+if there is QC information associated to the upload(s) (i.e entries in tables `files_qcstatus` or 
+`feedback_mri_comments`). If the script finds a file that is listed in the database but that does not exist on
+the file system, the script will issue an error message and exit, leaving the file system and database untouched.
+This behaviour can be changed with option `-ignore`. By default, the script will create a backup of all the files
+that it plans to delete before actually deleting them. Use option `-nobackup` to perform a 'hard' delete (i.e. no
+backup). The backup file name will be `imaging_upload.<TARCHIVE_ID>.tar.gz`. Note that the file paths inside
+this backup archive are absolute. To restore the files in the archive, one must use `tar` with option `--absolute-names`.
 
 ## Methods
 

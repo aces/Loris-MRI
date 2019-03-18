@@ -28,7 +28,7 @@ Available options are:
                
 -protocol    : delete the imaging protocol(s) in table C<mri_processing_protocol> associated to either the
                upload(s) specified via the C<-uploadID> option or any file that was produced using this (these)
-               upload(s). Let F be the set of files directly or inderectly associated to the upload(s) to delete.
+               upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
                This option must be used if there is at least one record in C<mri_processing_protocol> that is tied
                only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
                do not have a protocol associated to them, the switch is ignored if used.
@@ -44,16 +44,17 @@ message and exit if multiple upload IDs are passed on the command line and they 
 same C<TarchiveID> or if one of the upload ID does not exist. The script will remove the records associated
 to the imaging upload whose IDs are passed on the command line from the following tables:
 C<notification_spool>, C<tarchive_series>, C<tarchive_files>, C<files_intermediary>, C<parameter_file>
-C<files>, C<mri_violated_scans>, C<mri_violations_log>, C<MRICandidateErrors>, C<mri_upload>, C<tarchive> and
-C<mri_processing_protocol>. It will also delete from the file system the files found in this set of tables 
-(including the archive itself). The script will abort and will not delete anything if there is QC information 
-associated to the upload(s) (i.e entries in tables C<files_qcstatus> or C<feedback_mri_comments>). If the script
-finds a file that is listed in the database but that does not exist on the file system, the script will issue an
-error message and exit, leaving the file system and database untouched. This behaviour can be changed with option 
-C<-ignore>. By default, the script will create a backup of all the files that it plans to delete before actually 
-deleting them. Use option C<-nobackup> to perform a 'hard' delete (i.e. no backup). The backup file name will be 
-C<< imaging_upload.<TARCHIVE_ID>.tar.gz >>. Note that the file paths inside this backup archive are absolute. To 
-restore the files in the archive, one must use C<tar> with option C<--absolute-names>.
+C<files>, C<mri_violated_scans>, C<mri_violations_log>, C<MRICandidateErrors>, C<mri_upload> and C<tarchive>.
+In addition, entries in C<mri_processing_protocol> and C<mri_parameter_form> will be deleted if the switches
+C<-protocol> and C<-form> are used, respectively. The script will also delete from the file system the files 
+found in this set of tables (including the archive itself). No deletion will take place and the script will abort
+if there is QC information associated to the upload(s) (i.e entries in tables C<files_qcstatus> or 
+C<feedback_mri_comments>). If the script finds a file that is listed in the database but that does not exist on
+the file system, the script will issue an error message and exit, leaving the file system and database untouched.
+This behaviour can be changed with option C<-ignore>. By default, the script will create a backup of all the files
+that it plans to delete before actually deleting them. Use option C<-nobackup> to perform a 'hard' delete (i.e. no
+backup). The backup file name will be C<< imaging_upload.<TARCHIVE_ID>.tar.gz >>. Note that the file paths inside
+this backup archive are absolute. To restore the files in the archive, one must use C<tar> with option C<--absolute-names>.
 
 =head2 Methods
 
@@ -178,7 +179,7 @@ if ( !@Settings::db ) {
 #====================================#
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-# Die as soon as a DB operation fails. As a side-effect, any trasaction that has not
+# Die as soon as a DB operation fails. As a side-effect, any transaction that has not
 # been commited at that point will automatically be rolled back
 $dbh->{'RaiseError'} = 1;
 
