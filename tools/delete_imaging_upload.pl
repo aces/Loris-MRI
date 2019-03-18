@@ -512,6 +512,9 @@ sub getIntermediaryFilesRef {
     
     # This should get all files in table files_intermediary that are tied
     # indirectly to the tarchive with ID $tarchiveId
+    # Note that there can be multiple entries in files_intermediary that have
+    # the same Output_FileID: consequently, this select statement can return 
+    # entries with identical FileID and File values (but different IntermedID)
     my $query = 'SELECT fi.IntermedID, f.FileID, f.File FROM files_intermediary fi '
         .       'JOIN files f ON (fi.Output_FileID=f.FileID) '
         .       'WHERE f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)';
@@ -568,7 +571,7 @@ QUERY
     # Set full path of every file
     foreach(@$filesRef) {
         my $fileBasePath = $_->{'Name'} eq 'check_pic_filename'
-            ? $dataDirBasePath . PIC_SUBDIR : $dataDirBasePath;
+            ? "$dataDirBasePath/" . PIC_SUBDIR : $dataDirBasePath;
         $_->{'FullPath'} = $_->{'Value'} =~ /^\//
             ? $_->{'Value'} : sprintf("%s/%s", $fileBasePath, $_->{'Value'});
     }
@@ -719,15 +722,15 @@ RETURNS:
 sub setFileExistenceStatus {
     my($filesRef, $protocolsRef) = @_;
     
-    my @missingFiles;
+    my %missingFiles;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
             $f->{'Exists'} = -e $f->{'FullPath'};
-            push(@missingFiles, $f->{'FullPath'}) if !$f->{'Exists'};
+            $missingFiles{ $f->{'FullPath'} } = 1 if !$f->{'Exists'};
         }
     }
     
-    return \@missingFiles;
+    return [ keys %missingFiles ];
 }
 
 =head3 backupFiles($filesRef)
@@ -955,10 +958,12 @@ INPUTS:
 sub deleteUploadsOnFileSystem {
     my($filesRef) = @_;
     
+    my %processedFile;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
-            next unless $f->{'Exists'};
+            next unless $f->{'Exists'} || $processedFile{ $f->{'FullPath'} };
             NeuroDB::MRI::deleteFiles($f->{'FullPath'});
+            $processedFile{ $f->{'FullPath'} } = 1;
         }
     }
 }
