@@ -961,7 +961,7 @@ sub deleteUploadsOnFileSystem {
     my %processedFile;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
-            next unless $f->{'Exists'} || $processedFile{ $f->{'FullPath'} };
+            next if !$f->{'Exists'} || $processedFile{ $f->{'FullPath'} };
             NeuroDB::MRI::deleteFiles($f->{'FullPath'});
             $processedFile{ $f->{'FullPath'} } = 1;
         }
