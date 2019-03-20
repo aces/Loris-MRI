@@ -20,7 +20,7 @@ Available options are:
 
 \-uploadID    : comma-separated list of upload IDs (found in table `mri_upload`) to delete. Program will 
                abort if the the list contains an upload ID that does not exist. Also, all upload IDs must
-               have the same `tarchive` ID.
+               have the same `tarchive` ID (which can be `NULL`).
 
 \-protocol    : delete the imaging protocol(s) in table `mri_processing_protocol` associated to either the
                upload(s) specified via the `-uploadID` option or any file that was produced using this (these)
@@ -37,8 +37,8 @@ Available options are:
 This program deletes all the files and database records produced by the imaging pipeline for a given set
 of imaging uploads that have the same `TarchiveID` in table `mri_upload`. The script will issue an error
 message and exit if multiple upload IDs are passed on the command line and they do not all have the 
-same `TarchiveID` or if one of the upload ID does not exist. The script will remove the records associated
-to the imaging upload whose IDs are passed on the command line from the following tables:
+same `TarchiveID` (which can be `NULL`) or if one of the upload ID does not exist. The script will remove
+the records associated to the imaging upload whose IDs are passed on the command line from the following tables:
 `notification_spool`, `tarchive_series`, `tarchive_files`, `files_intermediary`, `parameter_file`
 `files`, `mri_violated_scans`, `mri_violations_log`, `MRICandidateErrors`, `mri_upload` and `tarchive`.
 In addition, entries in `mri_processing_protocol` and `mri_parameter_form` will be deleted if the switches
@@ -79,7 +79,7 @@ information associated to them by looking at the contents of tables
 
 INPUTS:
   - $dbh: database handle reference.
-  - $tarchiveID: ID of the DICOM archive.
+  - $tarchiveID: ID of the DICOM archive (can be 'NULL').
 
 RETURNS:
   - 1 if there is QC information associated to the DICOM archive, 0 otherwise.
