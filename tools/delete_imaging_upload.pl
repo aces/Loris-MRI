@@ -8,7 +8,8 @@ delete_mri_upload.pl -- Delete everything that was produced by the imaging pipel
 
 =head1 SYNOPSIS
 
-perl delete_mri_upload.pl [-profile file] [-ignore] [-nobackup] [-protocol] [-form] [-uploadID lis_of_uploadIDs]
+perl delete_mri_upload.pl [-profile file] [-ignore] [-nobackup] [-protocol] [-form] [-uploadID list_of_uploadIDs]
+            [-type list_of_scan_types]
 
 Available options are:
 
@@ -74,6 +75,7 @@ use File::Temp qw/tempfile/;
 use constant DEFAULT_PROFILE                   => 'prod';
 use constant DEFAULT_DIE_ON_FILE_ERROR         => 1;
 use constant DEFAULT_NO_BACKUP                 => 0;
+use constant DEFAULT_NO_SQL                    => 0;
 use constant DEFAULT_DELETE_PROTOCOLS          => 0;
 use constant DEFAULT_DELETE_MRI_PARAMETER_FORM => 0;
 
@@ -93,12 +95,18 @@ my @PROCESSED_TABLES = (
     'mri_processing_protocol'
 );
 
+# Stolen from get_dicom_files.pl: should be a constant global to both
+# scripts 
+my $FLOAT_EQUALS_THRESHOLD = 0.00001;
+
 my $profile                = DEFAULT_PROFILE;
 my $dieOnFileError         = DEFAULT_DIE_ON_FILE_ERROR;
 my $noBackup               = DEFAULT_NO_BACKUP;
+my $noSQL                  = DEFAULT_NO_SQL;
 my $deleteProtocols        = DEFAULT_DELETE_PROTOCOLS;
 my $deleteMriParameterForm = DEFAULT_DELETE_MRI_PARAMETER_FORM;
 my $uploadIDList           = undef;
+my $scanTypeList           = undef;
 
 my @opt_table = (
     ['-profile' , 'string'  , 1, \$profile, 
@@ -115,7 +123,12 @@ my @opt_table = (
     ['-protocol', 'const', 1, \$deleteProtocols,
      'Delete the entries in mri_processing_protocols tied to the upload(s) specified via -uploadID.'],
     ['-form', 'const', 1, \$deleteMriParameterForm,
-     'Delete the entries in mri_parameter_form tied to the upload(s) specified via -uploadID.']
+     'Delete the entries in mri_parameter_form tied to the upload(s) specified via -uploadID.'],
+    ['-type', 'string', 1, \$scanTypeList, 'Comma-separated list of scan types to delete.'],
+    ['-nosql', 'const', 1, \$noSQL,
+     'Do not backup the information deleted from the database with mysqldump. '
+      . 'Default is to backup all records deleted in a file named imaging_upload_<TarchiveID>.sql in the '
+      . 'current directory.']    
 );
 
 my $Help = <<HELP;
@@ -246,7 +259,15 @@ if($tarchiveID ne 'NULL' && &hasQcOrComment($dbh, $tarchiveID)) {
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
-
+#========================================================#
+# Validate argument to -type (if this option is used)    #
+#========================================================#
+my %scanTypesToDelete = &getScanTypesToDelete($dbh, $scanTypeList);
+my @invalidTypes = grep($scanTypesToDelete{$_} == 0, keys %scanTypesToDelete);
+die "Invalid scan types argument: " . join(',', @invalidTypes) . "\n" if @invalidTypes;
+my @scanTypesToDelete = keys %scanTypesToDelete;
+die "Option -form cannot be used in conjunction with -type. Aborting\n" if $deleteMriParameterForm && @scanTypesToDelete;
+    
 #=================================================================#
 # Find the absolute paths of all files associated to the          #
 # upload(s) passed on the command lines in tables files           #
@@ -254,12 +275,12 @@ if($tarchiveID ne 'NULL' && &hasQcOrComment($dbh, $tarchiveID)) {
 # mri_violations_log, MRICandidateErrors and tarchive             #
 #=================================================================#
 my %files;
-$files{'files'}                       = &getFilesRef($dbh, $tarchiveID, $dataDirBasepath);
-$files{'files_intermediary'}          = &getIntermediaryFilesRef($dbh, $tarchiveID, $dataDirBasepath);
-$files{'parameter_file'}              = &getParameterFilesRef($dbh, $tarchiveID, $dataDirBasepath);
-$files{'mri_protocol_violated_scans'} = &getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasepath);
-$files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasepath);
-$files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath);
+$files{'files'}                       = &getFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete);
+$files{'files_intermediary'}          = &getIntermediaryFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete);
+$files{'parameter_file'}              = &getParameterFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete);
+$files{'mri_protocol_violated_scans'} = &getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete);
+$files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete);
+$files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete);
 if($tarchiveID eq 'NULL') {
     $files{'tarchive'} = [];
 } else {
@@ -311,13 +332,13 @@ if(@$missingFilesRef) {
     print STDERR "Warning! $msg\n";
 }
 
-&backupFiles(\%files) unless $noBackup;
+&backupFiles(\%files, $tarchiveID, \@scanTypesToDelete) unless $noBackup;
 
 #=======================================================#
 # Delete everything associated to the upload(s) in the  #
 # database                                              #
 #=======================================================#
-&deleteUploadsInDatabase($dbh, $uploadsRef, \%files, $deleteMriParameterForm);
+&deleteUploadsInDatabase($dbh, $uploadsRef, \%files, $deleteMriParameterForm, \@scanTypesToDelete, $noSQL);
 
 #=======================================================#
 # Delete everything associated to the upload(s) in the  #
@@ -335,6 +356,7 @@ printf(
     (@uploadID > 1 ? 'Uploads' : 'Upload'),
     $uploadIdsString
 );
+
 exit $NeuroDB::ExitCodes::SUCCESS;
 
 =pod
@@ -377,7 +399,7 @@ sub getMriProcessingProtocolFilesRef {
               . join(',', ('?') x keys %fileID)
               . ') AND f.ProcessProtocolID IS NOT NULL';
     
-    # This varaiable will contain all the protocols associated to the files that will be
+    # This variable will contain all the protocols associated to the files that will be
     # deleted. Note that these protocols might also be associated to files that are *not* 
     # going to be deleted
     my $protocolsRef = $dbh->selectall_arrayref($query, { 'Slice' => {} }, keys %fileID);
@@ -476,15 +498,25 @@ RETURNS:
 
 =cut
 sub getFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef) = @_;
     
     return [] if $tarchiveID eq 'NULL';
     
     # Get FileID and File path of each files in files directly tied
     # to $tarchiveId
-    $query = 'SELECT FileID, File FROM files WHERE TarchiveSource = ?';
-    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
-
+    my $mriScanTypeJoin = @$scanTypesToDeleteRef 
+        ? 'JOIN mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID) ' 
+        : '';
+    my $mriScanTypeAnd = @$scanTypesToDeleteRef 
+        ? sprintf(' AND mst.Scan_type IN (%s) ', join(',', ('?') x  @$scanTypesToDeleteRef)) 
+        : '';
+    my $query = 'SELECT f.FileID, f.File FROM files f '   
+              . $mriScanTypeJoin
+              . 'WHERE f.TarchiveSource = ? '
+              . $mriScanTypeAnd;
+	
+    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID, @$scanTypesToDeleteRef);
+    
     # Set full path of every file
     foreach(@$filesRef) {
         $_->{'FullPath'} = $_->{'File'} =~ /^\// 
@@ -514,7 +546,7 @@ RETURNS:
 
 =cut
 sub getIntermediaryFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef) = @_;
     
     return [] if $tarchiveID eq 'NULL';
 
@@ -523,11 +555,26 @@ sub getIntermediaryFilesRef {
     # Note that there can be multiple entries in files_intermediary that have
     # the same Output_FileID: consequently, this select statement can return 
     # entries with identical FileID and File values (but different IntermedID)
-    my $query = 'SELECT fi.IntermedID, f.FileID, f.File FROM files_intermediary fi '
-        .       'JOIN files f ON (fi.Output_FileID=f.FileID) '
-        .       'WHERE f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)';
+    my $mriScanTypeJoin = @$scanTypesToDeleteRef
+        ? 'JOIN mri_scan_type mst ON (f2.AcquisitionProtocolID=mst.ID) '
+        : '';
+    my $mriScanTypeAnd = @$scanTypesToDeleteRef
+        ? sprintf(' AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef))
+        : '';
+    my $query = 'SELECT fi.IntermedID, f.FileID, f.File '
+              . 'FROM files_intermediary fi '
+              . 'JOIN files f ON (fi.Output_FileID=f.FileID) '
+              . 'WHERE f.SourceFileID IN ('
+              . '    SELECT f2.FileID '
+              . '    FROM files f2 '
+              .      $mriScanTypeJoin
+              . '    WHERE f2.TarchiveSource = ? '
+              .      $mriScanTypeAnd
+              . ')';
 
-    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
+    my $filesRef = $dbh->selectall_arrayref(
+        $query, { Slice => {} }, $tarchiveID, @$scanTypesToDeleteRef
+    );
 
     # Set full path of every file
     foreach(@$filesRef) {
@@ -557,26 +604,28 @@ RETURNS:
 
 =cut
 sub getParameterFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef) = @_;
     
     return [] if $tarchiveID eq 'NULL';
 
-    # Get all files in parameter_file with parameter_type set to
-    # 'check_pic_filename' that are tied (indirectly) to the tarchive
-    # with ID $tarchiveId
-    (my $query =<<QUERY) =~ s/\s+/ /g;
-        SELECT FileID, Value, pt.Name FROM parameter_file pf
-        JOIN files f USING (FileID)
-        JOIN parameter_type AS pt
-        USING (ParameterTypeID)
-        WHERE pt.Name IN ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename')
-        AND (
-                f.TarchiveSource = ? 
-             OR f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)
-        )
-QUERY
+    my $mriScanTypeJoin = @$scanTypesToDeleteRef
+        ? 'JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ' : '';
+    my $mriScanTypeAnd = @$scanTypesToDeleteRef
+        ? sprintf('AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
+    $query = 'SELECT FileID, Value, pt.Name FROM parameter_file pf '
+           . 'JOIN files f USING (FileID) '
+           . 'JOIN parameter_type AS pt USING (ParameterTypeID) '
+           . $mriScanTypeJoin
+           . "WHERE pt.Name IN ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename') "
+           . 'AND ( '
+           . '         f.TarchiveSource = ? '
+           . '      OR f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?) '
+           . ') '
+           . $mriScanTypeAnd;
 
-    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID, $tarchiveID);
+    my $filesRef = $dbh->selectall_arrayref(
+        $query, { Slice => {} }, $tarchiveID, $tarchiveID, @$scanTypesToDeleteRef
+    );
     
     # Set full path of every file
     foreach(@$filesRef) {
@@ -608,13 +657,20 @@ RETURNS:
 
 =cut
 sub getMriProtocolViolatedScansFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef) = @_;
     
-    return [] if $tarchiveID eq 'NULL';
+    # Return a reference to the enmpty array if:
+    # 1. The upload(s) do not have a tarchiveID, which means that no MINC file
+    #    were produced and consequently there cannot be any protocol violations
+    # OR
+    # 2. The -type option was used: only specific MINC files related to an archive
+    #    should be deleted and so we do not want to erase any protocol
+    #    violations since they are associated to an archive (not to specific files)
+    return [] if $tarchiveID eq 'NULL' || @$scanTypesToDeleteRef;
 
     # Get FileID and File path of each files in files directly tied
     # to $tarchiveId
-    $query = 'SELECT minc_location FROM mri_protocol_violated_scans WHERE TarchiveID = ?';
+    $query = 'SELECT ID, minc_location FROM mri_protocol_violated_scans WHERE TarchiveID = ?';
     my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
 
     # Set full path of every file
@@ -645,14 +701,24 @@ RETURNS:
 
 =cut
 sub getMriViolationsLogFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef) = @_;
     
     return [] if $tarchiveID eq 'NULL';
 
-    # Get file path of each files in files directly tied
-    # to $tarchiveId
-    $query = 'SELECT MincFile FROM mri_violations_log WHERE TarchiveID = ?';
-    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
+    my $query;
+    if(@$scanTypesToDeleteRef) {
+		$query = 'SELECT LogID, mvl.MincFile '
+		       . 'FROM mri_violations_log mvl '
+		       . 'JOIN files f ON (f.File COLLATE utf8_bin = mvl.MincFile) '
+		       . 'JOIN mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID) '
+		       . 'WHERE TarchiveID = ? '
+		       . 'AND mst.Scan_type IN('
+		       . join(',', ('?') x @$scanTypesToDeleteRef)
+		       . ')';
+	} else {
+        $query = 'SELECT LogID, MincFile FROM mri_violations_log WHERE TarchiveID = ?';
+	}
+    my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID, @$scanTypesToDeleteRef);
 
     # Set full path of every file
     foreach(@$filesRef) {
@@ -682,13 +748,13 @@ RETURNS:
 
 =cut
 sub getMRICandidateErrorsFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef) = @_;
     
-    return [] if $tarchiveID eq 'NULL';
+    return [] if $tarchiveID eq 'NULL' || @$scanTypeToDeleteRef;
 
     # Get file path of each files in files directly tied
     # to $tarchiveId
-    $query = 'SELECT MincFile FROM MRICandidateErrors WHERE TarchiveID = ?';
+    $query = 'SELECT ID, MincFile FROM MRICandidateErrors WHERE TarchiveID = ?';
     my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
 
     # Set full path of every file
@@ -709,7 +775,7 @@ that the script will delete.
 INPUTS:
   - $tarchiveID: ID of the DICOM archive (in table C<tarchive>) associated to the upload(s) passed on the command line.
 
-
+getbackup
 RETURNS: 
   - backup file name.
 
@@ -718,6 +784,12 @@ sub getBackupFileName {
     my($tarchiveID) = @_;
     
     return $tarchiveID eq 'NULL' ? "imaging_upload.tar.gz" : "imaging_upload.$tarchiveID.tar.gz";
+}
+
+sub getSQLBackupFileName {
+    my($tarchiveID) = @_;
+    
+    return $tarchiveID eq 'NULL' ? "imaging_upload.sql.gz" : "imaging_upload.$tarchiveID.sql.gz";
 }
 
 =pod
@@ -764,11 +836,12 @@ RETURNS:
 =cut
     
 sub backupFiles {
-    my($filesRef) = @_;
+    my($filesRef, $tarchiveID, $scanTypesToDeleteRef) = @_;
     
     my $hasSomethingToBackup = 0;
     foreach my $t (@PROCESSED_TABLES) {
         last if $hasSomethingToBackup;
+        next if $t eq 'tarchive' && @$scanTypesToDeleteRef;
         $hasSomethingToBackup = grep($_->{'Exists'}, @{ $filesRef->{$t} });
     }
     
@@ -778,6 +851,7 @@ sub backupFiles {
     # files to backup (archive). 
     my($fh, $tmpFileName) = tempfile("$0.filelistXXXX", UNLINK => 1);
     foreach my $t (@PROCESSED_TABLES) {
+        next if $t eq 'tarchive' && @$scanTypesToDeleteRef;
         foreach my $f (@{ $filesRef->{$t} }) {
             print $fh "$f->{'FullPath'}\n" unless !$f->{'Exists'};
         }
@@ -785,7 +859,7 @@ sub backupFiles {
     close($fh);
     
     # Put all files in a big compressed tar ball
-    my $filesBackupPath = &getBackupFileName($filesRef->{'tarchive'}->[0]->{'TarchiveID'});
+    my $filesBackupPath = &getBackupFileName($tarchiveID);
     print "\nBacking up files related to the upload(s) to delete...\n";
     if(system('tar', 'zcvf', $filesBackupPath, '--absolute-names', '--files-from', $tmpFileName)) {
         print STDERR "backup command failed: $!\n";
@@ -819,147 +893,117 @@ INPUTS:
                   
 =cut
 sub deleteUploadsInDatabase {
-    my($dbh, $uploadsRef, $filesRef, $deleteMriParameterForm)= @_;
+    my($dbh, $uploadsRef, $filesRef, $deleteMriParameterForm, $scanTypesToDeleteRef, $noSQL)= @_;
     
     # This starts a DB transaction. All operations are delayed until
     # commit is called
     $dbh->begin_work;
     
-    my $query = "DELETE FROM notification_spool WHERE ProcessID IN ("
-              . join(',', ('?') x keys %$uploadsRef)
-              . ")";
-    $dbh->do($query, undef, keys %$uploadsRef);
-    
-    my $tarchiveID = @{ $filesRef->{'tarchive'} } 
-        ? $filesRef->{'tarchive'}->[0]->{'TarchiveID'} : 'NULL';
-    
-    if($tarchiveID ne 'NULL') {
-        $query = "DELETE FROM tarchive_files WHERE TarchiveID = ?";
-        $dbh->do($query, undef, $tarchiveID);
-    
-        $query = "DELETE FROM tarchive_series WHERE TarchiveID = ?";
-        $dbh->do($query, undef, $tarchiveID);
-    
-        if(@{ $filesRef->{'parameter_file'} }) {
-            my @parameterFileIDs = map { $_->{'FileID'} } @{ $filesRef->{'parameter_file'} };
-            $query  = sprintf(
-                "DELETE FROM parameter_file WHERE FileID IN (%s)",
-                join(',', ('?') x @parameterFileIDs)
-            );
-            $dbh->do($query, undef, @parameterFileIDs);
-        }
-
-        my @intermediaryFileIDs = map { $_->{'IntermedID'} } @{ $filesRef->{'files_intermediary'} };
-        if(@intermediaryFileIDs) {
-            $query = sprintf(
-                'DELETE FROM files_intermediary WHERE IntermedID IN (%s)', 
-                join(',', ('?') x @intermediaryFileIDs)
-            );
-            $dbh->do($query, undef, @intermediaryFileIDs);
-
-            my @fileID = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
+    my(undef, $tmpSQLFile) = $noSQL
+        ? (undef, undef) : tempfile('sql_backup_XXXX', UNLINK => 1);
         
-            #==================================================================#
-            # If there's anything in parameter_file associated to the files    #
-            # deleted from files_intermediary, delete it also                  #
-            #==================================================================#
-            $query  = sprintf(
-                "DELETE FROM parameter_file WHERE FileID IN (%s)",
-                join(',', ('?') x @fileID)
-            );
-        
-            $dbh->do($query, undef, @fileID);
-        
-            #================================================================#
-            # Delete the entries in files associated to the entries deleted  #
-            # from files_intermediary                                        #
-            #================================================================#
-            $query = sprintf(
-                "DELETE FROM files WHERE FileID IN (%s)",
-                join(',', ('?') x @fileID)
-            );
-            $dbh->do($query, undef, @fileID);
-        }
-            
-        #===========================================================================#
-        # Before deleting the files in table files with                             #
-        # TarchiveSource=$tarchiveID, we have to delete any entry in parameter_file #
-        # that is related to these files                                            #
-        #===========================================================================#
-        $query = "DELETE FROM parameter_file "
-               . "WHERE FileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?)";
-        $dbh->do($query, undef, $tarchiveID);
-        
-        $query = "DELETE FROM files WHERE TarchiveSource = ?";
-        $dbh->do($query, undef, $tarchiveID);
-     
-        my @protocolIDs = map { $_->{'ProcessProtocolID'} } @{ $filesRef->{'mri_processing_protocol'} };
-        if(@protocolIDs) {
-            $query = sprintf(
-                "DELETE FROM mri_processing_protocol WHERE ProcessProtocolID IN (%s)",
-                join(',', ('?') x @protocolIDs)
-            );
-            $dbh->do($query, undef, @protocolIDs);
-        }
- 
-        $query = "DELETE FROM mri_protocol_violated_scans WHERE TarchiveID = ?";
-        $dbh->do($query, undef, $tarchiveID);
+    &deleteTableData($dbh, 'notification_spool', 'ProcessID', [ keys %$uploadsRef ], $tmpSQLFile) if !@$scanTypesToDeleteRef;
     
-        $query = "DELETE FROM mri_violations_log WHERE TarchiveID = ?";
-        $dbh->do($query, undef, $tarchiveID);
+    my $IDsRef = &getTarchiveSeriesIDs($dbh, $filesRef);  
+    &deleteTableData($dbh, 'tarchive_files', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile);
     
-        $query = "DELETE FROM MRICandidateErrors WHERE TarchiveID = ?";
-        $dbh->do($query, undef, $tarchiveID);
+    &deleteTableData($dbh, 'tarchive_series', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile); 
     
-        # Delete the entries in mri_parameter_form and flag if requested
-        if($deleteMriParameterForm) {
-            $query = "DELETE FROM mri_parameter_form "
-                   . "WHERE CommentID IN ( "
-                   . "   SELECT f.CommentID FROM flag f "
-                   . "   JOIN session s ON (s.ID=f.SessionID) "
-                   . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
-                   . "   WHERE f.Test_name='mri_parameter_form' "
-                   . "   AND mu.UploadID IN( " 
-                   .     join(',', map { '?' } keys %$uploadsRef)
-                   . "   ) "
-                   . ")";
-            $dbh->do($query, undef, keys %$uploadsRef);
-
-            $query = "DELETE FROM flag "
-                   . "WHERE test_name = 'mri_parameter_form' "
-                   . "AND SessionID IN ("
-                   . "   SELECT s.ID FROM session s "
-                   . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
-                   . "   WHERE mu.UploadID IN( " 
-                   .     join(',', map { '?' } keys %$uploadsRef)
-                   . "   ) "
-                   . ")";
-            $dbh->do($query, undef, keys %$uploadsRef);
-        }
-    }
-    
-    $query = sprintf(
-        "DELETE FROM mri_upload WHERE UploadID IN (%s)",
-        join(',', map { '?' } keys %$uploadsRef)
+    my @IDs = ( 
+        (map { $_->{'FileID'} } @{ $filesRef->{'parameter_file'} }),
+        (map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} }),
+        (map { $_->{'FileID'} } @{ $filesRef->{'files'} })
     );
-    $dbh->do($query, undef, keys %$uploadsRef);
+    &deleteTableData($dbh, 'parameter_file', 'FileID', \@IDs, $tmpSQLFile);
     
-    if($tarchiveID ne 'NULL') {
-        $query = "DELETE FROM tarchive WHERE TarchiveID = ?";
-        $dbh->do($query, undef, $tarchiveID);
-    }
+    @IDs = map { $_->{'IntermedID'} } @{ $filesRef->{'files_intermediary'} };
+    &deleteTableData($dbh, 'files_intermediary', 'IntermedID', \@IDs, $tmpSQLFile); 
+    
+    # Since all files in files_intermediary are linked to other files in table files, we
+    # have to delete these files first from table files.
+    @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
+    &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
+    
+    @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
+    &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
+    
+    @IDs = map { $_->{'ProcessProtocolID'} } @{ $filesRef->{'mri_processing_protocol'} };
+    &deleteTableData($dbh, 'mri_processing_protocol', 'ProcessProtocolID', \@IDs, $tmpSQLFile);
+    
+    @IDs = map { $_->{'ID'} } @{ $filesRef->{'mri_protocol_violated_scans'} };
+    &deleteTableData($dbh, 'mri_protocol_violated_scans', 'ID', \@IDs, $tmpSQLFile);
+    
+    @IDs = map { $_->{'LogID'} } @{ $filesRef->{'mri_violations_log'} };
+    &deleteTableData($dbh, 'mri_violations_log', 'LogID', \@IDs, $tmpSQLFile);
+    
+    @IDs = map { $_->{'ID'} } @{ $filesRef->{'MRICandidateErrors'} };
+    &deleteTableData($dbh, 'MRICandidateErrors', 'ID', \@IDs, $tmpSQLFile);
+    
+    &deleteMriParameterForm($dbh, $uploadsRef, $tmpSQLFile) if $deleteMriParameterForm;
+
+    # Should check instead if the tarchive is not tied to anything
+    # (i.e no associated entries in files, mri_violations_log, etc...)
+    # and delete it if so. This way, if you specify a list of scan types to
+    # delete and if after the deletion nothing remains in the archive, the archive
+    # will be deleted
+    my $tarchiveID = @{ $filesRef->{'tarchive'} } 
+        ? $filesRef->{'tarchive'}->[0]->{'TarchiveID'} : undef;
+    if(!@$scanTypesToDeleteRef) {
+        &deleteTableData($dbh, 'mri_upload', 'UploadID', [keys %$uploadsRef], $tmpSQLFile);
+   
+        &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile) if $tarchiveID;
+	}
     
     # If any of the upload to delete is the last upload that was part of the 
     # session associated to it, then set the session's 'Scan_done' flag
     # to 'N'.
     my @sessionIDs = map { $uploadsRef->{'SessionID'} } keys %$uploadsRef;
-    $query = "UPDATE session s SET Scan_done = 'N'"
-           . " WHERE s.ID IN ("
-           . join(',', ('?') x @sessionIDs)
-           . ") AND (SELECT COUNT(*) FROM mri_upload m WHERE m.SessionID=s.ID) = 0";
+    my $query = "UPDATE session s SET Scan_done = 'N'"
+              . " WHERE s.ID IN ("
+              . join(',', ('?') x @sessionIDs)
+              . ") AND (SELECT COUNT(*) FROM mri_upload m WHERE m.SessionID=s.ID) = 0";
     $dbh->do($query, undef, map { $_->{'SessionID'} } @sessionIDs );
     
     $dbh->commit;
+    
+    # Compress the SQL
+    if(defined $tmpSQLFile) {
+		my $cmd = sprintf(
+		    "gzip -c %s > %s", 
+		    quotemeta($tmpSQLFile), 
+		    quotemeta(&getSQLBackupFileName($tarchiveID))
+		);
+		system($cmd) == 0
+		    or die "Failed running command $cmd. Aborting\n";
+		printf("Wrote %s\n", &getSQLBackupFileName($tarchiveID));
+	}
+}
+
+sub deleteMriParameterForm {
+	my($dbh, $uploadsRef, $tmpSQLBackup) = @_;
+	
+	my $query = "DELETE FROM mri_parameter_form "
+              . "WHERE CommentID IN ( "
+              . "   SELECT f.CommentID FROM flag f "
+              . "   JOIN session s ON (s.ID=f.SessionID) "
+              . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
+              . "   WHERE f.Test_name='mri_parameter_form' "
+              . "   AND mu.UploadID IN ( " 
+              .     join(',', ('?') x keys %$uploadsRef)
+              . "   ) "
+              . ")";
+    $dbh->do($query, undef, keys %$uploadsRef);
+
+    $query = "DELETE FROM flag "
+           . "WHERE test_name = 'mri_parameter_form' "
+           . "AND SessionID IN ("
+           . "   SELECT s.ID FROM session s "
+           . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
+           . "   WHERE mu.UploadID IN( " 
+           .     join(',', ('?') x keys %$uploadsRef)
+           . "   ) "
+           . ")";
+    $dbh->do($query, undef, keys %$uploadsRef);
 }
 
 =pod
@@ -987,4 +1031,103 @@ sub deleteUploadsOnFileSystem {
             $processedFile{ $f->{'FullPath'} } = 1;
         }
     }
+}
+
+=pod
+
+=head3 getTypesToDelete($dbh, $scanTypeList)
+
+INPUTS:
+                  
+=cut
+sub getScanTypesToDelete {
+	my($dbh, $scanTypeList) = @_;
+	
+	return () if !defined $scanTypeList;
+	
+	my %types = map { $_=> 1 } split(/,/, $scanTypeList);
+	
+    $query = 'SELECT Scan_type, ID FROM mri_scan_type '
+           . 'WHERE Scan_type IN ('
+           . join(',', ('?') x keys %types)
+           . ')';
+    my $validTypesRef = $dbh->selectall_hashref($query, 'Scan_type', undef, keys %types);
+    
+    return map { $_ => defined $validTypesRef->{$_} } keys %types;
+}
+
+sub getTarchiveSeriesIDs {
+	my($dbh, $filesRef) = @_;
+	
+	return [] unless @{ $filesRef->{'files'} };
+	
+	my @fileID = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
+	my $query = 'SELECT tf.TarchiveSeriesID '
+	          . 'FROM tarchive_files tf '
+	          . 'JOIN tarchive_series ts ON (tf.TarchiveSeriesID=ts.TarchiveSeriesID) '
+	          . "JOIN files f ON (ts.SeriesUID=f.SeriesUID AND ABS(f.EchoTime*1000 - ts.EchoTime) < $FLOAT_EQUALS_THRESHOLD) "
+	          . 'WHERE f.FileID IN (' 
+	          . join(',', ('?') x @fileID)
+	          . ')';
+    my $tarchiveFilesRef = $dbh->selectall_arrayref($query, { 'Slice' => {} }, @fileID);
+
+    return [ map { $_->{'TarchiveSeriesID'} } @$tarchiveFilesRef ];
+}
+
+sub deleteTableData {
+	my($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile) = @_;
+	
+	return unless @$keyValuesRef;
+	
+	my $query = "DELETE FROM $table WHERE $key IN("
+	          . join(',', ('?') x @$keyValuesRef)
+	          . ')';
+
+    &updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef) if $tmpSQLBackupFile;
+
+	$dbh->do($query, undef, @$keyValuesRef);	
+}
+
+sub updateSQLBackupFile {
+	my($tmpSQLBackupFile, $table, $key, $keyValuesRef) = @_;
+			
+	# Make sure all keys are quoted before putting them in the Unix command
+    my %quotedKeys;
+	foreach my $k (@$keyValuesRef) {
+	    (my $quotedKey = $k) =~ s/\'/\\'/g;
+        $quotedKeys{$quotedKey} = 1;
+    }
+		
+	# Read the current contents of the backup file
+    open(SQL, "<$tmpSQLBackupFile") or die "Cannot read $tmpSQLBackupFile: $!\n";
+    my @lines = <SQL>;
+    close(SQL);
+		
+	# Run the mysqldump command for the current table and store the
+	# result in $tmpSqlBackupFile (overwrite contents)
+	my $mysqldumpOptions = '--no-create-info --compact --single-transaction --skip-extended-insert';
+	
+	my $warningToIgnore = 'mysqldump: [Warning] Using a password on the command line interface can be insecure.';
+    my $cmd = sprintf(
+        "mysqldump $mysqldumpOptions --where='%s IN (%s)' --result-file=%s  -h %s -p%s -u %s %s %s |& fgrep -v '$warningToIgnore'",
+		$key,
+		join(',', keys %quotedKeys),
+		quotemeta($tmpSQLBackupFile),
+		quotemeta($Settings::db[3]),
+	    quotemeta($Settings::db[2]),
+		quotemeta($Settings::db[1]),
+		quotemeta($Settings::db[0]),
+		$table
+    );
+		
+    system($cmd) != 0
+        or die "Cannot run command $cmd. Aborting\n";
+		
+	# Write back the original lines contained in $tmpSQlBackupFile at the end of the file.
+	# This is so that the mysqldump results are written in the file in the reverse order in
+	# which the mySQL delete statements are made.
+    open(SQL, ">>$tmpSQLBackupFile") or die "Cannot append to file $tmpSQLBackupFile: $!\n";
+    print SQL "\n\n";
+    print SQL @lines;
+	close(SQL);
 }
