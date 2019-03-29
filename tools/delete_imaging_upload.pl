@@ -93,7 +93,8 @@ my @PROCESSED_TABLES = (
     'mri_violations_log',
     'MRICandidateErrors',
     'tarchive',
-    'mri_processing_protocol'
+    'mri_processing_protocol',
+    'mri_upload'
 );
 
 # Stolen from get_dicom_files.pl: should be a constant global to both
@@ -226,7 +227,7 @@ $dataDirBasepath =~ s!/$!!;
 my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(\$dbh,'tarchiveLibraryDir');
 $tarchiveLibraryDir =~ s!/$!!;
 
-my $query = "SELECT m.UploadID, m.TarchiveID, t.ArchiveLocation, m.SessionID "
+my $query = "SELECT m.UploadID, m.TarchiveID, m.UploadLocation as FullPath, m.Inserting, m.InsertionComplete, m.SessionID, t.ArchiveLocation "
     .       "FROM mri_upload m "
     .       "LEFT JOIN tarchive t USING (TarchiveID) "
     .       "WHERE m.UploadID IN ("
@@ -244,6 +245,13 @@ if(keys %$uploadsRef != @uploadID) {
             printf STDERR "No upload found in table mri_upload with upload ID $_\n";
             exit $NeuroDB::ExitCodes::INVALID_ARG;
         }
+    }
+}
+
+foreach(@uploadID) {
+    if($uploadsRef->{$_}->{'Inserting'}) {
+        printf STDERR "Cannot delete upload $_: the MRI pipeline is currently processing it.\n";
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
 
@@ -315,6 +323,7 @@ if($tarchiveID eq 'NULL') {
         }
     ];
 }
+$files{'mri_upload'}                  = [ values %$uploadsRef ];
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
 
 if($keepDefaced) {
@@ -382,7 +391,7 @@ if(@$missingFilesRef) {
 # Delete everything associated to the upload(s) in the  #
 # file system                                           #
 #=======================================================#
-&deleteUploadsOnFileSystem(\%files);
+&deleteUploadsOnFileSystem(\%files, \@scanTypesToDelete, $keepDefaced);
 
 #==========================#
 # Print success message    #
@@ -390,6 +399,10 @@ if(@$missingFilesRef) {
 &printExitMessage(\@uploadID, \%files, \@scanTypesToDelete, $tarchiveID);
 
 exit $NeuroDB::ExitCodes::SUCCESS;
+
+#--------------------------------------------------------------------------------------------------------------------------#
+#--------------------------------------------------------------------------------------------------------------------------#
+#--------------------------------------------------------------------------------------------------------------------------#
 
 sub printExitMessage {
 	my($uploadIDRef, $filesRef, $scanTypesToDeleteRef, $tarchiveID) = @_;
@@ -412,7 +425,7 @@ sub printExitMessage {
 		}
 	} else {
 		printf(
-		    "Succesfully deleted %s %s.\n",
+		    "Successfully deleted %s %s.\n",
 		    @$uploadIDRef == 1 ? 'upload' : 'uploads',
 		    &prettyListPrint($uploadIDRef, 'and')
 		);
@@ -889,11 +902,21 @@ sub setFileExistenceStatus {
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
             $f->{'Exists'} = -e $f->{'FullPath'};
-            $missingFiles{ $f->{'FullPath'} } = 1 if !$f->{'Exists'};
+            $missingFiles{ $f->{'FullPath'} } = 1 if !$f->{'Exists'} && &shouldExist($t, $f);
         }
     }
     
     return [ keys %missingFiles ];
+}
+
+
+sub shouldExist {
+	my($t, $f) = @_;
+	
+	return 0 if $t eq 'mri_upload' && defined $f->{'InsertionComplete'} && $f->{'InsertionComplete'} == 1;
+	
+	
+	return 1;
 }
 
 =head3 backupFiles($filesRef)
@@ -915,9 +938,11 @@ sub backupFiles {
     
     my $hasSomethingToBackup = 0;
     foreach my $t (@PROCESSED_TABLES) {
-        last if $hasSomethingToBackup;
-        next unless &shouldBackupFile($t, $scanTypesToDeleteRef, $keepProcessed);
-        $hasSomethingToBackup = grep($_->{'Exists'}, @{ $filesRef->{$t} });
+		foreach my $f (@{ $filesRef->{$t} }) {
+            last if $hasSomethingToBackup;
+            next unless &shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $keepProcessed);
+            $hasSomethingToBackup = 1 if $f->{'Exists'}
+		}
     }
     
     return unless $hasSomethingToBackup;
@@ -926,8 +951,8 @@ sub backupFiles {
     # files to backup (archive). 
     my($fh, $tmpFileName) = tempfile("$0.filelistXXXX", UNLINK => 1);
     foreach my $t (@PROCESSED_TABLES) {
-        next unless &shouldBackupFile($t, $scanTypesToDeleteRef, $keepProcessed);
         foreach my $f (@{ $filesRef->{$t} }) {
+            next unless &shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $keepProcessed);
             print $fh "$f->{'FullPath'}\n" unless !$f->{'Exists'};
         }
     }
@@ -945,12 +970,19 @@ sub backupFiles {
 }
 
 
-sub shouldBackupFile {
-	my($table, $scanTypesToDeleteRef, $keepDefaced) = @_;
+sub shouldDeleteFile {
+	my($table, $fileRef, $scanTypesToDeleteRef, $keepDefaced) = @_;
 	
+	# If specific scan types are deleted or if the defaced files are kept 
+	# (i.e @$scanTypesToDeleteRef is filled with the modalities_to_deface Config
+	# values), then we don't delete and don't backup the tarchive file.
 	return 0 if $table eq 'tarchive' && @$scanTypesToDeleteRef;
 	
+	# If the defaced files are kept, the entries in files_intermediary are deleted
+	# and backed up but the corresponding entries in table files are not.  
 	return 0 if $table eq 'files_intermediary' && $keepDefaced;
+	
+	return 0 if $table eq 'mri_upload' && $fileRef->{'InsertionComplete'} == 1;
 	
 	return 1;
 }
@@ -1035,7 +1067,7 @@ sub deleteUploadsInDatabase {
     # delete and if after the deletion nothing remains in the archive, the archive
     # will be deleted
     my $tarchiveID = @{ $filesRef->{'tarchive'} } 
-        ? $filesRef->{'tarchive'}->[0]->{'TarchiveID'} : undef;
+        ? $filesRef->{'tarchive'}->[0]->{'TarchiveID'} : 'NULL';
     if(!@$scanTypesToDeleteRef) {
         &deleteTableData($dbh, 'mri_upload', 'UploadID', [keys %$uploadsRef], $tmpSQLFile);
    
@@ -1071,6 +1103,10 @@ sub updateSessionTable {
     # session associated to it, then set the session's 'Scan_done' flag
     # to 'N'.
     my @sessionIDs = map { $uploadsRef->{$_}->{'SessionID'} } keys %$uploadsRef;
+    @sessionIDs = grep(defined $_, @sessionIDs);
+    
+    return if !@sessionIDs;
+    
     my $query = "UPDATE session s SET Scan_done = 'N'"
               . " WHERE s.ID IN ("
               . join(',', ('?') x @sessionIDs)
@@ -1145,14 +1181,19 @@ INPUTS:
                   
 =cut
 sub deleteUploadsOnFileSystem {
-    my($filesRef) = @_;
+    my($filesRef, $scanTypesToDeleteRef, $keepDefaced) = @_;
     
-    my %processedFile;
+    my %deletedFile;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
-            next if !$f->{'Exists'} || $processedFile{ $f->{'FullPath'} };
+            next if !shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $keepDefaced);
+            
+            next if !$f->{'Exists'};
+            
+            next if $deletedFile{ $f->{'FullPath'} };
+            
             NeuroDB::MRI::deleteFiles($f->{'FullPath'});
-            $processedFile{ $f->{'FullPath'} } = 1;
+            $deletedFile{ $f->{'FullPath'} } = 1;
         }
     }
 }
