@@ -78,6 +78,7 @@ use constant DEFAULT_NO_BACKUP                 => 0;
 use constant DEFAULT_NO_SQL                    => 0;
 use constant DEFAULT_DELETE_PROTOCOLS          => 0;
 use constant DEFAULT_DELETE_MRI_PARAMETER_FORM => 0;
+use constant DEFAULT_KEEP_DEFACED              => 0;
 
 use constant PIC_SUBDIR                => 'pic';
 
@@ -105,6 +106,8 @@ my $noBackup               = DEFAULT_NO_BACKUP;
 my $noSQL                  = DEFAULT_NO_SQL;
 my $deleteProtocols        = DEFAULT_DELETE_PROTOCOLS;
 my $deleteMriParameterForm = DEFAULT_DELETE_MRI_PARAMETER_FORM;
+my $keepDefaced            = DEFAULT_KEEP_DEFACED;
+
 my $uploadIDList           = undef;
 my $scanTypeList           = undef;
 
@@ -128,7 +131,10 @@ my @opt_table = (
     ['-nosql', 'const', 1, \$noSQL,
      'Do not backup the information deleted from the database with mysqldump. '
       . 'Default is to backup all records deleted in a file named imaging_upload_<TarchiveID>.sql in the '
-      . 'current directory.']    
+      . 'current directory.'],
+    ['-defaced', 'const', 1, \$keepDefaced,
+     'Replace each MINC files whose scan types are in the list of types to deface with its'
+      . ' corresponding defaced file.']
 );
 
 my $Help = <<HELP;
@@ -145,6 +151,21 @@ if(@ARGV != 0) {
     print STDERR "$usage\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
+
+if(defined $scanTypeList && $deleteMriParameterForm) {
+    print STDERR "Option -type cannot be used in conjunction with option -form. Aborting.\n";
+       exit $NeuroDB::ExitCodes::INVALID_ARG;
+} 
+
+if(defined $scanTypeList && $keepDefaced) {
+    print STDERR "Option -type cannot be used in conjunction with option -defaced. Aborting.\n";
+       exit $NeuroDB::ExitCodes::INVALID_ARG;
+} 
+
+if($keepDefaced && $deleteMriParameterForm) {
+    print STDERR "Option -defaced cannot be used in conjunction with option -form. Aborting.\n";
+       exit $NeuroDB::ExitCodes::INVALID_ARG;
+} 
 
 if(!defined $uploadIDList) {
     print STDERR "Missing -uploadID option\n";
@@ -262,7 +283,8 @@ if($tarchiveID ne 'NULL' && &hasQcOrComment($dbh, $tarchiveID)) {
 #========================================================#
 # Validate argument to -type (if this option is used)    #
 #========================================================#
-my %scanTypesToDelete = &getScanTypesToDelete($dbh, $scanTypeList);
+my %scanTypesToDelete = &getScanTypesToDelete($dbh, $scanTypeList, $keepDefaced);
+die "Option -defaced was used but config setting 'modalities_to_deface' is empty. Aborting\n" if $keepDefaced && !%scanTypesToDelete;
 my @invalidTypes = grep($scanTypesToDelete{$_} == 0, keys %scanTypesToDelete);
 die "Invalid scan types argument: " . join(',', @invalidTypes) . "\n" if @invalidTypes;
 my @scanTypesToDelete = keys %scanTypesToDelete;
@@ -295,6 +317,22 @@ if($tarchiveID eq 'NULL') {
 }
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
 
+if($keepDefaced) {
+    my $invalidDefacedFilesRef = &getInvalidDefacedFiles($dbh, \%files) if $keepDefaced;
+    if(%$invalidDefacedFilesRef) {
+	    while( my($fname, $invalidFilesRef) = each %$invalidDefacedFilesRef) {
+		    if(!@$invalidFilesRef) {
+	            printf STDERR "Error! No defaced file found for %s.\n", $fname;
+		    } else {
+			    my $f = @$invalidFilesRef == 1 ? 'file' : 'files';
+	            printf STDERR "Error! Invalid processed $f found for %s:\n", $fname;
+	            printf STDERR join("", map { "\t$_\n" } @$invalidFilesRef);
+		    }
+	    }
+	    print STDERR "\nAborting.\n"; 
+	    exit $NeuroDB::ExitCodes::INVALID_ARG;
+	}
+}
 
 #========================================================================#
 # Make sure that -protocol option is used if:                            #
@@ -332,13 +370,13 @@ if(@$missingFilesRef) {
     print STDERR "Warning! $msg\n";
 }
 
-&backupFiles(\%files, $tarchiveID, \@scanTypesToDelete) unless $noBackup;
+&backupFiles(\%files, $tarchiveID, \@scanTypesToDelete, $keepDefaced) unless $noBackup;
 
 #=======================================================#
 # Delete everything associated to the upload(s) in the  #
 # database                                              #
 #=======================================================#
-&deleteUploadsInDatabase($dbh, $uploadsRef, \%files, $deleteMriParameterForm, \@scanTypesToDelete, $noSQL);
+&deleteUploadsInDatabase($dbh, $uploadsRef, \%files, $deleteMriParameterForm, \@scanTypesToDelete, $noSQL, $keepDefaced);
 
 #=======================================================#
 # Delete everything associated to the upload(s) in the  #
@@ -349,15 +387,52 @@ if(@$missingFilesRef) {
 #==========================#
 # Print success message    #
 #==========================#
-my $uploadIdsString = join(', ', @uploadID);
-$uploadIdsString =~ s/, (\d+)$/ and $1/;
-printf(
-    "%s %s successfully deleted.\n",
-    (@uploadID > 1 ? 'Uploads' : 'Upload'),
-    $uploadIdsString
-);
+&printExitMessage(\@uploadID, \%files, \@scanTypesToDelete, $tarchiveID);
 
 exit $NeuroDB::ExitCodes::SUCCESS;
+
+sub printExitMessage {
+	my($uploadIDRef, $filesRef, $scanTypesToDeleteRef, $tarchiveID) = @_;
+
+    # If there are specific types of scan to believe, then we know that there
+    # can be only one upload in @$uploadIDRef
+	if(@$scanTypesToDeleteRef) {
+		if(!@{ $filesRef->{'files'} }) {
+		    printf(
+		        "No scans of type %s found for upload %s.\n", 
+		        &prettyListPrint($scanTypesToDeleteRef, 'or'),
+		        $uploadIDRef->[0]
+		    );
+		} else {
+		    printf(
+		        "Scans of type %s successfully deleted for upload %s.\n",
+		        &prettyListPrint($scanTypesToDeleteRef, 'and'),
+		        $uploadIDRef->[0]
+		    );
+		}
+	} else {
+		printf(
+		    "Succesfully deleted %s %s.\n",
+		    @$uploadIDRef == 1 ? 'upload' : 'uploads',
+		    &prettyListPrint($uploadIDRef, 'and')
+		);
+	}
+	
+	my $finalSQLFile = &getSQLBackupFileName($tarchiveID);
+	if(-e $finalSQLFile) {
+		print "Wrote $finalSQLFile.\n";
+	} else {
+		print "No deletions performed in the database: no SQL backup file created.\n";
+	}
+}
+
+sub prettyListPrint {
+	my($listRef, $andOr) = @_;
+	
+	return $listRef->[0] if @$listRef == 1;
+	 
+	return join(', ', @$listRef[0..$#{ $listRef }-1]) . " $andOr " . $listRef->[$#{ $listRef } ];
+}
 
 =pod
 
@@ -561,7 +636,7 @@ sub getIntermediaryFilesRef {
     my $mriScanTypeAnd = @$scanTypesToDeleteRef
         ? sprintf(' AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef))
         : '';
-    my $query = 'SELECT fi.IntermedID, f.FileID, f.File '
+    my $query = 'SELECT fi.IntermedID, fi.Input_FileID, fi.Output_FileID, f.FileID, f.File, f.SourceFileID '
               . 'FROM files_intermediary fi '
               . 'JOIN files f ON (fi.Output_FileID=f.FileID) '
               . 'WHERE f.SourceFileID IN ('
@@ -836,12 +911,12 @@ RETURNS:
 =cut
     
 sub backupFiles {
-    my($filesRef, $tarchiveID, $scanTypesToDeleteRef) = @_;
+    my($filesRef, $tarchiveID, $scanTypesToDeleteRef, $keepProcessed) = @_;
     
     my $hasSomethingToBackup = 0;
     foreach my $t (@PROCESSED_TABLES) {
         last if $hasSomethingToBackup;
-        next if $t eq 'tarchive' && @$scanTypesToDeleteRef;
+        next unless &shouldBackupFile($t, $scanTypesToDeleteRef, $keepProcessed);
         $hasSomethingToBackup = grep($_->{'Exists'}, @{ $filesRef->{$t} });
     }
     
@@ -851,7 +926,7 @@ sub backupFiles {
     # files to backup (archive). 
     my($fh, $tmpFileName) = tempfile("$0.filelistXXXX", UNLINK => 1);
     foreach my $t (@PROCESSED_TABLES) {
-        next if $t eq 'tarchive' && @$scanTypesToDeleteRef;
+        next unless &shouldBackupFile($t, $scanTypesToDeleteRef, $keepProcessed);
         foreach my $f (@{ $filesRef->{$t} }) {
             print $fh "$f->{'FullPath'}\n" unless !$f->{'Exists'};
         }
@@ -867,6 +942,17 @@ sub backupFiles {
     } 
 
     print "File $filesBackupPath successfully created.\n";
+}
+
+
+sub shouldBackupFile {
+	my($table, $scanTypesToDeleteRef, $keepDefaced) = @_;
+	
+	return 0 if $table eq 'tarchive' && @$scanTypesToDeleteRef;
+	
+	return 0 if $table eq 'files_intermediary' && $keepDefaced;
+	
+	return 1;
 }
 
 =pod
@@ -893,7 +979,7 @@ INPUTS:
                   
 =cut
 sub deleteUploadsInDatabase {
-    my($dbh, $uploadsRef, $filesRef, $deleteMriParameterForm, $scanTypesToDeleteRef, $noSQL)= @_;
+    my($dbh, $uploadsRef, $filesRef, $deleteMriParameterForm, $scanTypesToDeleteRef, $noSQL, $keepDefaced)= @_;
     
     # This starts a DB transaction. All operations are delayed until
     # commit is called
@@ -909,11 +995,9 @@ sub deleteUploadsInDatabase {
     
     &deleteTableData($dbh, 'tarchive_series', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile); 
     
-    my @IDs = ( 
-        (map { $_->{'FileID'} } @{ $filesRef->{'parameter_file'} }),
-        (map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} }),
-        (map { $_->{'FileID'} } @{ $filesRef->{'files'} })
-    );
+    my @IDs  = map { $_->{'FileID'} } @{ $filesRef->{'parameter_file'} };
+    push(@IDs, map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} }) if !$keepDefaced;
+    push(@IDs, map { $_->{'FileID'} } @{ $filesRef->{'files'} });
     &deleteTableData($dbh, 'parameter_file', 'FileID', \@IDs, $tmpSQLFile);
     
     @IDs = map { $_->{'IntermedID'} } @{ $filesRef->{'files_intermediary'} };
@@ -921,9 +1005,13 @@ sub deleteUploadsInDatabase {
     
     # Since all files in files_intermediary are linked to other files in table files, we
     # have to delete these files first from table files.
-    @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
-    &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
-    
+    if(!$keepDefaced) {
+        @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
+        &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
+	} else { 
+        &updateFilesIntermediaryTable($dbh, $tarchiveID, $filesRef, $tmpSQLFile);
+	}
+   
     @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
     &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
     
@@ -954,56 +1042,92 @@ sub deleteUploadsInDatabase {
         &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile) if $tarchiveID;
 	}
     
-    # If any of the upload to delete is the last upload that was part of the 
-    # session associated to it, then set the session's 'Scan_done' flag
-    # to 'N'.
-    my @sessionIDs = map { $uploadsRef->{'SessionID'} } keys %$uploadsRef;
-    my $query = "UPDATE session s SET Scan_done = 'N'"
-              . " WHERE s.ID IN ("
-              . join(',', ('?') x @sessionIDs)
-              . ") AND (SELECT COUNT(*) FROM mri_upload m WHERE m.SessionID=s.ID) = 0";
-    $dbh->do($query, undef, map { $_->{'SessionID'} } @sessionIDs );
+    &updateSessionTable($dbh, $uploadsRef, $tmpSQLFile) unless @$scanTypesToDeleteRef;
+        
     
     $dbh->commit;
     
     # Compress the SQL
-    if(defined $tmpSQLFile) {
-		my $cmd = sprintf(
-		    "gzip -c %s > %s", 
-		    quotemeta($tmpSQLFile), 
-		    quotemeta(&getSQLBackupFileName($tarchiveID))
-		);
-		system($cmd) == 0
-		    or die "Failed running command $cmd. Aborting\n";
-		printf("Wrote %s\n", &getSQLBackupFileName($tarchiveID));
-	}
+    &gzipTmpSQLFile($tarchiveID, $tmpSQLFile) if defined $tmpSQLFile && -s $tmpSQLFile;
+}
+
+sub gzipTmpSQLFile {
+    my($tarchiveID, $tmpSQLFile) = @_;
+    
+    # Gzip the SQL file
+    my $cmd = sprintf(
+	    "gzip -c %s > %s", 
+		quotemeta($tmpSQLFile), 
+		quotemeta(&getSQLBackupFileName($tarchiveID))
+    );
+	system($cmd) == 0
+	    or die "Failed running command $cmd. Aborting\n";
+}    
+
+sub updateSessionTable {
+	my($dbh, $uploadsRef, $tmpSQLFile) = @_;
+	
+	# If any of the uploads to delete is the last upload that was part of the 
+    # session associated to it, then set the session's 'Scan_done' flag
+    # to 'N'.
+    my @sessionIDs = map { $uploadsRef->{$_}->{'SessionID'} } keys %$uploadsRef;
+    my $query = "UPDATE session s SET Scan_done = 'N'"
+              . " WHERE s.ID IN ("
+              . join(',', ('?') x @sessionIDs)
+              . ") AND (SELECT COUNT(*) FROM mri_upload m WHERE m.SessionID=s.ID) = 0";
+    $dbh->do($query, undef, @sessionIDs );
+
+    if($tmpSQLFile) {
+		# Write an SQL statement to restore the 'Scan_done' column of the deleted uploads
+		# to their appropriate values. This statement needs to be after the statement that
+		# restores table mri_upload (at the end of the file is good enough). 
+		open(SQL, ">>$tmpSQLFile") or die "Cannot append text to file $tmpSQLFile: $!. Aborting.\n";
+		print SQL "\n\n";
+		print SQL "UPDATE session s SET Scan_done = 'Y'"
+		        . " WHERE s.ID IN ("
+                . join(',', @sessionIDs)
+                . ") AND (SELECT COUNT(*) FROM mri_upload m WHERE m.SessionID=s.ID) > 0;\n";
+        close(SQL);
+    }
+}
+
+sub updateFilesIntermediaryTable {
+	my($dbh, $tarchiveID, $filesRef, $tmpSQLFile) = @_;
+	
+	my %defacedFiles = map { $_->{'FileID'} => $_->{'SourceFileID'} } @{ $filesRef->{'files_intermediary'} };
+    if(%defacedFiles) {
+        my $query = "UPDATE files SET TarchiveSource = ?, SourceFileID = NULL "
+                  . " WHERE FileID IN ("
+                  . join(',', ('?') x keys %defacedFiles)
+                  . ")";
+        $dbh->do($query, undef, $tarchiveID, keys %defacedFiles);
+
+		open(SQL, ">>$tmpSQLFile") or die "Cannot append text to file $tmpSQLFile: $!. Aborting.\n";
+		print SQL "\n\n";
+		while(my($fileID, $sourceFileID) = each %defacedFiles) {
+		    print SQL "UPDATE files SET TarchiveSource = NULL, SourceFileID = $sourceFileID WHERE FileID = $fileID;\n";
+		}
+        close(SQL);
+    }
 }
 
 sub deleteMriParameterForm {
-	my($dbh, $uploadsRef, $tmpSQLBackup) = @_;
+	my($dbh, $uploadsRef, $tmpSQLFile) = @_;
 	
-	my $query = "DELETE FROM mri_parameter_form "
-              . "WHERE CommentID IN ( "
-              . "   SELECT f.CommentID FROM flag f "
-              . "   JOIN session s ON (s.ID=f.SessionID) "
-              . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
-              . "   WHERE f.Test_name='mri_parameter_form' "
-              . "   AND mu.UploadID IN ( " 
-              .     join(',', ('?') x keys %$uploadsRef)
-              . "   ) "
-              . ")";
-    $dbh->do($query, undef, keys %$uploadsRef);
+	my $query = "SELECT f.CommentID FROM flag f "
+              . "JOIN session s ON (s.ID=f.SessionID) "
+              . "JOIN mri_upload mu ON (s.ID=mu.SessionID) "
+              . "WHERE f.Test_name='mri_parameter_form' "
+              . "AND mu.UploadID IN ( " 
+              . join(',', ('?') x keys %$uploadsRef)
+              . ") ";
+    my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, keys %$uploadsRef);
+    my @commentIDs = map { $_->{'CommentID'} } @$rowsRef;
+    
+    return if !@commentIDs;
 
-    $query = "DELETE FROM flag "
-           . "WHERE test_name = 'mri_parameter_form' "
-           . "AND SessionID IN ("
-           . "   SELECT s.ID FROM session s "
-           . "   JOIN mri_upload mu ON (s.ID=mu.SessionID) "
-           . "   WHERE mu.UploadID IN( " 
-           .     join(',', ('?') x keys %$uploadsRef)
-           . "   ) "
-           . ")";
-    $dbh->do($query, undef, keys %$uploadsRef);
+    &deleteTableData($dbh, 'mri_parameter_form', 'CommentID', \@commentIDs, $tmpSQLFile);
+    &deleteTableData($dbh, 'flag'              , 'CommentID', \@commentIDs, $tmpSQLFile);
 }
 
 =pod
@@ -1041,9 +1165,14 @@ INPUTS:
                   
 =cut
 sub getScanTypesToDelete {
-	my($dbh, $scanTypeList) = @_;
+	my($dbh, $scanTypeList, $keepDefaced) = @_;
 	
-	return () if !defined $scanTypeList;
+	return () if !defined $scanTypeList && !$keepDefaced;
+	
+	if($keepDefaced) {
+		my $scanTypesRef = &NeuroDB::DBI::getConfigSetting(\$dbh, 'modalities_to_deface');
+	    return defined $scanTypesRef ? (map { $_ => 1 } @$scanTypesRef) : ();
+	}
 	
 	my %types = map { $_=> 1 } split(/,/, $scanTypeList);
 	
@@ -1091,7 +1220,7 @@ sub deleteTableData {
 sub updateSQLBackupFile {
 	my($tmpSQLBackupFile, $table, $key, $keyValuesRef) = @_;
 			
-	# Make sure all keys are quoted before putting them in the Unix command
+	# Make sure all keys are quoted before using them in the Unix command
     my %quotedKeys;
 	foreach my $k (@$keyValuesRef) {
 	    (my $quotedKey = $k) =~ s/\'/\\'/g;
@@ -1109,7 +1238,7 @@ sub updateSQLBackupFile {
 	
 	my $warningToIgnore = 'mysqldump: [Warning] Using a password on the command line interface can be insecure.';
     my $cmd = sprintf(
-        "mysqldump $mysqldumpOptions --where='%s IN (%s)' --result-file=%s  -h %s -p%s -u %s %s %s |& fgrep -v '$warningToIgnore'",
+        "mysqldump $mysqldumpOptions --where='%s IN (%s)' --result-file=%s  -h %s -p%s -u %s %s %s 2>&1 | fgrep -v '$warningToIgnore'",
 		$key,
 		join(',', keys %quotedKeys),
 		quotemeta($tmpSQLBackupFile),
@@ -1130,4 +1259,22 @@ sub updateSQLBackupFile {
     print SQL "\n\n";
     print SQL @lines;
 	close(SQL);
+}
+
+sub getInvalidDefacedFiles {
+	my($dbh, $filesRef, $scanTypesToDeleteRef) = @_;
+	
+	my %invalidDefacedFile;
+	foreach my $f (@{ $filesRef->{'files'} }) {
+		my @processedFiles = grep($_->{'Input_FileID'} == $f->{'FileID'}, @{ $filesRef->{'files_intermediary'} });
+		$invalidDefacedFile{ $f->{'File'} } = [] if !@processedFiles;
+			
+	    my @filesNotDefaced = grep( $_->{'File'} !~ /-defaced_\d+.mnc$/, @processedFiles);
+	    $invalidDefacedFile{ $f->{'File'} } = [ map { $_->{'File'} } @filesNotDefaced ] if @filesNotDefaced;
+	    
+	    # otherwise it means that @processedFiles contains one and only one file
+	    # that ends with '-defaced', which is what is expected
+	}
+	
+	return \%invalidDefacedFile;
 }
