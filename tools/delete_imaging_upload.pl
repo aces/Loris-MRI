@@ -396,7 +396,7 @@ if(@$missingFilesRef) {
 #==========================#
 # Print success message    #
 #==========================#
-&printExitMessage(\@uploadID, \%files, \@scanTypesToDelete, $tarchiveID);
+&printExitMessage(\@uploadID, \%files, \@scanTypesToDelete, $tarchiveID, $noSQL);
 
 exit $NeuroDB::ExitCodes::SUCCESS;
 
@@ -405,7 +405,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 #--------------------------------------------------------------------------------------------------------------------------#
 
 sub printExitMessage {
-	my($uploadIDRef, $filesRef, $scanTypesToDeleteRef, $tarchiveID) = @_;
+	my($uploadIDRef, $filesRef, $scanTypesToDeleteRef, $tarchiveID, $noSQL) = @_;
 
     # If there are specific types of scan to believe, then we know that there
     # can be only one upload in @$uploadIDRef
@@ -431,11 +431,13 @@ sub printExitMessage {
 		);
 	}
 	
-	my $finalSQLFile = &getSQLBackupFileName($tarchiveID);
-	if(-e $finalSQLFile) {
-		print "Wrote $finalSQLFile.\n";
-	} else {
-		print "No deletions performed in the database: no SQL backup file created.\n";
+	if(!$noSQL) {
+	    my $finalSQLFile = &getSQLBackupFileName($tarchiveID);
+	    if(-e $finalSQLFile) {
+		    print "Wrote $finalSQLFile.\n";
+	    } else {
+		    print "No deletions performed in the database: no SQL backup file created.\n";
+	    }
 	}
 }
 
@@ -945,7 +947,10 @@ sub backupFiles {
 		}
     }
     
-    return unless $hasSomethingToBackup;
+    if(!$hasSomethingToBackup) {
+		print "No files to backup.\n";
+		return;
+	}
     
     # Create a temporary file that will list the absolute paths of all
     # files to backup (archive). 
