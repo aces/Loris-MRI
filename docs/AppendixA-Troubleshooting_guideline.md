@@ -44,7 +44,7 @@ _**Table 3: Common errors encountered during execution of the LORIS-MRi insertio
 |`The target directory does not contain a single DICOM file`|Probably the DICOM headers have blank StudyUID. The logic of insertion within LORIS-MRI depends on a StudyUID header|Ensure that your DICOM headers include a non-blank StudyUID header|
 |My resting-state fMRI scans are tagged as task fMRI although I have 2 entries in the `mri_protocol` table|The resting-state scan has parameters that match those of the task entry of the `mri_protocol` table, and the task-related entry in the `mri_protocol` table precedes that of the resting-state fMRI|Make sure the `mri_protocol` table has parameters that discern between all the study acquired modalities in an **exclusive** manner (*i.e.* no two row entries have overlapping parameters across all their columns)|
 |`no MINCs inserted`|Possibly all the MINC images are violated scans|Check the details of the image headers (from the MRI Violated Scans module or using `mincheader`) against the `mri_protocol` table entries, and adjust the table protocol parameters accordingly|
-
+|The pipeline created an invalid visit label in the `session` table when inserting a scan (a.k.a. Visit Label not listed in the `Visit_Windows` table)|The flag $subjectID{'createVisitLabel'} is set to 1 but the function `getSubjectIDs` of the profile file does not contain a call to validate the subject IDs information|Make sure that the `getSubjectIDs` function of your profile file (typically named `prod`) contains a call to the function `NeuroDB::MRI::subjectIDIsValid` on the `CandID`, `PSCID` and `VisitLabel` values (see https://github.com/aces/Loris-MRI/pull/411 for details)| 
 
 ### A.1 Installation troubleshooting notes
 
@@ -109,3 +109,5 @@ If upload was successful but issues were encountered with the imaging insertion
     wish to just re-run the `tarchiveLoader` script.
 - See also [re-running the Imaging pipeline](#rerunning-the-imaging-pipeline)
     section for troubleshooting information.
+- The pipeline created an invalid visit label in the `session` table when inserting a 
+scan (a.k.a. Visit Label not listed in the `Visit_Windows` table): 
