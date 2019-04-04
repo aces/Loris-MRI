@@ -8,7 +8,7 @@ batch_run_defacing_script.pl -- Run the defacing algorithm on multiple session I
 
 =head1 SYNOPSIS
 
-perldoc batch_run_defacing_script.pl [-profile file] < list_of_session_IDs.txt
+perl batch_run_defacing_script.pl [-profile file] < list_of_session_IDs.txt
 
 Available options are:
 
@@ -79,7 +79,7 @@ Documentation: perldoc batch_run_defacing_script.pl
 HELP
 
 my $Usage = <<USAGE;
-usage: ./batch_run_defacing_script.pl -profile prod < list_of_session_IDs.txt > log_batch_defacing.txt 2>&1 [options]
+usage: ./batch_run_defacing_script.pl -profile prod < list_of_session_IDs.txt [options]
        $0 -help to list options
 USAGE
 
