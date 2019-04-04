@@ -8,7 +8,7 @@ batch_run_defacing_script.pl -- Run the defacing algorithm on multiple session I
 
 =head1 SYNOPSIS
 
-perldoc batch_run_defacing_script.pl [-profile file] < SessionIDs_list.txt
+perldoc batch_run_defacing_script.pl [-profile file] < list_of_session_IDs.txt
 
 Available options are:
 

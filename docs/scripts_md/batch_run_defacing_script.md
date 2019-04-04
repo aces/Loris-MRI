@@ -4,7 +4,7 @@ batch\_run\_defacing\_script.pl -- Run the defacing algorithm on multiple sessio
 
 # SYNOPSIS
 
-perldoc batch\_run\_defacing\_script.pl \[-profile file\] < SessionIDs\_list.txt
+perldoc batch\_run\_defacing\_script.pl \[-profile file\] < list\_of\_session\_IDs.txt
 
 Available options are:
 
