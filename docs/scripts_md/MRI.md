@@ -140,16 +140,6 @@ INPUTS:
   - $time           : time dimension of the scan
   - $seriesUID      : `SeriesUID` of the scan
 
-### debug\_inrange($val, $range)
-
-Will evaluate whether the scalar `$value` is in the specified `$range`.
-
-INPUTS:
-  - $val  : scalar value to evaluate
-  - $range: scalar range string
-
-RETURNS: 1 if in range, 0 if not in range
-
 ### scan\_type\_id\_to\_text($typeID, $db)
 
 Determines the type of the scan identified by its scan type ID.
@@ -173,7 +163,7 @@ RETURNS: ID of the scan type
 ### in\_range($value, $range\_string)
 
 Determines whether numerical value falls within the range described by range
-string. Range string is a single range unit which follows the syntax 
+string. Range string is a single range unit which follows the syntax
 "X" or "X-Y".
 
 INPUTS:
@@ -193,20 +183,6 @@ INPUTS:
   - $nb\_decimals: the number of first decimals
 
 RETURNS: 1 if the numbers are relatively equal, 0 otherwise
-
-### range\_to\_sql($field, $range\_string)
-
-Generates a valid SQL WHERE expression to test `$field` against
-`$range_string` using the same `$range_string` syntax as `&in_range()`.
-It returns a scalar range SQL string appropriate to use as a WHERE condition
-(`SELECT ... WHERE range_to_sql(...)`).
-
-INPUTS:
-  - $field       : scalar field
-  - $range\_string: scalar range string that follows the same format as in
-                    `&in_range()`
-
-RETURNS: scalar range SQL string
 
 ### register\_db($file\_ref)
 
