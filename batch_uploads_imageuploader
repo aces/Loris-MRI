@@ -169,7 +169,6 @@ while(my $line = <STDIN>)
 {
     chomp $line;
     my @linearray = split(" " , $line);
-    push (@resultsarray, @linearray);
     @fullpath = $linearray[0];
     @phantom = $linearray[1];
     @patientname = $linearray[2];
@@ -180,7 +179,7 @@ while(my $line = <STDIN>)
 close STDIN;
 
 ## foreach series, batch magic
-foreach my $input (@resultsarray)
+foreach my $input (@fullpath)
 {
     $counter++;
     $stdout = $stdoutbase.$counter;
