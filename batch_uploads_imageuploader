@@ -57,9 +57,6 @@ use NeuroDB::ExitCodes;
 
 my $profile   = '';
 my $upload_id = undef; 
-my $fullpath = undef; 
-my $phantom = undef; 
-my $patientname = undef; 
 my ($debug, $verbose) = (0,1);
 my $stdout = '';
 my $stderr = '';
@@ -153,13 +150,8 @@ while($_ = $ARGV[0], /^-/) {
 
 
 ## read input from STDIN, store into array @inputs (`find ....... | this_script`)
-my @linearray = ();
-my @resultsarray = ();
-my @patientname = ();
 my @patientnamearray = ();
-my @fullpath = ();
 my @fullpatharray = ();
-my @phantom = ();
 my @phantomarray = ();
 my @submitted = ();
 
@@ -168,18 +160,16 @@ my $counter = 0;
 while(my $line = <STDIN>)
 {
     chomp $line;
+
     my @linearray = split(" " , $line);
-    @fullpath = $linearray[0];
-    @phantom = $linearray[1];
-    @patientname = $linearray[2];
-    push (@patientnamearray, @patientname);
-    push (@fullpatharray, @fullpath);
-    push (@phantomarray, @phantom);
+    push (@fullpatharray,    $linearray[0]);
+    push (@phantomarray,     $linearray[1]);
+    push (@patientnamearray, $linearray[2]);
 }
 close STDIN;
 
 ## foreach series, batch magic
-foreach my $input (@fullpath)
+foreach my $input (@fullpatharray)
 {
     $counter++;
     $stdout = $stdoutbase.$counter;
@@ -188,9 +178,9 @@ foreach my $input (@fullpath)
     #$stdout = '/dev/null';
     #$stderr = '/dev/null';
 
-    $fullpath = $fullpatharray[$counter-1];
-    $phantom = $phantomarray[$counter-1];
-    $patientname = $patientnamearray[$counter-1];
+    my $fullpath    = $fullpatharray[$counter-1];
+    my $phantom     = $phantomarray[$counter-1];
+    my $patientname = $patientnamearray[$counter-1];
 
     ## Ensure that 
     ## 1) the uploaded file is of type .tgz or .tar.gz or .zip
