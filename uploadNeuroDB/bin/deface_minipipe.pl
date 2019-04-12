@@ -223,7 +223,7 @@ my $t1w_stx_xfm = "$tmpdir/t1w_stx.xfm";
 unless($t1w_xfm && $brain_mask) {
   # create the t1w XFM if it was not provided to the script
   unless ($t1w_xfm) {
-    do_cmd('bestlinreg.pl', '-lsq9', $clp_t1_file, $model_t1w, $t1w_stx_xfm);
+    do_cmd('bestlinreg_claude.pl', '-lsq9', $clp_t1_file, $model_t1w, $t1w_stx_xfm);
     $t1w_xfm = "$tmpdir/t1w_stx.xfm";
   }
 
