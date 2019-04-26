@@ -12,3 +12,6 @@ source /data/%PROJECT%/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
 source %MINC_TOOLKIT_DIR%/minc-toolkit-config.sh
 umask 0002
 
+# for the defacing scripts
+export BEASTLIB=%MINC_TOOLKIT_DIR%/../share/beast-library-1.1
+export MNI_MODELS=%MINC_TOOLKIT_DIR%/../share/icbm152_model_09c

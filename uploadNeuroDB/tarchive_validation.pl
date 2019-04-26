@@ -15,6 +15,8 @@ Available options are:
 
 -profile     : name of the config file in C<../dicom-archive/.loris-mri>
 
+-uploadID    : UploadID associated to the DICOM archive to validate
+
 -reckless    : upload data to the database even if the study protocol
                is not defined or if it is violated
 
@@ -100,6 +102,7 @@ my $message     = '';
 my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
 my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
+my $upload_id;                 # uploadID associated with the tarchive to validate
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
 my $NewScanner  = 1;           # This should be the default unless you are a
@@ -114,7 +117,8 @@ my @opt_table = (
                  ["Basic options","section"],
                  ["-profile","string",1, \$profile,
                   "name of config file in ../dicom-archive/.loris_mri"],
-                 ["Advanced options","section"],
+                 ["-uploadID", "string", 1, \$upload_id, "UploadID associated to ".
+                  "the DICOM archive to validate."],
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not".
                   " defined or violated."],
@@ -259,58 +263,6 @@ $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
                     $globArchiveLocation
                 );
 
-# grep the upload_id from the tarchive's source location
-my $upload_id = NeuroDB::MRIProcessingUtility::getUploadIDUsingTarchiveSrcLoc(
-    $tarchiveInfo{SourceLocation}
-);
-
-################################################################
-############### Get the tarchive-id ############################
-################################################################
-$where = "WHERE TarchiveID=?";
-$query = "SELECT COUNT(*) FROM mri_upload $where ";
-$sth = $dbh->prepare($query);
-$sth->execute($tarchiveInfo{TarchiveID});
-my $tarchiveid_count = $sth->fetchrow_array;
-
-################################################################
-### Insert into the mri_upload table correct values ############
-### only if the $tarchive_id doesn't exist 
-################################################################
-
-if ($tarchiveid_count==0)  {
-    ############################################################	
-    ##if the scan is already inserted into the mri_upload ######
-    ###update it################################################
-    ############################################################
-    $where = "WHERE DecompressedLocation=?";
-    $query = "SELECT COUNT(*) FROM mri_upload $where ";
-    $sth = $dbh->prepare($query);
-    $sth->execute($tarchiveInfo{SourceLocation});
-    my $source_location = $sth->fetchrow_array;
-    if ($source_location !=0) {
-    	$where = "WHERE DecompressedLocation=?";
-	$query = "UPDATE mri_upload SET TarchiveID=? ";
-	$query = $query . $where;
-	my $mri_upload_update = $dbh->prepare($query);
-	$mri_upload_update->execute($tarchiveInfo{'SourceLocation'},
-				    $tarchiveInfo{TarchiveID}
-				   );
-    } else {
-       #########################################################
-       ##otherwise insert it####################################
-       #########################################################
-       $query = "INSERT INTO mri_upload (UploadedBy, ".
-                "UploadDate,TarchiveID, DecompressedLocation)" .
-                " VALUES (?,now(),?,?)";
-       my $mri_upload_inserts = $dbh->prepare($query);
-       $mri_upload_inserts->execute(
-           $User,
-           $tarchiveInfo{TarchiveID},
-           $tarchiveInfo{'SourceLocation'}
-       );
-    }
-}
 ################################################################
 #### Verify the archive using the checksum from database #######
 ################################################################
@@ -321,8 +273,7 @@ $utility->validateArchive($tarchive, \%tarchiveInfo, $upload_id);
 ### Verify PSC information using whatever field ################ 
 ### contains site string #######################################
 ################################################################
-my ($center_name, $centerID) =
-    $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
+my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
 
 ################################################################
 ################################################################
@@ -331,8 +282,8 @@ my ($center_name, $centerID) =
 ################################################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-        \%tarchiveInfo, 1, $centerID, $NewScanner, $upload_id
-                );
+    \%tarchiveInfo, 1, $centerID, $NewScanner, $upload_id
+);
 
 ################################################################
 ################################################################
@@ -340,7 +291,7 @@ my $scannerID = $utility->determineScannerID(
 ################################################################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-        $scannerID, \%tarchiveInfo, 1, $upload_id
+    $scannerID, \%tarchiveInfo, 1, $upload_id
 );
 
 ################################################################
@@ -390,11 +341,9 @@ if ( defined( &Settings::dicomFilter )) {
 ################################################################
 ##Update the IsTarchiveValidated flag in the mri_upload table ##
 ################################################################
-$where = "WHERE TarchiveID=?";
-$query = "UPDATE mri_upload SET IsTarchiveValidated='1' ";
-$query = $query . $where;
+$query = "UPDATE mri_upload SET IsTarchiveValidated='1' WHERE UploadID=?";
 my $mri_upload_update = $dbh->prepare($query);
-$mri_upload_update->execute($tarchiveInfo{TarchiveID});
+$mri_upload_update->execute($upload_id);
 
 
 exit $NeuroDB::ExitCodes::SUCCESS;

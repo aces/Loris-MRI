@@ -58,6 +58,12 @@ sub getSubjectIDs {
         $subjectID{'visitLabel'}    = NeuroDB::MRI::my_trim($3);
         $subjectID{'createVisitLabel'} = 0; 
 
+        # Note, this function will ensure that the PSCID/CandID information refers to a valid candidate
+        # and it will check that the Visit label exists in the Visit_Windows table
+        if(!NeuroDB::MRI::subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subjectID{'visitLabel'}, $dbhr)) {
+            return undef;
+        }
+
         print "PSCID is: "            . $subjectID{'PSCID'}      . 
                 "\n CandID id: "      . $subjectID{'CandID'}     . 
                 "\n visit_label is: " . $subjectID{'visitLabel'} . "\n";

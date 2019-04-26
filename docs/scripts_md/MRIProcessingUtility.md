@@ -220,6 +220,19 @@ RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
   - array of failed checks if any were failed
 
+### update\_mri\_violations\_log\_MincFile\_path($file\_ref)
+
+This function updates the `MincFile` field of the `mri_violations_log` table
+with the file path present in the files table.
+
+Note: this needs to be updated as by default the path is set to be in the `trashbin`
+directory when inserting into the `mri_violations_log` table. However, if the
+worst violation is set to 'warning', the MINC file will get inserted into the
+`files` table and moved to the `assembly` directory, therefore it needs to be
+updated in the `mri_violations_log` table.
+
+INPUTS: file handle reference to the NeuroDB::File object
+
 ### loop\_through\_protocol\_violations\_checks($scan\_type, $severity, $headers, $file)
 
 Loops through all protocol violations checks for a given severity and creates

@@ -221,14 +221,14 @@ sub IsCandidateInfoValid {
             $archived_file_path = ($tarchivePath . "/" . $archived_file_path);
         }
 
-        my $command =
-            $bin_dirPath
-            . "/uploadNeuroDB/tarchiveLoader.pl"
-            . " -globLocation -profile $this->{'profile'} $archived_file_path";
-
-        if ($this->{verbose}){
-            $command .= " -verbose";
-        }
+        my $command = sprintf(
+            "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+            quotemeta($bin_dirPath),
+            $this->{'profile'},
+            quotemeta($archived_file_path),
+            quotemeta($this->{upload_id})
+        );
+        $command .= " -verbose" if $this->{verbose};
 
         $message =
             "\nThe Scan for the uploadID "
@@ -307,7 +307,7 @@ sub IsCandidateInfoValid {
 =head3 runDicomTar()
 
 This method executes the following actions:
- - Runs C<dicomTar.pl> with C<-clobber -database -profile prod> options
+ - Runs C<dicomTar.pl> with C<-database -profile prod> options
  - Extracts the C<TarchiveID> of the DICOM archive created by C<dicomTar.pl>
  - Updates the C<mri_upload> table if C<dicomTar.pl> ran successfully
 
@@ -323,17 +323,13 @@ sub runDicomTar {
     my $tarchive_location = NeuroDB::DBI::getConfigSetting(
                             $this->{dbhr},'tarchiveLibraryDir'
                             );
-    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'MRICodePath'
-                        );
-    my $dicomtar = 
-      $bin_dirPath . "/" . "dicom-archive" . "/" . "dicomTar.pl";
-    my $command =
-        $dicomtar . " " . $this->{'uploaded_temp_folder'} 
-      . " $tarchive_location -clobber -database -profile $this->{'profile'}";
-    if ($this->{verbose}) {
-        $command .= " -verbose";
-    }
+    my $command = sprintf(
+        "dicomTar.pl %s %s -database -profile %s",
+        quotemeta($this->{'uploaded_temp_folder'}),
+        quotemeta($tarchive_location),
+        $this->{'profile'}
+    );
+    $command .= " -verbose" if $this->{verbose};
     my $output = $this->runCommandWithExitCode($command);
 
     if ( $output == 0 ) {
@@ -408,19 +404,19 @@ RETURNS: 1 on success, 0 on failure
 =cut
 
 sub runTarchiveLoader {
-    my $this               = shift;
+    my $this = shift;
     my $archived_file_path = $this->getTarchiveFileLocation();
     my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
                         $this->{dbhr},'MRICodePath'
                         );
-    my $command =
-        $bin_dirPath
-      . "/uploadNeuroDB/tarchiveLoader.pl"
-      . " -globLocation -profile $this->{'profile'} $archived_file_path";
-
-    if ($this->{verbose}){
-        $command .= " -verbose";
-    }
+    my $command = sprintf(
+        "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+        quotemeta($bin_dirPath),
+        $this->{'profile'},
+        quotemeta($archived_file_path),
+        quotemeta($this->{upload_id})
+    );
+    $command .= " -verbose" if $this->{verbose};
     my $output = $this->runCommandWithExitCode($command);
     if ( $output == 0 ) {
         return 1;

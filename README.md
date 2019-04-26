@@ -53,6 +53,13 @@ Download the pre-compiled package for your operating system.  Install required d
 
   where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
 
+For the defacing scripts, you will also need to download the pre-compiled `bic-mni-models` and `beast` data and model packages for you operation system.
+
+   ```bash
+   sudo dpkg -i bic-mni-models-<version>.deb
+   sudo dpkg -i beast-library-<version>.deb
+   ```
+
 #### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
    ```bash 
