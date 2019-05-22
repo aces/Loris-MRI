@@ -20,11 +20,10 @@ Available options are:
 
 This script creates the 3D rendering QC images on multiple MINC files.
 The list of MINC files to use to generate those 3D JPEG images are provided
-through a text file (e.g. C<list_of_files.txt> with one file path per line.
+through a text file (e.g. C<list_of_files.txt> with one file path per line).
 
 An example of what a C<list_of_files.txt> might contain for 3 files to use to
-create a 3D JPEG rendering of a scan:
-to be defaced:
+create a 3D JPEG rendering of a scan to be defaced:
  /data/project/data/assembly/123456/V01/mri/processed/MINC_deface/project_123456_V01_t1w_001_t1w-defaced_001.mnc
  /data/project/data/assembly/123456/V01/mri/processed/MINC_deface/project_123456_V01_t1w_002_t1w-defaced_001.mnc
  /data/project/data/assembly/123456/V01/mri/processed/MINC_deface/project_123456_V01_t2w_001_t2w-defaced_001.mnc
@@ -74,8 +73,7 @@ The list of MINC files to use to generate those 3D JPEG images are provided
 through a text file (e.g. C<list_of_files.txt> with one file path per line.
 
 An example of what a C<list_of_files.txt> might contain for 3 files to use to 
-create a 3D JPEG rendering of a scan:
-to be defaced:
+create a 3D JPEG rendering of a scan to be defaced:
 
  /data/project/data/assembly/123456/V01/mri/processed/MINC_deface/project_123456_V01_t1w_001_t1w-defaced_001.mnc
  /data/project/data/assembly/123456/V01/mri/processed/MINC_deface/project_123456_V01_t1w_002_t1w-defaced_001.mnc
@@ -86,7 +84,7 @@ Documentation: perldoc batch_run_pipeline_qc_face_script.pl
 HELP
 
 my $Usage = <<USAGE;
-usage: ./batch_run_pipeline_qc_deface_script.pl -profile prod  < list_of_files.txt [options]
+usage: ./batch_run_pipeline_qc_deface_script.pl -profile prod -out_basedir /PATH/FOR/JPEG < list_of_files.txt 
        $0 -help to list options
 USAGE
 

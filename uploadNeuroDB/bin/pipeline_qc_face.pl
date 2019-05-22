@@ -33,10 +33,10 @@ GetOptions(
 	   'verbose' => \$verbose,
 	   'fake'    => \$fake,
 	   'clobber' => \$clobber,
-     'stx=s'   => \$stx_xfm
-	   );
+       'stx=s'   => \$stx_xfm
+);
 
-die "Program usage: ${me} <native> <output> [--stx <xfm>]\n" if $#ARGV < 1 ;
+die "Program usage: ${me} <native> <output> [--stx <xfm>]\n" unless $#ARGV == 1 ;
 
 my ($in,$out) = @ARGV;
 my @files_to_add_to_db;
@@ -58,12 +58,6 @@ if($stx_xfm)
 
 my $geo=`identify -format "%wx%h" $tmpdir/face_2.miff`;
 chomp($geo);
-#my @args = ('convert', '-box', 'white', 
-#	       '-font', '7x13bold', 
-	       #'-fill', 'white',
-#	       '-draw', "text 2,15 \"$imagelabel\"");
-
-#do_cmd(@args,$tmp_out, $out);
 do_cmd('montage','-geometry',$geo,"$tmpdir/face_1.miff","$tmpdir/face_2.miff","$tmpdir/face_3.miff",$out);
 
 
