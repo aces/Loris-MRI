@@ -30,10 +30,10 @@ my $keep_tmp=0;
 my $stx_xfm;
 
 GetOptions(
-	   'verbose' => \$verbose,
-	   'fake'    => \$fake,
-	   'clobber' => \$clobber,
-       'stx=s'   => \$stx_xfm
+    'verbose' => \$verbose,
+    'fake'    => \$fake,
+    'clobber' => \$clobber,
+    'stx=s'   => \$stx_xfm
 );
 
 die "Program usage: ${me} <native> <output> [--stx <xfm>]\n" unless $#ARGV == 1 ;
