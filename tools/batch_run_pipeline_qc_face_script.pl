@@ -18,7 +18,7 @@ Available options are:
 
 =head1 DESCRIPTION
 
-This script runs the creation of 3D rendering QC images on multiple MINC files.
+This script creates the 3D rendering QC images on multiple MINC files.
 The list of MINC files to use to generate those 3D JPEG images are provided
 through a text file (e.g. C<list_of_files.txt> with one file path per line.
 
@@ -69,7 +69,7 @@ my $Help = <<HELP;
 Run pipeline_qc_face.pl in batch mode
 *******************************************************************************
 
-This script runs the creation of 3D rendering QC images on multiple MINC files. 
+This script creates the 3D rendering QC images on multiple MINC files. 
 The list of MINC files to use to generate those 3D JPEG images are provided 
 through a text file (e.g. C<list_of_files.txt> with one file path per line.
 
@@ -106,7 +106,7 @@ if (!$ENV{LORIS_CONFIG}) {
 }
 
 if ( !defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-    print $Help;
+    print STDERR $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
@@ -119,7 +119,7 @@ if ( !@Settings::db ) {
 }
 
 if (!defined $out_basedir || !-e $out_basedir) {
-    print $Help;
+    print STDERR $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing out_basedir.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
@@ -170,10 +170,14 @@ foreach my $file_in (@files_list) {
     my $stderr   = $stderrbase.$counter;
     my $file_out = $out_basedir . "/" . basename($file_in, ".mnc") . ".jpg";
 
-    my $command = "pipeline_qc_face.pl $file_in $file_out";
+    my $command = sprintf(
+        "pipeline_qc_face.pl %s %s",
+        quotemeta($file_in),
+        quotemeta($file_out)
+    );
 
     if ($is_qsub) {
-            open QSUB, " | qsub -V -S /bin/sh -e $stderr -o $stdout -N process_qc_deface_${counter}";
+        open QSUB, " | qsub -V -S /bin/sh -e " . quotemeta($stderr) . " -o " . quotemeta($stdout) . " -N process_qc_deface_${counter}";
         print QSUB $command;
         close QSUB;
     } else {
