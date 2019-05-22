@@ -14,13 +14,12 @@ Available options are:
 
 # DESCRIPTION
 
-This script runs the creation of 3D rendering QC images on multiple MINC files.
+This script creates the 3D rendering QC images on multiple MINC files.
 The list of MINC files to use to generate those 3D JPEG images are provided
-through a text file (e.g. `list_of_files.txt` with one file path per line.
+through a text file (e.g. `list_of_files.txt` with one file path per line).
 
 An example of what a `list_of_files.txt` might contain for 3 files to use to
-create a 3D JPEG rendering of a scan:
-to be defaced:
+create a 3D JPEG rendering of a scan to be defaced:
  /data/project/data/assembly/123456/V01/mri/processed/MINC\_deface/project\_123456\_V01\_t1w\_001\_t1w-defaced\_001.mnc
  /data/project/data/assembly/123456/V01/mri/processed/MINC\_deface/project\_123456\_V01\_t1w\_002\_t1w-defaced\_001.mnc
  /data/project/data/assembly/123456/V01/mri/processed/MINC\_deface/project\_123456\_V01\_t2w\_001\_t2w-defaced\_001.mnc
