@@ -983,9 +983,11 @@ sub update_mri_acquisition_dates {
                 . " FROM session AS s "
                 . " LEFT OUTER JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)"
                 . " WHERE s.ID = ? AND s.Active = 'Y'";
+    my @bind_array = ($sessionID);
 
     if ($acq_date) {
         $query .= " AND (m.AcquisitionDate > ? OR m.AcquisitionDate IS NULL)";
+        push @bind_array, $acq_date;
     } else {
         $query .= " AND m.AcquisitionDate IS NULL";
     }
@@ -993,7 +995,7 @@ sub update_mri_acquisition_dates {
     print "$query\n" if ($this->{debug});
 
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute($sessionID, $acq_date);
+    $sth->execute(@bind_array);
 
     ################################################################################
     # if we found a session, it needs updating or inserting, so we use replace into
