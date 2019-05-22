@@ -115,7 +115,7 @@ RETURNS: textual name of scan type from the `mri_scan_type` table
 
 ### insert\_violated\_scans($dbhr, $series\_desc, $minc\_location, $patient\_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID)
 
-Inserts scans that do not correspond to any of the defined protocol from the 
+Inserts scans that do not correspond to any of the defined protocol from the
 `mri_protocol` table into the `mri_protocol_violated_scans` table of the
 database.
 
@@ -139,6 +139,8 @@ INPUTS:
   - $zspace         : `z-space` of the image
   - $time           : time dimension of the scan
   - $seriesUID      : `SeriesUID` of the scan
+  - $tarchiveID     : `TarchiveID` of the DICOM archive from which this file is derived
+  - $image\_type     : the `image_type` header value of the image
 
 ### scan\_type\_id\_to\_text($typeID, $db)
 
@@ -246,9 +248,9 @@ RETURNS: `CandID` (int)
 
 ### getPSC($patientName, $dbhr, $db)
 
-Looks for the site alias using the `session` table `CenterID` as 
+Looks for the site alias using the `session` table `CenterID` as
 a first resource, for the cases where it is created using the front-end,
-otherwise, find the site alias in whatever field (usually `patient_name` 
+otherwise, find the site alias in whatever field (usually `patient_name`
 or `patient_id`) is provided, and return the `MRI_alias` and `CenterID`.
 
 INPUTS:
@@ -386,6 +388,15 @@ INPUT: array with full path to the DICOM files
 RETURNS:
   - %isDicomImage: hash with file path as keys and true or false as values (true
                    if the file is a DICOM image file, false otherwise)
+
+### get\_trashbin\_file\_rel\_path($file)
+
+Determines and returns the relative path of a file moved to trashbin at the end of
+the insertion pipeline.
+
+INPUT: path to a given file
+
+RETURNS: the relative path of the file moved to the trashbin directory
 
 # TO DO
 

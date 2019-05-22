@@ -420,6 +420,7 @@ sub identify_scan_db {
     my $slice_thickness = ${fileref}->getParameter('slice_thickness');
     my $seriesUID = ${fileref}->getParameter('series_instance_uid');
     my $series_description = ${fileref}->getParameter('series_description');
+    my $image_type = ${fileref}->getParameter('acquisition:image_type');
 
     # get parameters specific to MRIs
     my ($tr, $te, $ti, $time);
@@ -535,6 +536,7 @@ sub identify_scan_db {
               && &in_range($zstep,           "$zstep_min-$zstep_max"            )
               && &in_range($time,            "$time_min-$time_max"              )
               && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
+              && (!$rowref->{'image_type'} || $image_type =~ /\Q$rowref->{'image_type'}\E/i)
             ) {
                     return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
@@ -547,7 +549,7 @@ sub identify_scan_db {
         $candid, $pscid,              $tr,              $te,
         $ti,     $slice_thickness,    $xstep,           $ystep,
         $zstep,  $xspace,             $yspace,          $zspace,
-        $time,   $seriesUID,          $tarchiveID
+        $time,   $seriesUID,          $tarchiveID,      $image_type
     );
 
     return 'unknown';
@@ -581,6 +583,8 @@ INPUTS:
   - $zspace         : C<z-space> of the image
   - $time           : time dimension of the scan
   - $seriesUID      : C<SeriesUID> of the scan
+  - $tarchiveID     : C<TarchiveID> of the DICOM archive from which this file is derived
+  - $image_type     : the C<image_type> header value of the image
 
 =cut
 
@@ -590,7 +594,7 @@ sub insert_violated_scans {
         $candid, $pscid,              $tr,            $te,
         $ti,     $slice_thickness,    $xstep,         $ystep,
         $zstep,  $xspace,             $yspace,        $zspace,
-        $time,   $seriesUID,          $tarchiveID) = @_;
+        $time,   $seriesUID,          $tarchiveID,    $image_type) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
@@ -602,7 +606,7 @@ sub insert_violated_scans {
     series_description, minc_location, PatientName,           TR_range,
     TE_range,           TI_range,      slice_thickness_range, xspace_range,
     yspace_range,       zspace_range,  xstep_range,           ystep_range,
-    zstep_range,        time_range,    SeriesUID
+    zstep_range,        time_range,    SeriesUID,             image_type
   ) VALUES (
     ?, ?, ?, now(),
     ?, ?, ?, ?,
@@ -618,7 +622,7 @@ QUERY
         $file_rel_path, $patient_name,    $tr,         $te,
         $ti,            $slice_thickness, $xspace,     $yspace,
         $zspace,        $xstep,           $ystep,      $zstep,
-        $time,          $seriesUID
+        $time,          $seriesUID,       $image_type
     );
 
 }
