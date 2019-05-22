@@ -121,10 +121,10 @@ See also: [MRI-PR#141](https://github.com/aces/Loris-MRI/pull/141) for more
 #### Rerunning the Imaging pipeline
 
 - If one of the final steps such as the MINC conversion is failing, you may
-    wish to just re-run the `tarchiveLoader` script.
+    wish to just re-run the `tarchiveLoader.pl` script.
     
 > When the need arises to re-load imaging data in LORIS, it is generally not
-   sufficient to just re-run the MINC/NIfTI loading step (`tarchiveLoader` or
+   sufficient to just re-run the MINC/NIfTI loading step (`tarchiveLoader.pl` or
     `batch_uploads_tarchive`). The pipeline steps must be re-run starting
     with `dicomTar.pl` (see section 5.4 of
    [Pipeline Triggering Options documentation](05-PipelineLaunchOptions.md)).

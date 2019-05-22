@@ -62,7 +62,7 @@ RETURNS:
 
 Function that will determine the DICOM archive basename from the `ArchiveLocation`
 stored in the database. It will, among other things, get rid of the `_digit part`
-that was inserted in the past by the `tarchiveLoader`.
+that was inserted in the past by the `tarchiveLoader.pl`.
 
 INPUT: `ArchiveLocation` that was stored in the `tarchive` table of the database.
 

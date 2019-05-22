@@ -296,7 +296,7 @@ sub selectTarchives {
 
 Function that will determine the DICOM archive basename from the C<ArchiveLocation>
 stored in the database. It will, among other things, get rid of the C<_digit part>
-that was inserted in the past by the C<tarchiveLoader>.
+that was inserted in the past by the C<tarchiveLoader.pl>.
 
 INPUT: C<ArchiveLocation> that was stored in the C<tarchive> table of the database.
 

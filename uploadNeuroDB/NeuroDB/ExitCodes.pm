@@ -66,7 +66,7 @@ Below is a list of the possible exit codes:
 10. Exit codes from C<uploadNeuroDB/minc_insertion.pl> (exit codes from 180
 to 189)
 
-11. Exit codes from C<uploadNeuroDB/tarchiveLoader> (exit codes from 190 to 199)
+11. Exit codes from C<uploadNeuroDB/tarchiveLoader.pl> (exit codes from 190 to 199)
 
 12. Exit codes from former scripts that have been removed (exit codes from 200
 to 210)
@@ -179,7 +179,7 @@ our $INVALID_TARCHIVE   = 180; # if tarchive validation is not set to 1 in the
 our $CANDIDATE_MISMATCH = 181; # if candidate PSCID and CandID do not match
 
 
-## -- FROM uploadNeuroDB/tarchiveLoader (exit codes from 190 to 199)
+## -- FROM uploadNeuroDB/tarchiveLoader.pl (exit codes from 190 to 199)
 
 # file related failures
 our $NO_VALID_MINC_CREATED = 190; # if no valid MINC file was created
