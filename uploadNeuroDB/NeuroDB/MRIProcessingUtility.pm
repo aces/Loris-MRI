@@ -1353,7 +1353,7 @@ sub get_mincs {
         next unless $file =~ /\.mnc(\.gz)?$/;
 
         my $cmd = sprintf(
-            'Mincinfo_wrapper -quiet -tab -file -attvalue %s %s',
+            'Mincinfo_wrapper.pl -quiet -tab -file -attvalue %s %s',
             'acquisition:acquisition_id',
             quotemeta("$this->{TmpDir}/$file")
         );
