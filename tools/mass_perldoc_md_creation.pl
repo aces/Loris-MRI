@@ -66,6 +66,7 @@ my @script_list = (
     'dicom-archive/updateMRI_Upload.pl',
     'tools/BackPopulateSNRAndAcquisitionOrder.pl',
     'tools/batch_run_defacing_script.pl',
+    'tools/batch_run_pipeline_qc_face_script.pl',
     'tools/create_nifti_bval_bvec.pl',
     'tools/cleanupTarchives.pl',
     'tools/cleanup_paths_of_violation_tables.pl',
