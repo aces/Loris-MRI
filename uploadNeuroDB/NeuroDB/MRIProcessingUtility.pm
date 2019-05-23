@@ -972,7 +972,7 @@ sub update_mri_acquisition_dates {
     # set acquisition date to undef if the date is '0000-00-00', '' or 0
     #####################################################################
     if ( defined $acq_date
-            && ($acq_date eq '0000-00-00' || $acq_date eq '' || $acq_date == 0) ) {
+            && ($acq_date eq '0000-00-00' || $acq_date eq '' || $acq_date =~ /^0$/) ) {
         $acq_date = undef;
     }
 
