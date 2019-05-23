@@ -3,7 +3,7 @@ source %MINC_TOOLKIT_DIR%/minc-toolkit-config.sh
 umask 0002
 
 # export PATH, PERL5LIB, TMPDIR and LORIS_CONFIG variables
-export PATH=/data/%PROJECT%/bin/mri:/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/uploadNeuroDB/bin:/data/%PROJECT%/bin/mri/dicom-archive:/data/%PROJECT%/bin/mri/python:/data/%PROJECT%/bin/mri/python/react-series-data-viewer:%MINC_TOOLKIT_DIR%/bin:$PATH
+export PATH=/data/%PROJECT%/bin/mri:/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/uploadNeuroDB/bin:/data/%PROJECT%/bin/mri/dicom-archive:/data/%PROJECT%/bin/mri/python:/data/%PROJECT%/bin/mri/tools:/data/%PROJECT%/bin/mri/python/react-series-data-viewer:%MINC_TOOLKIT_DIR%/bin:$PATH
 export PERL5LIB=/data/%PROJECT%/bin/mri/uploadNeuroDB:/data/%PROJECT%/bin/mri/dicom-archive:$PERL5LIB
 export TMPDIR=/tmp
 export LORIS_CONFIG=/data/%PROJECT%/bin/mri/dicom-archive
