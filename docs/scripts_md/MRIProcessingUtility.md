@@ -459,13 +459,6 @@ INPUTS:
   - $verb      : 'N' for few main messages,
                  'Y' for more messages (developers)
 
-### isValidMRIProtocol()
-
-Ensures no column in the `mri_protocol` nor the `mri_protocol_checks` 
-tables has comma-separated values.
-
-RETURNS: 1 on success, 0 on failure
-
 ### is\_file\_unique($file, $upload\_id)
 
 Queries the `files` and `parameter_file` tables to make sure that no imaging
@@ -487,9 +480,6 @@ Document the following functions:
   - registerProgs(@toregister)
 
 Remove the function get\_acqusitions($study\_dir, \\@acquisitions) that is not used
-
-Remove the function isValidMRIProtocol() once the database schema is configured 
-to prevent users from entering non-conform entries in the `mri_protocol` table
 
 Fix comments written as #fixme in the code
 
