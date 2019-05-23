@@ -168,11 +168,15 @@ Determines whether numerical value falls within the range described by range
 string. Range string is a single range unit which follows the syntax
 "X" or "X-Y".
 
+Note that if `$range_string`="-", it means that the value in the database are
+NULL for both the MIN and MAX columns, therefore we do not want to restrict the
+range for this field and the function will return 1.
+
 INPUTS:
   - $value       : numerical value to evaluate
   - $range\_string: the range to use
 
-RETURNS: 1 if the value is in range, 0 otherwise
+RETURNS: 1 if the value is in range or the range is undef, 0 otherwise
 
 ### floats\_are\_equal($f1, $f2, $nb\_decimals)
 
