@@ -5,7 +5,7 @@
 
 =head1 NAME
 
-tarchiveLoader -- this script performs the following:
+tarchiveLoader.pl -- this script performs the following:
 
 - validation of the DICOM archive
 
@@ -17,7 +17,7 @@ optionally, C<mri_protocol_checks> tables.
 
 =head1 SYNOPSIS
 
-perl uploadNeuroDB/tarchiveLoader </path/to/DICOM-tarchive> C<[options]>
+perl uploadNeuroDB/tarchiveLoader.pl </path/to/DICOM-tarchive> C<[options]>
 
 
 Available options are:
@@ -192,7 +192,7 @@ performs a lot of magic on the acquisitions within it.
 - file relocation (to the MRI repository)
 - neuroDB mri database registration
 
-Documentation: perldoc tarchiveLoader
+Documentation: perldoc tarchiveLoader.pl
 
 HELP
 
@@ -493,7 +493,7 @@ if ( !($isMRIProtocolValid) ) {
                   . "and mri_protocol_checks tables are no longer supported. "
                   . "Please modify your tables accordingly. Exiting now. \n";
     $notifier->spool('tarchive loader', $message, 0,
-		    'tarchiveLoader', $upload_id, 'Y',
+		    'tarchiveLoader.pl', $upload_id, 'Y',
 		    $notify_notsummary);
     print STDERR $message;
     exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;

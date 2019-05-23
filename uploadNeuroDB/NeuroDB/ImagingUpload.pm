@@ -222,7 +222,7 @@ sub IsCandidateInfoValid {
         }
 
         my $command = sprintf(
-            "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+            "%s/uploadNeuroDB/tarchiveLoader.pl -globLocation -profile %s %s -uploadID %s",
             quotemeta($bin_dirPath),
             $this->{'profile'},
             quotemeta($archived_file_path),
@@ -395,8 +395,8 @@ sub getTarchiveFileLocation {
 
 =head3 runTarchiveLoader()
 
-This methods will call C<tarchiveLoader> with the C<-clobber -profile prod>
-options and update the C<mri_upload> table accordingly if C<tarchiveLoader> ran
+This methods will call C<tarchiveLoader.pl> with the C<-clobber -profile prod>
+options and update the C<mri_upload> table accordingly if C<tarchiveLoader.pl> ran
 successfully.
 
 RETURNS: 1 on success, 0 on failure
@@ -410,7 +410,7 @@ sub runTarchiveLoader {
                         $this->{dbhr},'MRICodePath'
                         );
     my $command = sprintf(
-        "%s/uploadNeuroDB/tarchiveLoader -globLocation -profile %s %s -uploadID %s",
+        "%s/uploadNeuroDB/tarchiveLoader.pl -globLocation -profile %s %s -uploadID %s",
         quotemeta($bin_dirPath),
         $this->{'profile'},
         quotemeta($archived_file_path),

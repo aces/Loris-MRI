@@ -1,7 +1,7 @@
 # NAME
 
 batch\_uploads\_tarchive - upload a batch of DICOM archives using script
-`tarchiveLoader`
+`tarchiveLoader.pl`
 
 # SYNOPSIS
 
@@ -10,7 +10,7 @@ batch\_uploads\_tarchive - upload a batch of DICOM archives using script
 # DESCRIPTION
 
 This script uploads a list of DICOM archives to the database by calling script
-`tarchiveLoader` on each file in succession. The list of files to process is read 
+`tarchiveLoader.pl` on each file in succession. The list of files to process is read 
 from `STDIN`, one file name per line. Each file name is assumed to be a path
 relative to `tarchiveLibraryDir` (see below).
 
@@ -26,7 +26,7 @@ command (see below) will go, namely in
   first file having index 1).
 - **tarchiveLibraryDir**: directory that contains the DICOM archives to process.
 The path of the files listed on `STDIN` should be relative to this directory.
-- **is\_qsub**: whether the output (STDOUT) of each `tarchiveLoader` command
+- **is\_qsub**: whether the output (STDOUT) of each `tarchiveLoader.pl` command
 should be processed by the `qsub` Unix command (allows batch execution of jobs
 on the Sun Grid Engine, if available). If set, then the `qsub` command will
 send its `STDOUT` and `STDERR` according to the value of `dataDirBasepath`

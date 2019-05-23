@@ -61,7 +61,7 @@ RETURNS: 1 on success, 0 on failure
 ### runDicomTar()
 
 This method executes the following actions:
- - Runs `dicomTar.pl` with `-clobber -database -profile prod` options
+ - Runs `dicomTar.pl` with `-database -profile prod` options
  - Extracts the `TarchiveID` of the DICOM archive created by `dicomTar.pl`
  - Updates the `mri_upload` table if `dicomTar.pl` ran successfully
 
@@ -76,8 +76,8 @@ RETURNS: the archive location
 
 ### runTarchiveLoader()
 
-This methods will call `tarchiveLoader` with the `-clobber -profile prod`
-options and update the `mri_upload` table accordingly if `tarchiveLoader` ran
+This methods will call `tarchiveLoader.pl` with the `-clobber -profile prod`
+options and update the `mri_upload` table accordingly if `tarchiveLoader.pl` ran
 successfully.
 
 RETURNS: 1 on success, 0 on failure

@@ -272,7 +272,7 @@ spool($message,'N', $notify_notsummary);
 $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
-    $message = "\nThe tarchiveLoader insertion script has failed.\n";
+    $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
     spool($message,'Y', $notify_notsummary); 
     print STDERR $message;
     exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;

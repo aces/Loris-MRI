@@ -101,7 +101,7 @@ my @script_list = (
     'uploadNeuroDB/minc_deletion.pl',
     'uploadNeuroDB/minc_insertion.pl',
     'uploadNeuroDB/register_processed_data.pl',
-    'uploadNeuroDB/tarchiveLoader',
+    'uploadNeuroDB/tarchiveLoader.pl',
     'uploadNeuroDB/tarchive_validation.pl'
 );
 

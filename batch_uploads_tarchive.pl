@@ -5,7 +5,7 @@
 =head1 NAME
 
 batch_uploads_tarchive - upload a batch of DICOM archives using script
-C<tarchiveLoader>
+C<tarchiveLoader.pl>
 
 =head1 SYNOPSIS
 
@@ -14,7 +14,7 @@ C<tarchiveLoader>
 =head1 DESCRIPTION
 
 This script uploads a list of DICOM archives to the database by calling script
-C<tarchiveLoader> on each file in succession. The list of files to process is read 
+C<tarchiveLoader.pl> on each file in succession. The list of files to process is read 
 from C<STDIN>, one file name per line. Each file name is assumed to be a path
 relative to C<tarchiveLibraryDir> (see below).
 
@@ -37,7 +37,7 @@ B<tarchiveLibraryDir>: directory that contains the DICOM archives to process.
 The path of the files listed on C<STDIN> should be relative to this directory.
   
 =item *
-B<is_qsub>: whether the output (STDOUT) of each C<tarchiveLoader> command
+B<is_qsub>: whether the output (STDOUT) of each C<tarchiveLoader.pl> command
 should be processed by the C<qsub> Unix command (allows batch execution of jobs
 on the Sun Grid Engine, if available). If set, then the C<qsub> command will
 send its C<STDOUT> and C<STDERR> according to the value of C<dataDirBasepath>
@@ -104,10 +104,10 @@ my @opt_table = (
 my $Help = <<HELP;
 
 ******************************************************************************
-Run tarchiveLoader in batch mode
+Run tarchiveLoader.pl in batch mode
 ******************************************************************************
 
-This script runs tarchiveLoader insertion on multiple DICOM archives. The list
+This script runs tarchiveLoader.pl insertion on multiple DICOM archives. The list
 of DICOM archives are provided through a text file (e.g. tarchive_list.txt)
 with one DICOM archive per line. DICOM archives are specified as the relative
 path to the DICOM archive from the tarchive directory
@@ -218,7 +218,7 @@ foreach my $input (@inputs)
 
     my $tarchive_path = "$tarchiveLibraryDir/$tarchive";
     my $command = sprintf(
-        "tarchiveLoader -globLocation -profile %s -uploadID %s %s",
+        "tarchiveLoader.pl -globLocation -profile %s -uploadID %s %s",
         $profile,
         quotemeta($upload_id),
         quotemeta($tarchive_path)
