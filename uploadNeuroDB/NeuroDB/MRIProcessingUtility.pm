@@ -1889,7 +1889,7 @@ QUERY
             my $SNR_old = $file->getParameter('SNR');
             if ($SNR ne '') {
                 $file->setParameter('SNR', $SNR);
-                if (($SNR_old ne '') && ($SNR_old ne $SNR)) {
+                if (defined($SNR_old) && $SNR_old ne '' && $SNR_old ne $SNR) {
                     $message = "The SNR value was updated from $SNR_old to $SNR.\n";
                     $this->{LOG}->print($message);
                     $this->spool($message, 'N', $upload_id, $notify_detailed);
