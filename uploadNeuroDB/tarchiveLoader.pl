@@ -482,24 +482,6 @@ if ($mcount < 1) {
 }
 
 ################################################################
-################################################################
-# Make sure the mri_protocol table no longer has comma-separated
-########################## values ##############################
-################################################################
-my ($isMRIProtocolValid) = $utility->isValidMRIProtocol();
-
-if ( !($isMRIProtocolValid) ) {
-    my $message = "\nComma separated ranges or values in the mri_protocol "
-                  . "and mri_protocol_checks tables are no longer supported. "
-                  . "Please modify your tables accordingly. Exiting now. \n";
-    $notifier->spool('tarchive loader', $message, 0,
-		    'tarchiveLoader.pl', $upload_id, 'Y',
-		    $notify_notsummary);
-    print STDERR $message;
-    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
-}
-
-################################################################
 #################### LOOP through MINCs ########################
 # At this step we actually have (multiple) MINC files so we loop
 # a valid study has at least one file that can be uploaded #####
