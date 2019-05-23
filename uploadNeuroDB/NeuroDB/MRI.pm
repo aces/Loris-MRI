@@ -1018,7 +1018,7 @@ sub findScannerID {
     return 0 if !$register_new;
     
     # only register new scanners when told to do so !!!
-    $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr) unless $scanner_id;
+    my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db);
 
     return $scanner_id;
 }
