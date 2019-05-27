@@ -711,10 +711,6 @@ Determines whether numerical value falls within the range described by range
 string. Range string is a single range unit which follows the syntax
 "X" or "X-Y".
 
-Note that if C<$value> is not defined, it means the value is not defined in the
-header, therefore we do not want to restrict on that header and the function
-returns 1.
-
 Note that if C<$range_string>="-", it means that the value in the database are
 NULL for both the MIN and MAX columns, therefore we do not want to restrict the
 range for this field and the function will return 1.
@@ -735,8 +731,6 @@ sub in_range
     # return 1 if the range_string = "-" as it means that max & min values were undef
     # when calling the in_range function and we should not restrict on that field
     return 1 if $range_string eq "-";
-    # return 1 if the value is empty as it means we should not restrict on that field
-    return 1 unless defined($value);
 
     # grep the min and max values of the range
     my @range = split(/-/, $range_string);
