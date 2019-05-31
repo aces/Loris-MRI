@@ -9,55 +9,55 @@ delete_mri_upload.pl -- Delete everything that was produced (or part of what was
                         
 =head1 SYNOPSIS
 
-perl delete_mri_upload.pl [-profile file] [-ignore] [-backup basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
+perl delete_mri_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
             [-type list_of_scan_types] [-defaced] [-nosqlbk] [-nofilesbk]
 
 Available options are:
 
--profile           : name of the config file in C<../dicom-archive/.loris_mri> (defaults to C<prod>).
+-profile            : name of the config file in C<../dicom-archive/.loris_mri> (defaults to C<prod>).
 
--ignore            : ignore files whose paths exist in the database but do not exist on the file system.
-                     Default is to abort if such a file is found, irrespective of whether a backup file will
-                     be created by the script (see C<-nofilesbk> and C<-nosqlbk>). If this option is used, a 
-                     warning is issued and program execution continues.
+-ignore             : ignore files whose paths exist in the database but do not exist on the file system.
+                      Default is to abort if such a file is found, irrespective of whether a backup file will
+                      be created by the script (see C<-nofilesbk> and C<-nosqlbk>). If this option is used, a 
+                      warning is issued and program execution continues.
                
--nofilesbk         : when creating the backup file for the deleted upload(s), do not backup the files produced by
-                     the imaging pipeline (default is to backup these files).
+-nofilesbk          : when creating the backup file for the deleted upload(s), do not backup the files produced by
+                      the imaging pipeline (default is to backup these files).
                
--backup <basename> : specify the base name of the backup file, which by default contains a copy of everything that the
-                     script will delete, both on the file system and in the database (but see C<-nofilesbk> and
-                     C<-nosqlbk>). The extension C<.tar.gz> will be added to this base name to build the name of the final
-                     backup file. If a file with this resulting name already exists, it will be overwritten. Note that 
-                     C<basename> can be an absolute path or a path relative to the current directory. A backup file is always
-                     created unless options C<-nofilesbk> and C<-nosqlbk> are both used. By default, the backup file name is
-                     C<imaging_upload_backup.tar.gz> and is written in the current directory. Option C<-backup> cannot be 
-                     used if C<-nofilesbk> and C<-nosqlbk> are also used.
+-backup_path <path> : specify the path of the backup file, which by default contains a copy of everything that the
+                      script will delete, both on the file system and in the database (but see C<-nofilesbk> and
+                      C<-nosqlbk>). The extension C<.tar.gz> will be added to this base name to build the name of the final
+                      backup file. If a file with this resulting name already exists, an error message is shown and the script
+                      will abort. Note that C<path> can be an absolute path or a path relative to the current directory. A 
+                      backup file is always created unless options C<-nofilesbk> and C<-nosqlbk> are both used. By default, the
+                      backup file name is C<imaging_upload_backup.tar.gz> and is written in the current directory. Option 
+                      C<-backup_path> cannot be used if C<-nofilesbk> and C<-nosqlbk> are also used.
                
--uploadID          : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. The program will 
-                     abort if the list contains an upload ID that does not exist. Also, all upload IDs must
-                     have the same C<tarchive> ID (which can be C<NULL>).
+-uploadID           : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. The program will 
+                      abort if the list contains an upload ID that does not exist. Also, all upload IDs must
+                      have the same C<tarchive> ID (which can be C<NULL>).
                
--protocol          : delete the imaging protocol(s) in table C<mri_processing_protocol> associated to either the
-                     upload(s) specified via the C<-uploadID> option or any file that was produced using this (these)
-                     upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
-                     This option must be used if there is at least one record in C<mri_processing_protocol> that is tied
-                     only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
-                     do not have a protocol associated to them, the switch is ignored if used.
+-protocol           : delete the imaging protocol(s) in table C<mri_processing_protocol> associated to either the
+                      upload(s) specified via the C<-uploadID> option or any file that was produced using this (these)
+                      upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
+                      This option must be used if there is at least one record in C<mri_processing_protocol> that is tied
+                      only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
+                      do not have a protocol associated to them, the switch is ignored if used.
                
--form              : delete the entries in C<mri_parameter_form> associated to the upload(s) passed on
-                     the command line, if any (default is NOT to delete them).
+-form               : delete the entries in C<mri_parameter_form> associated to the upload(s) passed on
+                      the command line, if any (default is NOT to delete them).
                
--type              : comma-separated list of scan type names to delete. All the names must exist in table C<mri_scan_type> or
-                     the script will issue an error. This option cannot be used in conjunction with C<-defaced>.
+-type               : comma-separated list of scan type names to delete. All the names must exist in table C<mri_scan_type> or
+                      the script will issue an error. This option cannot be used in conjunction with C<-defaced>.
                
--defaced           : fetch the scan types listed in config setting C<modalities_to_delete> and perform a deletion of these scan
-                     types as if their names were used with option C<-type>. Once all deletions are done, set the C<SourceFileID>
-                     and C<TarchiveSource> of all the defaced files in table <files> to C<NULL> and to the tarchive ID of the 
-                     upload(s) whose arguments were passed to C<-uploadID>, respectively.
-               
--nosqlbk           : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
-                     the database to the state it had before the script was invoked. Adding this file, wich will be named
-                     C<imaging_upload_restore.sql>, to the backup file is the default behaviour.
+-defaced            : fetch the scan types listed in config setting C<modalities_to_delete> and perform a deletion of these scan
+                      types as if their names were used with option C<-type>. Once all deletions are done, set the C<SourceFileID>
+                      and C<TarchiveSource> of all the defaced files in table <files> to C<NULL> and to the tarchive ID of the 
+                      upload(s) whose arguments were passed to C<-uploadID>, respectively.
+                
+-nosqlbk            : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
+                      the database to the state it had before the script was invoked. Adding this file, wich will be named
+                      C<imaging_upload_restore.sql>, to the backup file is the default behaviour.
                
 
 =head1 DESCRIPTION
@@ -99,7 +99,7 @@ error message and exits, leaving the database untouched. To avoid this check, us
 record is deleted, the file it refers to on the file system is also deleted. A backup will be created by 
 C<delete_imaging_upload.pl> of all the files that were deleted during execution. Option C<-nofilesbk> can be used to 
 prevent this. If created, the backup file will be named C<imaging_upload_backup.tar.gz>. This name can be changed with
-option C<-backup>. Note that the file paths inside this backup archive are absolute. To restore the files in the archive,
+option C<-backup_path>. Note that the file paths inside this backup archive are absolute. To restore the files in the archive,
 one must use C<tar> with option C<--absolute-names>.
 
 The script will also create a file that contains a backup of all the information that was deleted or modified from the 
@@ -155,8 +155,8 @@ use constant DEFAULT_DELETE_MRI_PARAMETER_FORM => 0;
 use constant DEFAULT_KEEP_DEFACED              => 0;
 
 # Name that the SQL file will have inside the tar.gz backup archive
-use constant SQL_RESTORE_NAME                  => 'imaging_upload_restore.sql';
-use constant DEFAULT_BACKUP_BASENAME           => 'imaging_upload_backup';
+use constant SQL_RESTORE_NAME              => 'imaging_upload_restore.sql';
+use constant DEFAULT_BACKUP_PATH           => 'imaging_upload_backup';
 
 use constant PIC_SUBDIR                => 'pic';
 
@@ -187,34 +187,34 @@ my %options = (
     DELETE_PROTOCOLS          => DEFAULT_DELETE_PROTOCOLS,
     DELETE_MRI_PARAMETER_FORM => DEFAULT_DELETE_MRI_PARAMETER_FORM,
     KEEP_DEFACED              => DEFAULT_KEEP_DEFACED,
-    BACKUP_BASENAME           => '',
+    BACKUP_PATH               => '',
     UPLOAD_ID                 => ''
 );
 
 my $scanTypeList           = undef;
 
 my @opt_table = (
-    ['-profile'  , 'string'       , 1, \$options{'PROFILE'}, 
+    ['-profile'    , 'string'       , 1, \$options{'PROFILE'}, 
      'Name of config file in ../dicom-archive/.loris_mri (defaults to "prod")'],
-    ['-backup'   , 'string'       , 1, \$options{'BACKUP_BASENAME'}, 
-     'Basename of the backup file (defaults to "imaging_upload_backup")'],
-    ['-ignore'   , 'const'        , 0, \$options{'DIE_ON_FILE_ERROR'}, 
+    ['-backup_path', 'string'       , 1, \$options{'BACKUP_PATH'}, 
+     'Path of the backup file (defaults to "imaging_upload_backup")'],
+    ['-ignore'     , 'const'        , 0, \$options{'DIE_ON_FILE_ERROR'}, 
      'Ignore files that exist in the database but not on the file system.'
      . ' Default is to abort if such a file is found.'],
-    ['-nofilesbk', 'const'        , 1, \$options{'NO_FILES_BK'},
+    ['-nofilesbk'  , 'const'        , 1, \$options{'NO_FILES_BK'},
      'Do not backup the files produced by the MRI pipeline. Default is to backup all files '
      . 'to be deleted'],
-    ['-uploadID' , 'string'       , 1, \$options{'UPLOAD_ID'},
+    ['-uploadID'   , 'string'       , 1, \$options{'UPLOAD_ID'},
      'Comma-separated list of upload IDs to delete. All the uploads must be associated to the same archive.'],
-    ['-protocol' , 'const'        , 1, \$options{'DELETE_PROTOCOLS'},
+    ['-protocol'   , 'const'        , 1, \$options{'DELETE_PROTOCOLS'},
      'Delete the entries in mri_processing_protocols tied to the upload(s) specified via -uploadID.'],
-    ['-form'     , 'const'        , 1, \$options{'DELETE_MRI_PARAMETER_FORM'},
+    ['-form'       , 'const'        , 1, \$options{'DELETE_MRI_PARAMETER_FORM'},
      'Delete the entries in mri_parameter_form tied to the upload(s) specified via -uploadID.'],
-    ['-type'     , 'string'       , 1, \$scanTypeList, 'Comma-separated list of scan types to delete.'],
-    ['-nosqlbk'  , 'const'        , 1, \$options{'NO_SQL_BK'},
+    ['-type'       , 'string'       , 1, \$scanTypeList, 'Comma-separated list of scan types to delete.'],
+    ['-nosqlbk'    , 'const'        , 1, \$options{'NO_SQL_BK'},
      'Do not backup the information deleted from the database with mysqldump. '
       . 'Default is to backup all records deleted in a file named backup.sql'],
-    ['-defaced'  , 'const'        , 1, \$options{'KEEP_DEFACED'},
+    ['-defaced'    , 'const'        , 1, \$options{'KEEP_DEFACED'},
      'Replace each MINC files whose scan types are in the list of types to deface with its'
       . ' corresponding defaced file.']
 );
@@ -223,7 +223,7 @@ my $Help = <<HELP;
 HELP
 
 my $usage = <<USAGE;
-Usage: $0 [-profile file] [-ignore] [-backup basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
+Usage: $0 [-profile file] [-ignore] [-backup_path path] [-protocol] [-form] [-uploadID list_of_uploadIDs]
             [-type list_of_scan_types] [-defaced] [-nosqlbk] [-nofilesbk]
 USAGE
 
@@ -255,13 +255,18 @@ if($options{'UPLOAD_ID'} eq '') {
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
-if($options{'BACKUP_BASENAME'} ne '' && $options{'NO_FILES_BK'} && $options{'NO_SQL_BK'}) {
-    print STDERR "Option -backup cannot be used if -nofilesbk and -nosqlbk are also used. Aborting.\n";
+if($options{'BACKUP_PATH'} ne '' && $options{'NO_FILES_BK'} && $options{'NO_SQL_BK'}) {
+    print STDERR "Option -backup_path cannot be used if -nofilesbk and -nosqlbk are also used. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 unless($options{'NO_FILES_BK'} && $options{'NO_SQL_BK'}) {
-    $options{'BACKUP_BASENAME'} = DEFAULT_BACKUP_BASENAME if $options{'BACKUP_BASENAME'} eq '';
+    $options{'BACKUP_PATH'} = DEFAULT_BACKUP_PATH if $options{'BACKUP_PATH'} eq '';
+}
+
+if($options{'BACKUP_PATH'} ne '' && -e "$options{'BACKUP_PATH'}.tar.gz") {
+    print STDERR "Invalid argument to -backup_path: file $options{'BACKUP_PATH'}.tar.gz already exists. Aborting.\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 # Split the comma-separated string into a list of numbers
@@ -432,7 +437,7 @@ $nbFilesInBackup += &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDelete,
 #=======================================================#
 &deleteUploadsOnFileSystem(\%files, \@scanTypesToDelete, $options{'KEEP_DEFACED'});
 
-&gzipBackupFile($options{'BACKUP_BASENAME'}) if $nbFilesInBackup;
+&gzipBackupFile($options{'BACKUP_PATH'}) if $nbFilesInBackup;
 
 #==========================#
 # Print success message    #
@@ -1165,7 +1170,7 @@ sub backupFiles {
     close($fh);
     
     # Put all files in a big compressed tar ball
-    my $filesBackupPath = $optionsRef->{'BACKUP_BASENAME'} . '.tar';
+    my $filesBackupPath = $optionsRef->{'BACKUP_PATH'} . '.tar';
     print "\nBacking up files related to the upload(s) to delete...\n";
     if(system('tar', 'cvf', $filesBackupPath, '--absolute-names', '--files-from', $tmpFileName)) {
         print STDERR "backup command failed: $!\n";
@@ -1316,7 +1321,7 @@ sub deleteUploadsInDatabase {
         # is nothing to delete and consequently nothing to restore.
         if(defined $tmpSQLFile && -s $tmpSQLFile) {
             my $tarOptions = $optionsRef->{'NO_FILES_BK'} ? 'cf' : 'rf';
-            if(system('tar', , $tarOptions, "$optionsRef->{'BACKUP_BASENAME'}.tar", sprintf("--transform=s/.*/%s/", SQL_RESTORE_NAME), $tmpSQLFile)) {
+            if(system('tar', , $tarOptions, "$optionsRef->{'BACKUP_PATH'}.tar", sprintf("--transform=s/.*/%s/", SQL_RESTORE_NAME), $tmpSQLFile)) {
                 print STDERR "Failed to add SQL restore statements file to the backup file: $!\n";
                 exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
             }
@@ -1340,18 +1345,18 @@ Compresses the file that contains a backup of everything that was deleted by the
 from the file system and the database, using C<gzip>.
 
 INPUTS:
-  - $backupBasename: basename of the C<tar> backup file to compress.
+  - $backupPath: path of the backup file to compress (without the .tar.gz extension).
   
 =cut
 sub gzipBackupFile {
-    my($backupBasename) = @_;
+    my($backupPath) = @_;
     
     # Gzip the backup file
-    my $cmd = sprintf("gzip -f %s.tar", quotemeta($backupBasename));
+    my $cmd = sprintf("gzip -f %s.tar", quotemeta($backupPath));
     system($cmd) == 0
         or die "Failed running command $cmd. Aborting\n";
         
-    print "Wrote '$backupBasename.tar.gz'\n";
+    print "Wrote $backupPath.tar.gz\n";
 }    
 
 =pod
