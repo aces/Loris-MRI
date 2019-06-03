@@ -402,6 +402,15 @@ INPUT: path to a given file
 
 RETURNS: the relative path of the file moved to the trashbin directory
 
+### deleteFiles(@files)
+
+Deletes a set of files from the file system. A warning will be issued for every file
+that could not be deleted.
+
+INPUTS:
+
+    - @files: list of files to delete.
+    
 # TO DO
 
 Fix comments written as #fixme in the code.
