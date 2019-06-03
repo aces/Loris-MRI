@@ -197,7 +197,7 @@ my @opt_table = (
     ['-profile'    , 'string'       , 1, \$options{'PROFILE'}, 
      'Name of config file in ../dicom-archive/.loris_mri (defaults to "prod")'],
     ['-backup_path', 'string'       , 1, \$options{'BACKUP_PATH'}, 
-     'Path of the backup file (defaults to "imaging_upload_backup")'],
+     'Path of the backup file (defaults to "imaging_upload_backup", in the current directory)'],
     ['-ignore'     , 'const'        , 0, \$options{'DIE_ON_FILE_ERROR'}, 
      'Ignore files that exist in the database but not on the file system.'
      . ' Default is to abort if such a file is found.'],
