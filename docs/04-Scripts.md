@@ -160,3 +160,12 @@ In cases where a subject was scanned in two scanner sessions as part of the same
   separate DICOM datasets. The insertion pipeline will automatically 
   associate and display both sets of images acquired in both scanner sessions 
   under the same `session` table record. 
+  
+##4.4 - MRI upload deletion script
+
+As of release 21.0 of LORIS-MRI, a deletion script has been added to the tools 
+directory of the repository in order to delete completely an MRI upload from the 
+imaging tables.
+
+Detailed information on how to run the script on an MRI upload can be found in: 
+https://github.com/aces/Loris-MRI/blob/21.0-dev/docs/scripts_md/delete_imaging_upload.md
