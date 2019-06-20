@@ -66,6 +66,7 @@ echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo perl -MCPAN -e shell
 sudo -S cpan install Math::Round
 #echo $rootpass | sudo -S cpan install Bundle::CPAN
+sudo -S cpan install DBI
 sudo -S cpan install Getopt::Tabular
 sudo -S cpan install Time::JulianDay
 sudo -S cpan install Path::Class
