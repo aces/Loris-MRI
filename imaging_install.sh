@@ -77,6 +77,10 @@ sudo -S cpan install Pod::Perldoc
 sudo -S cpan install Pod::Markdown
 sudo -S cpan install Pod::Usage
 sudo -S cpan install JSON
+sudo -S cpan install Moose
+sudo -S cpan install MooseX::Privacy
+sudo -S cpan install TryCatch
+sudo -S cpan install Throwable
 echo
 
 ################################################################################
