@@ -48,6 +48,7 @@ class BidsReader:
 
         # load dataset name and BIDS version
         dataset_json = bids_dir + "/dataset_description.json"
+        #TODO need to read the JSON file instead of using pybids here since those are no more supported in 0.9
         self.dataset_name = self.bids_layout.get_metadata(dataset_json)['Name']
         self.bids_version = self.bids_layout.get_metadata(dataset_json)['BIDSVersion']
 
@@ -72,11 +73,7 @@ class BidsReader:
         """
         bids_config = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
         exclude_arr = ['/code/', '/sourcedata/', '/log/', '.git/']
-        bids_layout = BIDSLayout(
-            (self.bids_dir, bids_config),
-            root=self.bids_dir,
-            exclude=exclude_arr
-        )
+        bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr)
 
         return bids_layout
 
