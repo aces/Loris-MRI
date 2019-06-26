@@ -24,7 +24,7 @@ class ScansTSV:
 
     """
 
-    def __init__(self, scans_tsv_file, acquisition_file):
+    def __init__(self, scans_tsv_file, acquisition_file, verbose):
         """
         Constructor method for the ScansTSV class
 
@@ -33,6 +33,8 @@ class ScansTSV:
         :param acquisition_file: path to the acquisition file (.nii, .set, .edf...)
          :type acquisition_file: str
         """
+
+        self.verbose = verbose
 
         # store files paths
         self.scans_tsv_file   = scans_tsv_file
@@ -95,3 +97,14 @@ class ScansTSV:
                 return self.acquisition_data[header_name].strip()
 
         return None
+
+    def copy_scans_tsv_file_to_loris_bids_dir(self, bids_sub_id, loris_bids_root_dir, data_dir):
+
+        file = self.scans_tsv_file
+        copy = loris_bids_root_dir + '/sub-' + bids_sub_id + '/' + os.path.basename(self.scans_tsv_file)
+        utilities.copy_file(file, copy, self.verbose)
+
+        # determine the relative path and return it
+        relative_path = copy.replace(data_dir, "")
+
+        return relative_path

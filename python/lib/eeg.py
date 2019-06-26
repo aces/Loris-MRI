@@ -401,9 +401,16 @@ class Eeg:
         # get the acquisition date of the EEG file or the age at the time of the EEG recording
         eeg_acq_time = None
         if self.scans_file:
-            scan_info = ScansTSV(self.scans_file, eeg_file)
+            scan_info = ScansTSV(self.scans_file, eeg_file, self.verbose)
             eeg_acq_time = scan_info.get_acquisition_time()
             eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
+            # copy the scans.tsv file to the LORIS BIDS import directory
+            scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
+                self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
+            )
+            eeg_file_data['scans_tsv_file'] = scans_path
+            scans_blake2 = blake2b(self.scans_file.encode('utf-8')).hexdigest()
+            eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 
         # if file type is set and fdt file exists, append fdt path to the
         # eeg_file_data dictionary
