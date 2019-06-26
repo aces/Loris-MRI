@@ -75,9 +75,15 @@ INPUTS:
       should have in order to be part of the result set (key: column name, value: column
       value).
 
-RETURNS: either a count of the records found or a reference to an array of hashes, each 
-         hash being an MRI record found, with all the columns set to whatever was found
-         in the database.
+RETURNS: a reference to an array of hash references. Every hash contains the values
+        for a given row returned by the method call: the key/value pairs contain
+        the name of a column (see `@MRI_SCAN_TYPE_FIELDS`) and the value it 
+        holds, respectively. As an example, suppose array `$r` contains the result of a
+        given call to this function. One would fetch the `Scan_type` of the 2nd record 
+        returned using `$r-`\[1\]->{'Scan\_type'}>.
+        If the method is called with `$isCount` set to true, then it will return
+        a reference to an array containing a single hash reference, its unique key being 
+        `'COUNT(*)'` with the associated value set to the selected count.
 
 # TO DO
 
@@ -93,5 +99,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

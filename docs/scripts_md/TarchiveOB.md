@@ -74,8 +74,12 @@ INPUTS:
     - boolean indicating if an exact match is sought (false) or if only basenames
       should be used when comparing two archive locations (true).
 
-RETURN: a reference to an array of array references. This "matrix" contains the
-        values of each colum for each record.
+RETURN: a reference to an array of hash references. Every hash contains the values for a given 
+        row returned by the function call: the key/value pairs contain the name of a column 
+        (as it appears in the array referenced by `$fieldsRef`) and the value it holds, respectively.
+        As an example, suppose array `$r` contains the result of a call to this method with 
+        `@$fieldsRef` set to `('TarchiveID', 'SourceLocation'` one would fetch the `TarchiveID` 
+        of the 4th record returned using `$r-`\[3\]->{'TarchiveID'}>.
 
 # TO DO
 
@@ -91,5 +95,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
