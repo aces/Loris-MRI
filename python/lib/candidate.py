@@ -111,7 +111,7 @@ class Candidate:
                   " CandID = "   + str(self.cand_id) + \
                   " and Site = " + str(self.site))
 
-        insert_col = ('PSCID', 'CandID', 'CenterID')
+        insert_col = ('PSCID', 'CandID', 'RegistrationCenterID')
         insert_val = (self.psc_id, str(self.cand_id), str(self.center_id))
 
         if self.sex:

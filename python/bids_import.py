@@ -180,7 +180,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
             bids_reader, bids_id, db, createcand, loris_bids_root_dir, verbose
         )
         cand_id   = loris_cand_info['CandID']
-        center_id = loris_cand_info['CenterID']
+        center_id = loris_cand_info['RegistrationCenterID']
 
         # greps BIDS session's info for the candidate from LORIS (creates the
         # session if it does not exist yet in LORIS and the createvisit is set
