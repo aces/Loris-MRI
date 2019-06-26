@@ -135,6 +135,7 @@ class Eeg:
         self.events_files     = self.grep_bids_files('events')
 
         # check if a tsv with acquisition dates or age is available for the subject
+        self.scans_file = None
         if self.bids_layout.get(type='scans', subject=self.psc_id):
             self.scans_file = self.bids_layout.get(type='scans', subject=self.psc_id)[0][0]
 
