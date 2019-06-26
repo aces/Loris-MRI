@@ -66,6 +66,8 @@ echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo perl -MCPAN -e shell
 sudo -S cpan install Math::Round
 #echo $rootpass | sudo -S cpan install Bundle::CPAN
+sudo -S cpan install DBI
+sudo -S cpan install DBD::mysql
 sudo -S cpan install Getopt::Tabular
 sudo -S cpan install Time::JulianDay
 sudo -S cpan install Path::Class
@@ -75,6 +77,10 @@ sudo -S cpan install Pod::Perldoc
 sudo -S cpan install Pod::Markdown
 sudo -S cpan install Pod::Usage
 sudo -S cpan install JSON
+sudo -S cpan install Moose
+sudo -S cpan install MooseX::Privacy
+sudo -S cpan install TryCatch
+sudo -S cpan install Throwable
 echo
 
 ################################################################################
