@@ -36,7 +36,7 @@ class ScansTSV:
 
         self.verbose = verbose
 
-        # store files paths
+        # store files' paths
         self.scans_tsv_file   = scans_tsv_file
         self.acquisition_file = acquisition_file
 
