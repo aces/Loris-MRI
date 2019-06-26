@@ -125,7 +125,7 @@ class Eeg:
         self.default_vl      = default_visit_label
         self.psc_id          = self.loris_cand_info['PSCID']
         self.cand_id         = self.loris_cand_info['CandID']
-        self.center_id       = self.loris_cand_info['CenterID']
+        self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.session_id      = self.get_loris_session_id()
 
         # grep the channels, electrodes, eeg and events files
