@@ -5,7 +5,6 @@ import json
 import getpass
 import string
 from pyblake2 import blake2b
-from dateutil.parser import parse
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -14,6 +13,7 @@ from lib.candidate     import Candidate
 from lib.session       import Session
 from lib.physiological import Physiological
 from lib.bidsreader    import BidsReader
+from lib.scanstsv      import ScansTSV
 
 
 __license__ = "GPLv3"
@@ -133,6 +133,10 @@ class Eeg:
         self.electrodes_files = self.grep_bids_files('electrodes')
         self.eeg_files        = self.grep_bids_files('eeg')
         self.events_files     = self.grep_bids_files('events')
+
+        # check if a tsv with acquisition dates or age is available for the subject
+        if self.bids_layout.get(type='scans', subject=self.psc_id):
+            self.scans_file = self.bids_layout.get(type='scans', subject=self.psc_id)[0][0]
 
         # register the data into LORIS
         self.register_raw_data()
@@ -394,25 +398,12 @@ class Eeg:
             insert_if_not_found = False
         )
 
-        # check if a tsv with acquisition dates is available for the subject
-        bids_layout = self.bids_layout
-        scans_file  = None
-        if bids_layout.get(type='scans', subject=self.psc_id):
-            scans_file = bids_layout.get(type='scans', subject=self.psc_id)[0][0]
+        # get the acquisition date of the EEG file or the age at the time of the EEG recording
         eeg_acq_time = None
-        if scans_file:
-            entries = utilities.read_tsv_file(scans_file)
-            for entry in entries:
-                if os.path.basename(eeg_file) in entry['filename'] and 'acq_time' in entry:
-                    eeg_acq_time = entry['acq_time']
-                    try:
-                        eeg_acq_time = parse(eeg_acq_time)
-                    except ValueError as e:
-                        message = "ERROR: could not convert acquisition time '" + \
-                                  eeg_acq_time + \
-                                  "' to datetime: " + str(e)
-                        print(message)
-                        exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
+        if self.scans_file:
+            scan_info = ScansTSV(self.scans_file, eeg_file)
+            eeg_acq_time = scan_info.get_acquisition_time()
+            eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
 
         # if file type is set and fdt file exists, append fdt path to the
         # eeg_file_data dictionary
@@ -799,3 +790,5 @@ class Eeg:
             'FilePath'           : archive_rel_name
         }
         physiological.insert_archive_file(archive_info)
+
+
