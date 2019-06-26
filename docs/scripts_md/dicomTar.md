@@ -17,7 +17,10 @@ Available options are:
 \-mri\_upload\_update      : Update the `mri_upload` table by inserting the
                           correct `tarchiveID`
 
-\-clobber                : Specify the name of the config file which resides in
+\-clobber                : Use this option only if you want to replace the
+                          resulting tarball!
+
+\-profile                : Specify the name of the config file which resides in
                           `.loris_mri` in the current directory
 
 \-centerName             : Specify the symbolic center name to be stored
@@ -65,5 +68,5 @@ License: GPLv3
 # AUTHORS
 
 J-Sebastian Muehlboeck,
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

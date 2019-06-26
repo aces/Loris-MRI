@@ -11,6 +11,8 @@ Available options are:
 
 \-profile     : name of the config file in `../dicom-archive/.loris-mri`
 
+\-uploadID    : UploadID associated to the DICOM archive to validate
+
 \-reckless    : upload data to the database even if the study protocol
                is not defined or if it is violated
 
@@ -63,4 +65,4 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

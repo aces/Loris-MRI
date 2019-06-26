@@ -411,6 +411,7 @@ INPUTS:
 
     - @files: list of files to delete.
     
+
 # TO DO
 
 Fix comments written as #fixme in the code.
@@ -424,5 +425,5 @@ License: GPLv3
 
 # AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+Jonathan Harlap &lt;jharlap@bic.mni.mcgill.ca>,
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
