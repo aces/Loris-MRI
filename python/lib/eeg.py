@@ -403,7 +403,7 @@ class Eeg:
         if scans_file:
             entries = utilities.read_tsv_file(scans_file)
             for entry in entries:
-                if os.path.basename(eeg_file) in entry['filename']:
+                if os.path.basename(eeg_file) in entry['filename'] and 'acq_time' in entry:
                     eeg_acq_time = entry['acq_time']
                     try:
                         eeg_acq_time = parse(eeg_acq_time)
