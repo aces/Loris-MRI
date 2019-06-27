@@ -136,8 +136,8 @@ class Eeg:
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
-        if self.bids_layout.get(suffix='scans', subject=self.psc_id):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id)[0][0]
+        if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename')[0]
 
         # register the data into LORIS
         self.register_raw_data()
@@ -209,16 +209,18 @@ class Eeg:
 
         if self.bids_ses_id:
             return self.bids_layout.get(
-                subject  = self.bids_sub_id,
-                session  = self.bids_ses_id,
-                modality = self.bids_modality,
-                suffix   = bids_type
+                subject     = self.bids_sub_id,
+                session     = self.bids_ses_id,
+                datatype    = self.bids_modality,
+                suffix      = bids_type,
+                return_type = 'filename'
             )
         else:
             return self.bids_layout.get(
-                subject  = self.bids_sub_id,
-                modality = self.bids_modality,
-                suffix   = bids_type
+                subject     = self.bids_sub_id,
+                datatype    = self.bids_modality,
+                suffix      = bids_type,
+                return_type = 'filename'
             )
 
     def grep_bids_derivatives_eeg_files(self):
@@ -355,9 +357,9 @@ class Eeg:
         # grep the raw files from eeg_files list
         eeg_file = BidsReader.grep_file(
             files_list         = files_list,
-            match_pattern      = ".(set$|edf$|vhdr$|cnt$|vsm$|bdf$)",
+            match_pattern      = ".(set$|edf$|vhdr$|vmrk$|eeg$|bdf$)",
             derivative_pattern = derivative_pattern
-        )  # TODO: revisit the eeg file formats once BIDS EEG is finalized
+        )
         json_file = BidsReader.grep_file(
             files_list         = files_list,
             match_pattern      = '.json$',

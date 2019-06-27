@@ -234,8 +234,7 @@ class BidsReader:
         """
 
         raw_file = None
-        for file in files_list:
-            filename = file[0]
+        for filename in files_list:
             if not derivative_pattern:
                 if 'derivatives' in filename:
                     # skip all files with 'derivatives' string in their path
