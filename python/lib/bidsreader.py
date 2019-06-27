@@ -6,6 +6,7 @@ import re
 import os
 import glob
 import sys
+import json
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -48,9 +49,11 @@ class BidsReader:
 
         # load dataset name and BIDS version
         dataset_json = bids_dir + "/dataset_description.json"
-        #TODO need to read the JSON file instead of using pybids here since those are no more supported in 0.9
-        self.dataset_name = self.bids_layout.get_metadata(dataset_json)['Name']
-        self.bids_version = self.bids_layout.get_metadata(dataset_json)['BIDSVersion']
+        dataset_description = {}
+        with open(dataset_json) as json_file:
+            dataset_description = json.load(json_file)
+        self.dataset_name = dataset_description['Name']
+        self.bids_version = dataset_description['BIDSVersion']
 
         # load BIDS candidates information
         self.participants_info = self.load_candidates_from_bids()
