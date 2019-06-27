@@ -136,8 +136,8 @@ class Eeg:
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
-        if self.bids_layout.get(type='scans', subject=self.psc_id):
-            self.scans_file = self.bids_layout.get(type='scans', subject=self.psc_id)[0][0]
+        if self.bids_layout.get(suffix='scans', subject=self.psc_id):
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id)[0][0]
 
         # register the data into LORIS
         self.register_raw_data()
@@ -212,13 +212,13 @@ class Eeg:
                 subject  = self.bids_sub_id,
                 session  = self.bids_ses_id,
                 modality = self.bids_modality,
-                type     = bids_type
+                suffix   = bids_type
             )
         else:
             return self.bids_layout.get(
                 subject  = self.bids_sub_id,
                 modality = self.bids_modality,
-                type     = bids_type
+                suffix   = bids_type
             )
 
     def grep_bids_derivatives_eeg_files(self):
@@ -230,10 +230,10 @@ class Eeg:
         """
 
         bids_types = self.bids_layout.get(
-            subject=self.bids_sub_id,
-            modality=self.bids_modality,
-            target='type',
-            return_type='id'
+            subject     = self.bids_sub_id,
+            datatype    = self.bids_modality,
+            target      = 'suffix',
+            return_type = 'id'
         )
         # TODO check if want this part to be in the Config module instead of
         # TODO hardcoding it and risk that other random types are in the

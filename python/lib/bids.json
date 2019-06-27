@@ -72,18 +72,6 @@
         {
             "name": "extension",
             "pattern": "[._]*[a-zA-Z0-9]*?\\.([^/\\\\]+)$"
-        },
-        {
-            "name": "channels",
-            "pattern": "(.*\\_channels.tsv)$"
-        },
-        {
-            "name": "electrodes",
-            "pattern": "(.*\\_electrodes.tsv)$"
-        },
-        {
-            "name": "events",
-            "pattern": "(.*\\_events.tsv)$"
         }
     ],
 
@@ -93,11 +81,14 @@
         "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}]_{suffix<bold>}.nii.gz",
         "sub-{subject}[/ses-{session}]/dwi/sub-{subject}[_ses-{session}][_acq-{acquisition}]_{suffix<dwi>}.{extension<bval|bvec|json|nii\\.gz|nii>|nii\\.gz}",
         "sub-{subject}[/ses-{session}]/fmap/sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_run-{run}]_{fmap<phasediff|magnitude[1-2]|phase[1-2]|fieldmap|epi>}.nii.gz",
-        "sub-{subject}[/ses-{session}]/[{datatype<func|meg|eeg>|func}/]sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}.{extension<tsv>|tsv}",
+        "sub-{subject}[/ses-{session}]/[{datatype<func|meg>|func}/]sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<events>}.{extension<tsv>|tsv}",
         "sub-{subject}[/ses-{session}]/func/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_echo-{echo}][_recording-{recording}]_{suffix<physio|stim>}.{extension<tsv\\.gz|json}",
         "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_meg.{extension|json}",
         "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_{suffix<channels>}.{extension<tsv>|tsv}",
         "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<coordsystem>}.json",
-        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<photo>}.jpg"
+        "sub-{subject}[/ses-{session}]/meg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}]_{suffix<photo>}.jpg",
+        "sub-{subject}[/ses-{session}]/eeg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_eeg_{suffix<channels>}.tsv",
+        "sub-{subject}[/ses-{session}]/eeg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_eeg_{suffix<electrodes>}.{extension<tsv>|tsv}",
+        "sub-{subject}[/ses-{session}]/eeg/sub-{subject}[_ses-{session}]_task-{task}[_acq-{acquisition}][_run-{run}][_proc-{proc}]_eeg_{suffix<events>}.{extension<tsv>|tsv}"
     ]
 }

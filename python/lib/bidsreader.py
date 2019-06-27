@@ -91,10 +91,10 @@ class BidsReader:
 
         # grep the participant.tsv file and parse it
         participants_info = None
-        for file in self.bids_layout.get(type='participants'):
+        for file in self.bids_layout.get(suffix='participants', return_type='filename'):
             # note file[0] returns the path to participants.tsv
-            if 'participants.tsv' in file[0]:
-                participants_info = utilities.read_tsv_file(file[0])
+            if 'participants.tsv' in file:
+                participants_info = utilities.read_tsv_file(file)
             else:
                 continue
 
@@ -165,13 +165,11 @@ class BidsReader:
             if visit_list:
                 for visit in visit_list:
                     cand_session_dict['bids_ses_id'] = visit
-                    modalities = self.bids_layout.get_modalities(
-                        subject=subject, session=visit
-                    )
+                    modalities = self.bids_layout.get_datatype(subject=subject, session=visit)
                     cand_session_dict['modalities'] = modalities
             else:
                 cand_session_dict['bids_ses_id'] = None
-                modalities = self.bids_layout.get_modalities(subject=subject)
+                modalities = self.bids_layout.get_datatype(subject=subject)
                 cand_session_dict['modalities'] = modalities
 
             cand_session_modalities_list.append(cand_session_dict)
