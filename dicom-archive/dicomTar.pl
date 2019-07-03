@@ -189,9 +189,13 @@ my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 my $date            = sprintf("%4d-%02d-%02d %02d:%02d:%02d\n",
                     $year+1900,$mon+1,$mday,$hour,$min,$sec);
 my $today           = sprintf("%4d-%02d-%02d",$year+1900,$mon+1,$mday);
-my $hostname        = inet_ntoa(scalar(gethostbyname(hostname() || 'localhost')));
-                    #`hostname -f`;
-                    # # fixme specify -f for fully qualified if you need it.
+
+my $hostname;
+eval { $hostname = hostname() };
+$hostname = 'localhost' if $@ || !defined $hostname;
+$hostname = gethostbyname($hostname) // gethostbyname('localhost');
+$hostname = inet_ntoa($hostname);
+
 my $system          = `uname`;
 
 
