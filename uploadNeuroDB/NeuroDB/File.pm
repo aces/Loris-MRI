@@ -359,8 +359,6 @@ sub loadFileFromDisk {
 	 }
 	 close MI;
     
-    $this->setParameter('header', $header);
-
     return 1;
 }
 
