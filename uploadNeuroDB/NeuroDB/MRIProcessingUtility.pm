@@ -386,7 +386,8 @@ information
 sub determineSubjectID {
 
     my $this = shift;
-    my ($scannerID,$tarchiveInfo,$to_log, $upload_id) = @_;
+    my ($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID) = @_;
+
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
@@ -399,13 +400,22 @@ sub determineSubjectID {
 	    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
         }
     }
+
+    # determine the PSCID, CandID and Visit label based on PatientName or PatientID
+    my $patientID   = $tarchiveInfo->{'PatientID'};
+    my $patientName = $tarchiveInfo->{'PatientName'};
     my $subjectIDsref = Settings::getSubjectIDs(
-                            $tarchiveInfo->{'PatientName'},
-                            $tarchiveInfo->{'PatientID'},
-                            $scannerID,
-                            $this->{dbhr},
-                            $this->{'db'}
-                        );
+        $patientName, $patientID, $scannerID, $this->{dbhr}, $this->{'db'}
+    );
+
+    # create the candidate if it does not exist
+    $this->CreateMRICandidates(
+        $subjectIDsref, $tarchiveInfo, $User, $centerID, $upload_id
+    );
+
+    # check if the candidate information is valid
+    $subjectIDsref->{'CandMismatchError'} = $this->validateCandidate($subjectIDsref);
+
     if ($to_log) {
         my $message = sprintf(
             "\n==> Data found for candidate CandID: %s, PSCID %s, Visit %s, Acquisition Date %s\n ",
@@ -414,9 +424,11 @@ sub determineSubjectID {
             $subjectIDsref->{'visitLabel'},
             $tarchiveInfo->{'DateAcquired'} // 'UNKNOWN'
         );
-	$this->{LOG}->print($message);
+	    $this->{LOG}->print($message);
         $this->spool($message, 'N', $upload_id, $notify_detailed);
     }
+
+    # return the subjectID hash and the
     return $subjectIDsref;
 }
 
@@ -1574,69 +1586,72 @@ sub CreateMRICandidates {
     ############################################################
     ### Standardize sex (DICOM uses M/F, DB uses Male/Female)
     ############################################################
-    my $this = shift;
+    my $this  = shift;
     my $query = '';
-    my ($subjectIDsref,$sex,$tarchiveInfo,$User,$centerID, $upload_id) = @_;
+    my ($subjectIDsref, $sex, $tarchiveInfo, $User, $centerID, $upload_id) = @_;
     my ($message);
 
     if ($tarchiveInfo->{'PatientSex'} eq 'F') {
-            $sex = "Female";
+        $sex = "Female";
     } elsif ($tarchiveInfo->{'PatientSex'} eq 'M') {
         $sex = "Male";
     }
+
+    my $candID = $subjectIDsref->{'CandID'};
+    my $dbh    = $this->{dbhr};
 
     ################################################################
     ## Create non-existent candidate if the profile allows for #####
     ## Candidate creation ##########################################
     ################################################################
-    if (!NeuroDB::MRI::subjectIDExists(
-            $subjectIDsref->{'CandID'},
-            $this->{dbhr}
-        ) 
-        && (NeuroDB::DBI::getConfigSetting($this->{dbhr},'createCandidates'))
+    if (!NeuroDB::MRI::subjectIDExists($candID, $dbh)
+        && (NeuroDB::DBI::getConfigSetting($dbh, 'createCandidates'))
     ) {
-           chomp($User);
-            unless ($subjectIDsref->{'CandID'}) {
-                $subjectIDsref->{'CandID'} = 
-                NeuroDB::MRI::createNewCandID($this->{dbhr});
-            }
-            $query = "INSERT INTO candidate ".
-                     "(CandID, PSCID, DoB, Sex, RegistrationCenterID, ".
-                     "Date_active, Date_registered, UserID, Entity_type) ".
-                     "VALUES(" . 
-                     ${$this->{'dbhr'}}->quote($subjectIDsref->{'CandID'}).",".
-                     ${$this->{'dbhr'}}->quote($subjectIDsref->{'PSCID'}).",".
-                     ${$this->{'dbhr'}}->quote($tarchiveInfo->{'PatientDoB'}) ."," .
-                     ${$this->{'dbhr'}}->quote($sex).",".
-                     ${$this->{'dbhr'}}->quote($centerID). 
-                     ", NOW(), NOW(), '$User', 'Human')";
-            
-            if ($this->{debug}) {
-                print $query . "\n";
-            }
-            ${$this->{'dbhr'}}->do($query);
-            $message = "\n==> CREATED NEW CANDIDATE :
-            		$subjectIDsref->{'CandID'}";
-            $this->{LOG}->print($message);
-            $this->spool($message, 'N', $upload_id, $notify_detailed);
-      } elsif ($subjectIDsref->{'CandID'}) {# if the candidate exists
-            $message = "\n==> getSubjectIDs returned this CandID/DCCID : ".
-               "$subjectIDsref->{'CandID'}\n";
+
+        chomp($User);
+        $candID = NeuroDB::MRI::createNewCandID($dbh) unless $candID;
+        $query  = "INSERT INTO candidate ".
+                  "(CandID, PSCID, DoB, Sex, RegistrationCenterID, ".
+                  "Date_active, Date_registered, UserID, Entity_type) ".
+                  "VALUES(" .
+                  ${$this->{'dbhr'}}->quote($subjectIDsref->{'CandID'}).",".
+                  ${$this->{'dbhr'}}->quote($subjectIDsref->{'PSCID'}).",".
+                  ${$this->{'dbhr'}}->quote($tarchiveInfo->{'PatientDoB'}) ."," .
+                  ${$this->{'dbhr'}}->quote($sex).",".
+                  ${$this->{'dbhr'}}->quote($centerID).
+                  ", NOW(), NOW(), '$User', 'Human')";
+
+        print $query . "\n" if ($this->{debug});
+
+        ${$this->{'dbhr'}}->do($query);
+
+        $message = "\n==> CREATED NEW CANDIDATE: $candID";
+        $this->{LOG}->print($message);
+        $this->spool($message, 'N', $upload_id, $notify_detailed);
+
+    } elsif (NeuroDB::MRI::subjectIDExists($candID, $dbh)) {
+
+        # if the candidate exists
+        $message = "\n==> getSubjectIDs returned this CandID/DCCID: $candID\n";
 	    $this->{LOG}->print($message);
-            $this->spool($message, 'N', $upload_id, $notify_detailed);
-      } else {
-            $message = "\nERROR: The candidate could not be considered for ". 
-                       "uploading, since s/he is not registered in your database.".
-                       "\nThe dicom header PatientID is: ". 
-                       $tarchiveInfo->{'PatientID'}. "\n ".
-                       "The dicom header PatientName is: ". 
-                       $tarchiveInfo->{'PatientName'}. "\n\n";
-            $this->writeErrorLog(
-                $message, $NeuroDB::ExitCodes::INSERT_FAILURE
-            );
-            $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-            exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-     }
+        $this->spool($message, 'N', $upload_id, $notify_detailed);
+
+    } else {
+
+        $message = "\nERROR: The candidate could not be considered for ".
+                   "uploading, since s/he is not registered in your database.".
+                   "\nThe dicom header PatientID is: ".
+                   $tarchiveInfo->{'PatientID'}. "\n ".
+                   "The dicom header PatientName is: ".
+                   $tarchiveInfo->{'PatientName'}. "\n\n";
+        $this->writeErrorLog(
+            $message, $NeuroDB::ExitCodes::INSERT_FAILURE
+        );
+        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+
+        exit $NeuroDB::ExitCodes::INSERT_FAILURE;
+
+    }
 }
 
 
@@ -1797,34 +1812,52 @@ or a phantom
 
 sub validateCandidate {
     my $this = shift;
-    my ($subjectIDsref)= @_;
+    my ($subjectIDsref) = @_;
+
     my $CandMismatchError = undef;
+
+
+    ############################################################
+    ################ No Checking if the subject is Phantom #####
+    ############################################################
+    if ($subjectIDsref->{'isPhantom'}) {
+        # CandID/PSCID errors don't apply to phantoms, so we don't
+        # want to trigger the check which aborts the insertion
+        $CandMismatchError = undef;
+        return $CandMismatchError;
+    }
+
     
     #################################################################
     ## Check if CandID exists
     #################################################################
     my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    my $sth   = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'CandID'});
-    print "candidate id " . $subjectIDsref->{'CandID'} . "\n" 
-	if ($this->{verbose});
+
     if ($sth->rows == 0) {
         print LOG  "\n\n=> Could not find candidate with CandID =".
                    " $subjectIDsref->{'CandID'} in database\n";
         $CandMismatchError = 'CandID does not exist';
+
         return $CandMismatchError;
     }
-    
+
+    print "candidate id $subjectIDsref->{'CandID'}\n" if ($this->{verbose});
+
+
     #################################################################
     ### Check if PSCID exists and that PSCID and CandID of the scan
     # refers to the same candidate
     #################################################################
     $query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
-    $sth =  ${$this->{'dbhr'}}->prepare($query);
+    $sth   = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'PSCID'});
+
     if ($sth->rows == 0) {
         print LOG "\n=> No PSCID\n";
         $CandMismatchError= 'PSCID does not exist';
+
         return $CandMismatchError;
     } else {
         # Check that the PSCID and CandID refers to the same candidate
@@ -1832,37 +1865,31 @@ sub validateCandidate {
         unless ($rowref->{'CandID'} == $subjectIDsref->{'CandID'}) {
             $CandMismatchError = 'PSCID and CandID of the image mismatch\n';
             print LOG "\n=> $CandMismatchError";
+
             return $CandMismatchError;
         }
     }
 
-    ############################################################
-    ################ No Checking if the subject is Phantom #####
-    ############################################################
-    if ($subjectIDsref->{'isPhantom'}) {
-        # CandID/PSCID errors don't apply to phantoms, so we don't
-        # want to trigger
-        # the check which aborts the insertion
-        $CandMismatchError = undef;
-        return $CandMismatchError;
-    }
 
     ############################################################
-    ################ Check if visitLabel exists ################
+    ################ Check if visit label is valid##############
     ############################################################
+    my $visit_label = $subjectIDsref->{'visitLabel'};
 
     $query = "SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label=?";
-    $sth =  ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute($subjectIDsref->{'visitLabel'});
+    $sth   = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($visit_label);
+
     if (($sth->rows == 0) && (!$subjectIDsref->{'createVisitLabel'})) {
         print LOG "\n=> No Visit label\n";
-        $CandMismatchError= 'Visit label does not exist';
+        $CandMismatchError = "Visit label $visit_label does not exist in Visit_Windows";
+
         return $CandMismatchError;
     } elsif (($sth->rows == 0) && ($subjectIDsref->{'createVisitLabel'})) {
-        print LOG "\n=> Will create visit label $subjectIDsref->{'visitLabel'}\n";
+        print LOG "\n=> Will create visit label $visit_label in Visit_Windows\n";
     } 
 
-   return $CandMismatchError;
+    return $CandMismatchError;
 }
 
 

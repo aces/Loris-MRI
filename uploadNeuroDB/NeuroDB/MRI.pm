@@ -62,86 +62,6 @@ $FLOAT_EQUALS_NB_DECIMALS = 4;
 
 =pod
 
-=head3 getSubjectIDs($patientName, $scannerID, $dbhr, $db)
-
-Determines the candidate ID and visit label for the subject based on patient
-name and (for calibration data) scanner ID.
-
-INPUTS:
-  - $patientName: patient name
-  - $scannerID  : scanner ID
-  - $dbhr       : database handle reference
-  - $db         : database object
-
-RETURNS: a reference to a hash containing elements including C<CandID>,
-C<visitLabel> and C<visitNo>, or, in the case of failure, C<undef>
-
-=cut
-
-sub getSubjectIDs {
-    my ($patientName, $scannerID, $dbhr, $db) = @_;
-    my %subjectID;
-# calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
-    if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
-	$subjectID{'CandID'} = my_trim(getScannerCandID($scannerID, $db));
-	$subjectID{'visitLabel'} = my_trim($patientName);
-# subject data
-# old versions of this
-# qnts /([A-Z-]{3,4}\s+\d+)_(\d+)_([^_ ]+)/) or nihpd =~ /(\w{3}\d+)_(\d+)_([^_ ]+)/)
-    } elsif ($patientName =~ /([^_]+)_(\d+)_([^_ ]+)/) {
-	$subjectID{'PSCID'} = my_trim($1);
-	$subjectID{'CandID'} = my_trim($2);
-	$subjectID{'visitLabel'} = my_trim($3);
-	if(!subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subjectID{'visitLabel'}, $dbhr)) {
-	    return undef;
-	}
-    }
-    my $sth = $${dbhr}->prepare("SELECT VisitNo FROM session WHERE CandID='$subjectID{'CandID'}' AND Visit_label='$subjectID{'visitLabel'}' AND Active='Y'");
-    $sth->execute();
-    my $row = $sth->fetchrow_hashref();
-    $subjectID{'visitNo'} = $row->{'VisitNo'};
-
-    return \%subjectID;
-}
-
-=pod
-
-=head3 subjectIDIsValid($CandID, $PSCID, $visit_label, $dbhr, $create_visit_label)
-
-Verifies that the subject IDs match.
-
-INPUTS:
-  - $candID            : candidate's C<CandID>
-  - $pscid             : candidate's C<PSCID>
-  - $visit_label       : visit label
-  - $dbhr              : the database handle reference
-  - $create_visit_label: boolean, if true, will create the visit label
-
-RETURNS: 1 if the ID pair matches, 0 otherwise
-
-=cut
-
-sub subjectIDIsValid {
-    my ($candID, $pscid, $visit_label, $dbhr, $create_visit_label) = @_;
-    my $query = "SELECT COUNT(*) AS isValid FROM candidate WHERE CandID=".$${dbhr}->quote($candID)." AND PSCID=".$${dbhr}->quote($pscid);
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
-
-    my $rowhr = $sth->fetchrow_hashref();
-
-    # Check that visit label exists in the database if don't want to create visit labels via imaging pipeline
-    if (($rowhr->{'isValid'} == 1) && (!$create_visit_label)) {
-        $query = "SELECT COUNT(*) AS isValid FROM Visit_Windows WHERE BINARY Visit_label=".$${dbhr}->quote($visit_label);
-        $sth = $${dbhr}->prepare($query);
-        $sth->execute();
-
-        $rowhr = $sth->fetchrow_hashref();
-    }
-    return $rowhr->{'isValid'} == 1;
-}
-
-=pod
-
 =head3 subjectIDExists($CandID, $dbhr)
 
 Verifies that the subject ID (C<CandID>) exists.
@@ -1518,32 +1438,6 @@ sub DICOMDateToUnixTimestamp {
         # an invalid date format was passed in, so return 0
         return 0;
     }
-}
-
-=pod
-
-=head3 lookupCandIDFromPSCID($pscid, $dbhr)
-
-Looks up the C<CandID> for a given C<PSCID>.
-
-INPUTS:
-  - $pscid: candidate's C<PSCID>
-  - $dbhr : database handle reference
-
-RETURNS: the C<CandID> or 0 if the C<PSCID> does not exist
-
-=cut
-
-sub lookupCandIDFromPSCID {
-    my ($pscid, $dbhr) = @_;
-    my $candid = 0;
-    my $sth = $${dbhr}->prepare("SELECT CandID FROM candidate WHERE PSCID=".$${dbhr}->quote($pscid));
-    $sth->execute();
-    if($sth->rows > 0) {
-        my @row = $sth->fetchrow_array();
-        $candid = int($row[0]);
-    }
-    return $candid;
 }
 
 sub my_trim {

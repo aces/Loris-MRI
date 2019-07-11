@@ -240,6 +240,7 @@ my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
 
 
 
+
 ################################################################
 ########## Create the Specific Log File ########################
 ################################################################
@@ -304,8 +305,13 @@ my $scannerID = $utility->determineScannerID(
 ################################################################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%tarchiveInfo, 1, $upload_id
+    $scannerID, \%tarchiveInfo, 1, $upload_id, $user, $centerID
 );
+if (defined $subjectIDsref->{'CandMismatchError'}) {
+    print "$subjectIDsref->{'CandMismatchError'} \n";
+    ##Note that the script will not exit, so that further down
+    ##it can be inserted per minc into the MRICandidateErrors
+}
 
 ################################################################
 ################################################################
@@ -317,20 +323,6 @@ $utility->CreateMRICandidates(
     $subjectIDsref, $sex, \%tarchiveInfo, $User, $centerID, $upload_id
 );
 
-################################################################
-################################################################
-## Check the CandID/PSCID Match It's possible that the CandID ## 
-## exists, but doesn't match the PSCID. This will fail further #
-## down silently, so we explicitly check that the data is ######
-## correct here. ###############################################
-################################################################
-################################################################
-my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
-if (defined $CandMismatchError) {
-    print "$CandMismatchError \n";
-    ##Note that the script will not exit, so that further down
-    ##it can be inserted per minc into the MRICandidateErrors
-}
 ################################################################
 ############ Get the SessionID #################################
 ################################################################

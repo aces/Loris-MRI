@@ -419,8 +419,8 @@ my $scannerID = $utility->determineScannerID(
 ################################################################
 ###### Construct the $subjectIDsref array ######################
 ################################################################
-my $subjectIDsref = $utility->determineSubjectID(
-        $scannerID, \%tarchiveInfo, 0, $upload_id
+my ($subjectIDsref) = $utility->determineSubjectID(
+    $scannerID, \%tarchiveInfo, 0, $upload_id, $User, $centerID
 );
 
 ################################################################
