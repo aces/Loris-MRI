@@ -182,7 +182,7 @@ sub getScannerCandID {
     
     my $mriScannerOB = 
         NeuroDB::objectBroker::MriScannerOB->new(db => $db);
-    my $resultRef = $mriScannerOB->get(0, {ID => $scannerID});
+    my $resultRef = $mriScannerOB->get({ID => $scannerID});
     return @$resultRef ? $resultRef->[0]->{'CandID'} : undef;
 }
 
