@@ -145,7 +145,7 @@ QUERY
 
 # Complete query if min and max File ID have been defined.
 $query .= " AND f.FileID <= ?" if defined $maxFileID;
-$query .= " AND f.FileID <= ?" if defined $minFileID;
+$query .= " AND f.FileID >= ?" if defined $minFileID;
 
 # Create array of parameters to use for query.
 my @param = ('check_nii_filename', 'mnc');
