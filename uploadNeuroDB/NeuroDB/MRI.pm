@@ -75,14 +75,15 @@ RETURNS: 1 if the ID exists, 0 otherwise
 =cut
 
 sub subjectIDExists {
-    my ($candID, $dbhr) = @_;
+    my ($ID_type, $ID_value, $dbhr) = @_;
 
-    my $query = "SELECT COUNT(*) AS idExists FROM candidate WHERE CandID=".$${dbhr}->quote($candID);
-    my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    # check if ID already exists in the candidate table
+    my $query = "SELECT COUNT(*) AS idExists FROM candidate WHERE $ID_type=?";
+    my $sth   = $${dbhr}->prepare($query);
+    $sth->execute($ID_value);
+    my $rowhd = $sth->fetchrow_hashref();
 
-    my $rowhr = $sth->fetchrow_hashref();
-    return $rowhr->{'idExists'} > 0;
+    return $rowhd->{'idExists'} > 0;
 }
 
 =pod

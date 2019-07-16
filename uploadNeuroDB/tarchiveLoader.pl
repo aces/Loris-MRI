@@ -424,22 +424,6 @@ my ($subjectIDsref) = $utility->determineSubjectID(
 );
 
 ################################################################
-###### Get the SessionID #######################################
-################################################################
-if (!defined($subjectIDsref->{'visitLabel'})) { 
-    $subjectIDsref->{'visitLabel'} = 
-    $utility->lookupNextVisitLabel(
-        $subjectIDsref->{'CandID'}, 
-        \$dbh
-    ); 
-}
-my ($sessionID) =
-    NeuroDB::MRI::getSessionID(
-         $subjectIDsref, $tarchiveInfo{'DateAcquired'},
-         \$dbh, $subjectIDsref->{'subprojectID'}, $db
-    );
-
-################################################################
 ###### Extract the tarchive and feed the dicom data ############
 ###### Dir to the uploader #####################################
 ################################################################
@@ -606,6 +590,11 @@ if ($valid_study) {
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
+    my ($sessionID) = NeuroDB::MRI::getSessionID(
+        $subjectIDsref, $tarchiveInfo{'DateAcquired'},
+        \$dbh, $subjectIDsref->{'subprojectID'}, $db
+    );
+
     $query = "UPDATE tarchive SET SessionID=? WHERE TarchiveID=?";
     $sth   = $dbh->prepare($query);
     print $query . "\n" if $debug;
