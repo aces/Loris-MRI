@@ -117,18 +117,25 @@ RETURNS:
   - $study\_dir    : extracted study directory
   - $header       : study meta data header
 
-### determineSubjectID($scannerID, $tarchiveInfo, $to\_log, $upload\_id)
+### determineSubjectID($scannerID, $tarchiveInfo, $to\_log, $upload\_id, $User, $centerID)
 
-Determines subject's ID based on scanner ID and DICOM archive information.
+This function does:
+1) Determines subject's ID based on scanner ID and DICOM archive information.
+2) Call the `CreateMRICandidate` function (will create the candidate if it does 
+not exists and `createCandidates` config option is set to yes
+3) Call the `validateCandidate` to validate the candidate information 
+(it will return a `CandMismatchError` if there is one)
 
 INPUTS:
   - $scannerID   : scanner ID,
   - $tarchiveInfo: DICOM archive information hash ref,
   - $to\_log      : boolean if this step should be logged
   - $upload\_id   : upload ID of the study
+  - $User        : user running the insertion pipeline
+  - $centerID    : center ID of the candidate
 
-RETURNS: subject's ID hash ref containing `CandID`, `PSCID` and Visit Label
-information
+RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label 
+and `CandMismatchError` information
 
 ### createTarchiveArray($tarchive, $globArchiveLocation)
 
@@ -363,6 +370,13 @@ RETURNS: the new DICOM archive location
 
 Registers a new candidate in the `candidate` table.
 
+Note: before doing so, the following checks will be performed:
+1) check that the `createCandidates` config option was set to yes
+2) check that the `PSCID` given in `$subjectIDsref` is not already associated 
+to an existing candidate
+3) check that the `CandID` given in `$subjectIDsref` is not already associated
+to an existing candidate
+
 INPUTS:
   - $subjectIDsref: subject's ID information hash ref
   - $sex          : sex of the candidate
@@ -410,11 +424,13 @@ INPUTS:
 RETURNS: the final directory in which the registered MINC files will go
 (typically `/data/$PROJECT/data/assembly/CandID/visit/mri/`)
 
-### validateCandidate($subjectIDsref)
+### validateCandidate($subjectIDsref, $upload\_id)
 
 Check that the candidate's information derived from the patient name field of
 the DICOM files is valid (`CandID` and `PSCID` of the candidate should
-correspond to the same subject in the database).
+correspond to the same subject in the database). It will also check that the 
+Visit Label of `$subjectIDsref` is a valid Visit Label present in the 
+`Visit_Windows` table.
 
 INPUT: subject's ID information hash ref
 
