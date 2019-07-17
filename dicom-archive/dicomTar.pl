@@ -295,14 +295,14 @@ print  $tarinfo if $verbose;
 
 # if -dbase has been given create an entry based on unique studyID
 # Create database entry checking for already existing entries...
-my $success;
+my ($success, $error);
 if ($dbase) {
     $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     print "\nAdding archive info into database\n" if $verbose;
     my $update          = 1 if $clobber;
     my $ArchiveLocation = $finalTarget;
     $ArchiveLocation    =~ s/$targetlocation\/?//g;
-    $success            = $summary->database($dbh, $metaname, $update,
+    ($success, $error)    = $summary->database($dbh, $metaname, $update,
                             $tarTypeVersion, $tarinfo, $DICOMmd5sum,
                             $ARCHIVEmd5sum, $ArchiveLocation,
                             $neurodbCenterName);
@@ -317,7 +317,7 @@ if ($dbase) {
     if ($success) {
         print "\nDone adding archive info into database\n" if $verbose;
     } else {
-        print STDERR "\nThe database command failed\n";
+        print STDERR "\nThe database command failed\n $error";
         exit $NeuroDB::ExitCodes::INSERT_FAILURE;
     }
 }
