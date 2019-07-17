@@ -62,15 +62,16 @@ $FLOAT_EQUALS_NB_DECIMALS = 4;
 
 =pod
 
-=head3 subjectIDExists($CandID, $dbhr)
+=head3 subjectIDExists($ID_type, ID_value, $dbhr)
 
-Verifies that the subject ID (C<CandID>) exists.
+Verifies that the subject ID (C<CandID> or C<PSCID>) exists.
 
 INPUTS:
-  - $candID: candidate's C<CandID>
-  - $dbhr  : the database handle reference
+  - $ID_type : type of candidate ID (C<CandID> or C<PSCID>)
+  - $ID_value: value of the candidate ID
+  - $dbhr    : the database handle reference
 
-RETURNS: 1 if the ID exists, 0 otherwise
+RETURNS: 1 if the ID exists in the candidate table, 0 otherwise
 
 =cut
 
