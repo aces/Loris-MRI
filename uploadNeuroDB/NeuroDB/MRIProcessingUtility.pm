@@ -373,7 +373,7 @@ sub extractAndParseTarchive {
 This function does:
 1) Determines subject's ID based on scanner ID and DICOM archive information.
 2) Call the C<CreateMRICandidate> function (will create the candidate if it does 
-not exists and C<createCandidates> config option is set to yes
+not exists and C<createCandidates> config option is set to yes)
 3) Call the C<validateCandidate> to validate the candidate information 
 (it will return a C<CandMismatchError> if there is one)
 
@@ -1839,88 +1839,83 @@ sub validateCandidate {
     my $visit_label = $subjectIDsref->{'visitLabel'};
     my $dbh         = ${$this->{'dbhr'}};
 
+    # --------------------------------------------------
+    ## No further checking if the subject is Phantom
+    # --------------------------------------------------
 
-    ############################################################
-    ################ No Checking if the subject is Phantom #####
-    ############################################################
-    if ($subjectIDsref->{'isPhantom'}) {
-        # CandID/PSCID errors don't apply to phantoms, so we don't
-        # want to trigger the check which aborts the insertion
-        $CandMismatchError = undef;
-        return $CandMismatchError;
-    }
+    return undef if ($subjectIDsref->{'isPhantom'});
 
-    
-    #################################################################
-    ## Check if CandID exists
-    #################################################################
-    my $query = "SELECT CandID, PSCID FROM candidate WHERE CandID=?";
+
+
+    # --------------------------------------------------
+    ### Check that the CandID and PSCID are valid
+    # --------------------------------------------------
+
+    my $query = "SELECT c1.CandID, c2.PSCID "
+        . " FROM candidate c1 "
+        . " LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID=?) "
+        . " WHERE c1.CandID=? ";
     my $sth   = $dbh->prepare($query);
-    $sth->execute($candID);
+    $sth->execute($pscID, $candID);
+    my $results = $sth->fetchrow_hashref();
 
-    if ($sth->rows == 0) {
+    if (!$results) {
+
+        # if no rows were returned, then the CandID is not valid
         $message = "\n\n=> Could not find candidate with CandID=$candID in database\n";
         $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
-        $CandMismatchError = 'CandID does not exist';
+        return 'CandID does not exist';
 
-        return $CandMismatchError;
-    }
+    } elsif (!$results->{'PSCID'}) {
 
-    print "Candidate ID $candID found\n" if ($this->{verbose});
-
-
-    #################################################################
-    ### Check if PSCID exists and that PSCID and CandID of the scan
-    # refers to the same candidate
-    #################################################################
-    $query = "SELECT CandID, PSCID FROM candidate WHERE PSCID=?";
-    $sth   = $dbh->prepare($query);
-    $sth->execute($pscID);
-
-    if ($sth->rows == 0) {
-        $message = "\n\n=> Could not find candidate with PSCID=$pscID in database\n";
+        # if no PSCID returned in the row, then PSCID and CandID do not match
+        $message = "PSCID and CandID of the image mismatch\n";
         $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
-        $CandMismatchError = 'PSCID does not exist';
+        return $message;
 
-        return $CandMismatchError;
-    } else {
-        # Check that the PSCID and CandID refers to the same candidate
-        my $rowref = $sth->fetchrow_hashref;
-        unless ($rowref->{'CandID'} == $candID) {
-            $CandMismatchError = "PSCID and CandID of the image mismatch\n";
-            $this->writeErrorLog($CandMismatchError, $NeuroDB::ExitCodes::INSERT_FAILURE);
-            $this->spool($CandMismatchError, 'Y', $upload_id, $notify_notsummary);
-
-            return $CandMismatchError;
-        }
     }
 
 
-    ############################################################
-    ################ Check if visit label is valid##############
-    ############################################################
-    $query = "SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label=?";
-    $sth   = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute($visit_label);
 
-    if (($sth->rows == 0) && (!$subjectIDsref->{'createVisitLabel'})) {
+
+    # --------------------------------------------------
+    ### Check if visit label is valid
+    # --------------------------------------------------
+
+    $query = "SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label=?";
+    my @rows = $dbh->selectall_array($query, {}, $visit_label);
+
+    # return undef if a row was returned from Visit_Windows with this visit label
+    # which means that the visit label is valid and there is nothing else to check.
+    return undef if (scalar @rows > 0);
+
+    # if we end up here, it means that the visit label was not found in Visit_Windows
+    # therefore need to check if 'createVisitLabel' was set
+    if ($subjectIDsref->{'createVisitLabel'}) {
+
+        $message = "\n=> Will create visit label $visit_label in Visit_Windows\n";
+
+    } else {
+
         $message = "\n=> No Visit label\n";
         $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
-        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
-        $CandMismatchError = "Visit label $visit_label does not exist in Visit_Windows";
+        return "Visit label $visit_label does not exist in Visit_Windows";
 
-        return $CandMismatchError;
-    } elsif (($sth->rows == 0) && ($subjectIDsref->{'createVisitLabel'})) {
-        $message = "\n=> Will create visit label $visit_label in Visit_Windows\n";
-        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-    } 
+    }
 
-    return $CandMismatchError;
+    # write the message about the visit label in the notification spool table
+    $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+
+
+
+    # if we ended up here, then the candidate is validated and the function
+    # returns no candidate mismatch error.
+    return undef;
 }
 
 
