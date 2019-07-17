@@ -26,8 +26,6 @@ This program deletes MINC files from LORIS by:
   - Deleting data from `files_qcstatus` and `feedback_mri_comments`
     database tables if the `-delqcdata` option is set. In most cases
     you would want to delete this when the images change
-  - Deleting `mri_acquisition_dates` entry if it is the last file
-    removed from that session.
 
 Users can use the argument `select` to view the record that could be removed
 from the database, or `confirm` to acknowledge that the data in the database

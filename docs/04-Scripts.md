@@ -134,7 +134,6 @@ In general, to re-load an imaging dataset through the pipeline from the start
    dataset have been removed from the following database tables:
 
 - `parameter_file`
-- `mri_acquisition_dates`
 - `files` (best to delete from this table last)
 - `mri_upload`
 - `session` - not recommended - only if necessary, and only if no other data is
@@ -149,6 +148,9 @@ If any Quality Control flags or comments exist for these scans, you may also
   wish to delete specific records from `files_qcstatus` and the `mri_feedback_*`
   tables, before deleting from the `files` table.
 
+A script has been created in order to perform a safe deletion of an upload. Please,
+see section 4.4 for instructions on how to use the script.
+
 For backing up, re-labelling and re-loading MRI datasets with QC information,
   see [Beta Tutorial](https://github.com/aces/Loris/wiki/Reloading-MRI-data-for-mislabelled-session)
 
@@ -161,7 +163,7 @@ In cases where a subject was scanned in two scanner sessions as part of the same
   associate and display both sets of images acquired in both scanner sessions 
   under the same `session` table record. 
   
-##4.4 - MRI upload deletion script
+## 4.4 - MRI upload deletion script
 
 As of release 21.0 of LORIS-MRI, a deletion script has been added to the tools 
 directory of the repository. This deletion script allows to delete completely an MRI 
