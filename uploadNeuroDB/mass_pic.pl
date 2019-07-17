@@ -35,12 +35,21 @@ use strict;
 use FindBin;
 use lib "$FindBin::Bin";
 use Getopt::Tabular;
+
 use NeuroDB::DBI;
 use NeuroDB::File;
 use NeuroDB::MRI;
+use NeuroDB::ExitCodes;
 
 use NeuroDB::Database;
-use NeuroDB::ExitCodes;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
+
+
 
 ################################################################
 ################## Set stuff for GETOPT ########################
@@ -88,13 +97,17 @@ if ( !@Settings::db ) {
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 } 
 
-################################################################
-# Establish database connection if database option is set ######
-################################################################
-print "Connecting to database.\n" if $verbose;
+
+
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-my $db = NeuroDB::Database->new(
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
     databaseName => $Settings::db[0],
     userName     => $Settings::db[1],
     password     => $Settings::db[2],
@@ -102,13 +115,30 @@ my $db = NeuroDB::Database->new(
 );
 $db->connect();
 
+print "Connected to database.\n" if $verbose;
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir  = $configOB->getDataDirPath();
+
+
+# -----------------------------------------------------------------
+## Get config setting using the old database calls
+# -----------------------------------------------------------------
+
+my $horizontalPics = &NeuroDB::DBI::getConfigSetting(\$dbh, 'horizontalPics');
+
+
+
 
 ################################################################
 # Where the pics should go #####################################
 ################################################################
-my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
 my $pic_dir = $data_dir . '/pic';
 
 ################################################################
@@ -149,9 +179,7 @@ if ($debug) {
     print $query . "\n";
 }
 
-my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'horizontalPics'
-                    );
+
 my $sth = $dbh->prepare($query);
 $sth->execute();
 

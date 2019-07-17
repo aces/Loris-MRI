@@ -65,7 +65,20 @@ use NeuroDB::objectBroker::ObjectBrokerException;
 
 use TryCatch;
 
-use constant TARCHIVE_LIBRARY_DIR => 'tarchiveLibraryDir';
+use constant TARCHIVE_LIBRARY_DIR      => 'tarchiveLibraryDir';
+use constant DATA_DIR_BASE_PATH        => 'dataDirBasepath';
+use constant MAIL_USER                 => 'mail_user';
+use constant MRI_CODE_PATH             => 'MRICodePath';
+use constant PREFIX                    => 'prefix';
+use constant DTI_VOLUMES               => 'DTI_volumes';
+use constant T1_SCAN_TYPE              => 't1_scan_type';
+use constant REJECT_THRESHOLD          => 'reject_thresh';
+use constant NIAK_PATH                 => 'niak_path';
+use constant QCED2_STEP                => 'QCed2_step';
+use constant GET_DICOM_INFO            => 'get_dicom_info';
+use constant CONVERTER                 => 'converter';
+use constant LOOK_UP_CENTER_NAME_USING => 'lookupCenterNameUsing';
+use constant DEFACING_REF_SCAN_TYPE    => 'reference_scan_type_for_defacing';
 
 =pod
 
@@ -135,11 +148,181 @@ RETURN: value (string) of the tarchive library dir in the Config table.
 sub getTarchiveLibraryDir {
     my $self = shift;
 
-    return &$getConfigSettingRef($self, TARCHIVE_LIBRARY_DIR);
+    my $path = &$getConfigSettingRef($self, TARCHIVE_LIBRARY_DIR);
+    $path    =~ s!/$!!;
+
+    return $path;
+}
+
+=head3 getDataDirPath()
+
+Get the data directory path.
+
+RETURN: value (sting) of the data directory path in the Config table.
+
+=cut
+sub getDataDirPath {
+    my $self = shift;
+
+    my $path = &$getConfigSettingRef($self, DATA_DIR_BASE_PATH);
+    $path    =~ s!/$!!;
+
+    return $path;
+}
+
+=head3 getMriCodePath()
+
+Get the MRI code path.
+
+RETURN: value (string) of the MRI code path in the Config table.
+
+=cut
+sub getMriCodePath {
+    my $self = shift;
+
+    my $path = &$getConfigSettingRef($self, MRI_CODE_PATH);
+    $path    =~ s!/$!!;
+
+    return $path;
+}
+
+=head3 getNiakPath()
+
+Get the NIAK package path.
+
+RETURN: value (string) of the NIAK package path in the Config table.
+
+=cut
+sub getNiakPath {
+    my $self = shift;
+
+    my $path = &$getConfigSettingRef($self, NIAK_PATH);
+    $path    =~ s!/$!!;
+
+    return $path;
+}
+
+=head3 getMailUser()
+
+Get the mail user.
+
+RETURN: value (string) of the mail user in the Config table.
+
+=cut
+sub getMailUser {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, MAIL_USER);
 }
 
 
+=head3 getPrefix()
+
+Get the study prefix.
+
+RETURN: value (string) of the study prefix in the Config table.
+
+=cut
+sub getPrefix {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, PREFIX);
+}
+
+=head3 getDtiVolumes()
+
+Get the number of DTI volumes.
+
+RETURN: value (string) of the number of DTI volumes in the Config table.
+
+=cut
+sub getDtiVolumes {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, DTI_VOLUMES);
+}
+
+=head3 getT1ScanType()
+
+Get the T1 scan type.
+
+RETURN: value (string) of the T1 scan type in the Config table.
+
+=cut
+sub getT1ScanType {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, T1_SCAN_TYPE);
+}
+
+=head3 getQced2Step()
+
+Get the QCed2 step dataset name.
+
+RETURN: value (string) of the QCed2 step dataset name in the Config table.
+
+=cut
+sub getQced2Step {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, QCED2_STEP);
+}
+
+=head3 getDicomInfo()
+
+Get the get_dicom_info.pl path.
+
+RETURN: value (string) of the get_dicom_info.pl path in the Config table.
+
+=cut
+sub getDicomInfo {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, GET_DICOM_INFO);
+}
+
+=head3 getConverter()
+
+Get the converter name.
+
+RETURN: value (string) of the converter name in the Config table.
+
+=cut
+sub getConverter {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, CONVERTER);
+}
+
+=head3 getLookupCenterNameUsing()
+
+Get the lookup center name using.
+
+RETURN: value (string) of the lookup center name using in the Config table.
+
+=cut
+sub getLookupCenterNameUsing {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, LOOK_UP_CENTER_NAME_USING);
+}
+
+=head3 getDefacingRefScanType()
+
+Get the defacing reference scan type.
+
+RETURN: value (string) of the defacing reference scan type in the Config table.
+
+=cut
+sub getDefacingRefScanType {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, DEFACING_REF_SCAN_TYPE);
+}
+
 1;
+
+
 
 
 __END__

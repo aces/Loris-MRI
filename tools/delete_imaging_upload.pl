@@ -138,13 +138,20 @@ provided the database was not modified in the meantime. The SQL backup file will
 use strict;
 use warnings;
 
+use Getopt::Tabular;
+use File::Temp qw/tempfile/;
+
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 use NeuroDB::MRI;
 
-use Getopt::Tabular;       
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
 
-use File::Temp qw/tempfile/;
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
 
 use constant DEFAULT_PROFILE                   => 'prod';
 use constant DEFAULT_DIE_ON_FILE_ERROR         => 1;
@@ -300,10 +307,32 @@ if ( !@Settings::db ) {
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-#====================================#
-# Establish database connection.     #
-#====================================#
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $dataDirBasepath    = $configOB->getDataDirPath();
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+
 
 # Die as soon as a DB operation fails. As a side-effect, any transaction that has not
 # been commited at that point will automatically be rolled back
@@ -313,10 +342,6 @@ $dbh->{'RaiseError'} = 1;
 # will be printed when the program dies anyway 
 $dbh->{'PrintError'} = 0;
 
-my $dataDirBasepath    = NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
-$dataDirBasepath =~ s!/$!!;
-my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(\$dbh,'tarchiveLibraryDir');
-$tarchiveLibraryDir =~ s!/$!!;
 
 my %files;
 $files{'mri_upload'} = &getMriUploadFiles($dbh, $options{'UPLOAD_ID'});

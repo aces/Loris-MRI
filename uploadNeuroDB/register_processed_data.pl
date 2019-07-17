@@ -68,6 +68,11 @@ use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
 use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 my  $profile    = undef;
 my  $filename;
@@ -147,10 +152,15 @@ unless  (-r $filename)  {
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
-# Establish database connection
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-my $db = NeuroDB::Database->new(
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
     databaseName => $Settings::db[0],
     userName     => $Settings::db[1],
     password     => $Settings::db[2],
@@ -158,14 +168,28 @@ my $db = NeuroDB::Database->new(
 );
 $db->connect();
 
-# These settings are in the config file (profile)
-my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir         = $configOB->getDataDirPath();
+my $lookupCenterName = $configOB->getLookupCenterNameUsing();
+
+
+# -----------------------------------------------------------------
+## Get config setting using the old database calls
+# -----------------------------------------------------------------
+
+my $horizontalPics = &NeuroDB::DBI::getConfigSetting(\$dbh,'horizontalPics');
+
+
+
+
 my $pic_dir  =   $data_dir.'/pic';
-my $prefix   = NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'prefix'
-                    );
+
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs/registerProcessed";
 system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
@@ -203,9 +227,6 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 #       (only for minc files)
 my  ($center_name,$centerID);
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
-    my  $lookupCenterName       =   NeuroDB::DBI::getConfigSetting(
-                                    \$dbh,'lookupCenterNameUsing'
-                                    );
     my $patientInfo;
     if ($lookupCenterName eq 'PatientName') {
         $patientInfo = &NeuroDB::MRI::fetch_header_info(
@@ -339,9 +360,7 @@ unless  ($fileID)   {
 my $intermediary_insert = &insert_intermedFiles($fileID, $inputFileIDs, $tool);
 print LOG "\n==> FAILED TO INSERT INTERMEDIARY FILES FOR $fileID!\n\n" if (!$intermediary_insert);
 
-my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
-                        \$dbh,'horizontalPics'
-                        );
+
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     # make the browser pics
     print "Making browser pics\n";
