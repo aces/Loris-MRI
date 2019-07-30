@@ -262,15 +262,6 @@ INPUTS:
   - $visit\_label : visit label associated with the scan
   - $file        : information about the scan
 
-### update\_mri\_acquisition\_dates($sessionID, $acq\_date)
-
-Updates the `mri_acquisition_dates` table by a new acquisition date
-`$acq_date`.
-
-INPUTS:
-  - $sessionID: session ID
-  - $acq\_date : acquisition date
-
 ### loadAndCreateObjectFile($minc, $upload\_id)
 
 Loads and creates the object file.

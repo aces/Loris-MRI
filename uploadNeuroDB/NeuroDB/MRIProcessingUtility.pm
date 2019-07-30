@@ -950,64 +950,6 @@ sub insert_into_mri_violations_log {
 
 
 
-=pod
-
-=head3 update_mri_acquisition_dates($sessionID, $acq_date)
-
-Updates the C<mri_acquisition_dates> table by a new acquisition date
-C<$acq_date>.
-
-INPUTS:
-  - $sessionID: session ID
-  - $acq_date : acquisition date
-
-=cut
-
-sub update_mri_acquisition_dates {
-   
-    my $this = shift;
-    my ($sessionID, $acq_date) = @_;
-
-    #####################################################################
-    # set acquisition date to undef if the date is '0000-00-00', '' or 0
-    #####################################################################
-    if ( defined $acq_date
-            && ($acq_date eq '0000-00-00' || $acq_date eq '' || $acq_date =~ /^0$/) ) {
-        $acq_date = undef;
-    }
-
-    #######################################################
-    # get the registered acquisition date for this session
-    #######################################################
-    my $query = "SELECT s.ID, m.AcquisitionDate "
-                . " FROM session AS s "
-                . " LEFT OUTER JOIN mri_acquisition_dates AS m ON (s.ID=m.SessionID)"
-                . " WHERE s.ID = ? AND s.Active = 'Y'";
-    my @bind_array = ($sessionID);
-
-    if ($acq_date) {
-        $query .= " AND (m.AcquisitionDate > ? OR m.AcquisitionDate IS NULL)";
-        push @bind_array, $acq_date;
-    } else {
-        $query .= " AND m.AcquisitionDate IS NULL";
-    }
-
-    print "$query\n" if ($this->{debug});
-
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute(@bind_array);
-
-    ################################################################################
-    # if we found a session, it needs updating or inserting, so we use replace into
-    ################################################################################
-    if ($sth->rows > 0) {
-        $query = "REPLACE INTO mri_acquisition_dates".
-                    " SET AcquisitionDate=?, SessionID=?";
-        $sth = ${$this->{'dbhr'}}->prepare($query);
-        $sth->execute($acq_date, $sessionID);
-    }
-}
-
 
 =pod
 
@@ -1242,13 +1184,6 @@ sub registerScanIntoDB {
         $message = "\nFileID: $fileID\n";
         $this->spool($message, 'N', $upload_id, $notify_detailed);
 
-        ########################################################
-        ### update mri_acquisition_dates table #################
-        ########################################################
-        my $acquisition_date = $tarchiveInfo->{'DateAcquired'}
-            // $${minc_file}->getParameter('AcquisitionDate')
-            // undef;
-        $this->update_mri_acquisition_dates($sessionID, $acquisition_date);
     }
     return $acquisitionProtocolID;
 }
