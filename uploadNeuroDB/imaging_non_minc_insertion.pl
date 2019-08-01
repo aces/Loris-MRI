@@ -335,7 +335,7 @@ unless ($sth->rows > 0) {
 ###### Determine the acquisition protocol ID of the file based on scan type
 
 # verify that an acquisition protocol ID exists for $scan_type
-my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, \$dbh);
+my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, $db);
 if ($acqProtocolID =~ /unknown/){
     $message = "\n\tERROR: no AcquisitionProtocolID found for $scan_type.\n\n";
     # write error message in the log file

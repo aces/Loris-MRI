@@ -668,7 +668,7 @@ sub scan_type_id_to_text {
 
 =pod
 
-=head3 scan_type_text_to_id($type, $dbhr)
+=head3 scan_type_text_to_id($type, $db)
 
 Determines the type of the scan identified by scan type.
 
