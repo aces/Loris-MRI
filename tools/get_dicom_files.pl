@@ -301,13 +301,19 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
 
         my $outDir = "$tmpExtractDir/$id/$visitLabel/$dateAcquired/$outSubDir";
         
+        # Since we are using a path transform in the tar command, we have to escape
+        # sed's special characters
+        my $outDirForSed = $outDir;
+        $outDirForSed =~ s#\\#\\\\#g;
+        $outDirForSed =~ s#&#\\&#g;
+
         # --files-from: file containing the path of the files to extract
         # --transform: put all extracted files in $outDir
         # --absolute-path: since we are extracting in $outDir and since
         #                  $outDir is an absolute path, we need this option otherwise
         #                  tar will refuse to extract
         $cmd = sprintf(
-            "tar zxf %s/%s --files-from=%s --absolute-names --transform='s#^.*/#$outDir/#'",
+            "tar zxf %s/%s --files-from=%s --absolute-names --transform='s#^.*/#$outDirForSed/#'",
             quotemeta($tmpExtractDir),
             quotemeta($innerTar),
             quotemeta($fileList) 
