@@ -1,0 +1,117 @@
+=pod
+# -----------------------------------------------------------------------------------------------
+  WHAT THIS IS:
+  Although someone might argue that this is not a config file anymore... this is in fact a config
+  WHAT THIS IS FOR:
+  For users of the neurodb system... or actually the ones that believe in tarchiving their universe
+  WHAT THIS IS NOT:
+  A solution for an extant lack of productivity in writing papers
+# -----------------------------------------------------------------------------------------------
+=cut
+
+=pod
+# SECTION I
+# -----------------------------------------------------------------------------------------------
+  DATABASE settings 
+  for database instance you are connecting to
+  required: db_name, $db_user, $db_pass, $db_host
+# -----------------------------------------------------------------------------------------------
+=cut
+
+@db = ('DBNAME','DBUSER', 'DBPASS', 'DBHOST');
+
+
+=pod
+# SECTION II
+# -----------------------------------------------------------------------------------------------
+  custom settings
+  these functions are very specific for any given study. Using them seems to be the only way of
+  having one system that rules them all...
+# -----------------------------------------------------------------------------------------------
+=cut
+
+# extracts the subject and timepoint identifiers from the patient name 
+# assumes identifers are stored as <PSCID>_<DCCID>_<visit> in PatientName field, where <visit> is 3 digits.
+sub getSubjectIDs {
+    my ($patientName, $patientID, $scannerID, $dbhr, $db) = @_;
+
+    my %subjectID; # Will stored subject IDs.
+    
+     # If patientName is phantom scan or test scan
+     # CandID is scanner DCCID (based on site alias)
+     # visitLabel is scan patient name
+     # Set createVisitLable to 
+     #      a. 1 if imaging pipeline should create the visit label (when visit label has not been created yet in the database. 
+     #      b. 0 if imaging pipeline should not create the visit label (when visit label has not been created yet in the database. 
+    if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
+
+        $subjectID{'CandID'}    = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $db));
+        $subjectID{'visitLabel'}= NeuroDB::MRI::my_trim($patientName);
+        $subjectID{'createVisitLabel'} = 1; 
+
+     # If patient match PSCID_DCCID_VisitLabel
+     # Determine PSCID, DCCID and visitLabel based on patient name
+    } elsif ($patientName =~ /([^_]+)_(\d+)_([^_]+)/) {
+
+        $subjectID{'PSCID'}         = NeuroDB::MRI::my_trim($1);
+        $subjectID{'CandID'}        = NeuroDB::MRI::my_trim($2);
+        $subjectID{'visitLabel'}    = NeuroDB::MRI::my_trim($3);
+        $subjectID{'createVisitLabel'} = 0; 
+
+        # Note, this function will ensure that the PSCID/CandID information refers to a valid candidate
+        # and it will check that the Visit label exists in the Visit_Windows table
+        if(!NeuroDB::MRI::subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subjectID{'visitLabel'}, $dbhr)) {
+            return undef;
+        }
+
+        print "PSCID is: "            . $subjectID{'PSCID'}      . 
+                "\n CandID id: "      . $subjectID{'CandID'}     . 
+                "\n visit_label is: " . $subjectID{'visitLabel'} . "\n";
+
+    }
+   
+    # Return subjectIDs
+    return \%subjectID;
+}
+
+# determines if a given subjectID is a phantom or not
+# returns 1 if a phantom, 0 for non-phantom
+sub isPhantom {
+    my $subjectIDref = shift;
+    if($subjectIDref->{'PSCID'} =~ /PHA/i) {
+        return 1;
+    }
+    return 0;
+}
+
+# ----------- OPTIONAL SUBROUTINE
+# This function allows the user to decide which images are to be inserted into the database.
+# The current default setting is to allow insertion of all the scans
+# that meet an mri_protocol table entry to be inserted;
+# this is achieved by returning 1 when $acquisitionProtocol ne 'unknown'.
+# Alternatively, this routine can be tailored to the user's needs; it can be made to
+# insert scans based on exact (eq 't1') or partial regex matching (=~ /despot/), or case 
+# insensitive partial matching to the scan type (=~ /dti/i), etc... 
+# as shown in the commented-out line below.
+sub isFileToBeRegisteredGivenProtocol {
+    my $acquisitionProtocol = shift;
+    if($acquisitionProtocol ne 'unknown') {
+#    if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'pd' or $acquisitionProtocol eq 'mrs' or $acquisitionProtocol=~ /dti/i or $acquisitionProtocol =~ /despot/) {
+        return 1;
+    }
+    return 0;
+}
+
+# ----------- OPTIONAL SUBROUTINE
+# Fetch CandID and Visit info from DTI folder.
+sub  get_DTI_CandID_Visit {
+    my ($native_dir) =   @_;
+
+    if  ($native_dir =~  /assembly\/(\d\d\d\d\d\d)\/(V\d{1,2})\/mri\//i)  {  
+        my  $subjID =   $1;
+        my  $visit  =   $2;
+        return  ($subjID,$visit);
+    }else{
+        return  undef;
+    }
+}

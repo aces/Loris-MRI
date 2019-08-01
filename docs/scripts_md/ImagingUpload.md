@@ -61,7 +61,7 @@ RETURNS: 1 on success, 0 on failure
 ### runDicomTar()
 
 This method executes the following actions:
- - Runs `dicomTar.pl` with `-clobber -database -profile prod` options
+ - Runs `dicomTar.pl` with `-database -profile prod` options
  - Extracts the `TarchiveID` of the DICOM archive created by `dicomTar.pl`
  - Updates the `mri_upload` table if `dicomTar.pl` ran successfully
 
@@ -76,29 +76,23 @@ RETURNS: the archive location
 
 ### runTarchiveLoader()
 
-This methods will call `tarchiveLoader` with the `-clobber -profile prod`
-options and update the `mri_upload` table accordingly if `tarchiveLoader` ran
+This methods will call `tarchiveLoader.pl` with the `-clobber -profile prod`
+options and update the `mri_upload` table accordingly if `tarchiveLoader.pl` ran
 successfully.
 
 RETURNS: 1 on success, 0 on failure
 
-### PatientNameMatch($dicom\_file)
+### PatientNameMatch($dicom\_file, $expected\_pname\_regex)
 
 This method extracts the patient name field from the DICOM file header using
 `dcmdump` and compares it with the patient name information stored in the
 `mri_upload` table.
 
-INPUT: full path to the DICOM file
+INPUTS:
+  - $dicom\_file          : full path to the DICOM file
+  - $expected\_pname\_regex: expected patient name regex to find in the DICOM file
 
 RETURNS: 1 on success, 0 on failure
-
-### isDicom($dicom\_file)
-
-This method checks whether the file given as an argument is of type DICOM.
-
-INPUT: full path to the DICOM file
-
-RETURNS: 1 if file is of type DICOM, 0 if file is not of type DICOM
 
 ### runCommandWithExitCode($command)
 
@@ -153,4 +147,4 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

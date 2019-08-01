@@ -10,10 +10,12 @@ Available options are:
 
 \-profile     : name of the config file in `../dicom-archive/.loris_mri`
 
+\-uploadID    : The upload ID from which this MINC was created
+
 \-reckless    : uploads data to database even if study protocol
                is not defined or violated
 
-\-force       : forces the script to run even if validation failed
+\-force       : forces the script to run even if DICOM archive validation failed
 
 \-mincPath    : the absolute path to the MINC file
 
@@ -69,4 +71,4 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

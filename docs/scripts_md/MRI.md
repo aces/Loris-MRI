@@ -28,7 +28,7 @@ all of its children.
 
 ## Methods
 
-### getSubjectIDs($patientName, $scannerID, $dbhr)
+### getSubjectIDs($patientName, $scannerID, $dbhr, $db)
 
 Determines the candidate ID and visit label for the subject based on patient
 name and (for calibration data) scanner ID.
@@ -37,6 +37,7 @@ INPUTS:
   - $patientName: patient name
   - $scannerID  : scanner ID
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: a reference to a hash containing elements including `CandID`,
 `visitLabel` and `visitNo`, or, in the case of failure, `undef`
@@ -64,54 +65,27 @@ INPUTS:
 
 RETURNS: 1 if the ID exists, 0 otherwise
 
-### getScannerCandID($scannerID, $dbhr)
+### getScannerCandID($scannerID, $db)
 
 Retrieves the candidate (`CandID`) for the given scanner.
 
-INPUTS: the scanner ID and the database handle reference
+INPUTS: the scanner ID and the database object
 
 RETURNS: the `CandID` or (if none exists) undef
 
 ### getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck)
 
-Gets (or creates) the session ID, given `CandID` and visit label (contained
-inside the hash ref `$subjectIDref`).  Unless `$noStagingCheck` is true, it
-also determines whether staging is required using the `$studyDate`
-(formatted YYYYMMDD) to determine whether staging is required based on a
-simple algorithm:
-
-> \- If there exists a session with the same visit label, then that is
->    the session ID to use.  If any dates (either existing MRI data or
->    simply a date of visit) exist associated with that session, then
->    if they are outside of some (arbitrary) time window, staging is
->    required.  If no dates exist, no staging is required.
->
-> \- If no sessions exist, then if there is any other date associated
->    with another session of the same subject within a time window,
->    staging is required.
->
-> \- Otherwise, staging is not required.
+Gets (or creates) the session ID, given CandID and visitLabel (contained
+inside the hashref `$subjectIDref`). 
 
 INPUTS:
-  - $subjectIDref  : hash reference of subject IDs
-  - $studyDate     : study date
-  - $dbhr          : database handle reference
-  - $objective     : the objective of the study
-  - $noStagingCheck: a no staging check flag
+  - $subjectIDref: hash reference of subject IDs
+  - $studyDate   : study date
+  - $dbhr        : database handle reference
+  - $objective   : the objective of the study
+  - $db          : database object
 
-RETURNS: a list of two items, (`sessionID`, `requiresStaging`)
-
-### checkMRIStudyDates($studyDateJD, $dbhr, @fileIDs)
-
-This method tries to figure out if there may have been labelling problems which
-would put the files in a staging area that does not actually exist.
-
-INPUTS:
-  - $studyDateJD: study date
-  - $dbhr       : database handle reference
-  - @fileIDs    : array of `fileIDs` to check the study date
-
-RETURNS: 1 if the file requires staging, 0 otherwise
+RETURNS: the session ID of the visit
 
 ### getObjective($subjectIDsref, $dbhr)
 
@@ -124,22 +98,24 @@ INPUTS:
 
 RETURNS: the determined objective, or 0
 
-### identify\_scan\_db($center\_name, $objective, $fileref, $dbhr)
+### identify\_scan\_db($center\_name, $objective, $fileref, $dbhr, $db, $minc\_location)
 
 Determines the type of the scan described by MINC headers based on
 `mri_protocol` table in the database.
 
 INPUTS:
-  - $center\_name: center's name
-  - $objective  : objective of the study
-  - $fileref    : file hash ref
-  - $dbhr       : database handle reference
+  - $center\_name   : center's name
+  - $objective     : objective of the study
+  - $fileref       : file hash ref
+  - $dbhr          : database handle reference
+  - $db            : database object
+  - $minc\_location : location of the MINC files
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
 ### insert\_violated\_scans($dbhr, $series\_desc, $minc\_location, $patient\_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID)
 
-Inserts scans that do not correspond to any of the defined protocol from the 
+Inserts scans that do not correspond to any of the defined protocol from the
 `mri_protocol` table into the `mri_protocol_violated_scans` table of the
 database.
 
@@ -163,24 +139,16 @@ INPUTS:
   - $zspace         : `z-space` of the image
   - $time           : time dimension of the scan
   - $seriesUID      : `SeriesUID` of the scan
+  - $tarchiveID     : `TarchiveID` of the DICOM archive from which this file is derived
+  - $image\_type     : the `image_type` header value of the image
 
-### debug\_inrange($val, $range)
-
-Will evaluate whether the scalar `$value` is in the specified `$range`.
-
-INPUTS:
-  - $val  : scalar value to evaluate
-  - $range: scalar range string
-
-RETURNS: 1 if in range, 0 if not in range
-
-### scan\_type\_id\_to\_text($typeID, $dbhr)
+### scan\_type\_id\_to\_text($typeID, $db)
 
 Determines the type of the scan identified by its scan type ID.
 
 INPUTS:
   - $typeID: scan type ID
-  - $dbhr  : database handle reference
+  - $db    : database object
 
 RETURNS: Textual name of scan type
 
@@ -190,21 +158,25 @@ Determines the type of the scan identified by scan type.
 
 INPUTS:
   - $type: scan type
-  - $dbhr: database handle reference
+  - $db  : database object
 
 RETURNS: ID of the scan type
 
 ### in\_range($value, $range\_string)
 
 Determines whether numerical value falls within the range described by range
-string. Range string is a single range unit which follows the syntax 
+string. Range string is a single range unit which follows the syntax
 "X" or "X-Y".
+
+Note that if `$range_string`="-", it means that the value in the database are
+NULL for both the MIN and MAX columns, therefore we do not want to restrict the
+range for this field and the function will return 1.
 
 INPUTS:
   - $value       : numerical value to evaluate
   - $range\_string: the range to use
 
-RETURNS: 1 if the value is in range, 0 otherwise
+RETURNS: 1 if the value is in range or the range is undef, 0 otherwise
 
 ### floats\_are\_equal($f1, $f2, $nb\_decimals)
 
@@ -217,20 +189,6 @@ INPUTS:
   - $nb\_decimals: the number of first decimals
 
 RETURNS: 1 if the numbers are relatively equal, 0 otherwise
-
-### range\_to\_sql($field, $range\_string)
-
-Generates a valid SQL WHERE expression to test `$field` against
-`$range_string` using the same `$range_string` syntax as `&in_range()`.
-It returns a scalar range SQL string appropriate to use as a WHERE condition
-(`SELECT ... WHERE range_to_sql(...)`).
-
-INPUTS:
-  - $field       : scalar field
-  - $range\_string: scalar range string that follows the same format as in
-                    `&in_range()`
-
-RETURNS: scalar range SQL string
 
 ### register\_db($file\_ref)
 
@@ -248,7 +206,7 @@ referenced by `$file_ref`.
 
 INPUT: file hash ref
 
-### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register\_new)
+### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register\_new, $db)
 
 Finds the scanner ID for the scanner as defined by `$manufacturer`, `$model`,
 `$serialNumber`, `$softwareVersion`, using the database attached to the DBI
@@ -263,10 +221,11 @@ INPUTS:
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
   - $register\_new   : if set, will call the function `&registerScanner`
+  - $db             : database object
 
 RETURNS: (int) scanner ID
 
-### registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr)
+### registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
 
 Registers the scanner as defined by `$manufacturer`, `$model`,
 `$serialNumber`, `$softwareVersion`, into the database attached to the DBI
@@ -279,6 +238,7 @@ INPUTS:
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
+  - $db             : database object
 
 RETURNS: (int) scanner ID
 
@@ -290,16 +250,17 @@ INPUT: database handle reference
 
 RETURNS: `CandID` (int)
 
-### getPSC($patientName, $dbhr)
+### getPSC($patientName, $dbhr, $db)
 
-Looks for the site alias using the `session` table `CenterID` as 
+Looks for the site alias using the `session` table `CenterID` as
 a first resource, for the cases where it is created using the front-end,
-otherwise, find the site alias in whatever field (usually `patient_name` 
+otherwise, find the site alias in whatever field (usually `patient_name`
 or `patient_id`) is provided, and return the `MRI_alias` and `CenterID`.
 
 INPUTS:
   - $patientName: patient name
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
@@ -334,6 +295,7 @@ INPUTS:
   - $data\_dir      : data directory (e.g. `/data/$PROJECT/data`)
   - $dest\_dir      : destination directory (e.g. `/data/$PROJECT/data/pic`)
   - $horizontalPics: boolean, whether to create horizontal pics (1) or not (0)
+  - $db            : database object used to interact with the database.
 
 RETURNS: 1 if the pic was generated or 0 otherwise.
 
@@ -345,6 +307,36 @@ Creates NIfTI files associated with MINC files and append its path to the
 INPUTS:
   - $fileref : file hash ref
   - $data\_dir: data directory (e.g. `/data/$PROJECT/data`)
+
+### create\_dwi\_nifti\_bval\_file($file\_ref, $bval\_file)
+
+Creates the NIfTI `.bval` file required for DWI acquisitions based on the
+returned value of `acquisition:bvalues`.
+
+INPUTS:
+  - $file\_ref : file hash ref
+  - $bval\_file: path to the `.bval` file to write into
+
+RETURNS:
+  - undef if no `acquisition:bvalues` were found (skipping the creation
+    of the `.bval` file since there is nothing to write into)
+  - 1 after the `.bval` file was created
+
+### create\_dwi\_nifti\_bvec\_file($file\_ref, $bvec\_file)
+
+Creates the NIfTI `.bvec` file required for DWI acquisitions based on the
+returned value of `acquisition:direction_x`, `acquisition:direction_y` and
+`acquisition:direction_z`.
+
+INPUTS:
+  - $file\_ref : file hash ref
+  - $bvec\_file: path to the `.bvec` file to write into
+
+RETURNS:
+  - undef if no `acquisition:direction_x`, `acquisition:direction_y` and
+    `acquisition:direction_z` were found (skipping the creation
+    of the `.bvec` file since there is nothing to write into)
+  - 1 after the `.bvec` file was created
 
 ### make\_minc\_pics($dbhr, $TarchiveSource, $profile, $minFileID, $debug, $verbose)
 
@@ -376,6 +368,50 @@ INPUTS:
 
 RETURNS: the `CandID` or 0 if the `PSCID` does not exist
 
+### fetch\_minc\_header\_info($minc, $field, $keep\_semicolon, $get\_arg\_name)
+
+Function that fetches header information in MINC file.
+
+INPUTS:
+  - $minc : MINC file
+  - $field: string to look for in MINC header (or 'all' to grep all headers)
+  - $keep\_semicolon: if set, keeps ";" at the end of extracted value
+  - $get\_arg\_name  : if set, returns the MINC header field name
+
+RETURNS: value (or header name) of the field found in the MINC header
+
+### isDicomImage(@files\_list)
+
+This method checks whether the files given as an argument are DICOM images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is a DICOM image, otherwise it will be set to
+false).
+
+INPUT: array with full path to the DICOM files
+
+RETURNS:
+  - %isDicomImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
+
+### get\_trashbin\_file\_rel\_path($file)
+
+Determines and returns the relative path of a file moved to trashbin at the end of
+the insertion pipeline.
+
+INPUT: path to a given file
+
+RETURNS: the relative path of the file moved to the trashbin directory
+
+### deleteFiles(@files)
+
+Deletes a set of files from the file system. A warning will be issued for every file
+that could not be deleted.
+
+INPUTS:
+
+    - @files: list of files to delete.
+    
+
 # TO DO
 
 Fix comments written as #fixme in the code.
@@ -389,5 +425,5 @@ License: GPLv3
 
 # AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+Jonathan Harlap &lt;jharlap@bic.mni.mcgill.ca>,
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

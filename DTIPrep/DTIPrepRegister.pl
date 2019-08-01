@@ -534,14 +534,12 @@ sub register_minc {
         $src_tool       =   $toolName;
         $src_pipeline   =   $pipelineName;
         # insert pipelineName into the mincheader if not already in.
-        ($pipelineName_insert)  = &DTI::modify_header('processing:pipeline', 
-                                                      $src_pipeline, 
-                                                      $minc,
-                                                      '$3, $4, $5, $6');
-        ($toolName_insert)      = &DTI::modify_header('processing:tool', 
-                                                      $src_tool, 
-                                                      $minc,
-                                                      '$3, $4, $5, $6');
+        ($pipelineName_insert) = &DTI::modify_header(
+            'processing:pipeline', $src_pipeline, $minc
+        );
+        ($toolName_insert) = &DTI::modify_header(
+            'processing:tool', $src_tool, $minc
+        );
         return undef    if ((!$toolName_insert) && (!$pipelineName_insert));
     }
     
@@ -562,14 +560,13 @@ sub register_minc {
                                                      $scanType);
 
     # Insert into the mincheader processed directory of the minc to register
-    my $procdir             = dirname($minc);
-    my ($procdir_insert)    = &DTI::modify_header('processing:processed_dir', 
-                                                  $procdir,
-                                                  $minc,
-                                                  '$3, $4, $5, $6');
+    my $procdir          = dirname($minc);
+    my ($procdir_insert) = &DTI::modify_header(
+        'processing:processed_dir', $procdir, $minc
+    );
 
     # Insert nrrd file into minc file if $registered_nrrd is defined
-    my ($nrrd_insert)       = &DTI::modify_header('processing:nrrd_file', $registered_nrrd, $minc, '$3, $4, $5, $6')  if ($registered_nrrd);
+    my ($nrrd_insert) = &DTI::modify_header('processing:nrrd_file', $registered_nrrd, $minc) if ($registered_nrrd);
     
     # Determine coordinate '}->{'pace
     my ($coordinateSpace);
@@ -1153,10 +1150,9 @@ sub getPipelineDate {
         
         if ($file=~/\.mnc/) {
             # insert pipelineDate into mincheader if not already in the mincheader. 
-            ($date_insert)  = &DTI::modify_header('processing:processing_date', 
-                                                  $pipelineDate, 
-                                                  $file,
-                                                  '$3, $4, $5, $6');
+            ($date_insert) = &DTI::modify_header(
+                'processing:processing_date', $pipelineDate, $file
+            );
         }
     
     } else  {
@@ -1200,14 +1196,12 @@ sub insertReports {
     return undef    unless (($minc) && ($registeredXMLFile) && ($registeredQCReportFile));
 
     # Insert files into the mincheader
-    my ($Txtreport_insert)  = &DTI::modify_header('processing:DTIPrepTxtReport',
-                                                  $registeredQCReportFile,     
-                                                  $minc,
-                                                  '$3, $4, $5, $6');
-    my ($XMLreport_insert)  = &DTI::modify_header('processing:DTIPrepXmlReport',
-                                                  $registeredXMLFile, 
-                                                  $minc,
-                                                  '$3, $4, $5, $6');
+    my ($Txtreport_insert) = &DTI::modify_header(
+        'processing:DTIPrepTxtReport', $registeredQCReportFile, $minc
+    );
+    my ($XMLreport_insert) = &DTI::modify_header(
+        'processing:DTIPrepXmlReport', $registeredXMLFile, $minc
+    );
 
     return ($Txtreport_insert, $XMLreport_insert);
 }
@@ -1237,20 +1231,18 @@ sub insertPipelineSummary   {
     my ($summary)   =   &DTI::getRejectedDirections($data_dir, $XMLReport);
     
     # insert slice wise excluded gradients in mincheader
-    my $rm_slicewise        = $summary->{'EXCLUDED'}{'slice'}{'txt'};
-    my $count_slice         = $summary->{'EXCLUDED'}{'slice'}{'nb'};
-    my ($insert_slice)      = &DTI::modify_header('processing:slicewise_rejected',
-                                                  $rm_slicewise,
-                                                  $minc,
-                                                  '$3, $4, $5, $6');
+    my $rm_slicewise   = $summary->{'EXCLUDED'}{'slice'}{'txt'};
+    my $count_slice    = $summary->{'EXCLUDED'}{'slice'}{'nb'};
+    my ($insert_slice) = &DTI::modify_header(
+        'processing:slicewise_rejected', $rm_slicewise, $minc
+    );
 
     # insert interlace wise excluded gradients in mincheader
-    my $rm_interlace        = $summary->{'EXCLUDED'}{'interlace'}{'txt'};
-    my $count_interlace     = $summary->{'EXCLUDED'}{'interlace'}{'nb'};
-    my ($insert_inter)      = &DTI::modify_header('processing:interlace_rejected',
-                                                  $rm_interlace,
-                                                  $minc, 
-                                                  '$3, $4, $5, $6');
+    my $rm_interlace    = $summary->{'EXCLUDED'}{'interlace'}{'txt'};
+    my $count_interlace = $summary->{'EXCLUDED'}{'interlace'}{'nb'};
+    my ($insert_inter)  = &DTI::modify_header(
+        'processing:interlace_rejected', $rm_interlace, $minc
+    );
 
     # insert total count (and intergradient count except if scanType is DTIPrepNoReg
     my $count_intergradient = $summary->{'EXCLUDED'}{'intergrad'}{'nb'};
@@ -1261,19 +1253,17 @@ sub insertPipelineSummary   {
         $total  = $count_total - $count_intergradient;
     } else {
         # insert intergradient wise excluded gradients in mincheader
-        $rm_intergradient   = $summary->{'EXCLUDED'}{'intergrad'}{'txt'};
-        ($insert_gradient)  = &DTI::modify_header('processing:intergradient_rejected',
-                                                  $rm_intergradient,
-                                                  $minc,
-                                                  '$3, $4, $5, $6');
+        $rm_intergradient  = $summary->{'EXCLUDED'}{'intergrad'}{'txt'};
+        ($insert_gradient) = &DTI::modify_header(
+            'processing:intergradient_rejected', $rm_intergradient, $minc
+        );
         # total is equal to count_total
         $total  = $count_total;
     }
     # compute total number of excluded gradients and insert it in mincheader
-    my ($total_insert)     = &DTI::modify_header('processing:total_rejected', 
-                                                 $total, 
-                                                 $minc,
-                                                 '$3, $4, $5, $6');
+    my ($total_insert) = &DTI::modify_header(
+        'processing:total_rejected', $total, $minc
+    );
 
     # If all insertions went well, return 1, otherwise return undef
     if (($total_insert) && ($insert_slice) && ($insert_inter) 

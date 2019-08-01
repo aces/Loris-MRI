@@ -8,7 +8,7 @@ utilities
     use NeuroDB::ProcessingUtility;
 
     my $utility       = NeuroDB::MRIProcessingUtility->new(
-                          \$dbh,    $debug,  $TmpDir,
+                          $db, \$dbh,    $debug,  $TmpDir,
                           $logfile, $LogDir, $verbose
                         );
 
@@ -33,7 +33,7 @@ utilities
                               $subjectIDsref
                             );
 
-    $utility->computeSNR($TarchiveID, $ArchLoc, $profile);
+    $utility->computeSNR($TarchiveID, $ArchLoc);
     $utility->orderModalitiesByAcq($TarchiveID, $ArchLoc);
 
 # DESCRIPTION
@@ -43,13 +43,20 @@ scripts of LORIS.
 
 ## Methods
 
-### new($dbhr, $debug, $TmpDir, $logfile, $verbose) >> (constructor)
+### new($db, $dbhr, $debug, $TmpDir, $logfile, $verbose, $profile) >> (constructor)
 
 Creates a new instance of this class. The parameter `$dbhr` is a reference
 to a `DBI` database handle, used to set the object's database handle, so that
 all the DB-driven methods will work.
 
-INPUT: `DBI` database handle
+INPUT: 
+  - $db      : database object
+  - $dbhr    : DBI database handle reference
+  - $debug   : degug flag (1 for debug, 0 otherwise)
+  - $TmpDir  : temporay directory name (for tarchive extraction)
+  - $logfile : log file name
+  - $verbose : boolean flag for verbose behavior (1 lots of messages, 0 otherwise)
+  - $profile : path of the profile file
 
 RETURNS: new instance of this class.
 
@@ -74,7 +81,7 @@ INPUTS:
 
 RETURNS: next visit label found for the candidate
 
-### getFileNamesfromSeriesUID($seriesuid, @alltarfiles)
+### getDICOMFileNamesfromSeriesUID($seriesuid, @alltarfiles)
 
 Will extract from the `tarchive_files` table a list of DICOM files
 matching a given `SeriesUID`.
@@ -213,6 +220,19 @@ RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
   - array of failed checks if any were failed
 
+### update\_mri\_violations\_log\_MincFile\_path($file\_ref)
+
+This function updates the `MincFile` field of the `mri_violations_log` table
+with the file path present in the files table.
+
+Note: this needs to be updated as by default the path is set to be in the `trashbin`
+directory when inserting into the `mri_violations_log` table. However, if the
+worst violation is set to 'warning', the MINC file will get inserted into the
+`files` table and moved to the `assembly` directory, therefore it needs to be
+updated in the `mri_violations_log` table.
+
+INPUTS: file handle reference to the NeuroDB::File object
+
 ### loop\_through\_protocol\_violations\_checks($scan\_type, $severity, $headers, $file)
 
 Loops through all protocol violations checks for a given severity and creates
@@ -339,13 +359,13 @@ INPUTS:
 
 RETURNS: the new DICOM archive location
 
-### CreateMRICandidates($subjectIDsref, $gender, $tarchiveInfo, $User, $centerID, $upload\_id)
+### CreateMRICandidates($subjectIDsref, $sex, $tarchiveInfo, $User, $centerID, $upload\_id)
 
 Registers a new candidate in the `candidate` table.
 
 INPUTS:
   - $subjectIDsref: subject's ID information hash ref
-  - $gender       : gender of the candidate
+  - $sex          : sex of the candidate
   - $tarchiveInfo : tarchive information hash ref
   - $User         : user that is running the pipeline
   - $centerID     : center ID
@@ -401,15 +421,14 @@ INPUT: subject's ID information hash ref
 RETURNS: the candidate mismatch error, or undef if the candidate is validated
 or a phantom
 
-### computeSNR($tarchiveID, $upload\_id, $profile)
+### computeSNR($tarchiveID, $upload\_id)
 
-Computes the SNR on the modalities specified in the `getSNRModalities()`
-routine of the `$profile` file.
+Computes the SNR on the modalities specified in the Config module under the
+section Imaging Pipeline in the field called 'compute\_snr\_modalities'.
 
 INPUTS:
   - $tarchiveID: DICOM archive ID
   - $upload\_id : upload ID of the study
-  - $profile   : configuration file (usually prod)
 
 ### orderModalitiesByAcq($tarchiveID, $upload\_id)
 
@@ -440,12 +459,19 @@ INPUTS:
   - $verb      : 'N' for few main messages,
                  'Y' for more messages (developers)
 
-### isValidMRIProtocol()
+### is\_file\_unique($file, $upload\_id)
 
-Ensures no column in the `mri_protocol` nor the `mri_protocol_checks` 
-tables has comma-separated values.
+Queries the `files` and `parameter_file` tables to make sure that no imaging
+datasets with the same `SeriesUID` and `EchoTime` or the same `MD5sum` hash
+can be found in the database already. If there is a match, it will return a
+message with the information about why the file is not unique. If there is no
+match, then it will return undef.
 
-RETURNS: 1 on success, 0 on failure
+INPUTS:
+  - $file     : the file object from the `NeuroDB::File` package
+  - $upload\_id: the `UploadID` associated to the file
+
+RETURNS: a message with the reason why the file is not unique or undef
 
 # TO DO
 
@@ -455,9 +481,6 @@ Document the following functions:
 
 Remove the function get\_acqusitions($study\_dir, \\@acquisitions) that is not used
 
-Remove the function isValidMRIProtocol() once the database schema is configured 
-to prevent users from entering non-conform entries in the `mri_protocol` table
-
 Fix comments written as #fixme in the code
 
 # LICENSING
@@ -466,5 +489,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

@@ -13,7 +13,7 @@ of LORIS
     my $upload_id         = 123456;
     my $notify_notsummary = 'N';
     $notifier->spool('tarchive validation', $message,   0,
-                     'tarchiveLoader',      $upload_id, 'Y',
+                     'tarchiveLoader.pl',      $upload_id, 'Y',
                      $notify_notsummary
                     );
 
@@ -107,5 +107,5 @@ License: GPLv3
 
 # AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+Jonathan Harlap &lt;jharlap@bic.mni.mcgill.ca>,
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

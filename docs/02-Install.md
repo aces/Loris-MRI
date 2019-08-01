@@ -12,6 +12,7 @@ Following a successful install, some configurations and customizations are
 needed and outlined in the next three sub-sections.
 
 ### 2.2.1 Database
+
 The following tables in the database need to be configured properly for the 
 insertion pipeline to successfully insert scans.
 
@@ -36,18 +37,46 @@ Alternatively, LORIS provides a PHP script called `populate_visit_windows.php`
 in its `tools/` directory that can be used.
 
 
-4. **`mri_scan_type`** and **`mri_protocol`** tables
+4. **`mri_scan_type`**, **`mri_protocol`** and **`mri_protocol_checks`** tables
 
-Ensure your `mri_scan_type` and `mri_protocol` tables contain an entry for 
-each type of scan in the study protocol.
-The `mri_protocol` table is used to identify incoming scans based on their 
-series description **OR** scan parameter values (TE, TR, slice thickness, etc). 
-By default, this table is populated with entries for t1, t2, fMRI and DTI, and 
-the columns defining expected scan parameters (*e.g.* `TE_Range`) are defined 
-very broadly.  
-The `Scan_type` column values are defined in the `mri_scan_type` table 
-(*e.g.* 44=t1). Do not include commas, hyphens, spaces or periods in your 
-`mri_scan_type.Scan_type` column values.
+> - `mri_scan_type`: this table is a lookup table that stores the name of
+the acquisition (*e.g.* t1, t2, flair...). Do not include commas, hyphens,
+spaces or periods in your `mri_scan_type.Scan_type` column values.The ID
+present in this table will be used in the `mri_protocol` and
+`mri_protocol_checks` tables described below.
+
+> - `mri_protocol`: this table is used to identify incoming scans based
+on their series description **OR** scan parameter values (TE, TR,
+slice thickness, etc). By default, this table is populated with entries for t1,
+t2, fMRI and DTI, and the columns defining expected scan parameters
+(*e.g.* `TE_min`, `TE_max`) are defined very broadly.
+
+> - `mri_protocol_checks`: this table allows further checking on the acquisition
+once the scan type has been identified in order to flag certain scans based on
+additional parameters found in the header. For example, let's say a scan has been
+identified with the `mri_protocol` table to be a `t1`. Additional headers could
+be checked in order to flag with a caveat or exclude the scan based on the value
+of that header.
+
+**Behaviour of the `*Min` and `*Max` columns of the `mri_protocol` and
+`mri_protocol_checks` tables:**
+
+> - if for a given parameter (*e.g.* TR) a `*Min` **AND** a `*Max` value have
+been specified, then it will check if the parameter of the scan falls into the
+range \[Min-Max].
+
+> - if for a given parameter, a `*Min` is provided but not a `*Max` then the
+imaging pipeline will check if the parameter of the scan is higher than
+the `*Min` value specified in the table.
+
+> - if for a given parameter, a `*Max` is provided but not a `*Min` then the
+imaging pipeline will check if the parameter of the scan is lower than
+the `*Max` value specified in the table.
+
+> - if for a given parameter, both `*Min` and `*Max` are set to `NULL`, then
+there will be no constraint on that header.
+
+
 
 5. **`Config`** table
 
@@ -90,6 +119,10 @@ Under the `Paths` section:
  * `Secondary QCed dataset`: Path where a secondary QC'ed dataset is to be stored. Used by the DTIPrep pipeline
  * `excluded_series_description`: series descriptions to be excluded from the steps of the pipeline that start at, and follow the DICOM to MINC conversion. Note that the series description entered in that field need to be an exact match of what is present in the DICOM series description field.
  * `ComputeDeepQC`: Enable or disable the automated computation of image quality control. Feature to be integrated in the code base in a **future** release.
+ * `Default visit label for BIDS dataset`: the visit directory in BIDS 
+    structure is optional in the case of only one visit for the whole dataset. In
+    this case, we need to specify to LORIS what would be the default visit label 
+    the project wants to use to store the electrophysiology datasets (*e.g.* V01).
 
 ### 2.2.2 LORIS
 
@@ -161,6 +194,14 @@ More detailed specifications can be consulted in the
 [LORIS repository: MRI Violated Scans Specification](https://github.com/aces/Loris/blob/master/modules/mri_violations/README.md).
 
 
+6. **Electrophysiology Browser**
+
+No configuration setting is needed for the Electrophysiology Browser module. 
+Data loaded in this module get populated automatically by the BIDS insertion 
+scripts (in the `python` directory). It accesses data stored in the 
+`physiological_*` tables.
+
+
 ### 2.2.3 LORIS-MRI 
 
 #### Filesystem
@@ -191,19 +232,10 @@ More detailed specifications can be consulted in the
 if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionProtocol eq 'dti' or $acquisitionProtocol eq 'bold' or $acquisitionProtocol =~ /fmri/) { return 1; }
 ```
 
-- `getSNRModalities()`
-    
-    Routine to instruct the pipeline which 3D modalities to include when 
-    computing the signal-to-noise-ratio (SNR) on MINC images.
-
 - `getSubjectIDs()`
 
     Routine to parse candidate’s PSCID, CandID, Center (determined from the PSCID), and visit 
     label. 
-
-- `filterParameters()`
-
-    Routine that takes in a file as an object and removes all parameters of length > 1000
     
 - `get_DTI_CandID_Visit()`
 
@@ -263,6 +295,7 @@ Under the `Imaging Pipeline` section:
  * `User to notify when executing the pipeline`
  * `Full path to get_dicom_info.pl script`(typically `/data/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
  * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
+ * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting)
 
 Under the `Path` section:
  * `Imaging Data` (typically `/data/$PROJECT/data/`)
@@ -279,6 +312,8 @@ For common errors and frequently asked questions, please refer to the [Appendix
 
 
 ## 2.4 Pipeline flow
+
+### 2.4.1 DICOM insertion (MRI/PET)
 
 The pipeline was initially designed for **raw DICOM MRI data**, collected by a
   longitudinally-organized multi-site study with a defined imaging acquisition
@@ -325,3 +360,20 @@ The graph below shows the different modules mentioned above with the
 
 ![pipeline_flow](images/overall_flow.png)
 
+
+### 2.4.2 BIDS insertion (Electrophysiology)
+
+This pipeline was initially designed to import EEG datasets organized in a 
+BIDS structure into LORIS. With slight modifications and further 
+customization, it could handle other types of electrophysiology modalities.
+
+Typically, electrophysiology data insertion into LORIS is performed via the 
+following steps:
+
+1. Transfer the BIDS-format data to the LORIS server via commandline. Due to the 
+large size of electrophysiological/BIDS data, a suitable browser-based uploader is 
+not presently available.
+
+2. Run the BIDS import script to import the electrophysiology data into the 
+`physiological_*` tables of LORIS. More details about this import script can 
+be found in the [Scripts](04-Scripts.md) section.

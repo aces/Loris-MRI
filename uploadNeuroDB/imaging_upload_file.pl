@@ -31,7 +31,7 @@ The program does the following:
 - Uses the C<ImagingUpload> class to:
    1) Validate the uploaded file   (set the validation to true)
    2) Run C<dicomTar.pl> on the file  (set the C<dicomTar> to true)
-   3) Run C<tarchiveLoader> on the file (set the minc-created to true)
+   3) Run C<tarchiveLoader.pl> on the file (set the minc-created to true)
    4) Remove the uploaded file once the previous steps have completed
    5) Update the C<mri_upload> table
 
@@ -120,12 +120,11 @@ The program does the following
 - Unzips the uploaded file
 
 - Uses the ImagingUpload class to :
-
-   1) Validate the uploaded file (set the validation to true)
-   2) Run dicomTar.pl on the file (set the dicomTar to true)
-   3) Run tarchiveLoader on the file (set the minc-created to true)
-   4) Remove the uploaded file once the previous steps have completed
-   5) Update the mri_upload table 
+   1) Validate the uploaded file   (set the validation to true)
+   2) Run C<dicomtar.pl> on the file  (set the dicomtar to true)
+   3) Run C<tarchiveLoader.pl> on the file (set the minc-created to true)
+   4) Removes the uploaded file once the previous steps have completed
+   5) Update the C<mri_upload> table 
 
 Documentation: perldoc imaging_upload_file.pl
 
@@ -273,16 +272,16 @@ spool($message,'N', $notify_notsummary);
 $output = $imaging_upload->runTarchiveLoader();
 $imaging_upload->updateMRIUploadTable('Inserting', 0);
 if ( !$output ) {
-    $message = "\nThe tarchiveLoader insertion script has failed.\n";
+    $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
     spool($message,'Y', $notify_notsummary); 
     print STDERR $message;
     exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
-################################################################
-### If we got this far, dicomTar and tarchiveLoader completed###
-#### Remove the uploaded file from the incoming directory#######
-################################################################
+######################################################################
+### If we got this far, dicomTar.pl and tarchiveLoader.pl completed###
+#### Remove the uploaded file from the incoming directory#############
+######################################################################
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";

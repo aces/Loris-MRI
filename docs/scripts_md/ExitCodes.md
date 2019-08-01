@@ -57,7 +57,7 @@ Below is a list of the possible exit codes:
 10\. Exit codes from `uploadNeuroDB/minc_insertion.pl` (exit codes from 180
 to 189)
 
-11\. Exit codes from `uploadNeuroDB/tarchiveLoader` (exit codes from 190 to 199)
+11\. Exit codes from `uploadNeuroDB/tarchiveLoader.pl` (exit codes from 190 to 199)
 
 12\. Exit codes from former scripts that have been removed (exit codes from 200
 to 210)
@@ -68,5 +68,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

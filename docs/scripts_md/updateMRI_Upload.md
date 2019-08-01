@@ -5,7 +5,7 @@ updateMRI\_Upload.pl - updates database table `mri_upload` according to an entry
 
 # SYNOPSIS
 
-updateMRI\_Upload.pl \[options\] -profile prod -tarchivePath tarchivePath -source\_location source\_location
+updateMRI\_Upload.pl \[options\] -profile prod -tarchivePath tarchivePath -source\_location source\_location -timeZone tz
 
 - **-profile prod** : (mandatory) path (absolute or relative to the current directory) of the 
     profile file
@@ -43,4 +43,4 @@ License: GPLv3
 # AUTHORS
 
 Zia Mohades 2014 (zia.mohades@mcgill.ca),
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

@@ -63,6 +63,7 @@ use Date::Parse;
 use MNI::Startup        qw(nocputimes);
 use MNI::Spawn;
 use MNI::FileUtilities  qw(check_output_dirs);
+use NeuroDB::MRI;
 
 @ISA        = qw(Exporter);
 
@@ -162,16 +163,11 @@ RETURNS:
 sub getAnatFile {
     my ($nativedir, $t1_scan_type)  = @_;
 
-    # Fetch files in native directory that matched t1_scan_type
-    my $anat_list   = DTI::getFilesList($nativedir, $t1_scan_type);
+    # Fetch files in native directory that matched t1_scan_type and MINC file type
+    my $anat_list = DTI::getFilesList($nativedir, "\_$t1_scan_type\_[^_]+\.mnc\$");
 
     # Return undef if no anat found, first anat otherwise
-    if (@$anat_list == 0) { 
-        return undef; 
-    } else { 
-        my $anat    = @$anat_list[0];
-        return $anat;
-    }
+    return @$anat_list ? @$anat_list[0] : undef;
 }
 
 
@@ -717,24 +713,36 @@ sub insertProcessInfo {
     # 1) processing:sourceFile
     my  $sourceFile         =   $raw_dti;
     $sourceFile             =~  s/$data_dir//i;
-    my ($sourceFile_insert) = &DTI::modify_header('processing:sourceFile', $sourceFile, $processed_minc, '$3, $4, $5, $6');
+    my ($sourceFile_insert) = &DTI::modify_header(
+        'processing:sourceFile', $sourceFile, $processed_minc
+    );
 
     # 2) processing:sourceSeriesUID information (dicom_0x0020:el_0x000e field of $raw_dti)
-    my  ($seriesUID)        = &DTI::fetch_header_info('dicom_0x0020:el_0x000e',$raw_dti,'$3, $4, $5, $6');
-    my ($seriesUID_insert)  = &DTI::modify_header('processing:sourceSeriesUID', $seriesUID, $processed_minc, '$3, $4, $5, $6');
+    my  ($seriesUID) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, 'dicom_0x0020:el_0x000e'
+    );
+    my ($seriesUID_insert)  = &DTI::modify_header(
+        'processing:sourceSeriesUID', $seriesUID, $processed_minc
+    );
 
     # 3) processing:pipeline used
-    my ($pipeline_insert)   = &DTI::modify_header('processing:pipeline', 'DTIPrepPipeline', $processed_minc, '$3, $4, $5, $6');
+    my ($pipeline_insert)   = &DTI::modify_header(
+        'processing:pipeline', 'DTIPrepPipeline', $processed_minc
+    );
     
     # 4) processing:tool used
-    my ($tool_insert)       = &DTI::modify_header('processing:tool', $DTIPrepVersion, $processed_minc, '$3, $4, $5, $6');
+    my ($tool_insert)       = &DTI::modify_header(
+        'processing:tool', $DTIPrepVersion, $processed_minc
+    );
 
     # 5) processing:processing_date (when DTIPrep was run)
     my  $check_line         =   `cat $QC_report | grep "Check Time"`;
     $check_line             =~  s/Check Time://;  # Only keep date info in $check_line.
     my ($ss,$mm,$hh,$day,$month,$year,$zone)    =   strptime($check_line);
     my $processingDate      =   sprintf("%4d%02d%02d",$year+1900,$month+1,$day);
-    my ($date_insert)       = &DTI::modify_header('processing:processing_date', $processingDate, $processed_minc, '$3, $4, $5, $6');
+    my ($date_insert)       = &DTI::modify_header(
+        'processing:processing_date', $processingDate, $processed_minc
+    );
 
     if (($sourceFile_insert) 
      && ($seriesUID_insert) 
@@ -768,12 +776,20 @@ sub insertAcqInfo {
     my  ($raw_dti, $processed_minc) = @_;
 
     # 1) insertion of acquisition:b_value 
-    my ($b_value)       = DTI::fetch_header_info('acquisition:b_value',$raw_dti,'$3, $4, $5, $6');
-    my ($bvalue_insert) = DTI::modify_header('acquisition:b_value', $b_value, $processed_minc, '$3, $4, $5, $6');
+    my ($b_value) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, 'acquisition:b_value'
+    );
+    my ($bvalue_insert) = DTI::modify_header(
+        'acquisition:b_value', $b_value, $processed_minc
+    );
 
     # 2) insertion of acquisition:delay_in_TR 
-    my ($delay_in_tr)   = DTI::fetch_header_info('acquisition:delay_in_TR',$raw_dti,'$3, $4, $5, $6');
-    my ($delaytr_insert)= DTI::modify_header('acquisition:delay_in_TR', $delay_in_tr, $processed_minc, '$3, $4, $5, $6');
+    my ($delay_in_tr) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, 'acquisition:delay_in_TR'
+    );
+    my ($delaytr_insert)= DTI::modify_header(
+        'acquisition:delay_in_TR', $delay_in_tr, $processed_minc
+    );
 
     # 3) insertion of all the remaining acquisition:* arguments 
     #    [except acquisition:bvalues, acquisition:b_matrix and acquisition:direction* (already in header from nrrd2minc conversion)]
@@ -808,20 +824,24 @@ sub insertFieldList {
     my  ($raw_dti, $processed_minc, $minc_field) = @_;
 
     # fetches list of arguments starting with $minc_field (i.e. 'patient:'; 'study:' ...)
-    my  ($arguments) =   DTI::fetch_header_info($minc_field, $raw_dti, '$1, $2');
+    my  ($arguments) = &NeuroDB::MRI::fetch_header_info(
+        $raw_dti, $minc_field, 0, 1
+    );
 
     # fetches list of values with arguments starting with $minc_field. Don't remove semi_colon (last option of fetch_header_info).
-    my  ($values) =   DTI::fetch_header_info($minc_field, $raw_dti, '$3, $4, $5, $6, $7', 1);
+    my  ($values) = &NeuroDB::MRI::fetch_header_info($raw_dti, $minc_field, 1);
 
-    my  ($arguments_list, $arguments_list_size) =   get_header_list('=', $arguments);
-    my  ($values_list, $values_list_size)       =   get_header_list(';', $values);
+    my  ($arguments_list, $arguments_list_size) = get_header_list('\cI\cI', $arguments);
+    my  ($values_list, $values_list_size)       = get_header_list(';',      $values);
 
     my  @insert_failure;
     if  ($arguments_list_size   ==  $values_list_size)  {
         for (my $i=0;   $i<$arguments_list_size;    $i++)   {
             my  $argument   =   @$arguments_list[$i];
             my  $value      =   @$values_list[$i];
-            my ($insert)    = DTI::modify_header($argument, $value, $processed_minc, '$3, $4, $5, $6');
+            my ($insert)    = DTI::modify_header(
+                $argument, $value, $processed_minc
+            );
             # store in array @insert_failure the arguments that were not successfully inserted in the mincheader
             push (@insert_failure, $argument) if (!$insert);
         }
@@ -840,7 +860,7 @@ sub insertFieldList {
 
 =pod
 
-=head3 modify_header($argument, $value, $minc, $awk)
+=head3 modify_header($argument, $value, $minc)
 
 Function that runs C<minc_modify_header> and inserts MINC header information if
 not already inserted.
@@ -849,62 +869,28 @@ INPUTS:
   - $argument: argument to be inserted in MINC header
   - $value   : value of the argument to be inserted in MINC header
   - $minc    : MINC file
-  - $awk     : awk info to check if the argument was inserted in MINC header
 
 RETURNS: 1 if argument was inserted in the MINC header, undef otherwise
 
 =cut
 
 sub modify_header {
-    my  ($argument, $value, $minc, $awk) =   @_;
+    my  ($argument, $value, $minc) =   @_;
     
     # check if header information not already in minc file
-    my $hdr_val =   &DTI::fetch_header_info($argument, $minc, $awk);
+    my $hdr_val = &NeuroDB::MRI::fetch_header_info($minc, $argument);
 
     # insert mincheader unless mincheader field already inserted ($hdr_val eq $value)
-    my  $cmd    =   "minc_modify_header -sinsert $argument=$value $minc";
+    my $cmd = "minc_modify_header -sinsert $argument=" . quotemeta($value) . " $minc";
     system($cmd)    unless (($hdr_val) && ($value eq $hdr_val));
 
     # check if header information was indeed inserted in minc file
-    my $hdr_val2 =   &DTI::fetch_header_info($argument, $minc, $awk);
+    my $hdr_val2 = &NeuroDB::MRI::fetch_header_info($minc, $argument);
     if ($hdr_val2) {
         return 1;
     } else {
         return undef;
     }
-}
-
-
-=pod
-
-=head3 fetch_header_info($field, $minc, $awk, $keep_semicolon)
-
-Function that fetches header information in MINC file.
-
-INPUTS:
-  - $field: field to look for in MINC header
-  - $minc : MINC file
-  - $awk  : awk info to check if argument inserted in MINC header
-  - $keep_semicolon: if set, keep ";" at the end of extracted value
-
-RETURNS: value of the field found in the MINC header
-
-=cut
-
-sub fetch_header_info {
-    my  ($field, $minc, $awk, $keep_semicolon)  =   @_;
-
-    my  $val    =   `mincheader $minc | grep $field | awk '{print $awk}' | tr '\n' ' '`;
-    my  $value  =   $val    if  $val !~ /^\s*"*\s*"*\s*$/;
-    if ($value) {
-        $value  =~  s/^\s+//;                           # remove leading spaces
-        $value  =~  s/\s+$//;                           # remove trailing spaces
-        $value  =~  s/;//   unless ($keep_semicolon);   # remove ";" unless $keep_semicolon is defined
-    } else {
-        return undef;
-    }
-
-    return  ($value);
 }
 
 
@@ -1036,7 +1022,7 @@ sub mincdiff_minctensor {
 
 =head3 RGBpik_creation($dti_file, $DTIrefs)
 
-Function that runs C<mincpik> on the RGB map.
+Function that runs C<mincpik.pl> on the RGB map.
 
 INPUTS:
   - $dti_file: hash key to use to fetch file names (e.g. raw DWI file)
@@ -1055,8 +1041,8 @@ sub RGBpik_creation {
         # 2. output file
     my $rgb_pic = $DTIrefs->{$dti_file}{'Postproc'}{'rgb_pic'};   
 
-    # Run mincpik on the RGB map
-    `mincpik -triplanar -horizontal $RGB $rgb_pic`;
+    # Run mincpik.pl on the RGB map
+    `mincpik.pl -triplanar -horizontal $RGB $rgb_pic`;
 
     # Check that the RGB pik was created
     if (-e $rgb_pic) {

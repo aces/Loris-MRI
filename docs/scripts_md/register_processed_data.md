@@ -80,16 +80,6 @@ INPUTS:
 
 RETURNS: acquisition protocol ID
 
-### fetchMincHeader($file, $field)
-
-This function parses the MINC header and looks for a specific field value.
-
-INPUTS:
-  - $file : MINC file
-  - $field: MINC header field values
-
-RETURNS: MINC header value
-
 ### copy\_file($filename, $subjectIDsref, $scan\_type, $fileref)
 
 Moves files to `assembly` folder.
@@ -137,4 +127,4 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

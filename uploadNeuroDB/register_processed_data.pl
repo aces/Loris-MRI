@@ -67,6 +67,7 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
 
 my  $profile    = undef;
 my  $filename;
@@ -147,7 +148,15 @@ unless  (-r $filename)  {
 }
 
 # Establish database connection
-my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+my $db = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
 
 # These settings are in the config file (profile)
 my $data_dir = NeuroDB::DBI::getConfigSetting(
@@ -182,11 +191,11 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     &NeuroDB::MRI::mapDicomParameters(\$file);
     print LOG "\n==>Mapped DICOM parameters\n";
 
-    # Optionally do extra filtering, if needed
-    if  (defined(&Settings::filterParameters))  {
-        print LOG "\t -> using user-defined filterParameters for $filename\n" ;
-        Settings::filterParameters(\$file);     
-    }
+    # filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
+    print LOG "\t -> filters out parameters of length > "
+              . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $filename\n";
+    $file->filterParameters();
+
 }
 
 
@@ -197,13 +206,17 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  $lookupCenterName       =   NeuroDB::DBI::getConfigSetting(
                                     \$dbh,'lookupCenterNameUsing'
                                     );
-    my  $patientInfo;
-    if      ($lookupCenterName eq 'PatientName')    {
-        $patientInfo    =   fetchMincHeader($filename,'patient:full_name');
-    }elsif  ($lookupCenterName eq 'PatientID')      {
-        $patientInfo    =   fetchMincHeader($filename,'patient:identification');
+    my $patientInfo;
+    if ($lookupCenterName eq 'PatientName') {
+        $patientInfo = &NeuroDB::MRI::fetch_header_info(
+            $filename, 'patient:full_name'
+        );
+    }elsif ($lookupCenterName eq 'PatientID') {
+        $patientInfo = &NeuroDB::MRI::fetch_header_info(
+            $filename, 'patient:identification'
+        );
     }
-    ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh);
+    ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh, $db);
     my  $psc    =   $center_name;
     if  (!$psc)     { 
         print LOG "\nERROR: No center found for this candidate \n\n"; 
@@ -220,17 +233,24 @@ my $scannerID;
 
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my  %scannerInfo;
-    my  $register_new   =   0;  # This does not allow to register new sanner since files are supposed to be children from files (and scanner)  already entered in the database. Should add it as an option? 
-    $scannerInfo{'ScannerManufacturer'}     =   fetchMincHeader($filename,'study:manufacturer');
-    $scannerInfo{'ScannerModel'}            =   fetchMincHeader($filename,'study:device_model');
-    $scannerInfo{'ScannerSerialNumber'}     =   fetchMincHeader($filename,'study:serial_no');
-    $scannerInfo{'ScannerSoftwareVersion'}  =   fetchMincHeader($filename,'study:software_version');
-    $scannerID  =   NeuroDB::MRI::findScannerID($scannerInfo{'ScannerManufacturer'},
-                                                $scannerInfo{'ScannerModel'},
-                                                $scannerInfo{'ScannerSerialNumber'},
-                                                $scannerInfo{'ScannerSoftwareVersion'},
-                                                $centerID,\$dbh,0
-                                                );
+    $scannerInfo{'ScannerManufacturer'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:manufacturer'
+    );
+    $scannerInfo{'ScannerModel'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:device_model'
+    );
+    $scannerInfo{'ScannerSerialNumber'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:serial_no'
+    );
+    $scannerInfo{'ScannerSoftwareVersion'} = &NeuroDB::MRI::fetch_header_info(
+        $filename, 'study:software_version'
+    );
+    $scannerID  =   NeuroDB::MRI::findScannerID(
+        $scannerInfo{'ScannerManufacturer'}, $scannerInfo{'ScannerModel'},
+        $scannerInfo{'ScannerSerialNumber'}, $scannerInfo{'ScannerSoftwareVersion'},
+        $centerID,                           \$dbh,
+        0,                                   $db
+    );
 }else   {
     $scannerID  =   getScannerID($sourceFileID,$dbh);
 }
@@ -247,8 +267,7 @@ print LOG "\t -> Set ScannerID to $scannerID.\n";
 # ----- STEP 4: Determine using sourceFileID: 
 #                   - subject's identifiers 
 #                   - sessionID 
-#                   - requiresStaging 
-my ($sessionID,$requiresStaging,$subjectIDsref)    =   getSessionID($sourceFileID,$dbh);
+my ($sessionID,$subjectIDsref)    =   getSessionID($sourceFileID,$dbh);
 if  (!defined($sessionID))  {
     print LOG "\nERROR: could not determine sessionID based on sourceFileID "
               . "$sourceFileID. Are you sure the sourceFile was registered "
@@ -326,7 +345,7 @@ my $horizontalPics = &NeuroDB::DBI::getConfigSetting(
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     # make the browser pics
     print "Making browser pics\n";
-    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics);
+    &NeuroDB::MRI::make_pics(\$file, $data_dir, $pic_dir, $horizontalPics, $db);
 }
 
 # tell the user we've done so and include the MRIID for reference
@@ -379,10 +398,7 @@ sub getSessionID    {
         return undef;
     }
 
-    # set requiresStaging to null as long as don't have any more information on this field
-    my $requiresStaging =   0;
-
-    return  ($sessionID,$requiresStaging,\%subjectIDsref);
+    return  ($sessionID, \%subjectIDsref);
 }
 
 
@@ -454,34 +470,6 @@ sub getAcqProtID    {
 
     return  ($acqProtID);
 }
-
-
-=pod
-
-=head3 fetchMincHeader($file, $field)
-
-This function parses the MINC header and looks for a specific field value.
-
-INPUTS:
-  - $file : MINC file
-  - $field: MINC header field values
-
-RETURNS: MINC header value
-
-=cut
-
-sub fetchMincHeader {
-    my  ($file,$field)  =   @_;
-
-    my  $value  =   `mincheader $file | grep '$field' | awk '{print \$3, \$4, \$5, \$6}' | tr '\n' ' '`;
-
-    $value=~s/"//g;    #remove "
-    $value=~s/^\s+//; #remove leading spaces
-    $value=~s/\s+$//; #remove trailing spaces
-    $value=~s/;//;    #remove ;
-
-    return  $value;
-}    
 
 
 =pod
