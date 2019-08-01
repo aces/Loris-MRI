@@ -168,6 +168,11 @@ INPUT: variable to remove white space from (string or array)
 
 RETURNS: string or array of the value without white spaces
 
+### filterParameters
+
+Manipulates the NeuroDB::File object's parameters and removes all parameters of
+length > $MAX\_DICOM\_PARAMETER\_LENGTH
+
 # TO DO
 
 Other operations should be added: perhaps `get*` methods for those fields in
@@ -184,5 +189,5 @@ License: GPLv3
 
 # AUTHORS
 
-Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+Jonathan Harlap &lt;jharlap@bic.mni.mcgill.ca>,
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

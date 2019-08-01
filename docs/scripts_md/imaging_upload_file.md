@@ -26,7 +26,7 @@ The program does the following:
 \- Uses the `ImagingUpload` class to:
    1) Validate the uploaded file   (set the validation to true)
    2) Run `dicomTar.pl` on the file  (set the `dicomTar` to true)
-   3) Run `tarchiveLoader` on the file (set the minc-created to true)
+   3) Run `tarchiveLoader.pl` on the file (set the minc-created to true)
    4) Remove the uploaded file once the previous steps have completed
    5) Update the `mri_upload` table
 
@@ -83,5 +83,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

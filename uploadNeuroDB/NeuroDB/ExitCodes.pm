@@ -66,7 +66,7 @@ Below is a list of the possible exit codes:
 10. Exit codes from C<uploadNeuroDB/minc_insertion.pl> (exit codes from 180
 to 189)
 
-11. Exit codes from C<uploadNeuroDB/tarchiveLoader> (exit codes from 190 to 199)
+11. Exit codes from C<uploadNeuroDB/tarchiveLoader.pl> (exit codes from 190 to 199)
 
 12. Exit codes from former scripts that have been removed (exit codes from 200
 to 210)
@@ -100,6 +100,7 @@ our $MISSING_ARG          = 3; # if missing script's argument(s)
 our $DB_SETTINGS_FAILURE  = 4; # if DB settings in profile file are not set
 our $INVALID_PATH         = 5; # if path to file or folder does not exist
 our $INVALID_ARG          = 6; # if one of the program arguments is invalid
+our $INVALID_IMPORT       = 7; # if an import statement failed
 
 
 ## -- Common database related failures (exit codes from 20 to 39)
@@ -141,8 +142,8 @@ our $TARGET_EXISTS_NO_CLOBBER  = 83; # if tarchive already exists but option
 our $UNKNOWN_PROTOCOL          = 84; # if could not find acquisition protocol
                                      # of the file to be inserted
 our $NOT_A_SINGLE_STUDY        = 85; # if the upload regroups multiple studies
-
-
+our $GET_SUBJECT_ID_FAILURE    = 86; # if could not determine subject IDs
+our $GET_SESSION_ID_FAILURE    = 87; # if could not determine session ID
 
 
 ##### ---- SECTION 2: SCRIPT SPECIFIC EXIT CODES NOT COVERED IN SECTION 1
@@ -178,7 +179,7 @@ our $INVALID_TARCHIVE   = 180; # if tarchive validation is not set to 1 in the
 our $CANDIDATE_MISMATCH = 181; # if candidate PSCID and CandID do not match
 
 
-## -- FROM uploadNeuroDB/tarchiveLoader (exit codes from 190 to 199)
+## -- FROM uploadNeuroDB/tarchiveLoader.pl (exit codes from 190 to 199)
 
 # file related failures
 our $NO_VALID_MINC_CREATED = 190; # if no valid MINC file was created

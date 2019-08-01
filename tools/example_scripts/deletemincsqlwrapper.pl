@@ -107,7 +107,7 @@ my $queryF = <<SQL;
   LEFT JOIN parameter_type AS pt using (ParameterTypeID)
   LEFT JOIN files_qcstatus AS q using (FileID)
   LEFT JOIN session AS s ON (f.SessionID=s.ID)
-  LEFT JOIN psc AS c ON (c.CenterID=s.CenterID)
+  LEFT JOIN psc AS c ON (c.RegistrationCenterID=s.CenterID)
   LEFT JOIN mri_scan_type AS m ON (m.ID=f.AcquisitionProtocolID)
   LEFT JOIN tarchive AS t ON f.TarchiveSource=t.TarchiveID
   WHERE pt.Name = 'acquisition:slice_thickness'
@@ -159,8 +159,8 @@ if ($sthF->rows > 0) {
     print $minc_delete_log . "\n";
 
     if ($insertminc) {
-      # Running tarchiveLoader on the archived tar as a whole will only insert new minc files that are not already in the files table 
-      my $tar_loader_cmd  = "uploadNeuroDB/tarchiveLoader -profile " . $profile . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
+      # Running tarchiveLoader.pl on the archived tar as a whole will only insert new minc files that are not already in the files table 
+      my $tar_loader_cmd  = "uploadNeuroDB/tarchiveLoader.pl -profile " . $profile . " -verbose -globLocation " . $fF->{'ArchiveLocation'};
       print $tar_loader_cmd . "\n";
       my $tar_loader_log  = `$tar_loader_cmd`;
       print $tar_loader_log . "\n";

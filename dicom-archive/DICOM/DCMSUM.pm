@@ -130,40 +130,16 @@ sub database {
     # whether the query worked fine
     my $success = undef;
     # check if this StudyUID is already in your database
-    (my $query = <<QUERY) =~ s/\n/ /gm;
-      SELECT 
-        DicomArchiveID, 
-        CreateInfo, 
-        LastUpdate,     
-        CreatingUser, 
-        md5sumArchive 
-      FROM 
-        tarchive 
-      WHERE 
-        DicomArchiveID=?
-QUERY
-    my $sth = $dbh->prepare($query);
-    $sth->execute($self->{studyuid});
-    
-    # if there is an entry get create info
-    if($sth->rows > 0) {
-	my @row = $sth->fetchrow_array();
-	if($update == 0) {
-	    print "\n\nPROBLEM:\n The user \'$row[3]\' has already inserted this study. \n The unique study ID is $row[0]\n";
-	    print " This is the information retained from the first time the study was inserted:\n $row[1]\n\n";
-	    print " Last update of record :\n $row[2]\n\n";
-	    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
-	}
-	# do not allow to run diccomSummary with database option if the study has already been archived
-	elsif (!$Archivemd5 && $row[3] ne "") { 
-	    print "\n\n PROBLEM: This study has already been archived. You can only re-archive it using dicomTar!\n";
-	    print " This is the information retained from the first time the study has been archived:\n $row[1]\n\n";
-	    exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
+    my ($unique_study, $message) = $self->is_study_unique($dbh, $update, $Archivemd5);
+    if (!$unique_study && !$update) {
+        # if the study is not unique and update is not set it means the script
+        # should stop running and display the error message
+        print STDERR $message;
+        exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
     }
-	
-    } else {
-	$update = 0;
-    }
+    # the tarchive is unique so set update to false since it will need an insert
+    $update = 0 if $unique_study;
+
 
     # INSERT or UPDATE 
     # get acquisition metadata
@@ -174,7 +150,7 @@ QUERY
       tarchive SET  
         DicomArchiveID = ?,       PatientName = ?,
         PatientID = ?,            PatientDoB = ?,
-        PatientGender = ?,        DateAcquired = ?,
+        PatientSex = ?,           DateAcquired = ?,
         ScannerManufacturer = ?,  ScannerModel = ?,
         ScannerSerialNumber = ?,  ScannerSoftwareVersion = ?,
         CenterName = ?,           AcquisitionCount = ?,
@@ -197,13 +173,13 @@ QUERY
 
     # If we are in auto launch mode
     if(length($creating_user) == 0) {
-        ($query = <<QUERY) =~ s/\n/ /gm;
+        (my $query = <<QUERY) =~ s/\n/ /gm;
           SELECT UploadedBy
           FROM mri_upload
           WHERE DecompressedLocation = ?
 QUERY
         # Lookup in the mri_upload table
-        $sth     = $dbh->prepare($query);
+        my $sth     = $dbh->prepare($query);
         my @args = ($self->{dcmdir});
         $success = $sth->execute(@args);
         print "Failed running query: $query\n\n\n" unless $success;
@@ -255,6 +231,7 @@ QUERY
         push(@values, @new_vals);
     }
 
+    my $query;
     if (!$update) { 
         ($query = <<QUERY) =~ s/\n/ /gm;
           INSERT INTO 
@@ -273,7 +250,7 @@ QUERY
         push(@values, $self->{studyuid});
     }
     
-    $sth     = $dbh->prepare($query);
+    my $sth  = $dbh->prepare($query);
     $success = $sth->execute(@values);
 #FIXME
 print "Failed running query: $query\n\n\n" unless $success;
@@ -283,7 +260,7 @@ print "Failed running query: $query\n\n\n" unless $success;
     if(!$update) {
         $tarchiveID = $dbh->{'mysql_insertid'};
     } else {
-        (my $query = <<QUERY) =~ s/\n/ /gm;
+        ($query = <<QUERY) =~ s/\n/ /gm;
           SELECT 
             TarchiveID 
           FROM 
@@ -292,7 +269,7 @@ print "Failed running query: $query\n\n\n" unless $success;
             DicomArchiveID = ? 
             AND SourceLocation= ?
 QUERY
-        my $sth = $dbh->prepare($query);
+        $sth = $dbh->prepare($query);
         $sth->execute($self->{studyuid}, $self->{dcmdir});
         my @row = $sth->fetchrow_array();
         $tarchiveID = $row[0];
@@ -320,7 +297,7 @@ QUERY
     }
 
     # now create the tarchive_series records
-    (my $query = <<QUERY) =~ s/\n/ /gm;
+    ($query = <<QUERY) =~ s/\n/ /gm;
       INSERT INTO 
         tarchive_series 
           (
@@ -426,6 +403,81 @@ QUERY
         $insert_file->execute(@values);
     }
     return $success; # if query worked this will return 1;
+}
+
+=pod
+
+=head3 is_study_unique($dbh, $update, $Archivemd5)
+
+Verifies if the DICOM study is already registered in the C<tarchive> table
+using the C<StudyUID> field of the DICOM files. If the study is already present in the
+C<tarchive> tables but C<-clobber> was not when running C<dicomTar.pl> or that we are
+using C<dicomSummary.pl>, it will return the appropriate error message.
+
+INPUTS:
+  - $dbh       : database handle
+  - $update    : set to 1 to update C<tarchive> entry, 0 otherwise
+  - $Archivemd5: DICOM archive MD5 sum
+
+RETURNS:
+  - $unique_study: set to 0 if the study was found in the database, 1 otherwise
+  - $message     : error message or undef if no error found
+
+
+=cut
+
+sub is_study_unique {
+    my ($self, $dbh, $update, $Archivemd5) = @_;
+
+    # check if this StudyUID is already in your database
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+      SELECT
+        DicomArchiveID,
+        CreateInfo,
+        LastUpdate,
+        CreatingUser,
+        md5sumArchive
+      FROM
+        tarchive
+      WHERE
+        DicomArchiveID=?
+QUERY
+    my $sth = $dbh->prepare($query);
+    $sth->execute($self->{studyuid});
+
+    # if there is an entry get create info
+    my ($message, $unique_study);
+    if($sth->rows > 0) {
+        $unique_study = 0;
+        my @row = $sth->fetchrow_array();
+        if ($update == 0) {
+            $message = <<MESSAGE;
+
+PROBLEM:
+The user '$row[3]' has already inserted this study.
+The unique study ID is '$row[0]'.
+This is the information retained from the first time the study was inserted:
+$row[1]
+
+Last update of record:
+$row[2]
+
+MESSAGE
+        } elsif (!$Archivemd5 && $row[3] ne "") {
+            # do not allow to run dicomSummary with database option if the study has already been archived
+            $message = <<MESSAGE;
+
+PROBLEM: This study has already been archived. You can only re-archive it using dicomTar!
+This is the information retained from the first time the study has been archived:
+$row[1]
+
+MESSAGE
+        }
+    } else {
+        $unique_study = 1;
+    }
+
+    return $unique_study, $message;
 }
 
 
@@ -716,7 +768,7 @@ sub read_dicom_data {
 	$slice_thickness    = trimwhitespace($dicom->value('0018','0050'));  # element 0 18 slice_thickness
 	$phase_encoding     = trimwhitespace($dicom->value('0018','1312'));  # element 0 19 phase encoding
 
-    # these have been added only for tarchiveLoader functionality
+    # these have been added only for tarchiveLoader.pl functionality
     $manufacturer       = trimwhitespace($dicom->value('0008','0070'));  # element 0 22  scanner manufacturer
     $scanner_serial     = trimwhitespace($dicom->value('0018','1000'));  # element 0 23  scanner serial number
 
@@ -772,7 +824,7 @@ sub fill_header {
     $self->{header}->{institution} = $head_info[$i]->[ 16 ];
     $self->{header}->{modality}    = $head_info[$i]->[ 25 ];
 
-# these have been added for tarchiveLoader
+# these have been added for tarchiveLoader.pl
     $self->{header}->{manufacturer}       = $head_info[$i]->[ 22 ];
     $self->{header}->{scanner_serial}     = $head_info[$i]->[ 23 ];    
     return $self->{header};

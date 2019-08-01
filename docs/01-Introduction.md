@@ -61,8 +61,25 @@ field of the Config module (under the Imaging Pipeline section). Note that what
 the series descriptions entered in that Config field need to be an exact match
 of the series description DICOM field.
 
+### 1.3 LORIS-MRI extension: Electrophysiology data insertion
+
+The electrophysiology insertion scripts are all gathered under the Python 
+directory of the LORIS-MRI repository. It contains one main script called 
+`bids_import.py` that allow import of electrophysiological datasets that have
+been organized in a BIDS structure (see BIDS specification for [EEG][6] and 
+[MEG][7]). Those import scripts were written in `Python` in order to take 
+advantage of the already existing [PyBIDS library][8] that reads BIDS 
+structures.
+
+![electrophysio_import](images/EEG_BIDS_diagram.png)
+
+
+
 [1]: https://github.com/aces/Loris/wiki 
 [2]: http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html
 [3]: https://en.wikibooks.org/wiki/MINC/Introduction 
 [4]: https://nifti.nimh.nih.gov/ 
 [5]: https://brainbrowser.cbrain.mcgill.ca/
+[6]: https://docs.google.com/document/d/1ArMZ9Y_quTKXC-jNXZksnedK2VHHoKP3HCeO5HPcgLE/edit#heading=h.4k1noo90gelw
+[7]: http://bids.neuroimaging.io/bids_spec.pdf
+[8]: https://github.com/INCF/pybids

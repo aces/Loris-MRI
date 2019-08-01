@@ -1,5 +1,7 @@
 # 5.0 - Pipeline Launch options
 
+## 5.1 - Pipeline Launch Options for DICOM datasets
+
 Scans upload into LORIS and insertion pipeline's triggering can be done in a few 
 ways depending on each project's needs. The best choice will depend on the study 
 workflow and protocol. For example, it will depend on whether data is collected 
@@ -24,7 +26,7 @@ the pipeline shown.
 Details about the scripts themselves can be found in the [Scripts](04-Scripts.md)
 section.
  
-## 5.1 Option 1
+### 5.1.1 Option 1
 
 Triggering the pipeline is done from the `/data/$PROJECT/bin/mri` directory as 
 follows:
@@ -45,7 +47,7 @@ uploading to LORIS, and
 3. a project's imaging specialist monitoring new uploads, and launching the 
 insertion pipeline manually, for every new `UploadID` separately. 
 
-## 5.2 Option 2 
+### 5.1.2 Option 2 
 
 Triggering the pipeline from the `/data/$PROJECT/bin/mri` directory can also be 
 achieved as follows: 
@@ -64,7 +66,7 @@ pre-scheduled times, as per the project's requirements).
 
 
 
-## 5.3 Option 3
+### 5.1.3 Option 3
 
 The insertion pipeline can also be triggered using the command:
 ```
@@ -101,3 +103,54 @@ Example for two entries/scans to be uploaded (one human subject and one phantom)
 ```
 
 
+## 5.2 - Pipeline Launch for BIDS datasets
+
+For now, the only way to run the pipeline is by running the `bids_import.py` 
+script manually via the terminal.
+
+To display the help section, run the following in the terminal:
+```bash
+bids_import.py -h
+```
+
+This will display the following help section:
+
+```bash
+usage  : bids_import -d <bids_directory> -p <profile> 
+
+options: 
+	-p, --profile        : name of the python database config file in dicom-archive/.loris-mri
+	-d, --directory      : BIDS directory to parse & insert into LORIS
+	-c, --createcandidate: to create BIDS candidates in LORIS (optional)
+	-s, --createsession  : to create BIDS sessions in LORIS (optional)
+	-v, --verbose        : be verbose
+```
+
+To run the BIDS import, simply run:
+```bash
+bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py
+```
+
+If you wish to create candidates when running the import script, the `-c` 
+option needs to be added. To create sessions when running the import script, 
+the `-s` option need to be added as well.
+```bash
+bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py -c -s
+```
+
+Finally, the verbose option can be turned on by using the option `-v` when 
+calling the script:
+```bash
+bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py -v
+```
+
+
+**Note on the LORIS-MRI Python virtual environment**: in order to be able to 
+run `bids_import.py`, you need to be in the loris-mri Python virtual 
+environment. It should have been sourced when sourcing your LORIS-MRI 
+environment file. If this is not sourced, then simply run the following:
+```bash
+source /data/%PROJECT%/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
+```
+To deactivate a Python virtual environment, simply type `deactivate` in the 
+terminal.

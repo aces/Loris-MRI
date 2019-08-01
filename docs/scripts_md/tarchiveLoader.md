@@ -1,6 +1,6 @@
 # NAME
 
-tarchiveLoader -- this script performs the following:
+tarchiveLoader.pl -- this script performs the following:
 
 \- validation of the DICOM archive
 
@@ -11,11 +11,13 @@ optionally, `mri_protocol_checks` tables.
 
 # SYNOPSIS
 
-perl uploadNeuroDB/tarchiveLoader &lt;/path/to/DICOM-tarchive> `[options]`
+perl uploadNeuroDB/tarchiveLoader.pl &lt;/path/to/DICOM-tarchive> `[options]`
 
 Available options are:
 
 \-profile                 : Name of the config file in `../dicom-archive/.loris_mri`
+
+\-uploadID                : UploadID associated to this upload
 
 \-force                   : Force the script to run even if the validation
                            has failed
@@ -27,9 +29,9 @@ Available options are:
                            for the possibility that the tarchive was moved to
                            a different directory
 
-\-newScanner                 : By default a new scanner will be registered if the
-                              data you upload requires it. You can risk turning
-                              it off
+\-newScanner              : By default a new scanner will be registered if the
+                           data you upload requires it. You can risk turning
+                           it off
 
 \-keeptmp                 : Keep temporary directory. Make sense if have
                            infinite space on your server
@@ -80,4 +82,4 @@ License: GPLv3
 # AUTHORS
 
 J-Sebastian Muehlboeck based on Jonathan Harlap\\'s process\_uploads, LORIS
-community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

@@ -66,6 +66,8 @@ echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo perl -MCPAN -e shell
 sudo -S cpan install Math::Round
 #echo $rootpass | sudo -S cpan install Bundle::CPAN
+sudo -S cpan install DBI
+sudo -S cpan install DBD::mysql
 sudo -S cpan install Getopt::Tabular
 sudo -S cpan install Time::JulianDay
 sudo -S cpan install Path::Class
@@ -74,7 +76,31 @@ sudo -S cpan install Archive::Zip
 sudo -S cpan install Pod::Perldoc
 sudo -S cpan install Pod::Markdown
 sudo -S cpan install Pod::Usage
+sudo -S cpan install JSON
+sudo -S cpan install Moose
+sudo -S cpan install MooseX::Privacy
+sudo -S cpan install TryCatch
+sudo -S cpan install Throwable
 echo
+
+################################################################################
+##Create the loris-mri python virtualenv and install the Python packages########
+################################################################################
+echo "Creating loris-mri Python virtualenv in $mridir/python_virtualenvs/loris-mri-python/"
+# create a directory in $mridir that will store python 3 virtualenv
+sudo -S su $USER -c "mkdir -m 770 -p $mridir/python_virtualenvs/loris-mri-python"
+virtualenv $mridir/python_virtualenvs/loris-mri-python -p `which python3`
+source $mridir/python_virtualenvs/loris-mri-python/bin/activate
+echo "Installing the Python libraries into the loris-mri virtualenv..."
+pip3 install mysqlclient
+pip3 install mysql-connector
+pip3 install pybids
+pip3 install pyblake2
+pip3 install mne
+pip3 install google
+pip3 install protobuf
+# deactivate the virtualenv for now
+deactivate
 
 #######################################################################################
 #############################Create directories########################################
@@ -86,19 +112,15 @@ echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/logs"             #holds logs from pipeline script
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly"         #holds the MINC files
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue)
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/bids_imports"     #contains imported BIDS studies
   sudo -S su $USER -c "mkdir -m 770 -p $mridir/dicom-archive/.loris_mri"
 echo
 
 #####################################################################################
-###############incoming directory using sites########################################
+###############incoming directory ###################################################
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
-echo "Creating incoming director(y/ies)"
- for s in $site; do 
-  sudo -S su $USER -c "mkdir -m 770 -p /data/incoming/$s/incoming"
- done
-echo
 
 ###################################################################################
 #######set environment variables under .bashrc#####################################
@@ -155,12 +177,20 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $mridir/dicom-archive/profileTemplate $mridir/dicom-archive/.loris_mri/$prodfilename
+cp $mridir/dicom-archive/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/profileTemplate > $mridir/dicom-archive/.loris_mri/$prodfilename
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
+echo
+
+echo "Creating python database config file with database credentials"
+cp $mridir/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
+sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
+sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
+echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/database_config.py"
 echo
 
 ######################################################################
@@ -195,8 +225,5 @@ mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPD
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$email' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='mail_user')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/bin/mri/dicom-archive/get_dicom_info.pl' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='get_dicom_info')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/tarchive/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='tarchiveLibraryDir')"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='imagePath') AND Value = '/data/%PROJECTNAME%/data/'"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='data') AND Value = '/data/%PROJECTNAME%/data/'"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='mincPath') AND Value = '/data/%PROJECTNAME%/data/'"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/bin/mri/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MRICodePath') AND Value = '/data/%PROJECTNAME%/bin/mri/'"
 echo
