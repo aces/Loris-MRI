@@ -1604,17 +1604,17 @@ sub CreateMRICandidates {
     my ($subjectIDsref, $tarchiveInfo, $User, $centerID, $upload_id) = @_;
 
     my ($sex, $query, $message);
-    my $dbh    = $this->{dbhr};
+    my $dbhr   = $this->{dbhr};
     my $pscID  = $subjectIDsref->{'PSCID'};
     my $candID = $subjectIDsref->{'CandID'};
 
 
     # return from the function if createCandidate config setting is not set
-    return if (!NeuroDB::DBI::getConfigSetting($dbh, 'createCandidates'));
+    return if (!NeuroDB::DBI::getConfigSetting($dbhr, 'createCandidates'));
 
 
     # Check that no candidates with the same PSCID is already registered
-    if ($pscID ne 'scanner' && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbh)) {
+    if ($pscID ne 'scanner' && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr)) {
 
         $message = "ERROR: Cannot create candidate ($pscID, $candID) as "
                    . "a candidate with PSCID=$pscID already exists.\n";
@@ -1629,7 +1629,7 @@ sub CreateMRICandidates {
 
 
     # Check that no candidates with the same CandID is already registered
-    if (NeuroDB::MRI::subjectIDExists('CandID', $candID, $dbh)) {
+    if (NeuroDB::MRI::subjectIDExists('CandID', $candID, $dbhr)) {
 
         $message = "ERROR: Cannot create candidate ($pscID, $candID) as "
                    . "a candidate with CandID=$candID already exists.\n";
@@ -1651,7 +1651,7 @@ sub CreateMRICandidates {
     }
 
     chomp($User);
-    $candID = NeuroDB::MRI::createNewCandID($dbh) unless $candID;
+    $candID = NeuroDB::MRI::createNewCandID($dbhr) unless $candID;
     $query  = "INSERT INTO candidate ".
               "(CandID, PSCID, DoB, Sex, RegistrationCenterID, ".
               "Date_active, Date_registered, UserID, Entity_type) ".
