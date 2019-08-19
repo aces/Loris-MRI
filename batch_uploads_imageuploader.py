@@ -31,6 +31,10 @@ inserted:
  /data/incoming/PSC0001_123457_V1.tar.gz N PSC0000_123456_V1
  /data/incoming/lego_Phantom_MNI_20140101.zip Y
  /data/incoming/PSC0001_123457_V1_RES.tar.gz N PSC0000_123456_V1
+
+To start the mri_upload process on the LORIS server for each file, use the 
+autostart (-a) option when calling this script.
+
 """
 ))
 
