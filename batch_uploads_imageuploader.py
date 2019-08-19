@@ -18,7 +18,7 @@ scans are provided through a text file (e.g. C<list_of_scans.txt>) with one scan
 details per line.
 
 The scan details includes the path to the scan, identification as to whether the
-scan is for a phantom (Y) or not (N), and the candidate name. As opposred to the
+scan is for a phantom (Y) or not (N), and the candidate name. As opposed to the
 perl script, this one always requires a patient_name, even for non-phantom entries.
 
 Like the LORIS Imaging Uploader interface, this script also validates the
