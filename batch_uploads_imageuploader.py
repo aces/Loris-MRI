@@ -40,7 +40,7 @@ autostart (-a) option when calling this script.
 
 parser.add_argument('-b', '--baseurl', required=True, help='LORIS API url with version.')
 parser.add_argument('-i', '--inputfile', required=True, help='The list of scans.')
-parser.add_argument('-a', '--autostart', action='store_const', const=True, help='If present, will attemp to start the mri_upload process for each scans.')
+parser.add_argument('-a', '--autostart', action='store_const', const=True, help='If present, will attempt to start the mri_upload process for each scans.')
 
 args = parser.parse_args()
 
