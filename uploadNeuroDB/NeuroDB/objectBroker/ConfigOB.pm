@@ -79,6 +79,8 @@ use constant GET_DICOM_INFO            => 'get_dicom_info';
 use constant CONVERTER                 => 'converter';
 use constant LOOK_UP_CENTER_NAME_USING => 'lookupCenterNameUsing';
 use constant DEFACING_REF_SCAN_TYPE    => 'reference_scan_type_for_defacing';
+use constant LEGO_PHANTOM_REGEX        => 'LegoPhantomRegex';
+use constant LIVING_PHANTOM_REGEX      => 'LivingPhantomRegex';
 
 =pod
 
@@ -318,6 +320,32 @@ sub getDefacingRefScanType {
     my $self = shift;
 
     return &$getConfigSettingRef($self, DEFACING_REF_SCAN_TYPE);
+}
+
+=head3 getLegoPhantomRegex()
+
+Get the lego phantom regular expression.
+
+RETURN: value (string) of the lego phantom regular expression in the Config table.
+
+=cut
+sub getLegoPhantomRegex {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, LEGO_PHANTOM_REGEX);
+}
+
+=head3 getLivingPhantomRegex()
+
+Get the living phantom regular expression.
+
+RETURN: value (string) of the living phantom regular expression in the Config table.
+
+=cut
+sub getLivingPhantomRegex {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, LIVING_PHANTOM_REGEX);
 }
 
 1;

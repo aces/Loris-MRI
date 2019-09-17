@@ -13,6 +13,7 @@ NeuroDB::ImagingUpload -- Provides an interface to the uploaded imaging file
 
   my $imaging_upload = &NeuroDB::ImagingUpload->new(
                          \$dbh,
+                         \$db,
                          $TmpDir_decompressed_folder,
                          $upload_id,
                          $patient_name,
@@ -56,6 +57,12 @@ use NeuroDB::DBI;
 use NeuroDB::MRI;
 use File::Temp qw/ tempdir /;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -70,7 +77,7 @@ my $notify_notsummary = 'N'; # notification_spool message flag for messages to b
 
 =pod
 
-=head3 new($dbhr, $uploaded_temp_folder, $upload_id, ...) >> (constructor)
+=head3 new($dbhr, $db, $uploaded_temp_folder, $upload_id, ...) >> (constructor)
 
 Creates a new instance of this class. This constructor needs the location of
 the uploaded file. Once the uploaded file has been validated, it will be
@@ -78,6 +85,7 @@ moved to a final destination directory.
 
 INPUTS:
   - $dbhr                : database handler
+  - $db                  : MOOSE database handle
   - $uploaded_temp_folder: temporary directory of the upload
   - $upload_id           : C<uploadID> from the C<mri_upload> table
   - $pname               : patient name
@@ -90,32 +98,41 @@ RETURNS: new instance of this class
 
 sub new {
     my $params = shift;
-    my ( $dbhr, $uploaded_temp_folder, $upload_id, $pname, $profile, $verbose ) = @_;
-    unless ( defined $dbhr ) {
+    my ( $dbhr, $db, $uploaded_temp_folder, $upload_id, $pname, $profile, $verbose ) = @_;
+    unless ( defined $dbhr && defined $db) {
         croak( "Usage: " . $params . "->new(\$databaseHandleReference)" );
     }
     my $self = {};
 
-    ############################################################
-    ############### Create a settings package ##################
-    ############################################################
+    # ----------------------------------------------------------
+    ## Create a settings package
+    # ----------------------------------------------------------
     {
         package Settings;
         do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
 
-    ############################################################
-    ############### Create a Notify Object #####################
-    ############################################################
 
+    # ----------------------------------------------------------
+    ## Create the ConfigOB
+    # ----------------------------------------------------------
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+
+    # ----------------------------------------------------------
+    ## Create a Notify Object
+    # ----------------------------------------------------------
     my $Notify = NeuroDB::Notify->new( $dbhr );
     $self->{'Notify'} 		        = $Notify;
     $self->{'uploaded_temp_folder'} = $uploaded_temp_folder;
     $self->{'dbhr'}                 = $dbhr;
+    $self->{'db'}                   = $db;
+    $self->{'configOB'}             = $configOB;
     $self->{'pname'}                = $pname;
     $self->{'upload_id'}            = $upload_id;
     $self->{'profile'}              = $profile;
     $self->{'verbose'}              = $verbose;
+
     return bless $self, $params;
 }
 
@@ -136,6 +153,17 @@ RETURNS: 1 on success, 0 on failure
 sub IsCandidateInfoValid {
     my $this = shift;
     my ($message, $query, $where) = '';
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB             = $this->{configOB};
+    my $tarchivePath         = $configOB->getTarchiveLibraryDir();
+    my $bin_dirPath          = $configOB->getMRICodePath();
+    my $lego_phantom_regex   = $configOB->getLegoPhantomRegex();
+    my $living_phantom_regex = $configOB->getLivingPhantomRegex();
+
+
     ############################################################
     ####Set the Inserting flag to true##########################
     #Which means that the scan is going through the pipeline####
@@ -211,12 +239,6 @@ sub IsCandidateInfoValid {
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
         }
-        my $tarchivePath = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr},'tarchiveLibraryDir'
-                            );
-        my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr},'MRICodePath'
-                            );
         unless ($archived_file_path =~ m/$tarchivePath/i) {
             $archived_file_path = ($tarchivePath . "/" . $archived_file_path);
         }
@@ -263,12 +285,6 @@ sub IsCandidateInfoValid {
     }
 
     # check that the patient name was set properly in the DICOM files
-    my $lego_phantom_regex = NeuroDB::DBI::getConfigSetting(
-        $this->{dbhr}, 'LegoPhantomRegex'
-    );
-    my $living_phantom_regex = NeuroDB::DBI::getConfigSetting(
-        $this->{dbhr}, 'LivingPhantomRegex'
-    );
     my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
     my $patient_name  = $this->{'pname'};
     foreach my $file (@image_files) {
@@ -320,9 +336,15 @@ sub runDicomTar {
     my $tarchive_id       = undef;
     my $query             = '';
     my $where             = '';
-    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr},'tarchiveLibraryDir'
-                            );
+
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB             = $this->{configOB};
+    my $tarchive_location    = $configOB->getTarchiveLibraryDir();
+
+
     my $command = sprintf(
         "dicomTar.pl %s %s -database -profile %s",
         quotemeta($this->{'uploaded_temp_folder'}),
@@ -373,6 +395,14 @@ RETURNS: the archive location
 sub getTarchiveFileLocation {
     my $this             = shift;
     my $archive_location = '';
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB             = $this->{configOB};
+    my $tarchive_location    = $configOB->getTarchiveLibraryDir();
+
+
     my $query            = "SELECT t.ArchiveLocation FROM tarchive t "
                            . " WHERE t.SourceLocation =?";
     my $sth              = ${ $this->{'dbhr'} }->prepare($query);
@@ -381,9 +411,6 @@ sub getTarchiveFileLocation {
         $archive_location = $sth->fetchrow_array();
     }
 
-    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
-                            $this->{dbhr},'tarchiveLibraryDir'
-                            );
     unless ($archive_location =~ m/$tarchive_location/i) {
         $archive_location = ($tarchive_location . "/" . $archive_location);
     }
@@ -405,10 +432,17 @@ RETURNS: 1 on success, 0 on failure
 
 sub runTarchiveLoader {
     my $this = shift;
+
     my $archived_file_path = $this->getTarchiveFileLocation();
-    my $bin_dirPath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'MRICodePath'
-                        );
+
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB    = $this->{configOB};
+    my $bin_dirPath = $configOB->getMRICodePath();
+
+
     my $command = sprintf(
         "%s/uploadNeuroDB/tarchiveLoader.pl -globLocation -profile %s %s -uploadID %s",
         quotemeta($bin_dirPath),
@@ -445,9 +479,13 @@ sub PatientNameMatch {
     my $this         = shift;
     my ($dicom_file, $expected_pname_regex) = @_;
 
-    my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
-        $this->{'dbhr'},'lookupCenterNameUsing'
-    );
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB    = $this->{configOB};
+    my $lookupCenterNameUsing = $configOB->getLookupCenterNameUsing();
+
 
     unless ( $lookupCenterNameUsing ) {
         my $message = "\nConfig Setting 'lookupCenterNameUsing' is not set in "
@@ -547,9 +585,14 @@ sub CleanUpDataIncomingDir {
     my ($uploaded_file) = @_;
     my $output = undef;
     my $message = '';
-    my $tarchive_location = NeuroDB::DBI::getConfigSetting(
-                                $this->{dbhr},'tarchiveLibraryDir'
-                            );
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB          = $this->{configOB};
+    my $tarchive_location = $configOB->getTarchiveLibraryDir();
+
+
     ############################################################
     ################ Removes the uploaded file ################# 
     ##### Check first that the file is in the tarchive dir ##### 

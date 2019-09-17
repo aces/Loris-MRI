@@ -45,8 +45,14 @@ use File::Basename;
 use Getopt::Tabular;
 
 
-use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
+
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 my @script_list = (
     'DTIPrep/DTI/DTI.pm',
@@ -167,14 +173,30 @@ if ( !@Settings::db ) {
 
 
 
-## database connection
-my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 print "\n==> Successfully connected to database \n" if $verbose;
 
 
 
-## get data directory from the Config table
-my $loris_mri_path = NeuroDB::DBI::getConfigSetting(\$dbh, 'MRICodePath');
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $loris_mri_path = $configOB->getMriCodePath();
 $loris_mri_path    =~ s/\/$//;
 
 

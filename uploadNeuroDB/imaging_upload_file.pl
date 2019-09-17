@@ -61,6 +61,13 @@ use NeuroDB::ImagingUpload;
 use NeuroDB::Notify;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
 my $versionInfo = sprintf "%d revision %2d",
   q$Revision: 1.24 $ =~ /: (\d+)\.(\d+)/;
 my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
@@ -175,10 +182,36 @@ unless ( -e $uploaded_file ) {
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
-################################################################
-################ Establish database connection #################
-################################################################
+
+
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+$message = "\n==> Successfully connected to database \n";
+
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+
+
 
 ################################################################
 ####Check that UploadID and path to the file are consistent#####
@@ -212,7 +245,8 @@ my $pname = getPnameUsingUploadID($upload_id);
 ################ ImagingUpload  Object #########################
 ################################################################
 my $imaging_upload =
-  NeuroDB::ImagingUpload->new( \$dbh, 
+  NeuroDB::ImagingUpload->new( \$dbh,
+                               $configOB,
                                $TmpDir_decompressed_folder, 
                                $upload_id,
                                $pname, 

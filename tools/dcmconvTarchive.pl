@@ -16,6 +16,12 @@ use DICOM::DICOM;
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 my $verbose = 0;
 my $database = 0;
 my $profile    = undef;
@@ -62,10 +68,35 @@ if ( !@Settings::db ) {
 	exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-# connect to the database
-my $dbh         = &NeuroDB::DBI::connect_to_db(@Settings::db);
-my $bin_dirPath = NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+	databaseName => $Settings::db[0],
+	userName     => $Settings::db[1],
+	password     => $Settings::db[2],
+	hostName     => $Settings::db[3]
+);
+$db->connect();
+
+print "\n==> Successfully connected to database \n";
+
+
+# ----------------------------------------------------------------
+## Get config settings using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $bin_dirPath = $configOB->getMriCodePath();
 $bin_dirPath    =~ s/\/$//;
+
+
 
 my $tarchive = $leftovers[0];
 unless($tarchive =~ /^\//) {

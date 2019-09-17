@@ -258,7 +258,7 @@ $message = "\n==> Successfully connected to database \n";
 
 
 # ----------------------------------------------------------------
-## Get config setting using ConfigOB
+## Get config settings using ConfigOB
 # ----------------------------------------------------------------
 
 my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
@@ -360,12 +360,8 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 ################################################################
 ################ Construct the tarchiveInfo Array ##############
 ################################################################
-my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(
-                            \$dbh,'tarchiveLibraryDir'
-                            );
-$tarchiveLibraryDir    =~ s/\/$//g;
 my $ArchiveLocation    = $tarchive;
-$ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
+$ArchiveLocation       =~ s/$tarchivePath\/?//g;
 my %tarchiveInfo = $utility->createTarchiveArray(
                        $ArchiveLocation,
                        $globArchiveLocation
