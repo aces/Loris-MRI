@@ -159,7 +159,7 @@ sub IsCandidateInfoValid {
     # ----------------------------------------------------------------
     my $configOB             = $this->{configOB};
     my $tarchivePath         = $configOB->getTarchiveLibraryDir();
-    my $bin_dirPath          = $configOB->getMRICodePath();
+    my $bin_dirPath          = $configOB->getMriCodePath();
     my $lego_phantom_regex   = $configOB->getLegoPhantomRegex();
     my $living_phantom_regex = $configOB->getLivingPhantomRegex();
 
@@ -440,7 +440,7 @@ sub runTarchiveLoader {
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
     my $configOB    = $this->{configOB};
-    my $bin_dirPath = $configOB->getMRICodePath();
+    my $bin_dirPath = $configOB->getMriCodePath();
 
 
     my $command = sprintf(

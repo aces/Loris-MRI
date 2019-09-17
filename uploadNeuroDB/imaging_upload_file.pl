@@ -246,7 +246,7 @@ my $pname = getPnameUsingUploadID($upload_id);
 ################################################################
 my $imaging_upload =
   NeuroDB::ImagingUpload->new( \$dbh,
-                               $configOB,
+                               $db,
                                $TmpDir_decompressed_folder, 
                                $upload_id,
                                $pname, 
