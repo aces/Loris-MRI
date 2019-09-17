@@ -122,7 +122,7 @@ RETURNS:
 This function does:
 1) Determines subject's ID based on scanner ID and DICOM archive information.
 2) Call the `CreateMRICandidate` function (will create the candidate if it does 
-not exists and `createCandidates` config option is set to yes
+not exists and `createCandidates` config option is set to yes)
 3) Call the `validateCandidate` to validate the candidate information 
 (it will return a `CandMismatchError` if there is one)
 
