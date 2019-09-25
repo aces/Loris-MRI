@@ -1,0 +1,273 @@
+"""This class performs database queries for BIDS imaging dataset (MRI...)
+"""
+
+import sys
+import re
+import os
+import subprocess
+
+__license__ = "GPLv3"
+
+
+class Imaging:
+
+    def __init__(self, db, verbose):
+        """
+        Constructor method for the Imaging class.
+
+        :param db     : Database class object
+         :type db     : object
+        :param verbose: whether to be verbose
+         :type verbose: bool
+        """
+
+        self.db      = db
+        self.verbose = verbose
+
+    def determine_file_type(self, file):
+        """
+        Greps all file types defined in the ImagingFileTypes table and checks
+        if the file matches one of the file type. If no match is found, the
+        script will exit with error message and error code.
+
+        :param file: file's name
+         "type file: str
+
+        :return: file's type
+         :rtype: str
+        """
+
+        imaging_file_types = self.db.pselect(
+            query="SELECT type FROM ImagingFileTypes"
+        )
+
+        # if the file type cannot be found in the database, exit now
+        file_type = None
+        for type in imaging_file_types:
+            if type['type'] in file:
+                file_type = type['type']
+
+        # exits if could not find a file type
+        if not file_type:
+            message = "\nERROR: File type for " + file + " does not exist " \
+                      "in ImagingFileTypes database table\n"
+            print(message)
+            sys.exit(lib.exitcode.SELECT_FAILURE)
+
+        return file_type
+
+    def grep_file_id_from_hash(self, blake2b_hash):
+        """
+        Greps the file ID from the files table. If it cannot be found, the method ]
+        will return None.
+
+        :param blake2b_hash: blake2b hash
+         :type blake2b_hash: str
+
+        :return: file ID and file path
+         :rtype: int
+        """
+
+        query = "SELECT f.FileID, f.File "     \
+                "FROM files AS f "     \
+                "JOIN parameter_file " \
+                    "USING (FileID) "   \
+                "JOIN parameter_type "               \
+                    "USING (ParameterTypeID) "       \
+                "WHERE Value=%s"
+
+        results = self.db.pselect(query=query, args=(blake2b_hash,))
+
+        # return the results
+        return results[0] if results else None
+
+    def insert_imaging_file(self, file_info, file_data):
+        """
+        Inserts the imaging file and its information into the files and parameter_file tables.
+
+        :param file_info: dictionary with values to insert into files' table
+         :type file_info: dict
+        :param file_data: dictionary with values to insert into parameter_file's table
+         :type file_data: dict
+
+        :return: file ID
+         :rtype: int
+        """
+
+        # insert info from file_info into files
+        file_fields = ()
+        file_values = ()
+        for key, value in file_info.items():
+            file_fields = file_fields + (key,)
+            file_values = file_values + (value,)
+        file_id = self.db.insert(
+            table_name='physiological_file',
+            column_names=file_fields,
+            values=[file_values],
+            get_last_id=True
+        )
+
+        # insert info from file_data into parameter_file
+        for key, value in file_data.items():
+            self.insert_parameter_file(file_id, key, value)
+
+        return file_id
+
+    def insert_parameter_file(self, file_id, parameter_name, value):
+        """
+        Insert a row into the parameter_file table for the provided FileID,
+        parameter Name and Value
+
+        :param file_id       : FileID
+         :type file_id       : int
+        :param parameter_name: Name of the parameter from parameter_type
+         :type parameter_name: str
+        :param value         : Value to insert into parameter_file
+         :type value         : str
+        """
+
+        # Gather column name & values to insert into parameter_file
+        parameter_type_id = self.get_parameter_type_id(parameter_name)
+        parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value')
+        parameter_file_values = (file_id, parameter_type_id, value)
+        self.db.insert(
+            table_name='parameter_file',
+            column_names=parameter_file_fields,
+            values=parameter_file_values
+        )
+
+    def get_parameter_type_id(self, parameter_name):
+        """
+        Greps ParameterTypeID from parameter_type table using parameter_name.
+        If no ParameterTypeID were found, will create it in parameter_type.
+
+        :param parameter_name: name of the parameter to look in parameter_type
+         :type parameter_name: str
+
+        :return: ParameterTypeID
+         :rtype: int
+        """
+
+        results = self.db.pselect(
+            query="SELECT ParameterTypeID "
+                  "FROM parameter_type "   
+                  "WHERE Name = %s "
+                  "AND SourceFrom='parameter_file'",
+            args=(parameter_name,)
+        )
+
+        if results:
+            # if results, grep the parameter_type_id
+            parameter_type_id = results[0]['ParameterTypeID']
+        else:
+            # if no results, create an entry in parameter_type
+            col_names = (
+                'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
+            )
+            parameter_desc = parameter_name + " magically created by" \
+                             " lib.imaging python class"
+            source_from    = 'parameter_file'
+            values = (
+                parameter_name, 'text', parameter_desc, source_from, 0
+            )
+            parameter_type_id = self.db.insert(
+                table_name   = 'parameter_type',
+                column_names = col_names,
+                values       = values,
+                get_last_id  = True
+            )
+
+            # link the parameter_type_id to a parameter type category
+            category_id = self.get_parameter_type_category_id()
+            self.db.insert(
+                table_name   = 'parameter_type_category_rel',
+                column_names = ('ParameterTypeCategoryID', 'ParameterTypeID'),
+                values       = (category_id, parameter_type_id),
+                get_last_id  = False
+            )
+
+        return parameter_type_id
+
+    def get_parameter_type_category_id(self):
+        """
+        Greps ParameterTypeCategoryID from parameter_type_category table.
+        If no ParameterTypeCategoryID was found, it will return None.
+
+        :return: ParameterTypeCategoryID
+         :rtype: int
+        """
+
+        category_result = self.db.pselect(
+            query='SELECT ParameterTypeCategoryID '
+                  'FROM parameter_type_category '
+                  'WHERE Name = %s ',
+            args=('MRI Variables',)
+        )
+
+        if not category_result:
+            return None
+
+        return category_result[0]['ParameterTypeCategoryID']
+
+    def grep_parameter_value_from_file_id(self, file_id, param_name):
+        """
+        Greps the value stored in physiological_parameter_file for a given
+        PhysiologicalFileID and parameter name (from the parameter_type table).
+
+        :param file_id   : FileID to use in the query
+         :type file_id   : int
+        :param param_name: parameter name to use in the query
+         :type param_name: str
+
+        :return: result of the query from the parameter_file table
+         :rtype: dict
+        """
+
+        query = "SELECT Value " \
+                "FROM parameter_file " \
+                "JOIN parameter_type USING (ParameterTypeID) " \
+                "WHERE FileID = %s AND Name = %s"
+
+        results = self.db.pselect(
+            query = query,
+            args  = (file_id, param_name)
+        )
+
+        # return the result
+        return results[0] if results else None
+
+    def grep_file_type_from_file_id(self, file_id):
+        """
+        Greps the file type stored in the files table using its FileID.
+
+        :param file_id: FileID associated with the file
+         :type file_id: int
+
+        :return: file type of the file with FileID
+         :rtype: str
+        """
+
+        query = "SELECT FileType FROM files WHERE FileID = %s"
+
+        results = self.db.pselect(query=query, args=(file_id,))
+
+        # return the result
+        return results[0]['FileType'] if results else None
+
+    def grep_file_path_from_file_id(self, file_id):
+        """
+        Greps the file path stored in the files table using its FileID.
+
+        :param file_id: FileID associated with the file
+         :type file_id: int
+
+        :return: file type of the file with FileID
+         :rtype: str
+        """
+
+        query = "SELECT File FROM files WHERE FileID = %s"
+
+        results = self.db.pselect(query=query, args=(file_id,))
+
+        # return the result
+        return results[0]['File'] if results else None
