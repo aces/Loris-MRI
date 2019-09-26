@@ -101,7 +101,7 @@ class Imaging:
             file_fields = file_fields + (key,)
             file_values = file_values + (value,)
         file_id = self.db.insert(
-            table_name='physiological_file',
+            table_name='files',
             column_names=file_fields,
             values=[file_values],
             get_last_id=True
@@ -129,7 +129,7 @@ class Imaging:
         # Gather column name & values to insert into parameter_file
         parameter_type_id = self.get_parameter_type_id(parameter_name)
         parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value')
-        parameter_file_values = (file_id, parameter_type_id, value)
+        parameter_file_values = (file_id, parameter_type_id, str(value))
         self.db.insert(
             table_name='parameter_file',
             column_names=parameter_file_fields,
@@ -271,3 +271,44 @@ class Imaging:
 
         # return the result
         return results[0]['File'] if results else None
+
+    def map_BIDS_param_to_LORIS_param(self, file_parameters):
+
+        map_dict = {
+            'manufacturersModelName'      : 'manufacturer_model_name',
+            'DeviceSerialNumber'          : 'device_serial_number',
+            'SoftwareVersions'            : 'software_versions',
+            'MagneticFieldStrength'       : 'magnetic_field_strength',
+            'ReceiveCoilName'             : 'receiving_coil',
+            'ScanningSequence'            : 'scanning_sequence',
+            'SequenceVariant'             : 'sequence_variant',
+            'SequenceName'                : 'sequence_name',
+            'PhaseEncodingDirection'      : 'phase_encoding_direction',
+            'EchoTime'                    : 'echo_time',
+            'RepetitionTime'              : 'repetition_time',
+            'InversionTime'               : 'inversion_time',
+            'SliceThickness'              : 'slice_thickness',
+            'InstitutionName'             : 'institution_name',
+            'ImageType'                   : 'image_type',
+            'AcquisitionTime'             : 'acquisition_time',
+            'AcquisitionMatrixPE'         : 'acquisition_matrix',
+            'PercentPhaseFOV'             : 'percent_phase_field_of_view',
+            'ImageOrientationPatientDICOM': 'image_orientation_patient',
+            'MRAcquisitionType'           : 'mr_acquisition_type',
+            'AcquisitionNumber'           : 'acquisition_number',
+            'PatientPosition'             : 'patient_position',
+            'ImagingFrequency'            : 'imaging_frequency',
+            'SeriesNumber'                : 'series_number',
+            'PixelBandwidth'              : 'pixel_bandwidth',
+            'SeriesDescription'           : 'series_description',
+            'ProtocolName'                : 'protocol_name',
+            'SpacingBetweenSlices'        : 'spacing_between_slices',
+            'NumberOfAverages'            : 'number_of_averages',
+        }
+
+        # map BIDS parameters with the LORIS ones
+        for param in list(file_parameters):
+            if param in map_dict.keys():
+                file_parameters[map_dict[param]] = file_parameters[param]
+
+        return file_parameters

@@ -12,6 +12,7 @@ from lib.candidate  import Candidate
 from lib.bidsreader import BidsReader
 from lib.session    import Session
 from lib.eeg        import Eeg
+from lib.mri        import Mri
 
 
 __license__ = "GPLv3"
@@ -153,7 +154,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
     data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
 
     # load the BIDS directory
-    bids_reader = BidsReader(bids_dir)
+    bids_reader = BidsReader(bids_dir, verbose)
     if not bids_reader.participants_info          \
             or not bids_reader.cand_sessions_list \
             or not bids_reader.cand_session_modalities_list:
@@ -211,7 +212,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     verbose       = verbose,
                     data_dir      = data_dir,
                     default_visit_label    = default_bids_vl,
-                    loris_bids_eeg_rel_dir = loris_bids_eeg_rel_dir,
+                    loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
 
@@ -225,7 +226,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     verbose       = verbose,
                     data_dir      = data_dir,
                     default_visit_label    = default_bids_vl,
-                    loris_bids_eeg_rel_dir = loris_bids_mri_rel_dir,
+                    loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
 

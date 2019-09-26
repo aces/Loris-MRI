@@ -80,7 +80,7 @@ class Mri:
 
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
-            self.register_nifti_file(nifti_file)
+            self.register_raw_file(nifti_file)
 
 
     def get_loris_cand_info(self):
@@ -139,10 +139,10 @@ class Mri:
         """
 
         # grep all the possible suffixes for the modality
-        modality_possible_suffix = self.possible_suffix_per_modality[modality]
+        modality_possible_suffix = self.possible_suffix_per_modality[self.bids_modality]
 
         # loop through the possible suffixes and grep the NIfTI files
-        nii_files_list = {}
+        nii_files_list = []
         for suffix in modality_possible_suffix:
             nii_files_list.extend(self.grep_bids_files(suffix, 'nii.gz'))
 
@@ -154,8 +154,7 @@ class Mri:
         Greps the BIDS files and their layout information from the BIDSLayout
         and return that list.
 
-        :param bids_type: the BIDS type to use to grep files (events,
-                          channels, eeg, electrodes)
+        :param bids_type: the BIDS type to use to grep files (T1w, T2w, bold, dwi...)
          :type bids_type: str
         :param extension: extension of the file to look for (nii.gz, json...)
          :type extension: str
@@ -197,10 +196,10 @@ class Mri:
         # load the entity information from the NIfTI file
         entities  = nifti_file.get_entities()
         scan_type = entities['suffix']
-        run       = entities['run']
-        task      = entities['task']
-        acq       = entities['acquisition']
-        dir       = entities['dir']
+        run       = entities['run']         if 'run' in entities         else None
+        task      = entities['task']        if 'task' in entities        else None
+        acq       = entities['acquisition'] if 'acquisition' in entities else None
+        dir       = entities['dir']         if 'dir' in entities         else None
 
         # loop through the associated files to grep JSON, bval, bvec...
         json_file = None
@@ -223,6 +222,7 @@ class Mri:
         if json_file:
             with open(json_file) as data_file:
                 file_parameters = json.load(data_file)
+                file_parameters = imaging.map_BIDS_param_to_LORIS_param(file_parameters)
             # copy the JSON file to the LORIS BIDS import directory
             json_path = self.copy_file_to_loris_bids_dir(json_file)
             file_parameters['bids_json_file'] = json_path
@@ -237,7 +237,7 @@ class Mri:
 
         # get the acquisition date of the MRI file or the age at the time of the MRI acquisition
         if self.scans_file:
-            scan_info = ScansTSV(self.scans_file, ni_file, self.verbose)
+            scan_info = ScansTSV(self.scans_file, nifti_file.filename, self.verbose)
             file_parameters['scan_acquisition_time'] = scan_info.get_acquisition_time()
             file_parameters['age_at_scan'] = scan_info.get_age_at_scan()
             # copy the scans.tsv file to the LORIS BIDS import directory
@@ -253,14 +253,14 @@ class Mri:
         for type in other_assoc_files:
             original_file_path = other_assoc_files[type]
             copied_path = self.copy_file_to_loris_bids_dir(original_file_path)
-            file_param_name  = 'bids' + type
-            file_parameters[param_name] = copied_path
+            file_param_name  = 'bids_' + type
+            file_parameters[file_param_name] = copied_path
             file_blake2 = blake2b(original_file_path.encode('utf-8')).hexdigest()
             hash_param_name = file_param_name + '_blake2b_hash'
             file_parameters[hash_param_name] = file_blake2
 
         # append the blake2b to the MRI file parameters dictionary
-        blake2 = blake2b(eeg_file.encode('utf-8')).hexdigest()
+        blake2 = blake2b(nifti_file.path.encode('utf-8')).hexdigest()
         file_parameters['file_blake2b_hash'] = blake2
 
         # check that the file using blake2b is not already inserted before inserting it
@@ -277,16 +277,17 @@ class Mri:
                 insert_if_not_found = False
             )
 
-            # copy the eeg_file to the LORIS BIDS import directory
+            # copy the NIfTI file to the LORIS BIDS import directory
             file_path = self.copy_file_to_loris_bids_dir(nifti_file.path)
 
             # insert the file along with its information into files and parameter_file tables
             file_info = {
-                'FileType'       : file_type,
-                'File'           : file_path,
-                'SessionID'      : self.session_id,
-                'InsertedByUser' : getpass.getuser(),
-                'OutputType'     : output_type,
+                'FileType'        : file_type,
+                'File'            : file_path,
+                'SessionID'       : self.session_id,
+                'InsertedByUserID': getpass.getuser(),
+                'OutputType'      : output_type,
+                'SourceFileID'    : None,
                 'AcquisitionProtocolID': scan_type_id
             }
             file_id = imaging.insert_imaging_file(file_info, file_parameters)
@@ -309,7 +310,7 @@ class Mri:
         """
 
         # determine the path of the copied file
-        copy_file = self.loris_bids_eeg_rel_dir
+        copy_file = self.loris_bids_mri_rel_dir
         if self.bids_ses_id:
             copy_file += os.path.basename(file)
         else:
@@ -323,7 +324,7 @@ class Mri:
         if derivatives_path:
             # create derivative subject/vl/modality directory
             lib.utilities.create_dir(
-                derivatives_path + self.loris_bids_eeg_rel_dir,
+                derivatives_path + self.loris_bids_mri_rel_dir,
                 self.verbose
             )
             copy_file = derivatives_path + copy_file
