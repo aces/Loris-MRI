@@ -233,9 +233,11 @@ class Mri:
         file_type = imaging.determine_file_type(nifti_file.filename)
 
         # determine the output type
-        output_type = 'derivatives' if derivatives else 'raw'
+        output_type = 'derivatives' if derivatives else 'native'
+        if not derivatives:
+            coordinate_space = 'native'
 
-        # get the acquisition date of the MRI file or the age at the time of the MRI acquisition
+        # get the acquisition date of the MRI or the age at the time of acquisition
         if self.scans_file:
             scan_info = ScansTSV(self.scans_file, nifti_file.filename, self.verbose)
             file_parameters['scan_acquisition_time'] = scan_info.get_acquisition_time()
@@ -247,6 +249,17 @@ class Mri:
             file_parameters['scans_tsv_file'] = scans_path
             scans_blake2 = blake2b(self.scans_file.encode('utf-8')).hexdigest()
             file_parameters['scans_tsv_file_bake2hash'] = scans_blake2
+
+        # grep voxel step from the NIfTI file header
+        step_parameters = utilities.get_nifti_image_step_parameters(nifti_file.path)
+        file_parameters['xstep'] = step_parameters[0]
+        file_parameters['ystep'] = step_parameters[1]
+        file_parameters['zstep'] = step_parameters[2]
+
+        # grep the time length from the NIfTI file header
+        length_parameters = utilities.get_nifti_image_length_parameters
+        if len(length_parameters) == 4:
+            file_parameters['time'] = length_parameters[3]
 
         # add all other associated files to the file_parameters so they get inserted
         # in parameter_file
@@ -263,7 +276,7 @@ class Mri:
         blake2 = blake2b(nifti_file.path.encode('utf-8')).hexdigest()
         file_parameters['file_blake2b_hash'] = blake2
 
-        # check that the file using blake2b is not already inserted before inserting it
+        # check that the file is not already inserted before inserting it
         result    = imaging.grep_file_id_from_hash(blake2)
         file_id   = result['FileID'] if result else None
         file_path = result['File']   if result else None
@@ -286,6 +299,7 @@ class Mri:
                 'File'            : file_path,
                 'SessionID'       : self.session_id,
                 'InsertedByUserID': getpass.getuser(),
+                'CoordinateSpace' : coordinate_space,
                 'OutputType'      : output_type,
                 'SourceFileID'    : None,
                 'AcquisitionProtocolID': scan_type_id

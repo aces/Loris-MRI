@@ -9,6 +9,8 @@ import tarfile
 import scipy.io
 import numpy
 import lib.exitcode
+import numpy as np
+import nibabel as nib
 
 
 __license__ = "GPLv3"
@@ -138,3 +140,23 @@ def update_set_file_path_info(set_file, fdt_file):
 
     # write the new .set file with the correct path info
     scipy.io.savemat(set_file, dataset, False)
+
+
+def get_nifti_image_length_parameters(nifti_filepath):
+
+    img = nib.load(nifti_filepath)
+
+    # get the voxel/time length array of the image
+    length = img.shape
+
+    return length
+
+
+def get_nifti_image_step_parameters(nifti_filepath):
+
+    img = nib.load(nifti_filepath)
+
+    # get the voxel step/time step of the image
+    step = img.header.get_zooms()
+
+    return step
