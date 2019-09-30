@@ -152,7 +152,7 @@ INPUTS:
 
 RETURNS: Textual name of scan type
 
-### scan\_type\_text\_to\_id($type, $dbhr)
+### scan\_type\_text\_to\_id($type, $db)
 
 Determines the type of the scan identified by scan type.
 

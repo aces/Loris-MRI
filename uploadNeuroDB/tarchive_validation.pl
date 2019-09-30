@@ -86,6 +86,11 @@ use NeuroDB::ExitCodes;
 
 
 use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -221,12 +226,23 @@ my $db = NeuroDB::Database->new(
 );
 $db->connect();
 
+
+
+#-------------------------------------------------
+# Grep the config settings using the ConfigOB
+#-------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir           = $configOB->getDataDirPath();
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+
+
+
+
 ################################################################
 ########## Create the Specific Log File ########################
 ################################################################
-my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
@@ -252,9 +268,6 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ############### Create tarchive array ##########################
 ################################################################
 ################################################################
-my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(
-                       \$dbh,'tarchiveLibraryDir'
-                       );
 $tarchiveLibraryDir    =~ s/\/$//g;
 my $ArchiveLocation    = $tarchive;
 $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;

@@ -47,6 +47,12 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 
 
@@ -111,16 +117,39 @@ if ( !@Settings::db ) {
 
 
 
-## establish database connection
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
 
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 print "\n==> Successfully connected to the database \n" if $verbose;
 
 
 
-## get config settings
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
 
-my $data_dir   = NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir  = $configOB->getDataDirPath();
+
+
+# -----------------------------------------------------------------
+## Get config setting using the old database calls
+# -----------------------------------------------------------------
+
 my $create_nii = NeuroDB::DBI::getConfigSetting(\$dbh, 'create_nii');
 
 
