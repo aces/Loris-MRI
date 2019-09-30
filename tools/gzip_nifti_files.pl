@@ -118,10 +118,12 @@ $db->connect();
 
 
 # ===========================================
-## Establish database connection
+## Get config setting using ConfigOB
 # ===========================================
 
-my $data_dir   = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir   = $configOB->getDataDirPath();
 $data_dir      =~ s#/$##;
 
 
