@@ -138,5 +138,3 @@ def update_set_file_path_info(set_file, fdt_file):
 
     # write the new .set file with the correct path info
     scipy.io.savemat(set_file, dataset, False)
-
-
