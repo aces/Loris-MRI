@@ -143,6 +143,15 @@ def update_set_file_path_info(set_file, fdt_file):
 
 
 def get_nifti_image_length_parameters(nifti_filepath):
+    """
+    Get the NIfTI image length dimensions (x, y, z and time for 4D dataset).
+
+    :param nifti_filepath: path to the NIfTI file
+     :type nifti_filepath: str
+
+    :return: tuple with the length of each dimension of the NIfTI file
+     :rtype: tuple
+    """
 
     img = nib.load(nifti_filepath)
 
@@ -153,6 +162,16 @@ def get_nifti_image_length_parameters(nifti_filepath):
 
 
 def get_nifti_image_step_parameters(nifti_filepath):
+    """
+    Get the NIfTI image step information (xstep, ystep, zstep and number of volumes
+    for 4D dataset)
+
+    :param nifti_filepath: path to the NIfTI file
+     :type nifti_filepath: str
+
+    :return: tuple with the step information for the NIfTI file
+     :rtype: tuple
+    """
 
     img = nib.load(nifti_filepath)
 

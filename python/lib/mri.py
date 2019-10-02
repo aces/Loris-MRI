@@ -20,6 +20,57 @@ __license__ = "GPLv3"
 
 
 class Mri:
+    """
+    This class reads the BIDS MRI data structure and registers the MRI datasets into the
+    database by calling lib.imaging class.
+
+    :Example:
+
+        from lib.bidsreader import BidsReader
+        from lib.mri        import Mri
+        from lib.database   import Database
+
+        # database connection
+        db = Database(config_file.mysql, verbose)
+        db.connect()
+
+        # grep config settings from the Config module
+        default_bids_vl = db.get_config('default_bids_vl')
+        data_dir        = db.get_config('dataDirBasepath')
+
+        # load the BIDS directory
+        bids_reader = BidsReader(bids_dir)
+
+        # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
+        loris_bids_root_dir = create_loris_bids_directory(
+            bids_reader, data_dir, verbose
+        )
+        for row in bids_reader.cand_session_modalities_list:
+            for modality in row['modalities']:
+                if modality in ['anat', 'dwi', 'fmap', 'func']:
+                    bids_session = row['bids_ses_id']
+                    visit_label = bids_session if bids_session else default_bids_vl
+                    loris_bids_mri_rel_dir = "sub-" + row['bids_sub_id'] + "/" + \
+                                             "ses-" + visit_label + "/mri/"
+                    lib.utilities.create_dir(
+                        loris_bids_root_dir + loris_bids_mri_rel_dir, verbose
+                    )
+                    Eeg(
+                        bids_reader   = bids_reader,
+                        bids_sub_id   = row['bids_sub_id'],
+                        bids_ses_id   = row['bids_ses_id'],
+                        bids_modality = modality,
+                        db            = db,
+                        verbose       = verbose,
+                        data_dir      = data_dir,
+                        default_visit_label    = default_bids_vl,
+                        loris_bids_eeg_rel_dir = loris_bids_mri_rel_dir,
+                        loris_bids_root_dir    = loris_bids_root_dir
+                    )
+
+        # disconnect from the database
+        db.disconnect()
+    """
 
     def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
                  verbose, data_dir, default_visit_label,
@@ -180,12 +231,31 @@ class Mri:
             )
 
     def register_raw_file(self, nifti_file):
+        """
+        Registers raw MRI files and related files into the files and parameter_file tables.
+
+        :param nifti_file: NIfTI file object
+         :type nifti_file: pybids NIfTI file object
+        """
 
         # insert the NIfTI file
         inserted_nii  = self.fetch_and_insert_nifti_file(nifti_file)
 
 
     def fetch_and_insert_nifti_file(self, nifti_file, derivatives=None):
+        """
+        Gather NIfTI file information to insert into the files and parameter_file tables.
+        Once all the information has been gathered, it will call imaging.insert_imaging_file
+        that will perform the insertion into the files and parameter_file tables.
+
+        :param nifti_file : NIfTI file object
+         :type nifti_file : pybids NIfTI file object
+        :param derivatives: whether the file to be registered is a derivative file
+         :type derivatives: bool
+
+        :return: dictionary with the inserted file_id and file_path
+         :rtype: dict
+        """
 
         # load the Imaging object that will be used to insert the imaging data into the database
         imaging = Imaging(self.db, self.verbose)
@@ -222,7 +292,7 @@ class Mri:
         if json_file:
             with open(json_file) as data_file:
                 file_parameters = json.load(data_file)
-                file_parameters = imaging.map_BIDS_param_to_LORIS_param(file_parameters)
+                file_parameters = imaging.map_bids_param_to_loris_param(file_parameters)
             # copy the JSON file to the LORIS BIDS import directory
             json_path = self.copy_file_to_loris_bids_dir(json_file)
             file_parameters['bids_json_file'] = json_path
@@ -257,9 +327,11 @@ class Mri:
         file_parameters['zstep'] = step_parameters[2]
 
         # grep the time length from the NIfTI file header
-        length_parameters = utilities.get_nifti_image_length_parameters
+        is_4d_dataset = False
+        length_parameters = utilities.get_nifti_image_length_parameters(nifti_file.path)
         if len(length_parameters) == 4:
             file_parameters['time'] = length_parameters[3]
+            is_4d_dataset = True
 
         # add all other associated files to the file_parameters so they get inserted
         # in parameter_file
@@ -305,6 +377,21 @@ class Mri:
                 'AcquisitionProtocolID': scan_type_id
             }
             file_id = imaging.insert_imaging_file(file_info, file_parameters)
+
+            # create the pic associated with the file
+            pic_rel_path = imaging.create_imaging_pic(
+                {
+                    'cand_id'      : self.cand_id,
+                    'data_dir_path': self.data_dir,
+                    'file_rel_path': file_path,
+                    'is_4D_dataset': is_4d_dataset,
+                    'file_id'      : file_id
+                }
+            )
+            print(self.data_dir + pic_rel_path)
+            if os.path.exists(self.data_dir + 'pic/' + pic_rel_path):
+                print("INNNN")
+                imaging.insert_parameter_file(file_id, 'check_pic_filename', pic_rel_path)
 
         return {'file_id': file_id, 'file_path': file_path}
 

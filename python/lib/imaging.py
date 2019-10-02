@@ -5,11 +5,36 @@ import sys
 import re
 import os
 import subprocess
+import nilearn
+from nilearn import plotting
+from nilearn import image
 
 __license__ = "GPLv3"
 
 
 class Imaging:
+    """
+    This class performs database queries for BIDS imaging dataset (MRI, PET...).
+
+    :Example:
+
+        from lib.imaging  import Imaging
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        imaging = Imaging(db, verbose)
+
+        # Get file type for the imaging file
+        file_type = imaging.get_file_type(img_file)
+
+        # Grep a FileID based on a blake2b hash
+        file_id = imaging.grep_file_id_from_hash(blake2)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
@@ -272,7 +297,20 @@ class Imaging:
         # return the result
         return results[0]['File'] if results else None
 
-    def map_BIDS_param_to_LORIS_param(self, file_parameters):
+    @staticmethod
+    def map_bids_param_to_loris_param(file_parameters):
+        """
+        Maps the BIDS parameters found in the BIDS JSON file with the
+        parameter type names of LORIS.
+
+        :param file_parameters: dictionary with the list of parameters
+                                found in the BIDS JSON file
+         :type file_parameters: dict
+
+        :return: returns a dictionary with the BIDS JSON parameter names
+                 as well as their LORIS equivalent
+         :rtype: dic
+        """
 
         map_dict = {
             'manufacturersModelName'      : 'manufacturer_model_name',
@@ -312,3 +350,43 @@ class Imaging:
                 file_parameters[map_dict[param]] = file_parameters[param]
 
         return file_parameters
+
+    @staticmethod
+    def create_imaging_pic(file_info):
+        """
+        Creates the preview pic that will show in the imaging browser view session
+        page. This pic will be stored in the data_dir/pic folder
+
+        :param file_info: dictionary with file information (path, file_id, cand_id...)
+         :type file_info: dict
+
+        :return: path to the created pic
+         :rtype: str
+        """
+
+        cand_id    = file_info['cand_id']
+        file_path  = file_info['data_dir_path'] + file_info['file_rel_path']
+        is_4d_data = file_info['is_4D_dataset']
+        file_id    = file_info['file_id']
+
+        pic_name     = os.path.basename(file_path)
+        pic_name     = re.sub(r"\.nii(\.gz)", '_' + str(file_id) + '_check.png', pic_name)
+        pic_rel_path = str(cand_id) + '/' + pic_name
+
+        # create the candID directory where the pic will go if it does not already exist
+        pic_dir = file_info['data_dir_path'] + 'pic/' + str(cand_id)
+        if not os.path.exists(pic_dir):
+            os.mkdir(pic_dir)
+
+        volume = image.index_img(file_path, 0) if is_4d_data else file_path
+
+        nilearn.plotting.plot_anat(
+            anat_img     = volume,
+            output_file  = file_info['data_dir_path'] + 'pic/' + pic_rel_path,
+            display_mode = 'ortho',
+            black_bg     = 1,
+            draw_cross   = 0,
+            annotate     = 0
+        )
+
+        return pic_rel_path

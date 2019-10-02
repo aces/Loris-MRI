@@ -99,6 +99,10 @@ pip3 install pyblake2
 pip3 install mne
 pip3 install google
 pip3 install protobuf
+pip3 install matplotlib
+pip3 install nose
+pip3 install sklearn
+pip3 install nilearn
 # deactivate the virtualenv for now
 deactivate
 
