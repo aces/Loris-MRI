@@ -6,8 +6,12 @@ import re
 import os
 import subprocess
 import nilearn
+import numpy   as np
+import nibabel as nib
+
 from nilearn import plotting
 from nilearn import image
+
 
 __license__ = "GPLv3"
 
@@ -390,3 +394,42 @@ class Imaging:
         )
 
         return pic_rel_path
+
+    @staticmethod
+    def get_nifti_image_length_parameters(nifti_filepath):
+        """
+        Get the NIfTI image length dimensions (x, y, z and time for 4D dataset).
+
+        :param nifti_filepath: path to the NIfTI file
+         :type nifti_filepath: str
+
+        :return: tuple with the length of each dimension of the NIfTI file
+         :rtype: tuple
+        """
+
+        img = nib.load(nifti_filepath)
+
+        # get the voxel/time length array of the image
+        length = img.shape
+
+        return length
+
+    @staticmethod
+    def get_nifti_image_step_parameters(nifti_filepath):
+        """
+        Get the NIfTI image step information (xstep, ystep, zstep and number of volumes
+        for 4D dataset)
+
+        :param nifti_filepath: path to the NIfTI file
+         :type nifti_filepath: str
+
+        :return: tuple with the step information for the NIfTI file
+         :rtype: tuple
+        """
+
+        img = nib.load(nifti_filepath)
+
+        # get the voxel step/time step of the image
+        step = img.header.get_zooms()
+
+        return step

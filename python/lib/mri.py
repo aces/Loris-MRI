@@ -321,14 +321,14 @@ class Mri:
             file_parameters['scans_tsv_file_bake2hash'] = scans_blake2
 
         # grep voxel step from the NIfTI file header
-        step_parameters = utilities.get_nifti_image_step_parameters(nifti_file.path)
+        step_parameters = imaging.get_nifti_image_step_parameters(nifti_file.path)
         file_parameters['xstep'] = step_parameters[0]
         file_parameters['ystep'] = step_parameters[1]
         file_parameters['zstep'] = step_parameters[2]
 
         # grep the time length from the NIfTI file header
         is_4d_dataset = False
-        length_parameters = utilities.get_nifti_image_length_parameters(nifti_file.path)
+        length_parameters = imaging.get_nifti_image_length_parameters(nifti_file.path)
         if len(length_parameters) == 4:
             file_parameters['time'] = length_parameters[3]
             is_4d_dataset = True
