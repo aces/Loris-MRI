@@ -361,19 +361,22 @@ The graph below shows the different modules mentioned above with the
 ![pipeline_flow](images/overall_flow.png)
 
 
-### 2.4.2 BIDS insertion (Electrophysiology)
+### 2.4.2 BIDS insertion (Electrophysiology and Imaging)
 
-This pipeline was initially designed to import EEG datasets organized in a 
-BIDS structure into LORIS. With slight modifications and further 
-customization, it could handle other types of electrophysiology modalities.
+The pipeline to insert BIDS datasets into LORIS currently support the 
+following BIDS modalities/suffixes:
+  - Electroencephalography ('eeg')
+  - Magnetic Resonance Imaging ('anat', 'func', 'fmap', 'dwi') 
 
-Typically, electrophysiology data insertion into LORIS is performed via the 
-following steps:
+With slight modifications and further customization, it could handle other 
+types of electrophysiology or imaging modalities.
+
+Typically, BIDS data insertion into LORIS is performed via the following steps:
 
 1. Transfer the BIDS-format data to the LORIS server via commandline. Due to the 
 large size of electrophysiological/BIDS data, a suitable browser-based uploader is 
 not presently available.
 
-2. Run the BIDS import script to import the electrophysiology data into the 
-`physiological_*` tables of LORIS. More details about this import script can 
-be found in the [Scripts](04-Scripts.md) section.
+2. Run the BIDS import script to import the data into the `physiological_*` tables 
+for electrophysiology datasets and into the `file*` tables of LORIS. More details about this import script can 
+be found in the [PipelineLaunchOptions](05-PipelineLaunchOptions.md) section.
