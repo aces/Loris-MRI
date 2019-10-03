@@ -353,13 +353,14 @@ class Mri:
         file_id   = result['FileID'] if result else None
         file_path = result['File']   if result else None
         if not file_id:
-            # grep the scan type ID from the mri_scan_type table
+            # grep the scan type ID from the mri_scan_type table (if it is not already in
+            # the table, it will add a row to the mri_scan_type table)
             scan_type_id = self.db.grep_id_from_lookup_table(
                 id_field_name       = 'ID',
                 table_name          = 'mri_scan_type',
                 where_field_name    = 'Scan_type',
                 where_value         = scan_type,
-                insert_if_not_found = False
+                insert_if_not_found = True
             )
 
             # copy the NIfTI file to the LORIS BIDS import directory

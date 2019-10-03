@@ -364,7 +364,7 @@ The graph below shows the different modules mentioned above with the
 ### 2.4.2 BIDS insertion (Electrophysiology and Imaging)
 
 The pipeline to insert BIDS datasets into LORIS currently support the 
-following BIDS modalities/suffixes:
+following BIDS modalities/entities:
   - Electroencephalography ('eeg')
   - Magnetic Resonance Imaging ('anat', 'func', 'fmap', 'dwi') 
 
