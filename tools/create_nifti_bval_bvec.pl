@@ -143,14 +143,9 @@ print "\n==> Successfully connected to the database \n" if $verbose;
 
 my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
-my $data_dir  = $configOB->getDataDirPath();
+my $data_dir   = $configOB->getDataDirPath();
+my $create_nii = $configOB->getCreateNii();
 
-
-# -----------------------------------------------------------------
-## Get config setting using the old database calls
-# -----------------------------------------------------------------
-
-my $create_nii = NeuroDB::DBI::getConfigSetting(\$dbh, 'create_nii');
 
 
 
