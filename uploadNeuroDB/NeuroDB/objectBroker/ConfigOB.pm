@@ -362,7 +362,7 @@ RETURN: (boolean) 1 if create_nii is set to Yes in the Config module, 0 otherwis
 sub getCreateNii {
     my $self = shift;
 
-    my $value = &getConfigSettingRef($self, CREATE_NII);
+    my $value = &$getConfigSettingRef($self, CREATE_NII);
 
     return ($value eq "true" || $value == 1) ? 1 : 0;
 }
@@ -377,7 +377,7 @@ RETURN: (boolean) 1 if horizontalPics is set to Yes in the Config module, 0 othe
 sub getHorizontalPics {
     my $self = shift;
 
-    my $value = &getConfigSettingRef($self, HORIZONTAL_PICS);
+    my $value = &$getConfigSettingRef($self, HORIZONTAL_PICS);
 
     return ($value eq "true" || $value == 1) ? 1 : 0;
 }
@@ -392,7 +392,7 @@ RETURN: (boolean) 1 if is_qsub is set to Yes in the Config module, 0 otherwise
 sub getIsQsub {
     my $self = shift;
 
-    my $value = &getConfigSettingRef($self, IS_QSUB);
+    my $value = &$getConfigSettingRef($self, IS_QSUB);
 
     return ($value eq "true" || $value == 1) ? 1 : 0;
 }
@@ -407,7 +407,7 @@ RETURN: (boolean) 1 if createCandidates is set to Yes in the Config module, 0 ot
 sub getCreateCandidates {
     my $self = shift;
 
-    my $value = &getConfigSettingRef($self, IS_QSUB);
+    my $value = &$getConfigSettingRef($self, IS_QSUB);
 
     return ($value eq "true" || $value == 1) ? 1 : 0;
 }
