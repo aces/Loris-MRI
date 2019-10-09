@@ -65,6 +65,12 @@ is created.
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 use File::Path;
 use File::Basename;
 use File::Temp qw/tempdir/;
@@ -157,10 +163,37 @@ if(!@Settings::db) {
 
 my @patientNames       = defined $patientNames ? split(',', $patientNames) : ();
 my @scanTypes          = defined $scanTypes    ? split(',', $scanTypes)    : ();
+
+
+
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh                = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(\$dbh, 'tarchiveLibraryDir');
-$tarchiveLibraryDir =~ s#\/$##;
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+
+
+# ------------------------------------------
+## Get config setting using ConfigOB
+# ------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+$tarchiveLibraryDir    =~ s#\/$##;
+
+
 
 #----------------------------------------------------------#
 # Create the directory where DICOM files will be extracted #
@@ -301,13 +334,19 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
 
         my $outDir = "$tmpExtractDir/$id/$visitLabel/$dateAcquired/$outSubDir";
         
+        # Since we are using a path transform in the tar command, we have to escape
+        # sed's special characters
+        my $outDirForSed = $outDir;
+        $outDirForSed =~ s#\\#\\\\#g;
+        $outDirForSed =~ s#&#\\&#g;
+
         # --files-from: file containing the path of the files to extract
         # --transform: put all extracted files in $outDir
         # --absolute-path: since we are extracting in $outDir and since
         #                  $outDir is an absolute path, we need this option otherwise
         #                  tar will refuse to extract
         $cmd = sprintf(
-            "tar zxf %s/%s --files-from=%s --absolute-names --transform='s#^.*/#$outDir/#'",
+            "tar zxf %s/%s --files-from=%s --absolute-names --transform='s#^.*/#$outDirForSed/#'",
             quotemeta($tmpExtractDir),
             quotemeta($innerTar),
             quotemeta($fileList) 

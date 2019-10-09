@@ -128,7 +128,7 @@ sub database {
     }
 
     # whether the query worked fine
-    my $success = undef;
+    my ($success, $error);
     # check if this StudyUID is already in your database
     my ($unique_study, $message) = $self->is_study_unique($dbh, $update, $Archivemd5);
     if (!$unique_study && !$update) {
@@ -252,8 +252,11 @@ QUERY
     
     my $sth  = $dbh->prepare($query);
     $success = $sth->execute(@values);
-#FIXME
-print "Failed running query: $query\n\n\n" unless $success;
+
+    unless ($success) {
+        $error = "Failed to run query: $query\n\n\n";
+        return undef, $error;
+    }
 
     # now get the TarchiveID
     my $tarchiveID;
@@ -337,7 +340,7 @@ QUERY
                $invT,       $sl_thickness, $phaseEncode, 
                $num,        $seriesUID,    $modality
               );
-            $insert_series->execute(@values);
+            $success = $insert_series->execute(@values);
         } elsif ($modality eq 'PT') {
             my @values = 
               (
@@ -346,7 +349,11 @@ QUERY
                undef,       $sl_thickness, undef, 
                $num,        $seriesUID,    $modality
               );
-            $insert_series->execute(@values);
+            $success = $insert_series->execute(@values);
+        }
+        unless ($success) {
+            $error = "Failed to run query: $query\n\n\n";
+            return undef, $error;
         }
     }
 
@@ -400,9 +407,13 @@ QUERY
                $filename,   $TarchiveSeriesID
               );
         }
-        $insert_file->execute(@values);
+        $success = $insert_file->execute(@values);
+        unless ($success) {
+            $error = "Failed to run query: $query\n\n\n";
+            return undef, $error;
+        }
     }
-    return $success; # if query worked this will return 1;
+    return $success, $error; # if query worked $success will return 1 and $error undef;
 }
 
 =pod

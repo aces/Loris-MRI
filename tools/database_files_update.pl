@@ -28,7 +28,15 @@ tables to remove the C<data_dir> part of the path for security improvements.
 use strict;
 use warnings;
 use Getopt::Tabular;
+
 use NeuroDB::DBI;
+
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 my $profile =   undef;
 my @args;
@@ -63,12 +71,35 @@ if  (!$profile) {
             exit 33;
 }
 
-# Establish database connection
-my $dbh     =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-# these settings are in the database and can be set in the Configuration module of LORIS
-my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
-$data_dir =~ s/\/$//;
+
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir  = $configOB->getDataDirPath();
+
+
 
 # Needed for log file
 my  $log_dir    =   "$data_dir/logs";

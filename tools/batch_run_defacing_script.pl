@@ -46,6 +46,11 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
 
 
 #############################################################
@@ -113,23 +118,39 @@ if ( !@Settings::db ) {
 
 
 
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
 
-
-#################################################################
-## Establish database connection and grep the database config
-#################################################################
-
-# connect to the database
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-# grep the database config settings
-my $data_dir  = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
-my $bin_dir   = &NeuroDB::DBI::getConfigSetting(\$dbh, 'MRICodePath'    );
-my $is_qsub   = &NeuroDB::DBI::getConfigSetting(\$dbh, 'is_qsub'        );
-my $mail_user = &NeuroDB::DBI::getConfigSetting(\$dbh, 'mail_user'      );
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
 
-# remove trailing / from the data directory
-$data_dir =~ s/\/$//g;
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir  = $configOB->getDataDirPath();
+my $mail_user = $configOB->getMailUser();
+my $bin_dir   = $configOB->getMriCodePath();
+
+
+# -----------------------------------------------------------------
+## Get config setting using the old database calls
+# -----------------------------------------------------------------
+
+my $is_qsub   = &NeuroDB::DBI::getConfigSetting(\$dbh, 'is_qsub');
 
 
 
