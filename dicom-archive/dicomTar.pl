@@ -189,9 +189,13 @@ my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 my $date            = sprintf("%4d-%02d-%02d %02d:%02d:%02d\n",
                     $year+1900,$mon+1,$mday,$hour,$min,$sec);
 my $today           = sprintf("%4d-%02d-%02d",$year+1900,$mon+1,$mday);
-my $hostname        = inet_ntoa(scalar(gethostbyname(hostname() || 'localhost')));
-                    #`hostname -f`;
-                    # # fixme specify -f for fully qualified if you need it.
+
+my $hostname;
+eval { $hostname = hostname() };
+$hostname = 'localhost' if $@ || !defined $hostname;
+$hostname = gethostbyname($hostname) // gethostbyname('localhost');
+$hostname = inet_ntoa($hostname);
+
 my $system          = `uname`;
 
 
@@ -295,14 +299,14 @@ print  $tarinfo if $verbose;
 
 # if -dbase has been given create an entry based on unique studyID
 # Create database entry checking for already existing entries...
-my $success;
+my ($success, $error);
 if ($dbase) {
     $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     print "\nAdding archive info into database\n" if $verbose;
     my $update          = 1 if $clobber;
     my $ArchiveLocation = $finalTarget;
     $ArchiveLocation    =~ s/$targetlocation\/?//g;
-    $success            = $summary->database($dbh, $metaname, $update,
+    ($success, $error)    = $summary->database($dbh, $metaname, $update,
                             $tarTypeVersion, $tarinfo, $DICOMmd5sum,
                             $ARCHIVEmd5sum, $ArchiveLocation,
                             $neurodbCenterName);
@@ -317,7 +321,7 @@ if ($dbase) {
     if ($success) {
         print "\nDone adding archive info into database\n" if $verbose;
     } else {
-        print STDERR "\nThe database command failed\n";
+        print STDERR "\nThe database command failed\n $error";
         exit $NeuroDB::ExitCodes::INSERT_FAILURE;
     }
 }

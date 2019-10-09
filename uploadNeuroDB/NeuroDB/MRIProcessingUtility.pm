@@ -65,6 +65,12 @@ use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 use Path::Class;
 use Scalar::Util qw(blessed);
 
@@ -121,25 +127,33 @@ sub new {
      do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
     }
 
+    # ----------------------------------------------------------
+    ## Create the ConfigOB
+    # ----------------------------------------------------------
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+
     ############################################################
     #### Create the log file and a Notify Object################
     ############################################################
-    my $LogDir  = dirname($logfile);
+    my $LogDir    = dirname($logfile);
     my $file_name = basename($logfile);
-    my $dir = dir($LogDir);
-    my $file = $dir->file($file_name);
-    my $LOG = $file->openw();
-    my $Notify = NeuroDB::Notify->new( $dbhr );
+    my $dir       = dir($LogDir);
+    my $file      = $dir->file($file_name);
+    my $LOG       = $file->openw();
+    my $Notify    = NeuroDB::Notify->new( $dbhr );
     $LOG->autoflush(1);
-    $self->{'Notify'} = $Notify;
-    $self->{'LOG'} = $LOG;
-    $self->{'verbose'} = $verbose;
-    $self->{'LogDir'} = $LogDir;
-    $self->{'dbhr'} = $dbhr;
-    $self->{'debug'} = $debug;
-    $self->{'TmpDir'} = $TmpDir;
-    $self->{'logfile'} = $logfile;
-    $self->{'db'} = $db;
+
+    $self->{'Notify'}   = $Notify;
+    $self->{'LOG'}      = $LOG;
+    $self->{'verbose'}  = $verbose;
+    $self->{'LogDir'}   = $LogDir;
+    $self->{'dbhr'}     = $dbhr;
+    $self->{'debug'}    = $debug;
+    $self->{'TmpDir'}   = $TmpDir;
+    $self->{'logfile'}  = $logfile;
+    $self->{'db'}       = $db;
+    $self->{'configOB'} = $configOB;
     
     return bless $self, $params;
 }
@@ -480,9 +494,14 @@ sub determinePSC {
     my $this = shift;
     my ($tarchiveInfo, $to_log, $upload_id) = @_;
     $to_log = 1 unless defined $to_log;
-    my $lookupCenterNameUsing = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'lookupCenterNameUsing'
-                        );
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB              = $this->{configOB};
+    my $lookupCenterNameUsing = $configOB->getLookupCenterNameUsing();
+
+
     my ($center_name, $centerID) =
     NeuroDB::MRI::getPSC(
         $tarchiveInfo->{$lookupCenterNameUsing},
@@ -1094,12 +1113,14 @@ sub registerScanIntoDB {
         $minc, $extra_validation_status,$reckless, $sessionID, $upload_id
     ) = @_;
 
-    my $data_dir = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'dataDirBasepath'
-                        );
-    my $prefix = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'prefix'
-                        );
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB = $this->{configOB};
+    my $data_dir = $configOB->getDataDirPath();
+    my $prefix   = $configOB->getPrefix();
+
 
     my $acquisitionProtocolID = undef;
     my (
@@ -1415,9 +1436,15 @@ sub moveAndUpdateTarchive {
     my ($newTarchiveLocation, $newTarchiveFilename,$mvTarchiveCmd);
     $message = "\nMoving tarchive into library\n";
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-    my $tarchivePath = NeuroDB::DBI::getConfigSetting(
-                        $this->{dbhr},'tarchiveLibraryDir'
-                        );
+
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB = $this->{configOB};
+    my $tarchivePath = $configOB->getTarchiveLibraryDir();
+
+
     # return the current tarchive location if no dates are available
     return $tarchive_location unless ($tarchiveInfo->{'DateAcquired'});
 
@@ -1792,7 +1819,13 @@ sub computeSNR {
     my $this = shift;
     my ($tarchiveID, $upload_id) = @_;
 
-    my $data_dir   = NeuroDB::DBI::getConfigSetting($this->{dbhr},'dataDirBasepath');
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB = $this->{configOB};
+    my $data_dir = $configOB->getDataDirPath();
+
     my $modalities = NeuroDB::DBI::getConfigSetting(
         $this->{dbhr}, 'compute_snr_modalities'
     );

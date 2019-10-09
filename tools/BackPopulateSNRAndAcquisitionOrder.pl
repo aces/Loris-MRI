@@ -45,11 +45,18 @@ use File::Temp qw/ tempdir /;
 use File::Basename;
 use File::Find;
 use Cwd;
+
 use NeuroDB::DBI;
 use NeuroDB::MRIProcessingUtility;
 use NeuroDB::ExitCodes;
 
 use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
 
 my $verbose = 1;
 my $debug = 1;
@@ -107,30 +114,38 @@ if ( !@Settings::db ) {
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-################################################################
-######### Establish database connection ########################
-################################################################
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-my $db = NeuroDB::Database->new(
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
     databaseName => $Settings::db[0],
     userName     => $Settings::db[1],
     password     => $Settings::db[2],
     hostName     => $Settings::db[3]
 );
 $db->connect();
+
 print "\nSuccessfully connected to database \n";
+
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir = $configOB->getDataDirPath();
+
 
 ################################################################
 ######### Initialize variables #################################
 ################################################################
-my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
-my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                       \$dbh,'tarchiveLibraryDir'
-                       );
-$tarchiveLibraryDir    =~ s/\/$//g;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) 
     =localtime(time);
 my $template = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
@@ -197,7 +212,7 @@ else {
 	print "No tarchives to be updated \n";	
 }
 
-$dbh->disconnect();
+$db->disconnect();
 exit $NeuroDB::ExitCodes::SUCCESS;
 
 

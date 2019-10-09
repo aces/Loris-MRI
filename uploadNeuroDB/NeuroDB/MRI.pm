@@ -668,7 +668,7 @@ sub scan_type_id_to_text {
 
 =pod
 
-=head3 scan_type_text_to_id($type, $dbhr)
+=head3 scan_type_text_to_id($type, $db)
 
 Determines the type of the scan identified by scan type.
 
@@ -1313,23 +1313,52 @@ sub make_nii {
     my $file = $$fileref;
     my $minc  = $file->getFileDatum('File');
     my ($nifti, $bval_file, $bvec_file) = ($minc) x 3;
-    $nifti     =~ s/mnc$/nii/;
-    $bval_file =~ s/mnc$/bval/;
-    $bvec_file =~ s/mnc$/bvec/;
+    $nifti         =~ s/mnc$/nii/;
+    $bval_file     =~ s/mnc$/bval/;
+    $bvec_file     =~ s/mnc$/bvec/;
 
     #  mnc2nii command
-    my $m2n_cmd = "mnc2nii -nii -quiet $data_dir/$minc $data_dir/$nifti";
+    my $m2n_cmd  = "mnc2nii -nii -quiet $data_dir/$minc $data_dir/$nifti";
     system($m2n_cmd);
+
+    # gzip the NIfTI file
+    my $gzip_nifti = gzip_file("$data_dir/$nifti");
+    $gzip_nifti    =~ s%$data_dir/%%g;
 
     # create complementary nifti files for DWI acquisitions
     my $bval_success = create_dwi_nifti_bval_file($fileref, "$data_dir/$bval_file");
     my $bvec_success = create_dwi_nifti_bvec_file($fileref, "$data_dir/$bvec_file");
 
     # update mri table (parameter_file table)
-    $file->setParameter('check_nii_filename', $nifti);
+    $file->setParameter('check_nii_filename',  $gzip_nifti) if -e $gzip_nifti;
     $file->setParameter('check_bval_filename', $bval_file) if $bval_success;
     $file->setParameter('check_bvec_filename', $bvec_file) if $bvec_success;
 }
+
+
+=pod
+
+=head3 gzip_file($file)
+
+Gzip the file given as input and return the path of the gzipped file.
+
+INPUT: file to be gzipped
+
+RETURNS: path of the gzipped file (or undef if file not found)
+
+=cut
+
+sub gzip_file {
+    my ($file) = @_;
+
+    return undef unless (-e $file);
+
+    my $gzip_cmd = "gzip $file";
+    system($gzip_cmd);
+
+    (-e "$file.gz") ? return "$file.gz" : undef;
+}
+
 
 
 =pod

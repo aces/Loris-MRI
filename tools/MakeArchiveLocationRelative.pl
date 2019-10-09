@@ -33,6 +33,14 @@ use warnings;
 use Getopt::Tabular;
 use NeuroDB::DBI;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
+
 my $profile = undef;
 
 my @opt_table = (
@@ -70,19 +78,38 @@ if ($profile && !@Settings::db) {
     exit 2;
 }
 
-################################################################
-######### Establish database connection ########################
-################################################################
+
+
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 print "\n==> Successfully connected to database \n";
 
-################################################################
-#### This setting is in the ConfigSettings table   #############
-################################################################
-my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(
-                            \$dbh,'tarchiveLibraryDir'
-                            );
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $tarchiveLibraryDir = $configOB->getDataDirPath();
 $tarchiveLibraryDir    =~ s/\/$//g;
+
+
 
 ################################################################
 # Grep tarchive list in a hash                          ########

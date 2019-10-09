@@ -90,6 +90,12 @@ use NeuroDB::ExitCodes;
 
 
 use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
     =~ /: (\d+)\.(\d+)/;
@@ -253,12 +259,15 @@ if ( !@Settings::db ) {
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
-################################################################
-############### Establish database connection ##################
-################################################################
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-my $db = NeuroDB::Database->new(
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
     databaseName => $Settings::db[0],
     userName     => $Settings::db[1],
     password     => $Settings::db[2],
@@ -266,12 +275,25 @@ my $db = NeuroDB::Database->new(
 );
 $db->connect();
 
-## Grep Config Settings
-my $data_dir           = NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath'   );
-my $create_nii         = NeuroDB::DBI::getConfigSetting(\$dbh, 'create_nii'        );
-my $horizontalPics     = NeuroDB::DBI::getConfigSetting(\$dbh, 'horizontalPics'    );
-my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(\$dbh, 'tarchiveLibraryDir');
-$tarchiveLibraryDir    =~ s/\/$//g;
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir           = $configOB->getDataDirPath();
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+
+
+# -----------------------------------------------------------------
+## Get config setting using the old database calls
+# -----------------------------------------------------------------
+
+my $create_nii     = NeuroDB::DBI::getConfigSetting(\$dbh, 'create_nii'    );
+my $horizontalPics = NeuroDB::DBI::getConfigSetting(\$dbh, 'horizontalPics');
+
+
 
 ################################################################
 ########### Create the Specific Log File #######################
