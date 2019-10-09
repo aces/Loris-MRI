@@ -148,8 +148,8 @@ If any Quality Control flags or comments exist for these scans, you may also
   wish to delete specific records from `files_qcstatus` and the `mri_feedback_*`
   tables, before deleting from the `files` table.
 
-A script has been created in order to perform a safe deletion of an upload. Please,
-see section 4.4 for instructions on how to use the script.
+**A script has been created in order to perform a safe deletion of an upload. Please,
+see section 4.4 for instructions on how to use the script.**
 
 For backing up, re-labelling and re-loading MRI datasets with QC information,
   see [Beta Tutorial](https://github.com/aces/Loris/wiki/Reloading-MRI-data-for-mislabelled-session)

@@ -1,6 +1,6 @@
-This Readme covers release 21.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 22.0 of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
-This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 21.0.*.<br>
+This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 22.0.*.<br>
 For documentation and detailed setup information, please see the [LORIS-MRI documentation](docs/) for your installed version</b>.
 
 This repo can be installed on the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
@@ -15,7 +15,7 @@ On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script 
 
 For <u>CentOS</u>: The [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-Database) Imaging setup page (see Section 1, installing codebase) includes links to older transcripts for [CentOS installation](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript) and notes on dependencies including [DICOM toolkit](https://github.com/aces/Loris/wiki/CentOS-Imaging-installation-transcript#7-install-dicom-toolkit).
 
-The following installation should be run by the $lorisadmin user. sudo permission is required.
+The following installation should be run by the `$lorisadmin` user. `sudo` permission is required.
 See [aces/Loris](https://github.com/aces/loris) README.md for further information. 
 
 # Installation
@@ -79,18 +79,24 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
  * What prod file name would you like to use? default: prod  [leave blank]
  * Enter the list of Site names (space separated) site1 site2
 
-  If the imaging install script reports errors in creating directories (due to /data/ mount permissions), review and manually execute `mkdir/chmod/chown` commands starting at [imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L97)
+  If the imaging install script reports errors in creating directories 
+  (due to `/data/` mount permissions), review and manually execute 
+  `mkdir/chmod/chown` commands starting at 
+  [imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L97)
 
-  Note: The installer will allow Apache to write to the /data/ directories by adding user lorisadmin to the Apache linux group.  To ensure this change takes effect, log out and log back into your terminal session before running the imaging pipeline.
-The installer will also set Apache group ownership of certain /data/ subdirectories.
+  Note: The installer will allow Apache to write to the `/data/` directories by 
+  adding user `lorisadmin` to the Apache linux group.  To ensure this change takes 
+  effect, log out and log back into your terminal session before running the 
+  imaging pipeline. The installer will also set Apache group ownership of certain 
+  `/data/` subdirectories.
 
 #### 5. Configure paths and environment
 
-   Ensure that /home/lorisadmin/.bashrc includes the statement:
+   Ensure that `/home/lorisadmin/.bashrc` includes the statement:
 
    ```source /data/$projectname/bin/mri/environment```
 
-   Then source the .bashrc file.   
+   Then source the `.bashrc` file.   
 
 **INSTALLATION COMPLETE!**
 
