@@ -1579,23 +1579,22 @@ sub CreateMRICandidates {
     my ($subjectIDsref,$sex,$tarchiveInfo,$User,$centerID, $upload_id) = @_;
     my ($message);
 
-    # ----------------------------------------------------------------
-    ## Get config settings using ConfigOB
-    # ----------------------------------------------------------------
-    my $configOB = $this->{'configOB'};
-    my $createCandidates = $configOB->getCreateCandidates();
-
     if ($tarchiveInfo->{'PatientSex'} eq 'F') {
             $sex = "Female";
     } elsif ($tarchiveInfo->{'PatientSex'} eq 'M') {
         $sex = "Male";
     }
 
+    # ----------------------------------------------------------------
+    ## Get the createCandidates config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB = $this->{'configOB'};
+    my $createCandidates = $configOB->getCreateCandidates();
+
     ################################################################
     ## Create non-existent candidate if the profile allows for #####
     ## Candidate creation ##########################################
     ################################################################
-    my $configOB = $this->{'configOB'};
     if (!NeuroDB::MRI::subjectIDExists($subjectIDsref->{'CandID'}, $this->{dbhr})
         && ($createCandidates)
     ) {
