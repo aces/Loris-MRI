@@ -143,6 +143,23 @@ my $getConfigSettingRef = sub {
     return $result->[0]->{'value'};
 };
 
+
+=head3 &$getBoolean($value)
+
+Private method. This methods returns 1 if a boolean value is set to either 'true'
+or '1'; 0 otherwise. This ensures harmonization of the boolean settings.
+
+INPUT: boolean value extracted from the Config table
+
+RETURN: 1 if the value provided is 'true' or '1'; 0 otherwise
+
+=cut
+my $getBoolean = sub {
+    my ($value) = @_;
+
+    return ($value eq "true" || $value == 1) ? 1 : 0;
+};
+
 =head3 getTarchiveLibraryDir()
 
 Gets the tarchive library dir.
@@ -364,7 +381,7 @@ sub getCreateNii {
 
     my $value = &$getConfigSettingRef($self, CREATE_NII);
 
-    return ($value eq "true" || $value == 1) ? 1 : 0;
+    return $getBoolean->($value);
 }
 
 =head3 getHorizontalPics()
@@ -379,7 +396,7 @@ sub getHorizontalPics {
 
     my $value = &$getConfigSettingRef($self, HORIZONTAL_PICS);
 
-    return ($value eq "true" || $value == 1) ? 1 : 0;
+    return $getBoolean->($value);
 }
 
 =head3 getIsQsub()
@@ -394,7 +411,7 @@ sub getIsQsub {
 
     my $value = &$getConfigSettingRef($self, IS_QSUB);
 
-    return ($value eq "true" || $value == 1) ? 1 : 0;
+    return $getBoolean->($value);
 }
 
 =head3 getCreateCandidates()
@@ -409,7 +426,7 @@ sub getCreateCandidates {
 
     my $value = &$getConfigSettingRef($self, IS_QSUB);
 
-    return ($value eq "true" || $value == 1) ? 1 : 0;
+    return $getBoolean->($value);
 }
 
 1;
