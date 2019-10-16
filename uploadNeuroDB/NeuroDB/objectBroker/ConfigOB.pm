@@ -144,9 +144,9 @@ my $getConfigSettingRef = sub {
 };
 
 
-=head3 &$getBoolean($value)
+=head3 &$getBooleanRef($value)
 
-Private method. This methods returns 1 if a boolean value is set to either 'true'
+Private method. This method returns 1 if a boolean value is set to either 'true'
 or '1'; 0 otherwise. This ensures harmonization of the boolean settings.
 
 INPUT: boolean value extracted from the Config table
@@ -154,7 +154,7 @@ INPUT: boolean value extracted from the Config table
 RETURN: 1 if the value provided is 'true' or '1'; 0 otherwise
 
 =cut
-my $getBoolean = sub {
+my $getBooleanRef = sub {
     my ($value) = @_;
 
     return ($value eq "true" || $value == 1) ? 1 : 0;
@@ -381,7 +381,7 @@ sub getCreateNii {
 
     my $value = &$getConfigSettingRef($self, CREATE_NII);
 
-    return $getBoolean->($value);
+    return $getBooleanRef->($value);
 }
 
 =head3 getHorizontalPics()
@@ -396,7 +396,7 @@ sub getHorizontalPics {
 
     my $value = &$getConfigSettingRef($self, HORIZONTAL_PICS);
 
-    return $getBoolean->($value);
+    return $getBooleanRef->($value);
 }
 
 =head3 getIsQsub()
@@ -411,7 +411,7 @@ sub getIsQsub {
 
     my $value = &$getConfigSettingRef($self, IS_QSUB);
 
-    return $getBoolean->($value);
+    return $getBooleanRef->($value);
 }
 
 =head3 getCreateCandidates()
@@ -426,7 +426,7 @@ sub getCreateCandidates {
 
     my $value = &$getConfigSettingRef($self, IS_QSUB);
 
-    return $getBoolean->($value);
+    return $getBooleanRef->($value);
 }
 
 1;
