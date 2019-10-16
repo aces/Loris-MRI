@@ -87,7 +87,7 @@ Under the `Study` section:
  * `ImagingUploader Auto Launch`: used by the Imaging Uploader to automatically launch the insertion scripts on the uploaded scan
  
 Under the `Paths` section: 
- * `LORIS-MRI Code`: where the MRI code base is installed; typically `/data/$PROJECT/bin/mri/`
+ * `LORIS-MRI Code`: where the LORIS-MRI codebase is installed; typically `/data/$PROJECT/bin/mri/`
  * `MRI-Upload Directory`: where the uploaded scans get stored; typically `/data/incoming/`
  * `Images`: where the images displayed in Imaging Browser are stored; typically `/data/$PROJECT/data/`
  
@@ -139,7 +139,8 @@ Under the `Imaging Pipeline` section:
     this case, we need to specify to LORIS what would be the default visit label 
     the project wants to use to store the electrophysiology datasets (*e.g.* V01).
  * `Name of the environment file`: name of the MRI environment file to source before
-    running the insertion scripts; typically `environment`; used when Auto launch is turned on.
+    running the insertion scripts; typically `environment`; used when Auto-launch
+    is turned on for the pipeline.
  * `Modalities on which SNR should be calculated`: list of modalities/scan types on 
     which to compute SNR; typically all 3D images
  * `Scan type to use as a reference for defacing (typically T1W image)`: scan type
