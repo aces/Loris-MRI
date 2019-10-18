@@ -1652,18 +1652,25 @@ sub CreateMRICandidates {
 
     chomp($User);
     $candID = NeuroDB::MRI::createNewCandID($dbhr) unless $candID;
-    $query  = "INSERT INTO candidate ".
-              "(CandID, PSCID, DoB, Sex, RegistrationCenterID, ".
-              "Date_active, Date_registered, UserID, Entity_type) ".
-              "VALUES(" .
-              ${$this->{'dbhr'}}->quote($subjectIDsref->{'CandID'}).",".
-              ${$this->{'dbhr'}}->quote($subjectIDsref->{'PSCID'}).",".
-              ${$this->{'dbhr'}}->quote($tarchiveInfo->{'PatientDoB'}) ."," .
-              ${$this->{'dbhr'}}->quote($sex).",".
-              ${$this->{'dbhr'}}->quote($centerID).
-              ", NOW(), NOW(), '$User', 'Human')";
+    ($query = <<QUERY) =~ s/\n//gm;
+  INSERT INTO candidate (
+    CandID,               PSCID,       DoB,                  Sex,
+    RegistrationCenterID, Date_active, Date_registered,      UserID,
+    Entity_type
+  ) VALUES (
+    ?,                    ?,           ?,                    ?,
+    ?,                    NOW(),       NOW(),                ?,
+    'Human'
+  )
+QUERY
+
     print $query . "\n" if ($this->{debug});
-    ${$this->{'dbhr'}}->do($query);
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute(
+        $subjectIDsref->{'CandID'},     $subjectIDsref->{'PSCID'},
+        $subjectIDsref->{'PatientDoB'}, $sex,
+        $centerID,                      $User
+    );
 
     $message = "\n==> CREATED NEW CANDIDATE: $candID";
     $this->{LOG}->print($message);
