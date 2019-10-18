@@ -144,13 +144,7 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 my $data_dir  = $configOB->getDataDirPath();
 my $mail_user = $configOB->getMailUser();
 my $bin_dir   = $configOB->getMriCodePath();
-
-
-# -----------------------------------------------------------------
-## Get config setting using the old database calls
-# -----------------------------------------------------------------
-
-my $is_qsub   = &NeuroDB::DBI::getConfigSetting(\$dbh, 'is_qsub');
+my $is_qsub   = $configOB->getIsQsub();
 
 
 

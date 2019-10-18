@@ -498,7 +498,7 @@ sub determinePSC {
     # ----------------------------------------------------------------
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
-    my $configOB              = $this->{configOB};
+    my $configOB              = $this->{'configOB'};
     my $lookupCenterNameUsing = $configOB->getLookupCenterNameUsing();
 
 
@@ -1175,7 +1175,7 @@ sub registerScanIntoDB {
     # ----------------------------------------------------------------
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
-    my $configOB = $this->{configOB};
+    my $configOB = $this->{'configOB'};
     my $data_dir = $configOB->getDataDirPath();
     my $prefix   = $configOB->getPrefix();
 
@@ -1506,7 +1506,7 @@ sub moveAndUpdateTarchive {
     # ----------------------------------------------------------------
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
-    my $configOB = $this->{configOB};
+    my $configOB = $this->{'configOB'};
     my $tarchivePath = $configOB->getTarchiveLibraryDir();
 
 
@@ -1585,15 +1585,18 @@ sub CreateMRICandidates {
         $sex = "Male";
     }
 
+    # ----------------------------------------------------------------
+    ## Get the createCandidates config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB = $this->{'configOB'};
+    my $createCandidates = $configOB->getCreateCandidates();
+
     ################################################################
     ## Create non-existent candidate if the profile allows for #####
     ## Candidate creation ##########################################
     ################################################################
-    if (!NeuroDB::MRI::subjectIDExists(
-            $subjectIDsref->{'CandID'},
-            $this->{dbhr}
-        ) 
-        && (NeuroDB::DBI::getConfigSetting($this->{dbhr},'createCandidates'))
+    if (!NeuroDB::MRI::subjectIDExists($subjectIDsref->{'CandID'}, $this->{dbhr})
+        && ($createCandidates)
     ) {
            chomp($User);
             unless ($subjectIDsref->{'CandID'}) {
@@ -1888,7 +1891,7 @@ sub computeSNR {
     # ----------------------------------------------------------------
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
-    my $configOB = $this->{configOB};
+    my $configOB = $this->{'configOB'};
     my $data_dir = $configOB->getDataDirPath();
 
     my $modalities = NeuroDB::DBI::getConfigSetting(
