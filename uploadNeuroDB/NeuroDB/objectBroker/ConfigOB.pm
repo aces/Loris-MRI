@@ -81,6 +81,10 @@ use constant LOOK_UP_CENTER_NAME_USING => 'lookupCenterNameUsing';
 use constant DEFACING_REF_SCAN_TYPE    => 'reference_scan_type_for_defacing';
 use constant LEGO_PHANTOM_REGEX        => 'LegoPhantomRegex';
 use constant LIVING_PHANTOM_REGEX      => 'LivingPhantomRegex';
+use constant CREATE_NII                => 'create_nii';
+use constant HORIZONTAL_PICS           => 'horizontalPics';
+use constant IS_QSUB                   => 'is_qsub';
+use constant CREATE_CANDIDATES         => 'createCandidates';
 
 =pod
 
@@ -137,6 +141,23 @@ my $getConfigSettingRef = sub {
     }
 
     return $result->[0]->{'value'};
+};
+
+
+=head3 &$getBooleanRef($value)
+
+Private method. This method returns 1 if a boolean value is set to either 'true'
+or '1'; 0 otherwise. This ensures harmonization of the boolean settings.
+
+INPUT: boolean value extracted from the Config table
+
+RETURN: 1 if the value provided is 'true' or '1'; 0 otherwise
+
+=cut
+my $getBooleanRef = sub {
+    my ($value) = @_;
+
+    return ($value eq "true" || $value == 1) ? 1 : 0;
 };
 
 =head3 getTarchiveLibraryDir()
@@ -346,6 +367,66 @@ sub getLivingPhantomRegex {
     my $self = shift;
 
     return &$getConfigSettingRef($self, LIVING_PHANTOM_REGEX);
+}
+
+=head3 getCreateNii()
+
+Get the create_nii Config setting.
+
+RETURN: (boolean) 1 if create_nii is set to Yes in the Config module, 0 otherwise
+
+=cut
+sub getCreateNii {
+    my $self = shift;
+
+    my $value = &$getConfigSettingRef($self, CREATE_NII);
+
+    return $getBooleanRef->($value);
+}
+
+=head3 getHorizontalPics()
+
+Get the horizontalPics Config setting.
+
+RETURN: (boolean) 1 if horizontalPics is set to Yes in the Config module, 0 otherwise
+
+=cut
+sub getHorizontalPics {
+    my $self = shift;
+
+    my $value = &$getConfigSettingRef($self, HORIZONTAL_PICS);
+
+    return $getBooleanRef->($value);
+}
+
+=head3 getIsQsub()
+
+Get the is_qsub Config setting.
+
+RETURN: (boolean) 1 if is_qsub is set to Yes in the Config module, 0 otherwise
+
+=cut
+sub getIsQsub {
+    my $self = shift;
+
+    my $value = &$getConfigSettingRef($self, IS_QSUB);
+
+    return $getBooleanRef->($value);
+}
+
+=head3 getCreateCandidates()
+
+Get the createCandidates Config setting.
+
+RETURN: (boolean) 1 if createCandidates is set to Yes in the Config module, 0 otherwise
+
+=cut
+sub getCreateCandidates {
+    my $self = shift;
+
+    my $value = &$getConfigSettingRef($self, IS_QSUB);
+
+    return $getBooleanRef->($value);
 }
 
 1;

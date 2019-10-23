@@ -35,7 +35,6 @@ if [ -z "$prodfilename" ]; then
     prodfilename="prod"
 fi 
  
-read -p "Enter the list of Site names (space separated) " site
 mridir=`pwd`
 
 #####################################################################################

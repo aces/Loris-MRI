@@ -124,14 +124,8 @@ print "Connected to database.\n" if $verbose;
 
 my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
-my $data_dir  = $configOB->getDataDirPath();
-
-
-# -----------------------------------------------------------------
-## Get config setting using the old database calls
-# -----------------------------------------------------------------
-
-my $horizontalPics = &NeuroDB::DBI::getConfigSetting(\$dbh, 'horizontalPics');
+my $data_dir       = $configOB->getDataDirPath();
+my $horizontalPics = $configOB->getHorizontalPics();
 
 
 

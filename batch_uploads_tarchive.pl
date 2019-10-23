@@ -185,13 +185,8 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 my $data_dir           = $configOB->getDataDirPath();
 my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
 my $mail_user          = $configOB->getMailUser();
+my $is_qsub            = $configOB->getIsQsub();
 
-
-# -----------------------------------------------------------------
-## Get config setting using the old database calls
-# -----------------------------------------------------------------
-
-my $is_qsub = &NeuroDB::DBI::getConfigSetting(\$dbh, 'is_qsub');
 
 
 # define project space

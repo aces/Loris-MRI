@@ -131,6 +131,7 @@ my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%studyInfo,$minc);
+my $User = getpwuid($>);
 
 ################################################################
 #### These settings are in a config file (profile) #############
@@ -284,14 +285,8 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
 my $data_dir           = $configOB->getDataDirPath();
 my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
-
-
-# -----------------------------------------------------------------
-## Get config setting using the old database calls
-# -----------------------------------------------------------------
-
-my $create_nii     = NeuroDB::DBI::getConfigSetting(\$dbh, 'create_nii'    );
-my $horizontalPics = NeuroDB::DBI::getConfigSetting(\$dbh, 'horizontalPics');
+my $create_nii         = $configOB->getCreateNii();
+my $horizontalPics     = $configOB->getHorizontalPics();
 
 
 
@@ -498,7 +493,7 @@ my $scannerID = $utility->determineScannerID(
     \%studyInfo, 0, $centerID, $NewScanner, $upload_id
 );
 my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%studyInfo, 0, $upload_id
+    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
 );
 
 
@@ -506,9 +501,9 @@ my $subjectIDsref = $utility->determineSubjectID(
 
 
 ## Validate that the candidate exists and that PSCID matches CandID
-my $CandMismatchError = $utility->validateCandidate($subjectIDsref);
+if (defined($subjectIDsref->{'CandMismatchError'})) {
+    my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
 
-if (defined($CandMismatchError)) {
     $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
     print LOG $message;
     print LOG " -> WARNING: This candidate was invalid. Logging to
