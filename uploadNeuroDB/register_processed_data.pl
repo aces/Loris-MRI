@@ -177,13 +177,8 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
 my $data_dir         = $configOB->getDataDirPath();
 my $lookupCenterName = $configOB->getLookupCenterNameUsing();
+my $horizontalPics   = $configOB->getHorizontalPics();
 
-
-# -----------------------------------------------------------------
-## Get config setting using the old database calls
-# -----------------------------------------------------------------
-
-my $horizontalPics = &NeuroDB::DBI::getConfigSetting(\$dbh,'horizontalPics');
 
 
 

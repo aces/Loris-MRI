@@ -28,42 +28,16 @@ all of its children.
 
 ## Methods
 
-### getSubjectIDs($patientName, $scannerID, $dbhr, $db)
+### subjectIDExists($ID\_type, ID\_value, $dbhr)
 
-Determines the candidate ID and visit label for the subject based on patient
-name and (for calibration data) scanner ID.
-
-INPUTS:
-  - $patientName: patient name
-  - $scannerID  : scanner ID
-  - $dbhr       : database handle reference
-  - $db         : database object
-
-RETURNS: a reference to a hash containing elements including `CandID`,
-`visitLabel` and `visitNo`, or, in the case of failure, `undef`
-
-### subjectIDIsValid($CandID, $PSCID, $visit\_label, $dbhr, $create\_visit\_label)
-
-Verifies that the subject IDs match.
+Verifies that the subject ID (`CandID` or `PSCID`) exists.
 
 INPUTS:
-  - $candID            : candidate's `CandID`
-  - $pscid             : candidate's `PSCID`
-  - $visit\_label       : visit label
-  - $dbhr              : the database handle reference
-  - $create\_visit\_label: boolean, if true, will create the visit label
+  - $ID\_type : type of candidate ID (`CandID` or `PSCID`)
+  - $ID\_value: value of the candidate ID
+  - $dbhr    : the database handle reference
 
-RETURNS: 1 if the ID pair matches, 0 otherwise
-
-### subjectIDExists($CandID, $dbhr)
-
-Verifies that the subject ID (`CandID`) exists.
-
-INPUTS:
-  - $candID: candidate's `CandID`
-  - $dbhr  : the database handle reference
-
-RETURNS: 1 if the ID exists, 0 otherwise
+RETURNS: 1 if the ID exists in the candidate table, 0 otherwise
 
 ### getScannerCandID($scannerID, $db)
 
@@ -357,16 +331,6 @@ Converts a DICOM date field (YYYYMMDD) into a unix timestamp.
 INPUT: DICOM date to convert
 
 RETURNS: a unix timestamp (integer) or 0 if something went wrong
-
-### lookupCandIDFromPSCID($pscid, $dbhr)
-
-Looks up the `CandID` for a given `PSCID`.
-
-INPUTS:
-  - $pscid: candidate's `PSCID`
-  - $dbhr : database handle reference
-
-RETURNS: the `CandID` or 0 if the `PSCID` does not exist
 
 ### fetch\_minc\_header\_info($minc, $field, $keep\_semicolon, $get\_arg\_name)
 

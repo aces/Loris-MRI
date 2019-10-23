@@ -77,7 +77,6 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
  * What is the project name? $projectname
  * What is your email address? 
  * What prod file name would you like to use? default: prod  [leave blank]
- * Enter the list of Site names (space separated) site1 site2
 
   If the imaging install script reports errors in creating directories 
   (due to `/data/` mount permissions), review and manually execute 

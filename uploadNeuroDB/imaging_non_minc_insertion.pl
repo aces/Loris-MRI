@@ -409,8 +409,17 @@ my %info = (
     PatientID      => ($patient_name // $file_name)
 );
 
+
+# determine Center ID
+my ($center_name, $centerID) = $utility->determinePSC(\%info, 0, undef);
+
+
+
 # determine subject ID information
-my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
+my $User            = getpwuid($>);
+my ($subjectIDsref) = $utility->determineSubjectID(
+    $scanner_id, \%info, 0, undef, $User, $centerID
+);
 unless (%$subjectIDsref){
     # exits if could not determine subject IDs
     $message = "\n\tERROR: could not determine subject IDs for $file_path.\n\n";
@@ -428,9 +437,7 @@ unless (%$subjectIDsref){
 }
 
 # check whether there is a candidate IDs mismatch error
-my $CandMismatchError;
-$CandMismatchError = $utility->validateCandidate($subjectIDsref);
-if ($CandMismatchError){
+if ($subjectIDsref->{'CandMismatchError'}){
     # exits if there is a mismatch in candidate IDs
     $message = "\n\tERROR: Candidate IDs mismatch for $file_path.\n\n";
     # write error message in the log file
