@@ -371,7 +371,7 @@ sub extractAndParseTarchive {
 =head3 determineSubjectID($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID)
 
 This function does:
-1) Determines subject's ID based on scanner ID and DICOM archive information.
+1) Determine subject's ID based on scanner ID and DICOM archive information.
 2) Call the C<CreateMRICandidate> function (will create the candidate if it does 
 not exists and C<createCandidates> config option is set to yes)
 3) Call the C<validateCandidate> to validate the candidate information 
@@ -1665,7 +1665,7 @@ sub CreateMRICandidates {
   )
 QUERY
 
-    print $query . "\n" if ($this->{debug});
+    print "$query\n" if ($this->{debug});
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute(
         $subjectIDsref->{'CandID'},     $subjectIDsref->{'PSCID'},

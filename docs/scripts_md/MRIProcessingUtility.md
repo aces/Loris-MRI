@@ -120,7 +120,7 @@ RETURNS:
 ### determineSubjectID($scannerID, $tarchiveInfo, $to\_log, $upload\_id, $User, $centerID)
 
 This function does:
-1) Determines subject's ID based on scanner ID and DICOM archive information.
+1) Determine subject's ID based on scanner ID and DICOM archive information.
 2) Call the `CreateMRICandidate` function (will create the candidate if it does 
 not exists and `createCandidates` config option is set to yes)
 3) Call the `validateCandidate` to validate the candidate information 
