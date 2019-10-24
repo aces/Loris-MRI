@@ -11,7 +11,6 @@ Updates and contributions welcome (also see [Contributing Guide](https://github.
 
 ## Get the code
 
-Request Loris-MRI Github repository permission. 
 Fork the repository to your GitHub user account.
 Then clone this fork on your server as follows (this will create a directory called `mri`) : 
 
@@ -100,6 +99,8 @@ brew install md5sha1sum
 ## Run install script for Mac: imaging_install_MacOSX.sh 
 
 ```
+cd /data/$PROJ/bin/mri
 sh imaging_install_MacOSX.sh
 ```
+Note: $PROJ = project name. By default we recommend `loris`
 
