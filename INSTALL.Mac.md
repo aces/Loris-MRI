@@ -1,11 +1,13 @@
 # LORIS-MRI Mac Install Guide
 
-### Mac systems are not supported for LORIS - This guide is offered unofficially on a best-effort basis. 
-Updates and contributions welcome (also see [Contributing Guide](https://github.com/aces/Loris/blob/master/CONTRIBUTING.md)) 
+### Mac systems are Not supported for LORIS. 
+This guide is offered unofficially on a best-effort basis. 
+For best results, we recommend installing LORIS on Ubuntu or CentOS.
 
 This file provides guidance on how to install the imaging pipeline on your Mac computer. LORIS must already be installed.
+
 It has been tested for Mac OS X 10.13. 
-For best results, we recommend installing LORIS on Ubuntu or CentOS.
+Updates and contributions welcome (also see [Contributing Guide](https://github.com/aces/Loris/blob/master/CONTRIBUTING.md)) 
 
 ## Get the code
 
@@ -21,7 +23,7 @@ git clone git@github.com:your-github-username/Loris-MRI.git mri
 Note: $PROJ = project name. By default we recommend `loris`
 
 
-## Install [MincToolKit](http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC) and [DCMtk] (http://dicom.offis.de/dcmtk.php.en)
+## Install [MincToolKit](http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC) and [DCMtk](http://dicom.offis.de/dcmtk.php.en)
 
 ## Install PERL libraries
 Note: Before compiling `DBD::mysql`, you will need to create some aliases because MySQL on Mac is installed differently than on Linux
@@ -52,7 +54,7 @@ sudo -S cpan install TryCatch
 sudo -S cpan install Throwable
 ```
 
-## Install the following Python libraries
+## Install key Python libraries
 
 - Python dependencies to install 
 
@@ -67,7 +69,7 @@ pip install virtualenv
 virtualenv /data/$PROJECT/bin/mri/python_virtualenvs/loris-mri-python
 ```
 
-- Source the loris-mri-python virtual environment to install all python library dependencies 
+- Source the `loris-mri-python` virtual environment to install python library dependencies 
 
 ```
 source /data/$PROJECT/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
