@@ -424,7 +424,7 @@ RETURN: (boolean) 1 if createCandidates is set to Yes in the Config module, 0 ot
 sub getCreateCandidates {
     my $self = shift;
 
-    my $value = &$getConfigSettingRef($self, IS_QSUB);
+    my $value = &$getConfigSettingRef($self, CREATE_CANDIDATES);
 
     return $getBooleanRef->($value);
 }
