@@ -10,59 +10,59 @@ delete_mri_upload.pl -- Delete everything that was produced (or part of what was
 =head1 SYNOPSIS
 
 perl delete_mri_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
-            [-type list_of_scan_types] [-defaced] [-file fileBaseName] [-nosqlbk] [-nofilesbk]
+            [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk]
 
 Available options are:
 
--profile            : name of the config file in C<../dicom-archive/.loris_mri> (defaults to C<prod>).
+-profile               : name of the config file in C<../dicom-archive/.loris_mri> (defaults to C<prod>).
 
--ignore             : ignore files whose paths exist in the database but do not exist on the file system.
-                      Default is to abort if such a file is found, irrespective of whether a backup file will
-                      be created by the script (see C<-nofilesbk> and C<-nosqlbk>). If this option is used, a 
-                      warning is issued and program execution continues.
+-ignore                : ignore files whose paths exist in the database but do not exist on the file system.
+                         Default is to abort if such a file is found, irrespective of whether a backup file will
+                         be created by the script (see C<-nofilesbk> and C<-nosqlbk>). If this option is used, a 
+                         warning is issued and program execution continues.
                
--nofilesbk          : when creating the backup file for the deleted upload(s), do not backup the files produced by
-                      the imaging pipeline (default is to backup these files).
+-nofilesbk             : when creating the backup file for the deleted upload(s), do not backup the files produced by
+                         the imaging pipeline (default is to backup these files).
                
--backup_path <path> : specify the path of the backup file, which by default contains a copy of everything that the
-                      script will delete, both on the file system and in the database (but see C<-nofilesbk> and
-                      C<-nosqlbk>). The extension C<.tar.gz> will be added to this base name to build the name of the final
-                      backup file. If a file with this resulting name already exists, an error message is shown and the script
-                      will abort. Note that C<path> can be an absolute path or a path relative to the current directory. A 
-                      backup file is always created unless options C<-nofilesbk> and C<-nosqlbk> are both used. By default, the
-                      backup file name is C<imaging_upload_backup.tar.gz> and is written in the current directory. Option 
-                      C<-backup_path> cannot be used if C<-nofilesbk> and C<-nosqlbk> are also used.
-
--file fileBaseName  : basename of the file to delete. The file is assumed to either exist in table C<files> or table 
-                      C<parameter_files>. This option should be used when targeting a specific (unique) file for deletion.
-                      Note that the file will be deleted from both the database and the filesystem. This optin cannot be 
-                      used with options C<-defaced> and C<-form>.
+-backup_path <path>    : specify the path of the backup file, which by default contains a copy of everything that the
+                         script will delete, both on the file system and in the database (but see C<-nofilesbk> and
+                         C<-nosqlbk>). The extension C<.tar.gz> will be added to this base name to build the name of the final
+                         backup file. If a file with this resulting name already exists, an error message is shown and the script
+                         will abort. Note that C<path> can be an absolute path or a path relative to the current directory. A 
+                         backup file is always created unless options C<-nofilesbk> and C<-nosqlbk> are both used. By default, the
+                         backup file name is C<imaging_upload_backup.tar.gz> and is written in the current directory. Option 
+                         C<-backup_path> cannot be used if C<-nofilesbk> and C<-nosqlbk> are also used.
+                         
+-basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table C<files> or table 
+                         C<parameter_files>. This option should be used when targeting a specific (unique) file for deletion.
+                         Note that the file will be deleted from both the database and the filesystem. This optin cannot be 
+                         used with options C<-defaced> and C<-form>.
                
--uploadID           : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. The program will 
-                      abort if the list contains an upload ID that does not exist. Also, all upload IDs must
-                      have the same C<tarchive> ID (which can be C<NULL>).
+-uploadID              : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. The program will 
+                         abort if the list contains an upload ID that does not exist. Also, all upload IDs must
+                         have the same C<tarchive> ID (which can be C<NULL>).
                
--protocol           : delete the imaging protocol(s) in table C<mri_processing_protocol> associated to either the
-                      upload(s) specified via the C<-uploadID> option or any file that was produced using this (these)
-                      upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
-                      This option must be used if there is at least one record in C<mri_processing_protocol> that is tied
-                      only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
-                      do not have a protocol associated to them, the switch is ignored if used.
+-protocol              : delete the imaging protocol(s) in table C<mri_processing_protocol> associated to either the
+                         upload(s) specified via the C<-uploadID> option or any file that was produced using this (these)
+                         upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
+                         This option must be used if there is at least one record in C<mri_processing_protocol> that is tied
+                         only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
+                         do not have a protocol associated to them, the switch is ignored if used.
                
--form               : delete the entries in C<mri_parameter_form> associated to the upload(s) passed on
-                      the command line, if any (default is NOT to delete them).
+-form                  : delete the entries in C<mri_parameter_form> associated to the upload(s) passed on
+                         the command line, if any (default is NOT to delete them).
                
--type               : comma-separated list of scan type names to delete. All the names must exist in table C<mri_scan_type> or
-                      the script will issue an error. This option cannot be used in conjunction with C<-defaced>.
+-type                  : comma-separated list of scan type names to delete. All the names must exist in table C<mri_scan_type> or
+                         the script will issue an error. This option cannot be used in conjunction with C<-defaced>.
                
--defaced            : fetch the scan types listed in config setting C<modalities_to_delete> and perform a deletion of these scan
-                      types as if their names were used with option C<-type>. Once all deletions are done, set the C<SourceFileID>
-                      and C<TarchiveSource> of all the defaced files in table <files> to C<NULL> and to the tarchive ID of the 
-                      upload(s) whose arguments were passed to C<-uploadID>, respectively.
+-defaced               : fetch the scan types listed in config setting C<modalities_to_delete> and perform a deletion of these scan
+                         types as if their names were used with option C<-type>. Once all deletions are done, set the C<SourceFileID>
+                         and C<TarchiveSource> of all the defaced files in table <files> to C<NULL> and to the tarchive ID of the 
+                         upload(s) whose arguments were passed to C<-uploadID>, respectively.
                 
--nosqlbk            : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
-                      the database to the state it had before the script was invoked. Adding this file, wich will be named
-                      C<imaging_upload_restore.sql>, to the backup file is the default behaviour.
+-nosqlbk               : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
+                         the database to the state it had before the script was invoked. Adding this file, wich will be named
+                         C<imaging_upload_restore.sql>, to the backup file is the default behaviour.
                
 
 =head1 DESCRIPTION
@@ -137,7 +137,7 @@ provided the database was not modified in the meantime. The SQL backup file will
 
 4. Delete a specific file that exists in table C<files> or table C<parameter_file> (in which case it will be associated to parameter
    C<check_pic_filename>, C<check_nii_filename>, C<check_bval_filename> or C<check_bvec_filename>). Note that once a file is
-   deleted, all the files that have been derived/built using this deleted file will also be deleted. Use option C<-file fileBaseName>, 
+   deleted, all the files that have been derived/built using this deleted file will also be deleted. Use option C<-basename fileBaseName>, 
    where C<fileBaseName> is the basename of the file to delete, along with option C<-uploadID> to use the script this way.
     
 
@@ -207,7 +207,7 @@ my %options = (
     KEEP_DEFACED              => DEFAULT_KEEP_DEFACED,
     BACKUP_PATH               => '',
     UPLOAD_ID                 => '',
-    FILE                      => ''
+    BASENAME                  => ''
 );
 
 my $scanTypeList           = undef;
@@ -236,7 +236,7 @@ my @opt_table = (
     ['-defaced'    , 'const'        , 1, \$options{'KEEP_DEFACED'},
      'Replace each MINC files whose scan types are in the list of types to deface with its'
       . ' corresponding defaced file.'],
-    ['-file'       , 'string'       , 1, \$options{'FILE'},
+    ['-basename'   , 'string'       , 1, \$options{'BASENAME'},
      'Delete a file with a specific basename.']
 );
 
@@ -261,7 +261,12 @@ if(defined $scanTypeList && $options{'DELETE_MRI_PARAMETER_FORM'}) {
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 } 
 
-if($options{'FILE'} && $options{'DELETE_MRI_PARAMETER_FORM'}) {
+if($options{'BASENAME'} =~ /\// ) {
+    print STDERR "Argument $options{'BASENAME'} to -basename is not a file basename (contains a '/'). Aborting.\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+} 
+
+if($options{'BASENAME'} ne '' && $options{'DELETE_MRI_PARAMETER_FORM'}) {
     print STDERR "Option -file cannot be used in conjunction with option -form. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 } 
@@ -276,7 +281,7 @@ if($options{'KEEP_DEFACED'} && $options{'DELETE_MRI_PARAMETER_FORM'}) {
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 } 
 
-if($options{'KEEP_DEFACED'} && $options{'FILE'}) {
+if($options{'KEEP_DEFACED'} && $options{'BASENAME'} ne '') {
     print STDERR "Option -defaced cannot be used in conjunction with option -file. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 } 
@@ -404,18 +409,18 @@ if(!$tarchiveID) {
         printf STDERR  "option %s cannot be used. Aborting.\n", ($options{'KEEP_DEFACED'} ? '-defaced' : '-type');
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
-    if($options{'FILE'}) { 
+    if($options{'BASENAME'} ne '') { 
         print STDERR "The upload(s) specified on the command line are not tied to any records in table tarchive: ";
         printf STDERR  "option -file cannot be used. Aborting.\n";
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
-$files{'files'}                       = &getFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'FILE'});
-$files{'files_intermediary'}          = &getIntermediaryFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'FILE'});
-$files{'parameter_file'}              = &getParameterFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'FILE'});
-$files{'mri_protocol_violated_scans'} = &getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'FILE'});
-$files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'FILE'});
-$files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'FILE'});
+$files{'files'}                       = &getFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
+$files{'files_intermediary'}          = &getIntermediaryFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
+$files{'parameter_file'}              = &getParameterFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
+$files{'mri_protocol_violated_scans'} = &getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
+$files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
+$files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
 
@@ -496,7 +501,7 @@ $nbFilesInBackup += &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDelete,
 # Delete everything associated to the upload(s) in the  #
 # file system                                           #
 #=======================================================#
-&deleteUploadsOnFileSystem(\%files, \@scanTypesToDelete, $options{'KEEP_DEFACED'}, $options{'FILE'});
+&deleteUploadsOnFileSystem(\%files, \@scanTypesToDelete, $options{'KEEP_DEFACED'}, $options{'BASENAME'});
 
 &gzipBackupFile($options{'BACKUP_PATH'}) if $nbFilesInBackup;
 
@@ -856,7 +861,7 @@ sub getFilesRef {
         ? sprintf(' AND mst.Scan_type IN (%s) ', join(',', ('?') x  @$scanTypesToDeleteRef)) 
         : '';
     my $fileBaseNameAnd = $fileBaseName ne ''
-       ? ' AND SUBSTRING_INDEX(f.File, "/", -1) = ?'
+       ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
        : '';
 
     my $query = 'SELECT f.FileID, f.File FROM files f '   
@@ -934,13 +939,13 @@ sub getIntermediaryFilesRef {
                . '    WHERE f2.TarchiveSource = ? '
                .      $mriScanTypeAnd
                . ') '
-               . 'AND SUBSTRING_INDEX(f.File, "/", -1) = ?';
+               . 'AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?';
         @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName); 
     # Either -file was not used or it was used but nothing matched in table files.
     # 
 	} else {
 		my $fileBaseNameAnd = $fileBaseName ne '' 
-		    ? ' AND SUBSTRING_INDEX(f2.File, "/", -1) = ?'
+		    ? ' AND BINARY SUBSTRING_INDEX(f2.File, "/", -1) = ?'
 		    : '';
         $query = 'SELECT fi.IntermedID, fi.Input_FileID, fi.Output_FileID, f.FileID, f.File, f.SourceFileID '
                . 'FROM files_intermediary fi '
@@ -1017,11 +1022,11 @@ sub getParameterFilesRef {
                . ') '
                . " AND pt.Name IN ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename') "
                . $mriScanTypeAnd
-               . ' AND SUBSTRING_INDEX(Value, "/", -1) = ?';
+               . ' AND BINARY SUBSTRING_INDEX(Value, "/", -1) = ?';
         @queryArgs = ($tarchiveID, $tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
     } else {
 		my $fileBaseNameAnd = $fileBaseName ne '' 
-		    ? ' AND SUBSTRING_INDEX(f.File, "/", -1) = ?'
+		    ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
 		    : '';
 		
 	    $query = 'SELECT ParameterFileID, FileID, Value, pt.Name FROM parameter_file pf '
@@ -1096,7 +1101,7 @@ sub getMriProtocolViolatedScansFilesRef {
     # Get FileID and File path of each files in files directly tied
     # to $tarchiveId
     my $query = 'SELECT ID, minc_location FROM mri_protocol_violated_scans WHERE TarchiveID = ?';
-    $query .= ' AND SUBSTRING_INDEX(minc_location, "/", -1) = ?' if $fileBaseName ne '';
+    $query .= ' AND BINARY SUBSTRING_INDEX(minc_location, "/", -1) = ?' if $fileBaseName ne '';
     my @queryArgs = ($tarchiveID);
     push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
     my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, @queryArgs);
@@ -1137,7 +1142,7 @@ sub getMriViolationsLogFilesRef {
     return [] if !defined $tarchiveID;
 
     my $fileBaseNameAnd = $fileBaseName ne ''
-       ? ' AND SUBSTRING_INDEX(MincFile, "/", -1) = ?'
+       ? ' AND BINARY SUBSTRING_INDEX(MincFile, "/", -1) = ?'
        : '';
     my $query;
     if(@$scanTypesToDeleteRef) {
@@ -1197,7 +1202,7 @@ sub getMRICandidateErrorsFilesRef {
     # Get file path of each files in files directly tied
     # to $tarchiveId
     my $fileBaseNameAnd = $fileBaseName ne '' 
-       ? ' AND SUBSTRING_INDEX(MincFile, "/", -1) = ?'
+       ? ' AND BINARY SUBSTRING_INDEX(MincFile, "/", -1) = ?'
        : '';
     my $query = 'SELECT ID, MincFile FROM MRICandidateErrors WHERE TarchiveID = ?'
               . $fileBaseNameAnd;
@@ -1305,7 +1310,7 @@ sub backupFiles {
             next if $t eq 'parameter_file' && !grep($f->{'Name'} eq $_, FILE_PARAMETER_NAMES);
             
             # If the file is not going to be deleted, do not back it up
-            next unless &shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $optionsRef->{'KEEP_DEFACED'}, $optionsRef->{'FILE'});
+            next unless &shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $optionsRef->{'KEEP_DEFACED'}, $optionsRef->{'BASENAME'});
             $hasSomethingToBackup = 1 if $f->{'Exists'}
         }
     }
@@ -1321,7 +1326,7 @@ sub backupFiles {
     my($fh, $tmpFileName) = tempfile("$0.filelistXXXX", UNLINK => 1);
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
-            next unless &shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $optionsRef->{'KEEP_DEFACED'}, $optionsRef->{'FILE'});
+            next unless &shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $optionsRef->{'KEEP_DEFACED'}, $optionsRef->{'BASENAME'});
             if($f->{'Exists'}) {
                 print $fh "$f->{'FullPath'}\n";
                 $nbToBackUp++;
@@ -1416,11 +1421,11 @@ sub deleteUploadsInDatabase {
         ? (undef, undef) : tempfile('sql_backup_XXXX', UNLINK => 1);
         
     my @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
-    &deleteTableData($dbh, 'notification_spool', 'ProcessID', \@IDs, $tmpSQLFile) if !@$scanTypesToDeleteRef && !$optionsRef->{'FILE'};
+    &deleteTableData($dbh, 'notification_spool', 'ProcessID', \@IDs, $tmpSQLFile) if !@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '';
     
     # If only specific scan types are targeted for deletion, do not delete the entries in
     # tarchive_files and tarchive_series as these are tied to the archive, not the MINC files   
-    if(!@$scanTypesToDeleteRef && !$optionsRef->{'FILE'}) {
+    if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         my $IDsRef = &getTarchiveSeriesIDs($dbh, $filesRef);  
         &deleteTableData($dbh, 'tarchive_files', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile);
     
@@ -1470,14 +1475,14 @@ sub deleteUploadsInDatabase {
     # delete and if after the deletion nothing remains in the archive, the archive
     # will be deleted
     my $tarchiveID = $filesRef->{'mri_upload'}->[0]->{'TarchiveID'};
-    if(!@$scanTypesToDeleteRef && !$optionsRef->{'FILE'}) {
+    if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
         &deleteTableData($dbh, 'mri_upload', 'UploadID', \@IDs, $tmpSQLFile);
    
         &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile) if defined $tarchiveID;
     }
     
-    &updateSessionTable($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) unless @$scanTypesToDeleteRef || $optionsRef->{'FILE'};
+    &updateSessionTable($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) unless @$scanTypesToDeleteRef || $optionsRef->{'BASENAME'} ne '';
         
     $dbh->commit;
     

@@ -6,58 +6,63 @@ delete\_mri\_upload.pl -- Delete everything that was produced (or part of what w
 # SYNOPSIS
 
 perl delete\_mri\_upload.pl \[-profile file\] \[-ignore\] \[-backup\_path basename\] \[-protocol\] \[-form\] \[-uploadID list\_of\_uploadIDs\]
-            \[-type list\_of\_scan\_types\] \[-defaced\] \[-nosqlbk\] \[-nofilesbk\]
+            \[-type list\_of\_scan\_types\] \[-defaced\] \[-basename fileBaseName\] \[-nosqlbk\] \[-nofilesbk\]
 
 Available options are:
 
-\-profile            : name of the config file in `../dicom-archive/.loris_mri` (defaults to `prod`).
+\-profile               : name of the config file in `../dicom-archive/.loris_mri` (defaults to `prod`).
 
-\-ignore             : ignore files whose paths exist in the database but do not exist on the file system.
-                      Default is to abort if such a file is found, irrespective of whether a backup file will
-                      be created by the script (see `-nofilesbk` and `-nosqlbk`). If this option is used, a 
-                      warning is issued and program execution continues.
+\-ignore                : ignore files whose paths exist in the database but do not exist on the file system.
+                         Default is to abort if such a file is found, irrespective of whether a backup file will
+                         be created by the script (see `-nofilesbk` and `-nosqlbk`). If this option is used, a 
+                         warning is issued and program execution continues.
 
-\-nofilesbk          : when creating the backup file for the deleted upload(s), do not backup the files produced by
-                      the imaging pipeline (default is to backup these files).
+\-nofilesbk             : when creating the backup file for the deleted upload(s), do not backup the files produced by
+                         the imaging pipeline (default is to backup these files).
 
-\-backup\_path &lt;path> : specify the path of the backup file, which by default contains a copy of everything that the
-                      script will delete, both on the file system and in the database (but see `-nofilesbk` and
-                      `-nosqlbk`). The extension `.tar.gz` will be added to this base name to build the name of the final
-                      backup file. If a file with this resulting name already exists, an error message is shown and the script
-                      will abort. Note that `path` can be an absolute path or a path relative to the current directory. A 
-                      backup file is always created unless options `-nofilesbk` and `-nosqlbk` are both used. By default, the
-                      backup file name is `imaging_upload_backup.tar.gz` and is written in the current directory. Option 
-                      `-backup_path` cannot be used if `-nofilesbk` and `-nosqlbk` are also used.
+\-backup\_path &lt;path>    : specify the path of the backup file, which by default contains a copy of everything that the
+                         script will delete, both on the file system and in the database (but see `-nofilesbk` and
+                         `-nosqlbk`). The extension `.tar.gz` will be added to this base name to build the name of the final
+                         backup file. If a file with this resulting name already exists, an error message is shown and the script
+                         will abort. Note that `path` can be an absolute path or a path relative to the current directory. A 
+                         backup file is always created unless options `-nofilesbk` and `-nosqlbk` are both used. By default, the
+                         backup file name is `imaging_upload_backup.tar.gz` and is written in the current directory. Option 
+                         `-backup_path` cannot be used if `-nofilesbk` and `-nosqlbk` are also used.
 
-\-uploadID           : comma-separated list of upload IDs (found in table `mri_upload`) to delete. The program will 
-                      abort if the list contains an upload ID that does not exist. Also, all upload IDs must
-                      have the same `tarchive` ID (which can be `NULL`).
+\-basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table `files` or table 
+                         `parameter_files`. This option should be used when targeting a specific (unique) file for deletion.
+                         Note that the file will be deleted from both the database and the filesystem. This optin cannot be 
+                         used with options `-defaced` and `-form`.
 
-\-protocol           : delete the imaging protocol(s) in table `mri_processing_protocol` associated to either the
-                      upload(s) specified via the `-uploadID` option or any file that was produced using this (these)
-                      upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
-                      This option must be used if there is at least one record in `mri_processing_protocol` that is tied
-                      only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
-                      do not have a protocol associated to them, the switch is ignored if used.
+\-uploadID              : comma-separated list of upload IDs (found in table `mri_upload`) to delete. The program will 
+                         abort if the list contains an upload ID that does not exist. Also, all upload IDs must
+                         have the same `tarchive` ID (which can be `NULL`).
 
-\-form               : delete the entries in `mri_parameter_form` associated to the upload(s) passed on
-                      the command line, if any (default is NOT to delete them).
+\-protocol              : delete the imaging protocol(s) in table `mri_processing_protocol` associated to either the
+                         upload(s) specified via the `-uploadID` option or any file that was produced using this (these)
+                         upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
+                         This option must be used if there is at least one record in `mri_processing_protocol` that is tied
+                         only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
+                         do not have a protocol associated to them, the switch is ignored if used.
 
-\-type               : comma-separated list of scan type names to delete. All the names must exist in table `mri_scan_type` or
-                      the script will issue an error. This option cannot be used in conjunction with `-defaced`.
+\-form                  : delete the entries in `mri_parameter_form` associated to the upload(s) passed on
+                         the command line, if any (default is NOT to delete them).
 
-\-defaced            : fetch the scan types listed in config setting `modalities_to_delete` and perform a deletion of these scan
-                      types as if their names were used with option `-type`. Once all deletions are done, set the `SourceFileID`
-                      and `TarchiveSource` of all the defaced files in table &lt;files> to `NULL` and to the tarchive ID of the 
-                      upload(s) whose arguments were passed to `-uploadID`, respectively.
+\-type                  : comma-separated list of scan type names to delete. All the names must exist in table `mri_scan_type` or
+                         the script will issue an error. This option cannot be used in conjunction with `-defaced`.
 
-\-nosqlbk            : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
-                      the database to the state it had before the script was invoked. Adding this file, wich will be named
-                      `imaging_upload_restore.sql`, to the backup file is the default behaviour.
+\-defaced               : fetch the scan types listed in config setting `modalities_to_delete` and perform a deletion of these scan
+                         types as if their names were used with option `-type`. Once all deletions are done, set the `SourceFileID`
+                         and `TarchiveSource` of all the defaced files in table &lt;files> to `NULL` and to the tarchive ID of the 
+                         upload(s) whose arguments were passed to `-uploadID`, respectively.
+
+\-nosqlbk               : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
+                         the database to the state it had before the script was invoked. Adding this file, wich will be named
+                         `imaging_upload_restore.sql`, to the backup file is the default behaviour.
 
 # DESCRIPTION
 
-This program deletes an imaging upload or specific parts of it from the database and the file system. There are three
+This program deletes an imaging upload or specific parts of it from the database and the file system. There are four
 possible ways in which this script can be used:
 
 1\. Delete everything that is associated to the upload ID(s). Basically, for uploads on which the MRI pipeline was
@@ -125,9 +130,14 @@ provided the database was not modified in the meantime. The SQL backup file will
        a) A MINC file should have a corresponding defaced file but does not.
        b) A MINC file that has been defaced has an associated file that is not a defaced file.
 
+4\. Delete a specific file that exists in table `files` or table `parameter_file` (in which case it will be associated to parameter
+   `check_pic_filename`, `check_nii_filename`, `check_bval_filename` or `check_bvec_filename`). Note that once a file is
+   deleted, all the files that have been derived/built using this deleted file will also be deleted. Use option `-basename fileBaseName`, 
+   where `fileBaseName` is the basename of the file to delete, along with option `-uploadID` to use the script this way.
+
 ## Methods
 
-### printExitMessage($filesRef, $scanTypesToDeleteRef, $noSQL) 
+### printExitMessage($filesRef, $scanTypesToDeleteRef) 
 
 Prints an appropriate message before exiting. 
 
@@ -183,7 +193,7 @@ INPUTS:
                  `$mriUploadsRef->[0]->{'TarchiveID'}`(this would return the `TarchiveID` of the first `mri_upload`
                  in the array. The properties stored for each hash are: `UploadID`, `TarchiveID`, `FullPath`
                  `Inserting`, `InsertionComplete` and `SessionID`.
-  - $uploadIDsRef: reference to the array that contains the upload IDs passed on the command line.
+   - $uploadIDsRef: reference to the array that contains the upload IDs passed on the command line.
 
 ### getMriProcessingProtocolFilesRef($dbh, $filesRef)
 
@@ -218,7 +228,7 @@ INPUTS:
 RETURNS:
   - 1 if there is QC information associated to the DICOM archive(s), 0 otherwise.
 
-### getFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef)
+### getFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table `files`.
@@ -228,22 +238,27 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of names of scan types to delete.
+  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
+                   whether a file is deleted or not.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: `FileID` => ID of a file in table `files`,
    `File` => value of column `File` for the file with the given ID and `FullPath` => absolute path
    for the file with the given ID.
 
-### getIntermediaryFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef)
+### getIntermediaryFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
 
 Get the absolute paths of all the intermediary files associated to an archive 
 that are listed in table `files_intermediary`.
 
 INPUTS:
   - $dbhr  : database handle reference.
+  - $filesRef: reference on the hash of all files.
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
+                   whether a file is deleted or not.
 
 RETURNS: 
   - an array of hash references. Each hash has seven keys: `IntermedID` => ID of a file in 
@@ -253,7 +268,7 @@ RETURNS:
     ID, `SourceFileID` value of column `SourceFileID` for the intermediary file and 
     `FullPath` => absolute path of the file with the given ID.
 
-### getParameterFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef)
+### getParameterFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
 
 Gets the absolute paths of all the files associated to an archive that are listed in table
 `parameter_file` and have a parameter type set to `check_pic_filename`, `check_nii_filename`,
@@ -261,9 +276,12 @@ Gets the absolute paths of all the files associated to an archive that are liste
 
 INPUTS:
   - $dbhr  : database handle reference.
+  - $filesRef: reference on the hash of all files.
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
+                   whether a file is deleted or not.
 
 RETURNS: 
   - an array of hash references. Each hash has four keys: `FileID` => FileID of a file 
@@ -271,7 +289,7 @@ RETURNS:
     for the file with the given ID, `Name` => name of the parameter and `FullPath` => absolute
     path of the file with the given ID.
 
-### getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef)
+### getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table `mri_protocol_violated_scans`.
@@ -281,6 +299,8 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
+                   whether a file is deleted or not.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: `ID` => ID of the record in table
@@ -288,7 +308,7 @@ RETURNS:
    `mri_protocol_violated_scans` for the MINC file found and `FullPath` => absolute path of the MINC
    file found.
 
-### getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef)
+### getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
 
 Get the absolute paths of all the files associated to an archive that are listed in 
 table `mri_violations_log`.
@@ -298,13 +318,15 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
+                   whether a file is deleted or not.
 
 RETURNS: 
  an array of hash references. Each hash has three keys: `LogID` => ID of the record in table 
  `mri_violations_log`, `MincFile` => value of column `MincFile` for the MINC file found in table
  `mri_violations_log` and `FullPath` => absolute path of the MINC file.
 
-### getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef)
+### getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $fileBaseName)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table `MRICandidateErrors`.
@@ -314,6 +336,8 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
+                   whether a file is deleted or not.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: `ID` => ID of the record in the 
@@ -357,7 +381,7 @@ INPUTS:
 RETURNS:
   - The number of files backed up.
 
-### shouldDeleteFile($table, $fileRef, $scanTypesToDeleteRef, $keepDefaced)
+### shouldDeleteFile($table, $fileRef, $scanTypesToDeleteRef, $keepDefaced, $fileBaseName)
 
 Checks whether a given file should be deleted or not.
 
@@ -366,6 +390,7 @@ INPUTS:
   - $fileRef: reference to the array that contains the file information for a given file.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $keepDefaced: whether the defaced files should be kept or not.
+  - $fileBaseName: value of option -file (or '' if -file was not used).
 
 RETURNS:
   - 0 or 1 depending on whether the file should be deleted or not.
@@ -391,7 +416,7 @@ RETURNS:
   - 1 if this method produced a file containing the SQL statements that restore the database state to what it was before calling this
     method, 0 otherwise.
 
-### gzipBackupFile($backupBasename)
+### gzipBackupFile($backupPath)
 
 Compresses the file that contains a backup of everything that was deleted by the script, both
 from the file system and the database, using `gzip`.
@@ -439,7 +464,7 @@ INPUTS:
                  `Inserting`, `InsertionComplete` and `SessionID`.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
 
-### deleteUploadsOnFileSystem($filesRef, $scanTypesToDeleteRef, $keepDefaced)
+### deleteUploadsOnFileSystem($filesRef, $scanTypesToDeleteRef, $keepDefaced, $fileBaseName)
 
 This method deletes from the file system all the files associated to the upload(s) passed on the
 command line that were found on the file system. A warning will be issued for any file that
@@ -450,6 +475,7 @@ INPUTS:
     that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $keepDefaced: whether the defaced files should be kept or not.
+  - $fileBaseName: value of option -file (or '' if option was not used).
 
 ### getTypesToDelete($dbh, $scanTypeList, $keepDefaced)
 
@@ -523,5 +549,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
