@@ -1773,6 +1773,17 @@ sub validateCandidate {
     my ($subjectIDsref)= @_;
     my $CandMismatchError = undef;
     
+    ############################################################
+    ################ No Checking if the subject is Phantom #####
+    ############################################################
+    if ($subjectIDsref->{'isPhantom'}) {
+        # CandID/PSCID errors don't apply to phantoms, so we don't
+        # want to trigger
+        # the check which aborts the insertion
+        $CandMismatchError = undef;
+        return $CandMismatchError;
+    }
+    
     #################################################################
     ## Check if CandID exists
     #################################################################
@@ -1807,17 +1818,6 @@ sub validateCandidate {
             print LOG "\n=> $CandMismatchError";
             return $CandMismatchError;
         }
-    }
-
-    ############################################################
-    ################ No Checking if the subject is Phantom #####
-    ############################################################
-    if ($subjectIDsref->{'isPhantom'}) {
-        # CandID/PSCID errors don't apply to phantoms, so we don't
-        # want to trigger
-        # the check which aborts the insertion
-        $CandMismatchError = undef;
-        return $CandMismatchError;
     }
 
     ############################################################
