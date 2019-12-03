@@ -93,7 +93,7 @@ class ScansTSV:
         age_header_list = ['age', 'age_at_scan', 'age_acq_time']
 
         for header_name in age_header_list:
-            if header_name in self.tsv_headers:
+            if header_name in self.tsv_headers and self.acquisition_data:
                 return self.acquisition_data[header_name].strip()
 
         return None

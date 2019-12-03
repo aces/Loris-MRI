@@ -3,16 +3,16 @@ import argparse
 import mne.io
 import numpy as np
 
-import chunking
+from chunking import *
 
 def load_channels(path):
-    return mne.io.read_raw_eeglab(path, preload=False)
+    return mne.io.read_raw_edf(path, preload=False)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Convert .set files to chunks for browser based visualisation.')
+        description='Convert .edf files to chunks for browser based visualisation.')
     parser.add_argument('files', metavar='FILE', type=str, nargs='+',
-                        help='one or more .set files to convert to a directory of chunks next to the input file')
+                        help='one or more .edf files to convert to a directory of chunks next to the input file')
     parser.add_argument('--chunk-size', '-s', dest='chunk_size', type=int, default=5000,
                         help='1 dimensional chunk size')
     parser.add_argument('--downsamplings', '-r', dest='downsamplings', type=int,
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     for path in args.files:
-        chunking.write_chunk_directory(
+        write_chunk_directory(
             path=path,
             loader=load_channels,
             chunk_size=args.chunk_size,

@@ -26,6 +26,7 @@ The root directory of the imaging part of a LORIS instance is typically
             |__ trashbin
             |__ pipelines*
             |__ protocols*
+            |__ bids_imports
 ```
 
 `*` _denotes optional directories that are not automatically created by the 

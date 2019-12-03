@@ -37,6 +37,12 @@ use File::Copy;
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 
 my $profile;
@@ -84,10 +90,33 @@ if ( !@Settings::db ) {
 
 
 
-
+# --------------------------------------------------------
 ## establish database connection
+# --------------------------------------------------------
+
+# old database connection
 my $dbh  = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
 print "\n==> Successfully connected to database \n";
+
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir = $configOB->getDataDirPath();
 
 
 
@@ -139,7 +168,6 @@ if ( !$row ) {
 
 ## backup the JIV directory to the archive directory on the filesystem
 # grep the data_dir from the Configuration module of LORIS
-my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
 $data_dir    =~ s/\/$//;
 my $jiv_dir  = $data_dir . "/jiv";
 my $jiv_bkp  = $data_dir . "/archive/bkp_jiv_produced_before_LORIS_20.0";

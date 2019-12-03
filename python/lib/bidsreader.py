@@ -36,14 +36,17 @@ class BidsReader:
         bids_reader = BidsReader(bids_dir)
     """
 
-    def __init__(self, bids_dir):
+    def __init__(self, bids_dir, verbose):
         """
         Constructor method for the BidsReader class.
 
         :param bids_dir: path to the BIDS structure to read
          :type bids_dir: str
+        :param verbose : boolean to print verbose information
+         :type verbose : bool
         """
 
+        self.verbose     = verbose
         self.bids_dir    = bids_dir
         self.bids_layout = self.load_bids_data()
 
@@ -74,9 +77,16 @@ class BidsReader:
 
         :return: bids structure
         """
+
+        if self.verbose:
+            print('Loading the BIDS dataset with BIDS layout library...\n')
+
         bids_config = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
         exclude_arr = ['/code/', '/sourcedata/', '/log/', '.git/']
         bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr)
+
+        if self.verbose:
+            print('\t=> BIDS dataset loaded with BIDS layout\n')
 
         return bids_layout
 
@@ -89,6 +99,9 @@ class BidsReader:
          :rtype: list
         """
 
+        if self.verbose:
+            print('Grepping candidates from the BIDS layout...')
+
         # grep the participant.tsv file and parse it
         participants_info = None
         for file in self.bids_layout.get(suffix='participants', return_type='filename'):
@@ -100,6 +113,12 @@ class BidsReader:
 
         self.candidates_list_validation(participants_info)
 
+        if self.verbose:
+            print('\t=> List of participants found:')
+            for participant in participants_info:
+                print('\t\t' + participant['participant_id'])
+            print('\n')
+
         return participants_info
 
     def candidates_list_validation(self, participants_info):
@@ -108,6 +127,9 @@ class BidsReader:
         list of participant directory. If there is a mismatch, will exit with
         error code from lib.exitcode.
         """
+
+        if self.verbose:
+            print('Validating the list of participants...')
 
         subjects = self.bids_layout.get_subjects()
 
@@ -131,6 +153,9 @@ class BidsReader:
             print(mismatch_message)
             sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
 
+        if self.verbose:
+            print('\t=> Passed validation of the list of participants\n')
+
     def load_sessions_from_bids(self):
         """
         Grep the list of sessions for each candidate directly from the BIDS
@@ -141,11 +166,23 @@ class BidsReader:
          :rtype: dict
         """
 
+        if self.verbose:
+            print('Grepping list of sessions from the BIDS layout...')
+
         cand_sessions = {}
 
         for row in self.participants_info:
             ses = self.bids_layout.get_sessions(subject=row['participant_id'])
             cand_sessions[row['participant_id']] = ses
+
+        if self.verbose:
+            print('\t=> List of sessions found:\n')
+            for candidate in cand_sessions:
+                if cand_sessions[candidate]:
+                    print('\t\t' + candidate + ': ' + ', '.join(cand_sessions[candidate]))
+                else:
+                    print('\t\tNo session found for candidate ' + candidate)
+            print('\n')
 
         return cand_sessions
 
@@ -157,6 +194,9 @@ class BidsReader:
         :return: dictionary for candidate and session with list of modalities
          :rtype: dict
         """
+
+        if self.verbose:
+            print('Grepping the different modalities from the BIDS layout...')
 
         cand_session_modalities_list = []
 
@@ -173,6 +213,9 @@ class BidsReader:
                 cand_session_dict['modalities'] = modalities
 
             cand_session_modalities_list.append(cand_session_dict)
+
+        if self.verbose:
+            print('\t=> Done grepping the different modalities from the BIDS layout\n')
 
         return cand_session_modalities_list
 

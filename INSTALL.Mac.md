@@ -1,36 +1,31 @@
-#LORIS-MRI Mac Install Guide
-### Mac is no longer supported as of 15.10. 
+# LORIS-MRI Mac Install Guide
 
-This is a guide on how to install the imaging pipeline on your Mac computer. It has been tested for Mac OS X 10.9.
+### Mac systems are Not supported for LORIS. 
+This guide is offered unofficially on a best-effort basis. 
 For best results, we recommend installing LORIS on Ubuntu or CentOS.
 
-## 1. Grep the code from Github
+This file provides guidance on how to install the imaging pipeline on your Mac computer. LORIS must already be installed.
 
-Request Loris-MRI Github repository permission. 
-Fork the repository to your Git-user and clone the fork to your server.
+It has been tested for Mac OS X 10.13. 
+Updates and contributions welcome (also see [Contributing Guide](https://github.com/aces/Loris/blob/master/CONTRIBUTING.md)) 
+
+## Get the code
+
+Fork the repository to your GitHub user account.
+Then clone this fork on your server as follows (this will create a directory called `mri`) : 
 
 ```
 sudo mkdir -p /data/$PROJ/bin
-sudo chown -R lorisadmin:lorisadmin /data/$PROJ
 cd /data/$PROJ/bin
-git clone git@github.com:your-git-username/Loris-MRI.git mri
+git clone git@github.com:your-github-username/Loris-MRI.git mri
 ```
-Note: $PROJ = project name
+Note: $PROJ = project name. By default we recommend `loris`
 
-## 2. Install Dicom-archive within the mri/ directory
 
-```
-cd /data/$PROJ/bin/mri/
-git submodule init
-git submodule sync
-git submodule updatemo9
-```
-Note: $PROJ = project name
+## Install [MincToolKit](http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC) and [DCMtk](http://dicom.offis.de/dcmtk.php.en)
 
-## 3. Install [minctoolkit](http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC) and [dcmtk] (http://dicom.offis.de/dcmtk.php.en)
-
-## 4. Install the following perl libraries
-Note: Before compiling DBD::mysql, you will need to create some alias because MySQL on Mac is installed differently than on Linux
+## Install PERL libraries
+Note: Before compiling `DBD::mysql`, you will need to create some aliases because MySQL on Mac is installed differently than on Linux
 
 ```
 cd /usr/local
@@ -46,17 +41,66 @@ sudo -S cpan install Time::JulianDay
 sudo -S cpan install Path::Class
 sudo -S cpan install DBI
 sudo -S cpan install DBD::mysql
+sudo -S cpan install Archive::Extract
+sudo -S cpan install Archive::Zip
+sudo -S cpan install Pod::Perldoc
+sudo -S cpan install Pod::Markdown
+sudo -S cpan install Pod::Usage
+sudo -S cpan install JSON
+sudo -S cpan install Moose
+sudo -S cpan install MooseX::Privacy
+sudo -S cpan install TryCatch
+sudo -S cpan install Throwable
 ```
 
-## 5. Install md5sum library
+## Install key Python libraries
+
+- Python dependencies to install 
 
 ```
-sudo port install md5sh1sum
+brew install python3
+pip install virtualenv
 ```
 
-## 6. Run imaging_install_MacOSX.sh script
+- Create the LORIS-MRI virtual python environment 
 
 ```
+virtualenv /data/$PROJECT/bin/mri/python_virtualenvs/loris-mri-python
+```
+
+- Source the `loris-mri-python` virtual environment to install python library dependencies 
+
+```
+source /data/$PROJECT/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
+```
+
+- Install all python library dependencies
+
+```
+pip install mysqlclient
+pip install mysql-connector
+pip install pybids
+pip install pyblake2
+pip install mne
+pip install google
+pip install protobuf
+pip install matplotlib
+pip install nose
+pip install sklearn
+pip install nilearn
+```
+
+## Install md5sum library
+
+```
+brew install md5sha1sum
+```
+
+## Run install script for Mac: imaging_install_MacOSX.sh 
+
+```
+cd /data/$PROJ/bin/mri
 sh imaging_install_MacOSX.sh
 ```
+Note: $PROJ = project name. By default we recommend `loris`
 
