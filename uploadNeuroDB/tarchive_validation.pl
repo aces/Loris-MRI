@@ -314,20 +314,6 @@ if (defined $subjectIDsref->{'CandMismatchError'}) {
 }
 
 ################################################################
-### Extract the tarchive and feed the dicom data dir to ######## 
-### The uploader ###############################################
-################################################################
-my ($ExtractSuffix,$study_dir,$header) = 
-    $utility->extractAndParseTarchive($tarchive, $upload_id);
-
-################################################################
-# Optionally do extra filtering on the dicom data, if needed ###
-################################################################
-if ( defined( &Settings::dicomFilter )) {
-    Settings::dicomFilter($study_dir, \%tarchiveInfo);
-}
-
-################################################################
 ##Update the IsTarchiveValidated flag in the mri_upload table ##
 ################################################################
 $query = "UPDATE mri_upload SET IsTarchiveValidated='1' WHERE UploadID=?";
