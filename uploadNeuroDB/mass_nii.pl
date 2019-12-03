@@ -37,6 +37,13 @@ use NeuroDB::File;
 use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
 
 ## Starting the program
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.00 $
@@ -112,15 +119,38 @@ if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
                  . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
-} 
+}
 
 
 
-################################################################
-# Establish database connection if database option is set ######
-################################################################
-print "Connecting to database.\n" if $verbose;
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+print "Connected to database.\n" if $verbose;
+
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir = $configOB->getDataDirPath();
+
 
 
 ################################################################
@@ -145,7 +175,7 @@ QUERY
 
 # Complete query if min and max File ID have been defined.
 $query .= " AND f.FileID <= ?" if defined $maxFileID;
-$query .= " AND f.FileID <= ?" if defined $minFileID;
+$query .= " AND f.FileID >= ?" if defined $minFileID;
 
 # Create array of parameters to use for query.
 my @param = ('check_nii_filename', 'mnc');
@@ -163,9 +193,6 @@ if ($debug) {
 ################################################################
 # Create NIfTI files for each FileIDs from the query result ####
 ################################################################
-my $data_dir = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
 # Loop through FileIDs
 while(my $rowhr = $sth->fetchrow_hashref()) {
 

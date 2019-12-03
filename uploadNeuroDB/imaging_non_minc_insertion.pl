@@ -84,6 +84,13 @@ use NeuroDB::File;
 use NeuroDB::MRIProcessingUtility;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
 
 ###### Table-driven argument parsing
 
@@ -219,17 +226,30 @@ if ( $metadata_file && !(-r $metadata_file) ){
 
 
 
-###### Establish database connection
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
 
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
 
 
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
 
-###### Get config settings
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
-my $data_dir = NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
-
+my $data_dir  = $configOB->getDataDirPath();
 
 
 
@@ -262,15 +282,15 @@ print LOG $message;
 
 # create Notify and Utility objects
 my $notifier = NeuroDB::Notify->new(\$dbh);
-my $utility = NeuroDB::MRIProcessingUtility->new(
-    \$dbh, 0, $TmpDir, $log_file, $verbose
+my $utility  = NeuroDB::MRIProcessingUtility->new(
+    $db, \$dbh, 0, $TmpDir, $log_file, $verbose, $profile
 );
 
 
 
 
 ##### Exit if the provided scanner ID does not refer to a valid scanner entry
-unless ( defined NeuroDB::MRI::getScannerCandID($scanner_id, \$dbh) ) {
+unless ( defined NeuroDB::MRI::getScannerCandID($scanner_id, $db) ) {
     # if no row returned, exits with message that did not find this scanner ID
     $message = "\n\tERROR: Invalid ScannerID $scanner_id.\n\n";
     # write error message in the log file
@@ -315,7 +335,7 @@ unless ($sth->rows > 0) {
 ###### Determine the acquisition protocol ID of the file based on scan type
 
 # verify that an acquisition protocol ID exists for $scan_type
-my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, \$dbh);
+my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, $db);
 if ($acqProtocolID =~ /unknown/){
     $message = "\n\tERROR: no AcquisitionProtocolID found for $scan_type.\n\n";
     # write error message in the log file
@@ -389,8 +409,17 @@ my %info = (
     PatientID      => ($patient_name // $file_name)
 );
 
+
+# determine Center ID
+my ($center_name, $centerID) = $utility->determinePSC(\%info, 0, undef);
+
+
+
 # determine subject ID information
-my $subjectIDsref = $utility->determineSubjectID($scanner_id, \%info, 0);
+my $User            = getpwuid($>);
+my ($subjectIDsref) = $utility->determineSubjectID(
+    $scanner_id, \%info, 0, undef, $User, $centerID
+);
 unless (%$subjectIDsref){
     # exits if could not determine subject IDs
     $message = "\n\tERROR: could not determine subject IDs for $file_path.\n\n";
@@ -408,9 +437,7 @@ unless (%$subjectIDsref){
 }
 
 # check whether there is a candidate IDs mismatch error
-my $CandMismatchError;
-$CandMismatchError = $utility->validateCandidate($subjectIDsref);
-if ($CandMismatchError){
+if ($subjectIDsref->{'CandMismatchError'}){
     # exits if there is a mismatch in candidate IDs
     $message = "\n\tERROR: Candidate IDs mismatch for $file_path.\n\n";
     # write error message in the log file

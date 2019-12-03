@@ -86,6 +86,11 @@ use NeuroDB::ExitCodes;
 
 
 use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
                 =~ /: (\d+)\.(\d+)/;
@@ -221,12 +226,24 @@ my $db = NeuroDB::Database->new(
 );
 $db->connect();
 
+
+
+#-------------------------------------------------
+# Grep the config settings using the ConfigOB
+#-------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir           = $configOB->getDataDirPath();
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+
+
+
+
+
 ################################################################
 ########## Create the Specific Log File ########################
 ################################################################
-my $data_dir = NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'dataDirBasepath'
-                    );
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
@@ -252,9 +269,6 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 ############### Create tarchive array ##########################
 ################################################################
 ################################################################
-my $tarchiveLibraryDir = NeuroDB::DBI::getConfigSetting(
-                       \$dbh,'tarchiveLibraryDir'
-                       );
 $tarchiveLibraryDir    =~ s/\/$//g;
 my $ArchiveLocation    = $tarchive;
 $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
@@ -291,38 +305,13 @@ my $scannerID = $utility->determineScannerID(
 ################################################################
 ################################################################
 my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%tarchiveInfo, 1, $upload_id
+    $scannerID, \%tarchiveInfo, 1, $upload_id, $User, $centerID
 );
-
-################################################################
-################################################################
-## Optionally create candidates as needed Standardize sex    ###
-## (DICOM uses M/F, DB uses Male/Female) #######################
-################################################################
-################################################################
-$utility->CreateMRICandidates(
-    $subjectIDsref, $sex, \%tarchiveInfo, $User, $centerID, $upload_id
-);
-
-################################################################
-################################################################
-## Check the CandID/PSCID Match It's possible that the CandID ## 
-## exists, but doesn't match the PSCID. This will fail further #
-## down silently, so we explicitly check that the data is ######
-## correct here. ###############################################
-################################################################
-################################################################
-my $CandMismatchError= $utility->validateCandidate($subjectIDsref);
-if (defined $CandMismatchError) {
-    print "$CandMismatchError \n";
+if (defined $subjectIDsref->{'CandMismatchError'}) {
+    print "$subjectIDsref->{'CandMismatchError'} \n";
     ##Note that the script will not exit, so that further down
     ##it can be inserted per minc into the MRICandidateErrors
 }
-################################################################
-############ Get the SessionID #################################
-################################################################
-my ($sessionID) =
-    $utility->setMRISession($subjectIDsref, \%tarchiveInfo, $upload_id);
 
 ################################################################
 ### Extract the tarchive and feed the dicom data dir to ######## 

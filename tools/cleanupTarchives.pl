@@ -42,6 +42,12 @@ use NeuroDB::MRI;
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
 
 
 
@@ -94,18 +100,32 @@ if ( !@Settings::db ) {
 
 
 
-##############################
-##  Establish db connection ##
-##############################
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-##############################
-####  Initiate variables  ####
-##############################
-# These settings are in the database, accessible from the Configuration module
-my $data_dir           = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath'   );
-my $tarchiveLibraryDir = &NeuroDB::DBI::getConfigSetting(\$dbh,'tarchiveLibraryDir');
-$tarchiveLibraryDir    =~ s/\/$//g;
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir           = $configOB->getDataDirPath();
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
+
 
 
 ##############################

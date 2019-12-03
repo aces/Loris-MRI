@@ -12,6 +12,7 @@ from lib.candidate  import Candidate
 from lib.bidsreader import BidsReader
 from lib.session    import Session
 from lib.eeg        import Eeg
+from lib.mri        import Mri
 
 
 __license__ = "GPLv3"
@@ -153,7 +154,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
     data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
 
     # load the BIDS directory
-    bids_reader = BidsReader(bids_dir)
+    bids_reader = BidsReader(bids_dir, verbose)
     if not bids_reader.participants_info          \
             or not bids_reader.cand_sessions_list \
             or not bids_reader.cand_session_modalities_list:
@@ -194,16 +195,14 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
 
     # read list of modalities per session / candidate and register data
     for row in bids_reader.cand_session_modalities_list:
+        bids_session = row['bids_ses_id']
+        visit_label  = bids_session if bids_session else default_bids_vl
+        loris_bids_visit_rel_dir    = 'sub-' + row['bids_sub_id'] + '/' + 'ses-' + visit_label
         for modality in row['modalities']:
+            loris_bids_modality_rel_dir = loris_bids_visit_rel_dir + '/' + modality + '/'
+            lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
+
             if modality == 'eeg':
-                bids_session = row['bids_ses_id']
-                visit_label = bids_session if bids_session else default_bids_vl
-                loris_bids_eeg_rel_dir = "sub-" + row['bids_sub_id'] + "/" + \
-                                         "ses-" + visit_label + "/eeg/"
-                lib.utilities.create_dir(
-                    loris_bids_root_dir + loris_bids_eeg_rel_dir,
-                    verbose
-                )
                 Eeg(
                     bids_reader   = bids_reader,
                     bids_sub_id   = row['bids_sub_id'],
@@ -213,7 +212,21 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     verbose       = verbose,
                     data_dir      = data_dir,
                     default_visit_label    = default_bids_vl,
-                    loris_bids_eeg_rel_dir = loris_bids_eeg_rel_dir,
+                    loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
+                    loris_bids_root_dir    = loris_bids_root_dir
+                )
+
+            elif modality in ['anat', 'dwi', 'fmap', 'func']:
+                Mri(
+                    bids_reader   = bids_reader,
+                    bids_sub_id   = row['bids_sub_id'],
+                    bids_ses_id   = row['bids_ses_id'],
+                    bids_modality = modality,
+                    db            = db,
+                    verbose       = verbose,
+                    data_dir      = data_dir,
+                    default_visit_label    = default_bids_vl,
+                    loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
 

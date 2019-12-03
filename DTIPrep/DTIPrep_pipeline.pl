@@ -97,6 +97,14 @@ use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 use DTI::DTI;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
+
 
 #Set the help section
 my $Usage   =   <<USAGE;
@@ -169,18 +177,40 @@ if (!$DTIPrepVersion) {
     exit $NeuroDB::ExitCodes::MISSING_TOOL_VERSION;
 }
 
-# Establish database connection
-my  $dbh    =   &NeuroDB::DBI::connect_to_db(@Settings::db);
 
-# These settings are in the ConfigSettings table
-my  $t1_scan_type  = &NeuroDB::DBI::getConfigSetting(\$dbh, 't1_scan_type');
-my  $DTI_volumes   = &NeuroDB::DBI::getConfigSetting(\$dbh, 'DTI_volumes');
-my  $reject_thresh = &NeuroDB::DBI::getConfigSetting(\$dbh, 'reject_thresh');
-my  $niak_path     = &NeuroDB::DBI::getConfigSetting(\$dbh, 'niak_path');
-my  $QCed2_step    = &NeuroDB::DBI::getConfigSetting(\$dbh,'QCed2_step');
-my  $site          = &NeuroDB::DBI::getConfigSetting(\$dbh, 'prefix');
-my  $data_dir      = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
-$data_dir          =~ s/\/$//;   # removing trailing / in $data_dir
+
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir     = $configOB->getDataDirPath();
+my $niak_path    = $configOB->getNiakPath();
+my $prefix       = $configOB->getPrefix();
+my $DTI_volumes  = $configOB->getDtiVolumes();
+my $t1_scan_type = $configOB->getT1ScanType();
+my $QCed2_step   = $configOB->getQced2Step();
+
+
 
 # Needed for log file
 my  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)   =   localtime(time);
@@ -214,7 +244,7 @@ foreach my $nativedir (@nativedirs)   {
     ####### Step 1: #######  Get SubjectID and Visit label
     #######################
     my ($subjID, $visit) = &getIdentifiers($nativedir);
-    next if ((!$site) || (!$subjID) || !($visit));
+    next if ((!$prefix) || (!$subjID) || !($visit));
 
 
     #######################

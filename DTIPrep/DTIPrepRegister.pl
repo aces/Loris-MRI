@@ -71,6 +71,14 @@ use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
 use DTI::DTI;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
+
+
+
 # Set default option values
 my $profile         = undef;
 my $DTIPrep_subdir  = undef;
@@ -152,12 +160,35 @@ if (!$DTIPrepVersion) {
 }
 
 
-# Establish database connection
-my  $dbh    =   &NeuroDB::DBI::connect_to_db(@Settings::db);
+# ----------------------------------------------------------------
+## Establish database connection
+# ----------------------------------------------------------------
+
+# old database connection
+my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir   = $configOB->getDataDirPath();
+my $QCed2_step = $configOB->getQced2Step();
+
+
 
 # Needed for log file
-my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh, 'dataDirBasepath');
-$data_dir    =~ s/\/$//;   # removing trailing / in $data_dir
 my  $log_dir = "$data_dir/logs/DTIPrep_register";
 system("mkdir -p -m 770 $log_dir") unless (-e $log_dir);
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
@@ -167,13 +198,6 @@ open(LOG,">>$log");
 print LOG "\n==> Successfully connected to database \n";
 print LOG "Log file, $date\n\n";
 
-
-
-# Fetch DTIPrep step during which a secondary QCed file will be created (for example: noMC for a file without motion correction). 
-# This is set as a config option in the config file.
-my  $QCed2_step = &NeuroDB::DBI::getConfigSetting(
-                    \$dbh,'QCed2_step'
-                    );
 
 
 print LOG "\n==> DTI output directory is: $DTIPrep_subdir\n";

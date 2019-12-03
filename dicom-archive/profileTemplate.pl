@@ -45,29 +45,24 @@ sub getSubjectIDs {
      #      b. 0 if imaging pipeline should not create the visit label (when visit label has not been created yet in the database. 
     if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
 
-        $subjectID{'CandID'}    = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $db));
-        $subjectID{'visitLabel'}= NeuroDB::MRI::my_trim($patientName);
-        $subjectID{'createVisitLabel'} = 1; 
+        $subjectID{'CandID'}     = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $db));
+        $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($patientName);
+
+        $subjectID{'createVisitLabel'} = 1;
 
      # If patient match PSCID_DCCID_VisitLabel
      # Determine PSCID, DCCID and visitLabel based on patient name
     } elsif ($patientName =~ /([^_]+)_(\d+)_([^_]+)/) {
 
-        $subjectID{'PSCID'}         = NeuroDB::MRI::my_trim($1);
-        $subjectID{'CandID'}        = NeuroDB::MRI::my_trim($2);
-        $subjectID{'visitLabel'}    = NeuroDB::MRI::my_trim($3);
-        $subjectID{'createVisitLabel'} = 0; 
+        $subjectID{'PSCID'}      = NeuroDB::MRI::my_trim($1);
+        $subjectID{'CandID'}     = NeuroDB::MRI::my_trim($2);
+        $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($3);
 
-        # Note, this function will ensure that the PSCID/CandID information refers to a valid candidate
-        # and it will check that the Visit label exists in the Visit_Windows table
-        if(!NeuroDB::MRI::subjectIDIsValid($subjectID{'CandID'}, $subjectID{'PSCID'}, $subjectID{'visitLabel'}, $dbhr)) {
-            return undef;
-        }
+        $subjectID{'createVisitLabel'} = 0;
 
         print "PSCID is: "            . $subjectID{'PSCID'}      . 
-                "\n CandID id: "      . $subjectID{'CandID'}     . 
+                "\n CandID id: "      . $subjectID{'CandID'}     .
                 "\n visit_label is: " . $subjectID{'visitLabel'} . "\n";
-
     }
    
     # Return subjectIDs
