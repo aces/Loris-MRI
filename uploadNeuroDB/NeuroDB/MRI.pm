@@ -395,7 +395,6 @@ sub identify_scan_db {
            mp.xstep_range, mp.ystep_range, mp.zstep_range, 
            mp.time_range, mp.series_description_regex
     FROM mri_protocol mp
-    JOIN mri_protocol_group_rel mpgr ON (mp.ID=mpgr.MriProtocolID)
     JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)
     WHERE
         (Center_name = ? AND ScannerID = ?)

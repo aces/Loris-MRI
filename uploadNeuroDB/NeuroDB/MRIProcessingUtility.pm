@@ -790,7 +790,6 @@ sub extra_file_checks() {
 
     ## Step 1 - select all distinct exclude and warning headers for the scan type
     my $query = "SELECT DISTINCT(mpc.Header) FROM mri_protocol_checks mpc "
-        . "JOIN mri_protocol_checks_group_rel mpcgr ON (mpc.ID=mpcgr.MriProtocolChecksGroupID) "
         . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
         . "WHERE Scan_type=? AND Severity=?";
     $query .= defined $projectID
