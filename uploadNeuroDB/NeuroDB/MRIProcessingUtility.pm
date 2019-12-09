@@ -896,7 +896,6 @@ sub loop_through_protocol_violations_checks {
 
     # query to fetch list of valid protocol checks in mri_protocol_checks table
     my $query = "SELECT ValidRange, ValidRegex FROM mri_protocol_checks mpc "
-        . "JOIN mri_protocol_checks_group_rel mpcgr ON (mpc.ID=mpcgr.MriProtocolChecksGroupID) "
         . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
         . "WHERE mpc.Scan_type=? AND mpc.Severity=? AND mpc.Header=?";
     $query .= defined $projectID
