@@ -6,6 +6,8 @@ import re
 import os
 import subprocess
 
+import lib.exitcode
+
 __license__ = "GPLv3"
 
 
@@ -69,10 +71,12 @@ class Physiological:
             query="SELECT type FROM ImagingFileTypes"
         )
 
+        extension = os.path.splitext(os.path.basename(file))[1]
+
         # if the file type cannot be found in the database, exit now
         file_type = None
         for type in imaging_file_types:
-            if type['type'] in file:
+            if type['type'] in extension:
                 file_type = type['type']
 
         # exits if could not find a file type
