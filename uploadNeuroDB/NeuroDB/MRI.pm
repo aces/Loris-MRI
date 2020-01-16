@@ -50,6 +50,8 @@ use NeuroDB::objectBroker::MriScanTypeOB;
 use NeuroDB::objectBroker::MriScannerOB;
 use NeuroDB::objectBroker::PSCOB;
 use NeuroDB::UnexpectedValueException;
+use NeuroDB::Notify;
+
 
 $VERSION = 0.2;
 @ISA = qw(Exporter);
@@ -313,6 +315,7 @@ INPUTS:
   - $dbhr          : database handle reference
   - $db            : database object
   - $minc_location : location of the MINC files
+  - $uploadID      : ID of the upload containing the scan
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 
@@ -320,8 +323,7 @@ RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location
-    ) = @_;
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID) = @_;
 
     my $candid       = ${subjectref}->{'CandID'};
     my $pscid        = ${subjectref}->{'PSCID'};
@@ -329,7 +331,7 @@ sub identify_scan_db {
     my $projectID    = ${subjectref}->{'ProjectID'};
     my $subprojectID = ${subjectref}->{'SubprojectID'};
     
-    my $tarchiveID   = $tarchiveInfoRef->{'TarchiveID'};
+    my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
 
     # get parameters from minc header
     my $patient_name =  ${fileref}->getParameter('patient_name');
@@ -378,29 +380,26 @@ sub identify_scan_db {
         Model         => $fileref->getParameter('manufacturer_model_name'),
         Serial_number => $fileref->getParameter('device_serial_number'),
         Software      => $fileref->getParameter('software_versions')
-    });
+	});
     
     # default ScannerID to 0 if we have no better clue.
     my $ScannerID = @$resultsRef> 0 ? $resultsRef->[0]->{'ID'} : 0;
     
     #===========================================================#
     # Get the list of lines in the mri_protocol table that      #
-    # apply to the given scan based on the center name, project # 
-    # ID, subproject ID and visit label                         #
+    # apply to the given scan based on the center name          #
     #===========================================================#
-    ($query = <<QUERY) =~ s/\n/ /gm;
-    SELECT mp.Scan_type, mp.ScannerID, mp.Center_name, 
-           mp.TR_range, mp.TE_range, mp.TI_range, mp.slice_thickness_range,
-           mp.xspace_range, mp.yspace_range, mp.zspace_range,
-           mp.xstep_range, mp.ystep_range, mp.zstep_range, 
-           mp.time_range, mp.series_description_regex
-    FROM mri_protocol mp
-    JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)
-    WHERE
-        (Center_name = ? AND ScannerID = ?)
-    OR  ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0')
-QUERY
+    $query = "SELECT *
+              FROM mri_protocol
+              JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)
+              WHERE (
+                        (Center_name = ? AND ScannerID = ?)
+                     OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0'))";
 
+    #============================================================#
+    # Add to the query the clause related to the Project ID, the #
+    # subproject ID and visit label.                             #
+    #============================================================#
     $query .= defined $projectID
         ? ' AND (mpgt.ProjectID IS NULL OR mpgt.ProjectID = ?)'
         : ' AND mpgt.ProjectID IS NULL';
@@ -421,37 +420,62 @@ QUERY
     $sth = $${dbhr}->prepare($query);
     $sth->execute(@bindValues);
     
-    return 'unknown' unless $sth->rows>0;
+    my @rows = @{ $sth->fetchall_arrayref({}) };
+    # If no lines in the mri_protocol_group_target matches the ProjectID/SubprojectID/VisitLabel
+    # then no lines of the mri_protocol table can be used to identify the scan type. This is most
+    # likely a setup issue: mri_protocol/mri_protocol_group/mri_protocol_group_target do not cover
+    # all the cases. Warn.
+    if(@rows == 0) {
+		my $msg = "Warning! No protocol group can be used to determine the scan type "
+		        . "of $minc_location.\nIncorrect/incomplete setup of table mri_protocol_group_target: "
+		        . " setting scan type to 'unknown'"; 
+		print "$msg\n";
+        my $notify = NeuroDB::Notify->new( $dbhr );
+        $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
+
+        return 'unknown' unless $sth->rows>0;
+	}
+    # If more than one line in the mri_protocol_group_target matches the ProjectID/SubprojectID/VisitLabel
+    # then table mri_protocol_group_target was not setup properly. Warn.
+    my %mriProtocolGroupIDs = map { $_->{'MriProtocolGroupID'} => 1 } @rows;
+    if(keys %mriProtocolGroupIDs > 1) {
+		my $msg = "Warning! More than one protocol group can be used to identify the scan type of $minc_location\n"
+		        . "Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'"; 
+		print "$msg\n";
+        my $notify = NeuroDB::Notify->new( $dbhr );
+        $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
+
+        return 'unknown' unless $sth->rows>0;
+	}
+	my $mriProtocolGroupID = [ keys %mriProtocolGroupIDs ]->[0];
 
     # check against all possible scan types
-    my $rowref;
-
-    while($rowref = $sth->fetchrow_hashref()) {
-        my $sd_regex          = $rowref->{'series_description_regex'};
-        my $tr_min     = $rowref->{'TR_min'};
-        my $tr_max     = $rowref->{'TR_max'};
-        my $te_min     = $rowref->{'TE_min'};
-        my $te_max     = $rowref->{'TE_max'};
-        my $ti_min     = $rowref->{'TI_min'};
-        my $ti_max     = $rowref->{'TI_max'};
-        my $xspace_min = $rowref->{'xspace_min'};
-        my $xspace_max = $rowref->{'xspace_max'};
-        my $yspace_min = $rowref->{'yspace_min'};
-        my $yspace_max = $rowref->{'yspace_max'};
-        my $zspace_min = $rowref->{'zspace_min'};
-        my $zspace_max = $rowref->{'zspace_max'};
-        my $xstep_min  = $rowref->{'xstep_min'};
-        my $xstep_max  = $rowref->{'xstep_max'};
-        my $ystep_min  = $rowref->{'ystep_min'};
-        my $ystep_max  = $rowref->{'ystep_max'};
-        my $zstep_min  = $rowref->{'zstep_min'};
-        my $zstep_max  = $rowref->{'zstep_max'};
-        my $time_min   = $rowref->{'time_min'};
-        my $time_max   = $rowref->{'time_max'};
+    foreach my $rowref (@rows) {
+        my $sd_regex        = $rowref->{'series_description_regex'};
+        my $tr_min          = $rowref->{'TR_min'};
+        my $tr_max          = $rowref->{'TR_max'};
+        my $te_min          = $rowref->{'TE_min'};
+        my $te_max          = $rowref->{'TE_max'};
+        my $ti_min          = $rowref->{'TI_min'};
+        my $ti_max          = $rowref->{'TI_max'};
+        my $xspace_min      = $rowref->{'xspace_min'};
+        my $xspace_max      = $rowref->{'xspace_max'};
+        my $yspace_min      = $rowref->{'yspace_min'};
+        my $yspace_max      = $rowref->{'yspace_max'};
+        my $zspace_min      = $rowref->{'zspace_min'};
+        my $zspace_max      = $rowref->{'zspace_max'};
+        my $xstep_min       = $rowref->{'xstep_min'};
+        my $xstep_max       = $rowref->{'xstep_max'};
+        my $ystep_min       = $rowref->{'ystep_min'};
+        my $ystep_max       = $rowref->{'ystep_max'};
+        my $zstep_min       = $rowref->{'zstep_min'};
+        my $zstep_max       = $rowref->{'zstep_max'};
+        my $time_min        = $rowref->{'time_min'};
+        my $time_max        = $rowref->{'time_max'};
         my $slice_thick_min = $rowref->{'slice_thickness_min'};
         my $slice_thick_max = $rowref->{'slice_thickness_max'};
 
-        if(0) {
+        if(1) {
             print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
             print "\t";
             if($sd_regex && ($series_description =~ /$sd_regex/i)) {
@@ -471,13 +495,13 @@ QUERY
             print "\n";
         }
 
-        if ($sd_regex) {
+	    if ($sd_regex) {
             if ($series_description =~ /$sd_regex/i) {
                 return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
 
-        } else {
-            if ( &in_range($tr,              "$tr_min-$tr_max"                  )
+	    } else {
+         	if ( &in_range($tr,              "$tr_min-$tr_max"                  )
               && &in_range($te,              "$te_min-$te_max"                  )
               && &in_range($ti,              "$ti_min-$ti_max"                  )
               && &in_range($xspace,          "$xspace_min-$xspace_max"          )
@@ -501,7 +525,8 @@ QUERY
         $candid, $pscid,              $tr,              $te,
         $ti,     $slice_thickness,    $xstep,           $ystep,
         $zstep,  $xspace,             $yspace,          $zspace,
-        $time,   $seriesUID,          $tarchiveID,      $image_type
+        $time,   $seriesUID,          $tarchiveID,      $image_type,
+        $mriProtocolGroupID
     );
 
     return 'unknown';
@@ -537,6 +562,7 @@ INPUTS:
   - $seriesUID      : C<SeriesUID> of the scan
   - $tarchiveID     : C<TarchiveID> of the DICOM archive from which this file is derived
   - $image_type     : the C<image_type> header value of the image
+  - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 =cut
 
@@ -546,7 +572,8 @@ sub insert_violated_scans {
         $candid, $pscid,              $tr,            $te,
         $ti,     $slice_thickness,    $xstep,         $ystep,
         $zstep,  $xspace,             $yspace,        $zspace,
-        $time,   $seriesUID,          $tarchiveID,    $image_type) = @_;
+        $time,   $seriesUID,          $tarchiveID,    $image_type,
+        $mriProtocolGroupID) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
@@ -558,13 +585,15 @@ sub insert_violated_scans {
     series_description, minc_location, PatientName,           TR_range,
     TE_range,           TI_range,      slice_thickness_range, xspace_range,
     yspace_range,       zspace_range,  xstep_range,           ystep_range,
-    zstep_range,        time_range,    SeriesUID,             image_type
+    zstep_range,        time_range,    SeriesUID,             image_type,
+    MriProtocolGroupID
   ) VALUES (
     ?, ?, ?, now(),
     ?, ?, ?, ?,
     ?, ?, ?, ?,
     ?, ?, ?, ?,
-    ?, ?, ?, ?
+    ?, ?, ?, ?,
+    ?
   )
 QUERY
 
@@ -574,7 +603,7 @@ QUERY
         $file_rel_path, $patient_name,    $tr,         $te,
         $ti,            $slice_thickness, $xspace,     $yspace,
         $zspace,        $xstep,           $ystep,      $zstep,
-        $time,          $seriesUID,       $image_type
+        $time,          $seriesUID,       $image_type, $mriProtocolGroupID
     );
 
 }

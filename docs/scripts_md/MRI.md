@@ -84,6 +84,7 @@ INPUTS:
   - $dbhr          : database handle reference
   - $db            : database object
   - $minc\_location : location of the MINC files
+  - $uploadID      : ID of the upload containing the scan
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
@@ -115,6 +116,7 @@ INPUTS:
   - $seriesUID      : `SeriesUID` of the scan
   - $tarchiveID     : `TarchiveID` of the DICOM archive from which this file is derived
   - $image\_type     : the `image_type` header value of the image
+  - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 ### scan\_type\_id\_to\_text($typeID, $db)
 

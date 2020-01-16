@@ -270,9 +270,22 @@ Once all MINC files are created (via the `dcm2mnc` converter from the MINC tools
       along with the `ID` field that will be used to identify the scan type
   * the `mri_protocol` table stores each scan type's parameters that will 
       be used to identify the scan type (TR, TE, TI, slice_thickness...)
+  * the `mri_protocol_group` defines the groups of scanning protocols. Each line
+      in the `mri_protocol` table belongs to one and only one group. 
+  * the `mri_protocol_group_target` is used to determine which scanning protocol
+      group to use in order to identify the type of a given scan based on the 
+      subject's project, the subject's subproject or the visit at which the scan was
+      done.  
   * the `mri_protocol_checks` table stores additional protocol checks 
-  	   after an acquisition has been identified in order to automatically flag 
-  	   some acquisitions based on information stored in specific DICOM headers
+  	  after an acquisition has been identified in order to automatically flag 
+  	  some acquisitions based on information stored in specific DICOM headers
+  * the `mri_protocol_checks_group` defines the different groups of protocol checks.
+      Each lines in the `mri_protocol_checks` table belongs to one and only one
+      group.
+  * the `mri_protocol_checks_group_target` is used to determine which protocol
+      checks to use when an archive is processed by the MRI pipeline based on the
+      subject's project, the subject's subproject or the visit at which the scan was 
+      done.  
   
 Every MINC file that matches the protocol defined in the tables mentioned above 
   will be inserted in the database using the following tables:
