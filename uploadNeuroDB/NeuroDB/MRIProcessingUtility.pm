@@ -865,7 +865,6 @@ sub update_mri_violations_log_MincFile_path {
     $sth->execute($file_path, $seriesUID);
 }
 
-
 =pod
 
 =head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file)
@@ -894,10 +893,10 @@ sub loop_through_protocol_violations_checks {
 
     my %valid_fields; # will store all information about what fails
 
-    # query to fetch list of valid protocol checks in mri_protocol_checks table
-    my $query = "SELECT ValidRange, ValidRegex FROM mri_protocol_checks mpc "
-        . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
-        . "WHERE mpc.Scan_type=? AND mpc.Severity=? AND mpc.Header=?";
+    # query to fetch list of valid protocols in mri_protocol_checks table
+    my $query = "SELECT * FROM mri_protocol_checks mpc "
+              . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
+              . "WHERE mpc.Scan_type=? AND mpc.Severity=? AND mpc.Header=? ";
     $query .= defined $projectID
         ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
         : ' AND mpcgt.ProjectID IS NULL';
@@ -925,13 +924,17 @@ sub loop_through_protocol_violations_checks {
         $sth->execute(@bindValues);
 
         # grep all valid ranges and regex to compare with value in the file
-        my (@valid_ranges, @valid_regexs);
+        my (@valid_ranges, @valid_regexs, $mriProtocolChecksGroupID);
         while (my $row= $sth->fetchrow_hashref) {
             if (defined $row->{'ValidMin'} || defined $row->{'ValidMax'}) {
                 my $valid_range = "$row->{'ValidMin'}-$row->{'ValidMax'}";
                 push(@valid_ranges, $valid_range);
             }
             push(@valid_regexs, $row->{'ValidRegex'}) if $row->{'ValidRegex'};
+            
+            # the group on each row should be the same if the mri_protocol_checks_group_target
+            # table was setup properly 
+            $mriProtocolChecksGroupID = $row->{'MriProtocolChecksGroupID'};
         }
 
         # go to the next header if did not find any checks for that scan
@@ -943,10 +946,11 @@ sub loop_through_protocol_violations_checks {
         next if grep($value =~ /$_/, @valid_regexs);
 
         $valid_fields{$header} = {
-            ScanType    => $scan_type,
-            HeaderValue => $value,
-            ValidRanges => [ map { $_ } @valid_ranges ],
-            ValidRegexs => [ map { $_ } @valid_regexs ]
+            ScanType                 => $scan_type,
+            HeaderValue              => $value,
+            ValidRanges              => [ map { $_ } @valid_ranges ],
+            ValidRegexs              => [ map { $_ } @valid_regexs ],
+            MriProtocolChecksGroupID => $mriProtocolChecksGroupID
         };
     }
 
@@ -982,11 +986,13 @@ sub insert_into_mri_violations_log {
                     . "("
                     . "SeriesUID, TarchiveID,  MincFile,   PatientName, "
                     . " CandID,   Visit_label, Scan_type,  Severity, "
-                    . " Header,   Value,       ValidRange, ValidRegex "
+                    . " Header,   Value,       ValidRange, ValidRegex, "
+                    . " MriProtocolChecksGroupID "
                     . ") VALUES ("
                     . " ?,        ?,           ?,          ?, "
                     . " ?,        ?,           ?,          ?, "
-                    . " ?,        ?,           ?,          ? "
+                    . " ?,        ?,           ?,          ?, "
+                    . " ?"
                     . ")";
     if ($this->{debug}) {
         print $query . "\n";
@@ -1020,7 +1026,8 @@ sub insert_into_mri_violations_log {
             $header,
             $valid_fields->{$header}{HeaderValue},
             $valid_range_str,
-            $valid_regex_str
+            $valid_regex_str,
+            $valid_fields->{$header}{MriProtocolChecksGroupID}
         );
     }
 }
