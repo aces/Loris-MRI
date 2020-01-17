@@ -734,8 +734,7 @@ sub getAcquisitionProtocol {
             $extra_validation_status = $this->extra_file_checks(
                 $acquisitionProtocolID, 
                 $file, 
-                $subjectIDsref->{'CandID'}, 
-                $subjectIDsref->{'visitLabel'},
+                $subjectIDsref, 
                 $tarchiveInfoRef->{'PatientName'}
             );
             $message = "\nextra_file_checks from table mri_protocol_check " .
@@ -759,7 +758,7 @@ sub getAcquisitionProtocol {
 
 =pod
 
-=head3 extra_file_checks($scan_type, $file, $subjectIdsref, $Visit_Label, $pname)
+=head3 extra_file_checks($scan_type, $file, $subjectIdsref, $pname)
 
 Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
@@ -768,7 +767,6 @@ INPUTS:
   - $scan_type    : scan type of the file
   - $file         : file information hash ref
   - $subjectIdsref: context information for the scan
-  - $Visit_Label  : label of the visit at which the scan was acquired.
   - $pname        : patient name found in the scan header
 
 RETURNS:

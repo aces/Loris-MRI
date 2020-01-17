@@ -475,7 +475,7 @@ sub identify_scan_db {
         my $slice_thick_min = $rowref->{'slice_thickness_min'};
         my $slice_thick_max = $rowref->{'slice_thickness_max'};
 
-        if(1) {
+        if(0) {
             print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
             print "\t";
             if($sd_regex && ($series_description =~ /$sd_regex/i)) {

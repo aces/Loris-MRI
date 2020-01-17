@@ -212,7 +212,7 @@ RETURNS:
   - $acquisitionProtocolID   : acquisition protocol ID
   - $extra\_validation\_status : extra validation status ("pass", "exclude", "warning")
 
-### extra\_file\_checks($scan\_type, $file, $subjectIdsref, $Visit\_Label, $pname)
+### extra\_file\_checks($scan\_type, $file, $subjectIdsref, $pname)
 
 Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
@@ -221,7 +221,6 @@ INPUTS:
   - $scan\_type    : scan type of the file
   - $file         : file information hash ref
   - $subjectIdsref: context information for the scan
-  - $Visit\_Label  : label of the visit at which the scan was acquired.
   - $pname        : patient name found in the scan header
 
 RETURNS:
