@@ -4,6 +4,7 @@ import os
 import sys
 import csv
 import shutil
+import subprocess
 import filecmp
 import tarfile
 import scipy.io
@@ -138,3 +139,31 @@ def update_set_file_path_info(set_file, fdt_file):
 
     # write the new .set file with the correct path info
     scipy.io.savemat(set_file, dataset, False)
+
+
+def compute_md5sum(file):
+    """
+    Compute the md5sum of a file and returns it.
+
+    :param file: file on which to compute the md5sum
+     :type file: str
+
+    :return: the md5sum of the file
+     :rtype: str
+    """
+
+    if not os.path.exists(file):
+        message = '\n\tERROR: file ' + file + ' not found\n'
+        print(message)
+        sys.exit(lib.exitcode.INVALID_PATH)
+
+    out = subprocess.Popen(
+        ['md5sum', file],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    stdout, stderr = out.communicate()
+
+    md5sum = stdout.split()[0].decode('ASCII')
+
+    return md5sum
