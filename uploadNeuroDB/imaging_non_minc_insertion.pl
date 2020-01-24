@@ -461,7 +461,7 @@ if ($subjectIDsref->{'CandMismatchError'}){
 }
 
 # determine the session ID
-my ($session_id, $requiresStaging) = NeuroDB::MRI::getSessionID(
+my ($session_id) = NeuroDB::MRI::getSessionID(
     $subjectIDsref, $date_acquired, \$dbh, $subjectIDsref->{'subprojectID'}
 );
 unless ($session_id) {

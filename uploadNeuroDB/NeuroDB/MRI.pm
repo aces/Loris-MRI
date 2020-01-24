@@ -245,7 +245,7 @@ sub getSessionID {
 	} # end if defined studyDateJD
     }
 
-    return ($sessionID, $requiresStaging);
+    return ($sessionID);
 }
 
 =pod
