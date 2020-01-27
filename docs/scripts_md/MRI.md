@@ -47,7 +47,7 @@ INPUTS: the scanner ID and the database object
 
 RETURNS: the `CandID` or (if none exists) undef
 
-### getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck)
+### getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $db)
 
 Gets (or creates) the session ID, given CandID and visitLabel (contained
 inside the hashref `$subjectIDref`). 
@@ -282,6 +282,14 @@ INPUTS:
   - $fileref : file hash ref
   - $data\_dir: data directory (e.g. `/data/$PROJECT/data`)
 
+### gzip\_file($file)
+
+Gzip the file given as input and return the path of the gzipped file.
+
+INPUT: file to be gzipped
+
+RETURNS: path of the gzipped file (or undef if file not found)
+
 ### create\_dwi\_nifti\_bval\_file($file\_ref, $bval\_file)
 
 Creates the NIfTI `.bval` file required for DWI acquisitions based on the
@@ -389,5 +397,5 @@ License: GPLv3
 
 # AUTHORS
 
-Jonathan Harlap &lt;jharlap@bic.mni.mcgill.ca>,
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

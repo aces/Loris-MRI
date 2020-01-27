@@ -110,7 +110,7 @@ sub getScannerCandID {
 
 =pod
 
-=head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $noStagingCheck)
+=head3 getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $db)
 
 Gets (or creates) the session ID, given CandID and visitLabel (contained
 inside the hashref C<$subjectIDref>). 
