@@ -376,22 +376,6 @@ INPUTS:
   - $centerID     : center ID
   - upload\_id     : upload ID of the study
 
-### setMRISession($subjectIDsref, $tarchiveInfo, $upload\_id)
-
-Sets the imaging session ID. This function will call
-`&NeuroDB::MRI::getSessionID` which in turn will either:
-  - grep the session ID if visit for that candidate already exists, or
-  - create a new session if visit label does not exist for that candidate yet
-
-INPUTS:
-  - $subjectIDsref: subject's ID information hashr ef
-  - $tarchiveInfo : DICOM archive information hash ref
-  - $upload\_id    : upload ID of the study
-
-RETURNS:
-  - $sessionID      : session ID
-  - $requiresStaging: whether the new session requires staging
-
 ### validateArchive($tarchive, $tarchiveInfo, $upload\_id)
 
 Validates the DICOM archive by comparing the MD5 of the `$tarchive file` and
@@ -496,5 +480,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
