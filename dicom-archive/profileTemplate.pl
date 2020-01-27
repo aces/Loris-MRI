@@ -47,6 +47,7 @@ sub getSubjectIDs {
 
         $subjectID{'CandID'}     = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $db));
         $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($patientName);
+        $subjectID{'isPhantom'} = 1;
 
         $subjectID{'createVisitLabel'} = 1;
 
@@ -57,6 +58,7 @@ sub getSubjectIDs {
         $subjectID{'PSCID'}      = NeuroDB::MRI::my_trim($1);
         $subjectID{'CandID'}     = NeuroDB::MRI::my_trim($2);
         $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($3);
+        $subjectID{'isPhantom'}  = 0;
 
         $subjectID{'createVisitLabel'} = 0;
 
@@ -67,16 +69,6 @@ sub getSubjectIDs {
    
     # Return subjectIDs
     return \%subjectID;
-}
-
-# determines if a given subjectID is a phantom or not
-# returns 1 if a phantom, 0 for non-phantom
-sub isPhantom {
-    my $subjectIDref = shift;
-    if($subjectIDref->{'PSCID'} =~ /PHA/i) {
-        return 1;
-    }
-    return 0;
 }
 
 # ----------- OPTIONAL SUBROUTINE
