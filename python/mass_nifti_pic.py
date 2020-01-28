@@ -3,6 +3,7 @@
 """Script to mass create the pic images of inserted NIfTI files."""
 
 import os
+import re
 import sys
 import getopt
 import lib.exitcode
