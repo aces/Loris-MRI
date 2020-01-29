@@ -511,7 +511,8 @@ class Physiological:
         for row in event_data:
             optional_fields = (
                 'trial_type',  'response_time', 'event_code',
-                'event_value', 'event_sample',  'event_type'
+                'event_value', 'event_sample',  'event_type',
+                'value',       'sample'
             )
             for field in optional_fields:
                 if field not in row.keys():
@@ -527,8 +528,8 @@ class Physiological:
                 row['trial_type'],
                 row['response_time'],
                 row['event_code'],
-                row['event_value'],
-                row['event_sample'],
+                row['event_value']  or row['value'],
+                row['event_sample'] or row['sample'],
                 row['event_type'],
                 event_file
             )
