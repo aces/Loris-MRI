@@ -49,6 +49,12 @@ sub getSubjectIDs {
         $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($patientName);
         $subjectID{'isPhantom'} = 1;
 
+        # If config setting 'useProject' and 'createCandidates' are true
+        # $subjectID{'ProjectID'} must be set.
+        $subjectID{'ProjectID'} = 1;
+
+        # When createVisitLabel is set to 1, SubprojectID must also
+        # be set
         $subjectID{'createVisitLabel'} = 1;
 
      # If patient match PSCID_DCCID_VisitLabel
@@ -60,7 +66,15 @@ sub getSubjectIDs {
         $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($3);
         $subjectID{'isPhantom'}  = 0;
 
+        # If config setting 'useProject' and 'createCandidates' are true
+        # $subjectID{'ProjectID'} must be set.
+        $subjectID{'ProjectID'}    = 1;
+        
         $subjectID{'createVisitLabel'} = 0;
+  
+        # When createVisitLabel is set to 1, SubprojectID must also
+        # be set
+        # $subjectID{'SubprojectID'}     = 1; 
 
         print "PSCID is: "            . $subjectID{'PSCID'}      . 
                 "\n CandID id: "      . $subjectID{'CandID'}     .

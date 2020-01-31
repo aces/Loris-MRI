@@ -177,6 +177,8 @@ our $DICOM_PNAME_EXTRACTION_FAILURE = 170; # if patient name cannot be
 our $INVALID_TARCHIVE   = 180; # if tarchive validation is not set to 1 in the
                                # mri_upload table
 our $CANDIDATE_MISMATCH = 181; # if candidate PSCID and CandID do not match
+our $NO_SUBPROJECT_ID   = 182; # if the script cannot find the subproject ID of a
+                               #   given session
 
 
 ## -- FROM uploadNeuroDB/tarchiveLoader.pl (exit codes from 190 to 199)

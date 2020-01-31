@@ -538,11 +538,26 @@ my ($sessionID) = NeuroDB::MRI::getSessionID(
         $subjectIDsref, 
         $studyInfo{'DateAcquired'},
         \$dbh,
-        $subjectIDsref->{'subprojectID'},
         $db
 
-   );
-
+);
+ 
+$subjectIDsref->{'SubprojectID'} = NeuroDB::MRI::getObjective($subjectIDsref, $dbh);
+if (!defined $subjectIDsref->{'SubprojectID'}) {
+	my $msg = sprintf(
+	    "Cannot determine SubprojectID for session %s of candidate %d. Aborting.\n",
+	    $subjectIDsref->{'visitLabel'},
+	    $subjectIDsref->{'CandID'}
+	);
+    print STDERR $msg if $verbose;
+    print LOG $msg;
+    $notifier->spool(
+        'tarchive validation', $msg      , 0           ,
+        'minc_insertion.pl',   $upload_id,          'Y',
+        $notify_notsummary
+    );
+    exit $NeuroDB::ExitCodes::NO_SUBPROJECT_ID;
+} 
 
 ################################################################
 ############ Compute the md5 hash ##############################

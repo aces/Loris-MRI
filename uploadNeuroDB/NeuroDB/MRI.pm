@@ -121,7 +121,6 @@ INPUTS:
   - $subjectIDref: hash reference of subject IDs
   - $studyDate   : study date
   - $dbhr        : database handle reference
-  - $objective   : the objective of the study
   - $db          : database object
 
 RETURNS: the session ID of the visit
@@ -129,57 +128,64 @@ RETURNS: the session ID of the visit
 =cut
 
 sub getSessionID {
-    my ($subjectIDref, $studyDate, $dbhr, $objective, $db) = @_;
+    my ($subjectIDref, $studyDate, $dbhr, $db) = @_;
     my ($sessionID, $studyDateJD);
     my ($query, $sth);
     my $dbh = $$dbhr;
 
-# find a matching timepoint
-    $query = "SELECT ID, Date_visit, Visit FROM session WHERE CandID=$subjectIDref->{'CandID'} AND LOWER(Visit_label)=LOWER(".$dbh->quote($subjectIDref->{'visitLabel'}).") AND Active='Y'";
+    # find a matching timepoint
+    $query = "SELECT ID, Date_visit, Visit "
+           . "FROM session "
+           . "WHERE CandID=$subjectIDref->{'CandID'} "
+           . "AND LOWER(Visit_label)=LOWER(".$dbh->quote($subjectIDref->{'visitLabel'}).") "
+           . "AND Active='Y'";
     $sth = $dbh->prepare($query);
     $sth->execute();
 
-##### if it finds an existing session it does this:
+    ##### if it finds an existing session it does this:
     if($sth->rows > 0) {
-    my $timepoint = $sth->fetchrow_hashref();
-    $sessionID = $timepoint->{'ID'};
-    $sth->finish();
-
-    # check dates, to determine if staging is required
-    # check date of visit, if available
-    if($timepoint->{'Date_visit'}) {
-        my @visitDate = split(/-/, $timepoint->{'Date_visit'});
-        my $timepointJD = julian_day($visitDate[0], $visitDate[1], $visitDate[2]);
-    }
-    if(defined($studyDate) && $studyDate =~ /^(\d{4})(\d{2})(\d{2})/) {
-        # compute the julian date of the study
-        $studyDateJD = julian_day($1, $2, $3);
-    }
-
-    # check dates of other files
-    if(defined($studyDateJD)) {
-        # get the set of files 
-        $query = "SELECT FileID FROM files WHERE SessionID=$sessionID AND FileType='mnc' AND OutputType='native'";
-        $sth = $dbh->prepare($query);
-        $sth->execute();
-
-        if($sth->rows > 0) {
-        my @files = ();
-        while(my $filehr = $sth->fetchrow_hashref()) { push @files, $filehr->{'FileID'}; }
+        my $timepoint = $sth->fetchrow_hashref();
+        $sessionID = $timepoint->{'ID'};
         $sth->finish();
 
+        # check dates, to determine if staging is required
+        # check date of visit, if available
+        if($timepoint->{'Date_visit'}) {
+            my @visitDate = split(/-/, $timepoint->{'Date_visit'});
+            my $timepointJD = julian_day($visitDate[0], $visitDate[1], $visitDate[2]);
         }
-    }
+        if(defined($studyDate) && $studyDate =~ /^(\d{4})(\d{2})(\d{2})/) {
+            # compute the julian date of the study
+            $studyDateJD = julian_day($1, $2, $3);
+        }
 
-#####  if there is no existing session, which always happens if you create candidates based on incoming data
+        # check dates of other files
+        if(defined($studyDateJD)) {
+            # get the set of files 
+            $query = "SELECT FileID FROM files WHERE SessionID=$sessionID AND FileType='mnc' AND OutputType='native'";
+            $sth = $dbh->prepare($query);
+            $sth->execute();
+
+            if($sth->rows > 0) {
+                my @files = ();
+                while(my $filehr = $sth->fetchrow_hashref()) { 
+                    push @files, $filehr->{'FileID'};
+                }
+                $sth->finish();
+            }
+        }
+    #####  if there is no existing session, which always happens if you create candidates based on incoming data
     } else {
-
-    # determine the visit number and centerID for the next session
+		# Since we'll be creating a visit, ensure that the subprojectID has been supplied 
+		# in the profile file
+		return undef if !defined $subjectIDref->{'SubprojectID'};
+		
+        # determine the visit number and centerID for the next session
         my $newVisitNo = 0;
         my $centerID = 0;
     
         if($subjectIDref->{'visitLabel'} =~ /PHA/i or $subjectIDref->{'visitLabel'} =~ /TEST/i) {
-        # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
+            # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
             my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr, $db);
             $centerID = $pscInfo[1];
         }
@@ -215,7 +221,15 @@ sub getSessionID {
         $centerID = 0 unless $centerID;
 
         #### insert the new session setting Current_stage to 'Not started' because that column is important to the behavioural data entry gui.
-        $query = "INSERT INTO session SET CandID=".$dbh->quote($subjectIDref->{'CandID'}).", Visit_label=".$dbh->quote($subjectIDref->{'visitLabel'}).", CenterID=$centerID, VisitNo=$newVisitNo, Current_stage='Not Started', Scan_done='Y', Submitted='N', SubprojectID=".$dbh->quote($objective);
+        $query = "INSERT INTO session "
+               . "SET CandID=".$dbh->quote($subjectIDref->{'CandID'}).", "
+               . "    Visit_label=".$dbh->quote($subjectIDref->{'visitLabel'}).", "
+               . "    CenterID=$centerID, "
+               . "    VisitNo=$newVisitNo, "
+               . "    Current_stage='Not Started', "
+               . "    Scan_done='Y', "
+               . "    Submitted='N', "
+               . "    SubprojectID=".$dbh->quote($subjectIDref->{'SubprojectID'});
         $dbh->do($query); # execute query
         $sessionID = $dbh->{'mysql_insertid'}; # retain id of inserted row
         $subjectIDref->{'visitNo'} = $newVisitNo; # add visit number to subjectIDref
@@ -261,43 +275,30 @@ INPUTS:
   - $subjectIDsref: subjectIDs hashref
   - $dbhr         : database handle reference
 
-RETURNS: the determined objective, or 0
+RETURNS: the determined objective, or undef
 
 =cut
 
 sub getObjective
 {
-    my ($subjectIDsref, $dbhr) = @_;
+    my ($subjectIDsref, $dbh) = @_;
     my @results = ();
     my $objective = 0;
     my %subjectIDs = %$subjectIDsref;
-    if($subjectIDs{'visitLabel'} =~ /PHA/i or $subjectIDs{'visitLabel'} =~ /TEST/i) {
-    return 0;
-    }
 
-    my $query = "SELECT SubprojectID FROM session WHERE CandID='$subjectIDs{'CandID'}' AND Visit_label='$subjectIDs{'visitLabel'}' AND Active='Y' ORDER BY ID DESC LIMIT 1";
-    my $sth = $${dbhr}->prepare($query) or die "Can't prepare $query: ".$${dbhr}->errstr."\n";
+    my $query = "SELECT SubprojectID "
+              . "FROM session "
+              . "WHERE CandID = ? "
+              . "AND Visit_label = ? "
+              . "AND Active='Y' "
+              . "ORDER BY ID DESC LIMIT 1";
+    my $sth = $dbh->prepare($query) or die "Can't prepare $query: " . $dbh->errstr."\n";
 
-    $sth->execute();
+    $sth->execute($subjectIDs{'CandID'}, $subjectIDs{'visitLabel'});
 
-    if($sth->rows > 0) {
-        @results = $sth->fetchrow_array();
-    }
-
-    $objective = $results[0] if $results[0];
-
-    unless($objective>0) {
-        # there probably isn't a valid row for this visit...
-        $query = "SELECT SubprojectID FROM session WHERE CandID='$subjectIDs{'CandID'}' AND Active='Y' ORDER BY ID DESC LIMIT 1";
-        $sth = $${dbhr}->prepare($query);
-        $sth->execute();
-
-        @results = $sth->fetchrow_array();
-
-        $objective = $results[0] if $results[0];
-    }
-    return $objective;
-
+    return undef if $sth->rows == 0;
+       
+    @results = $sth->fetchrow_array();
 }
 
 

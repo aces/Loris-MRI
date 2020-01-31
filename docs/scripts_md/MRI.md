@@ -56,7 +56,6 @@ INPUTS:
   - $subjectIDref: hash reference of subject IDs
   - $studyDate   : study date
   - $dbhr        : database handle reference
-  - $objective   : the objective of the study
   - $db          : database object
 
 RETURNS: the session ID of the visit
@@ -70,7 +69,7 @@ INPUTS:
   - $subjectIDsref: subjectIDs hashref
   - $dbhr         : database handle reference
 
-RETURNS: the determined objective, or 0
+RETURNS: the determined objective, or undef
 
 ### identify\_scan\_db($center\_name, $objective, $fileref, $dbhr, $db, $minc\_location)
 

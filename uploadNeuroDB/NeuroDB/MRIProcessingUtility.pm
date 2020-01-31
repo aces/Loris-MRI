@@ -1590,40 +1590,46 @@ sub CreateMRICandidates {
     my $candID = $subjectIDsref->{'CandID'};
 
 
+    # If there already is a candidate with that PSCID, skip the creation.
+    # Note that validateCandidate (which is called later on) will validate
+    # that pscid and candid match so we don't do it here.
+    return if $pscID ne 'scanner' && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr);
+    
+    # If there already is a candidate with that CandID, skip the creation.
+    # Note that validateCandidate (which is called later on) will validate
+    # that pscid and candid match so we don't do it here.
+    return if NeuroDB::MRI::subjectIDExists('CandID', $candID, $dbhr);
+    
     # return from the function if createCandidate config setting is not set
     my $configOB = $this->{'configOB'};
     return if (!$configOB->getCreateCandidates());
 
+    # If projects are used, check that a ProjectID is provided for the candidate
+    # about to be created
+    if ($configOB->getUseProjects()) {
 
-    # Check that no candidates with the same PSCID is already registered
-    if ($pscID ne 'scanner' && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr)) {
+        if (!defined $subjectIDsref->{'ProjectID'}) {
+            $message = "ERROR: Cannot create candidate $candID/$pscID as the profile file "
+                     . "does not define a ProjectID for him/her.\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
+            $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
-        $message = "ERROR: Cannot create candidate ($pscID, $candID) as "
-                   . "a candidate with PSCID=$pscID already exists.\n";
-        $this->writeErrorLog(
-            $message, $NeuroDB::ExitCodes::INSERT_FAILURE
-        );
-        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+            exit $NeuroDB::ExitCodes::INSERT_FAILURE;
+		}
+		
+		$query = "SELECT ProjectID FROM Project WHERE ProjectID = ?";
+        my $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute($subjectIDsref->{'ProjectID'});
+          
+        if($sth->rows != 1) {
+            $message = "ERROR: Cannot create candidate $pscID with ProjectID "
+                     . "$subjectIDsref->{'ProjectID'}: that project ID is invalid.\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
+            $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
-        exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-
+            exit $NeuroDB::ExitCodes::INSERT_FAILURE;
+		}  
     }
-
-
-    # Check that no candidates with the same CandID is already registered
-    if (NeuroDB::MRI::subjectIDExists('CandID', $candID, $dbhr)) {
-
-        $message = "ERROR: Cannot create candidate ($pscID, $candID) as "
-                   . "a candidate with CandID=$candID already exists.\n";
-        $this->writeErrorLog(
-            $message, $NeuroDB::ExitCodes::INSERT_FAILURE
-        );
-        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-
-        exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-
-    }
-
 
     # Create non-existent candidate if the profile allows for Candidate creation
     if ($tarchiveInfo->{'PatientSex'} eq 'F') {
@@ -1634,25 +1640,28 @@ sub CreateMRICandidates {
 
     chomp($User);
     $candID = NeuroDB::MRI::createNewCandID($dbhr) unless $candID;
-    ($query = <<QUERY) =~ s/\n//gm;
-  INSERT INTO candidate (
-    CandID,               PSCID,       DoB,                  Sex,
-    RegistrationCenterID, Date_active, Date_registered,      UserID,
-    Entity_type
-  ) VALUES (
-    ?,                    ?,           ?,                    ?,
-    ?,                    NOW(),       NOW(),                ?,
-    'Human'
-  )
-QUERY
+    my %record = (
+        CandID               => $subjectIDsref->{'CandID'},
+        PSCID                => $subjectIDsref->{'PSCID'},
+        DoB                  => $subjectIDsref->{'PatientDoB'},
+        Sex                  => $sex,
+        RegistrationCenterID => $centerID,
+        UserID               => $User,
+    );
+    
+    # Note that we validated above that if $configOB->getUseProjects() then
+    # $subjectIDsRef->{'ProjectID'} is defined
+    $record{'ProjectID'} = $subjectIDsref->{'ProjectID'} if $configOB->getUseProjects();
+    
+    $query = sprintf(
+        "INSERT INTO candidate (%s) VALUES (%s)",
+        join(',', keys %record)         . ',Date_active,Date_registered,Entity_type',
+        join(',', ('?') x keys %record) . ",NOW()      ,NOW()          ,'Human'"
+    );
 
     print "$query\n" if ($this->{debug});
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute(
-        $subjectIDsref->{'CandID'},     $subjectIDsref->{'PSCID'},
-        $subjectIDsref->{'PatientDoB'}, $sex,
-        $centerID,                      $User
-    );
+    $sth->execute(values %record);
 
     $message = "\n==> CREATED NEW CANDIDATE: $candID";
     $this->{LOG}->print($message);

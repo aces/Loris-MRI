@@ -591,8 +591,7 @@ if ($valid_study) {
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
     my ($sessionID) = NeuroDB::MRI::getSessionID(
-        $subjectIDsref, $tarchiveInfo{'DateAcquired'},
-        \$dbh, $subjectIDsref->{'subprojectID'}, $db
+        $subjectIDsref, $tarchiveInfo{'DateAcquired'}, \$dbh, , $db
     );
 
     $query = "UPDATE tarchive SET SessionID=? WHERE TarchiveID=?";
