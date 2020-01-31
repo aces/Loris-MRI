@@ -867,7 +867,7 @@ sub update_mri_violations_log_MincFile_path {
 
 =pod
 
-=head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file)
+=head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel)
 
 Loops through all protocol violations checks for a given severity and creates
 a hash with all the checks that need to be applied on that specific scan type

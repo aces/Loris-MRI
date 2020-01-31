@@ -304,19 +304,20 @@ sub getObjective
 
 =pod
 
-=head3 identify_scan_db($center_name, $objective, $fileref, $dbhr, $db, $minc_location)
+=head3 identify_scan_db($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID)
 
 Determines the type of the scan described by MINC headers based on
 C<mri_protocol> table in the database.
 
 INPUTS:
-  - $center_name   : center's name
-  - $objective     : objective of the study
-  - $fileref       : file hash ref
-  - $dbhr          : database handle reference
-  - $db            : database object
-  - $minc_location : location of the MINC files
-  - $uploadID      : ID of the upload containing the scan
+  - $psc            : center's name
+  - $subjectref     : reference on the hash that contains the subject information
+  - $tarchiveInfoRef: reference on the tarchive
+  - $fileref        : file hash ref
+  - $dbhr           : database handle reference
+  - $db             : database object
+  - $minc_location  : location of the MINC files
+  - $uploadID       : ID of the upload containing the scan
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 

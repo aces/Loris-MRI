@@ -71,19 +71,20 @@ INPUTS:
 
 RETURNS: the determined objective, or undef
 
-### identify\_scan\_db($center\_name, $objective, $fileref, $dbhr, $db, $minc\_location)
+### identify\_scan\_db($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc\_location, $uploadID)
 
 Determines the type of the scan described by MINC headers based on
 `mri_protocol` table in the database.
 
 INPUTS:
-  - $center\_name   : center's name
-  - $objective     : objective of the study
-  - $fileref       : file hash ref
-  - $dbhr          : database handle reference
-  - $db            : database object
-  - $minc\_location : location of the MINC files
-  - $uploadID      : ID of the upload containing the scan
+  - $psc            : center's name
+  - $subjectref     : reference on the hash that contains the subject information
+  - $tarchiveInfoRef: reference on the tarchive
+  - $fileref        : file hash ref
+  - $dbhr           : database handle reference
+  - $db             : database object
+  - $minc\_location  : location of the MINC files
+  - $uploadID       : ID of the upload containing the scan
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
