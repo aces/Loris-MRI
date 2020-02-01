@@ -35,7 +35,7 @@ Available options are:
                          
 -basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table C<files> or table 
                          C<parameter_files>. This option should be used when targeting a specific (unique) file for deletion.
-                         Note that the file will be deleted from both the database and the filesystem. This optin cannot be 
+                         Note that the file will be deleted from both the database and the filesystem. This option cannot be 
                          used with options C<-defaced> and C<-form>.
                
 -uploadID              : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. The program will 
@@ -942,7 +942,6 @@ sub getIntermediaryFilesRef {
                . 'AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?';
         @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName); 
     # Either -file was not used or it was used but nothing matched in table files.
-    # 
 	} else {
 		my $fileBaseNameAnd = $fileBaseName ne '' 
 		    ? ' AND BINARY SUBSTRING_INDEX(f2.File, "/", -1) = ?'
@@ -1007,8 +1006,8 @@ sub getParameterFilesRef {
     my $mriScanTypeAnd = @$scanTypesToDeleteRef
         ? sprintf('AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
 
-    # If -file was used but nothing matched in tables files and fiels_intermediary
-    # Try finding a file in parameter_file thjat matches the -file argument
+    # If -file was used but nothing matched in tables files and files_intermediary
+    # Try finding a file in parameter_file that matches the -file argument
     my($query, @queryArgs);
     if($fileBaseName ne '' && !@{ $filesRef->{'files'} } && !@{ $filesRef->{'files_intermediary'} }) {
         $query = 'SELECT ParameterFileID, FileID, Value, pt.Name FROM parameter_file pf '
