@@ -82,7 +82,7 @@ class Database:
         self.user_name = credentials['username']
         self.password  = credentials['passwd']
         self.host_name = credentials['host']
-        self.port      = credentials['port']
+        port           = credentials['port']
 
         if not self.user_name:
             raise Exception("\nUser name cannot be empty string.\n")
@@ -91,8 +91,7 @@ class Database:
         if not self.host_name:
             raise Exception("\nDatabase host cannot be empty string.\n")
 
-        if not self.port:
-            self.port = default_port
+        self.port = int(port) if port else default_port
 
     def connect(self):
         """

@@ -301,6 +301,27 @@ class Imaging:
         # return the result
         return results[0]['File'] if results else None
 
+    def grep_cand_id_from_file_id(self, file_id):
+        """
+        Greps the CandID using the file's FileID.
+
+        :param file_id: FileID associated with the file
+        :type file_id : int
+
+        :return: CandID of the candidate associated to the file
+         :rtype: int
+        """
+
+        query = "SELECT CandID " + \
+                " FROM session s " +\
+                " JOIN files f ON (s.ID=f.SessionID) " + \
+                " WHERE FileID = %s"
+
+        results = self.db.pselect(query=query, args=(file_id,))
+
+        # return the result
+        return results[0]['CandID'] if results else None
+
     @staticmethod
     def map_bids_param_to_loris_param(file_parameters):
         """
