@@ -462,7 +462,7 @@ if ($subjectIDsref->{'CandMismatchError'}){
 
 # determine the session ID
 my ($session_id) = NeuroDB::MRI::getSessionID(
-    $subjectIDsref, $date_acquired, \$dbh, $subjectIDsref->{'subprojectID'}
+    $subjectIDsref, $date_acquired, \$dbh, $subjectIDsref->{'subprojectID'}, $db
 );
 unless ($session_id) {
     $message = "\n\tERROR: Could not determine session ID for $file_path.\n\n";
