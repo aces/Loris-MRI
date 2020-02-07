@@ -175,7 +175,7 @@ def make_pic(file_id, config_file, verbose):
         file_parameters['time'] = length_parameters[3]
         is_4d_dataset = True
 
-    # grep the SessionID of the file
+    # grep the CandID of the file
     cand_id = imaging.grep_cand_id_from_file_id(file_id)
     if not cand_id:
         print('WARNING: CandID not found for FileID ' + file_id)
