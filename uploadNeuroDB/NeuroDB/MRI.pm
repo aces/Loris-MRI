@@ -176,9 +176,9 @@ sub getSessionID {
         }
     #####  if there is no existing session, which always happens if you create candidates based on incoming data
     } else {
-		# Since we'll be creating a visit, ensure that the subprojectID has been supplied 
-		# in the profile file
-		return undef if !defined $subjectIDref->{'SubprojectID'};
+        # Since we'll be creating a visit, ensure that the subprojectID has been supplied 
+        # in the profile file
+        return undef if !defined $subjectIDref->{'SubprojectID'};
 		
         # determine the visit number and centerID for the next session
         my $newVisitNo = 0;
@@ -299,6 +299,8 @@ sub getObjective
     return undef if $sth->rows == 0;
        
     @results = $sth->fetchrow_array();
+
+    return $results[0];
 }
 
 
