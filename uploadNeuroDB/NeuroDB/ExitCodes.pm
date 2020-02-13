@@ -144,6 +144,7 @@ our $UNKNOWN_PROTOCOL          = 84; # if could not find acquisition protocol
 our $NOT_A_SINGLE_STUDY        = 85; # if the upload regroups multiple studies
 our $GET_SUBJECT_ID_FAILURE    = 86; # if could not determine subject IDs
 our $GET_SESSION_ID_FAILURE    = 87; # if could not determine session ID
+our $CREATE_SESSION_FAILURE    = 88; # if could not create a session
 
 
 ##### ---- SECTION 2: SCRIPT SPECIFIC EXIT CODES NOT COVERED IN SECTION 1
@@ -177,8 +178,6 @@ our $DICOM_PNAME_EXTRACTION_FAILURE = 170; # if patient name cannot be
 our $INVALID_TARCHIVE   = 180; # if tarchive validation is not set to 1 in the
                                # mri_upload table
 our $CANDIDATE_MISMATCH = 181; # if candidate PSCID and CandID do not match
-our $NO_SUBPROJECT_ID   = 182; # if the script cannot find the subproject ID of a
-                               #   given session
 
 
 ## -- FROM uploadNeuroDB/tarchiveLoader.pl (exit codes from 190 to 199)

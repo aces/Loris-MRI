@@ -47,29 +47,26 @@ INPUTS: the scanner ID and the database object
 
 RETURNS: the `CandID` or (if none exists) undef
 
-### getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $db)
+### getSession($subjectIDref, $studyDate, $dbh, $db)
 
-Gets (or creates) the session ID, given CandID and visitLabel (contained
-inside the hashref `$subjectIDref`). 
+Gets (or creates if it does not exist) the session with the given CandID and visitLabel 
+(contained inside the hashref `$subjectIDref`). 
 
 INPUTS:
   - $subjectIDref: hash reference of subject IDs
   - $studyDate   : study date
-  - $dbhr        : database handle reference
+  - $dbh         : database handle 
   - $db          : database object
 
-RETURNS: the session ID of the visit
-
-### getObjective($subjectIDsref, $dbhr)
-
-Attempts to determine the `SubprojectID` of a timepoint given the subject IDs
-hash ref `$subjectIDsref` and a database handle reference `$dbhr`
-
-INPUTS:
-  - $subjectIDsref: subjectIDs hashref
-  - $dbhr         : database handle reference
-
-RETURNS: the determined objective, or undef
+RETURNS: an array of 2 elements: 
+  - A reference to a hash containing the session properties:
+    `ID` => session ID.
+    `ProjectID` => project ID for the session.
+    `SubprojectID` => sub-project ID for the session.
+    `CandID` => candidate ID for the session.
+    `Visit_label` => session visit label.
+    The reference will be `undef` if the session cannot be retrieved/created.
+  - An error message (`''` if no errors occured while retrieving/creating the session)
 
 ### identify\_scan\_db($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc\_location, $uploadID)
 
