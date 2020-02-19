@@ -325,23 +325,6 @@ class Imaging:
 
         results = self.db.pselect(query=query, args=(file_id,))
 
-    def get_scanner_candid(self, scanner_id):
-        """
-        Returns the CandID associated to a ScannerID.
-
-        :param scanner_id: ScannerID
-         :type scanner_id: int
-
-        :return: CandID associated to the ScannerID
-        """
-
-        query = 'SELECT CandID FROM mri_scanner WHERE ID = %s'
-
-        results = self.db.pselect(query=query, args=(scanner_id,))
-
-        # return the result
-        return results[0]['CandID'] if results else None
-
     def determine_subject_ids(self, tarchive_info_dict, scanner_id=None):
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
