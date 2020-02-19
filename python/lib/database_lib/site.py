@@ -1,4 +1,4 @@
-"""This class performs database queries for the site table"""
+"""This class performs database queries for the site (psc) table"""
 
 
 __license__ = "GPLv3"
@@ -8,7 +8,7 @@ class Site:
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the Notification class.
+        Constructor method for the Site class.
 
         :param db     : Database class object
          :type db     : object

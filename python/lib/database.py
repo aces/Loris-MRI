@@ -214,6 +214,7 @@ class Database:
         try:
             cursor = self.con.cursor()
             cursor.execute(query, args)
+            self.con.commit()
         except MySQLdb.Error as err:
             raise Exception("Update query failure: " + format(err))
 

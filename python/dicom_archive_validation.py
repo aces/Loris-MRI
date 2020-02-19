@@ -2,17 +2,18 @@
 
 """Script to validate a DICOM archive from the filesystem against the one stored in the database"""
 
+import getopt
 import os
 import sys
-import getopt
+
 import lib.exitcode
 import lib.utilities as utilities
-from lib.database     import Database
-from lib.imaging      import Imaging
-from lib.tarchive     import Tarchive
-from lib.notification import Notification
-from lib.mriupload    import MriUpload
-
+from lib.database import Database
+from lib.imaging  import Imaging
+from lib.database_lib.mriupload    import MriUpload
+from lib.database_lib.mriscanner   import MriScanner
+from lib.database_lib.notification import Notification
+from lib.database_lib.tarchive     import Tarchive
 
 __license__ = "GPLv3"
 
@@ -167,23 +168,30 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
      :type verbose             : bool
     """
 
-    # database connection
+    # ----------------------------------------------------
+    # establish database connection
+    # ----------------------------------------------------
     db = Database(config_file.mysql, verbose)
     db.connect()
 
-    # grep config settings from the Config module
+    # ---------------------------------------------------------------------------------------------
+    # grep config settings from the Config module & ensure that there is a final / in dicom_lib_dir
+    # ---------------------------------------------------------------------------------------------
     dicom_lib_dir = db.get_config('tarchiveLibraryDir')
-
-    # ensure that there is a final / in dicom_lib_dir
     dicom_lib_dir = dicom_lib_dir if dicom_lib_dir.endswith('/') else dicom_lib_dir + "/"
 
+    # ----------------------------------------------------
     # determine the archive location
+    # ----------------------------------------------------
     archive_location = tarchive_path.replace(dicom_lib_dir, '')
 
-    # load the Imaging, Tarchive, MriUpload and Notification classes
+    # ---------------------------------------------------------------------------
+    # load the Imaging, Tarchive, MriUpload, MriScanner and Notification classes
+    # ---------------------------------------------------------------------------
     imaging_obj      = Imaging(db, verbose, config_file)
     tarchive_obj     = Tarchive(db, verbose, config_file)
     mri_upload_obj   = MriUpload(db, verbose)
+    mri_scanner_obj  = MriScanner(db, verbose)
     notification_obj = Notification(
         db,
         verbose,
@@ -192,10 +200,14 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
         process_id          = upload_id
     )
 
+    # -------------------------------------------------------------------------------
     # update the mri_upload table to indicate that a script is running on the upload
+    # -------------------------------------------------------------------------------
     mri_upload_obj.update_mri_upload(upload_id=upload_id, fields=('Inserting',), values=('1',))
 
+    # ---------------------------------------------------------------------------------
     # create the DICOM archive array (that will be in tarchive_obj.tarchive_info_dict)
+    # ---------------------------------------------------------------------------------
     success = tarchive_obj.create_tarchive_dict(archive_location, None)
     if not success:
         message = 'ERROR: Only archive data can be uploaded. This seems not to be a valid' \
@@ -213,8 +225,11 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
         mri_upload_obj.update_mri_upload(
             upload_id=upload_id, fields=('TarchiveID',), values=(tarchive_id,)
         )
+    tarchive_info_dict = tarchive_obj.tarchive_info_dict
 
+    # ------------------------------------------------------------------------------
     # verify the md5sum of the DICOM archive against the one stored in the database
+    # ------------------------------------------------------------------------------
     message = '==> verifying DICOM archive md5sum (checksum)'
     notification_obj.write_to_notification_spool(message=message, is_error='N', is_verbose='Y')
     if verbose:
@@ -235,9 +250,11 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
         )
         sys.exit(lib.exitcode.CORRUPTED_FILE)
 
+    # ----------------------------------------------------
     # verify PSC information stored in DICOMs
-    site_dict = imaging_obj.determine_study_center(self.tarchive_info_dict)
-    if site_dict['error']:
+    # ----------------------------------------------------
+    site_dict = imaging_obj.determine_study_center(tarchive_info_dict)
+    if 'error' in site_dict.keys():
         message = site_dict['message']
         notification_obj.write_to_notification_spool(message=message, is_error='Y', is_verbose='N')
         print('\n' + message + '\n\n')
@@ -254,18 +271,19 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
     if verbose:
         print('\n' + message + '\n')
 
-    # check that a scanner is already registered for the dataset, create a new entry for the
-    # scanner in mri_scanner
-    scanner_dict = imaging_obj.determine_scanner_information(tarchive_info_dict, site_dict)
-    message = '===> Found Scanner ID: ' + str(scanner_dict['ScannerID'])
+    # ---------------------------------------------------------------
+    # grep scanner information based on what is in the DICOM headers
+    # ---------------------------------------------------------------
+    scanner_dict = mri_scanner_obj.determine_scanner_information(tarchive_info_dict, site_dict)
+    message      = '===> Found Scanner ID: ' + str(scanner_dict['ScannerID'])
     notification_obj.write_to_notification_spool(message=message, is_error='N', is_verbose='Y')
     if verbose:
         print('\n' + message + '\n')
 
-    # determine subject IDs based on what is in the DICOM headers
-    subject_id_dict = imaging_obj.determine_subject_ids(tarchive_info_dict, scanner_dict['ScannerID'])
-
-    # validate subject IDs collected from the DICOM header with what is in the database
+    # ---------------------------------------------------------------------------------
+    # determine subject IDs based on DICOM headers and validate the IDs against the DB
+    # ---------------------------------------------------------------------------------
+    subject_id_dict       = imaging_obj.determine_subject_ids(tarchive_info_dict, scanner_dict['ScannerID'])
     is_subject_info_valid = imaging_obj.validate_subject_ids(subject_id_dict)
     if not is_subject_info_valid:
         # note: the script will not exit so that further down it can be inserted per
@@ -282,11 +300,13 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
             upload_id=upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
         )
 
+    # -----------------------------------------------------
     # update mri_upload table with IsTarchiveValidated = 1
+    # -----------------------------------------------------
     mri_upload_obj.update_mri_upload(
         upload_id = upload_id,
         fields    = ('isTarchiveValidated', 'Inserting'),
-        values    = ('1',                   '0',       )
+        values    = ('1',                   '0'        )
     )
 
 

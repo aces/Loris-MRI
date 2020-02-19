@@ -2,8 +2,8 @@
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.site import Site
 from lib.candidate import Candidate
+from lib.database_lib.site import Site
 
 
 __license__ = "GPLv3"
