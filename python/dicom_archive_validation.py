@@ -10,6 +10,7 @@ import lib.exitcode
 import lib.utilities as utilities
 from lib.database import Database
 from lib.imaging  import Imaging
+from lib.database_lib.config       import Config
 from lib.database_lib.mriupload    import MriUpload
 from lib.database_lib.mriscanner   import MriScanner
 from lib.database_lib.notification import Notification
@@ -174,20 +175,10 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
     db = Database(config_file.mysql, verbose)
     db.connect()
 
-    # ---------------------------------------------------------------------------------------------
-    # grep config settings from the Config module & ensure that there is a final / in dicom_lib_dir
-    # ---------------------------------------------------------------------------------------------
-    dicom_lib_dir = db.get_config('tarchiveLibraryDir')
-    dicom_lib_dir = dicom_lib_dir if dicom_lib_dir.endswith('/') else dicom_lib_dir + "/"
-
-    # ----------------------------------------------------
-    # determine the archive location
-    # ----------------------------------------------------
-    archive_location = tarchive_path.replace(dicom_lib_dir, '')
-
-    # ---------------------------------------------------------------------------
-    # load the Imaging, Tarchive, MriUpload, MriScanner and Notification classes
-    # ---------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------
+    # load the Config, Imaging, Tarchive, MriUpload, MriScanner and Notification classes
+    # -----------------------------------------------------------------------------------
+    config_obj       = Config(db, verbose)
     imaging_obj      = Imaging(db, verbose, config_file)
     tarchive_obj     = Tarchive(db, verbose, config_file)
     mri_upload_obj   = MriUpload(db, verbose)
@@ -195,10 +186,21 @@ def validate_dicom_archive(config_file, tarchive_path, upload_id, verbose):
     notification_obj = Notification(
         db,
         verbose,
-        notification_type   = 'python DICOM archive validation',
-        notification_origin = 'dicom_archive_validation.py',
-        process_id          = upload_id
+        notification_type='python DICOM archive validation',
+        notification_origin='dicom_archive_validation.py',
+        process_id=upload_id
     )
+
+    # ---------------------------------------------------------------------------------------------
+    # grep config settings from the Config module & ensure that there is a final / in dicom_lib_dir
+    # ---------------------------------------------------------------------------------------------
+    dicom_lib_dir = config_obj.get_config('tarchiveLibraryDir')
+    dicom_lib_dir = dicom_lib_dir if dicom_lib_dir.endswith('/') else dicom_lib_dir + "/"
+
+    # ----------------------------------------------------
+    # determine the archive location
+    # ----------------------------------------------------
+    archive_location = tarchive_path.replace(dicom_lib_dir, '')
 
     # -------------------------------------------------------------------------------
     # update the mri_upload table to indicate that a script is running on the upload
