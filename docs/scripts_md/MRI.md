@@ -47,10 +47,11 @@ INPUTS: the scanner ID and the database object
 
 RETURNS: the `CandID` or (if none exists) undef
 
-### getSession($subjectIDref, $studyDate, $dbh, $db)
+### getSessionInformation($subjectIDref, $studyDate, $dbh, $db)
 
-Gets (or creates if it does not exist) the session with the given CandID and visitLabel 
-(contained inside the hashref `$subjectIDref`). 
+Gets information for the session with the given CandID and visitLabel
+(contained inside the hashref `$subjectIDref`). If no such session
+exists, the method will try to create it using the supplied parameters.
 
 INPUTS:
   - $subjectIDref: hash reference of subject IDs

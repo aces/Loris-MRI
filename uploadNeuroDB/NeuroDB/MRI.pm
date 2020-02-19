@@ -112,10 +112,11 @@ sub getScannerCandID {
 
 =pod
 
-=head3 getSession($subjectIDref, $studyDate, $dbh, $db)
+=head3 getSessionInformation($subjectIDref, $studyDate, $dbh, $db)
 
-Gets (or creates if it does not exist) the session with the given CandID and visitLabel 
-(contained inside the hashref C<$subjectIDref>). 
+Gets information for the session with the given CandID and visitLabel
+(contained inside the hashref C<$subjectIDref>). If no such session
+exists, the method will try to create it using the supplied parameters.
 
 INPUTS:
   - $subjectIDref: hash reference of subject IDs
@@ -135,7 +136,7 @@ RETURNS: an array of 2 elements:
 
 =cut
 
-sub getSession {
+sub getSessionInformation {
     my ($subjectIDref, $studyDate, $dbh, $db) = @_;
     my ($sessionID, $studyDateJD);
     my ($query, $sth);
@@ -165,20 +166,20 @@ sub getSession {
     }
     
     if (!$subjectIDref->{'createVisitLabel'}) {
-		my $msg = sprintf(
-		    "Visit %s for candidate %d does not exist.",
-		    $subjectIDref->{'visitLabel'},
-		    $subjectIDref->{'CandID'}
-		);
-		return (undef, $msg);
-	}
-	
+        my $msg = sprintf(
+            "Visit %s for candidate %d does not exist.",
+            $subjectIDref->{'visitLabel'},
+            $subjectIDref->{'CandID'}
+        );
+        return (undef, $msg);
+    }
+    
     # Since we'll be creating a visit, ensure that the subprojectID and ProjectID
     # have been defined in the profile file
     if (!defined $subjectIDref->{'SubprojectID'}) {
         return (undef, "Cannot create visit: profile file does not define the visit's SubprojectID");
-	}
-	if (!defined $subjectIDref->{'ProjectID'}) {
+    }
+    if (!defined $subjectIDref->{'ProjectID'}) {
         return (undef, "Cannot create visit: profile file does not define the visit's ProjectID");
     }
 
@@ -192,7 +193,7 @@ sub getSession {
     $sth = $dbh->prepare($query);
     $sth->execute($subjectIDref->{'ProjectID'}, $subjectIDref->{'SubprojectID'});
 
-    # If thre's no entry in project_subproject_rel for (ProjectID, SubprojectID)
+    # If there's no entry in project_subproject_rel for (ProjectID, SubprojectID)
     if ($sth->rows == 0) {
         my $msg = sprintf(
             "Cannot create visit with project ID %d and sub-project ID %d: no such association in table %s",
@@ -207,17 +208,19 @@ sub getSession {
     my $newVisitNo = 0;
     my $centerID = 0;
     
-    if($subjectIDref->{'visitLabel'} =~ /PHA/i or $subjectIDref->{'visitLabel'} =~ /TEST/i) {
+    if($subjectIDref->{'isPhantom'}) {
         # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
         my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr, $db);
         $centerID = $pscInfo[1];
     }
-    # fixme ask Jon ... is this still useful?
     # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
     if($centerID == 0) {
-        $query = "SELECT IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, CenterID FROM session WHERE CandID=".$dbh->quote($subjectIDref->{'CandID'})." GROUP BY CandID, CenterID";
+        $query = "SELECT IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, CenterID "
+               . "FROM session "
+               . "WHERE CandID = ? "
+               . "GROUP BY CandID, CenterID";
         $sth = $dbh->prepare($query);
-        $sth->execute();
+        $sth->execute($subjectIDref->{'CandID'});
         if($sth->rows > 0) {
             my $rowref = $sth->fetchrow_hashref();
             $newVisitNo = $rowref->{'newVisitNo'};
@@ -246,18 +249,25 @@ sub getSession {
     # Insert the new session setting Current_stage to 'Not started' because that column is important 
     # to the behavioural data entry gui.
     $query = "INSERT INTO session "
-           . "SET CandID=".$dbh->quote($subjectIDref->{'CandID'}).", "
-           . "    Visit_label=".$dbh->quote($subjectIDref->{'visitLabel'}).", "
-           . "    CenterID=$centerID, "
-           . "    VisitNo=$newVisitNo, "
-           . "    Current_stage='Not Started', "
-           . "    Scan_done='Y', "
-           . "    Submitted='N', "
-           . "    SubprojectID=".$dbh->quote($subjectIDref->{'SubprojectID'}) . ", "
-           . "    ProjectID=".$dbh->quote($subjectIDref->{'ProjectID'});
-    $dbh->do($query); # execute query
+           . "SET CandID        = ?, "
+           . "    Visit_label   = ?, "
+           . "    CenterID      = ?, "
+           . "    VisitNo       = ?, "
+           . "    Current_stage = 'Not Started', "
+           . "    Scan_done     = 'Y', "
+           . "    Submitted     = 'N', "
+           . "    SubprojectID  = ?, "
+           . "    ProjectID     = ?";
+    $dbh->do(
+        $query, undef, 
+        $subjectIDref->{'CandID'}, 
+        $subjectIDref->{'visitLabel'}, 
+        $centerID, 
+        $newVisitNo, 
+        $subjectIDref->{'SubprojectID'},
+        $subjectIDref->{'ProjectID'}
+    );
     $sessionID = $dbh->{'mysql_insertid'}; # retain id of inserted row
-    $subjectIDref->{'visitNo'} = $newVisitNo; # add visit number to subjectIDref
 
     my %session = (
         ID           => $sessionID,
@@ -349,7 +359,7 @@ sub identify_scan_db {
         Model         => $fileref->getParameter('manufacturer_model_name'),
         Serial_number => $fileref->getParameter('device_serial_number'),
         Software      => $fileref->getParameter('software_versions')
-	});
+    });
     
     # default ScannerID to 0 if we have no better clue.
     my $ScannerID = @$resultsRef> 0 ? $resultsRef->[0]->{'ID'} : 0;
@@ -395,28 +405,28 @@ sub identify_scan_db {
     # likely a setup issue: mri_protocol/mri_protocol_group/mri_protocol_group_target do not cover
     # all the cases. Warn.
     if(@rows == 0) {
-		my $msg = "Warning! No protocol group can be used to determine the scan type "
-		        . "of $minc_location.\nIncorrect/incomplete setup of table mri_protocol_group_target: "
-		        . " setting scan type to 'unknown'"; 
-		print "$msg\n";
+        my $msg = "Warning! No protocol group can be used to determine the scan type "
+                . "of $minc_location.\nIncorrect/incomplete setup of table mri_protocol_group_target: "
+                . " setting scan type to 'unknown'"; 
+        print "$msg\n";
         my $notify = NeuroDB::Notify->new( $dbhr );
         $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
 
-        return 'unknown' unless $sth->rows>0;
-	}
+        return 'unknown';
+    }
     # If more than one line in the mri_protocol_group_target matches the ProjectID/SubprojectID/VisitLabel
     # then table mri_protocol_group_target was not setup properly. Warn.
     my %mriProtocolGroupIDs = map { $_->{'MriProtocolGroupID'} => 1 } @rows;
     if(keys %mriProtocolGroupIDs > 1) {
-		my $msg = "Warning! More than one protocol group can be used to identify the scan type of $minc_location\n"
-		        . "Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'"; 
-		print "$msg\n";
+        my $msg = "Warning! More than one protocol group can be used to identify the scan type of $minc_location\n"
+                . "Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'"; 
+        print "$msg\n";
         my $notify = NeuroDB::Notify->new( $dbhr );
         $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
 
-        return 'unknown' unless $sth->rows>0;
-	}
-	my $mriProtocolGroupID = [ keys %mriProtocolGroupIDs ]->[0];
+        return 'unknown';
+    }
+    my $mriProtocolGroupID = [ keys %mriProtocolGroupIDs ]->[0];
 
     # check against all possible scan types
     foreach my $rowref (@rows) {
@@ -464,13 +474,13 @@ sub identify_scan_db {
             print "\n";
         }
 
-	    if ($sd_regex) {
+        if ($sd_regex) {
             if ($series_description =~ /$sd_regex/i) {
                 return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
             }
 
-	    } else {
-         	if ( &in_range($tr,              "$tr_min-$tr_max"                  )
+        } else {
+            if ( &in_range($tr,              "$tr_min-$tr_max"                  )
               && &in_range($te,              "$te_min-$te_max"                  )
               && &in_range($ti,              "$ti_min-$ti_max"                  )
               && &in_range($xspace,          "$xspace_min-$xspace_max"          )

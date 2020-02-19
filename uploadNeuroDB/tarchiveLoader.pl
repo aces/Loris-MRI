@@ -590,7 +590,7 @@ if ($valid_study) {
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
-    my ($sessionRef, $errMsg) = NeuroDB::MRI::getSession(
+    my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
         $subjectIDsref, $tarchiveInfo{'DateAcquired'}, $dbh, $db
     );
 

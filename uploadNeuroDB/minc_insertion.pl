@@ -534,13 +534,17 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
 ################################################################
 ####### Get the $sessionID  ####################################
 ################################################################
-my($sessionRef, $errMsg) = NeuroDB::MRI::getSession(
+my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
     $subjectIDsref, 
     $studyInfo{'DateAcquired'},
     $dbh,
     $db
 );
-$subjectIDsref->{'SessionID'} = $sessionRef->{'ID'};
+
+# Copy the session info into the %$subjectIDsref hash array
+$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'SubprojectID'} = $sessionRef->{'ProjectID'};
  
 # Session cannot be retrieved from the DB and, if createVisitLabel is set to
 # 1, creation of a new session failed

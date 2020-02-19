@@ -1615,9 +1615,9 @@ sub CreateMRICandidates {
             $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
             exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-		}
-		
-		$query = "SELECT ProjectID FROM Project WHERE ProjectID = ?";
+        }
+        
+        $query = "SELECT ProjectID FROM Project WHERE ProjectID = ?";
         my $sth = ${$this->{'dbhr'}}->prepare($query);
         $sth->execute($subjectIDsref->{'ProjectID'});
           
@@ -1628,7 +1628,7 @@ sub CreateMRICandidates {
             $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
             exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-		}  
+        }  
     }
 
     # Create non-existent candidate if the profile allows for Candidate creation

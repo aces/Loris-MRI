@@ -461,7 +461,7 @@ if ($subjectIDsref->{'CandMismatchError'}){
 }
 
 # determine the session ID
-my ($sessionRef, $errMsg) = NeuroDB::MRI::getSession(
+my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
     $subjectIDsref, $date_acquired, \$dbh, $db
 );
 unless ($sessionRef) {
@@ -480,8 +480,6 @@ unless ($sessionRef) {
               : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
 }
 my $session_id = $sessionRef->{'ID'};
-
-
 
 
 
