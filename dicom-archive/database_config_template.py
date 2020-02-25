@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import re
+from lib.imaging import Imaging
+
 mysql = {
     'host'    : 'DBHOST',
     'username': 'DBUSER',
