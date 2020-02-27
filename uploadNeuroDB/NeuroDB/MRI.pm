@@ -326,6 +326,7 @@ sub identify_scan_db {
     my $seriesUID = ${fileref}->getParameter('series_instance_uid');
     my $series_description = ${fileref}->getParameter('series_description');
     my $image_type = ${fileref}->getParameter('acquisition:image_type');
+    my $mriProtocolGroupID;
 
     # get parameters specific to MRIs
     my ($tr, $te, $ti, $time);
@@ -411,94 +412,95 @@ sub identify_scan_db {
         print "$msg\n";
         my $notify = NeuroDB::Notify->new( $dbhr );
         $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
-
-        return 'unknown';
-    }
-    # If more than one line in the mri_protocol_group_target matches the ProjectID/SubprojectID/VisitLabel
-    # then table mri_protocol_group_target was not setup properly. Warn.
-    my %mriProtocolGroupIDs = map { $_->{'MriProtocolGroupID'} => 1 } @rows;
-    if(keys %mriProtocolGroupIDs > 1) {
-        my $msg = "Warning! More than one protocol group can be used to identify the scan type of $minc_location\n"
-                . "Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'"; 
-        print "$msg\n";
-        my $notify = NeuroDB::Notify->new( $dbhr );
-        $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
-
-        return 'unknown';
-    }
-    my $mriProtocolGroupID = [ keys %mriProtocolGroupIDs ]->[0];
-
-    # check against all possible scan types
-    foreach my $rowref (@rows) {
-        my $sd_regex        = $rowref->{'series_description_regex'};
-        my $tr_min          = $rowref->{'TR_min'};
-        my $tr_max          = $rowref->{'TR_max'};
-        my $te_min          = $rowref->{'TE_min'};
-        my $te_max          = $rowref->{'TE_max'};
-        my $ti_min          = $rowref->{'TI_min'};
-        my $ti_max          = $rowref->{'TI_max'};
-        my $xspace_min      = $rowref->{'xspace_min'};
-        my $xspace_max      = $rowref->{'xspace_max'};
-        my $yspace_min      = $rowref->{'yspace_min'};
-        my $yspace_max      = $rowref->{'yspace_max'};
-        my $zspace_min      = $rowref->{'zspace_min'};
-        my $zspace_max      = $rowref->{'zspace_max'};
-        my $xstep_min       = $rowref->{'xstep_min'};
-        my $xstep_max       = $rowref->{'xstep_max'};
-        my $ystep_min       = $rowref->{'ystep_min'};
-        my $ystep_max       = $rowref->{'ystep_max'};
-        my $zstep_min       = $rowref->{'zstep_min'};
-        my $zstep_max       = $rowref->{'zstep_max'};
-        my $time_min        = $rowref->{'time_min'};
-        my $time_max        = $rowref->{'time_max'};
-        my $slice_thick_min = $rowref->{'slice_thickness_min'};
-        my $slice_thick_max = $rowref->{'slice_thickness_max'};
-
-        if(0) {
-            print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
-            print "\t";
-            if($sd_regex && ($series_description =~ /$sd_regex/i)) {
-                print "series_description\t";
-            }
-            print &in_range($tr,     "$tr_min-$tr_max")         ? "TR\t"     : '';
-            print &in_range($te,     "$te_min-$te_max")         ? "TE\t"     : '';
-            print &in_range($ti,     "$ti_min-$ti_max")         ? "TI\t"     : '';
-            print &in_range($xspace, "$xspace_min-$xspace_max") ? "xspace\t" : '';
-            print &in_range($yspace, "$yspace_min-$yspace_max") ? "yspace\t" : '';
-            print &in_range($zspace, "$zspace_min-$zspace_max") ? "zspace\t" : '';
-            print &in_range($xstep,  "$xstep_min-$xstep_max")   ? "xstep\t"  : '';
-            print &in_range($ystep,  "$ystep_min-$ystep_max")   ? "ystep\t"  : '';
-            print &in_range($zstep,  "$zstep_min-$zstep_max")   ? "zstep\t"  : '';
-            print &in_range($time,   "$time_min-$time_max")     ? "time\t"   : '';
-            print &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max") ? "ST\t" : '';
-            print "\n";
-        }
-
-        if ($sd_regex) {
-            if ($series_description =~ /$sd_regex/i) {
-                return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
-            }
-
+    } else {
+        # If more than one line in the mri_protocol_group_target matches the ProjectID/SubprojectID/VisitLabel
+        # then table mri_protocol_group_target was not setup properly. Warn.
+        my %mriProtocolGroupIDs = map { $_->{'MriProtocolGroupID'} => 1 } @rows;
+        if(keys %mriProtocolGroupIDs > 1) {
+            my $msg = "Warning! More than one protocol group can be used to identify the scan type of $minc_location\n"
+                    . "Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'"; 
+            print "$msg\n";
+            my $notify = NeuroDB::Notify->new( $dbhr );
+            $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
         } else {
-            if ( &in_range($tr,              "$tr_min-$tr_max"                  )
-              && &in_range($te,              "$te_min-$te_max"                  )
-              && &in_range($ti,              "$ti_min-$ti_max"                  )
-              && &in_range($xspace,          "$xspace_min-$xspace_max"          )
-              && &in_range($yspace,          "$yspace_min-$yspace_max"          )
-              && &in_range($zspace,          "$zspace_min-$zspace_max"          )
-              && &in_range($xstep,           "$xstep_min-$xstep_max"            )
-              && &in_range($ystep,           "$ystep_min-$ystep_max"            )
-              && &in_range($zstep,           "$zstep_min-$zstep_max"            )
-              && &in_range($time,            "$time_min-$time_max"              )
-              && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
-              && (!$rowref->{'image_type'} || $image_type =~ /\Q$rowref->{'image_type'}\E/i)
-            ) {
-                    return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
-            }
-        }
-    }
+        
+            $mriProtocolGroupID = [ keys %mriProtocolGroupIDs ]->[0];
 
-    # if we got here, we're really clueless...
+            # check against all possible scan types
+            foreach my $rowref (@rows) {
+                my $sd_regex        = $rowref->{'series_description_regex'};
+                my $tr_min          = $rowref->{'TR_min'};
+                my $tr_max          = $rowref->{'TR_max'};
+                my $te_min          = $rowref->{'TE_min'};
+                my $te_max          = $rowref->{'TE_max'};
+                my $ti_min          = $rowref->{'TI_min'};
+                my $ti_max          = $rowref->{'TI_max'};
+                my $xspace_min      = $rowref->{'xspace_min'};
+                my $xspace_max      = $rowref->{'xspace_max'};
+                my $yspace_min      = $rowref->{'yspace_min'};
+                my $yspace_max      = $rowref->{'yspace_max'};
+                my $zspace_min      = $rowref->{'zspace_min'};
+                my $zspace_max      = $rowref->{'zspace_max'};
+                my $xstep_min       = $rowref->{'xstep_min'};
+                my $xstep_max       = $rowref->{'xstep_max'};
+                my $ystep_min       = $rowref->{'ystep_min'};
+                my $ystep_max       = $rowref->{'ystep_max'};
+                my $zstep_min       = $rowref->{'zstep_min'};
+                my $zstep_max       = $rowref->{'zstep_max'};
+                my $time_min        = $rowref->{'time_min'};
+                my $time_max        = $rowref->{'time_max'};
+                my $slice_thick_min = $rowref->{'slice_thickness_min'};
+                my $slice_thick_max = $rowref->{'slice_thickness_max'};
+
+                if(0) {
+                    print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
+                    print "\t";
+                    if($sd_regex && ($series_description =~ /$sd_regex/i)) {
+                        print "series_description\t";
+                    }
+                    print &in_range($tr,     "$tr_min-$tr_max")         ? "TR\t"     : '';
+                    print &in_range($te,     "$te_min-$te_max")         ? "TE\t"     : '';
+                    print &in_range($ti,     "$ti_min-$ti_max")         ? "TI\t"     : '';
+                    print &in_range($xspace, "$xspace_min-$xspace_max") ? "xspace\t" : '';
+                    print &in_range($yspace, "$yspace_min-$yspace_max") ? "yspace\t" : '';
+                    print &in_range($zspace, "$zspace_min-$zspace_max") ? "zspace\t" : '';
+                    print &in_range($xstep,  "$xstep_min-$xstep_max")   ? "xstep\t"  : '';
+                    print &in_range($ystep,  "$ystep_min-$ystep_max")   ? "ystep\t"  : '';
+                    print &in_range($zstep,  "$zstep_min-$zstep_max")   ? "zstep\t"  : '';
+                    print &in_range($time,   "$time_min-$time_max")     ? "time\t"   : '';
+                    print &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max") ? "ST\t" : '';
+                    print "\n";
+                }
+
+                if ($sd_regex) {
+                    if ($series_description =~ /$sd_regex/i) {
+                        return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                    }
+
+                } else {
+                    if ( &in_range($tr,              "$tr_min-$tr_max"                  )
+                      && &in_range($te,              "$te_min-$te_max"                  )
+                      && &in_range($ti,              "$ti_min-$ti_max"                  )
+                      && &in_range($xspace,          "$xspace_min-$xspace_max"          )
+                      && &in_range($yspace,          "$yspace_min-$yspace_max"          )
+                      && &in_range($zspace,          "$zspace_min-$zspace_max"          )
+                      && &in_range($xstep,           "$xstep_min-$xstep_max"            )
+                      && &in_range($ystep,           "$ystep_min-$ystep_max"            )
+                      && &in_range($zstep,           "$zstep_min-$zstep_max"            )
+                      && &in_range($time,            "$time_min-$time_max"              )
+                      && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
+                      && (!$rowref->{'image_type'} || $image_type =~ /\Q$rowref->{'image_type'}\E/i)
+                    ) {
+                        return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                    }
+                }  # if ($sd_regex) .... else...
+            }  # foreach my $rowref (@rows)....
+        }  # if(keys %mriProtocolGroupIDs > 1)...else...
+    }   # if (@rows==0)....else...
+
+    # if we got here, we're really clueless: insert scan in mri_protocol_violated_scans
+    # table. Note that $mriProtocolGroupID will be undef unless exactly one protocol 
+    # group was used to try to identify the scan
     insert_violated_scans(
         $dbhr,   $series_description, $minc_location,   $patient_name,
         $candid, $pscid,              $tr,              $te,
