@@ -544,7 +544,7 @@ my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
 # Copy the session info into the %$subjectIDsref hash array
 $subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
 $subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
-$subjectIDsref->{'SubprojectID'} = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
  
 # Session cannot be retrieved from the DB and, if createVisitLabel is set to
 # 1, creation of a new session failed
