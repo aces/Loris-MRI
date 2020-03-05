@@ -71,9 +71,9 @@ INPUT: name of the setting to fetch.
 RETURN: the setting value (as a string). If the setting value is NULL, then this
          method will return `undef`.
 
-### &$getBoolean($value)
+### &$getBooleanRef($value)
 
-Private method. This methods returns 1 if a boolean value is set to either 'true'
+Private method. This method returns 1 if a boolean value is set to either 'true'
 or '1'; 0 otherwise. This ensures harmonization of the boolean settings.
 
 INPUT: boolean value extracted from the Config table
@@ -187,6 +187,12 @@ RETURN: (boolean) 1 if horizontalPics is set to Yes in the Config module, 0 othe
 Get the is\_qsub Config setting.
 
 RETURN: (boolean) 1 if is\_qsub is set to Yes in the Config module, 0 otherwise
+
+### getUseProjects()
+
+Get the useProjects Config setting.
+
+RETURN: (boolean) 1 if useProjects is set to Yes in the Config module, 0 otherwise
 
 ### getCreateCandidates()
 

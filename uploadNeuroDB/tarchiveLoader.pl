@@ -590,20 +590,34 @@ if ($valid_study) {
     ############################################################
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
-    my ($sessionID) = NeuroDB::MRI::getSessionID(
-        $subjectIDsref, $tarchiveInfo{'DateAcquired'},
-        \$dbh, $subjectIDsref->{'subprojectID'}, $db
+    my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
+        $subjectIDsref, $tarchiveInfo{'DateAcquired'}, $dbh, $db
     );
 
+    # Session cannot be retrieved from the DB and, if createVisitLabel is set to
+    # 1, creation of a new session failed
+    if (!$sessionRef) {
+        print STDERR $errMsg if $verbose;
+        print LOG $errMsg;
+        $notifier->spool(
+            'session validation/creation', "$errMsg. tarchiveloader.pl failed", 0,
+            'tarchiveLoader.pl',  $upload_id, 'Y',
+            $notify_notsummary
+        );
+        exit ($subjectIDsref->{'createVisitLabel'} == 1
+            ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
+            : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
+    }
+     
     $query = "UPDATE tarchive SET SessionID=? WHERE TarchiveID=?";
     $sth   = $dbh->prepare($query);
     print $query . "\n" if $debug;
-    $sth->execute($sessionID, $tarchiveInfo{'TarchiveID'});
+    $sth->execute($sessionRef->{'ID'}, $tarchiveInfo{'TarchiveID'});
 
     $query = "UPDATE mri_upload SET SessionID=? WHERE UploadID=?";
     $sth   = $dbh->prepare($query);
     print $query . "\n" if $debug;
-    $sth->execute($sessionID, $upload_id);
+    $sth->execute($sessionRef->{'ID'}, $upload_id);
 
 } else {
     ############################################################

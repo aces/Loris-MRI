@@ -461,25 +461,25 @@ if ($subjectIDsref->{'CandMismatchError'}){
 }
 
 # determine the session ID
-my ($session_id) = NeuroDB::MRI::getSessionID(
-    $subjectIDsref, $date_acquired, \$dbh, $subjectIDsref->{'subprojectID'}, $db
+my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
+    $subjectIDsref, $date_acquired, \$dbh, $db
 );
-unless ($session_id) {
-    $message = "\n\tERROR: Could not determine session ID for $file_path.\n\n";
+unless ($sessionRef) {
     # write error message in the log file
     $utility->writeErrorLog(
-        $message, $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE, $log_file
+        $errMsg, $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE, $log_file
     );
     # insert error message into notification spool table
     $notifier->spool(
-        'imaging non minc file insertion'   , $message,   0,
-        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
+        'imaging non minc file insertion', $errMsg,   0,
+        'imaging_non_minc_insertion.pl' , $upload_id, 'Y',
         'N'
     );
-    exit $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE;
+    exit ($subjectIDsref->{'createVisitLabel'} == 1
+              ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
+              : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
 }
-
-
+my $session_id = $sessionRef->{'ID'};
 
 
 

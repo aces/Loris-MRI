@@ -47,43 +47,42 @@ INPUTS: the scanner ID and the database object
 
 RETURNS: the `CandID` or (if none exists) undef
 
-### getSessionID($subjectIDref, $studyDate, $dbhr, $objective, $db)
+### getSessionInformation($subjectIDref, $studyDate, $dbh, $db)
 
-Gets (or creates) the session ID, given CandID and visitLabel (contained
-inside the hashref `$subjectIDref`). 
+Gets information for the session with the given CandID and visitLabel
+(contained inside the hashref `$subjectIDref`). If no such session
+exists, the method will try to create it using the supplied parameters.
 
 INPUTS:
   - $subjectIDref: hash reference of subject IDs
   - $studyDate   : study date
-  - $dbhr        : database handle reference
-  - $objective   : the objective of the study
+  - $dbh         : database handle 
   - $db          : database object
 
-RETURNS: the session ID of the visit
+RETURNS: an array of 2 elements: 
+  - A reference to a hash containing the session properties:
+    `ID` => session ID.
+    `ProjectID` => project ID for the session.
+    `SubprojectID` => sub-project ID for the session.
+    `CandID` => candidate ID for the session.
+    `Visit_label` => session visit label.
+    The reference will be `undef` if the session cannot be retrieved/created.
+  - An error message (`''` if no errors occured while retrieving/creating the session)
 
-### getObjective($subjectIDsref, $dbhr)
-
-Attempts to determine the `SubprojectID` of a timepoint given the subject IDs
-hash ref `$subjectIDsref` and a database handle reference `$dbhr`
-
-INPUTS:
-  - $subjectIDsref: subjectIDs hashref
-  - $dbhr         : database handle reference
-
-RETURNS: the determined objective, or 0
-
-### identify\_scan\_db($center\_name, $objective, $fileref, $dbhr, $db, $minc\_location)
+### identify\_scan\_db($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc\_location, $uploadID)
 
 Determines the type of the scan described by MINC headers based on
 `mri_protocol` table in the database.
 
 INPUTS:
-  - $center\_name   : center's name
-  - $objective     : objective of the study
-  - $fileref       : file hash ref
-  - $dbhr          : database handle reference
-  - $db            : database object
-  - $minc\_location : location of the MINC files
+  - $psc            : center's name
+  - $subjectref     : reference on the hash that contains the subject information
+  - $tarchiveInfoRef: reference on the tarchive
+  - $fileref        : file hash ref
+  - $dbhr           : database handle reference
+  - $db             : database object
+  - $minc\_location  : location of the MINC files
+  - $uploadID       : ID of the upload containing the scan
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
@@ -115,6 +114,7 @@ INPUTS:
   - $seriesUID      : `SeriesUID` of the scan
   - $tarchiveID     : `TarchiveID` of the DICOM archive from which this file is derived
   - $image\_type     : the `image_type` header value of the image
+  - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 ### scan\_type\_id\_to\_text($typeID, $db)
 

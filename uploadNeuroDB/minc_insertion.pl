@@ -534,15 +534,32 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
 ################################################################
 ####### Get the $sessionID  ####################################
 ################################################################
-my ($sessionID) = NeuroDB::MRI::getSessionID(
-        $subjectIDsref, 
-        $studyInfo{'DateAcquired'},
-        \$dbh,
-        $subjectIDsref->{'subprojectID'},
-        $db
+my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
+    $subjectIDsref, 
+    $studyInfo{'DateAcquired'},
+    $dbh,
+    $db
+);
 
-   );
-
+# Copy the session info into the %$subjectIDsref hash array
+$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
+ 
+# Session cannot be retrieved from the DB and, if createVisitLabel is set to
+# 1, creation of a new session failed
+if (!$sessionRef) {
+    print STDERR $errMsg if $verbose;
+    print LOG $errMsg;
+    $notifier->spool(
+        'tarchive validation', "$errMsg. Minc insertion failed.", 0,
+        'minc_insertion.pl',   $upload_id, 'Y',
+        $notify_notsummary
+    );
+    exit ($subjectIDsref->{'createVisitLabel'} == 1
+        ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
+        : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
+} 
 
 ################################################################
 ############ Compute the md5 hash ##############################
@@ -566,7 +583,7 @@ if ($not_unique_message) {
 my $caveat = $acquisitionProtocol ? 1 : 0;
 $file->setFileData( 'Caveat',          $caveat                                    );
 $file->setFileData( 'ScannerID',       $scannerID                                 );
-$file->setFileData( 'SessionID',       $sessionID                                 );
+$file->setFileData( 'SessionID',       $subjectIDsref->{'SessionID'}              );
 $file->setFileData( 'SeriesUID',       $file->getParameter('series_instance_uid') );
 $file->setFileData( 'EchoTime',        $file->getParameter('echo_time')           );
 $file->setFileData( 'CoordinateSpace', 'native'                                   );
@@ -607,9 +624,9 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,               \%studyInfo,    $subjectIDsref,
-    $acquisitionProtocol, $minc,          $extra_validation_status,
-    $reckless,            $sessionID,     $upload_id
+    \$file,               \%studyInfo                  , $subjectIDsref,
+    $acquisitionProtocol, $minc                        , $extra_validation_status,
+    $reckless,            $subjectIDsref->{'SessionID'}, $upload_id
 );
 
 # if the scan was inserted into the files table and there is an
