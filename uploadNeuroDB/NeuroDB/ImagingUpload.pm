@@ -298,7 +298,8 @@ sub IsCandidateInfoValid {
         # if modality is PET HRRT (i.e. there's at least one ECAT7 file), then check
         # that all the files present in the PET directory have been named correctly
         foreach my $file (@file_list) {
-            $files_with_unmatched_patient_name++ unless $this->HrrtPatientNameMatch($file);
+            $files_with_unmatched_patient_name++
+                unless $this->HrrtPatientNameMatch(basename($file));
         }
     } else {
         # for DICOM files, check that the PatientName matches in all files
@@ -332,6 +333,17 @@ sub IsCandidateInfoValid {
     return 1;    ##return true
 }
 
+
+
+=pod
+
+=head3 runHrrtInsertion($is_bic)
+
+Run the HRRT insertion script (C<HRRT_PET_insertion.pl>).
+
+RETURNS: 1 on success, 0 on failure
+
+=cut
 
 sub runHrrtInsertion {
     my $this     = shift;
@@ -564,18 +576,36 @@ sub DicomPatientNameMatch {
 }
 
 
+
+=pod
+
+=head3 HrrtPatientNameMatch($filename)
+
+This method extracts the patient name field from the file name and compares it with
+the patient name information stored in the C<mri_upload> table.
+
+Note: it will skip some files that are known to not include the patient name in
+their label.
+
+INPUTS:
+  - $filename: name of the file to check if the PatientName is in the filename
+
+RETURNS: 1 on success, 0 on failure
+
+=cut
+
 sub HrrtPatientNameMatch {
     my $this   = shift;
-    my ($file) = @_;
+    my ($filename) = @_;
 
-    # if the file name matches one of the following, return 1 as the patient
+    # if the filename name matches one of the following, return 1 as the patient
     # name will not be in the filename anyway
     my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
                         . "script|ini|directnorm|up_mask";
-    return 1 if ( $file =~ /$exclude_regex/i );
+    return 1 if ( $filename =~ /$exclude_regex/i );
 
     # if the patient name matches with the filename return 1, otherwise return 0
-    ( $file =~ /$this->{'pname'}/i ) ? return 1 : return 0;
+    ( $filename =~ /$this->{'pname'}/i ) ? return 1 : return 0;
 }
 
 

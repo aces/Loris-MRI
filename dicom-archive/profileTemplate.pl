@@ -140,10 +140,37 @@ sub  get_DTI_CandID_Visit {
 }
 
 
+=pod
+
+=head3 determineHRRTprotocol($tracer, $ecat_file)
+
+Determines which protocol name to use for the ECAT file (based on the tracer
+name, reconstruction algorithm and motion correction used). For the MNI PET
+HRRT scanner, the following convention is being used:
+- the tracer used is passed to the function as $protocol (which comes from what
+was written in the Matlab script accompanying the dataset)
+- reconstruction is indicated in the filename by the string DFBP (for FBP
+reconstruction) and OSEM (for OSEM reconstruction)
+- whether motion correction was applied on the file is indicated by the string _MC01
+
+Note: this will only apply for the HRRT PET scanner from the MNI. Since there is
+only 7 of those scanners in the world, we will adapt the scripts if needed when
+we will start hosting data from other PET HRRT scanners.
+
+INPUTS:
+  - $tracer   : name of the tracer (that was previously parsed from the Matlab
+                file accompanying the PET HRRT dataset for the MNI)
+  - $ecat_file: name of the ECAT file
+
+RETURNS: the final acquisition protocol to be used when inserting the acquisition
+ in the files table.
+
+=cut
 
 sub determineHRRTprotocol {
-    my ( $protocol, $ecat_file ) = @_;
+    my ( $tracer, $ecat_file ) = @_;
 
+    my $protocol = $tracer;
     $protocol =~ s/'|\\|_|"|\s//g; # remove weird characters from protocol name
 
     if ( $ecat_file =~ /Dfbp/i ) {

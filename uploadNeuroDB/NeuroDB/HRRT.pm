@@ -1,11 +1,47 @@
+package NeuroDB::HRRT;
+
+=pod
+
+=head1 NAME
+
+NeuroDB::HRRT -- A set of utility functions for performing common tasks
+relating to HRRT PET data parsing and registration into the LORIS system.
+
+=head1 SYNOPSIS
+
+ use NeuroDB::File;
+ use NeuroDB::DBI;
+
+ my $dbh = NeuroDB::DBI::connect_to_db();
+
+ my $archive = NeuroDB::HRRT->new(
+     $upload_info->{decompressed_location}, $target_location, $bic
+ );
+
+ my $target_location = $archive->{target_dir};
+
+ my $newHrrtArchiveID = $archive->insert_hrrt_tables(
+     $dbh, $blake2bArchive, $archiveLocation, $upload_id
+ );
+
+ ...
+
+=head1 DESCRIPTION
+
+A set of utility functions for performing common tasks relating to HRRT PET data
+parsing and registration into the LORIS system.
+
+=head2 Methods
+
+=cut
+
+
+
 use strict;
 use warnings;
 
-package NeuroDB::HRRT;
-
 use File::Basename;
 use File::Find;
-use Digest::BLAKE2 qw(blake2b);
 use File::Type;
 use Date::Parse;
 use String::ShellQuote;
@@ -13,6 +49,9 @@ use File::Copy;
 
 
 use NeuroDB::MincUtilities;
+use NeuroDB::Utilities;
+
+
 
 
 =pod
@@ -22,13 +61,14 @@ use NeuroDB::MincUtilities;
 Creates a new instance of this class.
 
 INPUTS:
-  - $decompressed_dir : decompressed directory of the HRRT study
-  - $target_dir       : target directory where to save the HRRT study
-  - $bic              : boolean variable specifying if the dataset is a BIC dataset
+  - $decompressed_dir: decompressed directory of the HRRT study
+  - $target_dir      : target directory where to save the archived HRRT study
+  - $bic             : boolean variable specifying if the dataset is a BIC dataset
 
 RETURNS: new instance of this class.
 
 =cut
+
 sub new {
     my $params = shift;
 
@@ -77,11 +117,12 @@ sub new {
 
 =head3 hrrt_content_list()
 
-Grep the list of files in the source directory and return it.
+Grep the list of files in the HRRT source directory and return it.
 
 RETURNS: array of sorted files found in the source directory
 
 =cut
+
 sub hrrt_content_list {
     my ($self) = @_;
 
@@ -104,24 +145,28 @@ sub hrrt_content_list {
 
 =head3 grep_ecat_files_only($bic)
 
-Grep the ECAT files present in the HRRT folder.
-Note, if the dataset is a BIC dataset, skip the test*.v file.
+Grep the ECAT7 files present in the HRRT folder.
+Note, if the dataset is a BIC dataset, the test*.v file will be skipped.
 
 INPUT: the boolean variable specifying if the dataset is a BIC dataset
 
-RETURNS: array of ECAT files
+RETURNS: array of ECAT7 files
 
 =cut
+
 sub grep_ecat_files_only {
 
     my ( $self, $bic ) = @_;
 
     my @ecat_files;
     foreach my $file ( @{ $self->{hrrt_files} } ) {
-        next if !( $file =~ /.v$/i ); # continue if not an ecat file (.v)
+        # continue if not an ECAT7 file (a.k.a. a file with extension .v)
+        next if !( $file =~ /.v$/i );
+
         # next if dataset from the BIC and its basename starts with "test"
         next if ( $bic && basename($file) =~ /^test/i );
-        # if gone until here, then file is a valid ecat
+
+        # if gone until here, then file is a valid ECAT7
         push ( @ecat_files, $file );
     }
 
@@ -135,16 +180,18 @@ sub grep_ecat_files_only {
 
 =head3 read_ecat($ecat_file, $bic)
 
-Read the header of the ECAT file given as an argument and store the header info
+Read the header of the ECAT7 file given as an argument and store the header info
 in the $self->{header}->{$ecat_file} hash.
 
-INPUTS: the full path to the ECAT file and the boolean variable specifying if
-the dataset is a BIC dataset
+INPUTS:
+  - $ecat_file: the full path to the ECAT7 file
+  - $bic      : a boolean variable specifying if the dataset is a BIC dataset
 
-RETURNS: the header information of the ECAT file stored in the
+RETURNS: the header information of the ECAT7 file stored in the
 $self->{header}->{filename} hash
 
 =cut
+
 sub read_ecat {
     my ( $self, $ecat_file, $bic ) = @_;
     
@@ -173,14 +220,15 @@ sub read_ecat {
 
 =head3 read_all_ecat($bic)
 
-Loop through all ECAT files to read their header info and store them in the
+Loop through all ECAT7 files to read their header info and store them in the
 $self->{header} hash.
 
 INPUT: the boolean variable specifying if the dataset is a BIC dataset
 
-RETURNS: all ECAT files' header information stored in $self->{header} hash
+RETURNS: all ECAT7 files' header information stored in $self->{header} hash
 
 =cut
+
 sub read_all_ecat {
     my ( $self, $bic ) = @_;
 
@@ -199,13 +247,14 @@ sub read_all_ecat {
 
 =head3 determine_study_info()
 
-Determine the study information based on the first ECAT file header information.
+Determine the study information based on the first ECAT7 file header information.
 Study information includes the acquisition date, the patient name, the
 center name and the scanner information.
 
 RETURNS: the study information hash appended to $self ($self->{study_info})
 
 =cut
+
 sub determine_study_info {
     my ($self) = shift;
 
@@ -240,7 +289,13 @@ sub determine_study_info {
 
 =head3 read_matlab_file()
 
+Read the matlab file that comes with the BIC HRRT datasets to gather study
+parameters used to create the ECAT7 files.
+
+RETURNS: a hash with all the information read from the Matlab file
+
 =cut
+
 sub read_matlab_file {
     my $self = shift;
 
@@ -261,34 +316,30 @@ sub read_matlab_file {
     }
 
     return $self->{matlab_info};
-
 }
 
 
-=pod
-
-=head3 blake2b_hash($filename)
-
-Computes blake2b hash of a file and returns the blake2b hash.
-
-=cut
-sub blake2b_hash {
-    my ($filename) = @_;
-
-    open(FILE, $filename) or die "Can't open '$filename': $!";
-    binmode(FILE);
-
-    return Digest::BLAKE2->new->addfile(*FILE)->hexdigest;
-}
 
 
 
 
 =pod
 
-=head3 insert_hrrt_tables($dbh, $today, $blake2bArchive, $archiveLocation, $upload_id)
+=head3 insert_hrrt_tables($dbh, $blake2bArchive, $archiveLocation, $upload_id)
+
+Insert the HRRT archive into C<hrrt_archive> and C<hrrt_archive_files> tables.
+
+INPUTS:
+  - $dbh            : database handle
+  - $blake2bArchive : blake2b hash of the HRRT archive file
+  - $archiveLocation: path to the HRRT archive file
+  - $upload_id      : upload ID associated to the HRRT archive file
+
+RETURNS: the HrrtArchiveID of the inserted record if the insertion went well,
+         undef otherwise.
 
 =cut
+
 sub insert_hrrt_tables {
     my ( $self, $dbh, $blake2bArchive, $archiveLocation, $upload_id ) = @_;
 
@@ -350,7 +401,7 @@ QUERY
 QUERY
     $sth = $dbh->prepare($hrrt_archive_files_query);
     foreach my $ecat_file ( @{ $self->{ecat_files} } ) {
-        my $blake2b = blake2b_hash( $ecat_file );
+        my $blake2b = NeuroDB::Utilities::blake2b_hash( $ecat_file );
         @values     = ( $hrrtArchiveID, basename($ecat_file), $blake2b );
         $sth->execute( @values );
     }
@@ -372,7 +423,19 @@ QUERY
 
 
 
+=pod
 
+=head3 insertBicMatlabHeader($minc_file)
+
+Inserts the BIC Matlab header information into the header of a MINC file.
+
+INPUTS:
+  - $minc_file: MINC file in which the BIC Matlab header should be added
+
+RETURNS:
+  - 1 if the header insertion went well, undef otherwise
+
+=cut
 
 sub insertBicMatlabHeader {
     my ($self, $minc_file) = @_;
@@ -412,19 +475,37 @@ sub insertBicMatlabHeader {
 
 
 
+=pod
+
+=head3 appendEcatToRegisteredMinc($fileID, $ecat_file, $data_dir, $dbh)
+
+Will insert into the C<parameter_file> table a link to the ECAT7 file from which
+the MINC file was created.
+
+INPUTS:
+  - $fileID   : file ID of the registered MINC file
+  - $ecat_file: path to the ECAT7 file associated to the registered MINC file
+  - $data_dir : path to the data directory
+  - $dbh      : database handle
+
+=cut
+
 sub appendEcatToRegisteredMinc {
-    my ($self, $fileID, $ecat_file, $data_dir, $dbh) = @_;
+    my ($fileID, $ecat_file, $data_dir, $dbh) = @_;
 
     my $file = NeuroDB::File->new(\$dbh);
     $file->loadFile($fileID);
+
     my $ecat_new_path = $file->getFileDatum('File');
     $ecat_new_path    =~ s/mnc$/v/g;
+
     move($ecat_file, $data_dir . "/" . $ecat_new_path);
+
     $file->setParameter('ecat_filename', $ecat_new_path);
 }
 
 
-#### TODO Move the queries function in OB...
+
 
 =pod
 
@@ -433,7 +514,9 @@ sub appendEcatToRegisteredMinc {
 Fetches C<UploadLocation>, C<DecompressedLocation> and C<HrrtArchiveID> from
 the database based on the provided C<UploadID>.
 
-INPUTS: database handler and c<UploadID>
+INPUTS:
+  - $dbh      : database handle a
+  - $upload_id: C<UploadID>
 
 RETURNS: undef if no entry was found for the given C<UploadID> or a hash
 containing C<UploadLocation>, C<DecompressedLocation> and C<HrrtArchiveID>
@@ -469,6 +552,21 @@ QUERY
 
 
 
+
+=pod
+
+=head3 getRegisteredFileIdUsingMd5hash($md5hash, $dbh)
+
+Get from the database the FileID of a file based on its md5hash.
+
+INPUTS:
+  - $md5hash: md5hash of the file
+  - $dbh    : database handle
+
+RETURNS: the FileID found or undef
+
+=cut
+
 sub getRegisteredFileIdUsingMd5hash {
     my ( $md5hash, $dbh ) = @_;
 
@@ -494,6 +592,20 @@ QUERY
 
 
 
+=pod
+
+=head3 getSessionIdFromFileId($fileID, $dbh)
+
+Grep the C<SessionID> of a file from the C<files> table.
+
+INPUTS:
+  - $fileID: FileID of the file stored in the C<files> table.
+  - $dbh   : database handle
+
+RETURNS: the C<SessionID> found
+
+=cut
+
 sub getSessionIdFromFileId {
     my ( $fileID, $dbh ) = @_;
 
@@ -514,15 +626,52 @@ sub getSessionIdFromFileId {
 
 
 
+
+=pod
+
+=head3 updateHrrtArchiveSessionID($hrrtArchiveID, $sessionID, $dbh)
+
+Update the C<SessionID> field of the C<hrrt_archive> table.
+
+INPUTS:
+  - $hrrtArchiveID: C<HrrtArchiveID> associated to the HRRT archive
+  - $sessionID    : C<SessionID> to use to update the table
+  - $dbh          : database handle
+
+=cut
+
 sub updateHrrtArchiveSessionID {
     my ($hrrtArchiveID, $sessionID, $dbh) = @_;
 
     my $query = "UPDATE hrrt_archive SET SessionID=? WHERE HrrtArchiveID=?";
     my $sth   = $dbh->prepare($query);
     $sth->execute($sessionID, $hrrtArchiveID);
-
 }
 
+
+
+=pod
+
+=head3 updateHrrtUploadInfo($valuesRef, $upload_id, $dbh)
+
+Update the C<mri_upload> table with information stored in the C<$valuesRef> hash.
+
+Example of C<$valuesRef>:
+
+  {
+      "InsertionComplete"      => 1,
+      "number_of_mincInserted" => $minc_inserted,
+      "number_of_mincCreated"  => $minc_created,
+      "SessionID"              => $sessionID,
+      "Inserting"              => 0
+  }
+
+INPUTS:
+  - $valuesRef: hash with the C<mri_upload> fields and values to update
+  - $upload_id: C<UploadID> that needs to be updated
+  - $dbh      : database handle
+
+=cut
 
 sub updateHrrtUploadInfo {
     my ($valuesRef, $upload_id, $dbh) = @_;
@@ -542,9 +691,24 @@ sub updateHrrtUploadInfo {
 
     my $sth = $dbh->prepare($query);
     $sth->execute(@values);
-
 }
 
+
+
+=pod
+
+=head3 getHrrtArchiveLocationFromHrrtArchiveID($hrrt_archive_id, $dbh)
+
+Grep the HRRT archive location from the C<hrrt_archive> table based on a
+C<HrrtArchiveID>.
+
+INPUTS:
+  - $hrrt_archive_id: C<HrrtArchiveID> to use to query the
+  - $dbh            : database handle
+
+RETURNS: the location of the HRRT archive or undef
+
+=cut
 
 sub getHrrtArchiveLocationFromHrrtArchiveID {
     my ($hrrt_archive_id, $dbh) = @_;
@@ -568,9 +732,6 @@ sub getHrrtArchiveLocationFromHrrtArchiveID {
 1;
 
 
-
-
-# end of script
 
 =pod
 

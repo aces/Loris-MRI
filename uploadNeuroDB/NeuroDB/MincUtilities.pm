@@ -1,9 +1,38 @@
+package NeuroDB::MincUtilities;
+
+=pod
+
+=head1 NAME
+
+NeuroDB::MincUtilities -- A set of utility functions for performing common tasks
+on MINC files
+
+=head1 SYNOPSIS
+
+ use NeuroDB::MincUtilities;
+
+ my $hdr_val = modify_header('patient:name', '123', $mincfile, $awk)
+
+ ...
+
+=head1 DESCRIPTION
+
+A mishmash of utility functions, primarily used for MINC file manipulations.
+
+=head2 Methods
+
+=cut
+
+
+
 use warnings;
 use strict;
 
-package NeuroDB::MincUtilities;
-
 use File::Basename;
+
+
+
+
 
 =pod
 
@@ -118,3 +147,19 @@ sub ecat2minc {
 
 
 1;
+
+=pod
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (c) 2003-2004 by Jonathan Harlap, McConnell Brain Imaging Centre,
+Montreal Neurological Institute, McGill University.
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+
+=cut

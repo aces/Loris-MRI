@@ -231,9 +231,7 @@ my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 ############### Decompress File ################################
 ################################################################
 ################################################################
-my $result = $file_decompress->Extract(
-                $TmpDir_decompressed_folder
-             );
+my $result = $file_decompress->Extract($TmpDir_decompressed_folder);
 
 
 ################################################################

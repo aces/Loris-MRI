@@ -8,7 +8,6 @@ use Date::Parse;
 use File::Basename;
 use File::Path qw/make_path/;
 
-###### Import NeuroDB libraries to be used
 use NeuroDB::DBI;
 use NeuroDB::Notify;
 use NeuroDB::MRIProcessingUtility;
@@ -16,6 +15,7 @@ use NeuroDB::HRRT;
 use NeuroDB::MincUtilities;
 use NeuroDB::File;
 use NeuroDB::ExitCodes;
+use NeuroDB::Utilities;
 
 
 
@@ -38,11 +38,17 @@ my  $Usage  =   <<USAGE;
 
 This script takes an upload ID of a PET HRRT study to insert it into the
 database with information about the list of files contained in the upload. It
-will also grep the ecat7 files to insert their header information into the
+will also grep the ECAT7 files to insert their header information into the
 database.
 
-NOTE: in case the MINC files are already present in the PET HRRT study, it
-will use the already created MINC instead of creating them.
+NOTES:
+  - in case the MINC files are already present in the PET HRRT study, it
+    will use the already created MINC instead of creating them.
+  - the current script work well with datasets coming from the PET HRRT scanner of
+    the BIC (at the MNI). This pipeline may need to be adapted for another PET HRRT
+    scanner but given that there is only 7 of those scanners in the world and there
+    is no standard as to how the data is collected and converted, we will adapt the
+    pipeline for other PET HRRT scanners when the need comes.
 
 Usage: perl HRRT_PET_archive.pl [options]
 
@@ -51,11 +57,11 @@ Usage: perl HRRT_PET_archive.pl [options]
 USAGE
 
 # Set the variable descriptions to be used by Getopt::Tabular
-my $profile_desc   = "name of config file in ./dicom-archive/.loris_mri.";
+my $profile_desc   = "Name of config file in ./dicom-archive/.loris_mri.";
 my $upload_id_desc = "ID of the uploaded imaging archive";
 my $bic_desc       = "whether the datasets comes from the BIC HRRT scanner";
 my $clobber_desc   = "Use this option only if you want to replace the resulting tarball!";
-my $skip_archival_desc  = "Use this option to skip the insertion of the study into"
+my $skip_archival_desc = "Use this option to skip the insertion of the study into"
                           . " the hrrt_archive table in case the study was already"
                           . " archived. Will only run the MINC & ECAT7 insertion"
                           . " part after validation of the associated HRRT archive.";
@@ -137,7 +143,7 @@ my $data_dir = $configOB->getDataDirPath();
 # determine local time
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 my $today = sprintf( "%4d-%02d-%02d %02d:%02d:%02d",
-    $year+1900,$mon+1,$mday,$hour,$min,$sec
+    $year+1900, $mon+1, $mday, $hour, $min, $sec
 );
 
 # create the temp directory
@@ -197,8 +203,7 @@ MESSAGE
 
 }
 
-# check that decompressed and upload location exist in the filesystem
-# unless -skip_archival
+# check that decompressed and upload location exist in the filesystem unless -skip_archival
 unless ($skip_archival) {
 
     unless (-r $upload_info->{decompressed_location}) {
@@ -342,7 +347,7 @@ MESSAGE
     $mincref->loadFileFromDisk($minc_file);
     my $md5hash = &NeuroDB::MRI::compute_hash(\$mincref);
 
-    # if it is a BIC dataset, we know a few things
+    # if it is a BIC dataset, we know a few things...
     my $protocol;
     if ($bic) {
 
@@ -388,9 +393,9 @@ MESSAGE
 
     }
 
-    # TODO: copy Settings option into profileTemplate
+    # determine the acquisition protocol for the file
     my $acquisition_protocol = &Settings::determineHRRTprotocol(
-        $protocol, $ecat_file
+        $protocol, basename($ecat_file)
     );
     unless ($acquisition_protocol) {
         $message = "\tERROR: Protocol not found for $minc_file.\n\n";
@@ -496,7 +501,17 @@ sub logHeader () {
 
 
 
+=pod
 
+=head3 decompress_hrrt_archive()
+
+Finds the HRRT archive file in the file system based on the C<HrrtArchiveID> file
+stored in the C<mri_upload*> tables and extracts it in the temporary directory
+created by this script.
+
+RETURNS: a hash with all the information related to the HRRT Archive
+
+=cut
 
 sub decompress_hrrt_archive {
 
@@ -516,8 +531,19 @@ sub decompress_hrrt_archive {
 
 
 
-sub run_hrrt_archival {
 
+=pod
+
+=head3 run_hrrt_archival()
+
+Creates an archive of the HRRT dataset and insert the information regarding that
+dataset as well as the path to the created archive into the hrrt_archive tables.
+
+RETURNS: a hash with all the information related to the HRRT Archive
+
+=cut
+
+sub run_hrrt_archival {
 
     # ------------------------------------------------------------------
     ## Create the archive summary object
@@ -555,7 +581,7 @@ sub run_hrrt_archival {
     my $tar_cmd = "tar -C $to_tar_dir -czf $final_target $study_dir";
     print "\nCreating a tar with the following command: \n $tar_cmd\n" if $verbose;
     system($tar_cmd);
-    my $blake2bArchive = NeuroDB::HRRT::blake2b_hash($final_target);
+    my $blake2bArchive = NeuroDB::Utilities::blake2b_hash($final_target);
 
 
 

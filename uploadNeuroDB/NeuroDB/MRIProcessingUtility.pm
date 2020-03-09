@@ -442,16 +442,19 @@ sub determineSubjectID {
 
 =pod
 
-=head3 createTarchiveArray($tarchive, $globArchiveLocation)
+=head3 createTarchiveArray($tarchive, $globArchiveLocation, $hrrt)
 
-Creates the DICOM archive information hash ref.
+Creates the DICOM/HRRT archive information hash ref.
 
 INPUTS:
   - $tarchive           : tarchive's path
   - $globArchiveLocation: globArchiveLocation argument specified when running
                            the insertion scripts
+  - $hrrt               : whether the archive is from an HRRT scanner or not (in
+                          which case, the C<hrrt_archive> table will be read
+                          instead of the C<tarchive> table.
 
-RETURNS: DICOM archive information hash ref
+RETURNS: DICOM/HRRT archive information hash ref
 
 =cut
 
@@ -1094,7 +1097,7 @@ sub loadAndCreateObjectFile {
 
 =pod
 
-=head3 move_minc($minc, $subjectIDsref, $minc_type, $fileref, $prefix, $data_dir, $tarchive_srcloc, $upload_id)
+=head3 move_minc($minc, $subjectIDsref, $minc_type, $prefix, $data_dir, $hrrt, $upload_id)
 
 Renames and moves the MINC file.
 
@@ -1161,7 +1164,7 @@ sub move_minc {
 
 =pod
 
-=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra_validation_status, $reckless, $sessionID, $upload_id)
+=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra_validation_status, $reckless, $sessionID, $upload_id, $hrrt)
 
 Registers the scan into the database.
 
@@ -1176,6 +1179,7 @@ INPUTS:
   - $reckless                : boolean, if reckless or not
   - $sessionID               : session ID of the MINC file
   - $upload_id               : upload ID of the study
+  - $hrrt                    : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: acquisition protocol ID of the MINC file
 
@@ -1724,7 +1728,7 @@ sub validateArchive {
 
 =pod
 
-=head3 which_directory($subjectIDsref, $data_dir)
+=head3 which_directory($subjectIDsref, $data_dir, $hrrt)
 
 Determines where the MINC files to be registered into the database will go.
 
