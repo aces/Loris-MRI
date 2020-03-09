@@ -79,6 +79,9 @@ sudo -S cpan install Moose
 sudo -S cpan install MooseX::Privacy
 sudo -S cpan install TryCatch
 sudo -S cpan install Throwable
+sudo -S cpan install Digest::BLAKE2
+sudo -S cpan install File::Type
+sudo -S cpan install String::ShellQuote
 echo
 
 ################################################################################

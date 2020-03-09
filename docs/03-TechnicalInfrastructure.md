@@ -18,6 +18,7 @@ The root directory of the imaging part of a LORIS instance is typically
             |__ assembly
             |__ bids_imports
             |__ batch_output
+            |__ hrrtarchive
             |__ logs
                 |__ DTIPrep_pipeline*
                 |__ DTIPrep_register*
@@ -98,6 +99,25 @@ For the example mentioned here, the sub-directory would be named:
 Within that BIDS sub-directory, the file system structure will follow the 
 [BIDS specification][1].
 
+
+#### The `hrrtarchive` directory
+  
+The HRRT archives listed in the `hrrt_archive` table are stored in the
+  `data/hrrtarchive` directory and organized within folders representing the 
+  different years of acquisition.
+
+```
+## Content of the /data/$PROJECT/data/hrrttarchive directory
+.
+|__ year_1
+    |__ DCM_`date`_hrrtarchive.tar
+    |__ DCM_`date`_hrrtarchive.tar
+    |__ DCM_`date`_hrrtarchive.tar
+|__ year_2
+    |__ DCM_`date`_hrrtarchive.tar
+    |__ DCM_`date`_hrrtarchive.tar
+    |__ DCM_`date`_hrrtarchive.tar
+```
   
   
 #### The `logs` directory
@@ -252,10 +272,28 @@ In the front end of LORIS, you can see the DICOM studies using the
 
 Note: the `SessionID` field of the `tarchive` table is populated once at least  
   one MINC file derived from that DICOM study got inserted in the tables 
-  described in 3.2.3.
+  described in 3.2.1.3.
+  
 
+#### 3.2.1.2 HRRT archive tables
 
-#### 3.2.1.2 Files tables
+The first step to insert a new HRRT session into the database is the 
+  insertion of the HRRT PET study. In the database, all information related to a
+  HRRT PET study is being organized into two different tables:
+ 
+ * the `hrrt_archive` table stores information about the whole HRRT session,
+     including patient, center name and study information, as well as the location 
+     of the archived HRRT dataset. Each row correspond to a specific HRRT 
+     session.
+ * the `hrrt_archive_files` table stores information about each ECAT7 file found in 
+     the HRRT session. Each row correspond to one ECAT7 file and is linked 
+     to the `hrrt_archive` table via the `HrrtArchiveID` foreign key.
+
+Note: the `SessionID` field of the `hrrt_archive` table is populated once at least  
+  one MINC file derived from that HRRT study got inserted in the tables 
+  described in 3.2.1.3.
+
+#### 3.2.1.3 Files tables
 
 The second step to insert a new imaging session into the database is the 
   conversion of the DICOM study into the MINC files that will be inserted based 

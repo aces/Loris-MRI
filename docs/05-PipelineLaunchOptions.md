@@ -1,6 +1,6 @@
 # 5.0 - Pipeline Launch options
 
-## 5.1 - Pipeline Launch Options for DICOM datasets
+## 5.1 - Pipeline Launch Options for DICOM and HRRT datasets
 
 Scans upload into LORIS and insertion pipeline's triggering can be done in a few 
 ways depending on each project's needs. The best choice will depend on the study 
