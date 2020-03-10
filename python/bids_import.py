@@ -13,7 +13,7 @@ from lib.bidsreader import BidsReader
 from lib.session    import Session
 from lib.eeg        import Eeg
 from lib.mri        import Mri
-
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -147,8 +147,9 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
     db.connect()
 
     # grep config settings from the Config module
-    default_bids_vl = db.get_config('default_bids_vl')
-    data_dir        = db.get_config('dataDirBasepath')
+    config_obj      = Config(db, verbose)
+    default_bids_vl = config_obj.get_config('default_bids_vl')
+    data_dir        = config_obj.get_config('dataDirBasepath')
 
     # making sure that there is a final / in data_dir
     data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"

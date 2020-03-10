@@ -8,6 +8,7 @@ import getopt
 import lib.exitcode
 from lib.database      import Database
 from lib.physiological import Physiological
+from lib.database_lib.config import Config
 
 
 __license__ = "GPLv3"
@@ -150,7 +151,8 @@ def make_chunks(physiological_file_id, config_file, verbose):
     db.connect()
 
     # grep config settings from the Config module
-    data_dir = db.get_config('dataDirBasepath')
+    config_obj = Config(db, verbose)
+    data_dir   = config_obj.get_config('dataDirBasepath')
 
     # making sure that there is a final / in data_dir
     data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"

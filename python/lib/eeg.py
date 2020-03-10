@@ -29,14 +29,16 @@ class Eeg:
         from lib.bidsreader import BidsReader
         from lib.eeg        import Eeg
         from lib.database   import Database
+        from lib.database_lib.config import Config
 
         # database connection
         db = Database(config_file.mysql, verbose)
         db.connect()
 
         # grep config settings from the Config module
-        default_bids_vl = db.get_config('default_bids_vl')
-        data_dir        = db.get_config('dataDirBasepath')
+        config_obj      = Config(db, verbose)
+        default_bids_vl = config_obj.get_config('default_bids_vl')
+        data_dir        = config_obj.get_config('dataDirBasepath')
 
         # load the BIDS directory
         bids_reader = BidsReader(bids_dir)
