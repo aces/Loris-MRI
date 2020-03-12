@@ -117,7 +117,6 @@ my @script_list = (
     'uploadNeuroDB/imaging_upload_file_cronjob.pl',
     'uploadNeuroDB/mass_nii.pl',
     'uploadNeuroDB/mass_pic.pl',
-    'uploadNeuroDB/minc_deletion.pl',
     'uploadNeuroDB/minc_insertion.pl',
     'uploadNeuroDB/register_processed_data.pl',
     'uploadNeuroDB/tarchiveLoader.pl',
