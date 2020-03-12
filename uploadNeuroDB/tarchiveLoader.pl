@@ -36,10 +36,6 @@ Available options are:
                            for the possibility that the tarchive was moved to
                            a different directory
 
--newScanner              : By default a new scanner will be registered if the
-                           data you upload requires it. You can risk turning
-                           it off
-
 -keeptmp                 : Keep temporary directory. Make sense if have
                            infinite space on your server
 
@@ -60,7 +56,7 @@ Available options are:
 This script interacts with the LORIS database system. It will fetch or modify
 contents of the following tables:
 C<session>, C<parameter_file>, C<parameter_type>, C<parameter_type_category>,
-C<files>, C<mri_staging>, C<notification_spool>
+C<files>, C<mri_staging>, C<notification_spool>, C<mri_scanner>
 
 
 
@@ -126,8 +122,6 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                #set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
-my $NewScanner  = 1;           # This should be the default unless you are a 
-                               #control freak
 my $xlog        = 0;           # default should be 0
 my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
                                # or to glob them (like '%Loc')
@@ -155,10 +149,6 @@ my @opt_table = (
                   "Loosen the validity check of the tarchive allowing for ".
                   "the possibility that the tarchive was moved to a different".
                   " directory."
-                 ],
-                 ["-newScanner", "boolean", 1, \$NewScanner, "By default a".
-                   " new scanner will be registered if the data you upload".
-                   " requires it. You can risk turning it off."
                  ],
                  ["Fancy options","section"],
 # fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temporay directory. Make
@@ -413,7 +403,7 @@ my ($center_name, $centerID) =
 ######### Determine the ScannerID ##############################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-        \%tarchiveInfo, 0, $centerID, $NewScanner, $upload_id
+        \%tarchiveInfo, 0, $centerID, $upload_id
 );
 
 ################################################################

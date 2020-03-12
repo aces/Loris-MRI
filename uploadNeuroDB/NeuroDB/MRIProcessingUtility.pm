@@ -23,10 +23,7 @@ utilities
 
   my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-  my $scannerID     = $utility->determineScannerID(
-                        \%tarchiveInfo, 0,
-                        $centerID,      $NewScanner
-                      );
+  my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID);
 
   my $subjectIDsref = $utility->determineSubjectID(
                         $scannerID,
@@ -551,7 +548,7 @@ sub determinePSC {
 
 =pod
 
-=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $NewScanner, $upload_id)
+=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $upload_id)
 
 Determines which scanner ID was used for DICOM acquisitions.
 
@@ -559,8 +556,6 @@ INPUTS:
   - $tarchiveInfo: archive information hash ref
   - $to_log      : whether this step should be logged
   - $centerID    : center ID
-  - $NewScanner  : whether a new scanner entry should be created if the scanner
-                   used is a new scanner for the study
   - $upload_id   : upload ID of the study
 
 RETURNS: scanner ID
@@ -570,7 +565,7 @@ RETURNS: scanner ID
 sub determineScannerID {
 
     my $this = shift;
-    my ($tarchiveInfo, $to_log, $centerID, $NewScanner, $upload_id) = @_;
+    my ($tarchiveInfo, $to_log, $centerID, $upload_id) = @_;
     my $message = '';
     $to_log = 1 unless defined $to_log;
     if ($to_log) {
@@ -587,7 +582,6 @@ sub determineScannerID {
             $tarchiveInfo->{'ScannerSoftwareVersion'},
             $centerID,
             $this->{dbhr},
-            $NewScanner,
             $this->{'db'}
         );
     if ($scannerID == 0) {
