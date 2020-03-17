@@ -550,7 +550,9 @@ sub determinePSC {
 
 =head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $upload_id)
 
-Determines which scanner ID was used for DICOM acquisitions.
+Determines which scanner ID was used for DICOM acquisitions. Note, if 
+a scanner ID is not already associated to the scanner information found
+in the DICOM headers, then a new scanner will automatically be created.
 
 INPUTS:
   - $tarchiveInfo: archive information hash ref
@@ -587,9 +589,7 @@ sub determineScannerID {
     if ($scannerID == 0) {
         if ($to_log) {
             $message = "\nERROR: The ScannerID for this particular scanner ".
-                          "does not exist. Enable creating new ScannerIDs in ".
-                          "your profile or this archive can not be ".
-                          "uploaded.\n\n";
+                          "does not exist and could not be created.\n\n";
             $this->writeErrorLog(
                 $message, $NeuroDB::ExitCodes::SELECT_FAILURE
             );

@@ -159,7 +159,9 @@ RETURNS: array of two elements: center name and center ID
 
 ### determineScannerID($tarchiveInfo, $to\_log, $centerID, $upload\_id)
 
-Determines which scanner ID was used for DICOM acquisitions.
+Determines which scanner ID was used for DICOM acquisitions. Note, if 
+a scanner ID is not already associated to the scanner information found
+in the DICOM headers, then a new scanner will automatically be created.
 
 INPUTS:
   - $tarchiveInfo: archive information hash ref
