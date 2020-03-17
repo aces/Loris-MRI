@@ -105,7 +105,7 @@ encountered cases.
 For cases when a scan has triggered a protocol violation, the MINC volume can be
   **force-loaded** into LORIS by running:
 ```
-uploadNeuroDB/minc_insertion.pl -acquisition_protocol t2w -bypass_extra_file_checks -create_minc_pics -profile prod -globLocation -force  -tarchivePath /data/project/dataTransfer/library/2009/DCM_2009-09-25_project_20110214_185904581.tar -mincPath /data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.mnc
+uploadNeuroDB/minc_insertion.pl -acquisition_protocol t2w -bypass_extra_file_checks -create_minc_pics -profile prod -force  -tarchivePath /data/project/dataTransfer/library/2009/DCM_2009-09-25_project_20110214_185904581.tar -mincPath /data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.mnc
 ```
 
 Note carefully the following arguments:

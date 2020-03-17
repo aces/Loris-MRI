@@ -12,9 +12,7 @@ utilities
                           $logfile, $LogDir, $verbose
                         );
 
-    %tarchiveInfo     = $utility->createTarchiveArray(
-                          $ArchiveLocation, $globArchiveLocation
-                        );
+    %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
     my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
