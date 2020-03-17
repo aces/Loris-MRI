@@ -969,7 +969,7 @@ sub findScannerID {
     # Scanner exists
     return $resultsRef->[0]->{'ID'} if @$resultsRef;
     
-    # only register new scanners when told to do so !!!
+    # register new scanners
     my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db);
 
     return $scanner_id;
