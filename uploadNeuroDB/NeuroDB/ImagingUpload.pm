@@ -244,7 +244,7 @@ sub IsCandidateInfoValid {
         }
 
         my $command = sprintf(
-            "%s/uploadNeuroDB/tarchiveLoader.pl -globLocation -profile %s %s -uploadID %s",
+            "%s/uploadNeuroDB/tarchiveLoader.pl -profile %s %s -uploadID %s",
             quotemeta($bin_dirPath),
             $this->{'profile'},
             quotemeta($archived_file_path),
@@ -444,7 +444,7 @@ sub runTarchiveLoader {
 
 
     my $command = sprintf(
-        "%s/uploadNeuroDB/tarchiveLoader.pl -globLocation -profile %s %s -uploadID %s",
+        "%s/uploadNeuroDB/tarchiveLoader.pl -profile %s %s -uploadID %s",
         quotemeta($bin_dirPath),
         $this->{'profile'},
         quotemeta($archived_file_path),

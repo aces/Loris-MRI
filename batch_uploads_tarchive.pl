@@ -240,7 +240,7 @@ foreach my $input (@inputs)
 
     my $tarchive_path = "$tarchiveLibraryDir/$tarchive";
     my $command = sprintf(
-        "tarchiveLoader.pl -globLocation -profile %s -uploadID %s %s",
+        "tarchiveLoader.pl -profile %s -uploadID %s %s",
         $profile,
         quotemeta($upload_id),
         quotemeta($tarchive_path)

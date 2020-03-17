@@ -12,8 +12,6 @@ updateMRI\_Upload.pl \[options\] -profile prod -tarchivePath tarchivePath -sourc
 - **-tarchivePath tarchivePath** : (mandatory) absolute path to the DICOM archive
 - **-source\_location source\_location** : (mandatory) value to set column 
     `DecompressedLocation` for the newly created record in table `mri_upload` (see below)
-- **-globLocation** : loosen the validity check of the DICOM archive allowing for the 
-     possibility that it was moved to a different directory.
 - **-verbose** : be verbose
 
 # DESCRIPTION
@@ -43,4 +41,4 @@ License: GPLv3
 # AUTHORS
 
 Zia Mohades 2014 (zia.mohades@mcgill.ca),
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

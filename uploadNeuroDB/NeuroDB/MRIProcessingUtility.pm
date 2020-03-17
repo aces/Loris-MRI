@@ -440,14 +440,12 @@ sub determineSubjectID {
 
 =pod
 
-=head3 createTarchiveArray($tarchive, $globArchiveLocation)
+=head3 createTarchiveArray($tarchive)
 
 Creates the DICOM archive information hash ref.
 
 INPUTS:
   - $tarchive           : tarchive's path
-  - $globArchiveLocation: globArchiveLocation argument specified when running
-                           the insertion scripts
 
 RETURNS: DICOM archive information hash ref
 
@@ -457,11 +455,8 @@ sub createTarchiveArray {
 
     my $this = shift;
     my %tarchiveInfo;
-    my ($tarchive,$globArchiveLocation) = @_;
-    my $where = "ArchiveLocation='$tarchive'";
-    if ($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
-    }
+    my ($tarchive) = @_;
+    my $where = "ArchiveLocation LIKE '%" . quotemeta(basename($tarchive)) . "%'";
     my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
                 " DateAcquired, DicomArchiveID, PatientSex,".
                 " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".

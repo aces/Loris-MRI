@@ -16,10 +16,6 @@ Available options are:
 \-reckless    : upload data to the database even if the study protocol
                is not defined or if it is violated
 
-\-globLocation: loosen the validity check of the tarchive allowing for
-               the possibility that the tarchive was moved to a
-               different directory
-
 \-verbose     : boolean, if set, run the script in verbose mode
 
 # DESCRIPTION

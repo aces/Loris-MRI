@@ -329,7 +329,7 @@ if ($dbase) {
 # call the updateMRI_upload script###
 if ($mri_upload_update) {
     my $script =  "updateMRI_Upload.pl"
-                 . " -profile $profile -globLocation -tarchivePath $finalTarget"
+                 . " -profile $profile -tarchivePath $finalTarget"
                  . " -sourceLocation $dcm_source";
     my $output = system($script);
     if ($output!=0)  {
