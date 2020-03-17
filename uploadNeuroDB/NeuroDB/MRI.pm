@@ -935,7 +935,7 @@ sub mapDicomParameters {
 }
 =pod
 
-=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new, $db)
+=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
 
 Finds the scanner ID for the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
@@ -949,7 +949,6 @@ INPUTS:
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
-  - $register_new   : if set, will call the function C<&registerScanner>
   - $db             : database object
 
 RETURNS: (int) scanner ID
@@ -957,7 +956,7 @@ RETURNS: (int) scanner ID
 =cut
 
 sub findScannerID {
-    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register_new, $db) = @_;
+    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db) = @_;
 
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( {
@@ -969,11 +968,8 @@ sub findScannerID {
     
     # Scanner exists
     return $resultsRef->[0]->{'ID'} if @$resultsRef;
-
-    # Scanner does not exist and we don't want to register a new one: ID defaults to 0
-    return 0 if !$register_new;
     
-    # only register new scanners when told to do so !!!
+    # register new scanners
     my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db);
 
     return $scanner_id;

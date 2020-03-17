@@ -29,8 +29,6 @@ Available options are:
                for the possibility that the tarchive was moved
                to a different directory
 
--newScanner  : if set [default], new scanner will be registered
-
 -xlog        : opens an xterm with a tail on the current log file
 
 -verbose     : if set, be verbose
@@ -119,8 +117,6 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
-my $NewScanner  = 1;           # This should be the default unless you are a 
-                               # control freak
 my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
 my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
@@ -164,10 +160,6 @@ my @opt_table = (
                   "Loosen the validity check of the tarchive allowing for the". 
                   " possibility that the tarchive was moved to a different". 
                   " directory."],
-
-                 ["-newScanner", "boolean", 1, \$NewScanner,
-                  "By default a new scanner will be registered if the data".
-                  " you upload requires it. You can risk turning it off."],
 
                  ["Fancy options","section"],
 
@@ -489,9 +481,7 @@ $studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date')
 
 ## Determine PSC, ScannerID and Subject IDs
 my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
-my $scannerID = $utility->determineScannerID(
-    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
-);
+my $scannerID = $utility->determineScannerID(\%studyInfo, 0, $centerID, $upload_id);
 my $subjectIDsref = $utility->determineSubjectID(
     $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
 );

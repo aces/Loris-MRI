@@ -180,7 +180,7 @@ referenced by `$file_ref`.
 
 INPUT: file hash ref
 
-### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $register\_new, $db)
+### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
 
 Finds the scanner ID for the scanner as defined by `$manufacturer`, `$model`,
 `$serialNumber`, `$softwareVersion`, using the database attached to the DBI
@@ -194,7 +194,6 @@ INPUTS:
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
   - $dbhr           : database handle reference
-  - $register\_new   : if set, will call the function `&registerScanner`
   - $db             : database object
 
 RETURNS: (int) scanner ID

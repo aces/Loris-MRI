@@ -18,10 +18,7 @@ utilities
 
     my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-    my $scannerID     = $utility->determineScannerID(
-                          \%tarchiveInfo, 0,
-                          $centerID,      $NewScanner
-                        );
+    my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID);
 
     my $subjectIDsref = $utility->determineSubjectID(
                           $scannerID,
@@ -160,16 +157,16 @@ INPUTS:
 
 RETURNS: array of two elements: center name and center ID
 
-### determineScannerID($tarchiveInfo, $to\_log, $centerID, $NewScanner, $upload\_id)
+### determineScannerID($tarchiveInfo, $to\_log, $centerID, $upload\_id)
 
-Determines which scanner ID was used for DICOM acquisitions.
+Determines which scanner ID was used for DICOM acquisitions. Note, if 
+a scanner ID is not already associated to the scanner information found
+in the DICOM headers, then a new scanner will automatically be created.
 
 INPUTS:
   - $tarchiveInfo: archive information hash ref
   - $to\_log      : whether this step should be logged
   - $centerID    : center ID
-  - $NewScanner  : whether a new scanner entry should be created if the scanner
-                   used is a new scanner for the study
   - $upload\_id   : upload ID of the study
 
 RETURNS: scanner ID
