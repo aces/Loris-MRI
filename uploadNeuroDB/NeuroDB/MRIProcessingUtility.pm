@@ -454,7 +454,8 @@ sub createTarchiveArray {
     my $this = shift;
     my %tarchiveInfo;
     my ($tarchive) = @_;
-    my $where = "ArchiveLocation LIKE '%" . quotemeta(basename($tarchive)) . "%'";
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
+    my $where = "CONCAT('/', ArchiveLocation) LIKE ? ";
     my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
                 " DateAcquired, DicomArchiveID, PatientSex,".
                 " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
@@ -464,7 +465,7 @@ sub createTarchiveArray {
         print $query . "\n";
     }
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+    $sth->execute("%/" . quotemeta(basename($tarchive)));
 
     if ($sth->rows > 0) {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();

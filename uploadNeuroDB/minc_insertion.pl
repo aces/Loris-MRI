@@ -340,15 +340,15 @@ QUERY
     $ArchiveLocation = $tarchive;
     $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
 
-    my $where = "WHERE ArchiveLocation LIKE '%/" . quotemeta(basename($tarchive)) . "' "
-                 . "OR ArchiveLocation = '" . quotemeta(basename($tarchive)) . "'";
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = "SELECT IsTarchiveValidated, UploadID, SourceLocation "
                 . "FROM mri_upload "
-                . "JOIN tarchive USING (TarchiveID) $where ";
+                . "JOIN tarchive USING (TarchiveID) "
+                . "WHERE CONCAT('/', ArchiveLocation) LIKE ? ";
     my $sth   = $dbh->prepare($query);
     print $query . "\n" if $debug;
 
-    $sth->execute();
+    $sth->execute('%/' . quotemeta(basename($tarchive)));
     my $errorMessage;
     if ($sth->rows == 0) {
         $errorMessage = "No mri_upload with the same archive location basename as '$tarchive'\n";

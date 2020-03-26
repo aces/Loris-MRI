@@ -118,15 +118,16 @@ sub getByTarchiveLocation {
         }
     }
 
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = sprintf(
-        "SELECT %s FROM tarchive WHERE ArchiveLocation LIKE ? ",
+        "SELECT %s FROM tarchive WHERE CONCAT('/', ArchiveLocation) LIKE ? ",
         join(',', (@$fieldsRef ? @$fieldsRef : @TARCHIVE_FIELDS)),
     );
 
     try {
         return $self->db->pselect(
             $query,
-            '%' . basename($tarchiveLocation) . '%'
+            ('%/' . quotemeta(basename($tarchiveLocation)))
         );
     } catch(NeuroDB::DatabaseException $e) {
         NeuroDB::objectBroker::ObjectBrokerException->throw(

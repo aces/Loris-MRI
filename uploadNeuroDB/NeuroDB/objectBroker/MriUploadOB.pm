@@ -113,15 +113,16 @@ sub getWithTarchive {
 
     my $select = $isCount ? 'COUNT(*)' : join(',', @MRI_UPLOAD_FIELDS);
 
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = "SELECT $select "
         .       "FROM mri_upload "
         .       "JOIN tarchive USING(TarchiveID) "
-        .       "WHERE ArchiveLocation LIKE ? ";
+        .       "WHERE CONCAT('/', ArchiveLocation) LIKE ? ";
 
     try {
         return $self->db->pselect(
             $query,
-            '%' . basename($tarchiveLocation) . '%'
+            ('%/' . quotemeta(basename($tarchiveLocation)))
         );
     } catch(NeuroDB::DatabaseException $e) {
         NeuroDB::objectBroker::ObjectBrokerException->throw(
