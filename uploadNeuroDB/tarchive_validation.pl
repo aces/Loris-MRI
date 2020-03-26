@@ -20,10 +20,6 @@ Available options are:
 -reckless    : upload data to the database even if the study protocol
                is not defined or if it is violated
 
--globLocation: loosen the validity check of the tarchive allowing for
-               the possibility that the tarchive was moved to a
-               different directory
-
 -verbose     : boolean, if set, run the script in verbose mode
 
 =head1 DESCRIPTION
@@ -108,8 +104,6 @@ my $profile     = undef;       # this should never be set unless you are in a
 my $upload_id;                 # uploadID associated with the tarchive to validate
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
-my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
-                               # or to glob them (like '%Loc')
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($sex, $tarchive,%tarchiveInfo);
 my $User             = getpwuid($>);
@@ -123,10 +117,6 @@ my @opt_table = (
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not".
                   " defined or violated."],
-                 ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                  "Loosen the validity check of the tarchive allowing for".
-                  " the possibility that the tarchive was moved to a". 
-                  " different directory."],
 
                  ["Fancy options","section"],
 
@@ -265,10 +255,7 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 $tarchiveLibraryDir    =~ s/\/$//g;
 my $ArchiveLocation    = $tarchive;
 $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
-%tarchiveInfo = $utility->createTarchiveArray(
-                    $ArchiveLocation,
-                    $globArchiveLocation
-                );
+%tarchiveInfo = $utility->createTarchiveArray($ArchiveLocation);
 
 ################################################################
 #### Verify the archive using the checksum from database #######

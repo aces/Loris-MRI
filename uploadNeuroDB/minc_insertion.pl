@@ -25,10 +25,6 @@ Available options are:
 
 -tarchivePath: the absolute path to the tarchive file
 
--globLocation: loosens the validity check of the tarchive allowing
-               for the possibility that the tarchive was moved
-               to a different directory
-
 -xlog        : opens an xterm with a tail on the current log file
 
 -verbose     : if set, be verbose
@@ -123,8 +119,7 @@ my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses 
 my $acquisitionProtocolID;     # acquisition Protocol id
 my $extra_validation_status;   # Initialise the extra validation status
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
-my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
-                               # or to glob them (like '%Loc')
+
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%studyInfo,$minc);
 my $User = getpwuid($>);
@@ -155,11 +150,6 @@ my @opt_table = (
 
                  ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
                   " to tarchive-file"],
-
-                 ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                  "Loosen the validity check of the tarchive allowing for the". 
-                  " possibility that the tarchive was moved to a different". 
-                  " directory."],
 
                  ["Fancy options","section"],
 
@@ -342,9 +332,7 @@ QUERY
     $ArchiveLocation = $array[1];
 
     # create the studyInfo object
-    %studyInfo = $utility->createTarchiveArray(
-        $ArchiveLocation, $globArchiveLocation
-    );
+    %studyInfo = $utility->createTarchiveArray($ArchiveLocation);
 
 } elsif ($tarchive) {
     # if only the tarchive path is given as an argument, find the associated UploadID
@@ -352,23 +340,18 @@ QUERY
     $ArchiveLocation = $tarchive;
     $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
 
-    my $where = "WHERE ArchiveLocation='$tarchive'";
-    if ($globArchiveLocation) {
-        $where = "WHERE ArchiveLocation LIKE '%/" . quotemeta(basename($tarchive)) . "' "
-                 . "OR ArchiveLocation = '" . quotemeta(basename($tarchive)) . "'";
-    }
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = "SELECT IsTarchiveValidated, UploadID, SourceLocation "
                 . "FROM mri_upload "
-                . "JOIN tarchive USING (TarchiveID) $where ";
+                . "JOIN tarchive USING (TarchiveID) "
+                . "WHERE CONCAT('/', ArchiveLocation) LIKE ? ";
     my $sth   = $dbh->prepare($query);
     print $query . "\n" if $debug;
 
-    $sth->execute();
+    $sth->execute('%/' . quotemeta(basename($tarchive)));
     my $errorMessage;
     if ($sth->rows == 0) {
-        $errorMessage = $globArchiveLocation
-            ? "No mri_upload with the same archive location basename as '$tarchive'\n"
-            : "No mri_upload with archive location '$tarchive'\n";
+        $errorMessage = "No mri_upload with the same archive location basename as '$tarchive'\n";
         $utility->writeErrorLog(
             $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
         );
@@ -390,9 +373,7 @@ QUERY
     }
 
     # load the DICOM archive information from the tarchive table in studyInfo object
-    %studyInfo = $utility->createTarchiveArray(
-        $ArchiveLocation, $globArchiveLocation
-    );
+    %studyInfo = $utility->createTarchiveArray($ArchiveLocation);
 }
 
 if ((!defined $is_valid || $is_valid == 0) && !$force) {

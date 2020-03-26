@@ -32,10 +32,6 @@ Available options are:
 -reckless                : Upload data to database even if study protocol is
                            not defined or violated
 
--globLocation            : Loosen the validity check of the tarchive allowing
-                           for the possibility that the tarchive was moved to
-                           a different directory
-
 -keeptmp                 : Keep temporary directory. Make sense if have
                            infinite space on your server
 
@@ -123,8 +119,6 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
 my $xlog        = 0;           # default should be 0
-my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
-                               # or to glob them (like '%Loc')
 my $valid_study = 0;
 my $newTarchiveLocation = undef;
 my $seriesuid   = undef;       # if you want to insert a specific SeriesUID
@@ -144,11 +138,6 @@ my @opt_table = (
                  ["Advanced options","section"],
                  ["-reckless", "boolean", 1, \$reckless,"Upload data to ".
                   "database even if study protocol is not defined or violated."
-                 ],
-                 ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                  "Loosen the validity check of the tarchive allowing for ".
-                  "the possibility that the tarchive was moved to a different".
-                  " directory."
                  ],
                  ["Fancy options","section"],
 # fixme		 ["-keeptmp", "boolean", 1, \$keep, "Keep temporay directory. Make
@@ -352,10 +341,7 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 ################################################################
 my $ArchiveLocation    = $tarchive;
 $ArchiveLocation       =~ s/$tarchivePath\/?//g;
-my %tarchiveInfo = $utility->createTarchiveArray(
-                       $ArchiveLocation,
-                       $globArchiveLocation
-                   );
+my %tarchiveInfo = $utility->createTarchiveArray($ArchiveLocation);
 
 ################################################################
 ################## Call the validation script ##################
@@ -366,7 +352,6 @@ my $script = sprintf(
     quotemeta($profile),
     quotemeta($upload_id)
 );
-$script .= " -globLocation " if ($globArchiveLocation);
 $script .= " -verbose " if ($verbose);
 
 ################################################################
@@ -499,7 +484,6 @@ foreach my $minc (@minc_files) {
         quotemeta($upload_id)
     );
     $script .= " -force"                    if $force;
-    $script .= " -globLocation"             if $globArchiveLocation;
     $script .= " -verbose"                  if $verbose;
     $script .= " -bypass_extra_file_checks" if $bypass_extra_file_checks;
     if ($acquisitionProtocol) {

@@ -21,10 +21,6 @@ Available options are:
 
 \-tarchivePath: the absolute path to the tarchive file
 
-\-globLocation: loosens the validity check of the tarchive allowing
-               for the possibility that the tarchive was moved
-               to a different directory
-
 \-xlog        : opens an xterm with a tail on the current log file
 
 \-verbose     : if set, be verbose

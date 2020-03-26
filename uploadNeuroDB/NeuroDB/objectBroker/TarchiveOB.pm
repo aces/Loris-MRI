@@ -40,7 +40,7 @@ NeuroDB::objectBroker::TarchiveOB -- An object broker for C<tarchive> records
   my $tarchivesRef;
   try {
       $tarchivesRef = $tarchiveOB->getByTarchiveLocation(
-          [ 'TarchiveID' ], '/tmp/my_tarchive.tar.gz', 1
+          [ 'TarchiveID' ], '/tmp/my_tarchive.tar.gz'
       );
   } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
       die sprintf(
@@ -89,7 +89,7 @@ has 'db' => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 
 =pod
 
-=head3 getByTarchiveLocation($fieldsRef, $tarchiveLocation, $baseNameMatch)
+=head3 getByTarchiveLocation($fieldsRef, $tarchiveLocation)
 
 Fetches the records from the C<tarchive> table that have a specific archive location.
 
@@ -98,8 +98,6 @@ INPUTS:
       Each element of this array must exist in C<@TARCHIVE_FIELDS> or an exception
       will be thrown.
     - path of the archive used during the search.
-    - boolean indicating if an exact match is sought (false) or if only basenames
-      should be used when comparing two archive locations (true).
 
 RETURN: a reference to an array of hash references. Every hash contains the values for a given 
         row returned by the function call: the key/value pairs contain the name of a column 
@@ -110,7 +108,7 @@ RETURN: a reference to an array of hash references. Every hash contains the valu
 =cut
 
 sub getByTarchiveLocation {
-    my($self, $fieldsRef, $tarchiveLocation, $baseNameMatch) = @_;
+    my($self, $fieldsRef, $tarchiveLocation) = @_;
 
     foreach my $f (@$fieldsRef) {
         if(!grep($f eq $_, @TARCHIVE_FIELDS)) {
@@ -120,16 +118,16 @@ sub getByTarchiveLocation {
         }
     }
 
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = sprintf(
-        "SELECT %s FROM tarchive WHERE ArchiveLocation %s",
+        "SELECT %s FROM tarchive WHERE CONCAT('/', ArchiveLocation) LIKE ? ",
         join(',', (@$fieldsRef ? @$fieldsRef : @TARCHIVE_FIELDS)),
-        $baseNameMatch ? 'LIKE ?' : '=?'
     );
 
     try {
         return $self->db->pselect(
             $query,
-            $baseNameMatch ? ('%' . basename($tarchiveLocation) . '%') : $tarchiveLocation
+            ('%/' . quotemeta(basename($tarchiveLocation)))
         );
     } catch(NeuroDB::DatabaseException $e) {
         NeuroDB::objectBroker::ObjectBrokerException->throw(

@@ -25,10 +25,6 @@ Available options are:
 \-reckless                : Upload data to database even if study protocol is
                            not defined or violated
 
-\-globLocation            : Loosen the validity check of the tarchive allowing
-                           for the possibility that the tarchive was moved to
-                           a different directory
-
 \-keeptmp                 : Keep temporary directory. Make sense if have
                            infinite space on your server
 

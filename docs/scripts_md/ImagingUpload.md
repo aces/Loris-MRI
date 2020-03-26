@@ -8,6 +8,7 @@ NeuroDB::ImagingUpload -- Provides an interface to the uploaded imaging file
 
     my $imaging_upload = &NeuroDB::ImagingUpload->new(
                            \$dbh,
+                           \$db,
                            $TmpDir_decompressed_folder,
                            $upload_id,
                            $patient_name,
@@ -33,7 +34,7 @@ and updates of the `mri_upload` table according to the upload status.
 
 ## Methods
 
-### new($dbhr, $uploaded\_temp\_folder, $upload\_id, ...) >> (constructor)
+### new($dbhr, $db, $uploaded\_temp\_folder, $upload\_id, ...) >> (constructor)
 
 Creates a new instance of this class. This constructor needs the location of
 the uploaded file. Once the uploaded file has been validated, it will be
@@ -41,6 +42,7 @@ moved to a final destination directory.
 
 INPUTS:
   - $dbhr                : database handler
+  - $db                  : MOOSE database handle
   - $uploaded\_temp\_folder: temporary directory of the upload
   - $upload\_id           : `uploadID` from the `mri_upload` table
   - $pname               : patient name
@@ -147,4 +149,4 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

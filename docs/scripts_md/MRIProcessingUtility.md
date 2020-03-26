@@ -12,9 +12,7 @@ utilities
                           $logfile, $LogDir, $verbose
                         );
 
-    %tarchiveInfo     = $utility->createTarchiveArray(
-                          $ArchiveLocation, $globArchiveLocation
-                        );
+    %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
     my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
@@ -135,14 +133,12 @@ INPUTS:
 RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label 
 and `CandMismatchError` information
 
-### createTarchiveArray($tarchive, $globArchiveLocation)
+### createTarchiveArray($tarchive)
 
 Creates the DICOM archive information hash ref.
 
 INPUTS:
   - $tarchive           : tarchive's path
-  - $globArchiveLocation: globArchiveLocation argument specified when running
-                           the insertion scripts
 
 RETURNS: DICOM archive information hash ref
 

@@ -17,9 +17,7 @@ utilities
                         $logfile, $LogDir, $verbose
                       );
 
-  %tarchiveInfo     = $utility->createTarchiveArray(
-                        $ArchiveLocation, $globArchiveLocation
-                      );
+  %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
   my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
@@ -440,14 +438,12 @@ sub determineSubjectID {
 
 =pod
 
-=head3 createTarchiveArray($tarchive, $globArchiveLocation)
+=head3 createTarchiveArray($tarchive)
 
 Creates the DICOM archive information hash ref.
 
 INPUTS:
   - $tarchive           : tarchive's path
-  - $globArchiveLocation: globArchiveLocation argument specified when running
-                           the insertion scripts
 
 RETURNS: DICOM archive information hash ref
 
@@ -457,11 +453,9 @@ sub createTarchiveArray {
 
     my $this = shift;
     my %tarchiveInfo;
-    my ($tarchive,$globArchiveLocation) = @_;
-    my $where = "ArchiveLocation='$tarchive'";
-    if ($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
-    }
+    my ($tarchive) = @_;
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
+    my $where = "CONCAT('/', ArchiveLocation) LIKE ? ";
     my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
                 " DateAcquired, DicomArchiveID, PatientSex,".
                 " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
@@ -471,7 +465,7 @@ sub createTarchiveArray {
         print $query . "\n";
     }
     my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+    $sth->execute("%/" . quotemeta(basename($tarchive)));
 
     if ($sth->rows > 0) {
         my $tarchiveInfoRef = $sth->fetchrow_hashref();
