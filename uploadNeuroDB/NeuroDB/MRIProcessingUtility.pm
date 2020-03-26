@@ -65,6 +65,7 @@ use NeuroDB::DatabaseException;
 
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
+use NeuroDB::objectBroker::TarchiveOB;
 
 use Path::Class;
 use Scalar::Util qw(blessed);
@@ -440,37 +441,28 @@ sub determineSubjectID {
 
 =head3 createTarchiveArray($tarchive)
 
-Creates the DICOM archive information hash ref.
+Creates the DICOM archive information hash ref for the tarchive that has the same
+basename as the file path passed as argument.
 
 INPUTS:
-  - $tarchive           : tarchive's path
+  - $tarchive           : tarchive's path (absolute or relative).
 
-RETURNS: DICOM archive information hash ref
+RETURNS: DICOM archive information hash ref if exactly one archive was found. Exits
+         when either no match or multiple matches are found.
 
 =cut
 
 sub createTarchiveArray {
 
     my $this = shift;
-    my %tarchiveInfo;
     my ($tarchive) = @_;
-    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
-    my $where = "CONCAT('/', ArchiveLocation) LIKE ? ";
-    my $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,".
-                " DateAcquired, DicomArchiveID, PatientSex,".
-                " ScannerManufacturer, ScannerModel, ScannerSerialNumber,".
-                " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,".
-                " SourceLocation, ArchiveLocation FROM tarchive WHERE $where";
-    if ($this->{debug}) {
-        print $query . "\n";
-    }
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute("%/" . quotemeta(basename($tarchive)));
 
-    if ($sth->rows > 0) {
-        my $tarchiveInfoRef = $sth->fetchrow_hashref();
-        %tarchiveInfo = %$tarchiveInfoRef;
-    } else {
+    my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $this->{'db'});
+    my $tarchiveInfoRef = $tarchiveOB->getByTarchiveLocation(
+        \@NeuroBD::objectBroker::TarchiveOB::TARCHIVE_FIELDS, $tarchive
+    );
+
+    if (!@$tarchiveInfoRef) {
         my $message = "\nERROR: Only archived data can be uploaded.".
                       "This seems not to be a valid archive for this study!".
                       "\n\n";
@@ -479,9 +471,19 @@ sub createTarchiveArray {
         # in the notification_spool
         $this->spool($message, 'Y', undef, $notify_notsummary);
         exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+    } elsif (@$tarchiveInfoRef > 1) {
+        my $message = "\nERROR: Found multiple archives with the same basename ".
+                      " as $tarchive when only one match was expected!".
+                      "\n\n";
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+        # Since multiple tarchives were found we cannot determine the upload ID
+        # Set it to  undef for this notification
+        $this->spool($message, 'Y', undef, $notify_notsummary);
+        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
 
-    return %tarchiveInfo;
+    # Only one archive matches: return it as a hash
+    return %{ $tarchiveInfoRef->[0] };
 }
 
 
