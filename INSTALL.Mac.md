@@ -96,6 +96,26 @@ pip install nilearn
 brew install md5sha1sum
 ```
 
+## Install GNU `grep`
+ 
+One of the command run in the insertion pipeline uses a functionality of `grep` that
+can only be found in the GNU version of `grep` for Mac. The default installed version
+of `grep` in a Mac install does not include the possibility to search based on a 
+perl regular expression (option `-P`).
+```
+brew install grep
+```
+
+And add the following to the .bash_profile of the user that will be running the 
+pipeline so that the Linux `grep` is used when running the pipeline instead of 
+the Mac `grep`.
+
+```
+# Add path to linux grep instead of the Mac grep as the Mac one does 
+# not have all the functionatities needed by the LORIS imaging pipeline
+PATH="/usr/local/opt/grep/libexec/gnubin:$PATH"
+```
+
 ## Run install script for Mac: imaging_install_MacOSX.sh 
 
 ```
