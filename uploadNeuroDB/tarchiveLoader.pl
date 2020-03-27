@@ -591,7 +591,7 @@ if ($valid_study) {
     #### link the tarchive and mri_upload table  with session ##
     ############################################################
     my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
-        $subjectIDsref, $tarchiveInfo{'DateAcquired'}, \$dbh, $db
+        $subjectIDsref, $tarchiveInfo{'DateAcquired'}, $dbh, $db
     );
 
     # Session cannot be retrieved from the DB and, if createVisitLabel is set to
