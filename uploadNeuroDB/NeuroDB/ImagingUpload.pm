@@ -189,7 +189,7 @@ sub IsCandidateInfoValid {
     ####Get a list of files from the folder#####################
     #############Loop through the files#########################
     ############################################################
-    my $cmd = "find -path " . quotemeta($this->{'uploaded_temp_folder'}) . " -name '__MACOSX' -delete ";
+    my $cmd = "find " . quotemeta($this->{'uploaded_temp_folder'}) . " -name '__MACOSX' -delete ";
     print "\n $cmd \n";
     system($cmd);
 

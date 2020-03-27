@@ -199,12 +199,10 @@ $hostname = inet_ntoa($hostname);
 my $system          = `uname`;
 
 
-# Remove all files starting with . in the dcm_source directory
-my $cmd = "cd " . $dcm_source . "; find -type f -name '.*' | xargs rm -f";
-system($cmd);
-# Remove __MACOSX directory
-my $cmd = "cd " . $dcm_source . "; find -name '__MACOSX' | xargs rm -rf";
-system($cmd);
+# Remove all files starting with . and __MACOSX in the dcm_source directory
+my @args = ($dcm_source);
+push(@args, qw/-type -f -name __MACOSX -delete -o -name .* -delete/);
+system('find', @args);
 
 # create new summary object
 my $summary = DICOM::DCMSUM->new($dcm_source,$targetlocation);
