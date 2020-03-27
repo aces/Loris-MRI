@@ -147,7 +147,7 @@ sub getSessionInformation {
            . "WHERE CandID=? "
            . "AND LOWER(Visit_label)=LOWER(?) "
            . "AND Active='Y'";
-    $sth = $dbh->prepare($query);
+    $sth = $$dbh->prepare($query);
     $sth->execute($subjectIDref->{'CandID'}, $subjectIDref->{'visitLabel'});
 
     ##### if it finds an existing session it does this:
