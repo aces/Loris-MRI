@@ -88,8 +88,9 @@ use NeuroDB::DatabaseException;
 
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
+use NeuroDB::objectBroker::MriUploadOB;
 
-
+use constant GET_COLUMNS => 0;
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
     =~ /: (\d+)\.(\d+)/;
@@ -335,29 +336,18 @@ QUERY
     %studyInfo = $utility->createTarchiveArray($ArchiveLocation);
 
 } elsif ($tarchive) {
-    # if only the tarchive path is given as an argument, find the associated UploadID
-    # and check if IsTarchiveValidated is set to 1.
-    $ArchiveLocation = $tarchive;
-    $ArchiveLocation    =~ s/$tarchiveLibraryDir\/?//g;
+    my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
+    my $mriUploadsRef = $mriUploadOB->getWithTarchive(GET_COLUMNS, $tarchive);
 
-    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
-    my $query = "SELECT IsTarchiveValidated, UploadID, SourceLocation "
-                . "FROM mri_upload "
-                . "JOIN tarchive USING (TarchiveID) "
-                . "WHERE CONCAT('/', ArchiveLocation) LIKE ? ";
-    my $sth   = $dbh->prepare($query);
-    print $query . "\n" if $debug;
-
-    $sth->execute('%/' . quotemeta(basename($tarchive)));
     my $errorMessage;
-    if ($sth->rows == 0) {
+    if (!@$mriUploadsRef) {
         $errorMessage = "No mri_upload with the same archive location basename as '$tarchive'\n";
         $utility->writeErrorLog(
             $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
         );
         print STDERR $errorMessage;
         exit $NeuroDB::ExitCodes::INVALID_ARG;
-    } elsif ($sth->rows > 1) {
+    } elsif (@$mriUploadsRef > 1) {
         $errorMessage = "\nERROR: found more than one UploadID associated with "
                         . "this ArchiveLocation ($tarchive). Please specify the "
                         . "UploadID to use using the -uploadID option.\n\n";
@@ -367,9 +357,9 @@ QUERY
         print STDERR $errorMessage;
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     } else {
-        my %row          = $sth->fetchrow_hashref();
-        $is_valid        = $row{isTarchiveValidated};
-        $upload_id       = $row{UploadID};
+        my %row          = %{ $mriUploadsRef->[0] };
+        $is_valid        = $row{'isTarchiveValidated'};
+        $upload_id       = $row{'UploadID'};
     }
 
     # load the DICOM archive information from the tarchive table in studyInfo object

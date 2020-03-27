@@ -71,7 +71,8 @@ use TryCatch;
 
 # These are the only fields modified when inserting a new MRI upload record
 my @MRI_UPLOAD_FIELDS = (
-    'UploadedBy' ,'UploadDate','TarchiveID','DecompressedLocation', 'UploadLocation', 'PatientName'
+    'UploadedBy' ,'UploadDate','TarchiveID','DecompressedLocation', 'UploadLocation', 'PatientName',
+    'IsTarchiveValidated', 'UploadID'
 );
 
 =pod
@@ -111,7 +112,9 @@ RETURNS: a reference to an array of array references. If C<$isCount> is true, th
 sub getWithTarchive {
     my($self, $isCount, $tarchiveLocation) = @_;
 
-    my $select = $isCount ? 'COUNT(*)' : join(',', @MRI_UPLOAD_FIELDS);
+    # We must preceed all the MRI upload fields with the table name they are issued from
+    # to avoid clashes with fields in table tarchive when building the SQL statement later on  
+    my $select = $isCount ? 'COUNT(*)' : join(',', (map { "mri_upload.$_" } @MRI_UPLOAD_FIELDS));
 
     # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = "SELECT $select "

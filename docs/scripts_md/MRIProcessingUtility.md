@@ -135,12 +135,14 @@ and `CandMismatchError` information
 
 ### createTarchiveArray($tarchive)
 
-Creates the DICOM archive information hash ref.
+Creates the DICOM archive information hash ref for the tarchive that has the same
+basename as the file path passed as argument.
 
 INPUTS:
-  - $tarchive           : tarchive's path
+  - $tarchive           : tarchive's path (absolute or relative).
 
-RETURNS: DICOM archive information hash ref
+RETURNS: DICOM archive information hash ref if exactly one archive was found. Exits
+         when either no match or multiple matches are found.
 
 ### determinePSC($tarchiveInfo, $to\_log, $upload\_id)
 

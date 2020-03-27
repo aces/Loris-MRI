@@ -70,7 +70,11 @@ use File::Basename;
 
 use TryCatch;
 
-my @TARCHIVE_FIELDS = qw(TarchiveID ArchiveLocation);
+my @TARCHIVE_FIELDS = qw(
+    TarchiveID ArchiveLocation PatientName PatientID PatientDoB md5sumArchive
+    ScannerManufacturer ScannerModel ScannerSerialNumber ScannerSoftwareVersion
+    neurodbCenterName SourceLocation
+);
 
 =pod
 
@@ -89,39 +93,28 @@ has 'db' => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 
 =pod
 
-=head3 getByTarchiveLocation($fieldsRef, $tarchiveLocation)
+=head3 getByTarchiveLocation($tarchiveLocation)
 
 Fetches the records from the C<tarchive> table that have a specific archive location.
 
 INPUTS:
-    - reference to an array of the column names to return for each record found.
-      Each element of this array must exist in C<@TARCHIVE_FIELDS> or an exception
-      will be thrown.
     - path of the archive used during the search.
 
 RETURN: a reference to an array of hash references. Every hash contains the values for a given 
         row returned by the function call: the key/value pairs contain the name of a column 
-        (as it appears in the array referenced by C<$fieldsRef>) and the value it holds, respectively.
+        (listed in C<@TARCHIVE_FIELDS>) and the value it holds, respectively.
         As an example, suppose array C<$r> contains the result of a call to this method with 
         C<@$fieldsRef> set to C<('TarchiveID', 'SourceLocation'> one would fetch the C<TarchiveID> 
         of the 4th record returned using C<$r->[3]->{'TarchiveID'}>.
 =cut
 
 sub getByTarchiveLocation {
-    my($self, $fieldsRef, $tarchiveLocation) = @_;
-
-    foreach my $f (@$fieldsRef) {
-        if(!grep($f eq $_, @TARCHIVE_FIELDS)) {
-            NeuroDB::objectBroker::ObjectBrokerException->throw(
-                errorMessage => "Failed to retrieve tarchive record: invalid tarchive field $f"
-            );
-        }
-    }
+    my($self, $tarchiveLocation) = @_;
 
     # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = sprintf(
         "SELECT %s FROM tarchive WHERE CONCAT('/', ArchiveLocation) LIKE ? ",
-        join(',', (@$fieldsRef ? @$fieldsRef : @TARCHIVE_FIELDS)),
+        join(',', @TARCHIVE_FIELDS),
     );
 
     try {
