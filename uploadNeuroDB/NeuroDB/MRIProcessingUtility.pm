@@ -458,9 +458,7 @@ sub createTarchiveArray {
     my ($tarchive) = @_;
 
     my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $this->{'db'});
-    my $tarchiveInfoRef = $tarchiveOB->getByTarchiveLocation(
-        \@NeuroBD::objectBroker::TarchiveOB::TARCHIVE_FIELDS, $tarchive
-    );
+    my $tarchiveInfoRef = $tarchiveOB->getByTarchiveLocation($tarchive);
 
     if (!@$tarchiveInfoRef) {
         my $message = "\nERROR: Only archived data can be uploaded.".

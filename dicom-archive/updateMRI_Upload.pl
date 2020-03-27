@@ -244,7 +244,7 @@ if($resultRef->[0]->{'COUNT(*)'} > 0) {
 ################################################################
 
 my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $db);
-$resultRef = $tarchiveOB->getByTarchiveLocation(['TarchiveID'], $tarchive_path);
+$resultRef = $tarchiveOB->getByTarchiveLocation($tarchive_path);
 
 if(@$resultRef != 1) {
     die sprintf(
