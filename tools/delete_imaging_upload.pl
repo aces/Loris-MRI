@@ -4,12 +4,12 @@
 
 =head1 NAME
 
-delete_mri_upload.pl -- Delete everything that was produced (or part of what was produced) by the imaging pipeline for a given set of imaging uploads
+delete_imaging_upload.pl -- Delete everything that was produced (or part of what was produced) by the imaging pipeline for a given set of imaging uploads
                         IDs, all associated to the same C<tarchive>.
                         
 =head1 SYNOPSIS
 
-perl delete_mri_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
+perl delete_imaging_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
             [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk]
 
 Available options are:
