@@ -541,11 +541,6 @@ my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
     $db
 );
 
-# Copy the session info into the %$subjectIDsref hash array
-$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
-$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
-$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
- 
 # Session cannot be retrieved from the DB and, if createVisitLabel is set to
 # 1, creation of a new session failed
 if (!$sessionRef) {
@@ -561,6 +556,11 @@ if (!$sessionRef) {
         : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
 } 
 
+# Copy the session info into the %$subjectIDsref hash array
+$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
+ 
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
