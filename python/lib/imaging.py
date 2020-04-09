@@ -162,9 +162,10 @@ class Imaging:
         """
 
         # Gather column name & values to insert into parameter_file
+        unix_timestamp    = datetime.datetime.now().strftime("%s")
         parameter_type_id = self.get_parameter_type_id(parameter_name)
-        parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value')
-        parameter_file_values = (file_id, parameter_type_id, str(value))
+        parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value',    'InsertTime')
+        parameter_file_values = (file_id,  parameter_type_id, str(value), unix_timestamp)
         self.db.insert(
             table_name='parameter_file',
             column_names=parameter_file_fields,
