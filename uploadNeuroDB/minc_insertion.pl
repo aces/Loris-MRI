@@ -513,6 +513,16 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
         "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
         "VALUES (?, ?, ?, ?, ?)";
     my $candlogSth = $dbh->prepare($logQuery);
+
+    # Strip all trailing newlines from the error message. Reason:
+    # you cannot search for records in the LORIS MRI violations
+    # module that have a message (i.e. a rejection reason) containing
+    # a newline
+    my $originalSeparatorValue = $/;
+    $/ = '';
+    chomp $CandMismatchError;
+    $/ = $originalSeparatorValue;
+
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
         $studyInfo{'TarchiveID'},
