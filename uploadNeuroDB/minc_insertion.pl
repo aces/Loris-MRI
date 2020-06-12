@@ -474,6 +474,16 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
         "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
         "VALUES (?, ?, ?, ?, ?)";
     my $candlogSth = $dbh->prepare($logQuery);
+
+    # Strip all trailing newlines from the error message. Reason:
+    # you cannot search for records in the LORIS MRI violations
+    # module that have a message (i.e. a rejection reason) containing
+    # a newline
+    my $originalSeparatorValue = $/;
+    $/ = '';
+    chomp $CandMismatchError;
+    $/ = $originalSeparatorValue;
+
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
         $studyInfo{'TarchiveID'},
@@ -502,11 +512,6 @@ my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
     $db
 );
 
-# Copy the session info into the %$subjectIDsref hash array
-$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
-$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
-$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
- 
 # Session cannot be retrieved from the DB and, if createVisitLabel is set to
 # 1, creation of a new session failed
 if (!$sessionRef) {
@@ -522,6 +527,11 @@ if (!$sessionRef) {
         : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
 } 
 
+# Copy the session info into the %$subjectIDsref hash array
+$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
+ 
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################

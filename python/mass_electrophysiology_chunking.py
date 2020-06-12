@@ -160,7 +160,7 @@ def make_chunks(physiological_file_id, config_file, verbose):
 
     # create the chunked dataset
     if physiological.grep_file_path_from_file_id(physiological_file_id):
-        print('Chunking physiological file ID ' + physiological_file_id)
+        print('Chunking physiological file ID ' + str(physiological_file_id))
         physiological.create_chunks_for_visualization(physiological_file_id, data_dir)
 
 
