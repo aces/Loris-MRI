@@ -201,18 +201,21 @@ class BidsReader:
         cand_session_modalities_list = []
 
         for subject, visit_list in self.cand_sessions_list.items():
-            cand_session_dict = {'bids_sub_id': subject}
             if visit_list:
                 for visit in visit_list:
-                    cand_session_dict['bids_ses_id'] = visit
                     modalities = self.bids_layout.get_datatype(subject=subject, session=visit)
-                    cand_session_dict['modalities'] = modalities
+                    cand_session_modalities_list.append({
+                        'bids_sub_id': subject,
+                        'bids_ses_id': visit,
+                        'modalities' : modalities
+                    })
             else:
-                cand_session_dict['bids_ses_id'] = None
                 modalities = self.bids_layout.get_datatype(subject=subject)
-                cand_session_dict['modalities'] = modalities
-
-            cand_session_modalities_list.append(cand_session_dict)
+                cand_session_modalities_list.append({
+                    'bids_sub_id': subject,
+                    'bids_ses_id': None,
+                    'modalities' : modalities
+                })
 
         if self.verbose:
             print('\t=> Done grepping the different modalities from the BIDS layout\n')
