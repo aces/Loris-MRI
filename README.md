@@ -26,8 +26,11 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
    sudo mkdir -p /data/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
    cd /data/$projectname/bin
-   git clone -b master https://github.com/aces/Loris-MRI.git mri
    ```
+
+Get the code: Download the latest release from the 
+[releases page](https://github.com/aces/Loris-MRI/releases) 
+and extract it to `/data/$projectname/bin/mri`
 
 #### 2. Install Python 3 with `pip` and `virtualenv`
 
@@ -81,7 +84,7 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
   If the imaging install script reports errors in creating directories 
   (due to `/data/` mount permissions), review and manually execute 
   `mkdir/chmod/chown` commands starting at 
-  [imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/master/imaging_install.sh#L97)
+  [imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/main/imaging_install.sh#L97)
 
   Note: The installer will allow Apache to write to the `/data/` directories by 
   adding user `lorisadmin` to the Apache linux group.  To ensure this change takes 
