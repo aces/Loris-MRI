@@ -7,7 +7,7 @@ For best results, we recommend installing LORIS on Ubuntu or CentOS.
 This file provides guidance on how to install the imaging pipeline on your Mac computer. LORIS must already be installed.
 
 It has been tested for Mac OS X 10.13. 
-Updates and contributions welcome (also see [Contributing Guide](https://github.com/aces/Loris/blob/master/CONTRIBUTING.md)) 
+Updates and contributions welcome (also see [Contributing Guide](https://github.com/aces/Loris/blob/main/CONTRIBUTING.md)) 
 
 ## Get the code
 

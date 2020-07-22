@@ -162,7 +162,7 @@ uploaded through the Imaging Uploader GUI or not, pipeline insertion progress
 can be consulted through a live 'Log Viewer' panel.
 Some settings need to be configured properly (`php.ini` variables, 
 `MRI-Upload Directory` and `ImagingUploader Auto Launch`), and are documented in 
-the [LORIS repository: Imaging Uploader Specification](https://github.com/aces/Loris/blob/master/modules/imaging_uploader/README.md).
+the [LORIS repository: Imaging Uploader Specification](https://github.com/aces/Loris/blob/main/modules/imaging_uploader/README.md).
 
 
 2. **DICOM Archive**
@@ -175,7 +175,7 @@ Patient Name/Patient ID header values are displayed in full, or show up as
 **INVALID-HIDDEN**.
 
 More detailed specifications can be consulted in the 
-[LORIS repository: DICOM Archive Specification](https://github.com/aces/Loris/blob/master/modules/dicom_archive/README.md).
+[LORIS repository: DICOM Archive Specification](https://github.com/aces/Loris/blob/main/modules/dicom_archive/README.md).
 
 
 3. **Imaging Browser**
@@ -189,7 +189,7 @@ some files. Ensure that:
   `Images` settings are set (typically: `/data/$PROJECT/data/`). 
     
 More detailed specifications can be consulted in the 
-[LORIS repository: Imaging Browser Specification](https://github.com/aces/Loris/blob/master/modules/imaging_browser/README.md).
+[LORIS repository: Imaging Browser Specification](https://github.com/aces/Loris/blob/main/modules/imaging_browser/README.md).
 
 4. **Brainbrowser**
 
@@ -203,7 +203,7 @@ images directly from the filesystem. Ensure that:
       proper MINC toolkit path in the `<MINCToolsPath>` tagset.
       
 More detailed specifications can be consulted in the 
-[LORIS repository: Brainbrowser Specification](https://github.com/aces/Loris/blob/master/modules/brainbrowser/README.md).
+[LORIS repository: Brainbrowser Specification](https://github.com/aces/Loris/blob/main/modules/brainbrowser/README.md).
 
 
 5. **MRI Violated Scans**
@@ -217,7 +217,7 @@ Imaging Browser module. Violated scans can be viewed and the type of error
 (scan identification, protocol violation) can be reviewed from the front-end.
 
 More detailed specifications can be consulted in the 
-[LORIS repository: MRI Violated Scans Specification](https://github.com/aces/Loris/blob/master/modules/mri_violations/README.md).
+[LORIS repository: MRI Violated Scans Specification](https://github.com/aces/Loris/blob/main/modules/mri_violations/README.md).
 
 
 6. **Electrophysiology Browser**
