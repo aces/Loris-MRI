@@ -216,6 +216,20 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
 
+            elif modality == 'ieeg':
+                Ieeg(
+                    bids_reader   = bids_reader,
+                    bids_sub_id   = row['bids_sub_id'],
+                    bids_ses_id   = row['bids_ses_id'],
+                    bids_modality = modality,
+                    db            = db,
+                    verbose       = verbose,
+                    data_dir      = data_dir,
+                    default_visit_label    = default_bids_vl,
+                    loris_bids_ieeg_rel_dir = loris_bids_modality_rel_dir,
+                    loris_bids_root_dir    = loris_bids_root_dir
+                )
+
             elif modality in ['anat', 'dwi', 'fmap', 'func']:
                 Mri(
                     bids_reader   = bids_reader,
