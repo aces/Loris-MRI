@@ -392,7 +392,7 @@ following BIDS modalities/entities:
   - Electroencephalography ('eeg')
   - Magnetic Resonance Imaging ('anat', 'func', 'fmap', 'dwi') 
   - Intracranial electroencephalography ('ieeg')
-      - **Note:** option [electrical stimulation](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/04-intracranial-electroencephalography.html#electrical-stimulation) files for ieeg modality are currently not supported in LORIS-MRI (or LORIS). 
+      - **Note:** optional [electrical stimulation](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/04-intracranial-electroencephalography.html#electrical-stimulation) files for ieeg modality are currently not supported in LORIS-MRI (or LORIS). 
       If a BIDS-IEEG directory includes these files, they will be ignored during the import process. 
 
 With slight modifications and further customization, it could handle other 

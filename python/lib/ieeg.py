@@ -21,7 +21,7 @@ __license__ = "GPLv3"
 
 class Ieeg:
     """
-    This class reads the BIDS iEEG data structure and register the iEEG datasets
+    This class reads the BIDS iEEG data structure and registers the iEEG datasets
     into the database by calling the lib.physiological class.
 
     :Example:
@@ -799,5 +799,4 @@ class Ieeg:
             'FilePath'           : archive_rel_name
         }
         physiological.insert_archive_file(archive_info)
-
 
