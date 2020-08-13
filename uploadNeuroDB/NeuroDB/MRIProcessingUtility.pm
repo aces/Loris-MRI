@@ -1237,6 +1237,13 @@ sub registerScanIntoDB {
             $file_path
         );
 
+        #### set the acquisition_date
+        my $acquisition_date = $${minc_file}->getParameter('acquisition_date') || undef;
+        $${minc_file}->setFileData(
+            'AcquisitionDate',
+            $acquisition_date
+        );
+
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
