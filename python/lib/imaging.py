@@ -14,7 +14,8 @@ from nilearn import image
 
 import lib.exitcode
 from lib.candidate import Candidate
-from lib.database_lib.site import Site
+from lib.database_lib.site   import Site
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -345,7 +346,8 @@ class Imaging:
          :rtype subject_id_dict: dict
         """
 
-        dicom_header = self.db.get_config('lookupCenterNameUsing')
+        config_obj   = Config(self.db, self.verbose)
+        dicom_header = config_obj.get_config('lookupCenterNameUsing')
         dicom_value  = tarchive_info_dict[dicom_header]
 
         try:
