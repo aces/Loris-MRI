@@ -203,7 +203,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
             loris_bids_modality_rel_dir = loris_bids_visit_rel_dir + '/' + modality + '/'
             lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
 
-            if modality == 'eeg':
+            if modality == 'eeg' or modality == 'ieeg':
                 Eeg(
                     bids_reader   = bids_reader,
                     bids_sub_id   = row['bids_sub_id'],
@@ -216,6 +216,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
+
 
             elif modality in ['anat', 'dwi', 'fmap', 'func']:
                 Mri(

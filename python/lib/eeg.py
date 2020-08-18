@@ -133,7 +133,7 @@ class Eeg:
         # grep the channels, electrodes, eeg and events files
         self.channels_files   = self.grep_bids_files('channels')
         self.electrodes_files = self.grep_bids_files('electrodes')
-        self.eeg_files        = self.grep_bids_files('eeg')
+        self.eeg_files        = self.grep_bids_files(self.bids_modality)
         self.events_files     = self.grep_bids_files('events')
 
         # check if a tsv with acquisition dates or age is available for the subject
@@ -242,7 +242,7 @@ class Eeg:
         # TODO check if want this part to be in the Config module instead of
         # TODO hardcoding it and risk that other random types are in the
         # TODO derivatives folder
-        exclude_types = ['channels', 'electrodes', 'eeg', 'events']
+        exclude_types = ['channels', 'electrodes', self.bids_modality, 'events']
         for type in exclude_types:
             if type in bids_types:
                 bids_types.remove(type)
@@ -265,7 +265,7 @@ class Eeg:
         # insert EEG file
         inserted_eeg  = self.fetch_and_insert_eeg_file()
         eeg_file_id   = inserted_eeg['file_id']
-        eeg_file_path = inserted_eeg['eeg_path']
+        eeg_file_path = inserted_eeg[self.bids_modality+'_path']
 
         # insert related electrode, channel and event information
         electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id)
