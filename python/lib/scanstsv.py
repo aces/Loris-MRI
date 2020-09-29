@@ -68,7 +68,7 @@ class ScansTSV:
         """
 
         if 'acq_time' in self.acquisition_data:
-            eeg_acq_time = self.acquistion_data['acq_time']
+            eeg_acq_time = self.acquisition_data['acq_time']
             try:
                 eeg_acq_time = parse(eeg_acq_time)
             except ValueError as e:
