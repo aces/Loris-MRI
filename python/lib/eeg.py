@@ -265,7 +265,7 @@ class Eeg:
         # insert EEG file
         inserted_eeg  = self.fetch_and_insert_eeg_file()
         eeg_file_id   = inserted_eeg['file_id']
-        eeg_file_path = inserted_eeg[self.bids_modality+'_path']
+        eeg_file_path = inserted_eeg['eeg_path']
 
         # insert related electrode, channel and event information
         electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id)
