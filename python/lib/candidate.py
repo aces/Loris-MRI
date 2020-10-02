@@ -49,13 +49,14 @@ class Candidate:
         self.verbose = verbose
 
         # create the candidate object
-        self.psc_id    = psc_id
-        self.cand_id   = cand_id
-        self.sex       = sex
-        self.dob       = dob
-        self.age       = None
-        self.site      = None
-        self.center_id = None
+        self.psc_id     = psc_id
+        self.cand_id    = cand_id
+        self.sex        = sex
+        self.dob        = dob
+        self.age        = None
+        self.site       = None
+        self.center_id  = None
+        self.project_id = None
 
     def create_candidate(self, db, participants_info):
         """
@@ -84,13 +85,21 @@ class Candidate:
                 self.age = row['age']
             if 'site' in row:
                 self.site = row['site']
+            if 'project' in row:
+                project_info = db.pselect(
+                    "SELECT ProjectID FROM Project WHERE Alias = %s",
+                    [row['project'],]
+                )
+                if(len(project_info) > 0):
+                    self.project_id = project_info[0]['ProjectID']
 
             if self.site:
                 site_info = db.pselect(
                     "SELECT CenterID FROM psc WHERE Alias = %s",
                     [self.site,]
                 )
-                self.center_id = site_info[0]['CenterID']
+                if(len(site_info) > 0):
+                    self.center_id = site_info[0]['CenterID']
             else:
                 db_sites = db.pselect("SELECT CenterID, Alias FROM psc")
                 for site in db_sites:
@@ -107,9 +116,10 @@ class Candidate:
 
         if self.verbose:
             print("Creating candidate with " + \
-                  " PSCID = "    + self.psc_id + "," + \
-                  " CandID = "   + str(self.cand_id) + \
-                  " and Site = " + str(self.site))
+                  "PSCID = "   + self.psc_id + ", " + \
+                  "CandID = "  + str(self.cand_id) + ", " + \
+                  "Site = "    + str(self.site)  + " and " + \
+                  "Project = " + str(self.project_id))
 
         insert_col = ('PSCID', 'CandID', 'RegistrationCenterID')
         insert_val = (self.psc_id, str(self.cand_id), str(self.center_id))
@@ -120,6 +130,9 @@ class Candidate:
         if self.dob:
             insert_col = insert_col + ('DoB',)
             insert_val = insert_val + (self.dob,)
+        if self.project_id:
+            insert_col = insert_col + ('RegistrationProjectID',)
+            insert_val = insert_val + (str(self.project_id),)
 
         db.insert(
             table_name='candidate',

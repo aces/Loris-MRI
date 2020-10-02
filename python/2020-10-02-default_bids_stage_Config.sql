@@ -1,0 +1,2 @@
+INSERT INTO ConfigSettings (Name, Description, Visible, AllowMultiple, DataType, Parent, Label, OrderNumber) SELECT 'default_bids_stage', 'Default stage to use in session when importing EEG/IEEG data from BIDS dataset', 1, 0, 'text', ID, 'Default stage for BIDS dataset', 25 FROM ConfigSettings WHERE Name="imaging_pipeline";
+INSERT INTO Config (ConfigID, Value) SELECT ID, "Visit" FROM ConfigSettings WHERE Name="default_bids_stage";

@@ -128,6 +128,21 @@ class Eeg:
         self.psc_id          = self.loris_cand_info['PSCID']
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
+        self.project_id      = self.loris_cand_info['RegistrationProjectID']
+        
+        self.subproject_id   = None 
+        for row in bids_reader.participants_info:
+            if not row['participant_id'] == self.psc_id:
+                continue
+            if 'subproject' in row:
+                subproject_info = db.pselect(
+                    "SELECT SubprojectID FROM subproject WHERE title = %s",
+                    [row['subproject'],]
+                )
+                if(len(subproject_info) > 0):
+                    self.subproject_id = subproject_info[0]['SubprojectID']
+            break
+                
         self.session_id      = self.get_loris_session_id()
 
         # grep the channels, electrodes, eeg and events files
@@ -177,10 +192,8 @@ class Eeg:
         visit_label = self.bids_ses_id if self.bids_ses_id else self.default_vl
 
         session = Session(
-            verbose     = self.verbose,
-            cand_id     = self.cand_id,
-            center_id   = self.center_id,
-            visit_label = visit_label
+            self.verbose, self.cand_id, visit_label,
+            self.center_id, self.project_id, self.subproject_id
         )
         loris_vl_info = session.get_session_info_from_loris(self.db)
 
