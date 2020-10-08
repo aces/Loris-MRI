@@ -203,11 +203,10 @@ echo
 ################################################################################################
 #####################################DICOM TOOLKIT##############################################
 ################################################################################################
-os_distro=$(lsb_release -si)
-if [ $os_distro  = "CentOS" ]; then
+if cat /etc/os-release | grep ^NAME | fgrep -q CentOS ; then
     echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
 else
-    #Check if apt-get is install
+    #Check if apt-get is installed
     APTGETCHECK=`which apt-get`
     if [ ! -f "$APTGETCHECK" ]; then
         echo "\nERROR: Unable to find apt-get"
