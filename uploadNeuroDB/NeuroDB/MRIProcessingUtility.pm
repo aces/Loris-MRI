@@ -1318,7 +1318,7 @@ sub dicom_to_minc {
     #------------------------------------------------------------------------------------#
     # For each quadruplet (modality) run dcm2mnc to conver the DICOM files that belog    #
     # in that group. We cannot convert the entire set of DICOM files due to a bug in     #
-    # dcm2mnc (see https://github.com/aces/Loris/issues/7116). We have to split the      #
+    # dcm2mnc (see https://github.com/aces/Loris/issues/564). We have to split the      #
     # DICOM files into groups and convert the files that belong to each group separately.#
     #------------------------------------------------------------------------------------#
     foreach my $line (@cmdOutputLines) {
