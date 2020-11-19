@@ -201,7 +201,8 @@ my $system          = `uname`;
 
 # Remove all files starting with . and __MACOSX in the dcm_source directory
 my @args = ($dcm_source);
-push(@args, qw/-type f -name __MACOSX -delete -o -name .* -delete/);
+push(@args, qw/-type f -name .* -delete -o -type d -name __MACOSX -exec rm -rf {} +/);
+print "find @args";
 system('find', @args);
 
 # create new summary object
