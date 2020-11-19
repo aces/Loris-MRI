@@ -4,24 +4,24 @@ get\_dicom\_files.pl - extracts DICOM files for specific patient names/scan type
 
 # SYNOPSIS
 
-perl get\_dicom\_files.pl \[-names patient\_name\_patterns\] \[-types scan\_type\_patterns\] \[-outdir tmp\_dir\] \[-outfile tarBasename\] 
+perl get\_dicom\_files.pl \[-name patient\_name\_patterns\] \[-type scan\_type\_patterns\] \[-outdir tmp\_dir\] \[-outfile tarBasename\] 
            \[-id candid|pscid|candid\_pscid|pscid\_candid\] -profile profile
 
 Available options are:
 
 \-profile : name of the config file in `../dicom-archive/.loris_mri` (typically `prod`)
 
-\-names   : comma separated list of MySQL patterns for the patient names that a DICOM file
+\-name    : comma separated list of MySQL patterns for the patient names that a DICOM file
            has to have in order to be extracted. A DICOM file only has to match one of the 
            patterns to be extracted. If no pattern is specified, then the patient name is 
            not used to determine which DICOM files to extract. This option must be used if
            no scan type patterns were specified with `-type` (see below).
 
-\-types   : comma separated list of MySQL patterns of the acquisition protocols (scan types
+\-type    : comma separated list of MySQL patterns of the acquisition protocols (scan types
            names) that a DICOM file has to have in order to be extracted. A DICOM file only
            has to match one of the patterns to be extracted. If no pattern is specified, then
            the scan type name is not used to determine which DICOM files to extract. This option
-           must be used if no patient name patterns were specified via `-names` (see above).
+           must be used if no patient name patterns were specified via `-name` (see above).
 
 \-outdir  : extract the files in directory `<dir_argument>/get_dicom_files.pl.<random_string>`
            For example with `-d /data/tmp`, the DICOM files might be extracted in 
@@ -43,7 +43,7 @@ This script first connects to the database to build the list of DICOM archives f
 the patient names match the list of patterns specified as argument, or all DICOM archives if
 no patterns were specified. The script will then examine these DICOM archives and look for the 
 MINC files whose scan types (acquisition protocol names) match the list of patterns passed as 
-argument, or all MINC files for that archive if `-types` was not used. It then extracts the DICOM files
+argument, or all MINC files for that archive if `-type` was not used. It then extracts the DICOM files
 associated to each MINC file and writes them in the extraction directory (see `-outdir` option), in a 
 subdirectory with name
 
