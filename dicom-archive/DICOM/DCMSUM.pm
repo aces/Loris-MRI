@@ -340,8 +340,7 @@ QUERY
                $invT,       $sl_thickness, $phaseEncode, 
                $num,        $seriesUID,    $modality
               );
-        print "@values\n";    
-	$success = $insert_series->execute(@values);
+	    $success = $insert_series->execute(@values);
         } elsif ($modality eq 'PT') {
             my @values = 
               (
