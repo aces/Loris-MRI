@@ -3,7 +3,7 @@
 import random
 from dateutil.parser import parse
 import lib.exitcode
-
+import sys
 
 __license__ = "GPLv3"
 
