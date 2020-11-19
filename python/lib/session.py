@@ -85,20 +85,7 @@ class Session:
         if self.subproject_id:
             column_names = column_names + ('SubprojectID',)
             values = values + (str(self.subproject_id),)
-        
-        current_stage = None
-        current_stage_info = db.pselect(
-            "SELECT Value FROM Config WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name='default_bids_stage')",
-            []
-        )
 
-        if(len(current_stage_info) > 0):
-            current_stage = current_stage_info[0]['Value']
-
-        if current_stage:
-            column_names = column_names + ('Current_stage',)
-            values = values + (current_stage,)
-            
         db.insert(
             table_name='session',
             column_names=column_names,
