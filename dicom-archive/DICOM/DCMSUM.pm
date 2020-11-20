@@ -327,11 +327,11 @@ QUERY
         if ($invT eq '') {
             $invT = undef;
         }
-        if ($seriesName =~ /ColFA$/i) {
-            $echoT        = undef;    
-            $repT         = undef;
-            $sl_thickness = undef;
-        }
+
+        $echoT        = undef unless ($echoT =~ /\d+/);
+        $repT         = undef unless ($repT =~ /\d+/);
+        $sl_thickness = undef unless ($sl_thickness =~ /\d+/);
+
         if ($modality eq 'MR') {
             my @values = 
               (
@@ -340,7 +340,7 @@ QUERY
                $invT,       $sl_thickness, $phaseEncode, 
                $num,        $seriesUID,    $modality
               );
-            $success = $insert_series->execute(@values);
+	    $success = $insert_series->execute(@values);
         } elsif ($modality eq 'PT') {
             my @values = 
               (
