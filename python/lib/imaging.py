@@ -79,7 +79,8 @@ class Imaging:
         # if the file type cannot be found in the database, exit now
         file_type = None
         for type in imaging_file_types:
-            if type['type'] in file:
+            regex_match = r'' + type['type'] + r'(\.gz)?$'
+            if re.search(regex_match, file):
                 file_type = type['type']
 
         # exits if could not find a file type
