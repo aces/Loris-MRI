@@ -1287,58 +1287,88 @@ INPUTS:
 =cut
 
 sub dicom_to_minc {
-
     my $this = shift;
-    my ($study_dir, $converter,$get_dicom_info,
-        $exclude,$mail_user, $upload_id) = @_;
+    my ($study_dir, $converter,$get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
-    # create the excluded series description regex necessary to exclude the
-    # series description specified in the Config Setting
-    # excluded_series_description
+    #--------------------------------------------------------------------------------#
+    # Create the excluded series description regex necessary to exclude the          #
+    # series description specified in the Config Setting excluded_series_description #
+    # If there are no series to exclude, $excluded_regex remains undef               #
+    #--------------------------------------------------------------------------------#
     if ($exclude && ref($exclude) eq 'ARRAY') {
         $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
     } elsif ($exclude) {
         $excluded_regex = $exclude;
     }
-    $d2m_cmd = "find $study_dir -type f " .
-               " | $get_dicom_info -studyuid -series -echo -image -file " .
-               " -attvalue 0018 0024 -series_descr -stdin" .
-               " | sort -n -k1 -k2 -k7 -k3 -k6 -k4 ";
-    $d2m_cmd .= ' | grep -iv -P "\t(' . $excluded_regex . ')\s*$"' if ($excluded_regex);
-    $d2m_cmd .= " | cut -f 5 | ";
 
-    ############################################################
-    #### use some other converter if specified in the config ###
-    ############################################################
-    if ($converter !~ /dcm2mnc/) {
-        $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
-    } else {
-        $d2m_cmd .= "$converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
+    #-----------------------------------------------------------------------------------#
+    # Run get_dicom_info on all the DICOM files and build the set of all the distinct   #
+    # quadruplets (studyUID, seriesUID, echoTime, seriesDescription). These quadruplets #
+    # identify the DICOM files that belong to a specific group (modality in fact)       #
+    #-----------------------------------------------------------------------------------#
+    my $cmd = "find $study_dir -type f "
+         . "| $get_dicom_info -studyuid -attvalue 0020 000e -echo -series_descr -stdin";
+    $cmd .= ' | grep -iv -P "\t(' . $excluded_regex . ')\s*$"' if ($excluded_regex);
+    $cmd .= " | sort | uniq";
+
+    my @cmdOutputLines = `$cmd`;
+
+    #------------------------------------------------------------------------------------#
+    # For each quadruplet (modality) run dcm2mnc to conver the DICOM files that belog    #
+    # in that group. We cannot convert the entire set of DICOM files due to a bug in     #
+    # dcm2mnc (see https://github.com/aces/Loris/issues/564). We have to split the      #
+    # DICOM files into groups and convert the files that belong to each group separately.#
+    #------------------------------------------------------------------------------------#
+    foreach my $line (@cmdOutputLines) {
+        chomp($line);
+        my($studyUID, $seriesUID, $echo, $seriesDesc) = split(/\t/, $line);
+
+        # We need to use quotemeta here to make sure each character of a given variable is interpreted
+        # as is and not as a regex special character
+        # Note: '$\'\t\'' is a TAB for Unix grep
+        my $pattern = join('$\'\t\'', quotemeta($studyUID), quotemeta($seriesUID), quotemeta($echo), quotemeta($seriesDesc));
+
+        # For each file in $study_dir...
+        my $d2m_cmd = "find $study_dir -type f ";                        
+
+        # ...invoke get_dicom_info to get its study UID, series instance UID, echo time, series description and file name
+        $d2m_cmd   .= "| $get_dicom_info -studyuid -attvalue 0020 000e -echo -series_descr -file -stdin";
+
+        # ...keep only the files that belong to the current group
+        $d2m_cmd   .= "| grep ^$pattern";
+
+        # ...keep only the file name
+        $d2m_cmd   .= "| cut -f5";
+
+        if ($converter !~ /dcm2mnc/) {
+            $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
+        } else {
+            $d2m_cmd .= " | $converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
+        }
+      
+        my $d2m_log = `$d2m_cmd`;
+      
+        if ($? > 0) {
+            $exit_code = $? >> 8;
+            #---------------------------------------------------------#
+            # dicom_to_minc failed: bomb out                          #
+            #---------------------------------------------------------#
+            $message = "\nDicom to Minc conversion failed\n";
+            $this->spool($message, 'Y', $upload_id, 'N');
+            open MAIL, "| mail $mail_user";
+            print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
+                       "dicom->minc failed\n";
+            print MAIL "Exit code $exit_code received from:\n$d2m_cmd\n";
+            close MAIL;
+            croak("dicom_to_minc failure, exit code $exit_code");
+        }
+
+        $message = "\n" . $d2m_cmd . "\n";
+        $this->{LOG}->print("### Dicom to MINC:\n$d2m_log");
+        $this->spool($message, 'N', $upload_id, 'Y');
     }
-    $d2m_log = `$d2m_cmd`;
-
-    if ($? > 0) {
-        $exit_code = $? >> 8;
-        ########################################################
-        # dicom_to_minc failed...  don't keep going, ########### 
-        # just email. ##########################################
-        ########################################################
-        $message = "\nDicom to Minc conversion failed\n";
-        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-        open MAIL, "| mail $mail_user";
-        print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
-                   "dicom->minc failed\n";
-        print MAIL "Exit code $exit_code received from:\n$d2m_cmd\n";
-        close MAIL;
-        croak("dicom_to_minc failure, exit code $exit_code");
-   }
-
-    $message = "\n" . $d2m_cmd . "\n";
-    $this->{LOG}->print(
-    "### Dicom to MINC:\n$d2m_log");
-    $this->spool($message, 'N', $upload_id, $notify_detailed);
 }
 
 
