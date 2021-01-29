@@ -416,9 +416,11 @@ sub determineSubjectID {
     );
 
     # create the candidate if it does not exist
-    $this->CreateMRICandidates(
-        $subjectIDsref, $tarchiveInfo, $User, $centerID, $upload_id
-    );
+    unless (NeuroDB::MRI::subjectIDExists('PSCID', $subjectIDsref->{'PSCID'}, $this->{dbhr})) {
+        $this->CreateMRICandidates(
+            $subjectIDsref, $tarchiveInfo, $User, $centerID, $upload_id
+        );
+    }
 
     # check if the candidate information is valid
     $subjectIDsref->{'CandMismatchError'} = $this->validateCandidate($subjectIDsref, $upload_id);
