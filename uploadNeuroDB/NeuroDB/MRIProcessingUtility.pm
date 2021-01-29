@@ -416,7 +416,10 @@ sub determineSubjectID {
     );
 
     # create the candidate if it does not exist
-    unless (NeuroDB::MRI::subjectIDExists('PSCID', $subjectIDsref->{'PSCID'}, $this->{dbhr})) {
+    unless (
+        NeuroDB::MRI::subjectIDExists('PSCID', $subjectIDsref->{'PSCID'}, $this->{dbhr})
+        || NeuroDB::MRI::subjectIDExists('CandID', $subjectIDsref->{'CandID'}, $this->{dbhr})
+      ) {
         $this->CreateMRICandidates(
             $subjectIDsref, $tarchiveInfo, $User, $centerID, $upload_id
         );
