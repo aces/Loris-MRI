@@ -19,7 +19,8 @@ class Session:
         db.connect()
 
         session = Session(
-            verbose, cand_id=cand_id, visit_label=visit_label, center_id=center_id
+            verbose, cand_id, visit_label, 
+            center_id, project_id, subproject_id
         )
 
         # grep session information from the database
@@ -32,25 +33,33 @@ class Session:
         db.disconnect()
     """
 
-    def __init__(self, verbose, cand_id, visit_label, center_id):
+    def __init__(self, verbose, cand_id, visit_label,
+                 center_id, project_id, subproject_id):
         """
         Constructor method for the Session class.
 
-        :param verbose    : whether to be verbose
-         :type verbose    : bool
-        :param cand_id    : candidate's CandID
-         :type cand_id    : int
-        :param visit_label: visit label
-         :type visit_label: str
-        :param center_id  : center ID to associate with the session
-         :type center_id  : int
+        :param verbose      : whether to be verbose
+         :type verbose      : bool
+        :param cand_id      : candidate's CandID
+         :type cand_id      : int
+        :param visit_label  : visit label
+         :type visit_label  : str
+        :param center_id    : center ID to associate with the session
+         :type center_id    : int
+        :param project_id   : project ID to associate with the session
+         :type project_id   : int
+        :param subproject_id: subproject ID to associate with the session
+         :type subproject_id: int
         """
         self.verbose = verbose
 
-        self.cand_id     = str(cand_id)
-        self.visit_label = visit_label
-        self.center_id   = center_id
+        self.cand_id       = str(cand_id)
+        self.visit_label   = visit_label
+        self.center_id     = center_id
+        self.project_id    = project_id
+        self.subproject_id = subproject_id
 
+                
     def create_session(self, db):
         """
         Creates a session using BIDS information.
@@ -66,10 +75,21 @@ class Session:
             print("Creating visit " + self.visit_label \
                   + " for CandID "  + self.cand_id)
 
+        column_names = ('CandID', 'Visit_label', 'CenterID')
+        values = (self.cand_id, self.visit_label, str(self.center_id))
+
+        if self.project_id:
+            column_names = column_names + ('ProjectID',)
+            values = values + (str(self.project_id),)
+
+        if self.subproject_id:
+            column_names = column_names + ('SubprojectID',)
+            values = values + (str(self.subproject_id),)
+
         db.insert(
             table_name='session',
-            column_names=('CandID', 'Visit_label', 'CenterID'),
-            values=(self.cand_id, self.visit_label, str(self.center_id))
+            column_names=column_names,
+            values=values
         )
 
         loris_session_info = self.get_session_info_from_loris(db)

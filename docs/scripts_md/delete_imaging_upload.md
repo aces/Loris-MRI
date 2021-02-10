@@ -1,11 +1,11 @@
 # NAME
 
-delete\_mri\_upload.pl -- Delete everything that was produced (or part of what was produced) by the imaging pipeline for a given set of imaging uploads
+delete\_imaging\_upload.pl -- Delete everything that was produced (or part of what was produced) by the imaging pipeline for a given set of imaging uploads
                         IDs, all associated to the same `tarchive`.
 
 # SYNOPSIS
 
-perl delete\_mri\_upload.pl \[-profile file\] \[-ignore\] \[-backup\_path basename\] \[-protocol\] \[-form\] \[-uploadID list\_of\_uploadIDs\]
+perl delete\_imaging\_upload.pl \[-profile file\] \[-ignore\] \[-backup\_path basename\] \[-protocol\] \[-form\] \[-uploadID list\_of\_uploadIDs\]
             \[-type list\_of\_scan\_types\] \[-defaced\] \[-basename fileBaseName\] \[-nosqlbk\] \[-nofilesbk\]
 
 Available options are:
@@ -31,7 +31,7 @@ Available options are:
 
 \-basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table `files` or table 
                          `parameter_files`. This option should be used when targeting a specific (unique) file for deletion.
-                         Note that the file will be deleted from both the database and the filesystem. This optin cannot be 
+                         Note that the file will be deleted from both the database and the filesystem. This option cannot be 
                          used with options `-defaced` and `-form`.
 
 \-uploadID              : comma-separated list of upload IDs (found in table `mri_upload`) to delete. The program will 
@@ -137,7 +137,7 @@ provided the database was not modified in the meantime. The SQL backup file will
 
 ## Methods
 
-### printExitMessage($filesRef, $scanTypesToDeleteRef) 
+### printExitMessage($filesRef, $scanTypesToDeleteRef, $deleteResultsRef)
 
 Prints an appropriate message before exiting. 
 
@@ -145,6 +145,8 @@ INPUTS:
   - $filesRef: reference to the array that contains the file information for all the files
     that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $deleteResultsRef: reference on the hash that contains the result of the deletion of the records in the
+    database. 
 
 ### prettyListPrint($listRef, $andOr) 
 
@@ -183,7 +185,7 @@ RETURNS:
     if config setting `tarchiveLibraryDir`is not defined, the return value is `undef`, indicating that something is 
     wrong.
 
-### validateMriUploads($mriUploadsRef, $uploadIDsRef)
+### validateMriUploads($mriUploadsRef, $optionsRef, $scanTypeList)
 
 Validates that the list of upload IDs passed on the commamnd line are valid arguments for
 the script. It one of them is invalid, an error message is displayed and the program exits.
@@ -193,7 +195,8 @@ INPUTS:
                  `$mriUploadsRef->[0]->{'TarchiveID'}`(this would return the `TarchiveID` of the first `mri_upload`
                  in the array. The properties stored for each hash are: `UploadID`, `TarchiveID`, `FullPath`
                  `Inserting`, `InsertionComplete` and `SessionID`.
-   - $uploadIDsRef: reference to the array that contains the upload IDs passed on the command line.
+   - $optionsRef: reference to the array that contains the options passed on the command line.
+   - $scanTypeList: list of scan types to delete passed on the command line.
 
 ### getMriProcessingProtocolFilesRef($dbh, $filesRef)
 
@@ -413,8 +416,10 @@ INPUTS:
   - $optionsRef: reference on the hash array of the options that were passed on the command line.
 
 RETURNS:
-  - 1 if this method produced a file containing the SQL statements that restore the database state to what it was before calling this
+  - A reference to a hash with two keys:
+    \* SQL\_BACKUP\_DONE    => 1 if this method produced a file containing the SQL statements that restore the database state to what it was before calling this
     method, 0 otherwise.
+    \* NB\_RECORDS\_DELETED => the number of records effectively deleted by this method.
 
 ### gzipBackupFile($backupPath)
 
@@ -463,6 +468,9 @@ INPUTS:
                  in the array. The properties stored for each hash are: `UploadID`, `TarchiveID`, `FullPath`
                  `Inserting`, `InsertionComplete` and `SessionID`.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
+
+RETURNS:
+   - The numbers of records deleted as a result of this operation.
 
 ### deleteUploadsOnFileSystem($filesRef, $scanTypesToDeleteRef, $keepDefaced, $fileBaseName)
 
@@ -515,6 +523,9 @@ INPUTS:
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field `$key` has for the records to delete.
   - $tmpSQLBackupFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
+
+RETURNS:
+  - The number of records deleted.
 
 ### updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef)
 

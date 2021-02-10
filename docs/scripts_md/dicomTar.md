@@ -68,5 +68,5 @@ License: GPLv3
 # AUTHORS
 
 J-Sebastian Muehlboeck,
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

@@ -17,16 +17,11 @@ utilities
                         $logfile, $LogDir, $verbose
                       );
 
-  %tarchiveInfo     = $utility->createTarchiveArray(
-                        $ArchiveLocation, $globArchiveLocation
-                      );
+  %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
   my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-  my $scannerID     = $utility->determineScannerID(
-                        \%tarchiveInfo, 0,
-                        $centerID,      $NewScanner
-                      );
+  my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID);
 
   my $subjectIDsref = $utility->determineSubjectID(
                         $scannerID,
@@ -70,6 +65,7 @@ use NeuroDB::DatabaseException;
 
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
+use NeuroDB::objectBroker::TarchiveOB;
 
 use Path::Class;
 use Scalar::Util qw(blessed);
@@ -442,71 +438,91 @@ sub determineSubjectID {
 
 =pod
 
-=head3 createTarchiveArray($tarchive, $globArchiveLocation, $hrrt)
+=head3 createTarchiveArray($tarchive)
 
-Creates the DICOM/HRRT archive information hash ref.
+Creates the DICOM archive information hash ref for the tarchive that has the same
+basename as the file path passed as argument. For HRRT scanners, it will do the
+same but from the hrrtarchive table.
 
 INPUTS:
-  - $tarchive           : tarchive's path
-  - $globArchiveLocation: globArchiveLocation argument specified when running
-                           the insertion scripts
-  - $hrrt               : whether the archive is from an HRRT scanner or not (in
-                          which case, the C<hrrt_archive> table will be read
-                          instead of the C<tarchive> table.
+  - $tarchive: tarchive's path (absolute or relative).
+  - $hrrt    : whether the archive is from an HRRT scanner or not (in
+               which case, the C<hrrt_archive> table will be read
+               instead of the C<tarchive> table.
 
-RETURNS: DICOM/HRRT archive information hash ref
+RETURNS: DICOM/HRRT archive information hash ref if exactly one archive was found. Exits
+         when either no match or multiple matches are found.
 
 =cut
 
 sub createTarchiveArray {
 
     my $this = shift;
-    my %tarchiveInfo;
-    my ($tarchive, $globArchiveLocation, $hrrt) = @_;
-    my $where = "ArchiveLocation='$tarchive'";
-    if ($globArchiveLocation) {
-        $where = "ArchiveLocation LIKE '%".basename($tarchive)."'";
-    }
+    my ($tarchive, $hrrt) = @_;
 
-    my $query;
     if ($hrrt) {
-        ($query = <<QUERY) =~ s/\n/ /gm;
+
+        my %tarchiveInfo;
+        my ($query = <<QUERY) =~ s/\n/ /gm;
         SELECT
           PatientName,    CenterName,      DateAcquired,
           Blake2bArchive, ArchiveLocation, HrrtArchiveID
         FROM
           hrrt_archive
         WHERE
-          $where
+          ArchiveLocation LIKE ?
 QUERY
-    } else {
-        $query = "SELECT PatientName, PatientID, PatientDoB, md5sumArchive,"
-            . " DateAcquired, DicomArchiveID, PatientSex,"
-            . " ScannerManufacturer, ScannerModel, ScannerSerialNumber,"
-            . " ScannerSoftwareVersion, neurodbCenterName, TarchiveID,"
-            . " SourceLocation, ArchiveLocation FROM tarchive WHERE $where";
-    }
-    if ($this->{debug}) {
-        print $query . "\n";
-    }
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
-    $sth->execute();
+        if ($this->{debug}) {
+            print $query . "\n";
+        }
+        my $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute("'%".basename($tarchive)."%'");
 
-    if ($sth->rows > 0) {
-        my $tarchiveInfoRef = $sth->fetchrow_hashref();
-        %tarchiveInfo = %$tarchiveInfoRef;
-    } else {
-        my $message = "\nERROR: Only archived data can be uploaded.".
-                      "This seems not to be a valid archive for this study!".
-                      "\n\n";
-        $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
-        # no $tarchive can be fetched so $upload_id is undef
-        # in the notification_spool
-        $this->spool($message, 'Y', undef, $notify_notsummary);
-        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
-    }
+        if ($sth->rows > 0) {
+            my $tarchiveInfoRef = $sth->fetchrow_hashref();
+            %tarchiveInfo = %$tarchiveInfoRef;
+        } else {
+            my $message = "\nERROR: Only archived data can be uploaded.".
+                "This seems not to be a valid archive for this study!".
+                "\n\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+            # no $tarchive can be fetched so $upload_id is undef
+            # in the notification_spool
+            $this->spool($message, 'Y', undef, $notify_notsummary);
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+        }
 
-    return %tarchiveInfo;
+        return %tarchiveInfo;
+        
+    } else {
+
+        my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $this->{'db'});
+        my $tarchiveInfoRef = $tarchiveOB->getByTarchiveLocation($tarchive);
+
+        if (!@$tarchiveInfoRef) {
+            my $message = "\nERROR: Only archived data can be uploaded.".
+                "This seems not to be a valid archive for this study!".
+                "\n\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+            # no $tarchive can be fetched so $upload_id is undef
+            # in the notification_spool
+            $this->spool($message, 'Y', undef, $notify_notsummary);
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+        } elsif (@$tarchiveInfoRef > 1) {
+            my $message = "\nERROR: Found multiple archives with the same basename ".
+                " as $tarchive when only one match was expected!".
+                "\n\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+            # Since multiple tarchives were found we cannot determine the upload ID
+            # Set it to  undef for this notification
+            $this->spool($message, 'Y', undef, $notify_notsummary);
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+        }
+
+        # Only one archive matches: return it as a hash
+        return %{ $tarchiveInfoRef->[0] };
+
+    }
 }
 
 
@@ -567,16 +583,16 @@ sub determinePSC {
 
 =pod
 
-=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $NewScanner, $upload_id)
+=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $upload_id)
 
-Determines which scanner ID was used for DICOM acquisitions.
+Determines which scanner ID was used for DICOM acquisitions. Note, if 
+a scanner ID is not already associated to the scanner information found
+in the DICOM headers, then a new scanner will automatically be created.
 
 INPUTS:
   - $tarchiveInfo: archive information hash ref
   - $to_log      : whether this step should be logged
   - $centerID    : center ID
-  - $NewScanner  : whether a new scanner entry should be created if the scanner
-                   used is a new scanner for the study
   - $upload_id   : upload ID of the study
 
 RETURNS: scanner ID
@@ -586,7 +602,7 @@ RETURNS: scanner ID
 sub determineScannerID {
 
     my $this = shift;
-    my ($tarchiveInfo, $to_log, $centerID, $NewScanner, $upload_id) = @_;
+    my ($tarchiveInfo, $to_log, $centerID, $upload_id) = @_;
     my $message = '';
     $to_log = 1 unless defined $to_log;
     if ($to_log) {
@@ -603,15 +619,12 @@ sub determineScannerID {
             $tarchiveInfo->{'ScannerSoftwareVersion'},
             $centerID,
             $this->{dbhr},
-            $NewScanner,
             $this->{'db'}
         );
     if ($scannerID == 0) {
         if ($to_log) {
             $message = "\nERROR: The ScannerID for this particular scanner ".
-                          "does not exist. Enable creating new ScannerIDs in ".
-                          "your profile or this archive can not be ".
-                          "uploaded.\n\n";
+                          "does not exist and could not be created.\n\n";
             $this->writeErrorLog(
                 $message, $NeuroDB::ExitCodes::SELECT_FAILURE
             );
@@ -1260,6 +1273,13 @@ sub registerScanIntoDB {
             $file_path
         );
 
+        #### set the acquisition_date
+        my $acquisition_date = $${minc_file}->getParameter('acquisition_date') || undef;
+        $${minc_file}->setFileData(
+            'AcquisitionDate',
+            $acquisition_date
+        );
+
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
@@ -1303,58 +1323,88 @@ INPUTS:
 =cut
 
 sub dicom_to_minc {
-
     my $this = shift;
-    my ($study_dir, $converter,$get_dicom_info,
-        $exclude,$mail_user, $upload_id) = @_;
+    my ($study_dir, $converter,$get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
-    # create the excluded series description regex necessary to exclude the
-    # series description specified in the Config Setting
-    # excluded_series_description
+    #--------------------------------------------------------------------------------#
+    # Create the excluded series description regex necessary to exclude the          #
+    # series description specified in the Config Setting excluded_series_description #
+    # If there are no series to exclude, $excluded_regex remains undef               #
+    #--------------------------------------------------------------------------------#
     if ($exclude && ref($exclude) eq 'ARRAY') {
         $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
     } elsif ($exclude) {
         $excluded_regex = $exclude;
     }
-    $d2m_cmd = "find $study_dir -type f " .
-               " | $get_dicom_info -studyuid -series -echo -image -file " .
-               " -attvalue 0018 0024 -series_descr -stdin" .
-               " | sort -n -k1 -k2 -k7 -k3 -k6 -k4 ";
-    $d2m_cmd .= ' | grep -iv -P "\t(' . $excluded_regex . ')\s*$"' if ($excluded_regex);
-    $d2m_cmd .= " | cut -f 5 | ";
 
-    ############################################################
-    #### use some other converter if specified in the config ###
-    ############################################################
-    if ($converter !~ /dcm2mnc/) {
-        $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
-    } else {
-        $d2m_cmd .= "$converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
+    #-----------------------------------------------------------------------------------#
+    # Run get_dicom_info on all the DICOM files and build the set of all the distinct   #
+    # quadruplets (studyUID, seriesUID, echoTime, seriesDescription). These quadruplets #
+    # identify the DICOM files that belong to a specific group (modality in fact)       #
+    #-----------------------------------------------------------------------------------#
+    my $cmd = "find $study_dir -type f "
+         . "| $get_dicom_info -studyuid -attvalue 0020 000e -echo -series_descr -stdin";
+    $cmd .= ' | grep -iv -P "\t(' . $excluded_regex . ')\s*$"' if ($excluded_regex);
+    $cmd .= " | sort | uniq";
+
+    my @cmdOutputLines = `$cmd`;
+
+    #------------------------------------------------------------------------------------#
+    # For each quadruplet (modality) run dcm2mnc to conver the DICOM files that belog    #
+    # in that group. We cannot convert the entire set of DICOM files due to a bug in     #
+    # dcm2mnc (see https://github.com/aces/Loris/issues/564). We have to split the      #
+    # DICOM files into groups and convert the files that belong to each group separately.#
+    #------------------------------------------------------------------------------------#
+    foreach my $line (@cmdOutputLines) {
+        chomp($line);
+        my($studyUID, $seriesUID, $echo, $seriesDesc) = split(/\t/, $line);
+
+        # We need to use quotemeta here to make sure each character of a given variable is interpreted
+        # as is and not as a regex special character
+        # Note: '$\'\t\'' is a TAB for Unix grep
+        my $pattern = join('$\'\t\'', quotemeta($studyUID), quotemeta($seriesUID), quotemeta($echo), quotemeta($seriesDesc));
+
+        # For each file in $study_dir...
+        my $d2m_cmd = "find $study_dir -type f ";                        
+
+        # ...invoke get_dicom_info to get its study UID, series instance UID, echo time, series description and file name
+        $d2m_cmd   .= "| $get_dicom_info -studyuid -attvalue 0020 000e -echo -series_descr -file -stdin";
+
+        # ...keep only the files that belong to the current group
+        $d2m_cmd   .= "| grep ^$pattern";
+
+        # ...keep only the file name
+        $d2m_cmd   .= "| cut -f5";
+
+        if ($converter !~ /dcm2mnc/) {
+            $d2m_cmd .= "$converter $this->{TmpDir}  -notape -compress -stdin";
+        } else {
+            $d2m_cmd .= " | $converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
+        }
+      
+        my $d2m_log = `$d2m_cmd`;
+      
+        if ($? > 0) {
+            $exit_code = $? >> 8;
+            #---------------------------------------------------------#
+            # dicom_to_minc failed: bomb out                          #
+            #---------------------------------------------------------#
+            $message = "\nDicom to Minc conversion failed\n";
+            $this->spool($message, 'Y', $upload_id, 'N');
+            open MAIL, "| mail $mail_user";
+            print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
+                       "dicom->minc failed\n";
+            print MAIL "Exit code $exit_code received from:\n$d2m_cmd\n";
+            close MAIL;
+            croak("dicom_to_minc failure, exit code $exit_code");
+        }
+
+        $message = "\n" . $d2m_cmd . "\n";
+        $this->{LOG}->print("### Dicom to MINC:\n$d2m_log");
+        $this->spool($message, 'N', $upload_id, 'Y');
     }
-    $d2m_log = `$d2m_cmd`;
-
-    if ($? > 0) {
-        $exit_code = $? >> 8;
-        ########################################################
-        # dicom_to_minc failed...  don't keep going, ########### 
-        # just email. ##########################################
-        ########################################################
-        $message = "\nDicom to Minc conversion failed\n";
-        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-        open MAIL, "| mail $mail_user";
-        print MAIL "Subject: [URGENT Automated] uploadNeuroDB: ".
-                   "dicom->minc failed\n";
-        print MAIL "Exit code $exit_code received from:\n$d2m_cmd\n";
-        close MAIL;
-        croak("dicom_to_minc failure, exit code $exit_code");
-   }
-
-    $message = "\n" . $d2m_cmd . "\n";
-    $this->{LOG}->print(
-    "### Dicom to MINC:\n$d2m_log");
-    $this->spool($message, 'N', $upload_id, $notify_detailed);
 }
 
 

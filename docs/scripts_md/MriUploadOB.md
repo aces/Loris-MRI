@@ -35,9 +35,7 @@ NeuroDB::objectBroker::MriUploadOB -- An object broker for MRI uploads
     my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
     my $mriUploadsRef;
     try {
-        $mriUploadsRef= $mriUploadOB->getWithTarchive(
-            1, '/tmp/my_tarchive.tar.gz', 1
-        );
+        $mriUploadsRef= $mriUploadOB->getWithTarchive(1, '/tmp/my_tarchive.tar.gz');
     } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
         die sprintf(
             "Failed to retrieve MRI uploads: %s",
@@ -63,7 +61,7 @@ INPUT: the database object used to read/modify the `mri_upload` table.
 
 RETURNS: new instance of this class.
 
-### getWithTarchive($isCount, $tarchiveLocation, $isBaseNameMatch)
+### getWithTarchive($isCount, $tarchiveLocation)
 
 Fetches the entries in the `mri_upload` table that have a specific archive
 location. This method throws a `NeuroDB::objectBroker::ObjectBrokerException`
@@ -73,8 +71,6 @@ INPUTS:
     - boolean indicating if only a count of the records found is needed
       or the full record properties.
     - path of the archive location.
-    - boolean indicating if a match is sought on the full archive name
-      or only the basename.
 
 RETURNS: a reference to an array of array references. If `$isCount` is true, then
          `$returnValue->[0]->[0]` will contain the count of records sought. Otherwise
@@ -107,5 +103,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

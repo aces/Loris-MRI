@@ -92,7 +92,7 @@ Error and output messages from the imaging insertion scripts are logged in files
 ***Caveat:*** When the imaging insertion pipeline is auto-launched by the
   Imaging Uploader module, the pipeline scripts' log files are output to
   `/tmp/` and deleted. To avoid deletion, edit the Server Processes Manager
-  function [deleteProcessFiles()](https://github.com/aces/Loris/blob/master/modules/server_processes_manager/php/AbstractServerProcess.class.inc#L521)
+  function [deleteProcessFiles()](https://github.com/aces/Loris/blob/main/modules/server_processes_manager/php/AbstractServerProcess.class.inc#L521)
   to return false instead of true.
 
 ### A.4 Insertion script troubleshooting notes

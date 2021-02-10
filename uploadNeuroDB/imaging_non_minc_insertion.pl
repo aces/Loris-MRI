@@ -462,7 +462,7 @@ if ($subjectIDsref->{'CandMismatchError'}){
 
 # determine the session ID
 my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
-    $subjectIDsref, $date_acquired, \$dbh, $db
+    $subjectIDsref, $date_acquired, $dbh, $db
 );
 unless ($sessionRef) {
     # write error message in the log file

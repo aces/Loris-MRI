@@ -35,8 +35,9 @@ class Mri:
         db.connect()
 
         # grep config settings from the Config module
-        default_bids_vl = db.get_config('default_bids_vl')
-        data_dir        = db.get_config('dataDirBasepath')
+        config_obj      = Config(db, verbose)
+        default_bids_vl = config_obj.get_config('default_bids_vl')
+        data_dir        = config_obj.get_config('dataDirBasepath')
 
         # load the BIDS directory
         bids_reader = BidsReader(bids_dir)
@@ -118,6 +119,21 @@ class Mri:
         self.psc_id          = self.loris_cand_info['PSCID']
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
+        self.project_id      = self.loris_cand_info['RegistrationProjectID']
+        
+        self.subproject_id   = None 
+        for row in bids_reader.participants_info:
+            if not row['participant_id'] == self.psc_id:
+                continue
+            if 'subproject' in row:
+                subproject_info = db.pselect(
+                    "SELECT SubprojectID FROM subproject WHERE title = %s",
+                    [row['subproject'],]
+                )
+                if(len(subproject_info) > 0):
+                    self.subproject_id = subproject_info[0]['SubprojectID']
+            break
+        
         self.session_id      = self.get_loris_session_id()
 
         # grep all the NIfTI files for the modality
@@ -162,10 +178,8 @@ class Mri:
         visit_label = self.bids_ses_id if self.bids_ses_id else self.default_vl
 
         session = Session(
-            verbose     = self.verbose,
-            cand_id     = self.cand_id,
-            center_id   = self.center_id,
-            visit_label = visit_label
+            self.verbose, self.cand_id, visit_label,
+            self.center_id, self.project_id, self.subproject_id
         )
         loris_vl_info = session.get_session_info_from_loris(self.db)
 
@@ -391,7 +405,6 @@ class Mri:
             )
             print(self.data_dir + pic_rel_path)
             if os.path.exists(self.data_dir + 'pic/' + pic_rel_path):
-                print("INNNN")
                 imaging.insert_parameter_file(file_id, 'check_pic_filename', pic_rel_path)
 
         return {'file_id': file_id, 'file_path': file_path}

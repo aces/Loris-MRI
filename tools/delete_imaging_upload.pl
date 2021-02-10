@@ -4,12 +4,12 @@
 
 =head1 NAME
 
-delete_mri_upload.pl -- Delete everything that was produced (or part of what was produced) by the imaging pipeline for a given set of imaging uploads
+delete_imaging_upload.pl -- Delete everything that was produced (or part of what was produced) by the imaging pipeline for a given set of imaging uploads
                         IDs, all associated to the same C<tarchive>.
                         
 =head1 SYNOPSIS
 
-perl delete_mri_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
+perl delete_imaging_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
             [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk]
 
 Available options are:
@@ -245,7 +245,7 @@ HELP
 
 my $usage = <<USAGE;
 Usage: $0 [-profile file] [-ignore] [-backup_path path] [-protocol] [-form] [-uploadID list_of_uploadIDs]
-            [-type list_of_scan_types] [-defaced] [-file fileBaseName] [-nosqlbk] [-nofilesbk]
+            [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk]
 USAGE
 
 &Getopt::Tabular::SetHelp($Help, $usage);
@@ -373,7 +373,7 @@ $dbh->{'PrintError'} = 0;
 
 my %files;
 $files{'mri_upload'} = &getMriUploadFiles($dbh, $options{'UPLOAD_ID'});
-&validateMriUploads($files{'mri_upload'}, $options{'UPLOAD_ID'});
+&validateMriUploads($files{'mri_upload'}, \%options, $scanTypeList);
 
 #===================================================#
 # Make sure there are no entries in files_qc_status #
@@ -468,6 +468,12 @@ if(@{ $files{'mri_processing_protocol'} } && !$options{'DELETE_PROTOCOLS'}) {
     die "$msg\n";
 }
 
+
+if($options{'BASENAME'} ne '' && !@{ $files{'files'} }) {
+    warn "Warning! The basename specifed on the command line does not match any records in table files.\n";
+}
+
+
 #=============================================================================#
 # Verify that all files found in the various tables exist on the file system  #
 #=============================================================================#
@@ -491,11 +497,12 @@ if(@$missingFilesRef) {
 my $nbFilesInBackup = 0;
 $nbFilesInBackup += &backupFiles(\%files, \@scanTypesToDelete, \%options) unless $options{'NO_FILES_BK'};
 
+
 #=======================================================#
 # Delete everything associated to the upload(s) in the  #
 # database                                              #
 #=======================================================#
-$nbFilesInBackup += &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDelete, \%options);
+my $deleteResultsRef = &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDelete, \%options);
 
 #=======================================================#
 # Delete everything associated to the upload(s) in the  #
@@ -503,12 +510,12 @@ $nbFilesInBackup += &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDelete,
 #=======================================================#
 &deleteUploadsOnFileSystem(\%files, \@scanTypesToDelete, $options{'KEEP_DEFACED'}, $options{'BASENAME'});
 
-&gzipBackupFile($options{'BACKUP_PATH'}) if $nbFilesInBackup;
+&gzipBackupFile($options{'BACKUP_PATH'}) if $deleteResultsRef->{'SQL_BACKUP_DONE'};
 
 #==========================#
 # Print success message    #
 #==========================#
-&printExitMessage(\%files, \@scanTypesToDelete, $tarchiveID);
+&printExitMessage(\%files, \@scanTypesToDelete, $deleteResultsRef);
 
 exit $NeuroDB::ExitCodes::SUCCESS;
 
@@ -520,7 +527,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =pod
 
-=head3 printExitMessage($filesRef, $scanTypesToDeleteRef) 
+=head3 printExitMessage($filesRef, $scanTypesToDeleteRef, $deleteResultsRef)
 
 Prints an appropriate message before exiting. 
 
@@ -528,15 +535,17 @@ INPUTS:
   - $filesRef: reference to the array that contains the file information for all the files
     that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $deleteResultsRef: reference on the hash that contains the result of the deletion of the records in the
+    database. 
 
 =cut
 sub printExitMessage {
-    my($filesRef, $scanTypesToDeleteRef) = @_;
+    my($filesRef, $scanTypesToDeleteRef, $deleteResultsRef) = @_;
 
     # If there are specific types of scan to delete, then we know that there
     # can be only one upload in @$uploadIDRef
     if(@$scanTypesToDeleteRef) {
-        if(!@{ $filesRef->{'files'} }) {
+        if(!$deleteResultsRef->{'NB_RECORDS_DELETED'}) {
             printf(
                 "No scans of type %s found for upload %s.\n", 
                 &prettyListPrint($scanTypesToDeleteRef, 'or'),
@@ -549,7 +558,7 @@ sub printExitMessage {
                 $filesRef->{'mri_upload'}->[0]->{'UploadID'}
             );
         }
-    } else {
+    } elsif($deleteResultsRef->{'NB_RECORDS_DELETED'}) {
         my @uploadIDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
         printf(
             "Successfully deleted data for %s %s.\n",
@@ -648,7 +657,7 @@ sub getTarchiveFiles {
 }
 =pod
 
-=head3 validateMriUploads($mriUploadsRef, $uploadIDsRef)
+=head3 validateMriUploads($mriUploadsRef, $optionsRef, $scanTypeList)
 
 Validates that the list of upload IDs passed on the commamnd line are valid arguments for
 the script. It one of them is invalid, an error message is displayed and the program exits.
@@ -658,18 +667,19 @@ INPUTS:
                  C<< $mriUploadsRef->[0]->{'TarchiveID'} >>(this would return the C<TarchiveID> of the first C<mri_upload>
                  in the array. The properties stored for each hash are: C<UploadID>, C<TarchiveID>, C<FullPath>
                  C<Inserting>, C<InsertionComplete> and C<SessionID>.
-   - $uploadIDsRef: reference to the array that contains the upload IDs passed on the command line.
+   - $optionsRef: reference to the array that contains the options passed on the command line.
+   - $scanTypeList: list of scan types to delete passed on the command line.
 
 =cut
 
 sub validateMriUploads {
-    my($mriUploadsRef, $uploadIDsRef) = @_;
+    my($mriUploadsRef, $optionsRef, $scanTypeList) = @_;
     
     #======================================================#
     # Check that all upload IDs passed on the command line #
     # were found in the database                           #
     #======================================================#
-    foreach my $id (@$uploadIDsRef) {
+    foreach my $id (@{ $optionsRef->{'UPLOAD_ID'} }) {
         if(!grep($_->{'UploadID'} == $id, @$mriUploadsRef)) {
             printf STDERR "No upload found in table mri_upload with upload ID $id\n";
             exit $NeuroDB::ExitCodes::INVALID_ARG;
@@ -699,6 +709,32 @@ sub validateMriUploads {
         print STDERR join(',', keys %tarchiveID);
         print STDERR ". Aborting\n";
         exit $NeuroDB::ExitCodes::INVALID_ARG;
+    }
+
+    #===============================================================================#
+    # If the upload IDs to delete are associated to an exsisting archive, ensure    #
+    # that there are no other uploads with IDs *not* in the list associated to that #
+    # archive. This check is done only if the user wants to delete the uploads and  #
+    # everything associated to them. 
+    #===============================================================================#
+    my @tarchiveID = keys  %tarchiveID;
+    if($tarchiveID[0] ne 'NULL') {
+        if(!$optionsRef->{'KEEP_DEFACED'} && !$scanTypeList && (!$optionsRef->{'BASENAME'} ne '')) {
+            my $query = "SELECT UploadID FROM mri_upload WHERE TarchiveID = ?";
+            my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID[0]);
+            if(scalar(@$rowsRef) != scalar(@$mriUploadsRef)) {
+                my @notInMriUploads = ();
+                foreach my $row (@$rowsRef) {
+                    push(@notInMriUploads, $row->{'UploadID'}) unless grep($_->{'UploadID'} == $row->{'UploadID'}, @$mriUploadsRef);
+                }
+                my $uploadString = @notInMriUploads == 1 ? 'this upload ID' : 'these upload IDs';
+                print STDERR "The upload IDs passed on the command line are associated to ";
+                print STDERR "tarchive $tarchiveID[0], which also has $uploadString associated to it: ";
+                print STDERR join(',', @notInMriUploads) . ".\n";
+                print STDERR ucfirst($uploadString) . " must be included in the list of upload IDs to delete. Aborting.\n";
+                exit $NeuroDB::ExitCodes::INVALID_ARG;
+            }
+        }
     }
 }
 
@@ -1405,8 +1441,10 @@ INPUTS:
   - $optionsRef: reference on the hash array of the options that were passed on the command line.
   
 RETURNS:
-  - 1 if this method produced a file containing the SQL statements that restore the database state to what it was before calling this
+  - A reference to a hash with two keys:
+    * SQL_BACKUP_DONE    => 1 if this method produced a file containing the SQL statements that restore the database state to what it was before calling this
     method, 0 otherwise.
+    * NB_RECORDS_DELETED => the number of records effectively deleted by this method.
                  
 =cut
 sub deleteUploadsInDatabase {
@@ -1420,53 +1458,57 @@ sub deleteUploadsInDatabase {
         ? (undef, undef) : tempfile('sql_backup_XXXX', UNLINK => 1);
         
     my @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
-    &deleteTableData($dbh, 'notification_spool', 'ProcessID', \@IDs, $tmpSQLFile) if !@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '';
+
+    my $nbRecordsDeleted = 0;
+    if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
+        $nbRecordsDeleted += &deleteTableData($dbh, 'notification_spool', 'ProcessID', \@IDs, $tmpSQLFile);
+    }
     
     # If only specific scan types are targeted for deletion, do not delete the entries in
     # tarchive_files and tarchive_series as these are tied to the archive, not the MINC files   
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         my $IDsRef = &getTarchiveSeriesIDs($dbh, $filesRef);  
-        &deleteTableData($dbh, 'tarchive_files', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_files', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile);
     
-        &deleteTableData($dbh, 'tarchive_series', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile); 
+        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_series', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile); 
     }
     
     @IDs = map { $_->{'ParameterFileID'} } @{ $filesRef->{'parameter_file'} };
-    &deleteTableData($dbh, 'parameter_file', 'ParameterFileID', \@IDs, $tmpSQLFile);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'parameter_file', 'ParameterFileID', \@IDs, $tmpSQLFile);
     
     if(!$optionsRef->{'KEEP_DEFACED'}) {
         @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
-        &deleteTableData($dbh, 'parameter_file', 'FileID', \@IDs, $tmpSQLFile);
-	}
+        $nbRecordsDeleted += &deleteTableData($dbh, 'parameter_file', 'FileID', \@IDs, $tmpSQLFile);
+    }
 
     @IDs = map { $_->{'IntermedID'} } @{ $filesRef->{'files_intermediary'} };
-    &deleteTableData($dbh, 'files_intermediary', 'IntermedID', \@IDs, $tmpSQLFile); 
+    $nbRecordsDeleted += &deleteTableData($dbh, 'files_intermediary', 'IntermedID', \@IDs, $tmpSQLFile); 
     
     # Since all files in files_intermediary are linked to other files in table files, we
     # have to delete these files first from table files.
     if(!$optionsRef->{'KEEP_DEFACED'}) {
         @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
-        &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
     } else { 
         &updateFilesIntermediaryTable($dbh, $filesRef, $tmpSQLFile);
     }
    
     @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
-    &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
     
     @IDs = map { $_->{'ProcessProtocolID'} } @{ $filesRef->{'mri_processing_protocol'} };
-    &deleteTableData($dbh, 'mri_processing_protocol', 'ProcessProtocolID', \@IDs, $tmpSQLFile);
-    
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_processing_protocol', 'ProcessProtocolID', \@IDs, $tmpSQLFile);
+
     @IDs = map { $_->{'ID'} } @{ $filesRef->{'mri_protocol_violated_scans'} };
-    &deleteTableData($dbh, 'mri_protocol_violated_scans', 'ID', \@IDs, $tmpSQLFile);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_protocol_violated_scans', 'ID', \@IDs, $tmpSQLFile);
     
     @IDs = map { $_->{'LogID'} } @{ $filesRef->{'mri_violations_log'} };
-    &deleteTableData($dbh, 'mri_violations_log', 'LogID', \@IDs, $tmpSQLFile);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_violations_log', 'LogID', \@IDs, $tmpSQLFile);
     
     @IDs = map { $_->{'ID'} } @{ $filesRef->{'MRICandidateErrors'} };
-    &deleteTableData($dbh, 'MRICandidateErrors', 'ID', \@IDs, $tmpSQLFile);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'MRICandidateErrors', 'ID', \@IDs, $tmpSQLFile);
     
-    &deleteMriParameterForm($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) if $optionsRef->{'DELETE_MRI_PARAMETER_FORM'};
+    $nbRecordsDeleted += &deleteMriParameterForm($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) if $optionsRef->{'DELETE_MRI_PARAMETER_FORM'};
 
     # Should check instead if the tarchive is not tied to anything
     # (i.e no associated entries in files, mri_violations_log, etc...)
@@ -1476,9 +1518,9 @@ sub deleteUploadsInDatabase {
     my $tarchiveID = $filesRef->{'mri_upload'}->[0]->{'TarchiveID'};
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
-        &deleteTableData($dbh, 'mri_upload', 'UploadID', \@IDs, $tmpSQLFile);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'mri_upload', 'UploadID', \@IDs, $tmpSQLFile);
    
-        &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile) if defined $tarchiveID;
+        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile) if defined $tarchiveID;
     }
     
     &updateSessionTable($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) unless @$scanTypesToDeleteRef || $optionsRef->{'BASENAME'} ne '';
@@ -1486,7 +1528,7 @@ sub deleteUploadsInDatabase {
     $dbh->commit;
     
     # If the SQL restore file should be produced
-    my $sqlFileNotEmpty = 0;
+    my $sqlBackupDone = 0;
     if(!$optionsRef->{'NO_SQL_BK'}) {
         # If there was actually *something* to restore. In some cases, there 
         # is nothing to delete and consequently nothing to restore.
@@ -1499,13 +1541,16 @@ sub deleteUploadsInDatabase {
         
             printf("Added %s to the backup file.\n", SQL_RESTORE_NAME);
         
-            $sqlFileNotEmpty = 1;
+            $sqlBackupDone = 1;
         } else {
             print "Nothing deleted from the database: skipping creation of the SQL restore file.\n"
         }
     } 
     
-    return $sqlFileNotEmpty;
+    return {
+        SQL_BACKUP_DONE    => $sqlBackupDone,
+        NB_RECORDS_DELETED => $nbRecordsDeleted
+    };
 }
 
 =pod
@@ -1629,6 +1674,9 @@ INPUTS:
                  in the array. The properties stored for each hash are: C<UploadID>, C<TarchiveID>, C<FullPath>
                  C<Inserting>, C<InsertionComplete> and C<SessionID>.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
+
+RETURNS:
+   - The numbers of records deleted as a result of this operation.
   
 =cut
 sub deleteMriParameterForm {
@@ -1647,8 +1695,11 @@ sub deleteMriParameterForm {
     
     return if !@commentIDs;
 
-    &deleteTableData($dbh, 'mri_parameter_form', 'CommentID', \@commentIDs, $tmpSQLFile);
-    &deleteTableData($dbh, 'flag'              , 'CommentID', \@commentIDs, $tmpSQLFile);
+    my $nbRecordsDeleted = 0;
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_parameter_form', 'CommentID', \@commentIDs, $tmpSQLFile);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'flag'              , 'CommentID', \@commentIDs, $tmpSQLFile);
+
+    return $nbRecordsDeleted;
 }
 
 =pod
@@ -1769,11 +1820,14 @@ INPUTS:
   - $keyValuesRef: reference on the list of values that field C<$key> has for the records to delete.
   - $tmpSQLBackupFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
                
+RETURNS:
+  - The number of records deleted.
+               
 =cut
 sub deleteTableData {
     my($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile) = @_;
     
-    return unless @$keyValuesRef;
+    return 0 unless @$keyValuesRef;
     
     my $query = "DELETE FROM $table WHERE $key IN("
               . join(',', ('?') x @$keyValuesRef)
@@ -1781,7 +1835,9 @@ sub deleteTableData {
 
     &updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef) if $tmpSQLBackupFile;
 
-    $dbh->do($query, undef, @$keyValuesRef);    
+    my $nbRecordsDeleted = $dbh->do($query, undef, @$keyValuesRef);
+
+    return $nbRecordsDeleted;
 }
 
 =head3 updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef)
@@ -1794,7 +1850,7 @@ INPUTS:
   - $table: name of the database table.
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field C<$key> has for the records to delete.
-               
+
 =cut
 sub updateSQLBackupFile {
     my($tmpSQLBackupFile, $table, $key, $keyValuesRef) = @_;

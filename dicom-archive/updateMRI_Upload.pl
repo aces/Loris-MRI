@@ -26,10 +26,6 @@ B<-tarchivePath tarchivePath> : (mandatory) absolute path to the DICOM archive
 =item *
 B<-source_location source_location> : (mandatory) value to set column 
     C<DecompressedLocation> for the newly created record in table C<mri_upload> (see below)
-    
-=item *
-B<-globLocation> : loosen the validity check of the DICOM archive allowing for the 
-     possibility that it was moved to a different directory.
 
 =item *
 B<-verbose> : be verbose
@@ -120,9 +116,6 @@ my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
     =~ /: (\d+)\.(\d+)/;
 
 
-my $globArchiveLocation = 0;             # whether to use strict ArchiveLocation strings
-                                         # or to glob them (like '%Loc')
-
 my $Help = <<HELP;
 *******************************************************************************
 
@@ -142,7 +135,7 @@ HELP
 my $Usage = "------------------------------------------
 $0 updates the mri_upload table to populate the fields
 
-Usage:\n\t $0 -profile <profile> -sourceLocation src -tarchivePath path [-verbose] [-globLocation] [-timeZone tz] 
+Usage:\n\t $0 -profile <profile> -sourceLocation src -tarchivePath path [-verbose] [-timeZone tz]
 \n\n See $0 -help for more info\n\n";
 
 my @arg_table =
@@ -151,9 +144,6 @@ my @arg_table =
 	  ["-profile","string",1, \$profile, "Specify the name of the config file
           which resides in .loris_mri in the current directory."],
 	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
-      ["-globLocation", "boolean", 1, \$globArchiveLocation, "Loosen the".
-       " validity check of the tarchive allowing for the possibility that".
-       " the tarchive was moved to a different directory."],
       ["-sourceLocation", "string", 1, \$source_location, "The location".
        " where the uploaded file exists."],
       ["-tarchivePath","string",1, \$tarchive, "The absolute path to".
@@ -242,9 +232,7 @@ $tarchive_path    =~ s/$tarchiveLibraryDir\/?//g;
 
 # Check if there is already an mri upload record for the tarchive
 my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
-my $resultRef = $mriUploadOB->getWithTarchive(
-    GET_COUNT, $tarchive_path, $globArchiveLocation
-);
+my $resultRef = $mriUploadOB->getWithTarchive(GET_COUNT, $tarchive_path);
 
 if($resultRef->[0]->{'COUNT(*)'} > 0) {
    print "\n\tERROR: the tarchive is already uploaded \n\n";
@@ -256,9 +244,7 @@ if($resultRef->[0]->{'COUNT(*)'} > 0) {
 ################################################################
 
 my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $db);
-$resultRef = $tarchiveOB->getByTarchiveLocation(
-    ['TarchiveID'], $tarchive_path, $globArchiveLocation
-);
+$resultRef = $tarchiveOB->getByTarchiveLocation($tarchive_path);
 
 if(@$resultRef != 1) {
     die sprintf(

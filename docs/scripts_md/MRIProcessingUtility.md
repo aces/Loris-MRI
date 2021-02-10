@@ -12,16 +12,11 @@ utilities
                           $logfile, $LogDir, $verbose
                         );
 
-    %tarchiveInfo     = $utility->createTarchiveArray(
-                          $ArchiveLocation, $globArchiveLocation
-                        );
+    %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
     my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-    my $scannerID     = $utility->determineScannerID(
-                          \%tarchiveInfo, 0,
-                          $centerID,      $NewScanner
-                        );
+    my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID);
 
     my $subjectIDsref = $utility->determineSubjectID(
                           $scannerID,
@@ -138,16 +133,16 @@ INPUTS:
 RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label 
 and `CandMismatchError` information
 
-### createTarchiveArray($tarchive, $globArchiveLocation)
+### createTarchiveArray($tarchive)
 
-Creates the DICOM archive information hash ref.
+Creates the DICOM archive information hash ref for the tarchive that has the same
+basename as the file path passed as argument.
 
 INPUTS:
-  - $tarchive           : tarchive's path
-  - $globArchiveLocation: globArchiveLocation argument specified when running
-                           the insertion scripts
+  - $tarchive           : tarchive's path (absolute or relative).
 
-RETURNS: DICOM archive information hash ref
+RETURNS: DICOM archive information hash ref if exactly one archive was found. Exits
+         when either no match or multiple matches are found.
 
 ### determinePSC($tarchiveInfo, $to\_log, $upload\_id)
 
@@ -160,16 +155,16 @@ INPUTS:
 
 RETURNS: array of two elements: center name and center ID
 
-### determineScannerID($tarchiveInfo, $to\_log, $centerID, $NewScanner, $upload\_id)
+### determineScannerID($tarchiveInfo, $to\_log, $centerID, $upload\_id)
 
-Determines which scanner ID was used for DICOM acquisitions.
+Determines which scanner ID was used for DICOM acquisitions. Note, if 
+a scanner ID is not already associated to the scanner information found
+in the DICOM headers, then a new scanner will automatically be created.
 
 INPUTS:
   - $tarchiveInfo: archive information hash ref
   - $to\_log      : whether this step should be logged
   - $centerID    : center ID
-  - $NewScanner  : whether a new scanner entry should be created if the scanner
-                   used is a new scanner for the study
   - $upload\_id   : upload ID of the study
 
 RETURNS: scanner ID

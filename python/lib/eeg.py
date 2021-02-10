@@ -29,14 +29,16 @@ class Eeg:
         from lib.bidsreader import BidsReader
         from lib.eeg        import Eeg
         from lib.database   import Database
+        from lib.database_lib.config import Config
 
         # database connection
         db = Database(config_file.mysql, verbose)
         db.connect()
 
         # grep config settings from the Config module
-        default_bids_vl = db.get_config('default_bids_vl')
-        data_dir        = db.get_config('dataDirBasepath')
+        config_obj      = Config(db, verbose)
+        default_bids_vl = config_obj.get_config('default_bids_vl')
+        data_dir        = config_obj.get_config('dataDirBasepath')
 
         # load the BIDS directory
         bids_reader = BidsReader(bids_dir)
@@ -126,12 +128,27 @@ class Eeg:
         self.psc_id          = self.loris_cand_info['PSCID']
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
+        self.project_id      = self.loris_cand_info['RegistrationProjectID']
+        
+        self.subproject_id   = None 
+        for row in bids_reader.participants_info:
+            if not row['participant_id'] == self.psc_id:
+                continue
+            if 'subproject' in row:
+                subproject_info = db.pselect(
+                    "SELECT SubprojectID FROM subproject WHERE title = %s",
+                    [row['subproject'],]
+                )
+                if(len(subproject_info) > 0):
+                    self.subproject_id = subproject_info[0]['SubprojectID']
+            break
+                
         self.session_id      = self.get_loris_session_id()
 
         # grep the channels, electrodes, eeg and events files
         self.channels_files   = self.grep_bids_files('channels')
         self.electrodes_files = self.grep_bids_files('electrodes')
-        self.eeg_files        = self.grep_bids_files('eeg')
+        self.eeg_files        = self.grep_bids_files(self.bids_modality)
         self.events_files     = self.grep_bids_files('events')
 
         # check if a tsv with acquisition dates or age is available for the subject
@@ -175,10 +192,8 @@ class Eeg:
         visit_label = self.bids_ses_id if self.bids_ses_id else self.default_vl
 
         session = Session(
-            verbose     = self.verbose,
-            cand_id     = self.cand_id,
-            center_id   = self.center_id,
-            visit_label = visit_label
+            self.verbose, self.cand_id, visit_label,
+            self.center_id, self.project_id, self.subproject_id
         )
         loris_vl_info = session.get_session_info_from_loris(self.db)
 
@@ -240,7 +255,7 @@ class Eeg:
         # TODO check if want this part to be in the Config module instead of
         # TODO hardcoding it and risk that other random types are in the
         # TODO derivatives folder
-        exclude_types = ['channels', 'electrodes', 'eeg', 'events']
+        exclude_types = ['channels', 'electrodes', self.bids_modality, 'events']
         for type in exclude_types:
             if type in bids_types:
                 bids_types.remove(type)

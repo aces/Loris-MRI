@@ -36,7 +36,7 @@ NeuroDB::objectBroker::TarchiveOB -- An object broker for `tarchive` records
     my $tarchivesRef;
     try {
         $tarchivesRef = $tarchiveOB->getByTarchiveLocation(
-            [ 'TarchiveID' ], '/tmp/my_tarchive.tar.gz', 1
+            [ 'TarchiveID' ], '/tmp/my_tarchive.tar.gz'
         );
     } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
         die sprintf(
@@ -62,21 +62,16 @@ INPUT: the database object used to read/modify the `tarchive` table.
 
 RETURN: new instance of this class.
 
-### getByTarchiveLocation($fieldsRef, $tarchiveLocation, $baseNameMatch)
+### getByTarchiveLocation($tarchiveLocation)
 
 Fetches the records from the `tarchive` table that have a specific archive location.
 
 INPUTS:
-    - reference to an array of the column names to return for each record found.
-      Each element of this array must exist in `@TARCHIVE_FIELDS` or an exception
-      will be thrown.
     - path of the archive used during the search.
-    - boolean indicating if an exact match is sought (false) or if only basenames
-      should be used when comparing two archive locations (true).
 
 RETURN: a reference to an array of hash references. Every hash contains the values for a given 
         row returned by the function call: the key/value pairs contain the name of a column 
-        (as it appears in the array referenced by `$fieldsRef`) and the value it holds, respectively.
+        (listed in `@TARCHIVE_FIELDS`) and the value it holds, respectively.
         As an example, suppose array `$r` contains the result of a call to this method with 
         `@$fieldsRef` set to `('TarchiveID', 'SourceLocation'` one would fetch the `TarchiveID` 
         of the 4th record returned using `$r-`\[3\]->{'TarchiveID'}>.
@@ -95,5 +90,5 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

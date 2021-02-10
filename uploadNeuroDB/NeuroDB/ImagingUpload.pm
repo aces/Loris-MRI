@@ -189,7 +189,7 @@ sub IsCandidateInfoValid {
     ####Get a list of files from the folder#####################
     #############Loop through the files#########################
     ############################################################
-    my $cmd = "find -path " . quotemeta($this->{'uploaded_temp_folder'}) . " -name '__MACOSX' -delete ";
+    my $cmd = "find " . quotemeta($this->{'uploaded_temp_folder'}) . " -name '__MACOSX' -exec rm -rf {} + ";
     print "\n $cmd \n";
     system($cmd);
 
@@ -244,7 +244,7 @@ sub IsCandidateInfoValid {
         }
 
         my $command = sprintf(
-            "%s/uploadNeuroDB/tarchiveLoader.pl -globLocation -profile %s %s -uploadID %s",
+            "%s/uploadNeuroDB/tarchiveLoader.pl -profile %s %s -uploadID %s",
             quotemeta($bin_dirPath),
             $this->{'profile'},
             quotemeta($archived_file_path),
@@ -494,7 +494,7 @@ sub runTarchiveLoader {
 
 
     my $command = sprintf(
-        "%s/uploadNeuroDB/tarchiveLoader.pl -globLocation -profile %s %s -uploadID %s",
+        "%s/uploadNeuroDB/tarchiveLoader.pl -profile %s %s -uploadID %s",
         quotemeta($bin_dirPath),
         $this->{'profile'},
         quotemeta($archived_file_path),

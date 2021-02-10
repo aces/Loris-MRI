@@ -106,7 +106,7 @@ print "\n==> Successfully connected to database \n";
 
 my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
-my $tarchiveLibraryDir = $configOB->getDataDirPath();
+my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
 $tarchiveLibraryDir    =~ s/\/$//g;
 
 

@@ -199,12 +199,10 @@ $hostname = inet_ntoa($hostname);
 my $system          = `uname`;
 
 
-# Remove all files starting with . in the dcm_source directory
-my $cmd = "cd " . $dcm_source . "; find -type f -name '.*' | xargs rm -f";
-system($cmd);
-# Remove __MACOSX directory
-my $cmd = "cd " . $dcm_source . "; find -name '__MACOSX' | xargs rm -rf";
-system($cmd);
+# Remove all files starting with . and __MACOSX in the dcm_source directory
+my @args = ($dcm_source);
+push(@args, qw/-type f -name .* -delete -o -type d -name __MACOSX -exec rm -rf {} +/);
+system('find', @args);
 
 # create new summary object
 my $summary = DICOM::DCMSUM->new($dcm_source,$targetlocation);
@@ -329,7 +327,7 @@ if ($dbase) {
 # call the updateMRI_upload script###
 if ($mri_upload_update) {
     my $script =  "updateMRI_Upload.pl"
-                 . " -profile $profile -globLocation -tarchivePath $finalTarget"
+                 . " -profile $profile -tarchivePath $finalTarget"
                  . " -sourceLocation $dcm_source";
     my $output = system($script);
     if ($output!=0)  {

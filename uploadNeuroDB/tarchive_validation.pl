@@ -20,12 +20,6 @@ Available options are:
 -reckless    : upload data to the database even if the study protocol
                is not defined or if it is violated
 
--globLocation: loosen the validity check of the tarchive allowing for
-               the possibility that the tarchive was moved to a
-               different directory
-
--newScanner  : boolean, if set, register new scanners into the database
-
 -verbose     : boolean, if set, run the script in verbose mode
 
 =head1 DESCRIPTION
@@ -38,8 +32,8 @@ against the one inserted in the database using checksum
 - Verification of the PSC information using whatever field containing the site
 string (typically, the patient name or patient ID)
 
-- Verification of the C<ScannerID> of the DICOM study archive (optionally
-creates a new scanner entry in the database if necessary)
+- Verification of the C<ScannerID> of the DICOM study archive (creates a
+new scanner entry in the database if necessary)
 
 - Optionally, creation of candidates as needed and standardization of sex
 information when creating the candidates (DICOM uses M/F, LORIS database uses
@@ -110,10 +104,6 @@ my $profile     = undef;       # this should never be set unless you are in a
 my $upload_id;                 # uploadID associated with the tarchive to validate
 my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
-my $NewScanner  = 1;           # This should be the default unless you are a
-                               # control freak
-my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
-                               # or to glob them (like '%Loc')
 my $template         = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($sex, $tarchive,%tarchiveInfo);
 my $User             = getpwuid($>);
@@ -127,13 +117,6 @@ my @opt_table = (
                  ["-reckless", "boolean", 1, \$reckless,
                   "Upload data to database even if study protocol is not".
                   " defined or violated."],
-                 ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                  "Loosen the validity check of the tarchive allowing for".
-                  " the possibility that the tarchive was moved to a". 
-                  " different directory."],
-                 ["-newScanner", "boolean", 1, \$NewScanner, "By default a". 
-                  " new scanner will be registered if the data you upload".
-                  " requires it. You can risk turning it off."],
 
                  ["Fancy options","section"],
 
@@ -158,7 +141,7 @@ The program does the following validation
 
 - Verify PSC information using whatever field contains site string
 
-- Verify/determine the ScannerID (optionally create a new one if necessary)
+- Verify/determine the ScannerID (create a new one if necessary)
 
 - Optionally create candidates as needed Standardize sex (DICOM uses M/F,
   DB uses Male/Female)
@@ -272,10 +255,7 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
 $tarchiveLibraryDir    =~ s/\/$//g;
 my $ArchiveLocation    = $tarchive;
 $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
-%tarchiveInfo = $utility->createTarchiveArray(
-                    $ArchiveLocation,
-                    $globArchiveLocation
-                );
+%tarchiveInfo = $utility->createTarchiveArray($ArchiveLocation);
 
 ################################################################
 #### Verify the archive using the checksum from database #######
@@ -296,7 +276,7 @@ my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo, 1, $upload
 ################################################################
 ################################################################
 my $scannerID = $utility->determineScannerID(
-    \%tarchiveInfo, 1, $centerID, $NewScanner, $upload_id
+    \%tarchiveInfo, 1, $centerID, $upload_id
 );
 
 ################################################################

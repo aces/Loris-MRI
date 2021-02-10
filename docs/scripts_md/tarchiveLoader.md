@@ -25,14 +25,6 @@ Available options are:
 \-reckless                : Upload data to database even if study protocol is
                            not defined or violated
 
-\-globLocation            : Loosen the validity check of the tarchive allowing
-                           for the possibility that the tarchive was moved to
-                           a different directory
-
-\-newScanner              : By default a new scanner will be registered if the
-                           data you upload requires it. You can risk turning
-                           it off
-
 \-keeptmp                 : Keep temporary directory. Make sense if have
                            infinite space on your server
 
@@ -51,7 +43,7 @@ Available options are:
 This script interacts with the LORIS database system. It will fetch or modify
 contents of the following tables:
 `session`, `parameter_file`, `parameter_type`, `parameter_type_category`,
-`files`, `mri_staging`, `notification_spool`
+`files`, `mri_staging`, `notification_spool`, `mri_scanner`
 
 ## Methods
 
@@ -82,4 +74,4 @@ License: GPLv3
 # AUTHORS
 
 J-Sebastian Muehlboeck based on Jonathan Harlap\\'s process\_uploads, LORIS
-community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

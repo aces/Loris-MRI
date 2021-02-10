@@ -40,7 +40,7 @@ NeuroDB::objectBroker::TarchiveOB -- An object broker for C<tarchive> records
   my $tarchivesRef;
   try {
       $tarchivesRef = $tarchiveOB->getByTarchiveLocation(
-          [ 'TarchiveID' ], '/tmp/my_tarchive.tar.gz', 1
+          [ 'TarchiveID' ], '/tmp/my_tarchive.tar.gz'
       );
   } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
       die sprintf(
@@ -70,7 +70,11 @@ use File::Basename;
 
 use TryCatch;
 
-my @TARCHIVE_FIELDS = qw(TarchiveID ArchiveLocation);
+my @TARCHIVE_FIELDS = qw(
+    TarchiveID ArchiveLocation PatientName PatientID PatientDoB md5sumArchive
+    ScannerManufacturer ScannerModel ScannerSerialNumber ScannerSoftwareVersion
+    neurodbCenterName SourceLocation
+);
 
 =pod
 
@@ -89,47 +93,34 @@ has 'db' => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 
 =pod
 
-=head3 getByTarchiveLocation($fieldsRef, $tarchiveLocation, $baseNameMatch)
+=head3 getByTarchiveLocation($tarchiveLocation)
 
 Fetches the records from the C<tarchive> table that have a specific archive location.
 
 INPUTS:
-    - reference to an array of the column names to return for each record found.
-      Each element of this array must exist in C<@TARCHIVE_FIELDS> or an exception
-      will be thrown.
     - path of the archive used during the search.
-    - boolean indicating if an exact match is sought (false) or if only basenames
-      should be used when comparing two archive locations (true).
 
 RETURN: a reference to an array of hash references. Every hash contains the values for a given 
         row returned by the function call: the key/value pairs contain the name of a column 
-        (as it appears in the array referenced by C<$fieldsRef>) and the value it holds, respectively.
+        (listed in C<@TARCHIVE_FIELDS>) and the value it holds, respectively.
         As an example, suppose array C<$r> contains the result of a call to this method with 
         C<@$fieldsRef> set to C<('TarchiveID', 'SourceLocation'> one would fetch the C<TarchiveID> 
         of the 4th record returned using C<$r->[3]->{'TarchiveID'}>.
 =cut
 
 sub getByTarchiveLocation {
-    my($self, $fieldsRef, $tarchiveLocation, $baseNameMatch) = @_;
+    my($self, $tarchiveLocation) = @_;
 
-    foreach my $f (@$fieldsRef) {
-        if(!grep($f eq $_, @TARCHIVE_FIELDS)) {
-            NeuroDB::objectBroker::ObjectBrokerException->throw(
-                errorMessage => "Failed to retrieve tarchive record: invalid tarchive field $f"
-            );
-        }
-    }
-
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = sprintf(
-        "SELECT %s FROM tarchive WHERE ArchiveLocation %s",
-        join(',', (@$fieldsRef ? @$fieldsRef : @TARCHIVE_FIELDS)),
-        $baseNameMatch ? 'LIKE ?' : '=?'
+        "SELECT %s FROM tarchive WHERE CONCAT('/', ArchiveLocation) LIKE ? ",
+        join(',', @TARCHIVE_FIELDS),
     );
 
     try {
         return $self->db->pselect(
             $query,
-            $baseNameMatch ? ('%' . basename($tarchiveLocation) . '%') : $tarchiveLocation
+            ('%/' . quotemeta(basename($tarchiveLocation)))
         );
     } catch(NeuroDB::DatabaseException $e) {
         NeuroDB::objectBroker::ObjectBrokerException->throw(

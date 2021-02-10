@@ -39,9 +39,7 @@ NeuroDB::objectBroker::MriUploadOB -- An object broker for MRI uploads
   my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
   my $mriUploadsRef;
   try {
-      $mriUploadsRef= $mriUploadOB->getWithTarchive(
-          1, '/tmp/my_tarchive.tar.gz', 1
-      );
+      $mriUploadsRef= $mriUploadOB->getWithTarchive(1, '/tmp/my_tarchive.tar.gz');
   } catch(NeuroDB::objectBroker::ObjectBrokerException $e) {
       die sprintf(
           "Failed to retrieve MRI uploads: %s",
@@ -73,7 +71,8 @@ use TryCatch;
 
 # These are the only fields modified when inserting a new MRI upload record
 my @MRI_UPLOAD_FIELDS = (
-    'UploadedBy' ,'UploadDate','TarchiveID','DecompressedLocation', 'UploadLocation', 'PatientName'
+    'UploadedBy' ,'UploadDate','TarchiveID','DecompressedLocation', 'UploadLocation', 'PatientName',
+    'IsTarchiveValidated', 'UploadID'
 );
 
 =pod
@@ -93,7 +92,7 @@ has 'db'     => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 
 =pod
 
-=head3 getWithTarchive($isCount, $tarchiveLocation, $isBaseNameMatch)
+=head3 getWithTarchive($isCount, $tarchiveLocation)
 
 Fetches the entries in the C<mri_upload> table that have a specific archive
 location. This method throws a C<NeuroDB::objectBroker::ObjectBrokerException>
@@ -103,8 +102,6 @@ INPUTS:
     - boolean indicating if only a count of the records found is needed
       or the full record properties.
     - path of the archive location.
-    - boolean indicating if a match is sought on the full archive name
-      or only the basename.
 
 RETURNS: a reference to an array of array references. If C<$isCount> is true, then
          C<< $returnValue->[0]->[0] >> will contain the count of records sought. Otherwise
@@ -113,20 +110,22 @@ RETURNS: a reference to an array of array references. If C<$isCount> is true, th
 =cut
 
 sub getWithTarchive {
-    my($self, $isCount, $tarchiveLocation, $isBaseNameMatch) = @_;
+    my($self, $isCount, $tarchiveLocation) = @_;
 
-    my $select = $isCount         ? 'COUNT(*)'   : join(',', @MRI_UPLOAD_FIELDS);
-    my $where  = $isBaseNameMatch ? 'LIKE ?' : '=?';
+    # We must preceed all the MRI upload fields with the table name they are issued from
+    # to avoid clashes with fields in table tarchive when building the SQL statement later on  
+    my $select = $isCount ? 'COUNT(*)' : join(',', (map { "mri_upload.$_" } @MRI_UPLOAD_FIELDS));
 
+    # CONCAT ensures that ArchiveLocation always contains a slash at the beginning
     my $query = "SELECT $select "
         .       "FROM mri_upload "
         .       "JOIN tarchive USING(TarchiveID) "
-        .       "WHERE ArchiveLocation $where ";
+        .       "WHERE CONCAT('/', ArchiveLocation) LIKE ? ";
 
     try {
         return $self->db->pselect(
             $query,
-            $isBaseNameMatch ? ('%' . basename($tarchiveLocation) . '%') : $tarchiveLocation
+            ('%/' . quotemeta(basename($tarchiveLocation)))
         );
     } catch(NeuroDB::DatabaseException $e) {
         NeuroDB::objectBroker::ObjectBrokerException->throw(

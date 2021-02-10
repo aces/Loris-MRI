@@ -25,12 +25,6 @@ Available options are:
 
 -tarchivePath: the absolute path to the tarchive file
 
--globLocation: loosens the validity check of the tarchive allowing
-               for the possibility that the tarchive was moved
-               to a different directory
-
--newScanner  : if set [default], new scanner will be registered
-
 -xlog        : opens an xterm with a tail on the current log file
 
 -verbose     : if set, be verbose
@@ -94,8 +88,9 @@ use NeuroDB::DatabaseException;
 
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
+use NeuroDB::objectBroker::MriUploadOB;
 
-
+use constant GET_COLUMNS => 0;
 
 my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
     =~ /: (\d+)\.(\d+)/;
@@ -120,16 +115,13 @@ my $reckless    = 0;           # this is only for playing and testing. Don't
                                # set it to 1!!!
 my $force       = 0;           # This is a flag to force the script to run  
                                # Even if the validation has failed
-my $NewScanner  = 1;           # This should be the default unless you are a 
-                               # control freak
 my $xlog        = 0;           # default should be 0
 my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
 my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
 my $acquisitionProtocolID;     # acquisition Protocol id
 my $extra_validation_status;   # Initialise the extra validation status
 my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
-my $globArchiveLocation = 0;   # whether to use strict ArchiveLocation strings
-                               # or to glob them (like '%Loc')
+
 my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%studyInfo,$minc);
 my $User = getpwuid($>);
@@ -337,50 +329,7 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 #################### Check is_valid column #####################
 ################################################################
 my ( $is_valid, $ArchiveLocation );
-if ( $tarchive ) {
-    # if only the tarchive path is given as an argument, find the associated UploadID
-    # and check if IsTarchiveValidated is set to 1.
-    $ArchiveLocation = $tarchive;
-    $ArchiveLocation =~ s/$tarchiveLibraryDir\/?//g;
-
-    my $where = "WHERE ArchiveLocation='$tarchive'";
-    if ($globArchiveLocation) {
-        $where = "WHERE ArchiveLocation LIKE '%/" . quotemeta(basename($tarchive)) . "' "
-            . "OR ArchiveLocation = '" . quotemeta(basename($tarchive)) . "'";
-    }
-    my $query = "SELECT IsTarchiveValidated, UploadID, SourceLocation "
-        . "FROM mri_upload "
-        . "JOIN tarchive USING (TarchiveID) $where ";
-    my $sth   = $dbh->prepare($query);
-    print $query . "\n" if $debug;
-
-    $sth->execute();
-    my $errorMessage;
-    if ($sth->rows == 0) {
-        $errorMessage = $globArchiveLocation
-            ? "No mri_upload with the same archive location basename as '$tarchive'\n"
-            : "No mri_upload with archive location '$tarchive'\n";
-        $utility->writeErrorLog(
-            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
-        );
-        print STDERR $errorMessage;
-        exit $NeuroDB::ExitCodes::INVALID_ARG;
-    } elsif ($sth->rows > 1) {
-        $errorMessage = "\nERROR: found more than one UploadID associated with "
-            . "this ArchiveLocation ($tarchive). Please specify the "
-            . "UploadID to use using the -uploadID option.\n\n";
-        $utility->writeErrorLog(
-            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
-        );
-        print STDERR $errorMessage;
-        exit $NeuroDB::ExitCodes::INVALID_ARG;
-    } else {
-        my %row          = $sth->fetchrow_hashref();
-        $is_valid        = $row{isTarchiveValidated};
-        $upload_id       = $row{UploadID};
-    }
-
-} elsif ( $upload_id && !$hrrt ) {
+if ($upload_id && !$hrrt) {
     # if the uploadID is passed as an argument, verify that the tarchive was
     # validated
     (my $query = <<QUERY) =~ s/\n/ /gm;
@@ -398,6 +347,36 @@ QUERY
     my @array        = $sth->fetchrow_array;
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
+
+    # create the studyInfo object
+    %studyInfo = $utility->createTarchiveArray($ArchiveLocation);
+
+} elsif ($tarchive) {
+    my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
+    my $mriUploadsRef = $mriUploadOB->getWithTarchive(GET_COLUMNS, $tarchive);
+
+    my $errorMessage;
+    if (!@$mriUploadsRef) {
+        $errorMessage = "No mri_upload with the same archive location basename as '$tarchive'\n";
+        $utility->writeErrorLog(
+            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        print STDERR $errorMessage;
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    } elsif (@$mriUploadsRef > 1) {
+        $errorMessage = "\nERROR: found more than one UploadID associated with "
+            . "this ArchiveLocation ($tarchive). Please specify the "
+            . "UploadID to use using the -uploadID option.\n\n";
+        $utility->writeErrorLog(
+            $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
+        );
+        print STDERR $errorMessage;
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    } else {
+        my %row          = %{ $mriUploadsRef->[0] };
+        $is_valid        = $row{'isTarchiveValidated'};
+        $upload_id       = $row{'UploadID'};
+    }
 
 } elsif ($hrrt) {
     (my $query = <<QUERY) =~ s/\n/ /gm;
@@ -547,19 +526,79 @@ QUERY
 
 
 
+# Grep information from the MINC header if not available in the studyInfo hash
+$studyInfo{'PatientName'}            //= $file->getParameter('patient:full_name');
+$studyInfo{'PatientID'}              //= $file->getParameter('patient:identification');
+$studyInfo{'ScannerManufacturer'}    //= $file->getParameter('study:manufacturer');
+$studyInfo{'ScannerModel'}           //= $file->getParameter('study:device_model');
+$studyInfo{'ScannerSerialNumber'}    //= $file->getParameter('study:serial_no');
+$studyInfo{'ScannerSoftwareVersion'} //= $file->getParameter('study:software_version');
+$studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date');
 
-## Get the $sessionID
-my ($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
-    $subjectIDsref,
+
+
+
+## Determine PSC, ScannerID and Subject IDs
+my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
+my $scannerID = $utility->determineScannerID(\%studyInfo, 0, $centerID, $upload_id);
+my $subjectIDsref = $utility->determineSubjectID(
+    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
+);
+
+
+
+
+
+## Validate that the candidate exists and that PSCID matches CandID
+if (defined($subjectIDsref->{'CandMismatchError'})) {
+    my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
+
+    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
+    print LOG $message;
+    print LOG " -> WARNING: This candidate was invalid. Logging to
+              MRICandidateErrors table with reason $CandMismatchError";
+
+    my $logQuery = "INSERT INTO MRICandidateErrors".
+        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
+        "VALUES (?, ?, ?, ?, ?)";
+    my $candlogSth = $dbh->prepare($logQuery);
+
+    # Strip all trailing newlines from the error message. Reason:
+    # you cannot search for records in the LORIS MRI violations
+    # module that have a message (i.e. a rejection reason) containing
+    # a newline
+    my $originalSeparatorValue = $/;
+    $/ = '';
+    chomp $CandMismatchError;
+    $/ = $originalSeparatorValue;
+
+    $candlogSth->execute(
+        $file->getParameter('series_instance_uid'),
+        $studyInfo{'TarchiveID'},
+        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
+        $studyInfo{'PatientName'},
+        $CandMismatchError
+    );
+
+    $notifier->spool('tarchive validation', $message, 0,
+        'minc_insertion.pl', $upload_id, 'Y',
+        $notify_notsummary);
+
+    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
+}
+
+
+
+
+################################################################
+####### Get the $sessionID  ####################################
+################################################################
+my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
+    $subjectIDsref, 
     $studyInfo{'DateAcquired'},
     \$dbh,
     $db
 );
-
-# Copy the session info into the %$subjectIDsref hash array
-$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
-$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
-$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
 
 # Session cannot be retrieved from the DB and, if createVisitLabel is set to
 # 1, creation of a new session failed
@@ -579,19 +618,12 @@ if (!$sessionRef) {
 
 
 
-# Grep information from the MINC header if not available in the studyInfo hash
-$studyInfo{'PatientName'}            //= $file->getParameter('patient:full_name');
-$studyInfo{'PatientID'}              //= $file->getParameter('patient:identification');
-$studyInfo{'ScannerManufacturer'}    //= $file->getParameter('study:manufacturer');
-$studyInfo{'ScannerModel'}           //= $file->getParameter('study:device_model');
-$studyInfo{'ScannerSerialNumber'}    //= $file->getParameter('study:serial_no');
-$studyInfo{'ScannerSoftwareVersion'} //= $file->getParameter('study:software_version');
-$studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date');
 
-
-
-
-
+# Copy the session info into the %$subjectIDsref hash array
+$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
+ 
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################

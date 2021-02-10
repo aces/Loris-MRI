@@ -14,7 +14,8 @@ from nilearn import image
 
 import lib.exitcode
 from lib.candidate import Candidate
-from lib.database_lib.site import Site
+from lib.database_lib.site   import Site
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -79,7 +80,8 @@ class Imaging:
         # if the file type cannot be found in the database, exit now
         file_type = None
         for type in imaging_file_types:
-            if type['type'] in file:
+            regex_match = r'' + type['type'] + r'(\.gz)?$'
+            if re.search(regex_match, file):
                 file_type = type['type']
 
         # exits if could not find a file type
@@ -162,9 +164,10 @@ class Imaging:
         """
 
         # Gather column name & values to insert into parameter_file
+        unix_timestamp    = datetime.datetime.now().strftime("%s")
         parameter_type_id = self.get_parameter_type_id(parameter_name)
-        parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value')
-        parameter_file_values = (file_id, parameter_type_id, str(value))
+        parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value',    'InsertTime')
+        parameter_file_values = (file_id,  parameter_type_id, str(value), unix_timestamp)
         self.db.insert(
             table_name='parameter_file',
             column_names=parameter_file_fields,
@@ -344,7 +347,8 @@ class Imaging:
          :rtype subject_id_dict: dict
         """
 
-        dicom_header = self.db.get_config('lookupCenterNameUsing')
+        config_obj   = Config(self.db, self.verbose)
+        dicom_header = config_obj.get_config('lookupCenterNameUsing')
         dicom_value  = tarchive_info_dict[dicom_header]
 
         try:
