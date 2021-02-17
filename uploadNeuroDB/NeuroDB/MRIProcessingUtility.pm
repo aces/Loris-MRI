@@ -675,7 +675,8 @@ INPUTS:
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
   - $acquisitionProtocolID   : acquisition protocol ID
-  - $extra_validation_status : extra validation status ("pass", "exclude", "warning")
+  - $extra_validation_status : extra validation status ("pass", "exclude", "warning") or
+                               C<undef> if C<$bypass_extra_file_checks> is set.
 
 =cut
 
@@ -1190,7 +1191,8 @@ sub registerScanIntoDB {
         || (defined(&Settings::isFileToBeRegisteredGivenProtocol)
             && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol)
            )
-        ) && $extra_validation_status !~ /exclude/) {
+        ) && (!defined($extra_validation_status) || $extra_validation_status !~ /exclude/)
+    ) {
 
         ########################################################
         # convert the textual scan_type into the scan_type id ##
