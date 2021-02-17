@@ -362,7 +362,7 @@ spool($message,'N', $notify_notsummary);
 ################################################################
 ############### Email last completion message ##################
 ################################################################
-my @inserted_files = getInsertedFileNamesUsingUploadID($upload_id);
+my @inserted_files = $imaging_upload->getInsertedFileNamesUsingUploadID($upload_id);
 
 $message = "\n$minc_created minc file(s) created, "
             . "and $minc_inserted minc file(s) "
@@ -373,44 +373,6 @@ print MAIL "Progress: Success\n";
 print MAIL $message."\n";
 print MAIL join("\n", @inserted_files)."\n";
 close MAIL;
-
-################################################################
-############### getInsertedFileNamesUsingUploadID###############
-################################################################
-=pod
-
-=head3 getInsertedFileNamesUsingUploadID($upload_id)
-
-Function that gets names of inserted files using the upload ID
-
-INPUT: The upload ID
-
-RETURNS: The array of inserted file names
-
-=cut
-
-
-sub getInsertedFileNamesUsingUploadID {
-
-    my $upload_id = shift;
-    my ( $file_names, $query ) = '';
-
-    if ($upload_id) {
-        ########################################################
-        ##########Extract Inserted file names using uploadid####
-        ########################################################
-        $query = "SELECT File FROM files f "
-          . "JOIN mri_upload m ON (f.TarchiveSource=m.TarchiveID) "
-          . "WHERE UploadID =?";
-        my $sth = $dbh->prepare($query);
-        $sth->execute($upload_id);
-        if ( $sth->rows > 0 ) {
-            $file_names = $sth->fetchrow_array();
-        }
-    }
-    return $file_names;
-}
-
 
 ################################################################
 ############### getPnameUsingUploadID###########################
