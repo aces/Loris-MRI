@@ -210,6 +210,7 @@ $message = "\n==> Successfully connected to database \n";
 
 my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
+my $mail_user = $configOB->getMailUser();
 
 
 
@@ -220,8 +221,14 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 my $expected_file = getFilePathUsingUploadID($upload_id);
 
 if ( basename($expected_file) ne basename($uploaded_file)) {
-    print STDERR "$Usage\nERROR: The specified upload_id $upload_id does not "
-                 . "correspond to the provided file path $uploaded_file.\n\n";
+    $message = "The specified upload_id $upload_id does not "
+                 . "correspond to the provided file path $uploaded_file.\n\n";;
+    print STDERR "$Usage\nERROR: " . $message;
+    open MAIL, "| mail $mail_user";
+    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
+    print MAIL "Progress: Failed\n";
+    print MAIL $message;
+    close MAIL;
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
@@ -279,6 +286,11 @@ if ( !($is_candinfovalid) ) {
     $message = "\nThe candidate info validation has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
+    open MAIL, "| mail $mail_user";
+    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
+    print MAIL "Progress: Failed\n";
+    print MAIL $message;
+    close MAIL;
     exit $NeuroDB::ExitCodes::INVALID_DICOM;
 }
 
@@ -295,6 +307,11 @@ if ( !$output ) {
     $message = "\nThe dicomTar.pl execution has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
+    open MAIL, "| mail $mail_user";
+    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
+    print MAIL "Progress: Failed\n";
+    print MAIL $message;
+    close MAIL;
     exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 $message = "\nThe dicomTar.pl execution has successfully completed\n";
@@ -309,6 +326,11 @@ if ( !$output ) {
     $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
     spool($message,'Y', $notify_notsummary); 
     print STDERR $message;
+    open MAIL, "| mail $mail_user";
+    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
+    print MAIL "Progress: Failed\n";
+    print MAIL $message;
+    close MAIL;
     exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
@@ -336,6 +358,18 @@ $message = "\nThe insertion scripts have completed "
             . "and $minc_inserted minc file(s) "
             . "inserted into the database \n";
 spool($message,'N', $notify_notsummary);
+
+################################################################
+############### Email last completion message ##################
+################################################################
+$message = "\nProgress: Success\n"
+            . "$minc_created minc file(s) created, "
+            . "and $minc_inserted minc file(s) "
+            . "inserted into the database \n";
+open MAIL, "| mail $mail_user";
+print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
+print MAIL $message;
+close MAIL;
 
 ################################################################
 ############### getPnameUsingUploadID###########################
