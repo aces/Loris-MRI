@@ -362,14 +362,55 @@ spool($message,'N', $notify_notsummary);
 ################################################################
 ############### Email last completion message ##################
 ################################################################
-$message = "\nProgress: Success\n"
-            . "$minc_created minc file(s) created, "
+my @inserted_files = getInsertedFileNamesUsingUploadID($upload_id);
+
+$message = "\n$minc_created minc file(s) created, "
             . "and $minc_inserted minc file(s) "
-            . "inserted into the database \n";
+            . "inserted into the database: \n";
 open MAIL, "| mail $mail_user";
 print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
-print MAIL $message;
+print MAIL "Progress: Success\n";
+print MAIL $message."\n";
+print MAIL join("\n", @inserted_files)."\n";
 close MAIL;
+
+################################################################
+############### getInsertedFileNamesUsingUploadID###############
+################################################################
+=pod
+
+=head3 getInsertedFileNamesUsingUploadID($upload_id)
+
+Function that gets names of inserted files using the upload ID
+
+INPUT: The upload ID
+
+RETURNS: The array of inserted file names
+
+=cut
+
+
+sub getInsertedFileNamesUsingUploadID {
+
+    my $upload_id = shift;
+    my ( $file_names, $query ) = '';
+
+    if ($upload_id) {
+        ########################################################
+        ##########Extract Inserted file names using uploadid####
+        ########################################################
+        $query = "SELECT File FROM files f "
+          . "JOIN mri_upload m ON (f.TarchiveSource=m.TarchiveID) "
+          . "WHERE UploadID =?";
+        my $sth = $dbh->prepare($query);
+        $sth->execute($upload_id);
+        if ( $sth->rows > 0 ) {
+            $file_names = $sth->fetchrow_array();
+        }
+    }
+    return $file_names;
+}
+
 
 ################################################################
 ############### getPnameUsingUploadID###########################
