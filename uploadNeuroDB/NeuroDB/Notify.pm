@@ -135,6 +135,32 @@ sub spool {
 
 =pod
 
+=head3 email($mail_user, $subject, $message)
+
+Sends a new notification email, C<$message>, with subject C<$subject>, to the  C<$mail_user>
+
+INPUTS:
+  - $mail_user : user to email
+  - $subject   : email subject
+  - $message   : email message
+
+RETURNS:
+
+=cut
+
+sub email {
+    my $this = shift;
+    my ($mail_user, $subject, $message) = @_; 
+
+    open MAIL, "| mail $mail_user";
+    print MAIL "Subject: $subject\n\n";
+    print MAIL $message;
+    close MAIL;
+}
+
+
+=pod
+
 =head3 getTypeID($type)
 
 Gets the notification type ID for the notification of type C<$type>.

@@ -699,9 +699,8 @@ RETURNS: The array of inserted file names
 
 
 sub getInsertedFileNamesUsingUploadID {
-    my $self = shift;
+    my ($self, $upload_id) = @_;
 
-    my $upload_id = shift;
     my ( @file_names, $query );
 
     if ($upload_id) {
@@ -714,7 +713,7 @@ sub getInsertedFileNamesUsingUploadID {
         my $sth = $dbh->prepare($query);
         $sth->execute($upload_id);
         if ( $sth->rows > 0 ) {
-            @file_names = $sth->fetchrow_array();
+            @file_names = $sth->fetchall_arrayref([0]);
         }
     }
     return @file_names;

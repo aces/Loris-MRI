@@ -224,11 +224,13 @@ if ( basename($expected_file) ne basename($uploaded_file)) {
     $message = "The specified upload_id $upload_id does not "
                  . "correspond to the provided file path $uploaded_file.\n\n";;
     print STDERR "$Usage\nERROR: " . $message;
-    open MAIL, "| mail $mail_user";
-    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
-    print MAIL "Progress: Failed\n";
-    print MAIL $message;
-    close MAIL;
+    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    $mail_message = "Progress: Failed\n".$message;
+    $Notify->email(
+        $mail_user,
+        $mail_subject,
+        $mail_message,
+    ); 
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
@@ -286,11 +288,13 @@ if ( !($is_candinfovalid) ) {
     $message = "\nThe candidate info validation has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
-    open MAIL, "| mail $mail_user";
-    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
-    print MAIL "Progress: Failed\n";
-    print MAIL $message;
-    close MAIL;
+    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    $mail_message = "Progress: Failed\n".$message;
+    $Notify->email(
+        $mail_user,
+        $mail_subject,
+        $mail_message,
+    ); 
     exit $NeuroDB::ExitCodes::INVALID_DICOM;
 }
 
@@ -307,11 +311,13 @@ if ( !$output ) {
     $message = "\nThe dicomTar.pl execution has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
-    open MAIL, "| mail $mail_user";
-    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
-    print MAIL "Progress: Failed\n";
-    print MAIL $message;
-    close MAIL;
+    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    $mail_message = "Progress: Failed\n".$message;
+    $Notify->email(
+        $mail_user,
+        $mail_subject,
+        $mail_message,
+    ); 
     exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 $message = "\nThe dicomTar.pl execution has successfully completed\n";
@@ -326,11 +332,13 @@ if ( !$output ) {
     $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
     spool($message,'Y', $notify_notsummary); 
     print STDERR $message;
-    open MAIL, "| mail $mail_user";
-    print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
-    print MAIL "Progress: Failed\n";
-    print MAIL $message;
-    close MAIL;
+    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    $mail_message = "Progress: Failed\n".$message;
+    $Notify->email(
+        $mail_user,
+        $mail_subject,
+        $mail_message,
+    ); 
     exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
 }
 
@@ -367,12 +375,14 @@ my @inserted_files = $imaging_upload->getInsertedFileNamesUsingUploadID($upload_
 $message = "\n$minc_created minc file(s) created, "
             . "and $minc_inserted minc file(s) "
             . "inserted into the database: \n";
-open MAIL, "| mail $mail_user";
-print MAIL "Subject: IMAGING_UPLOAD_FILE: ".$uploaded_file." insertion completed.\n\n";
-print MAIL "Progress: Success\n";
-print MAIL $message."\n";
-print MAIL join("\n", @inserted_files)."\n";
-close MAIL;
+    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    $mail_message = "Progress: Success\n".$message."\n"
+                      . join("\n", @inserted_files)."\n";
+    $Notify->email(
+        $mail_user,
+        $mail_subject,
+        $mail_message,
+    ); 
 
 ################################################################
 ############### getPnameUsingUploadID###########################
