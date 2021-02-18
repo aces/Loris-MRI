@@ -603,7 +603,11 @@ my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
 # if the scan was inserted into the files table and there is an
 # extra_validation_status set to 'warning', update the mri_violations_log table
 # MincFile field with the path of the file in the assembly directory
-if (defined $acquisitionProtocolIDFromProd && $extra_validation_status eq 'warning') {
+if (
+       defined $acquisitionProtocolIDFromProd
+    && defined($extra_validation_status)
+    && $extra_validation_status eq 'warning'
+) {
     $utility->update_mri_violations_log_MincFile_path($file);
 }
 

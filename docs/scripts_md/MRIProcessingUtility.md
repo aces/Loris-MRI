@@ -205,7 +205,8 @@ INPUTS:
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
   - $acquisitionProtocolID   : acquisition protocol ID
-  - $extra\_validation\_status : extra validation status ("pass", "exclude", "warning")
+  - $extra\_validation\_status : extra validation status ("pass", "exclude", "warning") or
+                               `undef` if `$bypass_extra_file_checks` is set.
 
 ### extra\_file\_checks($scan\_type, $file, $subjectIdsref, $pname)
 
