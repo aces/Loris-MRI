@@ -258,7 +258,7 @@ INPUT: file hashref
 RETURNS: 1 if the file is unique (or if hashes are not being tracked) or 0
 otherwise.
 
-### make\_pics($file\_ref, $data\_dir, $dest\_dir, $horizontalPics)
+### make\_pics($file\_ref, $data\_dir, $dest\_dir, $horizontalPics, $db)
 
 Generates check pics for the Imaging Browser module for the `NeuroDB::File`
 object referenced by `$file_ref`.

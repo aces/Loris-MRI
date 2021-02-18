@@ -655,7 +655,7 @@ if ($create_nii) {
 if ($create_minc_pics) {
     print "\nCreating Minc Pics\n" if $verbose;
     NeuroDB::MRI::make_pics(
-        \$file, $data_dir, "$data_dir/pic", $horizontalPics
+        \$file, $data_dir, "$data_dir/pic", $horizontalPics, $db
     );
 }
 
