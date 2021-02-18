@@ -1203,7 +1203,7 @@ sub is_unique_hash {
 
 =pod
 
-=head3 make_pics($file_ref, $data_dir, $dest_dir, $horizontalPics)
+=head3 make_pics($file_ref, $data_dir, $dest_dir, $horizontalPics, $db)
 
 Generates check pics for the Imaging Browser module for the C<NeuroDB::File>
 object referenced by C<$file_ref>.
