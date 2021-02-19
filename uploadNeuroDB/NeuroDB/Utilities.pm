@@ -49,3 +49,6 @@ sub blake2b_hash {
 
     return Digest::BLAKE2->new->addfile(*FILE)->hexdigest;
 }
+
+1;
+

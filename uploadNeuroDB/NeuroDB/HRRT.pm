@@ -47,7 +47,6 @@ use Date::Parse;
 use String::ShellQuote;
 use File::Copy;
 
-
 use NeuroDB::MincUtilities;
 use NeuroDB::Utilities;
 
@@ -303,16 +302,18 @@ sub read_matlab_file {
     my @matlab_files = grep ( /.m$/, @{ $self->{hrrt_files} } );
     my $matlab_file  = $matlab_files[0];
 
-    open my $fh, '<', $matlab_file;
-    chomp(my @info = <$fh>);
-    close $fh;
+    if (defined($matlab_file)) {
+        open my $fh, '<', $matlab_file;
+        chomp(my @info = <$fh>);
+        close $fh;
 
-    foreach my $line_nb ( @info ) {
-        next unless ( $line_nb =~ / = / );
-        my ($key, $val) = split( ' = ', $line_nb );
-        $val =~ s/;\cM$//;
-        # set header information
-        $self->{matlab_info}->{$key} = $val;
+        foreach my $line_nb ( @info ) {
+            next unless ( $line_nb =~ / = / );
+            my ($key, $val) = split( ' = ', $line_nb );
+            $val =~ s/;\cM$//;
+            # set header information
+            $self->{matlab_info}->{$key} = $val;
+        }
     }
 
     return $self->{matlab_info};

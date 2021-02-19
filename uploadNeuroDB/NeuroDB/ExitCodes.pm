@@ -201,13 +201,14 @@ our $REGISTER_PROGRAM_FAILURE = 200; # if MNI::Spawn::RegisterPrograms failed
 
 
 #### --- FROM uploadNeuroDB/HRRT_PET_insertion.pl
-our $INVALID_UPLOAD_ID       = 280; # invalid upload ID
-our $INVALID_UPLOAD_LOCATION = 281; # invalid upload location
-our $INVALID_DECOMP_LOCATION = 282; # invalid decompressed location
-our $MINC_FILE_NOT_FOUND     = 283; # if could not convert ECAT file into MINC
-our $MINC_INSERTION_FAILURE  = 284; # if MINC file insertion failure
-our $HRRT_ALREADY_INSERTED   = 285; # if HRRT archive already exists in DB
-our $HEADER_INSERT_FAILURE   = 286; # if could not insert matlab info into the
-                                    # MINC header
+our $INVALID_UPLOAD_ID              = 280; # invalid upload ID
+our $INVALID_UPLOAD_LOCATION        = 281; # invalid upload location
+our $INVALID_DECOMP_LOCATION        = 282; # invalid decompressed location
+our $MINC_FILE_NOT_FOUND            = 283; # if could not convert ECAT file into MINC
+our $MINC_INSERTION_FAILURE         = 284; # if MINC file insertion failure
+our $HRRT_ALREADY_INSERTED          = 285; # if HRRT archive already exists in DB
+our $HEADER_INSERT_FAILURE          = 286; # if could not insert matlab info into the
+                                           # MINC header
 our $HRRT_ARCHIVE_INSERTION_FAILURE = 287; # if HRRT archive insertion into the
                                            # database has failed
+our $UNKNOW_PROTOCOL                = 288; # if HRRT protocol is not found
