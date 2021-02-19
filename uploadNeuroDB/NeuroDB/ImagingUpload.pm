@@ -282,8 +282,8 @@ sub IsCandidateInfoValid {
         }
     }
 	
-	# Issue a warning for the total number of files that are not
-	# DICOM images
+    # Issue a warning for the total number of files that are not
+    # DICOM images
     my $files_not_dicom = scalar @non_image_files;
     if ( (!$this->{'is_hrrt'}) && ($files_not_dicom > 0) ) {
         $message = "\nWARNING: There are $files_not_dicom file(s) which"
@@ -295,6 +295,7 @@ sub IsCandidateInfoValid {
     my $phantom_regex = "($lego_phantom_regex)|($living_phantom_regex)";
     my $patient_name  = $this->{'pname'};
     if ($this->{'is_hrrt'}) {
+
         # if modality is PET HRRT (i.e. there's at least one ECAT7 file), then check
         # that all the files present in the PET directory have been named correctly
         foreach my $file (@file_list) {
