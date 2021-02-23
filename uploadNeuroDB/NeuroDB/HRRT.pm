@@ -492,8 +492,7 @@ INPUTS:
 =cut
 
 sub appendEcatToRegisteredMinc {
-    my ($fileID, $ecat_file, $data_dir, $dbh) = @_;
-
+    my ($self, $fileID, $ecat_file, $data_dir, $dbh) = @_;
     my $file = NeuroDB::File->new(\$dbh);
     $file->loadFile($fileID);
 

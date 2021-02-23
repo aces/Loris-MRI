@@ -211,4 +211,3 @@ our $HEADER_INSERT_FAILURE          = 286; # if could not insert matlab info int
                                            # MINC header
 our $HRRT_ARCHIVE_INSERTION_FAILURE = 287; # if HRRT archive insertion into the
                                            # database has failed
-our $UNKNOW_PROTOCOL                = 288; # if HRRT protocol is not found

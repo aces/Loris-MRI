@@ -100,29 +100,31 @@ my $date = sprintf(
                 "%4d-%02d-%02d %02d:%02d:%02d",
                 $year+1900,$mon+1,$mday,$hour,$min,$sec
            );
-my $debug       = 0;  
-my $message     = '';
+my $debug                    = 0;  
+my $message                  = '';
 my $upload_id;
-my $hrrt    = 0;
-my $verbose = 0;               # default, overwritten if scripts are run with -verbose
-my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed
-                               # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
-                               # with SUMMARY Option in the front-end/imaging_uploader 
-my $profile     = undef;       # this should never be set unless you are in a 
-                               # stable production environment
-my $reckless    = 0;           # this is only for playing and testing. Don't 
-                               # set it to 1!!!
-my $force       = 0;           # This is a flag to force the script to run  
-                               # Even if the validation has failed
-my $xlog        = 0;           # default should be 0
-my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
-my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
-my $acquisitionProtocolID;     # acquisition Protocol id
-my $extra_validation_status;   # Initialise the extra validation status
-my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
+my $hrrt                     = 0;
+my $NewScanner               = 1;
 
-my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
+my $verbose                  = 0;     # default, overwritten if scripts are run with -verbose
+my $notify_detailed          = 'Y';   # notification_spool message flag for messages to be displayed
+                                      # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary        = 'N';   # notification_spool message flag for messages to be displayed 
+                                      # with SUMMARY Option in the front-end/imaging_uploader 
+my $profile                  = undef; # this should never be set unless you are in a 
+                                      # stable production environment
+my $reckless                 = 0;     # this is only for playing and testing. Don't 
+                                      # set it to 1!!!
+my $force                    = 0;     # This is a flag to force the script to run  
+                                      # Even if the validation has failed
+my $xlog                     = 0;     # default should be 0
+my $bypass_extra_file_checks = 0;     # If you need to bypass the extra_file_checks, set to 1.
+my $acquisitionProtocol      = undef; # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocolID;            # acquisition Protocol id
+my $extra_validation_status;          # Initialise the extra validation status
+my $create_minc_pics         = 0;     # Default is 0, set the option to overide.
+
+my $template = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%studyInfo,$minc);
 my $User = getpwuid($>);
 
@@ -158,11 +160,6 @@ my @opt_table = (
 
                  ["-hrrt", "boolean", 1, \$hrrt, "Whether the MINC file " .
                   "comes from an HRRT scanner"],
-
-                 ["-globLocation", "boolean", 1, \$globArchiveLocation,
-                  "Loosen the validity check of the tarchive allowing for the". 
-                  " possibility that the tarchive was moved to a different". 
-                  " directory."],
 
                  ["-newScanner", "boolean", 1, \$NewScanner,
                   "By default a new scanner will be registered if the data".
@@ -413,7 +410,7 @@ if (($is_valid == 0) && ($force==0)) {
 ## Construct the tarchiveinfo Array and the MINC file object
 
 # Create the study info array
-%studyInfo = $utility->createTarchiveArray($ArchiveLocation, $globArchiveLocation, $hrrt);
+%studyInfo = $utility->createTarchiveArray($ArchiveLocation, $hrrt);
 
 # Create the MINC file object and maps DICOM fields
 my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
@@ -535,20 +532,6 @@ $studyInfo{'ScannerSerialNumber'}    //= $file->getParameter('study:serial_no');
 $studyInfo{'ScannerSoftwareVersion'} //= $file->getParameter('study:software_version');
 $studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date');
 
-
-
-
-## Determine PSC, ScannerID and Subject IDs
-my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
-my $scannerID = $utility->determineScannerID(\%studyInfo, 0, $centerID, $upload_id);
-my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
-);
-
-
-
-
-
 ## Validate that the candidate exists and that PSCID matches CandID
 if (defined($subjectIDsref->{'CandMismatchError'})) {
     my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
@@ -596,7 +579,7 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
 my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
     $subjectIDsref, 
     $studyInfo{'DateAcquired'},
-    \$dbh,
+    $dbh,
     $db
 );
 
@@ -703,7 +686,7 @@ my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
 # if the scan was inserted into the files table and there is an
 # extra_validation_status set to 'warning', update the mri_violations_log table
 # MincFile field with the path of the file in the assembly directory
-if (defined $acquisitionProtocolIDFromProd && $extra_validation_status eq 'warning') {
+if (defined $acquisitionProtocolIDFromProd && defined $extra_validation_status && $extra_validation_status eq 'warning') {
     $utility->update_mri_violations_log_MincFile_path($file);
 }
 

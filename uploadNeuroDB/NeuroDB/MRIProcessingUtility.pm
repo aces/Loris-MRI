@@ -478,7 +478,7 @@ QUERY
         }
 
         my $sth = ${$this->{'dbhr'}}->prepare($query);
-        $sth->execute("'%".basename($tarchive)."%'");
+        $sth->execute("%".basename($tarchive)."%");
 
         if ($sth->rows > 0) {
             my $tarchiveInfoRef = $sth->fetchrow_hashref();
@@ -1232,7 +1232,8 @@ sub registerScanIntoDB {
         || (defined(&Settings::isFileToBeRegisteredGivenProtocol)
             && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol)
            )
-        ) && $extra_validation_status !~ /exclude/) {
+        ) 
+        && (!defined($extra_validation_status) || $extra_validation_status !~ /exclude/)) {
 
         ########################################################
         # convert the textual scan_type into the scan_type id ##
