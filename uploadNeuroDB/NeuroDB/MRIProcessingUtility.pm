@@ -718,7 +718,8 @@ INPUTS:
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
   - $acquisitionProtocolID   : acquisition protocol ID
-  - $extra_validation_status : extra validation status ("pass", "exclude", "warning")
+  - $extra_validation_status : extra validation status ("pass", "exclude", "warning") or
+                               C<undef> if C<$bypass_extra_file_checks> is set.
 
 =cut
 
