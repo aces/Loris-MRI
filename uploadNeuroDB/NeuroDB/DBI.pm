@@ -66,6 +66,9 @@ sub connect_to_db
 
     my $dbh = DBI->connect($db_dsn, $db_user, $db_pass) or die
         "DB connection failed\nDBI Error: ". $DBI::errstr."\n";
+      
+    $dbh->{mysql_auto_reconnect} = 1;
+    
     return $dbh;
 }
 

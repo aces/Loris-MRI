@@ -469,6 +469,7 @@ sub getNumberOfMincFiles {
         return ($minc_created, $minc_inserted);
        }
     }
+    return (0, 0);
 }
 
 ################################################################

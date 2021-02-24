@@ -380,7 +380,7 @@ MESSAGE
             $message = "\tERROR: Protocol not found for $minc_file.\n\n";
             # write error message in the log file
             $utility->writeErrorLog(
-                $message, $NeuroDB::ExitCodes::UNKNOW_PROTOCOL, $log_file
+                $message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL, $log_file
             );
             # insert error message into notification spool table
             $notifier->spool(
@@ -388,7 +388,7 @@ MESSAGE
                 'HRRT_PET_insertion.pl', $upload_id, 'Y',
                 'N'
             );
-            exit $NeuroDB::ExitCodes::UNKNOW_PROTOCOL;
+            exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
         }
 
     }
@@ -401,7 +401,7 @@ MESSAGE
         $message = "\tERROR: Protocol not found for $minc_file.\n\n";
         # write error message in the log file
         $utility->writeErrorLog(
-            $message, $NeuroDB::ExitCodes::UNKNOW_PROTOCOL, $log_file
+            $message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL, $log_file
         );
         # insert error message into notification spool table
         $notifier->spool(
@@ -409,7 +409,7 @@ MESSAGE
             'HRRT_PET_insertion.pl', $upload_id, 'Y',
             'N'
         );
-        exit $NeuroDB::ExitCodes::UNKNOW_PROTOCOL;
+        exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
     }
 
 

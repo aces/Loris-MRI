@@ -229,12 +229,12 @@ sub IsCandidateInfoValid {
     ####So the user can continue the insertion by running #########
     ####tarchiveLoader.pl exactly as the error message indicates ##
     ###############################################################
-    if ( ( $row[1] ) || ( $row[2] ) ) {
+    if (($row[1]) || ($row[2])) {
 
         my $archived_file_path = '';
-        my $query             = "SELECT t.ArchiveLocation FROM tarchive t "
-                              . " WHERE t.TarchiveID =?";
-        my $sth               = ${ $this->{'dbhr'} }->prepare($query);
+        my $query              = "SELECT t.ArchiveLocation FROM tarchive t "
+                               . " WHERE t.TarchiveID =?";
+        my $sth                = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute( $row[1] );   
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
@@ -253,11 +253,14 @@ sub IsCandidateInfoValid {
         $command .= " -verbose" if $this->{verbose};
 
         $message =
-            "\nThe Scan for the uploadID "
-            . $this->{'upload_id'}
-            . " has already been run with tarchiveID: "
-            . $row[1]
-            . ". \nTo continue with the rest of the insertion pipeline, "
+            "\nThe Scan for the uploadID " . $this->{'upload_id'} 
+            . " has already been run";
+
+        if (defined $row[1]) {
+            $message .= " with tarchiveID: " . $row[1];
+        }
+            
+        $message .= ". \nTo continue with the rest of the insertion pipeline, "
             . "please run tarchiveLoader.pl from a terminal as follows: "
             . $command 
             . "\n";
