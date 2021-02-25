@@ -452,22 +452,22 @@ sub getNumberOfMincFiles {
     my @row = ();
 
     if ($upload_id) {
-    ############################################################
-    ############### Check to see if the uploadID exists ########
-    ############################################################
-    $query =
-        "SELECT number_of_mincCreated, number_of_mincInserted "
-      . "FROM mri_upload "
-      . "WHERE UploadID =?";
+        ############################################################
+        ############### Check to see if the uploadID exists ########
+        ############################################################
+        $query =
+            "SELECT number_of_mincCreated, number_of_mincInserted "
+        . "FROM mri_upload "
+        . "WHERE UploadID =?";
 
-    my $sth = $dbh->prepare($query);
-    $sth->execute($upload_id);
-    if ( $sth->rows > 0 ) {
-        @row = $sth->fetchrow_array();
-        $minc_created = $row[0];
-        $minc_inserted = $row[1];
-        return ($minc_created, $minc_inserted);
-       }
+        my $sth = $dbh->prepare($query);
+        $sth->execute($upload_id);
+        if ( $sth->rows > 0 ) {
+            @row = $sth->fetchrow_array();
+            $minc_created = $row[0] || 0;
+            $minc_inserted = $row[1] || 0;
+            return ($minc_created, $minc_inserted);
+        }
     }
     return (0, 0);
 }

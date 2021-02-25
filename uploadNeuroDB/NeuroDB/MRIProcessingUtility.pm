@@ -69,7 +69,8 @@ use NeuroDB::objectBroker::TarchiveOB;
 
 use Path::Class;
 use Scalar::Util qw(blessed);
-
+use DateTime;
+use Time::Piece;
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -1278,7 +1279,23 @@ sub registerScanIntoDB {
         );
 
         #### set the acquisition_date
-        my $acquisition_date = $${minc_file}->getParameter('acquisition_date') || undef;
+        my $study_start_date = (
+            defined($${minc_file}->getParameter('study:start_year')) 
+            && defined($${minc_file}->getParameter('study:start_month'))
+            && defined($${minc_file}->getParameter('study:start_day'))
+            ? DateTime->new(   
+                day        => $${minc_file}->getParameter('study:start_day'),   
+                month      => $${minc_file}->getParameter('study:start_month'),   
+                year       => $${minc_file}->getParameter('study:start_year'),   
+            )->strftime('%Y-%m-%d') 
+            : undef
+        );   
+
+        my $acquisition_date = 
+            $${minc_file}->getParameter('acquisition_date')
+            || $study_start_date
+            || undef;
+
         $${minc_file}->setFileData(
             'AcquisitionDate',
             $acquisition_date
