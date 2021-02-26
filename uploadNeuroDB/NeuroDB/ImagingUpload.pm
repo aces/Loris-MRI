@@ -363,8 +363,11 @@ sub runHrrtInsertion {
     $command .= " -verbose " if ($this->{'verbose'});
 
     my $output = $this->runCommandWithExitCode($command);
-
-    return $output;
+    
+    if ( $output == 0 ) {
+        return 1;
+    }
+    return 0;
 }
 
 

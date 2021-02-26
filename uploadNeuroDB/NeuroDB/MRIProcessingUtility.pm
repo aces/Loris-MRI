@@ -1296,6 +1296,8 @@ sub registerScanIntoDB {
             || $study_start_date
             || undef;
 
+        print "Acquisition date: " . $acquisition_date . "\n";
+        
         $${minc_file}->setFileData(
             'AcquisitionDate',
             $acquisition_date
