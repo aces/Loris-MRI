@@ -44,6 +44,7 @@ use Data::Dumper;
 use Carp;
 use Time::Local;
 use FindBin;
+use Encode;
 use DICOM::DICOM;
 
 use NeuroDB::objectBroker::MriScanTypeOB;
@@ -807,7 +808,7 @@ sub register_db {
         # add the parameter to the query
         my $typeID = $file->getParameterTypeID($key);
         my $value = '';
-        $value = $dbh->quote($${params{$key}});
+        $value = $dbh->quote(encode_utf8($${params{$key}}));
         
         if($query =~ /\)$/) { $query .= ",\n"; }
 
