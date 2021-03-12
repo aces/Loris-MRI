@@ -1549,7 +1549,7 @@ sub isDicomImage {
     # not return one file per line but many files in one line. Writing in a
     # temporary file on which we run the command `cat` seems to be the only option
     # that works at the moment...
-    my $tmp_file = $ENV{'TMPDIR'} . "/tmp_list";
+    my $tmp_file = $ENV{'TMPDIR'} . "/tmp_list.$$";
     open(my $fh, '>', $tmp_file) or die "Could not open file '$tmp_file' $!";
     foreach my $file (@files_list) {
         printf $fh "%s\n", quotemeta($file);
