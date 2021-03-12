@@ -69,7 +69,8 @@ use NeuroDB::objectBroker::TarchiveOB;
 
 use Path::Class;
 use Scalar::Util qw(blessed);
-
+use DateTime;
+use Time::Piece;
 
 ## Define Constants ##
 my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
@@ -171,7 +172,7 @@ INPUTS:
 
 sub writeErrorLog {
     my $this = shift;
-    my ($message, $failStatus,$LogDir) = @_;
+    my ($message, $failStatus, $LogDir) = @_;
     print STDERR $message;
     $this->{LOG}->print($message);
     $this->{LOG}->print(
@@ -391,7 +392,6 @@ sub determineSubjectID {
 
     my $this = shift;
     my ($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID) = @_;
-
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
@@ -442,12 +442,16 @@ sub determineSubjectID {
 =head3 createTarchiveArray($tarchive)
 
 Creates the DICOM archive information hash ref for the tarchive that has the same
-basename as the file path passed as argument.
+basename as the file path passed as argument. For HRRT scanners, it will do the
+same but from the hrrtarchive table.
 
 INPUTS:
-  - $tarchive           : tarchive's path (absolute or relative).
+  - $tarchive: tarchive's path (absolute or relative).
+  - $hrrt    : whether the archive is from an HRRT scanner or not (in
+               which case, the C<hrrt_archive> table will be read
+               instead of the C<tarchive> table.
 
-RETURNS: DICOM archive information hash ref if exactly one archive was found. Exits
+RETURNS: DICOM/HRRT archive information hash ref if exactly one archive was found. Exits
          when either no match or multiple matches are found.
 
 =cut
@@ -455,33 +459,73 @@ RETURNS: DICOM archive information hash ref if exactly one archive was found. Ex
 sub createTarchiveArray {
 
     my $this = shift;
-    my ($tarchive) = @_;
+    my ($tarchive, $hrrt) = @_;
 
-    my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $this->{'db'});
-    my $tarchiveInfoRef = $tarchiveOB->getByTarchiveLocation($tarchive);
+    if ($hrrt) {
 
-    if (!@$tarchiveInfoRef) {
-        my $message = "\nERROR: Only archived data can be uploaded.".
-                      "This seems not to be a valid archive for this study!".
-                      "\n\n";
-        $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
-        # no $tarchive can be fetched so $upload_id is undef
-        # in the notification_spool
-        $this->spool($message, 'Y', undef, $notify_notsummary);
-        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
-    } elsif (@$tarchiveInfoRef > 1) {
-        my $message = "\nERROR: Found multiple archives with the same basename ".
-                      " as $tarchive when only one match was expected!".
-                      "\n\n";
-        $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
-        # Since multiple tarchives were found we cannot determine the upload ID
-        # Set it to  undef for this notification
-        $this->spool($message, 'Y', undef, $notify_notsummary);
-        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+        my %tarchiveInfo;
+        (my $query = <<QUERY) =~ s/\n/ /gm;
+        SELECT
+          PatientName,    CenterName,      DateAcquired,
+          Blake2bArchive, ArchiveLocation, HrrtArchiveID
+        FROM
+          hrrt_archive
+        WHERE
+          ArchiveLocation LIKE ?
+QUERY
+
+        if ($this->{debug}) {
+            print $query . "\n";
+        }
+
+        my $sth = ${$this->{'dbhr'}}->prepare($query);
+        $sth->execute("%".basename($tarchive)."%");
+
+        if ($sth->rows > 0) {
+            my $tarchiveInfoRef = $sth->fetchrow_hashref();
+            %tarchiveInfo = %$tarchiveInfoRef;
+        } else {
+            my $message = "\nERROR: Only archived data can be uploaded.".
+                "This seems not to be a valid archive for this study!".
+                "\n\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+            # no $tarchive can be fetched so $upload_id is undef
+            # in the notification_spool
+            $this->spool($message, 'Y', undef, $notify_notsummary);
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+        }
+
+        return %tarchiveInfo;
+        
+    } else {
+
+        my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $this->{'db'});
+        my $tarchiveInfoRef = $tarchiveOB->getByTarchiveLocation($tarchive);
+
+        if (!@$tarchiveInfoRef) {
+            my $message = "\nERROR: Only archived data can be uploaded.".
+                "This seems not to be a valid archive for this study!".
+                "\n\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+            # no $tarchive can be fetched so $upload_id is undef
+            # in the notification_spool
+            $this->spool($message, 'Y', undef, $notify_notsummary);
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+        } elsif (@$tarchiveInfoRef > 1) {
+            my $message = "\nERROR: Found multiple archives with the same basename ".
+                " as $tarchive when only one match was expected!".
+                "\n\n";
+            $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+            # Since multiple tarchives were found we cannot determine the upload ID
+            # Set it to  undef for this notification
+            $this->spool($message, 'Y', undef, $notify_notsummary);
+            exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+        }
+
+        # Only one archive matches: return it as a hash
+        return %{ $tarchiveInfoRef->[0] };
+
     }
-
-    # Only one archive matches: return it as a hash
-    return %{ $tarchiveInfoRef->[0] };
 }
 
 
@@ -1070,18 +1114,17 @@ sub loadAndCreateObjectFile {
 
 =pod
 
-=head3 move_minc($minc, $subjectIDsref, $minc_type, $fileref, $prefix, $data_dir, $tarchive_srcloc, $upload_id)
+=head3 move_minc($minc, $subjectIDsref, $minc_type, $prefix, $data_dir, $hrrt, $upload_id)
 
 Renames and moves the MINC file.
 
 INPUTS:
   - $minc           : path to the MINC file
   - $subjectIDsref  : subject's ID hash ref
-  - $minc_type      : MINC file information hash ref
-  - $fileref        : file information hash ref
+  - $minc_type      : acquisition protocol
   - $prefix         : study prefix
   - $data_dir       : data directory (e.g. C</data/$PROJECT/data>)
-  - $tarchive_srcloc: DICOM archive source location
+  - $hrrt           : boolean, whether the file comes from a PET HRRT scanner
   - $upload_id      : upload ID of the study
 
 RETURNS: new name of the MINC file with path relative to C<$data_dir>
@@ -1091,8 +1134,7 @@ RETURNS: new name of the MINC file with path relative to C<$data_dir>
 sub move_minc {
     
     my $this = shift;
-    my ($minc,$subjectIDsref, $minc_type, $fileref,
-        $prefix,$data_dir, $upload_id) = @_;
+    my ($minc, $subjectIDsref, $minc_type, $prefix, $data_dir, $hrrt, $upload_id) = @_;
     my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
     my $concat = "";
     my $message = '';
@@ -1100,7 +1142,7 @@ sub move_minc {
     ############################################################
     ### figure out where to put the files ######################
     ############################################################
-    $dir = $this->which_directory($subjectIDsref,$data_dir);
+    $dir = $this->which_directory($subjectIDsref, $data_dir, $hrrt);
     `mkdir -p -m 770 $dir/native`;
 
     ############################################################
@@ -1108,7 +1150,7 @@ sub move_minc {
     ############################################################
     @exts = split(/\./, basename($$minc));
     shift @exts;
-    $extension = join('.', @exts);
+    $extension = $hrrt ? pop @exts : join('.', @exts);
     $concat = '_concat' if $$minc =~ /_concat/;
     $new_dir = "$dir/native";
     $version = 1;
@@ -1139,7 +1181,7 @@ sub move_minc {
 
 =pod
 
-=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra_validation_status, $reckless, $sessionID, $upload_id)
+=head3 registerScanIntoDB($minc_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra_validation_status, $reckless, $sessionID, $upload_id, $hrrt)
 
 Registers the scan into the database.
 
@@ -1154,6 +1196,7 @@ INPUTS:
   - $reckless                : boolean, if reckless or not
   - $sessionID               : session ID of the MINC file
   - $upload_id               : upload ID of the study
+  - $hrrt                    : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: acquisition protocol ID of the MINC file
 
@@ -1163,8 +1206,8 @@ sub registerScanIntoDB {
 
     my $this = shift;
     my (
-        $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol, 
-        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id
+        $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol,
+        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id, $hrrt
     ) = @_;
 
 
@@ -1191,8 +1234,8 @@ sub registerScanIntoDB {
         || (defined(&Settings::isFileToBeRegisteredGivenProtocol)
             && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol)
            )
-        ) && (!defined($extra_validation_status) || $extra_validation_status !~ /exclude/)
-    ) {
+        ) 
+        && (!defined($extra_validation_status) || $extra_validation_status !~ /exclude/)) {
 
         ########################################################
         # convert the textual scan_type into the scan_type id ##
@@ -1220,27 +1263,41 @@ sub registerScanIntoDB {
         ##### rename and move files ############################
         ########################################################
         $minc_protocol_identified = $this->move_minc(
-                                        \$minc,
-                                        $subjectIDsref,
-                                        $acquisitionProtocol,
-                                        $minc_file,
-                                        $prefix,
-                                        $data_dir,
-                                        $upload_id
-                                     );
+            \$minc,    $subjectIDsref, $acquisitionProtocol,
+            $prefix,   $data_dir,      $hrrt,
+            $upload_id
+        );
 
         ########################################################
         #################### set the new file_path #############
         ######################################################## 
-        $file_path   =   $minc;
-        $file_path      =~  s/$data_dir\///i;
+        $file_path =  $minc;
+        $file_path =~ s/$data_dir\///i;
         $${minc_file}->setFileData(
             'File', 
             $file_path
         );
 
         #### set the acquisition_date
-        my $acquisition_date = $${minc_file}->getParameter('acquisition_date') || undef;
+        my $study_start_date = (
+            defined($${minc_file}->getParameter('study:start_year')) 
+            && defined($${minc_file}->getParameter('study:start_month'))
+            && defined($${minc_file}->getParameter('study:start_day'))
+            ? DateTime->new(   
+                day        => $${minc_file}->getParameter('study:start_day'),   
+                month      => $${minc_file}->getParameter('study:start_month'),   
+                year       => $${minc_file}->getParameter('study:start_year'),   
+            )->strftime('%Y-%m-%d') 
+            : undef
+        );   
+
+        my $acquisition_date = 
+            $${minc_file}->getParameter('acquisition_date')
+            || $study_start_date
+            || undef;
+
+        print "Acquisition date: " . $acquisition_date . "\n";
+        
         $${minc_file}->setFileData(
             'AcquisitionDate',
             $acquisition_date
@@ -1249,13 +1306,13 @@ sub registerScanIntoDB {
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
-        $tarchive_path = $tarchiveInfo->{ArchiveLocation};
+        $tarchive_path =  $tarchiveInfo->{ArchiveLocation};
+        my $md5sumField     = $hrrt ? 'hrrt_archiveLocation' : 'tarchiveLocation';
+        my $archiveLocField = $hrrt ? 'hrrt_archiveMD5'      : 'tarchiveMD5';
         if ($tarchive_path) {
             $tarchive_path =~ s/$data_dir\///i;
-            $${minc_file}->setParameter('tarchiveLocation', $tarchive_path);
-            $${minc_file}->setParameter(
-                'tarchiveMD5', $tarchiveInfo->{'md5sumArchive'}
-            );
+            $${minc_file}->setParameter($archiveLocField, $tarchive_path);
+            $${minc_file}->setParameter($md5sumField,     $tarchiveInfo->{'md5sumArchive'});
         }
 
         ########################################################
@@ -1744,13 +1801,14 @@ sub validateArchive {
 
 =pod
 
-=head3 which_directory($subjectIDsref, $data_dir)
+=head3 which_directory($subjectIDsref, $data_dir, $hrrt)
 
 Determines where the MINC files to be registered into the database will go.
 
 INPUTS:
    - $subjectIDsref: subject's ID information hashref
    - $data_dir     : data directory (e.g. C</data/$PROJECT/data>)
+   - $hrrt         : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: the final directory in which the registered MINC files will go
 (typically C</data/$PROJECT/data/assembly/CandID/visit/mri/>)
@@ -1759,11 +1817,12 @@ RETURNS: the final directory in which the registered MINC files will go
 
 sub which_directory {
     my $this = shift;
-    my ($subjectIDsref,$data_dir) = @_;
+    my ( $subjectIDsref, $data_dir, $hrrt ) = @_;
     my %subjectIDs = %$subjectIDsref;
     my $dir = $data_dir;
-    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}/mri";
+    $dir = "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}";
     $dir =~ s/ //;
+    $dir .= $hrrt ? "/pet" : "/mri";
     return $dir;
 }
 
@@ -1832,7 +1891,6 @@ sub validateCandidate {
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
         return $message;
-
     }
 
 

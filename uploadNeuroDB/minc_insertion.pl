@@ -100,28 +100,31 @@ my $date = sprintf(
                 "%4d-%02d-%02d %02d:%02d:%02d",
                 $year+1900,$mon+1,$mday,$hour,$min,$sec
            );
-my $debug       = 0;  
-my $message     = '';
+my $debug                    = 0;  
+my $message                  = '';
 my $upload_id;
-my $verbose     = 0;           # default, overwritten if scripts are run with -verbose
-my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
-                               # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
-                               # with SUMMARY Option in the front-end/imaging_uploader 
-my $profile     = undef;       # this should never be set unless you are in a 
-                               # stable production environment
-my $reckless    = 0;           # this is only for playing and testing. Don't 
-                               # set it to 1!!!
-my $force       = 0;           # This is a flag to force the script to run  
-                               # Even if the validation has failed
-my $xlog        = 0;           # default should be 0
-my $bypass_extra_file_checks=0;# If you need to bypass the extra_file_checks, set to 1.
-my $acquisitionProtocol=undef; # Specify the acquisition Protocol also bypasses the checks
-my $acquisitionProtocolID;     # acquisition Protocol id
-my $extra_validation_status;   # Initialise the extra validation status
-my $create_minc_pics    = 0;   # Default is 0, set the option to overide.
+my $hrrt                     = 0;
+my $NewScanner               = 1;
 
-my $template    = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
+my $verbose                  = 0;     # default, overwritten if scripts are run with -verbose
+my $notify_detailed          = 'Y';   # notification_spool message flag for messages to be displayed
+                                      # with DETAILED OPTION in the front-end/imaging_uploader 
+my $notify_notsummary        = 'N';   # notification_spool message flag for messages to be displayed 
+                                      # with SUMMARY Option in the front-end/imaging_uploader 
+my $profile                  = undef; # this should never be set unless you are in a 
+                                      # stable production environment
+my $reckless                 = 0;     # this is only for playing and testing. Don't 
+                                      # set it to 1!!!
+my $force                    = 0;     # This is a flag to force the script to run  
+                                      # Even if the validation has failed
+my $xlog                     = 0;     # default should be 0
+my $bypass_extra_file_checks = 0;     # If you need to bypass the extra_file_checks, set to 1.
+my $acquisitionProtocol      = undef; # Specify the acquisition Protocol also bypasses the checks
+my $acquisitionProtocolID;            # acquisition Protocol id
+my $extra_validation_status;          # Initialise the extra validation status
+my $create_minc_pics         = 0;     # Default is 0, set the option to overide.
+
+my $template = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my ($tarchive,%studyInfo,$minc);
 my $User = getpwuid($>);
 
@@ -151,6 +154,16 @@ my @opt_table = (
 
                  ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
                   " to tarchive-file"],
+
+                 ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
+                  "from which this MINC was created"],
+
+                 ["-hrrt", "boolean", 1, \$hrrt, "Whether the MINC file " .
+                  "comes from an HRRT scanner"],
+
+                 ["-newScanner", "boolean", 1, \$NewScanner,
+                  "By default a new scanner will be registered if the data".
+                  " you upload requires it. You can risk turning it off."],
 
                  ["Fancy options","section"],
 
@@ -184,10 +197,10 @@ Version :   $versionInfo
 The program does the following:
 
 - Loads the created MINC file and then sets the appropriate parameter for
-  the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime, 
+  the loaded object (i.e ScannerID, SessionID,SeriesUID, EchoTime,
                      CoordinateSpace , OutputType , FileType,
                      TarchiveSource and Caveat)
-- Extracts the correct acquition protocol
+- Extracts the correct acquisition protocol
 - Registers the scan into db by first changing the minc-path and setting extra
   parameters
 - Finally sets the series notification
@@ -313,7 +326,7 @@ my $notifier = NeuroDB::Notify->new(\$dbh);
 #################### Check is_valid column #####################
 ################################################################
 my ( $is_valid, $ArchiveLocation );
-if ($upload_id) {
+if ($upload_id && !$hrrt) {
     # if the uploadID is passed as an argument, verify that the tarchive was
     # validated
     (my $query = <<QUERY) =~ s/\n/ /gm;
@@ -349,8 +362,8 @@ QUERY
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     } elsif (@$mriUploadsRef > 1) {
         $errorMessage = "\nERROR: found more than one UploadID associated with "
-                        . "this ArchiveLocation ($tarchive). Please specify the "
-                        . "UploadID to use using the -uploadID option.\n\n";
+            . "this ArchiveLocation ($tarchive). Please specify the "
+            . "UploadID to use using the -uploadID option.\n\n";
         $utility->writeErrorLog(
             $errorMessage, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
         );
@@ -362,16 +375,31 @@ QUERY
         $upload_id       = $row{'UploadID'};
     }
 
-    # load the DICOM archive information from the tarchive table in studyInfo object
-    %studyInfo = $utility->createTarchiveArray($ArchiveLocation);
+} elsif ($hrrt) {
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    SELECT
+      ha.ArchiveLocation
+    FROM mri_upload m
+      JOIN mri_upload_rel mur USING (UploadID)
+      JOIN hrrt_archive ha USING (HrrtArchiveID)
+    WHERE
+      m.UploadID = ?
+QUERY
+    print $query . "\n" if $debug;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($upload_id);
+    my @array        = $sth->fetchrow_array;
+    $ArchiveLocation = $array[0];
+    $is_valid = 1; # if it is HRRT datasets, mark study as valid
 }
 
-if ((!defined $is_valid || $is_valid == 0) && !$force) {
-    $message = "\n ERROR: The validation has failed. Either run the validation again"
-               . "and fix the problem or use -force to force the insertion.\n\n";
-    $utility->writeErrorLog(
-        $message, $NeuroDB::ExitCodes::INVALID_TARCHIVE, $logfile
-    );
+if (($is_valid == 0) && ($force==0)) {
+    $message = "\n ERROR: The validation has failed. ".
+               "Either run the validation again and fix ".
+               "the problem. Or use -force to force the ".
+               "execution.\n\n";
+    print $message;
+    $utility->writeErrorLog($message,6,$logfile); 
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y',
                     $notify_notsummary);
@@ -379,17 +407,74 @@ if ((!defined $is_valid || $is_valid == 0) && !$force) {
 }
 
 
+## Construct the tarchiveinfo Array and the MINC file object
 
+# Create the study info array
+%studyInfo = $utility->createTarchiveArray($ArchiveLocation, $hrrt);
 
 # Create the MINC file object and maps DICOM fields
 my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
+# if the file is derived from an HRRT scanner, copy the scanner info from the MINC
+# file hash to the %studyInfo hash
+if ($hrrt) {
+    $studyInfo{'ScannerManufacturer'} = $file->getParameter('study:manufacturer');
+    $studyInfo{'ScannerSerialNumber'} = $file->getParameter('study:serial_no');
+    $studyInfo{'ScannerModel'}        = $file->getParameter('study:device_model');
+}
+
+
+
+
+## Determine PSC, ScannerID and Subject IDs
+my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
+my $scannerID = $utility->determineScannerID(
+    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
+);
+my $subjectIDsref = $utility->determineSubjectID(
+    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
+);
+
+
 
 
 # filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
 $message = "\n--> filters out parameters of length > "
-           . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $minc\n";
+    . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $minc\n";
 print LOG $message if $verbose;
 $file->filterParameters();
+
+
+
+
+
+## Validate that the candidate exists and that PSCID matches CandID
+if (defined($subjectIDsref->{'CandMismatchError'})) {
+    my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
+
+    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
+    print LOG $message;
+    print LOG " -> WARNING: This candidate was invalid. Logging to
+              MRICandidateErrors table with reason $CandMismatchError";
+
+    my $logQuery = "INSERT INTO MRICandidateErrors".
+        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
+        "VALUES (?, ?, ?, ?, ?)";
+    my $candlogSth = $dbh->prepare($logQuery);
+    $candlogSth->execute(
+        $file->getParameter('series_instance_uid'),
+        $studyInfo{'TarchiveID'},
+        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
+        $studyInfo{'PatientName'},
+        $CandMismatchError
+    );
+
+    $notifier->spool('tarchive validation', $message, 0,
+        'minc_insertion.pl', $upload_id, 'Y',
+        $notify_notsummary);
+
+    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
+}
+
 
 
 
@@ -446,20 +531,6 @@ $studyInfo{'ScannerModel'}           //= $file->getParameter('study:device_model
 $studyInfo{'ScannerSerialNumber'}    //= $file->getParameter('study:serial_no');
 $studyInfo{'ScannerSoftwareVersion'} //= $file->getParameter('study:software_version');
 $studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date');
-
-
-
-
-## Determine PSC, ScannerID and Subject IDs
-my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
-my $scannerID = $utility->determineScannerID(\%studyInfo, 0, $centerID, $upload_id);
-my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
-);
-
-
-
-
 
 ## Validate that the candidate exists and that PSCID matches CandID
 if (defined($subjectIDsref->{'CandMismatchError'})) {
@@ -519,13 +590,17 @@ if (!$sessionRef) {
     print LOG $errMsg;
     $notifier->spool(
         'tarchive validation', "$errMsg. Minc insertion failed.", 0,
-        'minc_insertion.pl',   $upload_id, 'Y',
+        'minc_insertion.pl', $upload_id, 'Y',
         $notify_notsummary
     );
     exit ($subjectIDsref->{'createVisitLabel'} == 1
         ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
         : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
-} 
+}
+
+
+
+
 
 # Copy the session info into the %$subjectIDsref hash array
 $subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
@@ -551,16 +626,23 @@ if ($not_unique_message) {
 ## at this point things will appear in the database ############
 ## Set some file information ###################################
 ################################################################
-my $caveat = $acquisitionProtocol ? 1 : 0;
-$file->setFileData( 'Caveat',          $caveat                                    );
-$file->setFileData( 'ScannerID',       $scannerID                                 );
-$file->setFileData( 'SessionID',       $subjectIDsref->{'SessionID'}              );
-$file->setFileData( 'SeriesUID',       $file->getParameter('series_instance_uid') );
-$file->setFileData( 'EchoTime',        $file->getParameter('echo_time')           );
-$file->setFileData( 'CoordinateSpace', 'native'                                   );
-$file->setFileData( 'OutputType',      'native'                                   );
-$file->setFileData( 'FileType',        'mnc'                                      );
-$file->setFileData( 'TarchiveSource',  $studyInfo{'TarchiveID'}                   );
+$file->setFileData('ScannerID',       $scannerID                    );
+$file->setFileData('SessionID',       $subjectIDsref->{'SessionID'} );
+$file->setFileData('CoordinateSpace', 'native'                      );
+$file->setFileData('OutputType',      'native'                      );
+$file->setFileData('FileType',        'mnc'                         );
+my $caveat;
+if ($hrrt) {
+    $file->setFileData('HrrtArchiveID', $studyInfo{'HrrtArchiveID'});
+    $caveat = 0;
+} else {
+    $file->setFileData('SeriesUID',      $file->getParameter('series_instance_uid'));
+    $file->setFileData('EchoTime',       $file->getParameter('echo_time')          );
+    $file->setFileData('TarchiveSource', $studyInfo{'TarchiveID'}                  );
+    $caveat = $acquisitionProtocol ? 1 : 0;
+}
+$file->setFileData('Caveat', $caveat);
+
 
 ################################################################
 ## Get acquisition protocol (identify the volume) ##############
@@ -595,19 +677,16 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,               \%studyInfo                  , $subjectIDsref,
-    $acquisitionProtocol, $minc                        , $extra_validation_status,
-    $reckless,            $subjectIDsref->{'SessionID'}, $upload_id
+    \$file,               \%studyInfo,                   $subjectIDsref,
+    $acquisitionProtocol, $minc,                         $extra_validation_status,
+    $reckless,            $subjectIDsref->{'SessionID'}, $upload_id,
+    $hrrt
 );
 
 # if the scan was inserted into the files table and there is an
 # extra_validation_status set to 'warning', update the mri_violations_log table
 # MincFile field with the path of the file in the assembly directory
-if (
-       defined $acquisitionProtocolIDFromProd
-    && defined($extra_validation_status)
-    && $extra_validation_status eq 'warning'
-) {
+if (defined $acquisitionProtocolIDFromProd && defined $extra_validation_status && $extra_validation_status eq 'warning') {
     $utility->update_mri_violations_log_MincFile_path($file);
 }
 
@@ -627,20 +706,25 @@ if ((!defined$acquisitionProtocolIDFromProd)
 ################################################################
 ### Add series notification ####################################
 ################################################################
+my $date_field = $hrrt ? 'study:start_time' : 'acquisition_date';
 $message = sprintf(
     "\n CandID: %s, PSCID: %s, Visit: %s, Acquisition Date: %s, Series Description %s\n",
     $subjectIDsref->{'CandID'},
     $subjectIDsref->{'PSCID'},
     $subjectIDsref->{'visitLabel'},
-    (defined $file->getParameter('acquisition_date')
-        ? $file->getParameter('acquisition_date') : 'UNKNOWN'),
+    (defined $file->getParameter($date_field)
+        ? $file->getParameter($date_field) : 'UNKNOWN'),
     (defined $file->getParameter('series_description')
         ? $file->getParameter('series_description') : 'UNKNOWN')
 );
-$notifier->spool('mri new series', $message, 0,
-            'minc_insertion.pl', $upload_id, 'N', 
-        $notify_detailed);
 
+
+my $spool_type = $hrrt ? 'hrrt pet new series' : 'mri new series';
+$notifier->spool(
+    $spool_type,         $message,   0,
+    'minc_insertion.pl', $upload_id, 'N',
+    $notify_detailed
+);
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
 }

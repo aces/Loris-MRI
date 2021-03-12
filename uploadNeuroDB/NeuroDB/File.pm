@@ -148,10 +148,10 @@ sub findFile {
     $sth->execute();
 
     if($sth->rows == 0) {
-	return undef;
+        return undef;
     } else {
-	my $row = $sth->fetchrow_hashref();
-	return $row->{'FileID'};
+        my $row = $sth->fetchrow_hashref();
+        return $row->{'FileID'};
     }
 }
     
@@ -381,11 +381,11 @@ sub setFileData {
     $this->{'fileData'}->{$paramName} = $value;
 
     if($this->getFileDatum('FileID')) {
-	my $fileID = $this->getFileDatum('FileID');
-	$value = ${$this->{'dbhr'}}->quote($value);
-	
-	my $query = "UPDATE files SET $paramName=$value WHERE FileID=$fileID";
-	${$this->{'dbhr'}}->do($query);
+        my $fileID = $this->getFileDatum('FileID');
+        $value = ${$this->{'dbhr'}}->quote($value);
+        
+        my $query = "UPDATE files SET $paramName=$value WHERE FileID=$fileID";
+        ${$this->{'dbhr'}}->do($query);
     }
 }
 

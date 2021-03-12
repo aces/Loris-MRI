@@ -79,6 +79,9 @@ sudo -S cpan install Moose
 sudo -S cpan install MooseX::Privacy
 sudo -S cpan install TryCatch
 sudo -S cpan install Throwable
+sudo -S cpan install Digest::BLAKE2
+sudo -S cpan install File::Type
+sudo -S cpan install String::ShellQuote
 echo
 
 ################################################################################
@@ -111,6 +114,7 @@ echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/data/"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/trashbin"         #holds mincs that didn't match protocol
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/tarchive"         #holds tared dicom-folder
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/hrrtarchive"      #holds tared hrrt-folder
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/logs"             #holds logs from pipeline script
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly"         #holds the MINC files
