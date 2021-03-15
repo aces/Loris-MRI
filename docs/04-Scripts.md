@@ -112,7 +112,7 @@ Note carefully the following arguments:
 
 - `-acquisition_protocol`: must be a known scan type according to the
     `mri_scan_type` table
-- `-tarchive_Path`: the DICOM tarball
+- `-tarchive_Path`: the DICOM or HRRT tarball
 - `-mincPath`: note this file may have been placed in the `trashbin` directory
 
 See also: [MRI-PR#141](https://github.com/aces/Loris-MRI/pull/141) for more

@@ -213,6 +213,13 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 my $mail_user = $configOB->getMailUser();
 
 
+################################################################
+################ Instantiate the Notify Class###################
+################################################################
+my $Notify = NeuroDB::Notify->new(
+    \$dbh
+);
+
 
 ################################################################
 ####Check that UploadID and path to the file are consistent#####
@@ -224,8 +231,8 @@ if ( basename($expected_file) ne basename($uploaded_file)) {
     $message = "The specified upload_id $upload_id does not "
                  . "correspond to the provided file path $uploaded_file.\n\n";;
     print STDERR "$Usage\nERROR: " . $message;
-    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
-    $mail_message = "Progress: Failed\n".$message;
+    my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    my $mail_message = "Progress: Failed\n".$message;
     $Notify->email(
         $mail_user,
         $mail_subject,
@@ -240,9 +247,8 @@ my $file_decompress = NeuroDB::FileDecompress->new($uploaded_file);
 ############### Decompress File ################################
 ################################################################
 ################################################################
-my $result = $file_decompress->Extract( 
-                $TmpDir_decompressed_folder 
-             );
+my $result = $file_decompress->Extract($TmpDir_decompressed_folder);
+
 
 ################################################################
 ############### Get Patient_name using UploadID#################
@@ -270,12 +276,6 @@ my $imaging_upload =
 $imaging_upload->updateMRIUploadTable(
 	'DecompressedLocation',$TmpDir_decompressed_folder,
 );
-################################################################
-################ Instantiate the Notify Class###################
-################################################################
-my $Notify = NeuroDB::Notify->new(
-                  \$dbh
-         );
 
 ################################################################
 ########## Validate Candidate Info/File ########################
@@ -283,13 +283,12 @@ my $Notify = NeuroDB::Notify->new(
 
 my $is_candinfovalid = $imaging_upload->IsCandidateInfoValid();
 if ( !($is_candinfovalid) ) {
-    $imaging_upload->updateMRIUploadTable(
-	'Inserting', 0);
+    $imaging_upload->updateMRIUploadTable('Inserting', 0);
     $message = "\nThe candidate info validation has failed.\n";
     spool($message,'Y', $notify_notsummary);
     print STDERR $message;
-    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
-    $mail_message = "Progress: Failed\n".$message;
+    my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    my $mail_message = "Progress: Failed\n".$message;
     $Notify->email(
         $mail_user,
         $mail_subject,
@@ -301,51 +300,76 @@ if ( !($is_candinfovalid) ) {
 $message = "\nThe candidate info validation has passed.\n";
 spool($message,'N', $notify_notsummary);
 
-################################################################
-############### Run DicomTar  ##################################
-################################################################
-$output = $imaging_upload->runDicomTar();
-if ( !$output ) {
-    $imaging_upload->updateMRIUploadTable(
-	'Inserting', 0);
-    $message = "\nThe dicomTar.pl execution has failed.\n";
-    spool($message,'Y', $notify_notsummary);
-    print STDERR $message;
-    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
-    $mail_message = "Progress: Failed\n".$message;
-    $Notify->email(
-        $mail_user,
-        $mail_subject,
-        $mail_message,
-    ); 
-    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
-}
-$message = "\nThe dicomTar.pl execution has successfully completed\n";
-spool($message,'N', $notify_notsummary);
 
-################################################################
-############### Run runTarchiveLoader###########################
-################################################################
-$output = $imaging_upload->runTarchiveLoader();
-$imaging_upload->updateMRIUploadTable('Inserting', 0);
-if ( !$output ) {
-    $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
-    spool($message,'Y', $notify_notsummary); 
-    print STDERR $message;
-    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
-    $mail_message = "Progress: Failed\n".$message;
-    $Notify->email(
-        $mail_user,
-        $mail_subject,
-        $mail_message,
-    ); 
-    exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+if ( $imaging_upload->{'is_hrrt'}) {
+    # if the upload is an HRRT study, run HRRT_PET_insertion.pl
+
+    my @result = `grep -r BIC $TmpDir_decompressed_folder`;
+    my $bic = @result ? 1 : 0; # set $bic to 1 if dataset is from the BIC
+
+    $output = $imaging_upload->runHrrtInsertion($bic);
+    if ( !$output ) {
+        $imaging_upload->updateMRIUploadTable('Inserting', 0);
+        $message = "\nThe HRRT_PET_insertion.pl execution has failed\n";
+        spool($message, 'Y', $notify_notsummary);
+        print STDERR $message;
+        my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+        my $mail_message = "Progress: Failed\n".$message;
+        $Notify->email(
+            $mail_user,
+            $mail_subject,
+            $mail_message,
+        );
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+    }
+    $message = "\nThe HRRT_PET_insertion.pl execution has successfully completed\n";
+    spool($message, 'N', $notify_notsummary);
+
+} else {
+    # otherwise, it is a DICOM study so run dicomTar.pl and tarchiveLoader
+
+    ################################################################
+    ############### Run DicomTar  ##################################
+    ################################################################
+    $output = $imaging_upload->runDicomTar();
+    if (!$output) {
+        $imaging_upload->updateMRIUploadTable('Inserting', 0);
+        $message = "\nThe dicomTar.pl execution has failed\n";
+        spool($message, 'Y', $notify_notsummary);
+        print STDERR $message;
+        my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+        my $mail_message = "Progress: Failed\n".$message;
+        $Notify->email(
+            $mail_user,
+            $mail_subject,
+            $mail_message,
+        );
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+    }
+    $message = "\nThe dicomTar.pl execution has successfully completed\n";
+    spool($message, 'N', $notify_notsummary);
+
+    ################################################################
+    ############### Run runTarchiveLoader###########################
+    ################################################################
+    $output = $imaging_upload->runTarchiveLoader();
+    $imaging_upload->updateMRIUploadTable('Inserting', 0);
+    if (!$output) {
+        $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
+        spool($message,'Y', $notify_notsummary);
+        print STDERR $message;
+        my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+        my $mail_message = "Progress: Failed\n".$message;
+        $Notify->email(
+            $mail_user,
+            $mail_subject,
+            $mail_message,
+        );
+        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+    }
 }
 
-######################################################################
-### If we got this far, dicomTar.pl and tarchiveLoader.pl completed###
-#### Remove the uploaded file from the incoming directory#############
-######################################################################
+
 my $isCleaned = $imaging_upload->CleanUpDataIncomingDir($uploaded_file);
 if ( !$isCleaned ) {
     $message = "\nThe uploaded file " . $uploaded_file . " was not removed\n";
@@ -375,8 +399,8 @@ my @inserted_files = $imaging_upload->getInsertedFileNamesUsingUploadID($upload_
 $message = "\n$minc_created minc file(s) created, "
             . "and $minc_inserted minc file(s) "
             . "inserted into the database: \n";
-    $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
-    $mail_message = "Progress: Success\n".$message."\n"
+    my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+    my $mail_message = "Progress: Success\n".$message."\n"
                       . join("\n", @inserted_files)."\n";
     $Notify->email(
         $mail_user,
@@ -481,23 +505,24 @@ sub getNumberOfMincFiles {
     my @row = ();
 
     if ($upload_id) {
-    ############################################################
-    ############### Check to see if the uploadID exists ########
-    ############################################################
-    $query =
-        "SELECT number_of_mincCreated, number_of_mincInserted "
-      . "FROM mri_upload "
-      . "WHERE UploadID =?";
+        ############################################################
+        ############### Check to see if the uploadID exists ########
+        ############################################################
+        $query =
+            "SELECT number_of_mincCreated, number_of_mincInserted "
+        . "FROM mri_upload "
+        . "WHERE UploadID =?";
 
-    my $sth = $dbh->prepare($query);
-    $sth->execute($upload_id);
-    if ( $sth->rows > 0 ) {
-        @row = $sth->fetchrow_array();
-        $minc_created = $row[0];
-        $minc_inserted = $row[1];
-        return ($minc_created, $minc_inserted);
-       }
+        my $sth = $dbh->prepare($query);
+        $sth->execute($upload_id);
+        if ( $sth->rows > 0 ) {
+            @row = $sth->fetchrow_array();
+            $minc_created = $row[0] || 0;
+            $minc_inserted = $row[1] || 0;
+            return ($minc_created, $minc_inserted);
+        }
     }
+    return (0, 0);
 }
 
 ################################################################

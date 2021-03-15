@@ -136,6 +136,7 @@ sub connect {
                 { PrintError => 0, RaiseError => 1, AutoCommit => 1 }
             )
         );
+        $self->dbh->{mysql_auto_reconnect} = 1;
     } catch {
         NeuroDB::DatabaseException->throw(
             statement    => $connectStatement,
