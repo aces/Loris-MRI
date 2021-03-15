@@ -1010,40 +1010,56 @@ sub getParameterFilesRef {
     # Try finding a file in parameter_file that matches the -file argument
     my($query, @queryArgs);
     if($fileBaseName ne '' && !@{ $filesRef->{'files'} } && !@{ $filesRef->{'files_intermediary'} }) {
-        $query = 'SELECT ParameterFileID, FileID, Value, pt.Name FROM parameter_file pf '
-               . 'JOIN files f USING (FileID) '
-               . 'JOIN parameter_type AS pt USING (ParameterTypeID) '
+        $query = 'SELECT pf.ParameterFileID, f.FileID, pf.Value, pt.Name FROM parameter_file pf '
+               . 'JOIN files f ON (f.FileID=pf.FileID) '
+               . 'JOIN parameter_type pt ON (pf.ParameterTypeID=pt.ParameterTypeID) '
                . $mriScanTypeJoin
-               . 'WHERE ( '
-               . '    f.TarchiveSource = ? '
-               . '        OR '
-               . '    f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?) '
-               . ') '
-               . " AND pt.Name IN ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename') "
+               . 'WHERE f.TarchiveSource = ? '
+               . "AND pt.Name IN ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename') "
                . $mriScanTypeAnd
-               . ' AND BINARY SUBSTRING_INDEX(Value, "/", -1) = ?';
-        @queryArgs = ($tarchiveID, $tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
-    } else {
-		my $fileBaseNameAnd = $fileBaseName ne '' 
-		    ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
-		    : '';
-		
-	    $query = 'SELECT ParameterFileID, FileID, Value, pt.Name FROM parameter_file pf '
-                . 'JOIN files f USING (FileID) '
-                . 'JOIN parameter_type AS pt USING (ParameterTypeID) '
+               . ' AND BINARY SUBSTRING_INDEX(pf.Value, "/", -1) = ?';
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
+
+        $query .= " UNION ";
+
+        $query .= 'SELECT pf.ParameterFileID, f.FileID, pf.Value, pt.Name FROM parameter_file pf '
+                . 'JOIN files f ON (f.FileID=pf.FileID) '
+                . 'JOIN files f2 ON(f.SourceFileID=f2.FileID AND f2.TarchiveSource= ? ) '
+                . 'JOIN parameter_type pt ON (pf.ParameterTypeID=pt.ParameterTypeID) '
                 . $mriScanTypeJoin
-                . 'WHERE ( '
-                . '    ( '
-                . '      f.TarchiveSource = ? '
-                . '        OR '
-                . '      f.SourceFileID IN (SELECT FileID FROM files WHERE TarchiveSource = ?) '
-                . '    ) '
-                .      $fileBaseNameAnd
-                . ') '
-                . $mriScanTypeAnd;
-        @queryArgs = ($tarchiveID, $tarchiveID, @$scanTypesToDeleteRef);
+                . "WHERE pt.Name IN ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename') "
+                . $mriScanTypeAnd
+                . ' AND BINARY SUBSTRING_INDEX(pf.Value, "/", -1) = ?';
+        push(@queryArgs, $tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
+    } else {
+        my $fileBaseNameAnd = $fileBaseName ne '' 
+            ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
+            : '';
+		
+        $query = 'SELECT pf.ParameterFileID, f.FileID, pf.Value, pt.Name FROM parameter_file pf '
+               . 'JOIN files f ON (f.FileID=pf.FileID) '
+               . 'JOIN parameter_type pt ON (pf.ParameterTypeID=pt.ParameterTypeID) '
+               . $mriScanTypeJoin
+               . 'WHERE f.TarchiveSource = ? '
+               . $mriScanTypeAnd
+               . " $fileBaseNameAnd";
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef);
         push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
-	}
+
+        $query .= " UNION ";
+
+        $query .= 'SELECT pf.ParameterFileID, f.FileID, pf.Value, pt.Name FROM parameter_file pf '
+                . 'JOIN files f USING (FileID) '
+                . 'JOIN files f2 ON (f.SourceFileID=f2.FileID AND f2.TarchiveSource= ? ) '
+                . 'JOIN parameter_type pt ON (pt.ParameterTypeID=pf.ParameterTypeID) '
+                . $mriScanTypeJoin
+                . 'WHERE 1=1 '
+                . $mriScanTypeAnd
+                . " $fileBaseNameAnd";
+     
+        push(@queryArgs, $tarchiveID, @$scanTypesToDeleteRef);
+        push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
+    }
 
     my $parametersRef = $dbh->selectall_arrayref(
         $query, { Slice => {} }, @queryArgs
