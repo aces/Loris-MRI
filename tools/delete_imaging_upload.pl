@@ -1869,7 +1869,7 @@ sub updateSQLBackupFile {
         
     # Run the mysqldump command for the current table and store the
     # result in $tmpSqlBackupFile (overwrite contents)
-    my $mysqldumpOptions = '--no-create-info --compact --single-transaction --skip-extended-insert';
+    my $mysqldumpOptions = '--no-create-info --compact --single-transaction --skip-extended-insert --no-tablespaces';
     
     my $warningToIgnore = 'mysqldump: [Warning] Using a password on the command line interface can be insecure.';
     my $cmd = sprintf(
