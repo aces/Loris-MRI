@@ -266,6 +266,11 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
 - `get_DTI_CandID_Visit()`
 
     Used by the DTIPrep pipeline
+    
+- `determineHRRTprotocol()`
+
+    Routine to determine the acquisition protocol to use to register an HRRT derived
+    file.
 
 
 ## <a name="post-installation-checks"> 2.3 Post-installation checks
@@ -385,7 +390,30 @@ The graph below shows the different modules mentioned above with the
 ![pipeline_flow](images/overall_flow.png)
 
 
-### 2.4.2 BIDS insertion (Electrophysiology and Imaging)
+### 2.4.2 PET data from an HRRT scanner
+
+The pipeline was initially designed for **raw HRRT PET datasets collected at 
+the Brain Imaging Center of the Montreal Neurological Institute**. Since there is
+no standard for HRRT datasets and only 7 scanners existing in the world, the
+insertion pipeline of PET data from an HRRT scanner might need to be updated/modified
+for other scanners and will be done when the need comes.
+
+Image insertion of PET dataset from an HRRT scanner is very similar to the 
+insertion described for DICOM datasets, to the exception that the HRRT archive
+information are stored in the `hrrt_archive` tables instead of the `tarchive` tables.
+
+Insertion into LORIS is performed via the following steps:
+
+1. Upload of a compressed set of the HRRT PET study via the **Imaging Uploader**
+     module (or transfer the compressed HRRT PET studies directly on the server
+     hosting LORIS).
+2. HRRT insertion into the `hrrt_archive` tables.
+3. Conversion of the ECAT7 files into MINC files for protocol identification and
+     insertion into the LORIS database. Note that the ECAT7 images will be linked
+     to the inserted MINC files. 
+     
+
+### 2.4.3 BIDS insertion (Electrophysiology and Imaging)
 
 The pipeline to insert BIDS datasets into LORIS currently support the 
 following BIDS modalities/entities:

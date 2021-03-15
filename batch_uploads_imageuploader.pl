@@ -161,14 +161,12 @@ my $is_qsub   = $configOB->getIsQsub();
 my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/imuploadstdout.log", 
 				 "$data_dir/batch_output/imuploadstderr.log");
 
-
-while($_ = $ARGV[0], /^-/) {
+while($_ = $ARGV[0] // '', /^-/) {
     shift;
     last if /^--$/; ## -- ends argument processing
     if (/^-D/) { $debug++ } ## debug level
     if (/^-v/) { $verbose++ } ## verbosity
 }
-
 
 ## read input from STDIN, store into array @inputs (`find ....... | this_script`)
 my @patientnamearray = ();

@@ -71,6 +71,9 @@ to 189)
 12. Exit codes from former scripts that have been removed (exit codes from 200
 to 210)
 
+15. Exit codes from uploadNeuroDB/HRRT_PET_insertion.pl (exit codes from 280
+to 300)
+
 
 =head1 LICENSING
 
@@ -160,6 +163,7 @@ our $PNAME_FILENAME_MISMATCH = 151; # if patient name and filename do not match
 
 ## -- FROM DTIPrep/DTIPrepRegister.pl (exit codes from 160 to 169)
 
+
 # validation failures
 our $GET_OUTPUT_LIST_FAILURE = 160; # if could not get the list of outputs
                                     # for the DTI file
@@ -180,6 +184,7 @@ our $INVALID_TARCHIVE   = 180; # if tarchive validation is not set to 1 in the
 our $CANDIDATE_MISMATCH = 181; # if candidate PSCID and CandID do not match
 
 
+
 ## -- FROM uploadNeuroDB/tarchiveLoader.pl (exit codes from 190 to 199)
 
 # file related failures
@@ -190,3 +195,19 @@ our $NO_VALID_MINC_CREATED = 190; # if no valid MINC file was created
 ## -- FROM former scripts that have been removed (exit codes from 200 to 210)
 
 our $REGISTER_PROGRAM_FAILURE = 200; # if MNI::Spawn::RegisterPrograms failed
+
+
+
+
+
+#### --- FROM uploadNeuroDB/HRRT_PET_insertion.pl
+our $INVALID_UPLOAD_ID              = 280; # invalid upload ID
+our $INVALID_UPLOAD_LOCATION        = 281; # invalid upload location
+our $INVALID_DECOMP_LOCATION        = 282; # invalid decompressed location
+our $MINC_FILE_NOT_FOUND            = 283; # if could not convert ECAT file into MINC
+our $MINC_INSERTION_FAILURE         = 284; # if MINC file insertion failure
+our $HRRT_ALREADY_INSERTED          = 285; # if HRRT archive already exists in DB
+our $HEADER_INSERT_FAILURE          = 286; # if could not insert matlab info into the
+                                           # MINC header
+our $HRRT_ARCHIVE_INSERTION_FAILURE = 287; # if HRRT archive insertion into the
+                                           # database has failed

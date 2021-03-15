@@ -23,16 +23,23 @@ and links them with corresponding behavioral data in LORIS. Scans can be viewed
 and quality controlled in the LORIS front end via web browser, facilitating 
 collaboration between radiologists, clinicians and researchers.
 
+In addition to the import of DICOM files, it is possible to upload a compressed 
+file containing an HRRT PET dataset. 
+Note that the HRRT insertion pipeline has been 
+developed using datasets produced at the Brain Imaging Center of the Montreal
+Neurological Institute. Some modification/customization might be needed for other
+HRRT PET scanners as datasets coming from those scanners are not standardized.
+
 ### 1.2 How does LORIS-MRI work? 
  
 ![user_story](images/user_story.png)
 
 LORIS-MRI allows multiple ways to upload scans, but typically, users
-upload a compressed (.tgz, .tar.gz, or .zip) DICOM folder via the Imaging
-Uploader module that should be composed of **only** DICOM files. LORIS requires 
-that the uploaded file name follow the naming convention 
+upload a compressed (.tgz, .tar.gz, or .zip) DICOM (or HRRT) folder via the Imaging
+Uploader module that should be composed of **only** DICOM (or HRRT) files. LORIS 
+requires that the uploaded file name follow the naming convention 
 `PSCID_CANDID_VISIT-LABEL`. 
-In addition, all DICOM datasets uploaded via the Imaging Uploader or 
+In addition, all DICOM/HRRT datasets uploaded via the Imaging Uploader or 
 transferred on the LORIS-MRI server must be free of any identifying 
 information (*e.g.* patient name). A tool can be provided to the sites to 
 facilitate de-identification. Please contact the LORIS team for details.
@@ -48,8 +55,8 @@ Imaging Uploader module, where descriptive messages can be consulted.
 The output of the main key steps in the insertion progress can also be consulted 
 through:
  - the LORIS DICOM Archive module for successfully archived DICOM datasets`*` 
- - the Imaging Browser module for MINC files (generated from DICOM) that pass the 
-study-defined MRI protocol`*`
+ - the Imaging Browser module for MINC files (generated from DICOM or HRRT ECAT7 
+files) that pass the study-defined MRI protocol`*`
  - BrainBrowser using 3D or 4D navigation of these MINC files. More details on 
 BrainBrowser's capabilities can be found [here.][5]
 

@@ -10,6 +10,7 @@ This repo can be installed on the same VM as the main LORIS codebase, or on a di
  * Python 3 with pip3 and virtualenv (step 2 below)
  * MINC toolkit (step 3 below)
  * DICOM toolkit (step 4 below)
+ * tpcclib (for HRRT PET only) (http://www.turkupetcentre.net/tpcclib-doc/md_install.html)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
