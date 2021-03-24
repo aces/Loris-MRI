@@ -809,8 +809,8 @@ sub getInsertedFileNamesUsingUploadID {
           . "WHERE UploadID =?";
         my $sth = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute($upload_id);
-        if ( $sth->rows > 0 ) {
-            @file_names = $sth->fetchall_arrayref([0]);
+        while (my $row = $sth->fetchrow_hashref()) {
+            push (@file_names, $row->{'File'});
         }
     }
     return @file_names;
