@@ -796,7 +796,7 @@ RETURNS: The array of inserted file names
 
 
 sub getInsertedFileNamesUsingUploadID {
-    my ($self, $upload_id) = @_;
+    my ($this, $upload_id) = @_;
 
     my ( @file_names, $query );
 
