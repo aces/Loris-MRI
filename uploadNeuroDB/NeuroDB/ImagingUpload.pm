@@ -807,7 +807,7 @@ sub getInsertedFileNamesUsingUploadID {
         $query = "SELECT File FROM files f "
           . "JOIN mri_upload m ON (f.TarchiveSource=m.TarchiveID) "
           . "WHERE UploadID =?";
-        my $sth = $dbh->prepare($query);
+        my $sth = ${ $this->{'dbhr'} }->prepare($query);
         $sth->execute($upload_id);
         if ( $sth->rows > 0 ) {
             @file_names = $sth->fetchall_arrayref([0]);
