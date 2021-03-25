@@ -34,7 +34,7 @@ Available options are:
                          C<-backup_path> cannot be used if C<-nofilesbk> and C<-nosqlbk> are also used.
                          
 -basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table C<files> or table 
-                         C<parameter_files>. This option should be used when targeting a specific (unique) file for deletion.
+                         C<parameter_file>. This option should be used when targeting a specific (unique) file for deletion.
                          Note that the file will be deleted from both the database and the filesystem. This option cannot be 
                          used with options C<-defaced> and C<-form>.
                
@@ -415,12 +415,12 @@ if(!$tarchiveID) {
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
-$files{'files'}                       = &getFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
-$files{'files_intermediary'}          = &getIntermediaryFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
-$files{'parameter_file'}              = &getParameterFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
-$files{'mri_protocol_violated_scans'} = &getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
-$files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
-$files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, $options{'BASENAME'});
+$files{'files'}                       = &getFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
+$files{'files_intermediary'}          = &getIntermediaryFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
+$files{'parameter_file'}              = &getParameterFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
+$files{'mri_protocol_violated_scans'} = &getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
+$files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
+$files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
 
@@ -864,7 +864,7 @@ QUERY
 
 =pod
 
-=head3 getFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+=head3 getFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table C<files>.
@@ -874,8 +874,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
   - $scanTypesToDeleteRef: reference to the array that contains the list of names of scan types to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: C<FileID> => ID of a file in table C<files>,
@@ -884,10 +883,12 @@ RETURNS:
 
 =cut
 sub getFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
     
     return [] if !defined $tarchiveID;
     
+    my $fileBaseName = $optionsRef->{'BASENAME'};
+
     # Get FileID and File path of each files in files directly tied
     # to $tarchiveId
     my $mriScanTypeJoin = @$scanTypesToDeleteRef 
@@ -921,7 +922,7 @@ sub getFilesRef {
 
 =pod
 
-=head3 getIntermediaryFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+=head3 getIntermediaryFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the intermediary files associated to an archive 
 that are listed in table C<files_intermediary>.
@@ -932,8 +933,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
   - an array of hash references. Each hash has seven keys: C<IntermedID> => ID of a file in 
@@ -945,9 +945,11 @@ RETURNS:
 
 =cut
 sub getIntermediaryFilesRef {
-    my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName) = @_;
+    my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
     
     return [] if !defined $tarchiveID;
+
+    my $fileBaseName = $optionsRef->{'BASENAME'};
 
     # This should get all files in table files_intermediary that are tied
     # indirectly to the tarchive with ID $tarchiveId
@@ -1010,11 +1012,9 @@ sub getIntermediaryFilesRef {
 
 =pod
 
-=head3 getParameterFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+=head3 getParameterFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
-Gets the absolute paths of all the files associated to an archive that are listed in table
-C<parameter_file> and have a parameter type set to C<check_pic_filename>, C<check_nii_filename>,
-C<check_bval_filename> or C<check_bvec_filename>.
+Gets the records to delete from table parameter_file.
 
 INPUTS:
   - $dbhr  : database handle reference.
@@ -1022,8 +1022,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
   - an array of hash references. Each hash has four keys: C<FileID> => FileID of a file 
@@ -1033,10 +1032,11 @@ RETURNS:
 
 =cut
 sub getParameterFilesRef {
-    my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName) = @_;
+    my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
     
     return [] if !defined $tarchiveID;
 
+    my $fileBaseName = $optionsRef->{'BASENAME'};
     my $mriScanTypeJoin = @$scanTypesToDeleteRef
         ? 'JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ' : '';
     my $mriScanTypeAnd = @$scanTypesToDeleteRef
@@ -1096,6 +1096,22 @@ sub getParameterFilesRef {
         push(@queryArgs, $tarchiveID, @$scanTypesToDeleteRef);
         push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
     }
+   
+    # If there are intermediary files and we do not want to keep the defaced files
+    # then we have to add to the query the records in table parameter_file that are
+    # associated to the files in files_intermediary. Note that some of these files might
+    # have already been fetched by the queries above. The "union" will eliminate duplicates.
+    if (!$optionsRef->{'KEEP_DEFACED'} && @{ $filesRef->{'files_intermediary'} }) {
+        $query .= " UNION "
+                . ' SELECT pf.ParameterFileID, pf.FileID, pf.Value, pt.Name FROM parameter_file pf '
+                . ' JOIN parameter_type pt ON (pt.ParameterTypeID=pf.ParameterTypeID) '
+                . sprintf(
+                      ' WHERE pf.FileID IN (%s) ',
+                      join(',', ('?') x @{ $filesRef->{'files_intermediary'} })
+                  );
+        my @intermediaryFileIDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
+        push(@queryArgs, @intermediaryFileIDs);
+    }
 
     my $parametersRef = $dbh->selectall_arrayref(
         $query, { Slice => {} }, @queryArgs
@@ -1103,8 +1119,8 @@ sub getParameterFilesRef {
     
     # Set full path of every file
     foreach my $f (@$parametersRef) {
-		# If the prarameter is not a file
-		$f->{'FullPath'} = undef, next if !grep($f->{'Name'} eq $_, FILE_PARAMETER_NAMES);
+        # If the parameter is not a file
+        $f->{'FullPath'} = undef, next if !grep($f->{'Name'} eq $_, FILE_PARAMETER_NAMES);
 
         my $fileBasePath = $f->{'Name'} eq 'check_pic_filename'
             ? "$dataDirBasePath/" . PIC_SUBDIR : $dataDirBasePath;
@@ -1117,7 +1133,7 @@ sub getParameterFilesRef {
 
 =pod
 
-=head3 getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+=head3 getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table C<mri_protocol_violated_scans>.
@@ -1127,8 +1143,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: C<ID> => ID of the record in table
@@ -1138,7 +1153,7 @@ RETURNS:
 
 =cut
 sub getMriProtocolViolatedScansFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
     
     # Return a reference to the empty array if:
     # 1. The upload(s) do not have a tarchiveID, which means that no MINC file
@@ -1151,6 +1166,7 @@ sub getMriProtocolViolatedScansFilesRef {
 
     # Get FileID and File path of each files in files directly tied
     # to $tarchiveId
+    my $fileBaseName = $optionsRef->{'BASENAME'};
     my $query = 'SELECT ID, minc_location FROM mri_protocol_violated_scans WHERE TarchiveID = ?';
     $query .= ' AND BINARY SUBSTRING_INDEX(minc_location, "/", -1) = ?' if $fileBaseName ne '';
     my @queryArgs = ($tarchiveID);
@@ -1168,7 +1184,7 @@ sub getMriProtocolViolatedScansFilesRef {
 
 =pod
 
-=head3 getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+=head3 getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to an archive that are listed in 
 table C<mri_violations_log>.
@@ -1178,8 +1194,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  an array of hash references. Each hash has three keys: C<LogID> => ID of the record in table 
@@ -1188,10 +1203,11 @@ RETURNS:
 
 =cut
 sub getMriViolationsLogFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
     
     return [] if !defined $tarchiveID;
 
+    my $fileBaseName = $optionsRef->{'BASENAME'};
     my $fileBaseNameAnd = $fileBaseName ne ''
        ? ' AND BINARY SUBSTRING_INDEX(MincFile, "/", -1) = ?'
        : '';
@@ -1226,7 +1242,7 @@ sub getMriViolationsLogFilesRef {
 
 =pod
 
-=head3 getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $fileBaseName)
+=head3 getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table C<MRICandidateErrors>.
@@ -1236,8 +1252,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: C<ID> => ID of the record in the 
@@ -1246,12 +1261,13 @@ RETURNS:
 
 =cut
 sub getMRICandidateErrorsFilesRef {
-    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $fileBaseName) = @_;
+    my($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $optionsRef) = @_;
     
     return [] if !defined $tarchiveID || @$scanTypeToDeleteRef;
 
     # Get file path of each files in files directly tied
     # to $tarchiveId
+    my $fileBaseName = $optionsRef->{'BASENAME'};
     my $fileBaseNameAnd = $fileBaseName ne '' 
        ? ' AND BINARY SUBSTRING_INDEX(MincFile, "/", -1) = ?'
        : '';
@@ -1492,11 +1508,6 @@ sub deleteUploadsInDatabase {
     @IDs = map { $_->{'ParameterFileID'} } @{ $filesRef->{'parameter_file'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'parameter_file', 'ParameterFileID', \@IDs, $tmpSQLFile);
     
-    if(!$optionsRef->{'KEEP_DEFACED'}) {
-        @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
-        $nbRecordsDeleted += &deleteTableData($dbh, 'parameter_file', 'FileID', \@IDs, $tmpSQLFile);
-    }
-
     @IDs = map { $_->{'IntermedID'} } @{ $filesRef->{'files_intermediary'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'files_intermediary', 'IntermedID', \@IDs, $tmpSQLFile); 
     
