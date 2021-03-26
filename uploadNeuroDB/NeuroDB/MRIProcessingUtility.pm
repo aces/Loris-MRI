@@ -1347,7 +1347,7 @@ INPUTS:
 
 sub dicom_to_minc {
     my $this = shift;
-    my ($study_dir, $converter,$get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
+    my ($study_dir, $converter, $get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
@@ -1375,7 +1375,7 @@ sub dicom_to_minc {
     my @cmdOutputLines = `$cmd`;
 
     #------------------------------------------------------------------------------------#
-    # For each quadruplet (modality) run dcm2mnc to conver the DICOM files that belog    #
+    # For each quadruplet (modality) run dcm2mnc to convert the DICOM files that belong    #
     # in that group. We cannot convert the entire set of DICOM files due to a bug in     #
     # dcm2mnc (see https://github.com/aces/Loris/issues/564). We have to split the      #
     # DICOM files into groups and convert the files that belong to each group separately.#
@@ -1406,9 +1406,11 @@ sub dicom_to_minc {
         } else {
             $d2m_cmd .= " | $converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
         }
-      
-        my $d2m_log = `$d2m_cmd`;
-      
+
+        # forcing bash to make sure ANSI-C quoting ($'\t') is supported. 
+        # It's not supported in some shells like Ubuntu dash.
+        my $d2m_log = `/bin/bash -c "$d2m_cmd"`;
+
         if ($? > 0) {
             $exit_code = $? >> 8;
             #---------------------------------------------------------#
