@@ -1347,7 +1347,7 @@ INPUTS:
 
 sub dicom_to_minc {
     my $this = shift;
-    my ($study_dir, $converter,$get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
+    my ($study_dir, $converter, $get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
@@ -1375,7 +1375,7 @@ sub dicom_to_minc {
     my @cmdOutputLines = `$cmd`;
 
     #------------------------------------------------------------------------------------#
-    # For each quadruplet (modality) run dcm2mnc to conver the DICOM files that belog    #
+    # For each quadruplet (modality) run dcm2mnc to convert the DICOM files that belong    #
     # in that group. We cannot convert the entire set of DICOM files due to a bug in     #
     # dcm2mnc (see https://github.com/aces/Loris/issues/564). We have to split the      #
     # DICOM files into groups and convert the files that belong to each group separately.#
@@ -1387,7 +1387,7 @@ sub dicom_to_minc {
         # We need to use quotemeta here to make sure each character of a given variable is interpreted
         # as is and not as a regex special character
         # Note: '$\'\t\'' is a TAB for Unix grep
-        my $pattern = join('$\'\t\'', quotemeta($studyUID), quotemeta($seriesUID), quotemeta($echo), quotemeta($seriesDesc));
+        my $pattern = join('\t', quotemeta($studyUID), quotemeta($seriesUID), quotemeta($echo), quotemeta($seriesDesc));
 
         # For each file in $study_dir...
         my $d2m_cmd = "find $study_dir -type f ";                        
@@ -1396,7 +1396,7 @@ sub dicom_to_minc {
         $d2m_cmd   .= "| $get_dicom_info -studyuid -attvalue 0020 000e -echo -series_descr -file -stdin";
 
         # ...keep only the files that belong to the current group
-        $d2m_cmd   .= "| grep ^$pattern";
+        $d2m_cmd   .= "| grep -P '^$pattern'";
 
         # ...keep only the file name
         $d2m_cmd   .= "| cut -f5";
