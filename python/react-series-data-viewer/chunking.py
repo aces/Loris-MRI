@@ -4,7 +4,6 @@ import math
 import os
 import shutil
 from collections import OrderedDict
-
 import mne.io
 import numpy as np
 from scipy import signal
@@ -13,8 +12,6 @@ try:
     from .protocol_buffers import chunk_pb2 as chunk_pb
 except:
     from protocol_buffers import chunk_pb2 as chunk_pb
-
-# Generic code
 
 
 def pad_channels(channels, chunk_size):
@@ -46,23 +43,24 @@ def create_chunks_from_channels_list(channels_list, chunk_size):
     return channel_chunks_list
 
 
-def downsample_channels(channels, chunk_size, downsampling):
+def downsample_channel(channel, chunk_size, downsampling):
     if downsampling == 0:
-        return channels
+        return channel
     down = chunk_size**downsampling
-    downsampled_size = channels.shape[-1] / down
+    downsampled_size = channel.shape[-1] / down
     if downsampled_size <= chunk_size * 2:
         downsampled_size = chunk_size * 2
-        down = math.floor(channels.shape[-1] / (chunk_size * 2))
-    return signal.resample(channels, downsampled_size, axis=-1)
+        down = math.floor(channel.shape[-1] / (chunk_size * 2))
+    return signal.resample(channel, downsampled_size, axis=-1)
 
 
-def create_downsampled_channels_list(channels, chunk_size):
+def create_downsampled_channels_list(channel, chunk_size):
     downsamplings = math.ceil(
-        math.log(channels.shape[-1]) / math.log(chunk_size))
+        math.log(channel.shape[-1]) / math.log(chunk_size)
+    )
     downsamplings = range(downsamplings-1, -1, -1)
     downsampled_channels = [
-        downsample_channels(channels, chunk_size, downsampling)
+        downsample_channel(channel, chunk_size, downsampling)
         for downsampling in downsamplings
     ]
     sizes = set()
@@ -160,20 +158,29 @@ def write_chunks(chunk_dir, channel_chunks_list):
 
 def mne_file_to_chunks(path, chunk_size, loader):
     parsed = loader(path)
-    channels = parsed.get_data()
-    channels = channels
     time_interval = (parsed.times[0], parsed.times[-1])
     channel_names = parsed.info["ch_names"]
-    channel_ranges = [
-        (np.amin(channel, axis=-1), np.amax(channel, axis=-1))
-        for channel in channels
-    ]
-    channels = np.expand_dims(channels, axis=-2)
-    downsampled_channels = create_downsampled_channels_list(
-        channels, chunk_size)
-    channel_chunks_list = create_chunks_from_channels_list(
-        downsampled_channels, chunk_size)
-    signal_range = [np.amin(channels), np.amax(channels)]
+    channel_ranges = []
+    signal_range = [np.PINF, np.NINF]
+    channel_chunks_list = []
+
+    for i, channel_name in enumerate(channel_names):
+        print(i)
+        channel = parsed.get_data(channel_name)
+        channel_min = np.amin(channel)
+        channel_max = np.amax(channel)
+        channel_ranges.append((channel_min, channel_max))
+        signal_range = [min(channel_min, signal_range[0]), max(channel_max, signal_range[1])]
+
+        channel = np.expand_dims(channel, axis=-2)
+        downsampled_channels = create_downsampled_channels_list(channel, chunk_size)
+        chunks = create_chunks_from_channels_list(downsampled_channels, chunk_size)
+        if not channel_chunks_list:
+            channel_chunks_list = chunks
+        else:
+            for j, chunk in enumerate(chunks):
+                channel_chunks_list[j] = np.append(channel_chunks_list[j], chunk, axis=0)
+
     return channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges
 
 
