@@ -165,7 +165,6 @@ def mne_file_to_chunks(path, chunk_size, loader):
     channel_chunks_list = []
 
     for i, channel_name in enumerate(channel_names):
-        print(i)
         channel = parsed.get_data(channel_name)
         channel_min = np.amin(channel)
         channel_max = np.amax(channel)
