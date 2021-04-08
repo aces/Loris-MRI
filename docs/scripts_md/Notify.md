@@ -51,6 +51,17 @@ INPUTS:
 
 RETURNS: 1 on success, 0 on failure
 
+### email($mail\_user, $subject, $message)
+
+Sends a new notification email, `$message`, with subject `$subject`, to the  `$mail_user`
+
+INPUTS:
+  - $mail\_user : user to email
+  - $subject   : email subject
+  - $message   : email message
+
+RETURNS:
+
 ### getTypeID($type)
 
 Gets the notification type ID for the notification of type `$type`.
@@ -107,5 +118,5 @@ License: GPLv3
 
 # AUTHORS
 
-Jonathan Harlap &lt;jharlap@bic.mni.mcgill.ca>,
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+Jonathan Harlap <jharlap@bic.mni.mcgill.ca>,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

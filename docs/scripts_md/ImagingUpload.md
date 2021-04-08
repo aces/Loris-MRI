@@ -143,6 +143,14 @@ INPUTS:
  - $field: name of the column in the table to be updated
  - $value: value of the column to be set
 
+### getInsertedFileNamesUsingUploadID($upload\_id)
+
+Function that gets names of inserted files using the upload ID
+
+INPUT: The upload ID
+
+RETURNS: The array of inserted file names
+
 # COPYRIGHT AND LICENSE
 
 License: GPLv3

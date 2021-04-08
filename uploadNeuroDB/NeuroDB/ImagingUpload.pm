@@ -778,6 +778,44 @@ sub updateMRIUploadTable  {
         $mri_upload_update->execute( $value,$this->{'upload_id'} );
 }
 
+
+################################################################
+############### getInsertedFileNamesUsingUploadID###############
+################################################################
+=pod
+
+=head3 getInsertedFileNamesUsingUploadID($upload_id)
+
+Function that gets names of inserted files using the upload ID
+
+INPUT: The upload ID
+
+RETURNS: The array of inserted file names
+
+=cut
+
+
+sub getInsertedFileNamesUsingUploadID {
+    my ($this, $upload_id) = @_;
+
+    my ( @file_names, $query );
+
+    if ($upload_id) {
+        ########################################################
+        ##########Extract Inserted file names using uploadid####
+        ########################################################
+        $query = "SELECT File FROM files f "
+          . "JOIN mri_upload m ON (f.TarchiveSource=m.TarchiveID) "
+          . "WHERE UploadID =?";
+        my $sth = ${ $this->{'dbhr'} }->prepare($query);
+        $sth->execute($upload_id);
+        while (my $row = $sth->fetchrow_hashref()) {
+            push (@file_names, $row->{'File'});
+        }
+    }
+    return @file_names;
+}
+
 1;
 
 
