@@ -316,6 +316,34 @@ class Physiological:
 
         return results
 
+
+    def grep_annotation_from_physiological_file_id(self, physiological_file_id):
+        """
+        Greps all entries present in the physiological_annotation_instance,
+        physiological_annotation_file, physiological_annotation_label and
+        physiological_annotation_parameter tables for a
+        given PhysiologicalFileID and returns its result.
+
+        :param physiological_file_id: physiological file's ID
+         :type physiological_file_id: int
+
+        :return: tuple of dictionaries with one entry in the tuple
+                 corresponding to one entry in physiological_annotation_instance
+         :rtype: tuple
+        """
+
+        results = self.db.pselect(
+            query="SELECT * "
+                  "FROM physiological_annotation_instance i "
+                  "JOIN physiological_annotation_file f ON i.AnnotationFileID = f.AnnotationFileID "
+                  "JOIN physiological_annotation_label l ON l.AnnotationLabelID = i.AnnotationLabelID "
+                  "JOIN physiological_annotation_parameter p ON p.AnnotationFileID = i.AnnotationFileID "
+                  "WHERE PhysiologicalFileID = %s",
+            args=(physiological_file_id,)
+        )
+
+        return results
+
     def insert_electrode_file(self, electrode_data, electrode_file,
                               physiological_file_id, blake2):
         """
@@ -563,6 +591,162 @@ class Physiological:
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_blake2b_hash', blake2
+        )
+
+    def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id,
+                          blake2):
+        """
+        Inserts the annotation metadata information read from the file *annotations.json
+        into the physiological_annotation_file, physiological_annotation_parameter
+        and physiological_annotation_label tables, linking it to the physiological file ID
+        already inserted in physiological_file.
+
+        :param annotation_metadata      : list with dictionaries of annotations
+                                          metadata to insert into the database
+         :type annotation_metadata      : list
+        :param annotation_metadata_file : name of the annotation metadata file
+         :type annotation_file          : str
+        :param physiological_file_id    : PhysiologicalFileID to link the annnotation info to
+         :type physiological_file_id    : int
+        :param blake2                   : blake2b hash of the annotation file
+         :type blake2                   : str
+        """
+
+        optional_fields = (
+            'Sources',  'Author', 'LabelDescription'
+        )
+        for field in optional_fields:
+            if field not in annotation_metadata.keys():
+                annotation_metadata[field] = None
+
+        annotationFileID = self.db.insert(
+            table_name   = 'physiological_annotation_file',
+            column_names = ('PhysiologicalFileID', 'FileType', 'FilePath'),
+            values       = (physiological_file_id, 'json',  annotation_metadata_file),
+            get_last_id  = True
+        )
+
+        self.db.insert(
+            table_name   = 'physiological_annotation_parameter',
+            column_names = ('AnnotationFileID', 'Sources',  'Author'),
+            values       = (annotationFileID, annotation_metadata['Sources'], annotation_metadata['Author'])
+        )
+
+        labels = []
+        for label, description in annotation_metadata['LabelDescription'].items():
+            descCount = self.db.pselect(
+                query="SELECT COUNT(*) FROM physiological_annotation_label WHERE LabelName = %s",
+                args=(label,)
+            )
+
+            if descCount == 0:
+                labels.insert((label, description))
+
+        self.db.insert(
+            table_name   = 'physiological_annotation_label',
+            column_names = ('LabelName', 'LabelDescription'),
+            values       = labels
+        )
+
+        # insert blake2b hash of annotation file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'annotation_file_blake2b_hash', blake2
+        )
+
+    def insert_annotation_data(self, annotation_data, annotation_file, physiological_file_id,
+                          blake2):
+        """
+        Inserts the annotation information read from the file *annotations.tsv
+        into the physiological_annotation_file and physiological_annotation_instance tables,
+        linking it to the physiological file ID already inserted in physiological_file.
+
+        :param annotation_data      : list with dictionaries of annotations
+                                      information to insert into
+                                      physiological_annotation_file
+         :type annotation_data      : list
+        :param annotation_file      : name of the annotation file
+         :type annotation_file      : str
+        :param physiological_file_id: PhysiologicalFileID to link the event info to
+         :type physiological_file_id: int
+        :param blake2               : blake2b hash of the task event file
+         :type blake2               : str
+        """
+
+        annotationFileID = self.db.insert(
+            table_name   = 'physiological_annotation_file',
+            column_names = ('PhysiologicalFileID', 'FileType',  'FilePath'),
+            values       = (physiological_file_id, 'tsv',  annotation_file),
+            get_last_id  = True
+        )
+
+        annotation_fields = (
+            'AnnotationFileID', 'AnnotationParameterID', 'Onset', 'Duration',
+            'AnnotationLabelID', 'Channel', 'AbsoluteTime', 'Description'
+        )
+        annotation_values = []
+        for row in annotation_data:
+            optional_fields = (
+                'channels', 'absolute_time', 'description'
+            )
+            for field in optional_fields:
+                if field not in row.keys():
+                    row[field] = None
+
+            if not row['duration'].isdecimal():
+                row['duration'] = None
+
+            if not row['onset'].isdecimal():
+                row['onset'] = None
+
+            if "n/a" in row['channels']:
+                row['channels'] = None
+
+            labelID = self.db.pselect(
+                query="SELECT AnnotationLabelID FROM physiological_annotation_label WHERE LabelName = %s "
+                "LIMIT 1",
+                args=(row['label'],)
+            )
+            labelID = labelID[0]['AnnotationLabelID']
+
+            if not labelID:
+                labelID = self.db.insert(
+                    table_name   = 'physiological_annotation_label',
+                    column_names = ('LabelName',),
+                    values       = (row['label'],),
+                    get_last_id  = True
+                )
+
+            paramID = self.db.pselect(
+                query="SELECT AnnotationParameterID "
+                "FROM physiological_annotation_parameter p "
+                "JOIN physiological_annotation_file f ON f.AnnotationFileID = p.AnnotationFileID "
+                "WHERE f.PhysiologicalFileID = %s "
+                "LIMIT 1",
+                args=(physiological_file_id,)
+            )
+            paramID = paramID[0]['AnnotationParameterID']
+
+            values_tuple = (
+                str(annotationFileID),
+                paramID,
+                row['onset'],
+                row['duration'],
+                labelID,
+                row['channels'],
+                row['absolute_time'],
+                row['description']
+            )
+            annotation_values.append(values_tuple)
+
+        self.db.insert(
+            table_name   = 'physiological_annotation_instance',
+            column_names = annotation_fields,
+            values       = annotation_values
+        )
+
+        # insert blake2b hash of annotation file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'annotation_file_blake2b_hash', blake2
         )
 
     def grep_archive_info_from_file_id(self, physiological_file_id):
