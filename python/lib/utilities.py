@@ -27,7 +27,7 @@ def read_tsv_file(tsv_file):
     """
 
     results = []
-    with open(tsv_file) as file:
+    with open(tsv_file, encoding='utf-8-sig') as file:
         reader = csv.DictReader(file, delimiter="\t")
 
         for row in reader:
