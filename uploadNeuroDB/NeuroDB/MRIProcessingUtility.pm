@@ -763,6 +763,26 @@ sub getAcquisitionProtocol {
             $acquisitionProtocol, $this->{'db'}
         );
 
+        # if no acquisition protocol ID returned, look for the 'unknown' protocol ID
+        unless ($acquisitionProtocolID) {
+            $acquisitionProtocol = 'unknown';
+            $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
+                'unknown', $this->{'db'}
+            );
+            # if found an ID for 'unknown' scan type, then change protocol
+            # to be 'unknown', otherwise throw an error
+            if ($acquisitionProtocolID) {
+                $acquisitionProtocol = 'unknown';
+            } else {
+                NeuroDB::UnexpectedValueException->throw(
+                    errorMessage => sprintf(
+                        "Unknown acquisition protocol %s and scan type 'unknown' does not exist in the database",
+                        $acquisitionProtocol
+                    )
+                );
+            }
+        }
+
         if ($bypass_extra_file_checks == 0) {
             $extra_validation_status = $this->extra_file_checks(
                 $acquisitionProtocolID, 
@@ -1207,7 +1227,8 @@ sub registerScanIntoDB {
     my $this = shift;
     my (
         $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol,
-        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id, $hrrt
+        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id,
+        $acquisitionProtocolID, $hrrt
     ) = @_;
 
 
@@ -1219,11 +1240,7 @@ sub registerScanIntoDB {
     my $prefix   = $configOB->getPrefix();
 
 
-    my $acquisitionProtocolID = undef;
-    my (
-        $Date_taken,$minc_protocol_identified,
-        $file_path,$tarchive_path,$fileID
-    );
+    my ($Date_taken, $minc_protocol_identified, $file_path, $tarchive_path, $fileID);
     my $message = '';
     ############################################################
     # Register scans into the database.  Which protocols to ####
@@ -1237,13 +1254,6 @@ sub registerScanIntoDB {
         ) 
         && (!defined($extra_validation_status) || $extra_validation_status !~ /exclude/)) {
 
-        ########################################################
-        # convert the textual scan_type into the scan_type id ##
-        ########################################################
-        $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
-                                        $acquisitionProtocol, 
-                                        $this->{'db'}
-                                 );
         $${minc_file}->setFileData(
             'AcquisitionProtocolID', 
              $acquisitionProtocolID
