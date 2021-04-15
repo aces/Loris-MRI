@@ -765,7 +765,6 @@ sub getAcquisitionProtocol {
 
         # if no acquisition protocol ID returned, look for the 'unknown' protocol ID
         unless ($acquisitionProtocolID) {
-            $acquisitionProtocol = 'unknown';
             $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
                 'unknown', $this->{'db'}
             );
