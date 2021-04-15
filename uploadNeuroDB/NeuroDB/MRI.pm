@@ -639,7 +639,7 @@ INPUTS:
   - $type: scan type
   - $db  : database object
 
-RETURNS: ID of the scan type
+RETURNS: ID of the scan type or undef
 
 =cut
 
@@ -652,17 +652,8 @@ sub scan_type_text_to_id {
     my $mriScanTypeRef = $mriScanTypeOB->get(
         0, { Scan_type => $type }
     );
-    $mriScanTypeRef = $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
-    if(!@$mriScanTypeRef) {
-        NeuroDB::UnexpectedValueException->throw(
-            errorMessage => sprintf(
-                "Unknown acquisition protocol %s and scan type 'unknown' does not exist in the database",
-                $type
-            ) 
-        );
-    }
-    
-    return $mriScanTypeRef->[0]->{'ID'};
+
+    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'ID'} : undef;
 }
 
 

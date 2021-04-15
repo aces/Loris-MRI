@@ -336,26 +336,26 @@ unless ($sth->rows > 0) {
 
 # verify that an acquisition protocol ID exists for $scan_type
 my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, $db);
-if ($acqProtocolID =~ /unknown/){
+unless ($acqProtocolID) {
     $message = "\n\tERROR: no AcquisitionProtocolID found for $scan_type.\n\n";
     # write error message in the log file
-    $utility->writeErrorLog( $message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL, $log_file );
+    $utility->writeErrorLog($message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL,
+        $log_file);
     # insert error message into notification spool table
     $notifier->spool(
-        'imaging non minc file insertion',    $message,   0,
+        'imaging non minc file insertion', $message, 0,
         'imaging_non_minc_insertion.pl', $upload_id, 'Y',
         'N'
     );
     exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
-} else {
-    $message = "\nFound protocol ID $acqProtocolID for $scan_type.\n\n";
-    $notifier->spool(
-        'imaging non minc file insertion',    $message,   0,
-        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
-        'Y'
-    )
 }
 
+$message = "\nFound protocol ID $acqProtocolID for $scan_type.\n\n";
+$notifier->spool(
+    'imaging non minc file insertion', $message,   0,
+    'imaging_non_minc_insertion.pl',   $upload_id, 'Y',
+    'Y'
+);
 
 
 
@@ -544,9 +544,9 @@ $file->setFileData( 'OutputType', $output_type );
 # note, have to give an array of checks, for now, hardcoding it to 'pass'
 # until we end up with a case where this should not be the case.
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,     undef,    $subjectIDsref, $scan_type,
-    $file_path, ['pass'], $reckless,      $session_id,
-    $upload_id
+    \$file,     undef,         $subjectIDsref, $scan_type,
+    $file_path, ['pass'],      $reckless,      $session_id,
+    $upload_id, $acqProtocolID
 );
 if ( $acquisitionProtocolIDFromProd ) {
     my $registered_file = $file->getFileDatum('File');

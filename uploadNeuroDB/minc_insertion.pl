@@ -641,10 +641,10 @@ if($acquisitionProtocol =~ /unknown/) {
 ################################################################
 
 my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
-    \$file,               \%studyInfo,                   $subjectIDsref,
-    $acquisitionProtocol, $minc,                         $extra_validation_status,
-    $reckless,            $subjectIDsref->{'SessionID'}, $upload_id,
-    $hrrt
+    \$file,                 \%studyInfo,                   $subjectIDsref,
+    $acquisitionProtocol,   $minc,                         $extra_validation_status,
+    $reckless,              $subjectIDsref->{'SessionID'}, $upload_id,
+    $acquisitionProtocolID, $hrrt
 );
 
 # if the scan was inserted into the files table and there is an
