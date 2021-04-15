@@ -453,8 +453,20 @@ sub identify_scan_db {
                 my $slice_thick_min = $rowref->{'slice_thickness_min'};
                 my $slice_thick_max = $rowref->{'slice_thickness_max'};
 
+                my $scan_type = &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                # if no scan type found in mri_scan_type for $rowref->{'Scan_type'},
+                # then throw an error
+                unless ($scan_type) {
+                    NeuroDB::UnexpectedValueException->throw(
+                        errorMessage => sprintf(
+                            "Unknown acquisition protocol ID %d for ",
+                            $rowref->{'Scan_type'}
+                        )
+                    );
+                }
+
                 if(0) {
-                    print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
+                    print "\tChecking ".$scan_type." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
                     print "\t";
                     if($sd_regex && ($series_description =~ /$sd_regex/i)) {
                         print "series_description\t";
@@ -475,7 +487,7 @@ sub identify_scan_db {
 
                 if ($sd_regex) {
                     if ($series_description =~ /$sd_regex/i) {
-                        return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                        return $scan_type;
                     }
 
                 } else {
@@ -492,7 +504,7 @@ sub identify_scan_db {
                       && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
                       && (!$rowref->{'image_type'} || $image_type =~ /\Q$rowref->{'image_type'}\E/i)
                     ) {
-                        return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                        return $scan_type;
                     }
                 }  # if ($sd_regex) .... else...
             }  # foreach my $rowref (@rows)....
@@ -612,21 +624,8 @@ sub scan_type_id_to_text {
         db => $db
     );
     my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $typeID });
-    
-    # This is just to make sure that there is a scan type in the DB
-    # with name 'unknown' in case we can't find the one with ID $ID
-    $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
 
-    if(!@$mriScanTypeRef) {
-        NeuroDB::UnexpectedValueException->throw(
-            errorMessage => sprintf(
-                "Unknown acquisition protocol ID %d and scan type 'unknown' does not exist in the database",
-                $typeID
-            ) 
-        );
-    }
-    
-    return $mriScanTypeRef->[0]->{'Scan_type'};
+    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'Scan_type'} : undef;
 }
 
 =pod
