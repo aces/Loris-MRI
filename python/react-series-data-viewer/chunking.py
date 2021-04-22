@@ -7,6 +7,7 @@ from collections import OrderedDict
 import mne.io
 import numpy as np
 from scipy import signal
+import sys
 
 try:
     from .protocol_buffers import chunk_pb2 as chunk_pb
@@ -94,6 +95,8 @@ def write_index_json(
     chunk_dir,
     time_interval,
     series_range,
+    from_channel_index,
+    channel_count,
     channel_names,
     channel_ranges,
     chunk_size,
@@ -114,12 +117,38 @@ def write_index_json(
         ('channelMetadata', [
             {
                 'name': channel_names[i],
-                'seriesRange': channel_ranges[i]
+                'seriesRange': channel_ranges[i],
+                'index': from_channel_index+i
             }
-            for i in range(0, len(channel_names))
+            for i in range(len(channel_ranges))
         ])
     ])
     create_path_dirs(chunk_dir)
+    
+    data = None
+    try:
+        with open(os.path.join(chunk_dir, 'index.json'), 'r+') as index_json:
+            data = json.load(index_json)
+            if json_dict['chunkSize'] != data['chunkSize']:
+                sys.exit("Chunk size does not match the one found in index.json.")
+
+            if json_dict['downsamplings'] != data['downsamplings']:
+                sys.exit("Downsamplings does not match the one found in index.json.")
+
+            indices = [channelMetadata['index'] for channelMetadata in json_dict['channelMetadata']]
+            json_dict['channelMetadata'].extend(
+                channelMetadata for channelMetadata in data['channelMetadata'] if channelMetadata['index'] not in indices
+            )
+            json_dict['channelMetadata'] = sorted(json_dict['channelMetadata'], key=lambda k: k['index'])
+            if data['seriesRange'][0] < json_dict['seriesRange'][0]:
+                json_dict['seriesRange'][0] = data['seriesRange'][0]
+
+            if data['seriesRange'][1] > json_dict['seriesRange'][1]:
+                json_dict['seriesRange'][1] = data['seriesRange'][1]
+    except Exception as e:
+        print(e)
+        print('Unable to read an existing index.json file. A new one will be created.')
+
     with open(os.path.join(chunk_dir, 'index.json'), 'w+') as index_json:
         json.dump(json_dict, index_json, indent=2, separators=(',', ': '))
 
@@ -130,21 +159,15 @@ def encode_chunk(chunk, index, downsampling):
     return encoded.SerializeToString()
 
 
-def write_chunks(chunk_dir, channel_chunks_list):
-    try:
-        shutil.rmtree(os.path.join(chunk_dir, 'raw'))
-    except FileNotFoundError as e:
-        pass
-    except e:
-        raise e
+def write_chunks(chunk_dir, channel_chunks_list, channel_index):
     for downsampling, channels in enumerate(channel_chunks_list):
-        for channel_index, channel in enumerate(channels):
+        for channel_offset, channel in enumerate(channels):
             for trace_index, trace in enumerate(channel):
                 trace_path = os.path.join(
                     chunk_dir,
                     'raw',
                     str(downsampling),
-                    str(channel_index),
+                    str(channel_index+channel_offset),
                     str(trace_index)
                 )
                 create_path_dirs(trace_path)
@@ -156,7 +179,7 @@ def write_chunks(chunk_dir, channel_chunks_list):
                     with open(chunk_path, 'w+b') as chunk_file:
                         chunk_file.write(encoded_chunk)
 
-def mne_file_to_chunks(path, chunk_size, loader):
+def mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_count):
     parsed = loader(path)
     time_interval = (parsed.times[0], parsed.times[-1])
     channel_names = parsed.info["ch_names"]
@@ -164,7 +187,16 @@ def mne_file_to_chunks(path, chunk_size, loader):
     signal_range = [np.PINF, np.NINF]
     channel_chunks_list = []
 
-    for i, channel_name in enumerate(channel_names):
+    selected_chanels = channel_names
+    if from_channel_name:
+        from_channel_index = channel_names.index(from_channel_name)
+        if channel_count and from_channel_index+channel_count < len(channel_names):
+            selected_channels = channel_names[from_channel_index:from_channel_index+channel_count]
+        else:
+            selected_channels = channel_names[from_channel_index:]
+
+    for i, channel_name in enumerate(selected_channels):
+        print ("Processing channel " + channel_name)
         channel = parsed.get_data(channel_name)
         channel_min = np.amin(channel)
         channel_max = np.amax(channel)
@@ -183,20 +215,21 @@ def mne_file_to_chunks(path, chunk_size, loader):
     return channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges
 
 
-def write_chunk_directory(path, chunk_size, loader, downsamplings=None, prefix=None, destination=None):
+def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_channel_name=None, channel_count=None, downsamplings=None, prefix=None, destination=None):
     chunk_dir = chunk_dir_path(path, prefix=prefix, destination=destination)
-    channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges = mne_file_to_chunks(
-        path, chunk_size, loader)
+    channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges = mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_count)
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]
     write_index_json(
         chunk_dir,
         time_interval,
         signal_range,
+        from_channel_index,
+        channel_count,
         channel_names,
         channel_ranges,
         chunk_size,
         range(len(channel_chunks_list)),
         channel_chunks_list
     )
-    write_chunks(chunk_dir, channel_chunks_list)
+    write_chunks(chunk_dir, channel_chunks_list, from_channel_index)
