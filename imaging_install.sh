@@ -88,22 +88,13 @@ echo
 ##Create the loris-mri python virtualenv and install the Python packages########
 ################################################################################
 echo "Creating loris-mri Python virtualenv in $mridir/python_virtualenvs/loris-mri-python/"
+pip3 install virtualenv
 # create a directory in $mridir that will store python 3 virtualenv
 sudo -S su $USER -c "mkdir -m 770 -p $mridir/python_virtualenvs/loris-mri-python"
 virtualenv $mridir/python_virtualenvs/loris-mri-python -p `which python3`
 source $mridir/python_virtualenvs/loris-mri-python/bin/activate
 echo "Installing the Python libraries into the loris-mri virtualenv..."
-pip3 install mysqlclient
-pip3 install mysql-connector
-pip3 install pybids
-pip3 install pyblake2
-pip3 install mne
-pip3 install google
-pip3 install protobuf
-pip3 install matplotlib
-pip3 install nose
-pip3 install sklearn
-pip3 install nilearn
+pip3 install -r "$mridir/python/requirements.txt"
 # deactivate the virtualenv for now
 deactivate
 

@@ -1,0 +1,17 @@
+mne
+mne-bids>=0.6
+protobuf>=3.0.0
+pybids
+mysqlclient
+mysql-connector
+pyblake2
+google
+matplotlib
+nose
+nilearn
+sklearn
+virtualenv
+python-dateutil
+nibabel
+numpy
+scipy
