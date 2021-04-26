@@ -105,6 +105,20 @@ Example for two entries/scans to be uploaded (one human subject and one phantom)
 
 ## 5.2 - Pipeline Launch for BIDS datasets
 
+### 5.2.1 - Ideal BIDS structure for LORIS
+
+The BIDS dataset to import has to:
+
+- pass the BIDS validator of [pybids](https://github.com/bids-standard/pybids)
+- contain a `participants.tsv` file at its root. Ideally, this file will contain the following columns:
+  - `participant_id`: the PSCID of the candidate  
+  - `date_of_birth`: the date of birth (in YYYY-MM-DD) to use when creating the candidate in LORIS 
+  - `sex`: the sex to use when creating the candidate in LORIS
+  - `site`: the name of the LORIS site to associate the candidate with when creating the candidate in LORIS
+  - `project`: the name of the LORIS project to associate the candidate with when creating the candidate in LORIS
+
+### 5.2.2 - Pipeline Launch 
+
 For now, the only way to run the pipeline is by running the `bids_import.py` 
 script manually via the terminal.
 
