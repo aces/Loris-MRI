@@ -105,6 +105,65 @@ Example for two entries/scans to be uploaded (one human subject and one phantom)
 
 ## 5.2 - Pipeline Launch for BIDS datasets
 
+### 5.2.1 - Ideal BIDS structure for LORIS
+
+The BIDS dataset to import has to:
+
+- pass the BIDS validator of [pybids](https://github.com/bids-standard/pybids)
+- contain a `participants.tsv` file at its root. Ideally, this file will contain the following columns:
+  - `participant_id`: the PSCID of the candidate  
+  - `date_of_birth`: the date of birth (in YYYY-MM-DD) to use when creating the candidate in LORIS 
+  - `sex`: the sex to use when creating the candidate in LORIS (value examples: `M`/`F` or `female`/`male`)
+  - `site`: the MRI alias of the LORIS site to associate the candidate with when creating the candidate in LORIS. This field is optional. If provided, the entry should match the MRI alias of a site already populated in the database. If missing or invalid, NULL will be used instead.
+  - `project`: the name of the LORIS project to associate the candidate with when creating the candidate in LORIS. This field is optional. If provided, the entry should match the name of a project already populated in the database. If missing or invalid, NULL will be used instead.
+  - `subproject`: the name of the LORIS subproject to associate the candidate with when creating the session in LORIS. This field is optional. If provided, the entry should match the name of a subproject already populated in the database. If missing or invalid, NULL will be used instead.
+- contain a `participants.json` that describes the fields present in `participants.tsv`. Example of a `participants.json` if all fields described above for `participants.tsv` are present:
+
+  ```
+  {
+    "participant_id": {
+        "Description": "Unique participant identifier"
+    },
+    "age": {
+        "Description": "Age of the participant at time of testing",
+        "Units": "years"
+    },
+    "sex": {
+        "Description": "Biological sex of the participant",
+        "Levels": {
+            "F": "female",
+            "M": "male"
+        }
+    },
+    "site": {
+        "Description": "Site of the testing",
+        "Levels": {
+            "DCC": "Data Coordinating Center",
+            "MNI": "Montreal Neurological Intitute"
+        }
+    },
+    "subproject": {
+        "Description": "Subproject of the participant",
+        "Levels": {
+            "IEEG": "IEEG Atlas"
+        }
+    },
+    "project": {
+        "Description": "Project of the participant",
+        "Levels": {
+            "IEEG": "IEEG Atlas"
+        }
+    }
+}
+  ```
+
+
+In cases where the `site`, `project` or `subproject` are missing from the `participant.tsv` file, `NULL` will be populated for those fields in the candidate and session tables. In those cases, later manual addition is required in order to display the entry on the frontend.
+
+
+
+### 5.2.2 - Pipeline Launch 
+
 For now, the only way to run the pipeline is by running the `bids_import.py` 
 script manually via the terminal.
 
