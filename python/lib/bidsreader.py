@@ -135,7 +135,7 @@ class BidsReader:
 
         mismatch_message = "\nERROR: Participant ID mismatch between " \
                            "participants.tsv and raw data found in the BIDS " \
-                           "directory/n"
+                           "directory\n"
 
         # check that all subjects listed in participants_info are also in
         # subjects array and vice versa
@@ -144,6 +144,8 @@ class BidsReader:
             row['participant_id'] = row['participant_id'].replace('sub-', '')
             if not row['participant_id'] in subjects:
                 print(mismatch_message)
+                print(row['participant_id'] + 'is missing from the BIDS Layout\n')
+                print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects) + '\n')
                 sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
             # remove the subject from the list of subjects
             subjects.remove(row['participant_id'])
