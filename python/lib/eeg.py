@@ -129,8 +129,8 @@ class Eeg:
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
-        
-        self.subproject_id   = None 
+
+        self.subproject_id   = None
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue
@@ -142,14 +142,15 @@ class Eeg:
                 if(len(subproject_info) > 0):
                     self.subproject_id = subproject_info[0]['SubprojectID']
             break
-                
+
         self.session_id      = self.get_loris_session_id()
 
-        # grep the channels, electrodes, eeg and events files
-        self.channels_files   = self.grep_bids_files('channels')
-        self.electrodes_files = self.grep_bids_files('electrodes')
-        self.eeg_files        = self.grep_bids_files(self.bids_modality)
-        self.events_files     = self.grep_bids_files('events')
+        # grep the channels, electrodes, annotations, eeg and events files
+        self.channels_files    = self.grep_bids_files('channels')
+        self.electrodes_files  = self.grep_bids_files('electrodes')
+        self.eeg_files         = self.grep_bids_files(self.bids_modality)
+        self.events_files      = self.grep_bids_files('events')
+        self.annotations_files = self.grep_bids_files('annotations')
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
@@ -215,7 +216,7 @@ class Eeg:
         and return that list.
 
         :param bids_type: the BIDS type to use to grep files (events,
-                          channels, eeg, electrodes)
+                          channels, eeg, electrodes, annotations)
          :type bids_type: str
 
         :return: list of files from the BIDS layout
@@ -273,6 +274,7 @@ class Eeg:
             - physiological_electrode
             - physiological_channel
             - physiological_task_event
+            - physiological_annotation_*
         """
 
         # insert EEG file
@@ -280,10 +282,11 @@ class Eeg:
         eeg_file_id   = inserted_eeg['file_id']
         eeg_file_path = inserted_eeg['eeg_path']
 
-        # insert related electrode, channel and event information
-        electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id)
-        channel_file_path   = self.fetch_and_insert_channel_file(eeg_file_id)
-        event_file_path     = self.fetch_and_insert_event_file(eeg_file_id)
+        # insert related electrode, channel, event and annotation information
+        electrode_file_path   = self.fetch_and_insert_electrode_file(eeg_file_id)
+        channel_file_path     = self.fetch_and_insert_channel_file(eeg_file_id)
+        event_file_path       = self.fetch_and_insert_event_file(eeg_file_id)
+        annotation_file_paths = self.fetch_and_insert_annotation_files(eeg_file_id)
 
         # grep the path to the fdt file is present in
         # physiological_parameter_file for that PhysiologicalFileID
@@ -301,6 +304,19 @@ class Eeg:
             files_to_archive = files_to_archive + (self.data_dir + fdt_file_path,)
         if event_file_path:
             files_to_archive = files_to_archive + (self.data_dir + event_file_path,)
+        if annotation_file_paths:
+            # archive all annotation files in a tar ball for annotation download
+            annotation_files_to_archive = ()
+        
+            for annotation_file_path in annotation_file_paths:
+                files_to_archive             = files_to_archive + (self.data_dir + annotation_file_path,)
+                annotation_files_to_archive  = annotation_files_to_archive + (self.data_dir + annotation_file_path,)
+            
+            annotation_archive_rel_name = os.path.splitext(annotation_file_path)[0] + ".tgz"
+            self.create_and_insert_annotation_archive(
+                annotation_files_to_archive, annotation_archive_rel_name, eeg_file_id
+            )
+
         if channel_file_path:
             files_to_archive = files_to_archive + (self.data_dir + channel_file_path,)
         archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
@@ -320,6 +336,7 @@ class Eeg:
             - physiological_electrode
             - physiological_channel
             - physiological_task_event
+            - physiological_annotation_*
         """
         # TODO: add link to original data in physiological_file_intermediary???
         # TODO: add link to raw data in physiological_file???
@@ -337,6 +354,7 @@ class Eeg:
                     self.fetch_and_insert_electrode_file(eeg_file_id, derivatives)
                     self.fetch_and_insert_channel_file(eeg_file_id, derivatives)
                     self.fetch_and_insert_event_file(eeg_file_id, derivatives)
+                    self.fetch_and_insert_annotation_files(eeg_file_id, derivatives)
 
     def fetch_and_insert_eeg_file(self, derivatives=None):
         """
@@ -687,6 +705,99 @@ class Eeg:
 
         return event_path
 
+    def fetch_and_insert_annotation_files(
+            self, physiological_file_id, derivatives=None):
+        """
+        Gather raw channel file information to insert into
+        the physiological_annotation_* tables. Once all the information has been gathered,
+        it will call Physiological.insert_annotation_file that will perform the
+        insertion into the physiological_annotation_* tables, linking them to the
+        PhysiologicalFileID already registered.
+
+        :param physiological_file_id: PhysiologicalFileID of the associated
+                                      physiological file already inserted into
+                                      the physiological_file table
+         :type physiological_file_id: int
+        :param derivatives: dictionary with derivative folder information if
+                            the event file to insert is a derivative file.
+                            Set by default to None when inserting raw file.
+         :type derivatives: dict
+
+        :return: channel file path in the /DATA_DIR/bids_import directory
+         :rtype: str
+        """
+
+        # load the Physiological object that will be used to insert the
+        # physiological data into the database
+        physiological = Physiological(self.db, self.verbose)
+
+        # check if inserting derivatives to use the derivative_pattern to
+        # grep for the eeg file
+        derivative_pattern = None
+        derivative_path    = None
+        if derivatives:
+            derivative_pattern = derivatives['derivative_name'] + "/sub-"
+            derivative_path    = self.get_derivatives_path(derivatives)
+
+        annotation_metadata_file = BidsReader.grep_file(
+            files_list         = self.annotations_files,
+            match_pattern      = 'annotations.json',
+            derivative_pattern = derivative_pattern
+        )
+
+        annotation_data_file = BidsReader.grep_file(
+            files_list         = self.annotations_files,
+            match_pattern      = 'annotations.tsv',
+            derivative_pattern = derivative_pattern
+        )
+
+        if not (annotation_metadata_file) or not(annotation_data_file):
+            message = "WARNING: no annotations files associated with " \
+                      "physiological file ID " + str(physiological_file_id)
+            print(message)
+            return None
+        else:
+            annotation_paths = self.db.pselect(
+                query = "SELECT DISTINCT FilePath "
+                    "FROM physiological_annotation_file "
+                    "WHERE PhysiologicalFileID = %s",
+                args=(physiological_file_id,)
+            )
+            annotation_paths = [annotation_path['FilePath'] for annotation_path in annotation_paths]
+            annotation_paths = None
+
+            if not annotation_paths:
+                # copy the annotation file to the LORIS BIDS import directory
+                annotation_paths = []
+                annotation_paths.extend([
+                    self.copy_file_to_loris_bids_dir(
+                        annotation_metadata_file, derivative_path
+                    ),
+                    self.copy_file_to_loris_bids_dir(
+                        annotation_data_file, derivative_path
+                    )
+                ])
+                
+                # get the blake2b hash of the metadata file
+                blake2 = blake2b(annotation_metadata_file.encode('utf-8')).hexdigest()
+                # insert annotation metadata in the database
+                with open(annotation_metadata_file) as metadata_file:
+                    annotation_metadata = json.load(metadata_file)
+
+                physiological.insert_annotation_metadata(
+                    annotation_metadata, annotation_paths[1], physiological_file_id, blake2
+                )
+
+                # get the blake2b hash of the data file
+                blake2 = blake2b(annotation_data_file.encode('utf-8')).hexdigest()
+                # insert annotation data in the database
+                annotation_data = utilities.read_tsv_file(annotation_data_file)
+                physiological.insert_annotation_data(
+                    annotation_data, annotation_paths[0], physiological_file_id, blake2
+                )
+
+        return annotation_paths
+
     def copy_file_to_loris_bids_dir(self, file, derivatives_path=None):
         """
         Wrapper around the utilities.copy_file function that copies the file
@@ -816,4 +927,74 @@ class Eeg:
         }
         physiological.insert_archive_file(archive_info)
 
+    def create_and_insert_annotation_archive(self, files_to_archive, archive_rel_name,
+                                  eeg_file_id):
+        """
+        Create an archive with all annotations files associated to a specific recording
 
+        :param files_to_archive: tuple with the list of files to include in
+                                 the archive
+         :type files_to_archive: tuple
+        :param archive_rel_name: path to the archive relative to data_dir
+         :type archive_rel_name: str
+        :param eeg_file_id     : PhysiologicalFileID
+         :type eeg_file_id     : int
+        """
+
+        # load the Physiological object that will be used to insert the
+        # physiological archive into the database
+        physiological = Physiological(self.db, self.verbose)
+
+        # check if archive is on the filesystem
+        archive_full_path = self.data_dir + archive_rel_name
+        blake2            = None
+        if os.path.isfile(archive_full_path):
+            blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
+
+        # check if archive already inserted in database and matches the one
+        # on the filesystem using blake2b hash
+        query = "SELECT * " \
+                "FROM physiological_annotation_archive " \
+                "WHERE PhysiologicalFileID = %s"
+        results = self.db.pselect(query=query, args=(eeg_file_id,))
+        
+        if results and results[0]:
+            result = results[0]
+            if not blake2:
+                message = '\nERROR: no archive was found on the filesystem ' + \
+                          'while an entry was found in the database for '   + \
+                          'PhysiologicalFileID = ' + str(eeg_file_id)
+                print(message)
+                exit(lib.exitcode.MISSING_FILES)
+            elif result['Blake2bHash'] != blake2:
+                message = '\nERROR: blake2b hash of ' + archive_full_path     +\
+                          ' does not match the one stored in the database.'   +\
+                          '\nblake2b of ' + archive_full_path + ': ' + blake2 +\
+                          '\nblake2b in the database: ' + result['blake2b_hash']
+                print(message)
+                exit(lib.exitcode.CORRUPTED_FILE)
+            else:
+                return
+
+        # create the archive file
+        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+
+        # insert the archive file in physiological_annotation_archive
+        blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
+        archive_info = {
+            'PhysiologicalFileID': eeg_file_id,
+            'Blake2bHash'        : blake2,
+            'FilePath'           : archive_rel_name
+        }
+
+        # insert the archive into the physiological_annotation_archive table
+        archive_fields = ()
+        archive_values = ()
+        for key, value in archive_info.items():
+            archive_fields = archive_fields + (key,)
+            archive_values = archive_values + (value,)
+        self.db.insert(
+            table_name   = 'physiological_annotation_archive',
+            column_names = archive_fields,
+            values       = archive_values
+        )
