@@ -287,7 +287,7 @@ class BidsReader:
     @staticmethod
     def grep_file(files_list, match_pattern, derivative_pattern=None):
         """
-        Grep a file based on a match pattern and returns it.
+        Grep a unique file based on a match pattern and returns it.
 
         :param files_list        : list of files to look into
          :type files_list        : list
@@ -297,11 +297,10 @@ class BidsReader:
                                    is a derivative file
          :type derivative_pattern: str
 
-        :return: name of the file that matches the pattern
+        :return: name of the first file that matches the pattern
          :rtype: str
         """
 
-        raw_file = None
         for filename in files_list:
             if not derivative_pattern:
                 if 'derivatives' in filename:
@@ -309,10 +308,10 @@ class BidsReader:
                     continue
                 elif re.search(match_pattern, filename):
                     # grep the file that matches the match_pattern (extension)
-                    raw_file = filename
+                    return filename
             else:
                 matches_derivative = re.search(derivative_pattern, filename)
                 if re.search(match_pattern, filename) and matches_derivative:
-                    raw_file = filename
+                    return filename
 
-        return raw_file
+        return None
