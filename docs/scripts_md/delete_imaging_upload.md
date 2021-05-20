@@ -30,7 +30,7 @@ Available options are:
                          `-backup_path` cannot be used if `-nofilesbk` and `-nosqlbk` are also used.
 
 \-basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table `files` or table 
-                         `parameter_files`. This option should be used when targeting a specific (unique) file for deletion.
+                         `parameter_file`. This option should be used when targeting a specific (unique) file for deletion.
                          Note that the file will be deleted from both the database and the filesystem. This option cannot be 
                          used with options `-defaced` and `-form`.
 
@@ -231,7 +231,7 @@ INPUTS:
 RETURNS:
   - 1 if there is QC information associated to the DICOM archive(s), 0 otherwise.
 
-### getFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+### getFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table `files`.
@@ -241,15 +241,14 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of names of scan types to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: `FileID` => ID of a file in table `files`,
    `File` => value of column `File` for the file with the given ID and `FullPath` => absolute path
    for the file with the given ID.
 
-### getIntermediaryFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+### getIntermediaryFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the intermediary files associated to an archive 
 that are listed in table `files_intermediary`.
@@ -260,8 +259,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
   - an array of hash references. Each hash has seven keys: `IntermedID` => ID of a file in 
@@ -271,11 +269,9 @@ RETURNS:
     ID, `SourceFileID` value of column `SourceFileID` for the intermediary file and 
     `FullPath` => absolute path of the file with the given ID.
 
-### getParameterFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+### getParameterFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
-Gets the absolute paths of all the files associated to an archive that are listed in table
-`parameter_file` and have a parameter type set to `check_pic_filename`, `check_nii_filename`,
-`check_bval_filename` or `check_bvec_filename`.
+Gets the records to delete from table parameter\_file.
 
 INPUTS:
   - $dbhr  : database handle reference.
@@ -283,8 +279,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
   - an array of hash references. Each hash has four keys: `FileID` => FileID of a file 
@@ -292,7 +287,7 @@ RETURNS:
     for the file with the given ID, `Name` => name of the parameter and `FullPath` => absolute
     path of the file with the given ID.
 
-### getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+### getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table `mri_protocol_violated_scans`.
@@ -302,8 +297,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: `ID` => ID of the record in table
@@ -311,7 +305,7 @@ RETURNS:
    `mri_protocol_violated_scans` for the MINC file found and `FullPath` => absolute path of the MINC
    file found.
 
-### getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $fileBaseName)
+### getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to an archive that are listed in 
 table `mri_violations_log`.
@@ -321,15 +315,14 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  an array of hash references. Each hash has three keys: `LogID` => ID of the record in table 
  `mri_violations_log`, `MincFile` => value of column `MincFile` for the MINC file found in table
  `mri_violations_log` and `FullPath` => absolute path of the MINC file.
 
-### getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $fileBaseName)
+### getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $optionsRef)
 
 Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table `MRICandidateErrors`.
@@ -339,8 +332,7 @@ INPUTS:
   - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting `dataDirBasePath`.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $fileBaseName: base name of the file to delete or '' if a file's base name should not be used to determine
-                   whether a file is deleted or not.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS: 
  - an array of hash references. Each hash has three keys: `ID` => ID of the record in the 
