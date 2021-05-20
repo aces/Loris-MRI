@@ -10,14 +10,23 @@ import json
 
 import lib.exitcode
 import lib.utilities as utilities
+import bids
+
 try:
-    from bids.layout import BIDSLayout
+    from bids import BIDSLayout
 except ImportError:
     try:
         from bids.grabbids import BIDSLayout
     except ImportError:
         print("Could not find bids.layout or bids.grabbids")
         exit(lib.exitcode.INVALID_IMPORT)
+
+# BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
+bids_pack_version = list(map(int, bids.__version__.split('.')))
+if (bids_pack_version[0] > 0
+    or bids_pack_version[1] > 12
+    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
+    from bids import BIDSLayoutIndexer
 
 __license__ = "GPLv3"
 
@@ -83,7 +92,18 @@ class BidsReader:
 
         bids_config = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
         exclude_arr = ['/code/', '/sourcedata/', '/log/', '.git/']
-        bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr)
+
+        # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
+        bids_pack_version = list(map(int, bids.__version__.split('.')))
+        if (bids_pack_version[0] > 0
+            or bids_pack_version[1] > 12
+            or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
+            bids_layout = BIDSLayout(
+                root=self.bids_dir,
+                indexer=BIDSLayoutIndexer(config_filename=bids_config, ignore=exclude_arr)
+            )
+        else:
+            bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr)
 
         if self.verbose:
             print('\t=> BIDS dataset loaded with BIDS layout\n')
