@@ -78,6 +78,7 @@ use JSON;
 use NeuroDB::DBI;
 use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
+use NeuroDB::File;
 
 
 # Set script's constants here
@@ -227,7 +228,7 @@ close($fh);
 # Create the dataset_description.json BIDS file if it does not already exist
 # =============================================================================
 my $data_desc_filename  = "dataset_description.json";
-my $data_desc_file_path = $dest_dir . "/" . $data_desc_filename;
+my $data_desc_file_path = "$dest_dir/$data_desc_filename";
 my %dataset_desc_hash   = (
     'BIDSVersion'           => $BIDS_VERSION,
     'Name'                  => $dataset_name,
@@ -238,17 +239,9 @@ my %dataset_desc_hash   = (
 );
 unless (-e $data_desc_file_path) {
     print "\n******* Creating the dataset description file $data_desc_file_path *******\n";
-
     write_BIDS_JSON_file($data_desc_file_path, \%dataset_desc_hash);
-
     registerBidsFileInDatabase(
-        $data_desc_file_path,
-        'study',
-        'json',
-        undef,
-        undef,
-        'dataset_description',
-        undef
+        $data_desc_file_path, 'study', 'json', undef, undef, 'dataset_description', undef
     );
 }
 
@@ -259,22 +252,9 @@ unless (-e $data_desc_file_path) {
 my $readme_file_path = $dest_dir . "/README";
 unless (-e $readme_file_path) {
     print "\n******* Creating the README file $readme_file_path *******\n";
-
-    open README, ">$readme_file_path" or die "Can not write file $readme_file_path: $!\n";
-    README->autoflush(1);
-    select(README);
-    select(STDOUT);
-    print README "$README\n";
-    close README;
-
+    write_BIDS_TEXT_file($readme_file_path, $README);
     registerBidsFileInDatabase(
-        $readme_file_path,
-        'study',
-        'README',
-        undef,
-        undef,
-        'README',
-        undef
+        $readme_file_path, 'study', 'README', undef, undef, 'README', undef
     );
 }
 
@@ -287,23 +267,9 @@ unless (-e $readme_file_path) {
 my $bids_validator_config_file = $dest_dir . "/.bids-validator-config.json";
 unless (-e $bids_validator_config_file) {
     print "\n******* Creating the .bids-validator-config.json file $bids_validator_config_file *******\n";
-
-    open BIDSIGNORE, ">$bids_validator_config_file"
-        or die "Can not write file $bids_validator_config_file: $!\n";
-    BIDSIGNORE->autoflush(1);
-    select(BIDSIGNORE);
-    select(STDOUT);
-    print BIDSIGNORE "$BIDS_VALIDATOR_CONFIG\n";
-    close BIDSIGNORE;
-
+    write_BIDS_TEXT_file($bids_validator_config_file, $BIDS_VALIDATOR_CONFIG);
     registerBidsFileInDatabase(
-        $bids_validator_config_file,
-        'study',
-        'json',
-        undef,
-        undef,
-        'bids-validator-config',
-        undef
+        $bids_validator_config_file, 'study', 'json', undef, undef, 'bids-validator-config', undef
     );
 }
 
@@ -312,16 +278,16 @@ unless (-e $bids_validator_config_file) {
 # Query the tarchive table to get the list of TarchiveIDs to process
 # =============================================================================
 my $query = "SELECT DISTINCT TarchiveID FROM tarchive";
-$query += " WHERE TarchiveID = ? " if defined($tarchive_id);
+$query   .= " WHERE TarchiveID = ? " if defined($tarchive_id);
 
-my $st_handle = $dbh->prepare($query);
-(defined $tarchive_id) ? $st_handle->execute($tarchive_id) : $st_handle->execute();
+my $sth = $dbh->prepare($query);
+(defined $tarchive_id) ? $sth->execute($tarchive_id) : $sth->execute();
 
 
 # =============================================================================
 # Loop through the list of TarchiveID to process and convert them into BIDS
 # =============================================================================
-while ( my $rowhr = $st_handle->fetchrow_hashref()) {
+while ( my $rowhr = $sth->fetchrow_hashref()) {
     my $queried_tarchive_id = $rowhr->{'TarchiveID'};
     print "\n******* Currently creating a BIDS directory for TarchiveID $queried_tarchive_id********\n";
 
@@ -374,6 +340,7 @@ RETURNS:
         "1" => {
             'fileID'                => 'FileID value',
             'file'                  => 'file path',
+            'echoTime'              => 'Echo Time of the file',
             'AcquisitionProtocolID' => 'Scan type ID',
             'candID'                => 'Candidate CandID',
             'sessionID'             => 'Session ID',
@@ -386,6 +353,7 @@ RETURNS:
         "2" => {
             'fileID'                => 'FileID value',
             'file'                  => 'file path',
+            'echoTime'              => 'Echo Time of the file',
             'AcquisitionProtocolID' => 'Scan type ID',
             'candID'                => 'Candidate CandID',
             'sessionID'             => 'Session ID',
@@ -403,14 +371,19 @@ RETURNS:
 sub getFileList {
     my ($db_handle, $given_tarchive_id) = @_;
 
+    # Get ParameterTypeID for echo number, series number and image type headers
+    my $echo_nb_param_type_id    = getParameterTypeID($db_handle, 'acquisition:echo_number');
+    my $series_nb_param_type_id  = getParameterTypeID($db_handle, 'series_number');
+    my $image_type_param_type_id = getParameterTypeID($db_handle, 'image_type');
+
     # Query to grep all file entries
     ### NOTE: parameter type hardcoded for open prevent ad...
-    # TODO query parameter type values in a different function
     ( my $get_file_query = <<QUERY ) =~ s/\n/ /g;
 SELECT
   f.FileID,
   File,
   AcquisitionProtocolID,
+  EchoTime,
   c.CandID,
   s.Visit_label,
   f.SessionID,
@@ -423,9 +396,9 @@ JOIN session s         ON (s.ID        = f.SessionID)
 JOIN candidate c       ON (c.CandID    = s.CandID)
 JOIN mri_scan_type mst ON (mst.ID      = f.AcquisitionProtocolID)
 JOIN tarchive t        ON (t.SessionID = s.ID)
-LEFT JOIN parameter_file pf_echonb    ON (f.FileID=pf_echonb.FileID)    AND pf_echonb.ParameterTypeID    = 1293
-LEFT JOIN parameter_file pf_seriesnb  ON (f.FileID=pf_seriesnb.FileID)  AND pf_seriesnb.ParameterTypeID  = 1734
-LEFT JOIN parameter_file pf_imagetype ON (f.FileID=pf_imagetype.FileID) AND pf_imagetype.ParameterTypeID = 2082
+LEFT JOIN parameter_file pf_echonb    ON (f.FileID=pf_echonb.FileID)    AND pf_echonb.ParameterTypeID    = ?
+LEFT JOIN parameter_file pf_seriesnb  ON (f.FileID=pf_seriesnb.FileID)  AND pf_seriesnb.ParameterTypeID  = ?
+LEFT JOIN parameter_file pf_imagetype ON (f.FileID=pf_imagetype.FileID) AND pf_imagetype.ParameterTypeID = ?
 WHERE f.OutputType IN ('native', 'defaced')
 AND f.FileType       = 'mnc'
 AND c.Entity_type    = 'Human'
@@ -434,7 +407,9 @@ QUERY
 
     # Prepare and execute query
     my $st_handle = $db_handle->prepare($get_file_query);
-    $st_handle->execute($given_tarchive_id);
+    $st_handle->execute(
+        $echo_nb_param_type_id, $series_nb_param_type_id, $image_type_param_type_id, $given_tarchive_id
+    );
 
     # Create file list hash with ID and relative location
     my %file_list;
@@ -455,6 +430,36 @@ QUERY
     }
 
     return %file_list;
+}
+
+
+=pod
+
+=head3 getParameterTypeID($db_handle, $parameter_type_name)
+
+Greps the ParameterTypeID value for a given parameter type.
+
+INPUTS:
+    - $db_handle          : database handle
+    - $parameter_type_name: name of the parameter type to query
+
+OUTPUT:
+    - ParameterTypeID found for the parameter type
+
+=cut
+
+sub getParameterTypeID {
+    my ($db_handle, $parameter_type_name) = @_;
+
+    my $pt_query = "SELECT ParameterTypeID FROM parameter_type WHERE Name = ?";
+
+    # Prepare and execute query
+    my $st_handle = $db_handle->prepare($pt_query);
+    $st_handle->execute($parameter_type_name);
+
+    my $rowhr = $st_handle->fetchrow_hashref();
+
+    return $rowhr->{'ParameterTypeID'};
 }
 
 
@@ -615,18 +620,20 @@ sub makeNIIAndHeader {
         # for phasediff files, replace EchoTime by EchoTime1 and EchoTime2
         # and create the magnitude files associated with it
         if ($bids_scan_type =~ m/phasediff/i) {
-            #### hardcoded for open PREVENT-AD since always the same for
-            #### all datasets...
             my $series_number = $file_list{$row}{'seriesNumber'};
             $phasediff_seriesnb_hash{$series_number}{'jsonFilePath'} = $json_fullpath;
             delete($header_hash->{'EchoTime'});
-            # TODO: do not hardcode these values if possible???
-            $header_hash->{'EchoTime1'} = 0.00492;
-            $header_hash->{'EchoTime2'} = 0.00738;
-            my ($magnitude_files_hash) = grep_phasediff_associated_magnitude_files(
+            my (%magnitude_files_hash) = grep_phasediff_associated_magnitude_files(
                 \%file_list, $file_list{$row}, $db_handle
             );
-            create_BIDS_magnitude_files($nifti_filename, $magnitude_files_hash);
+            # # TODO: do not hardcode these values if possible???
+            # $header_hash->{'EchoTime1'} = 0.00492; #TODO remove this if this works
+            # $header_hash->{'EchoTime2'} = 0.00738; #TODO remove this if this works
+            foreach my $echo_number (keys %magnitude_files_hash) {
+                $echo_number =~ s/^Echo//;
+                $header_hash->{"EchoTime$echo_number"} = $magnitude_files_hash{"Echo$echo_number"};
+            }
+            create_BIDS_magnitude_files($nifti_filename, \%magnitude_files_hash);
         }
 
         unless (-e $json_fullpath) {
@@ -857,11 +864,7 @@ sub determine_bids_nifti_file_name {
     # replace LORIS specifics with BIDS naming
     my $remove = "$loris_prefix\_$candID\_$loris_visit_label";
     my $replace = "sub-$candID\_ses-$bids_visit_label";
-    # sequences with multi-echo need to have echo-1. echo-2, etc... appended to the filename
-    # TODO: add a check if the sequence is indeed a multi-echo (check SeriesUID
-    # TODO: and EchoTime from the database), and if not set, issue an error
-    # TODO: and exit and ask the project to set the BIDSMultiEcho for these sequences
-    # TODO: Also need to add .JSON for those multi-echo files
+    # sequences with multi-echo need to have echo-1, echo-2, etc... appended to the filename
     if ( defined($bids_echo_nb) ) {
         $replace .= "_echo-$bids_echo_nb";
     }
@@ -1238,6 +1241,30 @@ sub write_BIDS_JSON_file {
 
 =pod
 
+=head3 write_BIDS_TEXT_file($filename, $content)
+
+Write the content stored in $content into a given text file.
+
+INPUTS:
+    - $file_path: path to the file to write
+    - $content  : content to be written in the text file
+
+=cut
+
+sub write_BIDS_TEXT_file {
+    my ($file_path, $content) = @_;
+
+    open FILE, ">$file_path" or die "Can not write file $file_path: $!\n";
+    FILE->autoflush(1);
+    select(FILE);
+    select(STDOUT);
+    print FILE "$content\n";
+    close FILE;
+}
+
+
+=pod
+
 =head3 create_DWI_bval_bvec_files($db_handle, $nifti_file_name, $file_id, $bids_scan_directory)
 
 Creates BVAL and BVEC files associated to a DWI scan.
@@ -1400,10 +1427,10 @@ sub grep_generic_header_info_for_JSON_file {
             'acquisition:num_phase_enc_steps', 'acquisition:pixel_bandwidth',
             'acquisition:echo_number'
         ];
-        $header_value *= 1 if ($header_value && $minc_header_name ~~ @convert_to_float);
+        $header_value *= 1 if ($header_value && grep(/^$minc_header_name$/, @convert_to_float));
         $header_value /= 1000000 if ($header_value && $minc_header_name eq 'acquisition:imaging_frequency');
         my @convert_to_array = ['acquisition:image_type', 'dicom_0x0020:el_0x0037'];
-        if ($header_value && $minc_header_name ~~ @convert_to_array) {
+        if ($header_value && grep(/^$minc_header_name$/, @convert_to_array)) {
             my @values = split("\\\\\\\\", $header_value);
             $header_value = \@values;
         }
@@ -1436,6 +1463,7 @@ sub grep_generic_header_info_for_JSON_file {
 
 sub add_PhaseEncodingDirection_info_for_JSON_file {
     # TODO: figure out how to generalize this...
+    # TODO: maybe add PhaseEncodingDirection to the BIDS tables?
     my ($header_hash) = @_;
 
     ### Note: this is hardcoded as this information is not available in the MINC
@@ -1468,6 +1496,20 @@ sub add_EffectiveEchoSpacing_and_TotalReadoutTime_info_for_JSON_file {
     my $bwpppe        = &NeuroDB::MRI::fetch_header_info($minc_full_path, 'dicom_0x0019:el_0x1028');
     my $reconMatrixPE = &NeuroDB::MRI::fetch_header_info($minc_full_path, 'dicom_0x0051:el_0x100b');
     $reconMatrixPE    =~ s/[a-z]?\*\d+[a-z]?//;
+
+    # check that the header information returned as indeed numbers. Otherwise print message in the
+    # console and the BIDS JSON file of the affected NIfTI file.
+    unless ($bwpppe =~ m/^-?\d+\.?\d*$/ && $reconMatrixPE =~ m/^-?\d+\.?\d*$/) {
+        print "WARNING: Cannot compute EffectiveEchoSpacing and TotalReadoutTime for $minc_full_path\n"
+              . "\t'dicom_0x0019:el_0x1028' should be a number. Its value is $bwpppe\n"
+              . "\t'dicom_0x0051:el_0x100b' should be a number. Its value is $reconMatrixPE\n"
+              . "\t=> This is unfortunately the result of a bad dcm2mnc conversion...\n";
+        my $hdr_message = 'not supplied as the values read from the MINC header seem erroneous,'
+                          . ' due most likely to a dcm2mnc conversion problem';
+        $header_hash->{'EffectiveEchoSpacing'} = $hdr_message;
+        $header_hash->{'TotalReadoutTime'}     = $hdr_message;
+        return;
+    }
 
     # compute the effective echo spacing
     my $effectiveEchoSpacing =  1 / ($bwpppe * $reconMatrixPE);
@@ -1552,9 +1594,8 @@ sub grep_SliceOrder_info_for_JSON_file {
             if ($header_value =~ m/b/) {
                 $header_value = "not supplied as the values read from the MINC header seem erroneous,"
                                 . " due most likely to a dcm2mnc conversion problem";
-                print "    SliceTiming is " . $header_value . "\n";
-            }
-            else {
+                print "WARNING: SliceTiming is " . $header_value . "\n";
+            } else {
                 $header_value = [ map {$_ / 1000} split(",", $header_value) ];
                 print "    SliceTiming $header_value was added \n" if defined $verbose;
             }
@@ -1606,7 +1647,7 @@ INPUTS:
     - $db_handle           : database handle
 
 OUTPUT:
-    - $magnitude_files: hash magnitude files associated to the phasediff fieldmap file
+    - %magnitude_files: hash magnitude files associated to the phasediff fieldmap file
 
     {
         'Echo1' => 'magnitude file with echo number 1',
@@ -1624,7 +1665,7 @@ sub grep_phasediff_associated_magnitude_files {
     my $phasediff_seriesNumber = $phasediff_loris_hash->{'seriesNumber'};
 
     # fetch the acquisition protocol ID that corresponds to the magnitude files
-    my $magnitude_acq_prot_id = grep_acquisitionProtocolID_from_BIDS_scan_type($db_handle);
+    my $magnitude_acq_prot_id = grep_acquisitionProtocolID_from_BIDS_scan_type($db_handle, 'magnitude');
 
     my %magnitude_files;
     foreach my $row (keys %$loris_files_list) {
@@ -1645,26 +1686,27 @@ sub grep_phasediff_associated_magnitude_files {
         $magnitude_files{"Echo$echo_number"} = $loris_files_list->{$row};
     }
 
-    return \%magnitude_files;
+    return %magnitude_files;
 }
 
 
 =pod
 
-=head3 grep_acquisitionProtocolID_from_BIDS_scan_type($db_handle)
+=head3 grep_acquisitionProtocolID_from_BIDS_scan_type($db_handle, $bids_scan_type)
 
 Greps the AcquisitionProtocolID associated to a BIDS magnitude file in the database.
 
 INPUTS:
-    - $db_handle: database handle
+    - $db_handle     : database handle
+    - $bids_scan_type: name of the BIDS scan type (for example: magnitude)
 
 OUTPUT:
-    - AcquisitionProtocolID associated to a BIDS magnitude file in the database
+    - AcquisitionProtocolID associated to the BIDS scan type file in the database
 
 =cut
 
 sub grep_acquisitionProtocolID_from_BIDS_scan_type {
-    my ($db_handle) = @_;
+    my ($db_handle, $bids_scan_type) = @_;
 
     (my $scan_type_query = <<QUERY ) =~ s/\n/ /g;
 SELECT
@@ -1677,12 +1719,12 @@ WHERE
 QUERY
 
     # Prepare and execute query
-    $st_handle = $db_handle->prepare($scan_type_query);
-    $st_handle->execute('magnitude');
-    if ( $st_handle->rows > 0 ) {
-        return $st_handle->fetchrow_array();
+    $sth = $db_handle->prepare($scan_type_query);
+    $sth->execute($bids_scan_type);
+    if ( $sth->rows > 0 ) {
+        return $sth->fetchrow_array();
     } else {
-        print "     no 'magnitude' scan type was found in BIDS tables\n" if defined $verbose;
+        print "     no $bids_scan_type scan type was found in BIDS tables\n" if defined $verbose;
     }
 }
 
@@ -1707,7 +1749,7 @@ sub create_BIDS_magnitude_files {
     if ($phasediff_filename =~ m/_(run-\d\d\d)_/g) {
         $phasediff_run_nb = $1;
     } else {
-        "WARNING: could not find the run number for $phasediff_filename\n";
+        print "WARNING: could not find the run number for $phasediff_filename\n";
     }
 
     foreach my $row (keys %$magnitude_files_hash) {
