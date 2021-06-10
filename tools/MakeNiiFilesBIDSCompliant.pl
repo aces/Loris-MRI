@@ -645,9 +645,7 @@ sub makeNIIAndHeader {
         }
 
         # DWI files need 2 extra special files; .bval and .bvec
-        if ($bids_scan_type eq 'dwi') {
-            create_DWI_bval_bvec_files($db_handle, $nifti_filename, $file_id, $bids_scan_directory);
-        }
+        create_DWI_bval_bvec_files($bids_scan_directory, $nifti_filename, $file_id) if ($bids_scan_type eq 'dwi');
 
         ### add an entry in the sub-xxx_scans.tsv file with age
         my $nifti_full_path = "$bids_scan_directory/$nifti_filename";
@@ -655,77 +653,6 @@ sub makeNIIAndHeader {
     }
 
     return \%phasediff_seriesnb_hash;
-}
-
-
-=pod
-
-=head3 fetchBVAL_BVEC($db_handle, $bv_file, $file_id, $dest_dir_final, @header_name_db_arr)
-
-Creates C<bval> and C<bvec> files from a DWI input file, in a BIDS compliant manner.
-The values (bval OR bvec) will be fetched from the database C<parameter_file> table.
-
-INPUTS:
-    - $db_handle         : database handler
-    - $nifti_file        : NIfTI DWI file
-    - $bv_file           : bval or bvec filename
-    - $file_type         : file type ('bval' or 'bvec')
-    - $file_id           : ID of the file from the C<files> table
-    - $dest_dir_final    : final directory destination for the file to be generated
-    - @header_name_db_arr: array for the names of the database parameter to be fetched
-                           (bvalues for bval and x, y, z direction for bvec)
-
-=cut
-
-sub fetchBVAL_BVEC {
-    my ( $db_handle, $nifti_file, $bv_file, $file_type, $file_id, $dest_dir_final, @header_name_db_arr) = @_;
-
-    return if -e "$dest_dir_final/$bv_file";
-
-    my ($headerName, $headerNameDB, $headerVal);
-
-    open BVINFO, ">$dest_dir_final/$bv_file";
-    BVINFO->autoflush(1);
-    select(BVINFO);
-    select(STDOUT);
-
-    foreach my $j (0..scalar(@header_name_db_arr)-1) {
-        $headerNameDB = $header_name_db_arr[$j];
-        $headerNameDB =~ s/^\"+|\"$//g;
-        print "Adding now $headerName header to $bv_file\n" if defined($verbose);
-        ( my $bv_query = <<QUERY ) =~ s/\n/ /g;
-SELECT
-  pf.Value
-FROM
-  parameter_file pf
-JOIN
-  files f
-ON
-  pf.FileID=f.FileID
-WHERE
-  pf.ParameterTypeID = (SELECT pt.ParameterTypeID from parameter_type pt WHERE pt.Name = ?)
-AND
-  f.FileID = ?
-QUERY
-        # Prepare and execute query
-        my $st_handle = $db_handle->prepare($bv_query);
-        $st_handle->execute($headerNameDB,$file_id);
-        if ( $st_handle->rows > 0 ) {
-            $headerVal = $st_handle->fetchrow_array();
-            $headerVal =~ s/\.\,//g;
-            $headerVal =~ s/\,//g;
-            # There is one last trailing . usually in bval; remove it
-            $headerVal =~ s/\.$//g;
-            print BVINFO "$headerVal \n";
-            print "     $headerNameDB was found for $nifti_file with value $headerVal\n" if defined($verbose);
-        } else {
-            print "     $headerNameDB was not found for $nifti_file\n" if defined($verbose);
-        }
-    }
-
-    close BVINFO;
-
-    registerBidsFileInDatabase("$dest_dir_final/$bv_file", 'image', $file_type, $file_id, 'dwi', undef, undef);
 }
 
 
@@ -1267,38 +1194,44 @@ sub write_BIDS_TEXT_file {
 
 =pod
 
-=head3 create_DWI_bval_bvec_files($db_handle, $nifti_file_name, $file_id, $bids_scan_directory)
+=head3 create_DWI_bval_bvec_files($bids_scan_directory, $nifti_file_name, $file_id)
 
 Creates BVAL and BVEC files associated to a DWI scan.
 
 INPUTS:
-    - $db_handle          : database handle
+    - $bids_scan_directory: directory where the BVAL and BVEC files should be created
     - $nifti_file_name    : name of the NIfTI file for which BVAL and BVEC files need to be created
     - $file_id            : file ID of the DWI scan from the files table
-    - $bids_scan_directory: directory where the BVAL and BVEC files should be created
 
 =cut
 
 sub create_DWI_bval_bvec_files {
-    # TODO: verify if we could use some of the libraries that already exists for the creation of the DWI bval bvec
-    my ($db_handle, $nifti_file_name, $file_id, $bids_scan_directory) = @_;
+    my ($dest_dir_final, $nifti_file_name, $file_id) = @_;
 
-    my @header_name_bval_db_arr = ("acquisition:bvalues");
-    my @header_name_bvec_db_arr = ("acquisition:direction_x", "acquisition:direction_y", "acquisition:direction_z");
+    # Load MINC file information
+    my $file_ref = NeuroDB::File->new(\$dbh);
+    $file_ref->loadFile($file_id);
 
-    # BVAL first
-    my $bval_file = $nifti_file_name;
-    $bval_file    =~ s/nii/bval/g;
-    &fetchBVAL_BVEC(
-        $db_handle, $nifti_file_name, $bval_file, 'bval', $file_id, $bids_scan_directory, @header_name_bval_db_arr
-    );
+    # Create the .bval file
+    my $bval_file_name = $nifti_file_name;
+    $bval_file_name    =~ s/nii$/bval/g;
+    my $success_bval   = NeuroDB::MRI::create_dwi_nifti_bval_file(\$file_ref, "$dest_dir_final/$bval_file_name");
+    if (defined $success_bval) {
+        registerBidsFileInDatabase("$dest_dir_final/$bval_file_name", 'image', 'bval', $file_id, 'dwi', undef, undef);
+    } else {
+        print STDRR "WARNING: .bval DWI file not created for " . basename($nifti_file_name) . "\n";
+    }
 
-    # BVEC next
-    my $bvec_file = $nifti_file_name;
-    $bvec_file    =~ s/nii/bvec/g;
-    &fetchBVAL_BVEC(
-        $db_handle, $nifti_file_name, $bvec_file, 'bvec', $file_id, $bids_scan_directory, @header_name_bvec_db_arr
-    );
+
+    # Create the .bvec file
+    my $bvec_file_name = $nifti_file_name;
+    $bvec_file_name    =~ s/nii$/bvec/g;
+    my $success_bvec   = NeuroDB::MRI::create_dwi_nifti_bvec_file(\$file_ref, "$dest_dir_final/$bvec_file_name");
+    if (defined $success_bvec) {
+        registerBidsFileInDatabase("$dest_dir_final/$bvec_file_name", 'image', 'bvec', $file_id, 'dwi', undef, undef);
+    } else {
+        print STDRR "WARNING: .bvec DWI file not created for " . basename($nifti_file_name) . "\n";
+    }
 }
 
 
