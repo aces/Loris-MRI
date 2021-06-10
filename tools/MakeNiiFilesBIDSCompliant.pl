@@ -289,16 +289,19 @@ my $sth = $dbh->prepare($query);
 # =============================================================================
 while ( my $rowhr = $sth->fetchrow_hashref()) {
     my $queried_tarchive_id = $rowhr->{'TarchiveID'};
-    print "\n******* Currently creating a BIDS directory for TarchiveID $queried_tarchive_id********\n";
+    $message = "\n\n===========================================================\n"
+               . "== Currently creating a BIDS directory for TarchiveID $queried_tarchive_id ==\n"
+               . "===========================================================\n\n";
+    print $message;
 
     # Grep the list of MINC files generated for that TarchiveID
     my %file_list = &getFileList($dbh, $queried_tarchive_id);
 
-    # Create NIfTI and JSON files and return the list of phase files?? # TODO: check that statement
+    # Create NIfTI and JSON files and return the list of phase files
     my $phasediff_list = &makeNIIAndHeader($dbh, %file_list);
 
-    # Update the IntendedFor field for fieldmap phasediff JSON files
-    &updateFieldmapIntendedFor(\%file_list, $phasediff_list);
+    # Update the IntendedFor field for fieldmap phasediff JSON files if phasediff files were created
+    &updateFieldmapIntendedFor(\%file_list, $phasediff_list) if keys %$phasediff_list;
 }
 
 
@@ -306,9 +309,9 @@ while ( my $rowhr = $sth->fetchrow_hashref()) {
 # Print out final message to the user and clean up
 # =============================================================================
 if (defined($tarchive_id)) {
-    print "\nFinished processing TarchiveID $tarchive_id\n";
+    print "\n\nFinished processing TarchiveID $tarchive_id\n\n";
 } else {
-    print "\nFinished processing all tarchives\n";
+    print "\n\nFinished processing all tarchives\n\n";
 }
 $dbh->disconnect();
 exit $NeuroDB::ExitCodes::SUCCESS;
@@ -553,7 +556,9 @@ sub makeNIIAndHeader {
     foreach my $row (keys %file_list) {
         my $file_id         = $file_list{$row}{'fileID'};
         my $minc            = $file_list{$row}{'file'};
+        my $minc_basename   = basename($minc);
         my $acq_protocol_id = $file_list{$row}{'AcquisitionProtocolID'};
+        my $loris_scan_type = $file_list{$row}{'lorisScanType'};
         my $session_id      = $file_list{$row}{'sessionID'};
 
         ### check if the MINC file can be found on the file system
@@ -567,8 +572,8 @@ sub makeNIIAndHeader {
         ### Get the BIDS scans label information
         my ($bids_categories_hash) = grep_bids_scan_categories_from_db($db_handle, $acq_protocol_id);
         unless ( defined($bids_categories_hash) ) {
-            print "$minc will not be converted into BIDS as no entries were found "
-                  . "in the bids_mri_scan_type_rel table for that scan type.\n";
+            my $basename = basename($minc);
+            print "WARNING: skipping $basename since $loris_scan_type is not listed in bids_mri_scan_type_rel.\n";
             next;
         }
         $file_list{$row}{'BIDSScanType'}     = $bids_categories_hash->{'BIDSScanType'};
@@ -594,13 +599,13 @@ sub makeNIIAndHeader {
         make_path($bids_scan_directory) unless(-d  $bids_scan_directory);
 
         ### Convert the MINC file into the BIDS NIfTI file
-        print "\n*******Currently processing $minc_full_path********\n";
+        print "\n\n******* Currently processing $minc_full_path ********\n\n";
         #  mnc2nii command then gzip it because BIDS expects it this way
         my $success = create_nifti_bids_file(
             $data_dir, $minc, $bids_scan_directory, $nifti_filename, $file_id
         );
         unless ( defined($success) ) {
-            print "WARNING: mnc2nii conversion failed for $minc.\n";
+            print "WARNING: mnc2nii conversion failure for $minc_basename.\n";
             next;
         }
 
@@ -626,9 +631,6 @@ sub makeNIIAndHeader {
             my (%magnitude_files_hash) = grep_phasediff_associated_magnitude_files(
                 \%file_list, $file_list{$row}, $db_handle
             );
-            # # TODO: do not hardcode these values if possible???
-            # $header_hash->{'EchoTime1'} = 0.00492; #TODO remove this if this works
-            # $header_hash->{'EchoTime2'} = 0.00738; #TODO remove this if this works
             foreach my $echo_number (keys %magnitude_files_hash) {
                 $echo_number =~ s/^Echo//;
                 $header_hash->{"EchoTime$echo_number"} = $magnitude_files_hash{"Echo$echo_number"};
@@ -765,12 +767,14 @@ SELECT
   bids_scan_type_subcategory.BIDSScanTypeSubCategory,
   bids_scan_type.BIDSScanType,
   bmstr.BIDSEchoNumber,
+  bids_phase_encoding_direction.BIDSPhaseEncodingDirectionName,
   mst.Scan_type
 FROM bids_mri_scan_type_rel bmstr
-  JOIN      mri_scan_type mst          ON mst.ID = bmstr.MRIScanTypeID
-  JOIN      bids_category              USING (BIDSCategoryID)
-  JOIN      bids_scan_type             USING (BIDSScanTypeID)
-  LEFT JOIN bids_scan_type_subcategory USING (BIDSScanTypeSubCategoryID)
+  JOIN      mri_scan_type mst             ON mst.ID = bmstr.MRIScanTypeID
+  JOIN      bids_category                 USING (BIDSCategoryID)
+  JOIN      bids_scan_type                USING (BIDSScanTypeID)
+  LEFT JOIN bids_scan_type_subcategory    USING (BIDSScanTypeSubCategoryID)
+  LEFT JOIN bids_phase_encoding_direction USING (BIDSPhaseEncodingDirectionID)
 WHERE
   mst.ID = ?
 QUERY
@@ -998,7 +1002,6 @@ sub grep_participants_values_from_db {
     my @values = $st_handle->fetchrow_array;
     unshift(@values, "sub-$cand_id");
 
-    # TODO: check why not just returning the Sex value...
     # TODO: could add registration site , project to the file
     return \@values;
 }
@@ -1162,7 +1165,6 @@ QUERY
     my @values = $st_handle->fetchrow_array;
     unshift(@values, $filename_entry);
 
-    # TODO: investigate why not just returning the age here...
     # TODO: could add site, project, subproject from the session table - if so rename function and update doc
     return \@values;
 }
@@ -1331,7 +1333,8 @@ sub gather_parameters_for_BIDS_JSON_file {
 
     # for 4D datasets, we need to add PhaseEncodingDirection and EffectiveEchoSpacing
     if ($bids_category eq 'func' || $bids_category eq 'asl' || $bids_category eq 'dwi') {
-        add_PhaseEncodingDirection_info_for_JSON_file($header_hash);
+        my $phase_encoding_direction = $bids_categories_hash->{'BIDSPhaseEncodingDirectionName'};
+        $header_hash->{'PhaseEncodingDirection'} = $phase_encoding_direction if defined $phase_encoding_direction;
         add_EffectiveEchoSpacing_and_TotalReadoutTime_info_for_JSON_file($header_hash, $minc_full_path);
     }
 
@@ -1455,25 +1458,6 @@ sub grep_generic_header_info_for_JSON_file {
 
 =pod
 
-=head3 add_PhaseEncodingDirection_info_for_JSON_file($header_hash)
-
-
-
-=cut
-
-sub add_PhaseEncodingDirection_info_for_JSON_file {
-    # TODO: figure out how to generalize this...
-    # TODO: maybe add PhaseEncodingDirection to the BIDS tables?
-    my ($header_hash) = @_;
-
-    ### Note: this is hardcoded as this information is not available in the MINC
-    ### files and is stable across the PREVENT-AD project.
-    $header_hash->{'PhaseEncodingDirection'} = 'j-';
-}
-
-
-=pod
-
 =head3 add_EffectiveEchoSpacing_and_TotalReadoutTime_info_for_JSON_file($header_hash, $minc_full_path)
 
 Logic to determine the EffectiveEchoSpacing and TotalReadoutTime parameters for functional, ASL and DWI
@@ -1500,10 +1484,11 @@ sub add_EffectiveEchoSpacing_and_TotalReadoutTime_info_for_JSON_file {
     # check that the header information returned as indeed numbers. Otherwise print message in the
     # console and the BIDS JSON file of the affected NIfTI file.
     unless ($bwpppe =~ m/^-?\d+\.?\d*$/ && $reconMatrixPE =~ m/^-?\d+\.?\d*$/) {
-        print "WARNING: Cannot compute EffectiveEchoSpacing and TotalReadoutTime for $minc_full_path\n"
-              . "\t'dicom_0x0019:el_0x1028' should be a number. Its value is $bwpppe\n"
-              . "\t'dicom_0x0051:el_0x100b' should be a number. Its value is $reconMatrixPE\n"
-              . "\t=> This is unfortunately the result of a bad dcm2mnc conversion...\n";
+        my $basename = basename($minc_full_path);
+        print "WARNING: Cannot compute EffectiveEchoSpacing & TotalReadoutTime for $basename\n"
+              . "\t\t'dicom_0x0019:el_0x1028' should be a number. Its value is $bwpppe\n"
+              . "\t\t'dicom_0x0051:el_0x100b' should be a number. Its value is $reconMatrixPE\n"
+              . "\t\t=> This is unfortunately the result of a bad dcm2mnc conversion...\n";
         my $hdr_message = 'not supplied as the values read from the MINC header seem erroneous,'
                           . ' due most likely to a dcm2mnc conversion problem';
         $header_hash->{'EffectiveEchoSpacing'} = $hdr_message;
@@ -1592,8 +1577,8 @@ sub grep_SliceOrder_info_for_JSON_file {
         # print this message, even if NOT in verbose mode to let the user know
         if (defined $header_value) {
             if ($header_value =~ m/b/) {
-                $header_value = "not supplied as the values read from the MINC header seem erroneous,"
-                                . " due most likely to a dcm2mnc conversion problem";
+                $header_value = "not supplied as the values read from the MINC header seem erroneous.\n"
+                                . "\t\tThis is most likely due to a dcm2mnc conversion problem";
                 print "WARNING: SliceTiming is " . $header_value . "\n";
             } else {
                 $header_value = [ map {$_ / 1000} split(",", $header_value) ];
@@ -1749,7 +1734,8 @@ sub create_BIDS_magnitude_files {
     if ($phasediff_filename =~ m/_(run-\d\d\d)_/g) {
         $phasediff_run_nb = $1;
     } else {
-        print "WARNING: could not find the run number for $phasediff_filename\n";
+        my $basename = basename($phasediff_filename);
+        print "WARNING: could not find the run number for $basename\n";
     }
 
     foreach my $row (keys %$magnitude_files_hash) {
@@ -1768,8 +1754,8 @@ sub create_BIDS_magnitude_files {
         ### Get the BIDS scans label information
         my ($bids_categories_hash) = grep_bids_scan_categories_from_db($dbh, $acq_prot_id);
         unless (defined $bids_categories_hash) {
-            print "$minc will not be converted into BIDS as no entries were found "
-                . "in the bids_mri_scan_type_rel table for that scan type.\n";
+            print basename($minc) . " will not be converted into BIDS as no entries were found "
+                  . "in the bids_mri_scan_type_rel table for that scan type.\n";
             next;
         }
 
@@ -1785,13 +1771,14 @@ sub create_BIDS_magnitude_files {
         make_path($bids_scan_directory) unless (-d  $bids_scan_directory);
 
         ### Convert the MINC file into the BIDS NIfTI file
-        print "\n*******Currently processing $minc_full_path********\n";
+        print "\n\n******* Currently processing $minc_full_path ********\n\n";
         #  mnc2nii command then gzip it because BIDS expects it this way
         my $success = create_nifti_bids_file(
             $data_dir, $minc, $bids_scan_directory, $nifti_filename, $file_id, $bids_categories_hash->{'BIDSCategoryName'}
         );
         unless (defined $success) {
-            print "WARNING: mnc2nii conversion failed for $minc.\n";
+            my $minc_basename = $minc;
+            print "WARNING: mnc2nii conversion failed for $minc_basename.\n";
             next;
         }
 
@@ -1929,26 +1916,93 @@ INPUTS:
 =cut
 
 sub registerBidsFileInDatabase {
-    my ($file_path, $file_level, $file_type, $file_id, $modality_type, $behavioural_type, $session_id) = @_;
+    my ($file_path, $file_level, $file_type, $file_id, $bids_img_category, $bids_bvl_category, $session_id) = @_;
 
     return unless (-e $file_path);
 
+    my $file_level_id = get_BIDSExportFileLevelCategoryID($file_level);
+    my $bvl_cat_id    = defined $bids_bvl_category ? get_BIDSNonImgFileCategoryID($bids_bvl_category) : undef;
+    my $img_cat_id    = defined $bids_img_category ? get_BIDSCategoryID($bids_img_category) : undef;
     $file_path =~ s/$data_dir\///g;
 
-    (my $export_query = <<QUERY ) =~ s/\n/ /g;
-INSERT INTO bids_export_files SET
-    FileID          = ?,    BIDSFileLevel   = ?,
-    FileType        = ?,    FilePath        = ?,
-    ModalityType    = ?,    BehaviouralType = ?,
-    SessionID       = ?
+    # check if there is already an entry for the file, if so return
+    my $get_query = "SELECT BIDSExportedFileID FROM bids_export_files WHERE FilePath = ?";
+    $sth = $dbh->prepare($get_query);
+    $sth->execute($file_path);
+
+    (my $common_query_part = <<QUERY) =~ s/\n/ /g;
+bids_export_files SET
+    BIDSExportFileLevelID        = ?,
+    FileID                       = ?,
+    SessionID                    = ?,
+    BIDSNonImagingFileCategoryID = ?,
+    BIDSCategoryID               = ?,
+    FileType                     = ?,
+    FilePath                     = ?
+QUERY
+    my @values = ($file_level_id, $file_id, $session_id, $bvl_cat_id, $img_cat_id, $file_type, $file_path);
+
+    if ($sth->rows > 0) {
+        push @values, $sth->fetchrow_array();
+        $query = "UPDATE $common_query_part WHERE BIDSExportFileID = ?";
+    } else {
+        $query = "INSERT INTO $common_query_part ";
+    }
+    $sth = $dbh->prepare($query);
+    $sth->execute(@values);
+
+}
+
+
+sub get_BIDSNonImgFileCategoryID {
+    my ($category_name) = @_;
+
+    (my $get_query = <<QUERY ) =~ s/\n/ /g;
+SELECT BIDSNonImagingFileCategoryID
+FROM bids_export_non_imaging_file_category
+WHERE BIDSNonImagingFileCategoryName = ?
 QUERY
 
-    # Prepare and execute query
-    my $sth = $dbh->prepare($export_query);
-    $sth->execute(
-        $file_id,       $file_level,       $file_type,  $file_path,
-        $modality_type, $behavioural_type, $session_id
-    );
+    $sth = $dbh->prepare($get_query);
+    $sth->execute($category_name);
+
+    return $sth->rows > 0 ? $sth->fetchrow_array() : undef;
+}
+
+
+sub get_BIDSCategoryID {
+    my ($category_name) = @_;
+
+    my $get_query = "SELECT BIDSCategoryID FROM bids_category WHERE BIDSCategoryName = ?";
+    $sth = $dbh->prepare($get_query);
+    $sth->execute($category_name);
+
+    return $sth->rows > 0 ? $sth->fetchrow_array() : undef;
+}
+
+
+sub get_BIDSExportFileLevelCategoryID {
+    my ($level_name) = @_;
+
+    (my $get_query = <<QUERY ) =~ s/\n/ /g;
+SELECT BIDSExportFileLevelCategoryID
+FROM bids_export_file_level_category
+WHERE BIDSExportFileLevelCategoryName = ?
+QUERY
+
+    $sth = $dbh->prepare($get_query);
+    $sth->execute($level_name);
+    return $sth->fetchrow_array() if $sth->rows > 0;
+
+    # need to create the file level into the file level table since could not find it
+    my $insert_q = "INSERT bids_export_file_level_category SET BIDSExportFileLevelCategoryName = ?";
+    $sth = $dbh->prepare($insert_q);
+    $sth->execute($level_name);
+
+    $sth = $dbh->prepare($get_query);
+    $sth->execute($level_name);
+
+    return $sth->fetchrow_array();
 }
 
 __END__
