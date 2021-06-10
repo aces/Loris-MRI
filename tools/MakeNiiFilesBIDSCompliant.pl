@@ -1089,7 +1089,6 @@ QUERY
     my @values = $st_handle->fetchrow_array;
     unshift(@values, $filename_entry);
 
-    # TODO: could add site, project, subproject from the session table - if so rename function and update doc
     return \@values;
 }
 
