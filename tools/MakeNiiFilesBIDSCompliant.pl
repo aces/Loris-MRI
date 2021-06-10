@@ -82,9 +82,7 @@ use NeuroDB::File;
 
 
 # Set script's constants here
-my $AUTHORS = [
-    'LORIS, MCIN, MNI, McGill University'
-];
+my $AUTHORS = ( 'LORIS', 'MCIN', 'MNI', 'McGill University' );
 my $ACKNOWLEDGMENTS = <<TEXT;
 TEXT
 my $README = <<TEXT;
@@ -159,7 +157,7 @@ USAGE
 # =============================================================================
 # Arguments' validation
 # =============================================================================
-unless ( defined($dataset_name) ) {
+unless ( defined $dataset_name ) {
     print $Help;
     print "$Usage\n\tERROR: The dataset name needs to be provided. "
         . "It is required by the BIDS specifications to populate the "
@@ -167,7 +165,7 @@ unless ( defined($dataset_name) ) {
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
-unless ( defined($profile) ) {
+unless ( defined $profile ) {
     print $Help;
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
@@ -278,7 +276,7 @@ unless (-e $bids_validator_config_file) {
 # Query the tarchive table to get the list of TarchiveIDs to process
 # =============================================================================
 my $query = "SELECT DISTINCT TarchiveID FROM tarchive";
-$query   .= " WHERE TarchiveID = ? " if defined($tarchive_id);
+$query   .= " WHERE TarchiveID = ? " if defined $tarchive_id ;
 
 my $sth = $dbh->prepare($query);
 (defined $tarchive_id) ? $sth->execute($tarchive_id) : $sth->execute();
@@ -308,7 +306,7 @@ while ( my $rowhr = $sth->fetchrow_hashref()) {
 # =============================================================================
 # Print out final message to the user and clean up
 # =============================================================================
-if (defined($tarchive_id)) {
+if (defined $tarchive_id) {
     print "\n\nFinished processing TarchiveID $tarchive_id\n\n";
 } else {
     print "\n\nFinished processing all tarchives\n\n";
@@ -564,14 +562,13 @@ sub makeNIIAndHeader {
         ### check if the MINC file can be found on the file system
         my $minc_full_path = "$data_dir/$minc";
         unless (-e $minc_full_path) {
-            print "\nCould not find the following MINC file: $minc_full_path\n"
-                if defined($verbose);
+            print "\nCould not find the following MINC file: $minc_full_path\n" if defined $verbose ;
             next;
         }
 
         ### Get the BIDS scans label information
         my ($bids_categories_hash) = grep_bids_scan_categories_from_db($db_handle, $acq_protocol_id);
-        unless ( defined($bids_categories_hash) ) {
+        unless (defined $bids_categories_hash) {
             my $basename = basename($minc);
             print "WARNING: skipping $basename since $loris_scan_type is not listed in bids_mri_scan_type_rel.\n";
             next;
@@ -604,7 +601,7 @@ sub makeNIIAndHeader {
         my $success = create_nifti_bids_file(
             $data_dir, $minc, $bids_scan_directory, $nifti_filename, $file_id
         );
-        unless ( defined($success) ) {
+        unless (defined $success) {
             print "WARNING: mnc2nii conversion failure for $minc_basename.\n";
             next;
         }
@@ -796,7 +793,7 @@ sub determine_bids_nifti_file_name {
     my $remove = "$loris_prefix\_$candID\_$loris_visit_label";
     my $replace = "sub-$candID\_ses-$bids_visit_label";
     # sequences with multi-echo need to have echo-1, echo-2, etc... appended to the filename
-    if ( defined($bids_echo_nb) ) {
+    if (defined $bids_echo_nb) {
         $replace .= "_echo-$bids_echo_nb";
     }
     $nifti_name =~ s/$remove/$replace/g;
@@ -839,10 +836,10 @@ sub determine_bids_nifti_file_name {
         $nifti_name =~ s/run-\d\d\d/$run_nb/g;
         # if echo number is provided, then modify name of the magnitude files
         # to be magnitude1 or magnitude2 depending on the echo number
-        if ( defined($echo_nb) ) {
+        if (defined $echo_nb) {
             $bids_scan_type .= $echo_nb;
         }
-    } elsif ( defined($run_nb) ) {
+    } elsif (defined $run_nb) {
         $nifti_name =~ s/run-\d\d\d/run-$run_nb/g;
     }
 
@@ -1219,7 +1216,7 @@ sub create_DWI_bval_bvec_files {
     if (defined $success_bval) {
         registerBidsFileInDatabase("$dest_dir_final/$bval_file_name", 'image', 'bval', $file_id, 'dwi', undef, undef);
     } else {
-        print STDRR "WARNING: .bval DWI file not created for " . basename($nifti_file_name) . "\n";
+        print "WARNING: .bval DWI file not created for " . basename($nifti_file_name) . "\n";
     }
 
 
@@ -1230,7 +1227,7 @@ sub create_DWI_bval_bvec_files {
     if (defined $success_bvec) {
         registerBidsFileInDatabase("$dest_dir_final/$bvec_file_name", 'image', 'bvec', $file_id, 'dwi', undef, undef);
     } else {
-        print STDRR "WARNING: .bvec DWI file not created for " . basename($nifti_file_name) . "\n";
+        print "WARNING: .bvec DWI file not created for " . basename($nifti_file_name) . "\n";
     }
 }
 
@@ -1353,7 +1350,7 @@ sub grep_generic_header_info_for_JSON_file {
 
         # Some headers need to be explicitly converted to floats in Perl
         # so json_encode does not add the double quotation around them
-        my @convert_to_float = [
+        my @convert_to_float = (
             'acquisition:repetition_time',     'acquisition:echo_time',
             'acquisition:inversion_time',      'dicom_0x0018:el_0x1314',
             'acquisition:imaging_frequency',   'study:field_value',
@@ -1362,16 +1359,21 @@ sub grep_generic_header_info_for_JSON_file {
             'dicom_0x0018:el_0x1314',          'acquisition:percent_phase_fov',
             'acquisition:num_phase_enc_steps', 'acquisition:pixel_bandwidth',
             'acquisition:echo_number'
-        ];
-        $header_value *= 1 if ($header_value && grep(/^$minc_header_name$/, @convert_to_float));
-        $header_value /= 1000000 if ($header_value && $minc_header_name eq 'acquisition:imaging_frequency');
-        my @convert_to_array = ['acquisition:image_type', 'dicom_0x0020:el_0x0037'];
-        if ($header_value && grep(/^$minc_header_name$/, @convert_to_array)) {
-            my @values = split("\\\\\\\\", $header_value);
-            $header_value = \@values;
+        );
+        if (defined $header_value && $header_value =~ m/Binary file/) {
+            $header_value = "not available, most like due to bad dcm2mnc conversion";
+            print "WARNING: $minc_header_name is " . $header_value . "\n";
+        } else {
+            $header_value *= 1 if (defined $header_value && grep($minc_header_name eq $_, @convert_to_float));
+            $header_value /= 1000000 if (defined $header_value && $minc_header_name eq 'acquisition:imaging_frequency');
+            my @convert_to_array = [ 'acquisition:image_type', 'dicom_0x0020:el_0x0037' ];
+            if (defined $header_value && grep(/^$minc_header_name$/, @convert_to_array)) {
+                my @values = split("\\\\\\\\", $header_value);
+                $header_value = \@values;
+            }
         }
 
-        if (defined($header_value)) {
+        if (defined $header_value) {
             $header_hash{$bids_header_name} = $header_value;
             print "     $bids_header_name was found for $minc_full_path with value $header_value\n" if defined $verbose;
 
@@ -1487,7 +1489,7 @@ sub grep_SliceOrder_info_for_JSON_file {
     if ($manufacturer_philips == 1) {
         $extra_header = "SliceOrder";
         $extra_header =~ s/^\"+|\"$//g;
-        if ( defined($slice_order_philips) ) {
+        if ( defined $slice_order_philips ) {
             $extra_header_val = $slice_order_philips;
         }
         else {
@@ -1637,10 +1639,10 @@ WHERE
 QUERY
 
     # Prepare and execute query
-    $sth = $db_handle->prepare($scan_type_query);
-    $sth->execute($bids_scan_type);
-    if ( $sth->rows > 0 ) {
-        return $sth->fetchrow_array();
+    my $st_handle = $db_handle->prepare($scan_type_query);
+    $st_handle->execute($bids_scan_type);
+    if ( $st_handle->rows > 0 ) {
+        return $st_handle->fetchrow_array();
     } else {
         print "     no $bids_scan_type scan type was found in BIDS tables\n" if defined $verbose;
     }
@@ -1860,8 +1862,8 @@ sub registerBidsFileInDatabase {
 
     # check if there is already an entry for the file, if so return
     my $get_query = "SELECT BIDSExportedFileID FROM bids_export_files WHERE FilePath = ?";
-    $sth = $dbh->prepare($get_query);
-    $sth->execute($file_path);
+    my $st_handle = $dbh->prepare($get_query);
+    $st_handle->execute($file_path);
 
     (my $common_query_part = <<QUERY) =~ s/\n/ /g;
 bids_export_files SET
@@ -1875,14 +1877,14 @@ bids_export_files SET
 QUERY
     my @values = ($file_level_id, $file_id, $session_id, $bvl_cat_id, $img_cat_id, $file_type, $file_path);
 
-    if ($sth->rows > 0) {
-        push @values, $sth->fetchrow_array();
+    if ($st_handle->rows > 0) {
+        push @values, $st_handle->fetchrow_array();
         $query = "UPDATE $common_query_part WHERE BIDSExportFileID = ?";
     } else {
         $query = "INSERT INTO $common_query_part ";
     }
-    $sth = $dbh->prepare($query);
-    $sth->execute(@values);
+    $st_handle = $dbh->prepare($query);
+    $st_handle->execute(@values);
 
 }
 
@@ -1896,10 +1898,10 @@ FROM bids_export_non_imaging_file_category
 WHERE BIDSNonImagingFileCategoryName = ?
 QUERY
 
-    $sth = $dbh->prepare($get_query);
-    $sth->execute($category_name);
+    my $st_handle = $dbh->prepare($get_query);
+    $st_handle->execute($category_name);
 
-    return $sth->rows > 0 ? $sth->fetchrow_array() : undef;
+    return $st_handle->rows > 0 ? $st_handle->fetchrow_array() : undef;
 }
 
 
@@ -1907,10 +1909,10 @@ sub get_BIDSCategoryID {
     my ($category_name) = @_;
 
     my $get_query = "SELECT BIDSCategoryID FROM bids_category WHERE BIDSCategoryName = ?";
-    $sth = $dbh->prepare($get_query);
-    $sth->execute($category_name);
+    my $st_handle = $dbh->prepare($get_query);
+    $st_handle->execute($category_name);
 
-    return $sth->rows > 0 ? $sth->fetchrow_array() : undef;
+    return $st_handle->rows > 0 ? $st_handle->fetchrow_array() : undef;
 }
 
 
@@ -1923,19 +1925,19 @@ FROM bids_export_file_level_category
 WHERE BIDSExportFileLevelCategoryName = ?
 QUERY
 
-    $sth = $dbh->prepare($get_query);
-    $sth->execute($level_name);
-    return $sth->fetchrow_array() if $sth->rows > 0;
+    my $st_handle = $dbh->prepare($get_query);
+    $st_handle->execute($level_name);
+    return $st_handle->fetchrow_array() if $st_handle->rows > 0;
 
     # need to create the file level into the file level table since could not find it
     my $insert_q = "INSERT bids_export_file_level_category SET BIDSExportFileLevelCategoryName = ?";
-    $sth = $dbh->prepare($insert_q);
-    $sth->execute($level_name);
+    $st_handle = $dbh->prepare($insert_q);
+    $st_handle->execute($level_name);
 
-    $sth = $dbh->prepare($get_query);
-    $sth->execute($level_name);
+    $st_handle = $dbh->prepare($get_query);
+    $st_handle->execute($level_name);
 
-    return $sth->fetchrow_array();
+    return $st_handle->fetchrow_array();
 }
 
 __END__
