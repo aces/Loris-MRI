@@ -82,7 +82,7 @@ use NeuroDB::File;
 
 
 # Set script's constants here
-my $AUTHORS = ( 'LORIS', 'MCIN', 'MNI', 'McGill University' );
+my @AUTHORS = ['LORIS', 'MCIN', 'MNI', 'McGill University'];
 my $ACKNOWLEDGMENTS = <<TEXT;
 TEXT
 my $README = <<TEXT;
@@ -231,7 +231,7 @@ my %dataset_desc_hash   = (
     'BIDSVersion'           => $BIDS_VERSION,
     'Name'                  => $dataset_name,
     'LORISScriptVersion'    => $LORIS_SCRIPT_VERSION,
-    'Authors'               => $AUTHORS,
+    'Authors'               => @AUTHORS,
     'HowToAcknowledge'      => $ACKNOWLEDGMENTS,
     'LORISReleaseVersion'   => $loris_mri_version
 );
@@ -918,7 +918,16 @@ OUTPUT:
 sub grep_participants_values_from_db {
     my ($db_handle, $cand_id) = @_;
 
-    my $candidate_query = "SELECT Sex FROM candidate WHERE CandID = ?";
+    ( my $candidate_query = <<QUERY ) =~ s/\n/ /g;
+SELECT
+  Sex,
+  psc.Alias AS site,
+  Project.Alias AS project
+FROM candidate c
+  JOIN psc ON (c.RegistrationCenterID=psc.CenterID)
+  JOIN Project ON (c.RegistrationProjectID=Project.ProjectID)
+WHERE CandID = ?
+QUERY
 
     my $st_handle = $db_handle->prepare($candidate_query);
     $st_handle->execute($cand_id);
@@ -926,7 +935,6 @@ sub grep_participants_values_from_db {
     my @values = $st_handle->fetchrow_array;
     unshift(@values, "sub-$cand_id");
 
-    # TODO: could add registration site , project to the file
     return \@values;
 }
 
@@ -948,16 +956,22 @@ sub create_participants_tsv_and_json_file {
     my ($participants_tsv_file, $participants_json_file) = @_;
 
     # create participants.tsv file
-    my @header_row = ['participant_id', 'sex'];
+    my @header_row = ['participant_id', 'sex', 'site', 'project'];
     open(FH, ">:encoding(utf8)", $participants_tsv_file) or die " $!";
     print FH (join("\t", @$_), "\n") for @header_row;
     close FH;
 
     # create participants.json file
     my %header_dict = (
-        'sex' => {
+        'sex'     => {
             'Description' => 'sex of the participant',
-            'Levels'      => {'Male' => 'Male', 'Female' => 'Female'}
+            'Levels'      => { 'Male' => 'Male', 'Female' => 'Female' }
+        },
+        'site'    => {
+            'Description' => "site of the participant"
+        },
+        'project' => {
+            'Description' => "project of the participant"
         }
     );
     write_BIDS_JSON_file($participants_json_file, \%header_dict);
