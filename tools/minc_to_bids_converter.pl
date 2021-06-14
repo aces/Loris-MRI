@@ -4,13 +4,13 @@
 
 =head1 NAME
 
-MakeNIIFilesBIDSCompliant.pl -- a script that creates a BIDS compliant imaging
-dataset from the MINC files present in the C<assembly/> directory
+minc_to_bids_converter.pl -- a script that creates a BIDS compliant imaging
+dataset from the MINC files present in the C<assembly/> directory.
 
 
 =head1 SYNOPSIS
 
-perl tools/MakeNIIFilesBIDSCompliant.pl C<[options]>
+perl tools/minc_to_bids_converter.pl C<[options]>
 
 Available options are:
 -profile             : name of the config file in C<../dicom-archive/.loris_mri>
@@ -35,28 +35,27 @@ the MINC files currently present in the C<assembly> directory. If the argument
 C<tarchive_id> is specified, only the images from that archive will be processed.
 Otherwise, all C<tarchive_id>'s present in the C<tarchive> table will be processed.
 
-The script expects the tables C<bids_category> and C<bids_mri_scan_type_rel> to
-be populated and customized as per the project's acquisition protocols. Keep the
-following restrictions/expectations in mind when populating the two database tables.
+The script expects the tables C<bids_category>, C<bids_scan_type_subcategory>,
+C<bids_scan_type> and C<bids_mri_scan_type_rel> to be populated and customized as
+per the project's acquisition protocols. Keep the following restrictions/expectations
+in mind when populating the database tables.
+  - The C<bids_category> table will house the different imaging "categories" which a
+    default install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries
+    can be added as more imaging categories are supported by the BIDS standards.
+  - The C<bids_scan_type> table will house the different "BIDS scan types" which a
+    default install would set to C<T1w>, C<T2w>, C<FLAIR>, C<bold>, C<dwi>
+  - The C<bids_scan_type_subcategory> table will house the different sub-categories
+    used by BIDS to describe a scan type. For example, resting-state fMRI and memory
+    task fMRI scan types would have the following C<BIDSScanTypeSubCategoryName>: a
+    hyphen concatenated string, with the first part describing the BIDS imaging
+    sub-category, "task" as an example here, and the second describing this sub-category,
+    "rest" or "memory" as an example. Note that the second part after the hyphen is
+    used in the JSON file for the header "TaskName"
+  - Multi-echo sequences would be expected to see their C<BIDSMultiEcho> column of the
+    C<bids_mri_scan_type_rel> table filled with "echo-1", "echo-2", etc...
 
-C<bids_category> will house the different imaging "categories" which a default
-install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries can be
-added as more imaging categories are supported by the BIDS standards.
-
-For the C<bids_mri_scan_type_rel> table, functional modalities such as
-resting-state fMRI and task fMRI expect their C<BIDSScanTypeSubCategory> column be
-filled as follows: a hyphen concatenated string, with the first part describing
-the BIDS imaging sub-category, "task" as an example here, and the second
-describing this sub-category, "rest" or "memory" as an example. Note that the
-second part after the hyphen is used in the JSON file for the header "TaskName".
-Multi-echo sequences would be expected to see their C<BIDSMultiEcho> column
-filled with "echo-1", "echo-2", etc...
-Filling out these values properly as outlined in this description is mandatory
-as these values will be used to rename the NIfTI file, as per the BIDS
-requirements.
-
-Running this script requires JSON library for Perl.
-Run C<sudo apt-get install libjson-perl> to get it.
+Filling out these values properly as outlined in this description is mandatory as these
+values will be used to rename the NIfTI file, as per the BIDS requirements.
 
 
 =head2 METHODS
@@ -64,8 +63,7 @@ Run C<sudo apt-get install libjson-perl> to get it.
 =cut
 
 
-# TODO: BEFORE RUNNING THE SCRIPT, CONFIGURE TABLES ABOVE + MODIFY CONSTANTS IN THE
-# TODO: SCRIPT WITH THE CONSTANTS BELOW (EXPLAIN WHAT THEY ARE)
+# TODO: ONCE CONSTANTS BELOW ARE IN CONFIG MODULE, UPDATE DOC ABOVE AND HELP SECTION BELOW
 
 
 # Imports
@@ -117,33 +115,37 @@ my @opt_table = (
     [ "-verbose",             "boolean", 1, \$verbose,             "Be verbose."      ]
 );
 
-# TODO MODIFY HELP TO BE LIKE THE DESCRIPTION ABOVE ONCE FINALIZED
+# TODO ENSURE THE HELP IS LIKE THE DESCRIPTION ABOVE ONCE FINALIZED
 my $Help = <<HELP;
-This **BETA** version script will create a BIDS compliant NII file structure of
-the MINC files currently present in the assembly directory. If the argument
-tarchive_id is specified, only the images from that archive will be processed.
-Otherwise, all files in assembly will be included in the BIDS structure,
-while looping though all the tarchive_id's in the tarchive table.
-The script expects the tables C<bids_category> and C<bids_mri_scan_type_rel> to
-be populated and customized as per the project acquisitions. Keep the following
-restrictions/expectations in mind when populating the two database tables.
-C<bids_category> will house the different imaging "categories" which a default
-install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries can be
-added as more imaging categories are supported by the BIDS standards.
-For the C<bids_mri_scan_type_rel> table, functional modalities such as
-resting-state fMRI and task fMRI expect their BIDSScanTypeSubCategory column be
-filled as follows: a hyphen concatenated string, with the first part describing
-the BIDS imaging sub-category, "task" as an example here, and the second
-describing this sub-category, "rest" or "memory" as an example. Note that the
-second part after the hyphen is used in the JSON file for the header "TaskName".
-Multi-echo sequences would be expected to see their C<BIDSMultiEcho> column
-filled with "echo-1", "echo-2", etc...
-Filling out these values properly as outlined in this description is mandatory
-as these values will be used to rename the NIfTI file, as per the BIDS
-requirements.
-Running this script requires JSON library for Perl.
-Run sudo apt-get install libjson-perl to get it.
-Documentation: perldoc tools/MakeNIIFilesBIDSCompliant.pl
+
+This **BETA** version script will create a BIDS compliant NIfTI file structure of
+the MINC files currently present in the `assembly` directory. If the argument
+`tarchive_id` is specified, only the images from that archive will be processed.
+Otherwise, all `tarchive_id`'s present in the `tarchive` table will be processed.
+
+The script expects the tables `bids_category`, `bids_scan_type_subcategory`,
+`bids_scan_type` and `bids_mri_scan_type_rel` to be populated and customized as
+per the project's acquisition protocols. Keep the following restrictions/expectations
+in mind when populating the database tables.
+  - The `bids_category` table will house the different imaging "categories" which a
+    default install would set to `anat`, `func`, `dwi`, and `fmap`. More entries
+    can be added as more imaging categories are supported by the BIDS standards.
+  - The `bids_scan_type table will house the different "BIDS scan types" which a
+    default install would set to `T1w`, `T2w`, `FLAIR`, `bold`, `dwi`
+  - The `bids_scan_type_subcategory` table will house the different sub-categories
+    used by BIDS to describe a scan type. For example, resting-state fMRI and memory
+    task fMRI scan types would have the following `BIDSScanTypeSubCategoryName`: a
+    hyphen concatenated string, with the first part describing the BIDS imaging
+    sub-category, `task` as an example here, and the second describing this sub-category,
+    `rest` or `memory` as an example. Note that the second part after the hyphen is
+    used in the JSON file for the header `TaskName`
+  - Multi-echo sequences would be expected to see their `BIDSMultiEcho` column of the
+    `bids_mri_scan_type_rel` table filled with `echo-1`, `echo-2`, etc...
+
+Filling out these values properly as outlined in this description is mandatory as these
+values will be used to rename the NIfTI file, as per the BIDS requirements.
+
+Documentation: perldoc tools/minc_to_bids_converter.pl
 HELP
 
 my $Usage = <<USAGE;

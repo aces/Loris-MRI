@@ -83,6 +83,7 @@ my @script_list = (
     'tools/get_dicom_files.pl',
     'tools/MakeArchiveLocationRelative.pl',
     'tools/mass_perldoc_md_creation.pl',
+    'tools/minc_to_bids_converter.pl',
     'tools/ProdToConfig.pl',
     'tools/remove_jiv_data_from_db_and_filesystem.pl',
     'tools/seriesuid2fileid.pl',
