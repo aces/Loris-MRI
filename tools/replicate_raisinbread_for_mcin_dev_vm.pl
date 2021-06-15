@@ -61,7 +61,7 @@ USAGE
 
 # Checks if the right number of arguments are given
 if (scalar(@ARGV) != 2) {
-    print "ERROR: Incorrect number of arguments\n";
+    print STDERR "ERROR: Incorrect number of arguments\n";
     print $Usage;
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
