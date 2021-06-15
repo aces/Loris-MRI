@@ -4,8 +4,9 @@
 
 =head1 NAME
 
-replicate_raisinbread.pl -- Create a local copy of the RaisinBread dataset and
-store each file as a symlink to the original dataset found in /data-raisinbread. 
+replicate_raisinbread_for_mcin_dev_vm.pl -- Create a local copy of the RaisinBread dataset and
+store each file as a symlink to the original dataset found in /data-raisinbread automatically mounted
+with all LORIS dev VMs created by MCIN. 
 
 =head1 SYNOPSIS
 
