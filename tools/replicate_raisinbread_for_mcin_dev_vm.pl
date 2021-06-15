@@ -76,16 +76,22 @@ if (not(-d $ARGV[0])) {
     print $Usage;
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
-		
+
 # Get the path of RaisinBread dataset and the directory where the copy dataset 
 # will be stored
 my $rb_dir      = abs_path($ARGV[0]);
 my $output_dir  = abs_path($ARGV[1]);   
 
+print "Replicating the data structure from $rb_dir to $output_dir and linking files...\n";
+
 # find() traverses the RaisinBread directory tree in-order. For each sub-
 # directory or file found, it calls the &wanted subroutine
 find(\&wanted, $rb_dir);
-   
+
+print "Done\n";
+
+# wanted is the subroutine required for find(). It is executed on every
+# directory and file that is found by find().
 sub wanted {
     # Get the relative path of the file/directory (relative to $rb_dir)
     my $relative_path = abs2rel($File::Find::name, $rb_dir);
