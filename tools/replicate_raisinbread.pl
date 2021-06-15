@@ -19,7 +19,7 @@ RaisinBread dataset (typically C</data-raisinbread>) and the path to the
 directory where the replicated dataset will be stored. For example, suppose
 the script is run with the following arguments:
 
-perl replicate_raisinbread.pl C</data-raisinbread> C</data>
+perl replicate_raisinbread_for_mcin_dev_vm.pl C</data-raisinbread> C</data>
 
 The replicated dataset will be found in C</data/data-raisinbread/> 
 
