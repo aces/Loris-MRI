@@ -10,7 +10,7 @@ with all LORIS dev VMs created by MCIN.
 
 =head1 SYNOPSIS
 
-perl replicate_raisinbread.pl C<[/path/to/raisinbread]> C<[/path/to/output_dir]> 
+perl replicate_raisinbread_for_mcin_dev_vm.pl C<[/path/to/mounted/raisinbread]> C<[/path/to/output_dir]> 
 
 =head1 DESCRIPTION
 
