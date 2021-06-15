@@ -66,6 +66,17 @@ if (scalar(@ARGV) != 2) {
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
+# Checks if the two directories that were given as input are valid
+if (not(-d $ARGV[0])) {
+    print STDERR "ERROR: First argument is not a directory\n";
+    print $Usage;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+} elsif (not(-d $ARGV[1])) {
+    print STDERR "ERROR: Second argument is not a directory\n";
+    print $Usage;
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
+		
 # Get the path of RaisinBread dataset and the directory where the copy dataset 
 # will be stored
 my $rb_dir      = abs_path($ARGV[0]);
