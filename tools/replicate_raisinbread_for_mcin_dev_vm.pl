@@ -35,6 +35,7 @@ LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscie
 
 use strict;
 use warnings;
+use NeuroDB::ExitCodes;
 
 use Cwd qw/abs_path/;
 use File::Find;
@@ -62,7 +63,7 @@ USAGE
 if (scalar(@ARGV) != 2) {
     print "ERROR: Incorrect number of arguments\n";
     print $Usage;
-    exit 1;
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
 # Get the path of RaisinBread dataset and the directory where the copy dataset 
