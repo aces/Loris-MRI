@@ -3,12 +3,15 @@
 import os
 import sys
 import csv
+from datetime import datetime
+import filecmp
+import numpy
+import scipy.io
 import shutil
 import subprocess
-import filecmp
 import tarfile
-import scipy.io
-import numpy
+import tempfile
+
 import lib.exitcode
 
 
@@ -167,3 +170,29 @@ def compute_md5sum(file):
     md5sum = stdout.split()[0].decode('ASCII')
 
     return md5sum
+
+
+def create_processing_tmp_dir(template_prefix):
+    """
+    Creates a temporary directory with a name based on the concatenation of the
+    template prefix name given as an argument and the date and time the function
+    was called.
+
+    :param template_prefix: a template prefix to use for the name of the tmp dir
+     :type template_prefix: str
+
+    :return: absolute path to the created temporary directory
+     :rtype: str
+    """
+
+    # get the value for the OS environment TMPDIR
+    env_tmp_dir = os.environ.get("TMPDIR")
+
+    # append date and time information to the prefix name for the tmp dir
+    now = datetime.now()
+    template_prefix += f"_{now.strftime('%Y-%m-%d_%Hh%Mm%Ss_')}"
+
+    # create the temporary directory and return it
+    tmp_dir = tempfile.mkdtemp(prefix=template_prefix, dir=env_tmp_dir)
+
+    return tmp_dir

@@ -7,8 +7,11 @@ import os
 import sys
 
 import lib.exitcode
+import lib.utilities
 from lib.database import Database
 from lib.lorisgetopt import LorisGetOpt
+from lib.log import Log
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -106,6 +109,9 @@ def main():
     # input error checking and load config_file file
     input_error_checking(loris_getopt_obj)
 
+    # nifti validation and insertion
+    nifti_file_validation_and_insertion(loris_getopt_obj)
+
 
 def input_error_checking(loris_getopt_obj):
 
@@ -134,6 +140,58 @@ def input_error_checking(loris_getopt_obj):
             f"to determine the image file protocol.\n"
         )
         sys.exit(lib.exitcode.MISSING_ARG)
+
+
+def nifti_file_validation_and_insertion(loris_getopt_obj):
+
+    # load the script options
+    config_file = loris_getopt_obj.config_info
+    options_dict = loris_getopt_obj.options_dict
+    verbose = options_dict["verbose"]["value"]
+    nifti_path = options_dict["nifti_path"]["value"]
+    tarchive_path = options_dict["tarchive_path"]["value"]
+    json_path = options_dict["json_path"]["value"]
+    upload_id = options_dict["upload_id"]["value"]
+    loris_scan_type = options_dict["loris_scan_type"]["value"]
+    bypass_extra_checks = options_dict["bypass_extra_checks"]["value"]
+    create_pic = options_dict["create_pic"]["value"]
+    force = options_dict["force"]["value"]
+
+    # ----------------------------------------------------
+    # establish database connection
+    # ----------------------------------------------------
+    db = Database(config_file.mysql, verbose)
+    db.connect()
+
+    # -----------------------------------------------------------------------------------
+    # load the Config, Imaging, Tarchive, MriUpload, MriScanner and Notification classes
+    # -----------------------------------------------------------------------------------
+    config_obj = Config(db, verbose)
+    # imaging_obj = Imaging(db, verbose, config_file)
+    # tarchive_obj = Tarchive(db, verbose, config_file)
+    # mri_upload_obj = MriUpload(db, verbose)
+    # mri_scanner_obj = MriScanner(db, verbose)
+    # notification_obj = Notification(
+    #     db,
+    #     verbose,
+    #     notification_type='python NIfTI file insertion',
+    #     notification_origin='nifti_insertion.py',
+    #     process_id=upload_id
+    # )
+
+    # ---------------------------------------------------------------------------------------------
+    # grep config settings from the Config module
+    # ---------------------------------------------------------------------------------------------
+    data_dir = config_obj.get_config("dataDirBasepath")
+    print(data_dir)
+
+    # ---------------------------------------------------------------------------------------------
+    # create tmp dir and log file (their basename being the name of the script run)
+    # ---------------------------------------------------------------------------------------------
+    script_name = os.path.basename(__file__[:-3])
+    tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
+    log_obj = Log(data_dir, script_name, os.path.basename(tmp_dir), options_dict)
+
 
 if __name__ == "__main__":
     main()
