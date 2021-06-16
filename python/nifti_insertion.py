@@ -56,7 +56,7 @@ def main():
 
     options_dict = {
         "profile": {
-            "value": None,  "required": True,  "expect_arg": True,  "short_opt": "p", "is_path": True
+            "value": None,  "required": True,  "expect_arg": True,  "short_opt": "p", "is_path": False
         },
         "nifti_path": {
             "value": None,  "required": True,  "expect_arg": True,  "short_opt": "n", "is_path": True
@@ -103,20 +103,37 @@ def main():
 
     loris_getopt_obj.populate_options_dict_values(opts)
 
-    print(options_dict)
-
     # input error checking and load config_file file
-    config_file = input_error_checking(loris_getopt_obj)
+    input_error_checking(loris_getopt_obj)
 
 
 def input_error_checking(loris_getopt_obj):
 
-    # check that all required options are set
+    # perform initial checks and load config file (in loris_getopt_obj.config_info)
+    loris_getopt_obj.perform_default_checks_and_load_config()
 
-    config_file = "hello"
+    # check that only one of tarchive_path, upload_id or force has been provided
+    tarchive_path = loris_getopt_obj.options_dict["tarchive_path"]["value"]
+    upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
+    force = loris_getopt_obj.options_dict["force"]["value"]
+    if not (bool(tarchive_path) + bool(upload_id) + bool(force) == 1):
+        print(
+            f"[ERROR   ] You should either specify an upload_id or a tarchive_path"
+            f" or use the -force option (if no upload_id or tarchive_path is available"
+            f" for the NIfTI file to be uploaded). Make sure that you set only one of"
+            f" those options. Upload will exit now.\n"
+        )
+        sys.exit(lib.exitcode.MISSING_ARG)
 
-    return config_file
-
+    # check that json_path or loris_scan_type has been provided (both can be provided)
+    json_path = loris_getopt_obj.options_dict["json_path"]["value"]
+    scan_type = loris_getopt_obj.options_dict["loris_scan_type"]["value"]
+    if not json_path and not scan_type:
+        print(
+            f"[ERROR   ] a json_path or a loris_scan_type need to be provided in order"
+            f"to determine the image file protocol.\n"
+        )
+        sys.exit(lib.exitcode.MISSING_ARG)
 
 if __name__ == "__main__":
     main()
