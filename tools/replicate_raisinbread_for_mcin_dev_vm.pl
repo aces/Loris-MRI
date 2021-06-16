@@ -71,7 +71,8 @@ unless (-d $ARGV[0]) {
     print STDERR "ERROR: First argument is not a directory\n";
     print $Usage;
     exit $NeuroDB::ExitCodes::INVALID_PATH;
-} elsif (not(-d $ARGV[1])) {
+}
+unless (-d $ARGV[1]) {
     print STDERR "ERROR: Second argument is not a directory\n";
     print $Usage;
     exit $NeuroDB::ExitCodes::INVALID_PATH;
