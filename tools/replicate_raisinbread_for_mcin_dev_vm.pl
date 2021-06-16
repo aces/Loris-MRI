@@ -67,7 +67,7 @@ if (scalar(@ARGV) != 2) {
 }
 
 # Checks if the two directories that were given as input are valid
-if (not(-d $ARGV[0])) {
+unless (-d $ARGV[0]) {
     print STDERR "ERROR: First argument is not a directory\n";
     print $Usage;
     exit $NeuroDB::ExitCodes::INVALID_PATH;
