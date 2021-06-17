@@ -19,6 +19,7 @@ class MriUpload:
 
         self.db = db
         self.verbose = verbose
+        self.mri_upload_dict = dict()
 
     def update_mri_upload(self, upload_id, fields, values):
         """
@@ -42,3 +43,18 @@ class MriUpload:
         args = values + (upload_id,)
 
         self.db.update(query=query, args=args)
+
+    def create_mri_upload_dict(self, where_field, where_value):
+
+        query = "SELECT * FROM mri_upload WHERE %s = %s"
+        results = self.db.pselect(query, (where_field, where_value))
+
+        if len(results) > 1:
+            error_msg = f"[ERROR   ] Found {len(results)} rows in mri_upload for {where_field} {where_value}\n"
+            return False, error_msg
+        elif len(results) == 1:
+            self.mri_upload_dict = results[0]
+            return True, None
+        else:
+            error_msg = f"[ERROR   ] Did not find an entry in mri_upload associated with {where_field} {where_value}\n"
+            return False, error_msg

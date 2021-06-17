@@ -331,146 +331,146 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_ids(self, tarchive_info_dict, scanner_id=None):
-        """
-        Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
-        config setting. This function will call a function in the config file that can be
-        customized for each project.
+    # def determine_subject_ids(self, tarchive_info_dict, scanner_id=None):
+    #     """
+    #     Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
+    #     config setting. This function will call a function in the config file that can be
+    #     customized for each project.
+    #
+    #     :param tarchive_info_dict: dictionary with information about the DICOM archive queried
+    #                                from the tarchive table
+    #      :type tarchive_info_dict: dict
+    #     :param scanner_id        : ScannerID
+    #      :type scanner_id        : int or None
+    #
+    #     :return subject_id_dict: dictionary with subject IDs and visit label or error status
+    #      :rtype subject_id_dict: dict
+    #     """
+    #
+    #     config_obj   = Config(self.db, self.verbose)
+    #     dicom_header = config_obj.get_config('lookupCenterNameUsing')
+    #     dicom_value  = tarchive_info_dict[dicom_header]
+    #
+    #     try:
+    #         subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
+    #         subject_id_dict['PatientName'] = dicom_value
+    #     except AttributeError:
+    #         message = 'ERROR: config file does not contain a get_subject_ids routine.' \
+    #                   ' Upload will exit now.'
+    #         return {
+    #             'error'     : True,
+    #             'exit_code' : lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
+    #             'message'   : message
+    #         }
+    #
+    #     return subject_id_dict
 
-        :param tarchive_info_dict: dictionary with information about the DICOM archive queried
-                                   from the tarchive table
-         :type tarchive_info_dict: dict
-        :param scanner_id        : ScannerID
-         :type scanner_id        : int or None
+    # def validate_subject_ids(self, subject_id_dict):
+    #     """
+    #     Ensure that the subject PSCID/CandID corresponds to a single candidate in the candidate
+    #     table and that the visit label can be found in the Visit_Windows table. If those
+    #     conditions are not fulfilled, then a 'CandMismatchError' with the validation error
+    #     is added to the subject IDs dictionary (subject_id_dict).
+    #
+    #     :param subject_id_dict : dictionary with subject IDs and visit label
+    #      :type subject_id_dict : dict
+    #
+    #     :return: True if the subject IDs are valid, False otherwise
+    #      :rtype: bool
+    #     """
+    #
+    #     psc_id      = subject_id_dict['PSCID']
+    #     cand_id     = subject_id_dict['CandID']
+    #     visit_label = subject_id_dict['visitLabel']
+    #     is_phantom  = subject_id_dict['isPhantom']
+    #
+    #     # no further checking if the subject is phantom
+    #     if is_phantom:
+    #         return True
+    #
+    #     # check that the CandID and PSCID are valid
+    #     query = 'SELECT c1.CandID, c2.PSCID AS PSCID ' \
+    #             ' FROM candidate c1 ' \
+    #             ' LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) ' \
+    #             ' WHERE c1.CandID = %s'
+    #     results = self.db.pselect(query=query, args=(psc_id, cand_id))
+    #     if not results:
+    #         # if no rows were returned, then the CandID is not valid
+    #         subject_id_dict['message'] = '=> Could not find candidate with CandID=' + cand_id \
+    #                                      + ' in the database'
+    #         subject_id_dict['CandMismatchError'] = 'CandID does not exist'
+    #         return False
+    #     elif not results[0]['PSCID']:
+    #         # if no PSCID returned in the row, then PSCID and CandID do not match
+    #         subject_id_dict['message'] = '=> PSCID and CandID of the image mismatch'
+    #         subject_id_dict['CandMismatchError'] = message
+    #         return False
+    #
+    #     # check if visit label is valid
+    #     query   = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
+    #     results = self.db.pselect(query=query, args=(visit_label,))
+    #     if results:
+    #         subject_id_dict['message'] = "=> Found visit label " + visit_label + 'in Visit_Windows'
+    #         return True
+    #     elif subject_id_dict['createVisitLabel']:
+    #         subject_id_dict['message'] = '=> Will create visit label ' + visit_label \
+    #                                      + 'in Visit_Windows'
+    #         return True
+    #     else:
+    #         subject_id_dict['message'] = '=> Visit Label ' + visit_label \
+    #                                      + ' does not exist in Visit_Windows'
+    #         subject_id_dict['CandMismatchError'] = message
+    #         return False
 
-        :return subject_id_dict: dictionary with subject IDs and visit label or error status
-         :rtype subject_id_dict: dict
-        """
-
-        config_obj   = Config(self.db, self.verbose)
-        dicom_header = config_obj.get_config('lookupCenterNameUsing')
-        dicom_value  = tarchive_info_dict[dicom_header]
-
-        try:
-            subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
-            subject_id_dict['PatientName'] = dicom_value
-        except AttributeError:
-            message = 'ERROR: config file does not contain a get_subject_ids routine.' \
-                      ' Upload will exit now.'
-            return {
-                'error'     : True,
-                'exit_code' : lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
-                'message'   : message
-            }
-
-        return subject_id_dict
-
-    def validate_subject_ids(self, subject_id_dict):
-        """
-        Ensure that the subject PSCID/CandID corresponds to a single candidate in the candidate
-        table and that the visit label can be found in the Visit_Windows table. If those
-        conditions are not fulfilled, then a 'CandMismatchError' with the validation error
-        is added to the subject IDs dictionary (subject_id_dict).
-
-        :param subject_id_dict : dictionary with subject IDs and visit label
-         :type subject_id_dict : dict
-
-        :return: True if the subject IDs are valid, False otherwise
-         :rtype: bool
-        """
-
-        psc_id      = subject_id_dict['PSCID']
-        cand_id     = subject_id_dict['CandID']
-        visit_label = subject_id_dict['visitLabel']
-        is_phantom  = subject_id_dict['isPhantom']
-
-        # no further checking if the subject is phantom
-        if is_phantom:
-            return True
-
-        # check that the CandID and PSCID are valid
-        query = 'SELECT c1.CandID, c2.PSCID AS PSCID ' \
-                ' FROM candidate c1 ' \
-                ' LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) ' \
-                ' WHERE c1.CandID = %s'
-        results = self.db.pselect(query=query, args=(psc_id, cand_id))
-        if not results:
-            # if no rows were returned, then the CandID is not valid
-            subject_id_dict['message'] = '=> Could not find candidate with CandID=' + cand_id \
-                                         + ' in the database'
-            subject_id_dict['CandMismatchError'] = 'CandID does not exist'
-            return False
-        elif not results[0]['PSCID']:
-            # if no PSCID returned in the row, then PSCID and CandID do not match
-            subject_id_dict['message'] = '=> PSCID and CandID of the image mismatch'
-            subject_id_dict['CandMismatchError'] = message
-            return False
-
-        # check if visit label is valid
-        query   = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
-        results = self.db.pselect(query=query, args=(visit_label,))
-        if results:
-            subject_id_dict['message'] = "=> Found visit label " + visit_label + 'in Visit_Windows'
-            return True
-        elif subject_id_dict['createVisitLabel']:
-            subject_id_dict['message'] = '=> Will create visit label ' + visit_label \
-                                         + 'in Visit_Windows'
-            return True
-        else:
-            subject_id_dict['message'] = '=> Visit Label ' + visit_label \
-                                         + ' does not exist in Visit_Windows'
-            subject_id_dict['CandMismatchError'] = message
-            return False
-
-    def determine_study_center(self, tarchive_info_dict):
-        """
-        Determine the study center associated to the DICOM archive based on a DICOM header
-        specified by the lookupCenterNameUsing config setting.
-
-        :param tarchive_info_dict: dictionary with information about the DICOM archive queried
-                                   from the tarchive table
-         :type tarchive_info_dict: dict
-
-        :return: dictionary with CenterName and CenterID information
-         :rtype: dict
-        """
-
-        subject_id_dict = self.determine_subject_ids(tarchive_info_dict)
-        if 'error' in subject_id_dict.keys():
-            # subject_id_dict contain the error, exit code and message to explain the error
-            return subject_id_dict
-
-        cand_id         = subject_id_dict['CandID']
-        visit_label     = subject_id_dict['visitLabel']
-        patient_name    = subject_id_dict['PatientName']
-
-        # get the CenterID from the session table if the PSCID and visit label exists
-        # and could be extracted from the database
-        if cand_id and visit_label:
-            query = 'SELECT s.CenterID AS CenterID, p.MRI_alias AS CenterName' \
-                    ' FROM session s' \
-                    ' JOIN psc p ON p.CenterID=s.CenterID' \
-                    ' WHERE s.CandID = %s AND s.Visit_label = %s'
-            results = self.db.pselect(query=query, args=(cand_id, visit_label))
-            if results:
-                return results[0]
-
-        # if could not find center information based on cand_id and visit_label, use the
-        # patient name to match it to the site alias or MRI alias
-        site = Site(self.db, self.verbose)
-        list_of_sites = site.get_list_of_sites()
-        for site_dict in list_of_sites:
-            if site_dict['Alias'] in patient_name:
-                return {'CenterName': site_dict['Alias'], 'CenterID': site_dict['CenterID']}
-            elif site_dict['MRI_alias'] in patient_name:
-                return {'CenterName': site_dict['MRI_alias'], 'CenterID': site_dict['CenterID']}
-
-        # if we got here, it means we could not find a center associated to the dataset
-        return {
-            'error'    : True,
-            'exit_code': lib.exitcode.SELECT_FAILURE,
-            'message'  : 'ERROR: No center found for this DICOM study'
-        }
+    # def determine_study_center(self, tarchive_info_dict):
+    #     """
+    #     Determine the study center associated to the DICOM archive based on a DICOM header
+    #     specified by the lookupCenterNameUsing config setting.
+    #
+    #     :param tarchive_info_dict: dictionary with information about the DICOM archive queried
+    #                                from the tarchive table
+    #      :type tarchive_info_dict: dict
+    #
+    #     :return: dictionary with CenterName and CenterID information
+    #      :rtype: dict
+    #     """
+    #
+    #     subject_id_dict = self.determine_subject_ids(tarchive_info_dict)
+    #     if 'error' in subject_id_dict.keys():
+    #         # subject_id_dict contain the error, exit code and message to explain the error
+    #         return subject_id_dict
+    #
+    #     cand_id         = subject_id_dict['CandID']
+    #     visit_label     = subject_id_dict['visitLabel']
+    #     patient_name    = subject_id_dict['PatientName']
+    #
+    #     # get the CenterID from the session table if the PSCID and visit label exists
+    #     # and could be extracted from the database
+    #     if cand_id and visit_label:
+    #         query = 'SELECT s.CenterID AS CenterID, p.MRI_alias AS CenterName' \
+    #                 ' FROM session s' \
+    #                 ' JOIN psc p ON p.CenterID=s.CenterID' \
+    #                 ' WHERE s.CandID = %s AND s.Visit_label = %s'
+    #         results = self.db.pselect(query=query, args=(cand_id, visit_label))
+    #         if results:
+    #             return results[0]
+    #
+    #     # if could not find center information based on cand_id and visit_label, use the
+    #     # patient name to match it to the site alias or MRI alias
+    #     site = Site(self.db, self.verbose)
+    #     list_of_sites = site.get_list_of_sites()
+    #     for site_dict in list_of_sites:
+    #         if site_dict['Alias'] in patient_name:
+    #             return {'CenterName': site_dict['Alias'], 'CenterID': site_dict['CenterID']}
+    #         elif site_dict['MRI_alias'] in patient_name:
+    #             return {'CenterName': site_dict['MRI_alias'], 'CenterID': site_dict['CenterID']}
+    #
+    #     # if we got here, it means we could not find a center associated to the dataset
+    #     return {
+    #         'error'    : True,
+    #         'exit_code': lib.exitcode.SELECT_FAILURE,
+    #         'message'  : 'ERROR: No center found for this DICOM study'
+    #     }
 
     @staticmethod
     def map_bids_param_to_loris_param(file_parameters):

@@ -9,22 +9,24 @@ import sys
 import lib.exitcode
 import lib.utilities
 from lib.database import Database
-from lib.lorisgetopt import LorisGetOpt
-from lib.log import Log
 from lib.database_lib.config import Config
+from lib.database_lib.notification import Notification
+from lib.database_lib.mriupload import MriUpload
+from lib.database_lib.tarchive import Tarchive
+from lib.imaging import Imaging
+from lib.log import Log
+from lib.lorisgetopt import LorisGetOpt
 
 __license__ = "GPLv3"
 
-
 sys.path.append('/home/user/python')
 
-# to limit the traceback when raising exceptions.
-#sys.tracebacklimit = 0
 
+# to limit the traceback when raising exceptions.
+# sys.tracebacklimit = 0
 
 
 def main():
-
     usage = (
         "\n"
 
@@ -59,22 +61,22 @@ def main():
 
     options_dict = {
         "profile": {
-            "value": None,  "required": True,  "expect_arg": True,  "short_opt": "p", "is_path": False
+            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "nifti_path": {
-            "value": None,  "required": True,  "expect_arg": True,  "short_opt": "n", "is_path": True
+            "value": None, "required": True, "expect_arg": True, "short_opt": "n", "is_path": True
         },
         "json_path": {
-            "value": None,  "required": False, "expect_arg": True,  "short_opt": "j", "is_path": True
+            "value": None, "required": False, "expect_arg": True, "short_opt": "j", "is_path": True
         },
         "tarchive_path": {
-            "value": None,  "required": False, "expect_arg": True,  "short_opt": "t", "is_path": True
+            "value": None, "required": False, "expect_arg": True, "short_opt": "t", "is_path": True
         },
         "upload_id": {
-            "value": None,  "required": False, "expect_arg": True,  "short_opt": "u", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "u", "is_path": False
         },
         "loris_scan_type": {
-            "value": None,  "required": False, "expect_arg": True,  "short_opt": "s", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "s", "is_path": False
         },
         "bypass_extra_checks": {
             "value": False, "required": False, "expect_arg": False, "short_opt": "b", "is_path": False
@@ -114,7 +116,6 @@ def main():
 
 
 def input_error_checking(loris_getopt_obj):
-
     # perform initial checks and load config file (in loris_getopt_obj.config_info)
     loris_getopt_obj.perform_default_checks_and_load_config()
 
@@ -143,54 +144,41 @@ def input_error_checking(loris_getopt_obj):
 
 
 def nifti_file_validation_and_insertion(loris_getopt_obj):
-
+    # ----------------------------------------------------
     # load the script options
+    # ----------------------------------------------------
     config_file = loris_getopt_obj.config_info
     options_dict = loris_getopt_obj.options_dict
     verbose = options_dict["verbose"]["value"]
     nifti_path = options_dict["nifti_path"]["value"]
-    tarchive_path = options_dict["tarchive_path"]["value"]
     json_path = options_dict["json_path"]["value"]
-    upload_id = options_dict["upload_id"]["value"]
     loris_scan_type = options_dict["loris_scan_type"]["value"]
     bypass_extra_checks = options_dict["bypass_extra_checks"]["value"]
     create_pic = options_dict["create_pic"]["value"]
     force = options_dict["force"]["value"]
 
-    # ----------------------------------------------------
-    # establish database connection
-    # ----------------------------------------------------
-    db = Database(config_file.mysql, verbose)
-    db.connect()
-
-    # -----------------------------------------------------------------------------------
-    # load the Config, Imaging, Tarchive, MriUpload, MriScanner and Notification classes
-    # -----------------------------------------------------------------------------------
-    config_obj = Config(db, verbose)
-    # imaging_obj = Imaging(db, verbose, config_file)
-    # tarchive_obj = Tarchive(db, verbose, config_file)
-    # mri_upload_obj = MriUpload(db, verbose)
-    # mri_scanner_obj = MriScanner(db, verbose)
-    # notification_obj = Notification(
-    #     db,
-    #     verbose,
-    #     notification_type='python NIfTI file insertion',
-    #     notification_origin='nifti_insertion.py',
-    #     process_id=upload_id
-    # )
+    # ---------------------------------------------------------------------------------------------
+    # Check validity of the DICOM archive from the is_valid key of the mri_upload dictionary
+    # ---------------------------------------------------------------------------------------------
+    if not mri_upload_obj.mri_upload_dict["IsTarchiveValidated"] and not force:
+        err_msg = f"[ERROR   ] The DICOM archive validation has failed for UploadID {upload_id}." \
+                  f"Either run the validation again and fix the problem or use --force to force" \
+                  f"the insertion of the NIfTI file.\n"
+        log_obj.write_to_log_file(err_msg)
+        notification_obj.write_to_notification_spool(err_msg, is_error="Y", is_verbose="N")
+        sys.exit(lib.exitcode.INVALID_DICOM)
 
     # ---------------------------------------------------------------------------------------------
-    # grep config settings from the Config module
+    # Determine PSC, ScannerID and Subject IDs from tarchive dictionary
     # ---------------------------------------------------------------------------------------------
-    data_dir = config_obj.get_config("dataDirBasepath")
-    print(data_dir)
+    site_dict = imaging_obj.determine_study_center(tarchive_info_dict)
+    if "error" in site_dict.keys():
+        err_msg = site_dict["message"]
+        log_obj.write_to_log_file(err_msg)
+        notification_obj.write_to_notification_spool(err_msg, is_error="Y", is_verbose="N")
+        sys.exit(site_dict["exit_code"])
 
-    # ---------------------------------------------------------------------------------------------
-    # create tmp dir and log file (their basename being the name of the script run)
-    # ---------------------------------------------------------------------------------------------
-    script_name = os.path.basename(__file__[:-3])
-    tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
-    log_obj = Log(data_dir, script_name, os.path.basename(tmp_dir), options_dict)
+
 
 
 if __name__ == "__main__":
@@ -221,5 +209,3 @@ if __name__ == "__main__":
 # 17. insert into Db
 # 18. update mri violations log
 # 19. create pics
-
-
