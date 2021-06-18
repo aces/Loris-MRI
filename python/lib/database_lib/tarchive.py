@@ -102,11 +102,10 @@ class Tarchive:
         result = dict()
         if tarchive_db_md5sum == tarchive_file_md5sum:
             result['success'] = True
-            result['message'] = '-> checksum for target   : ' + tarchive_file_md5sum + '\n' \
-                                '-> checksum from database: ' + tarchive_db_md5sum
+            result['message'] = f"checksum for target: {tarchive_file_md5sum}; " \
+                                f"checksum from database: {tarchive_db_md5sum}"
         else:
             result['success'] = False
-            result['message'] = 'ERROR: DICOM archive seems corrupted or modified. ' \
-                                'Upload will exit now.'
+            result['message'] = "ERROR: DICOM archive seems corrupted or modified. Upload will exit now."
 
         return result

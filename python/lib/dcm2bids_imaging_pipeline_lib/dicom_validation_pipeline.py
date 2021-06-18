@@ -3,12 +3,15 @@ import os
 import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 
+__license__ = "GPLv3"
+
 
 class DicomValidationPipeline(BasePipeline):
 
     def __init__(self, loris_getopt_obj, script_name):
         super().__init__(loris_getopt_obj, script_name)
         self.validate_subject_ids()
+        self._validate_dicom_archive_md5sum()
 
         # ---------------------------------------------------------------------------------------------
         # If we get here, the tarchive is validated & the script stops running so update mri_upload
@@ -21,11 +24,11 @@ class DicomValidationPipeline(BasePipeline):
             values=("1", "0")
         )
 
-    def validate_dicom_archive_md5sum(self):
+    def _validate_dicom_archive_md5sum(self):
 
         self.log_info(message="Verifying DICOM archive md5sum (checksum)", is_error="N", is_verbose="Y")
 
-        tarchive_path = os.path.join(self.data_dir, self.tarchive_db_obj.tarchive_info_dict["ArchiveLocation"])
+        tarchive_path = os.path.join(self.dicom_lib_dir, self.tarchive_db_obj.tarchive_info_dict["ArchiveLocation"])
         result = self.tarchive_db_obj.validate_dicom_archive_md5sum(tarchive_path)
         message = result["message"]
 
