@@ -38,7 +38,12 @@ class NiftiInsertionPipeline(BasePipeline):
         print("hello")
 
     def _check_if_tarchive_validated_in_db(self):
+        """
+        Checks whether the DICOM archive was previously validated in the database (as per the value present
+        in the <IsTarchiveValidated> field of the <mri_upload> table.
 
+        If the DICOM archive was not validated, the pipeline will exit and log the proper error information.
+        """
         is_tarchive_validated = self.mri_upload_db_obj.mri_upload_dict["IsTarchiveValidated"]
         if not is_tarchive_validated and not self.force:
             err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \
@@ -46,10 +51,19 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
 
     def _load_json_sidecar_file(self):
+        """
+        Loads the JSON file content into a dictionary.
+
+        Note: if no JSON file was provided to the pipeline, the function will return an empty dictionary
+        so that information to be stored in <parameter_file> later on can be added to the JSON dictionary.
+
+        :return: dictionary with the information present in the JSON file
+         :rtype: dict
+        """
         json_path = self.options_dict["json_path"]["value"]
 
         if not json_path:
-            return None
+            return dict()
 
         with open(json_path) as json_file:
             json_data_dict = json.load(json_file)
@@ -58,10 +72,21 @@ class NiftiInsertionPipeline(BasePipeline):
         return json_data_dict
 
     def _validate_nifti_patient_name(self):
-        tarchive_pname = self.tarchive_db_obj.tarchive_info_dict["PatientName"]
-        nifti_pname = self.json_file_dict["PatientName"]
+        """
+        This function will validate that the PatientName present in the JSON side car file is the same as the
+        one present in the <tarchive> table.
 
+        Note: if no JSON file was provided to the script or if not "PatientName" was provided in the JSON file,
+        the scripts will rely solely on the PatientName present in the <tarchive> table.
+        """
+        tarchive_pname = self.tarchive_db_obj.tarchive_info_dict["PatientName"]
+        if "PatientName" not in self.json_file_dict:
+            message = "PatientName not present in the JSON file or no JSON file provided along with" \
+                      "the NIfTI file. Will rely on the PatientName stored in the DICOM files"
+            self.log_info(message, is_error="N", is_verbose="Y")
+            return
+
+        nifti_pname = self.json_file_dict["PatientName"]
         if tarchive_pname != nifti_pname:
             err_msg = "PatientName in DICOM and NIfTI files differ."
             self.log_error_and_exit(err_msg, lib.exitcode.FILENAME_MISMATCH, is_error="Y", is_verbose="N")
-
