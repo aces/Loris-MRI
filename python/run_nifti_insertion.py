@@ -132,20 +132,10 @@ if __name__ == "__main__":
 # TODO: plan
 # 1. script instantiation and argument checks
 
-
-# 2. database connection
-# 3. create tmp directory and log file
-
 # 4. check that file is unique. if already registered, log it
 
-# 5. check if the archive is validated
-# 6. create tarchive array
-
 # 7. load nifti and JSON file
-# 8. determine PSC
-# 9. determine scanner ID
-# 10. determine subject ID
-# 11. validate subject IDs, exits if not valid
+
 # 12. if file not associated to a tarchiveID or uploadID, check that cannot find it in tarchive tables. If so, exits
 # 13. get more information about the scan (scanner, IDs, dates...)
 # 14. get session information, exits if incorrect
