@@ -16,6 +16,7 @@ from lib.database_lib.tarchive import Tarchive
 from lib.imaging import Imaging
 from lib.log import Log
 from lib.lorisgetopt import LorisGetOpt
+from lib.dcm2bids_imaging_pipeline_lib.nifti_insertion_pipeline import NiftiInsertionPipeline
 
 __license__ = "GPLv3"
 
@@ -95,24 +96,14 @@ def main():
         },
     }
 
+    # get the options provided by the user
     loris_getopt_obj = LorisGetOpt(usage, options_dict)
-    long_options_list = loris_getopt_obj.long_options
-    short_options_list = loris_getopt_obj.short_options
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], ''.join(short_options_list), long_options_list)
-    except getopt.GetoptError as err:
-        print(err)
-        print(usage)
-        sys.exit(lib.exitcode.GETOPT_FAILURE)
-
-    loris_getopt_obj.populate_options_dict_values(opts)
 
     # input error checking and load config_file file
     input_error_checking(loris_getopt_obj)
 
     # nifti validation and insertion
-    nifti_file_validation_and_insertion(loris_getopt_obj)
+    NiftiInsertionPipeline(loris_getopt_obj, os.path.basename(__file__[:-3]))
 
 
 def input_error_checking(loris_getopt_obj):
@@ -141,44 +132,6 @@ def input_error_checking(loris_getopt_obj):
             f"to determine the image file protocol.\n"
         )
         sys.exit(lib.exitcode.MISSING_ARG)
-
-
-def nifti_file_validation_and_insertion(loris_getopt_obj):
-    # ----------------------------------------------------
-    # load the script options
-    # ----------------------------------------------------
-    config_file = loris_getopt_obj.config_info
-    options_dict = loris_getopt_obj.options_dict
-    verbose = options_dict["verbose"]["value"]
-    nifti_path = options_dict["nifti_path"]["value"]
-    json_path = options_dict["json_path"]["value"]
-    loris_scan_type = options_dict["loris_scan_type"]["value"]
-    bypass_extra_checks = options_dict["bypass_extra_checks"]["value"]
-    create_pic = options_dict["create_pic"]["value"]
-    force = options_dict["force"]["value"]
-
-    # ---------------------------------------------------------------------------------------------
-    # Check validity of the DICOM archive from the is_valid key of the mri_upload dictionary
-    # ---------------------------------------------------------------------------------------------
-    if not mri_upload_obj.mri_upload_dict["IsTarchiveValidated"] and not force:
-        err_msg = f"[ERROR   ] The DICOM archive validation has failed for UploadID {upload_id}." \
-                  f"Either run the validation again and fix the problem or use --force to force" \
-                  f"the insertion of the NIfTI file.\n"
-        log_obj.write_to_log_file(err_msg)
-        notification_obj.write_to_notification_spool(err_msg, is_error="Y", is_verbose="N")
-        sys.exit(lib.exitcode.INVALID_DICOM)
-
-    # ---------------------------------------------------------------------------------------------
-    # Determine PSC, ScannerID and Subject IDs from tarchive dictionary
-    # ---------------------------------------------------------------------------------------------
-    site_dict = imaging_obj.determine_study_center(tarchive_info_dict)
-    if "error" in site_dict.keys():
-        err_msg = site_dict["message"]
-        log_obj.write_to_log_file(err_msg)
-        notification_obj.write_to_notification_spool(err_msg, is_error="Y", is_verbose="N")
-        sys.exit(site_dict["exit_code"])
-
-
 
 
 if __name__ == "__main__":
