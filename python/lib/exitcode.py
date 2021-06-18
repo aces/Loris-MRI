@@ -47,5 +47,7 @@ TARGET_EXISTS_NO_CLOBBER  = 83  # target already exists but no -clobber option
 UNKNOWN_PROTOCOL          = 84  # if unknown acq protocol for the file to insert
 
 
+FILENAME_MISMATCH = 151
+
 CANDIDATE_MISMATCH      = 181
 BIDS_CANDIDATE_MISMATCH = 182

@@ -2,19 +2,11 @@
 
 """Script that inserts NIfTI/JSON files into the database"""
 
-import getopt
 import os
 import sys
 
 import lib.exitcode
 import lib.utilities
-from lib.database import Database
-from lib.database_lib.config import Config
-from lib.database_lib.notification import Notification
-from lib.database_lib.mriupload import MriUpload
-from lib.database_lib.tarchive import Tarchive
-from lib.imaging import Imaging
-from lib.log import Log
 from lib.lorisgetopt import LorisGetOpt
 from lib.dcm2bids_imaging_pipeline_lib.nifti_insertion_pipeline import NiftiInsertionPipeline
 

@@ -7,6 +7,7 @@ import sys
 
 __license__ = "GPLv3"
 
+
 class LorisGetOpt:
     """
 
@@ -52,6 +53,7 @@ class LorisGetOpt:
                 print(self.usage)
                 sys.exit()
             else:
+                self.check_option_is_in_the_list_of_possible_options(opt)
                 for key in self.options_dict:
                     long_opt = f"--{key}"
                     short_opt = f"-{self.options_dict[key]['short_opt']}"
@@ -107,3 +109,14 @@ class LorisGetOpt:
                 print(f"\n[ERROR   ] {opt_value} does not exist. Please provide a valid path for --{key}\n")
                 print(self.usage)
                 sys.exit(lib.exitcode.INVALID_PATH)
+
+    def check_option_is_in_the_list_of_possible_options(self, opt):
+
+        possible_options = list()
+        for key in self.options_dict:
+            possible_options.append(f"--{key}")
+            possible_options.append(f"-{self.options_dict[key]['short_opt']}")
+
+        if opt not in possible_options:
+            print(f"\n[ERROR   ] {opt} is not a valid option for the script\n{self.usage}")
+            sys.exit(lib.exitcode.INVALID_ARG)
