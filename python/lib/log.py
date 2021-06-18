@@ -17,9 +17,7 @@ class Log:
         if not os.path.isdir(self.log_dir):
             os.makedirs(self.log_dir)
         self.log_file = os.path.join(self.log_dir, f"{log_file_basename}.log")
-        print(self.log_file)
         self.create_log_header()
-
 
     def write_to_log_file(self, message):
 
@@ -34,10 +32,11 @@ class Log:
 ----------------------------------------------------------------
   {run_info.replace("_", " ").upper()}
 ----------------------------------------------------------------
+
 Script run with the following options set       
 """
         for key in self.script_options:
             if self.script_options[key]["value"]:
-                message += f"\t- --{key}: {self.script_options[key]['value']}\n"
+                message += f"  --{key}: {self.script_options[key]['value']}\n"
 
         self.write_to_log_file(f"{message}\n\n")

@@ -1,4 +1,5 @@
 """"""
+import getopt
 
 import lib.exitcode
 import os
@@ -17,6 +18,15 @@ class LorisGetOpt:
         self.long_options = self.get_long_options()
         self.short_options = self.get_short_options()
         self.config_info = None
+
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "".join(self.short_options), self.long_options)
+        except getopt.GetoptError as err:
+            print(err)
+            print(self.usage)
+            sys.exit(lib.exitcode.GETOPT_FAILURE)
+
+        self.populate_options_dict_values(opts)
 
     def get_long_options(self):
         long_options = []
@@ -62,13 +72,13 @@ class LorisGetOpt:
         profile_value = self.options_dict["profile"]["value"]
 
         if "LORIS_CONFIG" not in os.environ.keys():
-            print("[ERROR   ] Environment variable 'LORIS_CONFIG' not set\n")
+            print("\n[ERROR   ] Environment variable 'LORIS_CONFIG' not set\n")
             sys.exit(lib.exitcode.INVALID_ENVIRONMENT_VAR)
 
         config_file = os.path.join(os.environ["LORIS_CONFIG"], ".loris_mri", profile_value)
         if not config_file.endswith(".py"):
             print(
-                f"[ERROR   ] {config_file} does not appear to be the python configuration file."
+                f"\n[ERROR   ] {config_file} does not appear to be the python configuration file."
                 f" Try using 'database_config.py' instead.\n"
             )
             sys.exit(lib.exitcode.INVALID_ARG)
@@ -77,7 +87,7 @@ class LorisGetOpt:
             sys.path.append(os.path.dirname(config_file))
             self.config_info = __import__(os.path.basename(config_file[:-3]))
         else:
-            print(f"[ERROR   ] {profile_value} does not exist in {os.environ['LORIS_CONFIG']}.")
+            print(f"\n[ERROR   ] {profile_value} does not exist in {os.environ['LORIS_CONFIG']}.")
             sys.exit(lib.exitcode.INVALID_PATH)
 
     def check_required_options_are_set(self):
@@ -85,7 +95,7 @@ class LorisGetOpt:
         for key in self.options_dict:
             opt_value = self.options_dict[key]["value"]
             if self.options_dict[key]['required'] and not opt_value:
-                print(f"[ERROR   ] argument --{key} is required\n")
+                print(f"\n[ERROR   ] argument --{key} is required\n")
                 print(self.usage)
                 sys.exit(lib.exitcode.MISSING_ARG)
 
@@ -94,6 +104,6 @@ class LorisGetOpt:
         for key in self.options_dict:
             opt_value = self.options_dict[key]["value"]
             if self.options_dict[key]["is_path"] and opt_value and not os.path.isfile(opt_value):
-                print(f"[ERROR   ] {opt_value} does not exist. Please provide a valid path for --{key}\n")
+                print(f"\n[ERROR   ] {opt_value} does not exist. Please provide a valid path for --{key}\n")
                 print(self.usage)
                 sys.exit(lib.exitcode.INVALID_PATH)

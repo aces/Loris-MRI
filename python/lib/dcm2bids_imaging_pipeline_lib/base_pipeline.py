@@ -14,12 +14,12 @@ from lib.imaging import Imaging
 from lib.log import Log
 
 
-class BaseImagingPipeline:
+class BasePipeline:
     """
     Series of checks done by most scripts from the imaging pipeline
     """
 
-    def __init__(self, loris_getopt_obj):
+    def __init__(self, loris_getopt_obj, script_name):
         """
         This initialize runs all the base functions that are always run by the following scripts:
         - nifti_insertion.py
@@ -47,6 +47,7 @@ class BaseImagingPipeline:
         self.config_file = loris_getopt_obj.config_info
         self.options_dict = loris_getopt_obj.options_dict
         self.verbose = self.options_dict["verbose"]["value"]
+        self.upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
 
         # ----------------------------------------------------
         # establish database connection
@@ -63,6 +64,7 @@ class BaseImagingPipeline:
         self.site_db_obj = Site(self.db, self.verbose)
         self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
+        self.notification_obj = None  # set this to none until we get an confirmed UploadID
 
         # ---------------------------------------------------------------------------------------------
         # grep config settings from the Config module
@@ -73,15 +75,20 @@ class BaseImagingPipeline:
         # ---------------------------------------------------------------------------------------------
         # create tmp dir and log file (their basename being the name of the script run)
         # ---------------------------------------------------------------------------------------------
-        script_name = os.path.basename(__file__[:-3])
         self.tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
         self.log_obj = Log(self.data_dir, script_name, os.path.basename(self.tmp_dir), self.options_dict)
-        self.log_obj.write_to_log_file("\t==> Successfully connected to database\n")
+        self.log_info("Successfully connected to database", is_error="N", is_verbose="Y")
 
         # ---------------------------------------------------------------------------------------------
         # Load mri_upload and tarchive dictionary
         # ---------------------------------------------------------------------------------------------
         self.load_mri_upload_and_tarchive_dictionaries()
+
+        # ---------------------------------------------------------------------------------------------
+        # Set Inserting field of mri_upload to indicate a script is running on the upload
+        # ---------------------------------------------------------------------------------------------
+        self.upload_id = self.mri_upload_db_obj.mri_upload_dict["UploadID"]
+        self.mri_upload_db_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
 
         # ---------------------------------------------------------------------------------------------
         # Create the notification object now that we have a confirmed UploadID
@@ -97,14 +104,14 @@ class BaseImagingPipeline:
         # ---------------------------------------------------------------------------------
         # determine subject IDs based on DICOM headers and validate the IDs against the DB
         # ---------------------------------------------------------------------------------
-        self.subject_id_dict = self.determine_subject_ids()
+        self.subject_id_dict = self.determine_subject_ids(scanner_id=None)
 
         # ----------------------------------------------------
         # verify PSC information stored in DICOMs
         # ----------------------------------------------------
         self.site_dict = self.determine_study_info()
-        message = f"\t==> Found Center Name: {self.site_dict['CenterName']}," \
-                  f" Center ID: {str(self.site_dict['CenterID'])}\n"
+        message = f"Found Center Name: {self.site_dict['CenterName']}," \
+                  f" Center ID: {str(self.site_dict['CenterID'])}"
         self.log_info(message, is_error="N", is_verbose="Y")
 
         # ---------------------------------------------------------------
@@ -129,12 +136,12 @@ class BaseImagingPipeline:
                 tarchive_id = self.mri_upload_db_obj.mri_upload_dict["TarchiveID"]
                 success = self.tarchive_db_obj.create_tarchive_dict(tarchive_id=tarchive_id)
                 if not success:
-                    err_msg += f"[ERROR   ] Could not load tarchive dictionary for TarchiveID {tarchive_id}\n"
+                    err_msg += f"Could not load tarchive dictionary for TarchiveID {tarchive_id}"
         elif tarchive_path:
             archive_location = tarchive_path.replace(self.dicom_lib_dir, "")
             success = self.tarchive_db_obj.create_tarchive_dict(archive_location=archive_location)
             if not success:
-                err_msg += f"[ERROR   ] Could not load tarchive dictionary for ArchiveLocation {archive_location}\n"
+                err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
             else:
                 tarchive_id = self.tarchive_db_obj.tarchive_info_dict["TarchiveID"]
                 success, new_err_msg = self.mri_upload_db_obj.create_mri_upload_dict("TarchiveID", tarchive_id)
@@ -192,11 +199,11 @@ class BaseImagingPipeline:
         scanner_dict = self.mri_scanner_db_obj.determine_scanner_information(
             self.tarchive_db_obj.tarchive_info_dict, self.site_dict
         )
-        message = f"===> Found Scanner ID: {str(scanner_dict['ScannerID'])}"
+        message = f"Found Scanner ID: {str(scanner_dict['ScannerID'])}"
         self.log_info(message, is_error="N", is_verbose="Y")
         return scanner_dict
 
-    def determine_subject_ids(self):
+    def determine_subject_ids(self, scanner_id):
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
         config setting. This function will call a function in the config file that can be
@@ -208,14 +215,13 @@ class BaseImagingPipeline:
 
         dicom_header = self.config_db_obj.get_config('lookupCenterNameUsing')
         dicom_value = self.tarchive_db_obj.tarchive_info_dict[dicom_header]
-        scanner_id = self.scanner_dict['ScannerID']
         subject_id_dict = None
 
         try:
             subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
             subject_id_dict['PatientName'] = dicom_value
         except AttributeError:
-            message = "[ERROR   ] config file does not contain a get_subject_ids routine. Upload will exit now.\n"
+            message = "Config file does not contain a get_subject_ids routine. Upload will exit now."
             self.log_error_and_exit(message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE, is_error="Y", is_verbose="N")
 
         return subject_id_dict
@@ -258,24 +264,23 @@ class BaseImagingPipeline:
         query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
         results = self.db.pselect(query=query, args=(visit_label,))
         if results:
-            self.subject_id_dict["message"] = f"=> Found visit label {visit_label} in Visit_Windows"
+            self.subject_id_dict["message"] = f"Found visit label {visit_label} in Visit_Windows"
         elif self.subject_id_dict["createVisitLabel"]:
-            self.subject_id_dict["message"] = f"=> Will create visit label {visit_label} in Visit_Windows"
+            self.subject_id_dict["message"] = f"Will create visit label {visit_label} in Visit_Windows"
         else:
-            self.subject_id_dict["message"] = f"=> Visit Label {visit_label} does not exist in Visit_Windows"
+            self.subject_id_dict["message"] = f"Visit Label {visit_label} does not exist in Visit_Windows"
             self.subject_id_dict["CandMismatchError"] = self.subject_id_dict['message']
 
-        upload_id = self.mri_upload_db_obj.mri_upload_dict["UploadID"]
-        if self.subject_id_dict["CandMismatchError"]:
+        if "CandMismatchError" in self.subject_id_dict.keys():
             # if there is a candidate mismatch error, log it but do not exit. It will be logged later in SQL table
             self.log_info(self.subject_id_dict["CandMismatchError"], is_error="Y", is_verbose="N")
             self.mri_upload_db_obj.update_mri_upload(
-                upload_id=upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
+                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
             )
         else:
             self.log_info(self.subject_id_dict["message"], is_error="N", is_verbose="Y")
             self.mri_upload_db_obj.update_mri_upload(
-                upload_id=upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
+                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
             )
 
     def log_error_and_exit(self, message, exit_code, is_error, is_verbose):
@@ -285,9 +290,13 @@ class BaseImagingPipeline:
         script being executed, add an entry with the error in the notification_spool table
         and print the error to the user in the terminal.
         """
-        self.log_obj.write_to_log_file(message)
-        self.notification_obj.write_to_notification_spool(message, is_error, is_verbose)
-        print(message)
+        err_msg = f"[ERROR   ] {message}"
+        self.log_obj.write_to_log_file(f"\n{err_msg}\n")
+        if self.notification_obj:
+            self.notification_obj.write_to_notification_spool(err_msg, is_error, is_verbose)
+        if self.upload_id:
+            self.mri_upload_db_obj.update_mri_upload(upload_id=self.upload_id, fields=("Inserting",), values=("0",))
+        print(f"\n{err_msg}\n")
         sys.exit(exit_code)
 
     def log_info(self, message, is_error, is_verbose):
@@ -295,7 +304,9 @@ class BaseImagingPipeline:
         Function to commonly executes logging information that need to be logged in the
         notification table and in the log file produced by the script executed
         """
-        self.log_obj.write_to_log_file(message)
-        self.notification_obj.write_to_notification_spool(message, is_error, is_verbose)
+        log_msg = f"==> {message}"
+        self.log_obj.write_to_log_file(f"{log_msg}\n")
+        if self.notification_obj:
+            self.notification_obj.write_to_notification_spool(log_msg, is_error, is_verbose)
         if self.verbose:
-            print(message)
+            print(f"{log_msg}\n")

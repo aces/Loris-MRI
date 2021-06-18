@@ -49,14 +49,14 @@ def main():
         "\t-b, --bypass_extra_checks: If set, bypasses the extra protocol validation checks\n"
         "\t-c, --create_pic         : If set, creates the pic to be displayed in the imaging browser\n"
         "\t-f, --force              : If set, forces the insertion of the NIfTI file\n"
-        "\t-v, --verbose            : If set, be verbose\n"
+        "\t-v, --verbose            : If set, be verbose\n\n"
 
         "required options are: \n"
-        "--profile\n"
-        "--nifti_path\n"
-        "--json_path OR --loris_scan_type\n"
-        "--tarchive OR --upload_id\n"
-        "if --force is set, please provide --loris_scan_type as well\n"
+        "\t--profile\n"
+        "\t--nifti_path\n"
+        "\t--json_path OR --loris_scan_type\n"
+        "\t--tarchive_path OR --upload_id\n"
+        "\tif --force is set, please provide --loris_scan_type as well\n\n"
     )
 
     options_dict = {
