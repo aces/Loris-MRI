@@ -342,6 +342,7 @@ class Imaging:
 
         map_dict = {
             "AcquisitionMatrixPE": "acquisition_matrix",
+            "AcquisitionDateTime": "acquisition_date",
             "AcquisitionNumber": "acquisition_number",
             "AcquisitionTime": "acquisition_time",
             "DeviceSerialNumber": "device_serial_number",
@@ -359,7 +360,9 @@ class Imaging:
             "Modality": "modality",
             "MRAcquisitionType": "mr_acquisition_type",
             "NumberOfAverages": "number_of_averages",
+            "PatientName": "patient_name",
             "PatientPosition": "patient_position",
+            "PatientWeight": "patient:weight",
             "PercentPhaseFOV": "percent_phase_field_of_view",
             "PercentSampling": "percent_sampling",
             "PhaseEncodingDirection": "phase_encoding_direction",
@@ -373,10 +376,12 @@ class Imaging:
             "SequenceName": "sequence_name",
             "SequenceVariant": "sequence_variant",
             "SeriesDescription": "series_description",
+            "SeriesInstanceUID": "series_instance_uid",
             "SeriesNumber": "series_number",
             "SliceThickness": "slice_thickness",
             "SoftwareVersions": "software_versions",
             "SpacingBetweenSlices": "spacing_between_slices",
+            "StudyInstanceUID": "study_instance_uid",
         }
 
         # map BIDS parameters with the LORIS ones
