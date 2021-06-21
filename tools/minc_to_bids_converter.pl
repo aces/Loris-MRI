@@ -64,7 +64,7 @@ values will be used to rename the NIfTI file, as per the BIDS requirements.
 
 
 # TODO: ONCE CONSTANTS BELOW ARE IN CONFIG MODULE, UPDATE DOC ABOVE AND HELP SECTION BELOW
-
+# TODO: link to ignore fields: https://github.com/bids-standard/bids-validator/blob/master/bids-validator/utils/issues/list.js
 
 # Imports
 use strict;
@@ -79,18 +79,7 @@ use NeuroDB::ExitCodes;
 use NeuroDB::File;
 
 
-# Set script's constants here
-my @AUTHORS = ['LORIS', 'MCIN', 'MNI', 'McGill University'];
-my $ACKNOWLEDGMENTS = <<TEXT;
-TEXT
-my $README = <<TEXT;
-This dataset was produced by LORIS-MRI scripts.
-TEXT
-my $BIDS_VALIDATOR_CONFIG = <<TEXT;
-{
-  "ignore": []
-}
-TEXT
+# # Set script's constants here
 my $LORIS_SCRIPT_VERSION = "0.2"; # Still a BETA version
 my $BIDS_VERSION         = "1.1.1 & BEP0001";
 
@@ -188,9 +177,13 @@ my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print "\n==> Successfully connected to database \n";
 
 # Get settings from the ConfigSettings table
-my $data_dir = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
-my $bin_dir  = &NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
-my $prefix   = &NeuroDB::DBI::getConfigSetting(\$dbh,'prefix');
+my $data_dir        = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
+my $bin_dir         = &NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
+my $prefix          = &NeuroDB::DBI::getConfigSetting(\$dbh,'prefix');
+my $authors         = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_dataset_authors');
+my $acknowledgments = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_acknowledgments_text');
+my $readme_content  = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_readme_text');
+my $validator_ignore_opts = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_validator_options_to_ignore');
 
 # remove trailing / from paths
 $data_dir =~ s/\/$//g;
@@ -233,8 +226,8 @@ my %dataset_desc_hash   = (
     'BIDSVersion'           => $BIDS_VERSION,
     'Name'                  => $dataset_name,
     'LORISScriptVersion'    => $LORIS_SCRIPT_VERSION,
-    'Authors'               => @AUTHORS,
-    'HowToAcknowledge'      => $ACKNOWLEDGMENTS,
+    'Authors'               => [@$authors],
+    'HowToAcknowledge'      => $acknowledgments,
     'LORISReleaseVersion'   => $loris_mri_version
 );
 unless (-e $data_desc_file_path) {
@@ -252,7 +245,7 @@ unless (-e $data_desc_file_path) {
 my $readme_file_path = $dest_dir . "/README";
 unless (-e $readme_file_path) {
     print "\n******* Creating the README file $readme_file_path *******\n";
-    write_BIDS_TEXT_file($readme_file_path, $README);
+    write_BIDS_TEXT_file($readme_file_path, $readme_content);
     registerBidsFileInDatabase(
         $readme_file_path, 'study', 'README', undef, undef, 'README', undef
     );
@@ -267,7 +260,13 @@ unless (-e $readme_file_path) {
 my $bids_validator_config_file = $dest_dir . "/.bids-validator-config.json";
 unless (-e $bids_validator_config_file) {
     print "\n******* Creating the .bids-validator-config.json file $bids_validator_config_file *******\n";
-    write_BIDS_TEXT_file($bids_validator_config_file, $BIDS_VALIDATOR_CONFIG);
+    my $validator_ignore_string = join(", ", @$validator_ignore_opts);
+    my $bids_validator_config_content = <<TEXT;
+{
+  "ignore": [$validator_ignore_string]
+}
+TEXT
+    write_BIDS_TEXT_file($bids_validator_config_file, $bids_validator_config_content);
     registerBidsFileInDatabase(
         $bids_validator_config_file, 'study', 'json', undef, undef, 'bids-validator-config', undef
     );
@@ -1882,7 +1881,7 @@ sub registerBidsFileInDatabase {
 
     (my $common_query_part = <<QUERY) =~ s/\n/ /g;
 bids_export_files SET
-    BIDSExportFileLevelID        = ?,
+    BIDSExportFileLevelID      = ?,
     FileID                       = ?,
     SessionID                    = ?,
     BIDSNonImagingFileCategoryID = ?,
@@ -1894,7 +1893,7 @@ QUERY
 
     if ($st_handle->rows > 0) {
         push @values, $st_handle->fetchrow_array();
-        $query = "UPDATE $common_query_part WHERE BIDSExportFileID = ?";
+        $query = "UPDATE $common_query_part WHERE BIDSExportedFileID = ?";
     } else {
         $query = "INSERT INTO $common_query_part ";
     }
