@@ -446,39 +446,6 @@ $file->filterParameters();
 
 
 
-
-## Validate that the candidate exists and that PSCID matches CandID
-if (defined($subjectIDsref->{'CandMismatchError'})) {
-    my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
-
-    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
-    print LOG $message;
-    print LOG " -> WARNING: This candidate was invalid. Logging to
-              MRICandidateErrors table with reason $CandMismatchError";
-
-    my $logQuery = "INSERT INTO MRICandidateErrors".
-        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
-        "VALUES (?, ?, ?, ?, ?)";
-    my $candlogSth = $dbh->prepare($logQuery);
-    $candlogSth->execute(
-        $file->getParameter('series_instance_uid'),
-        $studyInfo{'TarchiveID'},
-        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
-        $studyInfo{'PatientName'},
-        $CandMismatchError
-    );
-
-    $notifier->spool('tarchive validation', $message, 0,
-        'minc_insertion.pl', $upload_id, 'Y',
-        $notify_notsummary);
-
-    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
-}
-
-
-
-
-
 # If studyInfo is not defined (a.k.a. no uploadID or tarchiveID associated with
 # this MINC file), verify that the seriesUID of the MINC file we want to insert is
 # not present in the tarchive_series table. If it is, then exit with proper message.
