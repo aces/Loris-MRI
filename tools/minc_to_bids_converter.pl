@@ -32,13 +32,20 @@ Available options are:
 
 This **BETA** version script will create a BIDS compliant NIfTI file structure of
 the MINC files currently present in the C<assembly> directory. If the argument
-C<tarchive_id> is specified, only the images from that archive will be processed.
+C<tarchive_id> is specified, only the images from that tarchive will be processed.
 Otherwise, all C<tarchive_id>'s present in the C<tarchive> table will be processed.
 
-The script expects the tables C<bids_category>, C<bids_scan_type_subcategory>,
-C<bids_scan_type> and C<bids_mri_scan_type_rel> to be populated and customized as
-per the project's acquisition protocols. Keep the following restrictions/expectations
-in mind when populating the database tables.
+Before running the script, make sure that:
+  - the "MINC to BIDS Converter Tool Options" section of the Configuration module has been updated.
+    Note: the "BIDS Validation options to ignore" field is optional. It needs to be used in case
+    there are some known checks performed by the bids-validator that are known to fail. Complete
+    list of error code for the bids-validator can be found at the following link:
+    https://github.com/bids-standard/bids-validator/blob/master/bids-validator/utils/issues/list.js
+  - the tables C<bids_category>, C<bids_scan_type_subcategory>, C<bids_scan_type> and
+    C<bids_mri_scan_type_rel> have been populated and customized as per the project's
+    acquisition protocols
+
+Keep the following restrictions/expectations in mind when populating the above database tables:
   - The C<bids_category> table will house the different imaging "categories" which a
     default install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries
     can be added as more imaging categories are supported by the BIDS standards.
@@ -62,9 +69,6 @@ values will be used to rename the NIfTI file, as per the BIDS requirements.
 
 =cut
 
-
-# TODO: ONCE CONSTANTS BELOW ARE IN CONFIG MODULE, UPDATE DOC ABOVE AND HELP SECTION BELOW
-# TODO: link to ignore fields: https://github.com/bids-standard/bids-validator/blob/master/bids-validator/utils/issues/list.js
 
 # Imports
 use strict;
@@ -104,32 +108,38 @@ my @opt_table = (
     [ "-verbose",             "boolean", 1, \$verbose,             "Be verbose."      ]
 );
 
-# TODO ENSURE THE HELP IS LIKE THE DESCRIPTION ABOVE ONCE FINALIZED
 my $Help = <<HELP;
 
 This **BETA** version script will create a BIDS compliant NIfTI file structure of
-the MINC files currently present in the `assembly` directory. If the argument
-`tarchive_id` is specified, only the images from that archive will be processed.
-Otherwise, all `tarchive_id`'s present in the `tarchive` table will be processed.
+the MINC files currently present in the C<assembly> directory. If the argument
+C<tarchive_id> is specified, only the images from that tarchive will be processed.
+Otherwise, all C<tarchive_id>'s present in the C<tarchive> table will be processed.
 
-The script expects the tables `bids_category`, `bids_scan_type_subcategory`,
-`bids_scan_type` and `bids_mri_scan_type_rel` to be populated and customized as
-per the project's acquisition protocols. Keep the following restrictions/expectations
-in mind when populating the database tables.
-  - The `bids_category` table will house the different imaging "categories" which a
-    default install would set to `anat`, `func`, `dwi`, and `fmap`. More entries
+Before running the script, make sure that:
+  - the "MINC to BIDS Converter Tool Options" section of the Configuration module has been updated.
+    Note: the "BIDS Validation options to ignore" field is optional. It needs to be used in case
+    there are some known checks performed by the bids-validator that are known to fail. Complete
+    list of error code for the bids-validator can be found at the following link:
+    https://github.com/bids-standard/bids-validator/blob/master/bids-validator/utils/issues/list.js
+  - the tables C<bids_category>, C<bids_scan_type_subcategory>, C<bids_scan_type> and
+    C<bids_mri_scan_type_rel> have been populated and customized as per the project's
+    acquisition protocols
+
+Keep the following restrictions/expectations in mind when populating the above database tables:
+  - The C<bids_category> table will house the different imaging "categories" which a
+    default install would set to C<anat>, C<func>, C<dwi>, and C<fmap>. More entries
     can be added as more imaging categories are supported by the BIDS standards.
-  - The `bids_scan_type table will house the different "BIDS scan types" which a
-    default install would set to `T1w`, `T2w`, `FLAIR`, `bold`, `dwi`
-  - The `bids_scan_type_subcategory` table will house the different sub-categories
+  - The C<bids_scan_type> table will house the different "BIDS scan types" which a
+    default install would set to C<T1w>, C<T2w>, C<FLAIR>, C<bold>, C<dwi>
+  - The C<bids_scan_type_subcategory> table will house the different sub-categories
     used by BIDS to describe a scan type. For example, resting-state fMRI and memory
-    task fMRI scan types would have the following `BIDSScanTypeSubCategoryName`: a
+    task fMRI scan types would have the following C<BIDSScanTypeSubCategoryName>: a
     hyphen concatenated string, with the first part describing the BIDS imaging
-    sub-category, `task` as an example here, and the second describing this sub-category,
-    `rest` or `memory` as an example. Note that the second part after the hyphen is
-    used in the JSON file for the header `TaskName`
-  - Multi-echo sequences would be expected to see their `BIDSMultiEcho` column of the
-    `bids_mri_scan_type_rel` table filled with `echo-1`, `echo-2`, etc...
+    sub-category, "task" as an example here, and the second describing this sub-category,
+    "rest" or "memory" as an example. Note that the second part after the hyphen is
+    used in the JSON file for the header "TaskName"
+  - Multi-echo sequences would be expected to see their C<BIDSMultiEcho> column of the
+    C<bids_mri_scan_type_rel> table filled with "echo-1", "echo-2", etc...
 
 Filling out these values properly as outlined in this description is mandatory as these
 values will be used to rename the NIfTI file, as per the BIDS requirements.
