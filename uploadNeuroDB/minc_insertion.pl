@@ -425,18 +425,6 @@ if ($hrrt) {
 
 
 
-## Determine PSC, ScannerID and Subject IDs
-my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
-my $scannerID = $utility->determineScannerID(
-    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
-);
-my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
-);
-
-
-
-
 # filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
 $message = "\n--> filters out parameters of length > "
     . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $minc\n";
@@ -498,6 +486,15 @@ $studyInfo{'ScannerModel'}           //= $file->getParameter('study:device_model
 $studyInfo{'ScannerSerialNumber'}    //= $file->getParameter('study:serial_no');
 $studyInfo{'ScannerSoftwareVersion'} //= $file->getParameter('study:software_version');
 $studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date');
+
+## Determine PSC, ScannerID and Subject IDs
+my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
+my $scannerID = $utility->determineScannerID(
+    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
+);
+my $subjectIDsref = $utility->determineSubjectID(
+    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
+);
 
 ## Validate that the candidate exists and that PSCID matches CandID
 if (defined($subjectIDsref->{'CandMismatchError'})) {
