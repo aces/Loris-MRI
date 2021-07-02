@@ -129,16 +129,3 @@ def input_error_checking(loris_getopt_obj):
 if __name__ == "__main__":
     main()
 
-# TODO: plan
-# 4. check that file is unique. if already registered, log it
-
-# 7. load nifti and JSON file
-
-# 12. if file not associated to a tarchiveID or uploadID, check that cannot find it in tarchive tables. If so, exits
-# 13. get more information about the scan (scanner, IDs, dates...)
-# 14. get session information, exits if incorrect
-# 15. check if file is unique
-# 16. determine acquisition protocol
-# 17. insert into Db
-# 18. update mri violations log
-# 19. create pics
