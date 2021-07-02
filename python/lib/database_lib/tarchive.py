@@ -1,9 +1,7 @@
 """This class performs DICOM archive related database queries and common checks"""
 
-import lib.exitcode
+from lib.database_lib.tarchive_series import TarchiveSeries
 import lib.utilities as utilities
-from lib.candidate import Candidate
-from lib.database_lib.site import Site
 
 
 __license__ = "GPLv3"
@@ -109,3 +107,11 @@ class Tarchive:
             result['message'] = "ERROR: DICOM archive seems corrupted or modified. Upload will exit now."
 
         return result
+
+    def create_tarchive_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
+        tar_series_obj = TarchiveSeries(self.db, self.verbose)
+        tar_series_obj.create_tarchive_series_dict_from_series_uid_and_echo_time(series_uid, echo_time)
+
+        if "TarchiveID" in tar_series_obj.tarchive_series_info_dict.keys():
+            tarchive_id = tar_series_obj.tarchive_series_info_dict["TarchiveID"]
+            return self.create_tarchive_dict(tarchive_id=tarchive_id)

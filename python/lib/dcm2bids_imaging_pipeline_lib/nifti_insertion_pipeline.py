@@ -2,6 +2,7 @@ import hashlib
 import json
 import lib.exitcode
 from lib.database_lib.files import Files
+from lib.database_lib.tarchive import Tarchive
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.imaging import Imaging
 from pyblake2 import blake2b
@@ -116,17 +117,30 @@ class NiftiInsertionPipeline(BasePipeline):
     def _check_if_nifti_file_was_already_inserted(self):
 
         files_obj = Files(self.db, self.verbose)
+        tarchive_obj = Tarchive(self.db, self.verbose)
         error_msg = None
 
-        # verify that a file has not already be inserted with the same SeriesUID/EchoTime combination
         json_keys = self.json_file_dict.keys()
         if self.json_file_dict and "SeriesInstanceUID" in json_keys and "EchoTime" in json_keys:
+            # verify that a file has not already be inserted with the same SeriesUID/EchoTime combination if
+            # SeriesInstanceUID and EchoTime have been set in the JSON side car file
             echo_time = self.json_file_dict["EchoTime"]
             series_uid = self.json_file_dict["SeriesInstanceUID"]
             match = files_obj.find_file_with_series_uid_and_echo_time(series_uid, echo_time)
             if match:
                 error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid} and" \
                             f" EchoTime {echo_time}. The already registered file is {match['File']}"
+
+            # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
+            if self.force:
+                tar_echo_time = echo_time * 1000
+                match_tar = tarchive_obj.create_tarchive_dict_from_series_uid_and_echo_time(series_uid, tar_echo_time)
+                if match_tar:
+                    error_msg = f"Found a DICOM archive containing DICOM files with the same SeriesUID ({series_uid})" \
+                                f" and EchoTime ({tar_echo_time}) as the one present in the JSON side car file. " \
+                                f" The DICOM archive location containing those DICOM files is " \
+                                f" {tarchive_obj.tarchive_info_dict['ArchiveLocation']}. Please, rerun " \
+                                f" <run_nifti_insertion.py> with either --upload_id or --tarchive_path option."
 
         # verify that a file with the same MD5 or blake2b hash has not already been inserted
         md5_match = files_obj.find_file_with_hash(self.nifti_md5)
