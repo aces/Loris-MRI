@@ -11,11 +11,11 @@ __license__ = "GPLv3"
 
 class Tarchive:
     """
-    This class performs database queries for imaging dataset (MRI, PET...).
+    This class performs database queries for DICOM archives.
 
     :Example:
 
-        from lib.tarchive  import Tarchive
+        from lib.tarchive import Tarchive
         from lib.database import Database
 
         # database connection

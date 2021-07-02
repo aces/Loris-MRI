@@ -1,7 +1,10 @@
+import hashlib
 import json
 import lib.exitcode
+from lib.database_lib.files import Files
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.imaging import Imaging
+from pyblake2 import blake2b
 
 __license__ = "GPLv3"
 
@@ -11,7 +14,11 @@ class NiftiInsertionPipeline(BasePipeline):
     def __init__(self, loris_getopt_obj, script_name):
         super().__init__(loris_getopt_obj, script_name)
         self.nifti_path = self.options_dict["nifti_path"]["value"]
+        self.nifti_blake2 = blake2b(self.nifti_path.encode('utf-8')).hexdigest()
+        self.nifti_md5 = hashlib.md5(self.nifti_path.encode()).hexdigest()
         self.json_path = self.options_dict["json_path"]["value"]
+        self.json_blake2 = blake2b(self.json_path.encode('utf-8')).hexdigest()
+        self.json_md5 = hashlib.md5(self.json_path.encode()).hexdigest()
         self.force = self.options_dict["force"]["value"]
 
         # ---------------------------------------------------------------------------------------------
@@ -35,7 +42,10 @@ class NiftiInsertionPipeline(BasePipeline):
         self._validate_nifti_patient_name()
         self.validate_subject_ids()
 
-        print("hello")
+        # ---------------------------------------------------------------------------------------------
+        # Verify if the image/NIfTI file was not already registered into the database
+        # ---------------------------------------------------------------------------------------------
+        self._check_if_nifti_file_was_already_inserted()
 
     def _check_if_tarchive_validated_in_db(self):
         """
@@ -90,3 +100,29 @@ class NiftiInsertionPipeline(BasePipeline):
         if tarchive_pname != nifti_pname:
             err_msg = "PatientName in DICOM and NIfTI files differ."
             self.log_error_and_exit(err_msg, lib.exitcode.FILENAME_MISMATCH, is_error="Y", is_verbose="N")
+
+    def _check_if_nifti_file_was_already_inserted(self):
+
+        files_obj = Files(self.db, self.verbose)
+        error_msg = None
+
+        # verify that a file has not already be inserted with the same SeriesUID/EchoTime combination
+        echo_time = self.json_file_dict["EchoTime"]
+        series_uid = self.json_file_dict["SeriesInstanceUID"]
+        match = files_obj.find_file_with_series_uid_and_echo_time(series_uid, echo_time)
+        if match:
+            error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid} and" \
+                        f" EchoTime {echo_time}. The already registered file is {match['File']}"
+
+        # verify that a file with the same MD5 or blake2b hash has not already been inserted
+        md5_match = files_obj.find_file_with_hash(self.nifti_md5)
+        blake2b_match = files_obj.find_file_with_hash(self.nifti_blake2)
+        if md5_match:
+            error_msg = f"There is already a file registered in the files table with MD5 hash {self.nifti_md5}." \
+                        f" The already registered file is {md5_match['File']}"
+        elif blake2b_match:
+            error_msg = f"There is already a file registered in the files table with Blake2b hash {self.nifti_blake2}." \
+                        f" The already registered file is {blake2b_match['File']}"
+
+        if error_msg:
+            self.log_error_and_exit(error_msg, lib.exitcode.FILE_NOT_UNIQUE, is_error="Y", is_verbose="N")

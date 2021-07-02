@@ -130,8 +130,6 @@ if __name__ == "__main__":
     main()
 
 # TODO: plan
-# 1. script instantiation and argument checks
-
 # 4. check that file is unique. if already registered, log it
 
 # 7. load nifti and JSON file
