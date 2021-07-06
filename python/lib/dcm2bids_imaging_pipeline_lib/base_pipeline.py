@@ -8,6 +8,7 @@ from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
 from lib.database_lib.mriupload import MriUpload
 from lib.database_lib.mriscanner import MriScanner
+from lib.database_lib.session import Session
 from lib.database_lib.site import Site
 from lib.database_lib.tarchive import Tarchive
 from lib.log import Log
@@ -60,6 +61,7 @@ class BasePipeline:
         self.config_db_obj = Config(self.db, self.verbose)
         self.mri_upload_db_obj = MriUpload(self.db, self.verbose)
         self.mri_scanner_db_obj = MriScanner(self.db, self.verbose)
+        self.session_db_obj = Session(self.db, self.verbose)
         self.site_db_obj = Site(self.db, self.verbose)
         self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
         self.notification_obj = None  # set this to none until we get an confirmed UploadID

@@ -1,7 +1,5 @@
 """This class performs tarchive_series related database queries and common checks"""
 
-import lib.utilities as utilities
-
 
 __license__ = "GPLv3"
 
