@@ -40,7 +40,7 @@ class BasePipeline:
         """
 
         # ----------------------------------------------------
-        # load pipeline options
+        # Load pipeline options
         # ----------------------------------------------------
         self.loris_getopt_obj = loris_getopt_obj
         self.config_file = loris_getopt_obj.config_info
@@ -49,13 +49,13 @@ class BasePipeline:
         self.upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
 
         # ----------------------------------------------------
-        # establish database connection
+        # Establish database connection
         # ----------------------------------------------------
         self.db = Database(self.config_file.mysql, self.verbose)
         self.db.connect()
 
         # -----------------------------------------------------------------------------------
-        # load the Config, Imaging, Tarchive, MriUpload, MriScanner and Site classes
+        # Load the Config, Imaging, Tarchive, MriUpload, MriScanner and Site classes
         # -----------------------------------------------------------------------------------
         self.config_db_obj = Config(self.db, self.verbose)
         self.mri_upload_db_obj = MriUpload(self.db, self.verbose)
@@ -65,13 +65,13 @@ class BasePipeline:
         self.notification_obj = None  # set this to none until we get an confirmed UploadID
 
         # ---------------------------------------------------------------------------------------------
-        # grep config settings from the Config module
+        # Grep config settings from the Config module
         # ---------------------------------------------------------------------------------------------
         self.data_dir = self.config_db_obj.get_config("dataDirBasepath")
         self.dicom_lib_dir = self.config_db_obj.get_config('tarchiveLibraryDir')
 
         # ---------------------------------------------------------------------------------------------
-        # create tmp dir and log file (their basename being the name of the script run)
+        # Create tmp dir and log file (their basename being the name of the script run)
         # ---------------------------------------------------------------------------------------------
         self.tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
         self.log_obj = Log(self.data_dir, script_name, os.path.basename(self.tmp_dir), self.options_dict)
@@ -84,38 +84,37 @@ class BasePipeline:
 
         # ---------------------------------------------------------------------------------------------
         # Set Inserting field of mri_upload to indicate a script is running on the upload
+        # and load the notification object
         # ---------------------------------------------------------------------------------------------
-        self.upload_id = self.mri_upload_db_obj.mri_upload_dict["UploadID"]
-        self.mri_upload_db_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+        if "UploadID" in self.mri_upload_db_obj.mri_upload_dict.keys():
+            self.upload_id = self.mri_upload_db_obj.mri_upload_dict["UploadID"]
+            self.mri_upload_db_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
 
-        # ---------------------------------------------------------------------------------------------
-        # Create the notification object now that we have a confirmed UploadID
-        # ---------------------------------------------------------------------------------------------
-        self.notification_obj = Notification(
-            self.db,
-            self.verbose,
-            notification_type=f"PYTHON {script_name.replace('_', ' ').upper()}",
-            notification_origin=f"{script_name}.py",
-            process_id=self.mri_upload_db_obj.mri_upload_dict["UploadID"]
-        )
+            # Create the notification object now that we have a confirmed UploadID
+            self.notification_obj = Notification(
+                self.db,
+                self.verbose,
+                notification_type=f"PYTHON {script_name.replace('_', ' ').upper()}",
+                notification_origin=f"{script_name}.py",
+                process_id=self.mri_upload_db_obj.mri_upload_dict["UploadID"]
+            )
 
         # ---------------------------------------------------------------------------------
-        # determine subject IDs based on DICOM headers and validate the IDs against the DB
+        # Determine subject IDs based on DICOM headers and validate the IDs against the DB
+        # Verify PSC information stored in DICOMs
+        # Grep scanner information based on what is in the DICOM headers
         # ---------------------------------------------------------------------------------
-        self.subject_id_dict = self.determine_subject_ids(scanner_id=None)
+        if self.tarchive_db_obj.tarchive_info_dict.keys():
+            self.subject_id_dict = self.determine_subject_ids(scanner_id=None)
 
-        # ----------------------------------------------------
-        # verify PSC information stored in DICOMs
-        # ----------------------------------------------------
-        self.site_dict = self.determine_study_info()
-        message = f"Found Center Name: {self.site_dict['CenterName']}," \
-                  f" Center ID: {str(self.site_dict['CenterID'])}"
-        self.log_info(message, is_error="N", is_verbose="Y")
+            # verify PSC information stored in DICOMs
+            self.site_dict = self.determine_study_info()
+            message = f"Found Center Name: {self.site_dict['CenterName']}," \
+                      f" Center ID: {str(self.site_dict['CenterID'])}"
+            self.log_info(message, is_error="N", is_verbose="Y")
 
-        # ---------------------------------------------------------------
-        # grep scanner information based on what is in the DICOM headers
-        # ---------------------------------------------------------------
-        self.scanner_dict = self.determine_scanner_info()
+            # grep scanner information based on what is in the DICOM headers
+            self.scanner_dict = self.determine_scanner_info()
 
     def load_mri_upload_and_tarchive_dictionaries(self):
         """
@@ -145,7 +144,7 @@ class BasePipeline:
                 success, new_err_msg = self.mri_upload_db_obj.create_mri_upload_dict("TarchiveID", tarchive_id)
                 if not success:
                     err_msg += new_err_msg
-        if not success:
+        if not success and not self.options_dict["force"]["value"]:
             self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
 
     def determine_study_info(self):
@@ -217,7 +216,7 @@ class BasePipeline:
 
         try:
             subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
-            subject_id_dict['PatientName'] = dicom_value
+            subject_id_dict["PatientName"] = dicom_value
         except AttributeError:
             message = "Config file does not contain a get_subject_ids routine. Upload will exit now."
             self.log_error_and_exit(message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE, is_error="Y", is_verbose="N")

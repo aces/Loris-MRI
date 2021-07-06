@@ -40,7 +40,10 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Check that the PatientName in NIfTI and DICOMs are the same and then validate the Subject IDs
         # ---------------------------------------------------------------------------------------------
-        self._validate_nifti_patient_name()
+        if self.tarchive_db_obj.tarchive_info_dict.keys():
+            self._validate_nifti_patient_name_with_dicom_patient_name()
+        else:
+            self._determine_subject_ids_based_on_json_patient_name()
         self.validate_subject_ids()
 
         # ---------------------------------------------------------------------------------------------
@@ -67,8 +70,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
         If the DICOM archive was not validated, the pipeline will exit and log the proper error information.
         """
-        is_tarchive_validated = self.mri_upload_db_obj.mri_upload_dict["IsTarchiveValidated"]
-        if not is_tarchive_validated and not self.force:
+        mu_dict = self.mri_upload_db_obj.mri_upload_dict
+        if ("IsTarchiveValidated" not in mu_dict.keys() or not mu_dict["IsTarchiveValidated"]) and not self.force:
             err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \
                       f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
             self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
@@ -94,7 +97,7 @@ class NiftiInsertionPipeline(BasePipeline):
         self.imaging_obj.map_bids_param_to_loris_param(json_data_dict)
         return json_data_dict
 
-    def _validate_nifti_patient_name(self):
+    def _validate_nifti_patient_name_with_dicom_patient_name(self):
         """
         This function will validate that the PatientName present in the JSON side car file is the same as the
         one present in the <tarchive> table.
@@ -154,3 +157,16 @@ class NiftiInsertionPipeline(BasePipeline):
 
         if error_msg:
             self.log_error_and_exit(error_msg, lib.exitcode.FILE_NOT_UNIQUE, is_error="Y", is_verbose="N")
+
+    def _determine_subject_ids_based_on_json_patient_name(self):
+        dicom_header = self.config_db_obj.get_config('lookupCenterNameUsing')
+        dicom_value = self.json_file_dict[dicom_header]
+
+        try:
+            self.subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, None)
+            self.subject_id_dict["PatientName"] = dicom_value
+        except AttributeError:
+            message = "Config file does not contain a get_subject_ids routine. Upload will exit now."
+            self.log_error_and_exit(message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE, is_error="Y", is_verbose="N")
+
+        self.log_info("Determined subject IDs based on PatientName stored in JSON file", is_error="N", is_verbose="Y")
