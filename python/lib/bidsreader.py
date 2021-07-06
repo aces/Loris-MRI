@@ -145,7 +145,7 @@ class BidsReader:
             if not row['participant_id'] in subjects:
                 print(mismatch_message)
                 print(row['participant_id'] + 'is missing from the BIDS Layout')
-                print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects) + '\n')
+                print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects))
                 sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
             # remove the subject from the list of subjects
             subjects.remove(row['participant_id'])
