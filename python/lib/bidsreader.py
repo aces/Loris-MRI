@@ -135,7 +135,7 @@ class BidsReader:
 
         mismatch_message = ("\nERROR: Participant ID mismatch between "
                             "participants.tsv and raw data found in the BIDS "
-                           "directory\n"
+                            "directory")
 
         # check that all subjects listed in participants_info are also in
         # subjects array and vice versa
