@@ -133,8 +133,8 @@ class BidsReader:
 
         subjects = self.bids_layout.get_subjects()
 
-        mismatch_message = "\nERROR: Participant ID mismatch between " \
-                           "participants.tsv and raw data found in the BIDS " \
+        mismatch_message = ("\nERROR: Participant ID mismatch between "
+                            "participants.tsv and raw data found in the BIDS "
                            "directory\n"
 
         # check that all subjects listed in participants_info are also in
