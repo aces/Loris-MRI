@@ -59,7 +59,7 @@ mridir=`pwd`
 # Test the connection to the database before proceeding
 echo "Testing connection to database..."
 
-test_query_output=$(mysql -u $mysqluser -p${mysqlpass} -h $mysqlhost -e ';' 2>&1)
+test_query_output=$(mysql -u $mysqluser -p${mysqlpass} -h $mysqlhost -D $mysqldb -e ';' 2>&1)
 
 if [[ $? -ne 0 ]];
 then
