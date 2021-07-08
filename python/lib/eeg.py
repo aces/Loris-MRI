@@ -276,41 +276,42 @@ class Eeg:
         """
 
         # insert EEG file
-        inserted_eeg  = self.fetch_and_insert_eeg_file()
-        eeg_file_id   = inserted_eeg['file_id']
-        eeg_file_path = inserted_eeg['eeg_path']
+        inserted_eegs = self.fetch_and_insert_eeg_files()
+        for inserted_eeg in inserted_eegs:
+            eeg_file_id   = inserted_eeg['file_id']
+            eeg_file_path = inserted_eeg['eeg_path']
 
-        # insert related electrode, channel and event information
-        electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id)
-        channel_file_path   = self.fetch_and_insert_channel_file(eeg_file_id)
-        event_file_path     = self.fetch_and_insert_event_file(eeg_file_id)
+            # insert related electrode, channel and event information
+            electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id)
+            channel_file_path   = self.fetch_and_insert_channel_file(eeg_file_id)
+            event_file_path     = self.fetch_and_insert_event_file(eeg_file_id)
 
-        # grep the path to the fdt file is present in
-        # physiological_parameter_file for that PhysiologicalFileID
-        physiological = Physiological(self.db, self.verbose)
-        results       = physiological.grep_parameter_value_from_file_id(
-            eeg_file_id, 'fdt_file'
-        )
-        fdt_file_path = results['Value'] if results else None
+            # grep the path to the fdt file is present in
+            # physiological_parameter_file for that PhysiologicalFileID
+            physiological = Physiological(self.db, self.verbose)
+            results       = physiological.grep_parameter_value_from_file_id(
+                eeg_file_id, 'fdt_file'
+            )
+            fdt_file_path = results['Value'] if results else None
 
-        # archive all files in a tar ball for downloading all files at once
-        files_to_archive = (self.data_dir + eeg_file_path,)
-        if electrode_file_path:
-            files_to_archive = files_to_archive + (self.data_dir + electrode_file_path,)
-        if fdt_file_path:  # add the fdt file path to the tuple if present
-            files_to_archive = files_to_archive + (self.data_dir + fdt_file_path,)
-        if event_file_path:
-            files_to_archive = files_to_archive + (self.data_dir + event_file_path,)
-        if channel_file_path:
-            files_to_archive = files_to_archive + (self.data_dir + channel_file_path,)
-        archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
-        self.create_and_insert_archive(
-            files_to_archive, archive_rel_name, eeg_file_id
-        )
+            # archive all files in a tar ball for downloading all files at once
+            files_to_archive = (self.data_dir + eeg_file_path,)
+            if electrode_file_path:
+                files_to_archive = files_to_archive + (self.data_dir + electrode_file_path,)
+            if fdt_file_path:  # add the fdt file path to the tuple if present
+                files_to_archive = files_to_archive + (self.data_dir + fdt_file_path,)
+            if event_file_path:
+                files_to_archive = files_to_archive + (self.data_dir + event_file_path,)
+            if channel_file_path:
+                files_to_archive = files_to_archive + (self.data_dir + channel_file_path,)
+            archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
+            self.create_and_insert_archive(
+                files_to_archive, archive_rel_name, eeg_file_id
+            )
 
-        # create data chunks for React visualization in
-        # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
-        physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
+            # create data chunks for React visualization in
+            # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
+            physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
     def register_derivatives_data(self):
         """
@@ -330,15 +331,16 @@ class Eeg:
                 print("need to develop this")
             else:
                 # insert EEG derivative file
-                eeg_file_id = self.fetch_and_insert_eeg_file(derivatives)
+                inserted_eegs = self.fetch_and_insert_eeg_files(derivatives)
+                for inserted_eeg in inserted_eegs:
+                    eeg_file_id   = inserted_eeg['file_id']
 
-                # insert related electrode, channel and event information
-                if eeg_file_id:
+                    # insert related electrode, channel and event information
                     self.fetch_and_insert_electrode_file(eeg_file_id, derivatives)
                     self.fetch_and_insert_channel_file(eeg_file_id, derivatives)
                     self.fetch_and_insert_event_file(eeg_file_id, derivatives)
 
-    def fetch_and_insert_eeg_file(self, derivatives=None):
+    def fetch_and_insert_eeg_files(self, derivatives=None):
         """
         Gather EEG file information to insert into physiological_file and
         physiological_parameter_file. Once all the information has been
@@ -354,6 +356,7 @@ class Eeg:
          :rtype: dict
         """
 
+        inserted_eegs = []
         # load the Physiological object that will be used to insert the
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
@@ -362,135 +365,148 @@ class Eeg:
         # grep for the eeg file
         derivative_pattern = None
         derivative_path    = None
-        files_list         = self.eeg_files  # by default, raw data is eeg_files
-        if derivatives:
-            # TODO grep the source file as well as the input file ID???
-            derivative_pattern = derivatives['derivative_name'] + "/sub-"
-            files_list         = self.derivative_eeg_files
-            derivative_path    = self.get_derivatives_path(derivatives)
+        # files_list         = self.eeg_files  # by default, raw data is eeg_files
 
-        # grep the raw files from eeg_files list
-        eeg_file = BidsReader.grep_file(
-            files_list         = files_list,
-            match_pattern      = ".(set$|edf$|vhdr$|vmrk$|eeg$|bdf$)",
-            derivative_pattern = derivative_pattern
-        )
-        json_file = BidsReader.grep_file(
-            files_list         = files_list,
-            match_pattern      = '.json$',
-            derivative_pattern = derivative_pattern
-        )
-        fdt_file = BidsReader.grep_file(
-            files_list         = files_list,
-            match_pattern      = '.fdt$',
-            derivative_pattern = derivative_pattern
+        # if derivatives:
+            # TODO grep the source file as well as the input file ID???
+            # derivative_pattern = derivatives['derivative_name'] + "/sub-"
+            # files_list         = self.derivative_eeg_files
+            # derivative_path    = self.get_derivatives_path(derivatives)
+
+        # grep the raw files
+        # derivative_pattern = derivative_pattern
+        eeg_files = self.bids_layout.get(
+            subject   = self.bids_sub_id,
+            session   = self.bids_ses_id,
+            extension = ['set', 'edf', 'vhdr', 'vmrk', 'eeg', 'bdf']
         )
 
         # return if no eeg_file was found
-        if not eeg_file:
+        if not eeg_files:
             return None
 
-        # read the json file if it exists
-        eeg_file_data = {}
-        if json_file:
-            with open(json_file) as data_file:
-                eeg_file_data = json.load(data_file)
-            # copy the JSON file to the LORIS BIDS import directory
-            json_path = self.copy_file_to_loris_bids_dir(
-                json_file, derivative_path
+        for eeg_file in eeg_files:
+            metadata_files = list(eeg_file.get_associations(kind='Metadata', include_parents=True))
+            metadata_filenames = [metadata_file.filename for metadata_file in metadata_files]
+
+            eegjson_file = BidsReader.grep_file(
+                files_list         = metadata_filenames,
+                match_pattern      = 'eeg.json$',
+                derivative_pattern = derivative_pattern
             )
-            eeg_file_data['json_file'] = json_path
-            json_blake2 = blake2b(json_file.encode('utf-8')).hexdigest()
-            eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
-        # greps the file type from the ImagingFileTypes table
-        file_type = physiological.determine_file_type(eeg_file)
-
-        # grep the output type from the physiological_output_type table
-        output_type = 'derivatives' if derivatives else 'raw'
-        output_type_id = self.db.grep_id_from_lookup_table(
-            id_field_name       = 'PhysiologicalOutputTypeID',
-            table_name          = 'physiological_output_type',
-            where_field_name    = 'OutputTypeName',
-            where_value         = output_type,
-            insert_if_not_found = False
-        )
-
-        # get the acquisition date of the EEG file or the age at the time of the EEG recording
-        eeg_acq_time = None
-        if self.scans_file:
-            scan_info = ScansTSV(self.scans_file, eeg_file, self.verbose)
-            eeg_acq_time = scan_info.get_acquisition_time()
-            eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
-            # copy the scans.tsv file to the LORIS BIDS import directory
-            scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
-                self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
+            fdt_file = BidsReader.grep_file(
+                files_list         = metadata_filenames,
+                match_pattern      = '.fdt$',
+                derivative_pattern = derivative_pattern
             )
-            eeg_file_data['scans_tsv_file'] = scans_path
-            scans_blake2 = blake2b(self.scans_file.encode('utf-8')).hexdigest()
-            eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 
-        # if file type is set and fdt file exists, append fdt path to the
-        # eeg_file_data dictionary
-        if file_type == 'set' and fdt_file:
-            # copy the fdt file to the LORIS BIDS import directory
-            fdt_path = self.copy_file_to_loris_bids_dir(
-                fdt_file, derivative_path
-            )
-            eeg_file_data['fdt_file'] = fdt_path
-            fdt_blake2 = blake2b(fdt_file.encode('utf-8')).hexdigest()
-            eeg_file_data['physiological_fdt_file_blake2b_hash'] = fdt_blake2
+            # read the json file if it exists
+            eeg_file_data = {}
+            if eegjson_file:
+                eegjson_path = eeg_file.dirname + '/' + eegjson_file
+                with open(eegjson_path) as data_file:
+                    eeg_file_data = json.load(data_file)
+                # copy the JSON file to the LORIS BIDS import directory
+                json_path = self.copy_file_to_loris_bids_dir(
+                    eegjson_path, derivative_path
+                )
+                eeg_file_data['eegjson_file'] = json_path
+                json_blake2 = blake2b(eegjson_file.encode('utf-8')).hexdigest()
+                eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
-        # append the blake2b to the eeg_file_data dictionary
-        blake2 = blake2b(eeg_file.encode('utf-8')).hexdigest()
-        eeg_file_data['physiological_file_blake2b_hash'] = blake2
+            # greps the file type from the ImagingFileTypes table
+            file_type = physiological.determine_file_type(eeg_file.path)
 
-        # check that the file using blake2b is not already inserted before
-        # inserting it
-        result         = physiological.grep_file_id_from_hash(blake2)
-        physio_file_id = result['PhysiologicalFileID'] if result else None
-        eeg_path       = result['FilePath']            if result else None
-        if not physio_file_id:
-            # grep the modality ID from physiological_modality table
-            modality_id = self.db.grep_id_from_lookup_table(
-                id_field_name       = 'PhysiologicalModalityID',
-                table_name          = 'physiological_modality',
-                where_field_name    = 'PhysiologicalModality',
-                where_value         = self.bids_modality,
+            # grep the output type from the physiological_output_type table
+            output_type = 'derivatives' if derivatives else 'raw'
+            output_type_id = self.db.grep_id_from_lookup_table(
+                id_field_name       = 'PhysiologicalOutputTypeID',
+                table_name          = 'physiological_output_type',
+                where_field_name    = 'OutputTypeName',
+                where_value         = output_type,
                 insert_if_not_found = False
             )
 
-            # copy the eeg_file to the LORIS BIDS import directory
-            eeg_path = self.copy_file_to_loris_bids_dir(
-                eeg_file, derivative_path
-            )
+            # get the acquisition date of the EEG file or the age at the time of the EEG recording
+            eeg_acq_time = None
+            if self.scans_file:
+                scan_info = ScansTSV(self.scans_file, eeg_file.path, self.verbose)
+                eeg_acq_time = scan_info.get_acquisition_time()
+                eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
 
-            # insert the file along with its information into
-            # physiological_file and physiological_parameter_file tables
-            eeg_file_info = {
-                'FileType'       : file_type,
-                'FilePath'       : eeg_path,
-                'SessionID'      : self.session_id,
-                'AcquisitionTime': eeg_acq_time,
-                'InsertedByUser' : getpass.getuser(),
-                'PhysiologicalOutputTypeID': output_type_id,
-                'PhysiologicalModalityID'  : modality_id
-            }
-            physio_file_id = physiological.insert_physiological_file(
-                eeg_file_info, eeg_file_data
-            )
+                # copy the scans.tsv file to the LORIS BIDS import directory
+                scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
+                    self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
+                )
 
-        # if the EEG file was a set file, then update the filename for the .set
-        # and .fdt files in the .set file so it can find the proper file for
-        # visualization and analyses
-        if file_type == 'set':
-            set_full_path = self.data_dir + eeg_path
-            fdt_full_path = eeg_file_data['fdt_file']
-            if fdt_full_path:
-                fdt_full_path = self.data_dir + eeg_file_data['fdt_file']
-            utilities.update_set_file_path_info(set_full_path, fdt_full_path)
+                eeg_file_data['scans_tsv_file'] = scans_path
+                scans_blake2 = blake2b(self.scans_file.encode('utf-8')).hexdigest()
+                eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 
-        return {'file_id': physio_file_id, 'eeg_path': eeg_path }
+            # if file type is set and fdt file exists, append fdt path to the
+            # eeg_file_data dictionary
+            if file_type == 'set' and fdt_file:
+                # copy the fdt file to the LORIS BIDS import directory
+                fdt_path = self.copy_file_to_loris_bids_dir(
+                    fdt_file, derivative_path
+                )
+                eeg_file_data['fdt_file'] = fdt_path
+                fdt_blake2 = blake2b(fdt_file.encode('utf-8')).hexdigest()
+                eeg_file_data['physiological_fdt_file_blake2b_hash'] = fdt_blake2
+
+            # append the blake2b to the eeg_file_data dictionary
+            blake2 = blake2b(eeg_file.path.encode('utf-8')).hexdigest()
+            eeg_file_data['physiological_file_blake2b_hash'] = blake2
+
+            # check that the file using blake2b is not already inserted before
+            # inserting it
+            result         = physiological.grep_file_id_from_hash(blake2)
+            physio_file_id = result['PhysiologicalFileID'] if result else None
+            eeg_path       = result['FilePath']            if result else None
+            if not physio_file_id:
+                # grep the modality ID from physiological_modality table
+                modality_id = self.db.grep_id_from_lookup_table(
+                    id_field_name       = 'PhysiologicalModalityID',
+                    table_name          = 'physiological_modality',
+                    where_field_name    = 'PhysiologicalModality',
+                    where_value         = self.bids_modality,
+                    insert_if_not_found = False
+                )
+
+                # copy the eeg_file to the LORIS BIDS import directory
+                eeg_path = self.copy_file_to_loris_bids_dir(
+                    eeg_file.path, derivative_path
+                )
+
+                # insert the file along with its information into
+                # physiological_file and physiological_parameter_file tables
+                eeg_file_info = {
+                    'FileType'       : file_type,
+                    'FilePath'       : eeg_path,
+                    'SessionID'      : self.session_id,
+                    'AcquisitionTime': eeg_acq_time,
+                    'InsertedByUser' : getpass.getuser(),
+                    'PhysiologicalOutputTypeID': output_type_id,
+                    'PhysiologicalModalityID'  : modality_id
+                }
+                physio_file_id = physiological.insert_physiological_file(
+                    eeg_file_info, eeg_file_data
+                )
+
+            # if the EEG file was a set file, then update the filename for the .set
+            # and .fdt files in the .set file so it can find the proper file for
+            # visualization and analyses
+            if file_type == 'set':
+                set_full_path = self.data_dir + eeg_path
+                fdt_full_path = eeg_file_data['fdt_file']
+                if fdt_full_path:
+                    fdt_full_path = self.data_dir + eeg_file_data['fdt_file']
+                utilities.update_set_file_path_info(set_full_path, fdt_full_path)
+
+            inserted_eegs.append({'file_id': physio_file_id, 'eeg_path': eeg_path})
+
+        return inserted_eegs
 
     def fetch_and_insert_electrode_file(
             self, physiological_file_id, derivatives = None):
