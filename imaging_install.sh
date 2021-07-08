@@ -67,16 +67,16 @@ then
 	# If the the MySQL error code was 1045, then there is an error with the username and/or password.
 	# The appropriate message is then printed out. If it is a different error code, then the error message from MySQL
 	# is printed out instead.
-    if [[ $test_query_output == *"ERROR 1045"* ]];
-    then
-        echo "ERROR: invalid username and/or password. Aborting..." >&2
-    else
-        echo "ERROR: unable to connect to database. The MySQL error is provided below:" >&2
-        echo $test_query_output >&2
-        echo "Aborting..."
-    fi
-
-    exit 1
+	if [[ $test_query_output == *"ERROR 1045"* ]];
+	then
+		echo "ERROR: invalid username and/or password. Aborting..." >&2
+	else
+		echo "ERROR: unable to connect to database. The MySQL error is provided below:" >&2
+		echo $test_query_output >&2
+		echo "Aborting..."
+	fi
+	
+	exit 1
 fi
 
 echo "Successfully connected to database\n"
