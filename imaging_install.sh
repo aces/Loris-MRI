@@ -144,6 +144,15 @@ echo
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
 
+# Check if the incoming directory is successfully created. If not, instructions on
+# how to manually create the directory are provided.
+if [ ! -d "/data/incoming/" ]
+then
+	echo "Error: the directory /data/incoming/ could not be created."
+	echo "Please run the commands below in order to manually create the directory:"
+	echo "sudo mkdir -m 2770 -p /data/incoming/"
+fi
+
 ###################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
@@ -178,20 +187,30 @@ fi
 
 sudo chmod -R 770 $mridir/dicom-archive/.loris_mri/
 sudo chmod -R 770 /data/$PROJ/
-sudo chmod -R 770 /data/incoming/
 
 # Making lorisadmin part of the apache group
 sudo usermod -a -G $group $USER
 
-#Setting group permissions for all files/dirs under /data/$PROJ/ and /data/incoming/
+#Setting group permissions for all files/dirs under /data/$PROJ/
 sudo chgrp $group -R /data/$PROJ/
-sudo chgrp $group -R /data/incoming/
 
 #Setting group ID for all files/dirs under /data/$PROJ/data
 sudo chmod -R g+s /data/$PROJ/data/
 
-#Setting group ID for all files/dirs under /data/incoming
-sudo chmod -R g+s /data/incoming/
+# Setting group permissions and group ID for all files/dirs under /data/incoming
+# If the directory was not created earlier, then instructions to do so manually are provided. 
+if [ -d "/data/incoming/" ]
+then
+	sudo chmod -R 770 /data/incoming/
+	sudo chgrp $group -R /data/incoming/
+	sudo chmod -R g+s /data/incoming/
+else
+	echo "After manually creating /data/incoming/, run the commands below to set the permissions:"
+	echo "sudo chmod -R 770 /data/incoming/"
+	echo "sudo chgrp $group -R /data/incoming"
+	echo "sudo chmod -R g+s /data/incoming/"
+fi
+
 echo
 
 #####################################################################################
