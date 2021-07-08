@@ -240,6 +240,7 @@ elif [[ " ${redhat[*]} " =~ " $os_distro " ]]; then
 	echo "You are running ${os_distro}. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies for RedHat-based distributions."
 fi
 
+######################################################################
 ###### Update the Database table, Config, with the user values #######
 ######################################################################
 echo "Populating database configuration entries for the Imaging Pipeline and LORIS-MRI code and images Path:"
