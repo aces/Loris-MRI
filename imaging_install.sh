@@ -63,7 +63,6 @@ test_query_output=$(mysql -u $mysqluser -p${mysqlpass} -h $mysqlhost -D $mysqldb
 
 if [[ $? -ne 0 ]];
 then
-	
 	# If the the MySQL error code was 1045, then there is an error with the username and/or password.
 	# The appropriate message is then printed out. If it is a different error code, then the error message from MySQL
 	# is printed out instead.
