@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 import lib.exitcode
@@ -8,6 +9,7 @@ from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
 from lib.database_lib.mriupload import MriUpload
 from lib.database_lib.mriscanner import MriScanner
+from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
 from lib.database_lib.session import Session
 from lib.database_lib.site import Site
 from lib.database_lib.tarchive import Tarchive
@@ -63,6 +65,7 @@ class BasePipeline:
         self.mri_scanner_db_obj = MriScanner(self.db, self.verbose)
         self.session_db_obj = Session(self.db, self.verbose)
         self.site_db_obj = Site(self.db, self.verbose)
+        self.proj_subproj_rel_db_obj = ProjectSubprojectRel(self.db, self.verbose)
         self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
         self.notification_obj = None  # set this to none until we get an confirmed UploadID
 
@@ -165,23 +168,18 @@ class BasePipeline:
         # get the CenterID from the session table if the PSCID and visit label exists
         # and could be extracted from the database
         if cand_id and visit_label:
-            # TODO move query in a session database_lib??
-            query = "SELECT s.CenterID AS CenterID, p.MRI_alias AS CenterName" \
-                    " FROM session s" \
-                    " JOIN psc p ON p.CenterID=s.CenterID" \
-                    " WHERE s.CandID = %s AND s.Visit_label = %s"
-            results = self.db.pselect(query=query, args=(cand_id, visit_label))
-            if results:
-                return results[0]
+            self.session_db_obj.create_session_dict(cand_id, visit_label)
+            session_dict = self.session_db_obj.session_info_dict
+            return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
 
         # if could not find center information based on cand_id and visit_label, use the
         # patient name to match it to the site alias or MRI alias
         list_of_sites = self.site_db_obj.get_list_of_sites()
         for site_dict in list_of_sites:
-            if site_dict['Alias'] in patient_name:
-                return {'CenterName': site_dict['Alias'], 'CenterID': site_dict['CenterID']}
-            elif site_dict['MRI_alias'] in patient_name:
-                return {'CenterName': site_dict['MRI_alias'], 'CenterID': site_dict['CenterID']}
+            if site_dict["Alias"] in patient_name:
+                return {"CenterName": site_dict["Alias"], "CenterID": site_dict["CenterID"]}
+            elif site_dict["MRI_alias"] in patient_name:
+                return {"CenterName": site_dict["MRI_alias"], "CenterID": site_dict["CenterID"]}
 
         # if we got here, it means we could not find a center associated to the dataset
         self.log_error_and_exit(
@@ -309,3 +307,106 @@ class BasePipeline:
             self.notification_obj.write_to_notification_spool(log_msg, is_error, is_verbose)
         if self.verbose:
             print(f"{log_msg}\n")
+
+    def get_session_info(self):
+
+        cand_id = self.subject_id_dict["CandID"]
+        visit_label = self.subject_id_dict["Visit_label"]
+        self.session_db_obj.create_session_dict(cand_id, visit_label)
+
+        if self.session_db_obj.session_info_dict.keys():
+            message = f"Session ID for the file to insert is {self.session_db_obj.session_info_dict['ID']}"
+            self.log_info(message, is_error="N", is_verbose="Y")
+
+    def create_session(self):
+        cand_id = self.subject_id_dict["CandID"]
+        visit_label = self.subject_id_dict["Visit_label"]
+        create_visit_label = self.subject_id_dict["createVisitLabel"]
+        project_id = self.subject_id_dict["ProjectID"] if "ProjectID" in self.subject_id_dict.keys() else None
+        subproject_id = self.subject_id_dict["SubprojectID"] if "SubprojectID" in self.subject_id_dict.keys() else None
+
+        # check if whether the visit label should be created
+        if not create_visit_label:
+            message = f"Visit {visit_label} for candidate {cand_id} does not exist."
+            self.log_error_and_exit(message, lib.exitcode.GET_SESSION_ID_FAILURE, is_error="Y", is_verbose="N")
+
+        # check if a project ID was provided in the config file for the visit label
+        if not project_id:
+            message = f"Cannot create visit: profile file does not defined the visit's ProjectID"
+            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
+
+        # check if a subproject ID was provided in the config file for the visit label
+        if not subproject_id:
+            message = f"Cannot create visit: profile file does not defined the visit's SubprojectID"
+            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
+
+        # check that the project ID and subproject ID refers to an existing row in project_subproject_rel table
+        self.proj_subproj_rel_db_obj.create_proj_subproj_rel_dict(project_id, subproject_id)
+        if not self.proj_subproj_rel_db_obj.proj_subproj_rel_info_dict.keys():
+            message = f"Cannot create visit with project ID {project_id} and subproject ID {subproject_id}:" \
+                      f" no such association in table project_subproject_rel}"
+            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
+
+        # determine the visit number and center ID for the next session to be created
+        center_id, visit_nb = self.determine_new_session_site_and_visit_nb()
+        if not center_id:
+            message = f"No center ID found for candidate {cand_id}, visit {visit_label}"
+            self.log_error_and_exit(message, is_error="Y", is_verbose="N")
+        else:
+            message = f"Set newVisitNo = {visit_nb} and center ID = {center_id}"
+            self.log_info(message, is_error="N", is_verbose="Y")
+
+        # create the new visit
+        session_id = self.session_db_obj.insert_into_session(
+            fields=("CandID", "Visit_label", "CenterID", "VisitNo", "Current_stage", "Scan_done", "Submitted", "SubprojectID", "ProjectID"),
+            values=(cand_id,  visit_label,   center_id,  visit_nb,  "Not Started",   "Y",         "N",         subproject_id,  project_id)
+        )
+        if session_id:
+            self.get_session_info()
+
+    def determine_new_session_site_and_visit_nb(self):
+        cand_id = self.subject_id_dict["CandID"]
+        visit_label = self.subject_id_dict["Visit_label"]
+        is_phantom = self.subject_id_dict["isPhantom"]
+        visit_nb = 0
+        center_id = 0
+
+        if is_phantom:
+            center_info_dict = self.determine_phantom_data_site(string_with_site_acronym=visit_label)
+            if center_info_dict:
+                center_id = center_info_dict["CenterID"]
+                visit_nb = 1
+        else:
+            center_info_dict = self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
+            if center_info_dict:
+                center_id = center_info_dict["CenterID"]
+                visit_nb = center_info_dict["newVisitNo"]
+
+        return center_id, visit_nb
+
+    def determine_phantom_data_site(self, string_with_site_acronym):
+
+        pscid = self.subject_id_dict["PSCID"]
+        visit_label = self.subject_id_dict["visitLabel"]
+
+        # first check whether there is already a session in the database for the phantom scan
+        if pscid and visit_label:
+            return self.session_db_obj.get_session_center_info(pscid, visit_label)
+
+        # if no session found, use a string_with_site_acronym to match it to a site alias or MRI alias
+        for row in self.site_dict:
+            if re.search(rf"{row['Alias']}|{row['MRI_alias']}", string_with_site_acronym, re.IGNORECASE):
+                return row
+
+    def check_if_tarchive_validated_in_db(self):
+        """
+        Checks whether the DICOM archive was previously validated in the database (as per the value present
+        in the <IsTarchiveValidated> field of the <mri_upload> table.
+
+        If the DICOM archive was not validated, the pipeline will exit and log the proper error information.
+        """
+        mu_dict = self.mri_upload_db_obj.mri_upload_dict
+        if ("IsTarchiveValidated" not in mu_dict.keys() or not mu_dict["IsTarchiveValidated"]) and not self.force:
+            err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \
+                      f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
+            self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")

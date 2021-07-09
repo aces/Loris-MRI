@@ -45,7 +45,9 @@ MISSING_TOOL_VERSION      = 81  # if missing the tool version information
 PROGRAM_EXECUTION_FAILURE = 82  # if script execution failed
 TARGET_EXISTS_NO_CLOBBER  = 83  # target already exists but no -clobber option
 UNKNOWN_PROTOCOL          = 84  # if unknown acq protocol for the file to insert
-
+GET_SUBJECT_ID_FAILURE    = 86; # if could not determine subject IDs
+GET_SESSION_ID_FAILURE    = 87; # if could not determine session ID
+CREATE_SESSION_FAILURE    = 88; # if could not create a session
 
 FILENAME_MISMATCH = 151
 

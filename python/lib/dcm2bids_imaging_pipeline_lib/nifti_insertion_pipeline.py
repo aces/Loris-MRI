@@ -1,7 +1,11 @@
 import hashlib
 import json
 import lib.exitcode
+import os
+import re
+from functools import reduce
 from lib.database_lib.files import Files
+from lib.database_lib.mri_protocol import MriProtocol
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.imaging import Imaging
 from pyblake2 import blake2b
@@ -20,16 +24,18 @@ class NiftiInsertionPipeline(BasePipeline):
         self.json_blake2 = blake2b(self.json_path.encode('utf-8')).hexdigest()
         self.json_md5 = hashlib.md5(self.json_path.encode()).hexdigest()
         self.force = self.options_dict["force"]["value"]
+        self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
+        self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
 
         # ---------------------------------------------------------------------------------------------
-        # Check the mri_upload table to see if the DICOM archive has been validated
+        # Load imaging class
         # ---------------------------------------------------------------------------------------------
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
 
         # ---------------------------------------------------------------------------------------------
         # Check the mri_upload table to see if the DICOM archive has been validated
         # ---------------------------------------------------------------------------------------------
-        self._check_if_tarchive_validated_in_db()
+        self.check_if_tarchive_validated_in_db()
 
         # ---------------------------------------------------------------------------------------------
         # Load the JSON file object with scan parameters if a JSON file was provided
@@ -50,27 +56,27 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         self._check_if_nifti_file_was_already_inserted()
 
+        # ---------------------------------------------------------------------------------------------
+        # Determine/create the session the file should be linked to
+        # ---------------------------------------------------------------------------------------------
+        self.get_session_info()
+        if not self.session_db_obj.session_info_dict.keys():
+            self.create_session()
+
+        # ---------------------------------------------------------------------------------------------
+        # Determine acquisition protocol
+        # ---------------------------------------------------------------------------------------------
+        if not self.loris_scan_type:
+            self._determine_acquisition_protocol()
+            if not self.bypass_extra_checks:
+                self._run_extra_file_checks()
+
         # TODO: plan
         # 7. load nifti
-        # 13. get more information about the scan (scanner, IDs, dates...)
-        # 14. get session information, exits if incorrect
         # 16. determine acquisition protocol
-        # 17. insert into Db
+        # 17. insert into Db (files + parameter_file)
         # 18. update mri violations log
         # 19. create pics
-
-    def _check_if_tarchive_validated_in_db(self):
-        """
-        Checks whether the DICOM archive was previously validated in the database (as per the value present
-        in the <IsTarchiveValidated> field of the <mri_upload> table.
-
-        If the DICOM archive was not validated, the pipeline will exit and log the proper error information.
-        """
-        mu_dict = self.mri_upload_db_obj.mri_upload_dict
-        if ("IsTarchiveValidated" not in mu_dict.keys() or not mu_dict["IsTarchiveValidated"]) and not self.force:
-            err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \
-                      f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
-            self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
 
     def _load_json_sidecar_file(self):
         """
@@ -168,5 +174,106 @@ class NiftiInsertionPipeline(BasePipeline):
 
         self.log_info("Determined subject IDs based on PatientName stored in JSON file", is_error="N", is_verbose="Y")
 
-    def _get_session_info(self):
-        self.session_db_obj.create_session_dict(self.subject_id_dict["CandID"], self.subject_id_dict["Visit_label"])
+    def _determine_acquisition_protocol(self):
+
+        nifti_name = os.path.basename(self.nifti_path)
+        scan_param = self.json_file_dict
+        # get scanner ID if not already figured out
+        if "ScannerID" not in self.scanner_dict.keys():
+            self.mri_scanner_db_obj.determine_scanner_information(
+                {
+                    "ScannerManufacturer": self.json_file_dict["Manufacturer"],
+                    "ScannerSoftwareVersion": self.json_file_dict["SoftwareVersions"],
+                    "ScannerSerialNumber": self.json_file_dict["DeviceSerialNumber"],
+                    "ScannerModel": self.json_file_dict["ManufacturersModelName"],
+                },
+                self.site_dict
+            )
+
+        # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
+        mri_protocol_db_obj = MriProtocol(self.db, self.verbose)
+        protocols_list = mri_protocol_db_obj.get_list_of_possible_protocols_based_on_session_info(
+            self.session_db_obj.session_info_dict, self.scanner_dict["ScannerID"]
+        )
+
+        if not len(protocols_list):
+            message = f"Warning! No protocol group can be used to determine the scan type of {nifti_name}." \
+                      f" Incorrect/incomplete setup of table mri_protocol_group_target: setting scan type to 'unknown'"
+            self.log_info(message, is_error="N", is_verbose="Y")
+            return 'unknown'
+
+        mri_protocol_group_ids = reduce(lambda x: x["MriProtocolGroupID"], protocols_list)
+        if len(mri_protocol_group_ids) > 1:
+            message = f"Warning! More than one protocol group can be used to identify the scan type of {nifti_name}." \
+                      f" Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'"
+            self.log_info(message, is_error="N", is_verbose="Y")
+            return 'unknown'
+
+        mri_prot_group_id = mri_protocol_group_ids[0]
+        matching_protocols_list = []
+        for protocol in protocols_list:
+            if protocol["series_description_regex"]:
+                if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
+                    matching_protocols_list.append(protocol["Scan_type"])
+            elif self.is_scan_protocol_matching_db_protocol(protocol):
+                matching_protocols_list.append(protocol["Scan_type"])
+
+
+    def _run_extra_file_checks(self):
+        # do extra file checks
+        print("hello")
+
+    def is_scan_protocol_matching_db_protocol(self, db_prot):
+
+        scan_tr = self.json_file_dict["RepetitionTime"]
+        scan_te = self.json_file_dict["EchoTime"]
+        scan_ti = self.json_file_dict["InversionTime"]
+        scan_slice_thick = self.json_file_dict["SliceThickness"]
+        step_params = self.imaging_obj.get_nifti_image_step_parameters(self.nifti_path)
+        length_params = self.imaging_obj.get_nifti_image_length_parameters(self.nifti_path)
+        scan_xstep = step_params[0]
+        scan_ystep = step_params[1]
+        scan_zstep = step_params[2]
+        scan_xspace = length_params[0]
+        scan_yspace = length_params[1]
+        scan_zspace = length_params[2]
+        scan_time = length_params[3] if len(length_params) == 4 else None
+        img_type = self.json_file_dict["ImageType"]
+
+        # TODO handle image type: note: img_type = ["ORIGINAL", "PRIMARY", "M", "ND", "NORM"] in JSON
+
+        if self.in_range(scan_tr, db_prot["TR_min"], db_prot["TR_max"]) \
+                and self.in_range(scan_te, db_prot["TE_min"], db_prot["TE_max"]) \
+                and self.in_range(scan_ti, db_prot["TI_min"], db_prot["TI_max"]) \
+                and self.in_range(scan_xstep, db_prot["xstep_min"], db_prot["xstep_max"]) \
+                and self.in_range(scan_ystep, db_prot["ystep_min"], db_prot["ystep_max"]) \
+                and self.in_range(scan_zstep, db_prot["zstep_min"], db_prot["zstep_max"]) \
+                and self.in_range(scan_zstep, db_prot["zstep_min"], db_prot["zstep_max"]) \
+                and self.in_range(scan_xspace, db_prot["xspace_min"], db_prot["xspace_max"]) \
+                and self.in_range(scan_yspace, db_prot["yspace_min"], db_prot["yspace_max"]) \
+                and self.in_range(scan_zspace, db_prot["zspace_min"], db_prot["zspace_max"]) \
+                and self.in_range(scan_time, db_prot["time_min"], db_prot["time_max"]) \
+                and self.in_range(scan_slice_thick, db_prot["slice_thickness_min"], db_prot["slice_thickness_max"]):
+            return True
+
+    @staticmethod
+    def in_range(value, field_min, field_max):
+
+        # return True when parameter min and max values are not defined (a.k.a. no restrictions in mri_protocol)
+        if not field_min and not field_max:
+            return True
+
+        # return True if min & max are defined and value is within the range
+        if field_min and field_max and field_min <= value <= field_max:
+            return True
+
+        # return True if only min is defined and value is <= min
+        if field_min and not field_max and field_min <= value:
+            return True
+
+        # return True if only max is defined and value is >= max
+        if field_max and not field_min and value <= field_max:
+            return True
+
+        # if we got this far, then value is out of range
+        return False
