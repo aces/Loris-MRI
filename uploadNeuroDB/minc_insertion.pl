@@ -425,56 +425,11 @@ if ($hrrt) {
 
 
 
-## Determine PSC, ScannerID and Subject IDs
-my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
-my $scannerID = $utility->determineScannerID(
-    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
-);
-my $subjectIDsref = $utility->determineSubjectID(
-    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
-);
-
-
-
-
 # filters out parameters of length > NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH
 $message = "\n--> filters out parameters of length > "
     . NeuroDB::File::MAX_DICOM_PARAMETER_LENGTH . " for $minc\n";
 print LOG $message if $verbose;
 $file->filterParameters();
-
-
-
-
-
-## Validate that the candidate exists and that PSCID matches CandID
-if (defined($subjectIDsref->{'CandMismatchError'})) {
-    my $CandMismatchError = $subjectIDsref->{'CandMismatchError'};
-
-    $message = "\nCandidate Mismatch Error is $CandMismatchError\n";
-    print LOG $message;
-    print LOG " -> WARNING: This candidate was invalid. Logging to
-              MRICandidateErrors table with reason $CandMismatchError";
-
-    my $logQuery = "INSERT INTO MRICandidateErrors".
-        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
-        "VALUES (?, ?, ?, ?, ?)";
-    my $candlogSth = $dbh->prepare($logQuery);
-    $candlogSth->execute(
-        $file->getParameter('series_instance_uid'),
-        $studyInfo{'TarchiveID'},
-        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
-        $studyInfo{'PatientName'},
-        $CandMismatchError
-    );
-
-    $notifier->spool('tarchive validation', $message, 0,
-        'minc_insertion.pl', $upload_id, 'Y',
-        $notify_notsummary);
-
-    exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
-}
-
 
 
 
@@ -531,6 +486,15 @@ $studyInfo{'ScannerModel'}           //= $file->getParameter('study:device_model
 $studyInfo{'ScannerSerialNumber'}    //= $file->getParameter('study:serial_no');
 $studyInfo{'ScannerSoftwareVersion'} //= $file->getParameter('study:software_version');
 $studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date');
+
+## Determine PSC, ScannerID and Subject IDs
+my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
+my $scannerID = $utility->determineScannerID(
+    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
+);
+my $subjectIDsref = $utility->determineSubjectID(
+    $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
+);
 
 ## Validate that the candidate exists and that PSCID matches CandID
 if (defined($subjectIDsref->{'CandMismatchError'})) {
