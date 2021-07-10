@@ -1401,7 +1401,8 @@ sub create_dwi_nifti_bvec_file {
     return undef unless ($bvecs[0] && $bvecs[1] && $bvecs[2]);
 
     # loop through all bvecs, clean them up and print them into the bvec file
-    s/^\"+|\"$//g for @bvecs;
+    s/^\"+|\.\,|\,|\"$//g for @bvecs;
+
     open(OUT, '>', $bvec_file) or die "Cannot write to file $bvec_file: $!\n";
     print OUT map { "$_\n" } @bvecs;
     close(OUT);
