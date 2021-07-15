@@ -296,11 +296,19 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
         )
 
     # copy the participant.tsv file to the new directory
-    lib.utilities.copy_file(
-        bids_dir + "participants.tsv",
-        loris_bids_dirname + "participants.tsv",
-        verbose
-    )
+    if os.path.exists(loris_bids_dirname + "participants.tsv"):
+        lib.utilities.append_to_tsv_file(
+            bids_dir + "participants.tsv",
+            loris_bids_dirname + "participants.tsv",
+            "participant_id",
+            verbose
+        )
+    else:
+        lib.utilities.copy_file(
+            bids_dir + "participants.tsv",
+            loris_bids_dirname + "participants.tsv",
+            verbose
+        )
 
     return loris_bids_dirname
 
