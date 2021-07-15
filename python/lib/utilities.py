@@ -37,6 +37,20 @@ def read_tsv_file(tsv_file):
 
 
 def append_to_tsv_file(new_tsv_file, old_tsv_file, key_value_check, verbose):
+    """
+    This function will compare the content of two TSV files and append missing values
+    from the new TSV file into the old TSV file.
+
+    :param new_tsv_file: TSV file with new values
+     :type new_tsv_file: str
+    :param old_tsv_file: the TSV file that will be modified with new values
+     :type old_tsv_file: str
+    :param key_value_check: the key to the value to use to check if an entry is already there
+                            example: participant_id
+     :type key_value_check: str
+    :param verbose: whether verbose messages should be printed out
+     :type verbose: bool
+    """
 
     # verify that the header rows of the two TSV file are the same
     new_tsv_content = read_tsv_file(new_tsv_file)
