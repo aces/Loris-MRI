@@ -344,7 +344,7 @@ class BasePipeline:
         self.proj_subproj_rel_db_obj.create_proj_subproj_rel_dict(project_id, subproject_id)
         if not self.proj_subproj_rel_db_obj.proj_subproj_rel_info_dict.keys():
             message = f"Cannot create visit with project ID {project_id} and subproject ID {subproject_id}:" \
-                      f" no such association in table project_subproject_rel}"
+                      f" no such association in table project_subproject_rel"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
         # determine the visit number and center ID for the next session to be created
