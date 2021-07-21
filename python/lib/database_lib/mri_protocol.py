@@ -26,14 +26,14 @@ class MriProtocol:
 
         project_id = session_info_dict["ProjectID"]
         subproject_id = session_info_dict["SubprojectID"]
-        center_name = session_info_dict["CenterName"]
+        center_id = session_info_dict["CenterID"]
         visit_label = session_info_dict["Visit_label"]
 
         query = "SELECT * FROM mri_protocol" \
                 " JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)" \
                 " WHERE (" \
-                "   (Center_name = %s AND ScannerID = %s)" \
-                "   OR (Center_name IN ('ZZZZ', 'AAAA') AND ScannerID IS NULL)" \
+                "   (CenterID = %s AND ScannerID = %s)" \
+                "   OR (CenterID IS NULL AND ScannerID IS NULL)" \
                 ")"
 
         query += " AND (mpgt.ProjectID IS NULL OR mpgt.ProjectID = %s)" \
@@ -44,7 +44,7 @@ class MriProtocol:
             if visit_label else " AND mpgt.Visit_label IS NULL"
         query += " ORDER BY Center_name ASC, ScannerID DESC"
 
-        args_list = [center_name, scanner_id]
+        args_list = [center_id, scanner_id]
         if project_id:
             args_list.append(project_id)
         if subproject_id:
