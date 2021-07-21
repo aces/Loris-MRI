@@ -36,6 +36,47 @@ def read_tsv_file(tsv_file):
     return results
 
 
+def append_to_tsv_file(new_tsv_file, old_tsv_file, key_value_check, verbose):
+    """
+    This function will compare the content of two TSV files and append missing values
+    from the new TSV file into the old TSV file.
+
+    :param new_tsv_file: TSV file with new values
+     :type new_tsv_file: str
+    :param old_tsv_file: the TSV file that will be modified with new values
+     :type old_tsv_file: str
+    :param key_value_check: the key to the value to use to check if an entry is already there
+                            example: participant_id
+     :type key_value_check: str
+    :param verbose: whether verbose messages should be printed out
+     :type verbose: bool
+    """
+
+    # verify that the header rows of the two TSV file are the same
+    new_tsv_content = read_tsv_file(new_tsv_file)
+    old_tsv_content = read_tsv_file(old_tsv_file)
+    if new_tsv_content[0].keys() != old_tsv_content[0].keys():
+        print(f"ERROR: participants.tsv columns differ between {new_tsv_file} and {old_tsv_file}")
+        sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
+
+    # loop through the rows of the new TSV file and check whether it is already present in the old TSV file
+    for new_tsv_entry in new_tsv_content:
+        if any(x[key_value_check] == new_tsv_entry[key_value_check] for x in old_tsv_content):
+            if verbose:
+                print(f"{new_tsv_entry[key_value_check]} already in {old_tsv_file}, no need to append")
+        else:
+            if verbose:
+                print(f"Appending {new_tsv_entry[key_value_check]} to {old_tsv_file}")
+            old_tsv_content.append(new_tsv_entry)
+
+    with open(old_tsv_file, "w") as file:
+        tsv_columns = old_tsv_content[0].keys()
+        writer = csv.DictWriter(file, fieldnames=tsv_columns, delimiter='\t')
+        writer.writeheader()
+        for data in old_tsv_content:
+            writer.writerow(data)
+
+
 def copy_file(file_orig, file_copy, verbose):
     """
     Copies a file to a new location. If something goes wrong during the copy
