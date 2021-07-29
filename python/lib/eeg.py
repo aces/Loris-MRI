@@ -8,12 +8,14 @@ from pyblake2 import blake2b
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.database      import Database
-from lib.candidate     import Candidate
-from lib.session       import Session
-from lib.physiological import Physiological
-from lib.bidsreader    import BidsReader
-from lib.scanstsv      import ScansTSV
+from lib.database                                    import Database
+from lib.candidate                                   import Candidate
+from lib.session                                     import Session
+from lib.physiological                               import Physiological
+from lib.bidsreader                                  import BidsReader
+from lib.scanstsv                                    import ScansTSV
+from lib.database_lib.physiologicalannotationfile    import PhysiologicalAnnotationFile
+from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotationArchive
 
 __license__ = "GPLv3"
 
@@ -706,14 +708,8 @@ class Eeg:
             print(message)
             return None
         else:
-            annotation_paths = self.db.pselect(
-                query = "SELECT DISTINCT FilePath "
-                    "FROM physiological_annotation_file "
-                    "WHERE PhysiologicalFileID = %s",
-                args=(physiological_file_id,)
-            )
-            annotation_paths = [annotation_path['FilePath'] for annotation_path in annotation_paths]
-            annotation_paths = None
+            physiological_annotation_file_obj = PhysiologicalAnnotationFile(self.db, self.verbose)
+            annotation_paths = physiological_annotation_file_obj.grep_annotation_paths_from_physiological_file_id(physiological_file_id)
 
             if not annotation_paths:
                 # copy the annotation file to the LORIS BIDS import directory
@@ -858,8 +854,7 @@ class Eeg:
         }
         physiological.insert_archive_file(archive_info)
 
-    def create_and_insert_annotation_archive(self, files_to_archive, archive_rel_name,
-                                  eeg_file_id):
+    def create_and_insert_annotation_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
         """
         Create an archive with all annotations files associated to a specific recording
 
@@ -884,12 +879,10 @@ class Eeg:
 
         # check if archive already inserted in database and matches the one
         # on the filesystem using blake2b hash
-        query = "SELECT * " \
-                "FROM physiological_annotation_archive " \
-                "WHERE PhysiologicalFileID = %s"
-        results = self.db.pselect(query=query, args=(eeg_file_id,))
+        physiological_annotation_archive_obj = PhysiologicalAnnotationArchive(self.db, self.verbose)
+        results = physiological_annotation_archive_obj.grep_from_physiological_file_id(eeg_file_id)
 
-        if results and results[0]:
+        if results:
             result = results[0]
             if not blake2:
                 message = '\nERROR: no archive was found on the filesystem ' + \
@@ -910,22 +903,7 @@ class Eeg:
         # create the archive file
         utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
 
-        # insert the archive file in physiological_annotation_archive
-        blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
-        archive_info = {
-            'PhysiologicalFileID': eeg_file_id,
-            'Blake2bHash'        : blake2,
-            'FilePath'           : archive_rel_name
-        }
-
         # insert the archive into the physiological_annotation_archive table
-        archive_fields = ()
-        archive_values = ()
-        for key, value in archive_info.items():
-            archive_fields = archive_fields + (key,)
-            archive_values = archive_values + (value,)
-        self.db.insert(
-            table_name   = 'physiological_annotation_archive',
-            column_names = archive_fields,
-            values       = archive_values
-        )
+        blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
+        physiological_annotation_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
+
