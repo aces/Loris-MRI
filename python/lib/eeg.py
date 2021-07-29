@@ -129,8 +129,8 @@ class Eeg:
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
-        
-        self.subproject_id   = None 
+
+        self.subproject_id   = None
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue
@@ -142,7 +142,7 @@ class Eeg:
                 if(len(subproject_info) > 0):
                     self.subproject_id = subproject_info[0]['SubprojectID']
             break
-                
+
         self.session_id      = self.get_loris_session_id()
 
         # grep the channels, electrodes, eeg and events files
