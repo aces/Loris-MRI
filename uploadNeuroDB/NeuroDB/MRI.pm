@@ -391,7 +391,7 @@ sub identify_scan_db {
         ? ' AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = ?)'
         : ' AND mpgt.Visit_label IS NULL';
         
-    $query .=  ' ORDER BY Center_name ASC, ScannerID DESC';
+    $query .=  ' ORDER BY CenterID ASC, ScannerID DESC';
 
     my @bindValues = ($psc, $ScannerID);
     push(@bindValues, $projectID)    if defined $projectID;
