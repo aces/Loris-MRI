@@ -349,7 +349,8 @@ class Physiological:
             optional_fields = ('type', 'material', 'impedance')
             for field in optional_fields:
                 if field not in row.keys():
-                    row[field] = None
+                    continue
+
                 if field == 'type':
                     row['type_id'] = self.db.grep_id_from_lookup_table(
                         id_field_name       = 'PhysiologicalElectrodeTypeID',
@@ -368,10 +369,10 @@ class Physiological:
                     )
 
             values_tuple = (
-                str(physiological_file_id), row['type_id'],
-                row['material_id'],         row['name'],
+                str(physiological_file_id), row.get('type_id'),
+                row.get('material_id'),     row['name'],
                 row['x'],                   row['y'],
-                row['z'],                   row['impedance'],
+                row['z'],                   row.get('impedance'),
                 electrode_file
             )
             electrode_values.append(values_tuple)

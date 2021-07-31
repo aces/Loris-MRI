@@ -15,7 +15,6 @@ from lib.physiological import Physiological
 from lib.bidsreader    import BidsReader
 from lib.scanstsv      import ScansTSV
 
-
 __license__ = "GPLv3"
 
 
@@ -284,7 +283,7 @@ class Eeg:
             # insert related electrode, channel and event information
             electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id)
             channel_file_path   = self.fetch_and_insert_channel_file(eeg_file_id)
-            event_file_path     = self.fetch_and_insert_event_file(eeg_file_id)
+            event_file_path     = self.fetch_and_insert_event_file(eeg_file_id, eeg_file_path)
 
             # grep the path to the fdt file is present in
             # physiological_parameter_file for that PhysiologicalFileID
@@ -304,6 +303,7 @@ class Eeg:
                 files_to_archive = files_to_archive + (self.data_dir + event_file_path,)
             if channel_file_path:
                 files_to_archive = files_to_archive + (self.data_dir + channel_file_path,)
+
             archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
             self.create_and_insert_archive(
                 files_to_archive, archive_rel_name, eeg_file_id
@@ -338,7 +338,7 @@ class Eeg:
                     # insert related electrode, channel and event information
                     self.fetch_and_insert_electrode_file(eeg_file_id, derivatives)
                     self.fetch_and_insert_channel_file(eeg_file_id, derivatives)
-                    self.fetch_and_insert_event_file(eeg_file_id, derivatives)
+                    self.fetch_and_insert_event_file(eeg_file_id, None, derivatives)
 
     def fetch_and_insert_eeg_files(self, derivatives=None):
         """
@@ -386,33 +386,34 @@ class Eeg:
             return None
 
         for eeg_file in eeg_files:
-            metadata_files = list(eeg_file.get_associations(kind='Metadata', include_parents=True))
-            metadata_filenames = [metadata_file.filename for metadata_file in metadata_files]
-
-            eegjson_file = BidsReader.grep_file(
-                files_list         = metadata_filenames,
-                match_pattern      = 'eeg.json$',
-                derivative_pattern = derivative_pattern
+            eegjson_file = self.bids_layout.get_nearest(
+                eeg_file.path,
+                return_type='tuple',
+                extension='json',
+                suffix=['ieeg', 'eeg'],
+                all_=False,
+                full_search=False,
             )
 
-            fdt_file = BidsReader.grep_file(
-                files_list         = metadata_filenames,
-                match_pattern      = '.fdt$',
-                derivative_pattern = derivative_pattern
+            fdt_file = self.bids_layout.get_nearest(
+                eeg_file.path,
+                return_type='tuple',
+                extension='fdt',
+                all_=False,
+                full_search=False,
             )
 
             # read the json file if it exists
             eeg_file_data = {}
             if eegjson_file:
-                eegjson_path = eeg_file.dirname + '/' + eegjson_file
-                with open(eegjson_path) as data_file:
+                with open(eegjson_file.path) as data_file:
                     eeg_file_data = json.load(data_file)
                 # copy the JSON file to the LORIS BIDS import directory
                 json_path = self.copy_file_to_loris_bids_dir(
-                    eegjson_path, derivative_path
+                    eegjson_file.path, derivative_path
                 )
                 eeg_file_data['eegjson_file'] = json_path
-                json_blake2 = blake2b(eegjson_file.encode('utf-8')).hexdigest()
+                json_blake2 = blake2b(eegjson_file.filename.encode('utf-8')).hexdigest()
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
             # greps the file type from the ImagingFileTypes table
@@ -449,10 +450,11 @@ class Eeg:
             if file_type == 'set' and fdt_file:
                 # copy the fdt file to the LORIS BIDS import directory
                 fdt_path = self.copy_file_to_loris_bids_dir(
-                    fdt_file, derivative_path
+                    fdt_file.path, derivative_path
                 )
+
                 eeg_file_data['fdt_file'] = fdt_path
-                fdt_blake2 = blake2b(fdt_file.encode('utf-8')).hexdigest()
+                fdt_blake2 = blake2b(fdt_file.filename.encode('utf-8')).hexdigest()
                 eeg_file_data['physiological_fdt_file_blake2b_hash'] = fdt_blake2
 
             # append the blake2b to the eeg_file_data dictionary
@@ -500,6 +502,7 @@ class Eeg:
             if file_type == 'set':
                 set_full_path = self.data_dir + eeg_path
                 fdt_full_path = eeg_file_data['fdt_file']
+
                 if fdt_full_path:
                     fdt_full_path = self.data_dir + eeg_file_data['fdt_file']
                 utilities.update_set_file_path_info(set_full_path, fdt_full_path)
@@ -639,7 +642,7 @@ class Eeg:
         return channel_path
 
     def fetch_and_insert_event_file(
-            self, physiological_file_id, derivatives=None):
+            self, physiological_file_id, physiological_file_path, derivatives=None):
         """
         Gather raw channel file information to insert into
         physiological_task_event. Once all the information has been gathered,
@@ -677,6 +680,11 @@ class Eeg:
             match_pattern      = 'events.tsv',
             derivative_pattern = derivative_pattern
         )
+        print('---------------')
+        print(physiological_file_id)
+        print(physiological_file_path)
+        print(event_file)
+        print('---------------')
 
         if not event_file:
             message = "WARNING: no events file associated with " \

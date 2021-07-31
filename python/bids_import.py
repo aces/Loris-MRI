@@ -5,6 +5,7 @@
 import os
 import sys
 import getopt
+import re
 import lib.exitcode
 import lib.utilities
 from lib.database   import Database
@@ -228,7 +229,6 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
 
-
             elif modality in ['anat', 'dwi', 'fmap', 'func']:
                 Mri(
                     bids_reader   = bids_reader,
@@ -270,8 +270,8 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
 
     # determine the root directory of the LORIS BIDS and create it if does
     # not exist
-    name = bids_reader.dataset_name.replace(" ", "_")  # get name of the dataset
-    version = bids_reader.bids_version  # get BIDSVersion of the dataset
+    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name) # get name of the dataset
+    version = re.sub("[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version) # get BIDSVersion of the dataset
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version
@@ -353,7 +353,7 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id,        db,
 
 
 def grep_or_create_session_db_info(
-        bids_id,   cand_id,     visit_label,    
+        bids_id,   cand_id,     visit_label,
         db,        createvisit, verbose,       loris_bids_dir,
         center_id, project_id,  subproject_id):
     """
@@ -387,7 +387,7 @@ def grep_or_create_session_db_info(
     """
 
     session = Session(
-        verbose, cand_id, visit_label, 
+        verbose, cand_id, visit_label,
         center_id, project_id, subproject_id
     )
     loris_vl_info = session.get_session_info_from_loris(db)
@@ -438,7 +438,7 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
     """
 
     loris_sessions_info = []
-    
+
     if not bids_ses:
         loris_ses_info = grep_or_create_session_db_info(
             bids_id,     cand_id,    default_vl,     db,
@@ -454,7 +454,7 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
                 center_id,   project_id, subproject_id
             )
             loris_sessions_info.append(loris_ses_info)
-        
+
     return loris_sessions_info
 
 
