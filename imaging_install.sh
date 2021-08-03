@@ -241,20 +241,28 @@ echo
 ################################################################################################
 #####################################DICOM TOOLKIT##############################################
 ################################################################################################
-if cat /etc/os-release | grep ^NAME | fgrep -q CentOS ; then
-    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
-else
-    #Check if apt-get is installed
-    APTGETCHECK=`which apt-get`
-    if [ ! -f "$APTGETCHECK" ]; then
-        echo "\nERROR: Unable to find apt-get"
-        echo "Please ask your sysadmin or install apt-get\n"
-        exit
-    fi
 
-    echo "Installing DICOM Toolkit (May prompt for sudo password)"
-    sudo -S apt-get install dcmtk
+# Detecting distribution
+os_distro=$(hostnamectl |awk -F: '/Operating System:/{print $2}'|cut -f2 -d ' ')
+debian=("Debian" "Ubuntu")
+redhat=("Red" "CentOS" "Fedora" "Oracle")
+
+if [[ " ${debian[*]} " =~ " $os_distro " ]]; then
+	#Check if apt-get is installed
+	APTGETCHECK=`which apt-get`
+	if [ ! -f "$APTGETCHECK" ]; then
+		echo "\nERROR: Unable to find apt-get"
+		echo "Please ask your sysadmin or install apt-get\n"
+		exit
+	fi
+
+	echo "Installing DICOM Toolkit (May prompt for sudo password)"
+	sudo -S apt-get install dcmtk
+	
+elif [[ " ${redhat[*]} " =~ " $os_distro " ]]; then
+	echo "You are running ${os_distro}. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies for RedHat-based distributions."
 fi
+
 ######################################################################
 ###### Update the Database table, Config, with the user values #######
 ######################################################################
