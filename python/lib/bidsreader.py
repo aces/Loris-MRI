@@ -90,26 +90,23 @@ class BidsReader:
         if self.verbose:
             print('Loading the BIDS dataset with BIDS layout library...\n')
 
-        bids_config = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
-        exclude_arr = ['/code/', '/sourcedata/', '/log/', '.git/']
-        force_arr   = re.compile("_annotations\.(tsv|json)$")
+        bids_config   = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
+        exclude_arr   = ['/code/', '/sourcedata/', '/log/', '.git/']
+        force_arr     = [re.compile("_annotations\.(tsv|json)$")]
 
         # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
         bids_pack_version = list(map(int, bids.__version__.split('.')))
-        if (bids_pack_version[0] > 0
-            or bids_pack_version[1] > 12
-            or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
-            bids_layout = BIDSLayout(
-                root=self.bids_dir,
-                # disabled until is a workaround for https://github.com/bids-standard/pybids/issues/760 is found
-                # [file] bids_import.py [function] read_and_insert_bids [line] for modality in row['modalities']: (row['modalities'] is empty)
-                # indexer=BIDSLayoutIndexer(config_filename=bids_config, ignore=exclude_arr, force_index=force_arr)
-                config=bids_config,
-                ignore=exclude_arr,
-                force_index=force_arr
-            )
-        else:
-            bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr, force_index=force_arr)
+        # disabled until is a workaround for https://github.com/bids-standard/pybids/issues/760 is found
+        # [file] bids_import.py [function] read_and_insert_bids [line] for modality in row['modalities']: (row['modalities'] is empty)
+        #if (bids_pack_version[0] > 0
+        #    or bids_pack_version[1] > 12
+        #    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
+        #    bids_layout = BIDSLayout(
+        #        root=self.bids_dir,
+        #        indexer=BIDSLayoutIndexer(config_filename=bids_config, ignore=exclude_arr, force_index=force_arr)
+        #    )
+        #else:
+        bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr, force_index=force_arr, derivatives=True)
 
         if self.verbose:
             print('\t=> BIDS dataset loaded with BIDS layout\n')

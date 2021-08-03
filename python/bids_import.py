@@ -211,6 +211,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         bids_session = row['bids_ses_id']
         visit_label  = bids_session if bids_session else default_bids_vl
         loris_bids_visit_rel_dir    = 'sub-' + row['bids_sub_id'] + '/' + 'ses-' + visit_label
+
         for modality in row['modalities']:
             loris_bids_modality_rel_dir = loris_bids_visit_rel_dir + '/' + modality + '/'
             lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
