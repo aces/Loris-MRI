@@ -150,12 +150,8 @@ class Eeg:
             self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename')[0]
 
         # register the data into LORIS
-        self.register_raw_data()
-
-        # if there are derivatives data, register them into LORIS
-        # if self.bids_reader.derivatives_list:
-        #     self.derivative_eeg_files = self.grep_bids_derivatives_eeg_files()
-        #     self.register_derivatives_data()
+        self.register_data()
+        self.register_data(derivatives=True)
 
     def get_loris_cand_info(self):
         """
@@ -231,45 +227,22 @@ class Eeg:
                 return_type = 'filename'
             )
 
-    def grep_bids_derivatives_eeg_files(self):
+    def register_data(self, derivatives=False):
         """
-        Builds the derivatives structure that would need to be imported.
-
-        :return: dictionary of organized derivative EEG files
-         :rtype: dict
-        """
-
-        bids_types = self.bids_layout.get(
-            subject     = self.bids_sub_id,
-            datatype    = self.bids_modality,
-            target      = 'suffix',
-            return_type = 'id'
-        )
-        # TODO check if want this part to be in the Config module instead of
-        # TODO hardcoding it and risk that other random types are in the
-        # TODO derivatives folder
-        exclude_types = ['channels', 'electrodes', self.bids_modality, 'events']
-        for type in exclude_types:
-            if type in bids_types:
-                bids_types.remove(type)
-        files = []
-        for derivatives_type in bids_types:
-            files += self.grep_bids_files(derivatives_type)
-
-        return files
-
-    def register_raw_data(self):
-        """
-        Registers raw EEG data and related files into the following tables:
+        Registers raw and derivatives EEG data and related files into the following tables:
             - physiological_file
             - physiological_parameter_file
             - physiological_electrode
             - physiological_channel
             - physiological_task_event
+
+        :param derivatives: True if the EEG file to insert is a derivative file.
+                            Set by default to False when inserting raw file.
+         :type derivatives: boolean
         """
 
         # insert EEG file
-        inserted_eegs = self.fetch_and_insert_eeg_files()
+        inserted_eegs = self.fetch_and_insert_eeg_files(derivatives)
 
         if not inserted_eegs:
             return
@@ -282,9 +255,9 @@ class Eeg:
             original_file_data = inserted_eeg['original_file_data']
 
             # insert related electrode, channel and event information
-            electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id, original_file_data.path)
-            channel_file_path   = self.fetch_and_insert_channel_file(eeg_file_id, original_file_data.path)
-            event_file_path     = self.fetch_and_insert_event_file(eeg_file_id, original_file_data.path)
+            electrode_file_path = self.fetch_and_insert_electrode_file(eeg_file_id, original_file_data.path, derivatives)
+            channel_file_path   = self.fetch_and_insert_channel_file(eeg_file_id, original_file_data.path, derivatives)
+            event_file_path     = self.fetch_and_insert_event_file(eeg_file_id, original_file_data.path, derivatives)
 
             # archive all files in a tar ball for downloading all files at once
             files_to_archive = (self.data_dir + eeg_file_path,)
@@ -310,41 +283,8 @@ class Eeg:
             physiological = Physiological(self.db, self.verbose)
             physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
-    def register_derivatives_data(self):
-        """
-        Registers processed EEG data into the following tables:
-            - physiological_file
-            - physiological_parameter_file
-            - physiological_electrode
-            - physiological_channel
-            - physiological_task_event
-        """
-        # TODO: add link to original data in physiological_file_intermediary???
-        # TODO: add link to raw data in physiological_file???
 
-        for derivatives in self.bids_reader.derivatives_list:
-            if derivatives['parent']:
-                #TODO implement what to do if there is a derivative parent
-                print("need to develop this")
-            else:
-                # insert EEG derivative file
-                inserted_eegs = self.fetch_and_insert_eeg_files(derivatives)
-
-                if not inserted_eegs:
-                    return
-
-                for inserted_eeg in inserted_eegs:
-                    eeg_file_id        = inserted_eeg['file_id']
-                    original_file_data = inserted_eeg['original_file_data']
-
-                    # insert related electrode, channel and event information
-                    self.fetch_and_insert_electrode_file(eeg_file_id, original_file_data.path, derivatives)
-                    self.fetch_and_insert_channel_file(eeg_file_id, original_file_data.path, derivatives)
-                    self.fetch_and_insert_event_file(eeg_file_id, original_file_data.path, derivatives)
-
-                    #TODO chunks for visualization and derivative archive
-
-    def fetch_and_insert_eeg_files(self, derivatives=None):
+    def fetch_and_insert_eeg_files(self, derivatives=False):
         """
         Gather EEG file information to insert into physiological_file and
         physiological_parameter_file. Once all the information has been
@@ -352,10 +292,9 @@ class Eeg:
         perform the insertion into physiological_file and
         physiological_parameter_file.
 
-        :param derivatives: dictionary with derivative folder information if
-                            the EEG file to insert is a derivative file.
-                            Set by default to None when inserting raw file.
-         :type derivatives: list
+        :param derivatives: True if the EEG file to insert is a derivative file.
+                            Set by default to False when inserting raw file.
+         :type derivatives: boolean
         :return: dictionary with registered file ID and path to its file
          :rtype: dict
         """
@@ -365,15 +304,13 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
 
-        derivative_path    = None
-        if derivatives:
-            derivative_path    = self.get_derivatives_path(derivatives)
-            # TODO grep the source file as well as the input file ID???
+        # TODO if derivatives, grep the source file as well as the input file ID???
 
         # grep the raw files
         eeg_files = self.bids_layout.get(
             subject   = self.bids_sub_id,
             session   = self.bids_ses_id,
+            scope     = 'derivatives' if derivatives else 'raw',
             #datatype = self.bids_modality,
             #suffix   = self.bids_modality,
             extension = ['set', 'edf', 'vhdr', 'vmrk', 'eeg', 'bdf']
@@ -411,17 +348,17 @@ class Eeg:
                     eeg_file_data = json.load(data_file)
                 # copy the JSON file to the LORIS BIDS import directory
                 eegjson_file_path = self.copy_file_to_loris_bids_dir(
-                    eegjson_file.path, derivative_path
+                    eegjson_file.path, derivatives
                 )
                 eeg_file_data['eegjson_file'] = eegjson_file_path
-                json_blake2 = blake2b(eegjson_file.filename.encode('utf-8')).hexdigest()
+                json_blake2 = blake2b(eegjson_file.path.encode('utf-8')).hexdigest()
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
             # greps the file type from the ImagingFileTypes table
             file_type = physiological.determine_file_type(eeg_file.path)
 
             # grep the output type from the physiological_output_type table
-            output_type = 'derivatives' if derivatives else 'raw'
+            output_type = 'derivative' if derivatives else 'raw'
             output_type_id = self.db.grep_id_from_lookup_table(
                 id_field_name       = 'PhysiologicalOutputTypeID',
                 table_name          = 'physiological_output_type',
@@ -452,15 +389,15 @@ class Eeg:
             if file_type == 'set' and fdt_file:
                 # copy the fdt file to the LORIS BIDS import directory
                 fdt_file_path = self.copy_file_to_loris_bids_dir(
-                    fdt_file.path, derivative_path
+                    fdt_file.path, derivatives
                 )
 
                 eeg_file_data['fdt_file'] = fdt_file_path
-                fdt_blake2 = blake2b(fdt_file.filename.encode('utf-8')).hexdigest()
+                fdt_blake2 = blake2b(fdt_file.path.encode('utf-8')).hexdigest()
                 eeg_file_data['physiological_fdt_file_blake2b_hash'] = fdt_blake2
 
             # append the blake2b to the eeg_file_data dictionary
-            blake2 = blake2b(eeg_file.filename.encode('utf-8')).hexdigest()
+            blake2 = blake2b(eeg_file.path.encode('utf-8')).hexdigest()
             eeg_file_data['physiological_file_blake2b_hash'] = blake2
 
             # check that the file using blake2b is not already inserted before
@@ -480,7 +417,7 @@ class Eeg:
 
                 # copy the eeg_file to the LORIS BIDS import directory
                 eeg_path = self.copy_file_to_loris_bids_dir(
-                    eeg_file.path, derivative_path
+                    eeg_file.path, derivatives
                 )
 
                 # insert the file along with its information into
@@ -520,7 +457,7 @@ class Eeg:
         return inserted_eegs
 
     def fetch_and_insert_electrode_file(
-            self, physiological_file_id, original_physiological_file_path, derivatives = None):
+            self, physiological_file_id, original_physiological_file_path, derivatives=False):
         """
         Gather electrode file information to insert into
         physiological_electrode. Once all the information has been gathered,
@@ -532,10 +469,9 @@ class Eeg:
                                       physiological file already inserted into
                                       the physiological_file table
          :type physiological_file_id: int
-        :param derivatives: dictionary with derivative folder information if
-                            the electrode file to insert is a derivative file.
-                            Set by default to None when inserting raw file.
-         :type derivatives: list
+        :param derivatives: True if the electrode file to insert is a derivative file.
+                            Set by default to False when inserting raw file.
+         :type derivatives: boolean
 
         :return: electrode file path in the /DATA_DIR/bids_import directory
          :rtype: str
@@ -544,12 +480,6 @@ class Eeg:
         # load the Physiological object that will be used to insert the
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
-
-        # check if inserting derivatives to use the derivative_pattern to
-        # grep for the eeg file
-        derivative_path    = None
-        if derivatives:
-            derivative_path    = self.get_derivatives_path(derivatives)
 
         electrode_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
@@ -575,10 +505,10 @@ class Eeg:
             if not result:
                 # copy the electrode file to the LORIS BIDS import directory
                 electrode_path = self.copy_file_to_loris_bids_dir(
-                    electrode_file.path, derivative_path
+                    electrode_file.path, derivatives
                 )
                 # get the blake2b hash of the electrode file
-                blake2 = blake2b(electrode_file.filename.encode('utf-8')).hexdigest()
+                blake2 = blake2b(electrode_file.path.encode('utf-8')).hexdigest()
                 # insert the electrode data in the database
                 physiological.insert_electrode_file(
                     electrode_data, electrode_path, physiological_file_id, blake2
@@ -587,7 +517,7 @@ class Eeg:
         return electrode_path
 
     def fetch_and_insert_channel_file(
-            self, physiological_file_id, original_physiological_file_path, derivatives = None):
+            self, physiological_file_id, original_physiological_file_path, derivatives=False):
         """
         Gather channel file information to insert into physiological_channel.
         Once all the information has been gathered, it will call
@@ -601,10 +531,9 @@ class Eeg:
          :type physiological_file_id:            int
         :param original_physiological_file_path: path of the original physiological file
          :type original_file_data:               string
-        :param derivatives:                      dictionary with derivative folder information if
-                                                 the channel file to insert is a derivative file.
-                                                 Set by default to None when inserting raw file.
-         :type derivatives:                      dict
+        :param derivatives:                      True if the channel file to insert is a derivative file.
+                                                 Set by default to False when inserting raw file.
+         :type derivatives:                      boolean
 
         :return: channel file path in the /DATA_DIR/bids_import directory
          :rtype: str
@@ -613,12 +542,6 @@ class Eeg:
         # load the Physiological object that will be used to insert the
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
-
-        # check if inserting derivatives to use the derivative_pattern to
-        # grep for the eeg file
-        derivative_path    = None
-        if derivatives:
-            derivative_path = self.get_derivatives_path(derivatives)
 
         channel_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
@@ -644,10 +567,10 @@ class Eeg:
             if not result:
                 # copy the channel file to the LORIS BIDS import directory
                 channel_path = self.copy_file_to_loris_bids_dir(
-                    channel_file.path, derivative_path
+                    channel_file.path, derivatives
                 )
                 # get the blake2b hash of the channel file
-                blake2 = blake2b(channel_file.filename.encode('utf-8')).hexdigest()
+                blake2 = blake2b(channel_file.path.encode('utf-8')).hexdigest()
                 # insert the channel data in the database
                 physiological.insert_channel_file(
                     channel_data, channel_path, physiological_file_id, blake2
@@ -656,7 +579,7 @@ class Eeg:
         return channel_path
 
     def fetch_and_insert_event_file(
-            self, physiological_file_id, original_physiological_file_path, derivatives = None):
+            self, physiological_file_id, original_physiological_file_path, derivatives=False):
         """
         Gather raw channel file information to insert into
         physiological_task_event. Once all the information has been gathered,
@@ -670,10 +593,9 @@ class Eeg:
          :type physiological_file_id:            int
         :param original_physiological_file_path: path of the original physiological file
          :type original_file_data:               string
-        :param derivatives:                      dictionary with derivative folder information if
-                                                 the event file to insert is a derivative file.
-                                                 Set by default to None when inserting raw file.
-         :type derivatives:                      dict
+        :param derivatives:                      True if the event file to insert is a derivative file.
+                                                 Set by default to False when inserting raw file.
+         :type derivatives:                      boolean
 
         :return: channel file path in the /DATA_DIR/bids_import directory
          :rtype: str
@@ -682,12 +604,6 @@ class Eeg:
         # load the Physiological object that will be used to insert the
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
-
-        # check if inserting derivatives to use the derivative_pattern to
-        # grep for the eeg file
-        derivative_path    = None
-        if derivatives:
-            derivative_path    = self.get_derivatives_path(derivatives)
 
         event_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
@@ -713,10 +629,10 @@ class Eeg:
                 event_data = utilities.read_tsv_file(event_file.path)
                 # copy the event file to the LORIS BIDS import directory
                 event_path = self.copy_file_to_loris_bids_dir(
-                    event_file.path, derivative_path
+                    event_file.path, derivatives
                 )
                 # get the blake2b hash of the task events file
-                blake2 = blake2b(event_file.filename.encode('utf-8')).hexdigest()
+                blake2 = blake2b(event_file.path.encode('utf-8')).hexdigest()
                 # insert event data in the database
                 physiological.insert_event_file(
                     event_data, event_path, physiological_file_id, blake2
@@ -724,7 +640,7 @@ class Eeg:
 
         return event_path
 
-    def copy_file_to_loris_bids_dir(self, file, derivatives_path=None):
+    def copy_file_to_loris_bids_dir(self, file, derivatives=False):
         """
         Wrapper around the utilities.copy_file function that copies the file
         to the LORIS BIDS import directory and returns the relative path of the
@@ -732,33 +648,42 @@ class Eeg:
 
         :param file: full path to the original file
          :type file: str
-        :param derivatives_path: path to the derivative folder
-         :type derivatives_path: str
+        :param derivatives: True if the file to copy is a derivative file.
+                            Set by default to False when inserting raw file.
+         :type derivatives: boolean
 
         :return: relative path to the copied file
          :rtype: str
         """
 
-        # determine the path of the copied file
-        copy_file = self.loris_bids_eeg_rel_dir
-        if self.bids_ses_id:
-            copy_file += os.path.basename(file)
-        else:
-            # make sure the ses- is included in the new filename if using
-            # default visit label from the LORIS config
-            copy_file += str.replace(
-                os.path.basename(file),
-                "sub-" + self.bids_sub_id,
-                "sub-" + self.bids_sub_id + "_ses-" + self.default_vl
+        # Handle derivatives differently
+        # Data path structure is unpredictable, so keep the same relative path
+        if derivatives:
+            copy_file = str.replace(
+                file,
+                self.bids_layout.root,
+                ""
             )
-        if derivatives_path:
-            # create derivative subject/vl/modality directory
+            copy_file = self.loris_bids_root_dir + copy_file
+
+            # create derivative directories
             lib.utilities.create_dir(
-                derivatives_path + self.loris_bids_eeg_rel_dir,
+                os.path.dirname(copy_file),
                 self.verbose
             )
-            copy_file = derivatives_path + copy_file
-        else:
+        else :
+            # determine the path of the copied file
+            copy_file = self.loris_bids_eeg_rel_dir
+            if self.bids_ses_id:
+                copy_file += os.path.basename(file)
+            else:
+                # make sure the ses- is included in the new filename if using
+                # default visit label from the LORIS config
+                copy_file += str.replace(
+                    os.path.basename(file),
+                    "sub-" + self.bids_sub_id,
+                    "sub-" + self.bids_sub_id + "_ses-" + self.default_vl
+                )
             copy_file = self.loris_bids_root_dir + copy_file
 
         # copy the file
@@ -768,33 +693,6 @@ class Eeg:
         relative_path = copy_file.replace(self.data_dir, "")
 
         return relative_path
-
-    def get_derivatives_path(self, derivatives):
-        """
-        Determine what is the full path to the derivative folder based on
-        information present in the derivatives dictionary. If the directory
-        does not exist in the filesystem, it will create it.
-
-        :param derivatives: dictionary with the derivatives information
-         :type derivatives: dict
-
-        :return: full path to the LORIS derivatives folder
-         :rtype: str
-        """
-
-        if derivatives['parent']:
-            derivative_path = self.loris_bids_root_dir \
-                              + derivatives['parent'] + "/" + \
-                              + derivatives['derivative_name'] + "/"
-        else:
-            derivative_path = self.loris_bids_root_dir \
-                              + "derivatives/" \
-                              + derivatives['derivative_name'] + "/"
-
-        # create the derivative root path if does not exist yet
-        lib.utilities.create_dir(derivative_path, self.verbose)
-
-        return derivative_path
 
     def create_and_insert_archive(self, files_to_archive, archive_rel_name,
                                   eeg_file_id):

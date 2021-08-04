@@ -76,8 +76,6 @@ class BidsReader:
         # load BIDS modality information
         self.cand_session_modalities_list = self.load_modalities_from_bids()
 
-        # grep the derivatives
-        self.derivatives_list = self.load_derivatives_from_bids()
 
     def load_bids_data(self):
         """
@@ -247,45 +245,6 @@ class BidsReader:
 
         return cand_session_modalities_list
 
-    def load_derivatives_from_bids(self):
-        """
-        Reads and grep all derivative datasets directly from the BIDS structure.
-
-        :return: list of derivatives with their information
-         :rtype: list
-        """
-
-        # return None if no derivatives folder found
-        if not os.path.isdir(self.bids_dir + "/derivatives"):
-            return None
-
-        # grep the list of the derivatives folders
-        derivatives_list = []
-        for dirPath, subdirList, fileList in os.walk(self.bids_dir):
-            if re.search('derivatives$', dirPath):
-                # skip the .git paths
-                if '.git/' in dirPath:
-                    continue
-                # grep only the derivatives folders
-                if os.path.dirname(dirPath) + "/" == self.bids_dir:
-                    # if dirPath == BIDS directory, then no derivatives parent
-                    parent = None
-                else:
-                    # else, the parent is in the path of the derivatives folder
-                    parent = dirPath.replace(self.bids_dir, "")
-                for subdir in subdirList:
-                    # loop through derivatives subdirectories & grep info
-                    derivatives_info = {
-                        'rootdir'         : dirPath,
-                        'derivative_name' : subdir,
-                        'parent'          : parent
-                    }
-                    # append the dictionary derivatives_info to the list of
-                    # derivatives
-                    derivatives_list.append(derivatives_info)
-            continue
-
-        return derivatives_list
 
     @staticmethod
     def grep_file(files_list, match_pattern, derivative_pattern=None):
