@@ -113,10 +113,10 @@ class Candidate:
 
         if self.verbose:
             print("Creating candidate with " + \
-                  "PSCID = "   + self.psc_id + ", " + \
-                  "CandID = "  + str(self.cand_id) + ", " + \
-                  "Site = "    + str(self.center_id)  + ", " + \
-                  "Project = " + str(self.project_id))
+                  "PSCID     = " + self.psc_id + ", " + \
+                  "CandID    = " + str(self.cand_id) + ", " + \
+                  "CenterID  = " + str(self.center_id)  + ", " + \
+                  "ProjectID = " + str(self.project_id))
 
         insert_col = ('PSCID', 'CandID', 'RegistrationCenterID')
         insert_val = (self.psc_id, str(self.cand_id), str(self.center_id))
