@@ -76,8 +76,6 @@ class BidsReader:
         # load BIDS modality information
         self.cand_session_modalities_list = self.load_modalities_from_bids()
 
-        # grep the derivatives
-        self.derivatives_list = self.load_derivatives_from_bids()
 
     def load_bids_data(self):
         """
@@ -90,20 +88,23 @@ class BidsReader:
         if self.verbose:
             print('Loading the BIDS dataset with BIDS layout library...\n')
 
-        bids_config = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
-        exclude_arr = ['/code/', '/sourcedata/', '/log/', '.git/']
+        bids_config   = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
+        exclude_arr   = ['/code/', '/sourcedata/', '/log/', '.git/']
+        force_arr     = [re.compile("_annotations\.(tsv|json)$")]
 
         # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
         bids_pack_version = list(map(int, bids.__version__.split('.')))
-        if (bids_pack_version[0] > 0
-            or bids_pack_version[1] > 12
-            or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
-            bids_layout = BIDSLayout(
-                root=self.bids_dir,
-                indexer=BIDSLayoutIndexer(config_filename=bids_config, ignore=exclude_arr)
-            )
-        else:
-            bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr)
+        # disabled until is a workaround for https://github.com/bids-standard/pybids/issues/760 is found
+        # [file] bids_import.py [function] read_and_insert_bids [line] for modality in row['modalities']: (row['modalities'] is empty)
+        #if (bids_pack_version[0] > 0
+        #    or bids_pack_version[1] > 12
+        #    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
+        #    bids_layout = BIDSLayout(
+        #        root=self.bids_dir,
+        #        indexer=BIDSLayoutIndexer(config_filename=bids_config, ignore=exclude_arr, force_index=force_arr)
+        #    )
+        #else:
+        bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr, force_index=force_arr, derivatives=True)
 
         if self.verbose:
             print('\t=> BIDS dataset loaded with BIDS layout\n')
@@ -244,50 +245,11 @@ class BidsReader:
 
         return cand_session_modalities_list
 
-    def load_derivatives_from_bids(self):
-        """
-        Reads and grep all derivative datasets directly from the BIDS structure.
-
-        :return: list of derivatives with their information
-         :rtype: list
-        """
-
-        # return None if no derivatives folder found
-        if not os.path.isdir(self.bids_dir + "/derivatives"):
-            return None
-
-        # grep the list of the derivatives folders
-        derivatives_list = []
-        for dirPath, subdirList, fileList in os.walk(self.bids_dir):
-            if re.search('derivatives$', dirPath):
-                # skip the .git paths
-                if '.git/' in dirPath:
-                    continue
-                # grep only the derivatives folders
-                if os.path.dirname(dirPath) + "/" == self.bids_dir:
-                    # if dirPath == BIDS directory, then no derivatives parent
-                    parent = None
-                else:
-                    # else, the parent is in the path of the derivatives folder
-                    parent = dirPath.replace(self.bids_dir, "")
-                for subdir in subdirList:
-                    # loop through derivatives subdirectories & grep info
-                    derivatives_info = {
-                        'rootdir'         : dirPath,
-                        'derivative_name' : subdir,
-                        'parent'          : parent
-                    }
-                    # append the dictionary derivatives_info to the list of
-                    # derivatives
-                    derivatives_list.append(derivatives_info)
-            continue
-
-        return derivatives_list
 
     @staticmethod
     def grep_file(files_list, match_pattern, derivative_pattern=None):
         """
-        Grep a file based on a match pattern and returns it.
+        Grep a unique file based on a match pattern and returns it.
 
         :param files_list        : list of files to look into
          :type files_list        : list
@@ -297,11 +259,10 @@ class BidsReader:
                                    is a derivative file
          :type derivative_pattern: str
 
-        :return: name of the file that matches the pattern
+        :return: name of the first file that matches the pattern
          :rtype: str
         """
 
-        raw_file = None
         for filename in files_list:
             if not derivative_pattern:
                 if 'derivatives' in filename:
@@ -309,10 +270,10 @@ class BidsReader:
                     continue
                 elif re.search(match_pattern, filename):
                     # grep the file that matches the match_pattern (extension)
-                    raw_file = filename
+                    return filename
             else:
                 matches_derivative = re.search(derivative_pattern, filename)
                 if re.search(match_pattern, filename) and matches_derivative:
-                    raw_file = filename
+                    return filename
 
-        return raw_file
+        return None
