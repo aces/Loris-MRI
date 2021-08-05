@@ -534,6 +534,12 @@ class Physiological:
             if row['sample'] and (type(row['sample']) == int or type(row['sample']) == float):
                 sample = row['sample']
 
+            event_value = None
+            if row['event_value']:
+                event_value = str(row['event_value'])
+            elif row['value']:
+                event_value = str(row['value'])
+
             values_tuple = (
                 str(physiological_file_id),
                 row['onset'],
@@ -541,7 +547,7 @@ class Physiological:
                 row['trial_type'],
                 row['response_time'],
                 row['event_code'],
-                str(row['event_value']) or str(row['value']),
+                event_value,
                 sample,
                 row['event_type'],
                 event_file
