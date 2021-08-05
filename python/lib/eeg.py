@@ -311,8 +311,8 @@ class Eeg:
             subject   = self.bids_sub_id,
             session   = self.bids_ses_id,
             scope     = 'derivatives' if derivatives else 'raw',
-            #datatype = self.bids_modality,
-            #suffix   = self.bids_modality,
+            datatype  = self.bids_modality,
+            suffix    = self.bids_modality,
             extension = ['set', 'edf', 'vhdr', 'vmrk', 'eeg', 'bdf']
         )
 
