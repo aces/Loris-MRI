@@ -191,7 +191,7 @@ class Physiological:
 
         results = self.db.pselect(
             query="SELECT ParameterTypeID "
-                  "FROM parameter_type "   
+                  "FROM parameter_type "
                   "WHERE Name = %s "
                   "AND SourceFrom='physiological_parameter_file'",
             args=(parameter_name,)
@@ -244,7 +244,7 @@ class Physiological:
                   'WHERE Name = %s ',
             args=('Electrophysiology Variables',)
         )
-        
+
         if not category_result:
             return None
 
@@ -349,7 +349,8 @@ class Physiological:
             optional_fields = ('type', 'material', 'impedance')
             for field in optional_fields:
                 if field not in row.keys():
-                    row[field] = None
+                    continue
+
                 if field == 'type':
                     row['type_id'] = self.db.grep_id_from_lookup_table(
                         id_field_name       = 'PhysiologicalElectrodeTypeID',
@@ -368,10 +369,10 @@ class Physiological:
                     )
 
             values_tuple = (
-                str(physiological_file_id), row['type_id'],
-                row['material_id'],         row['name'],
+                str(physiological_file_id), row.get('type_id'),
+                row.get('material_id'),     row['name'],
                 row['x'],                   row['y'],
-                row['z'],                   row['impedance'],
+                row['z'],                   row.get('impedance'),
                 electrode_file
             )
             electrode_values.append(values_tuple)
@@ -456,7 +457,7 @@ class Physiological:
                     # replace n/a, N/A, na, NA by None which will translate to NULL
                     # in the physiological_channel table
                     row[field] = None
-                    
+
             values_tuple = (
                 str(physiological_file_id),
                 str(physio_channel_type_id),
@@ -510,6 +511,7 @@ class Physiological:
             'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
             'EventType',           'FilePath'
         )
+
         event_values = []
         for row in event_data:
             optional_fields = (
@@ -520,10 +522,24 @@ class Physiological:
             for field in optional_fields:
                 if field not in row.keys():
                     row[field] = None
+
             # TODO: remove the following if once received confirmation from
             # TODO: James it was an error.
             if "NaN" in row['duration']:
                 row['duration'] = 0
+
+            sample = None
+            if row['event_sample'] and (type(row['event_sample']) == int or type(row['event_sample']) == float):
+                sample = row['event_sample']
+            if row['sample'] and (type(row['sample']) == int or type(row['sample']) == float):
+                sample = row['sample']
+
+            event_value = None
+            if row['event_value']:
+                event_value = str(row['event_value'])
+            elif row['value']:
+                event_value = str(row['value'])
+
             values_tuple = (
                 str(physiological_file_id),
                 row['onset'],
@@ -531,8 +547,8 @@ class Physiological:
                 row['trial_type'],
                 row['response_time'],
                 row['event_code'],
-                row['event_value']  or row['value'],
-                row['event_sample'] or row['sample'],
+                event_value,
+                sample,
                 row['event_type'],
                 event_file
             )
