@@ -1,0 +1,34 @@
+# This workflow runs flake8 with reviewdog. The documentation can be found below:
+# https://github.com/marketplace/actions/run-flake8-with-reviewdog
+# Flake8 is a Python linter that analyzes code and checks for programming and stylistic errors
+name: Flake8 Linter
+
+# This workflow acts only on pull requests
+on: pull_request
+
+jobs:
+  
+  flake8-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v2
+      
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      
+      - name: Flake8 Lint
+        uses: reviewdog/action-flake8@v3
+        with:
+          # For more flake 8 arguments, visit the link below:
+          # https://flake8.pycqa.org/en/latest/user/options.html
+		  # Currently, flake8 ignores the following;
+		  #		W291: Trailing whitespace
+		  #		W292: No newline at end of file
+		  #		W293: Blank line contains whitespace
+          flake8_args: "--ignore=W291,W292,W293"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
