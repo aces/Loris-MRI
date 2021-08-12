@@ -25,10 +25,10 @@ jobs:
         with:
           # For more flake 8 arguments, visit the link below:
           # https://flake8.pycqa.org/en/latest/user/options.html
-		  # Currently, flake8 ignores the following;
-		  #		W291: Trailing whitespace
-		  #		W292: No newline at end of file
-		  #		W293: Blank line contains whitespace
+	  			# Currently, flake8 ignores the following;
+	  			#	W291: Trailing whitespace
+		  		#		W292: No newline at end of file
+		  		#		W293: Blank line contains whitespace
           flake8_args: "--ignore=W291,W292,W293"
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
