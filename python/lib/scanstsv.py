@@ -3,6 +3,7 @@
 import os
 from dateutil.parser import parse
 
+import lib
 import lib.utilities as utilities
 
 
@@ -71,7 +72,7 @@ class ScansTSV:
             if isinstance(self.tsv_entries, list):
                 acq_time_List = [ele for ele in self.tsv_entries if ele['filename'] in self.acquisition_file]
                 if len(acq_time_List) == 1:
-                    #the variable name could be mri_acq_time, but is eeg originally.
+                    # the variable name could be mri_acq_time, but is eeg originally.
                     eeg_acq_time = acq_time_List[0]['acq_time']
                 else:
                     print('More than one or no acquisition time has been found for ', self.acquisition_file)
