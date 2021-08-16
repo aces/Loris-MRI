@@ -7,7 +7,6 @@ import os
 import sys
 
 import lib.exitcode
-import lib.utilities as utilities
 from lib.database import Database
 from lib.imaging  import Imaging
 from lib.database_lib.config       import Config
@@ -22,7 +21,8 @@ __license__ = "GPLv3"
 sys.path.append('/home/user/python')
 
 # to limit the traceback when raising exceptions.
-#sys.tracebacklimit = 0
+# sys.tracebacklimit = 0
+
 
 def main():
     profile   = ''
@@ -58,7 +58,7 @@ def main():
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hp:t:u:v', long_options)
-    except getopt.GetoptError as err:
+    except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
 
