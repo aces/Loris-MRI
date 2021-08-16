@@ -140,7 +140,7 @@ class Mri:
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
             self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, 
-			                                       return_type='filename', extension='tsv')[0]
+                                                   return_type='filename', extension='tsv')[0]
 
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
