@@ -1,10 +1,6 @@
 """This class performs DICOM archive related database queries and common checks"""
 
-import lib.exitcode
 import lib.utilities as utilities
-from lib.candidate import Candidate
-from lib.database_lib.site import Site
-
 
 __license__ = "GPLv3"
 
