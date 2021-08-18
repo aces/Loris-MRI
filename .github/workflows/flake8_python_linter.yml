@@ -29,6 +29,12 @@ jobs:
           #     W291: Trailing whitespace
           #     W292: No newline at end of file
           #     W293: Blank line contains whitespace
-          flake8_args: "--ignore=W291,W292,W293 --max-line-length 120"
+          #     E202: Whitespace before ')'
+          #     E203: Whitespace before ':'
+          #     E221: Multiple spaces before operator
+          #     E241: Multiple spaces after ','
+          #     E251: Unexpected spaces around keyword / parameter equals
+          #     E272: Multiple spaces before keyword
+          flake8_args: "--ignore=W291,W292,W293,E202,E203,E221,E241,E251,E272 --max-line-length 120"
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
