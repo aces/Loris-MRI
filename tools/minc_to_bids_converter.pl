@@ -1891,13 +1891,13 @@ sub registerBidsFileInDatabase {
 
     (my $common_query_part = <<QUERY) =~ s/\n/ /g;
 bids_export_files SET
-    BIDSExportFileLevelID      = ?,
-    FileID                       = ?,
-    SessionID                    = ?,
-    BIDSNonImagingFileCategoryID = ?,
-    BIDSCategoryID               = ?,
-    FileType                     = ?,
-    FilePath                     = ?
+    BIDSExportFileLevelCategoryID = ?,
+    FileID                        = ?,
+    SessionID                     = ?,
+    BIDSNonImagingFileCategoryID  = ?,
+    BIDSCategoryID                = ?,
+    FileType                      = ?,
+    FilePath                      = ?
 QUERY
     my @values = ($file_level_id, $file_id, $session_id, $bvl_cat_id, $img_cat_id, $file_type, $file_path);
 
