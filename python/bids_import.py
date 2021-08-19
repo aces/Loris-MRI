@@ -23,7 +23,7 @@ sys.path.append('/home/user/python')
 
 
 # to limit the traceback when raising exceptions.
-#sys.tracebacklimit = 0
+# sys.tracebacklimit = 0
 
 def main():
     bids_dir    = ''
@@ -50,7 +50,7 @@ def main():
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csv', long_options)
-    except getopt.GetoptError as err:
+    except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
 
@@ -191,7 +191,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
             subproject = bids_subject_info['subproject']
             subproject_info = db.pselect(
                     "SELECT SubprojectID FROM subproject WHERE title = %s",
-                    [subproject,]
+                    [subproject, ]
                 )
             if(len(subproject_info) > 0):
                 subproject_id = subproject_info[0]['SubprojectID']
