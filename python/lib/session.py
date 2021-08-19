@@ -72,7 +72,7 @@ class Session:
         """
 
         if self.verbose:
-            print("Creating visit " + self.visit_label \
+            print("Creating visit " + self.visit_label
                   + " for CandID "  + self.cand_id)
 
         column_names = ('CandID', 'Visit_label', 'CenterID', 'Current_stage')
