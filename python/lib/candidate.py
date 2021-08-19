@@ -86,7 +86,7 @@ class Candidate:
             if 'site' in row:
                 site_info = db.pselect(
                     "SELECT CenterID FROM psc WHERE Name = %s",
-                    [row['site'],]
+                    [row['site'], ]
                 )
                 if(len(site_info) > 0):
                     self.center_id = site_info[0]['CenterID']
@@ -99,24 +99,24 @@ class Candidate:
             if 'project' in row:
                 project_info = db.pselect(
                     "SELECT ProjectID FROM Project WHERE Name = %s",
-                    [row['project'],]
+                    [row['project'], ]
                 )
                 if(len(project_info) > 0):
                     self.project_id = project_info[0]['ProjectID']
 
         if not self.center_id:
-            print("ERROR: could not determine site for " + self.psc_id + "." + \
-                  " Please check that your psc table contains a site with an" \
-                  " alias matching the BIDS participant_id or a name matching the site mentioned in" \
-                  " participants.tsv's site column")
+            print("ERROR: could not determine site for " + self.psc_id + "."
+                  + " Please check that your psc table contains a site with an"
+                  + " alias matching the BIDS participant_id or a name matching the site mentioned in"
+                  + " participants.tsv's site column")
             sys.exit(lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
 
         if self.verbose:
-            print("Creating candidate with " + \
-                  "PSCID     = " + self.psc_id + ", " + \
-                  "CandID    = " + str(self.cand_id) + ", " + \
-                  "CenterID  = " + str(self.center_id)  + ", " + \
-                  "ProjectID = " + str(self.project_id))
+            print("Creating candidate with \n"
+                  + "PSCID     = " + self.psc_id + ",\n"
+                  + "CandID    = " + str(self.cand_id) + ",\n"
+                  + "CenterID  = " + str(self.center_id)  + ",\n"
+                  + "ProjectID = " + str(self.project_id))
 
         insert_col = ('PSCID', 'CandID', 'RegistrationCenterID')
         insert_val = (self.psc_id, str(self.cand_id), str(self.center_id))
