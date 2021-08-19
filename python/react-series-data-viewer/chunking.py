@@ -2,16 +2,14 @@ import errno
 import json
 import math
 import os
-import shutil
 from collections import OrderedDict
-import mne.io
 import numpy as np
 from scipy import signal
 import sys
 
 try:
     from .protocol_buffers import chunk_pb2 as chunk_pb
-except:
+except Exception:
     from protocol_buffers import chunk_pb2 as chunk_pb
 
 
@@ -56,10 +54,8 @@ def downsample_channel(channel, chunk_size, downsampling):
 
 
 def create_downsampled_channels_list(channel, chunk_size):
-    downsamplings = math.ceil(
-        math.log(channel.shape[-1]) / math.log(chunk_size)
-    )
-    downsamplings = range(downsamplings-1, -1, -1)
+    downsamplings = math.ceil(math.log(channel.shape[-1]) / math.log(chunk_size))
+    downsamplings = range(downsamplings - 1, -1, -1)
     downsampled_channels = [
         downsample_channel(channel, chunk_size, downsampling)
         for downsampling in downsamplings
@@ -118,7 +114,7 @@ def write_index_json(
             {
                 'name': channel_names[i],
                 'seriesRange': channel_ranges[i],
-                'index': from_channel_index+i
+                'index': from_channel_index + i
             }
             for i in range(len(channel_ranges))
         ])
@@ -167,7 +163,7 @@ def write_chunks(chunk_dir, channel_chunks_list, channel_index):
                     chunk_dir,
                     'raw',
                     str(downsampling),
-                    str(channel_index+channel_offset),
+                    str(channel_index + channel_offset),
                     str(trace_index)
                 )
                 create_path_dirs(trace_path)
@@ -179,6 +175,7 @@ def write_chunks(chunk_dir, channel_chunks_list, channel_index):
                     with open(chunk_path, 'w+b') as chunk_file:
                         chunk_file.write(encoded_chunk)
 
+
 def mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_count):
     parsed = loader(path)
     time_interval = (parsed.times[0], parsed.times[-1])
@@ -187,16 +184,15 @@ def mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_coun
     signal_range = [np.PINF, np.NINF]
     channel_chunks_list = []
 
-    selected_chanels = channel_names
     if from_channel_name:
         from_channel_index = channel_names.index(from_channel_name)
-        if channel_count and from_channel_index+channel_count < len(channel_names):
-            selected_channels = channel_names[from_channel_index:from_channel_index+channel_count]
+        if channel_count and from_channel_index + channel_count < len(channel_names):
+            selected_channels = channel_names[from_channel_index:from_channel_index + channel_count]
         else:
             selected_channels = channel_names[from_channel_index:]
 
     for i, channel_name in enumerate(selected_channels):
-        print ("Processing channel " + channel_name)
+        print("Processing channel " + channel_name)
         channel = parsed.get_data(channel_name)
         channel_min = np.amin(channel)
         channel_max = np.amax(channel)
@@ -215,9 +211,12 @@ def mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_coun
     return channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges
 
 
-def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_channel_name=None, channel_count=None, downsamplings=None, prefix=None, destination=None):
+def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_channel_name=None, 
+                          channel_count=None, downsamplings=None, prefix=None, destination=None):
+
     chunk_dir = chunk_dir_path(path, prefix=prefix, destination=destination)
-    channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges = mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_count)
+    channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges = mne_file_to_chunks(path, chunk_size, loader, 
+	                                                                                                     from_channel_name, channel_count)
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]
     write_index_json(
