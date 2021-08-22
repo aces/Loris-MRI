@@ -47,7 +47,7 @@ stty -echo
 read -p "What is the MySQL password? " mysqlpass; echo
 stty echo
 read -p "What is the Linux user which the installation will be based on? " USER
-read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
+read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/data..... and /opt/gusto/bin
 read -p "What is your email address? " email
 read -p "What prod file name would you like to use? default: prod " prodfilename
 if [ -z "$prodfilename" ]; then
@@ -159,7 +159,7 @@ echo "Modifying environment script"
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 sed -i "s#%MINC_TOOLKIT_DIR%#$MINC_TOOLKIT_DIR#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
-#source /data/$PROJ/bin/$mridirname/environment
+#source /opt/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
 echo
 
@@ -183,14 +183,14 @@ fi
 ######################change permissions ###########################################
 ####################################################################################
 #echo "Changing permissions"
-
-sudo chmod -R 770 $mridir/dicom-archive/.loris_mri/
+sudo chmod -R 770 /opt/$PROJ/
 sudo chmod -R 770 /data/$PROJ/
 
 # Making lorisadmin part of the apache group
 sudo usermod -a -G $group $USER
 
-#Setting group permissions for all files/dirs under /data/$PROJ/
+#Setting group permissions for all files/dirs under /data/$PROJ/ and /opt/$PROJ/
+sudo chgrp $group -R /opt/$PROJ/
 sudo chgrp $group -R /data/$PROJ/
 
 #Setting group ID for all files/dirs under /data/$PROJ/data

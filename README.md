@@ -24,14 +24,16 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
 #### 1. Create directories and download Loris-MRI code
 
    ```bash
-   sudo mkdir -p /data/$projectname/bin/mri
+   sudo mkdir -p /data/$projectname
+   sudo mkdir -p /opt/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
-   cd /data/$projectname/bin
+   sudo chown -R lorisadmin:lorisadmin /opt/$projectnawe
+   cd /opt/$projectname/bin
    ```
 
 Get the code: Download the latest release from the 
 [releases page](https://github.com/aces/Loris-MRI/releases) 
-and extract it to `/data/$projectname/bin/mri`
+and extract it to `/opt/$projectname/bin/mri`
 
 #### 2. Install Python 3 with `pip` and `virtualenv`
 
@@ -67,7 +69,7 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
 #### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
    ```bash 
-   cd /data/$projectname/bin/mri/
+   cd /opt/$projectname/bin/mri/
    bash ./imaging_install.sh
    ```
 
@@ -97,7 +99,7 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
 
    Ensure that `/home/lorisadmin/.bashrc` includes the statement:
 
-   ```source /data/$projectname/bin/mri/environment```
+   ```source /opt/$projectname/bin/mri/environment```
 
    Then source the `.bashrc` file.   
 
