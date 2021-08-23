@@ -3,8 +3,9 @@
 
 ## 3.1 Back end directory structure
 
-The root directory of the imaging part of a LORIS instance is typically 
-  `/data/$PROJECT`.
+The imaging part of a LORIS instance is typically separated into two directories, 
+one located in `/data/$PROJECT`, which stores data, and `/opt/$PROJECT`, which 
+stores the scripts.
 
 ```
 ## Imaging pipeline file directory structure
@@ -33,14 +34,14 @@ The root directory of the imaging part of a LORIS instance is typically
 `*` _denotes optional directories that are not automatically created by the 
 install script. They are created when running the `DTIprep` pipeline_
 
-Within that project directory, there are typically two directories:
+Within a LORIS-MRI instance there are typically two directories:
 
-- The `bin/mri` directory is a copy of all the imaging scripts downloaded from
+- The `/opt/$PROJECT/bin/mri` directory is a copy of all the imaging scripts downloaded from
     the [GitHub LORIS-MRI repository](https://github.com/aces/Loris-MRI). 
     Details about the content of this folder can be found in the
     [script section](04-Scripts.md).
 
-- The `data` directory stores all the imaging-related data that will be created
+- The `/data/$PROJECT/data` directory stores all the imaging-related data that will be created
     by the imaging scripts. 
 
 The following subsections will describe the content of the different 
