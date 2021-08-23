@@ -89,11 +89,11 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
   `mkdir/chmod/chown` commands starting at 
   [imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/main/imaging_install.sh#L97)
 
-  Note: The installer will allow Apache to write to the `/data/` directories by 
+  Note: The installer will allow Apache to write to the `/data/` and `/opt/` directories by 
   adding user `lorisadmin` to the Apache linux group.  To ensure this change takes 
   effect, log out and log back into your terminal session before running the 
   imaging pipeline. The installer will also set Apache group ownership of certain 
-  `/data/` subdirectories.
+  `/data/` and `/opt/` subdirectories.
 
 #### 5. Configure paths and environment
 
