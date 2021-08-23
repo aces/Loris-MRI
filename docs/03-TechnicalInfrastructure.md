@@ -8,13 +8,21 @@ one located in `/data/$PROJECT`, which stores data, and `/opt/$PROJECT`, which
 stores the scripts.
 
 ```
-## Imaging pipeline file directory structure
+## Imaging pipeline file directory structures
+
+## Directory storing all the imaging scripts
+/
+|__ opt
+    |__ $PROJECT
+        |__ bin
+           |__ mri
+              |__ Loris-MRI scripts
+
+## Directory storing all imaging-related data
 /
 |__ data
     |__ incoming
     |__ $PROJECT
-        |__ bin
-        |   |__ mri
         |__ data
             |__ assembly
             |__ bids_imports
