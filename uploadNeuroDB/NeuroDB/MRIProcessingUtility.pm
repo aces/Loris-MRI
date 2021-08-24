@@ -1690,32 +1690,28 @@ sub CreateMRICandidates {
     my $configOB = $this->{'configOB'};
     return if (!$configOB->getCreateCandidates());
 
-    # If projects are used, check that a ProjectID is provided for the candidate
-    # about to be created
-    if ($configOB->getUseProjects()) {
+    # Check that a ProjectID is provided for the candidate about to be created
+    if (!defined $subjectIDsref->{'ProjectID'}) {
+        $message = "ERROR: Cannot create candidate $candID/$pscID as the profile file "
+                 . "does not define a ProjectID for him/her.\n";
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
+        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
-        if (!defined $subjectIDsref->{'ProjectID'}) {
-            $message = "ERROR: Cannot create candidate $candID/$pscID as the profile file "
-                     . "does not define a ProjectID for him/her.\n";
-            $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
-            $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-
-            exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-        }
-        
-        $query = "SELECT ProjectID FROM Project WHERE ProjectID = ?";
-        my $sth = ${$this->{'dbhr'}}->prepare($query);
-        $sth->execute($subjectIDsref->{'ProjectID'});
-          
-        if($sth->rows != 1) {
-            $message = "ERROR: Cannot create candidate $pscID with ProjectID "
-                     . "$subjectIDsref->{'ProjectID'}: that project ID is invalid.\n";
-            $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
-            $this->spool($message, 'Y', $upload_id, $notify_notsummary);
-
-            exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-        }  
+        exit $NeuroDB::ExitCodes::INSERT_FAILURE;
     }
+        
+    $query = "SELECT ProjectID FROM Project WHERE ProjectID = ?";
+    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth->execute($subjectIDsref->{'ProjectID'});
+
+    if($sth->rows != 1) {
+        $message = "ERROR: Cannot create candidate $pscID with ProjectID "
+                 . "$subjectIDsref->{'ProjectID'}: that project ID is invalid.\n";
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
+        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+
+        exit $NeuroDB::ExitCodes::INSERT_FAILURE;
+    }  
 
     # Create non-existent candidate if the profile allows for Candidate creation
     if ($tarchiveInfo->{'PatientSex'} eq 'F') {
@@ -1730,14 +1726,11 @@ sub CreateMRICandidates {
         CandID               => $subjectIDsref->{'CandID'},
         PSCID                => $subjectIDsref->{'PSCID'},
         DoB                  => $subjectIDsref->{'PatientDoB'},
+        ProjectID            => $subjectIDsref->{'ProjectID'},
         Sex                  => $sex,
         RegistrationCenterID => $centerID,
         UserID               => $User,
     );
-    
-    # Note that we validated above that if $configOB->getUseProjects() then
-    # $subjectIDsRef->{'ProjectID'} is defined
-    $record{'ProjectID'} = $subjectIDsref->{'ProjectID'} if $configOB->getUseProjects();
     
     $query = sprintf(
         "INSERT INTO candidate (%s) VALUES (%s)",
