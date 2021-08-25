@@ -251,6 +251,8 @@ class Eeg:
         if not inserted_eegs:
             return
 
+        physiological = Physiological(self.db, self.verbose)
+
         for inserted_eeg in inserted_eegs:
             eeg_file_id        = inserted_eeg['file_id']
             eeg_file_path      = inserted_eeg['file_path']
@@ -295,10 +297,9 @@ class Eeg:
                 files_to_archive, archive_rel_name, eeg_file_id
             )
 
-        # create data chunks for React visualization in
-        # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
-        physiological = Physiological(self.db, self.verbose)
-        physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
+            # create data chunks for React visualization in
+            # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
+            physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
     def fetch_and_insert_eeg_files(self, derivatives=False):
         """
@@ -627,7 +628,7 @@ class Eeg:
             strict = False,
             extension = 'tsv',
             suffix = 'events',
-            all_  =False,
+            all_ = False,
             full_search = False,
         )
 
@@ -657,7 +658,7 @@ class Eeg:
         return event_path
 
     def fetch_and_insert_annotation_files(
-            self, physiological_file_id, derivatives=None):
+            self, physiological_file_id, original_physiological_file_path, derivatives=False):
         """
         Gather raw channel file information to insert into
         the physiological_annotation_* tables. Once all the information has been gathered,
@@ -669,10 +670,11 @@ class Eeg:
                                       physiological file already inserted into
                                       the physiological_file table
          :type physiological_file_id: int
-        :param derivatives: dictionary with derivative folder information if
-                            the event file to insert is a derivative file.
-                            Set by default to None when inserting raw file.
-         :type derivatives: dict
+        :param original_physiological_file_path: path of the original physiological file
+         :type original_file_data:               string
+        :param derivatives:                      True if the event file to insert is a derivative file.
+                                                 Set by default to False when inserting raw file.
+         :type derivatives:                      boolean
 
         :return: channel file path in the /DATA_DIR/bids_import directory
          :rtype: str
@@ -682,24 +684,24 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
 
-        # check if inserting derivatives to use the derivative_pattern to
-        # grep for the eeg file
-        derivative_pattern = None
-        derivative_path    = None
-        if derivatives:
-            derivative_pattern = derivatives['derivative_name'] + "/sub-"
-            derivative_path    = self.get_derivatives_path(derivatives)
-
-        annotation_metadata_file = BidsReader.grep_file(
-            files_list         = self.annotations_files,
-            match_pattern      = 'annotations.json',
-            derivative_pattern = derivative_pattern
+        annotation_metadata_file = self.bids_layout.get_nearest(
+            original_physiological_file_path,
+            return_type = 'tuple',
+            strict = False,
+            extension = 'json',
+            suffix = 'annotations',
+            all_ = False,
+            full_search = False,
         )
 
-        annotation_data_file = BidsReader.grep_file(
-            files_list         = self.annotations_files,
-            match_pattern      = 'annotations.tsv',
-            derivative_pattern = derivative_pattern
+        annotation_data_file = self.bids_layout.get_nearest(
+            original_physiological_file_path,
+            return_type = 'tuple',
+            strict = False,
+            extension = 'tsv',
+            suffix = 'annotations',
+            all_ = False,
+            full_search = False,
         )
 
         if not (annotation_metadata_file) or not(annotation_data_file):
@@ -716,17 +718,17 @@ class Eeg:
                 annotation_paths = []
                 annotation_paths.extend([
                     self.copy_file_to_loris_bids_dir(
-                        annotation_metadata_file, derivative_path
+                        annotation_metadata_file.path, derivatives
                     ),
                     self.copy_file_to_loris_bids_dir(
-                        annotation_data_file, derivative_path
+                        annotation_data_file.path, derivatives
                     )
                 ])
 
                 # get the blake2b hash of the metadata file
-                blake2 = blake2b(annotation_metadata_file.encode('utf-8')).hexdigest()
+                blake2 = blake2b(annotation_metadata_file.path.encode('utf-8')).hexdigest()
                 # insert annotation metadata in the database
-                with open(annotation_metadata_file) as metadata_file:
+                with open(annotation_metadata_file.path) as metadata_file:
                     annotation_metadata = json.load(metadata_file)
 
                 physiological.insert_annotation_metadata(
@@ -734,9 +736,9 @@ class Eeg:
                 )
 
                 # get the blake2b hash of the data file
-                blake2 = blake2b(annotation_data_file.encode('utf-8')).hexdigest()
+                blake2 = blake2b(annotation_data_file.path.encode('utf-8')).hexdigest()
                 # insert annotation data in the database
-                annotation_data = utilities.read_tsv_file(annotation_data_file)
+                annotation_data = utilities.read_tsv_file(annotation_data_file.path)
                 physiological.insert_annotation_data(
                     annotation_data, annotation_paths[0], physiological_file_id, blake2
                 )
