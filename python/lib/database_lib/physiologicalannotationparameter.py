@@ -1,6 +1,5 @@
 """This class performs database queries for the physiological_annotation_parameter table"""
 
-import datetime
 
 __license__ = "GPLv3"
 
@@ -38,7 +37,7 @@ class PhysiologicalAnnotationParameter:
         self.db.insert(
             table_name   = self.table,
             column_names = ('AnnotationFileID', 'Sources', 'Author'),
-            values       = (annotationFileID, sources, author)
+            values       = (annotation_file_id, sources, author)
         )
 
     def grep_id_from_physiological_file_id(self, physiological_file_id):
@@ -62,5 +61,3 @@ class PhysiologicalAnnotationParameter:
         )
 
         return paramID[0]['AnnotationParameterID'] if paramID else None
-
-

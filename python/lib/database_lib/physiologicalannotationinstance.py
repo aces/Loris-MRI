@@ -1,6 +1,5 @@
 """This class performs database queries for the physiological_annotation_instance table"""
 
-import datetime
 
 __license__ = "GPLv3"
 
@@ -59,10 +58,8 @@ class PhysiologicalAnnotationInstance:
         self.db.insert(
             table_name   = self.table,
             column_names = (
-               'AnnotationFileID', 'AnnotationParameterID', 'Onset', 'Duration',
-               'AnnotationLabelID', 'Channels', 'AbsoluteTime', 'Description'
+                'AnnotationFileID', 'AnnotationParameterID', 'Onset', 'Duration',
+                'AnnotationLabelID', 'Channels', 'AbsoluteTime', 'Description'
             ),
             values       = annotation_data
         )
-
-

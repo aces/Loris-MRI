@@ -1,6 +1,5 @@
 """This class performs database queries for the physiological_annotation_archive table"""
 
-import datetime
 
 __license__ = "GPLv3"
 
@@ -56,4 +55,3 @@ class PhysiologicalAnnotationArchive:
             column_names = ('PhysiologicalFileID', 'Blake2bHash', 'FilePath'),
             values       = (physiological_file_id, blake2, archive_path)
         )
-

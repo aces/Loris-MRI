@@ -3,19 +3,17 @@
 import os
 import json
 import getpass
-import string
 from pyblake2 import blake2b
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.database                                    import Database
 from lib.candidate                                   import Candidate
 from lib.session                                     import Session
 from lib.physiological                               import Physiological
-from lib.bidsreader                                  import BidsReader
 from lib.scanstsv                                    import ScansTSV
 from lib.database_lib.physiologicalannotationfile    import PhysiologicalAnnotationFile
 from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotationArchive
+
 
 __license__ = "GPLv3"
 
@@ -138,7 +136,7 @@ class Eeg:
             if 'subproject' in row:
                 subproject_info = db.pselect(
                     "SELECT SubprojectID FROM subproject WHERE title = %s",
-                    [row['subproject'],]
+                    [row['subproject'], ]
                 )
                 if(len(subproject_info) > 0):
                     self.subproject_id = subproject_info[0]['SubprojectID']
@@ -261,10 +259,29 @@ class Eeg:
             original_file_data = inserted_eeg['original_file_data']
 
             # insert related electrode, channel and event information
-            electrode_file_path   = self.fetch_and_insert_electrode_file(eeg_file_id, original_file_data.path, derivatives)
-            channel_file_path     = self.fetch_and_insert_channel_file(eeg_file_id, original_file_data.path, derivatives)
-            event_file_path       = self.fetch_and_insert_event_file(eeg_file_id, original_file_data.path, derivatives)
-            annotation_file_paths = self.fetch_and_insert_annotation_files(eeg_file_id, original_file_data.path, derivatives)
+            electrode_file_path = self.fetch_and_insert_electrode_file(
+                eeg_file_id,
+                original_file_data.path,
+                derivatives
+            )
+
+            channel_file_path = self.fetch_and_insert_channel_file(
+                eeg_file_id,
+                original_file_data.path,
+                derivatives
+            )
+
+            event_file_path = self.fetch_and_insert_event_file(
+                eeg_file_id,
+                original_file_data.path,
+                derivatives
+            )
+
+            annotation_file_paths = self.fetch_and_insert_annotation_files(
+                eeg_file_id,
+                original_file_data.path,
+                derivatives
+            )
 
             # archive all files in a tar ball for downloading all files at once
             files_to_archive = (self.data_dir + eeg_file_path,)
@@ -711,7 +728,9 @@ class Eeg:
             return None
         else:
             physiological_annotation_file_obj = PhysiologicalAnnotationFile(self.db, self.verbose)
-            annotation_paths = physiological_annotation_file_obj.grep_annotation_paths_from_physiological_file_id(physiological_file_id)
+            annotation_paths = physiological_annotation_file_obj.grep_annotation_paths_from_physiological_file_id(
+                physiological_file_id
+            )
 
             if not annotation_paths:
                 # copy the annotation file to the LORIS BIDS import directory
@@ -869,10 +888,6 @@ class Eeg:
          :type eeg_file_id     : int
         """
 
-        # load the Physiological object that will be used to insert the
-        # physiological archive into the database
-        physiological = Physiological(self.db, self.verbose)
-
         # check if archive is on the filesystem
         archive_full_path = self.data_dir + archive_rel_name
         blake2            = None
@@ -908,4 +923,3 @@ class Eeg:
         # insert the archive into the physiological_annotation_archive table
         blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
         physiological_annotation_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
-

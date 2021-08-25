@@ -1,6 +1,5 @@
 """This class performs database queries for the physiological_annotation_file table"""
 
-import datetime
 
 __license__ = "GPLv3"
 
@@ -58,8 +57,8 @@ class PhysiologicalAnnotationFile:
 
         annotation_paths = self.db.pselect(
             query = "SELECT DISTINCT FilePath "
-                "FROM physiological_annotation_file "
-                "WHERE PhysiologicalFileID = %s",
+                    "FROM physiological_annotation_file "
+                    "WHERE PhysiologicalFileID = %s",
             args=(physiological_file_id,)
         )
 

@@ -1,11 +1,9 @@
-"""This class performs database queries for BIDS physiological dataset (EEG, MEG...)
-"""
+"""This class performs database queries for BIDS physiological dataset (EEG, MEG...)"""
 
 import sys
 import re
 import os
 import subprocess
-
 import lib.exitcode
 from lib.database_lib.physiologicalannotationfile import PhysiologicalAnnotationFile
 from lib.database_lib.physiologicalannotationparameter import PhysiologicalAnnotationParameter
@@ -112,9 +110,9 @@ class Physiological:
         query = "SELECT pf.PhysiologicalFileID, pf.FilePath "     \
                 "FROM physiological_file AS pf "     \
                 "JOIN physiological_parameter_file " \
-                    "USING (PhysiologicalFileID) "   \
+                "USING (PhysiologicalFileID) "   \
                 "JOIN parameter_type "               \
-                    "USING (ParameterTypeID) "       \
+                "USING (ParameterTypeID) "       \
                 "WHERE Value=%s"
 
         results = self.db.pselect(query=query, args=(blake2b_hash,))
@@ -215,8 +213,7 @@ class Physiological:
             col_names = (
                 'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
             )
-            parameter_desc = parameter_name + " magically created by" \
-                             " lib.physiological python class"
+            parameter_desc = parameter_name + " magically created by lib.physiological python class"
             source_from    = 'physiological_parameter_file'
             values = (
                 parameter_name, 'text', parameter_desc, source_from, 0
@@ -575,8 +572,7 @@ class Physiological:
             physiological_file_id, 'event_file_blake2b_hash', blake2
         )
 
-    def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id,
-                          blake2):
+    def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id, blake2):
         """
         Inserts the annotation metadata information read from the file *annotations.json
         into the physiological_annotation_file, physiological_annotation_parameter
@@ -597,12 +593,21 @@ class Physiological:
         optional_fields = (
             'Sources',  'Author', 'LabelDescription'
         )
+
         for field in optional_fields:
             if field not in annotation_metadata.keys():
                 annotation_metadata[field] = None
 
-        annotation_file_id = self.physiological_annotation_file_obj.insert(physiological_file_id, 'json', annotation_metadata_file)
-        self.physiological_annotation_parameter_obj.insert(annotation_file_id, annotation_metadata['Sources'], annotation_metadata['Author'])
+        annotation_file_id = self.physiological_annotation_file_obj.insert(
+            physiological_file_id,
+            'json',
+            annotation_metadata_file
+        )
+        self.physiological_annotation_parameter_obj.insert(
+            annotation_file_id,
+            annotation_metadata['Sources'],
+            annotation_metadata['Author']
+        )
         self.physiological_annotation_label_obj.insert(list(annotation_metadata['LabelDescription'].items()))
 
         # insert blake2b hash of annotation file into physiological_parameter_file
@@ -610,8 +615,7 @@ class Physiological:
             physiological_file_id, 'annotation_file_blake2b_hash', blake2
         )
 
-    def insert_annotation_data(self, annotation_data, annotation_file, physiological_file_id,
-                          blake2):
+    def insert_annotation_data(self, annotation_data, annotation_file, physiological_file_id, blake2):
         """
         Inserts the annotation information read from the file *annotations.tsv
         into the physiological_annotation_file and physiological_annotation_instance tables,
@@ -629,7 +633,11 @@ class Physiological:
          :type blake2               : str
         """
 
-        annotation_file_id = self.physiological_annotation_file_obj.insert(physiological_file_id, 'tsv', annotation_file)
+        annotation_file_id = self.physiological_annotation_file_obj.insert(
+            physiological_file_id,
+            'tsv',
+            annotation_file
+        )
 
         annotation_values = []
         for row in annotation_data:
@@ -649,8 +657,10 @@ class Physiological:
             if "n/a" in row['channels']:
                 row['channels'] = None
 
-            labelID = self.physiological_annotation_label_obj.grep_id(row['label'], insert_if_not_found=True))
-            paramID = self.physiological_annotation_parameter_obj.grep_id_from_physiological_file_id(physiological_file_id)
+            labelID = self.physiological_annotation_label_obj.grep_id(row['label'], insert_if_not_found=True)
+            paramID = self.physiological_annotation_parameter_obj.grep_id_from_physiological_file_id(
+                physiological_file_id
+            )
 
             values_tuple = (
                 str(annotation_file_id),
@@ -813,26 +823,22 @@ class Physiological:
             chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
             # the final chunk path will be /data/%PROJECT%/data/bids_imports
             # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
-            chunk_path = chunk_root_dir \
-                           + os.path.splitext(os.path.basename(file_path))[0] \
-                           + '.chunks'
+            chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
             if file_type == 'set':
-                script = os.environ['LORIS_MRI'] \
-                         + '/python/react-series-data-viewer/eeglab_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + \
-                          ' --destination ' + chunk_root_dir
-            elif file_type =='edf':
-                script = os.environ['LORIS_MRI'] \
-                         + '/python/react-series-data-viewer/edf_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + \
-                          ' --destination ' + chunk_root_dir
+                script = os.environ['LORIS_MRI'] + '/python/react-series-data-viewer/eeglab_to_chunks.py'
+                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
+            elif file_type == 'edf':
+                script = os.environ['LORIS_MRI'] + '/python/react-series-data-viewer/edf_to_chunks.py'
+                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
 
         # chunk the electrophysiology dataset if a command was determined above
         if command:
             try:
                 subprocess.call(
-                    command,                       shell=True,
-                    stdout=open(os.devnull, 'wb'), stderr=open(os.devnull, 'wb')
+                    command,
+                    shell = True,
+                    stdout = open(os.devnull, 'wb'),
+                    stderr = open(os.devnull, 'wb')
                 )
             except subprocess.CalledProcessError:
                 print('ERROR: ' + script + ' execution failure')
@@ -842,6 +848,6 @@ class Physiological:
             if os.path.isdir(chunk_path):
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
-                    parameter_name        = 'electrophyiology_chunked_dataset_path',
-                    value                 = chunk_path.replace(data_dir,'')
+                    parameter_name = 'electrophyiology_chunked_dataset_path',
+                    value = chunk_path.replace(data_dir, '')
                 )

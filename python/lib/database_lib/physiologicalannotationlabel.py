@@ -1,6 +1,5 @@
 """This class performs database queries for the physiological_annotation_label table"""
 
-import datetime
 
 __license__ = "GPLv3"
 
@@ -52,4 +51,3 @@ class PhysiologicalAnnotationLabel:
         return self.db.grep_id_from_lookup_table(
             'AnnotationLabelID', self.table, 'LabelName', label, insert_if_not_found=insert_if_not_found
         )
-
