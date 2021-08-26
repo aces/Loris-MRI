@@ -737,10 +737,10 @@ class Eeg:
                 annotation_paths = []
                 annotation_paths.extend([
                     self.copy_file_to_loris_bids_dir(
-                        annotation_metadata_file.path, derivatives
+                        annotation_data_file.path, derivatives
                     ),
                     self.copy_file_to_loris_bids_dir(
-                        annotation_data_file.path, derivatives
+                        annotation_metadata_file.path, derivatives
                     )
                 ])
 

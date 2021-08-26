@@ -20,7 +20,7 @@ class PhysiologicalAnnotationLabel:
         self.table = 'physiological_annotation_label'
         self.verbose = verbose
 
-    def insert(self, labelData):
+    def insert(self, annotation_file_id, label_name, label_desc):
         """
         Inserts a new entry in the physiological_annotation_label table.
 
@@ -30,8 +30,8 @@ class PhysiologicalAnnotationLabel:
 
         self.db.insert(
             table_name   = self.table,
-            column_names = ('LabelName', 'LabelDescription'),
-            values       = labelData
+            column_names = ('AnnotationFileID', 'LabelName', 'LabelDescription'),
+            values       = (annotation_file_id, label_name, label_desc)
         )
 
     def grep_id(self, label, insert_if_not_found):

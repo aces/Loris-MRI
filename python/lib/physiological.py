@@ -608,7 +608,9 @@ class Physiological:
             annotation_metadata['Sources'],
             annotation_metadata['Author']
         )
-        self.physiological_annotation_label_obj.insert(list(annotation_metadata['LabelDescription'].items()))
+
+        for label_name, label_desc in annotation_metadata['LabelDescription'].items():
+            self.physiological_annotation_label_obj.insert(annotation_file_id, label_name, label_desc)
 
         # insert blake2b hash of annotation file into physiological_parameter_file
         self.insert_physio_parameter_file(
