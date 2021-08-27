@@ -1,5 +1,7 @@
 """This class gather functions for session handling."""
 
+from datetime import datetime
+from lib.api import Api
 
 __license__ = "GPLv3"
 
@@ -19,7 +21,7 @@ class Session:
         db.connect()
 
         session = Session(
-            verbose, cand_id, visit_label, 
+            verbose, cand_id, visit_label,
             center_id, project_id, subproject_id
         )
 
@@ -59,7 +61,7 @@ class Session:
         self.project_id    = project_id
         self.subproject_id = subproject_id
 
-                
+
     def create_session(self, db):
         """
         Creates a session using BIDS information.
@@ -96,6 +98,7 @@ class Session:
 
         return loris_session_info
 
+
     def get_session_info_from_loris(self, db):
         """
         Grep session information from the session table using CandID and
@@ -114,3 +117,26 @@ class Session:
         )
 
         return loris_session_info[0] if loris_session_info else None
+
+
+    def start_visit_stage(self, db, visit_date):
+        """
+        Start the visit using BIDS information.
+
+        :param db        : database handler object
+         :type db        : object
+        :param visit_date: visit date
+         :type visit_date: date
+        """
+
+        if self.verbose:
+            print("Starting visit stage for " + self.visit_label + " and CandID "  + self.cand_id)
+
+        api = Api(self.verbose)
+
+        site = db.grep_id_from_lookup_table('Name', 'psc', 'CenterID', self.center_id)
+        subproject = db.grep_id_from_lookup_table('title', 'subproject', 'SubprojectID', self.subproject_id)
+        project = db.grep_id_from_lookup_table('Name', 'Project', 'ProjectID', self.project_id)
+        date = datetime.fromisoformat(visit_date.replace('Z', '+00:00')).strftime('%Y-%m-%d')
+
+        api.start_next_stage(self.cand_id, self.visit_label, site, subproject, project, date)

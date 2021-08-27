@@ -8,6 +8,7 @@ import getopt
 import re
 import lib.exitcode
 import lib.utilities
+import pandas as pd
 from lib.database   import Database
 from lib.candidate  import Candidate
 from lib.bidsreader import BidsReader
@@ -30,6 +31,7 @@ def main():
     verbose     = False
     createcand  = False
     createvisit = False
+    startvisit  = False
     profile     = ''
 
     long_options = [
@@ -45,11 +47,12 @@ def main():
         '\t-d, --directory      : BIDS directory to parse & insert into LORIS\n'
         '\t-c, --createcandidate: to create BIDS candidates in LORIS (optional)\n'
         '\t-s, --createsession  : to create BIDS sessions in LORIS (optional)\n'
+        '\t-n, --startvisit     : to start Visit stage in LORIS (optional)\n'
         '\t-v, --verbose        : be verbose\n'
     )
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csv', long_options)
+        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csvn', long_options)
     except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
@@ -68,12 +71,14 @@ def main():
             createcand = True
         elif opt in ('-s', '--createsession'):
             createvisit = True
+        elif opt in ('-n', '--startvisit'):
+            startvisit = True
 
     # input error checking and load config_file file
     config_file = input_error_checking(profile, bids_dir, usage)
 
     # read and insert BIDS data
-    read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit)
+    read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, startvisit)
 
 
 def input_error_checking(profile, bids_dir, usage):
@@ -127,7 +132,7 @@ def input_error_checking(profile, bids_dir, usage):
     return config_file
 
 
-def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit):
+def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, startvisit):
     """
     Read the provided BIDS structure and import it into the database.
 
@@ -141,6 +146,8 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
      :type createcand : bool
     :param createvisit: allow database visit creation if it did not exist already
      :type createvisit: bool
+    :param startvisit : allow database visit stage to be started if it is not started
+     :type startvisit : bool
     """
 
     # database connection
@@ -196,14 +203,23 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
             if(len(subproject_info) > 0):
                 subproject_id = subproject_info[0]['SubprojectID']
 
-        # greps BIDS session's info for the candidate from LORIS (creates the
-        # session if it does not exist yet in LORIS and the createvisit is set
-        # to true. If no visit in BIDS structure, then use default visit_label
-        # stored in the Config module)
+        visit_date = None
+        if startvisit:
+            scans_data = pd.concat([
+                scan_data.to_df()
+                for scan_data in bids_reader.bids_layout.get_collections('session', 'scans')
+            ])
+            visit_date = min(scans_data['acq_time'])
+
+        # greps BIDS session's info for the candidate from LORIS
+        # Creates the session if it does not exist yet in LORIS and createvisit is set to true.
+        # If no visit in BIDS structure, then use default visit_label stored in the Config module
+        # Start the visit stage if it is not started yet in LORIS and startvisit is set to true.
         loris_sessions_info = grep_candidate_sessions_info(
-            bids_sessions, bids_id,    cand_id,       loris_bids_root_dir,
-            createvisit,   verbose,    db,            default_bids_vl,
-            center_id,     project_id, subproject_id
+            bids_sessions, bids_id,         cand_id,    loris_bids_root_dir,
+            createvisit,   startvisit,      visit_date, verbose,
+            db,            default_bids_vl, center_id,  project_id,
+            subproject_id
         )
 
     # read list of modalities per session / candidate and register data
@@ -354,9 +370,9 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id,        db,
 
 
 def grep_or_create_session_db_info(
-        bids_id,   cand_id,     visit_label,
-        db,        createvisit, verbose,       loris_bids_dir,
-        center_id, project_id,  subproject_id):
+        bids_id,        cand_id,    visit_label, db,
+        createvisit,    startvisit, visit_date,  verbose,
+        loris_bids_dir, center_id,  project_id,  subproject_id):
     """
     Greps (or creates if session does not exist and createvisit is true) the
     BIDS session in the LORIS session's table and return a list of
@@ -372,6 +388,10 @@ def grep_or_create_session_db_info(
      :type db            : object
     :param createvisit   : if true, creates the session in LORIS
      :type createvisit   : bool
+    :param startvisit    : if true, starts the visit stage in LORIS
+     :type startvisit    : bool
+    :param visit_date    : set if startvisit is true to visit date, else None
+     :type visit_date    : date | None
     :param verbose       : if true, prints out information while executing
      :type verbose       : bool
     :param loris_bids_dir: LORIS BIDS import root directory to copy data
@@ -396,6 +416,13 @@ def grep_or_create_session_db_info(
     if not loris_vl_info and createvisit:
         loris_vl_info = session.create_session(db)
 
+    # get current stage
+    loris_stage_info = loris_vl_info['Current_stage']
+
+    # if current stage is not started
+    if loris_stage_info == 'Not Started' and startvisit:
+        loris_vl_info = session.start_visit_stage(db, visit_date)
+
     # create the visit directory for in the candidate folder of the LORIS
     # BIDS import directory
     lib.utilities.create_dir(
@@ -406,9 +433,10 @@ def grep_or_create_session_db_info(
     return loris_vl_info
 
 
-def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_bids_dir,
-                                 createvisit, verbose,    db,            default_vl,
-                                 center_id,   project_id, subproject_id):
+def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,    loris_bids_dir,
+                                 createvisit, startvisit, visit_date, verbose,
+                                 db,          default_vl, center_id,  project_id,
+                                 subproject_id):
     """
     Greps all session info dictionaries for a given candidate and aggregates
     them into a list, with one entry per session. If the session does not
@@ -423,8 +451,12 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
      :type cand_id       : int
     :param loris_bids_dir: LORIS BIDS import root directory to copy data
      :type loris_bids_dir: str
-    :param createvisit   : if true, creates the visits in LORIS
+    :param createvisit   : if true, creates the visit in LORIS
      :type createvisit   : bool
+    :param startvisit    : if true, start the visit stage in LORIS
+     :type startvisit    : bool
+    :param visit_date    : set if startvisit is true to visit date, else None
+     :type visit_date    : date | None
     :param verbose       : if true, prints out information while executing
      :type verbose       : bool
     :param db            : database handler object
@@ -433,6 +465,10 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
      :type default_vl    : str
     :param center_id     : center ID associated to the candidate and visit
      :type center_id     : int
+    :param project_id    : project ID associated to the candidate and visit
+     :type project_id    : int
+    :param subproject_id : subproject ID associated to the candidate and visit
+     :type subproject_id : int
 
     :return: list of all session's dictionaries for a given candidate
      :rtype: list
@@ -442,17 +478,17 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
 
     if not bids_ses:
         loris_ses_info = grep_or_create_session_db_info(
-            bids_id,     cand_id,    default_vl,     db,
-            createvisit, verbose,    loris_bids_dir,
-            center_id,   project_id, subproject_id
+            bids_id,        cand_id,    default_vl, db,
+            createvisit,    startvisit, visit_date, verbose,
+            loris_bids_dir, center_id,  project_id, subproject_id
         )
         loris_sessions_info.append(loris_ses_info)
     else:
         for visit_label in bids_ses:
             loris_ses_info = grep_or_create_session_db_info(
-                bids_id,     cand_id,    visit_label,    db,
-                createvisit, verbose,    loris_bids_dir,
-                center_id,   project_id, subproject_id
+                bids_id,        cand_id,    visit_label, db,
+                createvisit,    startvisit, visit_date,  verbose,
+                loris_bids_dir, center_id,  project_id,  subproject_id
             )
             loris_sessions_info.append(loris_ses_info)
 
