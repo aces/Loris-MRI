@@ -24,14 +24,16 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
 #### 1. Create directories and download Loris-MRI code
 
    ```bash
-   sudo mkdir -p /data/$projectname/bin/mri
+   sudo mkdir -p /data/$projectname
+   sudo mkdir -p /opt/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
-   cd /data/$projectname/bin
+   sudo chown -R lorisadmin:lorisadmin /opt/$projectnawe
+   cd /opt/$projectname/bin
    ```
 
 Get the code: Download the latest release from the 
 [releases page](https://github.com/aces/Loris-MRI/releases) 
-and extract it to `/data/$projectname/bin/mri`
+and extract it to `/opt/$projectname/bin/mri`
 
 #### 2. Install Python 3 with `pip` and `virtualenv`
 
@@ -67,7 +69,7 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
 #### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
    ```bash 
-   cd /data/$projectname/bin/mri/
+   cd /opt/$projectname/bin/mri/
    bash ./imaging_install.sh
    ```
 
@@ -87,17 +89,17 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
   `mkdir/chmod/chown` commands starting at 
   [imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/main/imaging_install.sh#L97)
 
-  Note: The installer will allow Apache to write to the `/data/` directories by 
+  Note: The installer will allow Apache to write to the `/data/` and `/opt/` directories by 
   adding user `lorisadmin` to the Apache linux group.  To ensure this change takes 
   effect, log out and log back into your terminal session before running the 
   imaging pipeline. The installer will also set Apache group ownership of certain 
-  `/data/` subdirectories.
+  `/data/` and `/opt/` subdirectories.
 
 #### 5. Configure paths and environment
 
    Ensure that `/home/lorisadmin/.bashrc` includes the statement:
 
-   ```source /data/$projectname/bin/mri/environment```
+   ```source /opt/$projectname/bin/mri/environment```
 
    Then source the `.bashrc` file.   
 

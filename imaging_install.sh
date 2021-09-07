@@ -47,7 +47,7 @@ stty -echo
 read -p "What is the MySQL password? " mysqlpass; echo
 stty echo
 read -p "What is the Linux user which the installation will be based on? " USER
-read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
+read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/data..... and /opt/gusto/bin
 read -p "What is your email address? " email
 read -p "What prod file name would you like to use? default: prod " prodfilename
 if [ -z "$prodfilename" ]; then
@@ -159,7 +159,7 @@ echo "Modifying environment script"
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 sed -i "s#%MINC_TOOLKIT_DIR%#$MINC_TOOLKIT_DIR#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
-#source /data/$PROJ/bin/$mridirname/environment
+#source /opt/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
 echo
 
@@ -183,14 +183,14 @@ fi
 ######################change permissions ###########################################
 ####################################################################################
 #echo "Changing permissions"
-
-sudo chmod -R 770 $mridir/dicom-archive/.loris_mri/
+sudo chmod -R 770 /opt/$PROJ/
 sudo chmod -R 770 /data/$PROJ/
 
 # Making lorisadmin part of the apache group
 sudo usermod -a -G $group $USER
 
-#Setting group permissions for all files/dirs under /data/$PROJ/
+#Setting group permissions for all files/dirs under /data/$PROJ/ and /opt/$PROJ/
+sudo chgrp $group -R /opt/$PROJ/
 sudo chgrp $group -R /data/$PROJ/
 
 #Setting group ID for all files/dirs under /data/$PROJ/data
@@ -271,8 +271,8 @@ mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPD
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='imagePath')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$PROJ' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='prefix')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$email' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='mail_user')"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/bin/mri/dicom-archive/get_dicom_info.pl' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='get_dicom_info')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/opt/$PROJ/bin/mri/dicom-archive/get_dicom_info.pl' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='get_dicom_info')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/tarchive/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='tarchiveLibraryDir')"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/bin/mri/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MRICodePath')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/opt/$PROJ/bin/mri/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MRICodePath')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$MINC_TOOLKIT_DIR' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MINCToolsPath')"
 echo
