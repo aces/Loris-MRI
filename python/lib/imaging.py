@@ -103,10 +103,8 @@ class Imaging:
 
         query = "SELECT f.FileID, f.File " \
                 "FROM files AS f " \
-                "JOIN parameter_file " \
-                    "USING (FileID) " \
-                "JOIN parameter_type " \
-                    "USING (ParameterTypeID) " \
+                "JOIN parameter_file USING (FileID) " \
+                "JOIN parameter_type USING (ParameterTypeID) " \
                 "WHERE Value=%s"
 
         results = self.db.pselect(query=query, args=(blake2b_hash,))
@@ -198,8 +196,7 @@ class Imaging:
             col_names = (
                 'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
             )
-            parameter_desc = parameter_name + " magically created by" \
-                             " lib.imaging python class"
+            parameter_desc = parameter_name + " magically created by lib.imaging python class"
             source_from    = 'parameter_file'
             values = (
                 parameter_name, 'text', parameter_desc, source_from, 0
@@ -400,7 +397,7 @@ class Imaging:
             # if no PSCID returned in the row, then PSCID and CandID do not match
             subject_id_dict['message'] = '=> PSCID and CandID of the image mismatch'
             # Message is undefined
-			subject_id_dict['CandMismatchError'] = message
+            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
             return False
 
         # check if visit label is valid
@@ -417,7 +414,7 @@ class Imaging:
             subject_id_dict['message'] = '=> Visit Label ' + visit_label \
                                          + ' does not exist in Visit_Windows'
             # Message is undefined
-			subject_id_dict['CandMismatchError'] = message
+            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
             return False
 
     def determine_study_center(self, tarchive_info_dict):
