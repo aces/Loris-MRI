@@ -137,6 +137,6 @@ class Session:
         site = db.grep_id_from_lookup_table('Name', 'psc', 'CenterID', self.center_id)
         subproject = db.grep_id_from_lookup_table('title', 'subproject', 'SubprojectID', self.subproject_id)
         project = db.grep_id_from_lookup_table('Name', 'Project', 'ProjectID', self.project_id)
-        date = datetime.fromisoformat(visit_date.replace('Z', '+00:00')).strftime('%Y-%m-%d')
+        date = visit_date[0:10]
 
         api.start_next_stage(self.cand_id, self.visit_label, site, subproject, project, date)
