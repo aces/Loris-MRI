@@ -58,7 +58,7 @@ sub getSubjectIDs {
         # ($subjectID{'SubprojectID'}) = $patientName =~ /_(\d+)$/;
         # When createVisitLabel is set to 0, $subjectID{'SubprojectID'} is ignored.
 
-        # If config setting 'useProject' and 'createVisitLabel' are true
+        # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
         # newly created visit. Assuming for example that all patients
         # names that contain the string 'HOSPITAL' are associated to visit
@@ -88,7 +88,7 @@ sub getSubjectIDs {
         #     ? 1 : 2;
         # When createVisitLabel is set to 0, $subjectID{'SubprojectID'} is ignored.
         
-        # If config setting 'useProject' and 'createVisitLabel' are true
+        # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
         # newly created visit. Assuming for example that candidates with a
         # candidate ID greater than 400000 are seen in project 1 and others are

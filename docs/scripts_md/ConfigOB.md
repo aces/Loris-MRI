@@ -188,12 +188,6 @@ Get the is\_qsub Config setting.
 
 RETURN: (boolean) 1 if is\_qsub is set to Yes in the Config module, 0 otherwise
 
-### getUseProjects()
-
-Get the useProjects Config setting.
-
-RETURN: (boolean) 1 if useProjects is set to Yes in the Config module, 0 otherwise
-
 ### getCreateCandidates()
 
 Get the createCandidates Config setting.
