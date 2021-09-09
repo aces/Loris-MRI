@@ -4,16 +4,12 @@ import sys
 import re
 import os
 import datetime
-import subprocess
-import nilearn
-import numpy   as np
 import nibabel as nib
 
 from nilearn import plotting
 from nilearn import image
 
 import lib.exitcode
-from lib.candidate import Candidate
 from lib.database_lib.site   import Site
 from lib.database_lib.config import Config
 
@@ -105,12 +101,10 @@ class Imaging:
          :rtype: int
         """
 
-        query = "SELECT f.FileID, f.File "     \
-                "FROM files AS f "     \
-                "JOIN parameter_file " \
-                    "USING (FileID) "   \
-                "JOIN parameter_type "               \
-                    "USING (ParameterTypeID) "       \
+        query = "SELECT f.FileID, f.File " \
+                "FROM files AS f " \
+                "JOIN parameter_file USING (FileID) " \
+                "JOIN parameter_type USING (ParameterTypeID) " \
                 "WHERE Value=%s"
 
         results = self.db.pselect(query=query, args=(blake2b_hash,))
@@ -202,8 +196,7 @@ class Imaging:
             col_names = (
                 'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
             )
-            parameter_desc = parameter_name + " magically created by" \
-                             " lib.imaging python class"
+            parameter_desc = parameter_name + " magically created by lib.imaging python class"
             source_from    = 'parameter_file'
             values = (
                 parameter_name, 'text', parameter_desc, source_from, 0
@@ -403,7 +396,8 @@ class Imaging:
         elif not results[0]['PSCID']:
             # if no PSCID returned in the row, then PSCID and CandID do not match
             subject_id_dict['message'] = '=> PSCID and CandID of the image mismatch'
-            subject_id_dict['CandMismatchError'] = message
+            # Message is undefined
+            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
             return False
 
         # check if visit label is valid
@@ -419,7 +413,8 @@ class Imaging:
         else:
             subject_id_dict['message'] = '=> Visit Label ' + visit_label \
                                          + ' does not exist in Visit_Windows'
-            subject_id_dict['CandMismatchError'] = message
+            # Message is undefined
+            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
             return False
 
     def determine_study_center(self, tarchive_info_dict):
@@ -555,7 +550,7 @@ class Imaging:
 
         volume = image.index_img(file_path, 0) if is_4d_data else file_path
 
-        nilearn.plotting.plot_anat(
+        plotting.plot_anat(
             anat_img     = volume,
             output_file  = file_info['data_dir_path'] + 'pic/' + pic_rel_path,
             display_mode = 'ortho',
