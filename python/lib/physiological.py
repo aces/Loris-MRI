@@ -656,10 +656,10 @@ class Physiological:
             if not row['onset'].isdecimal():
                 row['onset'] = None
 
-            if "n/a" in row['channels']:
+            if row['channels'] and "n/a" in row['channels']:
                 row['channels'] = None
 
-            if "n/a" in row['absolute_time']:
+            if row['absolute_time'] and "n/a" in row['absolute_time']:
                 row['absolute_time'] = None
 
             labelID = self.physiological_annotation_label_obj.grep_id(row['label'], insert_if_not_found=True)
