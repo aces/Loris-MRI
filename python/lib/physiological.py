@@ -659,6 +659,9 @@ class Physiological:
             if "n/a" in row['channels']:
                 row['channels'] = None
 
+            if "n/a" in row['absolute_time']:
+                row['absolute_time'] = None
+
             labelID = self.physiological_annotation_label_obj.grep_id(row['label'], insert_if_not_found=True)
             paramID = self.physiological_annotation_parameter_obj.grep_id_from_physiological_file_id(
                 physiological_file_id
