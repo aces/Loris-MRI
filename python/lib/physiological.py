@@ -588,6 +588,9 @@ class Physiological:
          :type physiological_file_id    : int
         :param blake2                   : blake2b hash of the annotation file
          :type blake2                   : str
+
+        :return: annotation file id
+         :rtype: int
         """
 
         optional_fields = (
@@ -617,6 +620,8 @@ class Physiological:
             physiological_file_id, 'annotation_file_blake2b_hash', blake2
         )
 
+        return annotation_file_id
+
     def insert_annotation_data(self, annotation_data, annotation_file, physiological_file_id, blake2):
         """
         Inserts the annotation information read from the file *annotations.tsv
@@ -633,6 +638,9 @@ class Physiological:
          :type physiological_file_id: int
         :param blake2               : blake2b hash of the task event file
          :type blake2               : str
+        
+        :return: annotation file id
+         :rtype: int
         """
 
         annotation_file_id = self.physiological_annotation_file_obj.insert(
@@ -685,6 +693,8 @@ class Physiological:
         self.insert_physio_parameter_file(
             physiological_file_id, 'annotation_file_blake2b_hash', blake2
         )
+
+        return annotation_file_id
 
     def grep_archive_info_from_file_id(self, physiological_file_id):
         """

@@ -13,6 +13,7 @@ from lib.physiological                               import Physiological
 from lib.scanstsv                                    import ScansTSV
 from lib.database_lib.physiologicalannotationfile    import PhysiologicalAnnotationFile
 from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotationArchive
+from lib.database_lib.physiologicalannotationrel     import PhysiologicalAnnotationRel
 
 
 __license__ = "GPLv3"
@@ -701,27 +702,17 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
 
-        annotation_metadata_file = self.bids_layout.get_nearest(
-            original_physiological_file_path,
-            return_type = 'tuple',
-            strict = False,
-            extension = 'json',
-            suffix = 'annotations',
-            all_ = False,
-            full_search = False,
-        )
-
-        annotation_data_file = self.bids_layout.get_nearest(
+        annotation_data_files = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
             extension = 'tsv',
             suffix = 'annotations',
-            all_ = False,
-            full_search = False,
+            all_ = True,
+            full_search = True,
         )
 
-        if not (annotation_metadata_file) or not(annotation_data_file):
+        if not(annotation_data_files):
             message = "WARNING: no annotations files associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -733,34 +724,51 @@ class Eeg:
             )
 
             if not annotation_paths:
-                # copy the annotation file to the LORIS BIDS import directory
                 annotation_paths = []
-                annotation_paths.extend([
-                    self.copy_file_to_loris_bids_dir(
+
+                for annotation_data_file in annotation_data_files:
+                    # copy the annotation file to the LORIS BIDS import directory
+
+                    annotation_metadata_file = self.bids_layout.get_nearest(
+                        annotation_data_file.path,
+                        return_type = 'tuple',
+                        strict = False,
+                        extension = 'json',
+                        suffix = 'annotations',
+                        all_ = False,
+                        full_search = False,
+                    )
+
+                    annotation_data_path = self.copy_file_to_loris_bids_dir(
                         annotation_data_file.path, derivatives
-                    ),
-                    self.copy_file_to_loris_bids_dir(
+                    )
+
+                    annotation_metadata_path = self.copy_file_to_loris_bids_dir(
                         annotation_metadata_file.path, derivatives
                     )
-                ])
 
-                # get the blake2b hash of the metadata file
-                blake2 = blake2b(annotation_metadata_file.path.encode('utf-8')).hexdigest()
-                # insert annotation metadata in the database
-                with open(annotation_metadata_file.path) as metadata_file:
-                    annotation_metadata = json.load(metadata_file)
+                    # get the blake2b hash of the metadata file
+                    blake2 = blake2b(annotation_metadata_file.path.encode('utf-8')).hexdigest()
+                    # insert annotation metadata in the database
+                    with open(annotation_metadata_file.path) as metadata_file:
+                        annotation_metadata = json.load(metadata_file)
 
-                physiological.insert_annotation_metadata(
-                    annotation_metadata, annotation_paths[1], physiological_file_id, blake2
-                )
+                    annotation_metadata_id = physiological.insert_annotation_metadata(
+                        annotation_metadata, annotation_metadata_path, physiological_file_id, blake2
+                    )
 
-                # get the blake2b hash of the data file
-                blake2 = blake2b(annotation_data_file.path.encode('utf-8')).hexdigest()
-                # insert annotation data in the database
-                annotation_data = utilities.read_tsv_file(annotation_data_file.path)
-                physiological.insert_annotation_data(
-                    annotation_data, annotation_paths[0], physiological_file_id, blake2
-                )
+                    # get the blake2b hash of the data file
+                    blake2 = blake2b(annotation_data_file.path.encode('utf-8')).hexdigest()
+                    # insert annotation data in the database
+                    annotation_data = utilities.read_tsv_file(annotation_data_file.path)
+                    annotation_data_id = physiological.insert_annotation_data(
+                        annotation_data, annotation_data_path, physiological_file_id, blake2
+                    )
+
+                    physiological_annotation_rel_obj = PhysiologicalAnnotationRel(self.db, self.verbose)
+                    physiological_annotation_rel_obj.insert(annotation_data_id, annotation_metadata_id)
+
+                    annotation_paths.extend([annotation_data_path, annotation_metadata_path])
 
         return annotation_paths
 
