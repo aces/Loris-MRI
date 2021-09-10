@@ -85,7 +85,6 @@ use constant CREATE_NII                => 'create_nii';
 use constant HORIZONTAL_PICS           => 'horizontalPics';
 use constant IS_QSUB                   => 'is_qsub';
 use constant CREATE_CANDIDATES         => 'createCandidates';
-use constant USE_PROJECTS              => 'useProjects';
 
 =pod
 
@@ -411,21 +410,6 @@ sub getIsQsub {
     my $self = shift;
 
     my $value = &$getConfigSettingRef($self, IS_QSUB);
-
-    return $getBooleanRef->($value);
-}
-
-=head3 getUseProjects()
-
-Get the useProjects Config setting.
-
-RETURN: (boolean) 1 if useProjects is set to Yes in the Config module, 0 otherwise
-
-=cut
-sub getUseProjects {
-    my $self = shift;
-
-    my $value = &$getConfigSettingRef($self, USE_PROJECTS);
 
     return $getBooleanRef->($value);
 }
