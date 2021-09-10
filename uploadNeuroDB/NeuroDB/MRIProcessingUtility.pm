@@ -1617,7 +1617,7 @@ sub CreateMRICandidates {
     $query = "SELECT ProjectID FROM Project WHERE ProjectID = ?";
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'ProjectID'});
-          
+
     if($sth->rows != 1) {
         $message = "ERROR: Cannot create candidate $pscID with ProjectID "
                  . "$subjectIDsref->{'ProjectID'}: that project ID is invalid.\n";
