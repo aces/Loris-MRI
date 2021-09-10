@@ -211,7 +211,7 @@ sub getSessionInformation {
     
     if($subjectIDref->{'isPhantom'}) {
         # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
-        my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr, $db);
+        my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, \$dbh, $db);
         $centerID = $pscInfo[1];
     }
     # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
