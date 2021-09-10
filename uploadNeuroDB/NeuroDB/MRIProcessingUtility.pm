@@ -1699,7 +1699,7 @@ sub CreateMRICandidates {
 
         exit $NeuroDB::ExitCodes::INSERT_FAILURE;
     }
-        
+
     $query = "SELECT ProjectID FROM Project WHERE ProjectID = ?";
     my $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute($subjectIDsref->{'ProjectID'});
@@ -1711,7 +1711,7 @@ sub CreateMRICandidates {
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
 
         exit $NeuroDB::ExitCodes::INSERT_FAILURE;
-    }  
+    }
 
     # Create non-existent candidate if the profile allows for Candidate creation
     if ($tarchiveInfo->{'PatientSex'} eq 'F') {
@@ -1731,7 +1731,7 @@ sub CreateMRICandidates {
         RegistrationCenterID => $centerID,
         UserID               => $User,
     );
-    
+
     $query = sprintf(
         "INSERT INTO candidate (%s) VALUES (%s)",
         join(',', keys %record)         . ',Date_active,Date_registered,Entity_type',
