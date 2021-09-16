@@ -44,7 +44,6 @@ class Api:
 
         try:
             resp_json = json.loads(resp.content.decode('ascii'))
-            print(resp_json)
             if resp_json.get('error'):
                 print(resp_json.get('error'))
             else:
@@ -72,7 +71,7 @@ class Api:
             verify=False
         )
 
-        print('resp.status_code:')
-        print(resp.status_code)
-        print('resp.text:')
-        print(resp.text)
+        if (resp.status and resp.status.code and resp.status.code == 200):
+            print("Next stage successfully started.")
+        else:
+            print("An error occured. Can't start next stage.")
