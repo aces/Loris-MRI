@@ -49,9 +49,8 @@ class Api:
                 print(resp_json.get('error'))
             else:
                 self.token = resp_json.get('token')
-        except:
+        except Exception:
             print("An error occured. Can't login.")
-
 
     def start_next_stage(self, candid, visit, site, subproject, project, date):
         resp = requests.patch(

@@ -1,6 +1,5 @@
 """This class gather functions for session handling."""
 
-from datetime import datetime
 from lib.api import Api
 
 __license__ = "GPLv3"
@@ -117,7 +116,6 @@ class Session:
         )
 
         return loris_session_info[0] if loris_session_info else None
-
 
     def start_visit_stage(self, db, visit_date):
         """
