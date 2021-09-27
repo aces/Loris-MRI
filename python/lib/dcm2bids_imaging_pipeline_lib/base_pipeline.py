@@ -332,12 +332,12 @@ class BasePipeline:
 
         # check if a project ID was provided in the config file for the visit label
         if not project_id:
-            message = f"Cannot create visit: profile file does not defined the visit's ProjectID"
+            message = "Cannot create visit: profile file does not defined the visit's ProjectID"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
         # check if a subproject ID was provided in the config file for the visit label
         if not subproject_id:
-            message = f"Cannot create visit: profile file does not defined the visit's SubprojectID"
+            message = "Cannot create visit: profile file does not defined the visit's SubprojectID"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
         # check that the project ID and subproject ID refers to an existing row in project_subproject_rel table
@@ -358,8 +358,14 @@ class BasePipeline:
 
         # create the new visit
         session_id = self.session_db_obj.insert_into_session(
-            fields=("CandID", "Visit_label", "CenterID", "VisitNo", "Current_stage", "Scan_done", "Submitted", "SubprojectID", "ProjectID"),
-            values=(cand_id,  visit_label,   center_id,  visit_nb,  "Not Started",   "Y",         "N",         subproject_id,  project_id)
+            fields=(
+                "CandID",    "Visit_label", "CenterID",     "VisitNo",  "Current_stage",
+                "Scan_done", "Submitted",   "SubprojectID", "ProjectID"
+            ),
+            values=(
+                cand_id, visit_label, center_id,     visit_nb,   "Not Started",
+                "Y",     "N",         subproject_id, project_id
+            )
         )
         if session_id:
             self.get_session_info()
