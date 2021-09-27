@@ -9,6 +9,7 @@ import nibabel as nib
 
 from nilearn import image
 
+from lib.database_lib.parameter_type import ParameterType
 import lib.exitcode
 
 __license__ = "GPLv3"
@@ -325,8 +326,7 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    @staticmethod
-    def map_bids_param_to_loris_param(file_parameters):
+    def map_bids_param_to_loris_param(self, file_parameters):
         """
         Maps the BIDS parameters found in the BIDS JSON file with the
         parameter type names of LORIS.
@@ -340,49 +340,8 @@ class Imaging:
          :rtype: dic
         """
 
-        map_dict = {
-            "AcquisitionMatrixPE": "acquisition_matrix",
-            "AcquisitionDateTime": "acquisition_date",
-            "AcquisitionNumber": "acquisition_number",
-            "AcquisitionTime": "acquisition_time",
-            "DeviceSerialNumber": "device_serial_number",
-            "EchoTime": "echo_time",
-            "FlipAngle": "acquisition:flip_angle",
-            "ImageOrientationPatientDICOM": "image_orientation_patient",
-            "ImageType": "image_type",
-            "ImagingFrequency": "imaging_frequency",
-            "InPlanePhaseEncodingDirectionDICOM": "phase_encoding_direction",
-            "InstitutionName": "institution_name",
-            "InversionTime": "inversion_time",
-            "MagneticFieldStrength": "magnetic_field_strength",
-            "Manufacturer": "manufacturer",
-            "ManufacturersModelName": "manufacturer_model_name",
-            "Modality": "modality",
-            "MRAcquisitionType": "mr_acquisition_type",
-            "NumberOfAverages": "number_of_averages",
-            "PatientName": "patient_name",
-            "PatientPosition": "patient_position",
-            "PatientWeight": "patient:weight",
-            "PercentPhaseFOV": "percent_phase_field_of_view",
-            "PercentSampling": "percent_sampling",
-            "PhaseEncodingDirection": "phase_encoding_direction",
-            "PhaseEncodingSteps": "number_of_phase_encoding_steps",
-            "PixelBandwidth": "pixel_bandwidth",
-            "ProtocolName": "protocol_name",
-            "ReceiveCoilName": "receiving_coil",
-            "RepetitionTime": "repetition_time",
-            "SAR": "sar",
-            "ScanningSequence": "scanning_sequence",
-            "SequenceName": "sequence_name",
-            "SequenceVariant": "sequence_variant",
-            "SeriesDescription": "series_description",
-            "SeriesInstanceUID": "series_instance_uid",
-            "SeriesNumber": "series_number",
-            "SliceThickness": "slice_thickness",
-            "SoftwareVersions": "software_versions",
-            "SpacingBetweenSlices": "spacing_between_slices",
-            "StudyInstanceUID": "study_instance_uid",
-        }
+        param_type_obj = ParameterType(self.db, self.verbose)
+        map_dict = param_type_obj.get_bids_to_minc_mapping_dict()
 
         # map BIDS parameters with the LORIS ones
         for param in list(file_parameters):

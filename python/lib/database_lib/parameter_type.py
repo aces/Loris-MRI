@@ -47,3 +47,17 @@ class ParameterType:
 
         results = self.db.pselect(query=query, args=args)
         return results[0]["ParameterTypeID"] if results else None
+
+    def get_bids_to_minc_mapping_dict(self):
+
+        query = "SELECT Name, Alias FROM parameter_type"
+
+        results = self.db.pselect(query=query)
+
+        bids_to_minc_mapping_dict = {}
+        for row_nb in results:
+            minc_param_name = results[row_nb]['Name']
+            bids_param_name = results[row_nb]['Alias']
+            bids_to_minc_mapping_dict[bids_param_name] = minc_param_name
+
+        return bids_to_minc_mapping_dict
