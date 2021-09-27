@@ -6,6 +6,7 @@ import os
 import re
 from lib.database_lib.files import Files
 from lib.database_lib.mri_protocol import MriProtocol
+from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.imaging import Imaging
@@ -76,7 +77,7 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
             if not self.bypass_extra_checks:
-                self._run_extra_file_checks()
+                self._run_extra_file_checks(scan_type_id)
 
         # TODO: plan
         # 17. insert into Db (files + parameter_file)
@@ -270,9 +271,16 @@ class NiftiInsertionPipeline(BasePipeline):
         prot_viol_db_obj = MriProtocolViolatedScans(self.db, self.verbose)
         prot_viol_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
 
-    def _run_extra_file_checks(self):
-        # do extra file checks
-        print("hello")
+    def _run_extra_file_checks(self, scan_type_id):
+
+        # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
+        mri_prot_check_db_obj = MriProtocolChecks(self.db, self.verbose)
+        checks_list = mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
+            self.session_db_obj.session_info_dict, scan_type_id
+        )
+
+        for protocol_check in checks_list:
+            print(protocol_check)
 
     def is_scan_protocol_matching_db_protocol(self, db_prot):
 
