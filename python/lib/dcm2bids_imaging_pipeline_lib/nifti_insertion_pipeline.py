@@ -4,7 +4,6 @@ import json
 import lib.exitcode
 import os
 import re
-from functools import reduce
 from lib.database_lib.files import Files
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
@@ -199,7 +198,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         mri_protocol_db_obj = MriProtocol(self.db, self.verbose)
         protocols_list = mri_protocol_db_obj.get_list_of_possible_protocols_based_on_session_info(
-            self.session_db_obj.session_info_dict, self.scanner_dict["ScannerID"]
+            self.session_db_obj.session_info_dict, self.scanner_dict['ScannerID']
         )
 
         if not len(protocols_list):
@@ -208,28 +207,30 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_info(message, is_error="N", is_verbose="Y")
             return False
 
-        mri_protocol_group_ids = reduce(lambda x: x["MriProtocolGroupID"], protocols_list)
+        mri_protocol_group_ids = set(map(lambda x: x['MriProtocolGroupID'], protocols_list))
         if len(mri_protocol_group_ids) > 1:
             message = f"Warning! More than one protocol group can be used to identify the scan type of {nifti_name}." \
                       f" Ambiguous setup of table mri_protocol_group_target."
             self.log_info(message, is_error="N", is_verbose="Y")
             return False
 
-        self.json_file_dict['MriProtocolGroupID'] = mri_protocol_group_ids[0]
-
         # look for matching protocols
         matching_protocols_list = []
         for protocol in protocols_list:
-            if protocol["series_description_regex"]:
+            if protocol['series_description_regex']:
                 if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
-                    matching_protocols_list.append(protocol["Scan_type"])
+                    matching_protocols_list.append(protocol['Scan_type'])
             elif self.is_scan_protocol_matching_db_protocol(protocol):
-                matching_protocols_list.append(protocol["Scan_type"])
+                matching_protocols_list.append(protocol['Scan_type'])
 
         # if more than one protocol matching, return False, otherwise, return the scan type ID
-        if len(matching_protocols_list) > 1:
-            message = f"Warning! More than one protocol matched the image acquisition parameters of {nifti_name}."
-            self.log_info(message, is_error="N", is_verbose="Y")
+        if not matching_protocols_list:
+            message = f'Warning! Could not identify protocol of {nifti_name}.'
+            self.log_info(message, is_error='N', is_verbose='Y')
+            return False
+        elif len(matching_protocols_list) > 1:
+            message = f'Warning! More than one protocol matched the image acquisition parameters of {nifti_name}.'
+            self.log_info(message, is_error='N', is_verbose='Y')
             return False
         else:
             return matching_protocols_list[0]
@@ -277,30 +278,36 @@ class NiftiInsertionPipeline(BasePipeline):
 
         step_params = self.imaging_obj.get_nifti_image_step_parameters(self.nifti_path)
         length_params = self.imaging_obj.get_nifti_image_length_parameters(self.nifti_path)
-        self.json_file_dict["xstep"] = step_params[0]
-        self.json_file_dict["ystep"] = step_params[1]
-        self.json_file_dict["zstep"] = step_params[2]
-        self.json_file_dict["xspace"] = length_params[0]
-        self.json_file_dict["yspace"] = length_params[1]
-        self.json_file_dict["zspace"] = length_params[2]
-        self.json_file_dict["time"] = length_params[3] if len(length_params) == 4 else None
-        scan_param = self.json_file_dict
-        scan_slice_thick = self.json_file_dict["SliceThickness"]
-        img_type = self.json_file_dict["ImageType"]
-        # TODO handle image type: note: img_type = ["ORIGINAL", "PRIMARY", "M", "ND", "NORM"] in JSON
+        self.json_file_dict['xstep'] = step_params[0]
+        self.json_file_dict['ystep'] = step_params[1]
+        self.json_file_dict['zstep'] = step_params[2]
+        self.json_file_dict['xspace'] = length_params[0]
+        self.json_file_dict['yspace'] = length_params[1]
+        self.json_file_dict['zspace'] = length_params[2]
+        if len(length_params) == 4:
+            self.json_file_dict['time'] = length_params[3]
 
-        if self.in_range(scan_param["RepetitionTime"], db_prot["TR_min"], db_prot["TR_max"]) \
-                and self.in_range(scan_param["EchoTime"], db_prot["TE_min"], db_prot["TE_max"]) \
-                and self.in_range(scan_param["InversionTime"], db_prot["TI_min"], db_prot["TI_max"]) \
-                and self.in_range(scan_param["xstep"], db_prot["xstep_min"], db_prot["xstep_max"]) \
-                and self.in_range(scan_param["ystep"], db_prot["ystep_min"], db_prot["ystep_max"]) \
-                and self.in_range(scan_param["zstep"], db_prot["zstep_min"], db_prot["zstep_max"]) \
-                and self.in_range(scan_param["xspace"], db_prot["xspace_min"], db_prot["xspace_max"]) \
-                and self.in_range(scan_param["yspace"], db_prot["yspace_min"], db_prot["yspace_max"]) \
-                and self.in_range(scan_param["zspace"], db_prot["zspace_min"], db_prot["zspace_max"]) \
-                and self.in_range(scan_param["time"], db_prot["time_min"], db_prot["time_max"]) \
-                and self.in_range(scan_slice_thick, db_prot["slice_thickness_min"], db_prot["slice_thickness_max"]) \
-                and (not db_prot['image_type'] or img_type == db_prot['image_type']):
+        scan_param = self.json_file_dict
+        scan_tr = self.json_file_dict['RepetitionTime'] * 1000
+        scan_te = self.json_file_dict['EchoTime'] * 1000
+        scan_ti = self.json_file_dict['InversionTime'] * 1000
+
+        scan_slice_thick = self.json_file_dict['SliceThickness']
+        scan_img_type = self.json_file_dict['ImageType']
+
+        # TODO handle image type: note: img_type = ["ORIGINAL", "PRIMARY", "M", "ND", "NORM"] in JSON
+        if ("time" not in scan_param or self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max']))\
+                and self.in_range(scan_tr,              db_prot['TR_min'],              db_prot['TR_max']) \
+                and self.in_range(scan_te,              db_prot['TE_min'],              db_prot['TE_max']) \
+                and self.in_range(scan_ti,              db_prot['TI_min'],              db_prot['TI_max']) \
+                and self.in_range(scan_param['xstep'],  db_prot['xstep_min'],           db_prot['xstep_max']) \
+                and self.in_range(scan_param['ystep'],  db_prot['ystep_min'],           db_prot['ystep_max']) \
+                and self.in_range(scan_param['zstep'],  db_prot['zstep_min'],           db_prot['zstep_max']) \
+                and self.in_range(scan_param['xspace'], db_prot['xspace_min'],          db_prot['xspace_max']) \
+                and self.in_range(scan_param['yspace'], db_prot['yspace_min'],          db_prot['yspace_max']) \
+                and self.in_range(scan_param['zspace'], db_prot['zspace_min'],          db_prot['zspace_max']) \
+                and self.in_range(scan_slice_thick,     db_prot['slice_thickness_min'], db_prot['slice_thickness_max'])\
+                and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
 
     @staticmethod

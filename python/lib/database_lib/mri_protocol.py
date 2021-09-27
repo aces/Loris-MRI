@@ -42,7 +42,7 @@ class MriProtocol:
             if subproject_id else " AND mpgt.SubprojectID IS NULL"
         query += " AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = %s)" \
             if visit_label else " AND mpgt.Visit_label IS NULL"
-        query += " ORDER BY Center_name ASC, ScannerID DESC"
+        query += " ORDER BY CenterID ASC, ScannerID DESC"
 
         args_list = [center_id, scanner_id]
         if project_id:
