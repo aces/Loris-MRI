@@ -40,10 +40,10 @@ class ProjectSubprojectRel:
 
     def create_proj_subproj_rel_dict(self, project_id, subproject_id):
 
-        query = f"SELECT * FROM project_subproject_rel" \
-                f" JOIN Project USING (ProjectID)" \
-                f" JOIN subproject USING (SubprojectID)" \
-                f" WHERE ProjectID=%s AND SubprojectID=%s"
+        query = "SELECT * FROM project_subproject_rel" \
+                " JOIN Project USING (ProjectID)" \
+                " JOIN subproject USING (SubprojectID)" \
+                " WHERE ProjectID=%s AND SubprojectID=%s"
         results = self.db.pselect(query=query, args=(project_id, subproject_id))
 
         if results:

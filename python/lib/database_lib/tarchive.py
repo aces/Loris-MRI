@@ -36,8 +36,8 @@ class Tarchive:
          :type config_file: str
         """
 
-        self.db          = db
-        self.verbose     = verbose
+        self.db = db
+        self.verbose = verbose
         self.config_file = config_file
 
         # this will contain the tarchive info
