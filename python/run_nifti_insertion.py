@@ -108,10 +108,10 @@ def input_error_checking(loris_getopt_obj):
     force = loris_getopt_obj.options_dict["force"]["value"]
     if not (bool(tarchive_path) + bool(upload_id) + bool(force) == 1):
         print(
-            f"[ERROR   ] You should either specify an upload_id or a tarchive_path"
-            f" or use the -force option (if no upload_id or tarchive_path is available"
-            f" for the NIfTI file to be uploaded). Make sure that you set only one of"
-            f" those options. Upload will exit now.\n"
+            "[ERROR   ] You should either specify an upload_id or a tarchive_path"
+            " or use the -force option (if no upload_id or tarchive_path is available"
+            " for the NIfTI file to be uploaded). Make sure that you set only one of"
+            " those options. Upload will exit now.\n"
         )
         sys.exit(lib.exitcode.MISSING_ARG)
 
@@ -120,12 +120,11 @@ def input_error_checking(loris_getopt_obj):
     scan_type = loris_getopt_obj.options_dict["loris_scan_type"]["value"]
     if not json_path and not scan_type:
         print(
-            f"[ERROR   ] a json_path or a loris_scan_type need to be provided in order"
-            f"to determine the image file protocol.\n"
+            "[ERROR   ] a json_path or a loris_scan_type need to be provided in order"
+            "to determine the image file protocol.\n"
         )
         sys.exit(lib.exitcode.MISSING_ARG)
 
 
 if __name__ == "__main__":
     main()
-
