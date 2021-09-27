@@ -49,6 +49,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         if self.tarchive_db_obj.tarchive_info_dict.keys():
             self._validate_nifti_patient_name_with_dicom_patient_name()
+            self.subject_id_dict = self.determine_subject_ids(self.scanner_dict['ScannerID'])
         else:
             self._determine_subject_ids_based_on_json_patient_name()
         self.validate_subject_ids()

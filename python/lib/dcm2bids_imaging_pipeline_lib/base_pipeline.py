@@ -311,7 +311,7 @@ class BasePipeline:
     def get_session_info(self):
 
         cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["Visit_label"]
+        visit_label = self.subject_id_dict["visitLabel"]
         self.session_db_obj.create_session_dict(cand_id, visit_label)
 
         if self.session_db_obj.session_info_dict.keys():
