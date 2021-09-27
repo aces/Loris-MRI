@@ -101,7 +101,6 @@ class NiftiInsertionPipeline(BasePipeline):
 
         with open(json_path) as json_file:
             json_data_dict = json.load(json_file)
-        # TODO might be best to move the mapping in SQL and instead insert in parameter file only the BIDS terms
         self.imaging_obj.map_bids_param_to_loris_param(json_data_dict)
         return json_data_dict
 
@@ -279,8 +278,29 @@ class NiftiInsertionPipeline(BasePipeline):
             self.session_db_obj.session_info_dict, scan_type_id
         )
 
-        for protocol_check in checks_list:
-            print(protocol_check)
+        distinct_headers = set(map(lambda x: x['Header'], checks_list))
+
+        warning_list = []
+        exclude_list = []
+        for header in distinct_headers:
+            self.get_violations_per_severity(checks_list, header, 'warning')
+
+    def get_check_violations_per_severity(self, checks_list, header, severity):
+
+        hdr_checks_list = [c for c in checks_list if c['Header'] == header and c['Severity'] == severity]
+
+        valid_ranges = [f"{c['ValidMin']}-{c['ValidMax']}" for c in hdr_checks_list if c['ValidMin'] or c['ValidMax']]
+        valid_regexs = [c['ValidRegex'] for c in hdr_checks_list if c['ValidRegex']]
+        for check in hdr_checks_list:
+            scan_param = self.json_file_dict[check['Header']]
+
+            # if not self.in_range(scan_param, protocol_check['ValidMin'], protocol_check['ValidMax']):
+            #     if protocol_check['Severity'] == 'warning':
+            #         warning_list.append({
+            #             'ScanType': scan_type_id,
+            #         })
+            #     elif protocol_check['Severity'] == 'exclude':
+            #         exclude_list.append()
 
     def is_scan_protocol_matching_db_protocol(self, db_prot):
 
