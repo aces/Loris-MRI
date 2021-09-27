@@ -20,7 +20,7 @@ sys.path.append('/home/user/python')
 def main():
     usage = (
         "\n"
-        
+
         "********************************************************************\n"
         " DICOM ARCHIVE VALIDATOR\n"
         "********************************************************************\n\n"
@@ -31,9 +31,9 @@ def main():
         "\t- Verify the session is valid\n"
         "\t- Verify the DICOM archive against the checksum stored in the database\n"
         "\t- Update the mri_upload's 'isTarchiveValidated' field if above validations were successful\n\n"
-        
+
         "usage  : dicom_archive_validation -p <profile> -t <tarchive_path> -u <upload_id>\n\n"
-        
+
         "options: \n"
         "\t-p, --profile      : Name of the python database config file in dicom-archive/.loris_mri\n"
         "\t-t, --tarchive_path: Absolute path to the DICOM archive to validate\n"
