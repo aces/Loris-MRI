@@ -56,8 +56,8 @@ class ParameterType:
 
         bids_to_minc_mapping_dict = {}
         for row_nb in results:
-            minc_param_name = results[row_nb]['Name']
-            bids_param_name = results[row_nb]['Alias']
+            minc_param_name = row_nb['Name']
+            bids_param_name = row_nb['Alias']
             bids_to_minc_mapping_dict[bids_param_name] = minc_param_name
 
         return bids_to_minc_mapping_dict
