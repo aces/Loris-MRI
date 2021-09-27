@@ -56,7 +56,7 @@ class Log:
   {run_info.replace("_", " ").upper()}
 ----------------------------------------------------------------
 
-Script run with the following options set       
+Script run with the following options set
 """
         for key in self.script_options:
             if self.script_options[key]["value"]:

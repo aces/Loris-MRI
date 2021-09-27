@@ -176,7 +176,7 @@ def update_set_file_path_info(set_file, fdt_file):
     dataset = scipy.io.loadmat(set_file)
 
     # update the EEG paths in the .set file
-    dataset['EEG'][0][0][1]  = numpy.array(basename + ".set")
+    dataset['EEG'][0][0][1] = numpy.array(basename + ".set")
     if fdt_file:
         dataset['EEG'][0][0][15] = numpy.array(basename + ".fdt")
         dataset['EEG'][0][0][-1] = numpy.array(basename + ".fdt")

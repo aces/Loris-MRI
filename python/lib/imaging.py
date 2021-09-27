@@ -6,10 +6,10 @@ import os
 import datetime
 import nibabel as nib
 
-from nilearn import image
+from nilearn import image, plotting
 
 import lib.exitcode
-from lib.database_lib.site   import Site
+from lib.database_lib.site import Site
 from lib.database_lib.config import Config
 from lib.database_lib.parameter_type import ParameterType
 
@@ -53,8 +53,8 @@ class Imaging:
          :type config_file: str
         """
 
-        self.db          = db
-        self.verbose     = verbose
+        self.db = db
+        self.verbose = verbose
         self.config_file = config_file
 
     def determine_file_type(self, file):
@@ -159,7 +159,7 @@ class Imaging:
         """
 
         # Gather column name & values to insert into parameter_file
-        unix_timestamp    = datetime.datetime.now().strftime("%s")
+        unix_timestamp = datetime.datetime.now().strftime("%s")
         parameter_type_id = self.get_parameter_type_id(parameter_name)
         parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value',    'InsertTime')
         parameter_file_values = (file_id,  parameter_type_id, str(value), unix_timestamp)
@@ -182,10 +182,7 @@ class Imaging:
         """
 
         results = self.db.pselect(
-            query="SELECT ParameterTypeID "
-                  "FROM parameter_type "   
-                  "WHERE Name = %s "
-                  "AND SourceFrom='parameter_file'",
+            query="SELECT ParameterTypeID FROM parameter_type WHERE Name = %s AND SourceFrom='parameter_file'",
             args=(parameter_name,)
         )
 
@@ -198,24 +195,24 @@ class Imaging:
                 'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
             )
             parameter_desc = parameter_name + " magically created by lib.imaging python class"
-            source_from    = 'parameter_file'
+            source_from = 'parameter_file'
             values = (
                 parameter_name, 'text', parameter_desc, source_from, 0
             )
             parameter_type_id = self.db.insert(
-                table_name   = 'parameter_type',
-                column_names = col_names,
-                values       = values,
-                get_last_id  = True
+                table_name='parameter_type',
+                column_names=col_names,
+                values=values,
+                get_last_id=True
             )
 
             # link the parameter_type_id to a parameter type category
             category_id = self.get_parameter_type_category_id()
             self.db.insert(
-                table_name   = 'parameter_type_category_rel',
-                column_names = ('ParameterTypeCategoryID', 'ParameterTypeID'),
-                values       = (category_id, parameter_type_id),
-                get_last_id  = False
+                table_name='parameter_type_category_rel',
+                column_names=('ParameterTypeCategoryID', 'ParameterTypeID'),
+                values=(category_id, parameter_type_id),
+                get_last_id=False
             )
 
         return parameter_type_id
@@ -261,8 +258,8 @@ class Imaging:
                 "WHERE FileID = %s AND Name = %s"
 
         results = self.db.pselect(
-            query = query,
-            args  = (file_id, param_name)
+            query=query,
+            args=(file_id, param_name)
         )
 
         # return the result
@@ -325,7 +322,6 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-
     def determine_subject_ids(self, tarchive_info_dict, scanner_id=None):
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
@@ -342,9 +338,9 @@ class Imaging:
          :rtype subject_id_dict: dict
         """
 
-        config_obj   = Config(self.db, self.verbose)
+        config_obj = Config(self.db, self.verbose)
         dicom_header = config_obj.get_config('lookupCenterNameUsing')
-        dicom_value  = tarchive_info_dict[dicom_header]
+        dicom_value = tarchive_info_dict[dicom_header]
 
         try:
             subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
@@ -353,9 +349,9 @@ class Imaging:
             message = 'ERROR: config file does not contain a get_subject_ids routine.' \
                       ' Upload will exit now.'
             return {
-                'error'     : True,
-                'exit_code' : lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
-                'message'   : message
+                'error': True,
+                'exit_code': lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
+                'message': message
             }
 
         return subject_id_dict
@@ -374,10 +370,10 @@ class Imaging:
          :rtype: bool
         """
 
-        psc_id      = subject_id_dict['PSCID']
-        cand_id     = subject_id_dict['CandID']
+        psc_id = subject_id_dict['PSCID']
+        cand_id = subject_id_dict['CandID']
         visit_label = subject_id_dict['visitLabel']
-        is_phantom  = subject_id_dict['isPhantom']
+        is_phantom = subject_id_dict['isPhantom']
 
         # no further checking if the subject is phantom
         if is_phantom:
@@ -403,18 +399,16 @@ class Imaging:
             return False
 
         # check if visit label is valid
-        query   = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
+        query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
         results = self.db.pselect(query=query, args=(visit_label,))
         if results:
-            subject_id_dict['message'] = "=> Found visit label " + visit_label + 'in Visit_Windows'
+            subject_id_dict['message'] = f'=> Found visit label {visit_label} in Visit_Windows'
             return True
         elif subject_id_dict['createVisitLabel']:
-            subject_id_dict['message'] = '=> Will create visit label ' + visit_label \
-                                         + 'in Visit_Windows'
+            subject_id_dict['message'] = f'=> Will create visit label {visit_label} in Visit_Windows'
             return True
         else:
-            subject_id_dict['message'] = '=> Visit Label ' + visit_label \
-                                         + ' does not exist in Visit_Windows'
+            subject_id_dict['message'] = f'=> Visit Label {visit_label} does not exist in Visit_Windows'
             # Message is undefined
             subject_id_dict['CandMismatchError'] = subject_id_dict['message']
             return False
@@ -437,9 +431,9 @@ class Imaging:
             # subject_id_dict contain the error, exit code and message to explain the error
             return subject_id_dict
 
-        cand_id         = subject_id_dict['CandID']
-        visit_label     = subject_id_dict['visitLabel']
-        patient_name    = subject_id_dict['PatientName']
+        cand_id = subject_id_dict['CandID']
+        visit_label = subject_id_dict['visitLabel']
+        patient_name = subject_id_dict['PatientName']
 
         # get the CenterID from the session table if the PSCID and visit label exists
         # and could be extracted from the database
@@ -464,9 +458,9 @@ class Imaging:
 
         # if we got here, it means we could not find a center associated to the dataset
         return {
-            'error'    : True,
+            'error': True,
             'exit_code': lib.exitcode.SELECT_FAILURE,
-            'message'  : 'ERROR: No center found for this DICOM study'
+            'message': 'ERROR: No center found for this DICOM study'
         }
 
     def map_bids_param_to_loris_param(self, file_parameters):
@@ -506,13 +500,13 @@ class Imaging:
          :rtype: str
         """
 
-        cand_id    = file_info['cand_id']
-        file_path  = file_info['data_dir_path'] + file_info['file_rel_path']
+        cand_id = file_info['cand_id']
+        file_path = file_info['data_dir_path'] + file_info['file_rel_path']
         is_4d_data = file_info['is_4D_dataset']
-        file_id    = file_info['file_id']
+        file_id = file_info['file_id']
 
-        pic_name     = os.path.basename(file_path)
-        pic_name     = re.sub(r"\.nii(\.gz)", '_' + str(file_id) + '_check.png', pic_name)
+        pic_name = os.path.basename(file_path)
+        pic_name = re.sub(r"\.nii(\.gz)", '_' + str(file_id) + '_check.png', pic_name)
         pic_rel_path = str(cand_id) + '/' + pic_name
 
         # create the candID directory where the pic will go if it does not already exist
@@ -523,12 +517,12 @@ class Imaging:
         volume = image.index_img(file_path, 0) if is_4d_data else file_path
 
         plotting.plot_anat(
-            anat_img     = volume,
-            output_file  = file_info['data_dir_path'] + 'pic/' + pic_rel_path,
-            display_mode = 'ortho',
-            black_bg     = 1,
-            draw_cross   = 0,
-            annotate     = 0
+            anat_img=volume,
+            output_file=file_info['data_dir_path'] + 'pic/' + pic_rel_path,
+            display_mode='ortho',
+            black_bg=1,
+            draw_cross=0,
+            annotate=0
         )
 
         return pic_rel_path
