@@ -3,7 +3,6 @@
 from lib.database_lib.tarchive_series import TarchiveSeries
 import lib.utilities as utilities
 
-
 __license__ = "GPLv3"
 
 

@@ -1,7 +1,5 @@
 """This class performs database queries for the mri_upload table"""
 
-import datetime
-
 __license__ = "GPLv3"
 
 

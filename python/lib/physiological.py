@@ -1,12 +1,15 @@
-"""This class performs database queries for BIDS physiological dataset (EEG, MEG...)
-"""
+"""This class performs database queries for BIDS physiological dataset (EEG, MEG...)"""
 
 import sys
 import re
 import os
 import subprocess
-
 import lib.exitcode
+from lib.database_lib.physiologicalannotationfile import PhysiologicalAnnotationFile
+from lib.database_lib.physiologicalannotationparameter import PhysiologicalAnnotationParameter
+from lib.database_lib.physiologicalannotationlabel import PhysiologicalAnnotationLabel
+from lib.database_lib.physiologicalannotationinstance import PhysiologicalAnnotationInstance
+
 
 __license__ = "GPLv3"
 
@@ -53,6 +56,11 @@ class Physiological:
 
         self.db      = db
         self.verbose = verbose
+
+        self.physiological_annotation_file_obj      = PhysiologicalAnnotationFile(self.db, self.verbose)
+        self.physiological_annotation_parameter_obj = PhysiologicalAnnotationParameter(self.db, self.verbose)
+        self.physiological_annotation_label_obj     = PhysiologicalAnnotationLabel(self.db, self.verbose)
+        self.physiological_annotation_instance_obj  = PhysiologicalAnnotationInstance(self.db, self.verbose)
 
     def determine_file_type(self, file):
         """
@@ -102,9 +110,9 @@ class Physiological:
         query = "SELECT pf.PhysiologicalFileID, pf.FilePath "     \
                 "FROM physiological_file AS pf "     \
                 "JOIN physiological_parameter_file " \
-                    "USING (PhysiologicalFileID) "   \
+                "USING (PhysiologicalFileID) "   \
                 "JOIN parameter_type "               \
-                    "USING (ParameterTypeID) "       \
+                "USING (ParameterTypeID) "       \
                 "WHERE Value=%s"
 
         results = self.db.pselect(query=query, args=(blake2b_hash,))
@@ -191,7 +199,7 @@ class Physiological:
 
         results = self.db.pselect(
             query="SELECT ParameterTypeID "
-                  "FROM parameter_type "   
+                  "FROM parameter_type "
                   "WHERE Name = %s "
                   "AND SourceFrom='physiological_parameter_file'",
             args=(parameter_name,)
@@ -205,8 +213,7 @@ class Physiological:
             col_names = (
                 'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
             )
-            parameter_desc = parameter_name + " magically created by" \
-                             " lib.physiological python class"
+            parameter_desc = parameter_name + " magically created by lib.physiological python class"
             source_from    = 'physiological_parameter_file'
             values = (
                 parameter_name, 'text', parameter_desc, source_from, 0
@@ -244,7 +251,7 @@ class Physiological:
                   'WHERE Name = %s ',
             args=('Electrophysiology Variables',)
         )
-        
+
         if not category_result:
             return None
 
@@ -349,7 +356,8 @@ class Physiological:
             optional_fields = ('type', 'material', 'impedance')
             for field in optional_fields:
                 if field not in row.keys():
-                    row[field] = None
+                    continue
+
                 if field == 'type':
                     row['type_id'] = self.db.grep_id_from_lookup_table(
                         id_field_name       = 'PhysiologicalElectrodeTypeID',
@@ -368,10 +376,10 @@ class Physiological:
                     )
 
             values_tuple = (
-                str(physiological_file_id), row['type_id'],
-                row['material_id'],         row['name'],
+                str(physiological_file_id), row.get('type_id'),
+                row.get('material_id'),     row['name'],
                 row['x'],                   row['y'],
-                row['z'],                   row['impedance'],
+                row['z'],                   row.get('impedance'),
                 electrode_file
             )
             electrode_values.append(values_tuple)
@@ -456,7 +464,7 @@ class Physiological:
                     # replace n/a, N/A, na, NA by None which will translate to NULL
                     # in the physiological_channel table
                     row[field] = None
-                    
+
             values_tuple = (
                 str(physiological_file_id),
                 str(physio_channel_type_id),
@@ -510,6 +518,7 @@ class Physiological:
             'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
             'EventType',           'FilePath'
         )
+
         event_values = []
         for row in event_data:
             optional_fields = (
@@ -520,10 +529,24 @@ class Physiological:
             for field in optional_fields:
                 if field not in row.keys():
                     row[field] = None
+
             # TODO: remove the following if once received confirmation from
             # TODO: James it was an error.
             if "NaN" in row['duration']:
                 row['duration'] = 0
+
+            sample = None
+            if row['event_sample'] and (type(row['event_sample']) == int or type(row['event_sample']) == float):
+                sample = row['event_sample']
+            if row['sample'] and (type(row['sample']) == int or type(row['sample']) == float):
+                sample = row['sample']
+
+            event_value = None
+            if row['event_value']:
+                event_value = str(row['event_value'])
+            elif row['value']:
+                event_value = str(row['value'])
+
             values_tuple = (
                 str(physiological_file_id),
                 row['onset'],
@@ -531,8 +554,8 @@ class Physiological:
                 row['trial_type'],
                 row['response_time'],
                 row['event_code'],
-                row['event_value']  or row['value'],
-                row['event_sample'] or row['sample'],
+                event_value,
+                sample,
                 row['event_type'],
                 event_file
             )
@@ -548,6 +571,130 @@ class Physiological:
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_blake2b_hash', blake2
         )
+
+    def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id, blake2):
+        """
+        Inserts the annotation metadata information read from the file *annotations.json
+        into the physiological_annotation_file, physiological_annotation_parameter
+        and physiological_annotation_label tables, linking it to the physiological file ID
+        already inserted in physiological_file.
+
+        :param annotation_metadata      : list with dictionaries of annotations
+                                          metadata to insert into the database
+         :type annotation_metadata      : list
+        :param annotation_metadata_file : name of the annotation metadata file
+         :type annotation_file          : str
+        :param physiological_file_id    : PhysiologicalFileID to link the annotation info to
+         :type physiological_file_id    : int
+        :param blake2                   : blake2b hash of the annotation file
+         :type blake2                   : str
+
+        :return: annotation file id
+         :rtype: int
+        """
+
+        optional_fields = (
+            'Sources',  'Author', 'LabelDescription'
+        )
+
+        for field in optional_fields:
+            if field not in annotation_metadata.keys():
+                annotation_metadata[field] = None
+
+        annotation_file_id = self.physiological_annotation_file_obj.insert(
+            physiological_file_id,
+            'json',
+            annotation_metadata_file
+        )
+        self.physiological_annotation_parameter_obj.insert(
+            annotation_file_id,
+            annotation_metadata['Sources'],
+            annotation_metadata['Author']
+        )
+
+        for label_name, label_desc in annotation_metadata['LabelDescription'].items():
+            self.physiological_annotation_label_obj.insert(annotation_file_id, label_name, label_desc)
+
+        # insert blake2b hash of annotation file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'annotation_file_blake2b_hash', blake2
+        )
+
+        return annotation_file_id
+
+    def insert_annotation_data(self, annotation_data, annotation_file, physiological_file_id, blake2):
+        """
+        Inserts the annotation information read from the file *annotations.tsv
+        into the physiological_annotation_file and physiological_annotation_instance tables,
+        linking it to the physiological file ID already inserted in physiological_file.
+
+        :param annotation_data      : list with dictionaries of annotations
+                                      information to insert into
+                                      physiological_annotation_file
+         :type annotation_data      : list
+        :param annotation_file      : name of the annotation file
+         :type annotation_file      : str
+        :param physiological_file_id: PhysiologicalFileID to link the event info to
+         :type physiological_file_id: int
+        :param blake2               : blake2b hash of the task event file
+         :type blake2               : str
+        
+        :return: annotation file id
+         :rtype: int
+        """
+
+        annotation_file_id = self.physiological_annotation_file_obj.insert(
+            physiological_file_id,
+            'tsv',
+            annotation_file
+        )
+
+        annotation_values = []
+        for row in annotation_data:
+            optional_fields = (
+                'channels', 'absolute_time', 'description'
+            )
+            for field in optional_fields:
+                if field not in row.keys():
+                    row[field] = None
+
+            if not row['duration'].isdecimal():
+                row['duration'] = None
+
+            if not row['onset'].isdecimal():
+                row['onset'] = None
+
+            if row['channels'] and "n/a" in row['channels']:
+                row['channels'] = None
+
+            if row['absolute_time'] and "n/a" in row['absolute_time']:
+                row['absolute_time'] = None
+
+            labelID = self.physiological_annotation_label_obj.grep_id(row['label'], insert_if_not_found=True)
+            paramID = self.physiological_annotation_parameter_obj.grep_id_from_physiological_file_id(
+                physiological_file_id
+            )
+
+            values_tuple = (
+                str(annotation_file_id),
+                paramID,
+                row['onset'],
+                row['duration'],
+                labelID,
+                row['channels'],
+                row['absolute_time'],
+                row['description']
+            )
+            annotation_values.append(values_tuple)
+
+        self.physiological_annotation_instance_obj.insert(annotation_values)
+
+        # insert blake2b hash of annotation file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'annotation_file_blake2b_hash', blake2
+        )
+
+        return annotation_file_id
 
     def grep_archive_info_from_file_id(self, physiological_file_id):
         """
@@ -691,26 +838,22 @@ class Physiological:
             chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
             # the final chunk path will be /data/%PROJECT%/data/bids_imports
             # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
-            chunk_path = chunk_root_dir \
-                           + os.path.splitext(os.path.basename(file_path))[0] \
-                           + '.chunks'
+            chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
             if file_type == 'set':
-                script = os.environ['LORIS_MRI'] \
-                         + '/python/react-series-data-viewer/eeglab_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + \
-                          ' --destination ' + chunk_root_dir
-            elif file_type =='edf':
-                script = os.environ['LORIS_MRI'] \
-                         + '/python/react-series-data-viewer/edf_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + \
-                          ' --destination ' + chunk_root_dir
+                script = os.environ['LORIS_MRI'] + '/python/react-series-data-viewer/eeglab_to_chunks.py'
+                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
+            elif file_type == 'edf':
+                script = os.environ['LORIS_MRI'] + '/python/react-series-data-viewer/edf_to_chunks.py'
+                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
 
         # chunk the electrophysiology dataset if a command was determined above
         if command:
             try:
                 subprocess.call(
-                    command,                       shell=True,
-                    stdout=open(os.devnull, 'wb'), stderr=open(os.devnull, 'wb')
+                    command,
+                    shell = True,
+                    stdout = open(os.devnull, 'wb'),
+                    stderr = open(os.devnull, 'wb')
                 )
             except subprocess.CalledProcessError:
                 print('ERROR: ' + script + ' execution failure')
@@ -720,6 +863,6 @@ class Physiological:
             if os.path.isdir(chunk_path):
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
-                    parameter_name        = 'electrophyiology_chunked_dataset_path',
-                    value                 = chunk_path.replace(data_dir,'')
+                    parameter_name = 'electrophyiology_chunked_dataset_path',
+                    value = chunk_path.replace(data_dir, '')
                 )

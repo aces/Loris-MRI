@@ -1,5 +1,7 @@
 """This class performs database queries for the mri_scanner table"""
 
+import datetime
+from lib.candidate import Candidate
 
 __license__ = "GPLv3"
 

@@ -54,7 +54,6 @@ class Candidate:
         self.sex        = sex
         self.dob        = dob
         self.age        = None
-        self.site       = None
         self.center_id  = None
         self.project_id = None
 
@@ -83,20 +82,11 @@ class Candidate:
                 self.map_sex(row['sex'])
             if 'age' in row:
                 self.age = row['age']
-            if 'site' in row:
-                self.site = row['site']
-            if 'project' in row:
-                project_info = db.pselect(
-                    "SELECT ProjectID FROM Project WHERE Alias = %s",
-                    [row['project'],]
-                )
-                if(len(project_info) > 0):
-                    self.project_id = project_info[0]['ProjectID']
 
-            if self.site:
+            if 'site' in row:
                 site_info = db.pselect(
-                    "SELECT CenterID FROM psc WHERE Alias = %s",
-                    [self.site,]
+                    "SELECT CenterID FROM psc WHERE Name = %s",
+                    [row['site'], ]
                 )
                 if(len(site_info) > 0):
                     self.center_id = site_info[0]['CenterID']
@@ -104,22 +94,29 @@ class Candidate:
                 db_sites = db.pselect("SELECT CenterID, Alias FROM psc")
                 for site in db_sites:
                     if site['Alias'] in row['participant_id']:
-                        self.site = site['Alias']
                         self.center_id = site['CenterID']
 
+            if 'project' in row:
+                project_info = db.pselect(
+                    "SELECT ProjectID FROM Project WHERE Name = %s",
+                    [row['project'], ]
+                )
+                if(len(project_info) > 0):
+                    self.project_id = project_info[0]['ProjectID']
+
         if not self.center_id:
-            print("ERROR: could not determine site for " + self.psc_id + "." + \
-                  " Please check that your psc table contains a site with an" \
-                  " Alias matching the BIDS ID or the site mentioned in" \
-                  " participants.tsv's site column")
+            print("ERROR: could not determine site for " + self.psc_id + "."
+                  + " Please check that your psc table contains a site with an"
+                  + " alias matching the BIDS participant_id or a name matching the site mentioned in"
+                  + " participants.tsv's site column")
             sys.exit(lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
 
         if self.verbose:
-            print("Creating candidate with " + \
-                  "PSCID = "   + self.psc_id + ", " + \
-                  "CandID = "  + str(self.cand_id) + ", " + \
-                  "Site = "    + str(self.site)  + " and " + \
-                  "Project = " + str(self.project_id))
+            print("Creating candidate with \n"
+                  + "PSCID     = " + self.psc_id + ",\n"
+                  + "CandID    = " + str(self.cand_id) + ",\n"
+                  + "CenterID  = " + str(self.center_id)  + ",\n"
+                  + "ProjectID = " + str(self.project_id))
 
         insert_col = ('PSCID', 'CandID', 'RegistrationCenterID')
         insert_val = (self.psc_id, str(self.cand_id), str(self.center_id))

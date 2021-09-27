@@ -28,7 +28,7 @@ section.
  
 ### 5.1.1 Option 1
 
-Triggering the pipeline is done from the `/data/$PROJECT/bin/mri` directory as 
+Triggering the pipeline is done from the `/opt/$PROJECT/bin/mri` directory as 
 follows:
 
 ```
@@ -49,7 +49,7 @@ insertion pipeline manually, for every new `UploadID` separately.
 
 ### 5.1.2 Option 2 
 
-Triggering the pipeline from the `/data/$PROJECT/bin/mri` directory can also be 
+Triggering the pipeline from the `/opt/$PROJECT/bin/mri` directory can also be 
 achieved as follows: 
 
 ```
@@ -209,7 +209,7 @@ run `bids_import.py`, you need to be in the loris-mri Python virtual
 environment. It should have been sourced when sourcing your LORIS-MRI 
 environment file. If this is not sourced, then simply run the following:
 ```bash
-source /data/%PROJECT%/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
+source /opt/%PROJECT%/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
 ```
 To deactivate a Python virtual environment, simply type `deactivate` in the 
 terminal.

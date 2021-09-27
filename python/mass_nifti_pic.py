@@ -44,7 +44,7 @@ def main():
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hp:s:l:v', long_options)
-    except getopt.GetoptError as err:
+    except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
 
@@ -175,7 +175,6 @@ def make_pic(file_id, config_file, verbose):
     is_4d_dataset = False
     length_parameters = imaging.get_nifti_image_length_parameters(data_dir + nii_file_path)
     if len(length_parameters) == 4:
-        file_parameters['time'] = length_parameters[3]
         is_4d_dataset = True
 
     # grep the CandID of the file

@@ -1,12 +1,13 @@
 import argparse
 import mne.io
-import numpy as np
 import mne.io.edf.edf as mne_edf
 from chunking import *
 import sys
 
+
 def load_channels(exclude):
     return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

@@ -2,9 +2,6 @@
 
 import MySQLdb
 import sys
-import mysql.connector
-from mysql.connector.cursor import MySQLCursorPrepared
-
 import lib.exitcode
 
 
@@ -174,8 +171,8 @@ class Database:
         )
 
         if self.verbose:
-            print("\nExecuting query:\n\t" + query + "\n" \
-                  "With arguments:\n\t" + str(values) + "\n")
+            print("\nExecuting query:\n\t" + query + "\n"
+                  + "With arguments:\n\t" + str(values) + "\n")
 
         try:
             cursor = self.con.cursor()
@@ -208,7 +205,7 @@ class Database:
         """
 
         if self.verbose:
-            print("\nExecuting query:\n\t" + query + "\n" \
+            print("\nExecuting query:\n\t" + query + "\n"
                   + "With arguments:\n\t"  + str(args) + "\n")
 
         try:
@@ -257,7 +254,7 @@ class Database:
 
         if not id:
             message = "\nERROR: " + where_value + " " + where_field_name + \
-                      " does not exist in " + table_name + "database table\n"
+                      " does not exist in " + table_name + " database table\n"
             print(message)
             sys.exit(lib.exitcode.SELECT_FAILURE)
 

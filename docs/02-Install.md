@@ -87,7 +87,7 @@ Under the `Study` section:
  * `ImagingUploader Auto Launch`: used by the Imaging Uploader to automatically launch the insertion scripts on the uploaded scan
  
 Under the `Paths` section: 
- * `LORIS-MRI Code`: where the LORIS-MRI codebase is installed; typically `/data/$PROJECT/bin/mri/`
+ * `LORIS-MRI Code`: where the LORIS-MRI codebase is installed; typically `/opt/$PROJECT/bin/mri/`
  * `MRI-Upload Directory`: where the uploaded scans get stored; typically `/data/incoming/`
  * `Images`: where the images displayed in Imaging Browser are stored; typically `/data/$PROJECT/data/`
  
@@ -105,7 +105,7 @@ Under the `Imaging Pipeline` section:
     table and visible in the front-end via the Imaging Browser module
  * `User to notify when executing the pipeline`: user email address to be used when
     notification is to be sent by the pipeline
- * `Full path to get_dicom_info.pl script`: typically `/data/$PROJECT/bin/mri/dicom-arhive/get_dicom_info.pl`
+ * `Full path to get_dicom_info.pl script`: typically `/opt/$PROJECT/bin/mri/dicom-arhive/get_dicom_info.pl`
  * `Horizontal pictures creation`: specifies whether or not argument -horizontal
     should be used by mincpik when generating pictures to be displayed in Imaging Browser
  * `NIfTI file creation`: used to enable or disable automated NIfTI file creation
@@ -232,16 +232,16 @@ scripts (in the `python` directory). It accesses data stored in the
 
 #### Filesystem
 
-- `/data/*` subdirectories were created by the imaging install script. If not,
+- `/data/*` and `/opt/*` subdirectories were created by the imaging install script. If not,
     it may be due to `root:root` ownership of the `/data/` mount on your
     system. Ensure these subdirectories are created manually, particularly:
-    `/data/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside 
+    `/opt/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside 
     `/data/$PROJECT/data/`, namely `assembly`, `batch_output`, `logs`,
     `pic`, `tarchive`, and `trashbin`.
 
 
-- `/data/$PROJECT/` directory and subdirectories must be readable and executable
-    by the Apache linux user. It may also help to ensure the `/data/` mount is
+- `/data/$PROJECT/` and `/opt/$PROJECT/` directory and subdirectories must be readable and executable
+    by the Apache linux user. It may also help to ensure the `/data/` and `/opt/` mount is
     executable. After any modifications, ensure you restart apache.
     
 #### Customizable routines in the `prod` file
@@ -302,7 +302,7 @@ Ensure the `project/config.xml` file (in the main LORIS codebase) contains the
 
 #### 2.3.3. Verify filesystem permissions
 
-Ensure that permissions on `/data/$PROJECT`, `/data/incoming` and their
+Ensure that permissions on `/data/$PROJECT`, `/data/incoming`, `/opt/$PROJECT` and their
   subdirectories are set such that `lorisadmin` and the Apache linux user can
   read, write _and_ execute all contents.
 
@@ -312,7 +312,8 @@ The following must be recursively owned by the `lorisadmin` user and Apache grou
 /data/$PROJECT/data/
 /data/$PROJECT/bin/mri/
 /data/incoming/
-/data/$PROJECT/bin/mri/dicom-archive/.loris_mri/prod
+/opt/$PROJECT/
+/opt/$PROJECT/bin/mri/dicom-archive/.loris_mri/prod
 ```
 
 #### 2.3.4 Verify Configuration module settings for Imaging Pipeline
@@ -324,12 +325,12 @@ Under the `Imaging Pipeline` section:
  * `LORIS-MRI Data Directory` (typically `/data/$PROJECT/data/`)
  * `Study Name` (`exampleStudy`; this name will be appended as a prefix to the filenames in LORIS' Imaging Browser)
  * `User to notify when executing the pipeline`
- * `Full path to get_dicom_info.pl script`(typically `/data/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
+ * `Full path to get_dicom_info.pl script`(typically `/opt/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
  * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
  * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting)
 
 Under the `Path` section:
- * `LORIS-MRI Code`(typically `/data/$PROJECT/bin/mri/`)
+ * `LORIS-MRI Code`(typically `/opt/$PROJECT/bin/mri/`)
  * `Images` (typically `/data/$PROJECT/data/`)
 
 Click `Submit` at the end of the Configuration page to save any changes.

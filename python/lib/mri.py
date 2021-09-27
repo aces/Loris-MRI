@@ -3,16 +3,13 @@
 import os
 import json
 import getpass
-import string
 from pyblake2 import blake2b
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.database   import Database
 from lib.candidate  import Candidate
 from lib.session    import Session
 from lib.imaging    import Imaging
-from lib.bidsreader import BidsReader
 from lib.scanstsv   import ScansTSV
 
 
@@ -128,7 +125,7 @@ class Mri:
             if 'subproject' in row:
                 subproject_info = db.pselect(
                     "SELECT SubprojectID FROM subproject WHERE title = %s",
-                    [row['subproject'],]
+                    [row['subproject'], ]
                 )
                 if(len(subproject_info) > 0):
                     self.subproject_id = subproject_info[0]['SubprojectID']
@@ -142,8 +139,8 @@ class Mri:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = \
-            self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename', extension='tsv')[0]
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, 
+                                                   return_type='filename', extension='tsv')[0]
 
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
@@ -253,7 +250,7 @@ class Mri:
         """
 
         # insert the NIfTI file
-        inserted_nii  = self.fetch_and_insert_nifti_file(nifti_file)
+        self.fetch_and_insert_nifti_file(nifti_file)
 
 
     def fetch_and_insert_nifti_file(self, nifti_file, derivatives=None):
@@ -280,10 +277,6 @@ class Mri:
         # load the entity information from the NIfTI file
         entities  = nifti_file.get_entities()
         scan_type = entities['suffix']
-        run       = entities['run']         if 'run' in entities         else None
-        task      = entities['task']        if 'task' in entities        else None
-        acq       = entities['acquisition'] if 'acquisition' in entities else None
-        dir       = entities['dir']         if 'dir' in entities         else None
 
         # loop through the associated files to grep JSON, bval, bvec...
         json_file = None

@@ -211,7 +211,7 @@ sub getSessionInformation {
     
     if($subjectIDref->{'isPhantom'}) {
         # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
-        my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, $dbhr, $db);
+        my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, \$dbh, $db);
         $centerID = $pscInfo[1];
     }
     # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
@@ -363,8 +363,8 @@ sub identify_scan_db {
         Software      => $fileref->getParameter('software_versions')
     });
     
-    # default ScannerID to 0 if we have no better clue.
-    my $ScannerID = @$resultsRef> 0 ? $resultsRef->[0]->{'ID'} : 0;
+    # default ScannerID to NULL if we have no better clue.
+    my $ScannerID = @$resultsRef> 0 ? $resultsRef->[0]->{'ID'} : undef;
     
     #===========================================================#
     # Get the list of lines in the mri_protocol table that      #
@@ -375,7 +375,7 @@ sub identify_scan_db {
               JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)
               WHERE (
                         (Center_name = ? AND ScannerID = ?)
-                     OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID='0'))";
+                     OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID IS NULL))";
 
     #============================================================#
     # Add to the query the clause related to the Project ID, the #

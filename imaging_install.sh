@@ -47,7 +47,7 @@ stty -echo
 read -p "What is the MySQL password? " mysqlpass; echo
 stty echo
 read -p "What is the Linux user which the installation will be based on? " USER
-read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
+read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/data..... and /opt/gusto/bin
 read -p "What is your email address? " email
 read -p "What prod file name would you like to use? default: prod " prodfilename
 if [ -z "$prodfilename" ]; then
@@ -56,6 +56,29 @@ fi
  
 mridir=`pwd`
 
+# Test the connection to the database before proceeding
+echo "Testing connection to database..."
+
+test_query_output=$(mysql -u $mysqluser -p${mysqlpass} -h $mysqlhost -D $mysqldb -e ';' 2>&1)
+
+if [[ $? -ne 0 ]];
+then
+	# If the the MySQL error code was 1045, then there is an error with the username and/or password.
+	# The appropriate message is then printed out. If it is a different error code, then the error message from MySQL
+	# is printed out instead.
+	if [[ $test_query_output == *"ERROR 1045"* ]];
+	then
+		echo "ERROR: invalid username and/or password. Aborting..." >&2
+	else
+		echo "ERROR: unable to connect to database. The MySQL error is provided below:" >&2
+		echo $test_query_output >&2
+		echo "Aborting..."
+	fi
+	
+	exit 1
+fi
+
+echo "Successfully connected to database\n"
 
 #################################################################################################
 ############################INSTALL THE PERL LIBRARIES###########################################
@@ -120,6 +143,15 @@ echo
 #####################################################################################
 sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
 
+# Check if the incoming directory is successfully created. If not, instructions on
+# how to manually create the directory are provided.
+if [ ! -d "/data/incoming/" ]
+then
+	echo "Error: the directory /data/incoming/ could not be created."
+	echo "Please run the commands below in order to manually create the directory:"
+	echo "sudo mkdir -m 2770 -p /data/incoming/"
+fi
+
 ###################################################################################
 #######set environment variables under .bashrc#####################################
 ###################################################################################
@@ -127,7 +159,7 @@ echo "Modifying environment script"
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 sed -i "s#%MINC_TOOLKIT_DIR%#$MINC_TOOLKIT_DIR#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
-#source /data/$PROJ/bin/$mridirname/environment
+#source /opt/$PROJ/bin/$mridirname/environment
 export TMPDIR=/tmp
 echo
 
@@ -151,23 +183,33 @@ fi
 ######################change permissions ###########################################
 ####################################################################################
 #echo "Changing permissions"
-
-sudo chmod -R 770 $mridir/dicom-archive/.loris_mri/
+sudo chmod -R 770 /opt/$PROJ/
 sudo chmod -R 770 /data/$PROJ/
-sudo chmod -R 770 /data/incoming/
 
 # Making lorisadmin part of the apache group
 sudo usermod -a -G $group $USER
 
-#Setting group permissions for all files/dirs under /data/$PROJ/ and /data/incoming/
+#Setting group permissions for all files/dirs under /data/$PROJ/ and /opt/$PROJ/
+sudo chgrp $group -R /opt/$PROJ/
 sudo chgrp $group -R /data/$PROJ/
-sudo chgrp $group -R /data/incoming/
 
 #Setting group ID for all files/dirs under /data/$PROJ/data
 sudo chmod -R g+s /data/$PROJ/data/
 
-#Setting group ID for all files/dirs under /data/incoming
-sudo chmod -R g+s /data/incoming/
+# Setting group permissions and group ID for all files/dirs under /data/incoming
+# If the directory was not created earlier, then instructions to do so manually are provided. 
+if [ -d "/data/incoming/" ]
+then
+	sudo chmod -R 770 /data/incoming/
+	sudo chgrp $group -R /data/incoming/
+	sudo chmod -R g+s /data/incoming/
+else
+	echo "After manually creating /data/incoming/, run the commands below to set the permissions:"
+	echo "sudo chmod -R 770 /data/incoming/"
+	echo "sudo chgrp $group -R /data/incoming"
+	echo "sudo chmod -R g+s /data/incoming/"
+fi
+
 echo
 
 #####################################################################################
@@ -199,20 +241,28 @@ echo
 ################################################################################################
 #####################################DICOM TOOLKIT##############################################
 ################################################################################################
-if cat /etc/os-release | grep ^NAME | fgrep -q CentOS ; then
-    echo "You are running CentOS. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies."
-else
-    #Check if apt-get is installed
-    APTGETCHECK=`which apt-get`
-    if [ ! -f "$APTGETCHECK" ]; then
-        echo "\nERROR: Unable to find apt-get"
-        echo "Please ask your sysadmin or install apt-get\n"
-        exit
-    fi
 
-    echo "Installing DICOM Toolkit (May prompt for sudo password)"
-    sudo -S apt-get install dcmtk
+# Detecting distribution
+os_distro=$(hostnamectl |awk -F: '/Operating System:/{print $2}'|cut -f2 -d ' ')
+debian=("Debian" "Ubuntu")
+redhat=("Red" "CentOS" "Fedora" "Oracle")
+
+if [[ " ${debian[*]} " =~ " $os_distro " ]]; then
+	#Check if apt-get is installed
+	APTGETCHECK=`which apt-get`
+	if [ ! -f "$APTGETCHECK" ]; then
+		echo "\nERROR: Unable to find apt-get"
+		echo "Please ask your sysadmin or install apt-get\n"
+		exit
+	fi
+
+	echo "Installing DICOM Toolkit (May prompt for sudo password)"
+	sudo -S apt-get install dcmtk
+	
+elif [[ " ${redhat[*]} " =~ " $os_distro " ]]; then
+	echo "You are running ${os_distro}. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies for RedHat-based distributions."
 fi
+
 ######################################################################
 ###### Update the Database table, Config, with the user values #######
 ######################################################################
@@ -221,8 +271,8 @@ mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPD
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='imagePath')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$PROJ' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='prefix')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$email' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='mail_user')"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/bin/mri/dicom-archive/get_dicom_info.pl' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='get_dicom_info')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/opt/$PROJ/bin/mri/dicom-archive/get_dicom_info.pl' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='get_dicom_info')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/tarchive/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='tarchiveLibraryDir')"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/bin/mri/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MRICodePath')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/opt/$PROJ/bin/mri/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MRICodePath')"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$MINC_TOOLKIT_DIR' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MINCToolsPath')"
 echo
