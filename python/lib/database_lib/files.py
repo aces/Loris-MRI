@@ -57,3 +57,12 @@ class Files:
         results = self.db.pselect(query=query, args=(blake2b_param_type_id, md5_param_type_id, file_hash))
 
         return results[0] if results else None
+
+    def insert_files(self, field_value_dict):
+
+        return self.db.insert(
+            table_name='files',
+            column_names=field_value_dict.keys(),
+            values=field_value_dict.values(),
+            get_last_id=True
+        )

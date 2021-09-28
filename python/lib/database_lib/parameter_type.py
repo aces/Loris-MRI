@@ -5,7 +5,7 @@ __license__ = "GPLv3"
 
 class ParameterType:
     """
-    This class performs database queries for imaging dataset stored in the files tables (MRI, PET...).
+    This class performs database queries for imaging dataset stored in the parameter_type table.
 
     :Example:
 
@@ -23,7 +23,7 @@ class ParameterType:
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the Tarchive class.
+        Constructor method for the ParameterType class.
 
         :param db     : Database class object
          :type db     : object
@@ -61,3 +61,12 @@ class ParameterType:
             bids_to_minc_mapping_dict[bids_param_name] = minc_param_name
 
         return bids_to_minc_mapping_dict
+
+    def insert_parameter_type(self, field_value_dict):
+
+        return self.db.insert(
+            table_name='parameter_type',
+            column_names=field_value_dict.keys(),
+            values=field_value_dict.values(),
+            get_last_id=True
+        )
