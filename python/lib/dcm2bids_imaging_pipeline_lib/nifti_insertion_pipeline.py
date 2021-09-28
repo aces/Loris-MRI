@@ -4,6 +4,7 @@ import json
 import lib.exitcode
 import os
 import re
+from datetime import datetime
 from lib.database_lib.files import Files
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
@@ -67,21 +68,38 @@ class NiftiInsertionPipeline(BasePipeline):
             self.create_session()
 
         # ---------------------------------------------------------------------------------------------
-        # Determine acquisition protocol
+        # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
         # ---------------------------------------------------------------------------------------------
         if not self.loris_scan_type:
-            scan_type_id = self._determine_acquisition_protocol()
-            if not scan_type_id:
+            self.scan_type_id = self._determine_acquisition_protocol()
+            if not self.scan_type_id:
                 self._register_protocol_violated_scan()
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
-            if not self.bypass_extra_checks:
-                self._run_extra_file_checks(scan_type_id)
+        # ---------------------------------------------------------------------------------------------
+        # Run extra file checks to determine possible protocol violations
+        # ---------------------------------------------------------------------------------------------
+        self.warning_violations_list = []  # will store the list of warning violations found
+        self.exclude_violations_list = []  # will store the list of exclude violations found
+        if not self.bypass_extra_checks:
+            self._run_extra_file_checks()
+
+        # ---------------------------------------------------------------------------------------------
+        # Register files in the proper tables
+        # ---------------------------------------------------------------------------------------------
+        if self.exclude_violations_list:
+            # move file to trashbin and insert entry in mri_violations_log
+            # ensure to insert both the exclude and warning logs
+            pass
+        elif self.warning_violations_list:
+            # register scan into files and violations into mri_violations_log
+            pass
+        else:
+            # register scan into files
+            pass
 
         # TODO: plan
-        # 17. insert into Db (files + parameter_file)
-        # 18. update mri violations log
         # 19. create pics
 
     def _load_json_sidecar_file(self):
@@ -160,7 +178,7 @@ class NiftiInsertionPipeline(BasePipeline):
             error_msg = f"There is already a file registered in the files table with MD5 hash {self.nifti_md5}." \
                         f" The already registered file is {md5_match['File']}"
         elif blake2b_match:
-            error_msg = f"There is already a file registered in the files table with Blake2b hash {self.nifti_blake2}."\
+            error_msg = f"There is already a file registered in the files table with Blake2b hash {self.nifti_blake2}." \
                         f" The already registered file is {blake2b_match['File']}"
 
         if error_msg:
@@ -220,7 +238,7 @@ class NiftiInsertionPipeline(BasePipeline):
             if protocol['series_description_regex']:
                 if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
                     matching_protocols_list.append(protocol['Scan_type'])
-            elif self.is_scan_protocol_matching_db_protocol(protocol):
+            elif self._is_scan_protocol_matching_db_protocol(protocol):
                 matching_protocols_list.append(protocol['Scan_type'])
 
         # if more than one protocol matching, return False, otherwise, return the scan type ID
@@ -270,39 +288,59 @@ class NiftiInsertionPipeline(BasePipeline):
         prot_viol_db_obj = MriProtocolViolatedScans(self.db, self.verbose)
         prot_viol_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
 
-    def _run_extra_file_checks(self, scan_type_id):
+    def _run_extra_file_checks(self):
 
         # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
         mri_prot_check_db_obj = MriProtocolChecks(self.db, self.verbose)
         checks_list = mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
-            self.session_db_obj.session_info_dict, scan_type_id
+            self.session_db_obj.session_info_dict, self.scan_type_id
         )
 
         distinct_headers = set(map(lambda x: x['Header'], checks_list))
-
-        warning_list = []
-        exclude_list = []
         for header in distinct_headers:
-            self.get_violations_per_severity(checks_list, header, 'warning')
+            warning_violations = self._check_violations_per_severity(checks_list, header, 'warning')
+            exclude_violations = self._check_violations_per_severity(checks_list, header, 'exclude')
+            if warning_violations:
+                self.warning_violations_list.append(warning_violations)
+            if exclude_violations:
+                self.exclude_violations_list.append(exclude_violations)
 
-    def get_check_violations_per_severity(self, checks_list, header, severity):
+    def _check_violations_per_severity(self, checks_list, header, severity):
 
         hdr_checks_list = [c for c in checks_list if c['Header'] == header and c['Severity'] == severity]
 
-        valid_ranges = [f"{c['ValidMin']}-{c['ValidMax']}" for c in hdr_checks_list if c['ValidMin'] or c['ValidMax']]
-        valid_regexs = [c['ValidRegex'] for c in hdr_checks_list if c['ValidRegex']]
+        valid_ranges = []
+        valid_regexs = []
         for check in hdr_checks_list:
-            scan_param = self.json_file_dict[check['Header']]
+            if check['ValidMin'] or check['ValidMax']:
+                valid_min = float(check['ValidMin']) if check['ValidMin'] else None
+                valid_max = float(check['ValidMax']) if check['ValidMax'] else None
+                valid_ranges.append([valid_min, valid_max])
+            if check['ValidRegex']:
+                valid_regexs.append(check['ValidRegex'])
 
-            # if not self.in_range(scan_param, protocol_check['ValidMin'], protocol_check['ValidMax']):
-            #     if protocol_check['Severity'] == 'warning':
-            #         warning_list.append({
-            #             'ScanType': scan_type_id,
-            #         })
-            #     elif protocol_check['Severity'] == 'exclude':
-            #         exclude_list.append()
+        scan_param = self.json_file_dict[header]
+        passes_range_check = bool(len([
+            True for v in valid_ranges if self.in_range(scan_param, v[0], v[1])]
+        )) if valid_ranges else True
+        passes_regex_check = bool(len([
+            True for r in valid_regexs if re.match(r, scan_param)
+        ])) if valid_regexs else True
 
-    def is_scan_protocol_matching_db_protocol(self, db_prot):
+        if passes_regex_check and passes_range_check:
+            return None
+        else:
+            return {
+                'Scan_type': self.scan_type_id,
+                'Severity': severity,
+                'Header': header,
+                'Value': scan_param,
+                'ValidRange': ','.join([f"{v[0]}-{v[1]}" for v in valid_ranges]),
+                'ValidRegex': ','.join(valid_regexs),
+                'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
+            }
+
+    def _is_scan_protocol_matching_db_protocol(self, db_prot):
 
         step_params = self.imaging_obj.get_nifti_image_step_parameters(self.nifti_path)
         length_params = self.imaging_obj.get_nifti_image_length_parameters(self.nifti_path)
@@ -324,17 +362,17 @@ class NiftiInsertionPipeline(BasePipeline):
         scan_img_type = self.json_file_dict['ImageType']
 
         # TODO handle image type: note: img_type = ["ORIGINAL", "PRIMARY", "M", "ND", "NORM"] in JSON
-        if ("time" not in scan_param or self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max']))\
-                and self.in_range(scan_tr,              db_prot['TR_min'],              db_prot['TR_max']) \
-                and self.in_range(scan_te,              db_prot['TE_min'],              db_prot['TE_max']) \
-                and self.in_range(scan_ti,              db_prot['TI_min'],              db_prot['TI_max']) \
-                and self.in_range(scan_param['xstep'],  db_prot['xstep_min'],           db_prot['xstep_max']) \
-                and self.in_range(scan_param['ystep'],  db_prot['ystep_min'],           db_prot['ystep_max']) \
-                and self.in_range(scan_param['zstep'],  db_prot['zstep_min'],           db_prot['zstep_max']) \
-                and self.in_range(scan_param['xspace'], db_prot['xspace_min'],          db_prot['xspace_max']) \
-                and self.in_range(scan_param['yspace'], db_prot['yspace_min'],          db_prot['yspace_max']) \
-                and self.in_range(scan_param['zspace'], db_prot['zspace_min'],          db_prot['zspace_max']) \
-                and self.in_range(scan_slice_thick,     db_prot['slice_thickness_min'], db_prot['slice_thickness_max'])\
+        if ("time" not in scan_param or self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
+                and self.in_range(scan_tr, db_prot['TR_min'], db_prot['TR_max']) \
+                and self.in_range(scan_te, db_prot['TE_min'], db_prot['TE_max']) \
+                and self.in_range(scan_ti, db_prot['TI_min'], db_prot['TI_max']) \
+                and self.in_range(scan_param['xstep'], db_prot['xstep_min'], db_prot['xstep_max']) \
+                and self.in_range(scan_param['ystep'], db_prot['ystep_min'], db_prot['ystep_max']) \
+                and self.in_range(scan_param['zstep'], db_prot['zstep_min'], db_prot['zstep_max']) \
+                and self.in_range(scan_param['xspace'], db_prot['xspace_min'], db_prot['xspace_max']) \
+                and self.in_range(scan_param['yspace'], db_prot['yspace_min'], db_prot['yspace_max']) \
+                and self.in_range(scan_param['zspace'], db_prot['zspace_min'], db_prot['zspace_max']) \
+                and self.in_range(scan_slice_thick, db_prot['slice_thickness_min'], db_prot['slice_thickness_max']) \
                 and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
 
