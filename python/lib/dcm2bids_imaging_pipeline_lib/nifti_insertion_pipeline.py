@@ -4,11 +4,11 @@ import json
 import lib.exitcode
 import os
 import re
-from datetime import datetime
 from lib.database_lib.files import Files
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
+from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.imaging import Imaging
 from pyblake2 import blake2b
@@ -73,6 +73,7 @@ class NiftiInsertionPipeline(BasePipeline):
         if not self.loris_scan_type:
             self.scan_type_id = self._determine_acquisition_protocol()
             if not self.scan_type_id:
+                # TODO move file to trashbin
                 self._register_protocol_violated_scan()
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
@@ -89,18 +90,23 @@ class NiftiInsertionPipeline(BasePipeline):
         # Register files in the proper tables
         # ---------------------------------------------------------------------------------------------
         if self.exclude_violations_list:
-            # move file to trashbin and insert entry in mri_violations_log
-            # ensure to insert both the exclude and warning logs
-            pass
+            # TODO move file to trashbin
+            self._register_violations_log(self.exclude_violations_list)
+            self._register_violations_log(self.warning_violations_list)
+            message = f"{self.nifti_path} violates 'exclude' checks listed in mri_protocol_checks."
+            self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
         elif self.warning_violations_list:
-            # register scan into files and violations into mri_violations_log
-            pass
+            # TODO move file to assembly
+            self.file_id = self._register_files()
+            self._register_violations_log(self.warning_violations_list)
         else:
-            # register scan into files
-            pass
+            # TODO move file to trashbin
+            self.file_id = self._register_files()
 
-        # TODO: plan
-        # 19. create pics
+        # ---------------------------------------------------------------------------------------------
+        # Create the pic images
+        # ---------------------------------------------------------------------------------------------
+        # TODO: create the pic
 
     def _load_json_sidecar_file(self):
         """
@@ -253,41 +259,6 @@ class NiftiInsertionPipeline(BasePipeline):
         else:
             return matching_protocols_list[0]
 
-    def _register_protocol_violated_scan(self):
-
-        scan_param = self.json_file_dict
-        tarchive_param = self.tarchive_db_obj.tarchive_info_dict
-        patient_name = None
-        if "PatientName" in scan_param.keys():
-            patient_name = scan_param["PatientName"]
-        elif "PatientName" in tarchive_param.keys():
-            patient_name = tarchive_param["PatientName"]
-        info_to_insert_dict = {
-            "CandID": self.subject_id_dict["CandID"],
-            "PSCID": self.subject_id_dict["PSCID"],
-            "TarchiveID": tarchive_param["TarchiveID"],
-            "time_run": datetime.datetime.now(),
-            "series_description": scan_param["SeriesDescription"],
-            "minc_location": "",  # TODO determine new location
-            "PatientName": patient_name,
-            "TR_range": scan_param["RepetitionTime"] if "RepetitionTime" in scan_param.keys() else None,
-            "TE_range": scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None,
-            "TI_range": scan_param["InversionTime"] if "InversionTime" in scan_param.keys() else None,
-            "slice_thickness_range": scan_param["SliceThickness"] if "SliceThickness" in scan_param.keys() else None,
-            "xspace_range": scan_param["xspace"] if "xspace" in scan_param.keys() else None,
-            "yspace_range": scan_param["yspace"] if "yspace" in scan_param.keys() else None,
-            "zspace_range": scan_param["zspace"] if "zspace" in scan_param.keys() else None,
-            "xstep_range": scan_param["xstep"] if "xstep" in scan_param.keys() else None,
-            "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
-            "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
-            "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
-            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
-            "image_type": scan_param["ImageType"] if "ImageType" in scan_param.keys() else None,
-            "MriProtocolGroupID": scan_param["MriProtocolGroupID"]
-        }
-        prot_viol_db_obj = MriProtocolViolatedScans(self.db, self.verbose)
-        prot_viol_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
-
     def _run_extra_file_checks(self):
 
         # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
@@ -331,12 +302,11 @@ class NiftiInsertionPipeline(BasePipeline):
             return None
         else:
             return {
-                'Scan_type': self.scan_type_id,
                 'Severity': severity,
                 'Header': header,
                 'Value': scan_param,
-                'ValidRange': ','.join([f"{v[0]}-{v[1]}" for v in valid_ranges]),
-                'ValidRegex': ','.join(valid_regexs),
+                'ValidRange': ','.join([f"{v[0]}-{v[1]}" for v in valid_ranges]) if valid_ranges else None,
+                'ValidRegex': ','.join(valid_regexs) if valid_regexs else None,
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
 
@@ -375,6 +345,62 @@ class NiftiInsertionPipeline(BasePipeline):
                 and self.in_range(scan_slice_thick, db_prot['slice_thickness_min'], db_prot['slice_thickness_max']) \
                 and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
+
+    def _register_protocol_violated_scan(self):
+
+        scan_param = self.json_file_dict
+        tarchive_param = self.tarchive_db_obj.tarchive_info_dict
+        patient_name = None
+        if "PatientName" in scan_param.keys():
+            patient_name = scan_param["PatientName"]
+        elif "PatientName" in tarchive_param.keys():
+            patient_name = tarchive_param["PatientName"]
+        info_to_insert_dict = {
+            "CandID": self.subject_id_dict["CandID"],
+            "PSCID": self.subject_id_dict["PSCID"],
+            "TarchiveID": tarchive_param["TarchiveID"],
+            "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "series_description": scan_param["SeriesDescription"],
+            "minc_location": "",  # TODO determine new location
+            "PatientName": patient_name,
+            "TR_range": scan_param["RepetitionTime"] if "RepetitionTime" in scan_param.keys() else None,
+            "TE_range": scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None,
+            "TI_range": scan_param["InversionTime"] if "InversionTime" in scan_param.keys() else None,
+            "slice_thickness_range": scan_param["SliceThickness"] if "SliceThickness" in scan_param.keys() else None,
+            "xspace_range": scan_param["xspace"] if "xspace" in scan_param.keys() else None,
+            "yspace_range": scan_param["yspace"] if "yspace" in scan_param.keys() else None,
+            "zspace_range": scan_param["zspace"] if "zspace" in scan_param.keys() else None,
+            "xstep_range": scan_param["xstep"] if "xstep" in scan_param.keys() else None,
+            "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
+            "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
+            "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
+            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
+            "image_type": scan_param["ImageType"] if "ImageType" in scan_param.keys() else None,
+            "MriProtocolGroupID": scan_param["MriProtocolGroupID"]
+        }
+        prot_viol_db_obj = MriProtocolViolatedScans(self.db, self.verbose)
+        prot_viol_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
+
+    def _register_violations_log(self, violations_list):
+
+        scan_param = self.json_file_dict
+        base_info_dict = {
+            'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
+            'TarchiveID': self.tarchive_db_obj.tarchive_info_dict['TarchiveID'],
+            'MincFile': '',  # TODO determine new location
+            'PatientName': self.subject_id_dict['PatientName'],
+            'CandID': self.subject_id_dict['CandID'],
+            'Visit_label': self.subject_id_dict['visitLabel'],
+            'Scan_type': self.scan_type_id
+        }
+        for violation_dict in violations_list:
+            info_to_insert_dict = base_info_dict | violation_dict
+            prot_viol_log_db_obj = MriViolationsLog(self.db, self.verbose)
+            prot_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
+
+    def _register_files(self):
+        return True
 
     @staticmethod
     def in_range(value, field_min, field_max):
