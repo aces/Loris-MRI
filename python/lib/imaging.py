@@ -11,6 +11,8 @@ from nilearn import image, plotting
 import lib.exitcode
 from lib.database_lib.site import Site
 from lib.database_lib.config import Config
+from lib.database_lib.files import Files
+from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
 
 
@@ -56,6 +58,9 @@ class Imaging:
         self.db = db
         self.verbose = verbose
         self.config_file = config_file
+        self.files_db_obj = Files(db, verbose)
+        self.param_type_db_obj = ParameterType(db, verbose)
+        self.param_file_db_obj = ParameterFile(db, verbose)
 
     def determine_file_type(self, file):
         """
@@ -90,57 +95,54 @@ class Imaging:
 
         return file_type
 
-    def grep_file_id_from_hash(self, blake2b_hash):
+    def grep_file_info_from_hash(self, hash_string):
         """
-        Greps the file ID from the files table. If it cannot be found, the method ]
-        will return None.
+        Greps the file ID from the files table. If it cannot be found, the method will return None.
 
-        :param blake2b_hash: blake2b hash
-         :type blake2b_hash: str
+        :param hash_string: blake2b or md5 hash
+         :type hash_string: str
 
-        :return: file ID and file path
-         :rtype: int
+        :return: dictionary with files table content of the found file
+         :rtype: dict
         """
+        return self.files_db_obj.find_file_with_hash(hash_string)
 
-        query = "SELECT f.FileID, f.File " \
-                "FROM files AS f " \
-                "JOIN parameter_file USING (FileID) " \
-                "JOIN parameter_type USING (ParameterTypeID) " \
-                "WHERE Value=%s"
+    def grep_file_info_from_series_uid_and_echo_time(self, series_uid, echo_time):
+        """
+        Greps the file ID from the files table. If it cannot be found, the method will return None.
 
-        results = self.db.pselect(query=query, args=(blake2b_hash,))
+        :param series_uid: Series Instance UID of the file to look for
+         :type series_uid: str
+        :param echo_time: Echo Time of the file to look for
+         :type echo_time: str
 
-        # return the results
-        return results[0] if results else None
+        :return: dictionary with files table content of the found file
+        :rtype: dict
+        """
+        return self.files_db_obj.find_file_with_series_uid_and_echo_time(series_uid, echo_time)
 
-    def insert_imaging_file(self, file_info, file_data):
+    def insert_imaging_file(self, file_info_dict, parameter_file_data_dict):
         """
         Inserts the imaging file and its information into the files and parameter_file tables.
 
-        :param file_info: dictionary with values to insert into files' table
-         :type file_info: dict
-        :param file_data: dictionary with values to insert into parameter_file's table
-         :type file_data: dict
+        :param file_info_dict: dictionary with values to insert into files' table
+         :type file_info_dict: dict
+        :param parameter_file_data_dict: dictionary with values to insert into parameter_file's table
+         :type parameter_file_data_dict: dict
 
         :return: file ID
          :rtype: int
         """
 
         # insert info from file_info into files
-        file_fields = ()
-        file_values = ()
-        for key, value in file_info.items():
-            file_fields = file_fields + (key,)
-            file_values = file_values + (value,)
-        file_id = self.db.insert(
-            table_name='files',
-            column_names=file_fields,
-            values=[file_values],
-            get_last_id=True
-        )
+        file_id = self.files_db_obj.insert_files(file_info_dict)
 
         # insert info from file_data into parameter_file
-        for key, value in file_data.items():
+        for key, value in parameter_file_data_dict.items():
+            if type(value) == list:
+                if type(value[0]) in [float, int]:
+                    parameter_file_data_dict[key] = [str(f) for f in parameter_file_data_dict[key]]
+                parameter_file_data_dict[key] = f"[{', '.join(parameter_file_data_dict[key])}]"
             self.insert_parameter_file(file_id, key, value)
 
         return file_id
@@ -159,15 +161,14 @@ class Imaging:
         """
 
         # Gather column name & values to insert into parameter_file
-        unix_timestamp = datetime.datetime.now().strftime("%s")
-        parameter_type_id = self.get_parameter_type_id(parameter_name)
-        parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value',    'InsertTime')
-        parameter_file_values = (file_id,  parameter_type_id, str(value), unix_timestamp)
-        self.db.insert(
-            table_name='parameter_file',
-            column_names=parameter_file_fields,
-            values=parameter_file_values
-        )
+        param_type_id = self.get_parameter_type_id(parameter_name)
+        param_file_insert_info_dict = {
+            'ParameterTypeID': param_type_id,
+            'FileID': file_id,
+            'Value': value,
+            'InsertTime': datetime.datetime.now().timestamp()
+        }
+        self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
     def get_parameter_type_id(self, parameter_name):
         """
@@ -181,62 +182,29 @@ class Imaging:
          :rtype: int
         """
 
-        results = self.db.pselect(
-            query="SELECT ParameterTypeID FROM parameter_type WHERE Name = %s AND SourceFrom='parameter_file'",
-            args=(parameter_name,)
-        )
+        bids_mapping_dict = self.param_type_db_obj.get_bids_to_minc_mapping_dict()
+        param_type_id = self.param_type_db_obj.get_parameter_type_id(param_alias=parameter_name) \
+            if parameter_name in bids_mapping_dict.values() \
+            else self.param_type_db_obj.get_parameter_type_id(param_name=parameter_name)
 
-        if results:
-            # if results, grep the parameter_type_id
-            parameter_type_id = results[0]['ParameterTypeID']
-        else:
-            # if no results, create an entry in parameter_type
-            col_names = (
-                'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
-            )
-            parameter_desc = parameter_name + " magically created by lib.imaging python class"
-            source_from = 'parameter_file'
-            values = (
-                parameter_name, 'text', parameter_desc, source_from, 0
-            )
-            parameter_type_id = self.db.insert(
-                table_name='parameter_type',
-                column_names=col_names,
-                values=values,
-                get_last_id=True
+        if not param_type_id:
+            # if no parameter type ID found, create an entry in parameter_type
+            param_type_id = self.param_type_db_obj.insert_parameter_type(
+                {
+                    'Name': parameter_name,
+                    'Alias': None,
+                    'Type': 'text',
+                    'Description': f'{parameter_name} magically created by lib.imaging python class',
+                    'SourceFrom': 'parameter_file',
+                    'Queryable': 0
+                }
             )
 
-            # link the parameter_type_id to a parameter type category
-            category_id = self.get_parameter_type_category_id()
-            self.db.insert(
-                table_name='parameter_type_category_rel',
-                column_names=('ParameterTypeCategoryID', 'ParameterTypeID'),
-                values=(category_id, parameter_type_id),
-                get_last_id=False
-            )
+            # link the newly created parameter_type_id to parameter type category 'MRI Variables'
+            category_id = self.param_type_db_obj.get_parameter_type_category_id('MRI Variables')
+            self.param_type_db_obj.insert_into_parameter_type_category_rel(category_id, param_type_id)
 
-        return parameter_type_id
-
-    def get_parameter_type_category_id(self):
-        """
-        Greps ParameterTypeCategoryID from parameter_type_category table.
-        If no ParameterTypeCategoryID was found, it will return None.
-
-        :return: ParameterTypeCategoryID
-         :rtype: int
-        """
-
-        category_result = self.db.pselect(
-            query='SELECT ParameterTypeCategoryID '
-                  'FROM parameter_type_category '
-                  'WHERE Name = %s ',
-            args=('MRI Variables',)
-        )
-
-        if not category_result:
-            return None
-
-        return category_result[0]['ParameterTypeCategoryID']
+        return param_type_id
 
     def grep_parameter_value_from_file_id(self, file_id, param_name):
         """

@@ -5,15 +5,11 @@ import json
 import lib.exitcode
 import os
 import re
-import shutil
-from lib.database_lib.files import Files
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
 from lib.database_lib.mri_scan_type import MriScanType
 from lib.database_lib.mri_violations_log import MriViolationsLog
-from lib.database_lib.parameter_file import ParameterFile
-from lib.database_lib.parameter_type import ParameterType
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.imaging import Imaging
 from pyblake2 import blake2b
@@ -53,8 +49,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Get the mapping dictionary between BIDS and MINC terms
         # ---------------------------------------------------------------------------------------------
-        self.param_type_obj = ParameterType(self.db, self.verbose)
-        self.bids_mapping_dict = self.param_type_obj.get_bids_to_minc_mapping_dict()
+        self.bids_mapping_dict = self.imaging_obj.param_type_db_obj.get_bids_to_minc_mapping_dict()
 
         # ---------------------------------------------------------------------------------------------
         # Check that the PatientName in NIfTI and DICOMs are the same and then validate the Subject IDs
@@ -84,7 +79,6 @@ class NiftiInsertionPipeline(BasePipeline):
         if not self.loris_scan_type:
             self.scan_type_id = self._determine_acquisition_protocol()
             if not self.scan_type_id:
-                # TODO move file to trashbin
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
@@ -160,7 +154,6 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _check_if_nifti_file_was_already_inserted(self):
 
-        files_obj = Files(self.db, self.verbose)
         error_msg = None
 
         json_keys = self.json_file_dict.keys()
@@ -169,7 +162,7 @@ class NiftiInsertionPipeline(BasePipeline):
             # SeriesInstanceUID and EchoTime have been set in the JSON side car file
             echo_time = self.json_file_dict["EchoTime"]
             series_uid = self.json_file_dict["SeriesInstanceUID"]
-            match = files_obj.find_file_with_series_uid_and_echo_time(series_uid, echo_time)
+            match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(series_uid, echo_time)
             if match:
                 error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid} and" \
                             f" EchoTime {echo_time}. The already registered file is {match['File']}"
@@ -188,8 +181,8 @@ class NiftiInsertionPipeline(BasePipeline):
                                 f" <run_nifti_insertion.py> with either --upload_id or --tarchive_path option."
 
         # verify that a file with the same MD5 or blake2b hash has not already been inserted
-        md5_match = files_obj.find_file_with_hash(self.nifti_md5)
-        blake2b_match = files_obj.find_file_with_hash(self.nifti_blake2)
+        md5_match = self.imaging_obj.grep_file_info_from_hash(self.nifti_md5)
+        blake2b_match = self.imaging_obj.grep_file_info_from_hash(self.nifti_blake2)
         if md5_match:
             error_msg = f"There is already a file registered in the files table with MD5 hash {self.nifti_md5}." \
                         f" The already registered file is {md5_match['File']}"
@@ -370,8 +363,7 @@ class NiftiInsertionPipeline(BasePipeline):
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
         self._create_destination_dir_and_move_image_files('assembly')
 
-        self.file_id = self._register_files(self.assembly_nifti_rel_path)
-        self._register_parameter_file()
+        self.file_id = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
 
         if self.warning_violations_list:
             self._register_violations_log(self.warning_violations_list, self.assembly_nifti_rel_path)
@@ -464,8 +456,6 @@ class NiftiInsertionPipeline(BasePipeline):
         prot_viol_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
 
     def _register_violations_log(self, violations_list, file_path):
-        # TODO add JSON column new location
-
         scan_param = self.json_file_dict
         base_info_dict = {
             'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -482,7 +472,7 @@ class NiftiInsertionPipeline(BasePipeline):
             prot_viol_log_db_obj = MriViolationsLog(self.db, self.verbose)
             prot_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
-    def _register_files(self, nifti_path):
+    def _register_into_files_and_parameter_file(self, nifti_path):
 
         scan_param = self.json_file_dict
         acquisition_date = datetime.datetime.fromisoformat(scan_param['AcquisitionDateTime']).strftime("%Y-%m-%d")
@@ -503,50 +493,9 @@ class NiftiInsertionPipeline(BasePipeline):
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None
         }
-
-        files_db_obj = Files(self.db, self.verbose)
-        file_id = files_db_obj.insert_files(files_insert_info_dict)
+        file_id = self.imaging_obj.insert_imaging_file(files_insert_info_dict, self.json_file_dict)
 
         return file_id
-
-    def _register_parameter_file(self):
-
-        scan_param = self.json_file_dict
-
-        for param in scan_param:
-            param_type_id = None
-            if param in self.bids_mapping_dict.values():
-                param_type_id = self.param_type_obj.get_parameter_type_id(param_alias=param)
-            else:
-                param_type_id = self.param_type_obj.get_parameter_type_id(param_name=param)
-
-            if not param_type_id:
-                # create a new entry for the parameter in parameter_type
-                param_type_id = self.param_type_obj.insert_parameter_type(
-                    {
-                        'Name': param,
-                        'Alias': None,
-                        'Type': 'text',
-                        'Description': f'{param} magically created by dcm2bids nifti_insertion_pipeline.py',
-                        'SourceFrom': 'parameter_file',
-                        'Queryable': 0
-                    }
-                )
-
-            if type(scan_param[param]) == list:
-                if type(scan_param[param][0]) in [float, int]:
-                    scan_param[param] = [str(f) for f in scan_param[param]]
-                scan_param[param] = f"[{', '.join(scan_param[param])}]"
-
-            param_file_insert_info_dict = {
-                'ParameterTypeID': param_type_id,
-                'FileID': self.file_id,
-                'Value': scan_param[param],
-                'InsertTime': datetime.datetime.now().timestamp()
-            }
-
-            param_file_db_obj = ParameterFile(self.db, self.verbose)
-            param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
     @staticmethod
     def in_range(value, field_min, field_max):

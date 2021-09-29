@@ -356,7 +356,7 @@ class Mri:
         file_parameters['file_blake2b_hash'] = blake2
 
         # check that the file is not already inserted before inserting it
-        result    = imaging.grep_file_id_from_hash(blake2)
+        result    = imaging.grep_file_info_from_hash(blake2)
         file_id   = result['FileID'] if result else None
         file_path = result['File']   if result else None
         if not file_id:

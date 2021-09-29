@@ -1,11 +1,11 @@
-"""This class performs parameter_type related database queries and common checks"""
+"""This class performs parameter_type* related database queries"""
 
 __license__ = "GPLv3"
 
 
 class ParameterType:
     """
-    This class performs database queries for imaging dataset stored in the parameter_type table.
+    This class performs database queries for imaging dataset stored in the parameter_type* tables.
 
     :Example:
 
@@ -35,7 +35,7 @@ class ParameterType:
 
     def get_parameter_type_id(self, param_name=None, param_alias=None):
 
-        query = "SELECT ParameterTypeID FROM parameter_type WHERE "
+        query = "SELECT ParameterTypeID FROM parameter_type WHERE SourceFrom='parameter_file'"
         args = None
 
         if param_name:
@@ -69,4 +69,29 @@ class ParameterType:
             column_names=field_value_dict.keys(),
             values=field_value_dict.values(),
             get_last_id=True
+        )
+
+    def get_parameter_type_category_id(self, category_name):
+        """
+        Greps ParameterTypeCategoryID from parameter_type_category table.
+        If no ParameterTypeCategoryID was found, it will return None.
+
+        :return: ParameterTypeCategoryID
+         :rtype: int
+        """
+
+        results = self.db.pselect(
+            query='SELECT ParameterTypeCategoryID FROM parameter_type_category WHERE Name = %s ',
+            args=(category_name,)
+        )
+
+        return results[0]['ParameterTypeCategoryID'] if results else None
+
+    def insert_into_parameter_type_category_rel(self, param_category_id, param_type_id):
+
+        self.db.insert(
+            table_name='parameter_type_category_rel',
+            column_names=('ParameterTypeCategoryID', 'ParameterTypeID'),
+            values=(param_category_id, param_type_id),
+            get_last_id=False
         )
