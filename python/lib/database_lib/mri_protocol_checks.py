@@ -19,14 +19,12 @@ class MriProtocolChecks:
         self.db = db
         self.verbose = verbose
 
-    def get_list_of_possible_protocols_based_on_session_info(self, session_info_dict, scan_type_id):
+    def get_list_of_possible_protocols_based_on_session_info(
+            self, project_id, subproject_id, visit_label, scan_type_id
+    ):
         """
 
         """
-
-        project_id = session_info_dict["ProjectID"]
-        subproject_id = session_info_dict["SubprojectID"]
-        visit_label = session_info_dict["Visit_label"]
 
         query = "SELECT * FROM mri_protocol_checks" \
                 " JOIN mri_protocol_checks_group_target mpcgt USING (MriProtocolChecksGroupID)" \

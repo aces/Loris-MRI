@@ -219,7 +219,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # get scanner ID if not already figured out
         if "ScannerID" not in self.scanner_dict.keys():
-            self.imaging_obj.get_scanner_id_from_json_data(self.json_file_dict, self.site_dict['CenterID'])
+            self.scanner_dict['ScannerID'] = self.imaging_obj.get_scanner_id_from_json_data(self.json_file_dict, self.site_dict['CenterID'])
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         mri_protocol_db_obj = MriProtocol(self.db, self.verbose)

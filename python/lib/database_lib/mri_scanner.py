@@ -38,8 +38,8 @@ class MriScanner:
         :param center_id: Center ID of the scanner
          :type center_id: int
 
-        :return: dictionary with ScannerID information
-         :rtype: dict
+        :return: scanner ID
+         :rtype: int
         """
 
         query = 'SELECT ID AS ScannerID '   \
@@ -53,11 +53,11 @@ class MriScanner:
 
         results = self.db.pselect(query=query, args=arguments)
         if results:
-            return results[0]
+            return results[0]['ScannerID']
 
         # if could not find a scanner ID, register a new scanner in mri_scanner
         scanner_id = self.register_new_scanner(manufacturer, software_version, serial_number, scanner_model, center_id)
-        return {'ScannerID': scanner_id}
+        return scanner_id
 
     def register_new_scanner(self, manufacturer, software_version, serial_number, scanner_model, center_id):
         """

@@ -581,14 +581,13 @@ class Imaging:
 
     def get_scanner_id_from_json_data(self, scan_param_dict, center_id):
 
-        scanner_id = self.mri_scanner_db_obj.determine_scanner_information(
+        return self.mri_scanner_db_obj.determine_scanner_information(
             scan_param_dict["Manufacturer"],
             scan_param_dict["SoftwareVersions"],
             scan_param_dict["DeviceSerialNumber"],
             scan_param_dict["ManufacturersModelName"],
             center_id
         )
-
 
     @staticmethod
     def create_imaging_pic(file_info):
