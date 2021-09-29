@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import sys
 
 import lib.exitcode
@@ -416,3 +417,20 @@ class BasePipeline:
             err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \
                       f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
             self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
+
+    def create_dir(self, directory_path):
+
+        if not os.path.exists(directory_path):
+            self.log_info(f'Creating directory {directory_path}', is_error='N', is_verbose='Y')
+            os.makedirs(directory_path)
+            if not os.path.exists(directory_path):
+                message = f'Failed creating directory {directory_path}'
+                self.log_error_and_exit(message, lib.exitcode.CREATE_DIR_FAILURE, is_error='Y', is_verbose='N')
+
+    def move_file(self, old_file_path, new_file_path):
+
+        self.log_info(f'Moving {old_file_path} to {new_file_path}', is_error='N', is_verbose='Y')
+        shutil.move(old_file_path, new_file_path, self.verbose)
+        if not os.path.exists(new_file_path):
+            message = f'Could not move {old_file_path} to {new_file_path}'
+            self.log_error_and_exit(message, lib.exitcode.COPY_FAILURE, is_error='Y', is_verbose='N')
