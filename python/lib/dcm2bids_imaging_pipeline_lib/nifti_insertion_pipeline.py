@@ -7,9 +7,7 @@ import os
 import re
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
 from lib.database_lib.mri_scan_type import MriScanType
-from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
-from lib.imaging import Imaging
 from pyblake2 import blake2b
 
 __license__ = "GPLv3"
@@ -389,21 +387,29 @@ class NiftiInsertionPipeline(BasePipeline):
         }
         for violation_dict in violations_list:
             info_to_insert_dict = base_info_dict | violation_dict
-            prot_viol_log_db_obj = MriViolationsLog(self.db, self.verbose)
-            prot_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
+            self.imaging_obj.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
-    def _register_into_files_and_parameter_file(self, nifti_path):
+    def _register_into_files_and_parameter_file(self, nifti_rel_path):
+        """
+        Registers the image into files and file_parameter via the lib.imaging library.
+
+        :param nifti_rel_path: relative path to the imaging file to use for the File column of the files table
+         :type nifti_rel_path: str
+
+        :return: file ID of the inserted image
+         :rtype: int
+        """
 
         scan_param = self.json_file_dict
         acquisition_date = datetime.datetime.fromisoformat(scan_param['AcquisitionDateTime']).strftime("%Y-%m-%d")
-        file_type = self.imaging_obj.determine_file_type(self.nifti_path)
+        file_type = self.imaging_obj.determine_file_type(nifti_rel_path)
         if not file_type:
-            message = f'Could not determine file type for {self.nifti_path}. No entry found in ImagingFileTypes table'
+            message = f'Could not determine file type for {nifti_rel_path}. No entry found in ImagingFileTypes table'
             self.log_error_and_exit(message, lib.exitcode.SELECT_FAILURE, is_error='Y', is_verbose='N')
 
         files_insert_info_dict = {
             'SessionID': self.session_db_obj.session_info_dict['ID'],
-            'File': nifti_path,
+            'File': nifti_rel_path,
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
             'EchoTime': scan_param['EchoTime'],
             'CoordinateSpace': 'native',

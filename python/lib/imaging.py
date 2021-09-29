@@ -7,13 +7,12 @@ import re
 
 from nilearn import image, plotting
 
-import lib.exitcode
-from lib.database_lib.site import Site
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
+from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
 
@@ -64,6 +63,7 @@ class Imaging:
         self.mri_prot_db_obj = MriProtocol(db, verbose)
         self.mri_prot_check_db_obj = MriProtocolChecks(db, verbose)
         self.mri_scanner_db_obj = MriScanner(db, verbose)
+        self.mri_viol_log_db_obj = MriViolationsLog(db, verbose)
         self.param_type_db_obj = ParameterType(db, verbose)
         self.param_file_db_obj = ParameterFile(db, verbose)
 
