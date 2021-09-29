@@ -9,7 +9,7 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
 from lib.database_lib.mriupload import MriUpload
-from lib.database_lib.mriscanner import MriScanner
+from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
 from lib.database_lib.session import Session
 from lib.database_lib.site import Site
@@ -195,7 +195,11 @@ class BasePipeline:
         Determine the scanner information found in the database for the uploaded DICOM archive.
         """
         scanner_dict = self.mri_scanner_db_obj.determine_scanner_information(
-            self.tarchive_db_obj.tarchive_info_dict, self.site_dict
+            self.tarchive_db_obj.tarchive_info_dict['ScannerManufacturer'],
+            self.tarchive_db_obj.tarchive_info_dict['ScannerSoftwareVersion'],
+            self.tarchive_db_obj.tarchive_info_dict['ScannerSerialNumber'],
+            self.tarchive_db_obj.tarchive_info_dict['ScannerModel'],
+            self.site_dict['CenterID']
         )
         message = f"Found Scanner ID: {str(scanner_dict['ScannerID'])}"
         self.log_info(message, is_error="N", is_verbose="Y")

@@ -6,7 +6,6 @@ import lib.exitcode
 import os
 import re
 from lib.database_lib.mri_protocol import MriProtocol
-from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
 from lib.database_lib.mri_scan_type import MriScanType
 from lib.database_lib.mri_violations_log import MriViolationsLog
@@ -93,12 +92,18 @@ class NiftiInsertionPipeline(BasePipeline):
         self.warning_violations_list = []  # will store the list of warning violations found
         self.exclude_violations_list = []  # will store the list of exclude violations found
         if not self.bypass_extra_checks:
-            self._run_extra_file_checks()
+            self.violations_summary = self.imaging_obj.run_extra_file_checks(
+                self.session_db_obj.session_info_dict['ProjectID'],
+                self.session_db_obj.session_info_dict['SubprojectID'],
+                self.session_db_obj.session_info_dict['Visit_label'],
+                self.scan_type_id,
+                self.json_file_dict
+            )
 
         # ---------------------------------------------------------------------------------------------
         # Register files in the proper tables
         # ---------------------------------------------------------------------------------------------
-        if self.exclude_violations_list:
+        if self.violations_summary['exclude']:
             self._move_to_trashbin()
             self._register_violations_log(self.exclude_violations_list, self.trashbin_nifti_rel_path)
             self._register_violations_log(self.warning_violations_list, self.trashbin_nifti_rel_path)
@@ -208,19 +213,13 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _determine_acquisition_protocol(self):
 
+        self._add_step_and_space_params_to_json_file_dict()
         nifti_name = os.path.basename(self.nifti_path)
         scan_param = self.json_file_dict
+
         # get scanner ID if not already figured out
         if "ScannerID" not in self.scanner_dict.keys():
-            self.mri_scanner_db_obj.determine_scanner_information(
-                {
-                    "ScannerManufacturer": self.json_file_dict["Manufacturer"],
-                    "ScannerSoftwareVersion": self.json_file_dict["SoftwareVersions"],
-                    "ScannerSerialNumber": self.json_file_dict["DeviceSerialNumber"],
-                    "ScannerModel": self.json_file_dict["ManufacturersModelName"],
-                },
-                self.site_dict
-            )
+            self.imaging_obj.get_scanner_id_from_json_data(self.json_file_dict, self.site_dict['CenterID'])
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         mri_protocol_db_obj = MriProtocol(self.db, self.verbose)
@@ -247,7 +246,7 @@ class NiftiInsertionPipeline(BasePipeline):
             if protocol['series_description_regex']:
                 if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
                     matching_protocols_list.append(protocol['Scan_type'])
-            elif self._is_scan_protocol_matching_db_protocol(protocol):
+            elif self.imaging_obj.is_scan_protocol_matching_db_protocol(protocol, scan_param):
                 matching_protocols_list.append(protocol['Scan_type'])
 
         # if more than one protocol matching, return False, otherwise, return the scan type ID
@@ -265,65 +264,7 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_info(message, is_error='N', is_verbose='Y')
             return scan_type_id
 
-    def _run_extra_file_checks(self):
-
-        # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
-        mri_prot_check_db_obj = MriProtocolChecks(self.db, self.verbose)
-        checks_list = mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
-            self.session_db_obj.session_info_dict, self.scan_type_id
-        )
-
-        distinct_headers = set(map(lambda x: x['Header'], checks_list))
-        for header in distinct_headers:
-            warning_violations = self._check_violations_per_severity(checks_list, header, 'warning')
-            exclude_violations = self._check_violations_per_severity(checks_list, header, 'exclude')
-            if warning_violations:
-                self.warning_violations_list.append(warning_violations)
-            if exclude_violations:
-                self.exclude_violations_list.append(exclude_violations)
-
-    def _check_violations_per_severity(self, checks_list, header, severity):
-
-        hdr_checks_list = [c for c in checks_list if c['Header'] == header and c['Severity'] == severity]
-
-        valid_ranges = []
-        valid_regexs = []
-        for check in hdr_checks_list:
-            if check['ValidMin'] or check['ValidMax']:
-                valid_min = float(check['ValidMin']) if check['ValidMin'] else None
-                valid_max = float(check['ValidMax']) if check['ValidMax'] else None
-                valid_ranges.append([valid_min, valid_max])
-            if check['ValidRegex']:
-                valid_regexs.append(check['ValidRegex'])
-
-        bids_header = header
-        if bids_header not in self.json_file_dict.keys():
-            # then, the header is a MINC header and needs to be mapped to the BIDS term
-            # equivalent to find the value in the JSON file
-            bids_header = [k for k, v in self.bids_mapping_dict.items() if v == header][0]
-        scan_param = self.json_file_dict[bids_header]
-
-        passes_range_check = bool(len([
-            True for v in valid_ranges if self.in_range(scan_param, v[0], v[1])]
-        )) if valid_ranges else True
-        passes_regex_check = bool(len([
-            True for r in valid_regexs if re.match(r, scan_param)
-        ])) if valid_regexs else True
-
-        if passes_regex_check and passes_range_check:
-            return None
-        else:
-            return {
-                'Severity': severity,
-                'Header': header,
-                'Value': scan_param,
-                'ValidRange': ','.join([f"{v[0]}-{v[1]}" for v in valid_ranges]) if valid_ranges else None,
-                'ValidRegex': ','.join(valid_regexs) if valid_regexs else None,
-                'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
-            }
-
-    def _is_scan_protocol_matching_db_protocol(self, db_prot):
-
+    def _add_step_and_space_params_to_json_file_dict(self):
         step_params = self.imaging_obj.get_nifti_image_step_parameters(self.nifti_path)
         length_params = self.imaging_obj.get_nifti_image_length_parameters(self.nifti_path)
         self.json_file_dict['xstep'] = step_params[0]
@@ -335,29 +276,6 @@ class NiftiInsertionPipeline(BasePipeline):
         if len(length_params) == 4:
             self.json_file_dict['time'] = length_params[3]
 
-        scan_param = self.json_file_dict
-        scan_tr = self.json_file_dict['RepetitionTime'] * 1000
-        scan_te = self.json_file_dict['EchoTime'] * 1000
-        scan_ti = self.json_file_dict['InversionTime'] * 1000
-
-        scan_slice_thick = self.json_file_dict['SliceThickness']
-        scan_img_type = self.json_file_dict['ImageType']
-
-        # TODO handle image type: note: img_type = ["ORIGINAL", "PRIMARY", "M", "ND", "NORM"] in JSON
-        if ("time" not in scan_param or self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
-                and self.in_range(scan_tr, db_prot['TR_min'], db_prot['TR_max']) \
-                and self.in_range(scan_te, db_prot['TE_min'], db_prot['TE_max']) \
-                and self.in_range(scan_ti, db_prot['TI_min'], db_prot['TI_max']) \
-                and self.in_range(scan_param['xstep'], db_prot['xstep_min'], db_prot['xstep_max']) \
-                and self.in_range(scan_param['ystep'], db_prot['ystep_min'], db_prot['ystep_max']) \
-                and self.in_range(scan_param['zstep'], db_prot['zstep_min'], db_prot['zstep_max']) \
-                and self.in_range(scan_param['xspace'], db_prot['xspace_min'], db_prot['xspace_max']) \
-                and self.in_range(scan_param['yspace'], db_prot['yspace_min'], db_prot['yspace_max']) \
-                and self.in_range(scan_param['zspace'], db_prot['zspace_min'], db_prot['zspace_max']) \
-                and self.in_range(scan_slice_thick, db_prot['slice_thickness_min'], db_prot['slice_thickness_max']) \
-                and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
-            return True
-
     def _move_to_assembly_and_insert_file_info(self):
 
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
@@ -365,7 +283,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
         self.file_id = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
 
-        if self.warning_violations_list:
+        if self.violations_summary['warning']:
             self._register_violations_log(self.warning_violations_list, self.assembly_nifti_rel_path)
 
     def _determine_new_nifti_assembly_rel_path(self):
@@ -476,6 +394,11 @@ class NiftiInsertionPipeline(BasePipeline):
 
         scan_param = self.json_file_dict
         acquisition_date = datetime.datetime.fromisoformat(scan_param['AcquisitionDateTime']).strftime("%Y-%m-%d")
+        file_type = self.imaging_obj.determine_file_type(self.nifti_path)
+        if not file_type:
+            message = f'Could not determine file type for {self.nifti_path}. No entry found in ImagingFileTypes table'
+            self.log_error_and_exit(message, lib.exitcode.SELECT_FAILURE, is_error='Y', is_verbose='N')
+
         files_insert_info_dict = {
             'SessionID': self.session_db_obj.session_info_dict['ID'],
             'File': nifti_path,
@@ -484,7 +407,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'CoordinateSpace': 'native',
             'OutputType': 'native',
             'AcquisitionProtocolID': self.scan_type_id,
-            'FileType': 'nii',
+            'FileType': file_type,
             'InsertedByUserID': getpass.getuser(),
             'InsertTime': datetime.datetime.now().timestamp(),
             'Caveat': 1 if self.warning_violations_list else 0,
@@ -496,25 +419,3 @@ class NiftiInsertionPipeline(BasePipeline):
         file_id = self.imaging_obj.insert_imaging_file(files_insert_info_dict, self.json_file_dict)
 
         return file_id
-
-    @staticmethod
-    def in_range(value, field_min, field_max):
-
-        # return True when parameter min and max values are not defined (a.k.a. no restrictions in mri_protocol)
-        if not field_min and not field_max:
-            return True
-
-        # return True if min & max are defined and value is within the range
-        if field_min and field_max and field_min <= value <= field_max:
-            return True
-
-        # return True if only min is defined and value is <= min
-        if field_min and not field_max and field_min <= value:
-            return True
-
-        # return True if only max is defined and value is >= max
-        if field_max and not field_min and value <= field_max:
-            return True
-
-        # if we got this far, then value is out of range
-        return False

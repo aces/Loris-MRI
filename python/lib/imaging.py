@@ -1,10 +1,9 @@
 """This class performs database queries and common imaging checks (MRI...)"""
 
-import sys
-import re
 import os
 import datetime
 import nibabel as nib
+import re
 
 from nilearn import image, plotting
 
@@ -12,6 +11,8 @@ import lib.exitcode
 from lib.database_lib.site import Site
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
+from lib.database_lib.mri_scanner import MriScanner
+from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
 
@@ -59,6 +60,8 @@ class Imaging:
         self.verbose = verbose
         self.config_file = config_file
         self.files_db_obj = Files(db, verbose)
+        self.mri_prot_check_db_obj = MriProtocolChecks(db, verbose)
+        self.mri_scanner_db_obj = MriScanner(db, verbose)
         self.param_type_db_obj = ParameterType(db, verbose)
         self.param_file_db_obj = ParameterFile(db, verbose)
 
@@ -75,9 +78,7 @@ class Imaging:
          :rtype: str
         """
 
-        imaging_file_types = self.db.pselect(
-            query="SELECT type FROM ImagingFileTypes"
-        )
+        imaging_file_types = self.db.pselect(query="SELECT type FROM ImagingFileTypes")
 
         # if the file type cannot be found in the database, exit now
         file_type = None
@@ -85,13 +86,6 @@ class Imaging:
             regex_match = r'' + type['type'] + r'(\.gz)?$'
             if re.search(regex_match, file):
                 file_type = type['type']
-
-        # exits if could not find a file type
-        if not file_type:
-            message = "\nERROR: File type for " + file + " does not exist " \
-                      "in ImagingFileTypes database table\n"
-            print(message)
-            sys.exit(lib.exitcode.SELECT_FAILURE)
 
         return file_type
 
@@ -455,6 +449,147 @@ class Imaging:
 
         return file_parameters
 
+    def is_scan_protocol_matching_db_protocol(self, db_prot, scan_param):
+        """
+        Determines if a scan protocol matches a protocol previously taken from the mri_protocol table.
+
+        :param db_prot: database protocol to compare the scan parameters to
+         :type db_prot: dict
+        :param scan_param: the image protocol
+         :type scan_param: dict
+
+        :return: True if the image protocol matches the database protocol, False otherwise
+         :rtype: bool
+        """
+
+        scan_tr = scan_param['RepetitionTime'] * 1000
+        scan_te = scan_param['EchoTime'] * 1000
+        scan_ti = scan_param['InversionTime'] * 1000
+
+        scan_slice_thick = scan_param['SliceThickness']
+        scan_img_type = scan_param['ImageType']
+        # TODO handle image type: note: img_type = ["ORIGINAL", "PRIMARY", "M", "ND", "NORM"] in JSON
+        if ("time" not in scan_param or self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
+                and self.in_range(scan_tr,              db_prot['TR_min'],     db_prot['TR_max']) \
+                and self.in_range(scan_te,              db_prot['TE_min'],     db_prot['TE_max']) \
+                and self.in_range(scan_ti,              db_prot['TI_min'],     db_prot['TI_max']) \
+                and self.in_range(scan_param['xstep'],  db_prot['xstep_min'],  db_prot['xstep_max']) \
+                and self.in_range(scan_param['ystep'],  db_prot['ystep_min'],  db_prot['ystep_max']) \
+                and self.in_range(scan_param['zstep'],  db_prot['zstep_min'],  db_prot['zstep_max']) \
+                and self.in_range(scan_param['xspace'], db_prot['xspace_min'], db_prot['xspace_max']) \
+                and self.in_range(scan_param['yspace'], db_prot['yspace_min'], db_prot['yspace_max']) \
+                and self.in_range(scan_param['zspace'], db_prot['zspace_min'], db_prot['zspace_max']) \
+                and self.in_range(scan_slice_thick,     db_prot['slice_thickness_min'], db_prot['slice_thickness_max'])\
+                and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
+            return True
+
+    def run_extra_file_checks(self, project_id, subproject_id, visit_label, scan_type_id, scan_param_dict):
+        """
+        Runs the extra file checks for a given scan type to determine if there are any violations to protocol.
+
+        :param project_id: Project ID associated with the image to be inserted
+         :type project_id: int
+        :param subproject_id: Subproject ID associated with the image to be inserted
+         :type subproject_id: int
+        :param visit_label: Visit label associated with the image to be inserted
+         :type visit_label: str
+        :param scan_type_id: Scan type ID identified for the image to be inserted
+         :type scan_type_id: int
+        :param scan_param_dict: scan parameters (from the JSON file)
+         :type scan_param_dict: dict
+
+        :return: dictionary with two list: one for the 'warning' violations and one for the 'exclude' violations
+         :rtype: dict
+        """
+
+        # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
+        checks_list = self.mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
+            project_id, subproject_id, visit_label, scan_type_id
+        )
+
+        distinct_headers = set(map(lambda x: x['Header'], checks_list))
+        warning_violations_list = []
+        exclude_violations_list = []
+        for header in distinct_headers:
+            warning_violations = self.get_violations(checks_list, header, 'warning', scan_param_dict)
+            exclude_violations = self.get_violations(checks_list, header, 'exclude', scan_param_dict)
+            if warning_violations:
+                warning_violations_list.append(warning_violations)
+            if exclude_violations:
+                exclude_violations_list.append(exclude_violations)
+
+        return {
+            'warning': warning_violations_list,
+            'exclude': exclude_violations_list
+        }
+
+    def get_violations(self, checks_list, header, severity, scan_param_dict):
+        """
+        Get scan violations for a given header and severity.
+
+        :param checks_list:
+         :type checks_list: list
+        :param header: name of the header to use to check if there is a violation
+         :type header: str
+        :param severity: severity of the violation (one of 'warning' or 'exclude') in mri_protocol_checks
+         :type severity: str
+        :param scan_param_dict: image parameters
+         :type scan_param_dict: dict
+
+        :return: dictionary with the details regarding the violation (to be inserted in mri_violations_log eventually)
+         :rtype: dict
+        """
+
+        hdr_checks_list = [c for c in checks_list if c['Header'] == header and c['Severity'] == severity]
+
+        valid_ranges = []
+        valid_regexs = []
+        for check in hdr_checks_list:
+            if check['ValidMin'] or check['ValidMax']:
+                valid_min = float(check['ValidMin']) if check['ValidMin'] else None
+                valid_max = float(check['ValidMax']) if check['ValidMax'] else None
+                valid_ranges.append([valid_min, valid_max])
+            if check['ValidRegex']:
+                valid_regexs.append(check['ValidRegex'])
+
+        bids_mapping_dict = self.param_type_db_obj.get_bids_to_minc_mapping_dict()
+        bids_header = header
+        if bids_header not in scan_param_dict.keys():
+            # then, the header is a MINC header and needs to be mapped to the BIDS term
+            # equivalent to find the value in the JSON file
+            bids_header = [k for k, v in bids_mapping_dict.items() if v == header][0]
+        scan_param = scan_param_dict[bids_header]
+
+        passes_range_check = bool(len([
+            True for v in valid_ranges if self.in_range(scan_param, v[0], v[1])]
+        )) if valid_ranges else True
+        passes_regex_check = bool(len([
+            True for r in valid_regexs if re.match(r, scan_param)
+        ])) if valid_regexs else True
+
+        if passes_regex_check and passes_range_check:
+            return None
+        else:
+            return {
+                'Severity': severity,
+                'Header': header,
+                'Value': scan_param,
+                'ValidRange': ','.join([f"{v[0]}-{v[1]}" for v in valid_ranges]) if valid_ranges else None,
+                'ValidRegex': ','.join(valid_regexs) if valid_regexs else None,
+                'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
+            }
+
+    def get_scanner_id_from_json_data(self, scan_param_dict, center_id):
+
+        scanner_id = self.mri_scanner_db_obj.determine_scanner_information(
+            scan_param_dict["Manufacturer"],
+            scan_param_dict["SoftwareVersions"],
+            scan_param_dict["DeviceSerialNumber"],
+            scan_param_dict["ManufacturersModelName"],
+            center_id
+        )
+
+
     @staticmethod
     def create_imaging_pic(file_info):
         """
@@ -533,3 +668,38 @@ class Imaging:
         step = img.header.get_zooms()
 
         return step
+
+    @staticmethod
+    def in_range(value, field_min, field_max):
+        """
+        Determine if a value falls into a min and max range.
+
+        :param value: value to evaluate
+         :type value: float or int
+        :param field_min: minimal range value
+         :type field_min: float or int
+        :param field_max: maximal range value
+         :type field_max: float or int
+
+        :return: True if the value falls into the range, False otherwise
+         :rtype: bool
+        """
+
+        # return True when parameter min and max values are not defined (a.k.a. no restrictions in mri_protocol)
+        if not field_min and not field_max:
+            return True
+
+        # return True if min & max are defined and value is within the range
+        if field_min and field_max and field_min <= value <= field_max:
+            return True
+
+        # return True if only min is defined and value is <= min
+        if field_min and not field_max and field_min <= value:
+            return True
+
+        # return True if only max is defined and value is >= max
+        if field_max and not field_min and value <= field_max:
+            return True
+
+        # if we got this far, then value is out of range
+        return False

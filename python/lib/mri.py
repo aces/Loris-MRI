@@ -3,6 +3,7 @@
 import os
 import json
 import getpass
+import sys
 from pyblake2 import blake2b
 
 import lib.exitcode
@@ -308,6 +309,11 @@ class Mri:
 
         # grep the file type from the ImagingFileTypes table
         file_type = imaging.determine_file_type(nifti_file.filename)
+        if not file_type:
+            message = "\nERROR: File type for " + nifti_file.filename \
+                      + " does not exist in ImagingFileTypes database table\n"
+            print(message)
+            sys.exit(lib.exitcode.SELECT_FAILURE)
 
         # determine the output type
         output_type = 'derivatives' if derivatives else 'native'
