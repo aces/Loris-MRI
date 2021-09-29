@@ -5,10 +5,12 @@ import json
 import lib.exitcode
 import os
 import re
+import shutil
 from lib.database_lib.files import Files
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
+from lib.database_lib.mri_scan_type import MriScanType
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
@@ -86,6 +88,9 @@ class NiftiInsertionPipeline(BasePipeline):
                 self._register_protocol_violated_scan()
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
+            else:
+                mri_scan_type_db_obj = MriScanType(self.db, self.verbose)
+                self.scan_type_name = mri_scan_type_db_obj.get_scan_type_name_from_id(self.scan_type_id)
 
         # ---------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
@@ -268,7 +273,10 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_info(message, is_error='N', is_verbose='Y')
             return False
         else:
-            return matching_protocols_list[0]
+            scan_type_id = matching_protocols_list[0]
+            message = f'==> Acquisition protocol ID for the file to insert is {scan_type_id}'
+            self.log_info(message, is_error='N', is_verbose='Y')
+            return scan_type_id
 
     def _run_extra_file_checks(self):
 
@@ -362,6 +370,60 @@ class NiftiInsertionPipeline(BasePipeline):
                 and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
 
+    def _move_to_assembly_and_insert_file_info(self):
+
+        assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
+        assembly_json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', assembly_nifti_rel_path)
+        absolute_dir_path = os.path.join(self.data_dir, os.path.dirname(assembly_nifti_rel_path))
+        absolute_nifti_path = os.path.join(self.data_dir, assembly_nifti_rel_path)
+        absolute_json_path = os.path.join(self.data_dir, assembly_json_rel_path)
+
+        if not os.path.exists(absolute_dir_path):
+            self.log_info(f'==> Creating directory {absolute_dir_path}', is_error='N', is_verbose='Y')
+            os.makedirs(absolute_dir_path)
+            if not os.path.exists(absolute_dir_path):
+                message = f'Failed creating directory {absolute_dir_path}'
+                self.log_error_and_exit(message, lib.exitcode.CREATE_DIR_FAILURE, is_error='Y', is_verbose='N')
+
+        file_type_to_move_list = ['nifti', 'json'] if self.json_path else ['nifti']
+        for file_type in file_type_to_move_list:
+            original_file_path = self.nifti_path if file_type == 'nifti' else self.json_path
+            new_file_path = absolute_nifti_path if file_type == 'nifti' else absolute_json_path
+            self.log_info(f'==> Moving {original_file_path} to {new_file_path}', is_error='N', is_verbose='Y')
+            shutil.move(original_file_path, new_file_path, self.verbose)
+            if not os.path.exists(new_file_path):
+                message = f'Could not move {original_file_path} to {new_file_path}'
+                self.log_error_and_exit(message, lib.exitcode.COPY_FAILURE, is_error='Y', is_verbose='N')
+
+            if file_type == 'json':
+                self.json_file_dict['bids_json_file'] = assembly_json_rel_path
+                self.json_file_dict['bids_json_file_blake2b_hash'] = self.json_blake2
+            else:
+                self.json_file_dict['file_blake2b_hash'] = self.nifti_blake2
+
+        self.file_id = self._register_files(assembly_nifti_rel_path)
+        self._register_parameter_file()
+
+    def _determine_new_nifti_assembly_rel_path(self):
+
+        study_prefix = self.config_db_obj.get_config('prefix')
+        cand_id = self.subject_id_dict['CandID']
+        visit = self.subject_id_dict['visitLabel']
+
+        curr_nifti_path = self.nifti_path
+        nifti_ext = re.search(r"\.nii(\.gz)?$", curr_nifti_path).group()
+
+        file_nb = 1
+        new_nifti_name = '_'.join([study_prefix, cand_id, visit, self.scan_type_name, format(file_nb, '03d')]) \
+                         + nifti_ext
+        new_nifti_rel_dir = os.path.join('assembly', cand_id, visit, 'mri', 'native')
+        while os.path.exists(os.path.join(self.data_dir, new_nifti_rel_dir, new_nifti_name)):
+            file_nb += 1
+            new_nifti_name = '_'.join([study_prefix, cand_id, visit, self.scan_type_name, format(file_nb, '03d')]) \
+                             + nifti_ext
+
+        return os.path.join('assembly', cand_id, visit, 'mri', 'native', new_nifti_name)
+
     def _register_protocol_violated_scan(self):
 
         scan_param = self.json_file_dict
@@ -415,13 +477,13 @@ class NiftiInsertionPipeline(BasePipeline):
             prot_viol_log_db_obj = MriViolationsLog(self.db, self.verbose)
             prot_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
-    def _register_files(self):
+    def _register_files(self, nifti_path):
 
         scan_param = self.json_file_dict
         acquisition_date = datetime.datetime.fromisoformat(scan_param['AcquisitionDateTime']).strftime("%Y-%m-%d")
         files_insert_info_dict = {
             'SessionID': self.session_db_obj.session_info_dict['ID'],
-            'File': '', # TODO determine file path
+            'File': nifti_path,
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
             'EchoTime': scan_param['EchoTime'],
             'CoordinateSpace': 'native',

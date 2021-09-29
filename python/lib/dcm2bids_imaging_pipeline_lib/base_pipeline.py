@@ -320,7 +320,7 @@ class BasePipeline:
 
     def create_session(self):
         cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["Visit_label"]
+        visit_label = self.subject_id_dict["visitLabel"]
         create_visit_label = self.subject_id_dict["createVisitLabel"]
         project_id = self.subject_id_dict["ProjectID"] if "ProjectID" in self.subject_id_dict.keys() else None
         subproject_id = self.subject_id_dict["SubprojectID"] if "SubprojectID" in self.subject_id_dict.keys() else None
@@ -372,7 +372,7 @@ class BasePipeline:
 
     def determine_new_session_site_and_visit_nb(self):
         cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["Visit_label"]
+        visit_label = self.subject_id_dict["visitLabel"]
         is_phantom = self.subject_id_dict["isPhantom"]
         visit_nb = 0
         center_id = 0
