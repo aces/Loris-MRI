@@ -5,7 +5,6 @@ import json
 import lib.exitcode
 import os
 import re
-from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
 from lib.database_lib.mri_scan_type import MriScanType
 from lib.database_lib.mri_violations_log import MriViolationsLog
@@ -31,11 +30,6 @@ class NiftiInsertionPipeline(BasePipeline):
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
 
         # ---------------------------------------------------------------------------------------------
-        # Load imaging class
-        # ---------------------------------------------------------------------------------------------
-        self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
-
-        # ---------------------------------------------------------------------------------------------
         # Check the mri_upload table to see if the DICOM archive has been validated
         # ---------------------------------------------------------------------------------------------
         self.check_if_tarchive_validated_in_db()
@@ -55,7 +49,9 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         if self.tarchive_db_obj.tarchive_info_dict.keys():
             self._validate_nifti_patient_name_with_dicom_patient_name()
-            self.subject_id_dict = self.determine_subject_ids(self.scanner_dict['ScannerID'])
+            self.subject_id_dict = self.imaging_obj.determine_subject_ids(
+                self.tarchive_db_obj.tarchive_info_dict, self.scanner_dict['ScannerID']
+            )
         else:
             self._determine_subject_ids_based_on_json_patient_name()
         self.validate_subject_ids()
@@ -134,7 +130,9 @@ class NiftiInsertionPipeline(BasePipeline):
 
         with open(json_path) as json_file:
             json_data_dict = json.load(json_file)
-        # self.imaging_obj.map_bids_param_to_loris_param(json_data_dict)
+
+        self._add_step_and_space_params_to_json_file_dict()
+
         return json_data_dict
 
     def _validate_nifti_patient_name_with_dicom_patient_name(self):
@@ -213,18 +211,22 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _determine_acquisition_protocol(self):
 
-        self._add_step_and_space_params_to_json_file_dict()
         nifti_name = os.path.basename(self.nifti_path)
         scan_param = self.json_file_dict
 
         # get scanner ID if not already figured out
         if "ScannerID" not in self.scanner_dict.keys():
-            self.scanner_dict['ScannerID'] = self.imaging_obj.get_scanner_id_from_json_data(self.json_file_dict, self.site_dict['CenterID'])
+            self.scanner_dict['ScannerID'] = self.imaging_obj.get_scanner_id_from_json_data(
+                self.json_file_dict, self.site_dict['CenterID']
+            )
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
-        mri_protocol_db_obj = MriProtocol(self.db, self.verbose)
-        protocols_list = mri_protocol_db_obj.get_list_of_possible_protocols_based_on_session_info(
-            self.session_db_obj.session_info_dict, self.scanner_dict['ScannerID']
+        protocols_list = self.imaging_obj.mri_prot_db_obj.get_list_of_possible_protocols_based_on_session_info(
+            self.session_db_obj.session_info_dict['ProjectID'],
+            self.session_db_obj.session_info_dict['SubprojectID'],
+            self.session_db_obj.session_info_dict['CenterID'],
+            self.session_db_obj.session_info_dict['Visit_label'],
+            self.scanner_dict['ScannerID']
         )
 
         if not len(protocols_list):

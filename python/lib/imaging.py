@@ -12,6 +12,7 @@ from lib.database_lib.site import Site
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_scanner import MriScanner
+from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
@@ -60,6 +61,7 @@ class Imaging:
         self.verbose = verbose
         self.config_file = config_file
         self.files_db_obj = Files(db, verbose)
+        self.mri_prot_db_obj = MriProtocol(db, verbose)
         self.mri_prot_check_db_obj = MriProtocolChecks(db, verbose)
         self.mri_scanner_db_obj = MriScanner(db, verbose)
         self.param_type_db_obj = ParameterType(db, verbose)
@@ -308,13 +310,8 @@ class Imaging:
             subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
             subject_id_dict['PatientName'] = dicom_value
         except AttributeError:
-            message = 'ERROR: config file does not contain a get_subject_ids routine.' \
-                      ' Upload will exit now.'
-            return {
-                'error': True,
-                'exit_code': lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
-                'message': message
-            }
+            message = 'Config file does not contain a get_subject_ids routine. Upload will exit now.'
+            return {'error_message': message}
 
         return subject_id_dict
 
@@ -374,56 +371,6 @@ class Imaging:
             # Message is undefined
             subject_id_dict['CandMismatchError'] = subject_id_dict['message']
             return False
-
-    def determine_study_center(self, tarchive_info_dict):
-        """
-        Determine the study center associated to the DICOM archive based on a DICOM header
-        specified by the lookupCenterNameUsing config setting.
-
-        :param tarchive_info_dict: dictionary with information about the DICOM archive queried
-                                   from the tarchive table
-         :type tarchive_info_dict: dict
-
-        :return: dictionary with CenterName and CenterID information
-         :rtype: dict
-        """
-
-        subject_id_dict = self.determine_subject_ids(tarchive_info_dict)
-        if 'error' in subject_id_dict.keys():
-            # subject_id_dict contain the error, exit code and message to explain the error
-            return subject_id_dict
-
-        cand_id = subject_id_dict['CandID']
-        visit_label = subject_id_dict['visitLabel']
-        patient_name = subject_id_dict['PatientName']
-
-        # get the CenterID from the session table if the PSCID and visit label exists
-        # and could be extracted from the database
-        if cand_id and visit_label:
-            query = 'SELECT s.CenterID AS CenterID, p.MRI_alias AS CenterName' \
-                    ' FROM session s' \
-                    ' JOIN psc p ON p.CenterID=s.CenterID' \
-                    ' WHERE s.CandID = %s AND s.Visit_label = %s'
-            results = self.db.pselect(query=query, args=(cand_id, visit_label))
-            if results:
-                return results[0]
-
-        # if could not find center information based on cand_id and visit_label, use the
-        # patient name to match it to the site alias or MRI alias
-        site = Site(self.db, self.verbose)
-        list_of_sites = site.get_list_of_sites()
-        for site_dict in list_of_sites:
-            if site_dict['Alias'] in patient_name:
-                return {'CenterName': site_dict['Alias'], 'CenterID': site_dict['CenterID']}
-            elif site_dict['MRI_alias'] in patient_name:
-                return {'CenterName': site_dict['MRI_alias'], 'CenterID': site_dict['CenterID']}
-
-        # if we got here, it means we could not find a center associated to the dataset
-        return {
-            'error': True,
-            'exit_code': lib.exitcode.SELECT_FAILURE,
-            'message': 'ERROR: No center found for this DICOM study'
-        }
 
     def map_bids_param_to_loris_param(self, file_parameters):
         """

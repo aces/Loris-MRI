@@ -14,6 +14,7 @@ from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
 from lib.database_lib.session import Session
 from lib.database_lib.site import Site
 from lib.database_lib.tarchive import Tarchive
+from lib.imaging import Imaging
 from lib.log import Log
 
 
@@ -62,6 +63,7 @@ class BasePipeline:
         # Load the Config, Imaging, Tarchive, MriUpload, MriScanner and Site classes
         # -----------------------------------------------------------------------------------
         self.config_db_obj = Config(self.db, self.verbose)
+        self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
         self.mri_upload_db_obj = MriUpload(self.db, self.verbose)
         self.mri_scanner_db_obj = MriScanner(self.db, self.verbose)
         self.session_db_obj = Session(self.db, self.verbose)
@@ -111,7 +113,14 @@ class BasePipeline:
         # Grep scanner information based on what is in the DICOM headers
         # ---------------------------------------------------------------------------------
         if self.tarchive_db_obj.tarchive_info_dict.keys():
-            self.subject_id_dict = self.determine_subject_ids(scanner_id=None)
+            self.subject_id_dict = self.imaging_obj.determine_subject_ids(self.tarchive_db_obj.tarchive_info_dict)
+            if 'error_message' in self.subject_id_dict:
+                self.log_error_and_exit(
+                    self.subject_id_dict['error_message'],
+                    lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
+                    is_error="Y",
+                    is_verbose="N"
+                )
 
             # verify PSC information stored in DICOMs
             self.site_dict = self.determine_study_info()
@@ -204,29 +213,6 @@ class BasePipeline:
         message = f"Found Scanner ID: {str(scanner_dict['ScannerID'])}"
         self.log_info(message, is_error="N", is_verbose="Y")
         return scanner_dict
-
-    def determine_subject_ids(self, scanner_id):
-        """
-        Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
-        config setting. This function will call a function in the config file that can be
-        customized for each project.
-
-        :return subject_id_dict: dictionary with subject IDs and visit label or error status
-         :rtype subject_id_dict: dict
-        """
-
-        dicom_header = self.config_db_obj.get_config('lookupCenterNameUsing')
-        dicom_value = self.tarchive_db_obj.tarchive_info_dict[dicom_header]
-        subject_id_dict = None
-
-        try:
-            subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
-            subject_id_dict["PatientName"] = dicom_value
-        except AttributeError:
-            message = "Config file does not contain a get_subject_ids routine. Upload will exit now."
-            self.log_error_and_exit(message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE, is_error="Y", is_verbose="N")
-
-        return subject_id_dict
 
     def validate_subject_ids(self):
         """
