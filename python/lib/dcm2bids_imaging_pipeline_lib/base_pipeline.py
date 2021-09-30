@@ -13,7 +13,6 @@ from lib.imaging_upload import ImagingUpload
 from lib.session import Session
 
 from lib.database_lib.config import Config
-from lib.database_lib.notification import Notification
 from lib.database_lib.tarchive import Tarchive
 
 
@@ -66,7 +65,6 @@ class BasePipeline:
         self.imaging_upload_obj = ImagingUpload(self.db, self.verbose)
         self.session_obj = Session(self.db, self.verbose)
         self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
-        self.notification_obj = None  # set this to none until we get a confirmed UploadID
 
         # ---------------------------------------------------------------------------------------------
         # Grep config settings from the Config module
