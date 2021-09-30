@@ -10,7 +10,7 @@ from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
 from lib.database_lib.mriupload import MriUpload
 from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
-from lib.database_lib.session import Session
+from lib.session import Session
 from lib.database_lib.site import Site
 from lib.database_lib.tarchive import Tarchive
 from lib.imaging import Imaging
@@ -64,7 +64,7 @@ class BasePipeline:
         self.config_db_obj = Config(self.db, self.verbose)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
         self.mri_upload_db_obj = MriUpload(self.db, self.verbose)
-        self.session_db_obj = Session(self.db, self.verbose)
+        self.session_obj = Session(self.db, self.verbose)
         self.site_db_obj = Site(self.db, self.verbose)
         self.proj_subproj_rel_db_obj = ProjectSubprojectRel(self.db, self.verbose)
         self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
@@ -176,8 +176,8 @@ class BasePipeline:
         # get the CenterID from the session table if the PSCID and visit label exists
         # and could be extracted from the database
         if cand_id and visit_label:
-            self.session_db_obj.create_session_dict(cand_id, visit_label)
-            session_dict = self.session_db_obj.session_info_dict
+            self.session_obj.create_session_dict(cand_id, visit_label)
+            session_dict = self.session_obj.session_info_dict
             return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
 
         # if could not find center information based on cand_id and visit_label, use the
@@ -301,10 +301,10 @@ class BasePipeline:
 
         cand_id = self.subject_id_dict["CandID"]
         visit_label = self.subject_id_dict["visitLabel"]
-        self.session_db_obj.create_session_dict(cand_id, visit_label)
+        self.session_obj.create_session_dict(cand_id, visit_label)
 
-        if self.session_db_obj.session_info_dict.keys():
-            message = f"Session ID for the file to insert is {self.session_db_obj.session_info_dict['ID']}"
+        if self.session_obj.session_info_dict.keys():
+            message = f"Session ID for the file to insert is {self.session_obj.session_info_dict['ID']}"
             self.log_info(message, is_error="N", is_verbose="Y")
 
     def create_session(self):
@@ -346,15 +346,18 @@ class BasePipeline:
             self.log_info(message, is_error="N", is_verbose="Y")
 
         # create the new visit
-        session_id = self.session_db_obj.insert_into_session(
-            fields=(
-                "CandID",    "Visit_label", "CenterID",     "VisitNo",  "Current_stage",
-                "Scan_done", "Submitted",   "SubprojectID", "ProjectID"
-            ),
-            values=(
-                cand_id, visit_label, center_id,     visit_nb,   "Not Started",
-                "Y",     "N",         subproject_id, project_id
-            )
+        session_id = self.session_obj.insert_into_session(
+            {
+                'CandID': cand_id,
+                'Visit_label': visit_label,
+                'CenterID': center_id,
+                'VisitNo': visit_nb,
+                'Current_stage': 'Not Started',
+                'Scan_done': 'Y',
+                'Submitted': 'N',
+                'SubprojectID': subproject_id,
+                'ProjectID': project_id
+            }
         )
         if session_id:
             self.get_session_info()
@@ -372,7 +375,7 @@ class BasePipeline:
                 center_id = center_info_dict["CenterID"]
                 visit_nb = 1
         else:
-            center_info_dict = self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
+            center_info_dict = self.session_obj.get_next_session_site_id_and_visit_number(cand_id)
             if center_info_dict:
                 center_id = center_info_dict["CenterID"]
                 visit_nb = center_info_dict["newVisitNo"]
@@ -386,7 +389,7 @@ class BasePipeline:
 
         # first check whether there is already a session in the database for the phantom scan
         if pscid and visit_label:
-            return self.session_db_obj.get_session_center_info(pscid, visit_label)
+            return self.session_obj.get_session_center_info(pscid, visit_label)
 
         # if no session found, use a string_with_site_acronym to match it to a site alias or MRI alias
         for row in self.site_dict:

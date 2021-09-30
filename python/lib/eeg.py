@@ -8,7 +8,7 @@ from pyblake2 import blake2b
 import lib.exitcode
 import lib.utilities as utilities
 from lib.candidate                                   import Candidate
-from lib.session                                     import Session
+from lib.session                                     import SessionDB
 from lib.physiological                               import Physiological
 from lib.scanstsv                                    import ScansTSV
 from lib.database_lib.physiologicalannotationfile    import PhysiologicalAnnotationFile
@@ -182,7 +182,7 @@ class Eeg:
         # will use the default visit label set in the config module
         visit_label = self.bids_ses_id if self.bids_ses_id else self.default_vl
 
-        session = Session(
+        session = SessionDB(
             self.verbose, self.cand_id, visit_label,
             self.center_id, self.project_id, self.subproject_id
         )

@@ -176,10 +176,10 @@ class Mri:
         visit_label = self.bids_ses_id if self.bids_ses_id else self.default_vl
 
         session = Session(
-            self.verbose, self.cand_id, visit_label,
+            self.db, self.verbose, self.cand_id, visit_label,
             self.center_id, self.project_id, self.subproject_id
         )
-        loris_vl_info = session.get_session_info_from_loris(self.db)
+        loris_vl_info = session.get_session_info_from_loris()
 
         if not loris_vl_info:
             message = "ERROR: visit label " + visit_label + "does not exist in " + \

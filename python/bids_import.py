@@ -387,14 +387,11 @@ def grep_or_create_session_db_info(
      :rtype: dict
     """
 
-    session = Session(
-        verbose, cand_id, visit_label,
-        center_id, project_id, subproject_id
-    )
-    loris_vl_info = session.get_session_info_from_loris(db)
+    session = Session(db, verbose, cand_id, visit_label, center_id, project_id, subproject_id)
+    loris_vl_info = session.get_session_info_from_loris()
 
     if not loris_vl_info and createvisit:
-        loris_vl_info = session.create_session(db)
+        loris_vl_info = session.create_session()
 
     # create the visit directory for in the candidate folder of the LORIS
     # BIDS import directory

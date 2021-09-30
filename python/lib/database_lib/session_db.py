@@ -4,27 +4,27 @@
 __license__ = "GPLv3"
 
 
-class Session:
+class SessionDB:
     """
     This class performs database queries for session table.
 
     :Example:
 
-        from lib.database_lib.session import Session
+        from lib.database_lib.session_db import SessionDB
         from lib.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)
         db.connect()
 
-        session_obj = Session(db, verbose)
+        session_obj = SessionDB(db, verbose)
 
         ...
     """
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the Session class.
+        Constructor method for the SessionDB class.
 
         :param db     : Database class object
          :type db     : object
@@ -35,9 +35,6 @@ class Session:
         self.db = db
         self.verbose = verbose
 
-        # this will contain the tarchive info
-        self.session_info_dict = dict()
-
     def create_session_dict(self, cand_id, visit_label):
 
         query = "SELECT * FROM session" \
@@ -45,8 +42,7 @@ class Session:
                 " WHERE CandID=%s AND LOWER(Visit_label)=LOWER(%s) AND Active='Y'"
         results = self.db.pselect(query=query, args=(cand_id, visit_label))
 
-        if results:
-            self.session_info_dict = results[0]
+        return results[0] if results else None
 
     def get_session_center_info(self, pscid, visit_label):
 

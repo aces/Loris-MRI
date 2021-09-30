@@ -1,6 +1,6 @@
 """This class gather functions for session handling."""
 
-
+from lib.database_lib.session_db import SessionDB
 __license__ = "GPLv3"
 
 
@@ -33,8 +33,8 @@ class Session:
         db.disconnect()
     """
 
-    def __init__(self, verbose, cand_id, visit_label,
-                 center_id, project_id, subproject_id):
+    def __init__(self, db, verbose, cand_id=None, visit_label=None,
+                 center_id=None, project_id=None, subproject_id=None):
         """
         Constructor method for the Session class.
 
@@ -51,16 +51,21 @@ class Session:
         :param subproject_id: subproject ID to associate with the session
          :type subproject_id: int
         """
+        self.db = db
         self.verbose = verbose
 
-        self.cand_id       = str(cand_id)
-        self.visit_label   = visit_label
-        self.center_id     = center_id
-        self.project_id    = project_id
+        self.session_db_obj = SessionDB(db, verbose)
+
+        self.cand_id = str(cand_id)
+        self.visit_label = visit_label
+        self.center_id = center_id
+        self.project_id = project_id
         self.subproject_id = subproject_id
 
-                
-    def create_session(self, db):
+        self.session_info_dict = dict()
+        self.session_id = None
+
+    def create_session(self):
         """
         Creates a session using BIDS information.
 
@@ -70,7 +75,7 @@ class Session:
         :return: dictionary with session info from the session's table
          :rtype: dict
         """
-
+        # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in different PR though
         if self.verbose:
             print("Creating visit " + self.visit_label
                   + " for CandID "  + self.cand_id)
@@ -86,17 +91,17 @@ class Session:
             column_names = column_names + ('SubprojectID',)
             values = values + (str(self.subproject_id),)
 
-        db.insert(
+        self.db.insert(
             table_name='session',
             column_names=column_names,
             values=values
         )
 
-        loris_session_info = self.get_session_info_from_loris(db)
+        loris_session_info = self.get_session_info_from_loris()
 
         return loris_session_info
 
-    def get_session_info_from_loris(self, db):
+    def get_session_info_from_loris(self):
         """
         Grep session information from the session table using CandID and
         Visit_label.
@@ -107,10 +112,38 @@ class Session:
         :return: dictionary with session info from the session's table
          :rtype: dict
         """
-
-        loris_session_info = db.pselect(
+        # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in different PR though
+        loris_session_info = self.db.pselect(
             "SELECT * FROM session WHERE CandID = %s AND Visit_label = %s",
             (self.cand_id, self.visit_label)
         )
 
         return loris_session_info[0] if loris_session_info else None
+
+    def get_session_center_info(self, pscid, visit_label):
+
+        return self.session_db_obj.get_session_center_info(pscid, visit_label)
+
+    def create_session_dict(self, cand_id, visit_label):
+
+        self.session_info_dict = self.session_db_obj.create_session_dict(cand_id, visit_label)
+        if self.session_info_dict:
+            self.cand_id = self.session_info_dict['CandID']
+            self.visit_label = self.session_info_dict['Visit_label']
+            self.center_id = self.session_info_dict['CenterID']
+            self.project_id = self.session_info_dict['ProjectID']
+            self.subproject_id = self.session_info_dict['SubprojectID']
+            self.session_id = self.session_info_dict['ID']
+
+    def insert_into_session(self, session_info_to_insert_dict):
+
+        self.session_id = self.session_db_obj.insert_into_session(
+            fields=session_info_to_insert_dict.keys(),
+            values=session_info_to_insert_dict.values
+        )
+
+        return self.session_id
+
+    def get_next_session_site_id_and_visit_number(self, cand_id):
+
+        return self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
