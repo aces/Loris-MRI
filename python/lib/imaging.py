@@ -9,9 +9,11 @@ from nilearn import image, plotting
 
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
-from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
+from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
+from lib.database_lib.mri_scan_type import MriScanType
+from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
@@ -62,6 +64,8 @@ class Imaging:
         self.files_db_obj = Files(db, verbose)
         self.mri_prot_db_obj = MriProtocol(db, verbose)
         self.mri_prot_check_db_obj = MriProtocolChecks(db, verbose)
+        self.mri_prot_viol_scan_db_obj = MriProtocolViolatedScans(db, verbose)
+        self.mri_scan_type_db_obj = MriScanType(db, verbose)
         self.mri_scanner_db_obj = MriScanner(db, verbose)
         self.mri_viol_log_db_obj = MriViolationsLog(db, verbose)
         self.param_type_db_obj = ParameterType(db, verbose)
@@ -166,6 +170,58 @@ class Imaging:
         }
         self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
+    def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path):
+        """
+        Insert a row into mri_protocol_violated_scan table.
+
+        :param patient_name: PatientName associated to the file to insert
+         :type patient_name: str
+        :param cand_id: CandID associated to the file to insert
+         :type cand_id: int
+        :param psc_id: PSCID associated to the file to insert
+         :type psc_id: str
+        :param tarchive_id: TarchiveID of the archive the file has been derived from
+         :type tarchive_id: int
+        :param scan_param: parameters of the image to insert
+         :type scan_param: dict
+        :param file_rel_path: relative path to the file in trashbin
+         :type file_rel_path: str
+        """
+
+        info_to_insert_dict = {
+            "CandID": cand_id,
+            "PSCID": psc_id,
+            "TarchiveID": tarchive_id,
+            "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "series_description": scan_param["SeriesDescription"],
+            "minc_location": file_rel_path,
+            "PatientName": patient_name,
+            "TR_range": scan_param["RepetitionTime"] if "RepetitionTime" in scan_param.keys() else None,
+            "TE_range": scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None,
+            "TI_range": scan_param["InversionTime"] if "InversionTime" in scan_param.keys() else None,
+            "slice_thickness_range": scan_param["SliceThickness"] if "SliceThickness" in scan_param.keys() else None,
+            "xspace_range": scan_param["xspace"] if "xspace" in scan_param.keys() else None,
+            "yspace_range": scan_param["yspace"] if "yspace" in scan_param.keys() else None,
+            "zspace_range": scan_param["zspace"] if "zspace" in scan_param.keys() else None,
+            "xstep_range": scan_param["xstep"] if "xstep" in scan_param.keys() else None,
+            "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
+            "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
+            "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
+            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
+            "image_type": scan_param["ImageType"] if "ImageType" in scan_param.keys() else None,
+            "MriProtocolGroupID": scan_param["MriProtocolGroupID"]
+        }
+        self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
+
+    def insert_mri_violations_log(self, info_to_insert_dict):
+        """
+        Inserts into mri_violations_log table the entry determined by the information stored in info_to_insert_dict.
+
+        :param info_to_insert_dict: dictionary with the information to be inserted in mri_violations_log
+         :type info_to_insert_dict: dict
+        """
+        self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
+
     def get_parameter_type_id(self, parameter_name):
         """
         Greps ParameterTypeID from parameter_type table using parameter_name.
@@ -202,32 +258,49 @@ class Imaging:
 
         return param_type_id
 
-    def grep_parameter_value_from_file_id(self, file_id, param_name):
+    def get_scan_type_name_from_id(self, scan_type_id):
         """
-        Greps the value stored in physiological_parameter_file for a given
-        PhysiologicalFileID and parameter name (from the parameter_type table).
+        Returns the scan type name associated to an acquisition protocol ID.
 
-        :param file_id   : FileID to use in the query
-         :type file_id   : int
-        :param param_name: parameter name to use in the query
-         :type param_name: str
+        :param scan_type_id: acquisition protocol ID
+         :type scan_type_id: int
 
-        :return: result of the query from the parameter_file table
+        :return: name of the scan type associated to the scan type ID
+         :rtype: str
+        """
+        return self.mri_scan_type_db_obj.get_scan_type_name_from_id(scan_type_id)
+
+    def get_bids_to_minc_terms_mapping(self):
+        """
+        Returns the BIDS to MINC terms mapping queried from parameter_type table.
+
+        :return: BIDS to MINC terms mapping dictionary
          :rtype: dict
         """
+        return self.param_type_db_obj.get_bids_to_minc_mapping_dict()
 
-        query = "SELECT Value " \
-                "FROM parameter_file " \
-                "JOIN parameter_type USING (ParameterTypeID) " \
-                "WHERE FileID = %s AND Name = %s"
+    def get_list_of_eligible_protocols_based_on_session_info(self, project_id, subproject_id,
+                                                             center_id, visit_label, scanner_id):
+        """
+        Get the list of eligible protocols based on the scan session information.
 
-        results = self.db.pselect(
-            query=query,
-            args=(file_id, param_name)
+        :param project_id: ProjectID associated to the scan
+         :type project_id: int
+        :param subproject_id: SubprojectID associated to the scan
+         :type subproject_id: int
+        :param center_id: CenterID associated to the scan
+         :type center_id: int
+        :param visit_label: Visit label associated to the scan
+         :type visit_label: str
+        :param scanner_id: ID of the scanner associated to the scan
+         :type scanner_id: int
+
+        :return: list of eligible protocols
+         :rtype: list
+        """
+        return self.mri_prot_db_obj.get_list_of_protocols_based_on_session_info(
+            project_id, subproject_id, center_id, visit_label, scanner_id
         )
-
-        # return the result
-        return results[0] if results else None
 
     def grep_file_type_from_file_id(self, file_id):
         """

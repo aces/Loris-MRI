@@ -19,7 +19,7 @@ class MriProtocol:
         self.db = db
         self.verbose = verbose
 
-    def get_list_of_possible_protocols_based_on_session_info(
+    def get_list_of_protocols_based_on_session_info(
             self, project_id, subproject_id, center_id, visit_label, scanner_id
     ):
         """
