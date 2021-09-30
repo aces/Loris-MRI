@@ -35,10 +35,18 @@ class ProjectSubprojectRel:
         self.db = db
         self.verbose = verbose
 
-        # this will contain the tarchive info
-        self.proj_subproj_rel_info_dict = dict()
-
     def create_proj_subproj_rel_dict(self, project_id, subproject_id):
+        """
+        Get the project/subproject rel information for a given project ID and subproject ID.
+
+        :param project_id: ID of the Project
+         :type project_id: int
+        :param subproject_id: ID of the Subproject
+         :type subproject_id: int
+
+        :return: dictionary of the project/subproject rel
+         :rtype: dict
+        """
 
         query = "SELECT * FROM project_subproject_rel" \
                 " JOIN Project USING (ProjectID)" \
@@ -46,5 +54,4 @@ class ProjectSubprojectRel:
                 " WHERE ProjectID=%s AND SubprojectID=%s"
         results = self.db.pselect(query=query, args=(project_id, subproject_id))
 
-        if results:
-            self.proj_subproj_rel_info_dict = results[0]
+        return results[0] if results else None

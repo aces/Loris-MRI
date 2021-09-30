@@ -1,6 +1,9 @@
 """This class gather functions for session handling."""
 
+from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
 from lib.database_lib.session_db import SessionDB
+from lib.database_lib.site import Site
+
 __license__ = "GPLv3"
 
 
@@ -54,7 +57,9 @@ class Session:
         self.db = db
         self.verbose = verbose
 
+        self.proj_subproj_rel_db_obj = ProjectSubprojectRel(db, verbose)
         self.session_db_obj = SessionDB(db, verbose)
+        self.site_db_obj = Site(db, verbose)
 
         self.cand_id = str(cand_id)
         self.visit_label = visit_label
@@ -62,6 +67,7 @@ class Session:
         self.project_id = project_id
         self.subproject_id = subproject_id
 
+        self.proj_subproj_rel_info_dict = dict()
         self.session_info_dict = dict()
         self.session_id = None
 
@@ -181,3 +187,21 @@ class Session:
          :rtype: dict
         """
         return self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
+
+    def get_list_of_sites(self):
+
+        return self.site_db_obj.get_list_of_sites()
+
+    def create_proj_subproj_rel_info_dict(self, project_id, subproject_id):
+        """
+        Populate self.proj_subproj_rel_info_dict with the content returned from the database for the ProjectID and
+        SubprojectID.
+
+        :param project_id: ID of the Project
+         :type project_id: int
+        :param subproject_id: ID of the Subproject
+         :type subproject_id: int
+        """
+        self.proj_subproj_rel_info_dict = self.proj_subproj_rel_db_obj.create_proj_subproj_rel_dict(
+            project_id, subproject_id
+        )

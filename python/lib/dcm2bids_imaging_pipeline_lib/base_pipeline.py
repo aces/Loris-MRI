@@ -9,9 +9,7 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
 from lib.database_lib.mriupload import MriUpload
-from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
 from lib.session import Session
-from lib.database_lib.site import Site
 from lib.database_lib.tarchive import Tarchive
 from lib.imaging import Imaging
 from lib.log import Log
@@ -65,8 +63,6 @@ class BasePipeline:
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
         self.mri_upload_db_obj = MriUpload(self.db, self.verbose)
         self.session_obj = Session(self.db, self.verbose)
-        self.site_db_obj = Site(self.db, self.verbose)
-        self.proj_subproj_rel_db_obj = ProjectSubprojectRel(self.db, self.verbose)
         self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
         self.notification_obj = None  # set this to none until we get an confirmed UploadID
 
@@ -182,7 +178,7 @@ class BasePipeline:
 
         # if could not find center information based on cand_id and visit_label, use the
         # patient name to match it to the site alias or MRI alias
-        list_of_sites = self.site_db_obj.get_list_of_sites()
+        list_of_sites = self.session_obj.get_list_of_sites()
         for site_dict in list_of_sites:
             if site_dict["Alias"] in patient_name:
                 return {"CenterName": site_dict["Alias"], "CenterID": site_dict["CenterID"]}
@@ -330,8 +326,8 @@ class BasePipeline:
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
         # check that the project ID and subproject ID refers to an existing row in project_subproject_rel table
-        self.proj_subproj_rel_db_obj.create_proj_subproj_rel_dict(project_id, subproject_id)
-        if not self.proj_subproj_rel_db_obj.proj_subproj_rel_info_dict.keys():
+        self.session_obj.create_proj_subproj_rel_info_dict(project_id, subproject_id)
+        if not self.session_obj.proj_subproj_rel_info_dict.keys():
             message = f"Cannot create visit with project ID {project_id} and subproject ID {subproject_id}:" \
                       f" no such association in table project_subproject_rel"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")

@@ -671,7 +671,20 @@ class Imaging:
             }
 
     def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id):
+        """
+        Get the scanner ID based on the scanner information provided as input.
 
+        :param manufacturer: Scanner manufacturer
+         :type manufacturer: str
+        :param software_version: Scanner software version
+         :type software_version: str
+        :param serial_nb: Scanner serial number
+         :type serial_nb: str
+        :param model_name: Scanner model name
+         :type model_name: str
+        :param center_id: ID of the scanner's center
+         :type center_id: int
+        """
         return self.mri_scanner_db_obj.determine_scanner_information(
             manufacturer,
             software_version,
