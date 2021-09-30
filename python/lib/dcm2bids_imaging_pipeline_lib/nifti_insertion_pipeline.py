@@ -297,6 +297,7 @@ class NiftiInsertionPipeline(BasePipeline):
         :return: relative path to the new NIfTI file
          :rtype: str
         """
+        # TODO: modify this so this is BIDS compliant. Need to use the bids_* tables for dir and name + assembly_bids
         study_prefix = self.config_db_obj.get_config('prefix')
         cand_id = self.subject_id_dict['CandID']
         visit = self.subject_id_dict['visitLabel']
