@@ -139,10 +139,6 @@ class Imaging:
 
         # insert info from file_data into parameter_file
         for key, value in parameter_file_data_dict.items():
-            if type(value) == list:
-                if type(value[0]) in [float, int]:
-                    parameter_file_data_dict[key] = [str(f) for f in parameter_file_data_dict[key]]
-                parameter_file_data_dict[key] = f"[{', '.join(parameter_file_data_dict[key])}]"
             self.insert_parameter_file(file_id, key, value)
 
         return file_id
@@ -159,6 +155,12 @@ class Imaging:
         :param value         : Value to insert into parameter_file
          :type value         : str
         """
+
+        # convert list values into strings that could be inserted into parameter_file
+        if type(value) == list:
+            if type(value[0]) in [float, int]:
+                value = [str(f) for f in value]
+            value = f"[{', '.join(value)}]"
 
         # Gather column name & values to insert into parameter_file
         param_type_id = self.get_parameter_type_id(parameter_name)
@@ -553,7 +555,7 @@ class Imaging:
 
         scan_tr = scan_param['RepetitionTime'] * 1000
         scan_te = scan_param['EchoTime'] * 1000
-        scan_ti = scan_param['InversionTime'] * 1000
+        scan_ti = scan_param['InversionTime'] * 1000 if 'InversionTime' in scan_param else None
 
         scan_slice_thick = scan_param['SliceThickness']
         scan_img_type = scan_param['ImageType']

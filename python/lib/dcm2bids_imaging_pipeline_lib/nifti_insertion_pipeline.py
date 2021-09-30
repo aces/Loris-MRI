@@ -20,7 +20,11 @@ class NiftiInsertionPipeline(BasePipeline):
         self.nifti_blake2 = blake2b(self.nifti_path.encode('utf-8')).hexdigest()
         self.nifti_md5 = hashlib.md5(self.nifti_path.encode()).hexdigest()
         self.json_path = self.options_dict["json_path"]["value"]
-        self.json_blake2 = blake2b(self.json_path.encode('utf-8')).hexdigest()
+        self.json_blake2 = blake2b(self.json_path.encode('utf-8')).hexdigest() if self.json_path else None
+        self.bval_path = self.options_dict["bval_path"]["value"]
+        self.bval_blake2 = blake2b(self.bval_path.encode('utf-8')).hexdigest() if self.bval_path else None
+        self.bvec_path = self.options_dict["bvec_path"]["value"]
+        self.bvec_blake2 = blake2b(self.bvec_path.encode('utf-8')).hexdigest() if self.bval_path else None
         self.json_md5 = hashlib.md5(self.json_path.encode()).hexdigest()
         self.force = self.options_dict["force"]["value"]
         self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
@@ -35,6 +39,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Load the JSON file object with scan parameters if a JSON file was provided
         # ---------------------------------------------------------------------------------------------
         self.json_file_dict = self._load_json_sidecar_file()
+        self._add_step_and_space_params_to_json_file_dict()
 
         # ---------------------------------------------------------------------------------------------
         # Get the mapping dictionary between BIDS and MINC terms
@@ -47,7 +52,7 @@ class NiftiInsertionPipeline(BasePipeline):
         if self.tarchive_db_obj.tarchive_info_dict.keys():
             self._validate_nifti_patient_name_with_dicom_patient_name()
             self.subject_id_dict = self.imaging_obj.determine_subject_ids(
-                self.tarchive_db_obj.tarchive_info_dict, self.scanner_dict['ScannerID']
+                self.tarchive_db_obj.tarchive_info_dict, self.scanner_id
             )
         else:
             self._determine_subject_ids_based_on_json_patient_name()
@@ -81,8 +86,6 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
         # ---------------------------------------------------------------------------------------------
-        self.warning_violations_list = []  # will store the list of warning violations found
-        self.exclude_violations_list = []  # will store the list of exclude violations found
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
                 self.session_db_obj.session_info_dict['ProjectID'],
@@ -91,11 +94,13 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.scan_type_id,
                 self.json_file_dict
             )
+        self.warning_violations_list = self.violations_summary['warning']
+        self.exclude_violations_list = self.violations_summary['exclude']
 
         # ---------------------------------------------------------------------------------------------
         # Register files in the proper tables
         # ---------------------------------------------------------------------------------------------
-        if self.violations_summary['exclude']:
+        if self.exclude_violations_list:
             self._move_to_trashbin()
             self._register_violations_log(self.exclude_violations_list, self.trashbin_nifti_rel_path)
             self._register_violations_log(self.warning_violations_list, self.trashbin_nifti_rel_path)
@@ -113,9 +118,8 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         Loads the JSON file content into a dictionary.
 
-        Note: if no JSON file was provided to the pipeline, the function will return an dictionary with
-        step and space information derived from the NIfTI file and information to be stored in
-        <parameter_file> will be added to the JSON dictionary.
+        Note: if no JSON file was provided to the pipeline, the function will return an empty dictionary so that
+         information to be stored in <parameter_file> will be added to the JSON dictionary later on.
 
         :return: dictionary with the information present in the JSON file
          :rtype: dict
@@ -127,8 +131,6 @@ class NiftiInsertionPipeline(BasePipeline):
 
         with open(json_path) as json_file:
             json_data_dict = json.load(json_file)
-
-        self._add_step_and_space_params_to_json_file_dict()
 
         return json_data_dict
 
@@ -229,10 +231,8 @@ class NiftiInsertionPipeline(BasePipeline):
         scan_param = self.json_file_dict
 
         # get scanner ID if not already figured out
-        if "ScannerID" not in self.scanner_dict.keys():
-            self.scanner_dict['ScannerID'] = self.imaging_obj.get_scanner_id_from_json_data(
-                self.json_file_dict, self.site_dict['CenterID']
-            )
+        if not self.scanner_id:
+            self.scanner_id = self.imaging_obj.get_scanner_id_from_json_data(scan_param, self.site_dict['CenterID'])
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
@@ -240,7 +240,7 @@ class NiftiInsertionPipeline(BasePipeline):
             self.session_db_obj.session_info_dict['SubprojectID'],
             self.session_db_obj.session_info_dict['CenterID'],
             self.session_db_obj.session_info_dict['Visit_label'],
-            self.scanner_dict['ScannerID']
+            self.scanner_id
         )
 
         protocol_info = self.imaging_obj.get_acquisition_protocol_info(protocols_list, nifti_name, scan_param)
@@ -323,25 +323,56 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         nifti_rel_path = self.assembly_nifti_rel_path if destination == 'assembly' else self.trashbin_nifti_rel_path
         json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', nifti_rel_path) if self.json_path else None
+        bval_rel_path = re.sub(r"\.nii(\.gz)?$", '.bval', nifti_rel_path) if self.bval_path else None
+        bvec_rel_path = re.sub(r"\.nii(\.gz)?$", '.bvec', nifti_rel_path) if self.bvec_path else None
 
         absolute_dir_path = os.path.join(self.data_dir, os.path.dirname(nifti_rel_path))
-        absolute_nifti_path = os.path.join(self.data_dir, nifti_rel_path)
-        absolute_json_path = os.path.join(self.data_dir, json_rel_path) if self.json_path else None
-
         self.create_dir(absolute_dir_path)
 
-        file_type_to_move_list = ['nifti', 'json'] if self.json_path else ['nifti']
-        for file_type in file_type_to_move_list:
-            original_file_path = self.nifti_path if file_type == 'nifti' else self.json_path
-            new_file_path = absolute_nifti_path if file_type == 'nifti' else absolute_json_path
+        file_type_to_move_list = [
+            {
+                'original_file_path': self.nifti_path,
+                'new_file_path': os.path.join(self.data_dir, nifti_rel_path)
+            }
+        ]
+        if self.json_path:
+            file_type_to_move_list.append(
+                {
+                    'original_file_path': self.json_path,
+                    'new_file_path': os.path.join(self.data_dir, json_rel_path)
+                }
+            )
+        if self.bval_path:
+            file_type_to_move_list.append(
+                {
+                    'original_file_path': self.bval_path,
+                    'new_file_path': os.path.join(self.data_dir, bval_rel_path)
+                }
+            )
+        if self.bvec_path:
+            file_type_to_move_list.append(
+                {
+                    'original_file_path': self.bvec_path,
+                    'new_file_path': os.path.join(self.data_dir, bvec_rel_path)
+                }
+            )
+
+        for file_dict in file_type_to_move_list:
+            original_file_path = file_dict['original_file_path']
+            new_file_path = file_dict['new_file_path']
             self.move_file(original_file_path, new_file_path)
 
         if destination == 'assembly':
-            # TODO bval and bval handling...
             self.json_file_dict['file_blake2b_hash'] = self.nifti_blake2
             if self.json_path:
                 self.json_file_dict['bids_json_file'] = json_rel_path
                 self.json_file_dict['bids_json_file_blake2b_hash'] = self.json_blake2
+            if self.bval_path:
+                self.json_file_dict['check_bval_filename'] = bval_rel_path
+                self.json_file_dict['check_bval_filename_blake2b_hash'] = self.bval_blake2
+            if self.bvec_path:
+                self.json_file_dict['check_bvec_filename'] = bvec_rel_path
+                self.json_file_dict['check_bvec_filename_blake2b_hash'] = self.bvec_blake2
 
     def _register_protocol_violated_scan(self):
         """
@@ -419,7 +450,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'InsertTime': datetime.datetime.now().timestamp(),
             'Caveat': 1 if self.warning_violations_list else 0,
             'TarchiveSource': self.tarchive_db_obj.tarchive_info_dict['TarchiveID'],
-            'ScannerID': self.scanner_dict['ScannerID'],
+            'ScannerID': self.scanner_id,
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None
         }

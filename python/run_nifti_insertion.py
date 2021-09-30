@@ -36,6 +36,8 @@ def main():
         "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
         "\t-n, --nifti_path         : Absolute path to the NIfTI file to insert\n"
         "\t-j, --json_path          : Absolute path to the BIDS JSON sidecar file with scan parameters\n"
+        "\t-l, --bval_path          : Absolute path to the NIfTI BVAL file for DWI acquisitions\n"
+        "\t-e, --bvec_path          : Absolute path to the NIfTI BVEC file for DWI acquisitions\n"
         "\t-t, --tarchive_path      : Absolute path to the DICOM archive linked to the NIfTI file\n"
         "\t-u, --upload_id          : ID of the upload (from mri_upload) linked to the NIfTI file\n"
         "\t-s, --loris_scan_type    : LORIS scan type from the mri_scan_type table\n"
@@ -61,6 +63,12 @@ def main():
         },
         "json_path": {
             "value": None, "required": False, "expect_arg": True, "short_opt": "j", "is_path": True
+        },
+        "bval_path": {
+            "value": None, "required": False, "expect_arg": True, "short_opt": "l", "is_path": True
+        },
+        "bvec_path": {
+            "value": None, "required": False, "expect_arg": True, "short_opt": "e", "is_path": True
         },
         "tarchive_path": {
             "value": None, "required": False, "expect_arg": True, "short_opt": "t", "is_path": True

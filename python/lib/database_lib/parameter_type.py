@@ -39,10 +39,10 @@ class ParameterType:
         args = None
 
         if param_name:
-            query += " Name = %s "
+            query += "AND Name = %s "
             args = (param_name,)
         elif param_alias:
-            query += " Alias = %s "
+            query += "AND Alias = %s "
             args = (param_alias,)
 
         results = self.db.pselect(query=query, args=args)

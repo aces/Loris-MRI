@@ -129,7 +129,7 @@ class BasePipeline:
             self.log_info(message, is_error="N", is_verbose="Y")
 
             # grep scanner information based on what is in the DICOM headers
-            self.scanner_dict = self.determine_scanner_info()
+            self.scanner_id = self.determine_scanner_info()
 
     def load_mri_upload_and_tarchive_dictionaries(self):
         """
@@ -203,16 +203,16 @@ class BasePipeline:
         """
         Determine the scanner information found in the database for the uploaded DICOM archive.
         """
-        scanner_dict = self.mri_scanner_db_obj.determine_scanner_information(
+        scanner_id = self.mri_scanner_db_obj.determine_scanner_information(
             self.tarchive_db_obj.tarchive_info_dict['ScannerManufacturer'],
             self.tarchive_db_obj.tarchive_info_dict['ScannerSoftwareVersion'],
             self.tarchive_db_obj.tarchive_info_dict['ScannerSerialNumber'],
             self.tarchive_db_obj.tarchive_info_dict['ScannerModel'],
             self.site_dict['CenterID']
         )
-        message = f"Found Scanner ID: {str(scanner_dict['ScannerID'])}"
+        message = f"Found Scanner ID: {str(scanner_id)}"
         self.log_info(message, is_error="N", is_verbose="Y")
-        return scanner_dict
+        return scanner_id
 
     def validate_subject_ids(self):
         """
