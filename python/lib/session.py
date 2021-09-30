@@ -121,11 +121,29 @@ class Session:
         return loris_session_info[0] if loris_session_info else None
 
     def get_session_center_info(self, pscid, visit_label):
+        """
+        Get the session center information based on the PSCID and visit label of a session.
 
+        :param pscid: candidate site ID (PSCID)
+         :type pscid: str
+        :param visit_label: visit label
+         :type visit_label: str
+
+        :return: dictionary of site information for the visit/candidate queried
+         :rtype: dict
+        """
         return self.session_db_obj.get_session_center_info(pscid, visit_label)
 
     def create_session_dict(self, cand_id, visit_label):
+        """
+        Creates the session information dictionary based on a candidate ID and visit label. This will populate
+        self.session_info_dict based on the result returned from the database query.
 
+        :param cand_id: CandID
+         :type cand_id: int
+        :param visit_label: Visit label of the session
+         :type visit_label: str
+        """
         self.session_info_dict = self.session_db_obj.create_session_dict(cand_id, visit_label)
         if self.session_info_dict:
             self.cand_id = self.session_info_dict['CandID']
@@ -136,14 +154,30 @@ class Session:
             self.session_id = self.session_info_dict['ID']
 
     def insert_into_session(self, session_info_to_insert_dict):
+        """
+        Insert a new row in the session table using fields list as column names and values as values.
 
+        :param session_info_to_insert_dict: dictionary with the column names and values to use for insertion
+         :type session_info_to_insert_dict: dict
+
+        :return: ID of the new session registered
+         :rtype: int
+        """
         self.session_id = self.session_db_obj.insert_into_session(
-            fields=session_info_to_insert_dict.keys(),
-            values=session_info_to_insert_dict.values
+            fields=list(session_info_to_insert_dict.keys()),
+            values=list(session_info_to_insert_dict.values())
         )
 
         return self.session_id
 
     def get_next_session_site_id_and_visit_number(self, cand_id):
+        """
+        Determines the next session site and visit number based on the last session inserted for a given candidate.
 
+        :param cand_id: candidate ID
+         :type cand_id: int
+
+        :return: a dictionary with 'newVisitNo' and 'CenterID' keys/values
+         :rtype: dict
+        """
         return self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
