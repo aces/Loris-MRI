@@ -46,8 +46,8 @@ class DicomValidationPipeline(BasePipeline):
 
         self.log_info(message="Verifying DICOM archive md5sum (checksum)", is_error="N", is_verbose="Y")
 
-        tarchive_path = os.path.join(self.dicom_lib_dir, self.tarchive_db_obj.tarchive_info_dict["ArchiveLocation"])
-        result = self.tarchive_db_obj.validate_dicom_archive_md5sum(tarchive_path)
+        tarchive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"])
+        result = self.dicom_archive_obj.validate_dicom_archive_md5sum(tarchive_path)
         message = result["message"]
 
         if result['success']:

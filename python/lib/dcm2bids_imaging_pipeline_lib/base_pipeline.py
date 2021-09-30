@@ -6,14 +6,13 @@ import sys
 import lib.exitcode
 import lib.utilities
 
+from lib.database_lib.config import Config
 from lib.database import Database
+from lib.dicom_archive import DicomArchive
 from lib.imaging import Imaging
 from lib.log import Log
 from lib.imaging_upload import ImagingUpload
 from lib.session import Session
-
-from lib.database_lib.config import Config
-from lib.database_lib.tarchive import Tarchive
 
 
 class BasePipeline:
@@ -31,7 +30,7 @@ class BasePipeline:
         These includes the following steps:
         - load pipeline options
         - establish database connection
-        - load the Config, Imaging, Tarchive, MriUpload, MriScanner, Site, Notification and other classes
+        - load the Config, Imaging, Tarchive, ImagingUpload, Session and other classes
         - creates the processing temporary directory
         - creates the log file for the script execution
         - populate the imaging_upload and tarchive info dictionaries
@@ -58,13 +57,13 @@ class BasePipeline:
         self.db.connect()
 
         # -----------------------------------------------------------------------------------
-        # Load the Config, Imaging, Tarchive, MriUpload, MriScanner and Site classes
+        # Load the Config, Imaging, ImagingUpload, Tarchive, Session classes
         # -----------------------------------------------------------------------------------
         self.config_db_obj = Config(self.db, self.verbose)
+        self.dicom_archive_obj = DicomArchive(self.db, self.verbose)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
         self.imaging_upload_obj = ImagingUpload(self.db, self.verbose)
         self.session_obj = Session(self.db, self.verbose)
-        self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
 
         # ---------------------------------------------------------------------------------------------
         # Grep config settings from the Config module
@@ -100,8 +99,8 @@ class BasePipeline:
         # Verify PSC information stored in DICOMs
         # Grep scanner information based on what is in the DICOM headers
         # ---------------------------------------------------------------------------------
-        if self.tarchive_db_obj.tarchive_info_dict.keys():
-            self.subject_id_dict = self.imaging_obj.determine_subject_ids(self.tarchive_db_obj.tarchive_info_dict)
+        if self.dicom_archive_obj.tarchive_info_dict.keys():
+            self.subject_id_dict = self.imaging_obj.determine_subject_ids(self.dicom_archive_obj.tarchive_info_dict)
             if 'error_message' in self.subject_id_dict:
                 self.log_error_and_exit(
                     self.subject_id_dict['error_message'],
@@ -137,20 +136,23 @@ class BasePipeline:
             else:
                 if self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]:
                     tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
-                    success = self.tarchive_db_obj.create_tarchive_dict(tarchive_id=tarchive_id)
-                    if not success:
+                    self.dicom_archive_obj.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
+                    if self.dicom_archive_obj.tarchive_info_dict:
+                        success = True
+                    else:
                         err_msg += f"Could not load tarchive dictionary for TarchiveID {tarchive_id}"
 
         elif tarchive_path:
             archive_location = tarchive_path.replace(self.dicom_lib_dir, "")
-            success = self.tarchive_db_obj.create_tarchive_dict(archive_location=archive_location)
-            if not success:
-                err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
-            else:
-                tarchive_id = self.tarchive_db_obj.tarchive_info_dict["TarchiveID"]
+            self.dicom_archive_obj.populate_tarchive_info_dict_from_archive_location(archive_location=archive_location)
+            if self.dicom_archive_obj.tarchive_info_dict:
+                tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
                 success, new_err_msg = self.imaging_upload_obj.create_imaging_upload_dict_from_tarchive_id(tarchive_id)
                 if not success:
                     err_msg += new_err_msg
+            else:
+                err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
+
         if not success and not self.options_dict["force"]["value"]:
             self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
 
@@ -196,10 +198,10 @@ class BasePipeline:
         Determine the scanner information found in the database for the uploaded DICOM archive.
         """
         scanner_id = self.imaging_obj.get_scanner_id(
-            self.tarchive_db_obj.tarchive_info_dict['ScannerManufacturer'],
-            self.tarchive_db_obj.tarchive_info_dict['ScannerSoftwareVersion'],
-            self.tarchive_db_obj.tarchive_info_dict['ScannerSerialNumber'],
-            self.tarchive_db_obj.tarchive_info_dict['ScannerModel'],
+            self.dicom_archive_obj.tarchive_info_dict['ScannerManufacturer'],
+            self.dicom_archive_obj.tarchive_info_dict['ScannerSoftwareVersion'],
+            self.dicom_archive_obj.tarchive_info_dict['ScannerSerialNumber'],
+            self.dicom_archive_obj.tarchive_info_dict['ScannerModel'],
             self.site_dict['CenterID']
         )
         message = f"Found Scanner ID: {str(scanner_id)}"

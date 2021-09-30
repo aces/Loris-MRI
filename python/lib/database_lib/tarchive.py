@@ -24,7 +24,7 @@ class Tarchive:
         ...
     """
 
-    def __init__(self, db, verbose, config_file=None):
+    def __init__(self, db, verbose):
         """
         Constructor method for the Tarchive class.
 
@@ -32,16 +32,10 @@ class Tarchive:
          :type db     : object
         :param verbose: whether to be verbose
          :type verbose: bool
-        :param config_file: config file with custom functions
-         :type config_file: str
         """
 
         self.db = db
         self.verbose = verbose
-        self.config_file = config_file
-
-        # this will contain the tarchive info
-        self.tarchive_info_dict = dict()
 
     def create_tarchive_dict(self, archive_location=None, tarchive_id=None):
         """
@@ -68,13 +62,7 @@ class Tarchive:
 
         results = self.db.pselect(query=query, args=args)
 
-        # save the result in self.tarchive_info_dict and return True if a row was found
-        # return False if no row found for the archive location or tarchiveID in the tarchive table
-        if results:
-            self.tarchive_info_dict = results[0]
-            return True
-        else:
-            return False
+        return results[0] if results else None
 
     def validate_dicom_archive_md5sum(self, tarchive_path):
         """

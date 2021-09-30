@@ -49,10 +49,10 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Check that the PatientName in NIfTI and DICOMs are the same and then validate the Subject IDs
         # ---------------------------------------------------------------------------------------------
-        if self.tarchive_db_obj.tarchive_info_dict.keys():
+        if self.dicom_archive_obj.tarchive_info_dict.keys():
             self._validate_nifti_patient_name_with_dicom_patient_name()
             self.subject_id_dict = self.imaging_obj.determine_subject_ids(
-                self.tarchive_db_obj.tarchive_info_dict, self.scanner_id
+                self.dicom_archive_obj.tarchive_info_dict, self.scanner_id
             )
         else:
             self._determine_subject_ids_based_on_json_patient_name()
@@ -143,7 +143,7 @@ class NiftiInsertionPipeline(BasePipeline):
         Note: if no JSON file was provided to the script or if no "PatientName" was provided in the JSON file,
         the scripts will rely solely on the PatientName present in the <tarchive> table.
         """
-        tarchive_pname = self.tarchive_db_obj.tarchive_info_dict["PatientName"]
+        tarchive_pname = self.dicom_archive_obj.tarchive_info_dict["PatientName"]
         if "PatientName" not in self.json_file_dict:
             message = "PatientName not present in the JSON file or no JSON file provided along with" \
                       "the NIfTI file. Will rely on the PatientName stored in the DICOM files"
@@ -180,14 +180,14 @@ class NiftiInsertionPipeline(BasePipeline):
             # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
             if self.force:
                 tar_echo_time = echo_time * 1000
-                match_tar = self.tarchive_db_obj.create_tarchive_dict_from_series_uid_and_echo_time(
+                match_tar = self.dicom_archive_obj.create_tarchive_dict_from_series_uid_and_echo_time(
                     series_uid, tar_echo_time
                 )
                 if match_tar:
                     error_msg = f"Found a DICOM archive containing DICOM files with the same SeriesUID ({series_uid})" \
                                 f" and EchoTime ({tar_echo_time}) as the one present in the JSON side car file. " \
                                 f" The DICOM archive location containing those DICOM files is " \
-                                f" {self.tarchive_db_obj.tarchive_info_dict['ArchiveLocation']}. Please, rerun " \
+                                f" {self.dicom_archive_obj.tarchive_info_dict['ArchiveLocation']}. Please, rerun " \
                                 f" <run_nifti_insertion.py> with either --upload_id or --tarchive_path option."
 
         # verify that a file with the same MD5 or blake2b hash has not already been inserted
@@ -396,14 +396,14 @@ class NiftiInsertionPipeline(BasePipeline):
         patient_name = None
         if "PatientName" in self.json_file_dict.keys():
             patient_name = self.json_file_dict["PatientName"]
-        elif "PatientName" in self.tarchive_db_obj.tarchive_info_dict.keys():
-            patient_name = self.tarchive_db_obj.tarchive_info_dict["PatientName"]
+        elif "PatientName" in self.dicom_archive_obj.tarchive_info_dict.keys():
+            patient_name = self.dicom_archive_obj.tarchive_info_dict["PatientName"]
 
         self.imaging_obj.insert_protocol_violated_scan(
             patient_name,
             self.subject_id_dict['CandID'],
             self.subject_id_dict['PSCID'],
-            self.tarchive_db_obj.tarchive_info_dict['TarchiveID'],
+            self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
             self.json_file_dict,
             self.trashbin_nifti_rel_path
         )
@@ -422,7 +422,7 @@ class NiftiInsertionPipeline(BasePipeline):
         base_info_dict = {
             'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
-            'TarchiveID': self.tarchive_db_obj.tarchive_info_dict['TarchiveID'],
+            'TarchiveID': self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
             'MincFile': file_rel_path,
             'PatientName': self.subject_id_dict['PatientName'],
             'CandID': self.subject_id_dict['CandID'],
@@ -463,7 +463,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'InsertedByUserID': getpass.getuser(),
             'InsertTime': datetime.datetime.now().timestamp(),
             'Caveat': 1 if self.warning_violations_list else 0,
-            'TarchiveSource': self.tarchive_db_obj.tarchive_info_dict['TarchiveID'],
+            'TarchiveSource': self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
             'ScannerID': self.scanner_id,
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None
