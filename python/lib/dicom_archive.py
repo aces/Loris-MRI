@@ -45,14 +45,35 @@ class DicomArchive:
         self.tarchive_info_dict = dict()
 
     def populate_tarchive_info_dict_from_archive_location(self, archive_location):
+        """
+        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
+        the tarchive table for a given archive location.
 
+        :param archive_location: location of the DICOM archive (relative path)
+         :type archive_location: str
+        """
         self.tarchive_db_obj.create_tarchive_dict(archive_location=archive_location)
 
     def populate_tarchive_info_dict_from_tarchive_id(self, tarchive_id):
+        """
+        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
+        the tarchive table for a given TarchiveID.
 
+        :param tarchive_id: TarchiveID of the DICOM archive
+         :type tarchive_id: int
+        """
         self.tarchive_db_obj.create_tarchive_dict(tarchive_id=tarchive_id)
 
     def populate_tarchive_info_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
+        """
+        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
+        the tarchive table for a given TarchiveID.
+
+        :param series_uid: SeriesUID to use to find entries in the tarchive_series table
+         :type series_uid: str
+        :param echo_time: Echo time to use to find entries in the tarchive_series table
+         :type echo_time: float
+        """
         tarchive_series_info_dict = self.tar_series_db_obj.get_tarchive_series_from_series_uid_and_echo_time(
             series_uid, echo_time
         )
