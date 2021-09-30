@@ -11,6 +11,7 @@ from lib.imaging import Imaging
 from lib.log import Log
 from lib.imaging_upload import ImagingUpload
 from lib.session import Session
+
 from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
 from lib.database_lib.tarchive import Tarchive
@@ -65,7 +66,7 @@ class BasePipeline:
         self.imaging_upload_obj = ImagingUpload(self.db, self.verbose)
         self.session_obj = Session(self.db, self.verbose)
         self.tarchive_db_obj = Tarchive(self.db, self.verbose, self.config_file)
-        self.notification_obj = None  # set this to none until we get an confirmed UploadID
+        self.notification_obj = None  # set this to none until we get a confirmed UploadID
 
         # ---------------------------------------------------------------------------------------------
         # Grep config settings from the Config module
@@ -93,14 +94,8 @@ class BasePipeline:
             self.upload_id = self.imaging_upload_obj.imaging_upload_dict["UploadID"]
             self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
 
-            # Create the notification object now that we have a confirmed UploadID
-            self.notification_obj = Notification(
-                self.db,
-                self.verbose,
-                notification_type=f"PYTHON {script_name.replace('_', ' ').upper()}",
-                notification_origin=f"{script_name}.py",
-                process_id=self.imaging_upload_obj.imaging_upload_dict["UploadID"]
-            )
+            # Initiate the notification object now that we have a confirmed UploadID
+            self.log_obj.initiate_notification_db_obj(self.upload_id)
 
         # ---------------------------------------------------------------------------------
         # Determine subject IDs based on DICOM headers and validate the IDs against the DB
@@ -279,8 +274,7 @@ class BasePipeline:
         """
         err_msg = f"[ERROR   ] {message}"
         self.log_obj.write_to_log_file(f"\n{err_msg}\n")
-        if self.notification_obj:
-            self.notification_obj.write_to_notification_spool(err_msg, is_error, is_verbose)
+        self.log_obj.write_to_notification_table(err_msg, is_error, is_verbose)
         if self.upload_id:
             self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=("Inserting",), values=("0",))
         print(f"\n{err_msg}\n")
@@ -293,8 +287,7 @@ class BasePipeline:
         """
         log_msg = f"==> {message}"
         self.log_obj.write_to_log_file(f"{log_msg}\n")
-        if self.notification_obj:
-            self.notification_obj.write_to_notification_spool(log_msg, is_error, is_verbose)
+        self.log_obj.write_to_notification_table(log_msg, is_error, is_verbose)
         if self.verbose:
             print(f"{log_msg}\n")
 
