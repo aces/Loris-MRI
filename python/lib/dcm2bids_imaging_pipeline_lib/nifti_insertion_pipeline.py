@@ -67,7 +67,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Determine/create the session the file should be linked to
         # ---------------------------------------------------------------------------------------------
         self.get_session_info()
-        if not self.session_db_obj.session_info_dict.keys():
+        if not self.session_obj.session_info_dict.keys():
             self.create_session()
 
         # ---------------------------------------------------------------------------------------------
@@ -88,9 +88,9 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
-                self.session_db_obj.session_info_dict['ProjectID'],
-                self.session_db_obj.session_info_dict['SubprojectID'],
-                self.session_db_obj.session_info_dict['Visit_label'],
+                self.session_obj.session_info_dict['ProjectID'],
+                self.session_obj.session_info_dict['SubprojectID'],
+                self.session_obj.session_info_dict['Visit_label'],
                 self.scan_type_id,
                 self.json_file_dict
             )
@@ -243,10 +243,10 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
-            self.session_db_obj.session_info_dict['ProjectID'],
-            self.session_db_obj.session_info_dict['SubprojectID'],
-            self.session_db_obj.session_info_dict['CenterID'],
-            self.session_db_obj.session_info_dict['Visit_label'],
+            self.session_obj.session_info_dict['ProjectID'],
+            self.session_obj.session_info_dict['SubprojectID'],
+            self.session_obj.session_info_dict['CenterID'],
+            self.session_obj.session_info_dict['Visit_label'],
             self.scanner_id
         )
 
@@ -452,7 +452,7 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_error_and_exit(message, lib.exitcode.SELECT_FAILURE, is_error='Y', is_verbose='N')
 
         files_insert_info_dict = {
-            'SessionID': self.session_db_obj.session_info_dict['ID'],
+            'SessionID': self.session_obj.session_info_dict['ID'],
             'File': nifti_rel_path,
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
             'EchoTime': scan_param['EchoTime'],
