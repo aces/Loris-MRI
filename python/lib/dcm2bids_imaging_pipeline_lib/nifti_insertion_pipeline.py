@@ -104,7 +104,8 @@ class NiftiInsertionPipeline(BasePipeline):
             self._move_to_trashbin()
             self._register_violations_log(self.exclude_violations_list, self.trashbin_nifti_rel_path)
             self._register_violations_log(self.warning_violations_list, self.trashbin_nifti_rel_path)
-            message = f"{self.nifti_path} violates exclusionary checks listed in mri_protocol_checks."
+            message = f"{self.nifti_path} violates exclusionary checks listed in mri_protocol_checks. " \
+                      f"  List of violations are: {self.exclude_violations_list}"
             self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
         else:
             self._move_to_assembly_and_insert_file_info()
@@ -274,8 +275,13 @@ class NiftiInsertionPipeline(BasePipeline):
         self._create_destination_dir_and_move_image_files('assembly')
 
         self.file_id = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
+        message = f"Registered file {self.assembly_nifti_rel_path} into the files table with FileID {self.file_id}"
+        self.log_info(message, is_error='N', is_verbose='Y')
 
         if self.violations_summary['warning']:
+            message = f"Inserting warning violations related to {self.assembly_nifti_rel_path}." \
+                      f"  List of violations found: {self.warning_violations_list}"
+            self.log_info(message, is_error='N', is_verbose='Y')
             self._register_violations_log(self.warning_violations_list, self.assembly_nifti_rel_path)
 
     def _determine_new_nifti_assembly_rel_path(self):
@@ -358,6 +364,8 @@ class NiftiInsertionPipeline(BasePipeline):
             )
 
         for file_dict in file_type_to_move_list:
+            message = f"Moving file {original_file_path} to {new_file_path}"
+            self.log_info(message, is_error='N', is_verbose='Y')
             original_file_path = file_dict['original_file_path']
             new_file_path = file_dict['new_file_path']
             self.move_file(original_file_path, new_file_path)
