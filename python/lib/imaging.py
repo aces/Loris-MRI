@@ -469,6 +469,75 @@ class Imaging:
 
         return file_parameters
 
+    def get_acquisition_protocol_info(self, protocols_list, nifti_name, scan_param):
+        """
+        Get acquisition protocol information (scan_type_id or message to be printed in the log).
+        - If the protocols list provided as input is empty, the scan_type_id will be set to None and proper message
+        will be returned
+        - If no protocol listed in protocols_list matches the parameters of the scan, then the scan_type_id will be set
+        to None and proper message will be returned
+        - If more than one protocol matches, the scan_type_id will be set to None and proper message will be returned
+
+        :param protocols_list: list of protocols to loop through to find a matching protocol
+         :type protocols_list: list
+        :param nifti_name: name of the NIfTI file to print in the returned message
+         :type nifti_name: str
+        :param scan_param: dictionary with the scan parameters to use to determine acquisition protocol
+         :type scan_param: dict
+
+        :return: dictionary with 'scan_type_id' and 'message' keys.
+         :rtype: dict
+        """
+
+        if not len(protocols_list):
+            message = f"Warning! No protocol group can be used to determine the scan type of {nifti_name}." \
+                            f" Incorrect/incomplete setup of table mri_protocol_group_target."
+            return {'scan_type_id': None, 'error_message': message}
+
+        mri_protocol_group_ids = set(map(lambda x: x['MriProtocolGroupID'], protocols_list))
+        if len(mri_protocol_group_ids) > 1:
+            message = f"Warning! More than one protocol group can be used to identify the scan type of {nifti_name}." \
+                      f" Ambiguous setup of table mri_protocol_group_target."
+            return {'scan_type_id': None, 'error_message': message}
+
+        # look for matching protocols
+        matching_protocols_list = self.look_for_matching_protocols(protocols_list, scan_param)
+
+        # if more than one protocol matching, return False, otherwise, return the scan type ID
+        if not matching_protocols_list:
+            message = f'Warning! Could not identify protocol of {nifti_name}.'
+            return {'scan_type_id': None, 'error_message': message}
+        elif len(matching_protocols_list) > 1:
+            message = f'Warning! More than one protocol matched the image acquisition parameters of {nifti_name}.'
+            return {'scan_type_id': None, 'error_message': message}
+        else:
+            scan_type_id = matching_protocols_list[0]
+            message = f'Acquisition protocol ID for the file to insert is {scan_type_id}'
+            return {'scan_type_id': scan_type_id, 'error_message': message}
+
+    def look_for_matching_protocols(self, protocols_list, scan_param):
+        """
+        Look for matching protocols in protocols_list given scan parameters stored in scan_param.
+
+        :param protocols_list: list of protocols to evaluate against scan parameters
+         :type protocols_list: list
+        :param scan_param: scan parameters
+         :type scan_param: dict
+
+        :return: list of matching protocols
+         :rtype: list
+        """
+
+        matching_protocols_list = []
+        for protocol in protocols_list:
+            if protocol['series_description_regex']:
+                if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
+                    matching_protocols_list.append(protocol['Scan_type'])
+            elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
+                matching_protocols_list.append(protocol['Scan_type'])
+
+        return matching_protocols_list
+
     def is_scan_protocol_matching_db_protocol(self, db_prot, scan_param):
         """
         Determines if a scan protocol matches a protocol previously taken from the mri_protocol table.
@@ -623,16 +692,16 @@ class Imaging:
         """
 
         cand_id = file_info['cand_id']
-        file_path = file_info['data_dir_path'] + file_info['file_rel_path']
+        file_path = os.path.join(file_info['data_dir_path'], file_info['file_rel_path'])
         is_4d_data = file_info['is_4D_dataset']
         file_id = file_info['file_id']
 
         pic_name = os.path.basename(file_path)
-        pic_name = re.sub(r"\.nii(\.gz)", '_' + str(file_id) + '_check.png', pic_name)
-        pic_rel_path = str(cand_id) + '/' + pic_name
+        pic_name = re.sub(r"\.nii(\.gz)?$", f'_{str(file_id)}_check.png', pic_name)
+        pic_rel_path = os.path.join(str(cand_id), pic_name)
 
         # create the candID directory where the pic will go if it does not already exist
-        pic_dir = file_info['data_dir_path'] + 'pic/' + str(cand_id)
+        pic_dir = os.path.join(file_info['data_dir_path'], 'pic', str(cand_id))
         if not os.path.exists(pic_dir):
             os.mkdir(pic_dir)
 
@@ -640,7 +709,7 @@ class Imaging:
 
         plotting.plot_anat(
             anat_img=volume,
-            output_file=file_info['data_dir_path'] + 'pic/' + pic_rel_path,
+            output_file=os.path.join(file_info['data_dir_path'], 'pic', pic_rel_path),
             display_mode='ortho',
             black_bg=1,
             draw_cross=0,

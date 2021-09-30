@@ -107,14 +107,15 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Create the pic images
         # ---------------------------------------------------------------------------------------------
-        # TODO: create the pic
+        self._create_pic_image()
 
     def _load_json_sidecar_file(self):
         """
         Loads the JSON file content into a dictionary.
 
-        Note: if no JSON file was provided to the pipeline, the function will return an empty dictionary
-        so that information to be stored in <parameter_file> later on can be added to the JSON dictionary.
+        Note: if no JSON file was provided to the pipeline, the function will return an dictionary with
+        step and space information derived from the NIfTI file and information to be stored in
+        <parameter_file> will be added to the JSON dictionary.
 
         :return: dictionary with the information present in the JSON file
          :rtype: dict
@@ -136,7 +137,7 @@ class NiftiInsertionPipeline(BasePipeline):
         This function will validate that the PatientName present in the JSON side car file is the same as the
         one present in the <tarchive> table.
 
-        Note: if no JSON file was provided to the script or if not "PatientName" was provided in the JSON file,
+        Note: if no JSON file was provided to the script or if no "PatientName" was provided in the JSON file,
         the scripts will rely solely on the PatientName present in the <tarchive> table.
         """
         tarchive_pname = self.tarchive_db_obj.tarchive_info_dict["PatientName"]
@@ -152,6 +153,13 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_error_and_exit(err_msg, lib.exitcode.FILENAME_MISMATCH, is_error="Y", is_verbose="N")
 
     def _check_if_nifti_file_was_already_inserted(self):
+        """
+        Ensures that the NIfTI file was not already inserted. It checks whether there is already a file inserted into
+        the files table with the same SeriesUID/EchoTime, as well as whether there is a file inserted with the same
+        md5 or blake2b hash.
+
+        Proper information will be logged into the log file, notification table and terminal.
+        """
 
         error_msg = None
 
@@ -193,6 +201,10 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_error_and_exit(error_msg, lib.exitcode.FILE_NOT_UNIQUE, is_error="Y", is_verbose="N")
 
     def _determine_subject_ids_based_on_json_patient_name(self):
+        """
+        Determines the subject IDs information based on the patient name information present in the JSON file.
+        """
+
         dicom_header = self.config_db_obj.get_config('lookupCenterNameUsing')
         dicom_value = self.json_file_dict[dicom_header]
 
@@ -206,6 +218,12 @@ class NiftiInsertionPipeline(BasePipeline):
         self.log_info("Determined subject IDs based on PatientName stored in JSON file", is_error="N", is_verbose="Y")
 
     def _determine_acquisition_protocol(self):
+        """
+        Determines the acquisition protocol of the NIfTI file.
+
+        :return: identified acquisition protocol ID for the NIfTI file
+         :rtype: int
+        """
 
         nifti_name = os.path.basename(self.nifti_path)
         scan_param = self.json_file_dict
@@ -225,44 +243,15 @@ class NiftiInsertionPipeline(BasePipeline):
             self.scanner_dict['ScannerID']
         )
 
-        if not len(protocols_list):
-            message = f"Warning! No protocol group can be used to determine the scan type of {nifti_name}." \
-                      f" Incorrect/incomplete setup of table mri_protocol_group_target."
-            self.log_info(message, is_error="N", is_verbose="Y")
-            return False
+        protocol_info = self.imaging_obj.get_acquisition_protocol_info(protocols_list, nifti_name, scan_param)
+        self.log_info(protocol_info['error_message'], is_error="N", is_verbose="Y")
 
-        mri_protocol_group_ids = set(map(lambda x: x['MriProtocolGroupID'], protocols_list))
-        if len(mri_protocol_group_ids) > 1:
-            message = f"Warning! More than one protocol group can be used to identify the scan type of {nifti_name}." \
-                      f" Ambiguous setup of table mri_protocol_group_target."
-            self.log_info(message, is_error="N", is_verbose="Y")
-            return False
-
-        # look for matching protocols
-        matching_protocols_list = []
-        for protocol in protocols_list:
-            if protocol['series_description_regex']:
-                if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
-                    matching_protocols_list.append(protocol['Scan_type'])
-            elif self.imaging_obj.is_scan_protocol_matching_db_protocol(protocol, scan_param):
-                matching_protocols_list.append(protocol['Scan_type'])
-
-        # if more than one protocol matching, return False, otherwise, return the scan type ID
-        if not matching_protocols_list:
-            message = f'Warning! Could not identify protocol of {nifti_name}.'
-            self.log_info(message, is_error='N', is_verbose='Y')
-            return False
-        elif len(matching_protocols_list) > 1:
-            message = f'Warning! More than one protocol matched the image acquisition parameters of {nifti_name}.'
-            self.log_info(message, is_error='N', is_verbose='Y')
-            return False
-        else:
-            scan_type_id = matching_protocols_list[0]
-            message = f'Acquisition protocol ID for the file to insert is {scan_type_id}'
-            self.log_info(message, is_error='N', is_verbose='Y')
-            return scan_type_id
+        return protocol_info['scan_type_id']
 
     def _add_step_and_space_params_to_json_file_dict(self):
+        """
+        Adds step and space information to the JSON file dictionary listing NIfTI file acquisition parameters.
+        """
         step_params = self.imaging_obj.get_nifti_image_step_parameters(self.nifti_path)
         length_params = self.imaging_obj.get_nifti_image_length_parameters(self.nifti_path)
         self.json_file_dict['xstep'] = step_params[0]
@@ -275,7 +264,12 @@ class NiftiInsertionPipeline(BasePipeline):
             self.json_file_dict['time'] = length_params[3]
 
     def _move_to_assembly_and_insert_file_info(self):
-
+        """
+        Determines where the NIfTI file and its associated files (.json, .bval, .bvec...) will go in the assembly
+        directory, move the files and inserts the NIfTI file information into the files/parameter_file tables.
+        If the image has 'warning' violations the violations will be inserted into the mri_violations_table as
+        well and the Caveat will be set to True in the files table.
+        """
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
         self._create_destination_dir_and_move_image_files('assembly')
 
@@ -285,7 +279,12 @@ class NiftiInsertionPipeline(BasePipeline):
             self._register_violations_log(self.warning_violations_list, self.assembly_nifti_rel_path)
 
     def _determine_new_nifti_assembly_rel_path(self):
+        """
+        Determines the directory and the new NIfTI name of the file that will be moved into the assembly folder.
 
+        :return: relative path to the new NIfTI file
+         :rtype: str
+        """
         study_prefix = self.config_db_obj.get_config('prefix')
         cand_id = self.subject_id_dict['CandID']
         visit = self.subject_id_dict['visitLabel']
@@ -305,6 +304,9 @@ class NiftiInsertionPipeline(BasePipeline):
         return os.path.join('assembly', cand_id, visit, 'mri', 'native', new_nifti_name)
 
     def _move_to_trashbin(self):
+        """
+        Determines where the NIfTI file will go under the trashbin directory and move the file there.
+        """
         self.trashbin_nifti_rel_path = os.path.join(
             'trashbin',
             re.sub(r'\.log', '', os.path.basename(self.log_obj.log_file)),
@@ -313,7 +315,12 @@ class NiftiInsertionPipeline(BasePipeline):
         self._create_destination_dir_and_move_image_files('trashbin')
 
     def _create_destination_dir_and_move_image_files(self, destination):
+        """
+        Create the destination directory for the files and move the NIfTI file and its associated files there.
 
+        :param destination: destination root directory (one of 'assembly' or 'trashbin')
+         :type destination: str
+        """
         nifti_rel_path = self.assembly_nifti_rel_path if destination == 'assembly' else self.trashbin_nifti_rel_path
         json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', nifti_rel_path) if self.json_path else None
 
@@ -419,3 +426,18 @@ class NiftiInsertionPipeline(BasePipeline):
         file_id = self.imaging_obj.insert_imaging_file(files_insert_info_dict, self.json_file_dict)
 
         return file_id
+
+    def _create_pic_image(self):
+        """
+        Creates the pic image of the NIfTI file.
+        """
+        file_info = {
+            'cand_id': self.subject_id_dict['CandID'],
+            'data_dir_path': self.data_dir,
+            'file_rel_path': self.assembly_nifti_rel_path,
+            'is_4D_dataset': True if 'time' in self.json_file_dict.keys() else False,
+            'file_id': self.file_id
+        }
+        pic_rel_path = self.imaging_obj.create_imaging_pic(file_info)
+
+        self.imaging_obj.insert_parameter_file(self.file_id, 'check_pic_filename', pic_rel_path)
