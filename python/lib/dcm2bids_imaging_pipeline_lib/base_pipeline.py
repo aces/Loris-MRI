@@ -75,7 +75,9 @@ class BasePipeline:
         # Create tmp dir and log file (their basename being the name of the script run)
         # ---------------------------------------------------------------------------------------------
         self.tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
-        self.log_obj = Log(self.data_dir, script_name, os.path.basename(self.tmp_dir), self.options_dict)
+        self.log_obj = Log(
+            self.db, self.data_dir, script_name, os.path.basename(self.tmp_dir), self.options_dict, self.verbose
+        )
         self.log_info("Successfully connected to database", is_error="N", is_verbose="Y")
 
         # ---------------------------------------------------------------------------------------------

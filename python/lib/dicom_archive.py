@@ -52,7 +52,7 @@ class DicomArchive:
         :param archive_location: location of the DICOM archive (relative path)
          :type archive_location: str
         """
-        self.tarchive_db_obj.create_tarchive_dict(archive_location=archive_location)
+        self.tarchive_info_dict = self.tarchive_db_obj.create_tarchive_dict(archive_location=archive_location)
 
     def populate_tarchive_info_dict_from_tarchive_id(self, tarchive_id):
         """
@@ -62,7 +62,7 @@ class DicomArchive:
         :param tarchive_id: TarchiveID of the DICOM archive
          :type tarchive_id: int
         """
-        self.tarchive_db_obj.create_tarchive_dict(tarchive_id=tarchive_id)
+        self.tarchive_info_dict = self.tarchive_db_obj.create_tarchive_dict(tarchive_id=tarchive_id)
 
     def populate_tarchive_info_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
         """
@@ -80,7 +80,7 @@ class DicomArchive:
 
         if "TarchiveID" in tarchive_series_info_dict.keys():
             tarchive_id = tarchive_series_info_dict["TarchiveID"]
-            return self.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
+            self.tarchive_info_dict = self.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
 
     def validate_dicom_archive_md5sum(self, tarchive_path):
         """

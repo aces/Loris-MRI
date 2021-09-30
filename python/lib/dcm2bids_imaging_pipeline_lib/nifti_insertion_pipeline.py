@@ -180,10 +180,10 @@ class NiftiInsertionPipeline(BasePipeline):
             # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
             if self.force:
                 tar_echo_time = echo_time * 1000
-                match_tar = self.dicom_archive_obj.populate_tarchive_info_dict_from_series_uid_and_echo_time(
+                self.dicom_archive_obj.populate_tarchive_info_dict_from_series_uid_and_echo_time(
                     series_uid, tar_echo_time
                 )
-                if match_tar:
+                if not self.dicom_archive_obj.tarchive_info_dict:
                     error_msg = f"Found a DICOM archive containing DICOM files with the same SeriesUID ({series_uid})" \
                                 f" and EchoTime ({tar_echo_time}) as the one present in the JSON side car file. " \
                                 f" The DICOM archive location containing those DICOM files is " \
@@ -370,10 +370,11 @@ class NiftiInsertionPipeline(BasePipeline):
             )
 
         for file_dict in file_type_to_move_list:
-            message = f"Moving file {original_file_path} to {new_file_path}"
-            self.log_info(message, is_error='N', is_verbose='Y')
             original_file_path = file_dict['original_file_path']
             new_file_path = file_dict['new_file_path']
+
+            message = f"Moving file {original_file_path} to {new_file_path}"
+            self.log_info(message, is_error='N', is_verbose='Y')
             self.move_file(original_file_path, new_file_path)
 
         if destination == 'assembly':
