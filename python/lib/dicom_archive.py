@@ -1,5 +1,6 @@
 """This class gather functions for DICOM archive handling."""
 
+import lib.utilities as utilities
 from lib.database_lib.tarchive import Tarchive
 from lib.database_lib.tarchive_series import TarchiveSeries
 
@@ -39,7 +40,7 @@ class DicomArchive:
         self.verbose = verbose
 
         self.tarchive_db_obj = Tarchive(db, verbose)
-        self.tarchive_series_db_obj = TarchiveSeries(db, verbose)
+        self.tar_series_db_obj = TarchiveSeries(db, verbose)
 
         self.tarchive_info_dict = dict()
 
@@ -50,3 +51,42 @@ class DicomArchive:
     def populate_tarchive_info_dict_from_tarchive_id(self, tarchive_id):
 
         self.tarchive_db_obj.create_tarchive_dict(tarchive_id=tarchive_id)
+
+    def populate_tarchive_info_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
+        tarchive_series_info_dict = self.tar_series_db_obj.get_tarchive_series_from_series_uid_and_echo_time(
+            series_uid, echo_time
+        )
+
+        if "TarchiveID" in tarchive_series_info_dict.keys():
+            tarchive_id = tarchive_series_info_dict["TarchiveID"]
+            return self.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
+
+    def validate_dicom_archive_md5sum(self, tarchive_path):
+        """
+        This function validates that the md5sum of the DICOM archive on the filesystem is the same
+        as the md5sum of the registered entry in the tarchive table.
+
+        :param tarchive_path: path to the DICOM archive to be validated against the database
+         :type tarchive_path: str
+
+        :return result: dictionary with the result of the validation
+         :rtype result: dict
+        """
+
+        # compute the md5sum of the tarchive file
+        tarchive_file_md5sum = utilities.compute_md5sum(tarchive_path)
+
+        # grep the md5sum stored in the database
+        tarchive_db_md5sum = self.tarchive_info_dict['md5sumArchive'].split()[0]
+
+        # check that the two md5sum are the same
+        result = dict()
+        if tarchive_db_md5sum == tarchive_file_md5sum:
+            result['success'] = True
+            result['message'] = f"checksum for target: {tarchive_file_md5sum}; " \
+                                f"checksum from database: {tarchive_db_md5sum}"
+        else:
+            result['success'] = False
+            result['message'] = "ERROR: DICOM archive seems corrupted or modified. Upload will exit now."
+
+        return result

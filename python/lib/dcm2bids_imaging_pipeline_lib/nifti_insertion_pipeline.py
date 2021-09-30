@@ -180,7 +180,7 @@ class NiftiInsertionPipeline(BasePipeline):
             # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
             if self.force:
                 tar_echo_time = echo_time * 1000
-                match_tar = self.dicom_archive_obj.create_tarchive_dict_from_series_uid_and_echo_time(
+                match_tar = self.dicom_archive_obj.populate_tarchive_info_dict_from_series_uid_and_echo_time(
                     series_uid, tar_echo_time
                 )
                 if match_tar:

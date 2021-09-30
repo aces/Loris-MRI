@@ -35,10 +35,7 @@ class TarchiveSeries:
         self.db = db
         self.verbose = verbose
 
-        # this will contain the tarchive info
-        self.tarchive_series_info_dict = dict()
-
-    def create_tarchive_series_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
+    def get_tarchive_series_from_series_uid_and_echo_time(self, series_uid, echo_time):
         """
         Create dictionary with DICOM archive information selected from the tarchive table.
 
@@ -54,7 +51,4 @@ class TarchiveSeries:
         query = "SELECT * FROM tarchive_series WHERE SeriesUID = %s AND EchoTime = %s"
         results = self.db.pselect(query=query, args=(series_uid, echo_time))
 
-        # save the result in self.tarchive_info_dict and return True if a row was found
-        # return False if no row found for the archive location or tarchiveID in the tarchive table
-        if results:
-            self.tarchive_series_info_dict = results[0]
+        return results[0] if results else None

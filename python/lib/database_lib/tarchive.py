@@ -1,7 +1,5 @@
 """This class performs DICOM archive related database queries and common checks"""
 
-from lib.database_lib.tarchive_series import TarchiveSeries
-import lib.utilities as utilities
 
 __license__ = "GPLv3"
 
@@ -63,42 +61,3 @@ class Tarchive:
         results = self.db.pselect(query=query, args=args)
 
         return results[0] if results else None
-
-    def validate_dicom_archive_md5sum(self, tarchive_path):
-        """
-        This function validates that the md5sum of the DICOM archive on the filesystem is the same
-        as the md5sum of the registered entry in the tarchive table.
-
-        :param tarchive_path: path to the DICOM archive to be validated against the database
-         :type tarchive_path: str
-
-        :return result: dictionary with the result of the validation
-         :rtype result: dict
-
-        """
-
-        # compute the md5sum of the tarchive file
-        tarchive_file_md5sum = utilities.compute_md5sum(tarchive_path)
-
-        # grep the md5sum stored in the database
-        tarchive_db_md5sum = self.tarchive_info_dict['md5sumArchive'].split()[0]
-
-        # check that the two md5sum are the same
-        result = dict()
-        if tarchive_db_md5sum == tarchive_file_md5sum:
-            result['success'] = True
-            result['message'] = f"checksum for target: {tarchive_file_md5sum}; " \
-                                f"checksum from database: {tarchive_db_md5sum}"
-        else:
-            result['success'] = False
-            result['message'] = "ERROR: DICOM archive seems corrupted or modified. Upload will exit now."
-
-        return result
-
-    def create_tarchive_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
-        tar_series_obj = TarchiveSeries(self.db, self.verbose)
-        tar_series_obj.create_tarchive_series_dict_from_series_uid_and_echo_time(series_uid, echo_time)
-
-        if "TarchiveID" in tar_series_obj.tarchive_series_info_dict.keys():
-            tarchive_id = tar_series_obj.tarchive_series_info_dict["TarchiveID"]
-            return self.create_tarchive_dict(tarchive_id=tarchive_id)
