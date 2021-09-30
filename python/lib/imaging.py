@@ -670,13 +670,13 @@ class Imaging:
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
 
-    def get_scanner_id_from_json_data(self, scan_param_dict, center_id):
+    def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id):
 
         return self.mri_scanner_db_obj.determine_scanner_information(
-            scan_param_dict["Manufacturer"],
-            scan_param_dict["SoftwareVersions"],
-            scan_param_dict["DeviceSerialNumber"],
-            scan_param_dict["ManufacturersModelName"],
+            manufacturer,
+            software_version,
+            serial_nb,
+            model_name,
             center_id
         )
 

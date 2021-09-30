@@ -9,7 +9,6 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
 from lib.database_lib.mriupload import MriUpload
-from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
 from lib.database_lib.session import Session
 from lib.database_lib.site import Site
@@ -65,7 +64,6 @@ class BasePipeline:
         self.config_db_obj = Config(self.db, self.verbose)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
         self.mri_upload_db_obj = MriUpload(self.db, self.verbose)
-        self.mri_scanner_db_obj = MriScanner(self.db, self.verbose)
         self.session_db_obj = Session(self.db, self.verbose)
         self.site_db_obj = Site(self.db, self.verbose)
         self.proj_subproj_rel_db_obj = ProjectSubprojectRel(self.db, self.verbose)
@@ -203,7 +201,7 @@ class BasePipeline:
         """
         Determine the scanner information found in the database for the uploaded DICOM archive.
         """
-        scanner_id = self.mri_scanner_db_obj.determine_scanner_information(
+        scanner_id = self.imaging_obj.get_scanner_id(
             self.tarchive_db_obj.tarchive_info_dict['ScannerManufacturer'],
             self.tarchive_db_obj.tarchive_info_dict['ScannerSoftwareVersion'],
             self.tarchive_db_obj.tarchive_info_dict['ScannerSerialNumber'],

@@ -233,7 +233,13 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # get scanner ID if not already figured out
         if not self.scanner_id:
-            self.scanner_id = self.imaging_obj.get_scanner_id_from_json_data(scan_param, self.site_dict['CenterID'])
+            self.scanner_id = self.imaging_obj.get_scanner_id(
+                self.json_file_dict['Manufacturer'],
+                self.json_file_dict['SoftwareVersions'],
+                self.json_file_dict['DeviceSerialNumber'],
+                self.json_file_dict['ManufacturersModelName'],
+                self.site_dict['CenterID']
+            )
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
