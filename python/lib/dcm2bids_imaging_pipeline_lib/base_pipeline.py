@@ -8,7 +8,7 @@ import lib.utilities
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.database_lib.notification import Notification
-from lib.database_lib.mriupload import MriUpload
+from lib.database_lib.mri_upload import MriUpload
 from lib.session import Session
 from lib.database_lib.tarchive import Tarchive
 from lib.imaging import Imaging
