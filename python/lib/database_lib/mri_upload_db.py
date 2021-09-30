@@ -3,7 +3,7 @@
 __license__ = "GPLv3"
 
 
-class MriUpload:
+class MriUploadDB:
 
     def __init__(self, db, verbose):
         """
@@ -17,7 +17,6 @@ class MriUpload:
 
         self.db = db
         self.verbose = verbose
-        self.mri_upload_dict = dict()
 
     def update_mri_upload(self, upload_id, fields, values):
         """
@@ -54,12 +53,4 @@ class MriUpload:
             query += " WHERE SessionID = %s"
         results = self.db.pselect(query, (where_value,))
 
-        if len(results) > 1:
-            error_msg = f"Found {len(results)} rows in mri_upload for {where_field} {where_value}"
-            return False, error_msg
-        elif len(results) == 1:
-            self.mri_upload_dict = results[0]
-            return True, None
-        else:
-            error_msg = f"Did not find an entry in mri_upload associated with {where_field} {where_value}"
-            return False, error_msg
+        return results if results else None

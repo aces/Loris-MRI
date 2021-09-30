@@ -32,7 +32,7 @@ class DicomValidationPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         message = f"DICOM archive {self.options_dict['tarchive_path']['value']} is valid!"
         self.log_info(message, is_error="N", is_verbose="Y")
-        self.mri_upload_db_obj.update_mri_upload(
+        self.imaging_upload_obj.update_mri_upload(
             upload_id=self.upload_id,
             fields=("isTarchiveValidated", "Inserting",),
             values=("1", "0")
@@ -53,7 +53,7 @@ class DicomValidationPipeline(BasePipeline):
         if result['success']:
             self.log_info(message, is_error="N", is_verbose="Y")
         else:
-            self.mri_upload_db_obj.update_mri_upload(
+            self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id,
                 fields=("isTarchiveValidated", "IsCandidateInfoValidated"),
                 values=("0", "0")
