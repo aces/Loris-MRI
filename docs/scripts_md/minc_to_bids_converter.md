@@ -182,18 +182,16 @@ INPUTS:
 OUTPUT:
     - relative path to the created NIfTI file
 
-### determine\_bids\_nifti\_file\_name($minc, $loris\_prefix, $minc\_file\_hash, $bids\_label\_hash, $run\_nb, $echo\_nb)
+### determine\_bids\_nifti\_file\_name($minc\_file\_hash, $bids\_label\_hash, $run\_nb, $echo\_nb)
 
 Determines the BIDS NIfTI file name to be used when converting the MINC file into a BIDS
 compatible NIfTI file.
 
 INPUTS:
-    - $minc           : relative path to the MINC file
-    - $loris\_prefix   : LORIS prefix used to name the MINC file
     - $minc\_file\_hash : hash with candidate, visit label & scan type information associated with the MINC file
     - $bids\_label\_hash: hash with the BIDS labelling information corresponding to the MINC file's scan type.
     - $run\_nb         : run number to use to label the NIfTI file to be created
-    - $echo\_nb        : echo number to use to label the NIfTI file to be created (can be undefined)
+    - $mag\_echo\_nb    : echo number to use to label the NIfTI file to be created (can be undefined)
 
 OUTPUT:
     - $nifti\_name: name of the NIfTI file that will be created
@@ -433,6 +431,33 @@ INPUTS:
                          'bids-validator-config', 'participants\_list\_file', 'session\_list\_of\_scans'.
                          'NULL' if the BIDS file to insert is an acquisition file.
     - $session\_id      : session ID associated to the file to insert. 'NULL' if the file is at the BIDS study level
+
+### get\_BIDSNonImgFileCategoryID($category\_name)
+
+Get the BIDSNonImgFileCategoryID from the bids\_export\_non\_imaging\_file\_category table for a category name.
+
+INPUTS:
+  - $category\_name: name of the non-imaging file category to look for
+
+OUTPUT: BIDS non-imaging file category ID or undef
+
+### get\_BIDSCategoryID($category\_name)
+
+Get the BIDSCategoryID from the bids\_category table for a category name.
+
+INPUTS:
+  - $category\_name: name of the non-imaging file category to look for
+
+OUTPUT: BIDS category ID or undef
+
+### get\_BIDSExportFileLevelCategoryID($level\_name)
+
+Get the BIDSExportFileLevelCategoryID from the bids\_export\_file\_level\_category table for a level name.
+
+INPUTS:
+  - $level\_name: name of the BIDS export file level category to look for
+
+OUTPUT: BIDS export file level category ID or undef
 
 # TO DO
 

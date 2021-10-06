@@ -818,8 +818,8 @@ sub determine_bids_nifti_file_name {
     my $bids_visit_label = $loris_visit_label;
     $bids_visit_label =~ s/_//g;
 
-    # If the file is of type fMRI; ensure there is a BIDS subcategory type; for example, task-rest for resting state
-    # fMRI or task-memory for memory task fMRI. Otherwise, exits with error.
+    # If the BIDS category of the file is 'func' ensure there is a BIDS subcategory type;
+    # for example, task-rest for resting state fMRI or task-memory for memory task fMRI. Otherwise, exits with error.
     if ($bids_category eq 'func') {
         if (!$bids_label_hash->{BIDSScanTypeSubCategory}) {
             print STDERR "\n ERROR: Files of BIDS Category type 'func' and which are fMRI need to have their"
@@ -828,7 +828,7 @@ sub determine_bids_nifti_file_name {
         }
     }
 
-    #
+    # determine the BIDS entity values for the file
     my %file_bids_entities = (
         sub => $candID,
         ses => $bids_visit_label,
@@ -838,6 +838,7 @@ sub determine_bids_nifti_file_name {
     if (defined $bids_echo_nb) {
         $file_bids_entities{'echo'} = $bids_echo_nb;
     }
+    # parse the bids subcategories to determine the list of entity to append to the filename
     if (defined $bids_subcategory) {
         my @subcategories_info = split('_', $bids_subcategory);
         for my $subcategory_data (@subcategories_info) {
@@ -856,7 +857,7 @@ sub determine_bids_nifti_file_name {
         }
     }
 
-    # if a run number is defined when calling the function, use that run number
+    # specificity for magnitude files
     if ($bids_scan_type eq 'magnitude' && $mag_echo_nb) {
         # if echo number is provided, then modify name of the magnitude files
         # to be magnitude1 or magnitude2 depending on the echo number
@@ -1920,6 +1921,18 @@ QUERY
 
 }
 
+=pod
+
+=head3 get_BIDSNonImgFileCategoryID($category_name)
+
+Get the BIDSNonImgFileCategoryID from the bids_export_non_imaging_file_category table for a category name.
+
+INPUTS:
+  - $category_name: name of the non-imaging file category to look for
+
+OUTPUT: BIDS non-imaging file category ID or undef
+
+=cut
 
 sub get_BIDSNonImgFileCategoryID {
     my ($category_name) = @_;
@@ -1936,6 +1949,18 @@ QUERY
     return $st_handle->rows > 0 ? $st_handle->fetchrow_array() : undef;
 }
 
+=pod
+
+=head3 get_BIDSCategoryID($category_name)
+
+Get the BIDSCategoryID from the bids_category table for a category name.
+
+INPUTS:
+  - $category_name: name of the non-imaging file category to look for
+
+OUTPUT: BIDS category ID or undef
+
+=cut
 
 sub get_BIDSCategoryID {
     my ($category_name) = @_;
@@ -1947,6 +1972,18 @@ sub get_BIDSCategoryID {
     return $st_handle->rows > 0 ? $st_handle->fetchrow_array() : undef;
 }
 
+=pod
+
+=head3 get_BIDSExportFileLevelCategoryID($level_name)
+
+Get the BIDSExportFileLevelCategoryID from the bids_export_file_level_category table for a level name.
+
+INPUTS:
+  - $level_name: name of the BIDS export file level category to look for
+
+OUTPUT: BIDS export file level category ID or undef
+
+=cut
 
 sub get_BIDSExportFileLevelCategoryID {
     my ($level_name) = @_;
