@@ -136,12 +136,16 @@ and `CandMismatchError` information
 ### createTarchiveArray($tarchive)
 
 Creates the DICOM archive information hash ref for the tarchive that has the same
-basename as the file path passed as argument.
+basename as the file path passed as argument. For HRRT scanners, it will do the
+same but from the hrrtarchive table.
 
 INPUTS:
-  - $tarchive           : tarchive's path (absolute or relative).
+  - $tarchive: tarchive's path (absolute or relative).
+  - $hrrt    : whether the archive is from an HRRT scanner or not (in
+               which case, the `hrrt_archive` table will be read
+               instead of the `tarchive` table.
 
-RETURNS: DICOM archive information hash ref if exactly one archive was found. Exits
+RETURNS: DICOM/HRRT archive information hash ref if exactly one archive was found. Exits
          when either no match or multiple matches are found.
 
 ### determinePSC($tarchiveInfo, $to\_log, $upload\_id)
@@ -278,23 +282,22 @@ INPUTS:
 
 RETURNS: file information hash ref
 
-### move\_minc($minc, $subjectIDsref, $minc\_type, $fileref, $prefix, $data\_dir, $tarchive\_srcloc, $upload\_id)
+### move\_minc($minc, $subjectIDsref, $minc\_type, $prefix, $data\_dir, $hrrt, $upload\_id)
 
 Renames and moves the MINC file.
 
 INPUTS:
   - $minc           : path to the MINC file
   - $subjectIDsref  : subject's ID hash ref
-  - $minc\_type      : MINC file information hash ref
-  - $fileref        : file information hash ref
+  - $minc\_type      : acquisition protocol
   - $prefix         : study prefix
   - $data\_dir       : data directory (e.g. `/data/$PROJECT/data`)
-  - $tarchive\_srcloc: DICOM archive source location
+  - $hrrt           : boolean, whether the file comes from a PET HRRT scanner
   - $upload\_id      : upload ID of the study
 
 RETURNS: new name of the MINC file with path relative to `$data_dir`
 
-### registerScanIntoDB($minc\_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra\_validation\_status, $reckless, $sessionID, $upload\_id)
+### registerScanIntoDB($minc\_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra\_validation\_status, $reckless, $sessionID, $upload\_id, $hrrt)
 
 Registers the scan into the database.
 
@@ -309,6 +312,7 @@ INPUTS:
   - $reckless                : boolean, if reckless or not
   - $sessionID               : session ID of the MINC file
   - $upload\_id               : upload ID of the study
+  - $hrrt                    : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: acquisition protocol ID of the MINC file
 
@@ -387,13 +391,14 @@ INPUTS:
   - $tarchiveInfo: DICOM archive information hash ref
   - $upload\_id   : upload ID of the study
 
-### which\_directory($subjectIDsref, $data\_dir)
+### which\_directory($subjectIDsref, $data\_dir, $hrrt)
 
 Determines where the MINC files to be registered into the database will go.
 
 INPUTS:
    - $subjectIDsref: subject's ID information hashref
    - $data\_dir     : data directory (e.g. `/data/$PROJECT/data`)
+   - $hrrt         : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: the final directory in which the registered MINC files will go
 (typically `/data/$PROJECT/data/assembly/CandID/visit/mri/`)
