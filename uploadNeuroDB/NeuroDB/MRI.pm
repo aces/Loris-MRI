@@ -374,8 +374,8 @@ sub identify_scan_db {
               FROM mri_protocol
               JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)
               WHERE (
-                        (Center_name = ? AND ScannerID = ?)
-                     OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID IS NULL))";
+                        (CenterID = ? AND ScannerID = ?)
+                     OR (CenterID IS NULL AND ScannerID IS NULL))";
 
     #============================================================#
     # Add to the query the clause related to the Project ID, the #
@@ -391,7 +391,7 @@ sub identify_scan_db {
         ? ' AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = ?)'
         : ' AND mpgt.Visit_label IS NULL';
         
-    $query .=  ' ORDER BY Center_name ASC, ScannerID DESC';
+    $query .=  ' ORDER BY CenterID ASC, ScannerID DESC';
 
     my @bindValues = ($psc, $ScannerID);
     push(@bindValues, $projectID)    if defined $projectID;
