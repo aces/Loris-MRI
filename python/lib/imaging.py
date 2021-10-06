@@ -522,13 +522,17 @@ class Imaging:
         return file_parameters
 
     @staticmethod
-    def create_imaging_pic(file_info):
+    def create_imaging_pic(file_info, pic_rel_path=None):
         """
         Creates the preview pic that will show in the imaging browser view session
         page. This pic will be stored in the data_dir/pic folder
 
         :param file_info: dictionary with file information (path, file_id, cand_id...)
          :type file_info: dict
+        :param pic_rel_path: relative path to the pic to use if one provided. Otherwise
+                             create_imaging_pic will automatically generate the pic name
+                             based on the file path of the NIfTI file
+         :type pic_rel_path: str
 
         :return: path to the created pic
          :rtype: str
