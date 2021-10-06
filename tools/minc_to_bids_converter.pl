@@ -206,11 +206,17 @@ print "\n==> Successfully connected to database \n";
 # Get settings from the ConfigSettings table
 my $data_dir        = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
 my $bin_dir         = &NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
-my $prefix          = &NeuroDB::DBI::getConfigSetting(\$dbh,'prefix');
 my $authors         = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_dataset_authors');
 my $acknowledgments = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_acknowledgments_text');
 my $readme_content  = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_readme_text');
 my $validator_ignore_opts = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_validator_options_to_ignore');
+
+unless (defined $authors && defined $acknowledgments && defined $readme_content) {
+    print STDERR "\n ERROR: Some 'MINC to BIDS Converter Tool Options' are not set in the configuration module."
+                 . " 'BIDS Dataset Authors', 'BIDS Dataset Acknowledgments' and 'BIDS Dataset README' need to be"
+                 . " defined.\n\n";
+            exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
+}
 
 # remove trailing / from paths
 $data_dir =~ s/\/$//g;
