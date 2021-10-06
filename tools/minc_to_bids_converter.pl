@@ -84,9 +84,26 @@ use NeuroDB::File;
 
 
 # # Set script's constants here
-my $LORIS_SCRIPT_VERSION = "0.2"; # Still a BETA version
-my $BIDS_VERSION         = "1.1.1 & BEP0001";
-
+my $LORIS_SCRIPT_VERSION  = "0.2"; # Still a BETA version
+my $BIDS_VERSION          = "1.1.1 & BEP0001";
+# BIDS arrays are derived from https://bids-specification.readthedocs.io/en/stable/99-appendices/04-entity-table.html
+my @BIDS_MRI_ENTITY_ORDER = (
+    'sub',      # Subject
+    'ses',      # Session
+    'task',     # Task
+    'acq',      # Acquisition
+    'ce',       # Contrast Enhancing Agent
+    'rec',      # Reconstruction
+    'dir',      # Phase Encoding Direction
+    'run',      # Run
+    'mod',      # Corresponding Modality
+    'echo',     # Echo
+    'flip',     # Flip Angle
+    'inv',      # Inversion Time
+    'mt',       # Magnetization Transfer
+    'part',     # Part
+    'recording' # Recording
+);
 
 # Create GetOpt
 my $profile;
@@ -236,7 +253,7 @@ my %dataset_desc_hash   = (
     'BIDSVersion'           => $BIDS_VERSION,
     'Name'                  => $dataset_name,
     'LORISScriptVersion'    => $LORIS_SCRIPT_VERSION,
-    'Authors'               => [@$authors],
+    'Authors'               => [$authors],
     'HowToAcknowledge'      => $acknowledgments,
     'LORISReleaseVersion'   => $loris_mri_version
 );
@@ -261,14 +278,13 @@ unless (-e $readme_file_path) {
     );
 }
 
-
 # =============================================================================
 # Create a .gitignore file for the BIDS validator to ignore some of the checks
 # expected to not pass (some file types not yet officially released in the BIDS
 # specifications, not the same number of files per session etc...)
 # =============================================================================
 my $bids_validator_config_file = $dest_dir . "/.bids-validator-config.json";
-unless (-e $bids_validator_config_file) {
+if (!-e $bids_validator_config_file && defined $validator_ignore_opts) {
     print "\n******* Creating the .bids-validator-config.json file $bids_validator_config_file *******\n";
     my $validator_ignore_string = join(", ", @$validator_ignore_opts);
     my $bids_validator_config_content = <<TEXT;
@@ -399,6 +415,7 @@ SELECT
   c.CandID,
   s.Visit_label,
   f.SessionID,
+  f.AcqOrderPerModality,
   pf_echonb.Value as EchoNumber,
   pf_seriesnb.Value as SeriesNumber,
   pf_imagetype.Value as ImageType,
@@ -438,6 +455,7 @@ QUERY
         $file_list{$i}{'seriesNumber'}          = $rowhr->{'SeriesNumber'};
         $file_list{$i}{'imageType'}             = $rowhr->{'ImageType'};
         $file_list{$i}{'lorisScanType'}         = $rowhr->{'LorisScanType'};
+        $file_list{$i}{'AcqOrderPerModality'}   = $rowhr->{'AcqOrderPerModality'};
         $i++;
     }
 
@@ -597,7 +615,7 @@ sub makeNIIAndHeader {
 
         ### determine the BIDS NIfTI filename
         my $nifti_filename = determine_bids_nifti_file_name(
-            $minc, $prefix, $file_list{$row}, $bids_categories_hash, $file_list{$row}{'run_number'}
+            $file_list{$row}, $bids_categories_hash, $file_list{$row}{'run_number'}
         );
 
         ### create the BIDS directory where the NIfTI file would go
@@ -760,18 +778,16 @@ sub create_nifti_bids_file {
 
 =pod
 
-=head3 determine_bids_nifti_file_name($minc, $loris_prefix, $minc_file_hash, $bids_label_hash, $run_nb, $echo_nb)
+=head3 determine_bids_nifti_file_name($minc_file_hash, $bids_label_hash, $run_nb, $echo_nb)
 
 Determines the BIDS NIfTI file name to be used when converting the MINC file into a BIDS
 compatible NIfTI file.
 
 INPUTS:
-    - $minc           : relative path to the MINC file
-    - $loris_prefix   : LORIS prefix used to name the MINC file
     - $minc_file_hash : hash with candidate, visit label & scan type information associated with the MINC file
     - $bids_label_hash: hash with the BIDS labelling information corresponding to the MINC file's scan type.
     - $run_nb         : run number to use to label the NIfTI file to be created
-    - $echo_nb        : echo number to use to label the NIfTI file to be created (can be undefined)
+    - $mag_echo_nb    : echo number to use to label the NIfTI file to be created (can be undefined)
 
 OUTPUT:
     - $nifti_name: name of the NIfTI file that will be created
@@ -779,12 +795,12 @@ OUTPUT:
 =cut
 
 sub determine_bids_nifti_file_name {
-    my ($minc, $loris_prefix, $minc_file_hash, $bids_label_hash, $run_nb, $echo_nb) = @_;
+    my ($minc_file_hash, $bids_label_hash, $run_nb, $mag_echo_nb) = @_;
 
     # grep LORIS information used to label the MINC file
-    my $candID            = $minc_file_hash->{'candID'};
-    my $loris_visit_label = $minc_file_hash->{'visitLabel'};
-    my $loris_scan_type   = $bids_label_hash->{'Scan_type'};
+    my $candID               = $minc_file_hash->{'candID'};
+    my $loris_visit_label    = $minc_file_hash->{'visitLabel'};
+    my $loris_modality_order = $minc_file_hash->{'AcqOrderPerModality'};
 
     # grep the different BIDS information to use to name the NIfTI file
     my $bids_category    = $bids_label_hash->{BIDSCategoryName};
@@ -792,71 +808,57 @@ sub determine_bids_nifti_file_name {
     my $bids_scan_type   = $bids_label_hash->{BIDSScanType};
     my $bids_echo_nb     = $bids_label_hash->{BIDSEchoNumber};
 
-    # determine the NIfTI name based on the MINC name
-    my $nifti_name = basename($minc);
-    $nifti_name =~ s/mnc$/nii/;
-
     # remove _ that could potentially be in the LORIS visit label
     my $bids_visit_label = $loris_visit_label;
     $bids_visit_label =~ s/_//g;
 
-    # replace LORIS specifics with BIDS naming
-    my $remove = "$loris_prefix\_$candID\_$loris_visit_label";
-    my $replace = "sub-$candID\_ses-$bids_visit_label";
-    # sequences with multi-echo need to have echo-1, echo-2, etc... appended to the filename
-    if (defined $bids_echo_nb) {
-        $replace .= "_echo-$bids_echo_nb";
-    }
-    $nifti_name =~ s/$remove/$replace/g;
-
-    # if the LORIS scan type contain the -defaced string add more string
-    # manipulation to determine the BIDS NIfTI filename
-    if ($loris_scan_type =~ m/-defaced$/) {
-        # remove the defaced part of the file name
-        $nifti_name =~ s/_$loris_scan_type\_\d\d\d//g;
-        # remove -defaced string from the loris_scan_type
-        $loris_scan_type =~ s/-defaced$//g;
-    }
-
-    # make the filename have the BIDS Scan type name, in case the project Scan type name is not compliant;
-    # and append the word 'run' before run number.
-    # If the file is of type fMRI; need to add a BIDS subcategory type for example, task-rest for resting state fMRI
-    # or task-memory for memory task fMRI
+    # If the file is of type fMRI; ensure there is a BIDS subcategory type; for example, task-rest for resting state
+    # fMRI or task-memory for memory task fMRI. Otherwise, exits with error.
     if ($bids_category eq 'func') {
-        if ($bids_label_hash->{BIDSScanTypeSubCategory}) {
-            $replace = $bids_subcategory . "_run-";
-        } else {
+        if (!$bids_label_hash->{BIDSScanTypeSubCategory}) {
             print STDERR "\n ERROR: Files of BIDS Category type 'func' and which are fMRI need to have their"
                           . " BIDSScanTypeSubCategory defined. \n\n";
             exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
         }
-    } elsif ($bids_scan_type eq 'dwi') {
-        if ($bids_label_hash->{BIDSScanTypeSubCategory}) {
-            $replace = $bids_subcategory . "_run-";
-        } else {
-            $replace = "run-";
-        }
-    } else {
-        $replace = "run-";
     }
-    $remove     = "$loris_scan_type\_";
-    $nifti_name =~ s/$remove/$replace/g;
 
-    if ($bids_scan_type eq 'magnitude' && $run_nb && $echo_nb) {
-        # use the same run number as the phasediff
-        $nifti_name =~ s/run-\d\d\d/$run_nb/g;
+    #
+    my %file_bids_entities = (
+        sub => $candID,
+        ses => $bids_visit_label,
+        run => $run_nb ? $run_nb : $loris_modality_order,
+    );
+    # sequences with multi-echo need to have echo-1, echo-2, etc... appended to the filename
+    if (defined $bids_echo_nb) {
+        $file_bids_entities{'echo'} = $bids_echo_nb;
+    }
+    if (defined $bids_subcategory) {
+        my @subcategories_info = split('_', $bids_subcategory);
+        for my $subcategory_data (@subcategories_info) {
+            my ($key, $value) = split('-', $subcategory_data);
+            $file_bids_entities{$key} = $value;
+        }
+    }
+
+    # determine the NIfTI name based on info present in %file_bids_entities
+    my $nifti_name = '';
+    for my $entity (@BIDS_MRI_ENTITY_ORDER) {
+        if ($entity eq 'sub') {
+            $nifti_name .= "$entity-$file_bids_entities{$entity}";
+        } else {
+            $nifti_name .= "_$entity-$file_bids_entities{$entity}" if exists($file_bids_entities{$entity});
+        }
+    }
+
+    # if a run number is defined when calling the function, use that run number
+    if ($bids_scan_type eq 'magnitude' && $mag_echo_nb) {
         # if echo number is provided, then modify name of the magnitude files
         # to be magnitude1 or magnitude2 depending on the echo number
-        if (defined $echo_nb) {
-            $bids_scan_type .= $echo_nb;
-        }
-    } elsif (defined $run_nb) {
-        $nifti_name =~ s/run-\d\d\d/run-$run_nb/g;
+        $bids_scan_type .= $mag_echo_nb;
     }
 
-    # find position of the last dot of the NIfTI file, where the extension starts
-    my ($base, $path, $ext) = fileparse($nifti_name, qr{\..*});
-    $nifti_name = $base . "_" . $bids_scan_type . $ext;
+    # add BIDS scan type and NIfTI extension
+    $nifti_name .= "_$bids_scan_type.nii";
 
     return $nifti_name;
 }
@@ -1720,7 +1722,7 @@ sub create_BIDS_magnitude_files {
 
         ### determine the BIDS NIfTI filename
         my $nifti_filename = determine_bids_nifti_file_name(
-            $minc, $prefix, $magnitude_files_hash->{$row}, $bids_categories_hash, $phasediff_run_nb, $echo_nb
+            $magnitude_files_hash->{$row}, $bids_categories_hash, $phasediff_run_nb, $echo_nb
         );
 
         ### create the BIDS directory where the NIfTI file would go
