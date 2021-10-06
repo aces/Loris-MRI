@@ -61,4 +61,4 @@ License: GPLv3
 # AUTHORS
 
 Jonathan Harlap,
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

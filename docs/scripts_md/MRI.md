@@ -364,6 +364,19 @@ RETURNS:
   - %isDicomImage: hash with file path as keys and true or false as values (true
                    if the file is a DICOM image file, false otherwise)
 
+### isEcatImage(@files\_list)
+
+This method checks whether the files given as an argument are HRRT ECAT7 images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is an ECAT7 image, otherwise it will be set to
+false).
+
+INPUT: array with full path to the files
+
+RETURNS:
+  - %isEcatImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
+
 ### get\_trashbin\_file\_rel\_path($file)
 
 Determines and returns the relative path of a file moved to trashbin at the end of
