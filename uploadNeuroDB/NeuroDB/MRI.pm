@@ -1319,7 +1319,7 @@ sub gzip_file {
 
     return undef unless (-e $file);
 
-    my $gzip_cmd = "gzip $file";
+    my $gzip_cmd = "gzip -f $file";
     system($gzip_cmd);
 
     (-e "$file.gz") ? return "$file.gz" : undef;
