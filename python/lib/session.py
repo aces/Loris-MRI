@@ -1,7 +1,5 @@
 """This class gather functions for session handling."""
 
-from lib.api import Api
-
 __license__ = "GPLv3"
 
 
@@ -117,7 +115,7 @@ class Session:
 
         return loris_session_info[0] if loris_session_info else None
 
-    def start_visit_stage(self, db, visit_date):
+    def start_visit_stage(self, db, api, visit_date):
         """
         Start the visit using BIDS information.
 
@@ -129,8 +127,6 @@ class Session:
 
         if self.verbose:
             print("Starting visit stage for " + self.visit_label + " and CandID "  + self.cand_id)
-
-        api = Api(self.verbose)
 
         site = db.grep_id_from_lookup_table('Name', 'psc', 'CenterID', self.center_id)
         subproject = db.grep_id_from_lookup_table('title', 'subproject', 'SubprojectID', self.subproject_id)

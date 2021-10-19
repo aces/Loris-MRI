@@ -187,20 +187,20 @@ options:
 
 To run the BIDS import, simply run:
 ```bash
-bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py
+bids_import -d /PATH/TO/BIDS/TO/IMPORT -p loris_config.py
 ```
 
 If you wish to create candidates when running the import script, the `-c` 
 option needs to be added. To create sessions when running the import script, 
 the `-s` option need to be added as well.
 ```bash
-bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py -c -s
+bids_import -d /PATH/TO/BIDS/TO/IMPORT -p loris_config.py -c -s
 ```
 
 Finally, the verbose option can be turned on by using the option `-v` when 
 calling the script:
 ```bash
-bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py -v
+bids_import -d /PATH/TO/BIDS/TO/IMPORT -p loris_config.py -v
 ```
 
 

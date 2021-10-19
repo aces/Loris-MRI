@@ -13,7 +13,7 @@ class Api:
     the LORIS-MRI python code base and the LORIS backend.
     """
 
-    def __init__(self, verbose):
+    def __init__(self, config, verbose):
         """
         Constructor method for the Api class.
 
@@ -22,8 +22,6 @@ class Api:
         """
 
         self.verbose = verbose
-
-        config = __import__('api_config').config
 
         # grep config settings from the Config module
         self.url = config['host'] + '/api/' + config['version'] + '/'

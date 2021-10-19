@@ -22,19 +22,30 @@ LOGFILE="/tmp/$(basename $0).$$.tmp"
 touch $LOGFILE
 trap "rm  $LOGFILE" EXIT
 
+echo "-- LORIS DB Configuration --\n"
 read -p "What is the database name? " mysqldb
 read -p "What is the database host? " mysqlhost
 read -p "What is the MySQL user? " mysqluser
 stty -echo
 read -p "What is the MySQL password? " mysqlpass; echo
 stty echo
+
+echo "-- LORIS API Configuration --\n"
+read -p "What is the LORIS url (including http(s))? " lorishost
+read -p "What is the API version (min v0.0.4-dev recommended)? " apiversion
+read -p "What is the LORIS admin user? " lorisuser
+stty -echo
+read -p "What is the LORIS user admin password? " lorispass; echo
+stty echo
+
+echo "-- LORIS MRI Configuration --\n"
 read -p "What is the Linux user which the installation will be based on? " USER
 read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
 read -p "What prod file name would you like to use? default: prod " prodfilename
 if [ -z "$prodfilename" ]; then
     prodfilename="prod"
-fi 
- 
+fi
+
 mridir=`pwd`
 
 #####################################################################################
@@ -120,10 +131,10 @@ sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
-echo "Creating python database config file with database credentials"
-cp $mridir/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
-sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
-sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
-echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/database_config.py"
+echo "Creating python loris config file with database and api credentials"
+cp $mridir/dicom-archive/loris_config_template.py $mridir/dicom-archive/.loris_mri/loris_config.py
+sudo chmod 640 $mridir/dicom-archive/.loris_mri/loris_config.py
+sudo chgrp $group $mridir/dicom-archive/.loris_mri/loris_config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" -e "s#LORISHOST#$lorishost#g" -e "s#APIVERSION#$apiversion#g" -e "s#LORISUSER#$lorisuser#g" -e "s#LORISPWD#$lorispwd#g" $mridir/dicom-archive/loris_config_template.py > $mridir/dicom-archive/.loris_mri/loris_config.py
+echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/loris_config.py"
 echo

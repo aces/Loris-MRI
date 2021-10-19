@@ -11,6 +11,13 @@ mysql = {
     'port'    : ''
 }
 
+api = {
+    'host'     : 'LORISHOST',
+    'version'  : 'APIVERSION',
+    'username' : 'LORISUSER',
+    'password' : 'LORISPWD',
+}
+
 def get_subject_ids(db, dicom_value=None, scanner_id=None):
 
     subject_id_dict = {}
