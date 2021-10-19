@@ -213,7 +213,13 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                 scan_data.to_df()
                 for scan_data in bids_reader.bids_layout.get_collections('session', 'scans')
             ])
-            visit_date = min(scans_data['acq_time'])
+
+            if len(scans_data.get('acq_time')) == 0:
+                message = '\n\tERROR: Can\'t find scans acquisition time data'
+                print(message)
+                sys.exit(lib.exitcode.BIDS_SCANS_ACQ_TIME_MISSING)
+
+            visit_date = min(scans_data.get('acq_time'))
 
         # greps BIDS session's info for the candidate from LORIS
         # Creates the session if it does not exist yet in LORIS and createvisit is set to true.
