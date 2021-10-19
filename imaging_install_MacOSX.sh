@@ -22,7 +22,8 @@ LOGFILE="/tmp/$(basename $0).$$.tmp"
 touch $LOGFILE
 trap "rm  $LOGFILE" EXIT
 
-echo "-- LORIS DB Configuration --\n"
+echo ""
+echo "-- LORIS DB Configuration --"
 read -p "What is the database name? " mysqldb
 read -p "What is the database host? " mysqlhost
 read -p "What is the MySQL user? " mysqluser
@@ -30,15 +31,17 @@ stty -echo
 read -p "What is the MySQL password? " mysqlpass; echo
 stty echo
 
-echo "-- LORIS API Configuration --\n"
+echo ""
+echo "-- LORIS API Configuration --"
 read -p "What is the LORIS url (including http(s))? " lorishost
 read -p "What is the API version (min v0.0.4-dev recommended)? " apiversion
 read -p "What is the LORIS admin user? " lorisuser
 stty -echo
-read -p "What is the LORIS user admin password? " lorispass; echo
+read -p "What is the LORIS user admin password? " lorispwd; echo
 stty echo
 
-echo "-- LORIS MRI Configuration --\n"
+echo ""
+echo "-- LORIS MRI Configuration --"
 read -p "What is the Linux user which the installation will be based on? " USER
 read -p "What is the project name? " PROJ   ##this will be used to create all the corresponding directories...i.e /data/gusto/bin.....
 read -p "What prod file name would you like to use? default: prod " prodfilename

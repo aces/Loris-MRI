@@ -253,8 +253,8 @@ class Database:
             )
 
         if not id:
-            message = "\nERROR: " + where_value + " " + where_field_name + \
-                      " does not exist in " + table_name + " database table\n"
+            message = "\nERROR: " + str(where_value) + " " + str(where_field_name) + \
+                      " does not exist in " + str(table_name) + " database table\n"
             print(message)
             sys.exit(lib.exitcode.SELECT_FAILURE)
 

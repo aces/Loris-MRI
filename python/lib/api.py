@@ -13,6 +13,8 @@ class Api:
     the LORIS-MRI python code base and the LORIS backend.
     """
 
+    token = None
+
     def __init__(self, config, verbose):
         """
         Constructor method for the Api class.
@@ -69,7 +71,7 @@ class Api:
             verify=False
         )
 
-        if (resp.status and resp.status.code and resp.status.code == 200):
+        if (resp.status_code and resp.status_code == 200):
             print("Next stage successfully started.")
         else:
             print("An error occured. Can't start next stage.")

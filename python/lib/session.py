@@ -128,6 +128,10 @@ class Session:
         if self.verbose:
             print("Starting visit stage for " + self.visit_label + " and CandID "  + self.cand_id)
 
+        if not self.subproject_id or not self.project_id:
+            print("Can't start the visit stage - No subproject and project associated with the participant data.")
+            return
+
         site = db.grep_id_from_lookup_table('Name', 'psc', 'CenterID', self.center_id)
         subproject = db.grep_id_from_lookup_table('title', 'subproject', 'SubprojectID', self.subproject_id)
         project = db.grep_id_from_lookup_table('Name', 'Project', 'ProjectID', self.project_id)

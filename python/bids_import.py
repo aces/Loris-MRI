@@ -214,7 +214,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                 for scan_data in bids_reader.bids_layout.get_collections('session', 'scans')
             ])
 
-            if len(scans_data.get('acq_time')) == 0:
+            if 'acq_time' not in scans_data.columns:
                 message = '\n\tERROR: Can\'t find scans acquisition time data'
                 print(message)
                 sys.exit(lib.exitcode.BIDS_SCANS_ACQ_TIME_MISSING)
