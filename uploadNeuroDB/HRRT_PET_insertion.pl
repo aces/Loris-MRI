@@ -394,11 +394,10 @@ MESSAGE
     }
 
     # determine the acquisition protocol for the file
-    my $acquisition_protocol = &Settings::determineHRRTprotocol(
-        $protocol, basename($ecat_file)
-    );
-    unless ($acquisition_protocol) {
-        $message = "\tERROR: Protocol not found for $minc_file.\n\n";
+    my $acquisition_protocol = &Settings::determineHRRTprotocol($protocol, basename($ecat_file));
+    my $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id($acquisition_protocol, $db);
+    unless (defined $acquisitionProtocolID) {
+        $message = "\tERROR: Protocol $acquisition_protocol not found in mri_scan_type for $minc_file.\n\n";
         # write error message in the log file
         $utility->writeErrorLog(
             $message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL, $log_file
