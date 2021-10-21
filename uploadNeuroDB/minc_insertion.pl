@@ -623,10 +623,9 @@ $file->setFileData('Caveat', $caveat);
       $upload_id
     );
 
-
-if($acquisitionProtocol =~ /unknown/) {
-   $message = "\n  --> The MINC file cannot be registered ".
-              "since the AcquisitionProtocol is unknown \n";
+if($acquisitionProtocol =~ /unknown/ && !defined $acquisitionProtocolID) {
+   $message = "\n  --> The MINC file cannot be registered since the ".
+              "AcquisitionProtocol is unknown and AcquisitionProtocol ID is undefined \n";
 
    print LOG $message;
    print $message;
@@ -641,7 +640,7 @@ if($acquisitionProtocol =~ /unknown/) {
 # to keep optionally controlled by the config file #############
 ################################################################
 
-my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
+my $success = $utility->registerScanIntoDB(
     \$file,                 \%studyInfo,                   $subjectIDsref,
     $acquisitionProtocol,   $minc,                         $extra_validation_status,
     $reckless,              $subjectIDsref->{'SessionID'}, $upload_id,
@@ -651,18 +650,19 @@ my $acquisitionProtocolIDFromProd = $utility->registerScanIntoDB(
 # if the scan was inserted into the files table and there is an
 # extra_validation_status set to 'warning', update the mri_violations_log table
 # MincFile field with the path of the file in the assembly directory
-if (defined $acquisitionProtocolIDFromProd && defined $extra_validation_status && $extra_validation_status eq 'warning') {
+if (defined $success && defined $extra_validation_status && $extra_validation_status eq 'warning') {
     $utility->update_mri_violations_log_MincFile_path($file);
 }
 
-if ((!defined$acquisitionProtocolIDFromProd)
+if ((!defined$success)
    && (defined(&Settings::isFileToBeRegisteredGivenProtocol))
    ) {
    $message = "\n  --> The minc file cannot be registered ".
                 "since $acquisitionProtocol ".
-                "does not exist in $profile ". 
+                "does not exist in $profile ".
                 "or it did not pass the extra_file_checks\n";
    print LOG $message;
+   print $message;
    $notifier->spool('minc insertion', $message, 0,
                    'minc_insertion', $upload_id, 'Y',
                    $notify_notsummary);

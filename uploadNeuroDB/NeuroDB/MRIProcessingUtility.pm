@@ -802,6 +802,10 @@ sub getAcquisitionProtocol {
                 $this->spool($message, 'N', $upload_id, $notify_detailed);
             }
         }
+    } else {
+        $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
+            $acquisitionProtocol, $this->{'db'}
+        );
     }
     
     return ($acquisitionProtocol, $acquisitionProtocolID, $extra_validation_status);
@@ -1333,8 +1337,10 @@ sub registerScanIntoDB {
         $message = "\nFileID: $fileID\n";
         $this->spool($message, 'N', $upload_id, $notify_detailed);
 
+        return 1;
     }
-    return $acquisitionProtocolID;
+
+    return undef;
 }
 
 
