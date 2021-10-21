@@ -397,7 +397,7 @@ MESSAGE
     my $acquisition_protocol = &Settings::determineHRRTprotocol($protocol, basename($ecat_file));
     my $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id($acquisition_protocol, $db);
     unless (defined $acquisitionProtocolID) {
-        $message = "\tERROR: Protocol $acquisition_protocol not found in mri_scan_type for $minc_file.\n\n";
+        $message = "\tProtocol $acquisition_protocol not found in mri_scan_type for $minc_file.\n\n";
         # write error message in the log file
         $utility->writeErrorLog(
             $message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL, $log_file
@@ -408,7 +408,7 @@ MESSAGE
             'HRRT_PET_insertion.pl', $upload_id, 'Y',
             'N'
         );
-        exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
+        next;
     }
 
 
