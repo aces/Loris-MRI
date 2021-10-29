@@ -470,7 +470,8 @@ class NiftiInsertionPipeline(BasePipeline):
             'PatientName': self.subject_id_dict['PatientName'],
             'CandID': self.subject_id_dict['CandID'],
             'Visit_label': self.subject_id_dict['visitLabel'],
-            'Scan_type': self.scan_type_id
+            'Scan_type': self.scan_type_id,
+            'MriProtocolGroupID': self.mri_protocol_group_id
         }
         for violation_dict in violations_list:
             info_to_insert_dict = base_info_dict | violation_dict
