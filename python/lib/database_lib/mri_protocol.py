@@ -76,4 +76,4 @@ class MriProtocol:
 
         results = self.db.pselect(query=query, args=(scan_type_id,))
 
-        return results if results else None
+        return results[0] if results else None

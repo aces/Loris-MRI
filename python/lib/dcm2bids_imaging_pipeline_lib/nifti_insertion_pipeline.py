@@ -307,6 +307,38 @@ class NiftiInsertionPipeline(BasePipeline):
         :return: relative path to the new NIfTI file
          :rtype: str
         """
+
+        # determine file BIDS entity values for the file into a dictionary
+        file_bids_entities_dict = {
+            'sub': self.subject_id_dict['CandID'],
+            'ses': self.subject_id_dict['visitLabel'],
+            'run': 1
+        }
+        if self.bids_categories_dict['BIDSEchoNumber']:
+            file_bids_entities_dict['echo'] = self.bids_categories_dict['BIDSEchoNumber']
+        if self.bids_categories_dict['BIDSScanTypeSubCategory']:
+            subcategories_list = self.bids_categories_dict['BIDSScanTypeSubCategory'].split('_')
+            for subcategory in subcategories_list:
+                key, value = subcategory.split('-')
+                file_bids_entities_dict[key] = value
+
+        # determine where the file should go
+        bids_cand_id = 'sub-' + self.subject_id_dict['CandID']
+        bids_visit = 'ses-' + self.subject_id_dict['visitLabel']
+        bids_subfolder = self.bids_categories_dict['BIDSCategoryName']
+        new_nifti_rel_dir = os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_subfolder)
+
+        # determine NIfTI file name
+        new_nifti_name = self.construct_nifti_filename(new_nifti_rel_dir, file_bids_entities_dict)
+        while os.path.exists(os.path.join(self.data_dir, new_nifti_rel_dir, new_nifti_name)):
+            file_bids_entities_dict['run'] += 1
+            new_nifti_name = self.construct_nifti_filename(new_nifti_rel_dir, file_bids_entities_dict)
+
+        return os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_subfolder, new_nifti_name)
+
+    def construct_nifti_filename(self, new_nifti_rel_dir, file_bids_entities_dict):
+
+        # this list defined the order in which BIDS entities should appear in the filename
         bids_entity_order = (
             'sub',       # Subject
             'ses',       # Session
@@ -325,36 +357,28 @@ class NiftiInsertionPipeline(BasePipeline):
             'recording'  # Recording
         )
 
-        # query BIDS table to get bids_category, subcategories, scan type and echo number
+        nifti_filename = ''
+        for entity in bids_entity_order:
+            if entity == 'sub':
+                nifti_filename += f"{entity}-{file_bids_entities_dict[entity]}"
+            elif entity == "echo" and self.bids_categories_dict['BIDSScanType'] == 'magnitude':
+                self.bids_categories_dict['BIDSScanType'] = f"magnitude{file_bids_entities_dict[entity]}"
+            else:
+                if entity in file_bids_entities_dict.keys():
+                    nifti_filename += f"_{entity}-{file_bids_entities_dict[entity]}"
 
-        # determine file BIDS entity values for the file into a dictionary
-        file_bids_entities_dict = {
-            'sub': self.subject_id_dict['CandID'],
-            'ses': self.subject_id_dict['visitLabel'],
-        }
+        # add BIDS scan type to the NIfTI filename
+        nifti_filename += f"_{self.bids_categories_dict['BIDSScanType']}"
 
-        # handle multiecho
-
-        # determine run number...
-
-        # determine where the file should go
-        bids_cand_id = 'sub-' + self.subject_id_dict['CandID']
-        bids_visit = 'ses-' + self.subject_id_dict['visitLabel']
-        new_nifti_rel_dir = os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_category)
-
+        # determine NIfTI file extension and append it to filename
         curr_nifti_path = self.nifti_path
         nifti_ext = re.search(r"\.nii(\.gz)?$", curr_nifti_path).group()
+        nifti_filename += nifti_ext
 
-        file_nb = 1
-        new_nifti_name = '_'.join([bids_cand_id, bids_visit, self.scan_type_name, format(file_nb, '03d')]) \
-                         + nifti_ext
+        print(nifti_filename)
+        exit()
 
-        while os.path.exists(os.path.join(self.data_dir, new_nifti_rel_dir, new_nifti_name)):
-            file_nb += 1
-            new_nifti_name = '_'.join([bids_cand_id, bids_visit, self.scan_type_name, format(file_nb, '03d')]) \
-                             + nifti_ext
-
-        return os.path.join('assembly_bids', bids_cand_id, bids_visit, 'mri', 'native', new_nifti_name)
+        return nifti_filename
 
     def _move_to_trashbin(self):
         """

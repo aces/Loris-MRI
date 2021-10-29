@@ -586,9 +586,9 @@ class Imaging:
         scan_tr = scan_param['RepetitionTime'] * 1000
         scan_te = scan_param['EchoTime'] * 1000
         scan_ti = scan_param['InversionTime'] * 1000 if 'InversionTime' in scan_param else None
-
         scan_slice_thick = scan_param['SliceThickness']
-        scan_img_type = scan_param['ImageType']
+        scan_img_type = str(scan_param['ImageType'])
+
         if ("time" not in scan_param or self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
                 and self.in_range(scan_tr,              db_prot['TR_min'],     db_prot['TR_max']) \
                 and self.in_range(scan_te,              db_prot['TE_min'],     db_prot['TE_max']) \
