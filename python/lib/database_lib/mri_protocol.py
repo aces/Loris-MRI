@@ -64,7 +64,7 @@ class MriProtocol:
                 bmstr.BIDSEchoNumber,
                 bids_phase_encoding_direction.BIDSPhaseEncodingDirectionName,
                 mst.Scan_type
-            FROM bids_mri_scan_type_rel
+            FROM bids_mri_scan_type_rel bmstr
                 JOIN      mri_scan_type mst             ON mst.ID = bmstr.MRIScanTypeID
                 JOIN      bids_category                 USING (BIDSCategoryID)
                 JOIN      bids_scan_type                USING (BIDSScanTypeID)
