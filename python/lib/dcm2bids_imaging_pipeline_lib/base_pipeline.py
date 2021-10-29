@@ -243,7 +243,7 @@ class BasePipeline:
 
         # check if visit label is valid
         visit_windows_obj = VisitWindows(self.db, self.verbose)
-        visit_label = visit_windows_obj.check_visit_label_exits()
+        results = visit_windows_obj.check_visit_label_exits(visit_label)
         if results:
             self.subject_id_dict["message"] = f"Found visit label {visit_label} in Visit_Windows"
         elif self.subject_id_dict["createVisitLabel"]:
