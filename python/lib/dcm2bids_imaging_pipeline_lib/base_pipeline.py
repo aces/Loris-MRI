@@ -7,6 +7,7 @@ import lib.exitcode
 import lib.utilities
 
 from lib.database_lib.config import Config
+from lib.database_lib.visit_windows import VisitWindows
 from lib.database import Database
 from lib.dicom_archive import DicomArchive
 from lib.imaging import Imaging
@@ -244,9 +245,8 @@ class BasePipeline:
             self.subject_id_dict["CandMismatchError"] = self.subject_id_dict['message']
 
         # check if visit label is valid
-        # TODO: move the query in a database_lib class specific to the candidate table
-        query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
-        results = self.db.pselect(query=query, args=(visit_label,))
+        visit_windows_obj = VisitWindows(self.db, self.verbose)
+        visit_label = visit_windows_obj.check_visit_label_exits()
         if results:
             self.subject_id_dict["message"] = f"Found visit label {visit_label} in Visit_Windows"
         elif self.subject_id_dict["createVisitLabel"]:
