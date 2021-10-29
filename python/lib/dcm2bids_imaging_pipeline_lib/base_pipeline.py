@@ -6,6 +6,7 @@ import sys
 import lib.exitcode
 import lib.utilities
 
+from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.config import Config
 from lib.database_lib.visit_windows import VisitWindows
 from lib.database import Database
@@ -229,12 +230,8 @@ class BasePipeline:
             return
 
         # check that the CandID and PSCID are valid
-        # TODO: move the query in a database_lib class specific to the candidate table
-        query = "SELECT c1.CandID, c2.PSCID AS PSCID " \
-                " FROM candidate c1 " \
-                " LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) " \
-                " WHERE c1.CandID = %s"
-        results = self.db.pselect(query=query, args=(psc_id, cand_id))
+        candidate_db_obj = CandidateDB(self.db, self.verbose)
+        results = candidate_db_obj.check_candid_pscid_combination(psc_id, cand_id)
         if not results:
             # if no rows were returned, then the CandID is not valid
             self.subject_id_dict["message"] = f"=> Could not find candidate with CandID={cand_id} in the database"
