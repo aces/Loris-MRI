@@ -375,9 +375,6 @@ class NiftiInsertionPipeline(BasePipeline):
         nifti_ext = re.search(r"\.nii(\.gz)?$", curr_nifti_path).group()
         nifti_filename += nifti_ext
 
-        print(nifti_filename)
-        exit()
-
         return nifti_filename
 
     def _move_to_trashbin(self):
