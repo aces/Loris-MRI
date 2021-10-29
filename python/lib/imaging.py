@@ -172,7 +172,8 @@ class Imaging:
         }
         self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
-    def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path):
+    def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path,
+                                      mri_protocol_group_id):
         """
         Insert a row into mri_protocol_violated_scan table.
 
@@ -188,6 +189,8 @@ class Imaging:
          :type scan_param: dict
         :param file_rel_path: relative path to the file in trashbin
          :type file_rel_path: str
+        :param mri_protocol_group_id: MRIProtocolGroupID of the scan
+         :type mri_protocol_group_id: int
         """
 
         info_to_insert_dict = {
@@ -210,8 +213,8 @@ class Imaging:
             "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
             "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
             "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
-            "image_type": scan_param["ImageType"] if "ImageType" in scan_param.keys() else None,
-            "MriProtocolGroupID": scan_param["MriProtocolGroupID"]
+            "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
+            "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
 
@@ -414,6 +417,7 @@ class Imaging:
             return True
 
         # check that the CandID and PSCID are valid
+        # TODO use candidate_db class for that for bids_import
         query = 'SELECT c1.CandID, c2.PSCID AS PSCID ' \
                 ' FROM candidate c1 ' \
                 ' LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) ' \
@@ -433,6 +437,7 @@ class Imaging:
             return False
 
         # check if visit label is valid
+        # TODO use visit_windows class for that for bids_import
         query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
         results = self.db.pselect(query=query, args=(visit_label,))
         if results:
@@ -494,28 +499,53 @@ class Imaging:
         if not len(protocols_list):
             message = f"Warning! No protocol group can be used to determine the scan type of {nifti_name}." \
                             f" Incorrect/incomplete setup of table mri_protocol_group_target."
-            return {'scan_type_id': None, 'error_message': message}
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': None
+            }
 
         mri_protocol_group_ids = set(map(lambda x: x['MriProtocolGroupID'], protocols_list))
         if len(mri_protocol_group_ids) > 1:
             message = f"Warning! More than one protocol group can be used to identify the scan type of {nifti_name}." \
                       f" Ambiguous setup of table mri_protocol_group_target."
-            return {'scan_type_id': None, 'error_message': message}
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': None
+            }
 
         # look for matching protocols
+        mri_protocol_group_id = protocols_list[0]['MriProtocolGroupID']
         matching_protocols_list = self.look_for_matching_protocols(protocols_list, scan_param)
 
         # if more than one protocol matching, return False, otherwise, return the scan type ID
         if not matching_protocols_list:
             message = f'Warning! Could not identify protocol of {nifti_name}.'
-            return {'scan_type_id': None, 'error_message': message}
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': mri_protocol_group_id
+            }
         elif len(matching_protocols_list) > 1:
             message = f'Warning! More than one protocol matched the image acquisition parameters of {nifti_name}.'
-            return {'scan_type_id': None, 'error_message': message}
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': mri_protocol_group_id
+            }
         else:
             scan_type_id = matching_protocols_list[0]
             message = f'Acquisition protocol ID for the file to insert is {scan_type_id}'
-            return {'scan_type_id': scan_type_id, 'error_message': message}
+            return {
+                'scan_type_id': scan_type_id,
+                'error_message': message,
+                'mri_protocol_group_id': mri_protocol_group_id
+            }
+
+    def get_bids_categories_mapping_for_scan_type_id(self, scan_type_id):
+
+        return self.mri_prot_db_obj.get_bids_info_for_scan_type_id(scan_type_id)
 
     def look_for_matching_protocols(self, protocols_list, scan_param):
         """

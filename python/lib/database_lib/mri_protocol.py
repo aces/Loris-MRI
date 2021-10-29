@@ -52,3 +52,28 @@ class MriProtocol:
         results = self.db.pselect(query=query, args=tuple(args_list))
 
         return results
+
+    def get_bids_info_for_scan_type_id(self, scan_type_id):
+
+        query = """
+            SELECT 
+                bmstr.MRIScanTypeID,
+                bids_category.BIDSCategoryName,
+                bids_scan_type_subcategory.BIDSScanTypeSubCategory,
+                bids_scan_type.BIDSScanType,
+                bmstr.BIDSEchoNumber,
+                bids_phase_encoding_direction.BIDSPhaseEncodingDirectionName,
+                mst.Scan_type
+            FROM bids_mri_scan_type_rel
+                JOIN      mri_scan_type mst             ON mst.ID = bmstr.MRIScanTypeID
+                JOIN      bids_category                 USING (BIDSCategoryID)
+                JOIN      bids_scan_type                USING (BIDSScanTypeID)
+                LEFT JOIN bids_scan_type_subcategory    USING (BIDSScanTypeSubCategoryID)
+                LEFT JOIN bids_phase_encoding_direction USING (BIDSPhaseEncodingDirectionID)
+            WHERE 
+                mst.ID = %s
+        """
+
+        results = self.db.pselect(query=query, args=(scan_type_id,))
+
+        return results if results else None

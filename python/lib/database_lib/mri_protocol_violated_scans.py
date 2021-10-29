@@ -20,6 +20,7 @@ class MriProtocolViolatedScans:
         self.verbose = verbose
 
     def insert_protocol_violated_scans(self, field_value_dict):
+        print(field_value_dict)
 
         self.db.insert(
             table_name="mri_protocol_violated_scans",

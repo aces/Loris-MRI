@@ -74,7 +74,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
         # ---------------------------------------------------------------------------------------------
         if not self.loris_scan_type:
-            self.scan_type_id = self._determine_acquisition_protocol()
+            self.scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
@@ -82,6 +82,16 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
             else:
                 self.scan_type_name = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
+
+        # ---------------------------------------------------------------------------------------------
+        # Determine BIDS scan type info based on scan_type_id
+        # ---------------------------------------------------------------------------------------------
+        self.bids_categories_dict = self.imaging_obj.get_bids_categories_mapping_for_scan_type_id(self.scan_type_id)
+        if not self.bids_categories_dict:
+            self._move_to_trashbin()
+            self._register_protocol_violated_scan()
+            message = f"Scan type {self.scan_type_name} does not have BIDS tables set up."
+            self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
@@ -253,7 +263,7 @@ class NiftiInsertionPipeline(BasePipeline):
         protocol_info = self.imaging_obj.get_acquisition_protocol_info(protocols_list, nifti_name, scan_param)
         self.log_info(protocol_info['error_message'], is_error="N", is_verbose="Y")
 
-        return protocol_info['scan_type_id']
+        return protocol_info['scan_type_id'], protocol_info['mri_protocol_group_id']
 
     def _add_step_and_space_params_to_json_file_dict(self):
         """
@@ -297,24 +307,54 @@ class NiftiInsertionPipeline(BasePipeline):
         :return: relative path to the new NIfTI file
          :rtype: str
         """
-        # TODO: modify this so this is BIDS compliant. Need to use the bids_* tables for dir and name + assembly_bids
-        study_prefix = self.config_db_obj.get_config('prefix')
-        cand_id = self.subject_id_dict['CandID']
-        visit = self.subject_id_dict['visitLabel']
+        bids_entity_order = (
+            'sub',       # Subject
+            'ses',       # Session
+            'task',      # Task
+            'acq',       # Acquisition
+            'ce',        # Contrast Enhancing Agent
+            'rec',       # Reconstruction
+            'dir',       # Phase Encoding Direction
+            'run',       # Run
+            'mod',       # Corresponding Modality
+            'echo',      # Echo
+            'flip',      # Flip Angle
+            'inv',       # Inversion Time
+            'mt',        # Magnetization Transfer
+            'part',      # Part
+            'recording'  # Recording
+        )
+
+        # query BIDS table to get bids_category, subcategories, scan type and echo number
+
+        # determine file BIDS entity values for the file into a dictionary
+        file_bids_entities_dict = {
+            'sub': self.subject_id_dict['CandID'],
+            'ses': self.subject_id_dict['visitLabel'],
+        }
+
+        # handle multiecho
+
+        # determine run number...
+
+        # determine where the file should go
+        bids_cand_id = 'sub-' + self.subject_id_dict['CandID']
+        bids_visit = 'ses-' + self.subject_id_dict['visitLabel']
+        new_nifti_rel_dir = os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_category)
 
         curr_nifti_path = self.nifti_path
         nifti_ext = re.search(r"\.nii(\.gz)?$", curr_nifti_path).group()
 
         file_nb = 1
-        new_nifti_name = '_'.join([study_prefix, cand_id, visit, self.scan_type_name, format(file_nb, '03d')]) \
+        new_nifti_name = '_'.join([bids_cand_id, bids_visit, self.scan_type_name, format(file_nb, '03d')]) \
                          + nifti_ext
-        new_nifti_rel_dir = os.path.join('assembly', cand_id, visit, 'mri', 'native')
+
         while os.path.exists(os.path.join(self.data_dir, new_nifti_rel_dir, new_nifti_name)):
             file_nb += 1
-            new_nifti_name = '_'.join([study_prefix, cand_id, visit, self.scan_type_name, format(file_nb, '03d')]) \
+            new_nifti_name = '_'.join([bids_cand_id, bids_visit, self.scan_type_name, format(file_nb, '03d')]) \
                              + nifti_ext
 
-        return os.path.join('assembly', cand_id, visit, 'mri', 'native', new_nifti_name)
+        return os.path.join('assembly_bids', bids_cand_id, bids_visit, 'mri', 'native', new_nifti_name)
 
     def _move_to_trashbin(self):
         """
@@ -378,7 +418,7 @@ class NiftiInsertionPipeline(BasePipeline):
             self.log_info(message, is_error='N', is_verbose='Y')
             self.move_file(original_file_path, new_file_path)
 
-        if destination == 'assembly':
+        if destination == 'assembly_bids':
             self.json_file_dict['file_blake2b_hash'] = self.nifti_blake2
             if self.json_path:
                 self.json_file_dict['bids_json_file'] = json_rel_path
@@ -407,7 +447,8 @@ class NiftiInsertionPipeline(BasePipeline):
             self.subject_id_dict['PSCID'],
             self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
             self.json_file_dict,
-            self.trashbin_nifti_rel_path
+            self.trashbin_nifti_rel_path,
+            self.mri_protocol_group_id
         )
 
     def _register_violations_log(self, violations_list, file_rel_path):
