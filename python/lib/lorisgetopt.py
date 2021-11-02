@@ -212,3 +212,21 @@ class LorisGetOpt:
         if opt not in possible_options:
             print(f"\n[ERROR   ] {opt} is not a valid option for the script\n{self.usage}")
             sys.exit(lib.exitcode.INVALID_ARG)
+
+    def check_tarchive_path_upload_id_or_force_set(self):
+        """
+        Check whether the tarchive_path, upload_id or force option was set in GetOpt.
+        Note: only one of those options should be set when calling the script.
+        """
+
+        tarchive_path = self.options_dict["tarchive_path"]["value"]
+        upload_id = self.options_dict["upload_id"]["value"]
+        force = self.options_dict["force"]["value"]
+        if not (bool(tarchive_path) + bool(upload_id) + bool(force) == 1):
+            print(
+                "[ERROR   ] You should either specify an upload_id or a tarchive_path"
+                " or use the -force option (if no upload_id or tarchive_path is available"
+                " for the NIfTI file to be uploaded). Make sure that you set only one of"
+                " those options. Upload will exit now.\n"
+            )
+            sys.exit(lib.exitcode.MISSING_ARG)

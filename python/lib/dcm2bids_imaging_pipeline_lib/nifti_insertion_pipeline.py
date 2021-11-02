@@ -26,7 +26,6 @@ class NiftiInsertionPipeline(BasePipeline):
         self.bvec_path = self.options_dict["bvec_path"]["value"]
         self.bvec_blake2 = blake2b(self.bvec_path.encode('utf-8')).hexdigest() if self.bval_path else None
         self.json_md5 = hashlib.md5(self.json_path.encode()).hexdigest()
-        self.force = self.options_dict["force"]["value"]
         self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
 

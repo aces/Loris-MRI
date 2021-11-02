@@ -30,7 +30,7 @@ def main():
         " JSON sidecar file) into the files table.\n\n"
         # TODO more description on how the script works
 
-        "usage  : nifti_insertion.py -p <profile> -n <nifti_path> -j <json_path> ...\n\n"
+        "usage  : run_nifti_insertion.py -p <profile> -n <nifti_path> -j <json_path> ...\n\n"
 
         "options: \n"
         "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
@@ -111,17 +111,7 @@ def input_error_checking(loris_getopt_obj):
     loris_getopt_obj.perform_default_checks_and_load_config()
 
     # check that only one of tarchive_path, upload_id or force has been provided
-    tarchive_path = loris_getopt_obj.options_dict["tarchive_path"]["value"]
-    upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
-    force = loris_getopt_obj.options_dict["force"]["value"]
-    if not (bool(tarchive_path) + bool(upload_id) + bool(force) == 1):
-        print(
-            "[ERROR   ] You should either specify an upload_id or a tarchive_path"
-            " or use the -force option (if no upload_id or tarchive_path is available"
-            " for the NIfTI file to be uploaded). Make sure that you set only one of"
-            " those options. Upload will exit now.\n"
-        )
-        sys.exit(lib.exitcode.MISSING_ARG)
+    loris_getopt_obj.check_tarchive_path_upload_id_or_force_set()
 
     # check that json_path or loris_scan_type has been provided (both can be provided)
     json_path = loris_getopt_obj.options_dict["json_path"]["value"]

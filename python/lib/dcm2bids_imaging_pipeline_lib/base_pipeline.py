@@ -49,6 +49,7 @@ class BasePipeline:
         self.loris_getopt_obj = loris_getopt_obj
         self.config_file = loris_getopt_obj.config_info
         self.options_dict = loris_getopt_obj.options_dict
+        self.force = self.options_dict["force"]["value"]
         self.verbose = self.options_dict["verbose"]["value"]
         self.upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
 
@@ -59,7 +60,7 @@ class BasePipeline:
         self.db.connect()
 
         # -----------------------------------------------------------------------------------
-        # Load the Config, Imaging, ImagingUpload, Tarchive, Session classes
+        # Load the Config, Imaging, ImagingUpload, Tarchive, Session database classes
         # -----------------------------------------------------------------------------------
         self.config_db_obj = Config(self.db, self.verbose)
         self.dicom_archive_obj = DicomArchive(self.db, self.verbose)
