@@ -282,13 +282,13 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _move_to_assembly_and_insert_file_info(self):
         """
-        Determines where the NIfTI file and its associated files (.json, .bval, .bvec...) will go in the assembly
+        Determines where the NIfTI file and its associated files (.json, .bval, .bvec...) will go in the assembly_bids
         directory, move the files and inserts the NIfTI file information into the files/parameter_file tables.
         If the image has 'warning' violations the violations will be inserted into the mri_violations_table as
         well and the Caveat will be set to True in the files table.
         """
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
-        self._create_destination_dir_and_move_image_files('assembly')
+        self._create_destination_dir_and_move_image_files('assembly_bids')
 
         self.file_id = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
         message = f"Registered file {self.assembly_nifti_rel_path} into the files table with FileID {self.file_id}"
@@ -392,10 +392,10 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         Create the destination directory for the files and move the NIfTI file and its associated files there.
 
-        :param destination: destination root directory (one of 'assembly' or 'trashbin')
+        :param destination: destination root directory (one of 'assembly_bids' or 'trashbin')
          :type destination: str
         """
-        nifti_rel_path = self.assembly_nifti_rel_path if destination == 'assembly' else self.trashbin_nifti_rel_path
+        nifti_rel_path = self.assembly_nifti_rel_path if destination == 'assembly_bids' else self.trashbin_nifti_rel_path
         json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', nifti_rel_path) if self.json_path else None
         bval_rel_path = re.sub(r"\.nii(\.gz)?$", '.bval', nifti_rel_path) if self.bval_path else None
         bvec_rel_path = re.sub(r"\.nii(\.gz)?$", '.bvec', nifti_rel_path) if self.bvec_path else None
@@ -479,7 +479,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
         :param violations_list: list of violations to be inserted into mri_violations_log
          :type violations_list: list
-        :param file_rel_path: file relative path (in assembly or trashbin depending on the severity of the violation)
+        :param file_rel_path: file relative path (in assembly_bids or trashbin depending on the violation's severity)
          :type file_rel_path: str
         """
         scan_param = self.json_file_dict
@@ -510,7 +510,9 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         scan_param = self.json_file_dict
-        acquisition_date = datetime.datetime.fromisoformat(scan_param['AcquisitionDateTime']).strftime("%Y-%m-%d")
+        acquisition_date = datetime.datetime.strptime(
+            scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
+        ).strftime("%Y-%m-%d")
         file_type = self.imaging_obj.determine_file_type(nifti_rel_path)
         if not file_type:
             message = f'Could not determine file type for {nifti_rel_path}. No entry found in ImagingFileTypes table'
@@ -533,6 +535,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None
         }
+        print(self.json_file_dict)
         file_id = self.imaging_obj.insert_imaging_file(files_insert_info_dict, self.json_file_dict)
 
         return file_id
