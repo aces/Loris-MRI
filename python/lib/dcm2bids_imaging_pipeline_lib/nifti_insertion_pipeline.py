@@ -5,6 +5,7 @@ import json
 import lib.exitcode
 import os
 import re
+import sys
 
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from pyblake2 import blake2b
@@ -123,6 +124,11 @@ class NiftiInsertionPipeline(BasePipeline):
         # Create the pic images
         # ---------------------------------------------------------------------------------------------
         self._create_pic_image()
+
+        # ---------------------------------------------------------------------------------------------
+        # If we get there, the insertion was complete and successful
+        # ---------------------------------------------------------------------------------------------
+        sys.exit(lib.exitcode.SUCCESS)
 
     def _load_json_sidecar_file(self):
         """
@@ -328,14 +334,14 @@ class NiftiInsertionPipeline(BasePipeline):
         new_nifti_rel_dir = os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_subfolder)
 
         # determine NIfTI file name
-        new_nifti_name = self.construct_nifti_filename(new_nifti_rel_dir, file_bids_entities_dict)
+        new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
         while os.path.exists(os.path.join(self.data_dir, new_nifti_rel_dir, new_nifti_name)):
             file_bids_entities_dict['run'] += 1
-            new_nifti_name = self.construct_nifti_filename(new_nifti_rel_dir, file_bids_entities_dict)
+            new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
 
         return os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_subfolder, new_nifti_name)
 
-    def construct_nifti_filename(self, new_nifti_rel_dir, file_bids_entities_dict):
+    def _construct_nifti_filename(self, file_bids_entities_dict):
 
         # this list defined the order in which BIDS entities should appear in the filename
         bids_entity_order = (

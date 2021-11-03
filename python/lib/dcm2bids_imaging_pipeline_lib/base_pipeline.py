@@ -49,7 +49,7 @@ class BasePipeline:
         self.loris_getopt_obj = loris_getopt_obj
         self.config_file = loris_getopt_obj.config_info
         self.options_dict = loris_getopt_obj.options_dict
-        self.force = self.options_dict["force"]["value"]
+        self.force = self.options_dict["force"]["value"] if "force" in self.options_dict else None
         self.verbose = self.options_dict["verbose"]["value"]
         self.upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
 

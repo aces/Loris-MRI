@@ -35,4 +35,10 @@ class Config:
                 ");"
         config_value = self.db.pselect(query, (config_name,))
 
-        return config_value[0]['Value'] if config_value else None
+        if not config_value:
+            return None
+        elif len(config_value) == 1:
+            return config_value[0]["Value"]
+        else:
+            values = [v["Value"] for v in config_value]
+            return values

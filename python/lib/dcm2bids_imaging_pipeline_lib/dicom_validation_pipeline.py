@@ -1,4 +1,5 @@
 import os
+import sys
 
 import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
@@ -37,6 +38,7 @@ class DicomValidationPipeline(BasePipeline):
             fields=("isTarchiveValidated", "Inserting",),
             values=("1", "0")
         )
+        sys.exit(lib.exitcode.SUCCESS)
 
     def _validate_dicom_archive_md5sum(self):
         """
