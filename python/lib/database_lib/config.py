@@ -33,12 +33,12 @@ class Config:
         query = "SELECT Value FROM Config WHERE ConfigID = (" \
                   "SELECT ID FROM ConfigSettings WHERE Name = %s" \
                 ");"
-        config_value = self.db.pselect(query, (config_name,))
+        results = self.db.pselect(query, (config_name,))
 
-        if not config_value:
+        if not results:
             return None
-        elif len(config_value) == 1:
-            return config_value[0]["Value"]
+        elif len(results) == 1:
+            return results[0]["Value"]
         else:
-            values = [v["Value"] for v in config_value]
+            values = [v["Value"] for v in results]
             return values

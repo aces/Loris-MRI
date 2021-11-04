@@ -45,12 +45,15 @@ class ParameterType:
             query += "AND Alias = %s "
             args = (param_alias,)
 
+        print(query)
+        print(args)
+
         results = self.db.pselect(query=query, args=args)
         return results[0]["ParameterTypeID"] if results else None
 
     def get_bids_to_minc_mapping_dict(self):
 
-        query = "SELECT Name, Alias FROM parameter_type"
+        query = "SELECT Name, Alias FROM parameter_type WHERE Alias IS NOT NULL"
 
         results = self.db.pselect(query=query)
 

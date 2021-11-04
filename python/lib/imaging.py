@@ -4,6 +4,7 @@ import os
 import datetime
 import nibabel as nib
 import re
+import tarfile
 
 from nilearn import image, plotting
 
@@ -240,9 +241,15 @@ class Imaging:
         """
 
         bids_mapping_dict = self.param_type_db_obj.get_bids_to_minc_mapping_dict()
+
+        print(bids_mapping_dict)
+
         param_type_id = self.param_type_db_obj.get_parameter_type_id(param_alias=parameter_name) \
-            if parameter_name in bids_mapping_dict.values() \
+            if parameter_name in bids_mapping_dict.keys() \
             else self.param_type_db_obj.get_parameter_type_id(param_name=parameter_name)
+
+        print(parameter_name)
+        print(param_type_id)
 
         if not param_type_id:
             # if no parameter type ID found, create an entry in parameter_type
@@ -721,6 +728,32 @@ class Imaging:
             model_name,
             center_id
         )
+
+    @staticmethod
+    def extract_files_from_dicom_archive(dicom_archive_path, extract_location_dir):
+        """
+        Extracts a DICOM archive into a directory.
+
+        :param dicom_archive_path: path to the DICOM archive file
+         :type dicom_archive_path: str
+        :param extract_location_dir: location directory where the archive should be extracted
+         :type extract_location_dir: str
+
+        :return: path to the directory with the extracted DICOM files
+         :rtype: str
+        """
+        tar = tarfile.open(dicom_archive_path)
+        tar.extractall(path=extract_location_dir)
+        inner_tar_file_name = [f.name for f in tar.getmembers() if f.name.endswith('.tar.gz')][0]
+        tar.close()
+
+        inner_tar_path = os.path.join(extract_location_dir, inner_tar_file_name)
+        inner_tar = tarfile.open(inner_tar_path)
+        inner_tar.extractall(path=extract_location_dir)
+        inner_tar.close()
+
+        extracted_dicom_dir_path = inner_tar_path.replace(".tar.gz", "")
+        return extracted_dicom_dir_path
 
     @staticmethod
     def create_imaging_pic(file_info):

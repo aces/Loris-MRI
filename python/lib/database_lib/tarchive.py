@@ -61,3 +61,15 @@ class Tarchive:
         results = self.db.pselect(query=query, args=args)
 
         return results[0] if results else None
+
+    def update_tarchive(self, tarchive_id, fields, values):
+
+        query = "UPDATE tarchive SET "
+
+        query += ", ".join(map(lambda x: x + " = %s", fields))
+
+        query += " WHERE TarchiveID = %s"
+
+        args = values + (tarchive_id,)
+
+        self.db.update(query=query, args=args)

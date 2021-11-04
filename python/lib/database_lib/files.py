@@ -66,3 +66,43 @@ class Files:
             values=field_value_dict.values(),
             get_last_id=True
         )
+
+    def update_files(self, file_id, fields, values):
+
+        query = 'UPDATE files SET '
+
+        query += ', '.join(map(lambda x: x + ' = %s', fields))
+
+        query += ' WHERE FileID = %s'
+
+        args = values + (file_id,)
+
+        self.db.update(query=query, args=args)
+
+    def select_distinct_acquisition_protocol_id_per_tarchive_source(self, tarchive_id):
+
+        query = "SELECT DISTINCT AcquisitionProtocolID FROM files WHERE TarchiveSource = %s"
+
+        results = self.db.pselect(query=query, args=(tarchive_id,))
+        acquisition_protocol_id_list = [v["AcquisitionProtocolID"] for v in results]
+
+        return acquisition_protocol_id_list
+
+    def get_file_ids_and_series_number_per_scan_type_and_tarchive_id(self, tarchive_id, scan_type_id):
+
+        query = "SELECT FileID, Value AS SeriesNumber " \
+                "FROM files " \
+                "  JOIN parameter_file USING(FileID) " \
+                "  JOIN parameter_type USING(ParameterTypeID) " \
+                "WHERE TarchiveSource = %s AND AcquisitionProtocolID = %s AND Name = %s"
+
+        return self.db.pselect(query=query, args=(tarchive_id, scan_type_id, "series_number"))
+
+    def get_files_inserted_for_tarchive_id(self, tarchive_id):
+
+        query = "SELECT File FROM files WHERE TarchiveSource = %s"
+
+        results = self.db.pselect(query=query, args=(tarchive_id,))
+        files_inserted_list = [v["File"] for v in results]
+
+        return files_inserted_list if results else None

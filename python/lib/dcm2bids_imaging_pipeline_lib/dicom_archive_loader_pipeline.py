@@ -1,10 +1,11 @@
+import datetime
 import json
 import os
 import re
 import subprocess
-import tarfile
 
 import lib.exitcode
+import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 
 __license__ = "GPLv3"
@@ -18,6 +19,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         self.tarchive_path = os.path.join(
             self.data_dir, "tarchive", self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]
         )
+        self.tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
         # ---------------------------------------------------------------------------------------------
         # Run the DICOM archive validation script to check if the DICOM archive is valid
         # ---------------------------------------------------------------------------------------------
@@ -26,7 +28,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Extract DICOM files from the tarchive
         # ---------------------------------------------------------------------------------------------
-        self.extracted_dicom_dir = self._extract_dicom_files()
+        self.extracted_dicom_dir = self.imaging_obj.extract_files_from_dicom_archive(
+            os.path.join(self.data_dir, 'tarchive', self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]),
+            self.tmp_dir
+        )
 
         # ---------------------------------------------------------------------------------------------
         # Run dcm2niix
@@ -86,7 +91,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             validation_command.append("-v")
 
         validation_process = subprocess.Popen(validation_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr = validation_process.communicate()
+        validation_process.communicate()
         if validation_process.returncode == 0:
             message = f"run_dicom_archive_validation.py successfully executed for UploadID {self.upload_id} " \
                       f"and ArchiveLocation {self.tarchive_path}"
@@ -100,25 +105,6 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # and correctly updated in the DB
         self.check_if_tarchive_validated_in_db()
 
-    def _extract_dicom_files(self):
-        tarchive_path = os.path.join(
-            self.data_dir,
-            'tarchive',
-            self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]
-        )
-        tar = tarfile.open(tarchive_path)
-        tar.extractall(path=self.tmp_dir)
-        inner_tar_file_name = [f.name for f in tar.getmembers() if f.name.endswith('.tar.gz')][0]
-        tar.close()
-
-        inner_tar_path = os.path.join(self.tmp_dir, inner_tar_file_name)
-        inner_tar = tarfile.open(inner_tar_path)
-        inner_tar.extractall(path=self.tmp_dir)
-        inner_tar.close()
-
-        dicom_dir = inner_tar_path.replace(".tar.gz", "")
-        return dicom_dir
-
     def _run_dcm2niix_conversion(self):
 
         nifti_tmp_dir = os.path.join(self.tmp_dir, "nifti_files")
@@ -130,8 +116,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             stderr=subprocess.STDOUT
         )
         stdout, stderr = dcm2niix_process.communicate()
-        if self.verbose:
-            print(stdout)
+        self.log_info(stdout, is_error="N", is_verbose="Y")
 
         return nifti_tmp_dir
 
@@ -175,9 +160,13 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             if self._is_series_description_to_be_excluded(json_file_path):
                 continue
 
+            with open(json_file_path) as json_file:
+                json_data_dict = json.load(json_file)
+
             nifti_file_dict = {
                 "nifti_file": nifti_file_path,
-                "json_file": json_file_path
+                "json_file": json_file_path,
+                "SeriesNumber": json_data_dict["SeriesNumber"]
             }
             if os.path.exists(bval_file_path):
                 nifti_file_dict["bval_file"] = bval_file_path
@@ -186,7 +175,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
             nifti_files_to_insert_list.append(nifti_file_dict)
 
-        return nifti_files_to_insert_list
+        # sort list of nifti files per series number
+        sorted_nifti_files_to_insert_list = sorted(nifti_files_to_insert_list, key=lambda x: x["SeriesNumber"])
+
+        return sorted_nifti_files_to_insert_list
 
     def _is_series_description_to_be_excluded(self, json_file_path):
         """
@@ -243,32 +235,73 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         if self.verbose:
             nifti_insertion_command.append(f"-v")
 
-        print(nifti_insertion_command)
-
         insertion_process = subprocess.Popen(nifti_insertion_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = insertion_process.communicate()
 
-        print(insertion_process.returncode)
-        print(stdout)
-
         if insertion_process.returncode == 0:
+            message = f"run_nifti_insertion.py successfully executed for file {nifti_file_path}"
+            self.log_info(message, is_error="N", is_verbose="Y")
             self.inserted_file_count += 1
+        else:
+            message = f"run_nifti_insertion.py failed for file {nifti_file_path}.\n{stdout}"
+            print(stdout)
+            self.log_info(message, is_error="Y", is_verbose="Y")
 
     def _move_and_update_dicom_archive(self):
-        # TODO: move dicom archive if needed, update ArchiveLocation and SessionID
-        pass
+        tarchive_id = self.tarchive_id
+        acq_date = self.dicom_archive_obj.tarchive_info_dict["DateAcquired"]
+        archive_location = self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]
+
+        fields_to_update = ("SessionID",)
+        values_for_update = (self.session_obj.session_id,)
+        pattern = re.compile("^[0-9]{4}/")
+        if acq_date and not pattern.match(archive_location):
+            # move the DICOM archive into a year subfolder
+            year_subfolder = datetime.datetime.fromisoformat(acq_date).strftime("%Y")
+            new_archive_location = os.path.join(year_subfolder, archive_location)
+            destination_dir_path = os.path.join(self.data_dir, "tarchive", year_subfolder)
+            new_tarchive_path = os.path.join(destination_dir_path, archive_location)
+            if not os.path.exists(destination_dir_path):
+                # create the year subfolder is it does not exist yet on the filesystem
+                os.makedirs(destination_dir_path)
+            os.replace(self.tarchive_path, new_tarchive_path)
+            self.tarchive_path = new_tarchive_path
+            # add the new archive location to the list of fields to update in the tarchive table
+            fields_to_update += ("ArchiveLocation",)
+            values_for_update += (new_archive_location,)
+
+        self.dicom_archive_obj.tarchive_db_obj.update_tarchive(tarchive_id, fields_to_update, values_for_update)
 
     def _compute_snr(self):
         pass
 
     def _order_modalities_per_acquisition_type(self):
-        pass
+        tarchive_id = self.tarchive_id
+        scan_type_id_list = self.imaging_obj.files_db_obj.select_distinct_acquisition_protocol_id_per_tarchive_source(
+            tarchive_id
+        )
+        for scan_type_id in scan_type_id_list:
+            results = self.imaging_obj.files_db_obj.get_file_ids_and_series_number_per_scan_type_and_tarchive_id(
+                tarchive_id, scan_type_id
+            )
+            file_id_series_nb_ordered_list = sorted(results, key=lambda x: x["SeriesNumber"])
+            acq_number = 0
+            for item in file_id_series_nb_ordered_list:
+                file_id = item["FileID"]
+                acq_number += 1
+                self.imaging_obj.files_db_obj.update_files(file_id, ("AcqOrderPerModality",), (acq_number,))
 
     def _update_mri_upload(self):
-        # TODO: update number of files created and inserted as well as SessionID field
-        pass
+        files_inserted_list = self.imaging_obj.files_db_obj.get_count_file_inserted_per_tarchive_id(self.tarchive_id)
+        self.imaging_upload_obj.update_mri_upload(
+            upload_id=self.upload_id,
+            fields=("Inserting", "InsertionComplete", "number_of_mincInserted", "number_of_mincCreated", "SessionID"),
+            values=("0", "1", len(files_inserted_list), self.nifti_files_to_insert, self.session_obj.session_id)
+        )
 
     def _send_out_summary_of_insertion(self):
         # TODO: figure out how to log files moved to trashbin (done by NIfTI insertion script directly)
         #     - can get that info from violations_log and mri_protocol_violated_scans
+        files_inserted_list = self.imaging_obj.files_db_obj.get_count_file_inserted_per_tarchive_id(self.tarchive_id)
+        
         pass
