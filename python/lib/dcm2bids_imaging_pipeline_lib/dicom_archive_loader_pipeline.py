@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 import lib.exitcode
 import lib.utilities
@@ -12,14 +13,34 @@ __license__ = "GPLv3"
 
 
 class DicomArchiveLoaderPipeline(BasePipeline):
+    """
+    Pipeline that extends the BasePipeline class to add some specific DICOM archive loader processes
+    such as dcm2niix conversion, protocol identification and registration into the proper imaging tables.
+
+    Functions that starts with _ are functions specific to the DicomArchiveLoaderPipeline class.
+    """
 
     def __init__(self, loris_getopt_obj, script_name):
+        """
+        Initiate the DicomArchiveLoaderPipeline class and runs the different steps required to convert the
+        DICOM archive into NIfTI files with BIDS associated files and register them into the imaging tables.
+        It will run the protocol identification and inserts the NIfTI files into the files tables if the
+        protocol was identified. Otherwise, scan will be recorded in mri_protocol_violated_scans or
+        mri_violations_log table depending on the violation.
+
+        :param loris_getopt_obj: the LorisGetOpt object with getopt values provided to the pipeline
+         :type loris_getopt_obj: LorisGetOpt obj
+        :param script_name: name of the script calling this class
+         :type script_name: str
+        """
+
         super().__init__(loris_getopt_obj, script_name)
         self.series_uid = self.options_dict["series_uid"]["value"]
         self.tarchive_path = os.path.join(
             self.data_dir, "tarchive", self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]
         )
         self.tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
+
         # ---------------------------------------------------------------------------------------------
         # Run the DICOM archive validation script to check if the DICOM archive is valid
         # ---------------------------------------------------------------------------------------------
@@ -34,7 +55,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         )
 
         # ---------------------------------------------------------------------------------------------
-        # Run dcm2niix
+        # Run dcm2niix to generate the NIfTI files with a JSON file storing imaging parameters
         # ---------------------------------------------------------------------------------------------
         self.nifti_tmp_dir = self._run_dcm2niix_conversion()
 
@@ -66,12 +87,13 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # If at least one file inserted, move DICOM archive into year subfolder
         # ---------------------------------------------------------------------------------------------
         if self.inserted_file_count > 0:
-            self._move_and_update_dicom_archive()  # TODO implement functions below
+            self._move_and_update_dicom_archive()
             self._compute_snr()
             self._order_modalities_per_acquisition_type()
             self._update_mri_upload()
 
-        self._send_out_summary_of_insertion()
+        self._get_summary_of_insertion()
+        sys.exit(lib.exitcode.SUCCESS)
 
     def _run_dicom_archive_validation_pipeline(self):
         """
@@ -106,6 +128,16 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         self.check_if_tarchive_validated_in_db()
 
     def _run_dcm2niix_conversion(self):
+        """
+        Run the conversion to NIfTI files with JSON side car files that store scan parameters.
+        The converter is run with the following options:
+            - `-ba n`  => generate the BIDS compatible JSON side car which will contain PII information such as
+                          dates, SeriesUID and PatientName (previously deidentified to PSCID_CandID_Visit)
+            - `-z y`   => generate a GZIP NIfTI file to save disk space
+
+        :return: path to the directory with the generated NIfTI and associated files (JSON, bval, bvec)
+         :rtype: str
+        """
 
         nifti_tmp_dir = os.path.join(self.tmp_dir, "nifti_files")
         os.makedirs(nifti_tmp_dir)
@@ -141,7 +173,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         ]
 
         :return: list of dictionary with path to files to insert along with NIfTI files that should be considered
-        for insertion
+                 for insertion. Note: the list will be ordered by series_number.
          :rtype: list
         """
 
@@ -207,6 +239,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
                     return True
 
     def _loop_through_nifti_files_and_insert(self):
+        """
+        Loop through the list of NIfTI files to process through run_nifti_insertion.py for insertion
+        into the imaging tables of the database.
+        """
 
         for file_dict in self.nifti_files_to_insert:
             nifti_file_path = file_dict["nifti_file"]
@@ -219,6 +255,9 @@ class DicomArchiveLoaderPipeline(BasePipeline):
                 self._run_nifti_insertion(nifti_file_path, json_file_path)
 
     def _run_nifti_insertion(self, nifti_file_path, json_file_path, bval_file_path=None, bvec_file_path=None):
+        """
+        Executes `run_nifti_insertion.py` on the NIfTI file to process.
+        """
 
         nifti_insertion_command = [
             "run_nifti_insertion.py",
@@ -248,6 +287,11 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             self.log_info(message, is_error="Y", is_verbose="Y")
 
     def _move_and_update_dicom_archive(self):
+        """
+        Moves the DICOM archive into a year subfolder (if a date is available for the DICOM archive) and update
+        the `tarchive` table with the new `ArchiveLocation` and `SessionID`.
+        """
+
         tarchive_id = self.tarchive_id
         acq_date = self.dicom_archive_obj.tarchive_info_dict["DateAcquired"]
         archive_location = self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]
@@ -273,9 +317,14 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         self.dicom_archive_obj.tarchive_db_obj.update_tarchive(tarchive_id, fields_to_update, values_for_update)
 
     def _compute_snr(self):
+        # TODO: to be implemented later on. No clear paths as to how to compute that
         pass
 
     def _order_modalities_per_acquisition_type(self):
+        """
+        Determine the file order based on the modality and populated the `files` table field `AcqOrderPerModality`.
+        """
+
         tarchive_id = self.tarchive_id
         scan_type_id_list = self.imaging_obj.files_db_obj.select_distinct_acquisition_protocol_id_per_tarchive_source(
             tarchive_id
@@ -292,6 +341,16 @@ class DicomArchiveLoaderPipeline(BasePipeline):
                 self.imaging_obj.files_db_obj.update_files(file_id, ("AcqOrderPerModality",), (acq_number,))
 
     def _update_mri_upload(self):
+        """
+        Update the `mri_upload` table with summary of processing. The following fields will be updated:
+            - `Inserting`              => 0 (since the processing on that upload is finished)
+            - `InsertionComplete`      => 1 (since the insertion has been completed)
+            - `number_of_mincInserted` => total number of NIfTI files found in the `files` table for the `TarchiveID`
+                                          associated to the upload
+            - `number_of_mincCreated`  => number of NIfTI files created by dcm2niix to consider for insertion
+            - `SessionID`              => `SessionID` associated to the upload
+        """
+
         files_inserted_list = self.imaging_obj.files_db_obj.get_count_file_inserted_per_tarchive_id(self.tarchive_id)
         self.imaging_upload_obj.update_mri_upload(
             upload_id=self.upload_id,
@@ -299,9 +358,30 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             values=("0", "1", len(files_inserted_list), self.nifti_files_to_insert, self.session_obj.session_id)
         )
 
-    def _send_out_summary_of_insertion(self):
-        # TODO: figure out how to log files moved to trashbin (done by NIfTI insertion script directly)
-        #     - can get that info from violations_log and mri_protocol_violated_scans
-        files_inserted_list = self.imaging_obj.files_db_obj.get_count_file_inserted_per_tarchive_id(self.tarchive_id)
-        
-        pass
+    def _get_summary_of_insertion(self):
+        """
+        Generate a summary of the DICOM archive loader pipeline execution. That summary will include the following
+        information:
+            - DICOM archive info (`TarchiveID` and DICOM archive path)
+            - number of files inserted into the files table
+            - number of files inserted into the mri_protocol_violated_scans table
+            - number of files inserted into the mri_violations_log with Severity=exclude
+            - path to the log file
+        """
+
+        files_inserted_list = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
+        protocol_violation_list = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
+            self.tarchive_id
+        )
+        excluded_violations_list = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+            self.tarchive_id
+        )
+        summary = f"""
+        Finished processing UploadID {self.upload_id}!
+        - DICOM archive info: {self.tarchive_id} => {self.tarchive_path}
+        - {len(files_inserted_list)} files were inserted into the files table: {', '.join(files_inserted_list)}
+        - {len(protocol_violation_list)} files did not match any protocol: {', '.join(protocol_violation_list)}
+        - {len(excluded_violations_list)} files were exclusionary violations: {', '.join(excluded_violations_list)} 
+        - Log of process in {self.log_obj.log_file}
+        """
+        self.log_info(summary, is_error="N", is_verbose="Y")

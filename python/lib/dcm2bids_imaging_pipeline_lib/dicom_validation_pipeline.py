@@ -23,6 +23,8 @@ class DicomValidationPipeline(BasePipeline):
 
         :param loris_getopt_obj: the LorisGetOpt object with getopt values provided to the pipeline
          :type loris_getopt_obj: LorisGetOpt obj
+        :param script_name: name of the script calling this class
+         :type script_name: str
         """
         super().__init__(loris_getopt_obj, script_name)
         self.validate_subject_ids()
