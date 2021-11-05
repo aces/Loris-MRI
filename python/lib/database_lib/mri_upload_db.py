@@ -4,10 +4,26 @@ __license__ = "GPLv3"
 
 
 class MriUploadDB:
+    """
+    This class performs database queries for imaging dataset stored in the mri_upload table.
+
+    :Example:
+
+        from lib.mri_upload import MriUploadDB
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        mri_upload_db_obj = MriUploadDB(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the MriUplaod class.
+        Constructor method for the MriUplaodDB class.
 
         :param db                 : Database class object
          :type db                 : object
@@ -20,12 +36,12 @@ class MriUploadDB:
 
     def update_mri_upload(self, upload_id, fields, values):
         """
-        Update the isTarchiveValidated field of the upload with the value provided
+        Update the `isTarchiveValidated` field of the upload with the value provided
         to the function.
 
-        :param upload_id: UploadID associated to the upload
+        :param upload_id: `UploadID` associated to the upload
          :type upload_id: int
-        :param fields   : list with fields to be updated in the mri_upload table
+        :param fields   : list with fields to be updated in the `mri_upload` table
          :type fields   : tuple
         :param values   : list of values to use for the update query
          :type values   : tuple
@@ -42,6 +58,17 @@ class MriUploadDB:
         self.db.update(query=query, args=args)
 
     def create_mri_upload_dict(self, where_field, where_value):
+        """
+        Create a dictionary out of the entry available in the `mri_upload` table.
+
+        :param where_field: name of the field to query
+         :type where_field: str
+        :param where_value: field value to use to query the `mri_upload` table
+         :type where_value: str
+
+        :return: list of mri_upload found
+         :rtype: list
+        """
 
         query = "SELECT * FROM mri_upload"
 

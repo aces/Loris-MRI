@@ -36,15 +36,33 @@ class Files:
         self.verbose = verbose
 
     def find_file_with_series_uid_and_echo_time(self, series_uid, echo_time):
+        """
+        Select files stored in the `files` table with a given `SeriesUID` and `EchoTime`.
+
+        :param series_uid: SeriesUID of the file to look for in the files table
+         :type series_uid: str
+        :param echo_time: Echo Time of the file to look for in the files table
+         :type echo_time: float
+
+        :return: entry from the `files` table for the file with SeriesUID and EchoTime
+         :rtype: dict
+        """
 
         query = "SELECT * FROM files WHERE SeriesUID = %s and EchoTime = %s "
         results = self.db.pselect(query=query, args=(series_uid, echo_time))
 
-        # save the result in self.files_info_dict and return True if a row was found
-        # return False if no row found for the archive location or tarchiveID in the tarchive table
         return results[0] if results else None
 
     def find_file_with_hash(self, file_hash):
+        """
+        Select files stored in the `files` table with a given hash stored in `parameter_file`.
+
+        :param file_hash: hash of the file to look for in the `files` table
+         :type file_hash: str
+
+        :return: entry from the `files` table for the file with the provided hash
+         :rtype: dict
+        """
 
         param_type_obj = ParameterType(self.db, self.verbose)
         blake2b_param_type_id = param_type_obj.get_parameter_type_id(param_name="file_blake2b_hash")
@@ -59,6 +77,15 @@ class Files:
         return results[0] if results else None
 
     def insert_files(self, field_value_dict):
+        """
+        Inserts into the `files` table a new row with file information.
+
+        :param field_value_dict: dictionary with column names as keys and values to insert as values
+         :type field_value_dict: dict
+
+        :return: FileID of the registered file or None if the insert was not successful
+         :rtype: int
+        """
 
         return self.db.insert(
             table_name='files',
@@ -68,6 +95,16 @@ class Files:
         )
 
     def update_files(self, file_id, fields, values):
+        """
+        Inserts into the `files` table a new row with file information.
+
+        :param file_id: FileID of the file to update in the `files` table
+         :type file_id: int
+        :param fields: tuple with the list of fields to update in the `files` table
+         :type fields: tuple
+        :param values: tuple with the list of values to use to update the `files` table
+         :type values: tuple
+        """
 
         query = 'UPDATE files SET '
 
@@ -80,6 +117,16 @@ class Files:
         self.db.update(query=query, args=args)
 
     def select_distinct_acquisition_protocol_id_per_tarchive_source(self, tarchive_id):
+        """
+        Get a list of distinct scan types (a.k.a. `AcquisitionProtocolID`) inserted into the `files`
+        table for a given DICOM archive (a.k.a. `TarchiveSource`).
+
+        :param tarchive_id: `TarchiveID` to use as the `TarchiveSource` to restrict the SELECT statement on
+         :type tarchive_id: int
+
+        :return: list of scan types found (`AcquisitionProtocolID`)
+         :rtype: list
+        """
 
         query = "SELECT DISTINCT AcquisitionProtocolID FROM files WHERE TarchiveSource = %s"
 
@@ -89,6 +136,18 @@ class Files:
         return acquisition_protocol_id_list
 
     def get_file_ids_and_series_number_per_scan_type_and_tarchive_id(self, tarchive_id, scan_type_id):
+        """
+        Get the list of `FileID` and `SeriesNumber` for the files inserted into the `files` table
+        associated to a given `TarchiveID`.
+
+        :param tarchive_id: `TarchiveID` to restrict the query on
+         :type tarchive_id: int
+        :param scan_type_id: ID of the scan type to restrict the query on
+         :type scan_type_id: int
+
+        :return: list of `FileID` and `SeriesNumber` for a given `TarchiveID` and `AcquisitionProtocolID`
+         :rtype: list
+        """
 
         query = "SELECT FileID, Value AS SeriesNumber " \
                 "FROM files " \
@@ -99,6 +158,15 @@ class Files:
         return self.db.pselect(query=query, args=(tarchive_id, scan_type_id, "series_number"))
 
     def get_files_inserted_for_tarchive_id(self, tarchive_id):
+        """
+        Get the list of files that were inserted into the `files` table for a given `TarchiveID`.
+
+        :param tarchive_id: `TarchiveID` to restrict the query on
+         :type tarchive_id: int
+
+        :return: list of relative file path present in the `files` table associated to the `TarchiveID`
+         :rtype: list
+        """
 
         query = "SELECT File FROM files WHERE TarchiveSource = %s"
 

@@ -5,6 +5,22 @@ __license__ = "GPLv3"
 
 
 class MriScanType:
+    """
+    This class performs database queries for imaging dataset stored in the mri_scan_type table.
+
+    :Example:
+
+        from lib.mri_scan_type import MriScanType
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        mri_scan_type_db_obj = MriScanType(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
@@ -20,6 +36,15 @@ class MriScanType:
         self.verbose = verbose
 
     def get_scan_type_name_from_id(self, scan_type_id):
+        """
+        Get a scan type name based on a scan type ID.
+
+        :param scan_type_id: ID of the scan type to look up
+         :type scan_type_id: int
+
+        :return: name of the scan type queried
+         :rtype: str
+        """
 
         results = self.db.pselect(
             query='SELECT Scan_type FROM mri_scan_type WHERE ID = %s',

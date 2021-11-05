@@ -1,10 +1,26 @@
-"""This class performs database queries for the site (mri_protocol) tables"""
+"""This class performs database queries for the mri_protocol tables"""
 
 
 __license__ = "GPLv3"
 
 
 class MriProtocol:
+    """
+    This class performs database queries for imaging dataset stored in the mri_protocol table.
+
+    :Example:
+
+        from lib.mri_protocol import MriProtocol
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        mri_prot_db_obj = MriProtocol(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
@@ -23,7 +39,21 @@ class MriProtocol:
             self, project_id, subproject_id, center_id, visit_label, scanner_id
     ):
         """
+        Grep the list of imaging protocols available based on session information.
 
+        :param project_id: `ProjectID` associated to the scanning session
+         :type project_id: int
+        :param subproject_id: `SubprojectID` associated to the scanning session
+         :type subproject_id: int
+        :param center_id: `CenterID` associated to the scanning session
+         :type center_id: int
+        :param visit_label: `VisitLabel` associated to the scanning session
+         :type visit_label: str
+        :param scanner_id: `ScannerID` of the scanner used to acquire the scans
+         :type scanner_id: int
+
+        :return: list of matching MRI protocols from the `mri_protocol` table
+         :rtype: list
         """
 
         query = "SELECT * FROM mri_protocol" \
@@ -54,6 +84,25 @@ class MriProtocol:
         return results
 
     def get_bids_info_for_scan_type_id(self, scan_type_id):
+        """
+        Get the BIDS information to name and organize the data according to the BIDS specifications.
+            - BIDSCategoryName corresponds to the name of the BIDS subfolder to move the NIfTI file into
+              (a.k.a. `anat`, `func`, `fmap`, `dwi`, `asl`...)
+            - BIDSScanTypeSubCategory corresponds to the list of BIDS entity/value to use to name the files
+              (examples: `task-rest`, `acq-25direction` or other. Note, in the DB these will be separated with
+              underscores: example: `task-rest_acq-xxx`)
+            - BIDSScanType corresponds to the scan type to be used when naming the file (example: `T1w`, `T2w`, `bold`)
+            - BIDSEchoNumber: echo number to be used with `echo-` for multi-echo images (example: `1`, `2`...)
+            - BIDSPhaseEncodingDirectionName: the PhaseEncodingDirection stored in the JSON file
+              (possible values: "i", "j", "k", "i-", "j-", "k-". The letters i, j, k correspond to the first,
+              second and third axis of the data in the NIFTI file.)
+
+        :param scan_type_id: Scan type ID from the mri_scan_type table to use to get the BIDS information
+         :type scan_type_id: int
+
+        :return: dictionary with the BIDS information to use to name and move the NIfTI file according to the BIDS spec
+         :rtype: dict
+        """
 
         query = """
             SELECT 

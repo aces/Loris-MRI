@@ -7,6 +7,22 @@ __license__ = "GPLv3"
 
 
 class MriScanner:
+    """
+    This class performs database queries for imaging dataset stored in the mri_scanner table.
+
+    :Example:
+
+        from lib.mri_scanner import MriScanner
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        mri_scanner_db_obj = MriScanner(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """

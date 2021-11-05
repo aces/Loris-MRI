@@ -1,10 +1,26 @@
-"""This class performs database queries for the site (mri_protocol_checks) tables"""
+"""This class performs database queries for the mri_protocol_checks tables"""
 
 
 __license__ = "GPLv3"
 
 
 class MriProtocolChecks:
+    """
+    This class performs database queries for imaging dataset stored in the mri_protocol_checks table.
+
+    :Example:
+
+        from lib.mri_protocol_checks import MriProtocolChecks
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        mri_prot_checks_db_obj = MriProtocolChecks(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
@@ -23,7 +39,19 @@ class MriProtocolChecks:
             self, project_id, subproject_id, visit_label, scan_type_id
     ):
         """
+        Grep the list of imaging protocols checks to use based on session information.
 
+        :param project_id: `ProjectID` associated to the scanning session
+         :type project_id: int
+        :param subproject_id: `SubprojectID` associated to the scanning session
+         :type subproject_id: int
+        :param visit_label: `VisitLabel` associated to the scanning session
+         :type visit_label: str
+        :param scan_type_id: ID of the scan type associated to the NIfTI file
+         :type scan_type_id: int
+
+        :return: list of matching MRI protocol checks from the `mri_protocol_checks` table
+         :rtype: list
         """
 
         query = "SELECT * FROM mri_protocol_checks" \

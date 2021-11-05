@@ -5,6 +5,22 @@ __license__ = "GPLv3"
 
 
 class Config:
+    """
+    This class performs database queries for the Config* tables.
+
+    :Example:
+
+        from lib.database_lib.config import Config
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        config_db_obj = Config(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
@@ -16,7 +32,7 @@ class Config:
          :type verbose: bool
         """
 
-        self.db      = db
+        self.db = db
         self.verbose = verbose
 
     def get_config(self, config_name):

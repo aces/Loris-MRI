@@ -212,7 +212,7 @@ class NiftiInsertionPipeline(BasePipeline):
             error_msg = f"There is already a file registered in the files table with MD5 hash {self.nifti_md5}." \
                         f" The already registered file is {md5_match['File']}"
         elif blake2b_match:
-            error_msg = f"There is already a file registered in the files table with Blake2b hash {self.nifti_blake2}." \
+            error_msg = f"There is already a file registered in the files table with Blake2b hash {self.nifti_blake2}."\
                         f" The already registered file is {blake2b_match['File']}"
 
         if error_msg:

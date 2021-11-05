@@ -36,6 +36,16 @@ class CandidateDB:
         self.verbose = verbose
 
     def check_candid_pscid_combination(self, psc_id, cand_id):
+        """
+        Checks whether the PSCID/CandID combination corresponds to a valid candidate in the `candidate` table.
+
+        :param psc_id: PSCID of the candidate
+         :type psc_id: str
+        :param cand_id: CandID of the candidate
+         :type cand_id: int
+
+        :returns: the valid CandID and PSCID if the combination corresponds to a candidate, None otherwise
+        """
 
         query = "SELECT c1.CandID, c2.PSCID AS PSCID " \
                 " FROM candidate c1 " \
