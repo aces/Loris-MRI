@@ -27,3 +27,12 @@ class MriViolationsLog:
             values=field_value_dict.values(),
             get_last_id=False
         )
+
+    def get_excluded_violations_for_tarchive_id(self, tarchive_id):
+
+        query = "SELECT MincFile as File FROM mri_violations_log WHERE TarchiveID = %s and Severity = %s"
+
+        results = self.db.pselect(query=query, args=(tarchive_id, 'exclude'))
+        files_inserted_list = [v["File"] for v in results]
+
+        return files_inserted_list if results else None

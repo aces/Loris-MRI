@@ -27,3 +27,12 @@ class MriProtocolViolatedScans:
             values=field_value_dict.values(),
             get_last_id=False
         )
+
+    def get_protocol_violations_for_tarchive_id(self, tarchive_id):
+
+        query = "SELECT minc_location as File FROM mri_protocol_violated_scans WHERE TarchiveID = %s"
+
+        results = self.db.pselect(query=query, args=(tarchive_id,))
+        files_inserted_list = [v["File"] for v in results]
+
+        return files_inserted_list if results else None
