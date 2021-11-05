@@ -351,7 +351,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             - `SessionID`              => `SessionID` associated to the upload
         """
 
-        files_inserted_list = self.imaging_obj.files_db_obj.get_count_file_inserted_per_tarchive_id(self.tarchive_id)
+        files_inserted_list = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
         self.imaging_upload_obj.update_mri_upload(
             upload_id=self.upload_id,
             fields=("Inserting", "InsertionComplete", "number_of_mincInserted", "number_of_mincCreated", "SessionID"),
