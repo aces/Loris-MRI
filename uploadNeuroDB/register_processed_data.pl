@@ -265,7 +265,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
         $scannerInfo{'ScannerManufacturer'}, $scannerInfo{'ScannerModel'},
         $scannerInfo{'ScannerSerialNumber'}, $scannerInfo{'ScannerSoftwareVersion'},
         $centerID,                           \$dbh,
-        0,                                   $db
+        $db
     );
 }else   {
     $scannerID  =   getScannerID($sourceFileID,$dbh);
