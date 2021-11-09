@@ -166,9 +166,6 @@ def make_pic(file_id, config_file, force, verbose):
     # load the Imaging object
     imaging = Imaging(db, verbose)
 
-    # checks if there is already a pic for the NIfTI file
-    existing_pic_file_in_db = imaging.grep_parameter_value_from_file_id(file_id, 'check_pic_filename')
-
     # grep the NIfTI file path
     nii_file_path = imaging.grep_file_path_from_file_id(file_id)
     if not nii_file_path:
@@ -180,6 +177,9 @@ def make_pic(file_id, config_file, force, verbose):
     if not os.path.exists(data_dir + nii_file_path):
         print('WARNING: file ' + nii_file_path + ' not found on the filesystem')
         return
+
+    # checks if there is already a pic for the NIfTI file
+    existing_pic_file_in_db = imaging.grep_parameter_value_from_file_id(file_id, 'check_pic_filename')
     if existing_pic_file_in_db and not force:
         print('WARNING: there is already a pic for FileID ' + str(file_id) + '. Use -f or --force to overwrite it')
         return
