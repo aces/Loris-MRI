@@ -551,6 +551,16 @@ class Imaging:
             }
 
     def get_bids_categories_mapping_for_scan_type_id(self, scan_type_id):
+        """
+        Function that get the BIDS information for a given scan type ID from the database and returns a
+        dictionary with this information
+
+        :param scan_type_id: scan type ID to use to query the BIDS information for that scan type
+         :type scan_type_id: int
+
+        :return: dictionary with the BIDS entities to be associated with that scan type in the future NIfTI file name
+         :rtype: dict
+        """
 
         return self.mri_prot_db_obj.get_bids_info_for_scan_type_id(scan_type_id)
 

@@ -257,6 +257,15 @@ class DicomArchiveLoaderPipeline(BasePipeline):
     def _run_nifti_insertion(self, nifti_file_path, json_file_path, bval_file_path=None, bvec_file_path=None):
         """
         Executes `run_nifti_insertion.py` on the NIfTI file to process.
+
+        :param nifti_file_path: path of the NIfTI file to insert
+         :type nifti_file_path: str
+        :param json_file_path: path to the side car JSON file
+         :type json_file_path: str
+        :param bval_file_path: path to the bval file associated to the NIfTI file if there is any
+         :type bval_file_path: str
+        :param bvec_file_path: path to the bvec file associated to the NIfTI file if there is any
+         :type bvec_file_path: str
         """
 
         nifti_insertion_command = [

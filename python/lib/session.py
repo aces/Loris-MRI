@@ -189,6 +189,12 @@ class Session:
         return self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
 
     def get_list_of_sites(self):
+        """
+        Get the list of sites available in the psc table.
+
+        :return: list of sites
+         :rtype: list
+        """
 
         return self.site_db_obj.get_list_of_sites()
 

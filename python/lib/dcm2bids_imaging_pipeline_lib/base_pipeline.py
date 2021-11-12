@@ -19,7 +19,7 @@ from lib.session import Session
 
 class BasePipeline:
     """
-    Series of checks done by most scripts from the imaging pipeline
+    Series of checks done by most scripts of the dcm2bids imaging pipeline.
     """
 
     def __init__(self, loris_getopt_obj, script_name):
@@ -271,6 +271,15 @@ class BasePipeline:
         interrupted due to an error. It will log the error in the log file created by the
         script being executed, add an entry with the error in the notification_spool table
         and print the error to the user in the terminal.
+
+        :param message: message to log before exit
+         :type message: str
+        :param exit_code: exit code to use to exit the script
+         :type exit_code: int
+        :param is_error: whether the message to log is an error or not
+         :type is_error: str
+        :param is_verbose: whether the message is considered verbose or not in the notification_spool table
+         :type is_verbose: str
         """
         err_msg = f"[ERROR   ] {message}"
         self.log_obj.write_to_log_file(f"\n{err_msg}\n")
@@ -282,8 +291,15 @@ class BasePipeline:
 
     def log_info(self, message, is_error, is_verbose):
         """
-        Function to commonly executes logging information that need to be logged in the
-        notification table and in the log file produced by the script executed
+        Function to log information that need to be logged in the notification_spool table and in the log
+        file produced by the script executed.
+
+        :param message: message to log
+         :type message: str
+        :param is_error: whether the message to log is an error or not
+         :type is_error: str
+        :param is_verbose: whether the message is considered verbose or not in the notification_spool table
+         :type is_verbose: str
         """
         log_msg = f"==> {message}"
         self.log_obj.write_to_log_file(f"{log_msg}\n")
@@ -292,6 +308,9 @@ class BasePipeline:
             print(f"{log_msg}\n")
 
     def get_session_info(self):
+        """
+        Creates the session info dictionary based on entries found in the session table.
+        """
 
         cand_id = self.subject_id_dict["CandID"]
         visit_label = self.subject_id_dict["visitLabel"]
@@ -302,6 +321,10 @@ class BasePipeline:
             self.log_info(message, is_error="N", is_verbose="Y")
 
     def create_session(self):
+        """
+        Function that will create a new visit in the session table for the imaging scans after verification
+        that all the information necessary for the creation of the visit are present.
+        """
         cand_id = self.subject_id_dict["CandID"]
         visit_label = self.subject_id_dict["visitLabel"]
         create_visit_label = self.subject_id_dict["createVisitLabel"]
@@ -357,6 +380,11 @@ class BasePipeline:
             self.get_session_info()
 
     def determine_new_session_site_and_visit_nb(self):
+        """
+        Determines the site and visit number of the new session to be created.
+
+        :returns: The center ID and visit number of the future new session
+        """
         cand_id = self.subject_id_dict["CandID"]
         visit_label = self.subject_id_dict["visitLabel"]
         is_phantom = self.subject_id_dict["isPhantom"]
@@ -377,6 +405,12 @@ class BasePipeline:
         return center_id, visit_nb
 
     def determine_phantom_data_site(self, string_with_site_acronym):
+        """
+        Determine the site of a phantom dataset.
+
+        :param string_with_site_acronym: string to use to look for Alias or MRI_alias in the psc table
+         :type string_with_site_acronym: str
+        """
 
         pscid = self.subject_id_dict["PSCID"]
         visit_label = self.subject_id_dict["visitLabel"]
@@ -404,6 +438,12 @@ class BasePipeline:
             self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
 
     def create_dir(self, directory_path):
+        """
+        Create a directory on the file system.
+
+        :param directory_path: path of the directory to create
+         :type directory_path: str
+        """
 
         if not os.path.exists(directory_path):
             self.log_info(f'Creating directory {directory_path}', is_error='N', is_verbose='Y')
@@ -413,6 +453,14 @@ class BasePipeline:
                 self.log_error_and_exit(message, lib.exitcode.CREATE_DIR_FAILURE, is_error='Y', is_verbose='N')
 
     def move_file(self, old_file_path, new_file_path):
+        """
+        Move a file on the file system.
+
+        :param old_file_path: where to move the file from
+         :type old_file_path: str
+        :param new_file_path: where to move the file to
+         :type new_file_path: str
+        """
 
         self.log_info(f'Moving {old_file_path} to {new_file_path}', is_error='N', is_verbose='Y')
         shutil.move(old_file_path, new_file_path, self.verbose)

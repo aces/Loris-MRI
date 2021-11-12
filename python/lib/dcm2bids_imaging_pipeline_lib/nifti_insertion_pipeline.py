@@ -14,8 +14,26 @@ __license__ = "GPLv3"
 
 
 class NiftiInsertionPipeline(BasePipeline):
+    """
+    Pipeline that extends the BasePipeline class to add some specific NIfTI insertion processes
+    such as protocol identification and registration into the proper imaging tables.
+
+    Functions that starts with _ are functions specific to the NiftiInsertionPipeline class.
+    """
 
     def __init__(self, loris_getopt_obj, script_name):
+        """
+        Initiate the NiftiInsertionPipeline class and runs the different steps required to insert a
+        NIfTI file with BIDS associated files into the imaging tables.
+        It will run the protocol identification and inserts the NIfTI file into the files tables if the
+        protocol was identified. Otherwise, scan will be recorded in mri_protocol_violated_scans or
+        mri_violations_log table depending on the violation.
+
+        :param loris_getopt_obj: the LorisGetOpt object with getopt values provided to the pipeline
+         :type loris_getopt_obj: LorisGetOpt obj
+        :param script_name: name of the script calling this class
+         :type script_name: str
+        """
         super().__init__(loris_getopt_obj, script_name)
         self.nifti_path = self.options_dict["nifti_path"]["value"]
         self.nifti_blake2 = blake2b(self.nifti_path.encode('utf-8')).hexdigest()
@@ -342,6 +360,15 @@ class NiftiInsertionPipeline(BasePipeline):
         return os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_subfolder, new_nifti_name)
 
     def _construct_nifti_filename(self, file_bids_entities_dict):
+        """
+        Determines the name of the NIfTI file according to what is present in the bids_mri_scan_type_rel table.
+
+        :param file_bids_entities_dict: dictionary with the BIDS entities grepped from the bids_mri_scan_type_rel table
+         :type file_bids_entities_dict: str
+
+        :return: name of the NIfTI to be inserted
+         :rtype: str
+        """
 
         # this list defined the order in which BIDS entities should appear in the filename
         bids_entity_order = (

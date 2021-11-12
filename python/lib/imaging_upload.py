@@ -7,8 +7,8 @@ __license__ = "GPLv3"
 
 class ImagingUpload:
     """
-    This class gather functions that interact with the database and allow session
-    creation or to fetch session information directly from the database.
+    This class gather functions that interact with the database and allow mri_upload
+    updates or to fetch mri_upload information directly from the database.
 
     :Example:
 
@@ -19,7 +19,7 @@ class ImagingUpload:
         db = Database(config.mysql, verbose)
         db.connect()
 
-        mri_upload_obj = MriUpload(db, verbose)
+        imaging_upload_obj = ImagingUpload(db, verbose)
 
         # disconnect from the database
         db.disconnect()
@@ -42,11 +42,26 @@ class ImagingUpload:
         self.imaging_upload_dict = dict()
 
     def create_imaging_upload_dict_from_upload_id(self, upload_id):
+        """
+        Fill in the imaging upload dictionary with the information found for a given upload ID in the mri_upload table.
+
+        :param upload_id: UploadID to use to query mri_upload
+         :type upload_id: str
+        """
 
         results = self.mri_upload_db_obj.create_mri_upload_dict('UploadID', upload_id)
         self.imaging_upload_dict = results[0]
 
     def create_imaging_upload_dict_from_tarchive_id(self, tarchive_id):
+        """
+        Fill in the imaging upload dictionary with information found for a given TarchiveID in the mri_upload table.
+
+        :param tarchive_id: TarchiveID to use to query mri_upload
+         :type tarchive_id: str
+
+        :return: message if 0 row or more than one row were found in the mri_upload table for the given Tarchive
+         :rtype: bool, str
+        """
 
         results = self.mri_upload_db_obj.create_mri_upload_dict('TarchiveID', tarchive_id)
 
@@ -59,5 +74,15 @@ class ImagingUpload:
             return False, f"Did not find an entry in mri_upload associated with 'TarchiveID' {tarchive_id}"
 
     def update_mri_upload(self, upload_id, fields, values):
+        """
+        Calls the MriUpload database lib to update the mri_upload table.
+
+        :param upload_id: UploadID to update
+         :type upload_id: int
+        :param fields: Fields that need to be updated in the mri_upload table
+         :type fields: tuple
+        :param fields: Values to use to update the fields that need to be updated in the mri_upload table
+         :type fields: tuple
+        """
 
         self.mri_upload_db_obj.update_mri_upload(upload_id, fields, values)

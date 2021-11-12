@@ -80,7 +80,7 @@ class DicomArchive:
 
         if "TarchiveID" in tarchive_series_info_dict.keys():
             tarchive_id = tarchive_series_info_dict["TarchiveID"]
-            self.tarchive_info_dict = self.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
+            self.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
 
     def validate_dicom_archive_md5sum(self, tarchive_path):
         """
