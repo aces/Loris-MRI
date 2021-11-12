@@ -6,6 +6,22 @@ __license__ = "GPLv3"
 
 
 class Notification:
+    """
+    This class performs database queries for imaging pipeline notification_spool table.
+
+    :Example:
+
+        from lib.notification import Notification
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        notification_db_obj = Notification(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose, notification_type, notification_origin, process_id):
         """

@@ -34,6 +34,14 @@ class ParameterType:
         self.verbose = verbose
 
     def get_parameter_type_id(self, param_name=None, param_alias=None):
+        """
+        Get a ParameterTypeID from the parameter_type table based on the Name or Alias table field.
+
+        :param param_name: parameter name to query in parameter_type
+         :type param_name: str
+        :param param_alias: parameter alias to query in parameter_type
+         :type param_alias: str
+        """
 
         query = "SELECT ParameterTypeID FROM parameter_type WHERE SourceFrom='parameter_file'"
         args = None
@@ -52,6 +60,13 @@ class ParameterType:
         return results[0]["ParameterTypeID"] if results else None
 
     def get_bids_to_minc_mapping_dict(self):
+        """
+        Queries the BIDS to MINC mapping dictionary stored in the paramater_type table and returns a
+        dictionary with the BIDS term as keys and the MINC terms as values.
+
+        :return: BIDS to MINC mapping dictionary
+         :rtype: dict
+        """
 
         query = "SELECT Name, Alias FROM parameter_type WHERE Alias IS NOT NULL"
 
@@ -66,6 +81,13 @@ class ParameterType:
         return bids_to_minc_mapping_dict
 
     def insert_parameter_type(self, field_value_dict):
+        """
+        Inserts a row into the parameter_type table based on fields/values dictionary provided to the function.
+
+        :param field_value_dict: dictionary where the parameter_type field name are keys and values to insert
+                                 are in the dictionary values
+         :type field_value_dict: dict
+        """
 
         return self.db.insert(
             table_name='parameter_type',
@@ -91,6 +113,15 @@ class ParameterType:
         return results[0]['ParameterTypeCategoryID'] if results else None
 
     def insert_into_parameter_type_category_rel(self, param_category_id, param_type_id):
+        """
+        Inserts a row into the parameter_type_category_rel table for a given ParameterTypeID
+        and ParameterTypeCategoryID.
+
+        :param param_category_id: ParameterTypeCategoryID to use in the insert statement
+         :type param_category_id: int
+        :param param_type_id: ParameterTypeID to use in the insert statement
+         :type param_type_id: int
+        """
 
         self.db.insert(
             table_name='parameter_type_category_rel',

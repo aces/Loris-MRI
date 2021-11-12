@@ -5,6 +5,22 @@ __license__ = "GPLv3"
 
 
 class VisitWindows:
+    """
+    This class performs database queries for the VisitWindows table.
+
+    :Example:
+
+        from lib.visit_windows import VisitWindows
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        visit_windows_db_obj = VisitWindows(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """

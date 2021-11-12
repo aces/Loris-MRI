@@ -34,6 +34,13 @@ class ParameterFile:
         self.verbose = verbose
 
     def insert_parameter_file(self, field_value_dict):
+        """
+        Inserts a row into the parameter_file table based on fields/values dictionary provided to the function.
+
+        :param field_value_dict: dictionary where the parameter_file field name are keys and values to insert
+                                 are in the dictionary values
+         :type field_value_dict: dict
+        """
 
         self.db.insert(
             table_name='parameter_file',

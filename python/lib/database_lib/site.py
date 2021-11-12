@@ -5,6 +5,22 @@ __license__ = "GPLv3"
 
 
 class Site:
+    """
+    This class performs database queries on the psc (site) table.
+
+    :Example:
+
+        from lib.site import Site
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        site_db_obj = Site(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
@@ -16,7 +32,7 @@ class Site:
          :type verbose: bool
         """
 
-        self.db      = db
+        self.db = db
         self.verbose = verbose
 
     def get_list_of_sites(self):

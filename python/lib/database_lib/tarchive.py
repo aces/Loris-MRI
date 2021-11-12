@@ -63,6 +63,16 @@ class Tarchive:
         return results[0] if results else None
 
     def update_tarchive(self, tarchive_id, fields, values):
+        """
+        Updates the tarchive table for a given TarchiveID.
+
+        :param tarchive_id: TarchiveID row to update in the tarchive table
+         :type tarchive_id: int
+        :param fields: tarchive table fields to update
+         :type fields: tuple
+        :param values: values to use to update the tarchive table fields
+         :type values: tuple
+        """
 
         query = "UPDATE tarchive SET "
 
