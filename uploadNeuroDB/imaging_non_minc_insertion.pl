@@ -389,7 +389,7 @@ if ($metadata_file) {
     close( FILE );
 
     my $metadata = decode_json($json);
-    foreach my $parameter (sort keys $metadata) {
+    foreach my $parameter (sort keys %$metadata) {
         $file->setParameter( $parameter, $metadata->{$parameter} );
     }
 }
