@@ -1754,7 +1754,7 @@ sub CreateMRICandidates {
     );
 
     print "$query\n" if ($this->{debug});
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute(values %record);
 
     $message = "\n==> CREATED NEW CANDIDATE: $candID";
