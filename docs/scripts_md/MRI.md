@@ -134,7 +134,7 @@ INPUTS:
   - $type: scan type
   - $db  : database object
 
-RETURNS: ID of the scan type
+RETURNS: ID of the scan type or undef
 
 ### in\_range($value, $range\_string)
 

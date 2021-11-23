@@ -60,10 +60,6 @@ Available options are:
 
 \-error\_string      : string to use for reporting empty fields
 
-\-verbose                : Be verbose if set
-
-\-version                : Print CVS version number and exit
-
 # DESCRIPTION
 
 A tool to read information out of the DICOM file headers.
