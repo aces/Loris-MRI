@@ -72,10 +72,6 @@ Available options are:
 -error_string      : string to use for reporting empty fields
 
 
--verbose                : Be verbose if set
-
--version                : Print CVS version number and exit
-
 
 =head1 DESCRIPTION
 
