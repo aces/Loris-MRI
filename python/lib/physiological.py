@@ -375,11 +375,16 @@ class Physiological:
                         insert_if_not_found = True
                     )
 
+            # map the X, Y and Z 'n/a' values to NULL
+            x_value = None if row['x'] == 'n/a' else row['x']
+            y_value = None if row['y'] == 'n/a' else row['y']
+            z_value = None if row['z'] == 'n/a' else row['z']
+
             values_tuple = (
                 str(physiological_file_id), row.get('type_id'),
                 row.get('material_id'),     row['name'],
-                row['x'],                   row['y'],
-                row['z'],                   row.get('impedance'),
+                x_value,                    y_value,
+                z_value,                    row.get('impedance'),
                 electrode_file
             )
             electrode_values.append(values_tuple)
