@@ -267,7 +267,7 @@ if($options{'BASENAME'} =~ /\// ) {
 } 
 
 if($options{'BASENAME'} ne '' && $options{'DELETE_MRI_PARAMETER_FORM'}) {
-    print STDERR "Option -file cannot be used in conjunction with option -form. Aborting.\n";
+    print STDERR "Option -basename cannot be used in conjunction with option -form. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 } 
 
@@ -282,7 +282,7 @@ if($options{'KEEP_DEFACED'} && $options{'DELETE_MRI_PARAMETER_FORM'}) {
 } 
 
 if($options{'KEEP_DEFACED'} && $options{'BASENAME'} ne '') {
-    print STDERR "Option -defaced cannot be used in conjunction with option -file. Aborting.\n";
+    print STDERR "Option -defaced cannot be used in conjunction with option -basename. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 } 
 
@@ -411,7 +411,7 @@ if(!$tarchiveID) {
     }
     if($options{'BASENAME'} ne '') { 
         print STDERR "The upload(s) specified on the command line are not tied to any records in table tarchive: ";
-        printf STDERR  "option -file cannot be used. Aborting.\n";
+        printf STDERR  "option -basename cannot be used. Aborting.\n";
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
@@ -964,7 +964,7 @@ sub getIntermediaryFilesRef {
         : '';
 
     my($query, @queryArgs);
-    # So if -file is used and something matched in table files, we fetch the
+    # So if -basename is used and something matched in table files, we fetch the
     # intermediary files tied to the matched file
     if($fileBaseName ne '' && !@{ $filesRef->{'files'} }) {
         $query = 'SELECT fi.IntermedID, fi.Input_FileID, fi.Output_FileID, f.FileID, f.File, f.SourceFileID '
@@ -979,7 +979,7 @@ sub getIntermediaryFilesRef {
                . ') '
                . 'AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?';
         @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName); 
-    # Either -file was not used or it was used but nothing matched in table files.
+    # Either -basename was not used or it was used but nothing matched in table files.
 	} else {
 		my $fileBaseNameAnd = $fileBaseName ne '' 
 		    ? ' AND BINARY SUBSTRING_INDEX(f2.File, "/", -1) = ?'
@@ -1042,8 +1042,8 @@ sub getParameterFilesRef {
     my $mriScanTypeAnd = @$scanTypesToDeleteRef
         ? sprintf('AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
 
-    # If -file was used but nothing matched in tables files and files_intermediary
-    # Try finding a file in parameter_file that matches the -file argument
+    # If -basename was used but nothing matched in tables files and files_intermediary
+    # Try finding a file in parameter_file that matches the -basename argument
     my($query, @queryArgs);
     if($fileBaseName ne '' && !@{ $filesRef->{'files'} } && !@{ $filesRef->{'files_intermediary'} }) {
         $query = 'SELECT pf.ParameterFileID, f.FileID, pf.Value, pt.Name FROM parameter_file pf '
@@ -1425,7 +1425,7 @@ INPUTS:
   - $fileRef: reference to the array that contains the file information for a given file.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $keepDefaced: whether the defaced files should be kept or not.
-  - $fileBaseName: value of option -file (or '' if -file was not used).
+  - $fileBaseName: value of option -basename (or '' if -basename was not used).
   
 RETURNS:
   - 0 or 1 depending on whether the file should be deleted or not.
@@ -1439,7 +1439,7 @@ sub shouldDeleteFile {
     # 1. Specific scan types are deleted.
     # 2. The defaced files are kept  (i.e @$scanTypesToDeleteRef is filled with the 
     #    modalities_to_deface Config values).
-    # 3. Option -file was used.
+    # 3. Option -basename was used.
     return 0 if $table eq 'tarchive' && (@$scanTypesToDeleteRef || ($fileBaseName ne ''));
     
     # If the defaced files are kept, the entries in files_intermediary are deleted
@@ -1742,7 +1742,7 @@ INPUTS:
     that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $keepDefaced: whether the defaced files should be kept or not.
-  - $fileBaseName: value of option -file (or '' if option was not used).
+  - $fileBaseName: value of option -basename (or '' if option was not used).
                
 =cut
 sub deleteUploadsOnFileSystem {
@@ -1886,6 +1886,7 @@ sub updateSQLBackupFile {
     my %quotedKeys;
     foreach my $k (@$keyValuesRef) {
         (my $quotedKey = $k) =~ s/\'/\\'/g;
+        $quotedKey = "\"$quotedKey\"" if $quotedKey =~ /\D/;
         $quotedKeys{$quotedKey} = 1;
     }
         
