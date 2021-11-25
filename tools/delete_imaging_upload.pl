@@ -1885,7 +1885,8 @@ sub updateSQLBackupFile {
     # Make sure all keys are quoted before using them in the Unix command
     my %quotedKeys;
     foreach my $k (@$keyValuesRef) {
-        my $quotedKey = $k =~ m/[a-z]/i ? "\"$k\"" : $k;
+        (my $quotedKey = $k) =~ s/\'/\\'/g;
+        $quotedKey = "\"$quotedKey\"" if $quotedKey =~ /\D/;
         $quotedKeys{$quotedKey} = 1;
     }
         
