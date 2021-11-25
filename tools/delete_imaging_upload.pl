@@ -1885,8 +1885,10 @@ sub updateSQLBackupFile {
     # Make sure all keys are quoted before using them in the Unix command
     my %quotedKeys;
     foreach my $k (@$keyValuesRef) {
-        (my $quotedKey = $k) =~ s/\'/\\'/g;
-        $quotedKeys{$quotedKey} = 1;
+        if ($k =~ m/[a-z]/i) {
+            my $quotedKey = "\"$k\"";
+            $quotedKeys{$quotedKey} = 1;
+        }
     }
         
     # Read the current contents of the backup file
