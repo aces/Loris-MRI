@@ -80,9 +80,10 @@ successfully run, this removes all records tied to the upload in the following t
    f) C<parameter_file>
    g) C<tarchive>
    h) C<mri_upload>
-   i) C<mri_processing_protocol> if option C<-protocol> is used (see below)
-   j) C<mri_parameter_form> if option C<-form> is used (see below)
-   
+   i) C<bids_export_files>
+   j) C<mri_processing_protocol> if option C<-protocol> is used (see below)
+   k) C<mri_parameter_form> if option C<-form> is used (see below)
+
 All the deletions and modifications performed in the database are done as part of a single transaction, so they either
 all succeed or a rollback is performed and the database is not modified in any way. The ID of the upload to delete
 is specified via option C<-uploadID>. More than one upload can be deleted if they all have the same C<TarchiveID> 
@@ -190,7 +191,8 @@ my @PROCESSED_TABLES = (
     'MRICandidateErrors',
     'tarchive',
     'mri_processing_protocol',
-    'mri_upload'
+    'mri_upload',
+    'bids_export_files'
 );
 
 # Stolen from get_dicom_files.pl: should be a constant global to both
@@ -423,6 +425,7 @@ $files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarc
 $files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
+$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
 
 if(!defined $files{'tarchive'}) {
     print STDERR "Cannot determine absolute path for archive $tarchiveID since config "
@@ -1284,6 +1287,56 @@ sub getMRICandidateErrorsFilesRef {
     } 
     
     return $filesRef;   
+}
+
+=pod
+
+=head3 getBidsExportFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
+
+Gets the records to delete from table bids_export_files.
+
+INPUTS:
+  - $dbhr  : database handle reference.
+  - $filesRef: reference on the hash of all files.
+  - $tarchiveID: ID of the DICOM archive.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
+  - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $optionsRef: reference on the array of command line options.
+
+RETURNS:
+
+=cut
+sub getBidsExportFilesRef {
+    my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
+
+    my %fileID;
+    foreach my $t (@PROCESSED_TABLES) {
+        foreach my $f (@{ $filesRef->{$t} }) {
+            $fileID{ $f->{'FileID'} } = 1 if defined $f->{'FileID'};
+        }
+    }
+
+    return [] if !%fileID;
+
+    my $query = 'SELECT BIDSExportedFileID, FilePath FROM bids_export_files'
+                . ' WHERE FileID IN ('
+                . join(',', ('?') x keys %fileID)
+                . ')';
+    my $bidsFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, keys %fileID);
+
+    my $countQuery = 'SELECT COUNT(*) FROM bids_export_files bef'
+                     . ' JOIN files f ON (f.FileID=bef.FileID)'
+                     . ' WHERE TarchiveSource = ?';
+    my $sth = $dbh->prepare($countQuery);
+    $sth->execute($tarchiveID);
+    my $count = $sth->fetchrow_array;
+    if ($count == keys %$bidsFilesRef) {
+        $query = 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef'
+                 . ' JOIN tarchive t ON (t.FileID=bef.FileID)'
+                 . ' WHERE '
+    }
+
+
 }
 
 =pod
