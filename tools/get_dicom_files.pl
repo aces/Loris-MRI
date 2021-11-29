@@ -9,7 +9,7 @@ get_dicom_files.pl - extracts DICOM files for specific patient names/scan types
 
 =head1 SYNOPSIS
 
-perl get_dicom_files.pl [-name patient_name_patterns] [-type scan_type_patterns] [-outdir tmp_dir] [-outfile tarBasename] 
+perl get_dicom_files.pl [-names patient_name_patterns] [-types scan_type_patterns] [-outdir tmp_dir] [-outfile tarBasename] 
            [-id candid|pscid|candid_pscid|pscid_candid] -profile profile
 
 Available options are:
@@ -26,7 +26,7 @@ Available options are:
            names) that a DICOM file has to have in order to be extracted. A DICOM file only
            has to match one of the patterns to be extracted. If no pattern is specified, then
            the scan type name is not used to determine which DICOM files to extract. This option
-           must be used if no patient name patterns were specified via C<-name> (see above).
+           must be used if no patient name patterns were specified via C<-names> (see above).
           
 -outdir  : extract the files in directory C<< <dir_argument>/get_dicom_files.pl.<random_string> >>
            For example with C<-d /data/tmp>, the DICOM files might be extracted in 
@@ -80,7 +80,7 @@ use Getopt::Tabular;
 &Getopt::Tabular::AddPatternType(
     "candidate_identifier", 
     "pscid|candid|pscid_candid|candid_pscid", 
-    "one of the sdtrings 'pscid', 'candid' , 'pscid_candid' or 'candid_pscid'"
+    "one of the strings 'pscid', 'candid' , 'pscid_candid' or 'candid_pscid'"
 );
 
 # If the absolute value of the difference between two floating 
@@ -277,7 +277,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     # Fetch all the MINC files created out of the DICOM archive whose 
     # acquisition protocols match the scan types
     # of interest
-    $query = "SELECT DISTINCT f.File, tf.FileName, ts.SeriesDescription "
+    $query = "SELECT DISTINCT f.File, tf.FileName, ts.SeriesDescription, tf.md5sum "
            . "FROM files f "
            . "JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) "
            . "JOIN tarchive_series ts ON (f.SeriesUID=ts.SeriesUID AND ABS(f.EchoTime*1000 - ts.EchoTime) < $FLOAT_EQUALS_THRESHOLD) "
@@ -291,38 +291,94 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     # For each MINC file X, find the names of the DICOM files that have the
     # same SeriesDescriptionUID as X and store them in @{ $filesRef->{$mincFile} }
     my $filesRef = {};
+
+    # This hash will contain the MD5Sum of all the DICOM files that should be extracted.
+    # $md5sum{$dicomFilename}{$mincFile} returns the MD5 sum of the DICOM file with
+    # basename $dicomFilename that is associated to MINC file $mincFile
+    # (note that it is possible for different MINC files to be associated to DICOMs files
+    # which have the same basename)
+    my %md5sum;
     foreach my $fileRowRef (@{ $sth->fetchall_arrayref }) {
-        my($mincFile, $dicomFilename, $seriesDescription) = @$fileRowRef;
+        my($mincFile, $dicomFilename, $seriesDescription, $md5sum) = @$fileRowRef;
         chomp $dicomFilename;
             
         $filesRef->{$mincFile}->{'SeriesDescription'} = $seriesDescription;
         $filesRef->{$mincFile}->{'DICOM'}             = [] unless defined $filesRef->{$mincFile}->{'DICOM'};
         push(@{ $filesRef->{$mincFile}->{'DICOM'} }, $dicomFilename);
+
+        $md5sum{$dicomFilename}{$mincFile} = [] unless defined $md5sum{$dicomFilename}{$mincFile};
+        push(@{ $md5sum{$dicomFilename}{$mincFile} }, $md5sum);
     }
     
     # Foreach MINC file extract the set of DICOM files
     # that were used to produce it (found above)
-    foreach my $file (keys %$filesRef) {
+    foreach my $mincFile (keys %$filesRef) {
         # Build file that contains the list of paths of the DICOM files to
-        # extact from the archive
-        my($fileBaseName) = $file =~ /\/([^\/]+).mnc$/;
-        my $fileList = "$tmpExtractDir/$fileBaseName.dicom";
+        # extract from the archive
+        my($mincFileBaseName) = $mincFile =~ /\/([^\/]+).mnc$/;
+        my $fileList = "$tmpExtractDir/$mincFileBaseName.dicom";
         open(FILE_LIST, ">$fileList") or die "Cannot write file $fileList: $!\n";
         
+        # This hash will contain the base names of DICOM files that are *not* unique inside the tarchive. 
+        # If one of these files needs to be extracted, we have to rely on the MD5 sum in order to be sure
+        # to extract the right DICOM file
+        my %md5sumToCheck;
         my $tarCmd = sprintf("tar ztf %s/%s", quotemeta($tmpExtractDir), quotemeta($innerTar));
         open(LIST_TAR_CONTENT, "$tarCmd|") or die "Cannot run command $tarCmd: $?\n";
         while (<LIST_TAR_CONTENT>) {
             chomp;
-            my($fileName, $dirName, $suffix) = fileparse($_);
-            print FILE_LIST "$_\n" if grep($_ eq $fileName, @{ $filesRef->{$file}->{'DICOM'} });
+            my($dicomFileBaseName, $dirName, $suffix) = fileparse($_);
+            if(grep($_ eq $dicomFileBaseName, @{ $filesRef->{$mincFile}->{'DICOM'} })) {
+                print FILE_LIST "$_\n";
+                # If there is more than one DICOM file with this basename, store it in the hash: we'll extract
+                # all files with that base name and use the MD5 sum to only retain the correct one later
+                if( keys %{ $md5sum{$dicomFileBaseName} } > 1) {
+                    $md5sumToCheck{$dicomFileBaseName} = [] unless defined $md5sumToCheck{$dicomFileBaseName};
+                    push(@{ $md5sumToCheck{$dicomFileBaseName} }, $_);
+                }
+            }
         }
-        close(FILE_LIST);
         close(LIST_TAR_CONTENT);
+        close(FILE_LIST);
         
-        # Extract from the inner tar the DICOMs who names are listed in
+        # Extract all DICOM files in the file list
+        my $dicomFilesExtractDir = "$tmpExtractDir/$mincFileBaseName.extract";
+        mkdir $dicomFilesExtractDir or die "Cannot create directory $dicomFilesExtractDir: $!\n";        
+        $cmd = sprintf(
+            "tar zxf %s/%s -C %s --files-from=%s",
+            quotemeta($tmpExtractDir),
+            quotemeta($innerTar),
+            quotemeta($dicomFilesExtractDir),
+            quotemeta($fileList) 
+        );
+        print "Extracting DICOM files for $mincFileBaseName in $dicomFilesExtractDir...";
+        system($cmd) == 0 
+            or die "Failed to extract DICOM files for $mincFileBaseName in $dicomFilesExtractDir: $?\n";
+        print "done.\n";
+
+        # Check all files for which we have to compute the MD5 sum and delete those that do not
+        # have an MD5 sum that we want
+        foreach my $dicomFileName (keys %md5sumToCheck) {
+            foreach my $extractedFile ( @{ $md5sumToCheck{$dicomFileName} } ) {
+                my $dicomFileFullPath = "$dicomFilesExtractDir/$extractedFile";
+                # No need to quote the file name as the three argument version
+                # of open takes care of that
+                open(my $fh, '<', $dicomFileFullPath) or die "Can't open file '$dicomFileFullPath': $!";
+                binmode ($fh);
+                my $curMd5Sum = Digest::MD5->new->addfile($fh)->hexdigest;
+
+                my($dicomFileBaseName, $dirName, $suffix) = fileparse($dicomFileFullPath);
+
+                # If the MD5 sum is not in the list of "wanted" MD5 sum for that file base name, get
+                # rid of the file
+                unlink $dicomFileFullPath unless grep($_ eq $curMd5Sum, @{ $md5sum{$dicomFileBaseName}{$mincFile} });
+            }
+        }
+
+        # Extract from the inner tar the DICOMs whose names are listed in
         # $tmpExtractDir/$fileBaseName.dicom
-        my($outSubDir) = $file =~ /_([^_]+_\d+).mnc$/;
-        $outSubDir .= sprintf("_%s", $filesRef->{$file}->{'SeriesDescription'});
+        my($outSubDir) = $mincFile =~ /_([^_]+_\d+).mnc$/;
+        $outSubDir .= sprintf("_%s", $filesRef->{$mincFile}->{'SeriesDescription'});
         
         # Determine the identifier or combination of identifiers to use as part of
         # the file name
@@ -332,46 +388,29 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         $id = "$candid"            if $candidateIdentifier eq 'candid';
         $id = "${candid}_${pscid}" if $candidateIdentifier eq 'candid_pscid';
 
-        my $outDir = "$tmpExtractDir/$id/$visitLabel/$dateAcquired/$outSubDir";
-        
+        my $outDir = "$id/$visitLabel/$dateAcquired/$outSubDir";
+
         # Since we are using a path transform in the tar command, we have to escape
         # sed's special characters
         my $outDirForSed = $outDir;
         $outDirForSed =~ s#\\#\\\\#g;
         $outDirForSed =~ s#&#\\&#g;
 
-        # --files-from: file containing the path of the files to extract
-        # --transform: put all extracted files in $outDir
-        # --absolute-path: since we are extracting in $outDir and since
-        #                  $outDir is an absolute path, we need this option otherwise
-        #                  tar will refuse to extract
-        $cmd = sprintf(
-            "tar zxf %s/%s --files-from=%s --absolute-names --transform='s#^.*/#$outDirForSed/#'",
-            quotemeta($tmpExtractDir),
-            quotemeta($innerTar),
-            quotemeta($fileList) 
-        );
-        print "Extracting DICOM files for $file...";
-        system($cmd) == 0 
-            or die "Failed to extract DICOM files for MINC file $file from $tmpExtractDir/$innerTar: $?\n";
-        print "done.\n";
-
         # Set archiving mode to 'create' or 'append' depending on whether
         # this is the first file archived or not
         my $tarOptions = $nbDirsArchived ? 'rf' : 'cf';
         $cmd = sprintf(
-            "tar $tarOptions %s -C %s --absolute-names %s",
+            "find %s -type f -print0|tar $tarOptions %s --null --transform='s#^.*/#$outDirForSed/#' -T -",
+            quotemeta($dicomFilesExtractDir),
             quotemeta($outTarFile),
-            quotemeta($tmpExtractDir),
-            quotemeta("$id/$visitLabel/$dateAcquired/$outSubDir")
         );
-        print "Archiving $outDir...";
-        system($cmd) == 0 or die "Failed to write DICOM files found in $outDir in archive $outTarFile: $?\n";
+        print "Archiving $dicomFilesExtractDir...";
+        system($cmd) == 0 or die "Failed to write DICOM files found in $dicomFilesExtractDir in archive $outTarFile: $?\n";
         print "done\n";
         $nbDirsArchived++;
 
         # Delete the outDir every time so that the temporary extract dir does not grow too big
-        rmtree($outDir);
+        rmtree($dicomFilesExtractDir);
         unlink($fileList) or warn "Warning! Could not delete '$tmpExtractDir/$innerTar'\n";
     }
    
