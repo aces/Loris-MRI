@@ -425,7 +425,7 @@ $files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarc
 $files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
-$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, \%files, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
+$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, \%files, $dataDirBasepath);
 
 if(!defined $files{'tarchive'}) {
     print STDERR "Cannot determine absolute path for archive $tarchiveID since config "
@@ -1307,7 +1307,7 @@ RETURNS:
 
 =cut
 sub getBidsExportFilesRef {
-    my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
+    my($dbh, $filesRef, $dataDirBasePath) = @_;
 
     my %fileID;
     foreach my $t (@PROCESSED_TABLES) {
@@ -1324,19 +1324,13 @@ sub getBidsExportFilesRef {
                 . ')';
     my $bidsFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, keys %fileID);
 
-    my $countQuery = 'SELECT COUNT(*) FROM bids_export_files bef'
-                     . ' JOIN files f ON (f.FileID=bef.FileID)'
-                     . ' WHERE TarchiveSource = ?';
-    my $sth = $dbh->prepare($countQuery);
-    $sth->execute($tarchiveID);
-    my $count = $sth->fetchrow_array;
-    if ($count == keys %$bidsFilesRef) {
-        $query = 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef'
-                 . ' JOIN tarchive t ON (t.FileID=bef.FileID)'
-                 . ' WHERE '
+    # Set full path of every file
+    foreach(@$bidsFilesRef) {
+        $_->{'FullPath'} = $_->{'FilePath'} =~ /^\//
+            ? $_->{'FilePath'} : "$dataDirBasePath/$_->{'FilePath'}";
     }
 
-
+    return $bidsFilesRef;
 }
 
 =pod
@@ -1572,7 +1566,10 @@ sub deleteUploadsInDatabase {
     } else { 
         &updateFilesIntermediaryTable($dbh, $filesRef, $tmpSQLFile);
     }
-   
+
+    @IDs = map { $_->{'BIDSExportedFileID'} } @{ $filesRef->{'bids_export_files'}};
+    $nbRecordsDeleted += &deleteTableData($dbh, 'bids_export_files', 'BIDSExportedFileID', \@IDs, $tmpSQLFile);
+
     @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
     
