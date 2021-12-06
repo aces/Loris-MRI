@@ -489,9 +489,7 @@ $studyInfo{'DateAcquired'}           //= $file->getParameter('study:start_date')
 
 ## Determine PSC, ScannerID and Subject IDs
 my ($center_name, $centerID) = $utility->determinePSC(\%studyInfo, 0, $upload_id);
-my $scannerID = $utility->determineScannerID(
-    \%studyInfo, 0, $centerID, $NewScanner, $upload_id
-);
+my $scannerID = $utility->determineScannerID(\%studyInfo, 0, $centerID, $upload_id);
 my $subjectIDsref = $utility->determineSubjectID(
     $scannerID, \%studyInfo, 0, $upload_id, $User, $centerID
 );
