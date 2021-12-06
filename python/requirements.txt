@@ -1,7 +1,7 @@
 mne
 mne-bids>=0.6
 protobuf>=3.0.0
-pybids>=0.12.1
+pybids=0.13.2
 mysqlclient
 mysql-connector
 pyblake2
