@@ -389,7 +389,7 @@ if ($metadata_file) {
     close( FILE );
 
     my $metadata = decode_json($json);
-    foreach my $parameter (sort keys $metadata) {
+    foreach my $parameter (sort keys %$metadata) {
         $file->setParameter( $parameter, $metadata->{$parameter} );
     }
 }
@@ -531,7 +531,7 @@ $file->setFileData( 'SessionID', $session_id );
 # set acquisition date
 my ($ss, $mm, $hh, $day, $month, $yy, $zone) = strptime( $date_acquired );
 $date_acquired = sprintf( "%4d-%02d-%02d", $yy+1900, $month+1, $day );
-$file->setParameter( 'AcquisitionDate', $date_acquired );
+$file->setParameter( 'acquisition_date', $date_acquired );
 
 # set output type
 $file->setFileData( 'OutputType', $output_type );
