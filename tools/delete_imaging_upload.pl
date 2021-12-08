@@ -425,7 +425,7 @@ $files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarc
 $files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
-$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, \%files, $dataDirBasepath);
+$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, $tarchiveID, \%files, $dataDirBasepath);
 $files{'bids_export_files_scans_tsv'} = &getBidsExportFilesSessionRef($dbh, \%files, $dataDirBasepath);
 
 if(!defined $files{'tarchive'}) {
@@ -1301,7 +1301,10 @@ Gets the imaging file records to delete from table bids_export_files.
 INPUTS:
   - $dbhr  : database handle reference.
   - $filesRef: reference on the hash of all files.
+  - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
+  - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $optionsRef: reference on the array of command line options.
 
 RETURNS:
   - an array of hash references. Each hash has three keys: C<BIDSExportedFileID> => ID of the record in the
@@ -1309,22 +1312,81 @@ RETURNS:
    C<bids_export_files> and C<FullPath> => absolute path of the BIDS export file.
 =cut
 sub getBidsExportFilesRef {
-    my($dbh, $filesRef, $dataDirBasePath) = @_;
+    my($dbh, $tarchiveID, $filesRef, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
 
-    my %fileID;
-    foreach my $t (@PROCESSED_TABLES) {
-        foreach my $f (@{ $filesRef->{$t} }) {
-            $fileID{ $f->{'FileID'} } = 1 if defined $f->{'FileID'};
-        }
+    return [] if !$tarchiveID;
+
+    my $fileBaseName = $optionsRef->{'BASENAME'};
+    my $mriScanTypeJoin = @$scanTypesToDeleteRef
+        ? 'JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ' : '';
+    my $mriScanTypeAnd = @$scanTypesToDeleteRef
+        ? sprintf('AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
+
+    # If -basename was used but nothing matched in tables files and files_intermediary
+    # Try finding a file in parameter_file that matches the -basename argument
+    my($query, @queryArgs);
+    if($fileBaseName ne '' && !@{ $filesRef->{'files'} } && !@{ $filesRef->{'files_intermediary'} }) {
+        $query = 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . ' JOIN files f ON (f.FileID=bef.FileID) '
+                . $mriScanTypeJoin
+                . ' WHERE f.TarchiveSource=? '
+                . $mriScanTypeAnd
+                . ' AND BINARY SUBSTRING_INDEX(bef.FilePath, "/", -1) = ?';
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
+
+        $query .= " UNION ";
+
+        $query .= 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . 'JOIN files f ON (f.FileID=bef.FileID) '
+                . 'JOIN files f2 ON(f.SourceFileID=f2.FileID AND f2.TarchiveSource= ? ) '
+                . $mriScanTypeJoin
+                . ' WHERE BINARY SUBSTRING_INDEX(bef.FilePath, "/", -1) = ? '
+                . $mriScanTypeAnd;
+        push(@queryArgs, $tarchiveID, $fileBaseName, @$scanTypesToDeleteRef);
+    } else {
+        my $fileBaseNameAnd = $fileBaseName ne ''
+            ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
+            : '';
+
+		$query = 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+               . 'JOIN files f ON (f.FileID=bef.FileID) '
+               . $mriScanTypeJoin
+               . 'WHERE f.TarchiveSource = ? '
+               . $mriScanTypeAnd
+               . " $fileBaseNameAnd";
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef);
+        push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
+
+        $query .= " UNION ";
+
+        $query .= 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . 'JOIN files f USING (FileID) '
+                . 'JOIN files f2 ON (f.SourceFileID=f2.FileID AND f2.TarchiveSource= ? ) '
+                . $mriScanTypeJoin
+                . 'WHERE 1=1 '
+                . $mriScanTypeAnd
+                . " $fileBaseNameAnd";
+
+        push(@queryArgs, $tarchiveID, @$scanTypesToDeleteRef);
+        push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
     }
 
-    return [] if !%fileID;
+    # If there are intermediary files and we do not want to keep the defaced files
+    # then we have to add to the query the records in table bids_export_files that are
+    # associated to the files in files_intermediary. Note that some of these files might
+    # have already been fetched by the queries above. The "union" will eliminate duplicates.
+    if (!$optionsRef->{'KEEP_DEFACED'} && @{ $filesRef->{'files_intermediary'} }) {
+        $query .= " UNION "
+                . ' SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . sprintf(
+                      ' WHERE bef.FileID IN (%s) ',
+                      join(',', ('?') x @{ $filesRef->{'files_intermediary'} })
+                  );
+        my @intermediaryFileIDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
+        push(@queryArgs, @intermediaryFileIDs);
+    }
 
-    my $query = 'SELECT BIDSExportedFileID, FilePath FROM bids_export_files'
-                . ' WHERE FileID IN ('
-                . join(',', ('?') x keys %fileID)
-                . ')';
-    my $bidsFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, keys %fileID);
+    my $bidsFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, @queryArgs);
 
     # Set full path of every file
     foreach(@$bidsFilesRef) {
