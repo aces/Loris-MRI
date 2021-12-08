@@ -151,6 +151,7 @@ use warnings;
 
 use Getopt::Tabular;
 use File::Temp qw/tempfile/;
+use File::Basename;
 
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
