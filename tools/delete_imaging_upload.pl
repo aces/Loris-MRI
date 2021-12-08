@@ -1464,7 +1464,10 @@ sub updateBidsScansTsvFile {
         return;
     }
 
-    my @deleted_files_path = grep $_->{'FilePath'} =~ m/\.nii\.gz$/, @$filesRef->{'bids_export_files'};
+    my @deleted_files_basename;
+    foreach (@{ $filesRef->{'bids_export_files'} }) {
+        push @deleted_files_basename, basename($_->{'FilePath'}) if ($_->{'FilePath'} =~ m/\.nii\.gz$/);
+    }
 
     my $tsv_to_update = $filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'};
     my @new_tsv_content;
@@ -1473,8 +1476,7 @@ sub updateBidsScansTsvFile {
     close($data);
 
     foreach my $row (@original_content) {
-        foreach my $deleted_file (@deleted_files_path) {
-            my $deleted_file_basename = basename($deleted_file);
+        foreach my $deleted_file_basename (@deleted_files_basename) {
             push @new_tsv_content, $row unless $row =~ m/$deleted_file_basename/;
         }
     }
