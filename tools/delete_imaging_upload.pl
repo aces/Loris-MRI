@@ -425,7 +425,7 @@ $files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarc
 $files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
-$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, $tarchiveID, \%files, $dataDirBasepath);
+$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, $tarchiveID, \%files, $dataDirBasepath, \@scanTypesToDelete, \%options);
 $files{'bids_export_files_scans_tsv'} = &getBidsExportFilesSessionRef($dbh, \%files, $dataDirBasepath);
 
 if(!defined $files{'tarchive'}) {
