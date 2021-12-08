@@ -66,6 +66,8 @@ use NeuroDB::DatabaseException;
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
 use NeuroDB::objectBroker::TarchiveOB;
+use NeuroDB::objectBroker::MriUploadOB;
+
 
 use Path::Class;
 use Scalar::Util qw(blessed);
@@ -528,6 +530,41 @@ QUERY
     }
 }
 
+=pod
+
+=head3 createMriUploadArray($uploadID)
+
+Creates the MRI upload information hash ref for the uploadID passed as argument.
+
+INPUTS:
+  - $uploadID: UploadID to query mri_upload
+
+RETURNS: MRI upload information hash ref if found a row for UploadID in mri_upload.
+         Exits when either no match is found.
+
+=cut
+
+sub createMriUploadArray {
+    my $this = shift;
+    my ($uploadID) = @_;
+
+    my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $this->{'db'});
+    my $mriUploadInfoRef = $mriUploadOB->getWithUploadID($uploadID);
+
+    if (!@$mriUploadInfoRef) {
+        my $message = "\nERROR: UploadID $uploadID not found in mri_upload\n\n";
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+        # no $tarchive can be fetched so $upload_id is undef
+        # in the notification_spool
+        $this->spool($message, 'Y', undef, $notify_notsummary);
+        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+    }
+
+    # Only one upload: return it as a hash
+    return %{ $mriUploadInfoRef->[0] };
+}
+
+=cut
 
 =pod
 
@@ -1808,6 +1845,39 @@ sub validateArchive {
     }
 }
 
+
+
+
+=pod
+
+=head3 validate_tarchive_id_against_upload_id($tarchiveInfoRef, $uploadInfoRef)
+
+INPUTS:
+  - $tarchiveInfoRef: DICOM archive information hash ref
+  - $uploadInfoRef  : MRI upload information reference
+
+=cut
+
+sub validate_tarchive_id_against_upload_id {
+    my $this = shift;
+    my ($tarchiveInfoRef, $uploadInfoRef) = @_;
+
+    my $upload_id        = $uploadInfoRef->{'UploadID'};
+    my $archive_location = $uploadInfoRef->{'ArchiveLocation'};
+    my $tarchive_id_mu   = $uploadInfoRef->{'TarchiveID'};
+    my $tarchive_id_t    = $tarchiveInfoRef->{'TarchiveID'};
+
+    unless ($tarchiveInfoRef->{'TarchiveID'} == $uploadInfoRef->{'TarchiveID'}) {
+        my $message = "\nERROR: UploadID {$upload_id} is associated with TarchiveID {$tarchive_id_mu}"
+                      . "while ArchiveLocation {$archive_location} is associated with TarchiveID {$tarchive_id_t}."
+                      . "Please, ensure the arguments provided to the script refer to the same tarchive\n\n";
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::CORRUPTED_FILE);
+        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+        exit $NeuroDB::ExitCodes::CORRUPTED_FILE;
+    }
+}
+
+=cut
 
 =pod
 

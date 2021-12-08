@@ -139,6 +139,47 @@ sub getWithTarchive {
 
 =pod
 
+=head3 getWithUploadID($isCount, $uploadID)($isCount, $uploadID)
+
+Fetches the entries in the C<mri_upload> table based on an UploadID.
+This method throws a C<NeuroDB::objectBroker::ObjectBrokerException>
+if the operation could not be completed successfully.
+
+INPUTS:
+    - boolean indicating if only a count of the records found is needed
+      or the full record properties.
+    - path of the archive location.
+
+RETURNS: a reference to an array of array references. If C<$isCount> is true, then
+         C<< $returnValue->[0]->[0] >> will contain the count of records sought. Otherwise
+         C<< $returnValue->[x]->[y] >> will contain the value of the yth column (in array
+         C<@MRI_UPLOAD_FIELDS> for the xth record retrieved.
+=cut
+
+sub getWithUploadID {
+    my($self, $isCount, $uploadID) = @_;
+
+    # We must preceed all the MRI upload fields with the table name they are issued from
+    # to avoid clashes with fields in table tarchive when building the SQL statement later on
+    my $select = $isCount ? 'COUNT(*)' : join(',', (map { "mri_upload.$_" } @MRI_UPLOAD_FIELDS));
+
+    try {
+        return $self->db->pselect(
+            "SELECT $select FROM mri_upload WHERE UploadID = ? ",
+            $uploadID
+        );
+    } catch(NeuroDB::DatabaseException $e) {
+        NeuroDB::objectBroker::ObjectBrokerException->throw(
+            errorMessage => sprintf(
+                "Failed to retrieve mri upload records. Reason:\n%s",
+                $e
+            )
+        );
+    }
+}
+
+=pod
+
 =head3 insert($valuesRef)
 
 Inserts a new record in the C<mri_upload> table with the specified column values.
