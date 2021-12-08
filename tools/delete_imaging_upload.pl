@@ -516,7 +516,7 @@ my $deleteResultsRef = &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDele
 
 &gzipBackupFile($options{'BACKUP_PATH'}) if $deleteResultsRef->{'SQL_BACKUP_DONE'};
 
-# &updateBidsScansTsvFile(\%files);
+&updateBidsScansTsvFile(\%files);
 
 #==========================#
 # Print success message    #
@@ -1304,7 +1304,9 @@ INPUTS:
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS:
-
+  - an array of hash references. Each hash has three keys: C<BIDSExportedFileID> => ID of the record in the
+   table, C<FilePath> => value of column C<FilePath> for the BIDS export file found in table
+   C<bids_export_files> and C<FullPath> => absolute path of the BIDS export file.
 =cut
 sub getBidsExportFilesRef {
     my($dbh, $filesRef, $dataDirBasePath) = @_;
@@ -1345,7 +1347,7 @@ INPUTS:
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
 
 RETURNS:
-  - bool whether the BIDS session level scans.tsv file will need to be updated
+  - a hash with scans.tsv full path and a boolean specifying whether the session level scans.tsv file needs to be updated
 
 =cut
 sub getBidsExportFilesSessionRef {
@@ -1385,30 +1387,42 @@ sub getBidsExportFilesSessionRef {
     }
 }
 
-# =pod
-#
-# =head3 updateBidsScansTsvFile()
-#
-#
-#
-# =cut
-#
-# sub updateBidsScansTsvFile {
-#     my ($filesRef) = @_;
-#
-#     unless ($filesRef->{'bids_export_files_scans_tsv'}{'update_bids_scans_tsv_file'}) {
-#         return;
-#     }
-#
-#     my @deleted_files_list = grep basename($_) =~ m/\.nii(\.gz)?$/, @$filesRef->{'bids_export_files'};
-#
-#     my $tsv_to_update = $filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'};
-#     my @new_tsv_content;
-#     open(DATA, "<$tsv_to_update") or die "Could not open file $tsv_to_update, $!";
-#     while(<DATA>) {
-#         if ($_ =~ )
-#     }
-# }
+=pod
+
+=head3 updateBidsScansTsvFile()
+
+
+
+=cut
+
+sub updateBidsScansTsvFile {
+    my ($filesRef) = @_;
+
+    unless ($filesRef->{'bids_export_files_scans_tsv'}{'update_bids_scans_tsv_file'}) {
+        return;
+    }
+
+    my @deleted_files_path = grep $_->{'FilePath'} =~ m/\.nii\.gz$/, @$filesRef->{'bids_export_files'};
+
+    my $tsv_to_update = $filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'};
+    my @new_tsv_content;
+    open my $data, '<', $tsv_to_update or die "Could not open file $tsv_to_update, $!";
+    chomp(my @original_content = <$data>);
+    close($data);
+
+    foreach my $row (@original_content) {
+        foreach my $deleted_file (@deleted_files_path) {
+            my $deleted_file_basename = basename($deleted_file);
+            push @new_tsv_content, $row unless $row =~ m/$deleted_file_basename/;
+        }
+    }
+
+    open my $fh, '>', $tsv_to_update;
+    foreach my $row (@new_tsv_content) {
+        print $fh $row;
+    }
+    close($fh);
+}
 
 =pod
 
