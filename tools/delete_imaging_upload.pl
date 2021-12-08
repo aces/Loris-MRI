@@ -516,7 +516,7 @@ my $deleteResultsRef = &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDele
 
 &gzipBackupFile($options{'BACKUP_PATH'}) if $deleteResultsRef->{'SQL_BACKUP_DONE'};
 
-&updateBidsScansTsvFile(\%files);
+# &updateBidsScansTsvFile(\%files);
 
 #==========================#
 # Print success message    #
