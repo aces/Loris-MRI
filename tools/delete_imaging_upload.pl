@@ -1484,7 +1484,7 @@ sub updateBidsScansTsvFile {
 
     open my $fh, '>', $tsv_to_update;
     foreach my $row (@new_tsv_content) {
-        print $fh $row;
+        print $fh "$row\n";
     }
     close($fh);
 }
