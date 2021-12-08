@@ -1355,12 +1355,13 @@ sub getBidsExportFilesSessionRef {
     my $sessionID = $filesRef->{'mri_upload'}->[0]->{'SessionID'};
     my $query = 'SELECT BIDSExportedFileID, FilePath FROM bids_export_files WHERE SessionID=?';
     my $sessionFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $sessionID);
+    my $scans_tsv_file_path;
     # Set full path of every file
     foreach(@$sessionFilesRef) {
         $_->{'FullPath'} = $_->{'FilePath'} =~ /^\//
             ? $_->{'FilePath'} : "$dataDirBasePath/$_->{'FilePath'}";
+        $scans_tsv_file_path = $_->{'FullPath'} if $_->{'FullPath'} =~ m/scans\.tsv$/;
     }
-    my ($scans_tsv_file_path) = grep $_ =~ m/scans\.tsv$/, @$sessionFilesRef;
 
     # check that the number of BIDS files to be removed matches the number of imaging BIDS
     # files available for the session
