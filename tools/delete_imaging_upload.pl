@@ -426,6 +426,7 @@ $files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $ta
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
 $files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, \%files, $dataDirBasepath);
+$files{'bids_export_files_scans_tsv'} = &getBidsExportFilesSessionRef($dbh, \%files, $dataDirBasepath);
 
 if(!defined $files{'tarchive'}) {
     print STDERR "Cannot determine absolute path for archive $tarchiveID since config "
@@ -514,6 +515,8 @@ my $deleteResultsRef = &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDele
 &deleteUploadsOnFileSystem(\%files, \@scanTypesToDelete, $options{'KEEP_DEFACED'}, $options{'BASENAME'});
 
 &gzipBackupFile($options{'BACKUP_PATH'}) if $deleteResultsRef->{'SQL_BACKUP_DONE'};
+
+&updateBidsScansTsvFile(\%files);
 
 #==========================#
 # Print success message    #
@@ -1291,17 +1294,14 @@ sub getMRICandidateErrorsFilesRef {
 
 =pod
 
-=head3 getBidsExportFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
+=head3 getBidsExportFilesRef($dbh, $filesRef, $dataDirBasePath)
 
-Gets the records to delete from table bids_export_files.
+Gets the imaging file records to delete from table bids_export_files.
 
 INPUTS:
   - $dbhr  : database handle reference.
   - $filesRef: reference on the hash of all files.
-  - $tarchiveID: ID of the DICOM archive.
   - $dataDirBasePath: config value of setting C<dataDirBasePath>.
-  - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-  - $optionsRef: reference on the array of command line options.
 
 RETURNS:
 
@@ -1332,6 +1332,82 @@ sub getBidsExportFilesRef {
 
     return $bidsFilesRef;
 }
+
+=pod
+
+=head3 getBidsExportFilesSessionRef($dbh, $filesRef, $dataDirBasePath)
+
+Gets the session level records to delete from table bids_export_files (aka scans.tsv and scans.json files).
+
+INPUTS:
+  - $dbhr  : database handle reference.
+  - $filesRef: reference on the hash of all files.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
+
+RETURNS:
+  - bool whether the BIDS session level scans.tsv file will need to be updated
+
+=cut
+sub getBidsExportFilesSessionRef {
+    my ($dbh, $filesRef, $dataDirBasePath) = @_;
+
+    # get the scans.tsv and scans.json files associated to the SessionID
+    my $sessionID = $filesRef->{'mri_upload'}->[0]->{'SessionID'};
+    my $query = 'SELECT BIDSExportedFileID, FilePath FROM bids_export_files WHERE SessionID=?';
+    my $sessionFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $sessionID);
+    # Set full path of every file
+    foreach(@$sessionFilesRef) {
+        $_->{'FullPath'} = $_->{'FilePath'} =~ /^\//
+            ? $_->{'FilePath'} : "$dataDirBasePath/$_->{'FilePath'}";
+    }
+    my ($scans_tsv_file_path) = grep $_ =~ m/scans\.tsv$/, @$sessionFilesRef;
+
+    # check that the number of BIDS files to be removed matches the number of imaging BIDS
+    # files available for the session
+    $query = 'SELECT COUNT(*) AS bids_files_count FROM bids_export_files WHERE FileID IN ('
+             . 'SELECT FileID FROM files WHERE SessionID=?'
+             .')';
+    my $sth = $dbh->prepare($query);
+    $sth->execute($sessionID);
+    my $bids_files_count_hash = $sth->fetchrow_hashref();
+    if ($bids_files_count_hash->{'$bids_files_count'} == scalar($filesRef->{'bids_export_files'})) {
+        push(@$filesRef->{'bids_export_files'}, $sessionFilesRef);
+        return {
+            'scans_tsv_file_path'        => $scans_tsv_file_path,
+            'update_bids_scans_tsv_file' => 0
+        };
+    } else {
+        return {
+            'scans_tsv_file_path'        => $scans_tsv_file_path,
+            'update_bids_scans_tsv_file' => 1
+        };
+    }
+}
+
+# =pod
+#
+# =head3 updateBidsScansTsvFile()
+#
+#
+#
+# =cut
+#
+# sub updateBidsScansTsvFile {
+#     my ($filesRef) = @_;
+#
+#     unless ($filesRef->{'bids_export_files_scans_tsv'}{'update_bids_scans_tsv_file'}) {
+#         return;
+#     }
+#
+#     my @deleted_files_list = grep basename($_) =~ m/\.nii(\.gz)?$/, @$filesRef->{'bids_export_files'};
+#
+#     my $tsv_to_update = $filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'};
+#     my @new_tsv_content;
+#     open(DATA, "<$tsv_to_update") or die "Could not open file $tsv_to_update, $!";
+#     while(<DATA>) {
+#         if ($_ =~ )
+#     }
+# }
 
 =pod
 
