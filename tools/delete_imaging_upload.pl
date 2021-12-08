@@ -1454,7 +1454,12 @@ sub getBidsExportFilesSessionRef {
 
 =head3 updateBidsScansTsvFile()
 
+Modifies the scans.tsv BIDS file if not all files for the session have been deleted. It will remove the
+entries for the files that were deleted from scans.tsv BIDS export file.
 
+INPUTS:
+  - $filesRef: reference to the array that contains the file informations for all the files
+    that are associated to the upload(s) passed on the command line.
 
 =cut
 
@@ -1602,6 +1607,9 @@ sub backupFiles {
                 $nbToBackUp++;
             }
         }
+    }
+    if ($filesRef->{'bids_export_files_scans_tsv'}{'update_bids_scans_tsv_file'}) {
+        print $fh "$filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'}";
     }
     close($fh);
     
