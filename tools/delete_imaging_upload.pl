@@ -1608,6 +1608,8 @@ sub backupFiles {
             }
         }
     }
+    # backup the BIDS export scans.tsv file as it will be modified by the delete script so we can regenerate it as it
+    # was when extracting the archive.
     if ($filesRef->{'bids_export_files_scans_tsv'}{'update_bids_scans_tsv_file'}) {
         print $fh "$filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'}";
     }
