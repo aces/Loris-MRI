@@ -1371,7 +1371,7 @@ sub getBidsExportFilesSessionRef {
     $sth->execute($sessionID);
     my $bids_files_count_hash = $sth->fetchrow_hashref();
     if ($bids_files_count_hash->{'bids_files_count'} == scalar(@{ $filesRef->{'bids_export_files'} })) {
-        push(@$filesRef->{'bids_export_files'}, $sessionFilesRef);
+        push(@{ $filesRef->{'bids_export_files'} }, $sessionFilesRef);
         return {
             'scans_tsv_file_path'        => $scans_tsv_file_path,
             'update_bids_scans_tsv_file' => 0
