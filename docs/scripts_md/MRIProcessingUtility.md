@@ -148,6 +148,16 @@ INPUTS:
 RETURNS: DICOM/HRRT archive information hash ref if exactly one archive was found. Exits
          when either no match or multiple matches are found.
 
+### createMriUploadArray($uploadID)
+
+Creates the MRI upload information hash ref for the uploadID passed as argument.
+
+INPUTS:
+  - $uploadID: UploadID to query mri\_upload
+
+RETURNS: MRI upload information hash ref if found a row for UploadID in mri\_upload.
+         Exits when either no match is found.
+
 ### determinePSC($tarchiveInfo, $to\_log, $upload\_id)
 
 Determines the PSC based on the DICOM archive information hash ref.
@@ -391,6 +401,12 @@ INPUTS:
   - $tarchiveInfo: DICOM archive information hash ref
   - $upload\_id   : upload ID of the study
 
+### validate\_tarchive\_id\_against\_upload\_id($tarchiveInfoRef, $uploadInfoRef)
+
+INPUTS:
+  - $tarchiveInfoRef: DICOM archive information hash ref
+  - $uploadInfoRef  : MRI upload information reference
+
 ### which\_directory($subjectIDsref, $data\_dir, $hrrt)
 
 Determines where the MINC files to be registered into the database will go.
@@ -486,3 +502,15 @@ License: GPLv3
 
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 567:
+
+    &#x3d;cut found outside a pod block.  Skipping to next block.
+
+- Around line 1880:
+
+    &#x3d;cut found outside a pod block.  Skipping to next block.
