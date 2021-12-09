@@ -1863,7 +1863,7 @@ sub validate_tarchive_id_against_upload_id {
     my ($tarchiveInfoRef, $uploadInfoRef) = @_;
 
     my $upload_id        = $uploadInfoRef->{'UploadID'};
-    my $archive_location = $uploadInfoRef->{'ArchiveLocation'};
+    my $archive_location = $tarchiveInfoRef->{'ArchiveLocation'};
     my $tarchive_id_mu   = $uploadInfoRef->{'TarchiveID'};
     my $tarchive_id_t    = $tarchiveInfoRef->{'TarchiveID'};
 
