@@ -9,6 +9,11 @@ use NeuroDB::DBI;
 use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 
+use NeuroDB::Database;
+use NeuroDB::DatabaseException;
+
+use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::ConfigOB;
 
 
 my $profile;
@@ -72,6 +77,22 @@ if ( !@Settings::db ) {
 
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+# ----------------------------------------------------------------
+## Get config setting using ConfigOB
+# ----------------------------------------------------------------
+
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+my $data_dir = $configOB->getDataDirPath();
 
 
 ##################################################
@@ -172,5 +193,5 @@ sub determine_MincPath {
 
     # return the path in the trashbin directory for files not present in the
     # files table
-    return NeuroDB::MRI::get_trashbin_file_rel_path($current_path);
+    return NeuroDB::MRI::get_trashbin_file_rel_path($current_path, $data_dir, 0);
 }

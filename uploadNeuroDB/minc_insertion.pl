@@ -517,10 +517,13 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
     chomp $CandMismatchError;
     $/ = $originalSeparatorValue;
 
+    # move the file into trashbin
+    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($minc, $data_dir, 1);
+
     $candlogSth->execute(
         $file->getParameter('series_instance_uid'),
         $studyInfo{'TarchiveID'},
-        NeuroDB::MRI::get_trashbin_file_rel_path($minc),
+        $file_rel_path,
         $studyInfo{'PatientName'},
         $CandMismatchError
     );
@@ -618,7 +621,8 @@ $file->setFileData('Caveat', $caveat);
       $minc,
       $acquisitionProtocol,
       $bypass_extra_file_checks,
-      $upload_id
+      $upload_id,
+      $data_dir
     );
 
 if($acquisitionProtocol =~ /unknown/ && !defined $acquisitionProtocolID) {

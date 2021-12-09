@@ -40,6 +40,7 @@ use Math::Round;
 use Time::JulianDay;
 use File::Temp qw(tempdir);
 use File::Basename;
+use File::Copy;
 use Data::Dumper;
 use Carp;
 use Time::Local;
@@ -296,6 +297,7 @@ INPUTS:
   - $db             : database object
   - $minc_location  : location of the MINC files
   - $uploadID       : ID of the upload containing the scan
+  - $data_dir       : path to the LORIS MRI data directory
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 
@@ -303,7 +305,7 @@ RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID) = @_;
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID, $data_dir) = @_;
 
     my $candid       = ${subjectref}->{'CandID'};
     my $pscid        = ${subjectref}->{'PSCID'};
@@ -515,12 +517,12 @@ sub identify_scan_db {
     # table. Note that $mriProtocolGroupID will be undef unless exactly one protocol 
     # group was used to try to identify the scan
     insert_violated_scans(
-        $dbhr,   $series_description, $minc_location,   $patient_name,
-        $candid, $pscid,              $tr,              $te,
-        $ti,     $slice_thickness,    $xstep,           $ystep,
-        $zstep,  $xspace,             $yspace,          $zspace,
-        $time,   $seriesUID,          $tarchiveID,      $image_type,
-        $mriProtocolGroupID
+        $dbhr,     $series_description, $minc_location,   $patient_name,
+        $candid,   $pscid,              $tr,              $te,
+        $ti,       $slice_thickness,    $xstep,           $ystep,
+        $zstep,    $xspace,             $yspace,          $zspace,
+        $time,     $seriesUID,          $tarchiveID,      $image_type,
+        $data_dir, $mriProtocolGroupID
     );
 
     return 'unknown';
@@ -528,7 +530,7 @@ sub identify_scan_db {
 
 =pod
 
-=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID)
+=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $data_dir)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
@@ -556,22 +558,23 @@ INPUTS:
   - $seriesUID      : C<SeriesUID> of the scan
   - $tarchiveID     : C<TarchiveID> of the DICOM archive from which this file is derived
   - $image_type     : the C<image_type> header value of the image
+  - $data_dir       : path to the LORIS MRI data directory
   - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 =cut
 
 sub insert_violated_scans {
 
-    my ($dbhr,   $series_description, $minc_location, $patient_name,
-        $candid, $pscid,              $tr,            $te,
-        $ti,     $slice_thickness,    $xstep,         $ystep,
-        $zstep,  $xspace,             $yspace,        $zspace,
-        $time,   $seriesUID,          $tarchiveID,    $image_type,
-        $mriProtocolGroupID) = @_;
+    my ($dbhr,     $series_description, $minc_location, $patient_name,
+        $candid,   $pscid,              $tr,            $te,
+        $ti,       $slice_thickness,    $xstep,         $ystep,
+        $zstep,    $xspace,             $yspace,        $zspace,
+        $time,     $seriesUID,          $tarchiveID,    $image_type,
+        $data_dir, $mriProtocolGroupID) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
-    my $file_rel_path = get_trashbin_file_rel_path($minc_location);
+    my $file_rel_path = get_trashbin_file_rel_path($minc_location, $data_dir, 1);
 
     (my $query = <<QUERY) =~ s/\n//gm;
   INSERT INTO mri_protocol_violated_scans (
@@ -1635,24 +1638,28 @@ sub isEcatImage {
 
 =pod
 
-=head3 get_trashbin_file_rel_path($file)
+=head3 get_trashbin_file_rel_path($file, $data_dir, $move_file)
 
-Determines and returns the relative path of a file moved to trashbin at the end of
-the insertion pipeline.
+Determines and returns the relative path of a file after moving it to trashbin.
 
-INPUT: path to a given file
+INPUT:
+  - $file: path to a given file
+  - $data_dir: path to the LORIS MRI data directory
+  - $move_file: bool specifying whether the file should be moved to trashbin
 
 RETURNS: the relative path of the file moved to the trashbin directory
 
 =cut
 
 sub get_trashbin_file_rel_path {
-    my ($file) = @_;
+    my ($file, $data_dir, $move_file) = @_;
 
     my @directories  = split(/\//, $file);
     my $new_rel_path = "trashbin"
                        . "/" . $directories[$#directories-1]
                        . "/" . $directories[$#directories];
+
+    move($file, "$data_dir/$new_rel_path") if (defined $move_file);
 
     return $new_rel_path;
 }
