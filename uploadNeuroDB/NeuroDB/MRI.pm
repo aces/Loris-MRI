@@ -1659,7 +1659,11 @@ sub get_trashbin_file_rel_path {
                        . "/" . $directories[$#directories-1]
                        . "/" . $directories[$#directories];
 
-    move($file, "$data_dir/$new_rel_path") if (defined $move_file);
+    if (defined $move_file) {
+        my $destination_dir = "$data_dir/trashbin/$directories[$#directories-1]";
+        mkdir $destination_dir unless (-e $destination_dir);
+        move($file, "$data_dir/$new_rel_path");
+    }
 
     return $new_rel_path;
 }
