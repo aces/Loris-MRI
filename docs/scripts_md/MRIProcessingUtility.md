@@ -187,7 +187,7 @@ INPUTS:
 
 RETURNS: 1 if the file is unique, 0 otherwise
 
-### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center\_name, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id)
+### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center\_name, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id, $data\_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If `$acquisitionProtocol` is not set, it will look for the acquisition
@@ -205,6 +205,7 @@ INPUTS:
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass\_extra\_file\_checks: boolean, if set bypass the extra checks
   - $upload\_id               : upload ID of the study
+  - $data\_dir                : path to the LORIS MRI data directory
 
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
@@ -212,7 +213,7 @@ RETURNS:
   - $extra\_validation\_status : extra validation status ("pass", "exclude", "warning") or
                                `undef` if `$bypass_extra_file_checks` is set.
 
-### extra\_file\_checks($scan\_type, $file, $subjectIdsref, $pname)
+### extra\_file\_checks($scan\_type, $file, $subjectIdsref, $pname, $data\_dir)
 
 Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
@@ -222,6 +223,7 @@ INPUTS:
   - $file         : file information hash ref
   - $subjectIdsref: context information for the scan
   - $pname        : patient name found in the scan header
+  - $data\_dir     : path to the LORIS MRI data directory
 
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
@@ -259,7 +261,7 @@ INPUTS:
 RETURNS: a hash with all information about the checks for a given scan type
 and severity
 
-### insert\_into\_mri\_violations\_log($valid\_fields, $severity, $pname, $candID, $visit\_label, $file)
+### insert\_into\_mri\_violations\_log($valid\_fields, $severity, $pname, $candID, $visit\_label, $file, $data\_dir)
 
 For a given protocol failure, it will insert into the `mri_violations_log`
 table all the information about the scan and the protocol violation.
@@ -271,6 +273,7 @@ INPUTS:
   - $candID      : `CandID` associated with the scan
   - $visit\_label : visit label associated with the scan
   - $file        : information about the scan
+  - $data\_dir    : path to the LORIS MRI data directory
 
 ### loadAndCreateObjectFile($minc, $upload\_id)
 
