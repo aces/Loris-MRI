@@ -80,9 +80,10 @@ successfully run, this removes all records tied to the upload in the following t
    f) C<parameter_file>
    g) C<tarchive>
    h) C<mri_upload>
-   i) C<mri_processing_protocol> if option C<-protocol> is used (see below)
-   j) C<mri_parameter_form> if option C<-form> is used (see below)
-   
+   i) C<bids_export_files>
+   j) C<mri_processing_protocol> if option C<-protocol> is used (see below)
+   k) C<mri_parameter_form> if option C<-form> is used (see below)
+
 All the deletions and modifications performed in the database are done as part of a single transaction, so they either
 all succeed or a rollback is performed and the database is not modified in any way. The ID of the upload to delete
 is specified via option C<-uploadID>. More than one upload can be deleted if they all have the same C<TarchiveID> 
@@ -150,6 +151,7 @@ use warnings;
 
 use Getopt::Tabular;
 use File::Temp qw/tempfile/;
+use File::Basename;
 
 use NeuroDB::DBI;
 use NeuroDB::ExitCodes;
@@ -190,7 +192,8 @@ my @PROCESSED_TABLES = (
     'MRICandidateErrors',
     'tarchive',
     'mri_processing_protocol',
-    'mri_upload'
+    'mri_upload',
+    'bids_export_files'
 );
 
 # Stolen from get_dicom_files.pl: should be a constant global to both
@@ -423,6 +426,8 @@ $files{'mri_violations_log'}          = &getMriViolationsLogFilesRef($dbh, $tarc
 $files{'MRICandidateErrors'}          = &getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasepath, \@scanTypesToDelete, \%options);
 $files{'tarchive'}                    = &getTarchiveFiles($dbh, $tarchiveID, $tarchiveLibraryDir);
 $files{'mri_processing_protocol'}     = &getMriProcessingProtocolFilesRef($dbh, \%files);
+$files{'bids_export_files'}           = &getBidsExportFilesRef($dbh, $tarchiveID, \%files, $dataDirBasepath, \@scanTypesToDelete, \%options);
+$files{'bids_export_files_scans_tsv'} = &getBidsExportFilesSessionRef($dbh, \%files, $dataDirBasepath);
 
 if(!defined $files{'tarchive'}) {
     print STDERR "Cannot determine absolute path for archive $tarchiveID since config "
@@ -511,6 +516,8 @@ my $deleteResultsRef = &deleteUploadsInDatabase($dbh, \%files, \@scanTypesToDele
 &deleteUploadsOnFileSystem(\%files, \@scanTypesToDelete, $options{'KEEP_DEFACED'}, $options{'BASENAME'});
 
 &gzipBackupFile($options{'BACKUP_PATH'}) if $deleteResultsRef->{'SQL_BACKUP_DONE'};
+
+&updateBidsScansTsvFile(\%files);
 
 #==========================#
 # Print success message    #
@@ -1288,6 +1295,207 @@ sub getMRICandidateErrorsFilesRef {
 
 =pod
 
+=head3 getBidsExportFilesRef($dbh, $filesRef, $dataDirBasePath)
+
+Gets the imaging file records to delete from table bids_export_files.
+
+INPUTS:
+  - $dbhr  : database handle reference.
+  - $filesRef: reference on the hash of all files.
+  - $tarchiveID: ID of the DICOM archive.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
+  - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
+  - $optionsRef: reference on the array of command line options.
+
+RETURNS:
+  - an array of hash references. Each hash has three keys: C<BIDSExportedFileID> => ID of the record in the
+   table, C<FilePath> => value of column C<FilePath> for the BIDS export file found in table
+   C<bids_export_files> and C<FullPath> => absolute path of the BIDS export file.
+=cut
+sub getBidsExportFilesRef {
+    my($dbh, $tarchiveID, $filesRef, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
+
+    return [] if !$tarchiveID;
+
+    my $fileBaseName = $optionsRef->{'BASENAME'};
+    my $mriScanTypeJoin = @$scanTypesToDeleteRef
+        ? 'JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ' : '';
+    my $mriScanTypeAnd = @$scanTypesToDeleteRef
+        ? sprintf('AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
+
+    # If -basename was used but nothing matched in tables files and files_intermediary
+    # Try finding a file in parameter_file that matches the -basename argument
+    my($query, @queryArgs);
+    if($fileBaseName ne '' && !@{ $filesRef->{'files'} } && !@{ $filesRef->{'files_intermediary'} }) {
+        $query = 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . ' JOIN files f ON (f.FileID=bef.FileID) '
+                . $mriScanTypeJoin
+                . ' WHERE f.TarchiveSource=? '
+                . $mriScanTypeAnd
+                . ' AND BINARY SUBSTRING_INDEX(bef.FilePath, "/", -1) = ?';
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
+
+        $query .= " UNION ";
+
+        $query .= 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . 'JOIN files f ON (f.FileID=bef.FileID) '
+                . 'JOIN files f2 ON(f.SourceFileID=f2.FileID AND f2.TarchiveSource= ? ) '
+                . $mriScanTypeJoin
+                . ' WHERE BINARY SUBSTRING_INDEX(bef.FilePath, "/", -1) = ? '
+                . $mriScanTypeAnd;
+        push(@queryArgs, $tarchiveID, $fileBaseName, @$scanTypesToDeleteRef);
+    } else {
+        my $fileBaseNameAnd = $fileBaseName ne ''
+            ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
+            : '';
+
+		$query = 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+               . 'JOIN files f ON (f.FileID=bef.FileID) '
+               . $mriScanTypeJoin
+               . 'WHERE f.TarchiveSource = ? '
+               . $mriScanTypeAnd
+               . " $fileBaseNameAnd";
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef);
+        push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
+
+        $query .= " UNION ";
+
+        $query .= 'SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . 'JOIN files f USING (FileID) '
+                . 'JOIN files f2 ON (f.SourceFileID=f2.FileID AND f2.TarchiveSource= ? ) '
+                . $mriScanTypeJoin
+                . 'WHERE 1=1 '
+                . $mriScanTypeAnd
+                . " $fileBaseNameAnd";
+
+        push(@queryArgs, $tarchiveID, @$scanTypesToDeleteRef);
+        push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
+    }
+
+    # If there are intermediary files and we do not want to keep the defaced files
+    # then we have to add to the query the records in table bids_export_files that are
+    # associated to the files in files_intermediary. Note that some of these files might
+    # have already been fetched by the queries above. The "union" will eliminate duplicates.
+    if (!$optionsRef->{'KEEP_DEFACED'} && @{ $filesRef->{'files_intermediary'} }) {
+        $query .= " UNION "
+                . ' SELECT bef.BIDSExportedFileID, bef.FilePath FROM bids_export_files bef '
+                . sprintf(
+                      ' WHERE bef.FileID IN (%s) ',
+                      join(',', ('?') x @{ $filesRef->{'files_intermediary'} })
+                  );
+        my @intermediaryFileIDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
+        push(@queryArgs, @intermediaryFileIDs);
+    }
+
+    my $bidsFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, @queryArgs);
+
+    # Set full path of every file
+    foreach(@$bidsFilesRef) {
+        $_->{'FullPath'} = $_->{'FilePath'} =~ /^\//
+            ? $_->{'FilePath'} : "$dataDirBasePath/$_->{'FilePath'}";
+    }
+
+    return $bidsFilesRef;
+}
+
+=pod
+
+=head3 getBidsExportFilesSessionRef($dbh, $filesRef, $dataDirBasePath)
+
+Gets the session level records to delete from table bids_export_files (aka scans.tsv and scans.json files).
+
+INPUTS:
+  - $dbhr  : database handle reference.
+  - $filesRef: reference on the hash of all files.
+  - $dataDirBasePath: config value of setting C<dataDirBasePath>.
+
+RETURNS:
+  - a hash with scans.tsv full path and a boolean specifying whether the session level scans.tsv file needs to be updated
+
+=cut
+sub getBidsExportFilesSessionRef {
+    my ($dbh, $filesRef, $dataDirBasePath) = @_;
+
+    # get the scans.tsv and scans.json files associated to the SessionID
+    my $sessionID = $filesRef->{'mri_upload'}->[0]->{'SessionID'};
+    my $query = 'SELECT BIDSExportedFileID, FilePath FROM bids_export_files WHERE SessionID=?';
+    my $sessionFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, $sessionID);
+    my $scans_tsv_file_path;
+    # Set full path of every file
+    foreach(@$sessionFilesRef) {
+        $_->{'FullPath'} = $_->{'FilePath'} =~ /^\//
+            ? $_->{'FilePath'} : "$dataDirBasePath/$_->{'FilePath'}";
+        $scans_tsv_file_path = $_->{'FullPath'} if $_->{'FullPath'} =~ m/scans\.tsv$/;
+    }
+
+    # check that the number of BIDS files to be removed matches the number of imaging BIDS
+    # files available for the session
+    $query = 'SELECT COUNT(*) AS bids_files_count FROM bids_export_files WHERE FileID IN ('
+             . 'SELECT FileID FROM files WHERE SessionID=?'
+             .')';
+    my $sth = $dbh->prepare($query);
+    $sth->execute($sessionID);
+    my $bids_files_count_hash = $sth->fetchrow_hashref();
+    if ($bids_files_count_hash->{'bids_files_count'} == scalar(@{ $filesRef->{'bids_export_files'} })) {
+        push(@{ $filesRef->{'bids_export_files'} }, @{ $sessionFilesRef });
+        return {
+            'scans_tsv_file_path'        => $scans_tsv_file_path,
+            'update_bids_scans_tsv_file' => 0
+        };
+    } else {
+        return {
+            'scans_tsv_file_path'        => $scans_tsv_file_path,
+            'update_bids_scans_tsv_file' => 1
+        };
+    }
+}
+
+=pod
+
+=head3 updateBidsScansTsvFile()
+
+Modifies the scans.tsv BIDS file if not all files for the session have been deleted. It will remove the
+entries for the files that were deleted from scans.tsv BIDS export file.
+
+INPUTS:
+  - $filesRef: reference to the array that contains the file informations for all the files
+    that are associated to the upload(s) passed on the command line.
+
+=cut
+
+sub updateBidsScansTsvFile {
+    my ($filesRef) = @_;
+
+    unless ($filesRef->{'bids_export_files_scans_tsv'}{'update_bids_scans_tsv_file'}) {
+        return;
+    }
+
+    my @deleted_files_basename;
+    foreach (@{ $filesRef->{'bids_export_files'} }) {
+        push @deleted_files_basename, basename($_->{'FilePath'}) if ($_->{'FilePath'} =~ m/\.nii\.gz$/);
+    }
+
+    my $tsv_to_update = $filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'};
+    my @new_tsv_content;
+    open my $data, '<', $tsv_to_update or die "Could not open file $tsv_to_update, $!";
+    chomp(my @original_content = <$data>);
+    close($data);
+
+    foreach my $row (@original_content) {
+        foreach my $deleted_file_basename (@deleted_files_basename) {
+            push @new_tsv_content, $row unless $row =~ m/$deleted_file_basename/;
+        }
+    }
+
+    open my $fh, '>', $tsv_to_update;
+    foreach my $row (@new_tsv_content) {
+        print $fh "$row\n";
+    }
+    close($fh);
+}
+
+=pod
+
 =pod
 
 =head3 setFileExistenceStatus($filesRef)
@@ -1399,6 +1607,11 @@ sub backupFiles {
                 $nbToBackUp++;
             }
         }
+    }
+    # backup the BIDS export scans.tsv file as it will be modified by the delete script so we can regenerate it as it
+    # was when extracting the archive.
+    if ($filesRef->{'bids_export_files_scans_tsv'}{'update_bids_scans_tsv_file'}) {
+        print $fh "$filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'}";
     }
     close($fh);
     
@@ -1519,7 +1732,10 @@ sub deleteUploadsInDatabase {
     } else { 
         &updateFilesIntermediaryTable($dbh, $filesRef, $tmpSQLFile);
     }
-   
+
+    @IDs = map { $_->{'BIDSExportedFileID'} } @{ $filesRef->{'bids_export_files'}};
+    $nbRecordsDeleted += &deleteTableData($dbh, 'bids_export_files', 'BIDSExportedFileID', \@IDs, $tmpSQLFile);
+
     @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile);
     
