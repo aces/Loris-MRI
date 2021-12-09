@@ -157,7 +157,7 @@ RETURNS: a reference to an array of array references. If C<$isCount> is true, th
 =cut
 
 sub getWithUploadID {
-    my($self, $isCount, $uploadID) = @_;
+    my($self, $uploadID, $isCount) = @_;
 
     # We must preceed all the MRI upload fields with the table name they are issued from
     # to avoid clashes with fields in table tarchive when building the SQL statement later on
