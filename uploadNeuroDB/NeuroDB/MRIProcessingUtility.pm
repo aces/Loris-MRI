@@ -1869,8 +1869,8 @@ sub validate_tarchive_id_against_upload_id {
 
     unless ($tarchiveInfoRef->{'TarchiveID'} == $uploadInfoRef->{'TarchiveID'}) {
         my $message = "\nERROR: UploadID {$upload_id} is associated with TarchiveID {$tarchive_id_mu}"
-                      . "while ArchiveLocation {$archive_location} is associated with TarchiveID {$tarchive_id_t}."
-                      . "Please, ensure the arguments provided to the script refer to the same tarchive\n\n";
+                      . " while ArchiveLocation {$archive_location} is associated with TarchiveID {$tarchive_id_t}."
+                      . " Please, ensure the arguments provided to the script refer to the same tarchive\n\n";
         $this->writeErrorLog($message, $NeuroDB::ExitCodes::CORRUPTED_FILE);
         $this->spool($message, 'Y', $upload_id, $notify_notsummary);
         exit $NeuroDB::ExitCodes::CORRUPTED_FILE;
