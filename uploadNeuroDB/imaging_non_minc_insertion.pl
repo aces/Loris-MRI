@@ -533,8 +533,9 @@ my ($ss, $mm, $hh, $day, $month, $yy, $zone) = strptime( $date_acquired );
 $date_acquired = sprintf( "%4d-%02d-%02d", $yy+1900, $month+1, $day );
 $file->setParameter( 'acquisition_date', $date_acquired );
 
-# set output type
-$file->setFileData( 'OutputType', $output_type );
+# set output type and coordinate space
+$file->setFileData('OutputType',      $output_type  );
+$file->setFileData('CoordinateSpace', $coordin_space);
 
 
 
