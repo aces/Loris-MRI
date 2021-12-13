@@ -1289,7 +1289,7 @@ sub make_nii {
     my $bvec_success = create_dwi_nifti_bvec_file($fileref, "$data_dir/$bvec_file");
 
     # update mri table (parameter_file table)
-    $file->setParameter('check_nii_filename',  $gzip_nifti) if -e $gzip_nifti;
+    $file->setParameter('check_nii_filename',  $gzip_nifti) if -e "$data_dir/$gzip_nifti";
     $file->setParameter('check_bval_filename', $bval_file) if $bval_success;
     $file->setParameter('check_bvec_filename', $bvec_file) if $bvec_success;
 }
