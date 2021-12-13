@@ -697,7 +697,7 @@ sub computeMd5Hash {
 
 =pod
 
-=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center_name, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id)
+=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center_name, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id, $data_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If C<$acquisitionProtocol> is not set, it will look for the acquisition
@@ -715,6 +715,8 @@ INPUTS:
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass_extra_file_checks: boolean, if set bypass the extra checks
   - $upload_id               : upload ID of the study
+  - $data_dir                : path to the LORIS MRI data directory
+
 
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
@@ -728,7 +730,7 @@ sub getAcquisitionProtocol {
    
     my $this = shift;
     my ($file,$subjectIDsref,$tarchiveInfoRef,$center_name,$minc,
-        $acquisitionProtocol,$bypass_extra_file_checks, $upload_id) = @_;
+        $acquisitionProtocol,$bypass_extra_file_checks, $upload_id, $data_dir) = @_;
     my $message = '';
 
     ############################################################
@@ -748,7 +750,8 @@ sub getAcquisitionProtocol {
                                    $this->{dbhr}, 
                                    $this->{'db'},
                                    $minc,
-                                   $upload_id
+                                   $upload_id,
+                                   $data_dir
                                  );
     }
 
@@ -787,7 +790,8 @@ sub getAcquisitionProtocol {
                 $acquisitionProtocolID, 
                 $file, 
                 $subjectIDsref, 
-                $tarchiveInfoRef->{'PatientName'}
+                $tarchiveInfoRef->{'PatientName'},
+                $data_dir
             );
             $message = "\nextra_file_checks from table mri_protocol_check " .
                      "logged in table mri_violations_log: $extra_validation_status\n";
@@ -814,7 +818,7 @@ sub getAcquisitionProtocol {
 
 =pod
 
-=head3 extra_file_checks($scan_type, $file, $subjectIdsref, $pname)
+=head3 extra_file_checks($scan_type, $file, $subjectIdsref, $pname, $data_dir)
 
 Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
@@ -824,6 +828,7 @@ INPUTS:
   - $file         : file information hash ref
   - $subjectIdsref: context information for the scan
   - $pname        : patient name found in the scan header
+  - $data_dir     : path to the LORIS MRI data directory
 
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
@@ -838,6 +843,7 @@ sub extra_file_checks() {
     my $file          = shift;
     my $subjectIDsref = shift;
     my $pname         = shift;
+    my $data_dir      = shift;
     
     my $candID        = $subjectIDsref->{'CandID'};
     my $projectID     = $subjectIDsref->{'ProjectID'};
@@ -878,7 +884,7 @@ sub extra_file_checks() {
         );
         if (%validFields) {
             $this->insert_into_mri_violations_log(
-                \%validFields, $severity, $pname, $candID, $visitLabel, $file
+                \%validFields, $severity, $pname, $candID, $visitLabel, $file, $data_dir
             );
             return $severity;
         }
@@ -1015,7 +1021,7 @@ sub loop_through_protocol_violations_checks {
 
 =pod
 
-=head3 insert_into_mri_violations_log($valid_fields, $severity, $pname, $candID, $visit_label, $file)
+=head3 insert_into_mri_violations_log($valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir)
 
 For a given protocol failure, it will insert into the C<mri_violations_log>
 table all the information about the scan and the protocol violation.
@@ -1027,16 +1033,17 @@ INPUTS:
   - $candID      : C<CandID> associated with the scan
   - $visit_label : visit label associated with the scan
   - $file        : information about the scan
+  - $data_dir    : path to the LORIS MRI data directory
 
 =cut
 
 sub insert_into_mri_violations_log {
-    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file) = @_;
+    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
     my $file_path     = $file->getFileDatum('File');
-    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($file_path);
+    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
 
     my $query = "INSERT INTO mri_violations_log"
                     . "("
