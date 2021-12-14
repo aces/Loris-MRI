@@ -9,7 +9,7 @@ get_dicom_files.pl - extracts DICOM files for specific patient names/scan types
 
 =head1 SYNOPSIS
 
-perl get_dicom_files.pl [-names patient_name_patterns] [-types scan_type_patterns] [-outdir tmp_dir] [-outfile tarBasename] 
+perl get_dicom_files.pl [-name patient_name_patterns] [-type scan_type_patterns] [-outdir tmp_dir] [-outfile tarBasename] 
            [-id candid|pscid|candid_pscid|pscid_candid] -profile profile
 
 Available options are:
@@ -258,7 +258,7 @@ my $outTarFile = "$outTarBasename.tar";
 foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     my($pscid, $candid, $visitLabel, $dateAcquired, $archiveLocation, $tarchiveId) = @$tarchiveRowRef;
     
-    my($innerTar) = $archiveLocation =~ /\/DCM_\d+-\d+-\d+_([^\/]+)\.tar$/;
+    my($innerTar) = $archiveLocation =~ /DCM_\d+-\d+-\d+_([^\/]+)\.tar$/;
     $innerTar .= '.tar.gz';
     
     # Extract only the .tar.gz archive from the main archive (ignore the 
@@ -293,11 +293,11 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
     my $filesRef = {};
 
     # This hash will contain the MD5Sum of all the DICOM files that should be extracted.
-    # $md5sum{$dicomFilename}{$mincFile} returns the MD5 sum of the DICOM file with
+    # $wantedMd5Sum{$dicomFilename}{$mincFile} returns the MD5 sum of the DICOM file with
     # basename $dicomFilename that is associated to MINC file $mincFile
-    # (note that it is possible for different MINC files to be associated to DICOMs files
-    # which have the same basename)
-    my %md5sum;
+    # (note that it is possible for different MINC files to be associated to DICOM files
+    # with the same basename).
+    my %wantedMd5Sum;
     foreach my $fileRowRef (@{ $sth->fetchall_arrayref }) {
         my($mincFile, $dicomFilename, $seriesDescription, $md5sum) = @$fileRowRef;
         chomp $dicomFilename;
@@ -306,8 +306,8 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         $filesRef->{$mincFile}->{'DICOM'}             = [] unless defined $filesRef->{$mincFile}->{'DICOM'};
         push(@{ $filesRef->{$mincFile}->{'DICOM'} }, $dicomFilename);
 
-        $md5sum{$dicomFilename}{$mincFile} = [] unless defined $md5sum{$dicomFilename}{$mincFile};
-        push(@{ $md5sum{$dicomFilename}{$mincFile} }, $md5sum);
+        $wantedMd5Sum{$dicomFilename}{$mincFile} = [] unless defined $wantedMd5Sum{$dicomFilename}{$mincFile};
+        push(@{ $wantedMd5Sum{$dicomFilename}{$mincFile} }, $md5sum);
     }
     
     # Foreach MINC file extract the set of DICOM files
@@ -319,10 +319,8 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
         my $fileList = "$tmpExtractDir/$mincFileBaseName.dicom";
         open(FILE_LIST, ">$fileList") or die "Cannot write file $fileList: $!\n";
         
-        # This hash will contain the base names of DICOM files that are *not* unique inside the tarchive. 
-        # If one of these files needs to be extracted, we have to rely on the MD5 sum in order to be sure
-        # to extract the right DICOM file
-        my %md5sumToCheck;
+        # This hash will contain the base names and relative path of all the DICOM files that were extracted. 
+        my %extractedFiles;
         my $tarCmd = sprintf("tar ztf %s/%s", quotemeta($tmpExtractDir), quotemeta($innerTar));
         open(LIST_TAR_CONTENT, "$tarCmd|") or die "Cannot run command $tarCmd: $?\n";
         while (<LIST_TAR_CONTENT>) {
@@ -330,12 +328,11 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
             my($dicomFileBaseName, $dirName, $suffix) = fileparse($_);
             if(grep($_ eq $dicomFileBaseName, @{ $filesRef->{$mincFile}->{'DICOM'} })) {
                 print FILE_LIST "$_\n";
-                # If there is more than one DICOM file with this basename, store it in the hash: we'll extract
-                # all files with that base name and use the MD5 sum to only retain the correct one later
-                if( keys %{ $md5sum{$dicomFileBaseName} } > 1) {
-                    $md5sumToCheck{$dicomFileBaseName} = [] unless defined $md5sumToCheck{$dicomFileBaseName};
-                    push(@{ $md5sumToCheck{$dicomFileBaseName} }, $_);
-                }
+
+                # Store the paths of all files to extract. The files will be stored in a hash: 
+                # key -> file basename, value -> file path relative to $dicomFilesExtractDir
+                $extractedFiles{$dicomFileBaseName} = [] unless defined $extractedFiles{$dicomFileBaseName};
+                push(@{ $extractedFiles{$dicomFileBaseName} }, $_);
             }
         }
         close(LIST_TAR_CONTENT);
@@ -356,10 +353,16 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
             or die "Failed to extract DICOM files for $mincFileBaseName in $dicomFilesExtractDir: $?\n";
         print "done.\n";
 
-        # Check all files for which we have to compute the MD5 sum and delete those that do not
-        # have an MD5 sum that we want
-        foreach my $dicomFileName (keys %md5sumToCheck) {
-            foreach my $extractedFile ( @{ $md5sumToCheck{$dicomFileName} } ) {
+        # Loop over the basenames of all the files we extracted
+        foreach my $dicomFileName (keys %extractedFiles) {
+            # So we want to extract a file with basename $dicomFileName: if there is more than one
+            # file with that basename in the archive, we'll have to use the MD5Sum to find out 
+            # which one to keep
+            next unless @{ $extractedFiles{$dicomFileName} } > 1;
+
+            # This loop goes over all the files extracted that have basename = $dicomFileName
+            # and determines which one to keep
+            foreach my $extractedFile ( @{ $extractedFiles{$dicomFileName} } ) {
                 my $dicomFileFullPath = "$dicomFilesExtractDir/$extractedFile";
                 # No need to quote the file name as the three argument version
                 # of open takes care of that
@@ -371,7 +374,7 @@ foreach my $tarchiveRowRef (@{ $sth->fetchall_arrayref }) {
 
                 # If the MD5 sum is not in the list of "wanted" MD5 sum for that file base name, get
                 # rid of the file
-                unlink $dicomFileFullPath unless grep($_ eq $curMd5Sum, @{ $md5sum{$dicomFileBaseName}{$mincFile} });
+                unlink $dicomFileFullPath unless grep($_ eq $curMd5Sum, @{ $wantedMd5Sum{$dicomFileBaseName}{$mincFile} });
             }
         }
 
