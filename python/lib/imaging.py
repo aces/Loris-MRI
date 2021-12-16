@@ -691,10 +691,15 @@ class Imaging:
 
         bids_mapping_dict = self.param_type_db_obj.get_bids_to_minc_mapping_dict()
         bids_header = header
+        print(bids_header)
         if bids_header not in scan_param_dict.keys():
             # then, the header is a MINC header and needs to be mapped to the BIDS term
             # equivalent to find the value in the JSON file
-            bids_header = [k for k, v in bids_mapping_dict.items() if v == header][0]
+            for key, val in bids_mapping_dict.items():
+                if val == header:
+                    bids_header = key
+        if bids_header not in scan_param_dict.keys():
+            return None
         scan_param = scan_param_dict[bids_header]
 
         passes_range_check = bool(len([
