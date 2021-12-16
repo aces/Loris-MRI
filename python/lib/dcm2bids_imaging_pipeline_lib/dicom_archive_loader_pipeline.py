@@ -189,7 +189,8 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             bval_file_path = nifti_file_path.replace(".nii.gz", ".bval")
             bvec_file_path = nifti_file_path.replace(".nii.gz", ".bvec")
 
-            if self._is_series_description_to_be_excluded(json_file_path):
+            # skip if JSON file does not exist or series description should be excluded from insertion
+            if not os.path.isfile(json_file_path) or self._is_series_description_to_be_excluded(json_file_path):
                 continue
 
             with open(json_file_path) as json_file:
@@ -385,12 +386,21 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         excluded_violations_list = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
             self.tarchive_id
         )
+
+        nb_files_inserted = len(files_inserted_list) if files_inserted_list else 0
+        nb_prot_violation = len(protocol_violation_list) if protocol_violation_list else 0
+        nb_excluded_viol = len(excluded_violations_list) if excluded_violations_list else 0
+
+        files_list = ', '.join(files_inserted_list) if files_inserted_list else 0
+        prot_viol_list = ', '.join(protocol_violation_list) if protocol_violation_list else 0
+        excl_viol_list = ', '.join(excluded_violations_list) if excluded_violations_list else 0
+
         summary = f"""
         Finished processing UploadID {self.upload_id}!
         - DICOM archive info: {self.tarchive_id} => {self.tarchive_path}
-        - {len(files_inserted_list)} files were inserted into the files table: {', '.join(files_inserted_list)}
-        - {len(protocol_violation_list)} files did not match any protocol: {', '.join(protocol_violation_list)}
-        - {len(excluded_violations_list)} files were exclusionary violations: {', '.join(excluded_violations_list)} 
+        - {nb_files_inserted} files were inserted into the files table: {files_list}
+        - {nb_prot_violation} files did not match any protocol: {prot_viol_list}
+        - {nb_excluded_viol} files were exclusionary violations: {excl_viol_list} 
         - Log of process in {self.log_obj.log_file}
         """
         self.log_info(summary, is_error="N", is_verbose="Y")
