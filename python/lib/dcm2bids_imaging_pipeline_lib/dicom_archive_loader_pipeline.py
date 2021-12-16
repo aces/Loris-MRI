@@ -365,7 +365,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         self.imaging_upload_obj.update_mri_upload(
             upload_id=self.upload_id,
             fields=("Inserting", "InsertionComplete", "number_of_mincInserted", "number_of_mincCreated", "SessionID"),
-            values=("0", "1", len(files_inserted_list), self.nifti_files_to_insert, self.session_obj.session_id)
+            values=("0", "1", len(files_inserted_list), len(self.nifti_files_to_insert), self.session_obj.session_id)
         )
 
     def _get_summary_of_insertion(self):
