@@ -248,7 +248,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         for file_dict in self.nifti_files_to_insert:
             nifti_file_path = file_dict["nifti_file"]
             json_file_path = file_dict["json_file"]
-            if "bval" in file_dict.keys() and "bvec" in file_dict.keys():
+            if "bval_file" in file_dict.keys() and "bvec_file" in file_dict.keys():
                 bval_file_path = file_dict["bval_file"]
                 bvec_file_path = file_dict["bvec_file"]
                 self._run_nifti_insertion(nifti_file_path, json_file_path, bval_file_path, bvec_file_path)
