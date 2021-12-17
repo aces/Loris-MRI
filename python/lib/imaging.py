@@ -242,14 +242,9 @@ class Imaging:
 
         bids_mapping_dict = self.param_type_db_obj.get_bids_to_minc_mapping_dict()
 
-        print(bids_mapping_dict)
-
         param_type_id = self.param_type_db_obj.get_parameter_type_id(param_alias=parameter_name) \
             if parameter_name in bids_mapping_dict.keys() \
             else self.param_type_db_obj.get_parameter_type_id(param_name=parameter_name)
-
-        print(parameter_name)
-        print(param_type_id)
 
         if not param_type_id:
             # if no parameter type ID found, create an entry in parameter_type
