@@ -53,9 +53,6 @@ class ParameterType:
             query += "AND Alias = %s "
             args = (param_alias,)
 
-        print(query)
-        print(args)
-
         results = self.db.pselect(query=query, args=args)
         return results[0]["ParameterTypeID"] if results else None
 
