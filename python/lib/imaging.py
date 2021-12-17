@@ -606,7 +606,7 @@ class Imaging:
         scan_slice_thick = scan_param['SliceThickness']
         scan_img_type = str(scan_param['ImageType'])
 
-        if ("time" not in scan_param or self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
+        if (self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
                 and self.in_range(scan_tr,              db_prot['TR_min'],     db_prot['TR_max']) \
                 and self.in_range(scan_te,              db_prot['TE_min'],     db_prot['TE_max']) \
                 and self.in_range(scan_ti,              db_prot['TI_min'],     db_prot['TI_max']) \
@@ -867,6 +867,11 @@ class Imaging:
         # return True when parameter min and max values are not defined (a.k.a. no restrictions in mri_protocol)
         if not field_min and not field_max:
             return True
+
+        # return False if value is not defined since this field is listed as a restriction in mri_protocol
+        # (a.k.a. passed the first if)
+        if not value:
+            return False
 
         # return True if min & max are defined and value is within the range
         if field_min and field_max and field_min <= value <= field_max:

@@ -300,8 +300,7 @@ class NiftiInsertionPipeline(BasePipeline):
         self.json_file_dict['xspace'] = length_params[0]
         self.json_file_dict['yspace'] = length_params[1]
         self.json_file_dict['zspace'] = length_params[2]
-        if len(length_params) == 4:
-            self.json_file_dict['time'] = length_params[3]
+        self.json_file_dict['time'] = length_params[3] if len(length_params) == 4 else None
 
     def _move_to_assembly_and_insert_file_info(self):
         """
