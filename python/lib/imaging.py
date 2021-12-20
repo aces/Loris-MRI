@@ -869,15 +869,15 @@ class Imaging:
             return False
 
         # return True if min & max are defined and value is within the range
-        if field_min and field_max and field_min <= value <= field_max:
+        if field_min and field_max and float(field_min) <= float(value) <= float(field_max):
             return True
 
         # return True if only min is defined and value is <= min
-        if field_min and not field_max and field_min <= value:
+        if field_min and not field_max and float(field_min) <= float(value):
             return True
 
         # return True if only max is defined and value is >= max
-        if field_max and not field_min and value <= field_max:
+        if field_max and not field_min and float(value) <= float(field_max):
             return True
 
         # if we got this far, then value is out of range
