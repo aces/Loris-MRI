@@ -34,7 +34,7 @@ class MriScanner:
          :type verbose: bool
         """
 
-        self.db      = db
+        self.db = db
         self.verbose = verbose
 
     def determine_scanner_information(self, manufacturer, software_version, serial_number, scanner_model, center_id):
@@ -96,8 +96,8 @@ class MriScanner:
         """
 
         # create a new candidate for the scanner
-        candidate    = Candidate(self.verbose)
-        new_cand_id  = candidate.generate_cand_id(self.db)
+        candidate = Candidate(self.verbose)
+        new_cand_id = candidate.generate_cand_id(self.db)
         column_names = (
             'CandID', 'PSCID',       'RegistrationCenterID', 'Date_active',
             'UserID', 'Entity_type', 'Date_registered',

@@ -426,18 +426,18 @@ class NiftiInsertionPipeline(BasePipeline):
         :param destination: destination root directory (one of 'assembly_bids' or 'trashbin')
          :type destination: str
         """
-        nifti_rel_path = self.assembly_nifti_rel_path if destination == 'assembly_bids' else self.trashbin_nifti_rel_path
-        json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', nifti_rel_path) if self.json_path else None
-        bval_rel_path = re.sub(r"\.nii(\.gz)?$", '.bval', nifti_rel_path) if self.bval_path else None
-        bvec_rel_path = re.sub(r"\.nii(\.gz)?$", '.bvec', nifti_rel_path) if self.bvec_path else None
+        nii_rel_path = self.assembly_nifti_rel_path if destination == 'assembly_bids' else self.trashbin_nifti_rel_path
+        json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', nii_rel_path) if self.json_path else None
+        bval_rel_path = re.sub(r"\.nii(\.gz)?$", '.bval', nii_rel_path) if self.bval_path else None
+        bvec_rel_path = re.sub(r"\.nii(\.gz)?$", '.bvec', nii_rel_path) if self.bvec_path else None
 
-        absolute_dir_path = os.path.join(self.data_dir, os.path.dirname(nifti_rel_path))
+        absolute_dir_path = os.path.join(self.data_dir, os.path.dirname(nii_rel_path))
         self.create_dir(absolute_dir_path)
 
         file_type_to_move_list = [
             {
                 'original_file_path': self.nifti_path,
-                'new_file_path': os.path.join(self.data_dir, nifti_rel_path)
+                'new_file_path': os.path.join(self.data_dir, nii_rel_path)
             }
         ]
         if self.json_path:

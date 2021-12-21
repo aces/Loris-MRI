@@ -42,13 +42,12 @@ class Config:
         :param config_name: name of the ConfigSettings
          :type config_name: str
 
-        :return: the value from the Config table or None if no value found
-         :rtype: str
+        :return: the value from the Config table if only one value found, list with values found in the Config table
+                 if multiple values found or None if no value found
+         :rtype: str or list
         """
 
-        query = "SELECT Value FROM Config WHERE ConfigID = (" \
-                  "SELECT ID FROM ConfigSettings WHERE Name = %s" \
-                ");"
+        query = "SELECT Value FROM Config WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = %s"
         results = self.db.pselect(query, (config_name,))
 
         if not results:

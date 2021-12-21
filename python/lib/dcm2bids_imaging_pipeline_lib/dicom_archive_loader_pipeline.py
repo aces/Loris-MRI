@@ -282,7 +282,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         if bvec_file_path:
             nifti_insertion_command.extend(["-e", bvec_file_path])
         if self.verbose:
-            nifti_insertion_command.append(f"-v")
+            nifti_insertion_command.append("-v")
 
         insertion_process = subprocess.Popen(nifti_insertion_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = insertion_process.communicate()
@@ -400,7 +400,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         - DICOM archive info: {self.tarchive_id} => {self.tarchive_path}
         - {nb_files_inserted} files were inserted into the files table: {files_list}
         - {nb_prot_violation} files did not match any protocol: {prot_viol_list}
-        - {nb_excluded_viol} files were exclusionary violations: {excl_viol_list} 
+        - {nb_excluded_viol} files were exclusionary violations: {excl_viol_list}
         - Log of process in {self.log_obj.log_file}
         """
         self.log_info(summary, is_error="N", is_verbose="Y")

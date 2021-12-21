@@ -105,7 +105,7 @@ class MriProtocol:
         """
 
         query = """
-            SELECT 
+            SELECT
                 bmstr.MRIScanTypeID,
                 bids_category.BIDSCategoryName,
                 bids_scan_type_subcategory.BIDSScanTypeSubCategory,
@@ -119,7 +119,7 @@ class MriProtocol:
                 JOIN      bids_scan_type                USING (BIDSScanTypeID)
                 LEFT JOIN bids_scan_type_subcategory    USING (BIDSScanTypeSubCategoryID)
                 LEFT JOIN bids_phase_encoding_direction USING (BIDSPhaseEncodingDirectionID)
-            WHERE 
+            WHERE
                 mst.ID = %s
         """
 
