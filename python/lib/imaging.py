@@ -500,7 +500,7 @@ class Imaging:
 
         if not len(protocols_list):
             message = f"Warning! No protocol group can be used to determine the scan type of {nifti_name}." \
-                            f" Incorrect/incomplete setup of table mri_protocol_group_target."
+                      f" Incorrect/incomplete setup of table mri_protocol_group_target."
             return {
                 'scan_type_id': None,
                 'error_message': message,
