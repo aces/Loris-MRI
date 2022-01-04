@@ -134,6 +134,8 @@ our $INVALID_DICOM           = 62; # if DICOM is invalid
 our $MISSING_FILES           = 63; # if there are missing files compared to
                                    # what is expected
 our $UNREADABLE_FILE         = 64; # if could not properly read a file content
+our $COPY_FAILURE            = 65; # if copy failed (from the python pipeline)
+our $CREATE_DIR_FAILURE      = 66; # if dir creation failed (from the python pipeline)
 
 
 ## -- Other common generic failures (exit codes from 80 to 149)
