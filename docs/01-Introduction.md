@@ -14,8 +14,11 @@ LORIS-MRI is a set of libraries, scripts, and settings responsible for the
 insertion, organization, and archiving of uploaded imaging datasets. 
 It expects an uploaded, compressed file containing 
 a [DICOM][2] scan session composed of many DICOM files. These DICOM files 
-will be archived on the server and converted to [MINC][3] and (optionally)
-[NIfTI][4] files. Knowledge of these file formats can be helpful, but are not 
+will be archived on the server and then converted to:
+- [MINC][3] and (optionally) [NIfTI][4] files when using the dcm2mnc converter 
+- [BIDS][5] ([NIfTI][4] and JSON) files when using the dcm2niix converter
+
+Knowledge of these file formats can be helpful, but are not 
 necessary for using or installing LORIS-MRI.
 
 LORIS-MRI allows you to easily organize and archive your imaging datasets
@@ -55,28 +58,28 @@ Imaging Uploader module, where descriptive messages can be consulted.
 The output of the main key steps in the insertion progress can also be consulted 
 through:
  - the LORIS DICOM Archive module for successfully archived DICOM datasets`*` 
- - the Imaging Browser module for MINC files (generated from DICOM or HRRT ECAT7 
+ - the Imaging Browser module for MINC or NIfTI files (generated from DICOM or HRRT ECAT7 
 files) that pass the study-defined MRI protocol`*`
- - BrainBrowser using 3D or 4D navigation of these MINC files. More details on 
-BrainBrowser's capabilities can be found [here.][5]
+ - BrainBrowser using 3D or 4D navigation of these MINC or NIfTI files. More details on 
+BrainBrowser's capabilities can be found [here.][6]
 
 `*` Please note that all acquisitions are included in the DICOM archival
 step. However, specific acquisitions (such as `localizers` or `scouts`) can be
 excluded from the steps of the pipeline that start at, and follow the DICOM to
-MINC conversion by specifying them in the `excluded_series_description`
-field of the Config module (under the Imaging Pipeline section). Note that what
+MINC (or DICOM to NIfTI) conversion by specifying them in the `excluded_series_description`
+field of the Config module (under the Imaging Pipeline section). Note that
 the series descriptions entered in that Config field need to be an exact match
 of the series description DICOM field.
 
 ### 1.3 LORIS-MRI extension: BIDS data insertion
 
 The following BIDS datasets can be imported into LORIS using insertion scripts that
-are gathered under the Python directory of the LORIS-MRI repository. It contains one 
-main script called `bids_import.py` that allow import of datasets that have been
-organized in a BIDS structure (see [BIDS specifications][6]). 
+are gathered under the Python directory of the LORIS-MRI repository. The script 
+called `bids_import.py` allows the import of datasets that have been
+organized in a BIDS structure (see [BIDS specifications][7]). 
 
 Those import scripts were written in `Python` in order to take advantage of the 
-already existing [PyBIDS library][7] that reads BIDS structures.
+already existing [PyBIDS library][8] that reads BIDS structures.
 
 Currently, we support the insertion of:
 - MRI datasets organized in a BIDS structure
@@ -92,6 +95,7 @@ illustrated in the image below.
 [2]: http://dicomiseasy.blogspot.ca/2011/10/introduction-to-dicom-chapter-1.html
 [3]: https://en.wikibooks.org/wiki/MINC/Introduction 
 [4]: https://nifti.nimh.nih.gov/ 
-[5]: https://brainbrowser.cbrain.mcgill.ca/
-[6]: https://bids-specification.readthedocs.io/en/stable/
-[7]: https://github.com/INCF/pybids
+[5]: https://bids.neuroimaging.io/
+[6]: https://brainbrowser.cbrain.mcgill.ca/
+[7]: https://bids-specification.readthedocs.io/en/stable/
+[8]: https://github.com/INCF/pybids
