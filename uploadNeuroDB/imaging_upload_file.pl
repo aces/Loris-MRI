@@ -350,23 +350,44 @@ if ( $imaging_upload->{'is_hrrt'}) {
     spool($message, 'N', $notify_notsummary);
 
     ################################################################
-    ############### Run runTarchiveLoader###########################
+    ## Run runTarchiveLoader (MINC) or dicom_archive_loader (BIDS) #
     ################################################################
-    $output = $imaging_upload->runTarchiveLoader();
-    $imaging_upload->updateMRIUploadTable('Inserting', 0);
-    if (!$output) {
-        $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
-        spool($message,'Y', $notify_notsummary);
-        print STDERR $message;
-        my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
-        my $mail_message = "Progress: Failed\n".$message;
-        $Notify->email(
-            $mail_user,
-            $mail_subject,
-            $mail_message,
-        );
-        exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+    my $converter = $configOB->getConverter();
+    if ($converter =~ m/dcm2mnc/i) {
+        $output = $imaging_upload->runTarchiveLoader();
+        $imaging_upload->updateMRIUploadTable('Inserting', 0);
+        if (!$output) {
+            $message = "\nThe tarchiveLoader.pl insertion script has failed.\n";
+            spool($message,'Y', $notify_notsummary);
+            print STDERR $message;
+            my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+            my $mail_message = "Progress: Failed\n".$message;
+            $Notify->email(
+                $mail_user,
+                $mail_subject,
+                $mail_message,
+            );
+            exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+        }
+    } elsif ($converter =~ m/dcm2niix/i) {
+        $output = $imaging_upload->runPythonArchiveLoader();
+        # NOTE: no need to update the mri_upload table as this is taken care of on the python side
+        if (!defined $output) {
+            $message = "\nrun_archive_loader.py insertion script has failed.\n";
+            spool($message,'Y', $notify_notsummary);
+            print STDERR $message;
+            my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";
+            my $mail_message = "Progress: Failed\n".$message;
+            $Notify->email(
+                $mail_user,
+                $mail_subject,
+                $mail_message,
+            );
+            exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
+        }
     }
+
+
 }
 
 

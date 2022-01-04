@@ -518,6 +518,41 @@ sub runTarchiveLoader {
 
 =pod
 
+=head3 runPythonArchiveLoader()
+
+This methods will call C<run_dicom_archive_loader.py>
+
+RETURNS: 1 on success, 0 on failure
+
+=cut
+
+sub runPythonArchiveLoader {
+    my $this = shift;
+
+    # ----------------------------------------------------------------
+    ## Get config settings using ConfigOB
+    # ----------------------------------------------------------------
+    my $configOB      = $this->{configOB};
+    my $bin_dirPath   = $configOB->getMriCodePath();
+    my $python_config = $configOB->getPythonConfigFile();
+
+    my $command = sprintf(
+        "%s/python/run_archive_loader.py -p %s -u %s",
+        quotemeta($bin_dirPath),
+        $python_config,
+        quotemeta($this->{upload_id})
+    );
+    $command .= " -v" if $this->{verbose};
+    my $output = $this->runCommandWithExitCode($command);
+    if ( $output == 0 ) {
+        return 1;
+    }
+    return 0;
+}
+
+
+=pod
+
 =head3 DicomPatientNameMatch($dicom_file, $expected_pname_regex)
 
 This method extracts the patient name field from the DICOM file header using

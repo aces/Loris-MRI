@@ -85,6 +85,7 @@ use constant CREATE_NII                => 'create_nii';
 use constant HORIZONTAL_PICS           => 'horizontalPics';
 use constant IS_QSUB                   => 'is_qsub';
 use constant CREATE_CANDIDATES         => 'createCandidates';
+use constant PYTHON_CONFIG_FILE        => 'MriPythonConfigFile';
 
 =pod
 
@@ -427,6 +428,19 @@ sub getCreateCandidates {
     my $value = &$getConfigSettingRef($self, CREATE_CANDIDATES);
 
     return $getBooleanRef->($value);
+}
+
+=head3 getPythonConfigFile()
+
+Get the MriPythonConfigFile Config setting.
+
+RETURN: value (string) of the MRI python config file in the Config table.
+
+=cut
+sub getPythonConfigFile {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, PYTHON_CONFIG_FILE);
 }
 
 1;
