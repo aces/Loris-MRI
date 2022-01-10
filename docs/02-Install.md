@@ -407,22 +407,23 @@ Typically, images insertion into LORIS is performed via the following steps:
      hosting LORIS).
 2. DICOM insertion into the `tarchive` tables in order to be able to see the
      information stored in the DICOMs via the **DICOM Archive** module.
-3. Conversion of the DICOMs into MINC files for protocol validation and
-     insertion into the LORIS database. By default it will also create NIfTI
-     images from the MINC files and insert them into LORIS (see the
+3. Conversion of the DICOMs into MINC files (via dcm2mnc) or BIDS NIfTI and JSON 
+     files (via dcm2niix). Those converted files go through protocol validation and
+     insertion into the LORIS database. By default, NIfTI images will be generated
+     from the MINC files and inserted into LORIS when generating MINC files (see the
      [Configuration](#2.2-configuration) section above if you want to disable
      this option). One of two possible actions will follow depending on the
      study-defined protocol:
      
     a. If a scan matches one of the protocol defined in the `mri_protocol`
          table and passes the optional additional file checks present in the 
-         `mri_protocol_checks` table, then the MINC image will be stored into 
+         `mri_protocol_checks` table, then the image will be stored into 
          the `files` tables. This inserted image is then accessible via the 
          **Imaging Browser** module and can be displayed in 3D using 
          **BrainBrowser**.
 
     b. If a scan does not match any of the protocol defined in the
-         `mri_protocol` table, then the MINC image of this scan will be stored
+         `mri_protocol` table, then the image will be stored
          in the `mri_protocol_violated_scans` table. Additionally, scans that
          were excluded by the optional criteria defined in the
          `mri_protocol_checks` table will be logged into the
