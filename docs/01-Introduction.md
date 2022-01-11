@@ -71,7 +71,7 @@ field of the Config module (under the Imaging Pipeline section). Note that
 the series descriptions entered in that Config field need to be an exact match
 of the series description DICOM field.
 
-### 1.3 LORIS-MRI extension: BIDS data insertion
+### 1.3 LORIS-MRI extension: BIDS data direct insertion (no DICOM files available)
 
 The following BIDS datasets can be imported into LORIS using insertion scripts that
 are gathered under the Python directory of the LORIS-MRI repository. The script 
