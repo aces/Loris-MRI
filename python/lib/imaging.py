@@ -162,11 +162,23 @@ class Imaging:
         parameter_type_id = self.get_parameter_type_id(parameter_name)
         parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value',    'InsertTime')
         parameter_file_values = (file_id,  parameter_type_id, str(value), unix_timestamp)
-        self.db.insert(
-            table_name='parameter_file',
-            column_names=parameter_file_fields,
-            values=parameter_file_values
+
+        pf_entry = self.db.pselect(
+            query="SELECT ParameterFileID, Value FROM parameter_file WHERE FileID=%s AND ParameterTypeID=%s",
+            args=(file_id, parameter_type_id)
         )
+
+        if pf_entry:
+            self.db.update(
+                query="UPDATE parameter_file SET Value=%s WHERE ParameterFileID=%s",
+                args=(value, pf_entry[0]['ParameterFileID'])
+            )
+        else:
+            self.db.insert(
+                table_name='parameter_file',
+                column_names=parameter_file_fields,
+                values=parameter_file_values
+            )
 
     def get_parameter_type_id(self, parameter_name):
         """
