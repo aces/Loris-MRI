@@ -11,6 +11,8 @@ from lib.database_lib.physiologicalannotationlabel import PhysiologicalAnnotatio
 from lib.database_lib.physiologicalannotationinstance import PhysiologicalAnnotationInstance
 
 
+import lib.exitcode
+
 __license__ = "GPLv3"
 
 
