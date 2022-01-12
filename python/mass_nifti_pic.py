@@ -67,7 +67,7 @@ def main():
     if (smallest_id == largest_id):
         make_pic(smallest_id, config_file, verbose)
     else:
-        for file_id in range(smallest_id, largest_id):
+        for file_id in range(smallest_id, largest_id + 1):
             make_pic(file_id, config_file, verbose)
 
 
