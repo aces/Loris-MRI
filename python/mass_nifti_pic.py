@@ -160,7 +160,7 @@ def make_pic(file_id, config_file, verbose):
     # grep the NIfTI file path
     nii_file_path = imaging.grep_file_path_from_file_id(file_id)
     if not nii_file_path:
-        print('WARNING: no file in the database with FileID = ' + file_id)
+        print('WARNING: no file in the database with FileID = ' + str(file_id))
         return
     if not re.search('.nii.gz$', nii_file_path):
         print('WARNING: wrong file type. File ' + nii_file_path + ' is not a .nii.gz file')
