@@ -379,7 +379,8 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             - path to the log file
         """
 
-        files_inserted_list = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
+        results = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
+        files_inserted_list = [v["File"] for v in results] if results else None
         protocol_violation_list = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
             self.tarchive_id
         )

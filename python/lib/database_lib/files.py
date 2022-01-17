@@ -168,9 +168,6 @@ class Files:
          :rtype: list
         """
 
-        query = "SELECT File FROM files WHERE TarchiveSource = %s"
+        query = "SELECT * FROM files WHERE TarchiveSource = %s"
 
-        results = self.db.pselect(query=query, args=(tarchive_id,))
-        files_inserted_list = [v["File"] for v in results]
-
-        return files_inserted_list if results else None
+        return self.db.pselect(query=query, args=(tarchive_id,))
