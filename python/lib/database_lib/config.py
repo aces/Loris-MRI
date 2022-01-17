@@ -47,7 +47,7 @@ class Config:
          :rtype: str or list
         """
 
-        query = "SELECT Value FROM Config WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = %s"
+        query = "SELECT Value FROM Config WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = %s)"
         results = self.db.pselect(query, (config_name,))
 
         if not results:
