@@ -309,6 +309,18 @@ class Imaging:
             project_id, subproject_id, center_id, visit_label, scanner_id
         )
 
+    def get_bids_files_info_from_parameter_file_for_file_id(self, file_id):
+
+        json_param_id = self.get_parameter_type_id("bids_json_file")
+        bval_param_id = self.get_parameter_type_id("check_bval_filename")
+        bvec_param_id = self.get_parameter_type_id("check_bvec_filename")
+
+        return [
+            self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, json_param_id),
+            self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, bval_param_id),
+            self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, bvec_param_id),
+        ]
+
     def grep_file_type_from_file_id(self, file_id):
         """
         Greps the file type stored in the files table using its FileID.

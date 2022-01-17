@@ -48,3 +48,10 @@ class ParameterFile:
             values=field_value_dict.values(),
             get_last_id=False
         )
+
+    def get_parameter_file_for_file_id_param_type_id(self, file_id, param_id):
+
+        query = "SELECT * FROM parameter_file WHERE FileID=%s AND ParameterTypeID=%s"
+        results = self.db.pselect(query, (file_id, param_id))
+
+        return results[0] if results else None
