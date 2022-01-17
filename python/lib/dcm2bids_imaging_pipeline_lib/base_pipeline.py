@@ -131,7 +131,8 @@ class BasePipeline:
         """
 
         upload_id = self.options_dict["upload_id"]["value"]
-        tarchive_path = self.options_dict["tarchive_path"]["value"]
+        tarchive_path = self.options_dict["tarchive_path"]["value"] \
+            if "tarchive_path" in self.options_dict.keys() else None
         success = False
         err_msg = ''
         if upload_id:
