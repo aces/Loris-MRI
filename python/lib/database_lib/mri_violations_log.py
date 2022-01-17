@@ -63,7 +63,4 @@ class MriViolationsLog:
 
         query = "SELECT MincFile as File FROM mri_violations_log WHERE TarchiveID = %s and Severity = %s"
 
-        results = self.db.pselect(query=query, args=(tarchive_id, 'exclude'))
-        files_inserted_list = [v["File"] for v in results]
-
-        return files_inserted_list if results else None
+        return self.db.pselect(query=query, args=(tarchive_id, 'exclude'))

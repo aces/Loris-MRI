@@ -61,9 +61,6 @@ class MriProtocolViolatedScans:
          :rtype: list
         """
 
-        query = "SELECT minc_location as File FROM mri_protocol_violated_scans WHERE TarchiveID = %s"
+        query = "SELECT * FROM mri_protocol_violated_scans WHERE TarchiveID = %s"
 
-        results = self.db.pselect(query=query, args=(tarchive_id,))
-        files_inserted_list = [v["File"] for v in results]
-
-        return files_inserted_list if results else None
+        return self.db.pselect(query=query, args=(tarchive_id,))

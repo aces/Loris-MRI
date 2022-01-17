@@ -379,21 +379,23 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             - path to the log file
         """
 
-        results = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
-        files_inserted_list = [v["File"] for v in results] if results else None
-        protocol_violation_list = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
+        files_results = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
+        files_inserted_list = [v["File"] for v in files_results] if files_results else None
+        prot_viol_results = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
             self.tarchive_id
         )
-        excluded_violations_list = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+        protocol_violations_list = [v["minc_location"] for v in prot_viol_results] if prot_viol_results else None
+        excl_viol_results = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
             self.tarchive_id
         )
+        excluded_violations_list = [v["MincFile"] for v in excl_viol_results] if excl_viol_results else None
 
         nb_files_inserted = len(files_inserted_list) if files_inserted_list else 0
-        nb_prot_violation = len(protocol_violation_list) if protocol_violation_list else 0
+        nb_prot_violation = len(protocol_violations_list) if protocol_violations_list else 0
         nb_excluded_viol = len(excluded_violations_list) if excluded_violations_list else 0
 
         files_list = ', '.join(files_inserted_list) if files_inserted_list else 0
-        prot_viol_list = ', '.join(protocol_violation_list) if protocol_violation_list else 0
+        prot_viol_list = ', '.join(protocol_violations_list) if protocol_violations_list else 0
         excl_viol_list = ', '.join(excluded_violations_list) if excluded_violations_list else 0
 
         summary = f"""
