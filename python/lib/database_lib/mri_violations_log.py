@@ -61,6 +61,6 @@ class MriViolationsLog:
          :rtype: list
         """
 
-        query = "SELECT MincFile as File FROM mri_violations_log WHERE TarchiveID = %s and Severity = %s"
+        query = "SELECT * FROM mri_violations_log WHERE TarchiveID = %s and Severity = %s"
 
         return self.db.pselect(query=query, args=(tarchive_id, 'exclude'))
