@@ -67,7 +67,7 @@ class MriViolationsLog:
         args = (tarchive_id,)
 
         if severity:
-            query += "AND Severity = %s"
+            query += " AND Severity = %s"
             args += (severity,)
 
         return self.db.pselect(query=query, args=args)

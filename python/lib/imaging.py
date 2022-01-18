@@ -315,16 +315,29 @@ class Imaging:
         )
 
     def get_bids_files_info_from_parameter_file_for_file_id(self, file_id):
-
-        json_param_id = self.get_parameter_type_id("bids_json_file")
-        bval_param_id = self.get_parameter_type_id("check_bval_filename")
-        bvec_param_id = self.get_parameter_type_id("check_bvec_filename")
-
+        
         return [
-            self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, json_param_id),
-            self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, bval_param_id),
-            self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, bvec_param_id),
+            self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "bids_json_file"),
+            self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "check_bval_filename"),
+            self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "check_bvec_filename"),
         ]
+
+    def grep_parameter_value_from_file_id_and_parameter_name(self, file_id, param_type_name):
+        """
+        Grep a Value in parameter_file based on a FileID and parameter type Name.
+
+        :param file_id: FileID to look for in parameter_file
+         :type file_id: int
+        :param param_type_name: parameter type Name to use to query parameter_file
+         :type param_type_name: str
+
+        :return: value found in the parameter_file table for the FileID and parameter Name
+         :rtype: str
+        """
+
+        param_type_id = self.get_parameter_type_id(param_type_name)
+        if param_type_id:
+            return self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
 
     def grep_file_type_from_file_id(self, file_id):
         """
