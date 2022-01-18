@@ -56,6 +56,8 @@ class MriViolationsLog:
 
         :param tarchive_id: `TarchiveID` to restrict the query on
          :type tarchive_id: int
+        :param severity: severity of the violation (warning or exclude)
+         :type severity: str
 
         :return: list of files inserted into the `mri_violations_log` table
          :rtype: list
