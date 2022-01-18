@@ -137,6 +137,3 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "file_path_field_name": "MincFile",
                 "file_path_field_value": entry["MincFile"]
             })
-
-    def _get_list_of_files_from_mri_candidate_errors(self):
-
