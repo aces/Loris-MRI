@@ -16,3 +16,4 @@ nibabel
 numpy
 scipy
 flake8
+boto3
