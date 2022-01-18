@@ -136,13 +136,27 @@ and `CandMismatchError` information
 ### createTarchiveArray($tarchive)
 
 Creates the DICOM archive information hash ref for the tarchive that has the same
-basename as the file path passed as argument.
+basename as the file path passed as argument. For HRRT scanners, it will do the
+same but from the hrrtarchive table.
 
 INPUTS:
-  - $tarchive           : tarchive's path (absolute or relative).
+  - $tarchive: tarchive's path (absolute or relative).
+  - $hrrt    : whether the archive is from an HRRT scanner or not (in
+               which case, the `hrrt_archive` table will be read
+               instead of the `tarchive` table.
 
-RETURNS: DICOM archive information hash ref if exactly one archive was found. Exits
+RETURNS: DICOM/HRRT archive information hash ref if exactly one archive was found. Exits
          when either no match or multiple matches are found.
+
+### createMriUploadArray($uploadID)
+
+Creates the MRI upload information hash ref for the uploadID passed as argument.
+
+INPUTS:
+  - $uploadID: UploadID to query mri\_upload
+
+RETURNS: MRI upload information hash ref if found a row for UploadID in mri\_upload.
+         Exits when either no match is found.
 
 ### determinePSC($tarchiveInfo, $to\_log, $upload\_id)
 
@@ -183,7 +197,7 @@ INPUTS:
 
 RETURNS: 1 if the file is unique, 0 otherwise
 
-### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center\_name, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id)
+### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center\_name, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id, $data\_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If `$acquisitionProtocol` is not set, it will look for the acquisition
@@ -201,6 +215,7 @@ INPUTS:
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass\_extra\_file\_checks: boolean, if set bypass the extra checks
   - $upload\_id               : upload ID of the study
+  - $data\_dir                : path to the LORIS MRI data directory
 
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
@@ -208,7 +223,7 @@ RETURNS:
   - $extra\_validation\_status : extra validation status ("pass", "exclude", "warning") or
                                `undef` if `$bypass_extra_file_checks` is set.
 
-### extra\_file\_checks($scan\_type, $file, $subjectIdsref, $pname)
+### extra\_file\_checks($scan\_type, $file, $subjectIdsref, $pname, $data\_dir)
 
 Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
@@ -218,6 +233,7 @@ INPUTS:
   - $file         : file information hash ref
   - $subjectIdsref: context information for the scan
   - $pname        : patient name found in the scan header
+  - $data\_dir     : path to the LORIS MRI data directory
 
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
@@ -255,7 +271,7 @@ INPUTS:
 RETURNS: a hash with all information about the checks for a given scan type
 and severity
 
-### insert\_into\_mri\_violations\_log($valid\_fields, $severity, $pname, $candID, $visit\_label, $file)
+### insert\_into\_mri\_violations\_log($valid\_fields, $severity, $pname, $candID, $visit\_label, $file, $data\_dir)
 
 For a given protocol failure, it will insert into the `mri_violations_log`
 table all the information about the scan and the protocol violation.
@@ -267,6 +283,7 @@ INPUTS:
   - $candID      : `CandID` associated with the scan
   - $visit\_label : visit label associated with the scan
   - $file        : information about the scan
+  - $data\_dir    : path to the LORIS MRI data directory
 
 ### loadAndCreateObjectFile($minc, $upload\_id)
 
@@ -278,23 +295,22 @@ INPUTS:
 
 RETURNS: file information hash ref
 
-### move\_minc($minc, $subjectIDsref, $minc\_type, $fileref, $prefix, $data\_dir, $tarchive\_srcloc, $upload\_id)
+### move\_minc($minc, $subjectIDsref, $minc\_type, $prefix, $data\_dir, $hrrt, $upload\_id)
 
 Renames and moves the MINC file.
 
 INPUTS:
   - $minc           : path to the MINC file
   - $subjectIDsref  : subject's ID hash ref
-  - $minc\_type      : MINC file information hash ref
-  - $fileref        : file information hash ref
+  - $minc\_type      : acquisition protocol
   - $prefix         : study prefix
   - $data\_dir       : data directory (e.g. `/data/$PROJECT/data`)
-  - $tarchive\_srcloc: DICOM archive source location
+  - $hrrt           : boolean, whether the file comes from a PET HRRT scanner
   - $upload\_id      : upload ID of the study
 
 RETURNS: new name of the MINC file with path relative to `$data_dir`
 
-### registerScanIntoDB($minc\_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra\_validation\_status, $reckless, $sessionID, $upload\_id)
+### registerScanIntoDB($minc\_file, $tarchiveInfo, $subjectIDsref, $acquisitionProtocol, $minc, $extra\_validation\_status, $reckless, $sessionID, $upload\_id, $hrrt)
 
 Registers the scan into the database.
 
@@ -309,6 +325,7 @@ INPUTS:
   - $reckless                : boolean, if reckless or not
   - $sessionID               : session ID of the MINC file
   - $upload\_id               : upload ID of the study
+  - $hrrt                    : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: acquisition protocol ID of the MINC file
 
@@ -387,13 +404,20 @@ INPUTS:
   - $tarchiveInfo: DICOM archive information hash ref
   - $upload\_id   : upload ID of the study
 
-### which\_directory($subjectIDsref, $data\_dir)
+### validate\_tarchive\_id\_against\_upload\_id($tarchiveInfoRef, $uploadInfoRef)
+
+INPUTS:
+  - $tarchiveInfoRef: DICOM archive information hash ref
+  - $uploadInfoRef  : MRI upload information reference
+
+### which\_directory($subjectIDsref, $data\_dir, $hrrt)
 
 Determines where the MINC files to be registered into the database will go.
 
 INPUTS:
    - $subjectIDsref: subject's ID information hashref
    - $data\_dir     : data directory (e.g. `/data/$PROJECT/data`)
+   - $hrrt         : boolean, whether the file comes from a PET HRRT scanner
 
 RETURNS: the final directory in which the registered MINC files will go
 (typically `/data/$PROJECT/data/assembly/CandID/visit/mri/`)
@@ -481,3 +505,15 @@ License: GPLv3
 
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 567:
+
+    &#x3d;cut found outside a pod block.  Skipping to next block.
+
+- Around line 1880:
+
+    &#x3d;cut found outside a pod block.  Skipping to next block.

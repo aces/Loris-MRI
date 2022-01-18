@@ -77,6 +77,22 @@ RETURNS: a reference to an array of array references. If `$isCount` is true, the
          `$returnValue->[x]->[y]` will contain the value of the yth column (in array
          `@MRI_UPLOAD_FIELDS` for the xth record retrieved.
 
+### getWithUploadID($isCount, $uploadID)($isCount, $uploadID)
+
+Fetches the entries in the `mri_upload` table based on an UploadID.
+This method throws a `NeuroDB::objectBroker::ObjectBrokerException`
+if the operation could not be completed successfully.
+
+INPUTS:
+    - boolean indicating if only a count of the records found is needed
+      or the full record properties.
+    - path of the archive location.
+
+RETURNS: a reference to an array of array references. If `$isCount` is true, then
+         `$returnValue->[0]->[0]` will contain the count of records sought. Otherwise
+         `$returnValue->[x]->[y]` will contain the value of the yth column (in array
+         `@MRI_UPLOAD_FIELDS` for the xth record retrieved.
+
 ### insert($valuesRef)
 
 Inserts a new record in the `mri_upload` table with the specified column values.

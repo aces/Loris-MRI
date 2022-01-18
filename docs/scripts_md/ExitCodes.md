@@ -62,11 +62,14 @@ to 189)
 12\. Exit codes from former scripts that have been removed (exit codes from 200
 to 210)
 
+15\. Exit codes from uploadNeuroDB/HRRT\_PET\_insertion.pl (exit codes from 280
+to 300)
+
 # LICENSING
 
 License: GPLv3
 
 # AUTHORS
 
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

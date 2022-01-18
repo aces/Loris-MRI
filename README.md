@@ -38,11 +38,11 @@ and extract it to `/opt/$projectname/bin/mri`
 #### 2. Install Python 3 with `pip` and `virtualenv`
 
 ```bash
-sudo apt-get install python3 
-sudo apt-get install python3-dev
-sudo apt-get install python3-pip
-sudo apt-get install libmysqlclient-dev
-sudo pip3 install virtualenv
+sudo apt install python3 
+sudo apt install python3-dev
+sudo apt install python3-pip
+sudo apt install libmysqlclient-dev
+sudo apt install virtualenv
 ```
 
 #### 3. Install MINC toolkit from http://bic-mni.github.io/ 

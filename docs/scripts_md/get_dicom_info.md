@@ -60,10 +60,6 @@ Available options are:
 
 \-error\_string      : string to use for reporting empty fields
 
-\-verbose                : Be verbose if set
-
-\-version                : Print CVS version number and exit
-
 # DESCRIPTION
 
 A tool to read information out of the DICOM file headers.
@@ -169,5 +165,5 @@ License: GPLv3
 # AUTHORS
 
 Jonathan Harlap,
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience

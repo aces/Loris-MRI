@@ -166,6 +166,10 @@ if (-d $dcm_source && -d $targetlocation) {
     print STDERR "\nERROR: source and target must be existing directories!\n\n";
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
+if ($mri_upload_update && !$dbase) {
+    print STDERR "\nERROR: option -database should be provided when -mri_upload_update set!\n\n";
+    exit $NeuroDB::ExitCodes::MISSING_ARG;
+}
 
 # The tar target 
 my $totar = basename($dcm_source);

@@ -36,4 +36,4 @@ License: GPLv3
 
 # AUTHORS
 
-LORIS community &lt;loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience

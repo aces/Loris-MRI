@@ -222,8 +222,6 @@ my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
 
 
 
-
-
 ################################################################
 ########## Create the Specific Log File ########################
 ################################################################
@@ -248,6 +246,11 @@ my $utility = NeuroDB::MRIProcessingUtility->new(
                   $db, \$dbh, $debug, $TmpDir, $logfile, $verbose, $profile
               );
 
+#-------------------------------------------------
+# Create mri_upload array
+#-------------------------------------------------
+my %mriUploadInfo = $utility->createMriUploadArray($upload_id);
+
 ################################################################
 ############### Create tarchive array ##########################
 ################################################################
@@ -256,6 +259,12 @@ $tarchiveLibraryDir    =~ s/\/$//g;
 my $ArchiveLocation    = $tarchive;
 $ArchiveLocation       =~ s/$tarchiveLibraryDir\/?//g;
 %tarchiveInfo = $utility->createTarchiveArray($ArchiveLocation);
+
+#-------------------------------------------------
+# Validate that the TarchiveID is the same in %tarchiveInfo and %mriUploadInfo hashes
+#-------------------------------------------------
+$utility->validate_tarchive_id_against_upload_id(\%tarchiveInfo, \%mriUploadInfo);
+
 
 ################################################################
 #### Verify the archive using the checksum from database #######

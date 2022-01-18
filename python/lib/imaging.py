@@ -171,7 +171,12 @@ class Imaging:
             'Value': value,
             'InsertTime': datetime.datetime.now().timestamp()
         }
-        self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
+
+        pf_entry = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
+        if pf_entry:
+            self.param_file_db_obj.update_parameter_file(value, pf_entry[0]['ParameterFileID'])
+        else:
+            self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
     def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path,
                                       mri_protocol_group_id):
@@ -777,13 +782,17 @@ class Imaging:
         return extracted_dicom_dir_path
 
     @staticmethod
-    def create_imaging_pic(file_info):
+    def create_imaging_pic(file_info, pic_rel_path=None):
         """
         Creates the preview pic that will show in the imaging browser view session
         page. This pic will be stored in the data_dir/pic folder
 
         :param file_info: dictionary with file information (path, file_id, cand_id...)
          :type file_info: dict
+        :param pic_rel_path: relative path to the pic to use if one provided. Otherwise
+                             create_imaging_pic will automatically generate the pic name
+                             based on the file path of the NIfTI file
+         :type pic_rel_path: str
 
         :return: path to the created pic
          :rtype: str
