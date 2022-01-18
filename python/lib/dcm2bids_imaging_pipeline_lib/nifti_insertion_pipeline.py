@@ -523,7 +523,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'CandID': self.subject_id_dict['CandID'],
             'Visit_label': self.subject_id_dict['visitLabel'],
             'Scan_type': self.scan_type_id,
-            'MriProtocolGroupID': self.mri_protocol_group_id
+            'MriProtocolChecksGroupID': self.mri_protocol_group_id
         }
         for violation_dict in violations_list:
             info_to_insert_dict = base_info_dict | violation_dict
@@ -566,7 +566,6 @@ class NiftiInsertionPipeline(BasePipeline):
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None
         }
-        print(self.json_file_dict)
         file_id = self.imaging_obj.insert_imaging_file(files_insert_info_dict, self.json_file_dict)
 
         return file_id
@@ -579,7 +578,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'cand_id': self.subject_id_dict['CandID'],
             'data_dir_path': self.data_dir,
             'file_rel_path': self.assembly_nifti_rel_path,
-            'is_4D_dataset': True if 'time' in self.json_file_dict.keys() else False,
+            'is_4D_dataset': True if self.json_file_dict['time'] else False,
             'file_id': self.file_id
         }
         pic_rel_path = self.imaging_obj.create_imaging_pic(file_info)
