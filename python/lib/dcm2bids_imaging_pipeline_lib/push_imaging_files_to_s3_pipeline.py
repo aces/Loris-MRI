@@ -39,6 +39,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         self.files_to_push_list = []
         self._get_files_to_push_list()
+        print(self.files_to_push_list)
 
         # ---------------------------------------------------------------------------------------------
         # Get Bucket information from Config
