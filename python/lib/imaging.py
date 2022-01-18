@@ -314,6 +314,23 @@ class Imaging:
             project_id, subproject_id, center_id, visit_label, scanner_id
         )
 
+    def grep_parameter_value_from_file_id_and_parameter_name(self, file_id, param_type_name):
+        """
+        Grep a Value in parameter_file based on a FileID and parameter type Name.
+
+        :param file_id: FileID to look for in parameter_file
+         :type file_id: int
+        :param param_type_name: parameter type Name to use to query parameter_file
+         :type param_type_name: str
+
+        :return: value found in the parameter_file table for the FileID and parameter Name
+         :rtype: str
+        """
+
+        param_type_id = self.get_parameter_type_id(param_type_name)
+        if param_type_id:
+            return self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
+
     def grep_file_type_from_file_id(self, file_id):
         """
         Greps the file type stored in the files table using its FileID.
