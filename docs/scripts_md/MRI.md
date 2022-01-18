@@ -83,10 +83,11 @@ INPUTS:
   - $db             : database object
   - $minc\_location  : location of the MINC files
   - $uploadID       : ID of the upload containing the scan
+  - $data\_dir       : path to the LORIS MRI data directory
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
-### insert\_violated\_scans($dbhr, $series\_desc, $minc\_location, $patient\_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID)
+### insert\_violated\_scans($dbhr, $series\_desc, $minc\_location, $patient\_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $data\_dir)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 `mri_protocol` table into the `mri_protocol_violated_scans` table of the
@@ -114,6 +115,7 @@ INPUTS:
   - $seriesUID      : `SeriesUID` of the scan
   - $tarchiveID     : `TarchiveID` of the DICOM archive from which this file is derived
   - $image\_type     : the `image_type` header value of the image
+  - $data\_dir       : path to the LORIS MRI data directory
   - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 ### scan\_type\_id\_to\_text($typeID, $db)
@@ -134,7 +136,7 @@ INPUTS:
   - $type: scan type
   - $db  : database object
 
-RETURNS: ID of the scan type
+RETURNS: ID of the scan type or undef
 
 ### in\_range($value, $range\_string)
 
@@ -364,12 +366,27 @@ RETURNS:
   - %isDicomImage: hash with file path as keys and true or false as values (true
                    if the file is a DICOM image file, false otherwise)
 
-### get\_trashbin\_file\_rel\_path($file)
+### isEcatImage(@files\_list)
 
-Determines and returns the relative path of a file moved to trashbin at the end of
-the insertion pipeline.
+This method checks whether the files given as an argument are HRRT ECAT7 images or not.
+It will return a hash with the file path as keys and true or false as values (the
+value will be set to true if the file is an ECAT7 image, otherwise it will be set to
+false).
 
-INPUT: path to a given file
+INPUT: array with full path to the files
+
+RETURNS:
+  - %isEcatImage: hash with file path as keys and true or false as values (true
+                   if the file is a DICOM image file, false otherwise)
+
+### get\_trashbin\_file\_rel\_path($file, $data\_dir, $move\_file)
+
+Determines and returns the relative path of a file after moving it to trashbin.
+
+INPUT:
+  - $file: path to a given file
+  - $data\_dir: path to the LORIS MRI data directory
+  - $move\_file: bool specifying whether the file should be moved to trashbin
 
 RETURNS: the relative path of the file moved to the trashbin directory
 

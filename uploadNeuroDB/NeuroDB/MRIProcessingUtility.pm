@@ -66,6 +66,8 @@ use NeuroDB::DatabaseException;
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
 use NeuroDB::objectBroker::TarchiveOB;
+use NeuroDB::objectBroker::MriUploadOB;
+
 
 use Path::Class;
 use Scalar::Util qw(blessed);
@@ -528,6 +530,41 @@ QUERY
     }
 }
 
+=pod
+
+=head3 createMriUploadArray($uploadID)
+
+Creates the MRI upload information hash ref for the uploadID passed as argument.
+
+INPUTS:
+  - $uploadID: UploadID to query mri_upload
+
+RETURNS: MRI upload information hash ref if found a row for UploadID in mri_upload.
+         Exits when either no match is found.
+
+=cut
+
+sub createMriUploadArray {
+    my $this = shift;
+    my ($uploadID) = @_;
+
+    my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $this->{'db'});
+    my $mriUploadInfoRef = $mriUploadOB->getWithUploadID($uploadID);
+
+    if (!@$mriUploadInfoRef) {
+        my $message = "\nERROR: UploadID $uploadID not found in mri_upload\n\n";
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::SELECT_FAILURE);
+        # no $tarchive can be fetched so $upload_id is undef
+        # in the notification_spool
+        $this->spool($message, 'Y', undef, $notify_notsummary);
+        exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+    }
+
+    # Only one upload: return it as a hash
+    return %{ $mriUploadInfoRef->[0] };
+}
+
+=cut
 
 =pod
 
@@ -697,7 +734,7 @@ sub computeMd5Hash {
 
 =pod
 
-=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center_name, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id)
+=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center_name, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id, $data_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If C<$acquisitionProtocol> is not set, it will look for the acquisition
@@ -715,6 +752,8 @@ INPUTS:
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass_extra_file_checks: boolean, if set bypass the extra checks
   - $upload_id               : upload ID of the study
+  - $data_dir                : path to the LORIS MRI data directory
+
 
 RETURNS:
   - $acquisitionProtocol     : acquisition protocol
@@ -728,7 +767,7 @@ sub getAcquisitionProtocol {
    
     my $this = shift;
     my ($file,$subjectIDsref,$tarchiveInfoRef,$center_name,$minc,
-        $acquisitionProtocol,$bypass_extra_file_checks, $upload_id) = @_;
+        $acquisitionProtocol,$bypass_extra_file_checks, $upload_id, $data_dir) = @_;
     my $message = '';
 
     ############################################################
@@ -748,7 +787,8 @@ sub getAcquisitionProtocol {
                                    $this->{dbhr}, 
                                    $this->{'db'},
                                    $minc,
-                                   $upload_id
+                                   $upload_id,
+                                   $data_dir
                                  );
     }
 
@@ -763,12 +803,32 @@ sub getAcquisitionProtocol {
             $acquisitionProtocol, $this->{'db'}
         );
 
+        # if no acquisition protocol ID returned, look for the 'unknown' protocol ID
+        unless ($acquisitionProtocolID) {
+            $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
+                'unknown', $this->{'db'}
+            );
+            # if found an ID for 'unknown' scan type, then change protocol
+            # to be 'unknown', otherwise throw an error
+            if ($acquisitionProtocolID) {
+                $acquisitionProtocol = 'unknown';
+            } else {
+                NeuroDB::UnexpectedValueException->throw(
+                    errorMessage => sprintf(
+                        "Unknown acquisition protocol %s and scan type 'unknown' does not exist in the database",
+                        $acquisitionProtocol
+                    )
+                );
+            }
+        }
+
         if ($bypass_extra_file_checks == 0) {
             $extra_validation_status = $this->extra_file_checks(
                 $acquisitionProtocolID, 
                 $file, 
                 $subjectIDsref, 
-                $tarchiveInfoRef->{'PatientName'}
+                $tarchiveInfoRef->{'PatientName'},
+                $data_dir
             );
             $message = "\nextra_file_checks from table mri_protocol_check " .
                      "logged in table mri_violations_log: $extra_validation_status\n";
@@ -783,6 +843,10 @@ sub getAcquisitionProtocol {
                 $this->spool($message, 'N', $upload_id, $notify_detailed);
             }
         }
+    } else {
+        $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
+            $acquisitionProtocol, $this->{'db'}
+        );
     }
     
     return ($acquisitionProtocol, $acquisitionProtocolID, $extra_validation_status);
@@ -791,7 +855,7 @@ sub getAcquisitionProtocol {
 
 =pod
 
-=head3 extra_file_checks($scan_type, $file, $subjectIdsref, $pname)
+=head3 extra_file_checks($scan_type, $file, $subjectIdsref, $pname, $data_dir)
 
 Returns the list of MRI protocol checks that failed. Can't directly insert
 this information here since the file isn't registered in the database yet.
@@ -801,6 +865,7 @@ INPUTS:
   - $file         : file information hash ref
   - $subjectIdsref: context information for the scan
   - $pname        : patient name found in the scan header
+  - $data_dir     : path to the LORIS MRI data directory
 
 RETURNS:
   - pass, warn or exclude flag depending on the worst failed check
@@ -815,6 +880,7 @@ sub extra_file_checks() {
     my $file          = shift;
     my $subjectIDsref = shift;
     my $pname         = shift;
+    my $data_dir      = shift;
     
     my $candID        = $subjectIDsref->{'CandID'};
     my $projectID     = $subjectIDsref->{'ProjectID'};
@@ -855,7 +921,7 @@ sub extra_file_checks() {
         );
         if (%validFields) {
             $this->insert_into_mri_violations_log(
-                \%validFields, $severity, $pname, $candID, $visitLabel, $file
+                \%validFields, $severity, $pname, $candID, $visitLabel, $file, $data_dir
             );
             return $severity;
         }
@@ -992,7 +1058,7 @@ sub loop_through_protocol_violations_checks {
 
 =pod
 
-=head3 insert_into_mri_violations_log($valid_fields, $severity, $pname, $candID, $visit_label, $file)
+=head3 insert_into_mri_violations_log($valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir)
 
 For a given protocol failure, it will insert into the C<mri_violations_log>
 table all the information about the scan and the protocol violation.
@@ -1004,16 +1070,17 @@ INPUTS:
   - $candID      : C<CandID> associated with the scan
   - $visit_label : visit label associated with the scan
   - $file        : information about the scan
+  - $data_dir    : path to the LORIS MRI data directory
 
 =cut
 
 sub insert_into_mri_violations_log {
-    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file) = @_;
+    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
     my $file_path     = $file->getFileDatum('File');
-    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($file_path);
+    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
 
     my $query = "INSERT INTO mri_violations_log"
                     . "("
@@ -1207,7 +1274,8 @@ sub registerScanIntoDB {
     my $this = shift;
     my (
         $minc_file, $tarchiveInfo,$subjectIDsref,$acquisitionProtocol,
-        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id, $hrrt
+        $minc, $extra_validation_status,$reckless, $sessionID, $upload_id,
+        $acquisitionProtocolID, $hrrt
     ) = @_;
 
 
@@ -1219,11 +1287,7 @@ sub registerScanIntoDB {
     my $prefix   = $configOB->getPrefix();
 
 
-    my $acquisitionProtocolID = undef;
-    my (
-        $Date_taken,$minc_protocol_identified,
-        $file_path,$tarchive_path,$fileID
-    );
+    my ($Date_taken, $minc_protocol_identified, $file_path, $tarchive_path, $fileID);
     my $message = '';
     ############################################################
     # Register scans into the database.  Which protocols to ####
@@ -1237,13 +1301,6 @@ sub registerScanIntoDB {
         ) 
         && (!defined($extra_validation_status) || $extra_validation_status !~ /exclude/)) {
 
-        ########################################################
-        # convert the textual scan_type into the scan_type id ##
-        ########################################################
-        $acquisitionProtocolID = NeuroDB::MRI::scan_type_text_to_id(
-                                        $acquisitionProtocol, 
-                                        $this->{'db'}
-                                 );
         $${minc_file}->setFileData(
             'AcquisitionProtocolID', 
              $acquisitionProtocolID
@@ -1324,8 +1381,10 @@ sub registerScanIntoDB {
         $message = "\nFileID: $fileID\n";
         $this->spool($message, 'N', $upload_id, $notify_detailed);
 
+        return 1;
     }
-    return $acquisitionProtocolID;
+
+    return undef;
 }
 
 
@@ -1739,7 +1798,7 @@ sub CreateMRICandidates {
     );
 
     print "$query\n" if ($this->{debug});
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    $sth = ${$this->{'dbhr'}}->prepare($query);
     $sth->execute(values %record);
 
     $message = "\n==> CREATED NEW CANDIDATE: $candID";
@@ -1793,6 +1852,39 @@ sub validateArchive {
     }
 }
 
+
+
+
+=pod
+
+=head3 validate_tarchive_id_against_upload_id($tarchiveInfoRef, $uploadInfoRef)
+
+INPUTS:
+  - $tarchiveInfoRef: DICOM archive information hash ref
+  - $uploadInfoRef  : MRI upload information reference
+
+=cut
+
+sub validate_tarchive_id_against_upload_id {
+    my $this = shift;
+    my ($tarchiveInfoRef, $uploadInfoRef) = @_;
+
+    my $upload_id        = $uploadInfoRef->{'UploadID'};
+    my $archive_location = $tarchiveInfoRef->{'ArchiveLocation'};
+    my $tarchive_id_mu   = $uploadInfoRef->{'TarchiveID'};
+    my $tarchive_id_t    = $tarchiveInfoRef->{'TarchiveID'};
+
+    unless ($tarchiveInfoRef->{'TarchiveID'} == $uploadInfoRef->{'TarchiveID'}) {
+        my $message = "\nERROR: UploadID {$upload_id} is associated with TarchiveID {$tarchive_id_mu}"
+                      . " while ArchiveLocation {$archive_location} is associated with TarchiveID {$tarchive_id_t}."
+                      . " Please, ensure the arguments provided to the script refer to the same tarchive\n\n";
+        $this->writeErrorLog($message, $NeuroDB::ExitCodes::CORRUPTED_FILE);
+        $this->spool($message, 'Y', $upload_id, $notify_notsummary);
+        exit $NeuroDB::ExitCodes::CORRUPTED_FILE;
+    }
+}
+
+=cut
 
 =pod
 

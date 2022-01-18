@@ -40,6 +40,7 @@ use Math::Round;
 use Time::JulianDay;
 use File::Temp qw(tempdir);
 use File::Basename;
+use File::Copy;
 use Data::Dumper;
 use Carp;
 use Time::Local;
@@ -296,6 +297,7 @@ INPUTS:
   - $db             : database object
   - $minc_location  : location of the MINC files
   - $uploadID       : ID of the upload containing the scan
+  - $data_dir       : path to the LORIS MRI data directory
 
 RETURNS: textual name of scan type from the C<mri_scan_type> table
 
@@ -303,7 +305,7 @@ RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID) = @_;
+    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID, $data_dir) = @_;
 
     my $candid       = ${subjectref}->{'CandID'};
     my $pscid        = ${subjectref}->{'PSCID'};
@@ -374,8 +376,8 @@ sub identify_scan_db {
               FROM mri_protocol
               JOIN mri_protocol_group_target mpgt USING (MriProtocolGroupID)
               WHERE (
-                        (Center_name = ? AND ScannerID = ?)
-                     OR ((Center_name='ZZZZ' OR Center_name='AAAA') AND ScannerID IS NULL))";
+                        (CenterID = ? AND ScannerID = ?)
+                     OR (CenterID IS NULL AND ScannerID IS NULL))";
 
     #============================================================#
     # Add to the query the clause related to the Project ID, the #
@@ -391,7 +393,7 @@ sub identify_scan_db {
         ? ' AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = ?)'
         : ' AND mpgt.Visit_label IS NULL';
         
-    $query .=  ' ORDER BY Center_name ASC, ScannerID DESC';
+    $query .=  ' ORDER BY CenterID ASC, ScannerID DESC';
 
     my @bindValues = ($psc, $ScannerID);
     push(@bindValues, $projectID)    if defined $projectID;
@@ -453,8 +455,20 @@ sub identify_scan_db {
                 my $slice_thick_min = $rowref->{'slice_thickness_min'};
                 my $slice_thick_max = $rowref->{'slice_thickness_max'};
 
+                my $scan_type = &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                # if no scan type found in mri_scan_type for $rowref->{'Scan_type'},
+                # then throw an error
+                unless ($scan_type) {
+                    NeuroDB::UnexpectedValueException->throw(
+                        errorMessage => sprintf(
+                            "Unknown acquisition protocol ID %d for ",
+                            $rowref->{'Scan_type'}
+                        )
+                    );
+                }
+
                 if(0) {
-                    print "\tChecking ".&scan_type_id_to_text($rowref->{'Scan_type'}, $db)." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
+                    print "\tChecking ".$scan_type." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
                     print "\t";
                     if($sd_regex && ($series_description =~ /$sd_regex/i)) {
                         print "series_description\t";
@@ -475,7 +489,7 @@ sub identify_scan_db {
 
                 if ($sd_regex) {
                     if ($series_description =~ /$sd_regex/i) {
-                        return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                        return $scan_type;
                     }
 
                 } else {
@@ -492,7 +506,7 @@ sub identify_scan_db {
                       && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
                       && (!$rowref->{'image_type'} || $image_type =~ /\Q$rowref->{'image_type'}\E/i)
                     ) {
-                        return &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
+                        return $scan_type;
                     }
                 }  # if ($sd_regex) .... else...
             }  # foreach my $rowref (@rows)....
@@ -503,12 +517,12 @@ sub identify_scan_db {
     # table. Note that $mriProtocolGroupID will be undef unless exactly one protocol 
     # group was used to try to identify the scan
     insert_violated_scans(
-        $dbhr,   $series_description, $minc_location,   $patient_name,
-        $candid, $pscid,              $tr,              $te,
-        $ti,     $slice_thickness,    $xstep,           $ystep,
-        $zstep,  $xspace,             $yspace,          $zspace,
-        $time,   $seriesUID,          $tarchiveID,      $image_type,
-        $mriProtocolGroupID
+        $dbhr,     $series_description, $minc_location,   $patient_name,
+        $candid,   $pscid,              $tr,              $te,
+        $ti,       $slice_thickness,    $xstep,           $ystep,
+        $zstep,    $xspace,             $yspace,          $zspace,
+        $time,     $seriesUID,          $tarchiveID,      $image_type,
+        $data_dir, $mriProtocolGroupID
     );
 
     return 'unknown';
@@ -516,7 +530,7 @@ sub identify_scan_db {
 
 =pod
 
-=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID)
+=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $data_dir)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
@@ -544,22 +558,23 @@ INPUTS:
   - $seriesUID      : C<SeriesUID> of the scan
   - $tarchiveID     : C<TarchiveID> of the DICOM archive from which this file is derived
   - $image_type     : the C<image_type> header value of the image
+  - $data_dir       : path to the LORIS MRI data directory
   - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 =cut
 
 sub insert_violated_scans {
 
-    my ($dbhr,   $series_description, $minc_location, $patient_name,
-        $candid, $pscid,              $tr,            $te,
-        $ti,     $slice_thickness,    $xstep,         $ystep,
-        $zstep,  $xspace,             $yspace,        $zspace,
-        $time,   $seriesUID,          $tarchiveID,    $image_type,
-        $mriProtocolGroupID) = @_;
+    my ($dbhr,     $series_description, $minc_location, $patient_name,
+        $candid,   $pscid,              $tr,            $te,
+        $ti,       $slice_thickness,    $xstep,         $ystep,
+        $zstep,    $xspace,             $yspace,        $zspace,
+        $time,     $seriesUID,          $tarchiveID,    $image_type,
+        $data_dir, $mriProtocolGroupID) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
-    my $file_rel_path = get_trashbin_file_rel_path($minc_location);
+    my $file_rel_path = get_trashbin_file_rel_path($minc_location, $data_dir, 1);
 
     (my $query = <<QUERY) =~ s/\n//gm;
   INSERT INTO mri_protocol_violated_scans (
@@ -612,21 +627,8 @@ sub scan_type_id_to_text {
         db => $db
     );
     my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $typeID });
-    
-    # This is just to make sure that there is a scan type in the DB
-    # with name 'unknown' in case we can't find the one with ID $ID
-    $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
 
-    if(!@$mriScanTypeRef) {
-        NeuroDB::UnexpectedValueException->throw(
-            errorMessage => sprintf(
-                "Unknown acquisition protocol ID %d and scan type 'unknown' does not exist in the database",
-                $typeID
-            ) 
-        );
-    }
-    
-    return $mriScanTypeRef->[0]->{'Scan_type'};
+    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'Scan_type'} : undef;
 }
 
 =pod
@@ -639,7 +641,7 @@ INPUTS:
   - $type: scan type
   - $db  : database object
 
-RETURNS: ID of the scan type
+RETURNS: ID of the scan type or undef
 
 =cut
 
@@ -652,17 +654,8 @@ sub scan_type_text_to_id {
     my $mriScanTypeRef = $mriScanTypeOB->get(
         0, { Scan_type => $type }
     );
-    $mriScanTypeRef = $mriScanTypeOB->get(0, { Scan_type => 'unknown' }) if !@$mriScanTypeRef;
-    if(!@$mriScanTypeRef) {
-        NeuroDB::UnexpectedValueException->throw(
-            errorMessage => sprintf(
-                "Unknown acquisition protocol %s and scan type 'unknown' does not exist in the database",
-                $type
-            ) 
-        );
-    }
-    
-    return $mriScanTypeRef->[0]->{'ID'};
+
+    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'ID'} : undef;
 }
 
 
@@ -1296,7 +1289,7 @@ sub make_nii {
     my $bvec_success = create_dwi_nifti_bvec_file($fileref, "$data_dir/$bvec_file");
 
     # update mri table (parameter_file table)
-    $file->setParameter('check_nii_filename',  $gzip_nifti) if -e $gzip_nifti;
+    $file->setParameter('check_nii_filename',  $gzip_nifti) if -e "$data_dir/$gzip_nifti";
     $file->setParameter('check_bval_filename', $bval_file) if $bval_success;
     $file->setParameter('check_bvec_filename', $bvec_file) if $bvec_success;
 }
@@ -1319,7 +1312,7 @@ sub gzip_file {
 
     return undef unless (-e $file);
 
-    my $gzip_cmd = "gzip $file";
+    my $gzip_cmd = "gzip -f $file";
     system($gzip_cmd);
 
     (-e "$file.gz") ? return "$file.gz" : undef;
@@ -1401,7 +1394,8 @@ sub create_dwi_nifti_bvec_file {
     return undef unless ($bvecs[0] && $bvecs[1] && $bvecs[2]);
 
     # loop through all bvecs, clean them up and print them into the bvec file
-    s/^\"+|\"$//g for @bvecs;
+    s/^\"+|\.\,|\,|\"$//g for @bvecs;
+
     open(OUT, '>', $bvec_file) or die "Cannot write to file $bvec_file: $!\n";
     print OUT map { "$_\n" } @bvecs;
     close(OUT);
@@ -1644,24 +1638,32 @@ sub isEcatImage {
 
 =pod
 
-=head3 get_trashbin_file_rel_path($file)
+=head3 get_trashbin_file_rel_path($file, $data_dir, $move_file)
 
-Determines and returns the relative path of a file moved to trashbin at the end of
-the insertion pipeline.
+Determines and returns the relative path of a file after moving it to trashbin.
 
-INPUT: path to a given file
+INPUT:
+  - $file: path to a given file
+  - $data_dir: path to the LORIS MRI data directory
+  - $move_file: bool specifying whether the file should be moved to trashbin
 
 RETURNS: the relative path of the file moved to the trashbin directory
 
 =cut
 
 sub get_trashbin_file_rel_path {
-    my ($file) = @_;
+    my ($file, $data_dir, $move_file) = @_;
 
     my @directories  = split(/\//, $file);
     my $new_rel_path = "trashbin"
                        . "/" . $directories[$#directories-1]
                        . "/" . $directories[$#directories];
+
+    if (defined $move_file) {
+        my $destination_dir = "$data_dir/trashbin/$directories[$#directories-1]";
+        mkdir $destination_dir unless (-e $destination_dir);
+        move($file, "$data_dir/$new_rel_path");
+    }
 
     return $new_rel_path;
 }

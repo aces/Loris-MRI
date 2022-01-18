@@ -60,6 +60,12 @@ actions will happen:
 
 RETURNS: 1 on success, 0 on failure
 
+### runHrrtInsertion($is\_bic)
+
+Run the HRRT insertion script (`HRRT_PET_insertion.pl`).
+
+RETURNS: 1 on success, 0 on failure
+
 ### runDicomTar()
 
 This method executes the following actions:
@@ -84,7 +90,7 @@ successfully.
 
 RETURNS: 1 on success, 0 on failure
 
-### PatientNameMatch($dicom\_file, $expected\_pname\_regex)
+### DicomPatientNameMatch($dicom\_file, $expected\_pname\_regex)
 
 This method extracts the patient name field from the DICOM file header using
 `dcmdump` and compares it with the patient name information stored in the
@@ -93,6 +99,19 @@ This method extracts the patient name field from the DICOM file header using
 INPUTS:
   - $dicom\_file          : full path to the DICOM file
   - $expected\_pname\_regex: expected patient name regex to find in the DICOM file
+
+RETURNS: 1 on success, 0 on failure
+
+### HrrtPatientNameMatch($filename)
+
+This method extracts the patient name field from the file name and compares it with
+the patient name information stored in the `mri_upload` table.
+
+Note: it will skip some files that are known to not include the patient name in
+their label.
+
+INPUTS:
+  - $filename: name of the file to check if the PatientName is in the filename
 
 RETURNS: 1 on success, 0 on failure
 

@@ -86,7 +86,6 @@ class BidsReader:
         if self.verbose:
             print('Loading the BIDS dataset with BIDS layout library...\n')
 
-        bids_config   = os.environ['LORIS_MRI'] + "/python/lib/bids.json"
         exclude_arr   = ['/code/', '/sourcedata/', '/log/', '.git/']
         force_arr     = [re.compile("_annotations\.(tsv|json)$")]
 
@@ -99,10 +98,10 @@ class BidsReader:
         #    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
         #    bids_layout = BIDSLayout(
         #        root=self.bids_dir,
-        #        indexer=BIDSLayoutIndexer(config_filename=bids_config, ignore=exclude_arr, force_index=force_arr)
+        #        indexer=BIDSLayoutIndexer(ignore=exclude_arr, force_index=force_arr)
         #    )
         #else:
-        bids_layout = BIDSLayout(root=self.bids_dir, config=bids_config, ignore=exclude_arr, force_index=force_arr, derivatives=True)
+        bids_layout = BIDSLayout(root=self.bids_dir, ignore=exclude_arr, force_index=force_arr, derivatives=True)
 
         if self.verbose:
             print('\t=> BIDS dataset loaded with BIDS layout\n')

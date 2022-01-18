@@ -4,7 +4,7 @@ get\_dicom\_files.pl - extracts DICOM files for specific patient names/scan type
 
 # SYNOPSIS
 
-perl get\_dicom\_files.pl \[-name patient\_name\_patterns\] \[-type scan\_type\_patterns\] \[-outdir tmp\_dir\] \[-outfile tarBasename\] 
+perl get\_dicom\_files.pl \[-names patient\_name\_patterns\] \[-types scan\_type\_patterns\] \[-outdir tmp\_dir\] \[-outfile tarBasename\] 
            \[-id candid|pscid|candid\_pscid|pscid\_candid\] -profile profile
 
 Available options are:
@@ -21,7 +21,7 @@ Available options are:
            names) that a DICOM file has to have in order to be extracted. A DICOM file only
            has to match one of the patterns to be extracted. If no pattern is specified, then
            the scan type name is not used to determine which DICOM files to extract. This option
-           must be used if no patient name patterns were specified via `-name` (see above).
+           must be used if no patient name patterns were specified via `-names` (see above).
 
 \-outdir  : extract the files in directory `<dir_argument>/get_dicom_files.pl.<random_string>`
            For example with `-d /data/tmp`, the DICOM files might be extracted in 
