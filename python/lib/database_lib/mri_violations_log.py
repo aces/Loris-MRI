@@ -68,6 +68,6 @@ class MriViolationsLog:
 
         if severity:
             query += "AND Severity = %s"
-            args += severity
+            args += (severity,)
 
         return self.db.pselect(query=query, args=args)
