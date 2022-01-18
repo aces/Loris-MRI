@@ -71,6 +71,10 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         self._get_list_of_files_from_parameter_file()
 
         # Get list of files in mri_protocol_violated_scans table
+        self._get_list_of_files_from_mri_protocol_violated_scans()
+
+        # Get list of files in mri_violations_log
+        self._get_list_of_files_from_mri_violations_log()
 
     def _get_list_of_files_from_files(self):
 
@@ -118,4 +122,21 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
     def _get_list_of_files_from_mri_violations_log(self):
 
-        excluded_entries = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id()
+        exclude_entries = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+            self.tarchive_id, "exclude"
+        )
+        warning_entries = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+            self.tarchive_id, "warning"
+        )
+
+        for entry in exclude_entries + warning_entries:
+            self.files_to_push_list.append({
+                "table_name": "mri_violations_log",
+                "id_field_name": "LogID",
+                "id_field_value": entry["LogID"],
+                "file_path_field_name": "MincFile",
+                "file_path_field_value": entry["MincFile"]
+            })
+
+    def _get_list_of_files_from_mri_candidate_errors(self):
+
