@@ -105,3 +105,17 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
     def _get_list_of_files_from_mri_protocol_violated_scans(self):
 
+        entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(self.tarchive_id)
+
+        for entry in entries:
+            self.files_to_push_list.append({
+                "table_name": "mri_protocol_violated_scans",
+                "id_field_name": "ID",
+                "id_field_value": entry["ID"],
+                "file_path_field_name": "minc_location",
+                "file_path_field_value": entry["minc_location"]
+            })
+
+    def _get_list_of_files_from_mri_violations_log(self):
+
+        excluded_entries = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id()
