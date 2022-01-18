@@ -50,7 +50,7 @@ class MriViolationsLog:
             get_last_id=False
         )
 
-    def get_excluded_violations_for_tarchive_id(self, tarchive_id):
+    def get_excluded_violations_for_tarchive_id(self, tarchive_id, severity=None):
         """
         Get the list of violations logged in `mri_violations_log` with excluded severity for a given `TarchiveID`.
 
@@ -61,6 +61,11 @@ class MriViolationsLog:
          :rtype: list
         """
 
-        query = "SELECT * FROM mri_violations_log WHERE TarchiveID = %s and Severity = %s"
+        query = "SELECT * FROM mri_violations_log WHERE TarchiveID = %s"
+        args = (tarchive_id,)
 
-        return self.db.pselect(query=query, args=(tarchive_id, 'exclude'))
+        if severity:
+            query += "AND Severity = %s"
+            args += severity
+
+        return self.db.pselect(query=query, args=args)
