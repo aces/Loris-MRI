@@ -86,7 +86,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "id_field_name": "FileID",
                 "id_field_value": file["FileID"],
                 "file_path_field_name": "File",
-                "file_path_field_value": file["File"]
+                "original_file_path_field_value": file["File"]
             })
 
     def _get_list_of_files_from_parameter_file(self):
@@ -96,6 +96,15 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         files_info = []
         for file_id in file_ids:
             files_info.extend(self.imaging_obj.get_bids_files_info_from_parameter_file_for_file_id(file_id))
+            pic_entry_dict = self.imaging_obj.grep_parameter_value_from_file_id_and_parameter_name(
+                file_id, "check_pic_filename"
+            )
+            if pic_entry_dict:
+                # for the pic, we need to add the pic/ subdir to the Value
+                # otherwise, it will not be found on the filesystem
+                pic_entry_dict["Value"] = "pic/" + pic_entry_dict["Value"]
+
+            files_info.extend([pic_entry_dict])
 
         for file_entry in files_info:
             if not file_entry:
@@ -105,7 +114,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "id_field_name": "ParameterFileID",
                 "id_field_value": file_entry["ParameterFileID"],
                 "file_path_field_name": "Value",
-                "file_path_field_value": file_entry["Value"]
+                "original_file_path_field_value": file_entry["Value"]
             })
 
     def _get_list_of_files_from_mri_protocol_violated_scans(self):
@@ -118,7 +127,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "id_field_name": "ID",
                 "id_field_value": entry["ID"],
                 "file_path_field_name": "minc_location",
-                "file_path_field_value": entry["minc_location"]
+                "original_file_path_field_value": entry["minc_location"]
             })
 
     def _get_list_of_files_from_mri_violations_log(self):
@@ -136,5 +145,5 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "id_field_name": "LogID",
                 "id_field_value": entry["LogID"],
                 "file_path_field_name": "MincFile",
-                "file_path_field_value": entry["MincFile"]
+                "original_file_path_field_value": entry["MincFile"]
             })
