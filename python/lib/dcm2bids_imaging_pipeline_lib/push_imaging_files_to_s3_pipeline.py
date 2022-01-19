@@ -1,12 +1,9 @@
-import datetime
-import json
 import os
-import re
-import subprocess
 import sys
 
 import lib.exitcode
 import lib.utilities
+from lib.aws_s3 import AwsS3
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 
 __license__ = "GPLv3"
@@ -35,19 +32,25 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         self.tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
 
         # ---------------------------------------------------------------------------------------------
+        # Get Bucket information from Config and connect to bucket
+        # ---------------------------------------------------------------------------------------------
+        self.s3_obj = AwsS3(
+            aws_access_key_id=self.config_file.s3["aws_access_key_id"],
+            aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
+            aws_endpoint_url=self.config_file.s3["aws_s3_endpoint_url"],
+            bucket_name=self.config_file.s3["aws_s3_bucket_name"]
+        )
+
+        # ---------------------------------------------------------------------------------------------
         # Get all the files from files, parameter_file and violation tables
         # ---------------------------------------------------------------------------------------------
         self.files_to_push_list = []
         self._get_files_to_push_list()
-        print(self.files_to_push_list)
-
-        # ---------------------------------------------------------------------------------------------
-        # Get Bucket information from Config
-        # ---------------------------------------------------------------------------------------------
 
         # ---------------------------------------------------------------------------------------------
         # Upload files to S3
         # ---------------------------------------------------------------------------------------------
+        self._upload_files_to_s3()
 
         # ---------------------------------------------------------------------------------------------
         # Get final S3 URL
@@ -147,3 +150,14 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "file_path_field_name": "MincFile",
                 "original_file_path_field_value": entry["MincFile"]
             })
+
+    def _upload_files_to_s3(self):
+
+        for file in self.files_to_push_list:
+            file_full_path = os.path.join(self.data_dir, file["original_file_path_field_value"])
+            s3_path = file["original_file_path_field_value"]
+            file["s3_link"] = "/".join([self.s3_obj.aws_endpoint_url, self.s3_obj.bucket_name, s3_path])
+
+            if self.verbose:
+                print(f"Uploading {file['original_file_path_field_value']} to the S3 bucket")
+            self.s3_obj.upload_file(file_full_path, s3_path)
