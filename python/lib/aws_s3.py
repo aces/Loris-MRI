@@ -43,7 +43,8 @@ class AwsS3:
         return s3
 
     def upload_file(self, file_name, object_name):
-        """Upload a file to an S3 bucket
+        """
+        Upload a file to an S3 bucket
 
         :param file_name: Full path to the file to upload
          :type file_name: str
@@ -57,3 +58,22 @@ class AwsS3:
             self.s3_bucket_obj.upload_file(file_name, object_name)
         except ClientError as err:
             raise Exception(f"{file_name} upload failure - {format(err)}")
+
+    def check_if_file_key_exists_in_bucket(self, file_key):
+        """
+        Checks whether a file (key) exists in the bucket. Return True if file found, False otherwise.
+
+        :param file_key: file (or key) to look for in the bucket
+         :type file_key: str
+
+        :return: True if file (key) found, False otherwise
+         :rtype: bool
+        """
+
+        try:
+            self.s3_bucket_obj.Object(file_key).get()
+        except ClientError as err:
+            print(err)
+            return False
+
+        return True

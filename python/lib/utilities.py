@@ -237,3 +237,11 @@ def create_processing_tmp_dir(template_prefix):
     tmp_dir = tempfile.mkdtemp(prefix=template_prefix, dir=env_tmp_dir)
 
     return tmp_dir
+
+
+def remove_empty_folders(path_abs):
+
+    walk = list(os.walk(path_abs))
+    for path, _, _ in walk[::-1]:
+        if len(os.listdir(path)) == 0:
+            os.rmdir(path)

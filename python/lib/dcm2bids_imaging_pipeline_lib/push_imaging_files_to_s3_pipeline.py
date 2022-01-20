@@ -53,17 +53,16 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         self._upload_files_to_s3()
 
         # ---------------------------------------------------------------------------------------------
-        # Get final S3 URL
+        # Update table file paths and delete file from file system
         # ---------------------------------------------------------------------------------------------
+        for file_info in self.files_to_push_list:
+            rel_path = file_info["original_file_path_field_value"]
+            if self.s3_obj.check_if_file_key_exists_in_bucket(rel_path):
+                self._update_database_tables_with_s3_path(file_info)
+                print(f"DELETING s3_key")
+                os.remove(os.path.join(self.data_dir, rel_path))
 
-        # ---------------------------------------------------------------------------------------------
-        # Update table file paths
-        # ---------------------------------------------------------------------------------------------
-
-        # ---------------------------------------------------------------------------------------------
-        # Delete file from the file system after having checked they are indeed on S3
-        # ---------------------------------------------------------------------------------------------
-
+        self._clean_up_empty_folders()
         sys.exit(lib.exitcode.SUCCESS)
 
     def _get_files_to_push_list(self):
@@ -156,8 +155,36 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         for file in self.files_to_push_list:
             file_full_path = os.path.join(self.data_dir, file["original_file_path_field_value"])
             s3_path = file["original_file_path_field_value"]
-            file["s3_link"] = "/".join([self.s3_obj.aws_endpoint_url, self.s3_obj.bucket_name, s3_path])
+            file["s3_link"] = "/".join(["s3://", self.s3_obj.bucket_name, s3_path])
 
-            if self.verbose:
-                print(f"Uploading {file['original_file_path_field_value']} to the S3 bucket")
             self.s3_obj.upload_file(file_full_path, s3_path)
+
+    def _update_database_tables_with_s3_path(self, file_info):
+
+        table_name = file_info["table_name"]
+        entry_id = file_info["id_field_value"]
+        s3_link = file_info["s3_link"]
+        field_to_update = file_info["file_path_field_name"]
+
+        if table_name == "parameter_file":
+            print(f"UPDATING TABLE {table_name} with link {s3_link}")
+            self.imaging_obj.param_file_db_obj.update_parameter_file(s3_link, entry_id)
+        elif table_name == "files":
+            self.imaging_obj.files_db_obj.update_files(entry_id, (field_to_update,), (s3_link,))
+        elif table_name == "mri_protocol_violated_scans":
+            self.imaging_obj.mri_prot_viol_scan_db_obj.update_protocol_violated_scans(
+                entry_id, (field_to_update,), (s3_link,)
+            )
+        elif table_name == "mri_violations_log":
+            self.imaging_obj.mri_viol_log_db_obj.update_violations_log(entry_id, (field_to_update,), (s3_link,))
+
+    def _clean_up_empty_folders(self):
+
+        # remove empty folders from file system
+        print(f"removing empty folders")
+        cand_id = self.subject_id_dict["CandID"]
+        bids_cand_id = f"sub-{cand_id}"
+        print(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
+        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
+        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", cand_id))
+        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "trashbin"))

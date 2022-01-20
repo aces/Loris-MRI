@@ -71,3 +71,25 @@ class MriViolationsLog:
             args += (severity,)
 
         return self.db.pselect(query=query, args=args)
+
+    def update_violations_log(self, log_id, fields, values):
+        """
+        Inserts into the `mri_violations_log` table a new row with file information.
+
+        :param log_id: ID of the file to update in the `mri_violations_log` table
+         :type log_id: int
+        :param fields: tuple with the list of fields to update in the `mri_violations_log` table
+         :type fields: tuple
+        :param values: tuple with the list of values to use to update the `mri_violations_log` table
+         :type values: tuple
+        """
+
+        query = 'UPDATE mri_violations_log SET '
+
+        query += ', '.join(map(lambda x: x + ' = %s', fields))
+
+        query += ' WHERE LogID = %s'
+
+        args = values + (log_id,)
+
+        self.db.update(query=query, args=args)
