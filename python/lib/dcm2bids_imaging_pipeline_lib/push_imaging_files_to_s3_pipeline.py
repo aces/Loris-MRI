@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 import lib.exitcode
@@ -59,7 +60,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             rel_path = file_info["original_file_path_field_value"]
             if self.s3_obj.check_if_file_key_exists_in_bucket(rel_path):
                 self._update_database_tables_with_s3_path(file_info)
-                print(f"DELETING s3_key")
+                print(f"Deletion of {rel_path} on the local file system")
                 os.remove(os.path.join(self.data_dir, rel_path))
 
         self._clean_up_empty_folders()
@@ -150,12 +151,27 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "original_file_path_field_value": entry["MincFile"]
             })
 
+    def _get_violations_extra_bids_files(self, nifti_file_path):
+
+        extra_files_list = [
+            re.sub(r"\.nii(\.gz)?$", '.json', nifti_file_path),
+            re.sub(r"\.nii(\.gz)?$", '.bval', nifti_file_path),
+            re.sub(r"\.nii(\.gz)?$", '.bvec', nifti_file_path)
+        ]
+
+        for extra_file_path in extra_files_list:
+            if os.path.isfile(extra_file_path):
+                self.files_to_push_list.append({
+                    "table_name": None,
+                    "original_file_path_field_value": extra_file_path
+                })
+
     def _upload_files_to_s3(self):
 
         for file in self.files_to_push_list:
             file_full_path = os.path.join(self.data_dir, file["original_file_path_field_value"])
             s3_path = file["original_file_path_field_value"]
-            file["s3_link"] = "/".join(["s3://", self.s3_obj.bucket_name, s3_path])
+            file["s3_link"] = "/".join(["s3:/", self.s3_obj.bucket_name, s3_path])
 
             self.s3_obj.upload_file(file_full_path, s3_path)
 
@@ -166,7 +182,10 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         s3_link = file_info["s3_link"]
         field_to_update = file_info["file_path_field_name"]
 
-        if table_name == "parameter_file":
+        if not table_name:
+            # for extra JSON, BVAL and BVEC files in violation tables that are not registered in DB for now
+            return
+        elif table_name == "parameter_file":
             print(f"UPDATING TABLE {table_name} with link {s3_link}")
             self.imaging_obj.param_file_db_obj.update_parameter_file(s3_link, entry_id)
         elif table_name == "files":
@@ -181,7 +200,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
     def _clean_up_empty_folders(self):
 
         # remove empty folders from file system
-        print(f"removing empty folders")
+        print(f"Cleaning up empty folders")
         cand_id = self.subject_id_dict["CandID"]
         bids_cand_id = f"sub-{cand_id}"
         print(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
