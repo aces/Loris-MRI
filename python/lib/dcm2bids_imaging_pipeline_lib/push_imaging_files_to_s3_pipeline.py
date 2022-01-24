@@ -67,6 +67,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         sys.exit(lib.exitcode.SUCCESS)
 
     def _get_files_to_push_list(self):
+        """
+        Get the list of files that need to be pushed to S3 from the database tables.
+        """
 
         # Get files in the files table
         self._get_list_of_files_from_files()
@@ -81,6 +84,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         self._get_list_of_files_from_mri_violations_log()
 
     def _get_list_of_files_from_files(self):
+        """
+        Get the list of files associated to the TarchiveID present in the files table.
+        """
 
         file_entries = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
         for file in file_entries:
@@ -93,6 +99,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             })
 
     def _get_list_of_files_from_parameter_file(self):
+        """
+        Get the list of files associated to the TarchiveID present in the parameter_file table.
+        """
 
         file_ids = [v["id_field_value"] for v in self.files_to_push_list] if self.files_to_push_list else []
 
@@ -121,6 +130,10 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             })
 
     def _get_list_of_files_from_mri_protocol_violated_scans(self):
+        """
+        Get the list of files associated to the TarchiveID present in the mri_protocol_violated_scans table.
+        Will also return the JSON, BVAL and BVEC files associated to protocol violated scan.
+        """
 
         entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(self.tarchive_id)
 
@@ -132,8 +145,15 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "file_path_field_name": "minc_location",
                 "original_file_path_field_value": entry["minc_location"]
             })
+            self._get_violations_extra_bids_files(entry["minc_location"])
 
     def _get_list_of_files_from_mri_violations_log(self):
+        """
+        Get the list of files associated to the TarchiveID present in the mri_violations_log table.
+        Will also return the JSON, BVAL and BVEC files associated to exclude violations. (Warning
+        violations are also stored in the files table and BIDS related file already queried from
+        parameter_file).
+        """
 
         exclude_entries = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
             self.tarchive_id, "exclude"
@@ -150,8 +170,17 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 "file_path_field_name": "MincFile",
                 "original_file_path_field_value": entry["MincFile"]
             })
+            if entry["Severity"] == "exclude":
+                self._get_violations_extra_bids_files(entry["MincFile"])
 
     def _get_violations_extra_bids_files(self, nifti_file_path):
+        """
+        Determine the extra BIDS file paths for violations that will need to be pushed to S3
+        (those are not stored in the database).
+
+        :param nifti_file_path: path to the NIfTI file
+         :type nifti_file_path: str
+        """
 
         extra_files_list = [
             re.sub(r"\.nii(\.gz)?$", '.json', nifti_file_path),
@@ -167,6 +196,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                 })
 
     def _upload_files_to_s3(self):
+        """
+        Loop through the list of files to push to S3 and upload them to the S3 bucket.
+        """
 
         for file in self.files_to_push_list:
             file_full_path = os.path.join(self.data_dir, file["original_file_path_field_value"])
@@ -176,6 +208,12 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             self.s3_obj.upload_file(file_full_path, s3_path)
 
     def _update_database_tables_with_s3_path(self, file_info):
+        """
+        Update the database tables with the new S3 path for the files that were pushed to the bucket.
+
+        :param file_info: dictionary with the table row information for the file to update
+         :type file_info: dict
+        """
 
         table_name = file_info["table_name"]
         entry_id = file_info["id_field_value"]
@@ -198,9 +236,12 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             self.imaging_obj.mri_viol_log_db_obj.update_violations_log(entry_id, (field_to_update,), (s3_link,))
 
     def _clean_up_empty_folders(self):
+        """
+        Remove empty folders from the file system.
+        """
 
         # remove empty folders from file system
-        print(f"Cleaning up empty folders")
+        print("Cleaning up empty folders")
         cand_id = self.subject_id_dict["CandID"]
         bids_cand_id = f"sub-{cand_id}"
         print(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
