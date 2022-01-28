@@ -60,10 +60,14 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         for file_info in self.files_to_push_list:
             rel_path = file_info["original_file_path_field_value"]
+            full_path = os.path.join(self.data_dir, rel_path)
+            table_name = file_info["table_name"]
             if self.s3_obj.check_if_file_key_exists_in_bucket(rel_path):
                 self._update_database_tables_with_s3_path(file_info)
                 print(f"Deletion of {rel_path} on the local file system")
-                os.remove(os.path.join(self.data_dir, rel_path))
+                if table_name and table_name == "mri_violations_log" and os.path.isfile(full_path):
+                    # if mri_violations is warning, the file might already have been deleted
+                    os.remove(full_path)
 
         self._clean_up_empty_folders()
         sys.exit(lib.exitcode.SUCCESS)
@@ -191,7 +195,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         ]
 
         for extra_file_path in extra_files_list:
-            if os.path.isfile(extra_file_path):
+            if os.path.isfile(os.path.join(self.data_dir, extra_file_path)):
                 self.files_to_push_list.append({
                     "table_name": None,
                     "original_file_path_field_value": extra_file_path
@@ -218,9 +222,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         table_name = file_info["table_name"]
-        entry_id = file_info["id_field_value"]
         s3_link = file_info["s3_link"]
-        field_to_update = file_info["file_path_field_name"]
+        entry_id = file_info["id_field_value"] if "id_field_value" in file_info.keys() else None
+        field_to_update = file_info["file_path_field_name"] if "file_path_field_name" in file_info.keys() else None
 
         if not table_name:
             # for extra JSON, BVAL and BVEC files in violation tables that are not registered in DB for now
