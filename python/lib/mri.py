@@ -402,7 +402,6 @@ class Mri:
                     'file_id'      : file_id
                 }
             )
-            print(self.data_dir + pic_rel_path)
             if os.path.exists(self.data_dir + 'pic/' + pic_rel_path):
                 imaging.insert_parameter_file(file_id, 'check_pic_filename', pic_rel_path)
 
