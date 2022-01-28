@@ -8,7 +8,7 @@ from pyblake2 import blake2b
 import lib.exitcode
 import lib.utilities as utilities
 from lib.candidate                                   import Candidate
-from lib.session                                     import SessionDB
+from lib.session                                     import Session
 from lib.physiological                               import Physiological
 from lib.scanstsv                                    import ScansTSV
 from lib.database_lib.physiologicalannotationfile    import PhysiologicalAnnotationFile
@@ -182,11 +182,11 @@ class Eeg:
         # will use the default visit label set in the config module
         visit_label = self.bids_ses_id if self.bids_ses_id else self.default_vl
 
-        session = SessionDB(
-            self.verbose, self.cand_id, visit_label,
+        session = Session(
+            self.db, self.verbose, self.cand_id, visit_label,
             self.center_id, self.project_id, self.subproject_id
         )
-        loris_vl_info = session.get_session_info_from_loris(self.db)
+        loris_vl_info = session.get_session_info_from_loris()
 
         if not loris_vl_info:
             message = "ERROR: visit label " + visit_label + "does not exist in " + \
