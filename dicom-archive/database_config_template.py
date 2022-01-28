@@ -11,6 +11,14 @@ mysql = {
     'port'    : ''
 }
 
+s3 = {
+    'aws_access_key_id'    : 'AWS_ACCESS_KEY_ID',
+    'aws_secret_access_key': 'AWS_SECRET_ACCESS_KEY',
+    'aws_s3_endpoint_url'  : 'AWS_S3_ENDPOINT',
+    'aws_s3_bucket_name'   : 'AWS_S3_BUCKET_NAME',
+}
+
+
 def get_subject_ids(db, dicom_value=None, scanner_id=None):
 
     subject_id_dict = {}

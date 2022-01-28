@@ -35,11 +35,13 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Get Bucket information from Config and connect to bucket
         # ---------------------------------------------------------------------------------------------
+        s3_endpoint = self.config_db_obj.get_config("AWS_S3_Endpoint")
+        s3_bucket_name = self.config_db_obj.get_config("AWS_S3_Default_Bucket")
         self.s3_obj = AwsS3(
             aws_access_key_id=self.config_file.s3["aws_access_key_id"],
             aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
-            aws_endpoint_url=self.config_file.s3["aws_s3_endpoint_url"],
-            bucket_name=self.config_file.s3["aws_s3_bucket_name"]
+            aws_endpoint_url=s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"],
+            bucket_name=s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
         )
 
         # ---------------------------------------------------------------------------------------------
