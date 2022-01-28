@@ -311,7 +311,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         pattern = re.compile("^[0-9]{4}/")
         if acq_date and not pattern.match(archive_location):
             # move the DICOM archive into a year subfolder
-            year_subfolder = datetime.datetime.fromisoformat(acq_date).strftime("%Y")
+            year_subfolder = acq_date.strftime("%Y")
             new_archive_location = os.path.join(year_subfolder, archive_location)
             destination_dir_path = os.path.join(self.data_dir, "tarchive", year_subfolder)
             new_tarchive_path = os.path.join(destination_dir_path, archive_location)
