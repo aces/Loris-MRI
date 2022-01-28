@@ -373,7 +373,7 @@ if ( $imaging_upload->{'is_hrrt'}) {
         $output = $imaging_upload->runPythonArchiveLoader();
         # NOTE: no need to update the mri_upload table as this is taken care of on the python side
         if (!defined $output) {
-            $message = "\nrun_archive_loader.py insertion script has failed.\n";
+            $message = "\nrun_dicom_archive_loader.py insertion script has failed.\n";
             spool($message,'Y', $notify_notsummary);
             print STDERR $message;
             my $mail_subject = "IMAGING_UPLOAD_FILE: $uploaded_file insertion completed.";

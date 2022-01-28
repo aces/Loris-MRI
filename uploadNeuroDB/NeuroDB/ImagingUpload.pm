@@ -537,7 +537,7 @@ sub runPythonArchiveLoader {
     my $python_config = $configOB->getPythonConfigFile();
 
     my $command = sprintf(
-        "%s/python/run_archive_loader.py -p %s -u %s",
+        "%s/python/run_dicom_archive_loader.py -p %s -u %s",
         quotemeta($bin_dirPath),
         $python_config,
         quotemeta($this->{upload_id})
