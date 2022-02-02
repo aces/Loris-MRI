@@ -103,7 +103,7 @@ Example for two entries/scans to be uploaded (one human subject and one phantom)
 ```
 
 
-## 5.2 - Pipeline Launch for BIDS datasets directly (no DICOM files available)
+## 5.2 - Pipeline Launch for BIDS datasets (if no DICOM files available)
 
 ### 5.2.1 - Ideal BIDS structure for LORIS
 
