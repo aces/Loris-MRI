@@ -65,7 +65,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             if self.s3_obj.check_if_file_key_exists_in_bucket(rel_path):
                 self._update_database_tables_with_s3_path(file_info)
                 print(f"Deletion of {rel_path} on the local file system")
-                if table_name and table_name == "mri_violations_log" and os.path.isfile(full_path):
+                if os.path.isfile(full_path):
                     # if mri_violations is warning, the file might already have been deleted
                     os.remove(full_path)
 
