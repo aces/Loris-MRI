@@ -320,8 +320,8 @@ class Imaging:
 
         :param file_id: FileID of the NIfTI file in the files table
          :type file_id: int
-        """
 
+        """
         return [
             self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "bids_json_file"),
             self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "check_bval_filename"),

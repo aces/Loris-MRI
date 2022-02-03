@@ -3,9 +3,8 @@
 
 ## 3.1 Back end directory structure
 
-The imaging part of a LORIS instance is typically separated into two directories, 
-one located in `/data/$PROJECT`, which stores data, and one in `/opt/$PROJECT`, which 
-stores the scripts.
+The imaging part of a LORIS instance is typically separated into two directories,
+`/data/$PROJECT` which stores data, and `/opt/$PROJECT` which stores the scripts.
 
 ```
 ## Imaging pipeline file directory structures
@@ -86,7 +85,7 @@ The MINC images that can be viewed via BrainBrowser in the imaging browser
 
 #### The `assembly_bids` directory
 
-The BIDS images derived from DICOM files that can be viewed via BrainBrowser in the imaging browser 
+The BIDS images derived from DICOM files that can be viewed via BrainBrowser in the Imaging Browser 
   module are located under the `data/assembly_bids` directory and organized as 
   a BIDS structure (see BIDS [specifications](https://bids.neuroimaging.io/)). 
   For example, a native T1W image for subject 123456's V1 visit will be located in 
@@ -334,9 +333,9 @@ The second step to insert a new imaging session into the database is the
   conversion of the DICOM study into the MINC files that will be inserted based 
   on the imaging protocol used. Having the dataset converted in MINC allows 
   visualization of the images directly in the browser.
-  
-Once all DICOMs have been converted into either MINC or BIDS files (via the `dcm2mnc` 
-  converter from the MINC tools for MINC files and `dcm2niix` for BIDS files), 
+
+First, all DICOMs are converted into either MINC format (using `dcm2mnc` 
+  from MINC tools), or into a BIDS structure (using `dcm2niix`). Then, 
   the backend scripts will pull the information stored in the following tables 
   in order to identify the scan type for each converted file created:
   
