@@ -84,7 +84,7 @@ Neuroscience
 
 ### 4.2.1 - DICOM to MINC pipeline flow
 
-A very brief illustration of the key and expected outcomes at different steps in 
+A very brief illustration summarizing the main outcomes at different steps in 
 the execution of the pipeline are shown below. 
 
 ![pipeline_flow](images/pipeline_schematic_dcm2mnc.png)
