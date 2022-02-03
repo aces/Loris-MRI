@@ -613,6 +613,7 @@ class Physiological:
         )
         self.physiological_annotation_parameter_obj.insert(
             annotation_file_id,
+            annotation_metadata['Description'],
             annotation_metadata['Sources'],
             annotation_metadata['Author']
         )
@@ -872,3 +873,48 @@ class Physiological:
                     parameter_name = 'electrophyiology_chunked_dataset_path',
                     value = chunk_path.replace(data_dir, '')
                 )
+
+    def create_chunks_for_visualization_on_cbrain(self, physio_file_id, data_dir):
+        """
+        Delegate chunking scripts to CBRAIN (useful if the file to chunk are big files)
+        if no chunk datasets yet available for
+        PhysiologicalFileID based on the file type of the original
+        electrophysiology dataset.
+
+        :param physio_file_id: PhysiologicalFileID of the dataset to chunk
+        :type physio_file_id: int
+        :param data_dir         : LORIS data directory (/data/%PROJECT%/data)
+        :type data_dir          : str
+        """
+
+        # check if chunks already exists for this PhysiologicalFileID
+        results = self.grep_parameter_value_from_file_id(
+        physio_file_id, 'electrophyiology_chunked_dataset_path'
+        )
+        chunk_path = results['Value'] if results else None
+
+        # determine which script to run based on the file type
+        if not chunk_path:
+            file_type = self.grep_file_type_from_file_id(physio_file_id)
+            file_path = self.grep_file_path_from_file_id(physio_file_id)
+
+            # the bids_rel_dir is the first two directories in file_path 
+            # (bids_imports/BIDS_dataset_name_BIDSVersion)
+            bids_rel_dir   = file_path.split('/')[0] + '/' + file_path.split('/')[1]
+            chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
+
+            # the final chunk path will be /data/%PROJECT%/data/bids_imports
+            # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
+            chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
+            
+        if not file_type == 'edf':
+            # Other file type not supported (CBRAIN pipeline needs testing)
+            # Launch the process locally
+            create_chunks_for_visualization(physio_file_id, data_dir)
+        else:
+            # save data in db for later execution on CBRAIN
+            self.db.insert(
+            table_name   = 'physiological_chunk_process',
+            column_names = ('PhysiologicalFileID', 'InputFilePath', 'Destination'),
+            values         = (physio_file_id, data_dir + file_path, chunk_root_dir)
+            )
