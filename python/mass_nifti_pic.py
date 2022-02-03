@@ -179,7 +179,9 @@ def make_pic(file_id, config_file, force, verbose):
         return
 
     # checks if there is already a pic for the NIfTI file
-    existing_pic_file_in_db = imaging.grep_parameter_value_from_file_id(file_id, 'check_pic_filename')
+    existing_pic_file_in_db = imaging.grep_parameter_value_from_file_id_and_parameter_name(
+        file_id, 'check_pic_filename'
+    )
     if existing_pic_file_in_db and not force:
         print('WARNING: there is already a pic for FileID ' + str(file_id) + '. Use -f or --force to overwrite it')
         return

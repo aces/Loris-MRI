@@ -5,6 +5,22 @@ __license__ = "GPLv3"
 
 
 class Config:
+    """
+    This class performs database queries for the Config* tables.
+
+    :Example:
+
+        from lib.database_lib.config import Config
+        from lib.database import Database
+
+        # database connection
+        db = Database(config.mysql, verbose)
+        db.connect()
+
+        config_db_obj = Config(db, verbose)
+
+        ...
+    """
 
     def __init__(self, db, verbose):
         """
@@ -16,7 +32,7 @@ class Config:
          :type verbose: bool
         """
 
-        self.db      = db
+        self.db = db
         self.verbose = verbose
 
     def get_config(self, config_name):
@@ -26,13 +42,18 @@ class Config:
         :param config_name: name of the ConfigSettings
          :type config_name: str
 
-        :return: the value from the Config table or None if no value found
-         :rtype: str
+        :return: the value from the Config table if only one value found, list with values found in the Config table
+                 if multiple values found or None if no value found
+         :rtype: str or list
         """
 
-        query = "SELECT Value FROM Config WHERE ConfigID = (" \
-                  "SELECT ID FROM ConfigSettings WHERE Name = %s" \
-                ");"
-        config_value = self.db.pselect(query, (config_name,))
+        query = "SELECT Value FROM Config WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = %s)"
+        results = self.db.pselect(query, (config_name,))
 
-        return config_value[0]['Value'] if config_value else None
+        if not results:
+            return None
+        elif len(results) == 1:
+            return results[0]["Value"]
+        else:
+            values = [v["Value"] for v in results]
+            return values

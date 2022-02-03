@@ -132,6 +132,7 @@ echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/logs"             #holds logs from pipeline script
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly"         #holds the MINC files
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly_bids     #holds the BIDS files derived from DICOMs
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue)
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/bids_imports"     #contains imported BIDS studies
   sudo -S su $USER -c "mkdir -m 770 -p $mridir/dicom-archive/.loris_mri"

@@ -4,8 +4,7 @@
 ## 3.1 Back end directory structure
 
 The imaging part of a LORIS instance is typically separated into two directories, 
-one located in `/data/$PROJECT`, which stores data, and `/opt/$PROJECT`, which 
-stores the scripts.
+`/data/$PROJECT` which stores data, and `/opt/$PROJECT` which stores the scripts.
 
 ```
 ## Imaging pipeline file directory structures
@@ -25,7 +24,9 @@ stores the scripts.
     |__ $PROJECT
         |__ data
             |__ assembly
+            |__ assembly_bids
             |__ bids_imports
+            |__ BIDS_export*
             |__ batch_output
             |__ hrrtarchive
             |__ logs
@@ -36,7 +37,6 @@ stores the scripts.
             |__ trashbin
             |__ pipelines*
             |__ protocols*
-            |__ bids_imports
 ```
 
 `*` _denotes optional directories that are not automatically created by the 
@@ -80,6 +80,31 @@ The MINC images that can be viewed via BrainBrowser in the imaging browser
         |__ pet
             |__ native
                 | project_CandID_Visit_modality_number.mnc
+```
+
+
+#### The `assembly_bids` directory
+
+The BIDS images derived from DICOM files that can be viewed via BrainBrowser in the Imaging Browser 
+  module are located under the `data/assembly_bids` directory and organized as 
+  a BIDS structure (see BIDS [specifications](https://bids.neuroimaging.io/)). 
+  For example, a native T1W image for subject 123456's V1 visit will be located in 
+  `data/assembly_bids/sub-123456/ses-V1/anat/sub-123456_ses-V1_run-1_T1w.nii.gz` along with its
+  JSON side car file `data/assembly_bids/sub-123456/ses-V1/anat/sub-123456_ses-V1_run-1_T1w.json`.
+    
+```
+## Content of the /data/$PROJECT/data/assembly_bids directory
+.
+|__ sub-CandID
+    |__ ses-Visit
+        |__ anat
+        |   |__ sub-CandID_ses-Visit_run-number_modality.json
+        |   |__ sub-CandID_ses-Visit_run-number_modality.nii.gz
+        |__ dwi
+            |__ sub-CandID_ses-Visit_run-number_dwi.bval
+            |__ sub-CandID_ses-Visit_run-number_dwi.bvec
+            |__ sub-CandID_ses-Visit_run-number_dwi.json
+            |__ sub-CandID_ses-Visit_run-number_dwi.nii.gz
 ```
 
 
@@ -309,9 +334,10 @@ The second step to insert a new imaging session into the database is the
   on the imaging protocol used. Having the dataset converted in MINC allows 
   visualization of the images directly in the browser.
   
-Once all MINC files are created (via the `dcm2mnc` converter from the MINC tools), 
+First, all DICOMs are converted into either MINC format (using `dcm2mnc` 
+  from MINC tools), or into a BIDS structure (using `dcm2niix`). Then, 
   the backend scripts will pull the information stored in the following tables 
-  in order to identify the scan type each MINC file created:
+  in order to identify the scan type for each converted file created:
   
   * the `mri_scan_type` table stores the name of the scan type linked 
       along with the `ID` field that will be used to identify the scan type
@@ -319,22 +345,43 @@ Once all MINC files are created (via the `dcm2mnc` converter from the MINC tools
       be used to identify the scan type (TR, TE, TI, slice_thickness...)
   * the `mri_protocol_group` defines the groups of scanning protocols. Each line
       in the `mri_protocol` table belongs to one and only one group. 
-  * the `mri_protocol_group_target` is used to determine which scanning protocol
+  * the `mri_protocol_group_target` table is used to determine which scanning protocol
       group to use in order to identify the type of a given scan based on the 
       subject's project, the subject's subproject or the visit at which the scan was
-      done.  
+      done.
   * the `mri_protocol_checks` table stores additional protocol checks 
   	  after an acquisition has been identified in order to automatically flag 
   	  some acquisitions based on information stored in specific DICOM headers
   * the `mri_protocol_checks_group` defines the different groups of protocol checks.
       Each lines in the `mri_protocol_checks` table belongs to one and only one
       group.
-  * the `mri_protocol_checks_group_target` is used to determine which protocol
+  * the `mri_protocol_checks_group_target` table is used to determine which protocol
       checks to use when an archive is processed by the MRI pipeline based on the
       subject's project, the subject's subproject or the visit at which the scan was 
-      done.  
-  
-Every MINC file that matches the protocol defined in the tables mentioned above 
+      done.
+  * the `bids_mri_scan_type_rel*` table is used to determine the name convention to be 
+      used for the BIDS data based on a specific scan type. It is linked to the 
+      `mri_scan_type`, `bids_category`, `bids_phase_encoding_direction`, 
+      `bids_scan_type` and `bids_scan_type_subcategory`
+  * the `bids_category*` table contains the different BIDS categories (or data type) linked along with the 
+      `BIDSCategoryID` field used in `bids_mri_scan_type_rel`
+      (examples: `anat`, `func`, `dwi`, `fmap`, `asl`...)
+  * the `bids_scan_type*` table contains the different BIDS scan types (or modalities) linked along with the
+      `BIDSScanTypeID` field used in `bids_mri_scan_type_rel`
+      (examples: `T1w`, `T2w`, `bold`, `dwi`, `FLAIR`, `magnitude`, `phasediff`, `asl`...)
+  * the `bids_scan_type_subcategory*` table contains all the different BIDS subcategories that should
+      be used to describe a specific scan. It is linked along with the `BIDSScanTypeSubCategoryID` field
+      used in `bids_mri_scan_type_rel`. When creating a new BIDS subcategory, it is important to respect the
+      BIDS order of tags (refer to the [Entity table appendix of the BIDS specifications](https://bids-specification.readthedocs.io/en/stable/99-appendices/04-entity-table.html) for the order)
+      (examples: `task-rest`, `acq-25direction`, `acq-B0_dir-AP`...)
+  * the `bids_phase_encoding_direction*` table contains the different phase encoding directions of an image.
+     It is linked along with the `BIDSPhaseEncodingDirectionID` field used in `bids_mri_scan_type_rel`.
+     (examples: `i`, `-i`, `j`, `-j`, `k`, `-k`)
+    
+`*` refers to tables used to determine BIDS file names when converting DICOM files into
+a BIDS dataset or previously inserted MINC files into a BIDS dataset.
+
+Every converted file that matches the protocol defined in the tables mentioned above 
   will be inserted in the database using the following tables:
   
   * the `files` table contains the information about the MINC file itself 

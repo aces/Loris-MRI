@@ -1,17 +1,24 @@
 """This class performs database queries and common imaging checks (MRI...)"""
 
-import sys
-import re
 import os
 import datetime
 import nibabel as nib
+import re
+import tarfile
 
-from nilearn import plotting
-from nilearn import image
+from nilearn import image, plotting
 
-import lib.exitcode
-from lib.database_lib.site   import Site
 from lib.database_lib.config import Config
+from lib.database_lib.files import Files
+from lib.database_lib.mri_protocol import MriProtocol
+from lib.database_lib.mri_protocol_checks import MriProtocolChecks
+from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
+from lib.database_lib.mri_scan_type import MriScanType
+from lib.database_lib.mri_scanner import MriScanner
+from lib.database_lib.mri_violations_log import MriViolationsLog
+from lib.database_lib.parameter_file import ParameterFile
+from lib.database_lib.parameter_type import ParameterType
+
 
 __license__ = "GPLv3"
 
@@ -52,9 +59,18 @@ class Imaging:
          :type config_file: str
         """
 
-        self.db          = db
-        self.verbose     = verbose
+        self.db = db
+        self.verbose = verbose
         self.config_file = config_file
+        self.files_db_obj = Files(db, verbose)
+        self.mri_prot_db_obj = MriProtocol(db, verbose)
+        self.mri_prot_check_db_obj = MriProtocolChecks(db, verbose)
+        self.mri_prot_viol_scan_db_obj = MriProtocolViolatedScans(db, verbose)
+        self.mri_scan_type_db_obj = MriScanType(db, verbose)
+        self.mri_scanner_db_obj = MriScanner(db, verbose)
+        self.mri_viol_log_db_obj = MriViolationsLog(db, verbose)
+        self.param_type_db_obj = ParameterType(db, verbose)
+        self.param_file_db_obj = ParameterFile(db, verbose)
 
     def determine_file_type(self, file):
         """
@@ -69,9 +85,7 @@ class Imaging:
          :rtype: str
         """
 
-        imaging_file_types = self.db.pselect(
-            query="SELECT type FROM ImagingFileTypes"
-        )
+        imaging_file_types = self.db.pselect(query="SELECT type FROM ImagingFileTypes")
 
         # if the file type cannot be found in the database, exit now
         file_type = None
@@ -80,66 +94,52 @@ class Imaging:
             if re.search(regex_match, file):
                 file_type = type['type']
 
-        # exits if could not find a file type
-        if not file_type:
-            message = "\nERROR: File type for " + file + " does not exist " \
-                      "in ImagingFileTypes database table\n"
-            print(message)
-            sys.exit(lib.exitcode.SELECT_FAILURE)
-
         return file_type
 
-    def grep_file_id_from_hash(self, blake2b_hash):
+    def grep_file_info_from_hash(self, hash_string):
         """
-        Greps the file ID from the files table. If it cannot be found, the method ]
-        will return None.
+        Greps the file ID from the files table. If it cannot be found, the method will return None.
 
-        :param blake2b_hash: blake2b hash
-         :type blake2b_hash: str
+        :param hash_string: blake2b or md5 hash
+         :type hash_string: str
 
-        :return: file ID and file path
-         :rtype: int
+        :return: dictionary with files table content of the found file
+         :rtype: dict
         """
+        return self.files_db_obj.find_file_with_hash(hash_string)
 
-        query = "SELECT f.FileID, f.File " \
-                "FROM files AS f " \
-                "JOIN parameter_file USING (FileID) " \
-                "JOIN parameter_type USING (ParameterTypeID) " \
-                "WHERE Value=%s"
+    def grep_file_info_from_series_uid_and_echo_time(self, series_uid, echo_time):
+        """
+        Greps the file ID from the files table. If it cannot be found, the method will return None.
 
-        results = self.db.pselect(query=query, args=(blake2b_hash,))
+        :param series_uid: Series Instance UID of the file to look for
+         :type series_uid: str
+        :param echo_time: Echo Time of the file to look for
+         :type echo_time: str
 
-        # return the results
-        return results[0] if results else None
+        :return: dictionary with files table content of the found file
+        :rtype: dict
+        """
+        return self.files_db_obj.find_file_with_series_uid_and_echo_time(series_uid, echo_time)
 
-    def insert_imaging_file(self, file_info, file_data):
+    def insert_imaging_file(self, file_info_dict, parameter_file_data_dict):
         """
         Inserts the imaging file and its information into the files and parameter_file tables.
 
-        :param file_info: dictionary with values to insert into files' table
-         :type file_info: dict
-        :param file_data: dictionary with values to insert into parameter_file's table
-         :type file_data: dict
+        :param file_info_dict: dictionary with values to insert into files' table
+         :type file_info_dict: dict
+        :param parameter_file_data_dict: dictionary with values to insert into parameter_file's table
+         :type parameter_file_data_dict: dict
 
         :return: file ID
          :rtype: int
         """
 
         # insert info from file_info into files
-        file_fields = ()
-        file_values = ()
-        for key, value in file_info.items():
-            file_fields = file_fields + (key,)
-            file_values = file_values + (value,)
-        file_id = self.db.insert(
-            table_name='files',
-            column_names=file_fields,
-            values=[file_values],
-            get_last_id=True
-        )
+        file_id = self.files_db_obj.insert_files(file_info_dict)
 
         # insert info from file_data into parameter_file
-        for key, value in file_data.items():
+        for key, value in parameter_file_data_dict.items():
             self.insert_parameter_file(file_id, key, value)
 
         return file_id
@@ -157,28 +157,81 @@ class Imaging:
          :type value         : str
         """
 
+        # convert list values into strings that could be inserted into parameter_file
+        if type(value) == list:
+            if type(value[0]) in [float, int]:
+                value = [str(f) for f in value]
+            value = f"[{', '.join(value)}]"
+
         # Gather column name & values to insert into parameter_file
-        unix_timestamp    = datetime.datetime.now().strftime("%s")
-        parameter_type_id = self.get_parameter_type_id(parameter_name)
-        parameter_file_fields = ('FileID', 'ParameterTypeID', 'Value',    'InsertTime')
-        parameter_file_values = (file_id,  parameter_type_id, str(value), unix_timestamp)
+        param_type_id = self.get_parameter_type_id(parameter_name)
+        param_file_insert_info_dict = {
+            'ParameterTypeID': param_type_id,
+            'FileID': file_id,
+            'Value': value,
+            'InsertTime': datetime.datetime.now().timestamp()
+        }
 
-        pf_entry = self.db.pselect(
-            query="SELECT ParameterFileID, Value FROM parameter_file WHERE FileID=%s AND ParameterTypeID=%s",
-            args=(file_id, parameter_type_id)
-        )
-
+        pf_entry = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
         if pf_entry:
-            self.db.update(
-                query="UPDATE parameter_file SET Value=%s WHERE ParameterFileID=%s",
-                args=(value, pf_entry[0]['ParameterFileID'])
-            )
+            self.param_file_db_obj.update_parameter_file(value, pf_entry[0]['ParameterFileID'])
         else:
-            self.db.insert(
-                table_name='parameter_file',
-                column_names=parameter_file_fields,
-                values=parameter_file_values
-            )
+            self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
+
+    def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path,
+                                      mri_protocol_group_id):
+        """
+        Insert a row into mri_protocol_violated_scan table.
+
+        :param patient_name: PatientName associated to the file to insert
+         :type patient_name: str
+        :param cand_id: CandID associated to the file to insert
+         :type cand_id: int
+        :param psc_id: PSCID associated to the file to insert
+         :type psc_id: str
+        :param tarchive_id: TarchiveID of the archive the file has been derived from
+         :type tarchive_id: int
+        :param scan_param: parameters of the image to insert
+         :type scan_param: dict
+        :param file_rel_path: relative path to the file in trashbin
+         :type file_rel_path: str
+        :param mri_protocol_group_id: MRIProtocolGroupID of the scan
+         :type mri_protocol_group_id: int
+        """
+
+        info_to_insert_dict = {
+            "CandID": cand_id,
+            "PSCID": psc_id,
+            "TarchiveID": tarchive_id,
+            "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "series_description": scan_param["SeriesDescription"],
+            "minc_location": file_rel_path,
+            "PatientName": patient_name,
+            "TR_range": scan_param["RepetitionTime"] if "RepetitionTime" in scan_param.keys() else None,
+            "TE_range": scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None,
+            "TI_range": scan_param["InversionTime"] if "InversionTime" in scan_param.keys() else None,
+            "slice_thickness_range": scan_param["SliceThickness"] if "SliceThickness" in scan_param.keys() else None,
+            "xspace_range": scan_param["xspace"] if "xspace" in scan_param.keys() else None,
+            "yspace_range": scan_param["yspace"] if "yspace" in scan_param.keys() else None,
+            "zspace_range": scan_param["zspace"] if "zspace" in scan_param.keys() else None,
+            "xstep_range": scan_param["xstep"] if "xstep" in scan_param.keys() else None,
+            "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
+            "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
+            "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
+            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
+            "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
+            "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
+        }
+        self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
+
+    def insert_mri_violations_log(self, info_to_insert_dict):
+        """
+        Inserts into mri_violations_log table the entry determined by the information stored in info_to_insert_dict.
+
+        :param info_to_insert_dict: dictionary with the information to be inserted in mri_violations_log
+         :type info_to_insert_dict: dict
+        """
+        self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
     def get_parameter_type_id(self, parameter_name):
         """
@@ -192,92 +245,91 @@ class Imaging:
          :rtype: int
         """
 
-        results = self.db.pselect(
-            query="SELECT ParameterTypeID "
-                  "FROM parameter_type "   
-                  "WHERE Name = %s "
-                  "AND SourceFrom='parameter_file'",
-            args=(parameter_name,)
-        )
+        bids_mapping_dict = self.param_type_db_obj.get_bids_to_minc_mapping_dict()
 
-        if results:
-            # if results, grep the parameter_type_id
-            parameter_type_id = results[0]['ParameterTypeID']
-        else:
-            # if no results, create an entry in parameter_type
-            col_names = (
-                'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
-            )
-            parameter_desc = parameter_name + " magically created by lib.imaging python class"
-            source_from    = 'parameter_file'
-            values = (
-                parameter_name, 'text', parameter_desc, source_from, 0
-            )
-            parameter_type_id = self.db.insert(
-                table_name   = 'parameter_type',
-                column_names = col_names,
-                values       = values,
-                get_last_id  = True
+        param_type_id = self.param_type_db_obj.get_parameter_type_id(param_alias=parameter_name) \
+            if parameter_name in bids_mapping_dict.keys() \
+            else self.param_type_db_obj.get_parameter_type_id(param_name=parameter_name)
+
+        if not param_type_id:
+            # if no parameter type ID found, create an entry in parameter_type
+            param_type_id = self.param_type_db_obj.insert_parameter_type(
+                {
+                    'Name': parameter_name,
+                    'Alias': None,
+                    'Type': 'text',
+                    'Description': f'{parameter_name} magically created by lib.imaging python class',
+                    'SourceFrom': 'parameter_file',
+                    'Queryable': 0
+                }
             )
 
-            # link the parameter_type_id to a parameter type category
-            category_id = self.get_parameter_type_category_id()
-            self.db.insert(
-                table_name   = 'parameter_type_category_rel',
-                column_names = ('ParameterTypeCategoryID', 'ParameterTypeID'),
-                values       = (category_id, parameter_type_id),
-                get_last_id  = False
-            )
+            # link the newly created parameter_type_id to parameter type category 'MRI Variables'
+            category_id = self.param_type_db_obj.get_parameter_type_category_id('MRI Variables')
+            self.param_type_db_obj.insert_into_parameter_type_category_rel(category_id, param_type_id)
 
-        return parameter_type_id
+        return param_type_id
 
-    def get_parameter_type_category_id(self):
+    def get_scan_type_name_from_id(self, scan_type_id):
         """
-        Greps ParameterTypeCategoryID from parameter_type_category table.
-        If no ParameterTypeCategoryID was found, it will return None.
+        Returns the scan type name associated to an acquisition protocol ID.
 
-        :return: ParameterTypeCategoryID
-         :rtype: int
+        :param scan_type_id: acquisition protocol ID
+         :type scan_type_id: int
+
+        :return: name of the scan type associated to the scan type ID
+         :rtype: str
         """
+        return self.mri_scan_type_db_obj.get_scan_type_name_from_id(scan_type_id)
 
-        category_result = self.db.pselect(
-            query='SELECT ParameterTypeCategoryID '
-                  'FROM parameter_type_category '
-                  'WHERE Name = %s ',
-            args=('MRI Variables',)
-        )
-
-        if not category_result:
-            return None
-
-        return category_result[0]['ParameterTypeCategoryID']
-
-    def grep_parameter_value_from_file_id(self, file_id, param_name):
+    def get_bids_to_minc_terms_mapping(self):
         """
-        Greps the value stored in physiological_parameter_file for a given
-        PhysiologicalFileID and parameter name (from the parameter_type table).
+        Returns the BIDS to MINC terms mapping queried from parameter_type table.
 
-        :param file_id   : FileID to use in the query
-         :type file_id   : int
-        :param param_name: parameter name to use in the query
-         :type param_name: str
-
-        :return: result of the query from the parameter_file table
+        :return: BIDS to MINC terms mapping dictionary
          :rtype: dict
         """
+        return self.param_type_db_obj.get_bids_to_minc_mapping_dict()
 
-        query = "SELECT Value " \
-                "FROM parameter_file " \
-                "JOIN parameter_type USING (ParameterTypeID) " \
-                "WHERE FileID = %s AND Name = %s"
+    def get_list_of_eligible_protocols_based_on_session_info(self, project_id, subproject_id,
+                                                             center_id, visit_label, scanner_id):
+        """
+        Get the list of eligible protocols based on the scan session information.
 
-        results = self.db.pselect(
-            query = query,
-            args  = (file_id, param_name)
+        :param project_id: ProjectID associated to the scan
+         :type project_id: int
+        :param subproject_id: SubprojectID associated to the scan
+         :type subproject_id: int
+        :param center_id: CenterID associated to the scan
+         :type center_id: int
+        :param visit_label: Visit label associated to the scan
+         :type visit_label: str
+        :param scanner_id: ID of the scanner associated to the scan
+         :type scanner_id: int
+
+        :return: list of eligible protocols
+         :rtype: list
+        """
+        return self.mri_prot_db_obj.get_list_of_protocols_based_on_session_info(
+            project_id, subproject_id, center_id, visit_label, scanner_id
         )
 
-        # return the result
-        return results[0] if results else None
+    def grep_parameter_value_from_file_id_and_parameter_name(self, file_id, param_type_name):
+        """
+        Grep a Value in parameter_file based on a FileID and parameter type Name.
+
+        :param file_id: FileID to look for in parameter_file
+         :type file_id: int
+        :param param_type_name: parameter type Name to use to query parameter_file
+         :type param_type_name: str
+
+        :return: value found in the parameter_file table for the FileID and parameter Name
+         :rtype: str
+        """
+
+        param_type_id = self.get_parameter_type_id(param_type_name)
+        if param_type_id:
+            return self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
 
     def grep_file_type_from_file_id(self, file_id):
         """
@@ -352,21 +404,16 @@ class Imaging:
          :rtype subject_id_dict: dict
         """
 
-        config_obj   = Config(self.db, self.verbose)
+        config_obj = Config(self.db, self.verbose)
         dicom_header = config_obj.get_config('lookupCenterNameUsing')
-        dicom_value  = tarchive_info_dict[dicom_header]
+        dicom_value = tarchive_info_dict[dicom_header]
 
         try:
             subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
             subject_id_dict['PatientName'] = dicom_value
         except AttributeError:
-            message = 'ERROR: config file does not contain a get_subject_ids routine.' \
-                      ' Upload will exit now.'
-            return {
-                'error'     : True,
-                'exit_code' : lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
-                'message'   : message
-            }
+            message = 'Config file does not contain a get_subject_ids routine. Upload will exit now.'
+            return {'error_message': message}
 
         return subject_id_dict
 
@@ -384,16 +431,17 @@ class Imaging:
          :rtype: bool
         """
 
-        psc_id      = subject_id_dict['PSCID']
-        cand_id     = subject_id_dict['CandID']
+        psc_id = subject_id_dict['PSCID']
+        cand_id = subject_id_dict['CandID']
         visit_label = subject_id_dict['visitLabel']
-        is_phantom  = subject_id_dict['isPhantom']
+        is_phantom = subject_id_dict['isPhantom']
 
         # no further checking if the subject is phantom
         if is_phantom:
             return True
 
         # check that the CandID and PSCID are valid
+        # TODO use candidate_db class for that for bids_import
         query = 'SELECT c1.CandID, c2.PSCID AS PSCID ' \
                 ' FROM candidate c1 ' \
                 ' LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) ' \
@@ -413,74 +461,22 @@ class Imaging:
             return False
 
         # check if visit label is valid
-        query   = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
+        # TODO use visit_windows class for that for bids_import
+        query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
         results = self.db.pselect(query=query, args=(visit_label,))
         if results:
-            subject_id_dict['message'] = "=> Found visit label " + visit_label + 'in Visit_Windows'
+            subject_id_dict['message'] = f'=> Found visit label {visit_label} in Visit_Windows'
             return True
         elif subject_id_dict['createVisitLabel']:
-            subject_id_dict['message'] = '=> Will create visit label ' + visit_label \
-                                         + 'in Visit_Windows'
+            subject_id_dict['message'] = f'=> Will create visit label {visit_label} in Visit_Windows'
             return True
         else:
-            subject_id_dict['message'] = '=> Visit Label ' + visit_label \
-                                         + ' does not exist in Visit_Windows'
+            subject_id_dict['message'] = f'=> Visit Label {visit_label} does not exist in Visit_Windows'
             # Message is undefined
             subject_id_dict['CandMismatchError'] = subject_id_dict['message']
             return False
 
-    def determine_study_center(self, tarchive_info_dict):
-        """
-        Determine the study center associated to the DICOM archive based on a DICOM header
-        specified by the lookupCenterNameUsing config setting.
-
-        :param tarchive_info_dict: dictionary with information about the DICOM archive queried
-                                   from the tarchive table
-         :type tarchive_info_dict: dict
-
-        :return: dictionary with CenterName and CenterID information
-         :rtype: dict
-        """
-
-        subject_id_dict = self.determine_subject_ids(tarchive_info_dict)
-        if 'error' in subject_id_dict.keys():
-            # subject_id_dict contain the error, exit code and message to explain the error
-            return subject_id_dict
-
-        cand_id         = subject_id_dict['CandID']
-        visit_label     = subject_id_dict['visitLabel']
-        patient_name    = subject_id_dict['PatientName']
-
-        # get the CenterID from the session table if the PSCID and visit label exists
-        # and could be extracted from the database
-        if cand_id and visit_label:
-            query = 'SELECT s.CenterID AS CenterID, p.MRI_alias AS CenterName' \
-                    ' FROM session s' \
-                    ' JOIN psc p ON p.CenterID=s.CenterID' \
-                    ' WHERE s.CandID = %s AND s.Visit_label = %s'
-            results = self.db.pselect(query=query, args=(cand_id, visit_label))
-            if results:
-                return results[0]
-
-        # if could not find center information based on cand_id and visit_label, use the
-        # patient name to match it to the site alias or MRI alias
-        site = Site(self.db, self.verbose)
-        list_of_sites = site.get_list_of_sites()
-        for site_dict in list_of_sites:
-            if site_dict['Alias'] in patient_name:
-                return {'CenterName': site_dict['Alias'], 'CenterID': site_dict['CenterID']}
-            elif site_dict['MRI_alias'] in patient_name:
-                return {'CenterName': site_dict['MRI_alias'], 'CenterID': site_dict['CenterID']}
-
-        # if we got here, it means we could not find a center associated to the dataset
-        return {
-            'error'    : True,
-            'exit_code': lib.exitcode.SELECT_FAILURE,
-            'message'  : 'ERROR: No center found for this DICOM study'
-        }
-
-    @staticmethod
-    def map_bids_param_to_loris_param(file_parameters):
+    def map_bids_param_to_loris_param(self, file_parameters):
         """
         Maps the BIDS parameters found in the BIDS JSON file with the
         parameter type names of LORIS.
@@ -494,37 +490,8 @@ class Imaging:
          :rtype: dic
         """
 
-        map_dict = {
-            'manufacturersModelName'      : 'manufacturer_model_name',
-            'DeviceSerialNumber'          : 'device_serial_number',
-            'SoftwareVersions'            : 'software_versions',
-            'MagneticFieldStrength'       : 'magnetic_field_strength',
-            'ReceiveCoilName'             : 'receiving_coil',
-            'ScanningSequence'            : 'scanning_sequence',
-            'SequenceVariant'             : 'sequence_variant',
-            'SequenceName'                : 'sequence_name',
-            'PhaseEncodingDirection'      : 'phase_encoding_direction',
-            'EchoTime'                    : 'echo_time',
-            'RepetitionTime'              : 'repetition_time',
-            'InversionTime'               : 'inversion_time',
-            'SliceThickness'              : 'slice_thickness',
-            'InstitutionName'             : 'institution_name',
-            'ImageType'                   : 'image_type',
-            'AcquisitionTime'             : 'acquisition_time',
-            'AcquisitionMatrixPE'         : 'acquisition_matrix',
-            'PercentPhaseFOV'             : 'percent_phase_field_of_view',
-            'ImageOrientationPatientDICOM': 'image_orientation_patient',
-            'MRAcquisitionType'           : 'mr_acquisition_type',
-            'AcquisitionNumber'           : 'acquisition_number',
-            'PatientPosition'             : 'patient_position',
-            'ImagingFrequency'            : 'imaging_frequency',
-            'SeriesNumber'                : 'series_number',
-            'PixelBandwidth'              : 'pixel_bandwidth',
-            'SeriesDescription'           : 'series_description',
-            'ProtocolName'                : 'protocol_name',
-            'SpacingBetweenSlices'        : 'spacing_between_slices',
-            'NumberOfAverages'            : 'number_of_averages',
-        }
+        param_type_obj = ParameterType(self.db, self.verbose)
+        map_dict = param_type_obj.get_bids_to_minc_mapping_dict()
 
         # map BIDS parameters with the LORIS ones
         for param in list(file_parameters):
@@ -532,6 +499,292 @@ class Imaging:
                 file_parameters[map_dict[param]] = file_parameters[param]
 
         return file_parameters
+
+    def get_acquisition_protocol_info(self, protocols_list, nifti_name, scan_param):
+        """
+        Get acquisition protocol information (scan_type_id or message to be printed in the log).
+        - If the protocols list provided as input is empty, the scan_type_id will be set to None and proper message
+        will be returned
+        - If no protocol listed in protocols_list matches the parameters of the scan, then the scan_type_id will be set
+        to None and proper message will be returned
+        - If more than one protocol matches, the scan_type_id will be set to None and proper message will be returned
+
+        :param protocols_list: list of protocols to loop through to find a matching protocol
+         :type protocols_list: list
+        :param nifti_name: name of the NIfTI file to print in the returned message
+         :type nifti_name: str
+        :param scan_param: dictionary with the scan parameters to use to determine acquisition protocol
+         :type scan_param: dict
+
+        :return: dictionary with 'scan_type_id' and 'message' keys.
+         :rtype: dict
+        """
+
+        if not len(protocols_list):
+            message = f"Warning! No protocol group can be used to determine the scan type of {nifti_name}." \
+                      f" Incorrect/incomplete setup of table mri_protocol_group_target."
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': None
+            }
+
+        mri_protocol_group_ids = set(map(lambda x: x['MriProtocolGroupID'], protocols_list))
+        if len(mri_protocol_group_ids) > 1:
+            message = f"Warning! More than one protocol group can be used to identify the scan type of {nifti_name}." \
+                      f" Ambiguous setup of table mri_protocol_group_target."
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': None
+            }
+
+        # look for matching protocols
+        mri_protocol_group_id = protocols_list[0]['MriProtocolGroupID']
+        matching_protocols_list = self.look_for_matching_protocols(protocols_list, scan_param)
+
+        # if more than one protocol matching, return False, otherwise, return the scan type ID
+        if not matching_protocols_list:
+            message = f'Warning! Could not identify protocol of {nifti_name}.'
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': mri_protocol_group_id
+            }
+        elif len(matching_protocols_list) > 1:
+            message = f'Warning! More than one protocol matched the image acquisition parameters of {nifti_name}.'
+            return {
+                'scan_type_id': None,
+                'error_message': message,
+                'mri_protocol_group_id': mri_protocol_group_id
+            }
+        else:
+            scan_type_id = matching_protocols_list[0]
+            message = f'Acquisition protocol ID for the file to insert is {scan_type_id}'
+            return {
+                'scan_type_id': scan_type_id,
+                'error_message': message,
+                'mri_protocol_group_id': mri_protocol_group_id
+            }
+
+    def get_bids_categories_mapping_for_scan_type_id(self, scan_type_id):
+        """
+        Function that get the BIDS information for a given scan type ID from the database and returns a
+        dictionary with this information
+
+        :param scan_type_id: scan type ID to use to query the BIDS information for that scan type
+         :type scan_type_id: int
+
+        :return: dictionary with the BIDS entities to be associated with that scan type in the future NIfTI file name
+         :rtype: dict
+        """
+
+        return self.mri_prot_db_obj.get_bids_info_for_scan_type_id(scan_type_id)
+
+    def look_for_matching_protocols(self, protocols_list, scan_param):
+        """
+        Look for matching protocols in protocols_list given scan parameters stored in scan_param.
+
+        :param protocols_list: list of protocols to evaluate against scan parameters
+         :type protocols_list: list
+        :param scan_param: scan parameters
+         :type scan_param: dict
+
+        :return: list of matching protocols
+         :rtype: list
+        """
+
+        matching_protocols_list = []
+        for protocol in protocols_list:
+            if protocol['series_description_regex']:
+                if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
+                    matching_protocols_list.append(protocol['Scan_type'])
+            elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
+                matching_protocols_list.append(protocol['Scan_type'])
+
+        return matching_protocols_list
+
+    def is_scan_protocol_matching_db_protocol(self, db_prot, scan_param):
+        """
+        Determines if a scan protocol matches a protocol previously taken from the mri_protocol table.
+
+        :param db_prot: database protocol to compare the scan parameters to
+         :type db_prot: dict
+        :param scan_param: the image protocol
+         :type scan_param: dict
+
+        :return: True if the image protocol matches the database protocol, False otherwise
+         :rtype: bool
+        """
+
+        scan_tr = scan_param['RepetitionTime'] * 1000
+        scan_te = scan_param['EchoTime'] * 1000
+        scan_ti = scan_param['InversionTime'] * 1000 if 'InversionTime' in scan_param else None
+        scan_slice_thick = scan_param['SliceThickness']
+        scan_img_type = str(scan_param['ImageType'])
+
+        if (self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
+                and self.in_range(scan_tr,              db_prot['TR_min'],     db_prot['TR_max']) \
+                and self.in_range(scan_te,              db_prot['TE_min'],     db_prot['TE_max']) \
+                and self.in_range(scan_ti,              db_prot['TI_min'],     db_prot['TI_max']) \
+                and self.in_range(scan_param['xstep'],  db_prot['xstep_min'],  db_prot['xstep_max']) \
+                and self.in_range(scan_param['ystep'],  db_prot['ystep_min'],  db_prot['ystep_max']) \
+                and self.in_range(scan_param['zstep'],  db_prot['zstep_min'],  db_prot['zstep_max']) \
+                and self.in_range(scan_param['xspace'], db_prot['xspace_min'], db_prot['xspace_max']) \
+                and self.in_range(scan_param['yspace'], db_prot['yspace_min'], db_prot['yspace_max']) \
+                and self.in_range(scan_param['zspace'], db_prot['zspace_min'], db_prot['zspace_max']) \
+                and self.in_range(scan_slice_thick,     db_prot['slice_thickness_min'], db_prot['slice_thickness_max'])\
+                and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
+            return True
+
+    def run_extra_file_checks(self, project_id, subproject_id, visit_label, scan_type_id, scan_param_dict):
+        """
+        Runs the extra file checks for a given scan type to determine if there are any violations to protocol.
+
+        :param project_id: Project ID associated with the image to be inserted
+         :type project_id: int
+        :param subproject_id: Subproject ID associated with the image to be inserted
+         :type subproject_id: int
+        :param visit_label: Visit label associated with the image to be inserted
+         :type visit_label: str
+        :param scan_type_id: Scan type ID identified for the image to be inserted
+         :type scan_type_id: int
+        :param scan_param_dict: scan parameters (from the JSON file)
+         :type scan_param_dict: dict
+
+        :return: dictionary with two list: one for the 'warning' violations and one for the 'exclude' violations
+         :rtype: dict
+        """
+
+        # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
+        checks_list = self.mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
+            project_id, subproject_id, visit_label, scan_type_id
+        )
+
+        distinct_headers = set(map(lambda x: x['Header'], checks_list))
+        warning_violations_list = []
+        exclude_violations_list = []
+        for header in distinct_headers:
+            warning_violations = self.get_violations(checks_list, header, 'warning', scan_param_dict)
+            exclude_violations = self.get_violations(checks_list, header, 'exclude', scan_param_dict)
+            if warning_violations:
+                warning_violations_list.append(warning_violations)
+            if exclude_violations:
+                exclude_violations_list.append(exclude_violations)
+
+        return {
+            'warning': warning_violations_list,
+            'exclude': exclude_violations_list
+        }
+
+    def get_violations(self, checks_list, header, severity, scan_param_dict):
+        """
+        Get scan violations for a given header and severity.
+
+        :param checks_list:
+         :type checks_list: list
+        :param header: name of the header to use to check if there is a violation
+         :type header: str
+        :param severity: severity of the violation (one of 'warning' or 'exclude') in mri_protocol_checks
+         :type severity: str
+        :param scan_param_dict: image parameters
+         :type scan_param_dict: dict
+
+        :return: dictionary with the details regarding the violation (to be inserted in mri_violations_log eventually)
+         :rtype: dict
+        """
+
+        hdr_checks_list = [c for c in checks_list if c['Header'] == header and c['Severity'] == severity]
+
+        valid_ranges = []
+        valid_regexs = []
+        for check in hdr_checks_list:
+            if check['ValidMin'] or check['ValidMax']:
+                valid_min = float(check['ValidMin']) if check['ValidMin'] else None
+                valid_max = float(check['ValidMax']) if check['ValidMax'] else None
+                valid_ranges.append([valid_min, valid_max])
+            if check['ValidRegex']:
+                valid_regexs.append(check['ValidRegex'])
+
+        bids_mapping_dict = self.param_type_db_obj.get_bids_to_minc_mapping_dict()
+        bids_header = header
+        if bids_header not in scan_param_dict.keys():
+            # then, the header is a MINC header and needs to be mapped to the BIDS term
+            # equivalent to find the value in the JSON file
+            for key, val in bids_mapping_dict.items():
+                if val == header:
+                    bids_header = key
+        if bids_header not in scan_param_dict.keys():
+            return None
+        scan_param = scan_param_dict[bids_header]
+
+        passes_range_check = bool(len([
+            True for v in valid_ranges if self.in_range(scan_param, v[0], v[1])]
+        )) if valid_ranges else True
+        passes_regex_check = bool(len([
+            True for r in valid_regexs if re.match(r, scan_param)
+        ])) if valid_regexs else True
+
+        if passes_regex_check and passes_range_check:
+            return None
+        else:
+            return {
+                'Severity': severity,
+                'Header': header,
+                'Value': scan_param,
+                'ValidRange': ','.join([f"{v[0]}-{v[1]}" for v in valid_ranges]) if valid_ranges else None,
+                'ValidRegex': ','.join(valid_regexs) if valid_regexs else None,
+                'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
+            }
+
+    def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id):
+        """
+        Get the scanner ID based on the scanner information provided as input.
+
+        :param manufacturer: Scanner manufacturer
+         :type manufacturer: str
+        :param software_version: Scanner software version
+         :type software_version: str
+        :param serial_nb: Scanner serial number
+         :type serial_nb: str
+        :param model_name: Scanner model name
+         :type model_name: str
+        :param center_id: ID of the scanner's center
+         :type center_id: int
+        """
+        return self.mri_scanner_db_obj.determine_scanner_information(
+            manufacturer,
+            software_version,
+            serial_nb,
+            model_name,
+            center_id
+        )
+
+    @staticmethod
+    def extract_files_from_dicom_archive(dicom_archive_path, extract_location_dir):
+        """
+        Extracts a DICOM archive into a directory.
+
+        :param dicom_archive_path: path to the DICOM archive file
+         :type dicom_archive_path: str
+        :param extract_location_dir: location directory where the archive should be extracted
+         :type extract_location_dir: str
+
+        :return: path to the directory with the extracted DICOM files
+         :rtype: str
+        """
+        tar = tarfile.open(dicom_archive_path)
+        tar.extractall(path=extract_location_dir)
+        inner_tar_file_name = [f.name for f in tar.getmembers() if f.name.endswith('.tar.gz')][0]
+        tar.close()
+
+        inner_tar_path = os.path.join(extract_location_dir, inner_tar_file_name)
+        inner_tar = tarfile.open(inner_tar_path)
+        inner_tar.extractall(path=extract_location_dir)
+        inner_tar.close()
+
+        extracted_dicom_dir_path = inner_tar_path.replace(".tar.gz", "")
+        return extracted_dicom_dir_path
 
     @staticmethod
     def create_imaging_pic(file_info, pic_rel_path=None):
@@ -550,29 +803,29 @@ class Imaging:
          :rtype: str
         """
 
-        cand_id    = file_info['cand_id']
-        file_path  = file_info['data_dir_path'] + file_info['file_rel_path']
+        cand_id = file_info['cand_id']
+        file_path = os.path.join(file_info['data_dir_path'], file_info['file_rel_path'])
         is_4d_data = file_info['is_4D_dataset']
-        file_id    = file_info['file_id']
+        file_id = file_info['file_id']
 
-        pic_name     = os.path.basename(file_path)
-        pic_name     = re.sub(r"\.nii(\.gz)", '_' + str(file_id) + '_check.png', pic_name)
-        pic_rel_path = str(cand_id) + '/' + pic_name
+        pic_name = os.path.basename(file_path)
+        pic_name = re.sub(r"\.nii(\.gz)?$", f'_{str(file_id)}_check.png', pic_name)
+        pic_rel_path = os.path.join(str(cand_id), pic_name)
 
         # create the candID directory where the pic will go if it does not already exist
-        pic_dir = file_info['data_dir_path'] + 'pic/' + str(cand_id)
+        pic_dir = os.path.join(file_info['data_dir_path'], 'pic', str(cand_id))
         if not os.path.exists(pic_dir):
             os.mkdir(pic_dir)
 
         volume = image.index_img(file_path, 0) if is_4d_data else file_path
 
         plotting.plot_anat(
-            anat_img     = volume,
-            output_file  = file_info['data_dir_path'] + 'pic/' + pic_rel_path,
-            display_mode = 'ortho',
-            black_bg     = 1,
-            draw_cross   = 0,
-            annotate     = 0
+            anat_img=volume,
+            output_file=os.path.join(file_info['data_dir_path'], 'pic', pic_rel_path),
+            display_mode='ortho',
+            black_bg=1,
+            draw_cross=0,
+            annotate=0
         )
 
         return pic_rel_path
@@ -615,3 +868,43 @@ class Imaging:
         step = img.header.get_zooms()
 
         return step
+
+    @staticmethod
+    def in_range(value, field_min, field_max):
+        """
+        Determine if a value falls into a min and max range.
+
+        :param value: value to evaluate
+         :type value: float or int
+        :param field_min: minimal range value
+         :type field_min: float or int
+        :param field_max: maximal range value
+         :type field_max: float or int
+
+        :return: True if the value falls into the range, False otherwise
+         :rtype: bool
+        """
+
+        # return True when parameter min and max values are not defined (a.k.a. no restrictions in mri_protocol)
+        if not field_min and not field_max:
+            return True
+
+        # return False if value is not defined since this field is listed as a restriction in mri_protocol
+        # (a.k.a. passed the first if)
+        if not value:
+            return False
+
+        # return True if min & max are defined and value is within the range
+        if field_min and field_max and float(field_min) <= float(value) <= float(field_max):
+            return True
+
+        # return True if only min is defined and value is <= min
+        if field_min and not field_max and float(field_min) <= float(value):
+            return True
+
+        # return True if only max is defined and value is >= max
+        if field_max and not field_min and float(value) <= float(field_max):
+            return True
+
+        # if we got this far, then value is out of range
+        return False

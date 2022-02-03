@@ -42,7 +42,9 @@ in its `tools/` directory that can be used.
 the acquisition (*e.g.* t1, t2, flair...). Do not include commas, hyphens,
 spaces or periods in your `mri_scan_type.Scan_type` column values. The ID
 present in this table will be used in the `mri_protocol` and
-`mri_protocol_checks` tables described below.
+`mri_protocol_checks` tables described below. The ID is also used in the
+`bids_mri_scan_type_rel` table that will be described in 5.
+
 
 > - `mri_protocol`: this table is used to identify incoming scans based
 on their series description **OR** scan parameter values (TE, TR,
@@ -77,7 +79,40 @@ there will be no constraint on that header.
 
 
 
-5. **`Config`** table
+5. `bids_mri_scan_type_rel` and other `bids*` tables
+
+The following tables are used by pipelines generating BIDS files either directly from DICOM files 
+(using dcm2niix as a converter) or from the MINC files already inserted into the database.
+
+> - `bids_mri_scan_type_rel`: this table maps a given scan type with BIDS labelling convention
+that should be used to determine the name of the NIfTI and JSON files. This table also links
+to the `mri_scan_type`, `bids_category`, `bids_phase_encoding_direction`, `bids_scan_type`
+and `bids_scan_type_subcategory` tables.
+
+> - `bids_category`: defined BIDS category corresponding to the
+modality folder where the NIfTI and JSON files will go (examples: `anat`, `func`, `fmap`, `dwi`...)
+
+> - `bids_scan_type`: defines BIDS scan types to be used to label
+the NIfTI and JSON files (examples: `T1w`, `T2w`, `bold`, `dwi`, `FLAIR`, `magnitude`, `phasediff`)
+
+> - `bids_scan_type_subcategory`: stores the series of entities used to label acquisitions
+(may refer to a custom study protocol) within the NIfTI and JSON file names 
+(e.g. `acq-25direction`, `task-rest`, `dir-AP`, `dir-PA`, `acq-B0_dir-AP`). Refer to the
+[BIDS specification](https://bids-specification.readthedocs.io/en/stable/) for details on how to
+label acquisitions.
+
+> - `bids_phase_encoding_direction`: stores different phase encoding directions
+possible (`i`, `-i`, `j`, `-j`, `k`, `-k`). Used by the mnc2bids conversion script to back-populate
+this information (since it cannot be read from the MINC files' header unfortunately).
+
+> - `bids_export*` tables: stores paths to BIDS files generated from a MINC dataset
+by the mnc2bids conversion script (`tools/minc_to_bids_converter.pl`)
+
+**Important note**
+Please refer to the [BIDS specification](https://bids-specification.readthedocs.io/en/stable/) to find out
+how to properly fill in the BIDS tables above so that it is fully standard-compliant.
+
+6. **`Config`** table
 
 The `Config` table can also be accessed and customized from the LORIS front-end
 via the `Configuration` module, accessible under the `Admin` menu. Here are the 
@@ -88,7 +123,7 @@ Under the `Study` section:
  
 Under the `Paths` section: 
  * `LORIS-MRI Code`: where the LORIS-MRI codebase is installed; typically `/opt/$PROJECT/bin/mri/`
- * `MRI-Upload Directory`: where the uploaded scans get stored; typically `/data/incoming/`
+ * `MRI Incoming Directory`: where the uploaded scans get stored; typically `/data/incoming/`
  * `Images`: where the images displayed in Imaging Browser are stored; typically `/data/$PROJECT/data/`
  
 Under the `Imaging Modules` section: 
@@ -109,9 +144,10 @@ Under the `Imaging Pipeline` section:
  * `Horizontal pictures creation`: specifies whether or not argument -horizontal
     should be used by mincpik when generating pictures to be displayed in Imaging Browser
  * `NIfTI file creation`: used to enable or disable automated NIfTI file creation
- * `dcm2mnc binary to use when converting`: allows the user to specify the binary
-    file to be used when converting DICOM files to MINC. The default setting is to 
-    use the binary provided by the MINC tools, namely `dcm2mnc`
+ * `DICOM converter tool to use (dcm2mnc or dcm2niix)`: allows the user to specify the binary
+    file to be used when converting DICOM files to MINC or NIfTI files. The default setting is to 
+    use the binary provided by the MINC tools, namely `dcm2mnc` for studies wishing to generate MINC
+    files. For studies that want BIDS dataset generated out of the DICOM files, then specify `dcm2niix`
  * `Path to Tarchives`: directory where the original DICOMs are archived;
     typically `/data/$PROJECT/data/tarchive/`
  * `Patient identifiers and center name lookup variable`: DICOM header that
@@ -132,7 +168,7 @@ Under the `Imaging Pipeline` section:
     be an exact match of what is present in the DICOM series description field.
  * `ComputeDeepQC`: enable or disable the automated computation of image quality
     control. Feature to be integrated in the code base in a **future** release.
- * `Name of the MRI config file`: name of the MRI config file to use when running
+ * `Name of the Perl MRI config file`: name of the perl-based MRI config file to use when running
     the Perl insertion scripts; typically `prod`; used when Auto launch is turned on.
  * `Default visit label for BIDS dataset`: the visit directory in BIDS 
     structure is optional in the case of only one visit for the whole dataset. In
@@ -148,7 +184,18 @@ Under the `Imaging Pipeline` section:
  * `Modalities on which to run the defacing pipeline`: list of modalities/scan types
     on which the defacing algorithm should be run; typically any scan showing the 
     face of the candidate
+ * `Name of the Python MRI config file`: name of the python-based MRI config file to use
+    when running the Python insertion scripts (typically `database_config.py`)
     
+Under the `MINC to BIDS Converter Tool Options` section: 
+ * `BIDS Dataset Authors`: list of authors who should be included in the 
+dataset_description.json BIDS file (generated by this script)
+ * `BIDS Dataset Acknowledgments`: string with acknowledgment information to be used
+when generating the dataset_description.json BIDS file
+ * `BIDS Dataset README`: content of the BIDS README file to be generated by
+`minc_to_bids_converter.pl`
+ * `BIDS Validation options to ignore`: series of numbers referring to validation error checks
+to be ignored when running the BIDS Validator on the generated BIDS dataset
 
 ### 2.2.2 LORIS
 
@@ -185,20 +232,18 @@ the filesystem where they are stored. It also provides the option to download
 some files. Ensure that:
 - `/data/$PROJECT` directory and subdirectories are readable and executable by
     the Apache linux user.
-- the Configuration module (*Paths*) `Imaging data`, `MINC files` and 
-  `Images` settings are set (typically: `/data/$PROJECT/data/`). 
+- the Configuration module (*Paths*) `Images` setting is set (typically: `/data/$PROJECT/data/`). 
     
 More detailed specifications can be consulted in the 
 [LORIS repository: Imaging Browser Specification](https://github.com/aces/Loris/blob/main/modules/imaging_browser/README.md).
 
 4. **Brainbrowser**
 
-Brainbrowser displays the MINC images within the browser. It accesses those MINC 
+Brainbrowser displays the MINC (or NIfTI) images within the browser. It accesses those 
 images directly from the filesystem. Ensure that:
 - `/data/$PROJECT` directory and subdirectories are readable and executable by
     the Apache linux user.
-- the Configuration module (*Paths*) `MINC files` setting is
-    `/data/$PROJECT/data/`.
+- the Configuration module (*Paths*) `Images` setting is `/data/$PROJECT/data/`.
 - the `project/config.xml` file (in the main LORIS codebase) contains the
       proper MINC toolkit path in the `<MINCToolsPath>` tagset.
       
@@ -233,10 +278,10 @@ scripts (in the `python` directory). It accesses data stored in the
 #### Filesystem
 
 - `/data/*` and `/opt/*` subdirectories were created by the imaging install script. If not,
-    it may be due to `root:root` ownership of the `/data/` mount on your
+    it may be due to `root:root` ownership of the `/data/` mount or `/opt` directory on your
     system. Ensure these subdirectories are created manually, particularly:
     `/opt/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside 
-    `/data/$PROJECT/data/`, namely `assembly`, `batch_output`, `logs`,
+    `/data/$PROJECT/data/`, namely `assembly`, `assembly_bids`, `batch_output`, `bids_imports`, `logs`,
     `pic`, `tarchive`, and `trashbin`.
 
 
@@ -244,7 +289,7 @@ scripts (in the `python` directory). It accesses data stored in the
     by the Apache linux user. It may also help to ensure the `/data/` and `/opt/` mount is
     executable. After any modifications, ensure you restart apache.
     
-#### Customizable routines in the `prod` file
+#### Customizable routines in the Perl config file (a.k.a. `prod` under `dicom-archive/.loris_mri`)
 
 - `isFileToBeRegisteredGivenProtocol()`
 
@@ -272,6 +317,11 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
     Routine to determine the acquisition protocol to use to register an HRRT derived
     file.
 
+#### Customizable routines in the Python config file (`database_config.py` under `dicom-archive/.loris_mri`)
+
+- `get_subject_ids`
+
+    Routine to parse candidate's PSCID, CandID, Center (determined from the PSCID), and visit label.
 
 ## <a name="post-installation-checks"> 2.3 Post-installation checks
 
@@ -328,6 +378,8 @@ Under the `Imaging Pipeline` section:
  * `Full path to get_dicom_info.pl script`(typically `/opt/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
  * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
  * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting)
+ * `DICOM converter tool to use (dcm2mnc or dcm2niix)`: must be used to specify which tool the pipeline 
+   should run -- `dcm2mnc` to produce MINC files, or `dcm2niix` to produce BIDS-compatible files
 
 Under the `Path` section:
  * `LORIS-MRI Code`(typically `/opt/$PROJECT/bin/mri/`)
@@ -357,22 +409,23 @@ Typically, images insertion into LORIS is performed via the following steps:
      hosting LORIS).
 2. DICOM insertion into the `tarchive` tables in order to be able to see the
      information stored in the DICOMs via the **DICOM Archive** module.
-3. Conversion of the DICOMs into MINC files for protocol validation and
-     insertion into the LORIS database. By default it will also create NIfTI
-     images from the MINC files and insert them into LORIS (see the
+3. Conversion of the DICOMs into MINC files (via dcm2mnc) or BIDS NIfTI and JSON 
+     files (via dcm2niix). Those converted files undergo protocol validation and
+     insertion into the LORIS database. By default, NIfTI images will be generated
+     from the MINC files and inserted into LORIS when generating MINC files (see the
      [Configuration](#2.2-configuration) section above if you want to disable
      this option). One of two possible actions will follow depending on the
      study-defined protocol:
      
     a. If a scan matches one of the protocol defined in the `mri_protocol`
          table and passes the optional additional file checks present in the 
-         `mri_protocol_checks` table, then the MINC image will be stored into 
+         `mri_protocol_checks` table, then the image will be stored into 
          the `files` tables. This inserted image is then accessible via the 
          **Imaging Browser** module and can be displayed in 3D using 
          **BrainBrowser**.
 
     b. If a scan does not match any of the protocol defined in the
-         `mri_protocol` table, then the MINC image of this scan will be stored
+         `mri_protocol` table, then the image will be stored
          in the `mri_protocol_violated_scans` table. Additionally, scans that
          were excluded by the optional criteria defined in the
          `mri_protocol_checks` table will be logged into the

@@ -36,8 +36,8 @@ FILE_TYPE_CHECK_FAILURE = 61  # if different file type from what's expected
 INVALID_DICOM           = 62  # if DICOM is invalid
 MISSING_FILES           = 63  # if there are missing files from what's expected
 UNREADABLE_FILE         = 64  # if could not properly read a file content
-COPY_FAILURE            = 65  # if copy failed #TODO add to the perl side
-CREATE_DIR_FAILURE      = 66  # if dir creation failed #TODO add to perl side
+COPY_FAILURE            = 65  # if copy failed
+CREATE_DIR_FAILURE      = 66  # if dir creation failed
 
 # -- Other common generic failures (exit codes from 80 to 149)
 CLEANUP_FAILURE           = 80  # if cleanup after script execution failed
@@ -45,7 +45,13 @@ MISSING_TOOL_VERSION      = 81  # if missing the tool version information
 PROGRAM_EXECUTION_FAILURE = 82  # if script execution failed
 TARGET_EXISTS_NO_CLOBBER  = 83  # target already exists but no -clobber option
 UNKNOWN_PROTOCOL          = 84  # if unknown acq protocol for the file to insert
+GET_SUBJECT_ID_FAILURE    = 86  # if could not determine subject IDs
+GET_SESSION_ID_FAILURE    = 87  # if could not determine session ID
+CREATE_SESSION_FAILURE    = 88  # if could not create a session
 
+FILENAME_MISMATCH = 151
 
 CANDIDATE_MISMATCH      = 181
 BIDS_CANDIDATE_MISMATCH = 182
+
+NO_VALID_NIfTI_CREATED = 190

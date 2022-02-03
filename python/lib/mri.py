@@ -3,6 +3,7 @@
 import os
 import json
 import getpass
+import sys
 from pyblake2 import blake2b
 
 import lib.exitcode
@@ -175,10 +176,10 @@ class Mri:
         visit_label = self.bids_ses_id if self.bids_ses_id else self.default_vl
 
         session = Session(
-            self.verbose, self.cand_id, visit_label,
+            self.db, self.verbose, self.cand_id, visit_label,
             self.center_id, self.project_id, self.subproject_id
         )
-        loris_vl_info = session.get_session_info_from_loris(self.db)
+        loris_vl_info = session.get_session_info_from_loris()
 
         if not loris_vl_info:
             message = "ERROR: visit label " + visit_label + "does not exist in " + \
@@ -308,6 +309,11 @@ class Mri:
 
         # grep the file type from the ImagingFileTypes table
         file_type = imaging.determine_file_type(nifti_file.filename)
+        if not file_type:
+            message = "\nERROR: File type for " + nifti_file.filename \
+                      + " does not exist in ImagingFileTypes database table\n"
+            print(message)
+            sys.exit(lib.exitcode.SELECT_FAILURE)
 
         # determine the output type
         output_type = 'derivatives' if derivatives else 'native'
@@ -356,7 +362,7 @@ class Mri:
         file_parameters['file_blake2b_hash'] = blake2
 
         # check that the file is not already inserted before inserting it
-        result    = imaging.grep_file_id_from_hash(blake2)
+        result    = imaging.grep_file_info_from_hash(blake2)
         file_id   = result['FileID'] if result else None
         file_path = result['File']   if result else None
         if not file_id:
@@ -396,7 +402,6 @@ class Mri:
                     'file_id'      : file_id
                 }
             )
-            print(self.data_dir + pic_rel_path)
             if os.path.exists(self.data_dir + 'pic/' + pic_rel_path):
                 imaging.insert_parameter_file(file_id, 'check_pic_filename', pic_rel_path)
 
