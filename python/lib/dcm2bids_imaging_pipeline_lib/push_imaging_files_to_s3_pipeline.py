@@ -61,7 +61,6 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         for file_info in self.files_to_push_list:
             rel_path = file_info["original_file_path_field_value"]
             full_path = os.path.join(self.data_dir, rel_path)
-            table_name = file_info["table_name"]
             if self.s3_obj.check_if_file_key_exists_in_bucket(rel_path):
                 self._update_database_tables_with_s3_path(file_info)
                 print(f"Deletion of {rel_path} on the local file system")
