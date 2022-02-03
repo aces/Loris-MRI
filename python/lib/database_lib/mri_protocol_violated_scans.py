@@ -64,3 +64,25 @@ class MriProtocolViolatedScans:
         query = "SELECT * FROM mri_protocol_violated_scans WHERE TarchiveID = %s"
 
         return self.db.pselect(query=query, args=(tarchive_id,))
+
+    def update_protocol_violated_scans(self, file_id, fields, values):
+        """
+        Inserts into the `mri_protocol_violated_scans` table a new row with file information.
+
+        :param file_id: ID of the file to update in the `mri_protocol_violated_scans` table
+         :type file_id: int
+        :param fields: tuple with the list of fields to update in the `mri_protocol_violated_scans` table
+         :type fields: tuple
+        :param values: tuple with the list of values to use to update the `mri_protocol_violated_scans` table
+         :type values: tuple
+        """
+
+        query = 'UPDATE mri_protocol_violated_scans SET '
+
+        query += ', '.join(map(lambda x: x + ' = %s', fields))
+
+        query += ' WHERE ID = %s'
+
+        args = values + (file_id,)
+
+        self.db.update(query=query, args=args)

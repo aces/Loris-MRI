@@ -314,6 +314,20 @@ class Imaging:
             project_id, subproject_id, center_id, visit_label, scanner_id
         )
 
+    def get_bids_files_info_from_parameter_file_for_file_id(self, file_id):
+        """
+        Fetch other BIDS files associated to the NIfTI file present in the files table.
+
+        :param file_id: FileID of the NIfTI file in the files table
+         :type file_id: int
+
+        """
+        return [
+            self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "bids_json_file"),
+            self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "check_bval_filename"),
+            self.grep_parameter_value_from_file_id_and_parameter_name(file_id, "check_bvec_filename")
+        ]
+
     def grep_parameter_value_from_file_id_and_parameter_name(self, file_id, param_type_name):
         """
         Grep a Value in parameter_file based on a FileID and parameter type Name.

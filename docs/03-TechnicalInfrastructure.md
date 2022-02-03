@@ -3,7 +3,7 @@
 
 ## 3.1 Back end directory structure
 
-The imaging part of a LORIS instance is typically separated into two directories, 
+The imaging part of a LORIS instance is typically separated into two directories,
 `/data/$PROJECT` which stores data, and `/opt/$PROJECT` which stores the scripts.
 
 ```
@@ -333,7 +333,7 @@ The second step to insert a new imaging session into the database is the
   conversion of the DICOM study into the MINC files that will be inserted based 
   on the imaging protocol used. Having the dataset converted in MINC allows 
   visualization of the images directly in the browser.
-  
+
 First, all DICOMs are converted into either MINC format (using `dcm2mnc` 
   from MINC tools), or into a BIDS structure (using `dcm2niix`). Then, 
   the backend scripts will pull the information stored in the following tables 
