@@ -317,7 +317,7 @@ class Eeg:
 
             # create data chunks for React visualization in
             # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
-            physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
+            physiological.create_chunks_for_visualization_on_cbrain(eeg_file_id, self.data_dir)
 
     def fetch_and_insert_eeg_files(self, derivatives=False):
         """
@@ -710,6 +710,7 @@ class Eeg:
             suffix = 'annotations',
             all_ = True,
             full_search = True,
+            subject=self.psc_id,
         )
 
         if not(annotation_data_files):
@@ -737,6 +738,7 @@ class Eeg:
                         suffix = 'annotations',
                         all_ = False,
                         full_search = False,
+                        subject=self.psc_id,
                     )
 
                     annotation_data_path = self.copy_file_to_loris_bids_dir(
