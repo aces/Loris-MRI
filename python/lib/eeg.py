@@ -285,30 +285,32 @@ class Eeg:
             )
 
             # archive all files in a tar ball for downloading all files at once
-            files_to_archive = (self.data_dir + eeg_file_path,)
+            files_to_archive = (os.path.join(self.data_dir, eeg_file_path),)
 
             if eegjson_file_path:
-                files_to_archive = files_to_archive + (self.data_dir + eegjson_file_path,)
+                files_to_archive = files_to_archive + (os.path.join(self.data_dir, eegjson_file_path),)
             if fdt_file_path:
-                files_to_archive = files_to_archive + (self.data_dir + fdt_file_path,)
+                files_to_archive = files_to_archive + (os.path.join(self.data_dir, fdt_file_path),)
             if electrode_file_path:
-                files_to_archive = files_to_archive + (self.data_dir + electrode_file_path,)
+                files_to_archive = files_to_archive + (os.path.join(self.data_dir, electrode_file_path),)
             if event_file_path:
-                files_to_archive = files_to_archive + (self.data_dir + event_file_path,)
+                files_to_archive = files_to_archive + (os.path.join(self.data_dir, event_file_path),)
             if annotation_file_paths:
                 # archive all annotation files in a tar ball for annotation download
                 annotation_files_to_archive = ()
 
                 for annotation_file_path in annotation_file_paths:
-                    files_to_archive             = files_to_archive + (self.data_dir + annotation_file_path,)
-                    annotation_files_to_archive  = annotation_files_to_archive + (self.data_dir + annotation_file_path,)
+                    files_to_archive = files_to_archive + (os.path.join(self.data_dir, annotation_file_path),)
+                    annotation_files_to_archive = annotation_files_to_archive + (
+                        os.path.join(self.data_dir, annotation_file_path),
+                    )
 
                 annotation_archive_rel_name = os.path.splitext(annotation_file_path)[0] + ".tgz"
                 self.create_and_insert_annotation_archive(
                     annotation_files_to_archive, annotation_archive_rel_name, eeg_file_id
                 )
             if channel_file_path:
-                files_to_archive = files_to_archive + (self.data_dir + channel_file_path,)
+                files_to_archive = files_to_archive + (os.path.join(self.data_dir, channel_file_path),)
 
             archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
             self.create_and_insert_archive(
@@ -474,11 +476,11 @@ class Eeg:
             # and .fdt files in the .set file so it can find the proper file for
             # visualization and analyses
             if file_type == 'set':
-                set_full_path = self.data_dir + eeg_path
+                set_full_path = os.path.join(self.data_dir, eeg_path)
                 fdt_full_path = eeg_file_data['fdt_file']
 
                 if fdt_full_path:
-                    fdt_full_path = self.data_dir + eeg_file_data['fdt_file']
+                    fdt_full_path = os.path.join(self.data_dir, eeg_file_data['fdt_file'])
                 utilities.update_set_file_path_info(set_full_path, fdt_full_path)
 
             inserted_eegs.append({
@@ -846,7 +848,7 @@ class Eeg:
         physiological = Physiological(self.db, self.verbose)
 
         # check if archive is on the filesystem
-        archive_full_path = self.data_dir + archive_rel_name
+        archive_full_path = os.path.join(self.data_dir, archive_rel_name)
         blake2            = None
         if os.path.isfile(archive_full_path):
             blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
@@ -897,7 +899,7 @@ class Eeg:
         """
 
         # check if archive is on the filesystem
-        archive_full_path = self.data_dir + archive_rel_name
+        archive_full_path = os.path.join(self.data_dir, archive_rel_name)
         blake2            = None
         if os.path.isfile(archive_full_path):
             blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
