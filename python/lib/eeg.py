@@ -317,7 +317,7 @@ class Eeg:
 
             # create data chunks for React visualization in
             # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
-            physiological.create_chunks_for_visualization_on_cbrain(eeg_file_id, self.data_dir)
+            physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
     def fetch_and_insert_eeg_files(self, derivatives=False):
         """
