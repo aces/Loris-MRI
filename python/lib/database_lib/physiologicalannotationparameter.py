@@ -27,7 +27,7 @@ class PhysiologicalAnnotationParameter:
         :param annotation_file_id : annotation file's ID
          :type annotation_file_id : int
 
-        :param description        : Description of the derivative data
+        :param description        : Description of the annotations
          :type description        : string 
 
         :param sources            : Description of the file(s) used to make the annotations
