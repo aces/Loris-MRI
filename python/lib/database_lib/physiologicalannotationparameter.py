@@ -20,12 +20,15 @@ class PhysiologicalAnnotationParameter:
         self.table = 'physiological_annotation_parameter'
         self.verbose = verbose
 
-    def insert(self, annotation_file_id, sources, author):
+    def insert(self, annotation_file_id, description, sources, author):
         """
         Inserts a new entry in the physiological_annotation_parameter table.
 
         :param annotation_file_id : annotation file's ID
          :type annotation_file_id : int
+
+        :param description        : Description of the annotations
+         :type description        : string 
 
         :param sources            : Description of the file(s) used to make the annotations
          :type sources            : string
@@ -36,8 +39,8 @@ class PhysiologicalAnnotationParameter:
 
         self.db.insert(
             table_name   = self.table,
-            column_names = ('AnnotationFileID', 'Sources', 'Author'),
-            values       = (annotation_file_id, sources, author)
+            column_names = ('AnnotationFileID', 'Description', 'Sources', 'Author'),
+            values       = (annotation_file_id, description, sources, author)
         )
 
     def grep_id_from_physiological_file_id(self, physiological_file_id):

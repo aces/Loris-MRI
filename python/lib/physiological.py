@@ -613,6 +613,7 @@ class Physiological:
         )
         self.physiological_annotation_parameter_obj.insert(
             annotation_file_id,
+            annotation_metadata['Description'],
             annotation_metadata['Sources'],
             annotation_metadata['Author']
         )
