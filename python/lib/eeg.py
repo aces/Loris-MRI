@@ -710,6 +710,7 @@ class Eeg:
             suffix = 'annotations',
             all_ = True,
             full_search = True,
+            subject=self.psc_id,
         )
 
         if not(annotation_data_files):
@@ -737,6 +738,7 @@ class Eeg:
                         suffix = 'annotations',
                         all_ = False,
                         full_search = False,
+                        subject=self.psc_id,
                     )
 
                     annotation_data_path = self.copy_file_to_loris_bids_dir(
