@@ -665,10 +665,10 @@ class Physiological:
                 if field not in row.keys():
                     row[field] = None
 
-            if not row['duration'].isdecimal():
+            if re.match(r'^-?\d+(?:\.\d+)?$', row['duration']) is None:
                 row['duration'] = None
 
-            if not row['onset'].isdecimal():
+            if re.match(r'^-?\d+(?:\.\d+)?$', row['onset']) is None:
                 row['onset'] = None
 
             if row['channels'] and "n/a" in row['channels']:
