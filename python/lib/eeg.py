@@ -477,7 +477,7 @@ class Eeg:
             # visualization and analyses
             if file_type == 'set':
                 set_full_path = os.path.join(self.data_dir, eeg_path)
-                fdt_full_path = eeg_file_data['fdt_file']
+                fdt_full_path = eeg_file_data['fdt_file'] if 'fdt_file' in eeg_file_data.keys() else None
 
                 if fdt_full_path:
                     fdt_full_path = os.path.join(self.data_dir, eeg_file_data['fdt_file'])
