@@ -176,10 +176,15 @@ def update_set_file_path_info(set_file, fdt_file):
     dataset = scipy.io.loadmat(set_file)
 
     # update the EEG paths in the .set file
-    dataset['EEG'][0][0][1] = numpy.array(basename + ".set")
-    if fdt_file:
+    if 'filename' in dataset.keys():
+        dataset['filename'] = numpy.array(basename + ".set")
+    if 'setname' in dataset.keys():
+        dataset['setname'] = numpy.array(basename)
+    if 'EEG' in dataset.keys():
+        dataset['EEG'][0][0][1] = numpy.array(basename + ".set")
+    if fdt_file and 'EEG' in dataset.keys():
         dataset['EEG'][0][0][15] = numpy.array(basename + ".fdt")
-        dataset['EEG'][0][0][-1] = numpy.array(basename + ".fdt")
+        dataset['EEG'][0][0][40] = numpy.array(basename + ".fdt")
 
     # write the new .set file with the correct path info
     scipy.io.savemat(set_file, dataset, False)
