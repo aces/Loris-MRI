@@ -2043,11 +2043,8 @@ sub computeSNR {
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
     my $configOB = $this->{'configOB'};
-    my $data_dir = $configOB->getDataDirPath();
-
-    my $modalities = NeuroDB::DBI::getConfigSetting(
-        $this->{dbhr}, 'compute_snr_modalities'
-    );
+    my $data_dir   = $configOB->getDataDirPath();
+    my @modalities = $configOB->getComputeSnrModalities();
 
     (my $query = <<QUERY) =~ s/\n//gm;
   SELECT    FileID, File, Scan_type
@@ -2058,7 +2055,6 @@ QUERY
     print $query . "\n" if ($this->{debug});
     my $minc_file_arr = ${$this->{'dbhr'}}->prepare($query);
     $minc_file_arr->execute($tarchiveID);
-
     while (my $row = $minc_file_arr->fetchrow_hashref()) {
         my $filename     = $row->{'File'};
         my $fileID       = $row->{'FileID'};
@@ -2066,7 +2062,7 @@ QUERY
         my $base         = basename($filename);
         my $fullpath     = "$data_dir/$filename";
         my $message;
-        if ( grep($_ eq $fileScanType, @$modalities) ) {
+        if (@modalities && grep($_ eq $fileScanType, @modalities) ) {
             my $cmd = "noise_estimate --snr $fullpath";
             my $SNR = `$cmd`;
             $SNR =~ s/\n//g;
@@ -2084,9 +2080,13 @@ QUERY
             }
         } else {
             $message = "The SNR can not be computed for $base as the imaging "
-                       . "modality is not supported by the SNR computation. The "
-                       . "supported modalities for your projects are "
-                       . join(', ', @$modalities) . ".\n";
+                       . "modality is not supported by the SNR computation. ";
+            $message .= @modalities
+                ? sprintf(
+                    "The supported modalities for your projects are: %s.\n",
+                    join(', ', @modalities)
+                  )
+                : "There are no supported modalities for your projects.\n";
             $this->{LOG}->print($message);
             $this->spool($message, 'N', $upload_id, $notify_detailed);
         }
