@@ -272,7 +272,7 @@ class Eeg:
                 derivatives
             )
 
-            event_file_path = self.fetch_and_insert_event_file(
+            event_file_paths = self.fetch_and_insert_event_file(
                 eeg_file_id,
                 original_file_data.path,
                 derivatives
@@ -293,8 +293,21 @@ class Eeg:
                 files_to_archive = files_to_archive + (os.path.join(self.data_dir, fdt_file_path),)
             if electrode_file_path:
                 files_to_archive = files_to_archive + (os.path.join(self.data_dir, electrode_file_path),)
-            if event_file_path:
+            if event_file_paths:
                 files_to_archive = files_to_archive + (os.path.join(self.data_dir, event_file_path),)
+                # archive all event files in a tar ball for event download
+                event_files_to_archive = ()
+
+                for event_file_path in event_file_paths:
+                    files_to_archive = files_to_archive + (os.path.join(self.data_dir, event_file_path),)
+                    event_files_to_archive = event_files_to_archive + (
+                        os.path.join(self.data_dir, event_file_path),
+                    )
+
+                event_archive_rel_name = os.path.splitext(event_file_path)[0] + ".tgz"
+                self.create_and_insert_event_archive(
+                    event_files_to_archive, event_archive_rel_name, eeg_file_id
+                )
             if annotation_file_paths:
                 # archive all annotation files in a tar ball for annotation download
                 annotation_files_to_archive = ()
@@ -642,7 +655,7 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
 
-        event_file = self.bids_layout.get_nearest(
+        event_data_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
@@ -652,29 +665,76 @@ class Eeg:
             full_search = False,
         )
 
-        if not event_file:
+        if not event_data_file:
             message = "WARNING: no events file associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
             return None
         else:
-            result = physiological.grep_event_from_physiological_file_id(
+            event_paths = physiological.grep_event_paths_from_physiological_file_id(
                 physiological_file_id
             )
-            event_path = result[0]['FilePath'] if result else None
-            if not result:
-                event_data = utilities.read_tsv_file(event_file.path)
+            if not event_paths:
+                event_paths = []
+
+                event_data = utilities.read_tsv_file(event_data_file.path)
                 # copy the event file to the LORIS BIDS import directory
                 event_path = self.copy_file_to_loris_bids_dir(
-                    event_file.path, derivatives
+                    event_data_file.path, derivatives
                 )
                 # get the blake2b hash of the task events file
-                blake2 = blake2b(event_file.path.encode('utf-8')).hexdigest()
+                blake2 = blake2b(event_data_file.path.encode('utf-8')).hexdigest()
                 # insert event data in the database
                 physiological.insert_event_file(
                     event_data, event_path, physiological_file_id, blake2
                 )
 
+                event_paths.extend([event_data_path])
+
+                # get events.json file and insert
+                # subject-specific metadata
+                event_metadata_file = self.bids_layout.get_nearest(
+                    event_data_file.path,
+                    return_type = 'tuple',
+                    strict = False,
+                    extension = 'json',
+                    suffix = 'events',
+                    all_ = False,
+                    full_search = False,
+                    subject=self.psc_id,
+                )
+
+                if not event_metadata_file:
+                    # global events metadata
+                    event_metadata_file = self.bids_layout.get_nearest(
+                        event_data_file.path,
+                        return_type = 'tuple',
+                        strict = False,
+                        extension = 'json',
+                        suffix = 'events',
+                        all_ = False,
+                        full_search = False,
+                    )
+
+                    if not event_metadata_file:
+                        print('No events.json found')
+                    else:
+                        # copy the event file to the LORIS BIDS import directory
+                        event_metadata_path = self.copy_file_to_loris_bids_dir(
+                            event_metadata_file.path, derivatives
+                        )
+                        # load json data
+                        with open(event_metadata_file.path) as metadata_file:
+                            event_metadata = json.load(metadata_file)
+                        # get the blake2b hash of the json events file
+                        blake2 = blake2b(event_metadata_file.path.encode('utf-8')).hexdigest()
+                        # insert event metadata in the database
+                        physiological.insert_event_metadata(
+                            event_metadata, event_metadata_path, physiological_file_id, blake2
+                        )  
+
+                        event_paths.extend([event_metadata_path])                  
+                        
         return event_path
 
     def fetch_and_insert_annotation_files(
@@ -935,3 +995,58 @@ class Eeg:
         # insert the archive into the physiological_annotation_archive table
         blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
         physiological_annotation_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
+
+def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
+        """
+        Create an archive with all event files associated to a specific recording
+
+        :param files_to_archive: tuple with the list of files to include in
+                                 the archive
+         :type files_to_archive: tuple
+        :param archive_rel_name: path to the archive relative to data_dir
+         :type archive_rel_name: str
+        :param eeg_file_id     : PhysiologicalFileID
+         :type eeg_file_id     : int
+        """
+
+        # check if archive is on the filesystem
+        archive_full_path = os.path.join(self.data_dir, archive_rel_name)
+        blake2            = None
+        if os.path.isfile(archive_full_path):
+            blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
+
+        # check if archive already inserted in database and matches the one
+        # on the filesystem using blake2b hash
+        results = self.db.pselect(
+            query="SELECT * FROM physiological_event_archive WHERE PhysiologicalFileID = %s",
+            args=(physiological_file_id,)
+        )
+
+        if results:
+            result = results[0]
+            if not blake2:
+                message = '\nERROR: no archive was found on the filesystem ' + \
+                          'while an entry was found in the database for '   + \
+                          'PhysiologicalFileID = ' + str(eeg_file_id)
+                print(message)
+                exit(lib.exitcode.MISSING_FILES)
+            elif result['Blake2bHash'] != blake2:
+                message = '\nERROR: blake2b hash of ' + archive_full_path     +\
+                          ' does not match the one stored in the database.'   +\
+                          '\nblake2b of ' + archive_full_path + ': ' + blake2 +\
+                          '\nblake2b in the database: ' + result['blake2b_hash']
+                print(message)
+                exit(lib.exitcode.CORRUPTED_FILE)
+            else:
+                return
+
+        # create the archive file
+        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+
+        # insert the archive into the physiological_annotation_archive table
+        blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
+        self.db.insert(
+            table_name   = 'physiological_event_archive',
+            column_names = ('PhysiologicalFileID', 'Blake2bHash', 'FilePath'),
+            values       = (physiological_file_id, blake2, archive_path)
+        )

@@ -301,27 +301,25 @@ class Physiological:
 
         return results
 
-    def grep_event_from_physiological_file_id(self, physiological_file_id):
+    def grep_event_paths_from_physiological_file_id(self, physiological_file_id):
         """
-        Greps all entries present in the physiological_task_event table for a
-        given PhysiologicalFileID and returns its result.
+        Gets the FilePath of event files given a physiological_file_id
 
-        :param physiological_file_id: physiological file's ID
-         :type physiological_file_id: int
+        :param physiological_file_id : Physiological file's ID
+         :type physiological_file_id : int
 
-        :return: tuple of dictionaries with one entry in the tuple
-                 corresponding to one entry in physiological_task_event
-         :rtype: tuple
+        :return                      : list of FilePath if any or None
+         :rtype                      : list
         """
 
-        results = self.db.pselect(
-            query="SELECT * "
-                  " FROM physiological_task_event "
-                  " WHERE PhysiologicalFileID = %s",
+        event_paths = self.db.pselect(
+            query = "SELECT DISTINCT FilePath "
+                    "FROM physiological_event_file "
+                    "WHERE PhysiologicalFileID = %s",
             args=(physiological_file_id,)
         )
 
-        return results
+        event_paths = [event_path['FilePath'] for event_path in event_paths]
 
     def insert_electrode_file(self, electrode_data, electrode_file,
                               physiological_file_id, blake2):
@@ -499,6 +497,96 @@ class Physiological:
             physiological_file_id, 'channel_file_blake2b_hash', blake2
         )
 
+    def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id, blake2):
+        """
+        Inserts the events metadata information read from the file *events.json
+        into the physiological_event_file, physiological_event_parameter
+        and physiological_event_parameter_category_level tables, linking it to the 
+        physiological file ID already inserted in physiological_file.
+
+        :param event_metadata      : list with dictionaries of events
+                                          metadata to insert into the database
+         :type event_metadata      : list
+        :param event_metadata_file : name of the event metadata file
+         :type event_file          : str
+        :param physiological_file_id    : PhysiologicalFileID to link the event info to
+         :type physiological_file_id    : int
+        :param blake2                   : blake2b hash of the event file
+         :type blake2                   : str
+
+        :return: event file id
+         :rtype: int
+        """
+
+        event_file_id = self.db.insert(
+            table_name   = 'physiological_event_file',
+            column_names = ('PhysiologicalFileID', 'FileType', 'FilePath'),
+            values       = (physiological_file_id, 'json', event_metadata_file),
+            get_last_id  = True
+        )
+
+        event_parameter_fields = (
+            'EventFileID', 'ParameterName', 'Description', 'LongName',   
+            'Units', 'isCategorical', 'HED'
+        )
+
+        event_category_level_fields = (
+            'EventParameterID', 'LevelName', 'Description', 'HED'
+        )
+
+        for parameter in event_metadata:
+            parameterName = parameter
+            description = event_metadata[parameter]['Description'] if 'Description' in event_metadata[parameter] else None
+            longName = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
+            units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
+            if 'Levels' in event_metadata[parameter]:
+                isCategorical = 'Y'
+                valueHED = None
+            else:
+                isCategorical = 'N'
+                valueHED = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
+            
+            event_parameter_values = (
+                str(event_file_id),
+                parameterName,
+                description,
+                longName,
+                units,
+                isCategorical,
+                valueHED
+            )
+
+            event_parameter_id = self.db.insert(
+                table_name   = 'physiological_event_parameter',
+                column_names = event_parameter_fields,
+                values       = event_parameter_values,
+                get_last_id  = True
+            )
+
+            if isCategorical == 'Y':
+                for level in event_metadata[parameter]['Levels']:
+                        levelName = level
+                        levelDescription = event_metadata[parameter]['Levels'][level]['Description'] if 'Description' in event_metadata[parameter]['Levels'][level] else None
+                        levelHED = event_metadata[parameter]['Levels'][level]['HED'] if 'HED' in event_metadata[parameter]['Levels'][level] else None
+
+                        event_category_level_values = (
+                            str(event_parameter_id),
+                            levelName,
+                            levelDescription,
+                            levelHED
+                        )
+
+                        self.db.insert(
+                            table_name   = 'physiological_event_parameter_category_level',
+                            column_names = event_category_level_fields,
+                            values       = event_category_level_values,
+                        )
+
+        # insert blake2b hash of task event file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'event_file_json_blake2b_hash', blake2
+        )
+
     def insert_event_file(self, event_data, event_file, physiological_file_id,
                           blake2):
         """
@@ -518,10 +606,17 @@ class Physiological:
          :type blake2               : str
         """
 
+        event_file_id = self.db.insert(
+            table_name   = 'physiological_event_file',
+            column_names = ('PhysiologicalFileID', 'FileType', 'FilePath'),
+            values       = (physiological_file_id, 'tsv', event_file),
+            get_last_id  = True
+        )
+
         event_fields = (
-            'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
-            'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
-            'EventType',           'FilePath'
+            'PhysiologicalFileID', 'EventFileID', 'Onset', 'Duration',   
+            'TrialType', 'ResponseTime', 'EventCode', 'EventValue', 
+            'EventSample', 'EventType'
         )
 
         event_values = []
@@ -554,6 +649,7 @@ class Physiological:
 
             values_tuple = (
                 str(physiological_file_id),
+                str(event_file_id),
                 row['onset'],
                 row['duration'],
                 row['trial_type'],
@@ -561,8 +657,7 @@ class Physiological:
                 row['event_code'],
                 event_value,
                 sample,
-                row['event_type'],
-                event_file
+                row['event_type']
             )
             event_values.append(values_tuple)
 
