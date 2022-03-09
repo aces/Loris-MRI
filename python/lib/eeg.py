@@ -294,9 +294,9 @@ class Eeg:
             if electrode_file_path:
                 files_to_archive = files_to_archive + (os.path.join(self.data_dir, electrode_file_path),)
             if event_file_paths:
-                files_to_archive = files_to_archive + (os.path.join(self.data_dir, event_file_path),)
                 # archive all event files in a tar ball for event download
                 event_files_to_archive = ()
+                print(event_file_paths)
 
                 for event_file_path in event_file_paths:
                     files_to_archive = files_to_archive + (os.path.join(self.data_dir, event_file_path),)
@@ -689,7 +689,7 @@ class Eeg:
                     event_data, event_path, physiological_file_id, blake2
                 )
 
-                event_paths.extend([event_data_path])
+                event_paths.extend([event_data_file.path])
 
                 # get events.json file and insert
                 # subject-specific metadata
@@ -735,7 +735,7 @@ class Eeg:
 
                         event_paths.extend([event_metadata_path])                  
                         
-        return event_path
+        return event_paths
 
     def fetch_and_insert_annotation_files(
             self, physiological_file_id, original_physiological_file_path, derivatives=False):
@@ -996,7 +996,7 @@ class Eeg:
         blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
         physiological_annotation_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
 
-def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
+    def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
         """
         Create an archive with all event files associated to a specific recording
 
@@ -1019,7 +1019,7 @@ def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, ee
         # on the filesystem using blake2b hash
         results = self.db.pselect(
             query="SELECT * FROM physiological_event_archive WHERE PhysiologicalFileID = %s",
-            args=(physiological_file_id,)
+            args=(eeg_file_id,)
         )
 
         if results:
@@ -1048,5 +1048,5 @@ def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, ee
         self.db.insert(
             table_name   = 'physiological_event_archive',
             column_names = ('PhysiologicalFileID', 'Blake2bHash', 'FilePath'),
-            values       = (physiological_file_id, blake2, archive_path)
+            values       = (eeg_file_id, blake2, archive_rel_name)
         )

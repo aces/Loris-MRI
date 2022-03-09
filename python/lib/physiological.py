@@ -612,6 +612,8 @@ class Physiological:
             values       = (physiological_file_id, 'tsv', event_file),
             get_last_id  = True
         )
+        print('EVENT FILE ID')
+        print(event_file_id)
 
         event_fields = (
             'PhysiologicalFileID', 'EventFileID', 'Onset', 'Duration',   
