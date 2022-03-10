@@ -64,12 +64,13 @@ RETURN: new instance of this class.
 Private method. This method fetches setting `$setting` from the LORIS table 
 Config. It will throw a `NeuroDB::objectBroker::ObjectBrokerException` if either
 the database transaction failed for some reason or it succeeded but returned no
-results (i.e. setting $setting does not exist).
+results (i.e. setting `$setting` does not exist).
 
 INPUT: name of the setting to fetch.
 
-RETURN: the setting value (as a string). If the setting value is NULL, then this
-         method will return `undef`.
+RETURN: the setting value. If the setting is does not allow for multiple values, then this method
+        will return a string (unless the setting value is NULL, in which case this method returns `undef`).
+        Otherwise, this method returns an array, possibly empty.
 
 ### &$getBooleanRef($value)
 
@@ -193,6 +194,18 @@ RETURN: (boolean) 1 if is\_qsub is set to Yes in the Config module, 0 otherwise
 Get the createCandidates Config setting.
 
 RETURN: (boolean) 1 if createCandidates is set to Yes in the Config module, 0 otherwise
+
+### getPythonConfigFile()
+
+Get the MriPythonConfigFile Config setting.
+
+RETURN: value (string) of the MRI python config file in the Config table.
+
+### getComputeSnrModalities()
+
+Get the compute\_snr\_modalities Config setting
+
+RETURN: an array (possibly empty) of the modality IDs (i.e t1w, etc..) for which to compute the SNR
 
 # TO DO
 

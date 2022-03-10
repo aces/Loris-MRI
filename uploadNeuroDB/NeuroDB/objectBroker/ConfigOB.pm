@@ -86,6 +86,7 @@ use constant HORIZONTAL_PICS           => 'horizontalPics';
 use constant IS_QSUB                   => 'is_qsub';
 use constant CREATE_CANDIDATES         => 'createCandidates';
 use constant PYTHON_CONFIG_FILE        => 'MriPythonConfigFile';
+use constant COMPUTE_SNR_MODALITIES    => 'compute_snr_modalities';
 
 =pod
 
@@ -108,12 +109,13 @@ has 'db'     => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 Private method. This method fetches setting C<$setting> from the LORIS table 
 Config. It will throw a C<NeuroDB::objectBroker::ObjectBrokerException> if either
 the database transaction failed for some reason or it succeeded but returned no
-results (i.e. setting $setting does not exist).
+results (i.e. setting C<$setting> does not exist).
 
 INPUT: name of the setting to fetch.
 
-RETURN: the setting value (as a string). If the setting value is NULL, then this
-         method will return C<undef>.
+RETURN: the setting value. If the setting is does not allow for multiple values, then this method
+        will return a string (unless the setting value is NULL, in which case this method returns C<undef>).
+        Otherwise, this method returns an array, possibly empty.
 
 =cut
 
@@ -122,10 +124,12 @@ my $getConfigSettingRef = sub {
 
     my $result;
     try {
+        # note that all the values for cs.AllowMultiple will be identical
         $result = $self->db->pselect(
-            'SELECT c.value FROM Config c '
-                . 'JOIN ConfigSettings cs ON (cs.ID=c.ConfigID) '
-                . 'WHERE cs.Name = ?',
+              'SELECT c.id, c.value, cs.AllowMultiple '
+            . 'FROM ConfigSettings cs '
+            . 'LEFT JOIN Config c ON (cs.ID=c.ConfigID) '
+            . 'WHERE cs.Name = ?',
             $setting
         );
     } catch(NeuroDB::DatabaseException $e) {
@@ -141,6 +145,12 @@ my $getConfigSettingRef = sub {
         );
     }
 
+    if($result->[0]->{'AllowMultiple'}) {
+        return @$result == 1 && !$result->[0]->{'id'}
+            ? ()
+            : map { $_->{'value'} } @$result;
+    }
+    
     return $result->[0]->{'value'};
 };
 
@@ -442,6 +452,20 @@ sub getPythonConfigFile {
 
     return &$getConfigSettingRef($self, PYTHON_CONFIG_FILE);
 }
+
+=head3 getComputeSnrModalities()
+
+Get the compute_snr_modalities Config setting
+
+RETURN: an array (possibly empty) of the modality IDs (i.e t1w, etc..) for which to compute the SNR
+
+=cut
+sub getComputeSnrModalities {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, COMPUTE_SNR_MODALITIES);
+}
+
 
 1;
 
