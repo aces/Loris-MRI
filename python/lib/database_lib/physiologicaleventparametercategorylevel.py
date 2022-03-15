@@ -40,7 +40,7 @@ class PhysiologicalEventParameterCategoryLevel:
         self.db.insert(
             table_name   = self.table,
             column_names = ('EventParameterID', 'LevelName', 'Description', 'HED'),
-            values       = (event_parameter_id, level_name, description, hed)
+            values       = (event_parameter_id, level_name, description, hed),
             get_last_id  = True
         )
 

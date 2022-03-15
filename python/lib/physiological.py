@@ -68,7 +68,8 @@ class Physiological:
 
         self.physiological_event_file_obj                     = PhysiologicalEventFile(self.db, self.verbose)
         self.physiological_event_parameter_obj                = PhysiologicalEventParameter(self.db, self.verbose)
-        self.physiological_event_parameter_category_level_obj = PhysiologicalEventParameterCategoryLevel(self.db, self.verbose)
+        self.physiological_event_parameter_category_level_obj = \
+            PhysiologicalEventParameterCategoryLevel(self.db, self.verbose)
 
     def determine_file_type(self, file):
         """
@@ -534,8 +535,9 @@ class Physiological:
 
         for parameter in event_metadata:
             parameterName = parameter
-            description = event_metadata[parameter]['Description'] if 'Description' in event_metadata[parameter] \
-            else None
+            description = event_metadata[parameter]['Description'] \
+                if 'Description' in event_metadata[parameter] \
+                else None
             longName = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
             units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
             if 'Levels' in event_metadata[parameter]:
@@ -559,9 +561,11 @@ class Physiological:
                 for level in event_metadata[parameter]['Levels']:
                     levelName = level
                     levelDescription = event_metadata[parameter]['Levels'][level]['Description'] \
-                    if 'Description' in event_metadata[parameter]['Levels'][level] else None
+                        if 'Description' in event_metadata[parameter]['Levels'][level] \
+                        else None
                     levelHED = event_metadata[parameter]['Levels'][level]['HED'] \
-                    if 'HED' in event_metadata[parameter]['Levels'][level] else None
+                        if 'HED' in event_metadata[parameter]['Levels'][level] \
+                        else None
 
                     self.physiological_event_parameter_category_level_obj.insert(
                         str(event_parameter_id),
