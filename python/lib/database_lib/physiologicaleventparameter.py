@@ -49,6 +49,6 @@ class PhysiologicalEventParameter:
         self.db.insert(
             table_name   = self.table,
             column_names = ('EventFileID', 'ParameterName', 'Description', 'LongName',
-                'Units', 'isCategorical', 'HED'),
+                    'Units', 'isCategorical', 'HED'),
             values       = (event_file_id, parameter_name, description, long_name, units, is_categorical, hed)
         )
