@@ -9,6 +9,10 @@ from lib.database_lib.physiologicalannotationfile import PhysiologicalAnnotation
 from lib.database_lib.physiologicalannotationparameter import PhysiologicalAnnotationParameter
 from lib.database_lib.physiologicalannotationlabel import PhysiologicalAnnotationLabel
 from lib.database_lib.physiologicalannotationinstance import PhysiologicalAnnotationInstance
+from lib.database_lib.physiologicaleventfile import PhysiologicalEventFile
+from lib.database_lib.physiologicaleventparameter import PhysiologicalEventParameter
+from lib.database_lib.physiologicaleventparametercategorylevel import PhysiologicalEventParameterCategoryLevel
+
 
 
 __license__ = "GPLv3"
@@ -61,6 +65,10 @@ class Physiological:
         self.physiological_annotation_parameter_obj = PhysiologicalAnnotationParameter(self.db, self.verbose)
         self.physiological_annotation_label_obj     = PhysiologicalAnnotationLabel(self.db, self.verbose)
         self.physiological_annotation_instance_obj  = PhysiologicalAnnotationInstance(self.db, self.verbose)
+
+        self.physiological_event_file_obj                     = PhysiologicalEventFile(self.db, self.verbose)
+        self.physiological_event_parameter_obj                = PhysiologicalEventParameter(self.db, self.verbose)
+        self.physiological_event_parameter_category_level_obj = PhysiologicalEventParameterCategoryLevel(self.db, self.verbose)
 
     def determine_file_type(self, file):
         """
@@ -518,25 +526,16 @@ class Physiological:
          :rtype: int
         """
 
-        event_file_id = self.db.insert(
-            table_name   = 'physiological_event_file',
-            column_names = ('PhysiologicalFileID', 'FileType', 'FilePath'),
-            values       = (physiological_file_id, 'json', event_metadata_file),
-            get_last_id  = True
-        )
-
-        event_parameter_fields = (
-            'EventFileID', 'ParameterName', 'Description', 'LongName',   
-            'Units', 'isCategorical', 'HED'
-        )
-
-        event_category_level_fields = (
-            'EventParameterID', 'LevelName', 'Description', 'HED'
+        event_file_id = self.physiological_event_file_obj.insert(
+            physiological_file_id,
+            'json',
+            event_metadata_file
         )
 
         for parameter in event_metadata:
             parameterName = parameter
-            description = event_metadata[parameter]['Description'] if 'Description' in event_metadata[parameter] else None
+            description = event_metadata[parameter]['Description'] if 'Description' in event_metadata[parameter] \
+            else None
             longName = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
             units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
             if 'Levels' in event_metadata[parameter]:
@@ -545,8 +544,8 @@ class Physiological:
             else:
                 isCategorical = 'N'
                 valueHED = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
-            
-            event_parameter_values = (
+
+            event_parameter_id = self.physiological_event_parameter_obj.insert(
                 str(event_file_id),
                 parameterName,
                 description,
@@ -556,31 +555,20 @@ class Physiological:
                 valueHED
             )
 
-            event_parameter_id = self.db.insert(
-                table_name   = 'physiological_event_parameter',
-                column_names = event_parameter_fields,
-                values       = event_parameter_values,
-                get_last_id  = True
-            )
-
             if isCategorical == 'Y':
                 for level in event_metadata[parameter]['Levels']:
-                        levelName = level
-                        levelDescription = event_metadata[parameter]['Levels'][level]['Description'] if 'Description' in event_metadata[parameter]['Levels'][level] else None
-                        levelHED = event_metadata[parameter]['Levels'][level]['HED'] if 'HED' in event_metadata[parameter]['Levels'][level] else None
+                    levelName = level
+                    levelDescription = event_metadata[parameter]['Levels'][level]['Description'] \
+                    if 'Description' in event_metadata[parameter]['Levels'][level] else None
+                    levelHED = event_metadata[parameter]['Levels'][level]['HED'] \
+                    if 'HED' in event_metadata[parameter]['Levels'][level] else None
 
-                        event_category_level_values = (
-                            str(event_parameter_id),
-                            levelName,
-                            levelDescription,
-                            levelHED
-                        )
-
-                        self.db.insert(
-                            table_name   = 'physiological_event_parameter_category_level',
-                            column_names = event_category_level_fields,
-                            values       = event_category_level_values,
-                        )
+                    self.physiological_event_parameter_category_level_obj.insert(
+                        str(event_parameter_id),
+                        levelName,
+                        levelDescription,
+                        levelHED
+                    )
 
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
@@ -606,11 +594,10 @@ class Physiological:
          :type blake2               : str
         """
 
-        event_file_id = self.db.insert(
-            table_name   = 'physiological_event_file',
-            column_names = ('PhysiologicalFileID', 'FileType', 'FilePath'),
-            values       = (physiological_file_id, 'tsv', event_file),
-            get_last_id  = True
+        event_file_id = self.physiological_event_file_obj.insert(
+            physiological_file_id,
+            'tsv',
+            event_file
         )
         print('EVENT FILE ID')
         print(event_file_id)

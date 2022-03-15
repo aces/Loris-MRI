@@ -14,6 +14,8 @@ from lib.scanstsv                                    import ScansTSV
 from lib.database_lib.physiologicalannotationfile    import PhysiologicalAnnotationFile
 from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotationArchive
 from lib.database_lib.physiologicalannotationrel     import PhysiologicalAnnotationRel
+from lib.database_lib.physiologicaleventfile         import PhysiologicalEventFile
+from lib.database_lib.physiologicaleventarchive      import PhysiologicalEventArchive
 
 
 __license__ = "GPLv3"
@@ -272,7 +274,7 @@ class Eeg:
                 derivatives
             )
 
-            event_file_paths = self.fetch_and_insert_event_file(
+            event_file_paths = self.fetch_and_insert_event_files(
                 eeg_file_id,
                 original_file_data.path,
                 derivatives
@@ -628,7 +630,7 @@ class Eeg:
 
         return channel_path
 
-    def fetch_and_insert_event_file(
+    def fetch_and_insert_event_files(
             self, physiological_file_id, original_physiological_file_path, derivatives=False):
         """
         Gather raw channel file information to insert into
@@ -671,9 +673,11 @@ class Eeg:
             print(message)
             return None
         else:
-            event_paths = physiological.grep_event_paths_from_physiological_file_id(
+            physiological_event_file_obj = PhysiologicalEventFile(self.db, self.verbose)
+            event_paths = physiological_event_file_obj.grep_event_paths_from_physiological_file_id(
                 physiological_file_id
             )
+
             if not event_paths:
                 event_paths = []
 
@@ -731,7 +735,7 @@ class Eeg:
                         # insert event metadata in the database
                         physiological.insert_event_metadata(
                             event_metadata, event_metadata_path, physiological_file_id, blake2
-                        )  
+                        )
 
                         event_paths.extend([event_metadata_path])                  
                         
@@ -1017,10 +1021,8 @@ class Eeg:
 
         # check if archive already inserted in database and matches the one
         # on the filesystem using blake2b hash
-        results = self.db.pselect(
-            query="SELECT * FROM physiological_event_archive WHERE PhysiologicalFileID = %s",
-            args=(eeg_file_id,)
-        )
+        physiological_event_archive_obj = PhysiologicalEventArchive(self.db, self.verbose)
+        results = physiological_event_archive_obj.grep_from_physiological_file_id(eeg_file_id)
 
         if results:
             result = results[0]
@@ -1045,8 +1047,4 @@ class Eeg:
 
         # insert the archive into the physiological_annotation_archive table
         blake2 = blake2b(archive_full_path.encode('utf-8')).hexdigest()
-        self.db.insert(
-            table_name   = 'physiological_event_archive',
-            column_names = ('PhysiologicalFileID', 'Blake2bHash', 'FilePath'),
-            values       = (eeg_file_id, blake2, archive_rel_name)
-        )
+        physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
