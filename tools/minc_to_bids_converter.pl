@@ -81,6 +81,7 @@ use NeuroDB::DBI;
 use NeuroDB::MRI;
 use NeuroDB::ExitCodes;
 use NeuroDB::File;
+use NeuroDB::objectBroker::ConfigOB;
 
 
 # # Set script's constants here
