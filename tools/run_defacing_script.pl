@@ -434,7 +434,7 @@ RETURNS: 1 if there are defaced images found, 0 otherwise
 sub check_if_deface_files_already_in_db {
     my ($session_files, $session_id) = @_;
 
-    my @defaced_scan_types = map { $_ . '-defaced' } keys $session_files;
+    my @defaced_scan_types = map { $_ . '-defaced' } keys %{ $session_files };
 
     # base query
     my $query = "SELECT COUNT(*) "
@@ -554,7 +554,7 @@ sub deface_session {
 
     # add multi-constrast modalities to cmd line & remove them from $session_files
     foreach my $multi (@MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES) {
-        my @scan_types         = keys $session_files;
+        my @scan_types         = keys %{ $session_files };
         my @matching_types     = grep (/$multi/i, @scan_types);
         my @non_matching_types = grep (!/$multi/i, @scan_types);
         my (@multi_files_list, @other_files);
@@ -623,7 +623,7 @@ sub fetch_defaced_files {
     $defaced_images{$deface_ref}{Scan_type}   = $$ref_file{Scan_type};
 
     # for each files in $session_files, append the defaced images to the hash
-    foreach my $scan_type (keys $session_files) {
+    foreach my $scan_type (keys %{ $session_files }) {
         my %files = %{ $$session_files{$scan_type} };
         foreach my $fileID (keys %files) {
             my $deface_file   = $deface_dir . '/' . basename($files{$fileID});
@@ -663,7 +663,7 @@ sub register_defaced_files {
                        . " -coordinateSpace native "
                        . " -outputType defaced ";
 
-    foreach my $file (keys $defaced_images) {
+    foreach my $file (keys %{ $defaced_images }) {
         my $input_fileID = $$defaced_images{$file}{InputFileID};
         my $scan_type    = $$defaced_images{$file}{Scan_type} . "-defaced";
 
