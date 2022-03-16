@@ -89,6 +89,10 @@ use constant PYTHON_CONFIG_FILE          => 'MriPythonConfigFile';
 use constant COMPUTE_SNR_MODALITIES      => 'compute_snr_modalities';
 use constant EXCLUDED_SERIES_DESCRIPTION => 'excluded_series_description';
 use constant MODALITIES_TO_DEFACE        => 'modalities_to_deface';
+use constant BIDS_DATASET_AUTHORS        => 'bids_dataset_authors';
+use constant BIDS_ACKNOWLEDGMENTS_TEXT   => 'bids_acknowledgments_text';
+use constant BIDS_README_TEXT            => 'bids_readme_text';
+use constant BIDS_VALIDATOR_OPTIONS_TO_IGNORE => 'bids_validator_options_to_ignore';
 
 =pod
 
@@ -487,13 +491,70 @@ sub getExcludedSeriesDescription {
 
 Get the modalities_to_deface Config setting
 
-RETURN: an array (possibly empty) of the series description to exclude from import
+RETURN: an array (possibly empty) of the modalities to run the defacing pipeline on
 
 =cut
 sub getModalitiesToDeface {
     my $self = shift;
 
     return &$getConfigSettingRef($self, MODALITIES_TO_DEFACE);
+}
+
+
+=head3 getBidsDatasetAuthors()
+
+Get the bids_dataset_authors Config setting
+
+RETURN: an array (possibly empty) of the authors to use for a BIDS dataset
+
+=cut
+sub getBidsDatasetAuthors {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, BIDS_DATASET_AUTHORS);
+}
+
+
+=head3 getBidsAcknowledgmentsText()
+
+Get the bids_acknowledgments_text Config setting
+
+RETURN: an array (possibly empty) of the acknowledgment text to use for a BIDS dataset
+
+=cut
+sub getBidsAcknowledgmentsText {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, BIDS_ACKNOWLEDGMENTS_TEXT);
+}
+
+
+=head3 getBidsReadmeText()
+
+Get the bids_readme_text Config setting
+
+RETURN: an array (possibly empty) of the README text to use for a BIDS dataset
+
+=cut
+sub getBidsReadmeText {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, BIDS_README_TEXT);
+}
+
+
+=head3 getBidsValidatorOptionsToIgnore()
+
+Get the bids_validator_options_to_ignore Config setting
+
+RETURN: an array (possibly empty) of the BIDS validator options to ignore
+to use when creating a BIDS dataset
+
+=cut
+sub getBidsValidatorOptionsToIgnore {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, BIDS_VALIDATOR_OPTIONS_TO_IGNORE);
 }
 
 1;

@@ -203,13 +203,23 @@ if ( !@Settings::db ) {
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 print "\n==> Successfully connected to database \n";
 
-# Get settings from the ConfigSettings table
-my $data_dir        = &NeuroDB::DBI::getConfigSetting(\$dbh,'dataDirBasepath');
-my $bin_dir         = &NeuroDB::DBI::getConfigSetting(\$dbh,'MRICodePath');
-my $authors         = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_dataset_authors');
-my $acknowledgments = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_acknowledgments_text');
-my $readme_content  = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_readme_text');
-my $validator_ignore_opts = &NeuroDB::DBI::getConfigSetting(\$dbh, 'bids_validator_options_to_ignore');
+# new Moose database connection
+my $db  = NeuroDB::Database->new(
+    databaseName => $Settings::db[0],
+    userName     => $Settings::db[1],
+    password     => $Settings::db[2],
+    hostName     => $Settings::db[3]
+);
+$db->connect();
+
+# Get settings from the Config table
+my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+my $data_dir        = $configOB->getDataDirPath();
+my $bin_dir         = $configOB->getMriCodePath();
+my $authors         = $configOB->getBidsDatasetAuthors();
+my $acknowledgments = $configOB->getBidsAcknowledgmentsText();
+my $readme_content  = $configOB->getBidsReadmeText();
+my $validator_ignore_opts = $configOB->getBidsValidatorOptionsToIgnore();
 
 unless (defined $authors && defined $acknowledgments && defined $readme_content) {
     print STDERR "\n ERROR: Some 'MINC to BIDS Converter Tool Options' are not set in the configuration module."
