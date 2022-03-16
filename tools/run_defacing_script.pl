@@ -184,14 +184,14 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
 my $data_dir      = $configOB->getDataDirPath();
 my $ref_scan_type = $configOB->getDefacingRefScanType();
+my @to_deface     = $configOB->getModalitiesToDeface();
 
 
 # -----------------------------------------------------------------
 ## Get config setting using the old database calls
 # -----------------------------------------------------------------
 
-my $to_deface = &NeuroDB::DBI::getConfigSetting(\$dbh, 'modalities_to_deface');
-unless ($ref_scan_type && $to_deface) {
+unless ($ref_scan_type && @to_deface) {
     print STDERR "\n==> ERROR: you need to configure both the "
                  . "reference_scan_type_for_defacing & modalities_to_deface config "
                  . "settings in the imaging pipeline section of the Config module.\n"
@@ -235,14 +235,14 @@ my $today = sprintf( "%4d-%02d-%02d", $year + 1900, $mon + 1, $mday );
 print "\n==> Fetching all FileIDs to deface.\n" if $verbose;
 my @session_ids = defined $session_ids ? split(",", $session_ids) : ();
 
-unless ($to_deface) {
+unless (@to_deface) {
     print "\nNo modalities were set to be defaced in the Config module. Ensure"
           . " to select modalities to deface in the Config module under the imaging"
           . " pipeline section (setting called modalities_to_deface. \n\n";
     exit $NeuroDB::ExitCodes::SUCCESS;
 }
 
-my %files_hash  = grep_FileIDs_to_deface(\@session_ids, $to_deface);
+my %files_hash  = grep_FileIDs_to_deface(\@session_ids, @to_deface);
 
 
 
@@ -293,7 +293,7 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =pod
 
-=head3 grep_FileIDs_to_deface($session_id_arr, $modalities_to_deface_arr)
+=head3 grep_FileIDs_to_deface($session_id_arr, @modalities_to_deface_arr)
 
 Queries the database for the list of acquisitions' FileID to be used to run the
 defacing algorithm based on the provided list of SessionID and Scan_type to
@@ -301,7 +301,7 @@ restrict the search.
 
 INPUTS:
   - $session_id_arr          : array of SessionIDs to use when grepping FileIDs
-  - $modalities_to_deface_arr: array of Scan_type to use when grepping FileIDs
+  - @modalities_to_deface_arr: array of Scan_type to use when grepping FileIDs
 
 RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
          organized in a hash as follows:
@@ -318,7 +318,7 @@ RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
 =cut
 
 sub grep_FileIDs_to_deface {
-    my ($session_id_arr, $modalities_to_deface_arr) = @_;
+    my ($session_id_arr, @modalities_to_deface_arr) = @_;
 
     # separate the special modalities specified in %SPECIAL_ACQUISITIONS from the
     # standard scan types
@@ -326,10 +326,10 @@ sub grep_FileIDs_to_deface {
     my @special_cases;
     foreach my $special (@special_scan_types) {
         # push the special modalities to a new array @special_cases
-        push @special_cases, grep(/$special/, @$modalities_to_deface_arr);
+        push @special_cases, grep(/$special/, @modalities_to_deface_arr);
         # remove the special modalities from the modalities array as they will be
         # dealt with differently than standard modalities
-        @$modalities_to_deface_arr = grep(! /$special/, @$modalities_to_deface_arr);
+        @modalities_to_deface_arr = grep(! /$special/, @modalities_to_deface_arr);
     }
 
     # base query
@@ -342,8 +342,8 @@ sub grep_FileIDs_to_deface {
 
     # add where clause for the different standard scan types to deface
     my @where;
-    if (@$modalities_to_deface_arr) {
-        @where = map { "mst.Scan_type = ?" } @$modalities_to_deface_arr;
+    if (@modalities_to_deface_arr) {
+        @where = map { "mst.Scan_type = ?" } @modalities_to_deface_arr;
         $query   .= sprintf(" %s ", join(" OR ", @where));
     }
 
@@ -366,7 +366,7 @@ sub grep_FileIDs_to_deface {
     my $sth = $dbh->prepare($query);
 
     # create array of parameters
-    my @bind_param = @$modalities_to_deface_arr;
+    my @bind_param = @modalities_to_deface_arr;
     foreach my $special_scan_type (@special_cases) {
         push @bind_param, $special_scan_type;
         push @bind_param, $SPECIAL_ACQUISITIONS_FILTER{$special_scan_type};

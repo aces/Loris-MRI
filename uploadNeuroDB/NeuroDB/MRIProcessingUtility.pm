@@ -1390,7 +1390,7 @@ sub registerScanIntoDB {
 
 =pod
 
-=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, $exclude, $mail_user, $upload_id)
+=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, @exclude, $mail_user, $upload_id)
 
 Converts a DICOM study into MINC files.
 
@@ -1398,7 +1398,7 @@ INPUTS:
   - $study_dir      : DICOM study directory to convert
   - $converter      : converter to be used
   - $get_dicom_info : get DICOM information setting from the C<Config> table
-  - $exclude        : which files to exclude from the C<dcm2mnc> command
+  - @exclude        : which files to exclude from the C<dcm2mnc> command
   - $mail_user      : mail of the user
   - $upload_id      : upload ID of the study
 
@@ -1406,7 +1406,7 @@ INPUTS:
 
 sub dicom_to_minc {
     my $this = shift;
-    my ($study_dir, $converter, $get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
+    my ($study_dir, $converter, $get_dicom_info, @exclude,$mail_user, $upload_id) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
@@ -1415,11 +1415,7 @@ sub dicom_to_minc {
     # series description specified in the Config Setting excluded_series_description #
     # If there are no series to exclude, $excluded_regex remains undef               #
     #--------------------------------------------------------------------------------#
-    if ($exclude && ref($exclude) eq 'ARRAY') {
-        $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
-    } elsif ($exclude) {
-        $excluded_regex = $exclude;
-    }
+    $excluded_regex = join('|', map { quotemeta($_) } @exclude) if (@exclude);
 
     #-----------------------------------------------------------------------------------#
     # Run get_dicom_info on all the DICOM files and build the set of all the distinct   #

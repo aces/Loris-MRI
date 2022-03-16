@@ -247,13 +247,7 @@ my $tarchivePath   = $configOB->getTarchiveLibraryDir();
 my $mail_user      = $configOB->getMailUser();
 my $get_dicom_info = $configOB->getDicomInfo();
 my $converter      = $configOB->getConverter();
-
-
-# -----------------------------------------------------------------
-## Get config setting using the old database calls
-# -----------------------------------------------------------------
-
-my $exclude = NeuroDB::DBI::getConfigSetting(\$dbh, 'excluded_series_description');
+my @exclude        = $configOB->getExcludedSeriesDescription();
 
 
 
@@ -410,7 +404,7 @@ my ($ExtractSuffix,$study_dir,$header) =
 ##################### convert the dicom data to minc ###########
 ################################################################
 $utility->dicom_to_minc(
-    $study_dir, $converter, $get_dicom_info, $exclude, $mail_user, $upload_id
+    $study_dir, $converter, $get_dicom_info, @exclude, $mail_user, $upload_id
 );
 
 
@@ -433,11 +427,9 @@ if ($verbose){
 ################################################################
 if ($mcount < 1) {
     $message = "\nNo data could be converted into valid MINC files.\n";
-    if ($exclude && ref($exclude) eq 'ARRAY') {
-        my $excluded_series = join(', ', map {quotemeta($_)} @$exclude);
+    if (@exclude) {
+        my $excluded_series = join(', ', map {quotemeta($_)} @exclude);
         $message .= "$excluded_series will not be considered! \n" ;
-    } elsif ($exclude) {
-        $message .= "$exclude will not be considered! \n";
     }
     $utility->writeErrorLog(
         $message, $NeuroDB::ExitCodes::NO_VALID_MINC_CREATED, $logfile
