@@ -216,12 +216,12 @@ $db->connect();
 my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 my $data_dir        = $configOB->getDataDirPath();
 my $bin_dir         = $configOB->getMriCodePath();
-my $authors         = $configOB->getBidsDatasetAuthors();
+my @authors         = $configOB->getBidsDatasetAuthors();
 my $acknowledgments = $configOB->getBidsAcknowledgmentsText();
 my $readme_content  = $configOB->getBidsReadmeText();
-my $validator_ignore_opts = $configOB->getBidsValidatorOptionsToIgnore();
+my @validator_ignore_opts = $configOB->getBidsValidatorOptionsToIgnore();
 
-unless (defined $authors && defined $acknowledgments && defined $readme_content) {
+unless (@authors && defined $acknowledgments && defined $readme_content) {
     print STDERR "\n ERROR: Some 'MINC to BIDS Converter Tool Options' are not set in the configuration module."
                  . " 'BIDS Dataset Authors', 'BIDS Dataset Acknowledgments' and 'BIDS Dataset README' need to be"
                  . " defined.\n\n";
@@ -269,7 +269,7 @@ my %dataset_desc_hash   = (
     'BIDSVersion'           => $BIDS_VERSION,
     'Name'                  => $dataset_name,
     'LORISScriptVersion'    => $LORIS_SCRIPT_VERSION,
-    'Authors'               => $authors,
+    'Authors'               => @authors,
     'HowToAcknowledge'      => $acknowledgments,
     'LORISReleaseVersion'   => $loris_mri_version
 );
@@ -300,11 +300,9 @@ unless (-e $readme_file_path) {
 # specifications, not the same number of files per session etc...)
 # =============================================================================
 my $bids_validator_config_file = $dest_dir . "/.bids-validator-config.json";
-if (!-e $bids_validator_config_file && defined $validator_ignore_opts) {
+if (!-e $bids_validator_config_file && @validator_ignore_opts) {
     print "\n******* Creating the .bids-validator-config.json file $bids_validator_config_file *******\n";
-    my $validator_ignore_string = ref($validator_ignore_opts) eq 'ARRAY'
-        ? join(", ", @$validator_ignore_opts)
-        : $validator_ignore_opts;
+    my $validator_ignore_string = join(", ", @validator_ignore_opts);
     my $bids_validator_config_content = <<TEXT;
 {
   "ignore": [$validator_ignore_string]
