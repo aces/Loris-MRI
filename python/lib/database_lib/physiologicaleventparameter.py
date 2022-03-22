@@ -44,11 +44,15 @@ class PhysiologicalEventParameter:
 
         :param hed               : Event parameter's HED tag if not categorical
          :type hed               : string
+
+        :return                      : id of the row inserted
+         :rtype                      : int
         """
 
-        self.db.insert(
+        return self.db.insert(
             table_name   = self.table,
             column_names = ('EventFileID', 'ParameterName', 'Description', 'LongName',
-                'Units', 'isCategorical', 'HED'),
-            values       = (event_file_id, parameter_name, description, long_name, units, is_categorical, hed)
+                            'Units', 'isCategorical', 'HED'),
+            values       = (event_file_id, parameter_name, description, long_name, units, is_categorical, hed),
+            get_last_id  = True
         )

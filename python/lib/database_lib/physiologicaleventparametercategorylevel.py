@@ -17,7 +17,7 @@ class PhysiologicalEventParameterCategoryLevel:
         """
 
         self.db = db
-        self.table = 'physiological_event_parameter'
+        self.table = 'physiological_event_parameter_category_level'
         self.verbose = verbose
 
     def insert(self, event_parameter_id, level_name, description, hed):
