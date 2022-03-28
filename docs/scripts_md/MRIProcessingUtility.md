@@ -505,11 +505,3 @@ License: GPLv3
 
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 567:
-
-    &#x3d;cut found outside a pod block.  Skipping to next block.
