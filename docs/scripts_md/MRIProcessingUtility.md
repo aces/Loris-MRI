@@ -513,7 +513,3 @@ Hey! **The above document had some coding errors, which are explained below:**
 - Around line 567:
 
     &#x3d;cut found outside a pod block.  Skipping to next block.
-
-- Around line 1887:
-
-    &#x3d;cut found outside a pod block.  Skipping to next block.

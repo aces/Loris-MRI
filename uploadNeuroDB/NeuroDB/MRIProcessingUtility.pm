@@ -1884,7 +1884,6 @@ sub validate_tarchive_id_against_upload_id {
     }
 }
 
-=cut
 
 =pod
 
