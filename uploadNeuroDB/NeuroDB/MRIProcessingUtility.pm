@@ -564,7 +564,6 @@ sub createMriUploadArray {
     return %{ $mriUploadInfoRef->[0] };
 }
 
-=cut
 
 =pod
 
@@ -1884,7 +1883,6 @@ sub validate_tarchive_id_against_upload_id {
     }
 }
 
-=cut
 
 =pod
 
