@@ -298,7 +298,6 @@ class Eeg:
             if event_file_paths:
                 # archive all event files in a tar ball for event download
                 event_files_to_archive = ()
-                print(event_file_paths)
 
                 for event_file_path in event_file_paths:
                     files_to_archive = files_to_archive + (os.path.join(self.data_dir, event_file_path),)

@@ -604,8 +604,6 @@ class Physiological:
             'tsv',
             event_file
         )
-        print('EVENT FILE ID')
-        print(event_file_id)
 
         event_fields = (
             'PhysiologicalFileID', 'EventFileID', 'Onset', 'Duration',   
@@ -692,6 +690,7 @@ class Physiological:
             eventID = task_event_data[index]['TaskEventID']
             onset = task_event_data[index]['Onset']
             if hedDict[index] and 'onset' in hedDict[index]:
+                print(hedDict[index])
                 hedOnset = '{0:.6f}'.format(float(hedDict[index]['onset']))
                 if (float(hedOnset) == float(onset)):
                     assembledHED = hedDict[index]['HED_assembled']
