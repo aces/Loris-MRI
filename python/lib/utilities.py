@@ -14,7 +14,6 @@ import tempfile
 import requests
 import re
 import io
-import json
 
 import lib.exitcode
 
@@ -256,6 +255,7 @@ def remove_empty_folders(path_abs):
             os.rmdir(path)
 
 def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
+    
     # Using HED Tool Rest Services to assemble the HED Tags
     # https://hed-examples.readthedocs.io/en/latest/HedToolsOnline.html#hed-restful-services
 
