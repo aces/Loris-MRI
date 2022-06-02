@@ -696,8 +696,8 @@ class Physiological:
                 if (float(hedOnset) == float(onset)):
                     assembledHED = hedDict[index]['HED_assembled']
                     updateAssembledHED = "UPDATE physiological_task_event " \
-                                        "SET AssembledHED = %s " \
-                                        "WHERE PhysiologicalTaskEventID = %s"
+                        "SET AssembledHED = %s " \
+                        "WHERE PhysiologicalTaskEventID = %s"
                     self.db.update(query=updateAssembledHED, args=(assembledHED, eventID,))
 
     def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id, blake2):

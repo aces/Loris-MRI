@@ -254,8 +254,8 @@ def remove_empty_folders(path_abs):
         if len(os.listdir(path)) == 0:
             os.rmdir(path)
 
+
 def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
-    
     # Using HED Tool Rest Services to assemble the HED Tags
     # https://hed-examples.readthedocs.io/en/latest/HedToolsOnline.html#hed-restful-services
 
@@ -268,9 +268,9 @@ def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
 
     # Define headers for assemble POST request, containing token and cookie
     headers = {
-        "Content-Type": "application/json", 
-        "Accept": "application/json", 
-        "X-CSRFToken": token, 
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-CSRFToken": token,
         "Cookie": cookie
     }
 
@@ -291,7 +291,9 @@ def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
 
     # Make the request to assemble
     requestAssembleURL = 'https://hedtools.ucsd.edu/hed/services_submit'
-    assembleResponse = requests.post(requestAssembleURL, headers=headers, json=params)
+    assembleResponse = requests.post(
+        requestAssembleURL, headers=headers, json=params
+    )
 
     # get assembled results as dictionary
     data = assembleResponse.json()['results']['data']
