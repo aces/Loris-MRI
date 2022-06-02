@@ -737,7 +737,12 @@ class Eeg:
                             event_metadata, event_metadata_path, physiological_file_id, blake2
                         )
 
-                        event_paths.extend([event_metadata_path])                  
+                        event_paths.extend([event_metadata_path])
+
+                        # insert assembled HED annotations
+                        physiological.insert_event_assembled_hed_tags(
+                            self.data_dir, event_path, event_metadata_path
+                        )             
                         
         return event_paths
 

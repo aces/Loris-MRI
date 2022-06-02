@@ -5,6 +5,7 @@ import re
 import os
 import subprocess
 import lib.exitcode
+import lib.utilities as utilities
 from lib.database_lib.physiologicalannotationfile import PhysiologicalAnnotationFile
 from lib.database_lib.physiologicalannotationparameter import PhysiologicalAnnotationParameter
 from lib.database_lib.physiologicalannotationlabel import PhysiologicalAnnotationLabel
@@ -664,6 +665,40 @@ class Physiological:
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_blake2b_hash', blake2
         )
+
+    def insert_event_assembled_hed_tags(self, data_dir, event_tsv, event_json):
+        """
+        Assembles physiological event HED annotations.
+
+        :param event_tsv           : path to event data file
+         :type event_tsv           : str
+        
+        :param event_json           : path to the event metadata file
+         :type event_json           : str
+        """
+        hedDict = utilities.assemble_hed_service(data_dir, event_tsv, event_json)
+
+        # get EventFileID from FilePath
+        physiological_event_file_obj = PhysiologicalEventFile(self.db, self.verbose)
+        event_file_id = physiological_event_file_obj.grep_event_file_id_from_event_path(event_tsv)
+
+        # get all task events for specified EventFileID
+        query = "SELECT PhysiologicalTaskEventID as TaskEventID, Onset " \
+                "FROM physiological_task_event " \
+                "WHERE EventFileID = %s"
+        task_event_data = self.db.pselect(query=query, args=(event_file_id,))
+
+        for index in range(len(task_event_data)):
+            eventID = task_event_data[index]['TaskEventID']
+            onset = task_event_data[index]['Onset']
+            if hedDict[index] and 'onset' in hedDict[index]:
+                hedOnset = '{0:.6f}'.format(float(hedDict[index]['onset']))
+                if (float(hedOnset) == float(onset)):
+                    assembledHED = hedDict[index]['HED_assembled']
+                    updateAssembledHED = "UPDATE physiological_task_event " \
+                                        "SET AssembledHED = %s " \
+                                        "WHERE PhysiologicalTaskEventID = %s"
+                    self.db.update(query=updateAssembledHED, args=(assembledHED, eventID,))
 
     def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id, blake2):
         """

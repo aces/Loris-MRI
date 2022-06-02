@@ -63,3 +63,24 @@ class PhysiologicalEventFile:
         )
 
         event_paths = [event_path['FilePath'] for event_path in event_paths]
+
+        return event_paths
+
+    def grep_event_file_id_from_event_path(self, event_file_path):
+        """
+        Gets the EventFileID given a FilePath
+
+        :param event_file_path : FilePath of physiological event file
+         :type event_file_path       : str
+
+        :return                      : id of the file specified
+         :rtype                      : int
+        """
+        event_file_id = self.db.pselect(
+            query = "SELECT EventFileID "
+                    "FROM physiological_event_file "
+                    "WHERE FilePath = %s",
+            args = (event_file_path,)
+        )
+
+        return event_file_id[0]['EventFileID']
