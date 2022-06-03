@@ -2003,7 +2003,7 @@ sub getScanTypesToDelete {
     
     if($keepDefaced) {
         my @scanTypes = $configOB->getModalitiesToDeface();
-        return @scanTypes ? (map { $_ => 1 } @scanTypes) : ();
+        return (map { $_ => 1 } @scanTypes);
     }
     
     my %types = map { $_=> 1 } split(/,/, $scanTypeList);
