@@ -305,7 +305,7 @@ class Eeg:
                         os.path.join(self.data_dir, event_file_path),
                     )
 
-                event_archive_rel_name = os.path.splitext(event_file_path)[0] + ".tgz"
+                event_archive_rel_name = os.path.splitext(event_file_paths[0])[0] + ".tgz"
                 self.create_and_insert_event_archive(
                     event_files_to_archive, event_archive_rel_name, eeg_file_id
                 )
@@ -692,7 +692,7 @@ class Eeg:
                     event_data, event_path, physiological_file_id, blake2
                 )
 
-                event_paths.extend([event_data_file.path])
+                event_paths.extend([event_path])
 
                 # get events.json file and insert
                 # subject-specific metadata
@@ -706,6 +706,7 @@ class Eeg:
                     full_search = False,
                     subject=self.psc_id,
                 )
+                inheritance = False
 
                 if not event_metadata_file:
                     # global events metadata
@@ -718,13 +719,14 @@ class Eeg:
                         all_ = False,
                         full_search = False,
                     )
+                    inheritance = True
 
                     if not event_metadata_file:
                         print('No events.json found')
                     else:
                         # copy the event file to the LORIS BIDS import directory
                         event_metadata_path = self.copy_file_to_loris_bids_dir(
-                            event_metadata_file.path, derivatives
+                            event_metadata_file.path, derivatives, inheritance
                         )
                         # load json data
                         with open(event_metadata_file.path) as metadata_file:
@@ -844,7 +846,7 @@ class Eeg:
 
         return annotation_paths
 
-    def copy_file_to_loris_bids_dir(self, file, derivatives=False):
+    def copy_file_to_loris_bids_dir(self, file, derivatives=False, inheritance=False):
         """
         Wrapper around the utilities.copy_file function that copies the file
         to the LORIS BIDS import directory and returns the relative path of the
@@ -877,7 +879,9 @@ class Eeg:
             )
         else :
             # determine the path of the copied file
-            copy_file = self.loris_bids_eeg_rel_dir
+            copy_file = ""
+            if not inheritance:
+                copy_file = self.loris_bids_eeg_rel_dir
             if self.bids_ses_id:
                 copy_file += os.path.basename(file)
             else:
