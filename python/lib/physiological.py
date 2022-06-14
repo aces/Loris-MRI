@@ -561,11 +561,9 @@ class Physiological:
             if isCategorical == 'Y':
                 for level in event_metadata[parameter]['Levels']:
                     levelName = level
-                    levelDescription = event_metadata[parameter]['Levels'][level]['Description'] \
-                        if 'Description' in event_metadata[parameter]['Levels'][level] \
-                        else None
-                    levelHED = event_metadata[parameter]['Levels'][level]['HED'] \
-                        if 'HED' in event_metadata[parameter]['Levels'][level] \
+                    levelDescription = event_metadata[parameter]['Levels'][level]
+                    levelHED = event_metadata[parameter]['HED'][level] \
+                        if level in event_metadata[parameter]['HED'] \
                         else None
 
                     self.physiological_event_parameter_category_level_obj.insert(
