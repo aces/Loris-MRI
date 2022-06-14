@@ -33,8 +33,8 @@ class PhysiologicalEventFile:
         :param event_file       : path of the event file
          :type event_file       : str
 
-        :return                      : id of the row inserted
-         :rtype                      : int
+        :return                  : id of the row inserted
+         :rtype                  : int
         """
 
         return self.db.insert(

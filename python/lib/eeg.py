@@ -722,7 +722,7 @@ class Eeg:
                     inheritance = True
 
                     if not event_metadata_file:
-                        print('No events.json found')
+                        print(f"WARNING: no events metadata files (event.json) associated with physiological file ID {physiological_file_id}")
                     else:
                         # copy the event file to the LORIS BIDS import directory
                         event_metadata_path = self.copy_file_to_loris_bids_dir(

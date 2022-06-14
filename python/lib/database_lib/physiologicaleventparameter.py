@@ -45,8 +45,8 @@ class PhysiologicalEventParameter:
         :param hed               : Event parameter's HED tag if not categorical
          :type hed               : string
 
-        :return                      : id of the row inserted
-         :rtype                      : int
+        :return                  : id of the row inserted
+         :rtype                  : int
         """
 
         return self.db.insert(
