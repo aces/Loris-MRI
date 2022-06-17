@@ -293,15 +293,15 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =pod
 
-=head3 grep_FileIDs_to_deface($session_id_arr, @modalities_to_deface_arr)
+=head3 grep_FileIDs_to_deface($session_id_ref, @modalities_to_deface)
 
 Queries the database for the list of acquisitions' FileID to be used to run the
 defacing algorithm based on the provided list of SessionID and Scan_type to
 restrict the search.
 
 INPUTS:
-  - $session_id_arr          : array of SessionIDs to use when grepping FileIDs
-  - @modalities_to_deface_arr: array of Scan_type to use when grepping FileIDs
+  - $session_id_ref      : array of SessionIDs to use when grepping FileIDs
+  - @modalities_to_deface: array of Scan_type to use when grepping FileIDs
 
 RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
          organized in a hash as follows:
