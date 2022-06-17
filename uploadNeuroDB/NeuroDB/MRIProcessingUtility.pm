@@ -1389,7 +1389,7 @@ sub registerScanIntoDB {
 
 =pod
 
-=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, @exclude, $mail_user, $upload_id)
+=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, $mail_user, $upload_id, @exclude)
 
 Converts a DICOM study into MINC files.
 
@@ -1397,15 +1397,15 @@ INPUTS:
   - $study_dir      : DICOM study directory to convert
   - $converter      : converter to be used
   - $get_dicom_info : get DICOM information setting from the C<Config> table
-  - @exclude        : which files to exclude from the C<dcm2mnc> command
   - $mail_user      : mail of the user
   - $upload_id      : upload ID of the study
+  - @exclude        : which files to exclude from the C<dcm2mnc> command
 
 =cut
 
 sub dicom_to_minc {
     my $this = shift;
-    my ($study_dir, $converter, $get_dicom_info, @exclude,$mail_user, $upload_id) = @_;
+    my ($study_dir, $converter, $get_dicom_info, $mail_user, $upload_id, @exclude) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 

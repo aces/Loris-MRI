@@ -404,7 +404,7 @@ my ($ExtractSuffix,$study_dir,$header) =
 ##################### convert the dicom data to minc ###########
 ################################################################
 $utility->dicom_to_minc(
-    $study_dir, $converter, $get_dicom_info, @exclude, $mail_user, $upload_id
+    $study_dir, $converter, $get_dicom_info, $mail_user, $upload_id, @exclude
 );
 
 
