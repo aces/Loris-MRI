@@ -710,7 +710,7 @@ class Eeg:
             strict = False,
             extension = 'tsv',
             suffix = 'annotations',
-            all_ = False,
+            all_ = True,
             full_search = False,
             subject=self.psc_id,
         )
