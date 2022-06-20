@@ -722,7 +722,7 @@ class Eeg:
                     inheritance = True
 
                     if not event_metadata_file:
-                        message = '\nWARNING: no events metadata files (event.json) associated' +
+                        message = '\nWARNING: no events metadata files (event.json) associated' \
                                   'with physiological file ID ' + physiological_file_id
                         print(message)
                     else:
