@@ -82,7 +82,7 @@ class PhysiologicalEventFile:
         event_file_id = self.db.pselect(
             query = "SELECT EventFileID "
                     "FROM physiological_event_file "
-                    "WHERE FilePath = %s
+                    "WHERE FilePath = %s "
                     AND PhysiologicalFileID = %s",
             args = (event_file_path, physio_file_id,)
         )
