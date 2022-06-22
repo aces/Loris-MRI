@@ -83,7 +83,7 @@ class PhysiologicalEventFile:
             query = "SELECT EventFileID "
                     "FROM physiological_event_file "
                     "WHERE FilePath = %s "
-                    AND PhysiologicalFileID = %s",
+                    "AND PhysiologicalFileID = %s",
             args = (event_file_path, physio_file_id,)
         )
 
