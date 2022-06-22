@@ -66,12 +66,15 @@ class PhysiologicalEventFile:
 
         return event_paths
 
-    def grep_event_file_id_from_event_path(self, event_file_path):
+    def grep_event_file_id_from_event_path(self, event_file_path, physio_file_id):
         """
         Gets the EventFileID given a FilePath
 
         :param event_file_path : FilePath of physiological event file
          :type event_file_path       : str
+
+        :param physio_file_id : Physiological file's ID
+         :type physio_file_id       : int
 
         :return                      : id of the file specified
          :rtype                      : int
@@ -79,8 +82,9 @@ class PhysiologicalEventFile:
         event_file_id = self.db.pselect(
             query = "SELECT EventFileID "
                     "FROM physiological_event_file "
-                    "WHERE FilePath = %s",
-            args = (event_file_path,)
+                    "WHERE FilePath = %s
+                    AND PhysiologicalFileID = %s",
+            args = (event_file_path, physio_file_id,)
         )
 
         return event_file_id[0]['EventFileID']

@@ -662,7 +662,7 @@ class Physiological:
             physiological_file_id, 'event_file_blake2b_hash', blake2
         )
 
-    def insert_event_assembled_hed_tags(self, data_dir, event_tsv, event_json):
+    def insert_event_assembled_hed_tags(self, data_dir, event_tsv, event_json, physio_file_id):
         """
         Assembles physiological event HED annotations.
 
@@ -671,12 +671,15 @@ class Physiological:
         
         :param event_json           : path to the event metadata file
          :type event_json           : str
+
+        :param physio_file_id : Physiological file's ID
+         :type physio_file_id       : int
         """
         hedDict = utilities.assemble_hed_service(data_dir, event_tsv, event_json)
 
         # get EventFileID from FilePath
         physiological_event_file_obj = PhysiologicalEventFile(self.db, self.verbose)
-        event_file_id = physiological_event_file_obj.grep_event_file_id_from_event_path(event_tsv)
+        event_file_id = physiological_event_file_obj.grep_event_file_id_from_event_path(event_tsv, physio_file_id)
 
         # get all task events for specified EventFileID
         query = "SELECT PhysiologicalTaskEventID as TaskEventID, Onset " \
