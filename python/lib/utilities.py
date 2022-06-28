@@ -11,6 +11,9 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import requests
+import re
+import io
 
 import lib.exitcode
 
@@ -250,3 +253,50 @@ def remove_empty_folders(path_abs):
     for path, _, _ in walk[::-1]:
         if len(os.listdir(path)) == 0:
             os.rmdir(path)
+
+
+def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
+    # Using HED Tool Rest Services to assemble the HED Tags
+    # https://hed-examples.readthedocs.io/en/latest/HedToolsOnline.html#hed-restful-services
+
+    # Request CSRF Token & session cookie
+    requestTokenURL = 'https://hedtools.ucsd.edu/hed/services'
+    tokenResponse = requests.get(requestTokenURL)
+
+    cookie = tokenResponse.headers['Set-Cookie']
+    token = re.search('csrf_token" value="(.+?)"', tokenResponse.text).group(1)
+
+    # Define headers for assemble POST request, containing token and cookie
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-CSRFToken": token,
+        "Cookie": cookie
+    }
+
+    # Read event files as str
+    eventJsonText = open(data_dir + event_json_path, 'r').read()
+    eventTsvText = open(data_dir + event_tsv_path, 'r').read()
+
+    # Define request parameters
+    params = {
+        'service': 'events_assemble',
+        'schema_version': '8.0.0',
+        'json_string': eventJsonText,
+        'events_string': eventTsvText,
+        'check_for_warnings': 'off',
+        'expand_defs': 'on',
+        'columns_included': ['onset']
+    }
+
+    # Make the request to assemble
+    requestAssembleURL = 'https://hedtools.ucsd.edu/hed/services_submit'
+    assembleResponse = requests.post(
+        requestAssembleURL, headers=headers, json=params
+    )
+
+    # get assembled results as dictionary
+    data = assembleResponse.json()['results']['data']
+    results = list(csv.DictReader(io.StringIO(data), delimiter='\t'))
+
+    return results

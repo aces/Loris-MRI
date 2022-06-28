@@ -5,10 +5,15 @@ import re
 import os
 import subprocess
 import lib.exitcode
+import lib.utilities as utilities
 from lib.database_lib.physiologicalannotationfile import PhysiologicalAnnotationFile
 from lib.database_lib.physiologicalannotationparameter import PhysiologicalAnnotationParameter
 from lib.database_lib.physiologicalannotationlabel import PhysiologicalAnnotationLabel
 from lib.database_lib.physiologicalannotationinstance import PhysiologicalAnnotationInstance
+from lib.database_lib.physiologicaleventfile import PhysiologicalEventFile
+from lib.database_lib.physiologicaleventparameter import PhysiologicalEventParameter
+from lib.database_lib.physiologicaleventparametercategorylevel import PhysiologicalEventParameterCategoryLevel
+
 
 
 __license__ = "GPLv3"
@@ -61,6 +66,11 @@ class Physiological:
         self.physiological_annotation_parameter_obj = PhysiologicalAnnotationParameter(self.db, self.verbose)
         self.physiological_annotation_label_obj     = PhysiologicalAnnotationLabel(self.db, self.verbose)
         self.physiological_annotation_instance_obj  = PhysiologicalAnnotationInstance(self.db, self.verbose)
+
+        self.physiological_event_file_obj                     = PhysiologicalEventFile(self.db, self.verbose)
+        self.physiological_event_parameter_obj                = PhysiologicalEventParameter(self.db, self.verbose)
+        self.physiological_event_parameter_category_level_obj = \
+            PhysiologicalEventParameterCategoryLevel(self.db, self.verbose)
 
     def determine_file_type(self, file):
         """
@@ -301,27 +311,25 @@ class Physiological:
 
         return results
 
-    def grep_event_from_physiological_file_id(self, physiological_file_id):
+    def grep_event_paths_from_physiological_file_id(self, physiological_file_id):
         """
-        Greps all entries present in the physiological_task_event table for a
-        given PhysiologicalFileID and returns its result.
+        Gets the FilePath of event files given a physiological_file_id
 
-        :param physiological_file_id: physiological file's ID
-         :type physiological_file_id: int
+        :param physiological_file_id : Physiological file's ID
+         :type physiological_file_id : int
 
-        :return: tuple of dictionaries with one entry in the tuple
-                 corresponding to one entry in physiological_task_event
-         :rtype: tuple
+        :return                      : list of FilePath if any or None
+         :rtype                      : list
         """
 
-        results = self.db.pselect(
-            query="SELECT * "
-                  " FROM physiological_task_event "
-                  " WHERE PhysiologicalFileID = %s",
+        event_paths = self.db.pselect(
+            query = "SELECT DISTINCT FilePath "
+                    "FROM physiological_event_file "
+                    "WHERE PhysiologicalFileID = %s",
             args=(physiological_file_id,)
         )
 
-        return results
+        event_paths = [event_path['FilePath'] for event_path in event_paths]
 
     def insert_electrode_file(self, electrode_data, electrode_file,
                               physiological_file_id, blake2):
@@ -499,6 +507,77 @@ class Physiological:
             physiological_file_id, 'channel_file_blake2b_hash', blake2
         )
 
+    def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id, blake2):
+        """
+        Inserts the events metadata information read from the file *events.json
+        into the physiological_event_file, physiological_event_parameter
+        and physiological_event_parameter_category_level tables, linking it to the 
+        physiological file ID already inserted in physiological_file.
+
+        :param event_metadata      : list with dictionaries of events
+                                          metadata to insert into the database
+         :type event_metadata      : list
+        :param event_metadata_file : name of the event metadata file
+         :type event_file          : str
+        :param physiological_file_id    : PhysiologicalFileID to link the event info to
+         :type physiological_file_id    : int
+        :param blake2                   : blake2b hash of the event file
+         :type blake2                   : str
+
+        :return: event file id
+         :rtype: int
+        """
+
+        event_file_id = self.physiological_event_file_obj.insert(
+            physiological_file_id,
+            'json',
+            event_metadata_file
+        )
+
+        for parameter in event_metadata:
+            parameterName = parameter
+            description = event_metadata[parameter]['Description'] \
+                if 'Description' in event_metadata[parameter] \
+                else None
+            longName = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
+            units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
+            if 'Levels' in event_metadata[parameter]:
+                isCategorical = 'Y'
+                valueHED = None
+            else:
+                isCategorical = 'N'
+                valueHED = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
+
+            event_parameter_id = self.physiological_event_parameter_obj.insert(
+                str(event_file_id),
+                parameterName,
+                description,
+                longName,
+                units,
+                isCategorical,
+                valueHED
+            )
+
+            if isCategorical == 'Y':
+                for level in event_metadata[parameter]['Levels']:
+                    levelName = level
+                    levelDescription = event_metadata[parameter]['Levels'][level]
+                    levelHED = event_metadata[parameter]['HED'][level] \
+                        if level in event_metadata[parameter]['HED'] \
+                        else None
+
+                    self.physiological_event_parameter_category_level_obj.insert(
+                        str(event_parameter_id),
+                        levelName,
+                        levelDescription,
+                        levelHED
+                    )
+
+        # insert blake2b hash of task event file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'event_file_json_blake2b_hash', blake2
+        )
+
     def insert_event_file(self, event_data, event_file, physiological_file_id,
                           blake2):
         """
@@ -518,10 +597,16 @@ class Physiological:
          :type blake2               : str
         """
 
+        event_file_id = self.physiological_event_file_obj.insert(
+            physiological_file_id,
+            'tsv',
+            event_file
+        )
+
         event_fields = (
-            'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
-            'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
-            'EventType',           'FilePath'
+            'PhysiologicalFileID', 'EventFileID', 'Onset', 'Duration',   
+            'TrialType', 'ResponseTime', 'EventCode', 'EventValue', 
+            'EventSample', 'EventType'
         )
 
         event_values = []
@@ -554,6 +639,7 @@ class Physiological:
 
             values_tuple = (
                 str(physiological_file_id),
+                str(event_file_id),
                 row['onset'],
                 row['duration'],
                 row['trial_type'],
@@ -561,8 +647,7 @@ class Physiological:
                 row['event_code'],
                 event_value,
                 sample,
-                row['event_type'],
-                event_file
+                row['event_type']
             )
             event_values.append(values_tuple)
 
@@ -576,6 +661,43 @@ class Physiological:
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_blake2b_hash', blake2
         )
+
+    def insert_event_assembled_hed_tags(self, data_dir, event_tsv, event_json, physio_file_id):
+        """
+        Assembles physiological event HED annotations.
+
+        :param event_tsv           : path to event data file
+         :type event_tsv           : str
+        
+        :param event_json           : path to the event metadata file
+         :type event_json           : str
+
+        :param physio_file_id : Physiological file's ID
+         :type physio_file_id       : int
+        """
+        hedDict = utilities.assemble_hed_service(data_dir, event_tsv, event_json)
+
+        # get EventFileID from FilePath
+        physiological_event_file_obj = PhysiologicalEventFile(self.db, self.verbose)
+        event_file_id = physiological_event_file_obj.grep_event_file_id_from_event_path(event_tsv, physio_file_id)
+
+        # get all task events for specified EventFileID
+        query = "SELECT PhysiologicalTaskEventID as TaskEventID, Onset " \
+                "FROM physiological_task_event " \
+                "WHERE EventFileID = %s"
+        task_event_data = self.db.pselect(query=query, args=(event_file_id,))
+
+        for index in range(len(task_event_data)):
+            eventID = task_event_data[index]['TaskEventID']
+            onset = task_event_data[index]['Onset']
+            if hedDict[index] and 'onset' in hedDict[index]:
+                hedOnset = '{0:.6f}'.format(float(hedDict[index]['onset']))
+                if (float(hedOnset) == float(onset)):
+                    assembledHED = hedDict[index]['HED_assembled']
+                    updateAssembledHED = "UPDATE physiological_task_event " \
+                        "SET AssembledHED = %s " \
+                        "WHERE PhysiologicalTaskEventID = %s"
+                    self.db.update(query=updateAssembledHED, args=(assembledHED, eventID,))
 
     def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id, blake2):
         """
