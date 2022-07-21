@@ -541,9 +541,10 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         scan_param = self.json_file_dict
-        acquisition_date = datetime.datetime.strptime(
-            scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
-        ).strftime("%Y-%m-%d")
+        if "AcquisitionDateTime" in scan_param.keys():
+            acquisition_date = datetime.datetime.strptime(
+                scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
+            ).strftime("%Y-%m-%d")
         file_type = self.imaging_obj.determine_file_type(nifti_rel_path)
         if not file_type:
             message = f'Could not determine file type for {nifti_rel_path}. No entry found in ImagingFileTypes table'
