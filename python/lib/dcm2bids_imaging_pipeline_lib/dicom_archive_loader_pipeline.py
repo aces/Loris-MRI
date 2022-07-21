@@ -227,6 +227,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # get the series description from the JSON file
         with open(json_file_path) as json_file:
             json_data_dict = json.load(json_file)
+
+        if "SeriesDescription" not in json_data_dict.keys():
+            return False
+
         series_desc = json_data_dict["SeriesDescription"]
 
         if type(self.excluded_series_desc_regex_list) is str:
