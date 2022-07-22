@@ -37,7 +37,7 @@ class MriScanner:
         self.db = db
         self.verbose = verbose
 
-    def determine_scanner_information(self, manufacturer, software_version, serial_number, scanner_model, center_id):
+    def determine_scanner_information(self, manufacturer, software_version, serial_number, scanner_model, center_id, project_id):
         """
         Select a ScannerID based on the scanner information gathered from the headers of the
         DICOM archive. If a ScannerID is not found for the scanner but register_new_scanner
@@ -53,6 +53,8 @@ class MriScanner:
          :type scanner_model: str
         :param center_id: Center ID of the scanner
          :type center_id: int
+        :param project_id: ID of the scanner's project
+         :type project_id: int
 
         :return: scanner ID
          :rtype: int
@@ -72,10 +74,12 @@ class MriScanner:
             return results[0]['ScannerID']
 
         # if could not find a scanner ID, register a new scanner in mri_scanner
-        scanner_id = self.register_new_scanner(manufacturer, software_version, serial_number, scanner_model, center_id)
+        scanner_id = self.register_new_scanner(
+            manufacturer, software_version, serial_number, scanner_model, center_id, project_id
+        )
         return scanner_id
 
-    def register_new_scanner(self, manufacturer, software_version, serial_number, scanner_model, center_id):
+    def register_new_scanner(self, manufacturer, software_version, serial_number, scanner_model, center_id, project_id):
         """
         Inserts a new entry in the mri_scanner table after having created a new candidate to
         associate to that scanner.
@@ -90,6 +94,8 @@ class MriScanner:
          :type scanner_model: str
         :param center_id: Center ID of the scanner
          :type center_id: int
+        :param project_id: ID of the scanner's project
+         :type project_id: int
 
         :return scanner_id: ScannerID of the new entry in the mri_scanner table
          :rtype scanner_id: int
@@ -99,12 +105,12 @@ class MriScanner:
         candidate = Candidate(self.verbose)
         new_cand_id = candidate.generate_cand_id(self.db)
         column_names = (
-            'CandID', 'PSCID',       'RegistrationCenterID', 'Date_active',
-            'UserID', 'Entity_type', 'Date_registered',
+            'CandID', 'PSCID',       'RegistrationCenterID',  'Date_active',
+            'UserID', 'Entity_type', 'RegistrationProjectID', 'Date_registered',
         )
         values = (
-            new_cand_id,  'scanner', center_id,              datetime.datetime.now(),
-            'imaging.py', 'Scanner', datetime.datetime.now()
+            new_cand_id,  'scanner', center_id,  datetime.datetime.now(),
+            'imaging.py', 'Scanner', project_id, datetime.datetime.now()
         )
         self.db.insert(table_name='candidate', column_names=column_names, values=values)
 
