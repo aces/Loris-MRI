@@ -37,7 +37,8 @@ class MriScanner:
         self.db = db
         self.verbose = verbose
 
-    def determine_scanner_information(self, manufacturer, software_version, serial_number, scanner_model, center_id, project_id):
+    def determine_scanner_information(self, manufacturer, software_version, serial_number, scanner_model,
+                                      center_id, project_id):
         """
         Select a ScannerID based on the scanner information gathered from the headers of the
         DICOM archive. If a ScannerID is not found for the scanner but register_new_scanner
