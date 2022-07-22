@@ -208,7 +208,8 @@ class BasePipeline:
             self.dicom_archive_obj.tarchive_info_dict['ScannerSoftwareVersion'],
             self.dicom_archive_obj.tarchive_info_dict['ScannerSerialNumber'],
             self.dicom_archive_obj.tarchive_info_dict['ScannerModel'],
-            self.site_dict['CenterID']
+            self.site_dict['CenterID'],
+            self.session_obj.session_info_dict['ProjectID']
         )
         message = f"Found Scanner ID: {str(scanner_id)}"
         self.log_info(message, is_error="N", is_verbose="Y")

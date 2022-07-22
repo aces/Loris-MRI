@@ -271,7 +271,8 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.json_file_dict['SoftwareVersions'],
                 self.json_file_dict['DeviceSerialNumber'],
                 self.json_file_dict['ManufacturersModelName'],
-                self.site_dict['CenterID']
+                self.site_dict['CenterID'],
+                self.session_obj.session_info_dict['ProjectID']
             )
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
