@@ -751,7 +751,7 @@ class Imaging:
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
 
-    def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id):
+    def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id, project_id):
         """
         Get the scanner ID based on the scanner information provided as input.
 
@@ -765,13 +765,16 @@ class Imaging:
          :type model_name: str
         :param center_id: ID of the scanner's center
          :type center_id: int
+        :param project_id: ID of the scanner's project
+         :type project_id: int
         """
         return self.mri_scanner_db_obj.determine_scanner_information(
             manufacturer,
             software_version,
             serial_nb,
             model_name,
-            center_id
+            center_id,
+            project_id
         )
 
     @staticmethod

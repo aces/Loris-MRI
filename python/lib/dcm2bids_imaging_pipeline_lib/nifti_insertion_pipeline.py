@@ -271,7 +271,8 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.json_file_dict['SoftwareVersions'],
                 self.json_file_dict['DeviceSerialNumber'],
                 self.json_file_dict['ManufacturersModelName'],
-                self.site_dict['CenterID']
+                self.site_dict['CenterID'],
+                self.session_obj.session_info_dict['ProjectID']
             )
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
@@ -541,9 +542,10 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         scan_param = self.json_file_dict
-        acquisition_date = datetime.datetime.strptime(
-            scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
-        ).strftime("%Y-%m-%d")
+        if "AcquisitionDateTime" in scan_param.keys():
+            acquisition_date = datetime.datetime.strptime(
+                scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
+            ).strftime("%Y-%m-%d")
         file_type = self.imaging_obj.determine_file_type(nifti_rel_path)
         if not file_type:
             message = f'Could not determine file type for {nifti_rel_path}. No entry found in ImagingFileTypes table'
