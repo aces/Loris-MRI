@@ -57,8 +57,13 @@ Available options are:
                          upload(s) whose arguments were passed to `-uploadID`, respectively.
 
 \-nosqlbk               : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
-                         the database to the state it had before the script was invoked. Adding this file, wich will be named
+                         the database to the state it had before the script was invoked. Adding this file, which will be named
                          `imaging_upload_restore.sql`, to the backup file is the default behaviour.
+
+\-dumpOptions           : options to add to the mysqldump command. By default, the following options are used
+                         `--no-create-info --compact --single-transaction --skip-extended-insert --no-tablespaces`.
+                         Example of additional option: `--column-statistics=0` to disable column statistics flag in
+                         mysqldump 8.
 
 # DESCRIPTION
 
@@ -486,7 +491,7 @@ INPUTS:
                 that are associated to the upload(s) passed on the command line.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
 
-### deleteMriParameterForm($dbh, $mriUploadsRef, $tmpSQLFile)
+### deleteMriParameterForm($dbh, $mriUploadsRef, $tmpSQLFile, $dump\_opt)
 
 Delete the entries in `mri_parameter_form` (and associated `flag` entry) for the upload(s) passed on the
 command line. The script also adds an SQL statement in the SQL file whose path is passed as argument to 
@@ -499,6 +504,7 @@ INPUTS:
                  in the array. The properties stored for each hash are: `UploadID`, `TarchiveID`, `FullPath`
                  `Inserting`, `InsertionComplete` and `SessionID`.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
+   - $dump\_opt: additional options to use for mysqldump
 
 RETURNS:
    - The numbers of records deleted as a result of this operation.
@@ -543,7 +549,7 @@ INPUTS:
 RETURNS:
   - A reference on an array containing the `TarchiveSeriesID` to delete.
 
-### deleteTableData($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile)
+### deleteTableData($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $dump\_opt)
 
 Deletes records from a database table and adds in a file the SQL statements that allow rewriting the
 records back in the table. 
@@ -554,11 +560,12 @@ INPUTS:
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field `$key` has for the records to delete.
   - $tmpSQLBackupFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
+  - $dump\_opt: additional options to use for mysqldump
 
 RETURNS:
   - The number of records deleted.
 
-### updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef)
+### updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef, $dump\_opt)
 
 Updates the SQL file with the statements to restore the records whose properties are passed as argument.
 The block of statements is written at the beginning of the file.
@@ -568,6 +575,7 @@ INPUTS:
   - $table: name of the database table.
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field `$key` has for the records to delete.
+  - $dump\_opt: additional options to use for mysqldump
 
 ### getInvalidDefacedFiles($dbh, $filesRef, $scanTypesToDeleteRef)
 

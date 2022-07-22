@@ -90,6 +90,12 @@ successfully.
 
 RETURNS: 1 on success, 0 on failure
 
+### runPythonArchiveLoader()
+
+This methods will call `run_dicom_archive_loader.py`
+
+RETURNS: 1 on success, 0 on failure
+
 ### DicomPatientNameMatch($dicom\_file, $expected\_pname\_regex)
 
 This method extracts the patient name field from the DICOM file header using
