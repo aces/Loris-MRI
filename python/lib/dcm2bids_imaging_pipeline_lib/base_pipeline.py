@@ -441,9 +441,6 @@ class BasePipeline:
                       f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
             self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
 
-        print("validated!!!")
-        sys.exit()
-
     def create_dir(self, directory_path):
         """
         Create a directory on the file system.
