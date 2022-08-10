@@ -328,7 +328,7 @@ sub identify_scan_db {
     my $series_description = ${fileref}->getParameter('series_description');
     my $image_type         = ${fileref}->getParameter('acquisition:image_type');
     my $phase_enc_dir      = ${fileref}->getParameter('phase_encoding_direction');
-    my $scan_options       = ${fileref}->getParameter('scan_options');
+    my $echo_numbers       = ${fileref}->getParameter('echo_numbers');
     my $mriProtocolGroupID;
 
     # get parameters specific to MRIs
@@ -506,7 +506,7 @@ sub identify_scan_db {
                       && &in_range($time,            "$time_min-$time_max"              )
                       && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
                       && (!$rowref->{'PhaseEncodingDirection'} || $phase_enc_dir eq $rowref->{'PhaseEncodingDirection'})
-                      && (!$rowref->{'ScanOptions'} || $scan_options =~ /\Q$rowref->{'ScanOptions'}\E/i)
+                      && (!$rowref->{'EchoNumber'} || $echo_numbers =~ /\Q$rowref->{'EchoNumber'}\E/i)
                       && (!$rowref->{'image_type'} || $image_type =~ /\Q$rowref->{'image_type'}\E/i)
                     ) {
                         return $scan_type;
@@ -525,7 +525,7 @@ sub identify_scan_db {
         $ti,           $slice_thickness,    $xstep,           $ystep,
         $zstep,        $xspace,             $yspace,          $zspace,
         $time,         $seriesUID,          $tarchiveID,      $image_type,
-        $scan_options, $phase_enc_dir,      $data_dir,        $mriProtocolGroupID
+        $echo_numbers,  $phase_enc_dir,      $data_dir,        $mriProtocolGroupID
     );
 
     return 'unknown';
@@ -533,7 +533,7 @@ sub identify_scan_db {
 
 =pod
 
-=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $scan_options, $phase_enc_dir, $data_dir, $mriProtocolGroupID)
+=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $echo_numbers, $phase_enc_dir, $data_dir, $mriProtocolGroupID)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
@@ -562,7 +562,7 @@ INPUTS:
   - $tarchiveID     : C<TarchiveID> of the DICOM archive from which this file is derived
   - $image_type     : the C<image_type> header value of the image
   - $data_dir       : path to the LORIS MRI data directory
-  - $scan_options   : C<scan_options> of the image (a.k.a. C<dicom_0x0018:el_0x0022> header)
+  - $echo_numbers   : C<echo_numbers> of the image (a.k.a. C<dicom_0x0018:el_0x0086> header)
   - $phase_enc_dir  : C<phase_encoding_direction> of the image
   - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
@@ -575,7 +575,7 @@ sub insert_violated_scans {
         $ti,           $slice_thickness,    $xstep,         $ystep,
         $zstep,        $xspace,             $yspace,        $zspace,
         $time,         $seriesUID,          $tarchiveID,    $image_type,
-        $scan_options, $phase_enc_dir,  $data_dir,      $mriProtocolGroupID) = @_;
+        $echo_number, $phase_enc_dir,  $data_dir,      $mriProtocolGroupID) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
@@ -588,7 +588,7 @@ sub insert_violated_scans {
     TE_range,               TI_range,      slice_thickness_range, xspace_range,
     yspace_range,           zspace_range,  xstep_range,           ystep_range,
     zstep_range,            time_range,    SeriesUID,             image_type,
-    PhaseEncodingDirection, ScanOptions,   MriProtocolGroupID
+    PhaseEncodingDirection, EchoNumber,   MriProtocolGroupID
   ) VALUES (
     ?, ?, ?, now(),
     ?, ?, ?, ?,
@@ -606,7 +606,7 @@ QUERY
         $ti,            $slice_thickness,    $xspace,     $yspace,
         $zspace,        $xstep,              $ystep,      $zstep,
         $time,          $seriesUID,          $image_type, $phase_enc_dir,
-        $scan_options,  $mriProtocolGroupID
+        $echo_number,   $mriProtocolGroupID
     );
 
 }
@@ -921,8 +921,7 @@ sub mapDicomParameters {
         pixel_padding_value             => 'dicom_0x0028:el_0x0120',
         window_center                   => 'dicom_0x0028:el_0x1050',
         window_width                    => 'dicom_0x0028:el_0x1051',
-        window_center_width_explanation => 'dicom_0x0028:el_0x1055',
-        scan_options                    => 'dicom_0x0018:el_0x0022'
+        window_center_width_explanation => 'dicom_0x0028:el_0x1055'
      );
 
     # map parameters, removing the old params if they start with 'dicom'
