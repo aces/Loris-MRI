@@ -199,6 +199,8 @@ class Imaging:
          :type mri_protocol_group_id: int
         """
 
+        phase_encoding_dir = scan_param["PhaseEncodingDirection"] if "PhaseEncodingDirection" in scan_param else None
+
         info_to_insert_dict = {
             "CandID": cand_id,
             "PSCID": psc_id,
@@ -220,6 +222,8 @@ class Imaging:
             "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
             "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
             "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
+            "PhaseEncodingDirection": phase_encoding_dir,
+            "ScanOptions": scan_param["ScanOptions"] if "ScanOptions" in scan_param else None,
             "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
@@ -636,6 +640,8 @@ class Imaging:
         scan_ti = scan_param['InversionTime'] * 1000 if 'InversionTime' in scan_param else None
         scan_slice_thick = scan_param['SliceThickness']
         scan_img_type = str(scan_param['ImageType'])
+        scan_ped = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param else None
+        scan_so = scan_param['ScanOptions'] if 'ScanOptions' in scan_param else None
 
         if (self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
                 and self.in_range(scan_tr,              db_prot['TR_min'],     db_prot['TR_max']) \
@@ -648,6 +654,8 @@ class Imaging:
                 and self.in_range(scan_param['yspace'], db_prot['yspace_min'], db_prot['yspace_max']) \
                 and self.in_range(scan_param['zspace'], db_prot['zspace_min'], db_prot['zspace_max']) \
                 and self.in_range(scan_slice_thick,     db_prot['slice_thickness_min'], db_prot['slice_thickness_max'])\
+                and (not db_prot['PhaseEncodingDirection'] or scan_ped == db_prot['PhaseEncodingDirection'])\
+                and (not db_prot['ScanOptions'] or scan_so == db_prot['ScanOptions'])\
                 and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
 
