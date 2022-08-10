@@ -223,7 +223,7 @@ class Imaging:
             "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
             "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
             "PhaseEncodingDirection": phase_encoding_dir,
-            "ScanOptions": scan_param["ScanOptions"] if "ScanOptions" in scan_param else None,
+            "ScanOptions": repr(scan_param["ScanOptions"]) if "ScanOptions" in scan_param else None,
             "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
