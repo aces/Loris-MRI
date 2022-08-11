@@ -220,7 +220,7 @@ class Imaging:
             "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
             "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
             "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
-            "SeriesUID": scan_param["SeriesUID"] if "SeriesInstanceUID" in scan_param.keys() else None,
+            "SeriesUID": scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None,
             "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
             "PhaseEncodingDirection": phase_encoding_dir,
             "EchoNumber": repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param else None,
