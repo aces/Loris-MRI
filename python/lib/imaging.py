@@ -618,6 +618,9 @@ class Imaging:
                 if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
                     matching_protocols_list.append(protocol['Scan_type'])
             elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
+                print(scan_param)
+                print(protocol)
+                print('\n')
                 matching_protocols_list.append(protocol['Scan_type'])
 
         return matching_protocols_list
