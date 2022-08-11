@@ -3,6 +3,7 @@
 import os
 import json
 import getpass
+import re
 import sys
 from pyblake2 import blake2b
 
@@ -284,15 +285,15 @@ class Mri:
         other_assoc_files = {}
         for assoc_file in associated_files:
             file_info = assoc_file.get_entities()
-            if file_info['extension'] == 'json':
+            if re.search(r'json$', file_info['extension']):
                 json_file = assoc_file.path
-            elif file_info['extension'] == 'bvec':
+            elif re.search(r'bvec$', file_info['extension']):
                 other_assoc_files['bvec_file'] = assoc_file.path
-            elif file_info['extension'] == 'bval':
+            elif re.search(r'bval$', file_info['extension']):
                 other_assoc_files['bval_file'] = assoc_file.path
-            elif file_info['extension'] == 'tsv' and file_info['suffix'] == 'events':
+            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'events':
                 other_assoc_files['task_file'] = assoc_file.path
-            elif file_info['extension'] == 'tsv' and file_info['suffix'] == 'physio':
+            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'physio':
                 other_assoc_files['physio_file'] = assoc_file.path
 
         # read the json file if it exists
