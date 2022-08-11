@@ -284,7 +284,11 @@ class NiftiInsertionPipeline(BasePipeline):
             self.scanner_id
         )
 
+        print(protocols_list)
+
         protocol_info = self.imaging_obj.get_acquisition_protocol_info(protocols_list, nifti_name, scan_param)
+
+        print(protocol_info)
         self.log_info(protocol_info['error_message'], is_error="N", is_verbose="Y")
 
         return protocol_info['scan_type_id'], protocol_info['mri_protocol_group_id']
