@@ -1363,6 +1363,8 @@ sub registerScanIntoDB {
             $acquisition_date
         );
 
+
+
         ########################################################
         ### record which tarchive was used to make this file ###
         ########################################################
@@ -2243,10 +2245,10 @@ sub spool  {
 =head3 is_file_unique($file, $upload_id)
 
 Queries the C<files> and C<parameter_file> tables to make sure that no imaging
-datasets with the same C<SeriesUID> and C<EchoTime> or the same C<MD5sum> hash
-can be found in the database already. If there is a match, it will return a
-message with the information about why the file is not unique. If there is no
-match, then it will return undef.
+datasets with the same C<SeriesUID>, C<EchoTime>, C<EchoNumber> and
+C<PhaseEncodingDirection> or the same C<MD5sum> hash can be found in the database
+already. If there is a match, it will return a message with the information about
+why the file is not unique. If there is no match, then it will return undef.
 
 INPUTS:
   - $file     : the file object from the C<NeuroDB::File> package
@@ -2261,19 +2263,24 @@ sub is_file_unique {
     my $this = shift;
     my ($file, $upload_id) = @_;
 
-    my $seriesUID = $file->getParameter( 'series_instance_uid' );
-    my $echo_time = $file->getParameter( 'echo_time'           );
+    my $seriesUID     = $file->getParameter('series_instance_uid');
+    my $echo_time     = $file->getParameter('echo_time');
+    my $phase_enc_dir = $file->getParameter('phase_encoding_direction');
+    my $echo_number   = $file->getParameter('echo_numbers');
 
     # check that no files are already in the files table with the same SeriesUID
     # and EchoTime
-    my $query     = "SELECT File FROM files WHERE SeriesUID=? AND EchoTime=?";
+    my $query     = "SELECT File FROM files WHERE "
+                    . " SeriesUID = ?  AND EchoTime = ? AND "
+                    . " EchoNumber = ? AND PhaseEncodingDirection=?";
     my $sth       = ${$this->{'dbhr'}}->prepare( $query );
-    $sth->execute( $seriesUID, $echo_time );
+    $sth->execute( $seriesUID, $echo_time, $echo_number, $phase_enc_dir );
     my $results = $sth->fetchrow_array;
     my $message;
     if (defined $results) {
         $message = "\n--> ERROR: there is already a file registered in the files "
-                   . "table with SeriesUID='$seriesUID' and EchoTime='$echo_time'.\n"
+                   . "table with SeriesUID='$seriesUID', EchoTime='$echo_time', "
+                   . "EchoNumber='$echo_number' and PhaseEncodingDirection='$phase_enc_dir.\n"
                    . "\tThe already registered file is '$results'\n";
         return $message;
     }
