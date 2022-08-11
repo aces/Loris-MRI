@@ -205,15 +205,16 @@ class NiftiInsertionPipeline(BasePipeline):
             # SeriesInstanceUID and EchoTime have been set in the JSON side car file
             echo_time = self.json_file_dict["EchoTime"]
             series_uid = self.json_file_dict["SeriesInstanceUID"]
-            echo_number = self.json_file_dict["EchoNumber"] if "EchoNumber" in json_keys else None
+            echo_nb = self.json_file_dict["EchoNumber"] if "EchoNumber" in json_keys else None
             phase_enc_dir = self.json_file_dict["PhaseEncodingDirection"] \
                 if "PhaseEncodingDirection" in json_keys else None
             match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(
-                series_uid, echo_time, phase_enc_dir, echo_number
+                series_uid, echo_time, phase_enc_dir, echo_nb
             )
             if match:
-                error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid} and" \
-                            f" EchoTime {echo_time}. The already registered file is {match['File']}"
+                error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid}," \
+                            f" EchoTime {echo_time}, EchoNumber {echo_nb} and PhaseEncodingDirection {phase_enc_dir}." \
+                            f" The already registered file is {match['File']}"
 
             # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
             if self.force:
