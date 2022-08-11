@@ -180,7 +180,7 @@ class Imaging:
 
         pf_entry = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
         if pf_entry:
-            self.param_file_db_obj.update_parameter_file(value, pf_entry[0]['ParameterFileID'])
+            self.param_file_db_obj.update_parameter_file(value, pf_entry['ParameterFileID'])
         else:
             self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
