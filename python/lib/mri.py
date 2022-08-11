@@ -380,6 +380,10 @@ class Mri:
             file_path = self.copy_file_to_loris_bids_dir(nifti_file.path)
 
             # insert the file along with its information into files and parameter_file tables
+            echo_time = file_parameters['EchoTime'] if 'EchoTime' in file_parameters.keys() else None
+            echo_nb = file_parameters['EchoNumber'] if 'EchoNumber' in file_parameters.keys() else None
+            phase_enc_dir = file_parameters['PhaseEncodingDirection'] \
+                if 'PhaseEncodingDirection' in file_parameters.keys() else None
             file_info = {
                 'FileType'        : file_type,
                 'File'            : file_path,
@@ -387,6 +391,9 @@ class Mri:
                 'InsertedByUserID': getpass.getuser(),
                 'CoordinateSpace' : coordinate_space,
                 'OutputType'      : output_type,
+                'EchoTime'        : echo_time,
+                'PhaseEncodingDirection': phase_enc_dir,
+                'EchoNumber'      : echo_nb,
                 'SourceFileID'    : None,
                 'AcquisitionProtocolID': scan_type_id
             }
