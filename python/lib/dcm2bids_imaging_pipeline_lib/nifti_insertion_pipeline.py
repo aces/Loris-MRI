@@ -521,6 +521,7 @@ class NiftiInsertionPipeline(BasePipeline):
          :type file_rel_path: str
         """
         scan_param = self.json_file_dict
+        phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys else None
         base_info_dict = {
             'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
@@ -530,6 +531,9 @@ class NiftiInsertionPipeline(BasePipeline):
             'CandID': self.subject_id_dict['CandID'],
             'Visit_label': self.subject_id_dict['visitLabel'],
             'Scan_type': self.scan_type_id,
+            'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
+            'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
+            'PhaseEncodingDirection': phase_enc_dir,
             'MriProtocolChecksGroupID': self.mri_protocol_group_id
         }
         for violation_dict in violations_list:
@@ -548,6 +552,8 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         scan_param = self.json_file_dict
+        acquisition_date = None
+        phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys else None
         if "AcquisitionDateTime" in scan_param.keys():
             acquisition_date = datetime.datetime.strptime(
                 scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
@@ -561,7 +567,9 @@ class NiftiInsertionPipeline(BasePipeline):
             'SessionID': self.session_obj.session_info_dict['ID'],
             'File': nifti_rel_path,
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
-            'EchoTime': scan_param['EchoTime'],
+            'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
+            'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
+            'PhaseEncodingDirection': phase_enc_dir,
             'CoordinateSpace': 'native',
             'OutputType': 'native',
             'AcquisitionProtocolID': self.scan_type_id,
