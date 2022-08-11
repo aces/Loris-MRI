@@ -205,7 +205,11 @@ class NiftiInsertionPipeline(BasePipeline):
             # SeriesInstanceUID and EchoTime have been set in the JSON side car file
             echo_time = self.json_file_dict["EchoTime"]
             series_uid = self.json_file_dict["SeriesInstanceUID"]
-            match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(series_uid, echo_time)
+            phase_enc_dir = self.json_file_dict["PhaseEncodingDirection"]
+            echo_number = self.json_file_dict['EchoNumber']
+            match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(
+                series_uid, echo_time, phase_enc_dir, echo_number
+            )
             if match:
                 error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid} and" \
                             f" EchoTime {echo_time}. The already registered file is {match['File']}"

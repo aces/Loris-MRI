@@ -108,19 +108,25 @@ class Imaging:
         """
         return self.files_db_obj.find_file_with_hash(hash_string)
 
-    def grep_file_info_from_series_uid_and_echo_time(self, series_uid, echo_time):
+    def grep_file_info_from_series_uid_and_echo_time(self, series_uid, echo_time, phase_enc_dir, echo_number):
         """
         Greps the file ID from the files table. If it cannot be found, the method will return None.
 
         :param series_uid: Series Instance UID of the file to look for
          :type series_uid: str
         :param echo_time: Echo Time of the file to look for
-         :type echo_time: str
+         :type echo_time: float
+        :param phase_enc_dir: Phase Encoding Direction of the file to look for
+         :type phase_enc_dir: str
+        :param echo_number: Echo Number of the file to look for
+         :type echo_number: int
 
         :return: dictionary with files table content of the found file
         :rtype: dict
         """
-        return self.files_db_obj.find_file_with_series_uid_and_echo_time(series_uid, echo_time)
+        return self.files_db_obj.find_file_with_series_uid_and_echo_time(
+            series_uid, echo_time, phase_enc_dir, echo_number
+        )
 
     def insert_imaging_file(self, file_info_dict, parameter_file_data_dict):
         """
