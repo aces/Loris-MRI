@@ -1078,20 +1078,22 @@ sub insert_into_mri_violations_log {
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
-    my $file_path     = $file->getFileDatum('File');
-    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
+    my $file_path        = $file->getFileDatum('File');
+    my $file_rel_path    = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
+    my $file_ph_enc_dir  = $file->getParameter('phase_encoding_direction');
+    my $file_echo_number = $file->getParameter('echo_numbers');
 
     my $query = "INSERT INTO mri_violations_log"
                     . "("
-                    . "SeriesUID, TarchiveID,  MincFile,   PatientName, "
-                    . " CandID,   Visit_label, Scan_type,  Severity, "
-                    . " Header,   Value,       ValidRange, ValidRegex, "
-                    . " MriProtocolChecksGroupID "
+                    . " SeriesUID,              TarchiveID,  MincFile,           PatientName, "
+                    . " CandID,                 Visit_label, Scan_type,          Severity, "
+                    . " Header,                 Value,       ValidRange,         ValidRegex, "
+                    . " PhaseEncodingDirection, EchoNumber,  MriProtocolChecksGroupID "
                     . ") VALUES ("
                     . " ?,        ?,           ?,          ?, "
                     . " ?,        ?,           ?,          ?, "
                     . " ?,        ?,           ?,          ?, "
-                    . " ?"
+                    . " ?,        ?,           ?"
                     . ")";
     if ($this->{debug}) {
         print $query . "\n";
@@ -1126,6 +1128,8 @@ sub insert_into_mri_violations_log {
             $valid_fields->{$header}{HeaderValue},
             $valid_range_str,
             $valid_regex_str,
+            $file_ph_enc_dir,
+            $file_echo_number,
             $valid_fields->{$header}{MriProtocolChecksGroupID}
         );
     }
