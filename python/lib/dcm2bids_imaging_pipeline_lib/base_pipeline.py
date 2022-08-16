@@ -433,6 +433,8 @@ class BasePipeline:
 
         If the DICOM archive was not validated, the pipeline will exit and log the proper error information.
         """
+        # reload the mri_upload object with updated database values
+        self.load_imaging_upload_and_tarchive_dictionaries()
         mu_dict = self.imaging_upload_obj.imaging_upload_dict
         if ("IsTarchiveValidated" not in mu_dict.keys() or not mu_dict["IsTarchiveValidated"]) and not self.force:
             err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \

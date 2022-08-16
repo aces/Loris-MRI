@@ -234,12 +234,12 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         series_desc = json_data_dict["SeriesDescription"]
 
         if type(self.excluded_series_desc_regex_list) is str:
-            pattern = re.compile(self.excluded_series_desc_regex_list)
-            return True if pattern.match(series_desc) else False
+            pattern = re.compile(self.excluded_series_desc_regex_list, re.IGNORECASE)
+            return True if re.search(pattern, series_desc) else False
         else:
             for regex in self.excluded_series_desc_regex_list:
-                pattern = re.compile(regex)
-                if pattern.match(series_desc):
+                pattern = re.compile(regex, re.IGNORECASE)
+                if re.search(pattern, series_desc):
                     return True
 
     def _loop_through_nifti_files_and_insert(self):
