@@ -83,6 +83,10 @@ class ScansTSV:
                     exit()
             else: 
                 eeg_acq_time = self.acquisition_data['acq_time']
+
+            if eeg_acq_time == 'n/a':
+                return None
+
             try:
                 eeg_acq_time = parse(eeg_acq_time)
             except ValueError as e:
@@ -114,11 +118,16 @@ class ScansTSV:
 
     def copy_scans_tsv_file_to_loris_bids_dir(self, bids_sub_id, loris_bids_root_dir, data_dir):
 
-        file = self.scans_tsv_file
-        copy = loris_bids_root_dir + '/sub-' + bids_sub_id + '/' + os.path.basename(self.scans_tsv_file)
-        utilities.copy_file(file, copy, self.verbose)
+        original_file_path = self.scans_tsv_file
+        final_file_path = loris_bids_root_dir + '/sub-' + bids_sub_id + '/' + os.path.basename(self.scans_tsv_file)
+
+        # copy the scans.tsv file to the new directory
+        if os.path.exists(final_file_path):
+            lib.utilities.append_to_tsv_file(original_file_path, final_file_path, "filename", self.verbose)
+        else:
+            lib.utilities.copy_file(original_file_path, final_file_path, self.verbose)
 
         # determine the relative path and return it
-        relative_path = copy.replace(data_dir, "")
+        relative_path = final_file_path.replace(data_dir, "")
 
         return relative_path
