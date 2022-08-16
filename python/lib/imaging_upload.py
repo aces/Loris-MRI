@@ -50,7 +50,7 @@ class ImagingUpload:
         """
 
         results = self.mri_upload_db_obj.create_mri_upload_dict('UploadID', upload_id)
-        self.imaging_upload_dict = results[0]
+        self.imaging_upload_dict = results[0] if results else None
 
     def create_imaging_upload_dict_from_tarchive_id(self, tarchive_id):
         """
