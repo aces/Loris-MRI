@@ -87,7 +87,6 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.subject_id_dict['CandMismatchError'], lib.exitcode.CANDIDATE_MISMATCH, is_error="Y", is_verbose="N"
             )
 
-        sys.exit()
         # ---------------------------------------------------------------------------------------------
         # Verify if the image/NIfTI file was not already registered into the database
         # ---------------------------------------------------------------------------------------------
