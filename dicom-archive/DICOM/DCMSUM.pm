@@ -1205,7 +1205,11 @@ sub date_format {
         my $diff = &Math::Round::nearest(0.01, ($Y + $M/12.0 + $D/365.0)*1) . " or $Y years, $M months $D days";
 	    return $diff;
     }
-    $first = ($first =~ m/(\d\d\d\d)(\d\d)(\d\d)/ ? s/(\d\d\d\d)(\d\d)(\d\d)/$1-$2-$3/ : undef);
+    # return undef if the date does not follow DICOM Date Value Representation (YYYYMMDD)
+    # note: does not check before as if there is a second argument, the date is expected to
+    # be YYYY-MM-DD, as can be seen in the if statement above
+    return undef unless $first =~ m/(\d\d\d\d)(\d\d)(\d\d)/;
+    $first =~ s/(\d\d\d\d)(\d\d)(\d\d)/$1-$2-$3/;
     return $first;
 }
 
