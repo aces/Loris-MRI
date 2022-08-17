@@ -1196,17 +1196,21 @@ sub date_format {
     my $first = $_[0];
     my $second = $_[1];
     return undef unless defined $first;
-    if ($second) {
-	my ($fY, $fM, $fD) = split("-", $first);
-	my ($sY, $sM, $sD) = split("-", $second);
-	my $Y = $sY - $fY;
-	my $M = $sM - $fM;
-	my $D = $sD - $fD;
-	my $diff = &Math::Round::nearest(0.01, ($Y + $M/12.0 + $D/365.0)*1) . " or $Y years, $M months $D days";
-	return $diff;
+    if (defined $second) {
+        my ($fY, $fM, $fD) = split("-", $first);
+        my ($sY, $sM, $sD) = split("-", $second);
+        my $Y = $sY - $fY;
+        my $M = $sM - $fM;
+        my $D = $sD - $fD;
+        my $diff = &Math::Round::nearest(0.01, ($Y + $M/12.0 + $D/365.0)*1) . " or $Y years, $M months $D days";
+	    return $diff;
     }
-    $first =~ s/(....)(..)(..)/$1-$2-$3/; 
-    return $first; 
+    # return undef if the date does not follow DICOM Date Value Representation (YYYYMMDD)
+    # note: does not check before as if there is a second argument, the date is expected to
+    # be YYYY-MM-DD, as can be seen in the if statement above
+    return undef unless $first =~ m/(\d\d\d\d)(\d\d)(\d\d)/;
+    $first =~ s/(\d\d\d\d)(\d\d)(\d\d)/$1-$2-$3/;
+    return $first;
 }
 
 
