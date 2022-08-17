@@ -10,6 +10,7 @@ from nilearn import image, plotting
 
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
+from lib.database_lib.mri_candidate_errors import MriCandidateErrors
 from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
@@ -63,6 +64,7 @@ class Imaging:
         self.verbose = verbose
         self.config_file = config_file
         self.files_db_obj = Files(db, verbose)
+        self.mri_cand_errors_db_obj = MriCandidateErrors(db, verbose)
         self.mri_prot_db_obj = MriProtocol(db, verbose)
         self.mri_prot_check_db_obj = MriProtocolChecks(db, verbose)
         self.mri_prot_viol_scan_db_obj = MriProtocolViolatedScans(db, verbose)
@@ -177,6 +179,33 @@ class Imaging:
             self.param_file_db_obj.update_parameter_file(value, pf_entry[0]['ParameterFileID'])
         else:
             self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
+
+    def insert_mri_candidate_errors(self, patient_name, tarchive_id, scan_param, file_rel_path, reason):
+        """
+        Insert a row into MriCandidateErrors table.
+
+        :param patient_name: PatientName associated to the file to insert
+         :type patient_name: str
+        :param tarchive_id: TarchiveID of the archive the file has been derived from
+         :type tarchive_id: int
+        :param scan_param: parameters of the image to insert
+         :type scan_param: dict
+        :param file_rel_path: relative path to the file in trashbin
+         :type file_rel_path: str
+        :param reason: reason for the candidate mismatch error
+         :type reason: str
+        """
+
+        info_to_insert_dict = {
+            "TimeRun": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
+            "TarchiveID": tarchive_id,
+            "MincFile": file_rel_path,
+            "PatientName": patient_name,
+            "Reason": reason,
+            "EchoTime": scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None
+        }
+        self.mri_cand_errors_db_obj.insert_mri_candidate_errors(info_to_insert_dict)
 
     def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path,
                                       mri_protocol_group_id):

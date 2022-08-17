@@ -75,6 +75,17 @@ class NiftiInsertionPipeline(BasePipeline):
         else:
             self._determine_subject_ids_based_on_json_patient_name()
         self.validate_subject_ids()
+        if "CandMismatchError" in self.subject_id_dict.keys():
+            self.imaging_obj.insert_mri_candidate_errors(
+                self.dicom_archive_obj.tarchive_info_dict["PatientName"],
+                self.dicom_archive_obj.tarchive_info_dict["TarchiveID"],
+                self.json_file_dict,
+                self.nifti_path,
+                self.subject_id_dict["CandMismatchError"]
+            )
+            self.log_error_and_exit(
+                self.subject_id_dict['CandMismatchError'], lib.exitcode.CANDIDATE_MISMATCH, is_error="Y", is_verbose="N"
+            )
 
         # ---------------------------------------------------------------------------------------------
         # Verify if the image/NIfTI file was not already registered into the database
@@ -186,6 +197,13 @@ class NiftiInsertionPipeline(BasePipeline):
         nifti_pname = self.json_file_dict["PatientName"]
         if tarchive_pname != nifti_pname:
             err_msg = "PatientName in DICOM and NIfTI files differ."
+            self.imaging_obj.insert_mri_candidate_errors(
+                nifti_pname,
+                self.dicom_archive_obj.tarchive_info_dict["TarchiveID"],
+                self.json_file_dict,
+                self.nifti_path,
+                err_msg
+            )
             self.log_error_and_exit(err_msg, lib.exitcode.FILENAME_MISMATCH, is_error="Y", is_verbose="N")
 
     def _check_if_nifti_file_was_already_inserted(self):
@@ -502,6 +520,18 @@ class NiftiInsertionPipeline(BasePipeline):
             self.json_file_dict,
             self.trashbin_nifti_rel_path,
             self.mri_protocol_group_id
+        )
+
+    def _register_mri_candidate_errors(self):
+
+        patient_name = None
+        if "PatientName" in self.json_file_dict.keys():
+            patient_name = self.json_file_dict["PatientName"]
+        elif "PatientName" in self.dicom_archive_obj.tarchive_info_dict.keys():
+            patient_name = self.dicom_archive_obj.tarchive_info_dict["PatientName"]
+
+        self.imaging_obj.insert_mri_candidate_errors(
+            patient_name
         )
 
     def _register_violations_log(self, violations_list, file_rel_path):
