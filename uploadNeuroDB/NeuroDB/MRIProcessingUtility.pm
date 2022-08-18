@@ -1078,20 +1078,22 @@ sub insert_into_mri_violations_log {
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
-    my $file_path     = $file->getFileDatum('File');
-    my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
+    my $file_path        = $file->getFileDatum('File');
+    my $file_rel_path    = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
+    my $file_ph_enc_dir  = $file->getParameter('phase_encoding_direction');
+    my $file_echo_number = $file->getParameter('echo_numbers');
 
     my $query = "INSERT INTO mri_violations_log"
                     . "("
-                    . "SeriesUID, TarchiveID,  MincFile,   PatientName, "
-                    . " CandID,   Visit_label, Scan_type,  Severity, "
-                    . " Header,   Value,       ValidRange, ValidRegex, "
-                    . " MriProtocolChecksGroupID "
+                    . " SeriesUID,              TarchiveID,  MincFile,           PatientName, "
+                    . " CandID,                 Visit_label, Scan_type,          Severity, "
+                    . " Header,                 Value,       ValidRange,         ValidRegex, "
+                    . " PhaseEncodingDirection, EchoNumber,  MriProtocolChecksGroupID "
                     . ") VALUES ("
                     . " ?,        ?,           ?,          ?, "
                     . " ?,        ?,           ?,          ?, "
                     . " ?,        ?,           ?,          ?, "
-                    . " ?"
+                    . " ?,        ?,           ?"
                     . ")";
     if ($this->{debug}) {
         print $query . "\n";
@@ -1126,6 +1128,8 @@ sub insert_into_mri_violations_log {
             $valid_fields->{$header}{HeaderValue},
             $valid_range_str,
             $valid_regex_str,
+            $file_ph_enc_dir,
+            $file_echo_number,
             $valid_fields->{$header}{MriProtocolChecksGroupID}
         );
     }
@@ -1358,6 +1362,8 @@ sub registerScanIntoDB {
             'AcquisitionDate',
             $acquisition_date
         );
+
+
 
         ########################################################
         ### record which tarchive was used to make this file ###
@@ -2239,10 +2245,10 @@ sub spool  {
 =head3 is_file_unique($file, $upload_id)
 
 Queries the C<files> and C<parameter_file> tables to make sure that no imaging
-datasets with the same C<SeriesUID> and C<EchoTime> or the same C<MD5sum> hash
-can be found in the database already. If there is a match, it will return a
-message with the information about why the file is not unique. If there is no
-match, then it will return undef.
+datasets with the same C<SeriesUID>, C<EchoTime>, C<EchoNumber> and
+C<PhaseEncodingDirection> or the same C<MD5sum> hash can be found in the database
+already. If there is a match, it will return a message with the information about
+why the file is not unique. If there is no match, then it will return undef.
 
 INPUTS:
   - $file     : the file object from the C<NeuroDB::File> package
@@ -2257,19 +2263,24 @@ sub is_file_unique {
     my $this = shift;
     my ($file, $upload_id) = @_;
 
-    my $seriesUID = $file->getParameter( 'series_instance_uid' );
-    my $echo_time = $file->getParameter( 'echo_time'           );
+    my $seriesUID     = $file->getParameter('series_instance_uid');
+    my $echo_time     = $file->getParameter('echo_time');
+    my $phase_enc_dir = $file->getParameter('phase_encoding_direction');
+    my $echo_number   = $file->getParameter('echo_numbers');
 
     # check that no files are already in the files table with the same SeriesUID
     # and EchoTime
-    my $query     = "SELECT File FROM files WHERE SeriesUID=? AND EchoTime=?";
+    my $query     = "SELECT File FROM files WHERE "
+                    . " SeriesUID = ?  AND EchoTime = ? AND "
+                    . " EchoNumber = ? AND PhaseEncodingDirection=?";
     my $sth       = ${$this->{'dbhr'}}->prepare( $query );
-    $sth->execute( $seriesUID, $echo_time );
+    $sth->execute( $seriesUID, $echo_time, $echo_number, $phase_enc_dir );
     my $results = $sth->fetchrow_array;
     my $message;
     if (defined $results) {
         $message = "\n--> ERROR: there is already a file registered in the files "
-                   . "table with SeriesUID='$seriesUID' and EchoTime='$echo_time'.\n"
+                   . "table with SeriesUID='$seriesUID', EchoTime='$echo_time', "
+                   . "EchoNumber='$echo_number' and PhaseEncodingDirection='$phase_enc_dir.\n"
                    . "\tThe already registered file is '$results'\n";
         return $message;
     }

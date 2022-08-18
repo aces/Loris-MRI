@@ -774,7 +774,8 @@ sub register_db {
         'FileType',        'InsertedByUserID', 'Caveat',
         'SeriesUID',       'TarchiveSource',   'HrrtArchiveID',
         'SourcePipeline',  'PipelineDate',     'SourceFileID',
-        'ScannerID',       'AcquisitionDate'
+        'ScannerID',       'AcquisitionDate',  'PhaseEncodingDirection',
+        'EchoNumber'
     );
     foreach my $key (@field_array) {
         # add the key=value pair to the query

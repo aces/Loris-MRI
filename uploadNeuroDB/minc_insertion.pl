@@ -601,9 +601,11 @@ if ($hrrt) {
     $file->setFileData('HrrtArchiveID', $studyInfo{'HrrtArchiveID'});
     $caveat = 0;
 } else {
-    $file->setFileData('SeriesUID',      $file->getParameter('series_instance_uid'));
-    $file->setFileData('EchoTime',       $file->getParameter('echo_time')          );
-    $file->setFileData('TarchiveSource', $studyInfo{'TarchiveID'}                  );
+    $file->setFileData('SeriesUID',              $file->getParameter('series_instance_uid'));
+    $file->setFileData('EchoTime',               $file->getParameter('echo_time'));
+    $file->setFileData('PhaseEncodingDirection', $file->getParameter('phase_encoding_direction'));
+    $file->setFileData('EchoNumber',             $file->getParameter('echo_numbers'));
+    $file->setFileData('TarchiveSource',         $studyInfo{'TarchiveID'});
     $caveat = $acquisitionProtocol ? 1 : 0;
 }
 $file->setFileData('Caveat', $caveat);
