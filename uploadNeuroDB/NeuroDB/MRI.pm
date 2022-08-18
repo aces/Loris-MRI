@@ -316,19 +316,19 @@ sub identify_scan_db {
     my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
 
     # get parameters from minc header
-    my $patient_name =  ${fileref}->getParameter('patient_name');
-
-    my $xstep = ${fileref}->getParameter('xstep');
-    my $ystep = ${fileref}->getParameter('ystep');
-    my $zstep = ${fileref}->getParameter('zstep');
-
-    my $xspace = ${fileref}->getParameter('xspace');
-    my $yspace = ${fileref}->getParameter('yspace');
-    my $zspace = ${fileref}->getParameter('zspace');
-    my $slice_thickness = ${fileref}->getParameter('slice_thickness');
-    my $seriesUID = ${fileref}->getParameter('series_instance_uid');
+    my $patient_name       = ${fileref}->getParameter('patient_name');
+    my $xstep              = ${fileref}->getParameter('xstep');
+    my $ystep              = ${fileref}->getParameter('ystep');
+    my $zstep              = ${fileref}->getParameter('zstep');
+    my $xspace             = ${fileref}->getParameter('xspace');
+    my $yspace             = ${fileref}->getParameter('yspace');
+    my $zspace             = ${fileref}->getParameter('zspace');
+    my $slice_thickness    = ${fileref}->getParameter('slice_thickness');
+    my $seriesUID          = ${fileref}->getParameter('series_instance_uid');
     my $series_description = ${fileref}->getParameter('series_description');
-    my $image_type = ${fileref}->getParameter('acquisition:image_type');
+    my $image_type         = ${fileref}->getParameter('acquisition:image_type');
+    my $phase_enc_dir      = ${fileref}->getParameter('phase_encoding_direction');
+    my $echo_numbers       = ${fileref}->getParameter('echo_numbers');
     my $mriProtocolGroupID;
 
     # get parameters specific to MRIs
@@ -455,6 +455,7 @@ sub identify_scan_db {
                 my $slice_thick_min = $rowref->{'slice_thickness_min'};
                 my $slice_thick_max = $rowref->{'slice_thickness_max'};
 
+
                 my $scan_type = &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
                 # if no scan type found in mri_scan_type for $rowref->{'Scan_type'},
                 # then throw an error
@@ -504,6 +505,8 @@ sub identify_scan_db {
                       && &in_range($zstep,           "$zstep_min-$zstep_max"            )
                       && &in_range($time,            "$time_min-$time_max"              )
                       && &in_range($slice_thickness, "$slice_thick_min-$slice_thick_max")
+                      && (!$rowref->{'PhaseEncodingDirection'} || $phase_enc_dir eq $rowref->{'PhaseEncodingDirection'})
+                      && (!$rowref->{'EchoNumber'} || $echo_numbers =~ /\Q$rowref->{'EchoNumber'}\E/i)
                       && (!$rowref->{'image_type'} || $image_type =~ /\Q$rowref->{'image_type'}\E/i)
                     ) {
                         return $scan_type;
@@ -517,12 +520,12 @@ sub identify_scan_db {
     # table. Note that $mriProtocolGroupID will be undef unless exactly one protocol 
     # group was used to try to identify the scan
     insert_violated_scans(
-        $dbhr,     $series_description, $minc_location,   $patient_name,
-        $candid,   $pscid,              $tr,              $te,
-        $ti,       $slice_thickness,    $xstep,           $ystep,
-        $zstep,    $xspace,             $yspace,          $zspace,
-        $time,     $seriesUID,          $tarchiveID,      $image_type,
-        $data_dir, $mriProtocolGroupID
+        $dbhr,         $series_description, $minc_location,   $patient_name,
+        $candid,       $pscid,              $tr,              $te,
+        $ti,           $slice_thickness,    $xstep,           $ystep,
+        $zstep,        $xspace,             $yspace,          $zspace,
+        $time,         $seriesUID,          $tarchiveID,      $image_type,
+        $echo_numbers,  $phase_enc_dir,      $data_dir,        $mriProtocolGroupID
     );
 
     return 'unknown';
@@ -530,7 +533,7 @@ sub identify_scan_db {
 
 =pod
 
-=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $data_dir)
+=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $echo_numbers, $phase_enc_dir, $data_dir, $mriProtocolGroupID)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
@@ -559,18 +562,20 @@ INPUTS:
   - $tarchiveID     : C<TarchiveID> of the DICOM archive from which this file is derived
   - $image_type     : the C<image_type> header value of the image
   - $data_dir       : path to the LORIS MRI data directory
+  - $echo_numbers   : C<echo_numbers> of the image (a.k.a. C<dicom_0x0018:el_0x0086> header)
+  - $phase_enc_dir  : C<phase_encoding_direction> of the image
   - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 =cut
 
 sub insert_violated_scans {
 
-    my ($dbhr,     $series_description, $minc_location, $patient_name,
-        $candid,   $pscid,              $tr,            $te,
-        $ti,       $slice_thickness,    $xstep,         $ystep,
-        $zstep,    $xspace,             $yspace,        $zspace,
-        $time,     $seriesUID,          $tarchiveID,    $image_type,
-        $data_dir, $mriProtocolGroupID) = @_;
+    my ($dbhr,         $series_description, $minc_location, $patient_name,
+        $candid,       $pscid,              $tr,            $te,
+        $ti,           $slice_thickness,    $xstep,         $ystep,
+        $zstep,        $xspace,             $yspace,        $zspace,
+        $time,         $seriesUID,          $tarchiveID,    $image_type,
+        $echo_number, $phase_enc_dir,  $data_dir,      $mriProtocolGroupID) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
@@ -578,29 +583,30 @@ sub insert_violated_scans {
 
     (my $query = <<QUERY) =~ s/\n//gm;
   INSERT INTO mri_protocol_violated_scans (
-    CandID,             PSCID,         TarchiveID,            time_run,
-    series_description, minc_location, PatientName,           TR_range,
-    TE_range,           TI_range,      slice_thickness_range, xspace_range,
-    yspace_range,       zspace_range,  xstep_range,           ystep_range,
-    zstep_range,        time_range,    SeriesUID,             image_type,
-    MriProtocolGroupID
+    CandID,                 PSCID,         TarchiveID,            time_run,
+    series_description,     minc_location, PatientName,           TR_range,
+    TE_range,               TI_range,      slice_thickness_range, xspace_range,
+    yspace_range,           zspace_range,  xstep_range,           ystep_range,
+    zstep_range,            time_range,    SeriesUID,             image_type,
+    PhaseEncodingDirection, EchoNumber,   MriProtocolGroupID
   ) VALUES (
     ?, ?, ?, now(),
     ?, ?, ?, ?,
     ?, ?, ?, ?,
     ?, ?, ?, ?,
     ?, ?, ?, ?,
-    ?
+    ?, ?, ?
   )
 QUERY
 
     my $sth = $${dbhr}->prepare($query);
     my $success = $sth->execute(
-        $candid,        $pscid,           $tarchiveID, $series_description,
-        $file_rel_path, $patient_name,    $tr,         $te,
-        $ti,            $slice_thickness, $xspace,     $yspace,
-        $zspace,        $xstep,           $ystep,      $zstep,
-        $time,          $seriesUID,       $image_type, $mriProtocolGroupID
+        $candid,        $pscid,              $tarchiveID, $series_description,
+        $file_rel_path, $patient_name,       $tr,         $te,
+        $ti,            $slice_thickness,    $xspace,     $yspace,
+        $zspace,        $xstep,              $ystep,      $zstep,
+        $time,          $seriesUID,          $image_type, $phase_enc_dir,
+        $echo_number,   $mriProtocolGroupID
     );
 
 }
@@ -832,92 +838,92 @@ sub mapDicomParameters {
     my (%map_hash);
         %map_hash=
     (
-     xstep => 'xspace:step',
-     ystep => 'yspace:step',
-     zstep => 'zspace:step',
+        xstep                           => 'xspace:step',
+        ystep                           => 'yspace:step',
+        zstep                           => 'zspace:step',
 
-     xstart => 'xspace:start',
-     ystart => 'yspace:start',
-     zstart => 'zspace:start',
+        xstart                          => 'xspace:start',
+        ystart                          => 'yspace:start',
+        zstart                          => 'zspace:start',
 
-     study_date => 'dicom_0x0008:el_0x0020',
-     series_date => 'dicom_0x0008:el_0x0021',
-     acquisition_date => 'dicom_0x0008:el_0x0022',
-     image_date => 'dicom_0x0008:el_0x0023',
-     study_time => 'dicom_0x0008:el_0x0030',
-     series_time => 'dicom_0x0008:el_0x0031',
-     acquisition_time => 'dicom_0x0008:el_0x0032',
-     image_time => 'dicom_0x0008:el_0x0033',
-     modality => 'dicom_0x0008:el_0x0060',
-     manufacturer => 'dicom_0x0008:el_0x0070',
-     institution_name =>'dicom_0x0008:el_0x0080',
-     study_description => 'dicom_0x0008:el_0x1030',
-     series_description => 'dicom_0x0008:el_0x103e',
-     operator_name => 'dicom_0x0008:el_0x1070',
-     manufacturer_model_name => 'dicom_0x0008:el_0x1090',
-     patient_name => 'dicom_0x0010:el_0x0010',
-     patient_id => 'dicom_0x0010:el_0x0020',
-     patient_dob => 'dicom_0x0010:el_0x0030',
-     patient_sex => 'dicom_0x0010:el_0x0040',
-     scanning_sequence => 'dicom_0x0018:el_0x0020',
-     mr_acquisition_type => 'dicom_0x0018:el_0x0023',
-     sequence_name => 'dicom_0x0018:el_0x0024',
-     sequence_variant => 'dicom_0x0018:el_0x0021',
-     slice_thickness => 'dicom_0x0018:el_0x0050',
-     effective_series_duration => 'dicom_0x0018:el_0x0072',
-     repetition_time => 'acquisition:repetition_time',
-     echo_time => 'acquisition:echo_time',
-     inversion_time => 'acquisition:inversion_time',
-     number_of_averages => 'dicom_0x0018:el_0x0083',
-     imaging_frequency => 'dicom_0x0018:el_0x0084',
-     imaged_nucleus => 'dicom_0x0018:el_0x0085',
-     echo_numbers => 'dicom_0x0018:el_0x0086',
-     magnetic_field_strength => 'dicom_0x0018:el_0x0087',
-     spacing_between_slices => 'dicom_0x0018:el_0x0088',
-     number_of_phase_encoding_steps => 'dicom_0x0018:el_0x0089',
-     echo_train_length => 'dicom_0x0018:el_0x0091',
-     percent_sampling => 'dicom_0x0018:el_0x0093',
-     percent_phase_field_of_view => 'dicom_0x0018:el_0x0094',
-     pixel_bandwidth => 'dicom_0x0018:el_0x0095',
-     device_serial_number => 'dicom_0x0018:el_0x1000',
-     software_versions => 'dicom_0x0018:el_0x1020',
-     protocol_name => 'dicom_0x0018:el_0x1030',
-     spatial_resolution => 'dicom_0x0018:el_0x1050',
-     fov_dimensions => 'dicom_0x0018:el_0x1149',
-     receiving_coil => 'dicom_0x0018:el_0x1250',
-     transmitting_coil => 'dicom_0x0018:el_0x1251',
-     acquisition_matrix => 'dicom_0x0018:el_0x1310',
-     phase_encoding_direction => 'dicom_0x0018:el_0x1312',
-     variable_flip_angle_flag => 'dicom_0x0018:el_0x1315',
-     sar => 'dicom_0x0018:el_0x1316',
-     patient_position => 'dicom_0x0018:el_0x5100',
-     study_instance_uid => 'dicom_0x0020:el_0x000d',
-     series_instance_uid => 'dicom_0x0020:el_0x000e',
-     study_id => 'dicom_0x0020:el_0x0010',
-     series_number => 'dicom_0x0020:el_0x0011',
-     acquisition_number => 'dicom_0x0020:el_0x0012',
-     instance_number => 'dicom_0x0020:el_0x0013',
-     image_position_patient => 'dicom_0x0020:el_0x0032',
-     image_orientation_patient => 'dicom_0x0020:el_0x0037',
-     frame_of_reference_uid => 'dicom_0x0020:el_0x0052',
-     laterality => 'dicom_0x0020:el_0x0060',
-     position_reference_indicator => 'dicom_0x0020:el_0x1040',
-     slice_location => 'dicom_0x0020:el_0x1041',
-     image_comments => 'dicom_0x0020:el_0x4000',
-     rows => 'dicom_0x0028:el_0x0010',
-     cols => 'dicom_0x0028:el_0x0011',
-     pixel_spacing => 'dicom_0x0028:el_0x0030',
-     bits_allocated => 'dicom_0x0028:el_0x0100',
-     bits_stored => 'dicom_0x0028:el_0x0101',
-     high_bit => 'dicom_0x0028:el_0x0102',
-     pixel_representation => 'dicom_0x0028:el_0x0103',
-     smallest_pixel_image_value => 'dicom_0x0028:el_0x0106',
-     largest_pixel_image_value => 'dicom_0x0028:el_0x0107',
-     pixel_padding_value => 'dicom_0x0028:el_0x0120',
-     window_center => 'dicom_0x0028:el_0x1050',
-     window_width => 'dicom_0x0028:el_0x1051',
-     window_center_width_explanation => 'dicom_0x0028:el_0x1055'
-    );
+        study_date                      => 'dicom_0x0008:el_0x0020',
+        series_date                     => 'dicom_0x0008:el_0x0021',
+        acquisition_date                => 'dicom_0x0008:el_0x0022',
+        image_date                      => 'dicom_0x0008:el_0x0023',
+        study_time                      => 'dicom_0x0008:el_0x0030',
+        series_time                     => 'dicom_0x0008:el_0x0031',
+        acquisition_time                => 'dicom_0x0008:el_0x0032',
+        image_time                      => 'dicom_0x0008:el_0x0033',
+        modality                        => 'dicom_0x0008:el_0x0060',
+        manufacturer                    => 'dicom_0x0008:el_0x0070',
+        institution_name                => 'dicom_0x0008:el_0x0080',
+        study_description               => 'dicom_0x0008:el_0x1030',
+        series_description              => 'dicom_0x0008:el_0x103e',
+        operator_name                   => 'dicom_0x0008:el_0x1070',
+        manufacturer_model_name         => 'dicom_0x0008:el_0x1090',
+        patient_name                    => 'dicom_0x0010:el_0x0010',
+        patient_id                      => 'dicom_0x0010:el_0x0020',
+        patient_dob                     => 'dicom_0x0010:el_0x0030',
+        patient_sex                     => 'dicom_0x0010:el_0x0040',
+        scanning_sequence               => 'dicom_0x0018:el_0x0020',
+        mr_acquisition_type             => 'dicom_0x0018:el_0x0023',
+        sequence_name                   => 'dicom_0x0018:el_0x0024',
+        sequence_variant                => 'dicom_0x0018:el_0x0021',
+        slice_thickness                 => 'dicom_0x0018:el_0x0050',
+        effective_series_duration       => 'dicom_0x0018:el_0x0072',
+        repetition_time                 => 'acquisition:repetition_time',
+        echo_time                       => 'acquisition:echo_time',
+        inversion_time                  => 'acquisition:inversion_time',
+        number_of_averages              => 'dicom_0x0018:el_0x0083',
+        imaging_frequency               => 'dicom_0x0018:el_0x0084',
+        imaged_nucleus                  => 'dicom_0x0018:el_0x0085',
+        echo_numbers                    => 'dicom_0x0018:el_0x0086',
+        magnetic_field_strength         => 'dicom_0x0018:el_0x0087',
+        spacing_between_slices          => 'dicom_0x0018:el_0x0088',
+        number_of_phase_encoding_steps  => 'dicom_0x0018:el_0x0089',
+        echo_train_length               => 'dicom_0x0018:el_0x0091',
+        percent_sampling                => 'dicom_0x0018:el_0x0093',
+        percent_phase_field_of_view     => 'dicom_0x0018:el_0x0094',
+        pixel_bandwidth                 => 'dicom_0x0018:el_0x0095',
+        device_serial_number            => 'dicom_0x0018:el_0x1000',
+        software_versions               => 'dicom_0x0018:el_0x1020',
+        protocol_name                   => 'dicom_0x0018:el_0x1030',
+        spatial_resolution              => 'dicom_0x0018:el_0x1050',
+        fov_dimensions                  => 'dicom_0x0018:el_0x1149',
+        receiving_coil                  => 'dicom_0x0018:el_0x1250',
+        transmitting_coil               => 'dicom_0x0018:el_0x1251',
+        acquisition_matrix              => 'dicom_0x0018:el_0x1310',
+        phase_encoding_direction        => 'dicom_0x0018:el_0x1312',
+        variable_flip_angle_flag        => 'dicom_0x0018:el_0x1315',
+        sar                             => 'dicom_0x0018:el_0x1316',
+        patient_position                => 'dicom_0x0018:el_0x5100',
+        study_instance_uid              => 'dicom_0x0020:el_0x000d',
+        series_instance_uid             => 'dicom_0x0020:el_0x000e',
+        study_id                        => 'dicom_0x0020:el_0x0010',
+        series_number                   => 'dicom_0x0020:el_0x0011',
+        acquisition_number              => 'dicom_0x0020:el_0x0012',
+        instance_number                 => 'dicom_0x0020:el_0x0013',
+        image_position_patient          => 'dicom_0x0020:el_0x0032',
+        image_orientation_patient       => 'dicom_0x0020:el_0x0037',
+        frame_of_reference_uid          => 'dicom_0x0020:el_0x0052',
+        laterality                      => 'dicom_0x0020:el_0x0060',
+        position_reference_indicator    => 'dicom_0x0020:el_0x1040',
+        slice_location                  => 'dicom_0x0020:el_0x1041',
+        image_comments                  => 'dicom_0x0020:el_0x4000',
+        rows                            => 'dicom_0x0028:el_0x0010',
+        cols                            => 'dicom_0x0028:el_0x0011',
+        pixel_spacing                   => 'dicom_0x0028:el_0x0030',
+        bits_allocated                  => 'dicom_0x0028:el_0x0100',
+        bits_stored                     => 'dicom_0x0028:el_0x0101',
+        high_bit                        => 'dicom_0x0028:el_0x0102',
+        pixel_representation            => 'dicom_0x0028:el_0x0103',
+        smallest_pixel_image_value      => 'dicom_0x0028:el_0x0106',
+        largest_pixel_image_value       => 'dicom_0x0028:el_0x0107',
+        pixel_padding_value             => 'dicom_0x0028:el_0x0120',
+        window_center                   => 'dicom_0x0028:el_0x1050',
+        window_width                    => 'dicom_0x0028:el_0x1051',
+        window_center_width_explanation => 'dicom_0x0028:el_0x1055'
+     );
 
     # map parameters, removing the old params if they start with 'dicom'
     foreach my $key (keys %map_hash) {
