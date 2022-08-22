@@ -3,6 +3,7 @@
 import os
 import json
 import getpass
+import re
 import sys
 from pyblake2 import blake2b
 
@@ -284,15 +285,15 @@ class Mri:
         other_assoc_files = {}
         for assoc_file in associated_files:
             file_info = assoc_file.get_entities()
-            if file_info['extension'] == 'json':
+            if re.search(r'json$', file_info['extension']):
                 json_file = assoc_file.path
-            elif file_info['extension'] == 'bvec':
+            elif re.search(r'bvec$', file_info['extension']):
                 other_assoc_files['bvec_file'] = assoc_file.path
-            elif file_info['extension'] == 'bval':
+            elif re.search(r'bval$', file_info['extension']):
                 other_assoc_files['bval_file'] = assoc_file.path
-            elif file_info['extension'] == 'tsv' and file_info['suffix'] == 'events':
+            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'events':
                 other_assoc_files['task_file'] = assoc_file.path
-            elif file_info['extension'] == 'tsv' and file_info['suffix'] == 'physio':
+            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'physio':
                 other_assoc_files['physio_file'] = assoc_file.path
 
         # read the json file if it exists
@@ -380,6 +381,10 @@ class Mri:
             file_path = self.copy_file_to_loris_bids_dir(nifti_file.path)
 
             # insert the file along with its information into files and parameter_file tables
+            echo_time = file_parameters['EchoTime'] if 'EchoTime' in file_parameters.keys() else None
+            echo_nb = file_parameters['EchoNumber'] if 'EchoNumber' in file_parameters.keys() else None
+            phase_enc_dir = file_parameters['PhaseEncodingDirection'] \
+                if 'PhaseEncodingDirection' in file_parameters.keys() else None
             file_info = {
                 'FileType'        : file_type,
                 'File'            : file_path,
@@ -387,6 +392,9 @@ class Mri:
                 'InsertedByUserID': getpass.getuser(),
                 'CoordinateSpace' : coordinate_space,
                 'OutputType'      : output_type,
+                'EchoTime'        : echo_time,
+                'PhaseEncodingDirection': phase_enc_dir,
+                'EchoNumber'      : echo_nb,
                 'SourceFileID'    : None,
                 'AcquisitionProtocolID': scan_type_id
             }

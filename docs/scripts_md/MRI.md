@@ -87,7 +87,7 @@ INPUTS:
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
-### insert\_violated\_scans($dbhr, $series\_desc, $minc\_location, $patient\_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $data\_dir)
+### insert\_violated\_scans($dbhr, $series\_desc, $minc\_location, $patient\_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $echo\_numbers, $phase\_enc\_dir, $data\_dir, $mriProtocolGroupID)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 `mri_protocol` table into the `mri_protocol_violated_scans` table of the
@@ -116,6 +116,8 @@ INPUTS:
   - $tarchiveID     : `TarchiveID` of the DICOM archive from which this file is derived
   - $image\_type     : the `image_type` header value of the image
   - $data\_dir       : path to the LORIS MRI data directory
+  - $echo\_numbers   : `echo_numbers` of the image (a.k.a. `dicom_0x0018:el_0x0086` header)
+  - $phase\_enc\_dir  : `phase_encoding_direction` of the image
   - $mriProtocolGroupID : ID of the protocol group used to try to identify the scan.
 
 ### scan\_type\_id\_to\_text($typeID, $db)

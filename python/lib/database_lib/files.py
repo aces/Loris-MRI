@@ -35,7 +35,7 @@ class Files:
         self.db = db
         self.verbose = verbose
 
-    def find_file_with_series_uid_and_echo_time(self, series_uid, echo_time):
+    def find_file_with_series_uid_and_echo_time(self, series_uid, echo_time, phase_enc_dir, echo_number):
         """
         Select files stored in the `files` table with a given `SeriesUID` and `EchoTime`.
 
@@ -43,13 +43,22 @@ class Files:
          :type series_uid: str
         :param echo_time: Echo Time of the file to look for in the files table
          :type echo_time: float
+        :param phase_enc_dir: Phase Encoding Direction of the file to look for
+         :type phase_enc_dir: str
+        :param echo_number: Echo Number of the file to look for
+         :type echo_number: int
 
         :return: entry from the `files` table for the file with SeriesUID and EchoTime
          :rtype: dict
         """
 
-        query = "SELECT * FROM files WHERE SeriesUID = %s and EchoTime = %s "
-        results = self.db.pselect(query=query, args=(series_uid, echo_time))
+        query = "SELECT * FROM files WHERE" \
+                " SeriesUID = %s  AND EchoTime = %s AND " \
+                " EchoNumber = %s AND PhaseEncodingDirection = %s"
+        results = self.db.pselect(
+            query=query,
+            args=(series_uid, echo_time, echo_number, phase_enc_dir)
+        )
 
         return results[0] if results else None
 

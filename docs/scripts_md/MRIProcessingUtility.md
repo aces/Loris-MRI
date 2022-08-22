@@ -476,10 +476,10 @@ INPUTS:
 ### is\_file\_unique($file, $upload\_id)
 
 Queries the `files` and `parameter_file` tables to make sure that no imaging
-datasets with the same `SeriesUID` and `EchoTime` or the same `MD5sum` hash
-can be found in the database already. If there is a match, it will return a
-message with the information about why the file is not unique. If there is no
-match, then it will return undef.
+datasets with the same `SeriesUID`, `EchoTime`, `EchoNumber` and
+`PhaseEncodingDirection` or the same `MD5sum` hash can be found in the database
+already. If there is a match, it will return a message with the information about
+why the file is not unique. If there is no match, then it will return undef.
 
 INPUTS:
   - $file     : the file object from the `NeuroDB::File` package
