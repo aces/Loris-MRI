@@ -335,9 +335,8 @@ class NiftiInsertionPipeline(BasePipeline):
         well and the Caveat will be set to True in the files table.
         """
 
+        # add TaskName to the JSON file if the file's BIDS scan type subcategory contains task-*
         bids_subcategories = self.bids_categories_dict['BIDSScanTypeSubCategory']
-        print(bids_subcategories)
-        print(self.json_path)
         if self.json_path and bids_subcategories and re.match(r'task-', bids_subcategories):
             with open(self.json_path) as json_file:
                 json_data = json.load(json_file)
@@ -345,13 +344,16 @@ class NiftiInsertionPipeline(BasePipeline):
             with open(self.json_path, 'w') as json_file:
                 json_file.write(json.dumps(json_data, indent=4))
 
+        # determine the new file paths and move the files in assembly_bids
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
         self._create_destination_dir_and_move_image_files('assembly_bids')
 
+        # register the files in the database (files and parameter_file tables)
         self.file_id = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
         message = f"Registered file {self.assembly_nifti_rel_path} into the files table with FileID {self.file_id}"
         self.log_info(message, is_error='N', is_verbose='Y')
 
+        # add an entry in the violations log table if there is a warning violation associated to the file
         if self.violations_summary['warning']:
             message = f"Inserting warning violations related to {self.assembly_nifti_rel_path}." \
                       f"  List of violations found: {self.warning_violations_list}"
