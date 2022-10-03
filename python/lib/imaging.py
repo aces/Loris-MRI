@@ -820,6 +820,18 @@ class Imaging:
             project_id
         )
 
+    def get_scanner_candid(self, scanner_id):
+        """
+        Select a ScannerID CandID based on the scanner ID in mri_scanner.
+
+        :param scanner_id: scanner ID in the mri_scanner table
+         :type scanner_id: int
+
+        :return: scanner CandID
+         :rtype: int
+        """
+        return self.mri_scanner_db_obj.get_scanner_candid(scanner_id)
+
     @staticmethod
     def extract_files_from_dicom_archive(dicom_archive_path, extract_location_dir):
         """
