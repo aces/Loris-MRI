@@ -124,3 +124,9 @@ class MriScanner:
         )
 
         return scanner_id
+
+    def get_scanner_candid(self, scanner_id):
+
+        query = 'SELECT CandID FROM mri_scanner WHERE ID = %s'
+        results = self.db.pselect(query=query, args=(scanner_id,))
+        return results[0]['CandID'] if results else None

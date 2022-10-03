@@ -820,6 +820,9 @@ class Imaging:
             project_id
         )
 
+    def get_scanner_candid(self, scanner_id):
+        return self.mri_scanner_db_obj.get_scanner_candid(scanner_id)
+
     @staticmethod
     def extract_files_from_dicom_archive(dicom_archive_path, extract_location_dir):
         """
