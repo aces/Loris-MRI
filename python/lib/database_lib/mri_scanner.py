@@ -126,7 +126,15 @@ class MriScanner:
         return scanner_id
 
     def get_scanner_candid(self, scanner_id):
+        """
+        Select a ScannerID CandID based on the scanner ID in mri_scanner.
 
+        :param scanner_id: scanner ID in the mri_scanner table
+         :type scanner_id: int
+
+        :return: scanner CandID
+         :rtype: int
+        """
         query = 'SELECT CandID FROM mri_scanner WHERE ID = %s'
         results = self.db.pselect(query=query, args=(scanner_id,))
         return results[0]['CandID'] if results else None
