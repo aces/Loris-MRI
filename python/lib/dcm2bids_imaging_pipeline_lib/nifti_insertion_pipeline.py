@@ -334,6 +334,17 @@ class NiftiInsertionPipeline(BasePipeline):
         If the image has 'warning' violations the violations will be inserted into the mri_violations_table as
         well and the Caveat will be set to True in the files table.
         """
+
+        bids_subcategories = self.bids_categories_dict['BIDSScanTypeSubCategory']
+        print(bids_subcategories)
+        print(self.json_path)
+        if self.json_path and bids_subcategories and re.match(r'task-', bids_subcategories):
+            with open(self.json_path) as json_file:
+                json_data = json.load(json_file)
+            json_data['TaskName'] = re.search(r'task-([a-zA-Z0-9]*)', bids_subcategories).group(1)
+            with open(self.json_path, 'w') as json_file:
+                json_file.write(json.dumps(json_data, indent=4))
+
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
         self._create_destination_dir_and_move_image_files('assembly_bids')
 
