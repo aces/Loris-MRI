@@ -860,10 +860,11 @@ class Imaging:
                 fmap_acq_time = fmap_dict['acq_time']
                 next_fmap_acq_time = sorted_fmap_files_list[idx + 1]['acq_time'] \
                     if idx + 1 < len(sorted_fmap_files_list) else None
-                sorted_fmap_files_list[idx]['IntendedFor'] = self.get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(
-                    sorted_new_files_list,
-                    fmap_acq_time,
-                    next_fmap_acq_time
+                sorted_fmap_files_list[idx]['IntendedFor'] = \
+                    self.get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(
+                        sorted_new_files_list,
+                        fmap_acq_time,
+                        next_fmap_acq_time
                 )
 
         return sorted_fmap_files_dict
@@ -940,7 +941,7 @@ class Imaging:
          :type files_list: list
 
         :return: the list of files that might need fmap correction sorted by acquisition time.
-         :rtype: dict
+         :rtype: list
         """
 
         # list BIDS dwi, func and perf suffixes to handle
