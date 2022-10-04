@@ -835,6 +835,15 @@ class Imaging:
         return self.mri_scanner_db_obj.get_scanner_candid(scanner_id)
 
     def determine_intended_for_field_for_fmap_json_files(self, tarchive_id):
+        """
+        Determine what should go in the IntendedFor field of the fieldmap's JSON side car file.
+
+        :param tarchive_id: the Tarchive ID to process
+         :type tarchive_id: int
+
+        :return: a dictionary with the fieldmap scans dictionary containing JSON file path and intendedFor information
+         :rtype: dict
+        """
 
         # get list files from a given tarchive ID
         files_list = self.files_db_obj.get_files_inserted_for_tarchive_id(tarchive_id)
@@ -851,7 +860,7 @@ class Imaging:
                 fmap_acq_time = fmap_dict['acq_time']
                 next_fmap_acq_time = sorted_fmap_files_list[idx + 1]['acq_time'] \
                     if idx + 1 < len(sorted_fmap_files_list) else None
-                sorted_fmap_files_list[idx]['IntendedFor'] = self.get_closest_fieldmap_before_scan_based_on_acq_time(
+                sorted_fmap_files_list[idx]['IntendedFor'] = self.get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(
                     sorted_new_files_list,
                     fmap_acq_time,
                     next_fmap_acq_time
@@ -860,6 +869,20 @@ class Imaging:
         return sorted_fmap_files_dict
 
     def get_list_of_fmap_files_sorted_by_acq_time(self, files_list):
+        """
+        Get the list of fieldmap acquisitions that requires the IntendedFor field in their JSON file.
+        The following BIDS suffix will need that field according to BIDS standards:
+          - magnitude, magnitude1, magnitude2
+          - phasediff, phase1, phase2
+          - fieldmap
+          - epi
+
+        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive ID
+         :type files_list: list
+
+        :return: a dictionary with the dir-AP, dir-PA and no-dir keys listing the different NIfTI files for the tarchive
+         :rtype: dict
+        """
 
         # list BIDS fieldmap suffixes to handle
         bids_fmap_suffix_list = ['magnitude', 'magnitude1', 'magnitude2',
@@ -906,6 +929,19 @@ class Imaging:
         return fmap_files_dict
 
     def get_list_of_files_sorted_by_acq_time(self, files_list):
+        """
+        Get a sorted list of the NIfTI files that might need fmap correction. That includes files with
+          - dwi BIDS subcategory: dwi, sbref
+          - func BIDS subcategory: bold, sbref
+          - perf BIDS subcategory: asl, sbref
+        The returned list will be sorted by acquisition time.
+
+        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive ID
+         :type files_list: list
+
+        :return: the list of files that might need fmap correction sorted by acquisition time.
+         :rtype: dict
+        """
 
         # list BIDS dwi, func and perf suffixes to handle
         bids_dwi_suffix_list = ['dwi', 'sbref']
@@ -946,6 +982,12 @@ class Imaging:
         return sorted(new_files_list, key=lambda x: x['acq_time'])
 
     def modify_fmap_json_file_to_write_intended_for(self, sorted_fmap_files_list):
+        """
+        Function that reads the JSON file and modifies it to add the BIDS IntendedFor field to it.
+
+        :param sorted_fmap_files_list: list of dictionary that contains JSON file path info and IntendedFor content
+         :type sorted_fmap_files_list: list
+        """
 
         for fmap_dict in sorted_fmap_files_list:
             json_file_path = os.path.join(self.config_db_obj.get_config('dataDirBasepath'), fmap_dict['json_file_path'])
@@ -963,10 +1005,25 @@ class Imaging:
             self.param_file_db_obj.update_parameter_file(json_blake2, param_file_dict['ParameterFileID'])
 
     @staticmethod
-    def get_closest_fieldmap_before_scan_based_on_acq_time(files_list, current_fmap_acq_time, next_fmap_acq_time):
+    def get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(files_list, current_fmap_acq_time,
+                                                                                    next_fmap_acq_time):
+        """
+        Determine the list files to add to the IntendedFor field of the current JSON fieldmap examined.
+        The matching files will be the ones acquired after the current fieldmap examined and before the next
+        fieldmap examined.
 
-        # go for acquisitions closest to the acq_time of the fmap before and after the fmap
+        :param files_list: list of files to loop through
+         :type files_list: list
+        :param current_fmap_acq_time: the acquisition time of the fieldmap for which IntendedFor is generated
+         :type current_fmap_acq_time: str
+        :param next_fmap_acq_time: the acquisition of the next fieldmap
+         :type next_fmap_acq_time: str
 
+        :return: content of the IntendedFor array to be added to the fieldmap JSON file
+         :rtype: list
+        """
+
+        # find acquisitions closest to the acq_time of the fmap after the fmap acquisition
         intended_for = []
         for file_dict in files_list:
             if not file_dict['acq_time']:

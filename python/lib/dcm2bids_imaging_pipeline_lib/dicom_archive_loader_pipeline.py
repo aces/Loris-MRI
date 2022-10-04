@@ -331,6 +331,9 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         pass
 
     def _add_intended_for_to_fieldmap_json_files(self):
+        """
+        Add IntendedFor field in JSON file of fieldmap acquisitions according to BIDS standard for fieldmaps.
+        """
 
         fmap_files_dict = self.imaging_obj.determine_intended_for_field_for_fmap_json_files(self.tarchive_id)
 
