@@ -960,7 +960,7 @@ class Imaging:
             )['Value']
             require_fmap = False
             if (bids_info['BIDSCategoryName'] == 'dwi' and bids_info['BIDSScanType'] in bids_dwi_suffix_list) \
-                    or (bids_info['BIDSCategoryName'] == 'func' and bids_info['BIDSScanType'] in bids_func_suffix_list) \
+                    or (bids_info['BIDSCategoryName'] == 'func' and bids_info['BIDSScanType'] in bids_func_suffix_list)\
                     or (bids_info['BIDSCategoryName'] == 'perf' and bids_info['BIDSScanType'] in bids_perf_suffix_list):
                 require_fmap = True
 
