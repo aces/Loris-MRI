@@ -258,7 +258,7 @@ foreach my $input (@inputs)
     }
 
     ##if qsub is enabled use it
-    if (defined $is_qsub) {
+    if ($is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
     	 print QSUB $command;
     	 close QSUB;
