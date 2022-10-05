@@ -186,7 +186,8 @@ my $data_dir           = $configOB->getDataDirPath();
 my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
 my $mail_user          = $configOB->getMailUser();
 my $is_qsub            = $configOB->getIsQsub();
-
+my $converter          = $configOB->getConverter();
+my $bin_dirPath        = $configOB->getMriCodePath();
 
 
 # define project space
@@ -237,16 +238,27 @@ foreach my $input (@inputs)
     ## this is where the subprocesses are created...
     ## should basically run processor script with study directory as argument.
     ## processor will do all the real magic
-
     my $tarchive_path = "$tarchiveLibraryDir/$tarchive";
-    my $command = sprintf(
-        "tarchiveLoader.pl -profile %s -uploadID %s %s",
-        $profile,
-        quotemeta($upload_id),
-        quotemeta($tarchive_path)
-    );
+    my $command;
+    if ($converter =~ m/dcm2mnc/i) {
+        $command = sprintf(
+            "tarchiveLoader.pl -profile %s -uploadID %s %s",
+            $profile,
+            quotemeta($upload_id),
+            quotemeta($tarchive_path)
+        );
+    } elsif ($converter =~ m/dcm2niix/i) {
+        my $python_config = $configOB->getPythonConfigFile();
+            $command = sprintf(
+            "%s/python/run_dicom_archive_loader.py -p %s -t %s",
+            quotemeta($bin_dirPath),
+            $python_config,
+            quotemeta($tarchive_path)
+        );
+    }
+
     ##if qsub is enabled use it
-    if ($is_qsub) {
+    if (defined $is_qsub) {
 	     open QSUB, "| qsub -V -e $stderr -o $stdout -N process_tarchive_${counter}";
     	 print QSUB $command;
     	 close QSUB;
