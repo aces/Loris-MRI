@@ -93,6 +93,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             self._update_mri_upload()
 
         self._get_summary_of_insertion()
+        self.remove_tmp_dir()  # remove temporary directory
         sys.exit(lib.exitcode.SUCCESS)
 
     def _run_dicom_archive_validation_pipeline(self):

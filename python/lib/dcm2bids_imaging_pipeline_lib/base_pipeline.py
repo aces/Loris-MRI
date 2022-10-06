@@ -289,6 +289,7 @@ class BasePipeline:
         if self.upload_id:
             self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=("Inserting",), values=("0",))
         print(f"\n{err_msg}\n")
+        self.remove_tmp_dir()
         sys.exit(exit_code)
 
     def log_info(self, message, is_error, is_verbose):
@@ -471,3 +472,8 @@ class BasePipeline:
         if not os.path.exists(new_file_path):
             message = f'Could not move {old_file_path} to {new_file_path}'
             self.log_error_and_exit(message, lib.exitcode.COPY_FAILURE, is_error='Y', is_verbose='N')
+
+    def remove_tmp_dir(self):
+
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
