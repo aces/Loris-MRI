@@ -88,10 +88,12 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         if self.inserted_file_count > 0:
             self._move_and_update_dicom_archive()
             self._compute_snr()
+            self._add_intended_for_to_fieldmap_json_files()
             self._order_modalities_per_acquisition_type()
             self._update_mri_upload()
 
         self._get_summary_of_insertion()
+        self.remove_tmp_dir()  # remove temporary directory
         sys.exit(lib.exitcode.SUCCESS)
 
     def _run_dicom_archive_validation_pipeline(self):
@@ -332,6 +334,17 @@ class DicomArchiveLoaderPipeline(BasePipeline):
     def _compute_snr(self):
         # TODO: to be implemented later on. No clear paths as to how to compute that
         pass
+
+    def _add_intended_for_to_fieldmap_json_files(self):
+        """
+        Add IntendedFor field in JSON file of fieldmap acquisitions according to BIDS standard for fieldmaps.
+        """
+
+        fmap_files_dict = self.imaging_obj.determine_intended_for_field_for_fmap_json_files(self.tarchive_id)
+
+        for key in fmap_files_dict.keys():
+            sorted_fmap_files_list = fmap_files_dict[key]
+            self.imaging_obj.modify_fmap_json_file_to_write_intended_for(sorted_fmap_files_list)
 
     def _order_modalities_per_acquisition_type(self):
         """
