@@ -474,6 +474,9 @@ class BasePipeline:
             self.log_error_and_exit(message, lib.exitcode.COPY_FAILURE, is_error='Y', is_verbose='N')
 
     def remove_tmp_dir(self):
+        """
+        Removes the temporary directory that was created by the pipeline.
+        """
 
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
