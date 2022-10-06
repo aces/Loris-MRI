@@ -155,6 +155,11 @@ class NiftiInsertionPipeline(BasePipeline):
         self._create_pic_image()
 
         # ---------------------------------------------------------------------------------------------
+        # Remove the tmp directory from the file system
+        # ---------------------------------------------------------------------------------------------
+        self.remove_tmp_dir()
+
+        # ---------------------------------------------------------------------------------------------
         # If we get there, the insertion was complete and successful
         # ---------------------------------------------------------------------------------------------
         sys.exit(lib.exitcode.SUCCESS)
