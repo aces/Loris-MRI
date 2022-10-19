@@ -1783,13 +1783,13 @@ sub CreateMRICandidates {
     chomp($User);
     $candID = NeuroDB::MRI::createNewCandID($dbhr) unless $candID;
     my %record = (
-        CandID               => $subjectIDsref->{'CandID'},
-        PSCID                => $subjectIDsref->{'PSCID'},
-        DoB                  => $subjectIDsref->{'PatientDoB'},
-        ProjectID            => $subjectIDsref->{'ProjectID'},
-        Sex                  => $sex,
-        RegistrationCenterID => $centerID,
-        UserID               => $User,
+        CandID                => $subjectIDsref->{'CandID'},
+        PSCID                 => $subjectIDsref->{'PSCID'},
+        DoB                   => $subjectIDsref->{'PatientDoB'},
+        Sex                   => $sex,
+        RegistrationCenterID  => $centerID,
+        RegistrationProjectID => $subjectIDsref->{'ProjectID'},
+        UserID                => $User,
     );
 
     $query = sprintf(

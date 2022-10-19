@@ -51,13 +51,15 @@ sub getSubjectIDs {
 
         $subjectID{'createVisitLabel'} = 1;
 
-        # When createVisitLabel is set to 1, CohortID must also
+	# $subjectID{'CohortID'} = undef;
+        # When createVisitLabel is set to 1, CohortID  must also
         # be set to the ID of the cohort that the newly created
         # visit should have. Assuming for example that all patient
         # names end with "_<myCohortID>", then we could write:
         # ($subjectID{'CohortID'}) = $patientName =~ /_(\d+)$/;
         # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
 
+        # $subjectID{'ProjectID'} = 1;
         # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
         # newly created visit. Assuming for example that all patients
@@ -79,6 +81,7 @@ sub getSubjectIDs {
 
         $subjectID{'createVisitLabel'} = 0;
   
+        # $subjectID{'CohortID'} = 1;
         # When createVisitLabel is set to 1, CohortID must also
         # be set to the ID of the cohort that the newly created
         # visit should have. Assuming for example that visits V01 and V02
@@ -88,6 +91,7 @@ sub getSubjectIDs {
         #     ? 1 : 2;
         # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
         
+        $subjectID{'ProjectID'} = 1;
         # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
         # newly created visit. Assuming for example that candidates with a
@@ -96,11 +100,12 @@ sub getSubjectIDs {
         # could write:
         # $subjectID{'ProjectID'} = $subjectID{'CandID'} > 400000 ? 1 : 2;
         #     ? 1 : 2;
-        # When createVisitLabel is set to 0, $subjectID{'ProjectID'} is ignored.
+        # When createVisitLabel and createCandidates are set to 0, $subjectID{'ProjectID'} is ignored.
 
-        print "PSCID is: "            . $subjectID{'PSCID'}      . 
-                "\n CandID id: "      . $subjectID{'CandID'}     .
-                "\n visit_label is: " . $subjectID{'visitLabel'} . "\n";
+        print "PSCID is: "            . $subjectID{'PSCID'}  .
+                "\n CandID id: "      . $subjectID{'CandID'} .
+                "\n visit_label is: " . $subjectID{'visitLabel'} . "\n" .
+                "\n ProjectID is: "   . $subjectID{'ProjectID'} . "\n";
     }
    
     # Return subjectIDs
