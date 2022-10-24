@@ -256,7 +256,7 @@ if [[ " ${debian[*]} " =~ " $os_distro " ]]; then
 		exit
 	fi
 
-	echo "Installing DICOM Toolkit \(May prompt for sudo password\)"
+	echo "Installing DICOM Toolkit (May prompt for sudo password)"
 	sudo -S apt-get install dcmtk
 	
 elif [[ " ${redhat[*]} " =~ " $os_distro " ]]; then
