@@ -8,12 +8,12 @@
 #4)It doesn't populate the Config tables with paths etc.
 ##################################
 
-#Create a temporary log for installation and delete it on completion 
+#Create a temporary log for installation and delete it on completion
 #@TODO make sure that /tmp is writable
 LOGFILE="/tmp/$(basename $0).$$.tmp"
 touch $LOGFILE
 trap "rm  $LOGFILE" EXIT
- 
+
 if [[ -n $(which mincheader) ]]; then
     echo ""
     echo "MINC Toolkit appears to be installed."
@@ -52,8 +52,8 @@ read -p "What is your email address? " email
 read -p "What prod file name would you like to use? default: prod " prodfilename
 if [ -z "$prodfilename" ]; then
     prodfilename="prod"
-fi 
- 
+fi
+
 mridir=`pwd`
 
 # Test the connection to the database before proceeding
@@ -74,7 +74,7 @@ then
 		echo $test_query_output >&2
 		echo "Aborting..."
 	fi
-	
+
 	exit 1
 fi
 
@@ -132,7 +132,7 @@ echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/logs"             #holds logs from pipeline script
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly"         #holds the MINC files
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly_bids     #holds the BIDS files derived from DICOMs
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly_bids"    #holds the BIDS files derived from DICOMs
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue)
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/bids_imports"     #contains imported BIDS studies
   sudo -S su $USER -c "mkdir -m 770 -p $mridir/dicom-archive/.loris_mri"
@@ -167,7 +167,7 @@ echo
 ######################Add the proper Apache group user #############################
 ####################################################################################
 if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
-then 
+then
     group=www-data
 elif egrep ^www: /etc/group  > $LOGFILE 2>&1;
 then
@@ -197,7 +197,7 @@ sudo chgrp $group -R /data/$PROJ/
 sudo chmod -R g+s /data/$PROJ/data/
 
 # Setting group permissions and group ID for all files/dirs under /data/incoming
-# If the directory was not created earlier, then instructions to do so manually are provided. 
+# If the directory was not created earlier, then instructions to do so manually are provided.
 if [ -d "/data/incoming/" ]
 then
 	sudo chmod -R 770 /data/incoming/
@@ -258,7 +258,7 @@ if [[ " ${debian[*]} " =~ " $os_distro " ]]; then
 
 	echo "Installing DICOM Toolkit (May prompt for sudo password)"
 	sudo -S apt-get install dcmtk
-	
+
 elif [[ " ${redhat[*]} " =~ " $os_distro " ]]; then
 	echo "You are running ${os_distro}. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies for RedHat-based distributions."
 fi

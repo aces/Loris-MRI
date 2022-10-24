@@ -600,7 +600,6 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         scan_param = self.json_file_dict
-
         acquisition_date = None
         phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys() else None
         if "AcquisitionDateTime" in scan_param.keys():
