@@ -10,7 +10,7 @@ This repo can be installed on the same VM as the main LORIS codebase, or on a di
  * Python 3 with pip3 and virtualenv (step 2 below)
  * MINC toolkit (step 3 below)
  * DICOM toolkit (step 4 below)
- * tpcclib (for HRRT PET only) (http://www.turkupetcentre.net/tpcclib-doc/md_install.html)
+ * tpcclib (for HRRT PET only) (step 5 below)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
@@ -95,7 +95,11 @@ For the defacing scripts, you will also need to download the pre-compiled `bic-m
   imaging pipeline. The installer will also set Apache group ownership of certain 
   `/data/` and `/opt/` subdirectories.
 
-#### 5. Configure paths and environment
+#### 5. HRRT PET
+
+For HRRT PET, install [tpcclib](http://www.turkupetcentre.net/tpcclib-doc/md_install.html).
+
+#### 6. Configure paths and environment
 
    Ensure that `/home/lorisadmin/.bashrc` includes the statement:
 
