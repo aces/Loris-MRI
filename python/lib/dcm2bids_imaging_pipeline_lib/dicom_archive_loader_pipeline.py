@@ -144,6 +144,9 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         os.makedirs(nifti_tmp_dir)
 
         converter = self.config_db_obj.get_config("converter")
+        if not re.search('.*dcm2niix.*', converter, re.IGNORECASE):
+            message = f"{converter} does not appear to be a dcm2niix binary."
+            self.log_error_and_exit(message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE, is_error="Y", is_verbose="N")
 
         dcm2niix_process = subprocess.Popen(
             [converter, "-ba", "n", "-z", "y", "-o", nifti_tmp_dir, self.extracted_dicom_dir],
