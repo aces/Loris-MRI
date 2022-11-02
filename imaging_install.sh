@@ -74,7 +74,7 @@ then
 		echo $test_query_output >&2
 		echo "Aborting..."
 	fi
-	
+
 	exit 1
 fi
 
@@ -132,7 +132,7 @@ echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/logs"             #holds logs from pipeline script
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly"         #holds the MINC files
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly_bids     #holds the BIDS files derived from DICOMs
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly_bids"    #holds the BIDS files derived from DICOMs
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue)
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/bids_imports"     #contains imported BIDS studies
   sudo -S su $USER -c "mkdir -m 770 -p $mridir/dicom-archive/.loris_mri"
@@ -258,7 +258,7 @@ if [[ " ${debian[*]} " =~ " $os_distro " ]]; then
 
 	echo "Installing DICOM Toolkit (May prompt for sudo password)"
 	sudo -S apt-get install dcmtk
-	
+
 elif [[ " ${redhat[*]} " =~ " $os_distro " ]]; then
 	echo "You are running ${os_distro}. Please also see Loris-MRI Readme for notes and links to further documentation in our main GitHub Wiki on how to install the DICOM Toolkit and other required dependencies for RedHat-based distributions."
 fi
