@@ -643,11 +643,12 @@ sub HrrtPatientNameMatch {
     # if the filename name matches one of the following, return 1 as the patient
     # name will not be in the filename anyway
     my $exclude_regex = "blank|phantom|temp|test|tar|noisytx|"
-                        . "script|ini|directnorm|up_mask";
+                        . "script|ini|directnorm|up_mask|To_Archive|mask_input";
     return 1 if ( $filename =~ /$exclude_regex/i );
 
     # if the patient name matches with the filename return 1, otherwise return 0
-    ( $filename =~ /$this->{'pname'}/i ) ? return 1 : return 0;
+    my $parsed_filename = $filename =~ s/-/_/r;
+    ( $parsed_filename =~ /$this->{'pname'}/i ) ? return 1 : return 0;
 }
 
 
