@@ -111,6 +111,12 @@ class Candidate:
                   + " participants.tsv's site column")
             sys.exit(lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
 
+        if not self.project_id:
+            print("ERROR: could not determine project for " + self.psc_id + "."
+                  + " Please check that your project table contains a project with a"
+                  + " name matching the participants.tsv's project column")
+            sys.exit(lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
+
         if self.verbose:
             print("Creating candidate with \n"
                   + "PSCID     = " + self.psc_id + ",\n"
