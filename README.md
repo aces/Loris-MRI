@@ -27,7 +27,7 @@ See [aces/Loris](https://github.com/aces/loris) README.md for further informatio
    sudo mkdir -p /data/$projectname
    sudo mkdir -p /opt/$projectname/bin/mri
    sudo chown -R lorisadmin:lorisadmin /data/$projectname
-   sudo chown -R lorisadmin:lorisadmin /opt/$projectnawe
+   sudo chown -R lorisadmin:lorisadmin /opt/$projectname
    cd /opt/$projectname/bin
    ```
 
