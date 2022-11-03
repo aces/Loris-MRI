@@ -535,10 +535,9 @@ class Physiological:
                 if field not in row.keys():
                     row[field] = None
 
-            # TODO: remove the following if once received confirmation from
-            # TODO: James it was an error.
-            if "NaN" in row['duration']:
-                row['duration'] = 0
+            duration = 0
+            if (type(row['duration']) == int or type(row['duration']) == float):
+                duration = row['duration']
 
             sample = None
             if row['event_sample'] and (type(row['event_sample']) == int or type(row['event_sample']) == float):
@@ -552,12 +551,16 @@ class Physiological:
             elif row['value']:
                 event_value = str(row['value'])
 
+            response_time = None
+            if row['response_time'] and (type(row['response_time']) == int or type(row['response_time']) == float):
+                response_time = row['response_time']
+
             values_tuple = (
                 str(physiological_file_id),
                 row['onset'],
-                row['duration'],
+                duration,
                 row['trial_type'],
-                row['response_time'],
+                response_time,
                 row['event_code'],
                 event_value,
                 sample,
