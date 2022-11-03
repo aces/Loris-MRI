@@ -7,10 +7,7 @@ import numpy as np
 from scipy import signal
 import sys
 
-try:
-    from .protocol_buffers import chunk_pb2 as chunk_pb
-except Exception:
-    from protocol_buffers import chunk_pb2 as chunk_pb
+from protocol_buffers import chunk_pb2 as chunk_pb
 
 
 def pad_channels(channels, chunk_size):
