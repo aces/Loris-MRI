@@ -96,7 +96,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Determine/create the session the file should be linked to
         # ---------------------------------------------------------------------------------------------
         self.get_session_info()
-        if not self.session_obj.session_info_dict.keys():
+        if not self.session_obj.session_info_dict:
             self.create_session()
 
         # ---------------------------------------------------------------------------------------------
