@@ -672,11 +672,11 @@ class Imaging:
          :rtype: bool
         """
 
-        scan_tr = scan_param['RepetitionTime'] * 1000
-        scan_te = scan_param['EchoTime'] * 1000
+        scan_tr = scan_param['RepetitionTime'] * 1000 if 'RepetitionTime' in scan_param else None
+        scan_te = scan_param['EchoTime'] * 1000 if 'EchoTime' in scan_param else None
         scan_ti = scan_param['InversionTime'] * 1000 if 'InversionTime' in scan_param else None
-        scan_slice_thick = scan_param['SliceThickness']
-        scan_img_type = str(scan_param['ImageType'])
+        scan_slice_thick = scan_param['SliceThickness'] if 'SliceThickness' in scan_param else None
+        scan_img_type = str(scan_param['ImageType']) if 'ImageType' in scan_param else None
         scan_ped = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param else None
         scan_en = scan_param['EchoNumber'] if 'EchoNumber' in scan_param else None
 
