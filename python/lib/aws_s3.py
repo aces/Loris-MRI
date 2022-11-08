@@ -53,9 +53,12 @@ class AwsS3:
         """
 
         # Upload the file
+        s3_prefix = f"s3://{self.bucket_name}/"
+        s3_file_name = object_name[len(s3_prefix):] if object_name.startswith(s3_prefix) else object_name
+
         try:
-            print(f"Uploading {object_name} to {self.aws_endpoint_url}/{self.bucket_name}")
-            self.s3_bucket_obj.upload_file(file_name, object_name)
+            print(f"Uploading {s3_file_name} to {self.aws_endpoint_url}/{self.bucket_name}")
+            self.s3_bucket_obj.upload_file(file_name, s3_file_name)
         except ClientError as err:
             raise Exception(f"{file_name} upload failure - {format(err)}")
 
