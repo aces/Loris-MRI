@@ -77,3 +77,24 @@ class AwsS3:
             return False
 
         return True
+
+    def download_file(self, s3_object_name, destination_file):
+        """
+        Download a file from an S3 bucket
+
+        :param s3_object_name: S3 object name to download from
+         :type s3_object_name: str
+        :param destination_file: Full path where the file should be downloaded
+         :type destination_file: str
+        """
+
+        s3_prefix = f"s3://{self.bucket_name}/"
+        s3_file_name = s3_object_name[len(s3_prefix):] if s3_object_name.startswith(s3_prefix) else s3_object_name
+        print(s3_file_name)
+
+
+        try:
+            print(f"Downloading {s3_file_name} from {self.aws_endpoint_url}/{self.bucket_name} to {destination_file}")
+            self.s3_bucket_obj.download_file(s3_file_name, destination_file)
+        except ClientError as err:
+            raise Exception(f"{s3_object_name} download failure = {format(err)}")
