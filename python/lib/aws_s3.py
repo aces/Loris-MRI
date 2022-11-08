@@ -90,8 +90,6 @@ class AwsS3:
 
         s3_prefix = f"s3://{self.bucket_name}/"
         s3_file_name = s3_object_name[len(s3_prefix):] if s3_object_name.startswith(s3_prefix) else s3_object_name
-        print(s3_file_name)
-
 
         try:
             print(f"Downloading {s3_file_name} from {self.aws_endpoint_url}/{self.bucket_name} to {destination_file}")
