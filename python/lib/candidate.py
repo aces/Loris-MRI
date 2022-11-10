@@ -110,7 +110,7 @@ class Candidate:
                     "SELECT RegistrationCenterID FROM candidate WHERE pscid = %s",
                     [self.psc_id, ]
                 )
-                if(len(candidate_site_project) > 0):
+                if len(candidate_site_project) > 0:
                     self.center_id = candidate_site_project[0]['RegistrationCenterID']
 
             # two steps to find project:
@@ -132,7 +132,7 @@ class Candidate:
                     "SELECT RegistrationProjectID FROM candidate WHERE pscid = %s",
                     [self.psc_id, ]
                 )
-                if(len(candidate_site_project) > 0):
+                if len(candidate_site_project) > 0:
                     self.center_id = candidate_site_project[0]['RegistrationProjectID']
 
         if not self.center_id:
