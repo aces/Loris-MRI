@@ -83,26 +83,65 @@ class Candidate:
             if 'age' in row:
                 self.age = row['age']
 
+            # three steps to find site:
+            #   1. try matching full name from 'site' column in participants.tsv in db
+            #   2. try extracting alias from pscid
+            #   3. try finding previous site in candidate table
+
             if 'site' in row:
+                # search site id in psc table by its full name
                 site_info = db.pselect(
                     "SELECT CenterID FROM psc WHERE Name = %s",
                     [row['site'], ]
                 )
                 if(len(site_info) > 0):
                     self.center_id = site_info[0]['CenterID']
-            else:
-                db_sites = db.pselect("SELECT CenterID, Alias FROM psc")
-                for site in db_sites:
-                    if site['Alias'] in row['participant_id']:
-                        self.center_id = site['CenterID']
+
+            if self.center_id is None:
+                # search site id in psc table by its alias extracted from pscid
+                p = re.compile(r'[^a-zA-Z]+', re.UNICODE)
+                possible_site = p.sub('', self.psc_id)[2:].upper()
+                db_site = db.pselect(
+                    "SELECT CenterID, Alias FROM psc WHERE Alias = %s",
+                    [possible_site, ]
+                )
+                if(len(db_site) > 0):
+                    self.center_id = db_site[0]['CenterID']
+
+            if self.center_id is None:
+                # try to find participant site in db
+                candidate_site_project = db.pselect(
+                    "SELECT RegistrationCenterID FROM candidate WHERE pscid = %s",
+                    [self.psc_id, ]
+                )
+                try:
+                    self.center_id = candidate_site_project[0]['RegistrationCenterID']
+                except KeyError:
+                    pass
+
+            # two steps to find project:
+            #   1. find full name in 'project' column in participants.tsv
+            #   2. find previous in candidate table
 
             if 'project' in row:
+                # search project id in Project table by its full name
                 project_info = db.pselect(
                     "SELECT ProjectID FROM Project WHERE Name = %s",
                     [row['project'], ]
                 )
                 if(len(project_info) > 0):
                     self.project_id = project_info[0]['ProjectID']
+
+            if self.project_id is None:
+                # try to find participant project
+                candidate_site_project = db.pselect(
+                    "SELECT RegistrationProjectID FROM candidate WHERE pscid = %s",
+                    [self.psc_id, ]
+                )
+                try:
+                    self.project_id = candidate_site_project[0]['RegistrationProjectID']
+                except KeyError:
+                    pass
 
         if not self.center_id:
             print("ERROR: could not determine site for " + self.psc_id + "."
@@ -124,8 +163,8 @@ class Candidate:
                   + "CenterID  = " + str(self.center_id)  + ",\n"
                   + "ProjectID = " + str(self.project_id))
 
-        insert_col = ('PSCID', 'CandID', 'RegistrationCenterID')
-        insert_val = (self.psc_id, str(self.cand_id), str(self.center_id))
+        insert_col = ('PSCID', 'CandID', 'RegistrationCenterID', 'RegistrationProjectID')
+        insert_val = (self.psc_id, str(self.cand_id), str(self.center_id), str(self.project_id))
 
         if self.sex:
             insert_col = insert_col + ('Sex',)
@@ -133,9 +172,6 @@ class Candidate:
         if self.dob:
             insert_col = insert_col + ('DoB',)
             insert_val = insert_val + (self.dob,)
-        if self.project_id:
-            insert_col = insert_col + ('RegistrationProjectID',)
-            insert_val = insert_val + (str(self.project_id),)
 
         db.insert(
             table_name='candidate',
