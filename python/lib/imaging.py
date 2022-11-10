@@ -323,6 +323,18 @@ class Imaging:
         """
         return self.mri_scan_type_db_obj.get_scan_type_name_from_id(scan_type_id)
 
+    def get_scan_type_id_from_scan_type_name(self, scan_type_name):
+        """
+        Returns the acquisition protocol ID associated to a scan type name.
+
+        :param scan_type_name: scan type name
+         :type scan_type_name: str
+
+        :return: acquisition protocol ID associated to the scan type name
+         :rtype: int
+        """
+        return self.mri_scan_type_db_obj.get_scan_type_id_from_name(scan_type_name)
+
     def get_bids_to_minc_terms_mapping(self):
         """
         Returns the BIDS to MINC terms mapping queried from parameter_type table.
