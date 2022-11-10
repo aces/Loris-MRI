@@ -35,7 +35,7 @@ jobs:
           #     E241: Multiple spaces after ','
           #     E251: Unexpected spaces around keyword / parameter equals
           #     E272: Multiple spaces before keyword
-          flake8_args: "--ignore=W291,W292,W293,E202,E203,E221,E241,E251,E272
+          flake8_args: "--ignore=W291,W292,W293,W503,E202,E203,E221,E241,E251,E272
                         --max-line-length 120
                         --exclude python/react-series-data-viewer/protocol_buffers/"
           github_token: ${{ secrets.GITHUB_TOKEN }}
