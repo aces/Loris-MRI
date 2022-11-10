@@ -4,6 +4,7 @@ import random
 from dateutil.parser import parse
 import lib.exitcode
 import sys
+import re
 
 __license__ = "GPLv3"
 
@@ -105,7 +106,7 @@ class Candidate:
                     "SELECT CenterID, Alias FROM psc WHERE Alias = %s",
                     [possible_site, ]
                 )
-                if(len(db_site) > 0):
+                if len(db_site) > 0:
                     self.center_id = db_site[0]['CenterID']
 
             if self.center_id is None:
