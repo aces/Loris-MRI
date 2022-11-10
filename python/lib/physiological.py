@@ -540,7 +540,7 @@ class Physiological:
                 duration = row['duration']
 
             sample = None
-            if row['event_sample'] and (type(row['event_sample']) == int or type(row['event_sample']) == float):
+            if type(row['event_sample']) == int or type(row['event_sample']) == float:
                 sample = row['event_sample']
             if row['sample'] and (type(row['sample']) == int or type(row['sample']) == float):
                 sample = row['sample']
@@ -552,7 +552,7 @@ class Physiological:
                 event_value = str(row['value'])
 
             response_time = None
-            if row['response_time'] and (type(row['response_time']) == int or type(row['response_time']) == float):
+            if type(row['response_time']) == int or type(row['response_time']) == float:
                 response_time = row['response_time']
 
             values_tuple = (
