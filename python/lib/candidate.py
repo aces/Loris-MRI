@@ -4,7 +4,6 @@ import random
 from dateutil.parser import parse
 import lib.exitcode
 import sys
-import re
 
 __license__ = "GPLv3"
 
@@ -89,7 +88,7 @@ class Candidate:
             #   2. try extracting alias from pscid
             #   3. try finding previous site in candidate table
 
-            if 'site' in row:
+            if 'site' in row and row['site'].lower() not in ("null", ""):
                 # search site id in psc table by its full name
                 site_info = db.pselect(
                     "SELECT CenterID FROM psc WHERE Name = %s",
@@ -100,14 +99,10 @@ class Candidate:
 
             if self.center_id is None:
                 # search site id in psc table by its alias extracted from pscid
-                p = re.compile(r'[^a-zA-Z]+', re.UNICODE)
-                possible_site = p.sub('', self.psc_id)[-3:].upper()
-                db_site = db.pselect(
-                    "SELECT CenterID, Alias FROM psc WHERE Alias = %s",
-                    [possible_site, ]
-                )
-                if len(db_site) > 0:
-                    self.center_id = db_site[0]['CenterID']
+                db_sites = db.pselect("SELECT CenterID, Alias FROM psc")
+                for site in db_sites:
+                    if site['Alias'] in row['participant_id']:
+                        self.center_id = site['CenterID']
 
             if self.center_id is None:
                 # try to find participant site in db
@@ -115,16 +110,14 @@ class Candidate:
                     "SELECT RegistrationCenterID FROM candidate WHERE pscid = %s",
                     [self.psc_id, ]
                 )
-                try:
+                if(len(candidate_site_project) > 0):
                     self.center_id = candidate_site_project[0]['RegistrationCenterID']
-                except KeyError:
-                    pass
 
             # two steps to find project:
             #   1. find full name in 'project' column in participants.tsv
             #   2. find previous in candidate table
 
-            if 'project' in row:
+            if 'project' in row and row['project'].lower() not in ("null", ""):
                 # search project id in Project table by its full name
                 project_info = db.pselect(
                     "SELECT ProjectID FROM Project WHERE Name = %s",
@@ -139,10 +132,8 @@ class Candidate:
                     "SELECT RegistrationProjectID FROM candidate WHERE pscid = %s",
                     [self.psc_id, ]
                 )
-                try:
-                    self.project_id = candidate_site_project[0]['RegistrationProjectID']
-                except KeyError:
-                    pass
+                if(len(candidate_site_project) > 0):
+                    self.center_id = candidate_site_project[0]['RegistrationProjectID']
 
         if not self.center_id:
             print("ERROR: could not determine site for " + self.psc_id + "."
