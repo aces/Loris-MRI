@@ -101,7 +101,7 @@ class Candidate:
             if self.center_id is None:
                 # search site id in psc table by its alias extracted from pscid
                 p = re.compile(r'[^a-zA-Z]+', re.UNICODE)
-                possible_site = p.sub('', self.psc_id)[2:].upper()
+                possible_site = p.sub('', self.psc_id)[-3:].upper()
                 db_site = db.pselect(
                     "SELECT CenterID, Alias FROM psc WHERE Alias = %s",
                     [possible_site, ]
