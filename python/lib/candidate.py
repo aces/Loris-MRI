@@ -94,7 +94,7 @@ class Candidate:
                     "SELECT CenterID FROM psc WHERE Name = %s",
                     [row['site'], ]
                 )
-                if(len(site_info) > 0):
+                if len(site_info) > 0:
                     self.center_id = site_info[0]['CenterID']
 
             if self.center_id is None:
@@ -123,7 +123,7 @@ class Candidate:
                     "SELECT ProjectID FROM Project WHERE Name = %s",
                     [row['project'], ]
                 )
-                if(len(project_info) > 0):
+                if len(project_info) > 0:
                     self.project_id = project_info[0]['ProjectID']
 
             if self.project_id is None:
