@@ -95,6 +95,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
         file_entries = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
         for file in file_entries:
+            if file['File'].startswith('s3://'):
+                # skip since file already pushed to S3
+                continue
             self.files_to_push_list.append({
                 "table_name": "files",
                 "id_field_name": "FileID",
@@ -146,6 +149,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             if not os.path.exists(entry['minc_location']):
                 # violation has been rerun or moved
                 continue
+            if entry['minc_location'].startswith('s3://'):
+                # skip since file already pushed to S3
+                continue
             self.files_to_push_list.append({
                 "table_name": "mri_protocol_violated_scans",
                 "id_field_name": "ID",
@@ -173,6 +179,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         for entry in exclude_entries + warning_entries:
             if not os.path.exists(entry['MincFile']):
                 # violation has been rerun or moved
+                continue
+            if entry['MincFile'].startswith('s3://'):
+                # skip since file already pushed to S3
                 continue
             self.files_to_push_list.append({
                 "table_name": "mri_violations_log",
