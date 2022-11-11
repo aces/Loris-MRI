@@ -143,6 +143,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(self.tarchive_id)
 
         for entry in entries:
+            if not os.path.exists(entry['minc_location']):
+                # violation has been rerun or moved
+                continue
             self.files_to_push_list.append({
                 "table_name": "mri_protocol_violated_scans",
                 "id_field_name": "ID",
@@ -168,6 +171,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         )
 
         for entry in exclude_entries + warning_entries:
+            if not os.path.exists(entry['MincFile']):
+                # violation has been rerun or moved
+                continue
             self.files_to_push_list.append({
                 "table_name": "mri_violations_log",
                 "id_field_name": "LogID",
