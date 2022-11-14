@@ -323,6 +323,18 @@ class Imaging:
         """
         return self.mri_scan_type_db_obj.get_scan_type_name_from_id(scan_type_id)
 
+    def get_scan_type_id_from_scan_type_name(self, scan_type_name):
+        """
+        Returns the acquisition protocol ID associated to a scan type name.
+
+        :param scan_type_name: scan type name
+         :type scan_type_name: str
+
+        :return: acquisition protocol ID associated to the scan type name
+         :rtype: int
+        """
+        return self.mri_scan_type_db_obj.get_scan_type_id_from_name(scan_type_name)
+
     def get_bids_to_minc_terms_mapping(self):
         """
         Returns the BIDS to MINC terms mapping queried from parameter_type table.
@@ -672,11 +684,11 @@ class Imaging:
          :rtype: bool
         """
 
-        scan_tr = scan_param['RepetitionTime'] * 1000
-        scan_te = scan_param['EchoTime'] * 1000
+        scan_tr = scan_param['RepetitionTime'] * 1000 if 'RepetitionTime' in scan_param else None
+        scan_te = scan_param['EchoTime'] * 1000 if 'EchoTime' in scan_param else None
         scan_ti = scan_param['InversionTime'] * 1000 if 'InversionTime' in scan_param else None
-        scan_slice_thick = scan_param['SliceThickness']
-        scan_img_type = str(scan_param['ImageType'])
+        scan_slice_thick = scan_param['SliceThickness'] if 'SliceThickness' in scan_param else None
+        scan_img_type = str(scan_param['ImageType']) if 'ImageType' in scan_param else None
         scan_ped = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param else None
         scan_en = scan_param['EchoNumber'] if 'EchoNumber' in scan_param else None
 

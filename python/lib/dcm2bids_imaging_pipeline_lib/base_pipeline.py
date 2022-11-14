@@ -180,7 +180,8 @@ class BasePipeline:
         if cand_id and visit_label:
             self.session_obj.create_session_dict(cand_id, visit_label)
             session_dict = self.session_obj.session_info_dict
-            return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
+            if session_dict:
+                return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
 
         # if could not find center information based on cand_id and visit_label, use the
         # patient name to match it to the site alias or MRI alias
@@ -209,7 +210,7 @@ class BasePipeline:
             self.dicom_archive_obj.tarchive_info_dict['ScannerSerialNumber'],
             self.dicom_archive_obj.tarchive_info_dict['ScannerModel'],
             self.site_dict['CenterID'],
-            self.session_obj.session_info_dict['ProjectID']
+            self.session_obj.session_info_dict['ProjectID'] if self.session_obj.session_info_dict else None
         )
         message = f"Found Scanner ID: {str(scanner_id)}"
         self.log_info(message, is_error="N", is_verbose="Y")
@@ -319,7 +320,7 @@ class BasePipeline:
         visit_label = self.subject_id_dict["visitLabel"]
         self.session_obj.create_session_dict(cand_id, visit_label)
 
-        if self.session_obj.session_info_dict.keys():
+        if self.session_obj.session_info_dict:
             message = f"Session ID for the file to insert is {self.session_obj.session_info_dict['ID']}"
             self.log_info(message, is_error="N", is_verbose="Y")
 

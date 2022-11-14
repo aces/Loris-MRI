@@ -96,7 +96,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Determine/create the session the file should be linked to
         # ---------------------------------------------------------------------------------------------
         self.get_session_info()
-        if not self.session_obj.session_info_dict.keys():
+        if not self.session_obj.session_info_dict:
             self.create_session()
 
         # ---------------------------------------------------------------------------------------------
@@ -111,6 +111,14 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
             else:
                 self.scan_type_name = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
+        else:
+            self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
+            if not self.scan_type_id:
+                self._move_to_trashbin()
+                self._register_protocol_violated_scan()
+                message = f"{self.nifti_path}'s scan type {self.scan_type_name} provided to run_nifti_insertion.py" \
+                          f" is not a valid scan type in the database."
+                self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
         # Determine BIDS scan type info based on scan_type_id
