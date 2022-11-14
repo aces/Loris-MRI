@@ -129,8 +129,8 @@ class Database:
         :param args: arguments to replace the placeholders with
          :type args: tuple
 
-        :return: dictionary with MySQL column header name
-         :rtype: dict
+        :return: list of dictionaries with MySQL column header name
+         :rtype: list of dict
         """
         if self.verbose:
             print("\nExecuting query:\n\t" + query + "\n")

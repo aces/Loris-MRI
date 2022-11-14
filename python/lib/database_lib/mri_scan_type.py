@@ -52,3 +52,21 @@ class MriScanType:
         )
 
         return results[0]['Scan_type'] if results else None
+
+    def get_scan_type_id_from_name(self, scan_type_name):
+        """
+        Get a scan type ID based on a scan type name.
+
+        :param scan_type_name: name of the scan type to look up
+         :type scan_type_name: str
+
+        :return: ID of the scan type queried
+         :rtype: int
+        """
+
+        results = self.db.pselect(
+            query='SELECT ID FROM mri_scan_type WHERE Scan_type = %s',
+            args=(scan_type_name,)
+        )
+
+        return results[0]['ID'] if results else None
