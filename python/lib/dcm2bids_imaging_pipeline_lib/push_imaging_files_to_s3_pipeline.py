@@ -144,13 +144,15 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(self.tarchive_id)
-
+        print(entries)
         for entry in entries:
-            if not os.path.exists(entry['minc_location']):
-                # violation has been rerun or moved
-                continue
+            print(entry['minc_location'])
+            print(os.path.exists(entry['minc_location']))
             if entry['minc_location'].startswith('s3://'):
                 # skip since file already pushed to S3
+                continue
+            if not os.path.exists(self.data_dir + entry['minc_location']):
+                # violation has been rerun or moved
                 continue
             self.files_to_push_list.append({
                 "table_name": "mri_protocol_violated_scans",
@@ -177,11 +179,11 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         )
 
         for entry in exclude_entries + warning_entries:
-            if not os.path.exists(entry['MincFile']):
-                # violation has been rerun or moved
-                continue
             if entry['MincFile'].startswith('s3://'):
                 # skip since file already pushed to S3
+                continue
+            if not os.path.exists(self.data_dir + entry['MincFile']):
+                # violation has been rerun or moved
                 continue
             self.files_to_push_list.append({
                 "table_name": "mri_violations_log",
