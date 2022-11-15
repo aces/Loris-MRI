@@ -518,32 +518,47 @@ class Physiological:
          :type blake2               : str
         """
 
+        # expected fields
         event_fields = (
             'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
             'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
             'EventType',           'FilePath'
         )
+        # known opt fields
+        optional_fields = (
+            'trial_type',  'response_time', 'event_code',
+            'event_value', 'event_sample',  'event_type',
+            'value',       'sample'
+        )
+        # all listed fields
+        known_fields = {*event_fields, *optional_fields}
 
-        event_values = []
         for row in event_data:
-            optional_fields = (
-                'trial_type',  'response_time', 'event_code',
-                'event_value', 'event_sample',  'event_type',
-                'value',       'sample'
-            )
+            # nullify not present optional cols
             for field in optional_fields:
                 if field not in row.keys():
                     row[field] = None
 
+            # has additional fields?
+            additional_fields = {}
+            for field in row:
+                if field not in known_fields and row[field].lower() != 'nan':
+                    additional_fields[field] = row[field]
+
+            # get values of present optional cols
             duration = 0
-            if (type(row['duration']) == int or type(row['duration']) == float):
+            if isinstance(row['duration'], (int, float)):
                 duration = row['duration']
 
             sample = None
-            if type(row['event_sample']) == int or type(row['event_sample']) == float:
+            if isinstance(row['event_sample'], (int, float)):
                 sample = row['event_sample']
-            if row['sample'] and (type(row['sample']) == int or type(row['sample']) == float):
+            if row['sample'] and isinstance(row['sample'], (int, float)):
                 sample = row['sample']
+
+            response_time = None
+            if isinstance(row['response_time'], (int, float)):
+                response_time = row['response_time']
 
             event_value = None
             if row['event_value']:
@@ -551,29 +566,50 @@ class Physiological:
             elif row['value']:
                 event_value = str(row['value'])
 
-            response_time = None
-            if type(row['response_time']) == int or type(row['response_time']) == float:
-                response_time = row['response_time']
+            trial_type = None
+            if row['trial_type']:
+                trial_type = str(row['trial_type'])
 
-            values_tuple = (
-                str(physiological_file_id),
-                row['onset'],
-                duration,
-                row['trial_type'],
-                response_time,
-                row['event_code'],
-                event_value,
-                sample,
-                row['event_type'],
-                event_file
+            # insert one event and get its db id
+            last_task_id = self.db.insert(
+                table_name   = 'physiological_task_event',
+                column_names = event_fields,
+                values       = [(
+                    str(physiological_file_id),
+                    row['onset'],
+                    duration,
+                    trial_type,
+                    response_time,
+                    row['event_code'],
+                    event_value,
+                    sample,
+                    row['event_type'],
+                    event_file
+                )],
+                get_last_id  = True
             )
-            event_values.append(values_tuple)
 
-        self.db.insert(
-            table_name   = 'physiological_task_event',
-            column_names = event_fields,
-            values       = event_values
-        )
+            # if needed, process additional and unlisted
+            # fields and send them in secondary table
+            if additional_fields:
+                # table cols
+                add_event_fields = (
+                    'physiological_task_event_id',
+                    'task_name',
+                    'task_value'
+                )
+                # each additional fields is a new entry
+                for add_field,add_value in additional_fields.items():
+                    add_event_values.append((
+                        last_task_id,
+                        add_field,
+                        add_value
+                    ))
+                self.db.insert(
+                    table_name   = 'physiological_task_event_opt',
+                    column_names = add_event_fields,
+                    values       = add_event_values
+                )
 
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
@@ -648,7 +684,7 @@ class Physiological:
          :type physiological_file_id: int
         :param blake2               : blake2b hash of the task event file
          :type blake2               : str
-        
+
         :return: annotation file id
          :rtype: int
         """
