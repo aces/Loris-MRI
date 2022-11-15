@@ -10,21 +10,22 @@ class MriCandidateErrors:
 
     :Example:
 
-        from lib.mri_candidate_errors import MRICandidateErrors
+        from lib.mri_candidate_errors import MriCandidateErrors
         from lib.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)
         db.connect()
 
-        mri_cand_error_db_obj = MRICandidateErrors(db, verbose)
+        mri_cand_error_db_obj = MriCandidateErrors(db, verbose)
 
         ...
     """
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the MRICandidateErrors class.
+
+        Constructor method for the MriCandidateErrors class.
 
         :param db     : Database class object
          :type db     : object

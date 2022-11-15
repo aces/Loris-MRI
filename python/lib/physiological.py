@@ -566,7 +566,8 @@ class Physiological:
             elif row['value']:
                 event_value = str(row['value'])
 
-            trial_type = None
+
+trial_type = None
             if row['trial_type']:
                 trial_type = str(row['trial_type'])
 

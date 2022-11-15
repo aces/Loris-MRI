@@ -96,7 +96,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Determine/create the session the file should be linked to
         # ---------------------------------------------------------------------------------------------
         self.get_session_info()
-        if not self.session_obj.session_info_dict.keys():
+        if not self.session_obj.session_info_dict:
             self.create_session()
 
         # ---------------------------------------------------------------------------------------------
@@ -111,6 +111,14 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
             else:
                 self.scan_type_name = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
+        else:
+            self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
+            if not self.scan_type_id:
+                self._move_to_trashbin()
+                self._register_protocol_violated_scan()
+                message = f"{self.nifti_path}'s scan type {self.scan_type_name} provided to run_nifti_insertion.py" \
+                          f" is not a valid scan type in the database."
+                self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
         # Determine BIDS scan type info based on scan_type_id
@@ -153,6 +161,11 @@ class NiftiInsertionPipeline(BasePipeline):
         # Create the pic images
         # ---------------------------------------------------------------------------------------------
         self._create_pic_image()
+
+        # ---------------------------------------------------------------------------------------------
+        # Remove the tmp directory from the file system
+        # ---------------------------------------------------------------------------------------------
+        self.remove_tmp_dir()
 
         # ---------------------------------------------------------------------------------------------
         # If we get there, the insertion was complete and successful
@@ -223,10 +236,16 @@ class NiftiInsertionPipeline(BasePipeline):
             # SeriesInstanceUID and EchoTime have been set in the JSON side car file
             echo_time = self.json_file_dict["EchoTime"]
             series_uid = self.json_file_dict["SeriesInstanceUID"]
-            match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(series_uid, echo_time)
+            echo_nb = self.json_file_dict["EchoNumber"] if "EchoNumber" in json_keys else None
+            phase_enc_dir = self.json_file_dict["PhaseEncodingDirection"] \
+                if "PhaseEncodingDirection" in json_keys else None
+            match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(
+                series_uid, echo_time, phase_enc_dir, echo_nb
+            )
             if match:
-                error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid} and" \
-                            f" EchoTime {echo_time}. The already registered file is {match['File']}"
+                error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid}," \
+                            f" EchoTime {echo_time}, EchoNumber {echo_nb} and PhaseEncodingDirection {phase_enc_dir}." \
+                            f" The already registered file is {match['File']}"
 
             # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
             if self.force:
@@ -328,13 +347,26 @@ class NiftiInsertionPipeline(BasePipeline):
         If the image has 'warning' violations the violations will be inserted into the mri_violations_table as
         well and the Caveat will be set to True in the files table.
         """
+
+        # add TaskName to the JSON file if the file's BIDS scan type subcategory contains task-*
+        bids_subcategories = self.bids_categories_dict['BIDSScanTypeSubCategory']
+        if self.json_path and bids_subcategories and re.match(r'task-', bids_subcategories):
+            with open(self.json_path) as json_file:
+                json_data = json.load(json_file)
+            json_data['TaskName'] = re.search(r'task-([a-zA-Z0-9]*)', bids_subcategories).group(1)
+            with open(self.json_path, 'w') as json_file:
+                json_file.write(json.dumps(json_data, indent=4))
+
+        # determine the new file paths and move the files in assembly_bids
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
         self._create_destination_dir_and_move_image_files('assembly_bids')
 
+        # register the files in the database (files and parameter_file tables)
         self.file_id = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
         message = f"Registered file {self.assembly_nifti_rel_path} into the files table with FileID {self.file_id}"
         self.log_info(message, is_error='N', is_verbose='Y')
 
+        # add an entry in the violations log table if there is a warning violation associated to the file
         if self.violations_summary['warning']:
             message = f"Inserting warning violations related to {self.assembly_nifti_rel_path}." \
                       f"  List of violations found: {self.warning_violations_list}"
@@ -545,6 +577,7 @@ class NiftiInsertionPipeline(BasePipeline):
          :type file_rel_path: str
         """
         scan_param = self.json_file_dict
+        phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys() else None
         base_info_dict = {
             'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
@@ -554,6 +587,9 @@ class NiftiInsertionPipeline(BasePipeline):
             'CandID': self.subject_id_dict['CandID'],
             'Visit_label': self.subject_id_dict['visitLabel'],
             'Scan_type': self.scan_type_id,
+            'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
+            'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
+            'PhaseEncodingDirection': phase_enc_dir,
             'MriProtocolChecksGroupID': self.mri_protocol_group_id
         }
         for violation_dict in violations_list:
@@ -572,6 +608,8 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         scan_param = self.json_file_dict
+        acquisition_date = None
+        phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys() else None
         if "AcquisitionDateTime" in scan_param.keys():
             acquisition_date = datetime.datetime.strptime(
                 scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
@@ -585,7 +623,9 @@ class NiftiInsertionPipeline(BasePipeline):
             'SessionID': self.session_obj.session_info_dict['ID'],
             'File': nifti_rel_path,
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
-            'EchoTime': scan_param['EchoTime'],
+            'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
+            'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
+            'PhaseEncodingDirection': phase_enc_dir,
             'CoordinateSpace': 'native',
             'OutputType': 'native',
             'AcquisitionProtocolID': self.scan_type_id,

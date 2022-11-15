@@ -382,6 +382,7 @@ QUERY
         my $filename = $file->[4];
         $filename =~ s/^${dcmdirRoot}\///;
         $file->[2] = undef if($file->[2] eq '');
+        $file->[3] = undef if($file->[3] eq '');
         $select_TarchiveSeriesID->execute($file->[24], $file->[6]); # based on SeriesUID and EchoTime
         my ($TarchiveSeriesID) = $select_TarchiveSeriesID->fetchrow_array();
         my @values;

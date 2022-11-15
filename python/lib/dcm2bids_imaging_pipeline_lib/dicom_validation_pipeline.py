@@ -40,6 +40,7 @@ class DicomValidationPipeline(BasePipeline):
             fields=("isTarchiveValidated", "Inserting",),
             values=("1", "0")
         )
+        self.remove_tmp_dir()  # remove temporary directory
         sys.exit(lib.exitcode.SUCCESS)
 
     def _validate_dicom_archive_md5sum(self):

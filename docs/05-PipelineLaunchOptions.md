@@ -154,7 +154,7 @@ The BIDS dataset to import has to:
             "IEEG": "IEEG Atlas"
         }
     }
-}
+  }
   ```
 
 

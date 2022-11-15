@@ -2,11 +2,13 @@
 
 import os
 import datetime
+import json
 import nibabel as nib
 import re
 import tarfile
 
 from nilearn import image, plotting
+from pyblake2 import blake2b
 
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
@@ -19,7 +21,6 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
-
 
 __license__ = "GPLv3"
 
@@ -63,6 +64,7 @@ class Imaging:
         self.db = db
         self.verbose = verbose
         self.config_file = config_file
+        self.config_db_obj = Config(self.db, self.verbose)
         self.files_db_obj = Files(db, verbose)
         self.mri_cand_errors_db_obj = MriCandidateErrors(db, verbose)
         self.mri_prot_db_obj = MriProtocol(db, verbose)
@@ -110,19 +112,25 @@ class Imaging:
         """
         return self.files_db_obj.find_file_with_hash(hash_string)
 
-    def grep_file_info_from_series_uid_and_echo_time(self, series_uid, echo_time):
+    def grep_file_info_from_series_uid_and_echo_time(self, series_uid, echo_time, phase_enc_dir, echo_number):
         """
         Greps the file ID from the files table. If it cannot be found, the method will return None.
 
         :param series_uid: Series Instance UID of the file to look for
          :type series_uid: str
         :param echo_time: Echo Time of the file to look for
-         :type echo_time: str
+         :type echo_time: float
+        :param phase_enc_dir: Phase Encoding Direction of the file to look for
+         :type phase_enc_dir: str
+        :param echo_number: Echo Number of the file to look for
+         :type echo_number: int
 
         :return: dictionary with files table content of the found file
         :rtype: dict
         """
-        return self.files_db_obj.find_file_with_series_uid_and_echo_time(series_uid, echo_time)
+        return self.files_db_obj.find_file_with_series_uid_and_echo_time(
+            series_uid, echo_time, phase_enc_dir, echo_number
+        )
 
     def insert_imaging_file(self, file_info_dict, parameter_file_data_dict):
         """
@@ -176,7 +184,7 @@ class Imaging:
 
         pf_entry = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
         if pf_entry:
-            self.param_file_db_obj.update_parameter_file(value, pf_entry[0]['ParameterFileID'])
+            self.param_file_db_obj.update_parameter_file(value, pf_entry['ParameterFileID'])
         else:
             self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
@@ -228,6 +236,8 @@ class Imaging:
          :type mri_protocol_group_id: int
         """
 
+        phase_encoding_dir = scan_param["PhaseEncodingDirection"] if "PhaseEncodingDirection" in scan_param else None
+
         info_to_insert_dict = {
             "CandID": cand_id,
             "PSCID": psc_id,
@@ -247,8 +257,10 @@ class Imaging:
             "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
             "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
             "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
-            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
+            "SeriesUID": scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None,
             "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
+            "PhaseEncodingDirection": phase_encoding_dir,
+            "EchoNumber": repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param else None,
             "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
@@ -310,6 +322,18 @@ class Imaging:
          :rtype: str
         """
         return self.mri_scan_type_db_obj.get_scan_type_name_from_id(scan_type_id)
+
+    def get_scan_type_id_from_scan_type_name(self, scan_type_name):
+        """
+        Returns the acquisition protocol ID associated to a scan type name.
+
+        :param scan_type_name: scan type name
+         :type scan_type_name: str
+
+        :return: acquisition protocol ID associated to the scan type name
+         :rtype: int
+        """
+        return self.mri_scan_type_db_obj.get_scan_type_id_from_name(scan_type_name)
 
     def get_bids_to_minc_terms_mapping(self):
         """
@@ -422,7 +446,7 @@ class Imaging:
         """
 
         query = "SELECT CandID " + \
-                " FROM session s " +\
+                " FROM session s " + \
                 " JOIN files f ON (s.ID=f.SessionID) " + \
                 " WHERE FileID = %s"
 
@@ -660,23 +684,27 @@ class Imaging:
          :rtype: bool
         """
 
-        scan_tr = scan_param['RepetitionTime'] * 1000
-        scan_te = scan_param['EchoTime'] * 1000
+        scan_tr = scan_param['RepetitionTime'] * 1000 if 'RepetitionTime' in scan_param else None
+        scan_te = scan_param['EchoTime'] * 1000 if 'EchoTime' in scan_param else None
         scan_ti = scan_param['InversionTime'] * 1000 if 'InversionTime' in scan_param else None
-        scan_slice_thick = scan_param['SliceThickness']
-        scan_img_type = str(scan_param['ImageType'])
+        scan_slice_thick = scan_param['SliceThickness'] if 'SliceThickness' in scan_param else None
+        scan_img_type = str(scan_param['ImageType']) if 'ImageType' in scan_param else None
+        scan_ped = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param else None
+        scan_en = scan_param['EchoNumber'] if 'EchoNumber' in scan_param else None
 
         if (self.in_range(scan_param['time'], db_prot['time_min'], db_prot['time_max'])) \
-                and self.in_range(scan_tr,              db_prot['TR_min'],     db_prot['TR_max']) \
-                and self.in_range(scan_te,              db_prot['TE_min'],     db_prot['TE_max']) \
-                and self.in_range(scan_ti,              db_prot['TI_min'],     db_prot['TI_max']) \
-                and self.in_range(scan_param['xstep'],  db_prot['xstep_min'],  db_prot['xstep_max']) \
-                and self.in_range(scan_param['ystep'],  db_prot['ystep_min'],  db_prot['ystep_max']) \
-                and self.in_range(scan_param['zstep'],  db_prot['zstep_min'],  db_prot['zstep_max']) \
+                and self.in_range(scan_tr, db_prot['TR_min'], db_prot['TR_max']) \
+                and self.in_range(scan_te, db_prot['TE_min'], db_prot['TE_max']) \
+                and self.in_range(scan_ti, db_prot['TI_min'], db_prot['TI_max']) \
+                and self.in_range(scan_param['xstep'], db_prot['xstep_min'], db_prot['xstep_max']) \
+                and self.in_range(scan_param['ystep'], db_prot['ystep_min'], db_prot['ystep_max']) \
+                and self.in_range(scan_param['zstep'], db_prot['zstep_min'], db_prot['zstep_max']) \
                 and self.in_range(scan_param['xspace'], db_prot['xspace_min'], db_prot['xspace_max']) \
                 and self.in_range(scan_param['yspace'], db_prot['yspace_min'], db_prot['yspace_max']) \
                 and self.in_range(scan_param['zspace'], db_prot['zspace_min'], db_prot['zspace_max']) \
-                and self.in_range(scan_slice_thick,     db_prot['slice_thickness_min'], db_prot['slice_thickness_max'])\
+                and self.in_range(scan_slice_thick, db_prot['slice_thickness_min'], db_prot['slice_thickness_max']) \
+                and (not db_prot['PhaseEncodingDirection'] or scan_ped == db_prot['PhaseEncodingDirection']) \
+                and (not db_prot['EchoNumber'] or scan_en == int(db_prot['EchoNumber'])) \
                 and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
 
@@ -805,6 +833,226 @@ class Imaging:
             center_id,
             project_id
         )
+
+    def get_scanner_candid(self, scanner_id):
+        """
+        Select a ScannerID CandID based on the scanner ID in mri_scanner.
+
+        :param scanner_id: scanner ID in the mri_scanner table
+         :type scanner_id: int
+
+        :return: scanner CandID
+         :rtype: int
+        """
+        return self.mri_scanner_db_obj.get_scanner_candid(scanner_id)
+
+    def determine_intended_for_field_for_fmap_json_files(self, tarchive_id):
+        """
+        Determine what should go in the IntendedFor field of the fieldmap's JSON side car file.
+
+        :param tarchive_id: the Tarchive ID to process
+         :type tarchive_id: int
+
+        :return: a dictionary with the fieldmap scans dictionary containing JSON file path and intendedFor information
+         :rtype: dict
+        """
+
+        # get list files from a given tarchive ID
+        files_list = self.files_db_obj.get_files_inserted_for_tarchive_id(tarchive_id)
+
+        # get the list of fmap files for which IntendedFor key will be added in the BIDS JSON file
+        sorted_fmap_files_dict = self.get_list_of_fmap_files_sorted_by_acq_time(files_list)
+
+        # get the list of files sorted by acquisition time
+        sorted_new_files_list = self.get_list_of_files_sorted_by_acq_time(files_list)
+
+        for key in sorted_fmap_files_dict.keys():
+            sorted_fmap_files_list = sorted_fmap_files_dict[key]
+            for idx, fmap_dict in enumerate(sorted_fmap_files_list):
+                fmap_acq_time = fmap_dict['acq_time']
+                next_fmap_acq_time = sorted_fmap_files_list[idx + 1]['acq_time'] \
+                    if idx + 1 < len(sorted_fmap_files_list) else None
+                sorted_fmap_files_list[idx]['IntendedFor'] = \
+                    self.get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(
+                        sorted_new_files_list,
+                        fmap_acq_time,
+                        next_fmap_acq_time
+                )
+
+        return sorted_fmap_files_dict
+
+    def get_list_of_fmap_files_sorted_by_acq_time(self, files_list):
+        """
+        Get the list of fieldmap acquisitions that requires the IntendedFor field in their JSON file.
+        The following BIDS suffix will need that field according to BIDS standards:
+          - magnitude, magnitude1, magnitude2
+          - phasediff, phase1, phase2
+          - fieldmap
+          - epi
+
+        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive ID
+         :type files_list: list
+
+        :return: a dictionary with the dir-AP, dir-PA and no-dir keys listing the different NIfTI files for the tarchive
+         :rtype: dict
+        """
+
+        # list BIDS fieldmap suffixes to handle
+        bids_fmap_suffix_list = ['magnitude', 'magnitude1', 'magnitude2',
+                                 'phasediff', 'phase1', 'phase2',
+                                 'fieldmap', 'epi']
+
+        fmap_files_dir_ap = []
+        fmap_files_dir_pa = []
+        fmap_files_no_dir = []
+        for file_dict in files_list:
+            bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
+                file_dict['AcquisitionProtocolID']
+            )
+            acq_time = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
+                file_dict['FileID'],
+                self.param_type_db_obj.get_parameter_type_id('acquisition_time')
+            )['Value']
+            if bids_info['BIDSCategoryName'] == 'fmap' and bids_info['BIDSScanType'] in bids_fmap_suffix_list:
+                json_file_path = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
+                    file_dict['FileID'],
+                    self.param_type_db_obj.get_parameter_type_id('bids_json_file')
+                )['Value']
+                file_dict = {
+                    'FileID': file_dict['FileID'],
+                    'FilePath': file_dict['File'],
+                    'bids_suffix': bids_info['BIDSScanType'],
+                    'bids_subcategory': bids_info['BIDSScanTypeSubCategory'],
+                    'json_file_path': json_file_path,
+                    'acq_time': acq_time
+                }
+                if re.match(r'dir-AP', bids_info['BIDSScanTypeSubCategory']):
+                    fmap_files_dir_ap.append(file_dict)
+                elif re.match(r'dir-PA', bids_info['BIDSScanTypeSubCategory']):
+                    fmap_files_dir_pa.append(file_dict)
+                else:
+                    fmap_files_no_dir.append(file_dict)
+
+        fmap_files_dict = {
+            'dir-AP': sorted(fmap_files_dir_ap, key=lambda x: x['acq_time']),
+            'dir-PA': sorted(fmap_files_dir_pa, key=lambda x: x['acq_time']),
+            'no-dir': sorted(fmap_files_no_dir, key=lambda x: x['acq_time']),
+        }
+
+        return fmap_files_dict
+
+    def get_list_of_files_sorted_by_acq_time(self, files_list):
+        """
+        Get a sorted list of the NIfTI files that might need fmap correction. That includes files with
+          - dwi BIDS subcategory: dwi, sbref
+          - func BIDS subcategory: bold, sbref
+          - perf BIDS subcategory: asl, sbref
+        The returned list will be sorted by acquisition time.
+
+        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive ID
+         :type files_list: list
+
+        :return: the list of files that might need fmap correction sorted by acquisition time.
+         :rtype: list
+        """
+
+        # list BIDS dwi, func and perf suffixes to handle
+        bids_dwi_suffix_list = ['dwi', 'sbref']
+        bids_func_suffix_list = ['bold', 'sbref']
+        bids_perf_suffix_list = ['asl', 'sbref']
+
+        new_files_list = []
+        for file_dict in files_list:
+            bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
+                file_dict['AcquisitionProtocolID']
+            )
+            acq_time = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
+                file_dict['FileID'],
+                self.param_type_db_obj.get_parameter_type_id('acquisition_time')
+            )['Value']
+            require_fmap = False
+            if (bids_info['BIDSCategoryName'] == 'dwi' and bids_info['BIDSScanType'] in bids_dwi_suffix_list) \
+                    or (bids_info['BIDSCategoryName'] == 'func' and bids_info['BIDSScanType'] in bids_func_suffix_list)\
+                    or (bids_info['BIDSCategoryName'] == 'perf' and bids_info['BIDSScanType'] in bids_perf_suffix_list):
+                require_fmap = True
+
+            bids_visit_label = os.path.split(os.path.split(os.path.dirname(file_dict['File']))[0])[1]
+            nii_rel_file_path = os.path.join(
+                bids_visit_label,
+                bids_info['BIDSCategoryName'],
+                os.path.basename(file_dict['File'])
+            )
+
+            new_files_list.append({
+                'FileID': file_dict['FileID'],
+                'BidsFileRelPath': nii_rel_file_path,
+                'bids_suffix': bids_info['BIDSScanType'],
+                'bids_subcategory': bids_info['BIDSScanTypeSubCategory'],
+                'acq_time': acq_time,
+                'need_fmap': require_fmap
+            })
+
+        return sorted(new_files_list, key=lambda x: x['acq_time'])
+
+    def modify_fmap_json_file_to_write_intended_for(self, sorted_fmap_files_list):
+        """
+        Function that reads the JSON file and modifies it to add the BIDS IntendedFor field to it.
+
+        :param sorted_fmap_files_list: list of dictionary that contains JSON file path info and IntendedFor content
+         :type sorted_fmap_files_list: list
+        """
+
+        for fmap_dict in sorted_fmap_files_list:
+            json_file_path = os.path.join(self.config_db_obj.get_config('dataDirBasepath'), fmap_dict['json_file_path'])
+            with open(json_file_path) as json_file:
+                json_data = json.load(json_file)
+            json_data['IntendedFor'] = fmap_dict['IntendedFor']
+            with open(json_file_path, 'w') as json_file:
+                json_file.write(json.dumps(json_data, indent=4))
+            json_blake2 = blake2b(json_file_path.encode('utf-8')).hexdigest()
+            param_type_id = self.param_type_db_obj.get_parameter_type_id('bids_json_file_blake2b_hash')
+            param_file_dict = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
+                fmap_dict['FileID'],
+                param_type_id
+            )
+            self.param_file_db_obj.update_parameter_file(json_blake2, param_file_dict['ParameterFileID'])
+
+    @staticmethod
+    def get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(files_list, current_fmap_acq_time,
+                                                                                    next_fmap_acq_time):
+        """
+        Determine the list files to add to the IntendedFor field of the current JSON fieldmap examined.
+        The matching files will be the ones acquired after the current fieldmap examined and before the next
+        fieldmap examined.
+
+        :param files_list: list of files to loop through
+         :type files_list: list
+        :param current_fmap_acq_time: the acquisition time of the fieldmap for which IntendedFor is generated
+         :type current_fmap_acq_time: str
+        :param next_fmap_acq_time: the acquisition of the next fieldmap
+         :type next_fmap_acq_time: str
+
+        :return: content of the IntendedFor array to be added to the fieldmap JSON file
+         :rtype: list
+        """
+
+        # find acquisitions closest to the acq_time of the fmap after the fmap acquisition
+        intended_for = []
+        for file_dict in files_list:
+            if not file_dict['acq_time']:
+                continue
+            nii_file_acq = file_dict['acq_time']
+            if not file_dict['need_fmap']:
+                continue
+            if nii_file_acq <= current_fmap_acq_time:
+                # ignore if nii acquisition preceded fmap acquisition
+                continue
+            if next_fmap_acq_time and nii_file_acq >= next_fmap_acq_time:
+                # ignore if nii acquisition happened after the next fmap acq
+                continue
+            intended_for.append(file_dict['BidsFileRelPath'])
+
+        return intended_for
 
     @staticmethod
     def extract_files_from_dicom_archive(dicom_archive_path, extract_location_dir):
