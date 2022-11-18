@@ -1,0 +1,72 @@
+#!/bin/bash
+# RUN CRON JOB EVERY FRIDAY EVENING
+# USAGE cron command: /var/www/loris/project/tools/cron/petupload_cron_prod > /data/backups/cron_logs/batch_imageuploader_cron_`date +\%y\%m\%d`.log
+
+# Note: Define directories with trailing slash
+# Define BIC vars
+outgoingUser=""
+
+regex=""
+daysSince="7" # number of days since which you want to grab scans from
+
+project = ""
+# Define LORIS vars
+incomingDir="/data/incoming/hrrt/"
+lorisMRIDir="/data/${project}/bin/mri/"
+tmpDir="/data/backups/"
+currentDate=`date +%Y%m%d`
+mriUploadList="/data/backups/pet_uploads/pet_upload_list_${currentDate}.txt"
+archiveExtension=".tar.gz" # .tar.gz or .tgz, BIC server doesn't have zip package
+
+# Check for tar extension ..
+if [[ $archiveExtension != ".tar.gz" && $archiveExtension != ".tgz" ]];
+then
+  echo "#### Error: archiveExtension defined is invalid. ####" >&2 &&
+  echo "#### Must be either .tar.gz or .tgz (.zip is not available) ####" >&2 &&
+  exit 125
+fi
+
+# Start finding and transfering data
+echo "#### FIND NEW IMAGING FILES ON BIC (newer than ${daysSince} days ago) ####" >&2 &&
+echo "#### OUTPUT RESULTS TO ${mriUploadList} ####" >&2 &&
+# Connect to BIC and run find_mri -claim
+ssh ${outgoingUser}@login.bic.mni.mcgill.ca "find_hrrt '${regex}' | xargs -i find {} -maxdepth 0 -mtime -${daysSince} -print" > ${mriUploadList} || echo "#### NO NEW IMAGING FILES FOUND ####" >&2 &&
+
+if [[ ! -s ${mriUploadList} ]];
+then
+  echo "#### NO NEW IMAGING TO UPLOAD ####" >&2 &&
+  exit 0
+fi
+
+echo "#### COMPRESS AND TRANSFER NEW IMAGING FILES ####" >&2 &&
+
+echo "#### Running tar... ####" >&2 &&
+while read f;
+do
+  basename=${f##*/}
+  fullpath=${f##* }
+  ssh ${outgoingUser}@login.bic.mni.mcgill.ca tar -czf - ${f} > ${incomingDir}${basename}${archiveExtension} < /dev/null || (echo "#### FILE TRANSFER UNSUCCESSFUL. Exiting .." >&2 && exit 1)
+done < ${mriUploadList} &&
+
+echo "### Files transferred successfully to ${incomingDir} ####" >&2 &&
+echo "#### ADD batch_uploads_imageuploader INFO TO ${mriUploadList} ####" >&2 &&
+while read f;
+do
+  basename=${f##*/}
+  patientName=${basename%_*_*} # may need modifying depending on project
+  echo "${incomingDir}${basename}${archiveExtension} N ${patientName}" >> ${tmpDir}tmp.txt || echo "#### FAILED TO COMPILE LIST OF UPLOADS ####" >&2;
+done < ${mriUploadList} &&
+
+# Check if there are any valid uploads and write back to mri upload list if any
+if [[ ! -s ${tmpDir}tmp.txt ]];
+then
+  echo "#### NO NEW IMAGING TO UPLOAD ####" >&2 &&
+  exit 0
+fi
+
+# Continue with upload ..
+mv ${tmpDir}tmp.txt ${mriUploadList} &&
+echo "#### BATCH UPLOAD IMAGING ####" >&2 &&
+source ${lorisMRIDir}environment &&
+perl ${lorisMRIDir}batch_uploads_imageuploader.pl -profile prod < ${mriUploadList} &&
+echo "Successfully executed batch_uploads_imageuploader." >&2
