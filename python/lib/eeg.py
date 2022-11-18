@@ -671,9 +671,35 @@ class Eeg:
                 # get the blake2b hash of the task events file
                 blake2 = blake2b(event_file.path.encode('utf-8')).hexdigest()
                 # insert event data in the database
-                physiological.insert_event_file(
-                    event_data, event_path, physiological_file_id, blake2
-                )
+                # TODO: Temporary
+                # TODO: should not have two different insert_event_file methods
+                # TODO: remove the TRY/CATCH and the legacy method when
+                insert_fallback = False
+                msg = ""
+                try:
+                    physiological.insert_event_file(
+                        event_data, event_path, physiological_file_id, blake2
+                    )
+                except NameError:
+                    # when fn does not exist
+                    msg = "WARNING: fn 'insert_event_file' not found. " \
+                          "Using fallback method."
+                    insert_fallback = True
+                except Exception as ex:
+                    # when table is not the good one
+                    if ex.args[0] and ex.args[0].startswith("Insert query failure: "):
+                        msg = "WARNING: error during DB insert." \
+                              "Using fallback method."
+                        insert_fallback = True
+                    else:
+                        # re-raise other errors from db insert
+                        raise
+                # insert fallback, call legacy method
+                if insert_fallback:
+                    print(msg)
+                    physiological.insert_event_file_legacy(
+                        event_data, event_path, physiological_file_id, blake2
+                    )
 
         return event_path
 

@@ -24,7 +24,6 @@ class MriCandidateErrors:
 
     def __init__(self, db, verbose):
         """
-
         Constructor method for the MriCandidateErrors class.
 
         :param db     : Database class object
