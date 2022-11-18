@@ -691,6 +691,7 @@ class Physiological:
                     'TaskValue'
                 )
                 # each additional fields is a new entry
+                add_event_values = []
                 for add_field,add_value in additional_fields.items():
                     add_event_values.append((
                         last_task_id,
