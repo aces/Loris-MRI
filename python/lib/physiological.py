@@ -1,4 +1,6 @@
-"""This class performs database queries for BIDS physiological dataset (EEG, MEG...)"""
+"""
+This class performs database queries for BIDS physiological dataset (EEG, MEG...)
+"""
 
 import sys
 import re
@@ -692,7 +694,7 @@ class Physiological:
                 )
                 # each additional fields is a new entry
                 add_event_values = []
-                for add_field,add_value in additional_fields.items():
+                for add_field, add_value in additional_fields.items():
                     add_event_values.append((
                         last_task_id,
                         add_field,

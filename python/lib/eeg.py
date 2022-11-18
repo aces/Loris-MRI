@@ -139,7 +139,7 @@ class Eeg:
                     "SELECT SubprojectID FROM subproject WHERE title = %s",
                     [row['subproject'], ]
                 )
-                if(len(subproject_info) > 0):
+                if len(subproject_info) > 0:
                     self.subproject_id = subproject_info[0]['SubprojectID']
             break
 
@@ -741,7 +741,7 @@ class Eeg:
             subject=self.psc_id,
         )
 
-        if not(annotation_data_files):
+        if not annotation_data_files:
             message = "WARNING: no annotations files associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
