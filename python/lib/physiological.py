@@ -622,7 +622,8 @@ class Physiological:
         optional_fields = (
             'trial_type',  'response_time', 'event_code',
             'event_value', 'event_sample',  'event_type',
-            'value',       'sample'
+            'value',       'sample',        'duration',
+            'onset'
         )
         # all listed fields
         known_fields = {*event_fields, *optional_fields}
@@ -640,9 +641,26 @@ class Physiological:
                     additional_fields[field] = row[field]
 
             # get values of present optional cols
+            onset = 0
+            if isinstance(row['onset'], (int, float)):
+                onset = row['onset']
+            else:
+                # try casting to float, cannot be n/a
+                # should raise an error if not a number
+                onset = float(row['onset'])
+
             duration = 0
             if isinstance(row['duration'], (int, float)):
                 duration = row['duration']
+            else:
+                try:
+                    # try casting to float
+                    duration = float(row['duration'])
+                except ValueError:
+                    # value could be 'n/a'
+                    # put it at 0
+                    pass
+            assert duration >= 0
 
             sample = None
             if isinstance(row['event_sample'], (int, float)):
@@ -670,7 +688,7 @@ class Physiological:
                 column_names = event_fields,
                 values       = [(
                     str(physiological_file_id),
-                    row['onset'],
+                    onset,
                     duration,
                     trial_type,
                     response_time,
