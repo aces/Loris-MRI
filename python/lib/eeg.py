@@ -16,6 +16,7 @@ from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotat
 from lib.database_lib.physiologicalannotationrel     import PhysiologicalAnnotationRel
 from lib.database_lib.physiologicaleventfile         import PhysiologicalEventFile
 from lib.database_lib.physiologicaleventarchive      import PhysiologicalEventArchive
+from lib.database_lib.physiological_coord_system     import PhysiologicalCoordSystem
 
 
 __license__ = "GPLv3"
@@ -237,6 +238,7 @@ class Eeg:
             - physiological_file
             - physiological_parameter_file
             - physiological_electrode
+            - physiological_coord_system
             - physiological_channel
             - physiological_task_event
             - physiological_annotation_*
@@ -551,9 +553,9 @@ class Eeg:
             result = physiological.grep_electrode_from_physiological_file_id(
                 physiological_file_id
             )
-            electrode_path = result[0]['FilePath'] if result else None
-            electrode_data = utilities.read_tsv_file(electrode_file.path)
             if not result:
+
+                electrode_data = utilities.read_tsv_file(electrode_file.path)
                 # copy the electrode file to the LORIS BIDS import directory
                 electrode_path = self.copy_file_to_loris_bids_dir(
                     electrode_file.path, derivatives
@@ -561,11 +563,59 @@ class Eeg:
                 # get the blake2b hash of the electrode file
                 blake2 = blake2b(electrode_file.path.encode('utf-8')).hexdigest()
                 # insert the electrode data in the database
-                physiological.insert_electrode_file(
+                electrode_ids = physiological.insert_electrode_file(
                     electrode_data, electrode_path, physiological_file_id, blake2
                 )
 
-        return electrode_path
+                # get coordsystem.json file
+                # subject-specific metadata
+                coordsystem_metadata_file = self.bids_layout.get_nearest(
+                    electrode_file.path,
+                    return_type = 'tuple',
+                    strict = False,
+                    extension = 'json',
+                    suffix = 'coordsystem',
+                    all_ = False,
+                    full_search = False,
+                    subject=self.psc_id,
+                )
+                inheritance = False
+
+                if not coordsystem_metadata_file:
+                    # global events metadata
+                    coordsystem_metadata_file = self.bids_layout.get_nearest(
+                        electrode_file.path,
+                        return_type = 'tuple',
+                        strict = False,
+                        extension = 'json',
+                        suffix = 'coordsystem',
+                        all_ = False,
+                        full_search = False,
+                    )
+                    inheritance = True
+
+                    if not coordsystem_metadata_file:
+                        message = '\nWARNING: no electrode metadata files (coordsystem.json) associated' \
+                                  'with physiological file ID ' + physiological_file_id
+                        print(message)
+                    else:
+                        # copy the event file to the LORIS BIDS import directory
+                        electrode_metadata_path = self.copy_file_to_loris_bids_dir(
+                            coordsystem_metadata_file.path, derivatives, inheritance
+                        )
+                        # load json data
+                        with open(coordsystem_metadata_file.path) as metadata_file:
+                            electrode_metadata = json.load(metadata_file)
+                        # get the blake2b hash of the json events file
+                        blake2 = blake2b(coordsystem_metadata_file.path.encode('utf-8')).hexdigest()
+                        # insert event metadata in the database
+                        coord_system_id = physiological.insert_electrode_metadata(
+                            electrode_metadata, electrode_metadata_path, physiological_file_id, blake2
+                        )
+
+                        # insert relation
+                        phy_coord_db = PhysiologicalCoordSystem(self.db, self.verbose)
+                        phy_coord_db.insert_relation(coord_system_id, electrode_ids, physiological_file_id)
 
     def fetch_and_insert_channel_file(
             self, physiological_file_id, original_physiological_file_path, derivatives=False):
@@ -745,8 +795,8 @@ class Eeg:
                         # insert assembled HED annotations
                         physiological.insert_event_assembled_hed_tags(
                             self.data_dir, event_path, event_metadata_path, physiological_file_id
-                        )             
-                        
+                        )
+
         return event_paths
 
     def fetch_and_insert_annotation_files(

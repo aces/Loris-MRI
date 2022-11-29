@@ -200,7 +200,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         # session if it does not exist yet in LORIS and the createvisit is set
         # to true. If no visit in BIDS structure, then use default visit_label
         # stored in the Config module)
-        loris_sessions_info = grep_candidate_sessions_info(
+        grep_candidate_sessions_info(
             bids_sessions, bids_id,    cand_id,       loris_bids_root_dir,
             createvisit,   verbose,    db,            default_bids_vl,
             center_id,     project_id, subproject_id
@@ -271,8 +271,8 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
 
     # determine the root directory of the LORIS BIDS and create it if does
     # not exist
-    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)       # get name of the dataset
-    version = re.sub("[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
+    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)        # get name of the dataset
+    version = re.sub("[^0-9a-zA-Z\\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version
