@@ -7,6 +7,7 @@
 """
 
 from collections import namedtuple
+from types import List
 
 __license__ = "GPLv3"
 
@@ -83,9 +84,9 @@ class PhysiologicalCoordSystem:
         )
         return c_type[0]['PhysiologicalCoordSystemTypeID'] if c_type else None
 
-    def insert_coord_system(self, coord_name, coord_unit, coord_type,
-                            coord_nas: Coord3d, coord_lpa: Coord3d,
-                            coord_rpa: Coord3d, coord_file: str):
+    def insert_coord_system(self, coord_name: str, coord_unit: str, coord_type: str,
+                            coord_nas: Coord3d, coord_lpa: Coord3d, coord_rpa: Coord3d,
+                            coord_file: str):
         """
         Inserts a new entry in the physiological_coord_system table.
 
@@ -97,6 +98,15 @@ class PhysiologicalCoordSystem:
 
         :param coord_name  : type name of the coord file
          :type coord_name  : str
+
+        :param coord_nas   : NAS coordinate for this system
+         :type coord_nas   : Coord3d
+
+        :param coord_lpa   : LPA coordinate for this system
+         :type coord_lpa   : Coord3d
+
+        :param coord_rpa   : RPA coordinate for this system
+         :type coord_rpa   : Coord3d
 
         :param coord_file  : path of the coord system file
          :type coord_file  : str
@@ -128,7 +138,20 @@ class PhysiologicalCoordSystem:
             get_last_id = True
         )
 
-    def insert_relation(self, coord_system_id, electrode_ids, physiological_file_id):
+    def insert_relation(self, physiological_file_id: int, coord_system_id: int,
+                        electrode_ids: List[int]):
+        """
+        Inserts a new entry in the physiological_coord_system table.
+
+        :param physiological_file_id : physiological file ID
+         :type physiological_file_id : int
+
+        :param coord_system_id       : coordinate system ID
+         :type coord_system_id       : int
+
+        :param electrode_ids         : list of electrode id associated with the coordinate system ID
+         :type electrode_ids         : List[int]
+        """
         values_to_insert = [
             (coord_system_id, eid, physiological_file_id)
             for eid in electrode_ids

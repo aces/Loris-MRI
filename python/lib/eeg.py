@@ -595,8 +595,8 @@ class Eeg:
                     inheritance = True
 
                     if not coordsystem_metadata_file:
-                        message = '\nWARNING: no electrode metadata files (coordsystem.json) associated' \
-                                  'with physiological file ID ' + physiological_file_id
+                        message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
+                                  'associated with physiological file ID ' + physiological_file_id
                         print(message)
                     else:
                         # copy the event file to the LORIS BIDS import directory
@@ -610,12 +610,19 @@ class Eeg:
                         blake2 = blake2b(coordsystem_metadata_file.path.encode('utf-8')).hexdigest()
                         # insert event metadata in the database
                         coord_system_id = physiological.insert_electrode_metadata(
-                            electrode_metadata, electrode_metadata_path, physiological_file_id, blake2
+                            electrode_metadata,
+                            electrode_metadata_path,
+                            physiological_file_id,
+                            blake2
                         )
 
                         # insert relation
                         phy_coord_db = PhysiologicalCoordSystem(self.db, self.verbose)
-                        phy_coord_db.insert_relation(coord_system_id, electrode_ids, physiological_file_id)
+                        phy_coord_db.insert_relation(
+                            physiological_file_id,
+                            coord_system_id,
+                            electrode_ids
+                        )
 
     def fetch_and_insert_channel_file(
             self, physiological_file_id, original_physiological_file_path, derivatives=False):
