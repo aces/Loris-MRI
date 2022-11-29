@@ -41,7 +41,7 @@ def main():
         'usage  : bids_import -d <bids_directory> -p <profile> \n\n'
         'options: \n'
         '\t-p, --profile        : name of the python database config file in '
-                                  'dicom-archive/.loris-mri\n'
+        'dicom-archive/.loris-mri\n'
         '\t-d, --directory      : BIDS directory to parse & insert into LORIS\n'
         '\t-c, --createcandidate: to create BIDS candidates in LORIS (optional)\n'
         '\t-s, --createsession  : to create BIDS sessions in LORIS (optional)\n'
@@ -190,9 +190,9 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         if 'subproject' in bids_subject_info:
             subproject = bids_subject_info['subproject']
             subproject_info = db.pselect(
-                    "SELECT SubprojectID FROM subproject WHERE title = %s",
-                    [subproject, ]
-                )
+                "SELECT SubprojectID FROM subproject WHERE title = %s",
+                [subproject, ]
+            )
             if(len(subproject_info) > 0):
                 subproject_id = subproject_info[0]['SubprojectID']
 
@@ -271,8 +271,8 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
 
     # determine the root directory of the LORIS BIDS and create it if does
     # not exist
-    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name) # get name of the dataset
-    version = re.sub("[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version) # get BIDSVersion of the dataset
+    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)       # get name of the dataset
+    version = re.sub("[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version
