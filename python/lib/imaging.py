@@ -884,9 +884,13 @@ class Imaging:
     def get_list_of_files_already_inserted(self, tarchive_id):
 
         # get list files from a given tarchive ID
-        files_list = self.files_db_obj.get_files_inserted_for_tarchive_id(tarchive_id)
+        results = self.files_db_obj.get_files_inserted_for_tarchive_id(tarchive_id)
 
-        return [os.path.basename(i) for i in files_list]
+        files_list = []
+        for entry in results:
+            files_list.append(os.path.basename(entry['File']))
+
+        return files_list
 
     def get_list_of_fmap_files_sorted_by_acq_time(self, files_list):
         """
