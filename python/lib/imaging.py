@@ -881,6 +881,13 @@ class Imaging:
 
         return sorted_fmap_files_dict
 
+    def get_list_of_files_already_inserted(self, tarchive_id):
+
+        # get list files from a given tarchive ID
+        files_list = self.files_db_obj.get_files_inserted_for_tarchive_id(tarchive_id)
+
+        return [os.path.basename(i) for i in files_list]
+
     def get_list_of_fmap_files_sorted_by_acq_time(self, files_list):
         """
         Get the list of fieldmap acquisitions that requires the IntendedFor field in their JSON file.
