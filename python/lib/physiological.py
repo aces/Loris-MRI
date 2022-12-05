@@ -864,8 +864,8 @@ class Physiological:
                     shell = True,
                     stdout = open(os.devnull, 'wb')
                 )
-            except subprocess.CalledProcessError:
-                print('ERROR: ' + script + ' execution failure')
+            except subprocess.CalledProcessError as err:
+                print(f'ERROR: {script} execution failure. Error was:\n {err}')
                 sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
             except OSError:
                 print('ERROR: ' + script + ' not found')
