@@ -881,7 +881,16 @@ class Imaging:
 
         return sorted_fmap_files_dict
 
-    def get_list_of_files_already_inserted(self, tarchive_id):
+    def get_list_of_files_already_inserted_for_tarchive_id(self, tarchive_id):
+        """
+        Get the list of filenames already inserted for a given TarchiveID.
+
+        :param tarchive_id: the Tarchive ID to process
+         :type tarchive_id: int
+
+        :return: a list with file names already inserted in the files table for TarchiveID
+         :rtype: list
+        """
 
         # get list files from a given tarchive ID
         results = self.files_db_obj.get_files_inserted_for_tarchive_id(tarchive_id)
