@@ -52,12 +52,24 @@ class Files:
          :rtype: dict
         """
 
-        query = "SELECT * FROM files WHERE" \
-                " SeriesUID = %s  AND EchoTime = %s AND " \
-                " EchoNumber = %s AND PhaseEncodingDirection = %s"
+        query = "SELECT * FROM files WHERE SeriesUID = %s  AND EchoTime = %s "
+        args = [series_uid, echo_time]
+
+        if phase_enc_dir:
+            query += " AND PhaseEncodingDirection = %s "
+            args.append(phase_enc_dir)
+        else:
+            query += " AND PhaseEncodingDirection IS NULL "
+
+        if echo_number:
+            query += " AND EchoNumber = % "
+            args.append(echo_number)
+        else:
+            query += " AND EchoNumber IS NULL "
+
         results = self.db.pselect(
             query=query,
-            args=(series_uid, echo_time, echo_number, phase_enc_dir)
+            args=tuple(args)
         )
 
         return results[0] if results else None
