@@ -243,7 +243,7 @@ class Imaging:
             "PSCID": psc_id,
             "TarchiveID": tarchive_id,
             "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "series_description": scan_param["SeriesDescription"],
+            "series_description": scan_param["SeriesDescription"] if "SeriesDescription" in scan_param.keys() else None,
             "minc_location": file_rel_path,
             "PatientName": patient_name,
             "TR_range": scan_param["RepetitionTime"] if "RepetitionTime" in scan_param.keys() else None,
