@@ -5,7 +5,7 @@ Perl ones that are in uploadNeuroDB/NeuroDB/ExitCodes.pm"""
 __license__ = "GPLv3"
 
 
-# -- Script ran successfully 
+# -- Script ran successfully
 SUCCESS = 0  # yeah!! Success!!
 
 # -- Common input error checks & setting failures (exit codes from 1 to 19)
@@ -50,6 +50,8 @@ GET_SESSION_ID_FAILURE    = 87  # if could not determine session ID
 CREATE_SESSION_FAILURE    = 88  # if could not create a session
 
 FILENAME_MISMATCH = 151
+
+CHUNK_CREATION_FAILURE = 161
 
 CANDIDATE_MISMATCH      = 181
 BIDS_CANDIDATE_MISMATCH = 182
