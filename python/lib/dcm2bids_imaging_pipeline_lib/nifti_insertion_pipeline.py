@@ -238,11 +238,9 @@ class NiftiInsertionPipeline(BasePipeline):
             echo_nb = self.json_file_dict["EchoNumber"] if "EchoNumber" in json_keys else None
             phase_enc_dir = self.json_file_dict["PhaseEncodingDirection"] \
                 if "PhaseEncodingDirection" in json_keys else None
-            print("before matching")
             match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(
                 series_uid, echo_time, phase_enc_dir, echo_nb
             )
-            print("after matching, match is: " + str(match))
             if match:
                 error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid}," \
                             f" EchoTime {echo_time}, EchoNumber {echo_nb} and PhaseEncodingDirection {phase_enc_dir}." \
