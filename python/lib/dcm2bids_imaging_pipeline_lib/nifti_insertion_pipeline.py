@@ -229,7 +229,6 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         error_msg = None
-
         json_keys = self.json_file_dict.keys()
         if self.json_file_dict and "SeriesInstanceUID" in json_keys and "EchoTime" in json_keys:
             # verify that a file has not already be inserted with the same SeriesUID/EchoTime combination if
@@ -239,9 +238,11 @@ class NiftiInsertionPipeline(BasePipeline):
             echo_nb = self.json_file_dict["EchoNumber"] if "EchoNumber" in json_keys else None
             phase_enc_dir = self.json_file_dict["PhaseEncodingDirection"] \
                 if "PhaseEncodingDirection" in json_keys else None
+            print("before matching")
             match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(
                 series_uid, echo_time, phase_enc_dir, echo_nb
             )
+            print("after matching, match is: " + str(match))
             if match:
                 error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid}," \
                             f" EchoTime {echo_time}, EchoNumber {echo_nb} and PhaseEncodingDirection {phase_enc_dir}." \
@@ -403,7 +404,10 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # determine NIfTI file name
         new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
-        while os.path.exists(os.path.join(self.data_dir, new_nifti_rel_dir, new_nifti_name)):
+        already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_tarchive_id(
+            self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
+        )
+        while new_nifti_name in already_inserted_filenames:
             file_bids_entities_dict['run'] += 1
             new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
 

@@ -770,7 +770,7 @@ class Physiological:
          :type physiological_file_id: int
         :param blake2               : blake2b hash of the task event file
          :type blake2               : str
-        
+
         :return: annotation file id
          :rtype: int
         """
@@ -984,13 +984,14 @@ class Physiological:
                 subprocess.call(
                     command,
                     shell = True,
-                    stdout = open(os.devnull, 'wb'),
-                    stderr = open(os.devnull, 'wb')
+                    stdout = open(os.devnull, 'wb')
                 )
-            except subprocess.CalledProcessError:
-                print('ERROR: ' + script + ' execution failure')
+            except subprocess.CalledProcessError as err:
+                print(f'ERROR: {script} execution failure. Error was:\n {err}')
+                sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
             except OSError:
                 print('ERROR: ' + script + ' not found')
+                sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
 
             if os.path.isdir(chunk_path):
                 self.insert_physio_parameter_file(
