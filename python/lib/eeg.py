@@ -16,7 +16,6 @@ from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotat
 from lib.database_lib.physiologicalannotationrel     import PhysiologicalAnnotationRel
 from lib.database_lib.physiologicaleventfile         import PhysiologicalEventFile
 from lib.database_lib.physiologicaleventarchive      import PhysiologicalEventArchive
-from lib.database_lib.physiological_coord_system     import PhysiologicalCoordSystem
 
 
 __license__ = "GPLv3"
