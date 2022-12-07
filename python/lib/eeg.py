@@ -534,55 +534,42 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
 
-        electrode_file = self.bids_layout.get_nearest(
+        electrode_files = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
             extension = 'tsv',
             suffix = 'electrodes',
-            all_ = False,
+            all_ = True,          # get all existing electrode files
             full_search = False,
         )
 
-        if not electrode_file:
+        if not electrode_files:
             message = "WARNING: no electrode file associated with " \
-                      "physiological file ID " + str(physiological_file_id)
+                      f"physiological file ID {physiological_file_id}"
             print(message)
             return None
         else:
-            result = physiological.grep_electrode_from_physiological_file_id(
-                physiological_file_id
-            )
-            if not result:
-
-                electrode_data = utilities.read_tsv_file(electrode_file.path)
-                # copy the electrode file to the LORIS BIDS import directory
-                electrode_path = self.copy_file_to_loris_bids_dir(
-                    electrode_file.path, derivatives
+            # maybe several electrode files
+            for electrode_file in electrode_files:
+                result = physiological.grep_electrode_from_physiological_file_id(
+                    physiological_file_id
                 )
-                # get the blake2b hash of the electrode file
-                blake2 = blake2b(electrode_file.path.encode('utf-8')).hexdigest()
-                # insert the electrode data in the database
-                electrode_ids = physiological.insert_electrode_file(
-                    electrode_data, electrode_path, physiological_file_id, blake2
-                )
+                if not result:
+                    electrode_data = utilities.read_tsv_file(electrode_file.path)
+                    # copy the electrode file to the LORIS BIDS import directory
+                    electrode_path = self.copy_file_to_loris_bids_dir(
+                        electrode_file.path, derivatives
+                    )
+                    # get the blake2b hash of the electrode file
+                    blake2 = blake2b(electrode_file.path.encode('utf-8')).hexdigest()
+                    # insert the electrode data in the database
+                    electrode_ids = physiological.insert_electrode_file(
+                        electrode_data, electrode_path, physiological_file_id, blake2
+                    )
 
-                # get coordsystem.json file
-                # subject-specific metadata
-                coordsystem_metadata_file = self.bids_layout.get_nearest(
-                    electrode_file.path,
-                    return_type = 'tuple',
-                    strict = False,
-                    extension = 'json',
-                    suffix = 'coordsystem',
-                    all_ = False,
-                    full_search = False,
-                    subject=self.psc_id,
-                )
-                inheritance = False
-
-                if not coordsystem_metadata_file:
-                    # global events metadata
+                    # get coordsystem.json file
+                    # subject-specific metadata
                     coordsystem_metadata_file = self.bids_layout.get_nearest(
                         electrode_file.path,
                         return_type = 'tuple',
@@ -591,17 +578,18 @@ class Eeg:
                         suffix = 'coordsystem',
                         all_ = False,
                         full_search = False,
+                        subject=self.psc_id,
                     )
-                    inheritance = True
 
                     if not coordsystem_metadata_file:
                         message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
-                                  'associated with physiological file ID ' + physiological_file_id
+                                  f'associated with physiological file ID {physiological_file_id}'
                         print(message)
+
                     else:
-                        # copy the event file to the LORIS BIDS import directory
+                        # copy the electrode metadata file to the LORIS BIDS import directory
                         electrode_metadata_path = self.copy_file_to_loris_bids_dir(
-                            coordsystem_metadata_file.path, derivatives, inheritance
+                            coordsystem_metadata_file.path, derivatives
                         )
                         # load json data
                         with open(coordsystem_metadata_file.path) as metadata_file:
@@ -609,18 +597,11 @@ class Eeg:
                         # get the blake2b hash of the json events file
                         blake2 = blake2b(coordsystem_metadata_file.path.encode('utf-8')).hexdigest()
                         # insert event metadata in the database
-                        coord_system_id = physiological.insert_electrode_metadata(
+                        physiological.insert_electrode_metadata(
                             electrode_metadata,
                             electrode_metadata_path,
                             physiological_file_id,
-                            blake2
-                        )
-
-                        # insert relation
-                        phy_coord_db = PhysiologicalCoordSystem(self.db, self.verbose)
-                        phy_coord_db.insert_relation(
-                            physiological_file_id,
-                            coord_system_id,
+                            blake2,
                             electrode_ids
                         )
 
@@ -780,7 +761,7 @@ class Eeg:
 
                     if not event_metadata_file:
                         message = '\nWARNING: no events metadata files (event.json) associated' \
-                                  'with physiological file ID ' + physiological_file_id
+                                  f'with physiological file ID {physiological_file_id}'
                         print(message)
                     else:
                         # copy the event file to the LORIS BIDS import directory

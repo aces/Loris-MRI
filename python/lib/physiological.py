@@ -282,18 +282,14 @@ class Physiological:
          :rtype: tuple
         """
 
-        # results = self.db.pselect(
-        #     query = "SELECT * "
-        #             " FROM physiological_electrode"
-        #             " WHERE PhysiologicalFileID = %s",
-        #     args  = (physiological_file_id,)
-        # )
-
         results = self.db.pselect(
             query = "SELECT * "
-                    " FROM physiological_coord_system_electrode_rel AS pcser"
-                    " INNER JOIN physiological_electrode AS pe"
-                    " WHERE pcser.PhysiologicalFileID = %s",
+                    "FROM physiological_electrode "
+                    "WHERE PhysiologicalElectrodeID "
+                    "IN ("
+                    "    SELECT PhysiologicalElectrodeID "
+                    "    FROM physiological_coord_system_electrode_rel "
+                    "    WHERE PhysiologicalFileID = %s)",
             args  = (physiological_file_id,)
         )
 
@@ -419,7 +415,8 @@ class Physiological:
             inserted_electrode_id = self.db.insert(
                 table_name   = 'physiological_electrode',
                 column_names = electrode_fields,
-                values       = electrode_values
+                values       = electrode_values,
+                get_last_id = True
             )
             electrode_ids.append(inserted_electrode_id)
 
@@ -528,68 +525,53 @@ class Physiological:
             physiological_file_id, 'channel_file_blake2b_hash', blake2
         )
 
-    def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file, physiological_file_id, blake2):
+    def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file,
+                                  physiological_file_id, blake2, electrode_ids):
         """
-        Inserts the events metadata information read from the file *coordsystem.json
-        into the physiological_event_file, physiological_event_parameter
-        and physiological_event_parameter_category_level tables, linking it to the
+        Inserts the electrode metadata information read from the file *coordsystem.json
+        into the physiological_coord_system and
+        physiological_coord_system_electrode_rel tables, linking it to the
         physiological file ID already inserted in physiological_file.
 
-        :param event_metadata      : list with dictionaries of events
-                                          metadata to insert into the database
-         :type event_metadata      : list
-        :param event_metadata_file : name of the event metadata file
-         :type event_file          : str
-        :param physiological_file_id    : PhysiologicalFileID to link the event info to
+        :param electrode_metadata       : dictionaries of electrode metadata to insert
+                                          into the database
+         :type electrode_metadata       : dict
+        :param electrode_metadata_file  : PhysiologicalFileID to link the electrode info to
+         :type electrode_metadata_file  : int
+        :param physiological_file_id    : PhysiologicalFileID to link the electrode info to
          :type physiological_file_id    : int
         :param blake2                   : blake2b hash of the event file
          :type blake2                   : str
-
-        :return: event file id
-         :rtype: int
+        :param electrode_ids            : blake2b hash of the event file
+         :type electrode_ids            : str
         """
-        # TODO: keep file ref in physiological_coord_system_electrode_rel
-        # event_file_id = self.physiological_event_file_obj.insert(
-        #     physiological_file_id,
-        #     'json',
-        #     electrode_metadata_file
-        # )
 
         # coord type
         coord_type = None
         if 'AnatomicalLandmarkCoordinates' in electrode_metadata:
             coord_type  = 'AnatomicalLandmark'
-            _ctype = 'AnatomicalLandmarkCoordinates'
+            _ctype = 'AnatomicalLandmarkCoordinate'
         elif 'FiducialsCoordinates' in electrode_metadata:
             coord_type  = 'Fiducials'
-            _ctype = 'FiducialsCoordinates'
+            _ctype = 'FiducialsCoordinate'
 
-        # TODO: check others types
-        # ctype = {
-        #     'MEG',
-        #     'EEG',
-        #     'iEEG',
-        #     'Fiducials',
-        #     'AnatomicalLandmark',
-        #     'HeadCoil',
-        #     'DigitizedHeadPoints',
-        # }
+        _ctype_name = f"{_ctype}System"
+        _ctype_coords = f"{_ctype}s"
 
         # check different types
-        if electrode_metadata['EEGCoordinateSystem'] != electrode_metadata[f'{_ctype}System']:
+        if electrode_metadata['EEGCoordinateSystem'] != electrode_metadata[_ctype_name]:
             message = '\nWARNING: different coordinate types or units are ' + \
-                      'used in this BIDS archive: ' + str(physiological_file_id)
+                      f'used in this BIDS archive: {physiological_file_id}'
             print(message)
-            exit(lib.exitcode.COORD_SYSTEM_TYPE_MISMATCH)
 
         # coord nas, lpa, rpa
         coord_nas = None
         coord_lpa = None
         coord_rpa = None
         if coord_type is not None:
-            coord_nas = Coord3d(electrode_metadata[_ctype])['NAS']
-            coord_lpa = Coord3d(electrode_metadata[_ctype])['LPA']
-            coord_rpa = Coord3d(electrode_metadata[_ctype])['RPA']
+            coord_nas = Coord3d(*electrode_metadata[_ctype_coords]['NAS'])
+            coord_lpa = Coord3d(*electrode_metadata[_ctype_coords]['LPA'])
+            coord_rpa = Coord3d(*electrode_metadata[_ctype_coords]['RPA'])
 
         # insert
         coord_system_id = self.physiological_coord_system_db.insert_coord_system(
@@ -602,12 +584,18 @@ class Physiological:
             str(electrode_metadata_file)
         )
 
+        # insert relation
+        phy_coord_db = PhysiologicalCoordSystem(self.db, self.verbose)
+        phy_coord_db.insert_relation(
+            physiological_file_id,
+            coord_system_id,
+            electrode_ids
+        )
+
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id, 'coordsystem_file_json_blake2b_hash', blake2
         )
-
-        return coord_system_id
 
     def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id, blake2):
         """

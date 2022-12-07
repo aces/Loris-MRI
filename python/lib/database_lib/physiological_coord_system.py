@@ -7,7 +7,7 @@
 """
 
 from collections import namedtuple
-from types import List
+from typing import List
 
 __license__ = "GPLv3"
 
@@ -122,10 +122,10 @@ class PhysiologicalCoordSystem:
         return self.db.insert(
             table_name = 'physiological_coord_system',
             column_names = (
-                'CoordName', 'CoordUnit', 'CoordType',
-                'CoordNASX', 'CoordNASY', 'CoordNASZ',
-                'CoordLPAX', 'CoordLPAY', 'CoordLPAZ',
-                'CoordRPAX', 'CoordRPAY', 'CoordRPAZ',
+                'CoordNameID',  'CoordUnitID',  'CoordTypeID',
+                'CoordNASX',    'CoordNASY',    'CoordNASZ',
+                'CoordLPAX',    'CoordLPAY',    'CoordLPAZ',
+                'CoordRPAX',    'CoordRPAY',    'CoordRPAZ',
                 'FilePath'
             ),
             values = (
