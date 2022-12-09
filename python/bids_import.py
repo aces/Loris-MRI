@@ -271,8 +271,8 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
 
     # determine the root directory of the LORIS BIDS and create it if does
     # not exist
-    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)        # get name of the dataset
-    version = re.sub("[^0-9a-zA-Z\\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
+    name = re.sub(r"[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)       # get name of the dataset
+    version = re.sub(r"[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version
