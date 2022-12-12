@@ -141,7 +141,7 @@ class Eeg:
                     "SELECT SubprojectID FROM subproject WHERE title = %s",
                     [row['subproject'], ]
                 )
-                if(len(subproject_info) > 0):
+                if len(subproject_info) > 0:
                     self.subproject_id = subproject_info[0]['SubprojectID']
             break
 
@@ -688,9 +688,35 @@ class Eeg:
                 # get the blake2b hash of the task events file
                 blake2 = blake2b(event_data_file.path.encode('utf-8')).hexdigest()
                 # insert event data in the database
-                physiological.insert_event_file(
-                    event_data, event_path, physiological_file_id, blake2
-                )
+                # TODO: Temporary
+                # TODO: should not have two different insert_event_file methods
+                # TODO: remove the TRY/CATCH and the legacy method when
+                insert_fallback = False
+                msg = ""
+                try:
+                    physiological.insert_event_file(
+                        event_data, event_path, physiological_file_id, blake2
+                    )
+                except NameError:
+                    # when fn does not exist
+                    msg = "WARNING: fn 'insert_event_file' not found. " \
+                          "Using fallback method."
+                    insert_fallback = True
+                except Exception as ex:
+                    # when table is not the good one
+                    if ex.args[0] and ex.args[0].startswith("Insert query failure: "):
+                        msg = "WARNING: error during DB insert." \
+                              "Using fallback method."
+                        insert_fallback = True
+                    else:
+                        # re-raise other errors from db insert
+                        raise
+                # insert fallback, call legacy method
+                if insert_fallback:
+                    print(msg)
+                    physiological.insert_event_file_legacy(
+                        event_data, event_path, physiological_file_id, blake2
+                    )
 
                 event_paths.extend([event_path])
 
@@ -723,7 +749,7 @@ class Eeg:
 
                     if not event_metadata_file:
                         message = '\nWARNING: no events metadata files (event.json) associated' \
-                                  'with physiological file ID ' + physiological_file_id
+                                  f' with physiological file ID {physiological_file_id}'
                         print(message)
                     else:
                         # copy the event file to the LORIS BIDS import directory
@@ -745,8 +771,8 @@ class Eeg:
                         # insert assembled HED annotations
                         physiological.insert_event_assembled_hed_tags(
                             self.data_dir, event_path, event_metadata_path, physiological_file_id
-                        )             
-                        
+                        )
+
         return event_paths
 
     def fetch_and_insert_annotation_files(
@@ -787,7 +813,7 @@ class Eeg:
             subject=self.psc_id,
         )
 
-        if not(annotation_data_files):
+        if not annotation_data_files:
             message = "WARNING: no annotations files associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
