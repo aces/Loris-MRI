@@ -480,4 +480,7 @@ class BasePipeline:
         """
 
         if os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
+            try:
+                shutil.rmtree(self.tmp_dir)
+            except PermissionError as err:
+                self.log_info(f"Could not delete {self.tmp_dir}. Error was: {err}", "N", "Y")
