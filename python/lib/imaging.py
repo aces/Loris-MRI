@@ -669,7 +669,7 @@ class Imaging:
             elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
                 matching_protocols_list.append(protocol['Scan_type'])
 
-        return matching_protocols_list
+        return list(dict.fromkeys(matching_protocols_list))
 
     def is_scan_protocol_matching_db_protocol(self, db_prot, scan_param):
         """
