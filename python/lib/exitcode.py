@@ -24,6 +24,8 @@ INSERT_FAILURE  = 21  # if an INSERT query failed
 CORRUPTED_FILE  = 22  # if mismatch between file's hash & the hash stored in db
 SELECT_FAILURE  = 23  # if a SELECT query did not return anything
 UPDATE_FAILURE  = 24  # if an UPDATE query failed
+BAD_CONFIG_SETTING     = 25  # if bad config setting
+MISSING_CONFIG_SETTING = 26  # if config setting has not been set in the Config module
 
 # -- Common configuration failures (exit codes from 40 to 59)
 INVALID_ENVIRONMENT_VAR       = 40  # missing or invalid environment variable
@@ -45,15 +47,19 @@ MISSING_TOOL_VERSION      = 81  # if missing the tool version information
 PROGRAM_EXECUTION_FAILURE = 82  # if script execution failed
 TARGET_EXISTS_NO_CLOBBER  = 83  # target already exists but no -clobber option
 UNKNOWN_PROTOCOL          = 84  # if unknown acq protocol for the file to insert
+NOT_A_SINGLE_STUDY        = 85  # if the upload regroups multiple studies
 GET_SUBJECT_ID_FAILURE    = 86  # if could not determine subject IDs
 GET_SESSION_ID_FAILURE    = 87  # if could not determine session ID
 CREATE_SESSION_FAILURE    = 88  # if could not create a session
 
-FILENAME_MISMATCH = 151
+PHANTOM_ENTRY_FAILURE = 150  # if the phantom entry in the text file is not 'N' nor 'Y'
+FILENAME_MISMATCH     = 151  # if patient name and filename do not match
 
-CHUNK_CREATION_FAILURE = 161
+GET_OUTPUT_LIST_FAILURE = 160  # if could not get the list of derived data for file
+CHUNK_CREATION_FAILURE  = 161
 
-CANDIDATE_MISMATCH      = 181
+INVALID_TARCHIVE        = 180  # if tarchive validation is not set to 1 in the mri_upload table
+CANDIDATE_MISMATCH      = 181  # if candidate PSCID and CandID do not match
 BIDS_CANDIDATE_MISMATCH = 182
 
 NO_VALID_NIfTI_CREATED = 190
