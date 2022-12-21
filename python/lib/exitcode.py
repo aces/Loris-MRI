@@ -24,6 +24,8 @@ INSERT_FAILURE  = 21  # if an INSERT query failed
 CORRUPTED_FILE  = 22  # if mismatch between file's hash & the hash stored in db
 SELECT_FAILURE  = 23  # if a SELECT query did not return anything
 UPDATE_FAILURE  = 24  # if an UPDATE query failed
+BAD_CONFIG_SETTING     = 25  # if bad config setting
+MISSING_CONFIG_SETTING = 26  # if config setting has not been set in the Config module
 
 # -- Common configuration failures (exit codes from 40 to 59)
 INVALID_ENVIRONMENT_VAR       = 40  # missing or invalid environment variable
