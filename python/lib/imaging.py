@@ -664,7 +664,9 @@ class Imaging:
         matching_protocols_list = []
         for protocol in protocols_list:
             if protocol['series_description_regex']:
-                if re.search(rf"{protocol['series_description_regex']}", scan_param['SeriesDescription']):
+                if re.search(
+                        rf"{protocol['series_description_regex']}", scan_param['SeriesDescription'], re.IGNORECASE
+                ):
                     matching_protocols_list.append(protocol['Scan_type'])
             elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
                 matching_protocols_list.append(protocol['Scan_type'])
@@ -793,7 +795,7 @@ class Imaging:
             True for v in valid_ranges if self.in_range(scan_param, v[0], v[1])]
         )) if valid_ranges else True
         passes_regex_check = bool(len([
-            True for r in valid_regexs if re.match(r, scan_param)
+            True for r in valid_regexs if re.match(r, scan_param, re.IGNORECASE)
         ])) if valid_regexs else True
 
         if passes_regex_check and passes_range_check:
