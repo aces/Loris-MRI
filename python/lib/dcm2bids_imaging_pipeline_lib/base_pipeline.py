@@ -77,7 +77,7 @@ class BasePipeline:
         # ---------------------------------------------------------------------------------------------
         # Create tmp dir and log file (their basename being the name of the script run)
         # ---------------------------------------------------------------------------------------------
-        self.tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
+        self.tmp_dir = self.loris_getopt_obj.tmp_dir
         self.log_obj = Log(
             self.db, self.data_dir, script_name, os.path.basename(self.tmp_dir), self.options_dict, self.verbose
         )

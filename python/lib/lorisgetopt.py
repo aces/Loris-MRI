@@ -2,8 +2,14 @@
 import getopt
 
 import lib.exitcode
+import lib.utilities
 import os
 import sys
+
+from lib.aws_s3 import AwsS3
+from lib.database import Database
+from lib.database_lib.config import Config
+
 
 __license__ = "GPLv3"
 
@@ -56,12 +62,9 @@ class LorisGetOpt:
     # get the options provided by the user
     loris_getopt_obj = LorisGetOpt(usage, options_dict)
 
-    # validate that the options provided are correct
-    loris_getopt_obj.perform_default_checks_and_load_config()
-
     """
 
-    def __init__(self, usage, options_dict):
+    def __init__(self, usage, options_dict, script_name):
         """
         Initialize the class, run GetOpt and populate the options_dict with the values that
         were provided to the script.
@@ -80,6 +83,36 @@ class LorisGetOpt:
             sys.exit(lib.exitcode.GETOPT_FAILURE)
 
         self.populate_options_dict_values(opts)
+        self.check_required_options_are_set()
+        self.load_config_file()
+        self.tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
+
+        # ---------------------------------------------------------------------------------------------
+        # Establish database connection
+        # ---------------------------------------------------------------------------------------------
+        self.config_file = self.config_info
+        self.verbose = self.options_dict["verbose"]["value"]
+        self.db = Database(self.config_file.mysql, self.verbose)
+        self.db.connect()
+
+        # ---------------------------------------------------------------------------------------------
+        # Load the Config, MRI Upload, Parameter Type and Parameter File database classes
+        # ---------------------------------------------------------------------------------------------
+        self.config_db_obj = Config(self.db, self.verbose)
+
+        # ---------------------------------------------------------------------------------------------
+        # Get Bucket information from Config and connect to bucket
+        # ---------------------------------------------------------------------------------------------
+        s3_endpoint = self.config_db_obj.get_config("AWS_S3_Endpoint")
+        s3_bucket_name = self.config_db_obj.get_config("AWS_S3_Default_Bucket")
+        self.s3_obj = AwsS3(
+            aws_access_key_id=self.config_file.s3["aws_access_key_id"],
+            aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
+            aws_endpoint_url=s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"],
+            bucket_name=s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
+        )
+
+        self.check_options_file_path_exists()
 
     def get_long_options(self):
         """
@@ -130,17 +163,6 @@ class LorisGetOpt:
                             arg = True
                         self.options_dict[key]["value"] = arg
 
-    def perform_default_checks_and_load_config(self):
-        """
-        Regroups all the different default checks that should be run on GetOpt information
-        provided when running the script.
-        """
-
-        # perform some initial checks
-        self.check_required_options_are_set()
-        self.check_options_file_path_exists()
-        self.load_config_file()
-
     def load_config_file(self):
         """
         Loads the config file based on the value provided by the option '--profile' when
@@ -190,7 +212,17 @@ class LorisGetOpt:
 
         for key in self.options_dict:
             opt_value = self.options_dict[key]["value"]
-            if self.options_dict[key]["is_path"] and opt_value and not os.path.isfile(opt_value):
+            if self.options_dict[key]["is_path"] and opt_value and opt_value.startswith('s3://'):
+                try:
+                    file_path = os.path.join(self.tmp_dir, os.path.basename(opt_value))
+                    self.s3_obj.download_file(opt_value, file_path)
+                    self.options_dict[key]["s3_url"] = opt_value
+                    self.options_dict[key]["value"] = file_path
+                except Exception as err:
+                    print(f"[ERROR   ] {opt_value} could not be downloaded from S3 bucket. Error was\n{err}")
+                    print(self.usage)
+                    sys.exit(lib.exitcode.INVALID_PATH)
+            elif self.options_dict[key]["is_path"] and opt_value and not os.path.isfile(opt_value):
                 print(f"\n[ERROR   ] {opt_value} does not exist. Please provide a valid path for --{key}\n")
                 print(self.usage)
                 sys.exit(lib.exitcode.INVALID_PATH)

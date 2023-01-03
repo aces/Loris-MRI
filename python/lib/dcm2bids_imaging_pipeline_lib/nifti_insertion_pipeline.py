@@ -5,6 +5,7 @@ import json
 import lib.exitcode
 import os
 import re
+import subprocess
 import sys
 
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
@@ -36,6 +37,8 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         super().__init__(loris_getopt_obj, script_name)
         self.nifti_path = self.options_dict["nifti_path"]["value"]
+        self.nifti_s3_url = self.options_dict["nifti_path"]["s3_url"] \
+            if 's3_url' in self.options_dict["nifti_path"].keys() else None
         self.nifti_blake2 = blake2b(self.nifti_path.encode('utf-8')).hexdigest()
         self.nifti_md5 = hashlib.md5(self.nifti_path.encode()).hexdigest()
         self.json_path = self.options_dict["json_path"]["value"]
@@ -47,6 +50,11 @@ class NiftiInsertionPipeline(BasePipeline):
         self.json_md5 = hashlib.md5(self.json_path.encode()).hexdigest()
         self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
+
+        # ---------------------------------------------------------------------------------------------
+        # Get S3 object from loris_getopt object
+        # ---------------------------------------------------------------------------------------------
+        self.s3_obj = self.loris_getopt_obj.s3_obj
 
         # ---------------------------------------------------------------------------------------------
         # Check the mri_upload table to see if the DICOM archive has been validated
@@ -83,6 +91,8 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.nifti_path,
                 self.subject_id_dict["CandMismatchError"]
             )
+            if self.nifti_s3_url:  # push candidate errors to S3 if provided file was on S3
+                self._run_push_to_s3_pipeline()
             self.log_error_and_exit(
                 self.subject_id_dict['CandMismatchError'], lib.exitcode.CANDIDATE_MISMATCH, is_error="Y", is_verbose="N"
             )
@@ -107,6 +117,8 @@ class NiftiInsertionPipeline(BasePipeline):
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
+                if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
+                    self._run_push_to_s3_pipeline()
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
             else:
@@ -116,6 +128,8 @@ class NiftiInsertionPipeline(BasePipeline):
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
+                if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
+                    self._run_push_to_s3_pipeline()
                 message = f"{self.nifti_path}'s scan type {self.scan_type_name} provided to run_nifti_insertion.py" \
                           f" is not a valid scan type in the database."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
@@ -127,6 +141,8 @@ class NiftiInsertionPipeline(BasePipeline):
         if not self.bids_categories_dict:
             self._move_to_trashbin()
             self._register_protocol_violated_scan()
+            if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
+                self._run_push_to_s3_pipeline()
             message = f"Scan type {self.scan_type_name} does not have BIDS tables set up."
             self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
@@ -151,6 +167,8 @@ class NiftiInsertionPipeline(BasePipeline):
             self._move_to_trashbin()
             self._register_violations_log(self.exclude_violations_list, self.trashbin_nifti_rel_path)
             self._register_violations_log(self.warning_violations_list, self.trashbin_nifti_rel_path)
+            if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
+                self._run_push_to_s3_pipeline()
             message = f"{self.nifti_path} violates exclusionary checks listed in mri_protocol_checks. " \
                       f"  List of violations are: {self.exclude_violations_list}"
             self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
@@ -166,6 +184,12 @@ class NiftiInsertionPipeline(BasePipeline):
         # Remove the tmp directory from the file system
         # ---------------------------------------------------------------------------------------------
         self.remove_tmp_dir()
+
+        # ---------------------------------------------------------------------------------------------
+        # Push inserted images to S3 if they were downloaded from S3
+        # ---------------------------------------------------------------------------------------------
+        if self.nifti_s3_url:
+            self._run_push_to_s3_pipeline()
 
         # ---------------------------------------------------------------------------------------------
         # If we get there, the insertion was complete and successful
@@ -658,3 +682,28 @@ class NiftiInsertionPipeline(BasePipeline):
         pic_rel_path = self.imaging_obj.create_imaging_pic(file_info)
 
         self.imaging_obj.insert_parameter_file(self.file_id, 'check_pic_filename', pic_rel_path)
+
+    def _run_push_to_s3_pipeline(self):
+        """
+        Run push to S3 script to upload data to S3. This function is called only when the file path to insert provided
+        to the script is an S3 URL.
+        """
+
+        push_to_s3_cmd = [
+            "run_push_imaging_files_to_s3_pipeline.py",
+            "-p", self.options_dict["profile"]["value"],
+            "-u", str(self.upload_id),
+        ]
+        if self.verbose:
+            push_to_s3_cmd.append("-v")
+
+        s3_process = subprocess.Popen(push_to_s3_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, stderr = s3_process.communicate()
+
+        if s3_process.returncode == 0:
+            message = f"run_push_imaging_files_to_s3_pipeline.py successfully executed for Upload ID {self.upload_id}"
+            self.log_info(message, is_error="N", is_verbose="Y")
+        else:
+            message = f"run_push_imaging_files_to_s3_pipeline.py failed for Upload ID {self.upload_id}.\n{stdout}"
+            print(stdout)
+            self.log_info(message, is_error="Y", is_verbose="Y")

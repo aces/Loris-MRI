@@ -67,7 +67,7 @@ def main():
     }
 
     # get the options provided by the user
-    loris_getopt_obj = LorisGetOpt(usage, options_dict)
+    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
 
     # input error checking and load config_file file
     input_error_checking(loris_getopt_obj)
@@ -77,8 +77,6 @@ def main():
 
 
 def input_error_checking(loris_getopt_obj):
-    # perform initial checks and load config file (in loris_getopt_obj.config_info)
-    loris_getopt_obj.perform_default_checks_and_load_config()
 
     # check that only one of tarchive_path, upload_id or force has been provided
     loris_getopt_obj.check_tarchive_path_upload_id_or_force_set()
