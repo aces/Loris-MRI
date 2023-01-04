@@ -65,10 +65,7 @@ def main():
     }
 
     # get the options provided by the user
-    loris_getopt_obj = LorisGetOpt(usage, options_dict)
-
-    # input error checking and load config_file file
-    loris_getopt_obj.perform_default_checks_and_load_config()
+    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
 
     # validate the DICOM archive
     DicomValidationPipeline(loris_getopt_obj, os.path.basename(__file__[:-3]))
