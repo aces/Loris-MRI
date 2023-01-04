@@ -871,6 +871,8 @@ class Imaging:
         for key in sorted_fmap_files_dict.keys():
             sorted_fmap_files_list = sorted_fmap_files_dict[key]
             for idx, fmap_dict in enumerate(sorted_fmap_files_list):
+                if not fmap_dict['acq_time']:
+                    continue
                 fmap_acq_time = fmap_dict['acq_time']
                 next_fmap_acq_time = sorted_fmap_files_list[idx + 1]['acq_time'] \
                     if idx + 1 < len(sorted_fmap_files_list) else None
@@ -928,13 +930,15 @@ class Imaging:
         fmap_files_dir_pa = []
         fmap_files_no_dir = []
         for file_dict in files_list:
+
             bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
                 file_dict['AcquisitionProtocolID']
             )
-            acq_time = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
+            param_file_result = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 file_dict['FileID'],
                 self.param_type_db_obj.get_parameter_type_id('acquisition_time')
-            )['Value']
+            )
+            acq_time = param_file_result['Value'] if param_file_result else None
             if bids_info['BIDSCategoryName'] == 'fmap' and bids_info['BIDSScanType'] in bids_fmap_suffix_list:
                 json_file_path = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                     file_dict['FileID'],
@@ -1025,6 +1029,8 @@ class Imaging:
         """
 
         for fmap_dict in sorted_fmap_files_list:
+            if 'IntendedFor' not in fmap_dict:
+                continue
             json_file_path = os.path.join(self.config_db_obj.get_config('dataDirBasepath'), fmap_dict['json_file_path'])
             with open(json_file_path) as json_file:
                 json_data = json.load(json_file)
