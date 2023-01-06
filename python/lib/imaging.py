@@ -1000,10 +1000,11 @@ class Imaging:
             bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
                 file_dict['AcquisitionProtocolID']
             )
-            acq_time = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
+            param_file_result = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 file_dict['FileID'],
                 self.param_type_db_obj.get_parameter_type_id('acquisition_time')
-            )['Value']
+            )
+            acq_time = param_file_result['Value'] if param_file_result else None
             require_fmap = False
             if (bids_info['BIDSCategoryName'] == 'dwi' and bids_info['BIDSScanType'] in bids_dwi_suffix_list) \
                     or (bids_info['BIDSCategoryName'] == 'func' and bids_info['BIDSScanType'] in bids_func_suffix_list)\
@@ -1026,7 +1027,12 @@ class Imaging:
                 'need_fmap': require_fmap
             })
 
-        return sorted(new_files_list, key=lambda x: x['acq_time'])
+        try:
+            sorted_files_list = sorted(new_files_list, key=lambda x: x['acq_time'])
+        except TypeError:
+            return None
+        
+        return sorted_files_list
 
     def modify_fmap_json_file_to_write_intended_for(self, sorted_fmap_files_list):
         """
