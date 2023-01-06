@@ -868,6 +868,11 @@ class Imaging:
         # get the list of files sorted by acquisition time
         sorted_new_files_list = self.get_list_of_files_sorted_by_acq_time(files_list)
 
+        if not sorted_new_files_list or not sorted_fmap_files_dict:
+            # if got empty lists, then there are no files to determine IntendedFor either because acq_time
+            # was not set or because there are no fieldmap data
+            return None
+
         for key in sorted_fmap_files_dict.keys():
             sorted_fmap_files_list = sorted_fmap_files_dict[key]
             for idx, fmap_dict in enumerate(sorted_fmap_files_list):
@@ -959,11 +964,14 @@ class Imaging:
                 else:
                     fmap_files_no_dir.append(file_dict)
 
-        fmap_files_dict = {
-            'dir-AP': sorted(fmap_files_dir_ap, key=lambda x: x['acq_time']),
-            'dir-PA': sorted(fmap_files_dir_pa, key=lambda x: x['acq_time']),
-            'no-dir': sorted(fmap_files_no_dir, key=lambda x: x['acq_time']),
-        }
+        try:
+            fmap_files_dict = {
+                'dir-AP': sorted(fmap_files_dir_ap, key=lambda x: x['acq_time']),
+                'dir-PA': sorted(fmap_files_dir_pa, key=lambda x: x['acq_time']),
+                'no-dir': sorted(fmap_files_no_dir, key=lambda x: x['acq_time']),
+            }
+        except TypeError:
+            return None
 
         return fmap_files_dict
 
