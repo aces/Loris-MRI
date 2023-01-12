@@ -342,6 +342,8 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         """
 
         fmap_files_dict = self.imaging_obj.determine_intended_for_field_for_fmap_json_files(self.tarchive_id)
+        if not fmap_files_dict:
+            return
 
         for key in fmap_files_dict.keys():
             sorted_fmap_files_list = fmap_files_dict[key]
