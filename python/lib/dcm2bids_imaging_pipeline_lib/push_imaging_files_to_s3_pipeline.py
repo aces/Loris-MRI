@@ -140,7 +140,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             if entry['minc_location'].startswith('s3://'):
                 # skip since file already pushed to S3
                 continue
-            if not os.path.exists(self.data_dir + entry['minc_location']):
+            if not os.path.exists(os.path.join(self.data_dir, entry['minc_location'])):
                 # violation has been rerun or moved
                 continue
             self.files_to_push_list.append({
@@ -171,7 +171,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             if entry['MincFile'].startswith('s3://'):
                 # skip since file already pushed to S3
                 continue
-            if not os.path.exists(self.data_dir + entry['MincFile']):
+            if not os.path.exists(os.path.join(self.data_dir, entry['MincFile'])):
                 # violation has been rerun or moved
                 continue
             self.files_to_push_list.append({
