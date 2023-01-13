@@ -61,6 +61,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                     os.remove(full_path)
 
         self._clean_up_empty_folders()
+        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('0',))
         sys.exit(lib.exitcode.SUCCESS)
 
     def _get_files_to_push_list(self):
