@@ -52,6 +52,11 @@ class NiftiInsertionPipeline(BasePipeline):
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
 
         # ---------------------------------------------------------------------------------------------
+        # Set 'Inserting' flag to 1 in mri_upload
+        # ---------------------------------------------------------------------------------------------
+        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+
+        # ---------------------------------------------------------------------------------------------
         # Get S3 object from loris_getopt object
         # ---------------------------------------------------------------------------------------------
         self.s3_obj = self.loris_getopt_obj.s3_obj
@@ -194,6 +199,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # If we get there, the insertion was complete and successful
         # ---------------------------------------------------------------------------------------------
+        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('0',))
         sys.exit(lib.exitcode.SUCCESS)
 
     def _load_json_sidecar_file(self):
