@@ -119,6 +119,8 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             message = f"run_dicom_archive_validation.py successfully executed for UploadID {self.upload_id} " \
                       f"and ArchiveLocation {self.tarchive_path}"
             self.log_info(message, is_error="N", is_verbose="Y")
+            # reset mri_upload to Inserting as run_dicom_archive_validation.py will set Inserting=0 after execution
+            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
         else:
             message = f"run_dicom_archive_validation.py failed validation for UploadID {self.upload_id}" \
                       f"and ArchiveLocation {self.tarchive_path}. Exit code was {validation_process.returncode}."
@@ -297,6 +299,8 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             message = f"run_nifti_insertion.py successfully executed for file {nifti_file_path}"
             self.log_info(message, is_error="N", is_verbose="Y")
             self.inserted_file_count += 1
+            # reset mri_upload to Inserting as run_nifti_insertion.py will set Inserting=0 after execution
+            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
         else:
             message = f"run_nifti_insertion.py failed for file {nifti_file_path}.\n{stdout}"
             print(stdout)
