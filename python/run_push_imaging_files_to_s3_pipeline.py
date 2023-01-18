@@ -55,18 +55,10 @@ def main():
     }
 
     # get the options provided by the user
-    loris_getopt_obj = LorisGetOpt(usage, options_dict)
-
-    # input error checking and load config_file file
-    input_error_checking(loris_getopt_obj)
+    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
 
     # push to S3 pipeline
     PushImagingFilesToS3Pipeline(loris_getopt_obj, os.path.basename(__file__[:-3]))
-
-
-def input_error_checking(loris_getopt_obj):
-    # perform initial checks and load config file (in loris_getopt_obj.config_info)
-    loris_getopt_obj.perform_default_checks_and_load_config()
 
 
 if __name__ == "__main__":

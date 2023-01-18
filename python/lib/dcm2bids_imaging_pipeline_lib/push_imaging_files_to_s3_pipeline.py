@@ -4,7 +4,6 @@ import sys
 
 import lib.exitcode
 import lib.utilities
-from lib.aws_s3 import AwsS3
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 
 __license__ = "GPLv3"
@@ -33,16 +32,14 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         self.tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
 
         # ---------------------------------------------------------------------------------------------
-        # Get Bucket information from Config and connect to bucket
+        # Set 'Inserting' flag to 1 in mri_upload
         # ---------------------------------------------------------------------------------------------
-        s3_endpoint = self.config_db_obj.get_config("AWS_S3_Endpoint")
-        s3_bucket_name = self.config_db_obj.get_config("AWS_S3_Default_Bucket")
-        self.s3_obj = AwsS3(
-            aws_access_key_id=self.config_file.s3["aws_access_key_id"],
-            aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
-            aws_endpoint_url=s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"],
-            bucket_name=s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
-        )
+        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+
+        # ---------------------------------------------------------------------------------------------
+        # Get S3 object from loris_getopt object
+        # ---------------------------------------------------------------------------------------------
+        self.s3_obj = self.loris_getopt_obj.s3_obj
 
         # ---------------------------------------------------------------------------------------------
         # Get all the files from files, parameter_file and violation tables
@@ -69,6 +66,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                     os.remove(full_path)
 
         self._clean_up_empty_folders()
+        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('0',))
         sys.exit(lib.exitcode.SUCCESS)
 
     def _get_files_to_push_list(self):
@@ -144,14 +142,11 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(self.tarchive_id)
-        print(entries)
         for entry in entries:
-            print(entry['minc_location'])
-            print(os.path.exists(entry['minc_location']))
             if entry['minc_location'].startswith('s3://'):
                 # skip since file already pushed to S3
                 continue
-            if not os.path.exists(self.data_dir + entry['minc_location']):
+            if not os.path.exists(os.path.join(self.data_dir, entry['minc_location'])):
                 # violation has been rerun or moved
                 continue
             self.files_to_push_list.append({
@@ -182,7 +177,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             if entry['MincFile'].startswith('s3://'):
                 # skip since file already pushed to S3
                 continue
-            if not os.path.exists(self.data_dir + entry['MincFile']):
+            if not os.path.exists(os.path.join(self.data_dir, entry['MincFile'])):
                 # violation has been rerun or moved
                 continue
             self.files_to_push_list.append({
@@ -266,7 +261,6 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         print("Cleaning up empty folders")
         cand_id = self.subject_id_dict["CandID"]
         bids_cand_id = f"sub-{cand_id}"
-        print(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", cand_id))
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "trashbin"))
