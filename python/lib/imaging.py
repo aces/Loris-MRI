@@ -1034,18 +1034,33 @@ class Imaging:
         
         return sorted_files_list
 
-    def modify_fmap_json_file_to_write_intended_for(self, sorted_fmap_files_list):
+    def modify_fmap_json_file_to_write_intended_for(self, sorted_fmap_files_list, s3_obj, tmp_dir):
         """
         Function that reads the JSON file and modifies it to add the BIDS IntendedFor field to it.
 
         :param sorted_fmap_files_list: list of dictionary that contains JSON file path info and IntendedFor content
          :type sorted_fmap_files_list: list
+        :param s3_obj: S3 object for downloading and uploading of S3 files
+         :type s3_obj: AWS object
+        :param tmp_dir: temporary directory where to download JSON file if file is on S3
+         :type tmp_dir: str
         """
 
         for fmap_dict in sorted_fmap_files_list:
             if 'IntendedFor' not in fmap_dict:
                 continue
-            json_file_path = os.path.join(self.config_db_obj.get_config('dataDirBasepath'), fmap_dict['json_file_path'])
+            json_file_path = ''
+            if fmap_dict['json_file_path'].startswith('s3://'):
+                try:
+                    json_file_path = os.path.join(tmp_dir, os.path.basename(fmap_dict['json_file_path']))
+                    s3_obj.download_file(fmap_dict['json_file_path'], json_file_path)
+                except Exception as err:
+                    print(err)
+                    continue
+            else:
+                data_dir = self.config_db_obj.get_config('dataDirBasepath')
+                json_file_path = os.path.join(data_dir, fmap_dict['json_file_path'])
+
             with open(json_file_path) as json_file:
                 json_data = json.load(json_file)
             json_data['IntendedFor'] = fmap_dict['IntendedFor']
@@ -1058,6 +1073,13 @@ class Imaging:
                 param_type_id
             )
             self.param_file_db_obj.update_parameter_file(json_blake2, param_file_dict['ParameterFileID'])
+
+            if fmap_dict['json_file_path'].startswith('s3://'):
+                try:
+                    s3_obj.upload_file(json_file_path, fmap_dict['json_file_path'])
+                except Exception as err:
+                    print(err)
+                    continue
 
     @staticmethod
     def get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(files_list, current_fmap_acq_time,
