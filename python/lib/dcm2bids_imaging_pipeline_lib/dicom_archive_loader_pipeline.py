@@ -59,6 +59,11 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         self.nifti_tmp_dir = self._run_dcm2niix_conversion()
 
         # ---------------------------------------------------------------------------------------------
+        # Get S3 object from loris_getopt object
+        # ---------------------------------------------------------------------------------------------
+        self.s3_obj = self.loris_getopt_obj.s3_obj
+
+        # ---------------------------------------------------------------------------------------------
         # Get the list of NIfTI files to run through NIfTI insertion pipeline
         # ---------------------------------------------------------------------------------------------
         self.excluded_series_desc_regex_list = self.config_db_obj.get_config("excluded_series_description")
@@ -355,7 +360,9 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         for key in fmap_files_dict.keys():
             sorted_fmap_files_list = fmap_files_dict[key]
-            self.imaging_obj.modify_fmap_json_file_to_write_intended_for(sorted_fmap_files_list)
+            self.imaging_obj.modify_fmap_json_file_to_write_intended_for(
+                sorted_fmap_files_list, self.s3_obj, self.tmp_dir
+            )
 
     def _order_modalities_per_acquisition_type(self):
         """
