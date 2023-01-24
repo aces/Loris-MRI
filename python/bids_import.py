@@ -147,6 +147,18 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
     db = Database(config_file.mysql, verbose)
     db.connect()
 
+    # ====================
+    from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
+    pcs = PhysiologicalCoordSystem(db, True)
+
+    print(f"name:     {pcs.grep_coord_system_name_from_name()}")
+    print(f"unit:     {pcs.grep_coord_system_unit_from_symbol()}")
+    print(f"type:     {pcs.grep_coord_system_type_from_name()}")
+    print(f"modality: {pcs.grep_coord_system_modality_from_name()}")
+
+    raise
+    # ====================
+
     # grep config settings from the Config module
     config_obj      = Config(db, verbose)
     default_bids_vl = config_obj.get_config('default_bids_vl')

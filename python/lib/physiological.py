@@ -66,6 +66,7 @@ class Physiological:
         self.physiological_annotation_parameter_obj = PhysiologicalAnnotationParameter(self.db, self.verbose)
         self.physiological_annotation_label_obj     = PhysiologicalAnnotationLabel(self.db, self.verbose)
         self.physiological_annotation_instance_obj  = PhysiologicalAnnotationInstance(self.db, self.verbose)
+        self.physiological_coord_system_db          = PhysiologicalCoordSystem(self.db, self.verbose)
 
         self.physiological_event_file_obj                     = PhysiologicalEventFile(self.db, self.verbose)
         self.physiological_event_parameter_obj                = PhysiologicalEventParameter(self.db, self.verbose)
@@ -362,9 +363,7 @@ class Physiological:
             'PhysiologicalElectrodeTypeID',
             'PhysiologicalElectrodeMaterialID',
             'Name',
-            'X',
-            'Y',
-            'Z',
+            'Point3DID',
             'Impedance',
             'FilePath'
         )

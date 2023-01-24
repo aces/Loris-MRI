@@ -579,6 +579,29 @@ class Eeg:
                         full_search = False,
                         subject=self.psc_id,
                     )
+                    if not coordsystem_metadata_file:
+                        message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
+                                  f'associated with physiological file ID {physiological_file_id}'
+                        print(message)
+
+                    else:
+                        # copy the electrode metadata file to the LORIS BIDS import directory
+                        electrode_metadata_path = self.copy_file_to_loris_bids_dir(
+                            coordsystem_metadata_file.path, derivatives
+                        )
+                        # load json data
+                        with open(coordsystem_metadata_file.path) as metadata_file:
+                            electrode_metadata = json.load(metadata_file)
+                        # get the blake2b hash of the json events file
+                        blake2 = blake2b(coordsystem_metadata_file.path.encode('utf-8')).hexdigest()
+                        # insert event metadata in the database
+                        physiological.insert_electrode_metadata(
+                            electrode_metadata,
+                            electrode_metadata_path,
+                            physiological_file_id,
+                            blake2,
+                            electrode_ids
+                        )
 
                     if not coordsystem_metadata_file:
                         message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
