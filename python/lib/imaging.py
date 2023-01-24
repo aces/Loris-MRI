@@ -1055,6 +1055,7 @@ class Imaging:
                     json_file_path = os.path.join(tmp_dir, os.path.basename(fmap_dict['json_file_path']))
                     s3_obj.download_file(fmap_dict['json_file_path'], json_file_path)
                 except Exception as err:
+                    print(err)
                     continue
             else:
                 data_dir = self.config_db_obj.get_config('dataDirBasepath')
@@ -1077,6 +1078,7 @@ class Imaging:
                 try:
                     s3_obj.upload_file(json_file_path, fmap_dict['json_file_path'])
                 except Exception as err:
+                    print(err)
                     continue
 
     @staticmethod
