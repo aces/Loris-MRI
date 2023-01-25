@@ -8,11 +8,12 @@
 - physiological_coord_system_point_3d_rel
 """
 
-from typing import List
-from lib.point_3d import Point3D
-from lib.database_lib.point_3d import Point3DDB
+from typing import Dict, List
+# from lib.point_3d import Point3D
+# from lib.database_lib.point_3d import Point3DDB
 
 __license__ = "GPLv3"
+
 
 class PhysiologicalCoordSystem:
 
@@ -37,9 +38,9 @@ class PhysiologicalCoordSystem:
          :rtype                 : int
         """
         c_name = self.db.pselect(
-            query = "SELECT DISTINCT PhysiologicalCoordSystemNameID "
-                    "FROM physiological_coord_system_name "
-                    "WHERE Name = %s",
+            query="SELECT DISTINCT PhysiologicalCoordSystemNameID "
+            "FROM physiological_coord_system_name "
+            "WHERE Name = %s",
             args=(coord_name,)
         )
         return c_name[0]['PhysiologicalCoordSystemNameID'] if c_name else None
@@ -53,9 +54,9 @@ class PhysiologicalCoordSystem:
          :rtype                 : int
         """
         c_unit = self.db.pselect(
-            query = "SELECT DISTINCT PhysiologicalCoordSystemUnitID "
-                    "FROM physiological_coord_system_unit "
-                    "WHERE Symbol = %s",
+            query="SELECT DISTINCT PhysiologicalCoordSystemUnitID "
+            "FROM physiological_coord_system_unit "
+            "WHERE Symbol = %s",
             args=(coord_unit,)
         )
         return c_unit[0]['PhysiologicalCoordSystemUnitID'] if c_unit else None
@@ -69,9 +70,9 @@ class PhysiologicalCoordSystem:
          :rtype                 : int
         """
         c_type = self.db.pselect(
-            query = "SELECT DISTINCT PhysiologicalCoordSystemTypeID "
-                    "FROM physiological_coord_system_type "
-                    "WHERE Name = %s",
+            query="SELECT DISTINCT PhysiologicalCoordSystemTypeID "
+            "FROM physiological_coord_system_type "
+            "WHERE Name = %s",
             args=(coord_type,)
         )
         return c_type[0]['PhysiologicalCoordSystemTypeID'] if c_type else None
@@ -85,17 +86,45 @@ class PhysiologicalCoordSystem:
          :rtype                 : int
         """
         c_mod = self.db.pselect(
-            query = "SELECT DISTINCT PhysiologicalModalityID "
-                    "FROM physiological_modality "
-                    "WHERE PhysiologicalModality = %s",
+            query="SELECT DISTINCT PhysiologicalModalityID "
+            "FROM physiological_modality "
+            "WHERE PhysiologicalModality = %s",
             args=(coord_modality,)
         )
         return c_mod[0]['PhysiologicalModalityID'] if c_mod else None
 
-    def insert_coord_system(self, coord_name: str, coord_unit: str, coord_type: str,
-                            coord_mod: str, coord_file: str):
+    def grep_coord_system(self, coord_mod_id: int, coord_name_id: int = None,
+                          coord_unit_id: int = None, coord_type_id: int = None):
+        q_args = (coord_mod_id,)
+        q_extra = "SELECT DISTINCT PhysiologicalCoordSystemID " \
+                  "FROM physiological_coord_system " \
+                  "WHERE ModalityID = %s"
+        # add name id
+        if coord_name_id is not None:
+            q_args += (coord_name_id,)
+            q_extra += " AND NameID = %s"
+        # add type id
+        if coord_type_id is not None:
+            q_args += (coord_type_id,)
+            q_extra += " AND TypeID = %s"
+        # add unit id
+        if coord_unit_id is not None:
+            q_args += (coord_unit_id,)
+            q_extra += " AND UnitID = %s"
+        # execute query
+        r_query = self.db.pselect(
+            query = q_extra,
+            args = q_args
+        )
+        return r_query[0]['PhysiologicalCoordSystemID'] if r_query else None
+
+    def insert_coord_system_by_name(self, coord_name: str, coord_unit: str,
+                                    coord_type: str, coord_mod: str,
+                                    coord_file: str):
         """
+        Wrapper for int version.
         Inserts a new entry in the physiological_coord_system table.
+
         :param coord_name  : coord system name of the coord file
          :type coord_name  : str
         :param coord_unit  : unit name of the coord file
@@ -113,30 +142,49 @@ class PhysiologicalCoordSystem:
         c_name = self.grep_coord_system_name_from_name(coord_name)
         c_unit = self.grep_coord_system_unit_from_symbol(coord_unit)
         c_type = self.grep_coord_system_type_from_name(coord_type)
-        c_mod  = self.grep_coord_system_modality_from_name(coord_mod)
+        c_mod = self.grep_coord_system_modality_from_name(coord_mod)
+        return self.insert_coord_system(c_name, c_unit, c_type, c_mod, coord_file)
 
+    def insert_coord_system(self, name_id: int, unit_id: int, type_id: int,
+                            mod_id: int, coord_file: str):
+        """
+        Inserts a new entry in the physiological_coord_system table.
+
+        :param name_id     : coord system name id
+         :type name_id     : int
+        :param unit_id     : unit id
+         :type unit_id     : int
+        :param type_id     : type id
+         :type type_id     : int
+        :param mod_id      : modality id
+         :type mod_id      : int
+        :param coord_file  : path of the coord system file
+         :type coord_file  : str
+        :return            : id of the row inserted
+         :rtype            : int
+        """
         return self.db.insert(
-            table_name = 'physiological_coord_system',
-            column_names = (
-                'Name',
-                'Unit',
-                'Type',
-                'Modality'
+            table_name='physiological_coord_system',
+            column_names=(
+                'NameID',
+                'UnitID',
+                'TypeID',
+                'ModalityID',
                 'FilePath'
             ),
-            values = (
-                c_name,
-		c_unit,
-		c_type,
-		c_mod,
-		coord_file
+            values=(
+                name_id,
+                unit_id,
+                type_id,
+                mod_id,
+                coord_file
             ),
-            get_last_id = True
+            get_last_id=True
         )
 
     def insert_coord_system_electrodes_relation(self, physiological_file_id: int,
-						coord_system_id: int,
-			                        electrode_ids: List[int]):
+                                                coord_system_id: int,
+                                                electrode_ids: List[int]):
         """
         Inserts new entries in the physiological_coord_system_electrode_rel table.
         :param physiological_file_id : physiological file ID
@@ -151,35 +199,43 @@ class PhysiologicalCoordSystem:
             for eid in electrode_ids
         ]
         self.db.insert(
-            table_name = 'physiological_coord_system_electrode_rel',
-            column_names = (
+            table_name='physiological_coord_system_electrode_rel',
+            column_names=(
                 'PhysiologicalCoordSystemID',
                 'PhysiologicalElectrodeID',
                 'PhysiologicalFileID '
             ),
-            values = values_to_insert
+            values=values_to_insert
         )
 
     def insert_coord_system_point_3d_relation(self, coord_system_id: int,
-                                              point_ids: List[int]):
+                                              point_ids: Dict[str, int]):
         """
         Insert new entries in the physiological_coord_system_point_3d_rel table.
         :param coord_system_id : coordinate system ID
          :type coord_system_id : int
-        :param point_ids       : list of point_3d id associated with the coordinate system ID
-         :type point_ids       : List[int]
+        :param point_ids       : dict of (point name,point_3d id) associated with the coordinate system ID
+         :type point_ids       : Dict[str, int]
         """
-        values_to_insert = [
-            (coord_system_id, pid)
-            for pid in point_ids
-        ]
+        values_to_insert = []
+        for name, pid in point_ids.items():
+            r = self.db.pselect(
+                query="SELECT * "
+                "FROM physiological_coord_system_point_3d_rel "
+                "WHERE PhysiologicalCoordSystemID = %s "
+                "AND Point3DID = %s ",
+                args=(coord_system_id, pid,)
+            )
+            if not r:
+                values_to_insert.append((coord_system_id, pid, name))
         self.db.insert(
-            table_name = 'physiological_coord_system_point_3d_rel',
-            column_names = (
+            table_name='physiological_coord_system_point_3d_rel',
+            column_names=(
                 'PhysiologicalCoordSystemID',
-                'Point3DID '
+                'Point3DID',
+                'Name'
             ),
-            values = values_to_insert
+            values=values_to_insert
         )
 
     def grep_coord_system_points(self, coord_system_id: int) -> List[int]:
@@ -188,10 +244,9 @@ class PhysiologicalCoordSystem:
         This method get the coordinate system reference points, not the actual electrode points.
         """
         c_points = self.db.pselect(
-            query = "SELECT DISTINCT Point3DID "
-                    "FROM physiological_coord_system_point_3d_rel "
-                    "WHERE PhysiologicalCoordSystemID = %s",
+            query="SELECT DISTINCT Point3DID "
+            "FROM physiological_coord_system_point_3d_rel "
+            "WHERE PhysiologicalCoordSystemID = %s",
             args=(coord_system_id,)
         )
         return [c['Point3DID'] for c in c_points] if c_points else []
-
