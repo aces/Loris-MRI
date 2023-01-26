@@ -29,8 +29,9 @@ class Point3DDB:
          :type y  : float
         :param z  : z coordinate
          :type z  : float
-        :return   : a point or None
-         :rtype   : Point3D | None
+
+        :return: a point or None if it does not exist
+         :rtype: Point3D | None
         """
         cp = self.db.pselect(
             query = "SELECT DISTINCT Point3DID "
@@ -48,8 +49,9 @@ class Point3DDB:
 
         :param point_id  : a point ID
          :type point_id  : int
-        :return          : a point or None
-         :rtype          : Point3D | None
+
+        :return: a point or None if it does not exist
+         :rtype: Point3D | None
         """
         cp = self.db.pselect(
             query = "SELECT X, Y, Z "
@@ -61,18 +63,21 @@ class Point3DDB:
 
     def insert_point(self, p: Point3D):
         """
-        Wrapper for insert point with object
+        Wrapper for insert_point_by_coordinates.
 
         :param p  : Point3D object
          :type p  : Point3D
         :return   : the id of the inserted point
          :rtype   : int
+
+        :return: a point
+         :rtype: Point3D
         """
         return self.insert_point_by_coordinates(p.x, p.y, p.z)
 
     def insert_point_by_coordinates(self, x: float, y: float, z: float):
         """
-        Insert a point in db if it does not already exist, returns the ID.
+        Insert a point in db by coordinates.
 
         :param x  : x coordinate
          :type x  : float
@@ -80,6 +85,9 @@ class Point3DDB:
          :type y  : float
         :param z  : z coordinate
          :type z  : float
+
+        :return: a point
+         :rtype: Point3D
         """
         pid = self.db.insert(
             table_name = 'point_3d',
@@ -91,17 +99,35 @@ class Point3DDB:
 
     def grep_or_insert_point(self, point: Point3D):
         """
-        Insert a point in db if it does not already exist, returns the ID.
+        Wrapper around grep_or_insert_point_by_coordinates.
+        Insert a point in db if it does not already exist.
+
         :param x  : x coordinate
          :type x  : float
         :param y  : y coordinate
          :type y  : float
         :param z  : z coordinate
          :type z  : float
+
+        :return: a point
+         :rtype: Point3D
         """
         return self.grep_or_insert_point_by_coordinates(point.x, point.y, point.z)
 
     def grep_or_insert_point_by_coordinates(self, x: float, y: float, z: float):
+        """
+        Insert a point in db by coordinates if it does not already exist.
+
+        :param x  : x coordinate
+         :type x  : float
+        :param y  : y coordinate
+         :type y  : float
+        :param z  : z coordinate
+         :type z  : float
+
+        :return: a point
+         :rtype: Point3D
+        """
         p = self.grep_point_by_coordinates(x, y, z)
         if p is None:
             p = self.insert_point_by_coordinates(x, y, z)

@@ -20,6 +20,7 @@ class PhysiologicalCoordSystem:
     def __init__(self, db, verbose):
         """
         Constructor method for the PhysiologicalCoordSystem class.
+
         :param db                 : Database class object
          :type db                 : object
         :param verbose            : whether to be verbose
@@ -32,8 +33,10 @@ class PhysiologicalCoordSystem:
     def grep_coord_system_name_from_name(self, coord_name: str):
         """
         Gets the coord system name ID given a str name.
+
         :param coord_name       : coord system name of the coord file
          :type coord_name       : str
+
         :return                 : id of the coord system name
          :rtype                 : int
         """
@@ -48,8 +51,10 @@ class PhysiologicalCoordSystem:
     def grep_coord_system_unit_from_symbol(self, coord_unit: str):
         """
         Gets the coord system unit ID given a str name.
+
         :param coord_unit       : coord system unit name of the coord file (e.g. 'mm')
          :type coord_unit       : str
+
         :return                 : id of the coord system unit
          :rtype                 : int
         """
@@ -64,8 +69,10 @@ class PhysiologicalCoordSystem:
     def grep_coord_system_type_from_name(self, coord_type: str):
         """
         Gets the coord system type ID given a str name.
+
         :param coord_type       : coord system type name of the coord file
          :type coord_type       : str
+
         :return                 : id of the coord system type
          :rtype                 : int
         """
@@ -80,8 +87,10 @@ class PhysiologicalCoordSystem:
     def grep_coord_system_modality_from_name(self, coord_modality: str):
         """
         Gets the coord system type ID given a str name.
+
         :param coord_modality   : coord system modality name of the coord file
          :type coord_modality   : str
+
         :return                 : id of the coord system modality
          :rtype                 : int
         """
@@ -95,6 +104,24 @@ class PhysiologicalCoordSystem:
 
     def grep_coord_system(self, coord_mod_id: int, coord_name_id: int = None,
                           coord_unit_id: int = None, coord_type_id: int = None):
+        """
+        Get a coordinate system by ID.
+        Requires at least the modality.
+
+        :param name_id     : coord system name id
+         :type name_id     : int
+        :param unit_id     : unit id
+         :type unit_id     : int
+        :param type_id     : type id
+         :type type_id     : int
+        :param mod_id      : modality id
+         :type mod_id      : int
+        :param coord_file  : path of the coord system file
+         :type coord_file  : str
+
+        :return            : The coordinate system ID or None
+         :rtype            : int | None
+        """
         q_args = (coord_mod_id,)
         q_extra = "SELECT DISTINCT PhysiologicalCoordSystemID " \
                   "FROM physiological_coord_system " \
@@ -118,33 +145,6 @@ class PhysiologicalCoordSystem:
         )
         return r_query[0]['PhysiologicalCoordSystemID'] if r_query else None
 
-    def insert_coord_system_by_name(self, coord_name: str, coord_unit: str,
-                                    coord_type: str, coord_mod: str,
-                                    coord_file: str):
-        """
-        Wrapper for int version.
-        Inserts a new entry in the physiological_coord_system table.
-
-        :param coord_name  : coord system name of the coord file
-         :type coord_name  : str
-        :param coord_unit  : unit name of the coord file
-         :type coord_unit  : str
-        :param coord_type  : type name of the coord file
-         :type coord_type  : str
-        :param coord_mod   : modality name of the coord file
-         :type coord_mod   : str
-        :param coord_file  : path of the coord system file
-         :type coord_file  : str
-        :return            : id of the row inserted
-         :rtype            : int
-        """
-
-        c_name = self.grep_coord_system_name_from_name(coord_name)
-        c_unit = self.grep_coord_system_unit_from_symbol(coord_unit)
-        c_type = self.grep_coord_system_type_from_name(coord_type)
-        c_mod = self.grep_coord_system_modality_from_name(coord_mod)
-        return self.insert_coord_system(c_name, c_unit, c_type, c_mod, coord_file)
-
     def insert_coord_system(self, name_id: int, unit_id: int, type_id: int,
                             mod_id: int, coord_file: str):
         """
@@ -160,7 +160,8 @@ class PhysiologicalCoordSystem:
          :type mod_id      : int
         :param coord_file  : path of the coord system file
          :type coord_file  : str
-        :return            : id of the row inserted
+
+        :return            : The inserted coordinate system ID or None
          :rtype            : int
         """
         return self.db.insert(
@@ -182,11 +183,36 @@ class PhysiologicalCoordSystem:
             get_last_id=True
         )
 
+    def grep_or_insert_coord_system(self, name_id: int, unit_id: int, type_id: int,
+                                    mod_id: int, coord_file: str):
+        """
+        Inserts a new entry in the physiological_coord_system table if it does not exist.
+
+        :param name_id     : coord system name id
+         :type name_id     : int
+        :param unit_id     : unit id
+         :type unit_id     : int
+        :param type_id     : type id
+         :type type_id     : int
+        :param mod_id      : modality id
+         :type mod_id      : int
+        :param coord_file  : path of the coord system file
+         :type coord_file  : str
+
+        :return            : The coordinate system ID or None
+         :rtype            : int
+        """
+        coord_system_id = self.grep_coord_system(mod_id, name_id, unit_id, type_id)
+        if coord_system_id is None:
+            coord_system_id = self.insert_coord_system(name_id, unit_id, type_id, mod_id, coord_file)
+        return coord_system_id
+
     def insert_coord_system_electrodes_relation(self, physiological_file_id: int,
                                                 coord_system_id: int,
                                                 electrode_ids: List[int]):
         """
         Inserts new entries in the physiological_coord_system_electrode_rel table.
+
         :param physiological_file_id : physiological file ID
          :type physiological_file_id : int
         :param coord_system_id       : coordinate system ID
@@ -212,6 +238,7 @@ class PhysiologicalCoordSystem:
                                               point_ids: Dict[str, int]):
         """
         Insert new entries in the physiological_coord_system_point_3d_rel table.
+
         :param coord_system_id : coordinate system ID
          :type coord_system_id : int
         :param point_ids       : dict of (point name,point_3d id) associated with the coordinate system ID
@@ -237,16 +264,3 @@ class PhysiologicalCoordSystem:
             ),
             values=values_to_insert
         )
-
-    def grep_coord_system_points(self, coord_system_id: int) -> List[int]:
-        """
-        Get all points_3d IDs associated with a cooordinate system.
-        This method get the coordinate system reference points, not the actual electrode points.
-        """
-        c_points = self.db.pselect(
-            query="SELECT DISTINCT Point3DID "
-            "FROM physiological_coord_system_point_3d_rel "
-            "WHERE PhysiologicalCoordSystemID = %s",
-            args=(coord_system_id,)
-        )
-        return [c['Point3DID'] for c in c_points] if c_points else []

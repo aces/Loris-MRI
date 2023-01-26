@@ -577,23 +577,26 @@ class Physiological:
             print(f"Name {coord_system_name} unknown in DB")
             sys.exit(lib.exitcode.SELECT_FAILURE)
 
-        # get coord system id
-        coord_system_id = self.physiological_coord_system_db.grep_coord_system(modality_id, name_id, unit_id, type_id)
-        if coord_system_id is None:
-            coord_system_id = self.physiological_coord_system_db.insert_coord_system(name_id, unit_id, type_id, modality_id, str(electrode_metadata_file))
+        # get or create coord system in db
+        coord_system_id = self.physiological_coord_system_db.grep_or_insert_coord_system(
+            name_id,
+            unit_id,
+            type_id,
+            modality_id,
+            str(electrode_metadata_file)
+        )
 
-        # coord system referential points (e.g. LPA, RPA)
-        ref_points = {}
+        # define coord system referential points (e.g. LPA, RPA) + points
         ref_coords = electrode_metadata[f'{coord_system_type}Coordinates']
-        for ref_key, ref_val in ref_coords.items():
-            ref_points[ref_key] = Point3D(None, *ref_val)
+        ref_points = {
+            ref_key : Point3D(None, *ref_val)
+            for ref_key, ref_val in ref_coords.items()
+        }
 
         # insert ref points
         point_ids = {}
         for rk, rv in ref_points.items():
-            p = self.point_3d_db.grep_point_by_coordinates(rv.x, rv.y, rv.z)
-            if p is None:
-                p = self.point_3d_db.insert_point(rv)
+            p = self.point_3d_db.grep_or_insert_point(rv)
             point_ids[rk] = p.id
 
         # insert ref point/coord system relations
@@ -601,7 +604,9 @@ class Physiological:
 
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
-            physiological_file_id, 'coordsystem_file_json_blake2b_hash', blake2
+            physiological_file_id,
+            'coordsystem_file_json_blake2b_hash',
+            blake2
         )
 
     def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id, blake2):
