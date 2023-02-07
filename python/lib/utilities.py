@@ -196,16 +196,17 @@ def update_set_file_path_info(set_file, fdt_file):
         # read the .set EEG file using skjerns/mat7.3
         dataset = mat73.loadmat(set_file, only_include=['filename', 'datfile'])
 
-        if 'filename' in dataset.keys():
-            if dataset['filename'] != set_file_name:
-                print('expected filename: {} but read {}'
-                      .format(set_file_name, dataset['filename']))
-                return False
+        if 'filename' not in dataset.keys() or \
+                dataset['filename'] != set_file_name:
+            print('Expected `filename` field: {}'
+                  .format(set_file_name))
+            return False
 
-        if fdt_file and 'datfile' in dataset.keys():
-            if dataset['datfile'] != fdt_file_name:
-                print('expected datfile: {} but read {}'
-                      .format(fdt_file_name, dataset['datfile']))
+        if fdt_file:
+            if 'datfile' not in dataset.keys() or \
+                    dataset['datfile'] != fdt_file_name:
+                print('Expected `datfile` field: {}'
+                      .format(fdt_file_name))
                 return False
 
     return True
