@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-
+import mat73
 import lib.exitcode
 
 
@@ -191,7 +191,24 @@ def update_set_file_path_info(set_file, fdt_file):
         # write the new .set file with the correct path info
         scipy.io.savemat(set_file, dataset, False)
     except NotImplementedError:     # Thrown for matlab v7.3 files
-        pass    # Assumes path fields are already set
+        # read the .set EEG file using skjerns/mat7.3
+        dataset = mat73.loadmat(set_file, only_include=['filename', 'datfile'])
+
+        if 'filename' in dataset.keys():
+            set_file_name = numpy.array(basename + ".set")
+            if dataset['filename'] != set_file_name:
+                print('expected filename: {} but read {}'
+                      .format(set_file_name, dataset['filename']))
+                return False
+
+        if fdt_file and 'datfile' in dataset.keys():
+            fdt_file_name = numpy.array(basename + ".fdt")
+            if dataset['datfile'] != fdt_file_name:
+                print('expected datfile: {} but read {}'
+                      .format(fdt_file_name, dataset['datfile']))
+                return False
+
+    return True
 
 
 def compute_md5sum(file):
