@@ -172,6 +172,8 @@ def update_set_file_path_info(set_file, fdt_file):
 
     # grep the basename without the extension of set_file
     basename = os.path.splitext(os.path.basename(set_file))[0]
+    set_file_name = numpy.array(basename + ".set")
+    fdt_file_name = numpy.array(basename + ".fdt")
 
     try:
         # read the .set EEG file using scipy
@@ -179,14 +181,14 @@ def update_set_file_path_info(set_file, fdt_file):
 
         # update the EEG paths in the .set file
         if 'filename' in dataset.keys():
-            dataset['filename'] = numpy.array(basename + ".set")
+            dataset['filename'] = set_file_name
         if 'setname' in dataset.keys():
             dataset['setname'] = numpy.array(basename)
         if 'EEG' in dataset.keys():
-            dataset['EEG'][0][0][1] = numpy.array(basename + ".set")
+            dataset['EEG'][0][0][1] = set_file_name
         if fdt_file and 'EEG' in dataset.keys():
-            dataset['EEG'][0][0][15] = numpy.array(basename + ".fdt")
-            dataset['EEG'][0][0][40] = numpy.array(basename + ".fdt")
+            dataset['EEG'][0][0][15] = fdt_file_name
+            dataset['EEG'][0][0][40] = fdt_file_name
 
         # write the new .set file with the correct path info
         scipy.io.savemat(set_file, dataset, False)
@@ -195,14 +197,12 @@ def update_set_file_path_info(set_file, fdt_file):
         dataset = mat73.loadmat(set_file, only_include=['filename', 'datfile'])
 
         if 'filename' in dataset.keys():
-            set_file_name = numpy.array(basename + ".set")
             if dataset['filename'] != set_file_name:
                 print('expected filename: {} but read {}'
                       .format(set_file_name, dataset['filename']))
                 return False
 
         if fdt_file and 'datfile' in dataset.keys():
-            fdt_file_name = numpy.array(basename + ".fdt")
             if dataset['datfile'] != fdt_file_name:
                 print('expected datfile: {} but read {}'
                       .format(fdt_file_name, dataset['datfile']))
