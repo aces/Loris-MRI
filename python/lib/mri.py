@@ -119,20 +119,22 @@ class Mri:
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
-        
-        self.subproject_id   = None 
+
+        self.cohort_id   = None
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue
+            # TODO: do we change this in imported files?
             if 'subproject' in row:
-                subproject_info = db.pselect(
-                    "SELECT SubprojectID FROM subproject WHERE title = %s",
+                cohort_info = db.pselect(
+                    "SELECT CohortID FROM cohort WHERE title = %s",
+                    # TODO: do we change this in imported files?
                     [row['subproject'], ]
                 )
-                if(len(subproject_info) > 0):
-                    self.subproject_id = subproject_info[0]['SubprojectID']
+                if(len(cohort_info) > 0):
+                    self.cohort_id = cohort_info[0]['CohortID']
             break
-        
+
         self.session_id      = self.get_loris_session_id()
 
         # grep all the NIfTI files for the modality
@@ -141,7 +143,7 @@ class Mri:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, 
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id,
                                                    return_type='filename', extension='tsv')[0]
 
         # loop through NIfTI files and register them in the DB
@@ -178,7 +180,7 @@ class Mri:
 
         session = Session(
             self.db, self.verbose, self.cand_id, visit_label,
-            self.center_id, self.project_id, self.subproject_id
+            self.center_id, self.project_id, self.cohort_id
         )
         loris_vl_info = session.get_session_info_from_loris()
 
