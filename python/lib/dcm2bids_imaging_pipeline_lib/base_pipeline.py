@@ -333,7 +333,7 @@ class BasePipeline:
         visit_label = self.subject_id_dict["visitLabel"]
         create_visit_label = self.subject_id_dict["createVisitLabel"]
         project_id = self.subject_id_dict["ProjectID"] if "ProjectID" in self.subject_id_dict.keys() else None
-        subproject_id = self.subject_id_dict["SubprojectID"] if "SubprojectID" in self.subject_id_dict.keys() else None
+        cohort_id = self.subject_id_dict["CohortID"] if "CohortID" in self.subject_id_dict.keys() else None
 
         # check if whether the visit label should be created
         if not create_visit_label:
@@ -345,16 +345,16 @@ class BasePipeline:
             message = "Cannot create visit: profile file does not defined the visit's ProjectID"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
-        # check if a subproject ID was provided in the config file for the visit label
-        if not subproject_id:
-            message = "Cannot create visit: profile file does not defined the visit's SubprojectID"
+        # check if a cohort ID was provided in the config file for the visit label
+        if not cohort_id:
+            message = "Cannot create visit: profile file does not defined the visit's CohortID"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
-        # check that the project ID and subproject ID refers to an existing row in project_subproject_rel table
-        self.session_obj.create_proj_subproj_rel_info_dict(project_id, subproject_id)
-        if not self.session_obj.proj_subproj_rel_info_dict.keys():
-            message = f"Cannot create visit with project ID {project_id} and subproject ID {subproject_id}:" \
-                      f" no such association in table project_subproject_rel"
+        # check that the project ID and cohort ID refers to an existing row in project_cohort_rel table
+        self.session_obj.create_proj_cohort_rel_info_dict(project_id, cohort_id)
+        if not self.session_obj.proj_cohort_rel_info_dict.keys():
+            message = f"Cannot create visit with project ID {project_id} and cohort ID {cohort_id}:" \
+                      f" no such association in table project_cohort_rel"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
         # determine the visit number and center ID for the next session to be created
@@ -376,7 +376,7 @@ class BasePipeline:
                 'Current_stage': 'Not Started',
                 'Scan_done': 'Y',
                 'Submitted': 'N',
-                'SubprojectID': subproject_id,
+                'CohortID': cohort_id,
                 'ProjectID': project_id
             }
         )
