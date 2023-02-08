@@ -157,7 +157,7 @@ class NiftiInsertionPipeline(BasePipeline):
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
                 self.session_obj.session_info_dict['ProjectID'],
-                self.session_obj.session_info_dict['SubprojectID'],
+                self.session_obj.session_info_dict['CohortID'],
                 self.session_obj.session_info_dict['Visit_label'],
                 self.scan_type_id,
                 self.json_file_dict
@@ -344,7 +344,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
             self.session_obj.session_info_dict['ProjectID'],
-            self.session_obj.session_info_dict['SubprojectID'],
+            self.session_obj.session_info_dict['CohortID'],
             self.session_obj.session_info_dict['CenterID'],
             self.session_obj.session_info_dict['Visit_label'],
             self.scanner_id
