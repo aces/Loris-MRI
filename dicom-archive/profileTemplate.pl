@@ -82,7 +82,7 @@ sub getSubjectIDs {
         # When createVisitLabel is set to 1, CohortID must also
         # be set to the ID of the cohort that the newly created
         # visit should have. Assuming for example that visits V01 and V02
-        # are associated with sub-project with ID 1 and all others to sub-project
+        # are associated with cohort with ID 1 and all others to cohort
         # with ID 2, then we could write:
         # ($subjectID{'CohortID'}) = $subjectID{'visitLabel'} =~ /^V0[12]$/
         #     ? 1 : 2;

@@ -198,7 +198,7 @@ sub getSessionInformation {
     # If there's no entry in project_cohort_rel for (ProjectID, CohortID)
     if ($sth->rows == 0) {
         my $msg = sprintf(
-            "Cannot create visit with project ID %d and sub-project ID %d: no such association in table %s",
+            "Cannot create visit with project ID %d and cohort ID %d: no such association in table %s",
             $subjectIDref->{'ProjectID'},
             $subjectIDref->{'CohortID'},
             'project_cohort_rel'
