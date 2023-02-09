@@ -119,8 +119,7 @@ class Mri:
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
-        
-        self.cohort_id   = None
+        self.cohort_id       = None
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue

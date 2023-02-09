@@ -243,7 +243,7 @@ The DICOM archives listed in the DICOM archive module are stored in the
 
 The scans that violates the established imaging protocol and listed in the MRI 
   violated scans module are stored within the directory `data/trashbin`.
-
+    
 ```
 ## Content of the /data/$PROJECT/data/trashbin directory
 .

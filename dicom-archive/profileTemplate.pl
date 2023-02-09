@@ -36,7 +36,7 @@ sub getSubjectIDs {
     my ($patientName, $patientID, $scannerID, $dbhr, $db) = @_;
 
     my %subjectID; # Will stored subject IDs.
-
+    
      # If patientName is phantom scan or test scan
      # CandID is scanner DCCID (based on site alias)
      # visitLabel is scan patient name
