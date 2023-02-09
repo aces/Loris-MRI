@@ -195,7 +195,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                 "SELECT CohortID FROM cohort WHERE title = %s",
                 [cohort, ]
             )
-            if(len(cohort_info) > 0):
+            if len(cohort_info) > 0:
                 cohort_id = cohort_info[0]['CohortID']
 
         # greps BIDS session's info for the candidate from LORIS (creates the

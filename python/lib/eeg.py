@@ -143,7 +143,7 @@ class Eeg:
                     # TODO: change subproject -> cohort in participants.tsv?
                     [row['subproject'], ]
                 )
-                if(len(cohort_info) > 0):
+                if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
             break
 
