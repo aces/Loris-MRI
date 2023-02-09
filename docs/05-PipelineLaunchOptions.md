@@ -162,9 +162,9 @@ In cases where the `site`, `project` or `cohort` are missing from the `participa
 
 
 
-### 5.2.2 - Pipeline Launch
+### 5.2.2 - Pipeline Launch 
 
-For now, the only way to run the pipeline is by running the `bids_import.py`
+For now, the only way to run the pipeline is by running the `bids_import.py` 
 script manually via the terminal.
 
 To display the help section, run the following in the terminal:
@@ -175,9 +175,9 @@ bids_import.py -h
 This will display the following help section:
 
 ```bash
-usage  : bids_import -d <bids_directory> -p <profile>
+usage  : bids_import -d <bids_directory> -p <profile> 
 
-options:
+options: 
 	-p, --profile        : name of the python database config file in dicom-archive/.loris-mri
 	-d, --directory      : BIDS directory to parse & insert into LORIS
 	-c, --createcandidate: to create BIDS candidates in LORIS (optional)
@@ -190,26 +190,26 @@ To run the BIDS import, simply run:
 bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py
 ```
 
-If you wish to create candidates when running the import script, the `-c`
-option needs to be added. To create sessions when running the import script,
+If you wish to create candidates when running the import script, the `-c` 
+option needs to be added. To create sessions when running the import script, 
 the `-s` option need to be added as well.
 ```bash
 bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py -c -s
 ```
 
-Finally, the verbose option can be turned on by using the option `-v` when
+Finally, the verbose option can be turned on by using the option `-v` when 
 calling the script:
 ```bash
 bids_import -d /PATH/TO/BIDS/TO/IMPORT -p database_config.py -v
 ```
 
 
-**Note on the LORIS-MRI Python virtual environment**: in order to be able to
-run `bids_import.py`, you need to be in the loris-mri Python virtual
-environment. It should have been sourced when sourcing your LORIS-MRI
+**Note on the LORIS-MRI Python virtual environment**: in order to be able to 
+run `bids_import.py`, you need to be in the loris-mri Python virtual 
+environment. It should have been sourced when sourcing your LORIS-MRI 
 environment file. If this is not sourced, then simply run the following:
 ```bash
 source /opt/%PROJECT%/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
 ```
-To deactivate a Python virtual environment, simply type `deactivate` in the
+To deactivate a Python virtual environment, simply type `deactivate` in the 
 terminal.
