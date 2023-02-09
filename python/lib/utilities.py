@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-
+import mat73
 import lib.exitcode
 
 
@@ -172,23 +172,44 @@ def update_set_file_path_info(set_file, fdt_file):
 
     # grep the basename without the extension of set_file
     basename = os.path.splitext(os.path.basename(set_file))[0]
+    set_file_name = numpy.array(basename + ".set")
+    fdt_file_name = numpy.array(basename + ".fdt")
 
-    # read the .set EEG file using scipy
-    dataset = scipy.io.loadmat(set_file)
+    try:
+        # read the .set EEG file using scipy
+        dataset = scipy.io.loadmat(set_file)
 
-    # update the EEG paths in the .set file
-    if 'filename' in dataset.keys():
-        dataset['filename'] = numpy.array(basename + ".set")
-    if 'setname' in dataset.keys():
-        dataset['setname'] = numpy.array(basename)
-    if 'EEG' in dataset.keys():
-        dataset['EEG'][0][0][1] = numpy.array(basename + ".set")
-    if fdt_file and 'EEG' in dataset.keys():
-        dataset['EEG'][0][0][15] = numpy.array(basename + ".fdt")
-        dataset['EEG'][0][0][40] = numpy.array(basename + ".fdt")
+        # update the EEG paths in the .set file
+        if 'filename' in dataset.keys():
+            dataset['filename'] = set_file_name
+        if 'setname' in dataset.keys():
+            dataset['setname'] = numpy.array(basename)
+        if 'EEG' in dataset.keys():
+            dataset['EEG'][0][0][1] = set_file_name
+        if fdt_file and 'EEG' in dataset.keys():
+            dataset['EEG'][0][0][15] = fdt_file_name
+            dataset['EEG'][0][0][40] = fdt_file_name
 
-    # write the new .set file with the correct path info
-    scipy.io.savemat(set_file, dataset, False)
+        # write the new .set file with the correct path info
+        scipy.io.savemat(set_file, dataset, False)
+    except NotImplementedError:     # Thrown for matlab v7.3 files
+        # read the .set EEG file using skjerns/mat7.3
+        dataset = mat73.loadmat(set_file, only_include=['filename', 'datfile'])
+
+        if 'filename' not in dataset.keys() or \
+                dataset['filename'] != set_file_name:
+            print('Expected `filename` field: {}'
+                  .format(set_file_name))
+            return False
+
+        if fdt_file:
+            if 'datfile' not in dataset.keys() or \
+                    dataset['datfile'] != fdt_file_name:
+                print('Expected `datfile` field: {}'
+                      .format(fdt_file_name))
+                return False
+
+    return True
 
 
 def compute_md5sum(file):
