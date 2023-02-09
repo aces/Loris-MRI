@@ -1,6 +1,6 @@
 """This class gather functions for session handling."""
 
-from lib.database_lib.project_subproject_rel import ProjectSubprojectRel
+from lib.database_lib.project_cohort_rel import ProjectCohortRel
 from lib.database_lib.session_db import SessionDB
 from lib.database_lib.site import Site
 
@@ -22,8 +22,8 @@ class Session:
         db.connect()
 
         session = Session(
-            verbose, cand_id, visit_label, 
-            center_id, project_id, subproject_id
+            verbose, cand_id, visit_label,
+            center_id, project_id, cohort_id
         )
 
         # grep session information from the database
@@ -37,7 +37,7 @@ class Session:
     """
 
     def __init__(self, db, verbose, cand_id=None, visit_label=None,
-                 center_id=None, project_id=None, subproject_id=None):
+                 center_id=None, project_id=None, cohort_id=None):
         """
         Constructor method for the Session class.
 
@@ -51,13 +51,13 @@ class Session:
          :type center_id    : int
         :param project_id   : project ID to associate with the session
          :type project_id   : int
-        :param subproject_id: subproject ID to associate with the session
-         :type subproject_id: int
+        :param cohort_id: cohort ID to associate with the session
+         :type cohort_id: int
         """
         self.db = db
         self.verbose = verbose
 
-        self.proj_subproj_rel_db_obj = ProjectSubprojectRel(db, verbose)
+        self.proj_cohort_rel_db_obj = ProjectCohortRel(db, verbose)
         self.session_db_obj = SessionDB(db, verbose)
         self.site_db_obj = Site(db, verbose)
 
@@ -65,9 +65,9 @@ class Session:
         self.visit_label = visit_label
         self.center_id = center_id
         self.project_id = project_id
-        self.subproject_id = subproject_id
+        self.cohort_id = cohort_id
 
-        self.proj_subproj_rel_info_dict = dict()
+        self.proj_cohort_rel_info_dict = dict()
         self.session_info_dict = dict()
         self.session_id = None
 
@@ -93,9 +93,9 @@ class Session:
             column_names = column_names + ('ProjectID',)
             values = values + (str(self.project_id),)
 
-        if self.subproject_id:
-            column_names = column_names + ('SubprojectID',)
-            values = values + (str(self.subproject_id),)
+        if self.cohort_id:
+            column_names = column_names + ('CohortID',)
+            values = values + (str(self.cohort_id),)
 
         self.db.insert(
             table_name='session',
@@ -156,7 +156,7 @@ class Session:
             self.visit_label = self.session_info_dict['Visit_label']
             self.center_id = self.session_info_dict['CenterID']
             self.project_id = self.session_info_dict['ProjectID']
-            self.subproject_id = self.session_info_dict['SubprojectID']
+            self.cohort_id = self.session_info_dict['CohortID']
             self.session_id = self.session_info_dict['ID']
 
     def insert_into_session(self, session_info_to_insert_dict):
@@ -198,16 +198,16 @@ class Session:
 
         return self.site_db_obj.get_list_of_sites()
 
-    def create_proj_subproj_rel_info_dict(self, project_id, subproject_id):
+    def create_proj_cohort_rel_info_dict(self, project_id, cohort_id):
         """
-        Populate self.proj_subproj_rel_info_dict with the content returned from the database for the ProjectID and
-        SubprojectID.
+        Populate self.proj_cohort_rel_info_dict with the content returned from the database for the ProjectID and
+        CohortID.
 
         :param project_id: ID of the Project
          :type project_id: int
-        :param subproject_id: ID of the Subproject
-         :type subproject_id: int
+        :param cohort_id: ID of the Cohort
+         :type cohort_id: int
         """
-        self.proj_subproj_rel_info_dict = self.proj_subproj_rel_db_obj.create_proj_subproj_rel_dict(
-            project_id, subproject_id
+        self.proj_cohort_rel_info_dict = self.proj_cohort_rel_db_obj.create_proj_cohort_rel_dict(
+            project_id, cohort_id
         )
