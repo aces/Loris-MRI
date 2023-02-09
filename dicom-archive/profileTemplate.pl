@@ -87,7 +87,7 @@ sub getSubjectIDs {
         # ($subjectID{'CohortID'}) = $subjectID{'visitLabel'} =~ /^V0[12]$/ 
         #     ? 1 : 2;
         # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
-
+        
         # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
         # newly created visit. Assuming for example that candidates with a

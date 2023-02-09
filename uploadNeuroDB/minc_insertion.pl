@@ -142,7 +142,7 @@ my @opt_table = (
 
                  ["Advanced options","section"],
 
-                 ["-reckless", "boolean", 1, \$reckless,"Upload data to".
+                 ["-reckless", "boolean", 1, \$reckless,"Upload data to". 
                  " database even if study protocol is not ".
                  "defined or violated."],
 

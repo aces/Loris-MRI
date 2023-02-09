@@ -377,7 +377,7 @@ First, all DICOMs are converted into either MINC format (using `dcm2mnc`
   * the `bids_phase_encoding_direction*` table contains the different phase encoding directions of an image.
      It is linked along with the `BIDSPhaseEncodingDirectionID` field used in `bids_mri_scan_type_rel`.
      (examples: `i`, `-i`, `j`, `-j`, `k`, `-k`)
-
+    
 `*` refers to tables used to determine BIDS file names when converting DICOM files into
 a BIDS dataset or previously inserted MINC files into a BIDS dataset.
 

@@ -1344,9 +1344,9 @@ sub registerScanIntoDB {
             && defined($${minc_file}->getParameter('study:start_month'))
             && defined($${minc_file}->getParameter('study:start_day'))
             ? DateTime->new(   
-                day        => $${minc_file}->getParameter('study:start_day'),  
+                day        => $${minc_file}->getParameter('study:start_day'),   
                 month      => $${minc_file}->getParameter('study:start_month'), 
-                year       => $${minc_file}->getParameter('study:start_year'), 
+                year       => $${minc_file}->getParameter('study:start_year'),  
             )->strftime('%Y-%m-%d') 
             : undef
         );   
@@ -1357,7 +1357,7 @@ sub registerScanIntoDB {
             || undef;
 
         print "Acquisition date: " . $acquisition_date . "\n";
-
+        
         $${minc_file}->setFileData(
             'AcquisitionDate',
             $acquisition_date

@@ -248,7 +248,7 @@ sub getSessionInformation {
     $newVisitNo = 1 unless $newVisitNo;
     $centerID = 0 unless $centerID;
 
-    # Insert the new session setting Current_stage to 'Not started' because that column is important
+    # Insert the new session setting Current_stage to 'Not started' because that column is important 
     # to the behavioural data entry gui.
     $query = "INSERT INTO session "
            . "SET CandID        = ?, "

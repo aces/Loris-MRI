@@ -111,7 +111,7 @@ The BIDS dataset to import has to:
 
 - pass the BIDS validator of [pybids](https://github.com/bids-standard/pybids)
 - contain a `participants.tsv` file at its root. Ideally, this file will contain the following columns:
-  - `participant_id`: the PSCID of the candidate 
+  - `participant_id`: the PSCID of the candidate  
   - `date_of_birth`: the date of birth (in YYYY-MM-DD) to use when creating the candidate in LORIS 
   - `sex`: the sex to use when creating the candidate in LORIS (value examples: `M`/`F` or `female`/`male`)
   - `site`: the MRI alias of the LORIS site to associate the candidate with when creating the candidate in LORIS. This field is optional. If provided, the entry should match the MRI alias of a site already populated in the database. If missing or invalid, NULL will be used instead.

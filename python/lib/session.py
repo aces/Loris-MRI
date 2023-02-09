@@ -22,7 +22,7 @@ class Session:
         db.connect()
 
         session = Session(
-            verbose, cand_id, visit_label,
+            verbose, cand_id, visit_label, 
             center_id, project_id, cohort_id
         )
 

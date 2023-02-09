@@ -134,7 +134,7 @@ class Mri:
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
             break
-
+        
         self.session_id      = self.get_loris_session_id()
 
         # grep all the NIfTI files for the modality
@@ -149,6 +149,7 @@ class Mri:
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
             self.register_raw_file(nifti_file)
+
 
     def get_loris_cand_info(self):
         """
