@@ -673,7 +673,8 @@ class Eeg:
                 # insert event data in the database
                 # TODO: Temporary
                 # TODO: should not have two different insert_event_file methods
-                # TODO: remove the TRY/CATCH and the legacy method when
+                # TODO: remove this TRY/CATCH and the legacy method when
+                # TODO: all LORIS code will support additional events.
                 insert_fallback = False
                 msg = ""
                 try:
@@ -681,19 +682,17 @@ class Eeg:
                         event_data, event_path, physiological_file_id, blake2
                     )
                 except NameError:
-                    # when fn does not exist
-                    msg = "WARNING: fn 'insert_event_file' not found. " \
-                          "Using fallback method."
+                    # when the insert_event_file function does not exist
+                    msg = "WARNING: function 'insert_event_file' not found. Using fallback method."
                     insert_fallback = True
                 except Exception as ex:
-                    # when table is not the good one
+                    # when event table structure is still the old one
                     if ex.args[0] and ex.args[0].startswith("Insert query failure: "):
-                        msg = "WARNING: error during DB insert." \
-                              "Using fallback method."
+                        msg = "WARNING: error during DB insert. Using fallback method."
                         insert_fallback = True
                     else:
                         # re-raise other errors from db insert
-                        raise
+                        raise ex
                 # insert fallback, call legacy method
                 if insert_fallback:
                     print(msg)

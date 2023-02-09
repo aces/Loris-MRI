@@ -609,12 +609,6 @@ class Physiological:
          :type blake2               : str
         """
 
-        # event_file_id = self.physiological_event_file_obj.insert(
-        #     physiological_file_id,
-        #     'tsv',
-        #     event_file
-        # )
-
         event_fields = (
             'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
             'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
@@ -659,8 +653,9 @@ class Physiological:
                     # try casting to float
                     duration = float(row['duration'])
                 except ValueError:
-                    # value could be 'n/a'
-                    # put it at 0
+                    # value could be 'n/a', 
+                    # should not raise
+                    # let default value (0)
                     pass
             assert duration >= 0
 
