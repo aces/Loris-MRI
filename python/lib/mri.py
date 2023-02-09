@@ -124,11 +124,11 @@ class Mri:
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue
-            # TODO: do we change this in imported files?
+            # TODO: change subproject -> cohort in participants.tsv?
             if 'subproject' in row:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    # TODO: do we change this in imported files?
+                    # TODO: change subproject -> cohort in participants.tsv?
                     [row['subproject'], ]
                 )
                 if(len(cohort_info) > 0):
