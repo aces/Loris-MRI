@@ -44,7 +44,7 @@ Creates a new instance of this class. The parameter `$dbhr` is a reference
 to a `DBI` database handle, used to set the object's database handle, so that
 all the DB-driven methods will work.
 
-INPUT:
+INPUT: 
   - $db      : database object
   - $dbhr    : DBI database handle reference
   - $debug   : degug flag (1 for debug, 0 otherwise)
@@ -116,9 +116,9 @@ RETURNS:
 
 This function does:
 1) Determine subject's ID based on scanner ID and DICOM archive information.
-2) Call the `CreateMRICandidate` function (will create the candidate if it does
+2) Call the `CreateMRICandidate` function (will create the candidate if it does 
 not exists and `createCandidates` config option is set to yes)
-3) Call the `validateCandidate` to validate the candidate information
+3) Call the `validateCandidate` to validate the candidate information 
 (it will return a `CandMismatchError` if there is one)
 
 INPUTS:
@@ -130,7 +130,7 @@ INPUTS:
   - $User        : user running the insertion pipeline
   - $centerID    : center ID of the candidate
 
-RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label
+RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label 
 and `CandMismatchError` information
 
 ### createTarchiveArray($tarchive)
@@ -171,7 +171,7 @@ RETURNS: array of two elements: center name and center ID
 
 ### determineScannerID($tarchiveInfo, $to\_log, $centerID, $upload\_id)
 
-Determines which scanner ID was used for DICOM acquisitions. Note, if
+Determines which scanner ID was used for DICOM acquisitions. Note, if 
 a scanner ID is not already associated to the scanner information found
 in the DICOM headers, then a new scanner will automatically be created.
 
@@ -379,7 +379,7 @@ Registers a new candidate in the `candidate` table.
 
 Note: before doing so, the following checks will be performed:
 1) check that the `createCandidates` config option was set to yes
-2) check that the `PSCID` given in `$subjectIDsref` is not already associated
+2) check that the `PSCID` given in `$subjectIDsref` is not already associated 
 to an existing candidate
 3) check that the `CandID` given in `$subjectIDsref` is not already associated
 to an existing candidate
@@ -426,8 +426,8 @@ RETURNS: the final directory in which the registered MINC files will go
 
 Check that the candidate's information derived from the patient name field of
 the DICOM files is valid (`CandID` and `PSCID` of the candidate should
-correspond to the same subject in the database). It will also check that the
-Visit Label of `$subjectIDsref` is a valid Visit Label present in the
+correspond to the same subject in the database). It will also check that the 
+Visit Label of `$subjectIDsref` is a valid Visit Label present in the 
 `Visit_Windows` table.
 
 INPUT: subject's ID information hash ref
