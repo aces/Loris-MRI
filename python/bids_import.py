@@ -41,7 +41,7 @@ def main():
         'usage  : bids_import -d <bids_directory> -p <profile> \n\n'
         'options: \n'
         '\t-p, --profile        : name of the python database config file in '
-                                  'dicom-archive/.loris-mri\n'
+        'dicom-archive/.loris-mri\n'
         '\t-d, --directory      : BIDS directory to parse & insert into LORIS\n'
         '\t-c, --createcandidate: to create BIDS candidates in LORIS (optional)\n'
         '\t-s, --createsession  : to create BIDS sessions in LORIS (optional)\n'
@@ -186,24 +186,26 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         center_id  = loris_cand_info['RegistrationCenterID']
         project_id = loris_cand_info['RegistrationProjectID']
 
-        subproject_id = None
+        cohort_id = None
+        # TODO: change subproject -> cohort in participants.tsv?
         if 'subproject' in bids_subject_info:
-            subproject = bids_subject_info['subproject']
-            subproject_info = db.pselect(
-                    "SELECT SubprojectID FROM subproject WHERE title = %s",
-                    [subproject, ]
-                )
-            if(len(subproject_info) > 0):
-                subproject_id = subproject_info[0]['SubprojectID']
+            # TODO: change subproject -> cohort in participants.tsv?
+            cohort = bids_subject_info['subproject']
+            cohort_info = db.pselect(
+                "SELECT CohortID FROM cohort WHERE title = %s",
+                [cohort, ]
+            )
+            if(len(cohort_info) > 0):
+                cohort_id = cohort_info[0]['CohortID']
 
         # greps BIDS session's info for the candidate from LORIS (creates the
         # session if it does not exist yet in LORIS and the createvisit is set
         # to true. If no visit in BIDS structure, then use default visit_label
         # stored in the Config module)
-        loris_sessions_info = grep_candidate_sessions_info(
+        grep_candidate_sessions_info(
             bids_sessions, bids_id,    cand_id,       loris_bids_root_dir,
             createvisit,   verbose,    db,            default_bids_vl,
-            center_id,     project_id, subproject_id
+            center_id,     project_id, cohort_id
         )
 
     # read list of modalities per session / candidate and register data
@@ -271,8 +273,8 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
 
     # determine the root directory of the LORIS BIDS and create it if does
     # not exist
-    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name) # get name of the dataset
-    version = re.sub("[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version) # get BIDSVersion of the dataset
+    name = re.sub(r"[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)       # get name of the dataset
+    version = re.sub(r"[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version
@@ -356,7 +358,7 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id,        db,
 def grep_or_create_session_db_info(
         bids_id,   cand_id,     visit_label,
         db,        createvisit, verbose,       loris_bids_dir,
-        center_id, project_id,  subproject_id):
+        center_id, project_id,  cohort_id):
     """
     Greps (or creates if session does not exist and createvisit is true) the
     BIDS session in the LORIS session's table and return a list of
@@ -380,14 +382,14 @@ def grep_or_create_session_db_info(
      :type center_id     : int
     :param project_id    : ProjectID  to use to create the session
      :type project_id    : int
-    :param subproject_id : SubprojectID  to use to create the session
-     :type subproject_id : int
+    :param cohort_id     : CohortID to use to create the session
+     :type cohort_id     : int
 
     :return: session information grepped from LORIS for cand_id and visit_label
      :rtype: dict
     """
 
-    session = Session(db, verbose, cand_id, visit_label, center_id, project_id, subproject_id)
+    session = Session(db, verbose, cand_id, visit_label, center_id, project_id, cohort_id)
     loris_vl_info = session.get_session_info_from_loris()
 
     if not loris_vl_info and createvisit:
@@ -405,7 +407,7 @@ def grep_or_create_session_db_info(
 
 def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_bids_dir,
                                  createvisit, verbose,    db,            default_vl,
-                                 center_id,   project_id, subproject_id):
+                                 center_id,   project_id, cohort_id):
     """
     Greps all session info dictionaries for a given candidate and aggregates
     them into a list, with one entry per session. If the session does not
@@ -441,7 +443,7 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
         loris_ses_info = grep_or_create_session_db_info(
             bids_id,     cand_id,    default_vl,     db,
             createvisit, verbose,    loris_bids_dir,
-            center_id,   project_id, subproject_id
+            center_id,   project_id, cohort_id
         )
         loris_sessions_info.append(loris_ses_info)
     else:
@@ -449,7 +451,7 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
             loris_ses_info = grep_or_create_session_db_info(
                 bids_id,     cand_id,    visit_label,    db,
                 createvisit, verbose,    loris_bids_dir,
-                center_id,   project_id, subproject_id
+                center_id,   project_id, cohort_id
             )
             loris_sessions_info.append(loris_ses_info)
 
