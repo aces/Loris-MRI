@@ -119,7 +119,7 @@ class Mri:
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
-
+        
         self.cohort_id   = None
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
@@ -143,13 +143,12 @@ class Mri:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id,
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, 
                                                    return_type='filename', extension='tsv')[0]
 
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
             self.register_raw_file(nifti_file)
-
 
     def get_loris_cand_info(self):
         """
