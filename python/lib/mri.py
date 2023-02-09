@@ -123,12 +123,10 @@ class Mri:
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue
-            # TODO: change subproject -> cohort in participants.tsv?
-            if 'subproject' in row:
+            if 'cohort' in row:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    # TODO: change subproject -> cohort in participants.tsv?
-                    [row['subproject'], ]
+                    [row['cohort'], ]
                 )
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
