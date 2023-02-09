@@ -747,8 +747,8 @@ class Eeg:
                         # insert assembled HED annotations
                         physiological.insert_event_assembled_hed_tags(
                             self.data_dir, event_path, event_metadata_path, physiological_file_id
-                        )
-
+                        )             
+                        
         return event_paths
 
     def fetch_and_insert_annotation_files(
