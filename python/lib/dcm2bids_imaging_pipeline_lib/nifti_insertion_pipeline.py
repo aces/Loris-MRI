@@ -399,7 +399,7 @@ class NiftiInsertionPipeline(BasePipeline):
         self.log_info(message, is_error='N', is_verbose='Y')
 
         # add an entry in the violations log table if there is a warning violation associated to the file
-        if self.violations_summary['warning']:
+        if 'warning' in self.violations_summary.keys() and self.violations_summary['warning']:
             message = f"Inserting warning violations related to {self.assembly_nifti_rel_path}." \
                       f"  List of violations found: {self.warning_violations_list}"
             self.log_info(message, is_error='N', is_verbose='Y')
