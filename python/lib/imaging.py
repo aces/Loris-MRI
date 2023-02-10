@@ -242,6 +242,7 @@ class Imaging:
         phase_encoding_dir = scan_param["PhaseEncodingDirection"] \
             if "PhaseEncodingDirection" in scan_param.keys() else None
 
+        # if there is already an entry for this violation in mri_protocol_violated_scans, do not insert anything
         existing_prot_viol_scans = self.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(tarchive_id)
         for row in existing_prot_viol_scans:
             if row['SeriesUID'] == series_uid \
@@ -296,6 +297,7 @@ class Imaging:
         valid_regex = info_to_insert_dict['ValidRegex']
         valid_range = info_to_insert_dict['ValidRange']
 
+        # if there is already an entry for this violation in mri_violations_log, do not insert anything
         existing_viol_logs = self.mri_viol_log_db_obj.get_violations_for_tarchive_id(
             info_to_insert_dict['TarchiveID']
         )
