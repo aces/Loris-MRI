@@ -285,12 +285,10 @@ class Imaging:
          :type info_to_insert_dict: dict
         """
 
-        series_uid = info_to_insert_dict["SeriesInstanceUID"] \
-            if "SeriesInstanceUID" in info_to_insert_dict.keys() else None
-        echo_number = repr(info_to_insert_dict["EchoNumber"]) if "EchoNumber" in info_to_insert_dict.keys() else None
-        phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"] \
-            if "PhaseEncodingDirection" in info_to_insert_dict.keys() else None
-        echo_time = info_to_insert_dict['EchoTime'] if "EchoTime" in info_to_insert_dict.keys() else None
+        series_uid = info_to_insert_dict["SeriesUID"]
+        echo_number = repr(info_to_insert_dict["EchoNumber"])
+        phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"]
+        echo_time = info_to_insert_dict['EchoTime']
         scan_type = info_to_insert_dict['Scan_type']
         severity = info_to_insert_dict['Severity']
         header = info_to_insert_dict['Header']
