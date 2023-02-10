@@ -50,7 +50,7 @@ class MriViolationsLog:
             get_last_id=False
         )
 
-    def get_excluded_violations_for_tarchive_id(self, tarchive_id, severity=None):
+    def get_violations_for_tarchive_id(self, tarchive_id, severity=None):
         """
         Get the list of violations logged in `mri_violations_log` with excluded severity for a given `TarchiveID`.
 

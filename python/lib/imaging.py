@@ -236,7 +236,20 @@ class Imaging:
          :type mri_protocol_group_id: int
         """
 
-        phase_encoding_dir = scan_param["PhaseEncodingDirection"] if "PhaseEncodingDirection" in scan_param else None
+        series_uid = scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None
+        image_type = str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None
+        echo_number = repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param.keys() else None
+        phase_encoding_dir = scan_param["PhaseEncodingDirection"] \
+            if "PhaseEncodingDirection" in scan_param.keys() else None
+
+        # if there is already an entry for this violation in mri_protocol_violated_scans, do not insert anything
+        existing_prot_viol_scans = self.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(tarchive_id)
+        for row in existing_prot_viol_scans:
+            if row['SeriesUID'] == series_uid \
+                    and row['PhaseEncodingDirection'] == phase_encoding_dir \
+                    and row['image_type'] == image_type \
+                    and row['EchoNumber'] == echo_number:
+                return
 
         info_to_insert_dict = {
             "CandID": cand_id,
@@ -257,10 +270,10 @@ class Imaging:
             "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
             "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
             "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
-            "SeriesUID": scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None,
-            "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
+            "SeriesUID": series_uid,
+            "image_type": image_type,
             "PhaseEncodingDirection": phase_encoding_dir,
-            "EchoNumber": repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param else None,
+            "EchoNumber": echo_number,
             "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
@@ -272,6 +285,35 @@ class Imaging:
         :param info_to_insert_dict: dictionary with the information to be inserted in mri_violations_log
          :type info_to_insert_dict: dict
         """
+
+        series_uid = info_to_insert_dict["SeriesUID"]
+        echo_number = repr(info_to_insert_dict["EchoNumber"])
+        phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"]
+        echo_time = info_to_insert_dict['EchoTime']
+        scan_type = info_to_insert_dict['Scan_type']
+        severity = info_to_insert_dict['Severity']
+        header = info_to_insert_dict['Header']
+        value = info_to_insert_dict['Value']
+        valid_regex = info_to_insert_dict['ValidRegex']
+        valid_range = info_to_insert_dict['ValidRange']
+
+        # if there is already an entry for this violation in mri_violations_log, do not insert anything
+        existing_viol_logs = self.mri_viol_log_db_obj.get_violations_for_tarchive_id(
+            info_to_insert_dict['TarchiveID']
+        )
+        for row in existing_viol_logs:
+            if str(row['SeriesUID']) == str(series_uid) \
+                    and str(row['PhaseEncodingDirection']) == str(phase_encoding_dir) \
+                    and str(row['EchoNumber']) == str(echo_number) \
+                    and str(row['Scan_type']) == str(scan_type) \
+                    and str(row['EchoTime']) == str(echo_time) \
+                    and str(row['Severity']) == str(severity) \
+                    and str(row['Header']) == str(header) \
+                    and str(row['Value']) == str(value) \
+                    and str(row['ValidRange']) == str(valid_range) \
+                    and str(row['ValidRegex']) == str(valid_regex):
+                return
+
         self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
     def get_parameter_type_id(self, parameter_name):
