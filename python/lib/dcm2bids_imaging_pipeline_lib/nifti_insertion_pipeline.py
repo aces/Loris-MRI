@@ -153,7 +153,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
         # ---------------------------------------------------------------------------------------------
-        self.violations_summary = {}
+        self.warning_violations_list = []
+        self.exclude_violations_list = []
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
                 self.session_obj.session_info_dict['ProjectID'],
@@ -162,8 +163,8 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.scan_type_id,
                 self.json_file_dict
             )
-        self.warning_violations_list = self.violations_summary['warning'] if self.violations_summary else None
-        self.exclude_violations_list = self.violations_summary['exclude'] if self.violations_summary else None
+            self.warning_violations_list = self.violations_summary['warning']
+            self.exclude_violations_list = self.violations_summary['exclude']
 
         # ---------------------------------------------------------------------------------------------
         # Register files in the proper tables
