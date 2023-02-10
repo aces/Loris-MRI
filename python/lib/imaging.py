@@ -297,7 +297,7 @@ class Imaging:
         header = info_to_insert_dict['Header']
         value = info_to_insert_dict['Value']
         valid_regex = info_to_insert_dict['ValidRegex']
-        valid_range = f"{info_to_insert_dict['ValidMin']}-{info_to_insert_dict['ValidMax']}"
+        valid_range = info_to_insert_dict['ValidRange']
 
         existing_viol_logs = self.mri_viol_log_db_obj.get_violations_for_tarchive_id(
             info_to_insert_dict['TarchiveID']
