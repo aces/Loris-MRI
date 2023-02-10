@@ -287,7 +287,6 @@ class Imaging:
 
         series_uid = info_to_insert_dict["SeriesInstanceUID"] \
             if "SeriesInstanceUID" in info_to_insert_dict.keys() else None
-        image_type = str(info_to_insert_dict["ImageType"]) if "ImageType" in info_to_insert_dict.keys() else None
         echo_number = repr(info_to_insert_dict["EchoNumber"]) if "EchoNumber" in info_to_insert_dict.keys() else None
         phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"] \
             if "PhaseEncodingDirection" in info_to_insert_dict.keys() else None
@@ -305,8 +304,6 @@ class Imaging:
         for row in existing_viol_logs:
             print(series_uid)
             print(row['SeriesUID'])
-            print(image_type)
-            print(row['image_type'])
             print(phase_encoding_dir)
             print(row['PhaseEncodingDirection'])
             print(echo_number)
@@ -327,7 +324,6 @@ class Imaging:
             print(row['ValidRegex'])
             if row['SeriesUID'] == series_uid \
                     and row['PhaseEncodingDirection'] == phase_encoding_dir \
-                    and row['image_type'] == image_type \
                     and row['EchoNumber'] == echo_number \
                     and row['Scan_type'] == scan_type \
                     and row['EchoTime'] == echo_time \
