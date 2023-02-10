@@ -303,6 +303,28 @@ class Imaging:
             info_to_insert_dict['TarchiveID']
         )
         for row in existing_viol_logs:
+            print(series_uid)
+            print(row['SeriesUID'])
+            print(image_type)
+            print(row['image_type'])
+            print(phase_encoding_dir)
+            print(row['PhaseEncodingDirection'])
+            print(echo_number)
+            print(row['EchoNumber'])
+            print(echo_time)
+            print(row['EchoTime'])
+            print(scan_type)
+            print(row['Scan_type'])
+            print(severity)
+            print(row['Severity'])
+            print(header)
+            print(row['Header'])
+            print(value)
+            print(row['Value'])
+            print(valid_range)
+            print(row['ValidRange'])
+            print(valid_regex)
+            print(row['ValidRegex'])
             if row['SeriesUID'] == series_uid \
                     and row['PhaseEncodingDirection'] == phase_encoding_dir \
                     and row['image_type'] == image_type \
