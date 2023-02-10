@@ -328,7 +328,7 @@ class Imaging:
                     and row['EchoTime'] == echo_time \
                     and row['Severity'] == severity \
                     and row['Header'] == header \
-                    and row['Value'] == value \
+                    and str(row['Value']) == value \
                     and row['ValidRange'] == valid_range \
                     and row['ValidRegex'] == valid_regex:
                 print("INNNNNN")
