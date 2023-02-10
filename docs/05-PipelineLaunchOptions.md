@@ -116,7 +116,7 @@ The BIDS dataset to import has to:
   - `sex`: the sex to use when creating the candidate in LORIS (value examples: `M`/`F` or `female`/`male`)
   - `site`: the MRI alias of the LORIS site to associate the candidate with when creating the candidate in LORIS. This field is optional. If provided, the entry should match the MRI alias of a site already populated in the database. If missing or invalid, NULL will be used instead.
   - `project`: the name of the LORIS project to associate the candidate with when creating the candidate in LORIS. This field is optional. If provided, the entry should match the name of a project already populated in the database. If missing or invalid, NULL will be used instead.
-  - `subproject`: the name of the LORIS subproject to associate the candidate with when creating the session in LORIS. This field is optional. If provided, the entry should match the name of a subproject already populated in the database. If missing or invalid, NULL will be used instead.
+  - `subproject`: the name of the LORIS cohort to associate the candidate with when creating the session in LORIS. This field is optional. If provided, the entry should match the name of a cohort already populated in the database. If missing or invalid, NULL will be used instead.
 - contain a `participants.json` that describes the fields present in `participants.tsv`. Example of a `participants.json` if all fields described above for `participants.tsv` are present:
 
   ```
@@ -143,7 +143,7 @@ The BIDS dataset to import has to:
         }
     },
     "subproject": {
-        "Description": "Subproject of the participant",
+        "Description": "Cohort of the participant",
         "Levels": {
             "IEEG": "IEEG Atlas"
         }
@@ -158,7 +158,7 @@ The BIDS dataset to import has to:
   ```
 
 
-In cases where the `site`, `project` or `subproject` are missing from the `participant.tsv` file, `NULL` will be populated for those fields in the candidate and session tables. In those cases, later manual addition is required in order to display the entry on the frontend.
+In cases where the `site`, `project` or `cohort` are missing from the `participant.tsv` file, `NULL` will be populated for those fields in the candidate and session tables. In those cases, later manual addition is required in order to display the entry on the frontend.
 
 
 

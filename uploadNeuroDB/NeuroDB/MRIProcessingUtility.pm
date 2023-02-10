@@ -883,7 +883,7 @@ sub extra_file_checks() {
     
     my $candID        = $subjectIDsref->{'CandID'};
     my $projectID     = $subjectIDsref->{'ProjectID'};
-    my $subprojectID  = $subjectIDsref->{'SubprojectID'};
+    my $cohortID      = $subjectIDsref->{'CohortID'};
     my $visitLabel    = $subjectIDsref->{'visitLabel'};
 
     ## Step 1 - select all distinct exclude and warning headers for the scan type
@@ -893,9 +893,9 @@ sub extra_file_checks() {
     $query .= defined $projectID
         ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
         : ' AND mpcgt.ProjectID IS NULL';
-    $query .= defined $subprojectID
-        ? ' AND (mpcgt.SubprojectID IS NULL OR mpcgt.SubprojectID = ?)'
-        : ' AND mpcgt.SubprojectID IS NULL';
+    $query .= defined $cohortID
+        ? ' AND (mpcgt.CohortID IS NULL OR mpcgt.CohortID = ?)'
+        : ' AND mpcgt.CohortID IS NULL';
     $query .= defined $visitLabel
         ? ' AND (mpcgt.Visit_label IS NULL OR mpcgt.Visit_label = ?)'
         : ' AND mpcgt.Visit_label IS NULL';
@@ -910,13 +910,13 @@ sub extra_file_checks() {
     foreach my $severity (qw/exclude warning/) {
         my @bindValues = ($scan_type, $severity);
         push(@bindValues, $projectID)    if defined $projectID;
-        push(@bindValues, $subprojectID) if defined $subprojectID;
+        push(@bindValues, $cohortID) if defined $cohortID;
         push(@bindValues, $visitLabel)   if defined $visitLabel;
         $sth->execute(@bindValues);
         
         my @headers = map { $_->{'Header'} } @{ $sth->fetchall_arrayref({}) };
         my %validFields = $this->loop_through_protocol_violations_checks(
-            $scan_type, $severity, \@headers, $file, $projectID, $subprojectID, $visitLabel
+            $scan_type, $severity, \@headers, $file, $projectID, $cohortID, $visitLabel
         );
         if (%validFields) {
             $this->insert_into_mri_violations_log(
@@ -965,7 +965,7 @@ sub update_mri_violations_log_MincFile_path {
 
 =pod
 
-=head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel)
+=head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file, $projectID, $cohortID, $visitLabel)
 
 Loops through all protocol violations checks for a given severity and creates
 a hash with all the checks that need to be applied on that specific scan type
@@ -978,7 +978,7 @@ INPUTS:
                    table for a given scan type
   - $file        : file information hash ref
   - $projectID   : candidate's project ID
-  - $subprojectID: session's subproject ID
+  - $cohortID    : session's cohort ID
   - $visitLabel  : session name
 
 RETURNS: a hash with all information about the checks for a given scan type
@@ -987,7 +987,7 @@ and severity
 =cut
 
 sub loop_through_protocol_violations_checks {
-    my ($this, $scan_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel) = @_;
+    my ($this, $scan_type, $severity, $headers, $file, $projectID, $cohortID, $visitLabel) = @_;
 
     my %valid_fields; # will store all information about what fails
 
@@ -998,9 +998,9 @@ sub loop_through_protocol_violations_checks {
     $query .= defined $projectID
         ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
         : ' AND mpcgt.ProjectID IS NULL';
-    $query .= defined $subprojectID
-        ? ' AND (mpcgt.SubprojectID IS NULL OR mpcgt.SubprojectID = ?)'
-        : ' AND mpcgt.SubprojectID IS NULL';
+    $query .= defined $cohortID
+        ? ' AND (mpcgt.CohortID IS NULL OR mpcgt.CohortID = ?)'
+        : ' AND mpcgt.CohortID IS NULL';
     $query .= defined $visitLabel
         ? ' AND (mpcgt.Visit_label IS NULL OR mpcgt.Visit_label = ?)'
         : ' AND mpcgt.Visit_label IS NULL';
@@ -1014,10 +1014,10 @@ sub loop_through_protocol_violations_checks {
         my $value = $file->getParameter($header);
 
         # execute query for $scan_type, $severity, $header and (possibly)
-        # $projectID, $subprojectID and $visitLabel
+        # $projectID, $cohortID and $visitLabel
         my @bindValues = ($scan_type, $severity, $header);
         push(@bindValues, $projectID)    if defined $projectID;
-        push(@bindValues, $subprojectID) if defined $subprojectID;
+        push(@bindValues, $cohortID) if defined $cohortID;
         push(@bindValues, $visitLabel)   if defined $visitLabel;
         $sth->execute(@bindValues);
 
@@ -1345,8 +1345,8 @@ sub registerScanIntoDB {
             && defined($${minc_file}->getParameter('study:start_day'))
             ? DateTime->new(   
                 day        => $${minc_file}->getParameter('study:start_day'),   
-                month      => $${minc_file}->getParameter('study:start_month'),   
-                year       => $${minc_file}->getParameter('study:start_year'),   
+                month      => $${minc_file}->getParameter('study:start_month'), 
+                year       => $${minc_file}->getParameter('study:start_year'),  
             )->strftime('%Y-%m-%d') 
             : undef
         );   

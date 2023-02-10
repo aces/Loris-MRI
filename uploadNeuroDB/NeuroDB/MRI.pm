@@ -130,7 +130,7 @@ RETURNS: an array of 2 elements:
   - A reference to a hash containing the session properties:
     C<ID> => session ID.
     C<ProjectID> => project ID for the session.
-    C<SubprojectID> => sub-project ID for the session.
+    C<CohortID> => cohort ID for the session.
     C<CandID> => candidate ID for the session.
     C<Visit_label> => session visit label.
     The reference will be C<undef> if the session cannot be retrieved/created.
@@ -144,7 +144,7 @@ sub getSessionInformation {
     my ($query, $sth);
 
     # find a matching timepoint
-    $query = "SELECT ID, ProjectID, SubprojectID, CandID, Visit_label "
+    $query = "SELECT ID, ProjectID, CohortID, CandID, Visit_label "
            . "FROM session "
            . "WHERE CandID=? "
            . "AND LOWER(Visit_label)=LOWER(?) "
@@ -158,7 +158,7 @@ sub getSessionInformation {
         my %session = (
             ID           => $timepoint->{'ID'},
             ProjectID    => $timepoint->{'ProjectID'},
-            SubprojectID => $timepoint->{'SubprojectID'},
+            CohortID => $timepoint->{'CohortID'},
             CandID       => $timepoint->{'CandID'},
             Visit_label  => $timepoint->{'Visit_label'},
         );
@@ -176,32 +176,32 @@ sub getSessionInformation {
         return (undef, $msg);
     }
     
-    # Since we'll be creating a visit, ensure that the subprojectID and ProjectID
+    # Since we'll be creating a visit, ensure that the cohortID and ProjectID
     # have been defined in the profile file
-    if (!defined $subjectIDref->{'SubprojectID'}) {
-        return (undef, "Cannot create visit: profile file does not define the visit's SubprojectID");
+    if (!defined $subjectIDref->{'CohortID'}) {
+        return (undef, "Cannot create visit: profile file does not define the visit's CohortID");
     }
     if (!defined $subjectIDref->{'ProjectID'}) {
         return (undef, "Cannot create visit: profile file does not define the visit's ProjectID");
     }
 
-    # Ensure relationship between ProjectID and SubprojectID is legit
-    # according to project_subproject_rel. This also validates the existence
-    # of ProjectID and SubprojectID in tables Project and subproject respectively.
-    $query = "SELECT ProjectID, SubprojectID "
-           . "FROM project_subproject_rel "
+    # Ensure relationship between ProjectID and CohortID is legit
+    # according to project_cohort_rel. This also validates the existence
+    # of ProjectID and CohortID in tables Project and cohort respectively.
+    $query = "SELECT ProjectID, CohortID "
+           . "FROM project_cohort_rel "
            . "WHERE ProjectID=? "
-           . "AND SubprojectID=?";
+           . "AND CohortID=?";
     $sth = $dbh->prepare($query);
-    $sth->execute($subjectIDref->{'ProjectID'}, $subjectIDref->{'SubprojectID'});
+    $sth->execute($subjectIDref->{'ProjectID'}, $subjectIDref->{'CohortID'});
 
-    # If there's no entry in project_subproject_rel for (ProjectID, SubprojectID)
+    # If there's no entry in project_cohort_rel for (ProjectID, CohortID)
     if ($sth->rows == 0) {
         my $msg = sprintf(
-            "Cannot create visit with project ID %d and sub-project ID %d: no such association in table %s",
+            "Cannot create visit with project ID %d and cohort ID %d: no such association in table %s",
             $subjectIDref->{'ProjectID'},
-            $subjectIDref->{'SubprojectID'},
-            'project_subproject_rel'
+            $subjectIDref->{'CohortID'},
+            'project_cohort_rel'
         );
         return (undef, $msg);
     }
@@ -258,7 +258,7 @@ sub getSessionInformation {
            . "    Current_stage = 'Not Started', "
            . "    Scan_done     = 'Y', "
            . "    Submitted     = 'N', "
-           . "    SubprojectID  = ?, "
+           . "    CohortID  = ?, "
            . "    ProjectID     = ?";
     $dbh->do(
         $query, undef, 
@@ -266,7 +266,7 @@ sub getSessionInformation {
         $subjectIDref->{'visitLabel'}, 
         $centerID, 
         $newVisitNo, 
-        $subjectIDref->{'SubprojectID'},
+        $subjectIDref->{'CohortID'},
         $subjectIDref->{'ProjectID'}
     );
     $sessionID = $dbh->{'mysql_insertid'}; # retain id of inserted row
@@ -274,7 +274,7 @@ sub getSessionInformation {
     my %session = (
         ID           => $sessionID,
         ProjectID    => $subjectIDref->{'ProjectID'},
-        SubprojectID => $subjectIDref->{'SubprojectID'},
+        CohortID => $subjectIDref->{'CohortID'},
         Visit_label  => $subjectIDref->{'visitLabel'},
         CandID       => $subjectIDref->{'CandID'}
     );
@@ -311,7 +311,7 @@ sub identify_scan_db {
     my $pscid        = ${subjectref}->{'PSCID'};
     my $visitLabel   = ${subjectref}->{'visitLabel'};
     my $projectID    = ${subjectref}->{'ProjectID'};
-    my $subprojectID = ${subjectref}->{'SubprojectID'};
+    my $cohortID = ${subjectref}->{'CohortID'};
     
     my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
 
@@ -381,14 +381,14 @@ sub identify_scan_db {
 
     #============================================================#
     # Add to the query the clause related to the Project ID, the #
-    # subproject ID and visit label.                             #
+    # cohort ID and visit label.                                 #
     #============================================================#
     $query .= defined $projectID
         ? ' AND (mpgt.ProjectID IS NULL OR mpgt.ProjectID = ?)'
         : ' AND mpgt.ProjectID IS NULL';
-    $query .= defined $subprojectID
-        ? ' AND (mpgt.SubprojectID IS NULL OR mpgt.SubprojectID = ?)'
-        : ' AND mpgt.SubprojectID IS NULL';
+    $query .= defined $cohortID
+        ? ' AND (mpgt.CohortID IS NULL OR mpgt.CohortID = ?)'
+        : ' AND mpgt.CohortID IS NULL';
     $query .= defined $visitLabel
         ? ' AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = ?)'
         : ' AND mpgt.Visit_label IS NULL';
@@ -397,14 +397,14 @@ sub identify_scan_db {
 
     my @bindValues = ($psc, $ScannerID);
     push(@bindValues, $projectID)    if defined $projectID;
-    push(@bindValues, $subprojectID) if defined $subprojectID;
+    push(@bindValues, $cohortID) if defined $cohortID;
     push(@bindValues, $visitLabel)   if defined $visitLabel;
     
     $sth = $${dbhr}->prepare($query);
     $sth->execute(@bindValues);
     
     my @rows = @{ $sth->fetchall_arrayref({}) };
-    # If no lines in the mri_protocol_group_target matches the ProjectID/SubprojectID/VisitLabel
+    # If no lines in the mri_protocol_group_target matches the ProjectID/CohortID/VisitLabel
     # then no lines of the mri_protocol table can be used to identify the scan type. This is most
     # likely a setup issue: mri_protocol/mri_protocol_group/mri_protocol_group_target do not cover
     # all the cases. Warn.
@@ -416,7 +416,7 @@ sub identify_scan_db {
         my $notify = NeuroDB::Notify->new( $dbhr );
         $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
     } else {
-        # If more than one line in the mri_protocol_group_target matches the ProjectID/SubprojectID/VisitLabel
+        # If more than one line in the mri_protocol_group_target matches the ProjectID/CohortID/VisitLabel
         # then table mri_protocol_group_target was not setup properly. Warn.
         my %mriProtocolGroupIDs = map { $_->{'MriProtocolGroupID'} => 1 } @rows;
         if(keys %mriProtocolGroupIDs > 1) {

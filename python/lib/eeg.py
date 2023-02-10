@@ -132,17 +132,17 @@ class Eeg:
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
 
-        self.subproject_id   = None
+        self.cohort_id   = None
         for row in bids_reader.participants_info:
             if not row['participant_id'] == self.psc_id:
                 continue
-            if 'subproject' in row:
-                subproject_info = db.pselect(
-                    "SELECT SubprojectID FROM subproject WHERE title = %s",
-                    [row['subproject'], ]
+            if 'cohort' in row:
+                cohort_info = db.pselect(
+                    "SELECT CohortID FROM cohort WHERE title = %s",
+                    [row['cohort'], ]
                 )
-                if(len(subproject_info) > 0):
-                    self.subproject_id = subproject_info[0]['SubprojectID']
+                if len(cohort_info) > 0:
+                    self.cohort_id = cohort_info[0]['CohortID']
             break
 
         self.session_id      = self.get_loris_session_id()
@@ -186,7 +186,7 @@ class Eeg:
 
         session = Session(
             self.db, self.verbose, self.cand_id, visit_label,
-            self.center_id, self.project_id, self.subproject_id
+            self.center_id, self.project_id, self.cohort_id
         )
         loris_vl_info = session.get_session_info_from_loris()
 

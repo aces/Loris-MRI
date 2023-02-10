@@ -51,12 +51,12 @@ sub getSubjectIDs {
 
         $subjectID{'createVisitLabel'} = 1;
 
-        # When createVisitLabel is set to 1, SubprojectID must also
-        # be set to the ID of the subproject that the newly created
+        # When createVisitLabel is set to 1, CohortID must also
+        # be set to the ID of the cohort that the newly created
         # visit should have. Assuming for example that all patient
-        # names end with "_<mySubProjectID>", then we could write:
-        # ($subjectID{'SubprojectID'}) = $patientName =~ /_(\d+)$/;
-        # When createVisitLabel is set to 0, $subjectID{'SubprojectID'} is ignored.
+        # names end with "_<myCohortID>", then we could write:
+        # ($subjectID{'CohortID'}) = $patientName =~ /_(\d+)$/;
+        # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
 
         # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
@@ -79,14 +79,14 @@ sub getSubjectIDs {
 
         $subjectID{'createVisitLabel'} = 0;
   
-        # When createVisitLabel is set to 1, SubprojectID must also
-        # be set to the ID of the subproject that the newly created
+        # When createVisitLabel is set to 1, CohortID must also
+        # be set to the ID of the cohort that the newly created
         # visit should have. Assuming for example that visits V01 and V02
-        # are associated with sub-project with ID 1 and all others to sub-project
+        # are associated with cohort with ID 1 and all others to cohort
         # with ID 2, then we could write:
-        # ($subjectID{'SubprojectID'}) = $subjectID{'visitLabel'} =~ /^V0[12]$/ 
+        # ($subjectID{'CohortID'}) = $subjectID{'visitLabel'} =~ /^V0[12]$/ 
         #     ? 1 : 2;
-        # When createVisitLabel is set to 0, $subjectID{'SubprojectID'} is ignored.
+        # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
         
         # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the

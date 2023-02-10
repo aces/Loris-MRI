@@ -36,15 +36,15 @@ class MriProtocol:
         self.verbose = verbose
 
     def get_list_of_protocols_based_on_session_info(
-            self, project_id, subproject_id, center_id, visit_label, scanner_id
+            self, project_id, cohort_id, center_id, visit_label, scanner_id
     ):
         """
         Grep the list of imaging protocols available based on session information.
 
         :param project_id: `ProjectID` associated to the scanning session
          :type project_id: int
-        :param subproject_id: `SubprojectID` associated to the scanning session
-         :type subproject_id: int
+        :param cohort_id: `CohortID` associated to the scanning session
+         :type cohort_id: int
         :param center_id: `CenterID` associated to the scanning session
          :type center_id: int
         :param visit_label: `VisitLabel` associated to the scanning session
@@ -65,8 +65,8 @@ class MriProtocol:
 
         query += " AND (mpgt.ProjectID IS NULL OR mpgt.ProjectID = %s)" \
             if project_id else " AND mpgt.ProjectID IS NULL"
-        query += " AND (mpgt.SubprojectID IS NULL OR mpgt.SubprojectID = %s)" \
-            if subproject_id else " AND mpgt.SubprojectID IS NULL"
+        query += " AND (mpgt.CohortID IS NULL OR mpgt.CohortID = %s)" \
+            if cohort_id else " AND mpgt.CohortID IS NULL"
         query += " AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = %s)" \
             if visit_label else " AND mpgt.Visit_label IS NULL"
         query += " ORDER BY CenterID ASC, ScannerID DESC"
@@ -74,8 +74,8 @@ class MriProtocol:
         args_list = [center_id, scanner_id]
         if project_id:
             args_list.append(project_id)
-        if subproject_id:
-            args_list.append(subproject_id)
+        if cohort_id:
+            args_list.append(cohort_id)
         if visit_label:
             args_list.append(visit_label)
 

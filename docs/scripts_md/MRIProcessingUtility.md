@@ -252,7 +252,7 @@ updated in the `mri_violations_log` table.
 
 INPUTS: file handle reference to the NeuroDB::File object
 
-### loop\_through\_protocol\_violations\_checks($scan\_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel)
+### loop\_through\_protocol\_violations\_checks($scan\_type, $severity, $headers, $file, $projectID, $cohortID, $visitLabel)
 
 Loops through all protocol violations checks for a given severity and creates
 a hash with all the checks that need to be applied on that specific scan type
@@ -265,7 +265,7 @@ INPUTS:
                    table for a given scan type
   - $file        : file information hash ref
   - $projectID   : candidate's project ID
-  - $subprojectID: session's subproject ID
+  - $cohortID    : session's cohort ID
   - $visitLabel  : session name
 
 RETURNS: a hash with all information about the checks for a given scan type

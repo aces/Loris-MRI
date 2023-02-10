@@ -63,7 +63,7 @@ RETURNS: an array of 2 elements:
   - A reference to a hash containing the session properties:
     `ID` => session ID.
     `ProjectID` => project ID for the session.
-    `SubprojectID` => sub-project ID for the session.
+    `CohortID` => cohort ID for the session.
     `CandID` => candidate ID for the session.
     `Visit_label` => session visit label.
     The reference will be `undef` if the session cannot be retrieved/created.

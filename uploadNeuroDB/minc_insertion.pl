@@ -568,10 +568,10 @@ if (!$sessionRef) {
 
 
 # Copy the session info into the %$subjectIDsref hash array
-$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
-$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
-$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
- 
+$subjectIDsref->{'SessionID'} = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'} = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'CohortID'}  = $sessionRef->{'CohortID'};
+
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################

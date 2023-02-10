@@ -344,15 +344,15 @@ class Imaging:
         """
         return self.param_type_db_obj.get_bids_to_minc_mapping_dict()
 
-    def get_list_of_eligible_protocols_based_on_session_info(self, project_id, subproject_id,
+    def get_list_of_eligible_protocols_based_on_session_info(self, project_id, cohort_id,
                                                              center_id, visit_label, scanner_id):
         """
         Get the list of eligible protocols based on the scan session information.
 
         :param project_id: ProjectID associated to the scan
          :type project_id: int
-        :param subproject_id: SubprojectID associated to the scan
-         :type subproject_id: int
+        :param cohort_id: CohortID associated to the scan
+         :type cohort_id: int
         :param center_id: CenterID associated to the scan
          :type center_id: int
         :param visit_label: Visit label associated to the scan
@@ -364,7 +364,7 @@ class Imaging:
          :rtype: list
         """
         return self.mri_prot_db_obj.get_list_of_protocols_based_on_session_info(
-            project_id, subproject_id, center_id, visit_label, scanner_id
+            project_id, cohort_id, center_id, visit_label, scanner_id
         )
 
     def get_bids_files_info_from_parameter_file_for_file_id(self, file_id):
@@ -710,14 +710,14 @@ class Imaging:
                 and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
 
-    def run_extra_file_checks(self, project_id, subproject_id, visit_label, scan_type_id, scan_param_dict):
+    def run_extra_file_checks(self, project_id, cohort_id, visit_label, scan_type_id, scan_param_dict):
         """
         Runs the extra file checks for a given scan type to determine if there are any violations to protocol.
 
         :param project_id: Project ID associated with the image to be inserted
          :type project_id: int
-        :param subproject_id: Subproject ID associated with the image to be inserted
-         :type subproject_id: int
+        :param cohort_id: Cohort ID associated with the image to be inserted
+         :type cohort_id: int
         :param visit_label: Visit label associated with the image to be inserted
          :type visit_label: str
         :param scan_type_id: Scan type ID identified for the image to be inserted
@@ -731,7 +731,7 @@ class Imaging:
 
         # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
         checks_list = self.mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
-            project_id, subproject_id, visit_label, scan_type_id
+            project_id, cohort_id, visit_label, scan_type_id
         )
 
         distinct_headers = set(map(lambda x: x['Header'], checks_list))
