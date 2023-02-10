@@ -330,16 +330,16 @@ class Imaging:
             print("valid regex")
             print(type(valid_regex))
             print(type(row['ValidRegex']))
-            if row['SeriesUID'] == series_uid \
-                    and row['PhaseEncodingDirection'] == phase_encoding_dir \
-                    and str(row['EchoNumber']) == echo_number \
-                    and str(row['Scan_type']) == scan_type \
-                    and str(row['EchoTime']) == echo_time \
-                    and row['Severity'] == severity \
-                    and row['Header'] == header \
-                    and str(row['Value']) == value \
-                    and row['ValidRange'] == valid_range \
-                    and row['ValidRegex'] == valid_regex:
+            if str(row['SeriesUID']) == str(series_uid) \
+                    and str(row['PhaseEncodingDirection']) == str(phase_encoding_dir) \
+                    and str(row['EchoNumber']) == str(echo_number) \
+                    and str(row['Scan_type']) == str(scan_type) \
+                    and str(row['EchoTime']) == str(echo_time) \
+                    and str(row['Severity']) == str(severity) \
+                    and str(row['Header']) == str(header) \
+                    and str(row['Value']) == str(value) \
+                    and str(row['ValidRange']) == str(valid_range) \
+                    and str(row['ValidRegex']) == str(valid_regex):
                 print("INNNNNN")
                 return
 
