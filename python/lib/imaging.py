@@ -323,9 +323,9 @@ class Imaging:
             print(row['ValidRegex'])
             if row['SeriesUID'] == series_uid \
                     and row['PhaseEncodingDirection'] == phase_encoding_dir \
-                    and row['EchoNumber'] == echo_number \
-                    and row['Scan_type'] == scan_type \
-                    and row['EchoTime'] == echo_time \
+                    and str(row['EchoNumber']) == echo_number \
+                    and str(row['Scan_type']) == scan_type \
+                    and str(row['EchoTime']) == echo_time \
                     and row['Severity'] == severity \
                     and row['Header'] == header \
                     and str(row['Value']) == value \
