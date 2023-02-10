@@ -117,8 +117,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
         # ---------------------------------------------------------------------------------------------
+        self.scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
         if not self.loris_scan_type:
-            self.scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
@@ -129,7 +129,6 @@ class NiftiInsertionPipeline(BasePipeline):
             else:
                 self.scan_type_name = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
         else:
-            self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
@@ -154,6 +153,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
         # ---------------------------------------------------------------------------------------------
+        self.warning_violations_list = []
+        self.exclude_violations_list = []
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
                 self.session_obj.session_info_dict['ProjectID'],
@@ -162,8 +163,8 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.scan_type_id,
                 self.json_file_dict
             )
-        self.warning_violations_list = self.violations_summary['warning']
-        self.exclude_violations_list = self.violations_summary['exclude']
+            self.warning_violations_list = self.violations_summary['warning']
+            self.exclude_violations_list = self.violations_summary['exclude']
 
         # ---------------------------------------------------------------------------------------------
         # Register files in the proper tables
@@ -350,7 +351,9 @@ class NiftiInsertionPipeline(BasePipeline):
             self.scanner_id
         )
 
-        protocol_info = self.imaging_obj.get_acquisition_protocol_info(protocols_list, nifti_name, scan_param)
+        protocol_info = self.imaging_obj.get_acquisition_protocol_info(
+            protocols_list, nifti_name, scan_param, self.loris_scan_type
+        )
         self.log_info(protocol_info['error_message'], is_error="N", is_verbose="Y")
 
         return protocol_info['scan_type_id'], protocol_info['mri_protocol_group_id']
@@ -396,7 +399,7 @@ class NiftiInsertionPipeline(BasePipeline):
         self.log_info(message, is_error='N', is_verbose='Y')
 
         # add an entry in the violations log table if there is a warning violation associated to the file
-        if self.violations_summary['warning']:
+        if self.warning_violations_list:
             message = f"Inserting warning violations related to {self.assembly_nifti_rel_path}." \
                       f"  List of violations found: {self.warning_violations_list}"
             self.log_info(message, is_error='N', is_verbose='Y')

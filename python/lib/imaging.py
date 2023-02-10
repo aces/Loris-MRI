@@ -567,7 +567,7 @@ class Imaging:
 
         return file_parameters
 
-    def get_acquisition_protocol_info(self, protocols_list, nifti_name, scan_param):
+    def get_acquisition_protocol_info(self, protocols_list, nifti_name, scan_param, scan_type=None):
         """
         Get acquisition protocol information (scan_type_id or message to be printed in the log).
         - If the protocols list provided as input is empty, the scan_type_id will be set to None and proper message
@@ -608,7 +608,7 @@ class Imaging:
 
         # look for matching protocols
         mri_protocol_group_id = protocols_list[0]['MriProtocolGroupID']
-        matching_protocols_list = self.look_for_matching_protocols(protocols_list, scan_param)
+        matching_protocols_list = self.look_for_matching_protocols(protocols_list, scan_param, scan_type)
 
         # if more than one protocol matching, return False, otherwise, return the scan type ID
         if not matching_protocols_list:
@@ -648,7 +648,7 @@ class Imaging:
 
         return self.mri_prot_db_obj.get_bids_info_for_scan_type_id(scan_type_id)
 
-    def look_for_matching_protocols(self, protocols_list, scan_param):
+    def look_for_matching_protocols(self, protocols_list, scan_param, scan_type=None):
         """
         Look for matching protocols in protocols_list given scan parameters stored in scan_param.
 
@@ -661,9 +661,13 @@ class Imaging:
          :rtype: list
         """
 
+        scan_type_id = self.get_scan_type_id_from_scan_type_name(scan_type) if scan_type else None
+
         matching_protocols_list = []
         for protocol in protocols_list:
-            if protocol['series_description_regex']:
+            if scan_type_id and protocol['Scan_type'] == scan_type_id:
+                matching_protocols_list.append(protocol['Scan_type'])
+            elif protocol['series_description_regex']:
                 if re.search(
                         rf"{protocol['series_description_regex']}", scan_param['SeriesDescription'], re.IGNORECASE
                 ):
