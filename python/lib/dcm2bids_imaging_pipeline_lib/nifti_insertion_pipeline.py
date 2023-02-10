@@ -350,7 +350,7 @@ class NiftiInsertionPipeline(BasePipeline):
         )
 
         protocol_info = self.imaging_obj.get_acquisition_protocol_info(
-            protocols_list, nifti_name, scan_param, scan_type
+            protocols_list, nifti_name, scan_param, self.loris_scan_type
         )
         self.log_info(protocol_info['error_message'], is_error="N", is_verbose="Y")
 
