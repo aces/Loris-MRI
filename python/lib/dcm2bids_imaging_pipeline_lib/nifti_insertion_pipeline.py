@@ -153,6 +153,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
         # ---------------------------------------------------------------------------------------------
+        self.violations_summary = {}
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
                 self.session_obj.session_info_dict['ProjectID'],
