@@ -349,13 +349,6 @@ class NiftiInsertionPipeline(BasePipeline):
             self.scanner_id
         )
 
-        if self.loris_scan_type:
-            # if we already know the scan type, get the scan type info directly and return it
-            scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
-            for protocol_info in protocols_list:
-                if protocol_info['Scan_type'] == scan_type_id:
-                    return scan_type_id, protocol_info['mri_protocol_group_id']
-
         protocol_info = self.imaging_obj.get_acquisition_protocol_info(
             protocols_list, nifti_name, scan_param, scan_type
         )
