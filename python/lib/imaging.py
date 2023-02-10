@@ -300,36 +300,6 @@ class Imaging:
             info_to_insert_dict['TarchiveID']
         )
         for row in existing_viol_logs:
-            print("\n\nseriesUID")
-            print(type(series_uid))
-            print(type(row['SeriesUID']))
-            print("phase enc")
-            print(type(phase_encoding_dir))
-            print(type(row['PhaseEncodingDirection']))
-            print("echo nb")
-            print(type(echo_number))
-            print(type(row['EchoNumber']))
-            print("echotime")
-            print(type(echo_time))
-            print(type(row['EchoTime']))
-            print("scan type")
-            print(type(scan_type))
-            print(type(row['Scan_type']))
-            print("severity")
-            print(type(severity))
-            print(type(row['Severity']))
-            print("header")
-            print(type(header))
-            print(type(row['Header']))
-            print("value")
-            print(type(value))
-            print(type(row['Value']))
-            print("valid range")
-            print(type(valid_range))
-            print(type(row['ValidRange']))
-            print("valid regex")
-            print(type(valid_regex))
-            print(type(row['ValidRegex']))
             if str(row['SeriesUID']) == str(series_uid) \
                     and str(row['PhaseEncodingDirection']) == str(phase_encoding_dir) \
                     and str(row['EchoNumber']) == str(echo_number) \
@@ -340,7 +310,6 @@ class Imaging:
                     and str(row['Value']) == str(value) \
                     and str(row['ValidRange']) == str(valid_range) \
                     and str(row['ValidRegex']) == str(valid_regex):
-                print("INNNNNN")
                 return
 
         self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
