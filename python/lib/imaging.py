@@ -302,6 +302,7 @@ class Imaging:
             info_to_insert_dict['TarchiveID']
         )
         for row in existing_viol_logs:
+            print("\n\nnew scan")
             print(series_uid)
             print(row['SeriesUID'])
             print(phase_encoding_dir)
