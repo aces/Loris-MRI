@@ -236,7 +236,19 @@ class Imaging:
          :type mri_protocol_group_id: int
         """
 
-        phase_encoding_dir = scan_param["PhaseEncodingDirection"] if "PhaseEncodingDirection" in scan_param else None
+        series_uid = scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None
+        image_type = str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None
+        echo_number = repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param.keys() else None
+        phase_encoding_dir = scan_param["PhaseEncodingDirection"] \
+            if "PhaseEncodingDirection" in scan_param.keys() else None
+
+        existing_prot_viol_scans = self.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(tarchive_id)
+        for row in existing_prot_viol_scans:
+            if row['SeriesUID'] == series_uid \
+                    and row['PhaseEncodingDirection'] == phase_encoding_dir \
+                    and row['image_type'] == image_type \
+                    and row['EchoNumber'] == echo_number:
+                return
 
         info_to_insert_dict = {
             "CandID": cand_id,
@@ -257,10 +269,10 @@ class Imaging:
             "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
             "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
             "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
-            "SeriesUID": scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None,
-            "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
+            "SeriesUID": series_uid,
+            "image_type": image_type,
             "PhaseEncodingDirection": phase_encoding_dir,
-            "EchoNumber": repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param else None,
+            "EchoNumber": echo_number,
             "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
@@ -272,6 +284,38 @@ class Imaging:
         :param info_to_insert_dict: dictionary with the information to be inserted in mri_violations_log
          :type info_to_insert_dict: dict
         """
+
+        series_uid = info_to_insert_dict["SeriesInstanceUID"] \
+            if "SeriesInstanceUID" in info_to_insert_dict.keys() else None
+        image_type = str(info_to_insert_dict["ImageType"]) if "ImageType" in info_to_insert_dict.keys() else None
+        echo_number = repr(info_to_insert_dict["EchoNumber"]) if "EchoNumber" in info_to_insert_dict.keys() else None
+        phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"] \
+            if "PhaseEncodingDirection" in info_to_insert_dict.keys() else None
+        echo_time = info_to_insert_dict['EchoTime'] if "EchoTime" in info_to_insert_dict.keys() else None
+        scan_type = info_to_insert_dict['Scan_type']
+        severity = info_to_insert_dict['Severity']
+        header = info_to_insert_dict['Header']
+        value = info_to_insert_dict['Value']
+        valid_regex = info_to_insert_dict['ValidRegex']
+        valid_range = f"{info_to_insert_dict['ValidMin']}-{info_to_insert_dict['ValidMax']}"
+
+        existing_viol_logs = self.mri_viol_log_db_obj.get_violations_for_tarchive_id(
+            info_to_insert_dict['TarchiveID']
+        )
+        for row in existing_viol_logs:
+            if row['SeriesUID'] == series_uid \
+                    and row['PhaseEncodingDirection'] == phase_encoding_dir \
+                    and row['image_type'] == image_type \
+                    and row['EchoNumber'] == echo_number \
+                    and row['Scan_type'] == scan_type \
+                    and row['EchoTime'] == echo_time \
+                    and row['Severity'] == severity \
+                    and row['Header'] == header \
+                    and row['Value'] == value \
+                    and row['ValidRange'] == valid_range \
+                    and row['ValidRegex'] == valid_regex:
+                return
+
         self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
     def get_parameter_type_id(self, parameter_name):
