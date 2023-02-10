@@ -331,6 +331,7 @@ class Imaging:
                     and row['Value'] == value \
                     and row['ValidRange'] == valid_range \
                     and row['ValidRegex'] == valid_regex:
+                print("INNNNNN")
                 return
 
         self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
