@@ -499,12 +499,18 @@ class Physiological:
             physiological_file_id, 'channel_file_blake2b_hash', blake2
         )
 
-    def insert_event_file(self, event_data, event_file, physiological_file_id,
-                          blake2):
+    def insert_event_file_legacy(self, event_data, event_file, physiological_file_id,
+                                 blake2):
         """
         Inserts the event information read from the file *events.tsv
         into the physiological_task_event table, linking it to the
         physiological file ID already inserted in physiological_file.
+
+        TODO: LEGACY method. Its previous name was `insert_event_file`.
+        Try the new `insert_event_file` first then use this one as
+        fallback method. The new method changes the code logic by
+        taking additional events data into account. This old method
+        simply ignores it. Only called in `eeg.py`.
 
         :param event_data           : list with dictionaries of events
                                       information to insert into
@@ -575,6 +581,145 @@ class Physiological:
             values       = event_values
         )
 
+        # insert blake2b hash of task event file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'event_file_blake2b_hash', blake2
+        )
+
+    def insert_event_file(self, event_data, event_file, physiological_file_id,
+                          blake2):
+        """
+        Inserts the event information read from the file *events.tsv
+        into the physiological_task_event table, linking it to the
+        physiological file ID already inserted in physiological_file.
+
+        TODO: NEW method. See the previous iteration named
+        `insert_event_file_legacy`. This should be the one and only
+        method once we are sure every data will not be impacted in db.
+        Only called in `eeg.py`.
+        :param event_data           : list with dictionaries of events
+                                      information to insert into
+                                      physiological_task_event
+         :type event_data           : list
+        :param event_file           : name of the event file
+         :type event_file           : str
+        :param physiological_file_id: PhysiologicalFileID to link the event info to
+         :type physiological_file_id: int
+        :param blake2               : blake2b hash of the task event file
+         :type blake2               : str
+        """
+
+        event_fields = (
+            'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
+            'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
+            'EventType',           'FilePath'
+        )
+        # known opt fields
+        optional_fields = (
+            'trial_type',  'response_time', 'event_code',
+            'event_value', 'event_sample',  'event_type',
+            'value',       'sample',        'duration',
+            'onset'
+        )
+        # all listed fields
+        known_fields = {*event_fields, *optional_fields}
+
+        for row in event_data:
+            # nullify not present optional cols
+            for field in optional_fields:
+                if field not in row.keys():
+                    row[field] = None
+
+            # has additional fields?
+            additional_fields = {}
+            for field in row:
+                if field not in known_fields and row[field].lower() != 'nan':
+                    additional_fields[field] = row[field]
+
+            # get values of present optional cols
+            onset = 0
+            if isinstance(row['onset'], (int, float)):
+                onset = row['onset']
+            else:
+                # try casting to float, cannot be n/a
+                # should raise an error if not a number
+                onset = float(row['onset'])
+
+            duration = 0
+            if isinstance(row['duration'], (int, float)):
+                duration = row['duration']
+            else:
+                try:
+                    # try casting to float
+                    duration = float(row['duration'])
+                except ValueError:
+                    # value could be 'n/a', 
+                    # should not raise
+                    # let default value (0)
+                    pass
+            assert duration >= 0
+
+            sample = None
+            if isinstance(row['event_sample'], (int, float)):
+                sample = row['event_sample']
+            if row['sample'] and isinstance(row['sample'], (int, float)):
+                sample = row['sample']
+
+            response_time = None
+            if isinstance(row['response_time'], (int, float)):
+                response_time = row['response_time']
+
+            event_value = None
+            if row['event_value']:
+                event_value = str(row['event_value'])
+            elif row['value']:
+                event_value = str(row['value'])
+
+            trial_type = None
+            if row['trial_type']:
+                trial_type = str(row['trial_type'])
+
+            # insert one event and get its db id
+            last_task_id = self.db.insert(
+                table_name   = 'physiological_task_event',
+                column_names = event_fields,
+                values       = [(
+                    str(physiological_file_id),
+                    onset,
+                    duration,
+                    trial_type,
+                    response_time,
+                    row['event_code'],
+                    event_value,
+                    sample,
+                    row['event_type'],
+                    event_file
+                )],
+                get_last_id  = True
+            )
+
+            # if needed, process additional and unlisted
+            # fields and send them in secondary table
+            if additional_fields:
+                # table cols
+                add_event_fields = (
+                    'PhysiologicalTaskEventID',
+                    'TaskName',
+                    'TaskValue'
+                )
+                # each additional fields is a new entry
+                add_event_values = []
+                for add_field, add_value in additional_fields.items():
+                    add_event_values.append((
+                        last_task_id,
+                        add_field,
+                        add_value
+                    ))
+                self.db.insert(
+                    table_name   = 'physiological_task_event_opt',
+                    column_names = add_event_fields,
+                    values       = add_event_values
+                )
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_blake2b_hash', blake2
