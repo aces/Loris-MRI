@@ -443,7 +443,36 @@ class Eeg:
             physio_file_id = result['PhysiologicalFileID'] if result else None
             eeg_path       = result['FilePath']            if result else None
 
+            if not physio_file_id:
+                # grep the modality ID from physiological_modality table
+                modality_id = self.db.grep_id_from_lookup_table(
+                    id_field_name='PhysiologicalModalityID',
+                    table_name='physiological_modality',
+                    where_field_name='PhysiologicalModality',
+                    where_value=self.bids_modality,
+                    insert_if_not_found=False
+                )
 
+                # copy the eeg_file to the LORIS BIDS import directory
+                eeg_path = self.copy_file_to_loris_bids_dir(
+                    eeg_file.path, derivatives
+                )
+
+                # insert the file along with its information into
+                # physiological_file and physiological_parameter_file tables
+                eeg_file_info = {
+                    'FileType': file_type,
+                    'FilePath': eeg_path,
+                    'SessionID': self.session_id,
+                    'AcquisitionTime': eeg_acq_time,
+                    'InsertedByUser': getpass.getuser(),
+                    'PhysiologicalOutputTypeID': output_type_id,
+                    'PhysiologicalModalityID': modality_id
+                }
+                physio_file_id = physiological.insert_physiological_file(
+                    eeg_file_info, eeg_file_data
+                )
+            
             # if the EEG file was a set file, then update the filename for the .set
             # and .fdt files in the .set file so it can find the proper file for
             # visualization and analyses
@@ -457,36 +486,6 @@ class Eeg:
                 file_paths_updated = utilities.update_set_file_path_info(set_full_path, fdt_full_path)
 
             if file_paths_updated:
-                if not physio_file_id:
-                    # grep the modality ID from physiological_modality table
-                    modality_id = self.db.grep_id_from_lookup_table(
-                        id_field_name='PhysiologicalModalityID',
-                        table_name='physiological_modality',
-                        where_field_name='PhysiologicalModality',
-                        where_value=self.bids_modality,
-                        insert_if_not_found=False
-                    )
-
-                    # copy the eeg_file to the LORIS BIDS import directory
-                    eeg_path = self.copy_file_to_loris_bids_dir(
-                        eeg_file.path, derivatives
-                    )
-
-                    # insert the file along with its information into
-                    # physiological_file and physiological_parameter_file tables
-                    eeg_file_info = {
-                        'FileType': file_type,
-                        'FilePath': eeg_path,
-                        'SessionID': self.session_id,
-                        'AcquisitionTime': eeg_acq_time,
-                        'InsertedByUser': getpass.getuser(),
-                        'PhysiologicalOutputTypeID': output_type_id,
-                        'PhysiologicalModalityID': modality_id
-                    }
-                    physio_file_id = physiological.insert_physiological_file(
-                        eeg_file_info, eeg_file_data
-                    )
-
                 inserted_eegs.append({
                     'file_id': physio_file_id,
                     'file_path': eeg_path,
