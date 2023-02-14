@@ -519,7 +519,7 @@ sub getBidsDatasetAuthors {
 
 Get the bids_acknowledgments_text Config setting
 
-RETURN: an array (possibly empty) of the acknowledgment text to use for a BIDS dataset
+RETURN: a string of the acknowledgment text to use for a BIDS dataset (or undef)
 
 =cut
 sub getBidsAcknowledgmentsText {
@@ -533,7 +533,7 @@ sub getBidsAcknowledgmentsText {
 
 Get the bids_readme_text Config setting
 
-RETURN: an array (possibly empty) of the README text to use for a BIDS dataset
+RETURN: a string of the README text to use for a BIDS dataset (or undef)
 
 =cut
 sub getBidsReadmeText {
@@ -547,7 +547,7 @@ sub getBidsReadmeText {
 
 Get the bids_validator_options_to_ignore Config setting
 
-RETURN: an array (possibly empty) of the BIDS validator options to ignore
+RETURN: an array of the BIDS validator options to ignore
 to use when creating a BIDS dataset
 
 =cut
