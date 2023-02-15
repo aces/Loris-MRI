@@ -578,7 +578,6 @@ class Physiological:
             physiological_file_id, 'event_file_json_blake2b_hash', blake2
         )
 
-
     def insert_event_file_legacy(self, event_data, event_file, physiological_file_id,
                                  blake2):
         """

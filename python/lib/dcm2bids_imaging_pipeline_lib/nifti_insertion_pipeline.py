@@ -129,7 +129,7 @@ class NiftiInsertionPipeline(BasePipeline):
             else:
                 self.scan_type_name = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
         else:
-          if not self.scan_type_id:
+            if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
                 if self.nifti_s3_url:  # push violations to S3 if provided file was on S3

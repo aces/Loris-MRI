@@ -100,7 +100,6 @@ class AwsS3:
         except ClientError as err:
             raise Exception(f"{s3_object_name} download failure = {format(err)}")
 
-
     def delete_file(self, s3_object_name):
         """
         Function to delete a s3 file or directory.
