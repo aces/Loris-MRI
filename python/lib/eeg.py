@@ -751,7 +751,7 @@ class Eeg:
 
                     if not event_metadata_file:
                         message = '\nWARNING: no events metadata files (event.json) associated' \
-                                  'with physiological file ID ' + physiological_file_id
+                                  'with physiological file ID ' + str(physiological_file_id)
                         print(message)
                     else:
                         # copy the event file to the LORIS BIDS import directory
