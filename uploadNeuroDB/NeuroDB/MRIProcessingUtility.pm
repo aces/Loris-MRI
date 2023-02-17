@@ -64,6 +64,7 @@ use NeuroDB::Database;
 use NeuroDB::DatabaseException;
 
 use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::MriViolationsLogOB;
 use NeuroDB::objectBroker::ConfigOB;
 use NeuroDB::objectBroker::TarchiveOB;
 use NeuroDB::objectBroker::MriUploadOB;
@@ -920,7 +921,7 @@ sub extra_file_checks() {
         );
         if (%validFields) {
             $this->insert_into_mri_violations_log(
-                \%validFields, $severity, $pname, $candID, $visitLabel, $file, $data_dir
+                \%validFields, $severity, $pname, $candID, $visitLabel, $file, $data_dir, $scan_type
             );
             return $severity;
         }
@@ -952,15 +953,23 @@ INPUTS: file handle reference to the NeuroDB::File object
 sub update_mri_violations_log_MincFile_path {
     my ($this, $file_ref) = @_;
 
-    my $seriesUID = $file_ref->getParameter('series_instance_uid');
-    my $file_path = $file_ref->getFileDatum('File');
+    # grep file parameters determining a unique file in the DB
+    my $seriesUID   = $file_ref->getParameter('series_instance_uid');
+    my $echoTime    = $file_ref->getParameter('echo_time');
+    my $phEncDir    = $file_ref->getParameter('phase_encoding_direction');
+    my $echoNumbers = $file_ref->getParameter('echo_numbers');
 
-    # TODO: in a different PR, should add the echo time to the mri_violation table
-    # TODO: and add the echo time in the where part of the statement
-    my $query = "UPDATE mri_violations_log SET MincFile = ? WHERE SeriesUID = ?";
+    # determine the new file path to use for update
+    my $file_path   = $file_ref->getFileDatum('File');
+
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE mri_violations_log
+    SET MincFile = ?
+    WHERE SeriesUID = ? AND EchoTime = ? AND PhaseEncodingDirection = ? AND EchoNumber = ?
+QUERY
     my $sth   = ${$this->{'dbhr'}}->prepare($query);
 
-    $sth->execute($file_path, $seriesUID);
+    $sth->execute($file_path, $seriesUID, $echoTime, $phEncDir, $echoNumbers);
 }
 
 =pod
@@ -1070,68 +1079,76 @@ INPUTS:
   - $visit_label : visit label associated with the scan
   - $file        : information about the scan
   - $data_dir    : path to the LORIS MRI data directory
+  - $scan_type   : scan type associated to the file
 
 =cut
 
 sub insert_into_mri_violations_log {
-    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir) = @_;
+    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir, $scan_type) = @_;
+
+    my $tarchiveID = $file->getFileDatum('TarchiveSource');
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
     my $file_path        = $file->getFileDatum('File');
-    my $file_rel_path    = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
-    my $file_ph_enc_dir  = $file->getParameter('phase_encoding_direction');
-    my $file_echo_number = $file->getParameter('echo_numbers');
+    my $move_file        = $severity eq 'exclude' ? 1 : undef;
+    my $file_rel_path    = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, $move_file);
 
-    my $query = "INSERT INTO mri_violations_log"
-                    . "("
-                    . " SeriesUID,              TarchiveID,  MincFile,           PatientName, "
-                    . " CandID,                 Visit_label, Scan_type,          Severity, "
-                    . " Header,                 Value,       ValidRange,         ValidRegex, "
-                    . " PhaseEncodingDirection, EchoNumber,  MriProtocolChecksGroupID "
-                    . ") VALUES ("
-                    . " ?,        ?,           ?,          ?, "
-                    . " ?,        ?,           ?,          ?, "
-                    . " ?,        ?,           ?,          ?, "
-                    . " ?,        ?,           ?"
-                    . ")";
-    if ($this->{debug}) {
-        print $query . "\n";
-    }
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    my %newViolationsLog = (
+        'TarchiveID'             => $tarchiveID,
+        'SeriesUID'              => $file->getFileDatum('SeriesUID'),
+        'MincFile'               => $file_rel_path,
+        'PatientName'            => $pname,
+        'CandID'                 => $candID,
+        'Visit_label'            => $visit_label,
+        'Scan_type'              => $scan_type,
+        'Severity'               => $severity,
+        'EchoTime'               => $file->getParameter('echo_time'),
+        'PhaseEncodingDirection' => $file->getParameter('phase_encoding_direction'),
+        'EchoNumber'             => $file->getParameter('echo_numbers')
+    );
+
+    my $mriViolationsLogOB = NeuroDB::objectBroker::MriViolationsLogOB->new(db => $this->{db});
+    my $mriViolationsLogRef = $mriViolationsLogOB->getWithTarchiveID($tarchiveID);
 
     # foreach header, concatenate arrays of ranges into a string
     foreach my $header (keys(%$valid_fields)) {
+        $file->setFileData('Caveat', 1) if ($severity eq 'warning');
+
         my $valid_range_str  = "NULL";
         my $valid_regex_str  = "NULL";
         my @valid_range_list = @{ $valid_fields->{$header}{ValidRanges} };
         my @valid_regex_list = @{ $valid_fields->{$header}{ValidRegexs} };
-
         if (@valid_range_list) {
             $valid_range_str = join(',', @valid_range_list);
         }
         if (@valid_regex_list) {
             $valid_regex_str = join(',', @valid_regex_list);
         }
-        $file->setFileData('Caveat', 1) if ($severity eq 'warning');
 
-        $sth->execute(
-            $file->getFileDatum('SeriesUID'),
-            $file->getFileDatum('TarchiveSource'),
-            $file_rel_path,
-            $pname,
-            $candID,
-            $visit_label,
-            $valid_fields->{$header}{ScanType},
-            $severity,
-            $header,
-            $valid_fields->{$header}{HeaderValue},
-            $valid_range_str,
-            $valid_regex_str,
-            $file_ph_enc_dir,
-            $file_echo_number,
-            $valid_fields->{$header}{MriProtocolChecksGroupID}
-        );
+        $newViolationsLog{'Header'}     = $header;
+        $newViolationsLog{'Value'}      = $valid_fields->{$header}{HeaderValue};
+        $newViolationsLog{'ValidRange'} = $valid_range_str;
+        $newViolationsLog{'ValidRegex'} = $valid_regex_str;
+        $newViolationsLog{'MriProtocolChecksGroupID'} = $valid_fields->{$header}{MriProtocolChecksGroupID};
+
+        my $already_inserted = undef;
+        foreach my $dbViolLog (@$mriViolationsLogRef) {
+            if ($dbViolLog->{'SeriesUID'} eq $newViolationsLog{'SeriesUID'}
+                && $dbViolLog->{'EchoTime'} eq $newViolationsLog{'EchoTime'}
+                && $dbViolLog->{'EchoNumber'} eq $newViolationsLog{'EchoNumber'}
+                && $dbViolLog->{'PhaseEncodingDirection'} eq $newViolationsLog{'PhaseEncodingDirection'}
+                && $dbViolLog->{'Scan_type'} eq $newViolationsLog{'Scan_type'}
+                && $dbViolLog->{'Severity'} eq $newViolationsLog{'Severity'}
+                && $dbViolLog->{'Header'} eq $newViolationsLog{'Header'}
+                && $dbViolLog->{'Value'} eq $newViolationsLog{'Value'}
+                && $dbViolLog->{'ValidRange'} eq $newViolationsLog{'ValidRange'}
+                && $dbViolLog->{'ValidRegex'} eq $newViolationsLog{'ValidRegex'}
+            ) {
+                $already_inserted = 1;
+            }
+        }
+        $mriViolationsLogOB->insert(\%newViolationsLog) unless defined $already_inserted;
     }
 }
 
