@@ -204,14 +204,26 @@ class Imaging:
          :type reason: str
         """
 
+        series_uid = scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None
+        echo_time = scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None
+
+        existing_cand_errors = self.mri_cand_errors_db_obj.get_candidate_errors_for_tarchive_id(tarchive_id)
+
+        for row in existing_cand_errors:
+            if str(row['SeriesUID']) == str(series_uid) \
+                    and str(row['EchoTime']) == str(echo_time) \
+                    and str(row['PatientName']) == str(patient_name) \
+                    and str(row['Reason']) == str(reason):
+                return
+
         info_to_insert_dict = {
             "TimeRun": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
+            "SeriesUID": series_uid,
             "TarchiveID": tarchive_id,
             "MincFile": file_rel_path,
             "PatientName": patient_name,
             "Reason": reason,
-            "EchoTime": scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None
+            "EchoTime": echo_time
         }
         self.mri_cand_errors_db_obj.insert_mri_candidate_errors(info_to_insert_dict)
 
