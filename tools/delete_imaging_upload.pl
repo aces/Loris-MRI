@@ -2014,8 +2014,8 @@ sub getScanTypesToDelete {
     return () if !defined $scanTypeList && !$keepDefaced;
     
     if($keepDefaced) {
-        my $scanTypesRef = &NeuroDB::DBI::getConfigSetting(\$dbh, 'modalities_to_deface');
-        return defined $scanTypesRef ? (map { $_ => 1 } @$scanTypesRef) : ();
+        my @scanTypes = $configOB->getModalitiesToDeface();
+        return (map { $_ => 1 } @scanTypes);
     }
     
     my %types = map { $_=> 1 } split(/,/, $scanTypeList);
