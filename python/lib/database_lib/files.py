@@ -62,7 +62,7 @@ class Files:
             query += " AND PhaseEncodingDirection IS NULL "
 
         if echo_number:
-            query += " AND EchoNumber = % "
+            query += " AND EchoNumber = %s "
             args.append(echo_number)
         else:
             query += " AND EchoNumber IS NULL "
