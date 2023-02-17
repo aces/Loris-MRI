@@ -249,7 +249,7 @@ class Imaging:
         """
 
         series_uid = scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None
-        image_type = str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None
+        echo_time = str(scan_param["EchoTime"]) if "EchoTime" in scan_param.keys() else None
         echo_number = repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param.keys() else None
         phase_encoding_dir = scan_param["PhaseEncodingDirection"] \
             if "PhaseEncodingDirection" in scan_param.keys() else None
@@ -259,7 +259,7 @@ class Imaging:
         for row in existing_prot_viol_scans:
             if row['SeriesUID'] == series_uid \
                     and row['PhaseEncodingDirection'] == phase_encoding_dir \
-                    and row['image_type'] == image_type \
+                    and row['TE_range'] == echo_time \
                     and row['EchoNumber'] == echo_number:
                 return
 
