@@ -59,7 +59,7 @@ sub getSubjectIDs {
         # ($subjectID{'CohortID'}) = $patientName =~ /_(\d+)$/;
         # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
 
-        # $subjectID{'ProjectID'} = 1;
+        # $subjectID{'ProjectID'} = undef;
         # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
         # newly created visit. Assuming for example that all patients
@@ -81,7 +81,7 @@ sub getSubjectIDs {
 
         $subjectID{'createVisitLabel'} = 0;
   
-        # $subjectID{'CohortID'} = 1;
+        # $subjectID{'CohortID'} = undef;
         # When createVisitLabel is set to 1, CohortID must also
         # be set to the ID of the cohort that the newly created
         # visit should have. Assuming for example that visits V01 and V02
@@ -91,7 +91,7 @@ sub getSubjectIDs {
         #     ? 1 : 2;
         # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
         
-        $subjectID{'ProjectID'} = 1;
+        # $subjectID{'ProjectID'} = undef;
         # If config setting 'createVisitLabel' is true
         # then $subjectID{'ProjectID'} must be set to the project ID of the
         # newly created visit. Assuming for example that candidates with a

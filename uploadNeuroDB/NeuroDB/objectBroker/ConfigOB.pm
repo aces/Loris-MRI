@@ -65,6 +65,7 @@ use NeuroDB::objectBroker::ObjectBrokerException;
 
 use TryCatch;
 
+<<<<<<< HEAD
 use constant TARCHIVE_LIBRARY_DIR        => 'tarchiveLibraryDir';
 use constant DATA_DIR_BASE_PATH          => 'dataDirBasepath';
 use constant MAIL_USER                   => 'mail_user';
@@ -93,6 +94,8 @@ use constant BIDS_DATASET_AUTHORS        => 'bids_dataset_authors';
 use constant BIDS_ACKNOWLEDGMENTS_TEXT   => 'bids_acknowledgments_text';
 use constant BIDS_README_TEXT            => 'bids_readme_text';
 use constant BIDS_VALIDATOR_OPTIONS_TO_IGNORE => 'bids_validator_options_to_ignore';
+use constant CREATE_CANDIDATES           => 'createCandidates';
+use constant CREATE_VISIT                => 'createVisit';
 
 =pod
 
@@ -442,6 +445,21 @@ sub getCreateCandidates {
     my $self = shift;
 
     my $value = &$getConfigSettingRef($self, CREATE_CANDIDATES);
+
+    return $getBooleanRef->($value);
+}
+
+=head3 getCreateVisit()
+
+Get the createVisit Config setting.
+
+RETURN: (boolean) 1 if createVisit is set to Yes in the Config module, 0 otherwise
+
+=cut
+sub getCreateVisit {
+    my $self = shift;
+
+    my $value = &$getConfigSettingRef($self, CREATE_VISIT);
 
     return $getBooleanRef->($value);
 }

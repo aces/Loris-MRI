@@ -475,7 +475,7 @@ unless ($sessionRef) {
         'imaging_non_minc_insertion.pl' , $upload_id, 'Y',
         'N'
     );
-    exit ($subjectIDsref->{'createVisitLabel'} == 1
+    exit ($configOB->getCreateVisit() == 1
               ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
               : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
 }

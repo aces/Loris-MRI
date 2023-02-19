@@ -394,6 +394,8 @@ sub determineSubjectID {
 
     my $this = shift;
     my ($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID) = @_;
+    my $dbhr   = $this->{dbhr};
+
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
@@ -413,6 +415,15 @@ sub determineSubjectID {
     my $subjectIDsref = Settings::getSubjectIDs(
         $patientName, $patientID, $scannerID, $this->{dbhr}, $this->{'db'}
     );
+
+    if (!$subjectIDsref->{'ProjectID'}) {
+        my $projectID = NeuroDB::MRI::getProject($subjectIDsref, $dbhr);
+        $subjectIDsref->{'ProjectID'} = $projectID;
+    }
+
+    if (!$subjectIDsref->{'SubprojectID'}) {
+        $subjectIDsref->{'SubprojectID'} = NeuroDB::MRI::getCohort($subjectIDsref, $subjectIDsref->{'ProjectID'}, $dbhr);
+    }
 
     # create the candidate if it does not exist
     $this->CreateMRICandidates(
@@ -1735,7 +1746,6 @@ sub CreateMRICandidates {
     my $pscID  = $subjectIDsref->{'PSCID'};
     my $candID = $subjectIDsref->{'CandID'};
 
-
     # If there already is a candidate with that PSCID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
     # that pscid and candid match so we don't do it here.
@@ -1805,7 +1815,6 @@ sub CreateMRICandidates {
     $message = "\n==> CREATED NEW CANDIDATE: $candID";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-
 }
 
 
@@ -1933,6 +1942,7 @@ or a phantom
 
 sub validateCandidate {
     my $this = shift;
+    my $configOB = $this->{'configOB'};
     my ($subjectIDsref, $upload_id) = @_;
 
     my ($CandMismatchError, $message);
@@ -1996,17 +2006,13 @@ sub validateCandidate {
 
     # if we end up here, it means that the visit label was not found in Visit_Windows
     # therefore need to check if 'createVisitLabel' was set
-    if ($subjectIDsref->{'createVisitLabel'}) {
 
+    if ($configOB->getCreateVisit()) {
         $message = "\n=> Will create visit label $visit_label in Visit_Windows\n";
-
     } else {
-
         $message = "\n=> No Visit label\n";
         $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
-
         return "Visit label $visit_label does not exist in Visit_Windows";
-
     }
 
     # write the message about the visit label in the notification spool table

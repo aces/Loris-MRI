@@ -195,6 +195,12 @@ Get the createCandidates Config setting.
 
 RETURN: (boolean) 1 if createCandidates is set to Yes in the Config module, 0 otherwise
 
+### getCreateVisit()
+
+Get the createVisit Config setting.
+
+RETURN: (boolean) 1 if createVisit is set to Yes in the Config module, 0 otherwise
+
 ### getPythonConfigFile()
 
 Get the MriPythonConfigFile Config setting.

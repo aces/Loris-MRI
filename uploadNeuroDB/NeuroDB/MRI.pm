@@ -140,6 +140,7 @@ RETURNS: an array of 2 elements:
 
 sub getSessionInformation {
     my ($subjectIDref, $studyDate, $dbh, $db) = @_;
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
     my ($sessionID, $studyDateJD);
     my ($query, $sth);
 
@@ -167,7 +168,7 @@ sub getSessionInformation {
         return (\%session, '');
     }
     
-    if (!$subjectIDref->{'createVisitLabel'}) {
+    if (!$configOB->getCreateVisit()) {
         my $msg = sprintf(
             "Visit %s for candidate %d does not exist.",
             $subjectIDref->{'visitLabel'},
@@ -278,6 +279,7 @@ sub getSessionInformation {
         Visit_label  => $subjectIDref->{'visitLabel'},
         CandID       => $subjectIDref->{'CandID'}
     );
+
     return (\%session, '');
 }
 
@@ -1104,7 +1106,7 @@ sub getPSC {
 
         my $sth = $${dbhr}->prepare($query);
         $sth->execute($PSCID, $visitLabel);
-        if ( $sth->rows > 0) {
+        if ($sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
             return ($row->{'MRI_alias'},$row->{'CenterID'});
         }
@@ -1117,6 +1119,137 @@ sub getPSC {
     foreach my $psc (@$pscsRef) {
         if ($patientName =~ /$psc->{'Alias'}/i || $patientName =~ /$psc->{'MRI_alias'}/i) {
             return ($psc->{'MRI_alias'}, $psc->{'CenterID'}); 
+        }
+    }
+
+    return ("UNKN", 0);
+}
+
+=pod
+
+=head3 getProject($patientName, $dbhr, $db)
+
+Looks for the project id using the C<session> table C<ProjectID> as
+a first resource, then using the C<candidate> table C<RegistrationProjectID>,
+otherwise, look for the default_project config value, and return C<ProjectID>.
+
+INPUTS:
+  - $subjectIDsref: subject's information hash ref
+  - $dbhr       : database handle reference
+
+RETURNS: the C<ProjectID> or an error if not found
+
+=cut
+
+sub getProject {
+    my ($subjectIDsref, $dbhr) = @_;
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    my $visitLabel = $subjectIDsref->{'visitLabel'};
+
+    ## Get the ProjectID from the session table, if the PSCID and visit labels exist
+    ## and could be extracted
+    if ($PSCID && $visitLabel) {
+        my $query = "SELECT s.ProjectID FROM session s
+                    JOIN candidate c on c.CandID=s.CandID
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID, $visitLabel);
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'ProjectID'};
+        }
+    }
+
+    ## Otherwise get the ProjectID from the candidate table, if the PSCID exists
+    if ($PSCID) {
+        my $query = "SELECT RegistrationProjectID
+                    FROM candidate
+                    WHERE PSCID = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID);
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'RegistrationProjectID'};
+        }
+    }
+
+    ## Otherwise, use the default_project config value
+    my $query = "SELECT p.ProjectID
+                 FROM Config c
+                 JOIN ConfigSettings cs ON c.ConfigID = cs.ID
+                 JOIN Project p ON p.Name = c.Value
+                 WHERE cs.Name = 'default_project'";
+
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute();
+    if ( $sth->rows > 0) {
+        my $row = $sth->fetchrow_hashref();
+        if ($row->{'ProjectID'}) {
+            return $row->{'ProjectID'};
+        }
+    }
+
+    print STDERR "\nERROR: ProjectID cannot be initialized. ".
+                 "Please set the default_project config.\n\n";
+    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
+}
+
+=pod
+
+=head3 getCohort($subjectIDsref, $projectID, $dbhr)
+
+Looks for the cohort id using the C<session> table C<ProjectID> as
+a first resource, for the cases where it is created using the front-end,
+otherwise, look for the default_cohort config value, and return C<CohortID>.
+
+INPUTS:
+  - $subjectIDsref: subject's information hash ref
+  - $projectID    : the project ID
+  - $dbhr         : database handle reference
+
+RETURNS: the C<CohortID> or 0
+
+=cut
+
+sub getCohort {
+    my ($subjectIDsref, $projectID, $dbhr) = @_;
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    my $visitLabel = $subjectIDsref->{'visitLabel'};
+
+    ## Get the CohortID from the session table, if the PSCID and visit labels exist
+    ## and could be extracted
+    if ($PSCID && $visitLabel) {
+        my $query = "SELECT s.CohortID FROM session s
+                    JOIN candidate c on c.CandID=s.CandID
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID, $visitLabel);
+        if ( $sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'CohortID'};
+        }
+    }
+
+    ## Otherwise, use the default_cohort config value
+    my $query = "SELECT c.Value
+                 FROM Config c
+                 JOIN ConfigSettings cs ON c.ConfigID = cs.ID
+                 WHERE cs.Name = 'default_cohort'
+                 AND Value IN (
+                    SELECT title
+                    FROM cohort
+                    JOIN `project_cohort_rel` USING (CohortID)
+                    WHERE ProjectID = ?)";
+
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($projectID);
+    if ( $sth->rows > 0) {
+        my $row = $sth->fetchrow_hashref();
+        if ($row->{'Value'}) {
+            return $row->{'Value'};
         }
     }
 

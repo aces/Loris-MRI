@@ -125,7 +125,7 @@ our $INVALID_ENVIRONMENT_VAR       = 40; # used when an environment variable is
                                          # value
 our $PROJECT_CUSTOMIZATION_FAILURE = 41; # used when either missing a function
                                          # or a customization variable
-
+our $PROJECT_INIT_FAILURE          = 42; # used when project can't be initialized
 
 ## -- Common file manipulation failures (exit codes from 60 to 79)
 our $EXTRACTION_FAILURE      = 60; # if archive extraction failed
