@@ -65,7 +65,6 @@ use NeuroDB::objectBroker::ObjectBrokerException;
 
 use TryCatch;
 
-<<<<<<< HEAD
 use constant TARCHIVE_LIBRARY_DIR        => 'tarchiveLibraryDir';
 use constant DATA_DIR_BASE_PATH          => 'dataDirBasepath';
 use constant MAIL_USER                   => 'mail_user';
@@ -96,6 +95,8 @@ use constant BIDS_README_TEXT            => 'bids_readme_text';
 use constant BIDS_VALIDATOR_OPTIONS_TO_IGNORE => 'bids_validator_options_to_ignore';
 use constant CREATE_CANDIDATES           => 'createCandidates';
 use constant CREATE_VISIT                => 'createVisit';
+use constant DEFAULT_PROJECT             => 'default_project';
+use constant DEFAULT_COHORT              => 'default_cohort';
 
 =pod
 
@@ -462,6 +463,32 @@ sub getCreateVisit {
     my $value = &$getConfigSettingRef($self, CREATE_VISIT);
 
     return $getBooleanRef->($value);
+}
+
+=head3 getDefaultProject()
+
+Get the default_project Config setting.
+
+RETURN: value (string) of the default_project config in the Config table.
+
+=cut
+sub getDefaultProject {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, DEFAULT_PROJECT);
+}
+
+=head3 getDefaultCohort()
+
+Get the default_cohort Config setting.
+
+RETURN: value (string) of the default_cohort config in the Config table.
+
+=cut
+sub getDefaultCohort {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, DEFAULT_COHORT);
 }
 
 =head3 getPythonConfigFile()

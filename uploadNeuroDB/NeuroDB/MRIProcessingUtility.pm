@@ -394,7 +394,7 @@ sub determineSubjectID {
 
     my $this = shift;
     my ($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID) = @_;
-    my $dbhr   = $this->{dbhr};
+    my $dbhr = $this->{dbhr};
 
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
@@ -421,8 +421,8 @@ sub determineSubjectID {
         $subjectIDsref->{'ProjectID'} = $projectID;
     }
 
-    if (!$subjectIDsref->{'SubprojectID'}) {
-        $subjectIDsref->{'SubprojectID'} = NeuroDB::MRI::getCohort($subjectIDsref, $subjectIDsref->{'ProjectID'}, $dbhr);
+    if (!$subjectIDsref->{'CohortID'}) {
+        $subjectIDsref->{'CohortID'} = NeuroDB::MRI::getCohort($subjectIDsref, $subjectIDsref->{'ProjectID'}, $dbhr);
     }
 
     # create the candidate if it does not exist

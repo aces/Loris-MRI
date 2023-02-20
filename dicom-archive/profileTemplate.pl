@@ -51,8 +51,8 @@ sub getSubjectIDs {
 
         $subjectID{'createVisitLabel'} = 1;
 
-	# $subjectID{'CohortID'} = undef;
-        # When createVisitLabel is set to 1, CohortID  must also
+        # $subjectID{'CohortID'} = undef;
+        # When createVisitLabel is set to 1, CohortID must also
         # be set to the ID of the cohort that the newly created
         # visit should have. Assuming for example that all patient
         # names end with "_<myCohortID>", then we could write:

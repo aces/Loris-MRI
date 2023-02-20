@@ -1145,6 +1145,7 @@ sub getProject {
     my ($subjectIDsref, $dbhr) = @_;
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
     ## Get the ProjectID from the session table, if the PSCID and visit labels exist
     ## and could be extracted
@@ -1176,14 +1177,13 @@ sub getProject {
     }
 
     ## Otherwise, use the default_project config value
-    my $query = "SELECT p.ProjectID
-                 FROM Config c
-                 JOIN ConfigSettings cs ON c.ConfigID = cs.ID
-                 JOIN Project p ON p.Name = c.Value
-                 WHERE cs.Name = 'default_project'";
+    my $query = "SELECT ProjectID
+                 FROM Project
+                 WHERE Name = ?";
 
+    my $default_project = $configOB->getDefaultProject();
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute();
+    $sth->execute($default_project);
     if ( $sth->rows > 0) {
         my $row = $sth->fetchrow_hashref();
         if ($row->{'ProjectID'}) {
@@ -1217,6 +1217,7 @@ sub getCohort {
     my ($subjectIDsref, $projectID, $dbhr) = @_;
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
     ## Get the CohortID from the session table, if the PSCID and visit labels exist
     ## and could be extracted
@@ -1234,18 +1235,16 @@ sub getCohort {
     }
 
     ## Otherwise, use the default_cohort config value
-    my $query = "SELECT c.Value
-                 FROM Config c
-                 JOIN ConfigSettings cs ON c.ConfigID = cs.ID
-                 WHERE cs.Name = 'default_cohort'
-                 AND Value IN (
-                    SELECT title
-                    FROM cohort
-                    JOIN `project_cohort_rel` USING (CohortID)
-                    WHERE ProjectID = ?)";
+    my $query = "SELECT CohortID
+                 FROM cohort
+                 JOIN project_cohort_rel USING (CohortID)
+                 JOIN Project USING(ProjectID)
+                 WHERE title = ? AND Name = ?";
 
+    my $default_cohort = $configOB->getDefaultCohort();
+    my $default_project = $configOB->getDefaultProject();
     my $sth = $${dbhr}->prepare($query);
-    $sth->execute($projectID);
+    $sth->execute($default_cohort, $default_project);
     if ( $sth->rows > 0) {
         my $row = $sth->fetchrow_hashref();
         if ($row->{'Value'}) {
