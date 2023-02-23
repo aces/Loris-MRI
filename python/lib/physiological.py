@@ -561,21 +561,21 @@ class Physiological:
         type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name(coord_system_type)
         if type_id is None:
             print(f"Type {coord_system_type} unknown in DB")
-            sys.exit(lib.exitcode.SELECT_FAILURE)
+            type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
 
         # unit
         unit_symbol = electrode_metadata[f'{modality}CoordinateUnits']
         unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol(unit_symbol)
         if unit_id is None:
             print(f"Unit {unit_symbol} unknown in DB")
-            sys.exit(lib.exitcode.SELECT_FAILURE)
+            unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
 
         # name
         coord_system_name = electrode_metadata[f'{modality}CoordinateSystem']
         name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name(coord_system_name)
         if name_id is None:
             print(f"Name {coord_system_name} unknown in DB")
-            sys.exit(lib.exitcode.SELECT_FAILURE)
+            name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name("Not registered")
 
         # get or create coord system in db
         coord_system_id = self.physiological_coord_system_db.grep_or_insert_coord_system(
