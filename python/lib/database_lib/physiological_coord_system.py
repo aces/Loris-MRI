@@ -61,6 +61,22 @@ class PhysiologicalCoordSystem:
         )
         return c_unit[0]['PhysiologicalCoordSystemUnitID'] if c_unit else None
 
+    def grep_coord_system_unit_from_name(self, coord_unit_name: str):
+        """
+        Gets the coord system unit ID given a str name.
+        :param coord_unit_name  : coord system unit full name (e.g. 'millimeter')
+         :type coord_unit_name  : str
+        :return                 : id of the coord system unit
+         :rtype                 : int
+        """
+        c_unit = self.db.pselect(
+            query="SELECT DISTINCT PhysiologicalCoordSystemUnitID "
+            "FROM physiological_coord_system_unit "
+            "WHERE Name = %s",
+            args=(coord_unit_name,)
+        )
+        return c_unit[0]['PhysiologicalCoordSystemUnitID'] if c_unit else None
+
     def grep_coord_system_type_from_name(self, coord_type: str):
         """
         Gets the coord system type ID given a str name.
