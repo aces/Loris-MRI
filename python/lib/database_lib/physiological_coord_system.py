@@ -29,6 +29,23 @@ class PhysiologicalCoordSystem:
         self.db = db
         self.verbose = verbose
 
+    def get_all_coord_system_units(self):
+        """
+        Gets the coord system units.
+        :return : a list of units (name and symbol)
+         :rtype : list
+        """
+        c_units = self.db.pselect(
+            query="SELECT DISTINCT PhysiologicalCoordSystemUnitID, Name, Symbol"
+            "FROM physiological_coord_system_unit",
+            args=[]
+        )
+        return [{
+            'id': u['PhysiologicalCoordSystemUnitID'],
+            'name': u['Name'],
+            'symbol': u['Symbol']
+        } for u in c_units] if c_units else None
+
     def grep_coord_system_name_from_name(self, coord_name: str):
         """
         Gets the coord system name ID given a str name.
