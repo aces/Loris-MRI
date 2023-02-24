@@ -580,7 +580,7 @@ class Physiological:
                 unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name(unit_symbol)
                 if unit_id is None:
                     print(f"Unit named {unit_symbol} unknown in DB, going default.")
-                    #force default
+                    # force default
                     raise IndexError
         except (IndexError, KeyError):
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
