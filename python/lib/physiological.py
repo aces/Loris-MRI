@@ -563,15 +563,15 @@ class Physiological:
             for i in range(1, w1_len + 1):
                 for j in range(1, w2_len + 1):
                     if w1[i - 1] == w2[j - 1]:
-                        m[i][j] = m[i-1][j-1]
+                        m[i][j] = m[i - 1][j - 1]
                     else:
                         m[i][j] = 1 + min(
                             # insertion
-                            m[i-1][j],
+                            m[i - 1][j],
                             # deletion
-                            m[i][j-1],
+                            m[i][j - 1],
                             # replacement
-                            m[i-1][j-1]
+                            m[i - 1][j - 1]
                         )
             # return distance from matrix
             return m[w1_len][w2_len]
@@ -590,7 +590,7 @@ class Physiological:
             unit_to_test = unit_to_search
             if unit_to_test.endswith("s"):
                 # remove trailing "s"
-                unit_to_test = unit[:-1]
+                unit_to_test = unit_to_test[:-1]
                 # search without trailing "s" into all units names and symbols
                 for unit in all_units:
                     if levenshtein_distance(unit_to_test, unit['name']) == 0:
@@ -610,13 +610,12 @@ class Physiological:
                     'name': levenshtein_distance(unit_to_test, unit['name']),
                     'symbol': levenshtein_distance(unit_to_test, unit['symbol'])
                 }
-            # take the first that has 1 distance (name or symbol)
+            # take the first that has 1 distance (name only)
+            # symbols are too short to be relevant here
             # e.g. "meter" instead of "metre"
-            for u,d in distance_matrix.items():
+            for u, d in distance_matrix.items():
                 if d['name'] == 1:
                     r = ('name', unit)
-                if d['symbol'] == 1:
-                    r = ('symbol', unit)
             # TODO: try for distance > 1?
             return r if r is not None else None
 
