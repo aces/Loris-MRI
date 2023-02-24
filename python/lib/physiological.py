@@ -571,7 +571,6 @@ class Physiological:
         except (IndexError, KeyError):
             type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
 
-
         # unit
         try:
             unit_symbol = electrode_metadata[f'{modality}CoordinateUnits']
@@ -585,7 +584,6 @@ class Physiological:
                     raise IndexError
         except (IndexError, KeyError):
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
-
 
         # name
         try:
