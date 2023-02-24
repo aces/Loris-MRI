@@ -615,7 +615,8 @@ class Physiological:
             # e.g. "meter" instead of "metre"
             for u, d in distance_matrix.items():
                 if d['name'] == 1:
-                    r = ('name', unit)
+                    r = ('name', u)
+                    break
             # TODO: try for distance > 1?
             return r if r is not None else None
 
