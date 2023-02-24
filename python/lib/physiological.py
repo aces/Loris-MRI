@@ -544,37 +544,58 @@ class Physiological:
         """
 
         # define modality (MEG, iEEG, EEG)
-        modality = [
-            k for k in electrode_metadata.keys()
-            if k.endswith('CoordinateSystem')
-        ][0].rstrip('CoordinateSystem')
-        modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name(modality.lower())
-        if modality_id is None:
-            print(f"Modality {modality} unknown in DB")
-            sys.exit(lib.exitcode.SELECT_FAILURE)
+        try:
+            modality = [
+                k for k in electrode_metadata.keys()
+                if k.endswith('CoordinateSystem')
+            ][0].rstrip('CoordinateSystem')
+            modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name(modality.lower())
+            if modality_id is None:
+                print(f"Modality {modality} unknown in DB")
+                # force default
+                raise IndexError
+        except (IndexError, KeyError):
+            modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name("Not registered")
 
         # type (Fiducials, AnatomicalLandmark, HeadCoil, DigitizedHeapPoints)
-        coord_system_type = [
-            k for k in electrode_metadata.keys()
-            if k.endswith('CoordinateSystem') and not k.startswith(modality)
-        ][0].rstrip('CoordinateSystem')
-        type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name(coord_system_type)
-        if type_id is None:
-            print(f"Type {coord_system_type} unknown in DB")
+        try:
+            coord_system_type = [
+                k for k in electrode_metadata.keys()
+                if k.endswith('CoordinateSystem') and not k.startswith(modality)
+            ][0].rstrip('CoordinateSystem')
+            type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name(coord_system_type)
+            if type_id is None:
+                print(f"Type {coord_system_type} unknown in DB")
+                # force default
+                raise IndexError
+        except (IndexError, KeyError):
             type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
 
+
         # unit
-        unit_symbol = electrode_metadata[f'{modality}CoordinateUnits']
-        unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol(unit_symbol)
-        if unit_id is None:
-            print(f"Unit {unit_symbol} unknown in DB")
+        try:
+            unit_symbol = electrode_metadata[f'{modality}CoordinateUnits']
+            unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol(unit_symbol)
+            if unit_id is None:
+                print(f"Symbol of unit {unit_symbol} unknown in DB, trying searching by name...")
+                unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name(unit_symbol)
+                if unit_id is None:
+                    print(f"Unit named {unit_symbol} unknown in DB, going default.")
+                    #force default
+                    raise IndexError
+        except (IndexError, KeyError):
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
 
+
         # name
-        coord_system_name = electrode_metadata[f'{modality}CoordinateSystem']
-        name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name(coord_system_name)
-        if name_id is None:
-            print(f"Name {coord_system_name} unknown in DB")
+        try:
+            coord_system_name = electrode_metadata[f'{modality}CoordinateSystem']
+            name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name(coord_system_name)
+            if name_id is None:
+                print(f"Name {coord_system_name} unknown in DB")
+                # force default
+                raise IndexError
+        except (IndexError, KeyError):
             name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name("Not registered")
 
         # get or create coord system in db
