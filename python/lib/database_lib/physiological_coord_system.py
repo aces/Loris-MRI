@@ -36,7 +36,7 @@ class PhysiologicalCoordSystem:
          :rtype : list
         """
         c_units = self.db.pselect(
-            query="SELECT DISTINCT PhysiologicalCoordSystemUnitID, Name, Symbol"
+            query="SELECT DISTINCT PhysiologicalCoordSystemUnitID, Name, Symbol "
             "FROM physiological_coord_system_unit",
             args=[]
         )
