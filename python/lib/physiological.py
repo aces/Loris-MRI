@@ -576,7 +576,7 @@ class Physiological:
             unit_data = electrode_metadata[f'{modality}CoordinateUnits']
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol(unit_data)
             if unit_id is None:
-                print(f"Unit {coord_system_type} unknown in DB")
+                print(f"Unit {unit_data} unknown in DB")
                 # force default
                 raise IndexError
         except (IndexError, KeyError):
