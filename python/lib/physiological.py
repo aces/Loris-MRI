@@ -543,83 +543,6 @@ class Physiological:
          :type electrode_ids            : str
         """
 
-        # in a case of approximate units
-        all_units = self.physiological_coord_system_db.get_all_coord_system_units()
-
-        def levenshtein_distance(w1, w2):
-            """Calculate Levenshtein distance betwee two words"""
-            # lenght
-            w1_len = len(w1)
-            w2_len = len(w2)
-            # create the matrix
-            m = [[0 for i in range(w2_len + 1)] for j in range(w1_len + 1)]
-            # w1_len = 0
-            for j in range(w2_len + 1):
-                m[0][j] = j
-            # When w2_len = 0
-            for i in range(w1_len + 1):
-                m[i][0] = i
-            # All transitions
-            for i in range(1, w1_len + 1):
-                for j in range(1, w2_len + 1):
-                    if w1[i - 1] == w2[j - 1]:
-                        m[i][j] = m[i - 1][j - 1]
-                    else:
-                        m[i][j] = 1 + min(
-                            # insertion
-                            m[i - 1][j],
-                            # deletion
-                            m[i][j - 1],
-                            # replacement
-                            m[i - 1][j - 1]
-                        )
-            # return distance from matrix
-            return m[w1_len][w2_len]
-
-        def search_unit(unit_to_search: str):
-            """
-            Search a unit name using Levenshtein distance
-            into all unit names and symbols in db.
-            Approximation is limited to a distance of 1.
-            Meaning only one modification, deletion, or
-            addition of character is permitted.
-            """
-            r = None
-            # -----
-            # test trailing "s"
-            unit_to_test = unit_to_search
-            if unit_to_test.endswith("s"):
-                # remove trailing "s"
-                unit_to_test = unit_to_test[:-1]
-                # search without trailing "s" into all units names and symbols
-                for unit in all_units:
-                    if levenshtein_distance(unit_to_test, unit['name']) == 0:
-                        r = ('name', unit_to_test)
-                        break
-                    if levenshtein_distance(unit_to_test, unit['symbol']) == 0:
-                        r = ('symbol', unit_to_test)
-                        break
-                if r is not None:
-                    return r
-            # -----
-            # if no trailing "s" or removing trailing "s" was not enough
-            # build search matrix
-            distance_matrix = {}
-            for unit in all_units:
-                distance_matrix[unit] = {
-                    'name': levenshtein_distance(unit_to_test, unit['name']),
-                    'symbol': levenshtein_distance(unit_to_test, unit['symbol'])
-                }
-            # take the first that has 1 distance (name only)
-            # symbols are too short to be relevant here
-            # e.g. "meter" instead of "metre"
-            for u, d in distance_matrix.items():
-                if d['name'] == 1:
-                    r = ('name', u)
-                    break
-            # TODO: try for distance > 1?
-            return r if r is not None else None
-
         # define modality (MEG, iEEG, EEG)
         try:
             modality = [
@@ -653,23 +576,9 @@ class Physiological:
             unit_data = electrode_metadata[f'{modality}CoordinateUnits']
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol(unit_data)
             if unit_id is None:
-                print(f"Symbol of unit {unit_data} unknown in DB, trying searching by name...")
-                unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name(unit_data)
-                if unit_id is None:
-                    # trying alternative names (meter/metre, meters/meter, ...)
-                    print("Searching for alternative names...")
-                    unit_search_result = search_unit(unit_data)
-                    if unit_search_result is None:
-                        print(f"Unit named {unit_data} unknown in DB, going default.")
-                        # force default
-                        raise IndexError
-                    # unit found with alternate naming, grep it
-                    print(f"Found alternate {unit_search_result[0]} '{unit_search_result[1]}' in DB, using it.")
-                    if unit_search_result[0] == 'name':
-                        grep_method = self.physiological_coord_system_db.grep_coord_system_unit_from_name
-                    else:
-                        grep_method = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol
-                    unit_id = grep_method(unit_search_result[1])
+                print(f"Unit {coord_system_type} unknown in DB")
+                # force default
+                raise IndexError
         except (IndexError, KeyError):
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
 
