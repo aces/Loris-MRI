@@ -569,6 +569,7 @@ class Physiological:
                 # force default
                 raise IndexError
         except (IndexError, KeyError):
+            coord_system_type = None
             type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
 
         # unit
@@ -605,6 +606,8 @@ class Physiological:
         # define coord system referential points (e.g. LPA, RPA) + points
         is_ok_ref_coords = True
         try:
+            if coord_system_type is None:
+                raise KeyError
             ref_coords = electrode_metadata[f'{coord_system_type}Coordinates']
             ref_points = {
                 ref_key : Point3D(None, *ref_val)
