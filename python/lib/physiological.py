@@ -621,7 +621,6 @@ class Physiological:
             # no ref points
             pass
 
-
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id,
