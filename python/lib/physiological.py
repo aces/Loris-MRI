@@ -603,20 +603,24 @@ class Physiological:
         )
 
         # define coord system referential points (e.g. LPA, RPA) + points
-        ref_coords = electrode_metadata[f'{coord_system_type}Coordinates']
-        ref_points = {
-            ref_key : Point3D(None, *ref_val)
-            for ref_key, ref_val in ref_coords.items()
-        }
+        try:
+            ref_coords = electrode_metadata[f'{coord_system_type}Coordinates']
+            ref_points = {
+                ref_key : Point3D(None, *ref_val)
+                for ref_key, ref_val in ref_coords.items()
+            }
+            # insert ref points
+            point_ids = {}
+            for rk, rv in ref_points.items():
+                p = self.point_3d_db.grep_or_insert_point(rv)
+                point_ids[rk] = p.id
 
-        # insert ref points
-        point_ids = {}
-        for rk, rv in ref_points.items():
-            p = self.point_3d_db.grep_or_insert_point(rv)
-            point_ids[rk] = p.id
+            # insert ref point/coord system relations
+            self.physiological_coord_system_db.insert_coord_system_point_3d_relation(coord_system_id, point_ids)
+        except (IndexError, KeyError):
+            # no ref points
+            pass
 
-        # insert ref point/coord system relations
-        self.physiological_coord_system_db.insert_coord_system_point_3d_relation(coord_system_id, point_ids)
 
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
