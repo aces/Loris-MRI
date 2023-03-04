@@ -140,7 +140,6 @@ RETURNS: an array of 2 elements:
 
 sub getSessionInformation {
     my ($subjectIDref, $studyDate, $dbh, $db) = @_;
-    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
     my ($sessionID, $studyDateJD);
     my ($query, $sth);
 
@@ -168,7 +167,7 @@ sub getSessionInformation {
         return (\%session, '');
     }
     
-    if (!$configOB->getCreateVisit()) {
+    if (!$subjectIDref->{'createVisitLabel'}) {
         my $msg = sprintf(
             "Visit %s for candidate %d does not exist.",
             $subjectIDref->{'visitLabel'},
@@ -279,7 +278,6 @@ sub getSessionInformation {
         Visit_label  => $subjectIDref->{'visitLabel'},
         CandID       => $subjectIDref->{'CandID'}
     );
-
     return (\%session, '');
 }
 
@@ -1127,7 +1125,7 @@ sub getPSC {
 
 =pod
 
-=head3 getProject($patientName, $dbhr, $db)
+=head3 getProject($subjectIDsref, $dbhr, $db)
 
 Looks for the project id using the C<session> table C<ProjectID> as
 a first resource, then using the C<candidate> table C<RegistrationProjectID>,
@@ -1136,13 +1134,14 @@ otherwise, look for the default_project config value, and return C<ProjectID>.
 INPUTS:
   - $subjectIDsref: subject's information hash ref
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: the C<ProjectID> or an error if not found
 
 =cut
 
 sub getProject {
-    my ($subjectIDsref, $dbhr) = @_;
+    my ($subjectIDsref, $dbhr, $db) = @_;
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
     my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
@@ -1198,7 +1197,7 @@ sub getProject {
 
 =pod
 
-=head3 getCohort($subjectIDsref, $projectID, $dbhr)
+=head3 getCohort($subjectIDsref, $projectID, $dbhr, $db)
 
 Looks for the cohort id using the C<session> table C<ProjectID> as
 a first resource, for the cases where it is created using the front-end,
@@ -1208,13 +1207,14 @@ INPUTS:
   - $subjectIDsref: subject's information hash ref
   - $projectID    : the project ID
   - $dbhr         : database handle reference
+  - $db           : database object
 
 RETURNS: the C<CohortID> or 0
 
 =cut
 
 sub getCohort {
-    my ($subjectIDsref, $projectID, $dbhr) = @_;
+    my ($subjectIDsref, $projectID, $dbhr, $db) = @_;
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
     my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
@@ -1247,9 +1247,7 @@ sub getCohort {
     $sth->execute($default_cohort, $default_project);
     if ( $sth->rows > 0) {
         my $row = $sth->fetchrow_hashref();
-        if ($row->{'Value'}) {
-            return $row->{'Value'};
-        }
+        return $row->{'CohortID'};
     }
 
     return ("UNKN", 0);

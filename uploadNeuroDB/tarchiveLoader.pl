@@ -570,7 +570,7 @@ if ($valid_study) {
             'tarchiveLoader.pl',  $upload_id, 'Y',
             $notify_notsummary
         );
-        exit ($configOB->getCreateVisit() == 1
+        exit ($subjectIDsref->{'createVisitLabel'} == 1
             ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
             : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
     }

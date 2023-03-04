@@ -178,7 +178,13 @@ RETURN: 1 if the value provided is 'true' or '1'; 0 otherwise
 my $getBooleanRef = sub {
     my ($value) = @_;
 
-    return ($value eq "true" || $value == 1) ? 1 : 0;
+    if ($value eq "true") {
+        $value = 1;
+    } elsif ($value eq "false") {
+        $value = 0;
+    }
+
+    return ($value == 1) ? 1 : 0;
 };
 
 =head3 getTarchiveLibraryDir()

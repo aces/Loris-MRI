@@ -416,13 +416,20 @@ sub determineSubjectID {
         $patientName, $patientID, $scannerID, $this->{dbhr}, $this->{'db'}
     );
 
+    if (!$subjectIDsref->{'createVisitLabel'}) {
+	my $configOB = $this->{'configOB'};
+        $subjectIDsref->{'createVisitLabel'} = $configOB->getCreateVisit();
+    }
+
     if (!$subjectIDsref->{'ProjectID'}) {
-        my $projectID = NeuroDB::MRI::getProject($subjectIDsref, $dbhr);
+        my $projectID = NeuroDB::MRI::getProject($subjectIDsref, $dbhr, $this->{'db'});
         $subjectIDsref->{'ProjectID'} = $projectID;
     }
 
     if (!$subjectIDsref->{'CohortID'}) {
-        $subjectIDsref->{'CohortID'} = NeuroDB::MRI::getCohort($subjectIDsref, $subjectIDsref->{'ProjectID'}, $dbhr);
+        $subjectIDsref->{'CohortID'} = NeuroDB::MRI::getCohort(
+            $subjectIDsref, $subjectIDsref->{'ProjectID'}, $dbhr, $this->{'db'}
+        );
     }
 
     # create the candidate if it does not exist
@@ -1942,7 +1949,6 @@ or a phantom
 
 sub validateCandidate {
     my $this = shift;
-    my $configOB = $this->{'configOB'};
     my ($subjectIDsref, $upload_id) = @_;
 
     my ($CandMismatchError, $message);
@@ -2006,13 +2012,17 @@ sub validateCandidate {
 
     # if we end up here, it means that the visit label was not found in Visit_Windows
     # therefore need to check if 'createVisitLabel' was set
+    if ($subjectIDsref->{'createVisitLabel'}) {
 
-    if ($configOB->getCreateVisit()) {
         $message = "\n=> Will create visit label $visit_label in Visit_Windows\n";
+
     } else {
+
         $message = "\n=> No Visit label\n";
         $this->writeErrorLog($message, $NeuroDB::ExitCodes::INSERT_FAILURE);
+
         return "Visit label $visit_label does not exist in Visit_Windows";
+
     }
 
     # write the message about the visit label in the notification spool table
