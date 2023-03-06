@@ -623,6 +623,7 @@ sub insert_violated_scans {
             && $dbProtViolScan->{'EchoNumber'} eq $newMriProtocolViolatedScans{'EchoNumber'}
         ) {
             $already_inserted = 1;
+            last;
         }
     }
     $mriProtocolViolatedScansOB->insert(\%newMriProtocolViolatedScans) unless defined $already_inserted;

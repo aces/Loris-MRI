@@ -1146,6 +1146,7 @@ sub insert_into_mri_violations_log {
                 && $dbViolLog->{'ValidRegex'} eq $newViolationsLog{'ValidRegex'}
             ) {
                 $already_inserted = 1;
+                last;
             }
         }
         $mriViolationsLogOB->insert(\%newViolationsLog) unless defined $already_inserted;

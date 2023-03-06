@@ -542,6 +542,7 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
             && $dbMriCandError->{'Reason'} eq $newMriCandidateErrors{'Reason'}
         ) {
             $already_inserted = 1;
+            last;
         }
     }
     $mriCandidateErrorsOB->insert(\%newMriCandidateErrors) unless defined $already_inserted;
