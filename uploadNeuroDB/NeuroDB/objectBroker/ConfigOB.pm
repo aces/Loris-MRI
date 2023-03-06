@@ -93,6 +93,10 @@ use constant BIDS_DATASET_AUTHORS        => 'bids_dataset_authors';
 use constant BIDS_ACKNOWLEDGMENTS_TEXT   => 'bids_acknowledgments_text';
 use constant BIDS_README_TEXT            => 'bids_readme_text';
 use constant BIDS_VALIDATOR_OPTIONS_TO_IGNORE => 'bids_validator_options_to_ignore';
+use constant CREATE_CANDIDATES           => 'createCandidates';
+use constant CREATE_VISIT                => 'createVisit';
+use constant DEFAULT_PROJECT             => 'default_project';
+use constant DEFAULT_COHORT              => 'default_cohort';
 
 =pod
 
@@ -174,7 +178,13 @@ RETURN: 1 if the value provided is 'true' or '1'; 0 otherwise
 my $getBooleanRef = sub {
     my ($value) = @_;
 
-    return ($value eq "true" || $value == 1) ? 1 : 0;
+    if ($value eq "true") {
+        $value = 1;
+    } elsif ($value eq "false") {
+        $value = 0;
+    }
+
+    return ($value == 1) ? 1 : 0;
 };
 
 =head3 getTarchiveLibraryDir()
@@ -444,6 +454,47 @@ sub getCreateCandidates {
     my $value = &$getConfigSettingRef($self, CREATE_CANDIDATES);
 
     return $getBooleanRef->($value);
+}
+
+=head3 getCreateVisit()
+
+Get the createVisit Config setting.
+
+RETURN: (boolean) 1 if createVisit is set to Yes in the Config module, 0 otherwise
+
+=cut
+sub getCreateVisit {
+    my $self = shift;
+
+    my $value = &$getConfigSettingRef($self, CREATE_VISIT);
+
+    return $getBooleanRef->($value);
+}
+
+=head3 getDefaultProject()
+
+Get the default_project Config setting.
+
+RETURN: value (string) of the default_project config in the Config table.
+
+=cut
+sub getDefaultProject {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, DEFAULT_PROJECT);
+}
+
+=head3 getDefaultCohort()
+
+Get the default_cohort Config setting.
+
+RETURN: value (string) of the default_cohort config in the Config table.
+
+=cut
+sub getDefaultCohort {
+    my $self = shift;
+
+    return &$getConfigSettingRef($self, DEFAULT_COHORT);
 }
 
 =head3 getPythonConfigFile()

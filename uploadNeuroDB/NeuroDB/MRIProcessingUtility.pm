@@ -394,6 +394,8 @@ sub determineSubjectID {
 
     my $this = shift;
     my ($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID) = @_;
+    my $dbhr = $this->{dbhr};
+
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
@@ -413,6 +415,22 @@ sub determineSubjectID {
     my $subjectIDsref = Settings::getSubjectIDs(
         $patientName, $patientID, $scannerID, $this->{dbhr}, $this->{'db'}
     );
+
+    if (!$subjectIDsref->{'createVisitLabel'}) {
+	my $configOB = $this->{'configOB'};
+        $subjectIDsref->{'createVisitLabel'} = $configOB->getCreateVisit();
+    }
+
+    if (!$subjectIDsref->{'ProjectID'}) {
+        my $projectID = NeuroDB::MRI::getProject($subjectIDsref, $dbhr, $this->{'db'});
+        $subjectIDsref->{'ProjectID'} = $projectID;
+    }
+
+    if (!$subjectIDsref->{'CohortID'}) {
+        $subjectIDsref->{'CohortID'} = NeuroDB::MRI::getCohort(
+            $subjectIDsref, $subjectIDsref->{'ProjectID'}, $dbhr, $this->{'db'}
+        );
+    }
 
     # create the candidate if it does not exist
     $this->CreateMRICandidates(
@@ -1735,7 +1753,6 @@ sub CreateMRICandidates {
     my $pscID  = $subjectIDsref->{'PSCID'};
     my $candID = $subjectIDsref->{'CandID'};
 
-
     # If there already is a candidate with that PSCID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
     # that pscid and candid match so we don't do it here.
@@ -1783,13 +1800,13 @@ sub CreateMRICandidates {
     chomp($User);
     $candID = NeuroDB::MRI::createNewCandID($dbhr) unless $candID;
     my %record = (
-        CandID               => $subjectIDsref->{'CandID'},
-        PSCID                => $subjectIDsref->{'PSCID'},
-        DoB                  => $subjectIDsref->{'PatientDoB'},
-        ProjectID            => $subjectIDsref->{'ProjectID'},
-        Sex                  => $sex,
-        RegistrationCenterID => $centerID,
-        UserID               => $User,
+        CandID                => $subjectIDsref->{'CandID'},
+        PSCID                 => $subjectIDsref->{'PSCID'},
+        DoB                   => $subjectIDsref->{'PatientDoB'},
+        Sex                   => $sex,
+        RegistrationCenterID  => $centerID,
+        RegistrationProjectID => $subjectIDsref->{'ProjectID'},
+        UserID                => $User,
     );
 
     $query = sprintf(
@@ -1805,7 +1822,6 @@ sub CreateMRICandidates {
     $message = "\n==> CREATED NEW CANDIDATE: $candID";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-
 }
 
 

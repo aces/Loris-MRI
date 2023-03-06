@@ -195,6 +195,24 @@ Get the createCandidates Config setting.
 
 RETURN: (boolean) 1 if createCandidates is set to Yes in the Config module, 0 otherwise
 
+### getCreateVisit()
+
+Get the createVisit Config setting.
+
+RETURN: (boolean) 1 if createVisit is set to Yes in the Config module, 0 otherwise
+
+### getDefaultProject()
+
+Get the default_project Config setting.
+
+RETURN: value (string) of the default_project config in the Config table.
+
+### getDefaultCohort()
+
+Get the default_cohort Config setting.
+
+RETURN: value (string) of the default_cohort config in the Config table.
+
 ### getPythonConfigFile()
 
 Get the MriPythonConfigFile Config setting.

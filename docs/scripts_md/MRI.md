@@ -243,6 +243,18 @@ RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
   - second is the `CenterID` or 0
 
+### getProject($patientName, $dbhr, $db)
+
+Looks for the project id using the C<session> table C<ProjectID> as
+a first resource, then using the C<candidate> table C<RegistrationProjectID>,
+otherwise, look for the default_project config value, and return C<ProjectID>.
+
+INPUTS:
+  - $subjectIDsref: subject's information hash ref
+  - $dbhr       : database handle reference
+
+RETURNS: the C<ProjectID> or an error if not found
+
 ### compute\_hash($file\_ref)
 
 Semi-intelligently generates a hash (MD5 digest) for the `NeuroDB::File` object
