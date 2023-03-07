@@ -129,6 +129,7 @@ class NiftiInsertionPipeline(BasePipeline):
             else:
                 self.loris_scan_type = self.imaging_obj.loris_scan_type(self.scan_type_id)
         else:
+            self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
