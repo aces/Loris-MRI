@@ -87,7 +87,6 @@ class BidsReader:
             print('Loading the BIDS dataset with BIDS layout library...\n')
 
         exclude_arr   = ['/code/', '/sourcedata/', '/log/', '.git/']
-        force_arr     = [re.compile("_annotations\.(tsv|json)$")]
 
         # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
         # bids_pack_version = list(map(int, bids.__version__.split('.')))
@@ -101,7 +100,7 @@ class BidsReader:
         #        indexer=BIDSLayoutIndexer(ignore=exclude_arr, force_index=force_arr)
         #    )
         #else:
-        bids_layout = BIDSLayout(root=self.bids_dir, ignore=exclude_arr, force_index=force_arr, derivatives=True)
+        bids_layout = BIDSLayout(root=self.bids_dir, ignore=exclude_arr, derivatives=True)
 
         if self.verbose:
             print('\t=> BIDS dataset loaded with BIDS layout\n')
