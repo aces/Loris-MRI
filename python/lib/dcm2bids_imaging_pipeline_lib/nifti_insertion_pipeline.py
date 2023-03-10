@@ -437,7 +437,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # determine NIfTI file name
         new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
         already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_tarchive_id(
-            self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
+            self.dicom_archive_obj.tarchive_info_dict["SessionID"]
         )
         while new_nifti_name in already_inserted_filenames:
             file_bids_entities_dict['run'] += 1
