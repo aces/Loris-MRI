@@ -127,7 +127,7 @@ class NiftiInsertionPipeline(BasePipeline):
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
             else:
-                self.loris_scan_type = self.imaging_obj.loris_scan_type(self.scan_type_id)
+                self.loris_scan_type = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
         else:
             self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
             if not self.scan_type_id:
