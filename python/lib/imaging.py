@@ -969,6 +969,26 @@ class Imaging:
 
         return files_list
 
+    def get_list_of_files_already_inserted_for_session_id(self, session_id):
+        """
+        Get the list of filenames already inserted for a given SessionID.
+
+        :param session_id: the Session ID to process
+         :type session_id: int
+
+        :return: a list with file names already inserted in the files table for SessionID
+         :rtype: list
+        """
+
+        # get list files from a given tarchive ID
+        results = self.files_db_obj.get_files_inserted_for_session_id(session_id)
+
+        files_list = []
+        for entry in results:
+            files_list.append(os.path.basename(entry['File']))
+
+        return files_list
+
     def get_list_of_fmap_files_sorted_by_acq_time(self, files_list):
         """
         Get the list of fieldmap acquisitions that requires the IntendedFor field in their JSON file.
