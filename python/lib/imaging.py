@@ -249,6 +249,7 @@ class Imaging:
         """
 
         series_uid = scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None
+        image_type = str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None
         echo_time = str(scan_param["EchoTime"]) if "EchoTime" in scan_param.keys() else None
         echo_number = repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param.keys() else None
         phase_encoding_dir = scan_param["PhaseEncodingDirection"] \
