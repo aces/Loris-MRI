@@ -195,7 +195,7 @@ class Files:
 
     def get_files_inserted_for_session_id(self, session_id):
         """
-        Get the list of files that were inserted into the `files` table for a given `TarchiveID`.
+        Get the list of files that were inserted into the `files` table for a given `SessionID`.
 
         :param session_id: `SessionID` to restrict the query on
          :type session_id: int
