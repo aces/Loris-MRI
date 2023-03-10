@@ -826,8 +826,8 @@ class Physiological:
                 # table cols
                 add_event_fields = (
                     'PhysiologicalTaskEventID',
-                    'TaskName',
-                    'TaskValue'
+                    'PropertyName',
+                    'PropertyValue'
                 )
                 # each additional fields is a new entry
                 add_event_values = []

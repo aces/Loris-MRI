@@ -127,14 +127,15 @@ class NiftiInsertionPipeline(BasePipeline):
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
             else:
-                self.scan_type_name = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
+                self.loris_scan_type = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
         else:
+            self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
                 if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
                     self._run_push_to_s3_pipeline()
-                message = f"{self.nifti_path}'s scan type {self.scan_type_name} provided to run_nifti_insertion.py" \
+                message = f"{self.nifti_path}'s scan type {self.loris_scan_type} provided to run_nifti_insertion.py" \
                           f" is not a valid scan type in the database."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
@@ -147,7 +148,7 @@ class NiftiInsertionPipeline(BasePipeline):
             self._register_protocol_violated_scan()
             if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
                 self._run_push_to_s3_pipeline()
-            message = f"Scan type {self.scan_type_name} does not have BIDS tables set up."
+            message = f"Scan type {self.loris_scan_type} does not have BIDS tables set up."
             self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
@@ -435,8 +436,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # determine NIfTI file name
         new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
-        already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_tarchive_id(
-            self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
+        already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_session_id(
+            self.dicom_archive_obj.tarchive_info_dict["SessionID"]
         )
         while new_nifti_name in already_inserted_filenames:
             file_bids_entities_dict['run'] += 1

@@ -14,7 +14,6 @@ import tempfile
 import requests
 import re
 import io
-
 import mat73
 import lib.exitcode
 
