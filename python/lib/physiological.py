@@ -13,7 +13,9 @@ from lib.database_lib.physiologicalannotationinstance import PhysiologicalAnnota
 from lib.database_lib.physiologicaleventfile import PhysiologicalEventFile
 from lib.database_lib.physiologicaleventparameter import PhysiologicalEventParameter
 from lib.database_lib.physiologicaleventparametercategorylevel import PhysiologicalEventParameterCategoryLevel
-
+from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
+from lib.database_lib.point_3d import Point3DDB
+from lib.point_3d import Point3D
 
 
 __license__ = "GPLv3"
@@ -71,6 +73,8 @@ class Physiological:
         self.physiological_event_parameter_obj                = PhysiologicalEventParameter(self.db, self.verbose)
         self.physiological_event_parameter_category_level_obj = \
             PhysiologicalEventParameterCategoryLevel(self.db, self.verbose)
+        self.physiological_coord_system_db = PhysiologicalCoordSystem(self.db, self.verbose)
+        self.point_3d_db = Point3DDB(self.db, self.verbose)
 
     def determine_file_type(self, file):
         """
@@ -282,8 +286,12 @@ class Physiological:
 
         results = self.db.pselect(
             query = "SELECT * "
-                    " FROM physiological_electrode"
-                    " WHERE PhysiologicalFileID = %s",
+                    "FROM physiological_electrode "
+                    "WHERE PhysiologicalElectrodeID "
+                    "IN ("
+                    "    SELECT PhysiologicalElectrodeID "
+                    "    FROM physiological_coord_system_electrode_rel "
+                    "    WHERE PhysiologicalFileID = %s)",
             args  = (physiological_file_id,)
         )
 
@@ -353,15 +361,17 @@ class Physiological:
 
         # gather values that need to be inserted into physiological_electrode table
         electrode_fields = (
-            'PhysiologicalFileID',              'PhysiologicalElectrodeTypeID',
-            'PhysiologicalElectrodeMaterialID', 'Name',
-            'X',                                'Y',
-            'Z',                                'Impedance',
+            'PhysiologicalElectrodeTypeID',
+            'PhysiologicalElectrodeMaterialID',
+            'Name',
+            'Point3DID',
+            'Impedance',
             'FilePath'
         )
         electrode_values = []
+        electrode_ids = []
+        optional_fields = ('type', 'material', 'impedance')
         for row in electrode_data:
-            optional_fields = ('type', 'material', 'impedance')
             for field in optional_fields:
                 if field not in row.keys():
                     continue
@@ -387,27 +397,33 @@ class Physiological:
             x_value = None if row['x'] == 'n/a' else row['x']
             y_value = None if row['y'] == 'n/a' else row['y']
             z_value = None if row['z'] == 'n/a' else row['z']
+            p = Point3D(None, x_value, y_value, z_value)
+            point = self.point_3d_db.grep_or_insert_point(p)
 
+            # insert into physiological_electrode table
             values_tuple = (
-                str(physiological_file_id), row.get('type_id'),
-                row.get('material_id'),     row['name'],
-                x_value,                    y_value,
-                z_value,                    row.get('impedance'),
+                row.get('type_id'),
+                row.get('material_id'),
+                row['name'],
+                point.id,
+                row.get('impedance'),
                 electrode_file
             )
             electrode_values.append(values_tuple)
 
-        # insert into physiological_electrode table
-        self.db.insert(
-            table_name   = 'physiological_electrode',
-            column_names = electrode_fields,
-            values       = electrode_values
-        )
+            inserted_electrode_id = self.db.insert(
+                table_name   = 'physiological_electrode',
+                column_names = electrode_fields,
+                values       = electrode_values,
+                get_last_id  = True
+            )
+            electrode_ids.append(inserted_electrode_id)
 
         # insert blake2b hash of electrode file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id, 'electrode_file_blake2b_hash', blake2
         )
+        return electrode_ids
 
     def insert_channel_file(self, channel_data, channel_file,
                             physiological_file_id, blake2):
@@ -505,6 +521,116 @@ class Physiological:
         # insert blake2b hash of channel file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id, 'channel_file_blake2b_hash', blake2
+        )
+
+    def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file,
+                                  physiological_file_id, blake2, electrode_ids):
+        """
+        Inserts the electrode metadata information read from the file *coordsystem.json
+        into the physiological_coord_system, physiological_coord_system_point_3d_rel
+        and physiological_coord_system_electrode_rel tables, linking it to the
+        physiological file ID already inserted in physiological_file.
+        :param electrode_metadata       : dictionaries of electrode metadata to insert
+                                          into the database
+         :type electrode_metadata       : dict
+        :param electrode_metadata_file  : PhysiologicalFileID to link the electrode info to
+         :type electrode_metadata_file  : int
+        :param physiological_file_id    : PhysiologicalFileID to link the electrode info to
+         :type physiological_file_id    : int
+        :param blake2                   : blake2b hash of the event file
+         :type blake2                   : str
+        :param electrode_ids            : blake2b hash of the event file
+         :type electrode_ids            : str
+        """
+
+        # define modality (MEG, iEEG, EEG)
+        try:
+            modality = [
+                k for k in electrode_metadata.keys()
+                if k.endswith('CoordinateSystem')
+            ][0].rstrip('CoordinateSystem')
+            modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name(modality.lower())
+            if modality_id is None:
+                print(f"Modality {modality} unknown in DB")
+                # force default
+                raise IndexError
+        except (IndexError, KeyError):
+            modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name("Not registered")
+
+        # type (Fiducials, AnatomicalLandmark, HeadCoil, DigitizedHeapPoints)
+        try:
+            coord_system_type = [
+                k for k in electrode_metadata.keys()
+                if k.endswith('CoordinateSystem') and not k.startswith(modality)
+            ][0].rstrip('CoordinateSystem')
+            type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name(coord_system_type)
+            if type_id is None:
+                print(f"Type {coord_system_type} unknown in DB")
+                # force default
+                raise IndexError
+        except (IndexError, KeyError):
+            coord_system_type = None
+            type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
+
+        # unit
+        try:
+            unit_data = electrode_metadata[f'{modality}CoordinateUnits']
+            unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol(unit_data)
+            if unit_id is None:
+                print(f"Unit {unit_data} unknown in DB")
+                # force default
+                raise IndexError
+        except (IndexError, KeyError):
+            unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
+
+        # name
+        try:
+            coord_system_name = electrode_metadata[f'{modality}CoordinateSystem']
+            name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name(coord_system_name)
+            if name_id is None:
+                print(f"Name {coord_system_name} unknown in DB")
+                # force default
+                raise IndexError
+        except (IndexError, KeyError):
+            name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name("Not registered")
+
+        # get or create coord system in db
+        coord_system_id = self.physiological_coord_system_db.grep_or_insert_coord_system(
+            name_id,
+            unit_id,
+            type_id,
+            modality_id,
+            str(electrode_metadata_file)
+        )
+
+        # define coord system referential points (e.g. LPA, RPA) + points
+        is_ok_ref_coords = True
+        try:
+            if coord_system_type is None:
+                raise KeyError
+            ref_coords = electrode_metadata[f'{coord_system_type}Coordinates']
+            ref_points = {
+                ref_key : Point3D(None, *ref_val)
+                for ref_key, ref_val in ref_coords.items()
+            }
+        except (IndexError, KeyError):
+            # no ref points
+            is_ok_ref_coords = False
+        # insert ref points if found 
+        if is_ok_ref_coords:
+            # insert ref points
+            point_ids = {}
+            for rk, rv in ref_points.items():
+                p = self.point_3d_db.grep_or_insert_point(rv)
+                point_ids[rk] = p.id
+            # insert ref point/coord system relations
+            self.physiological_coord_system_db.insert_coord_system_point_3d_relation(coord_system_id, point_ids)
+
+        # insert blake2b hash of task event file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id,
+            'coordsystem_file_json_blake2b_hash',
+            blake2
         )
 
     def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id, blake2):
