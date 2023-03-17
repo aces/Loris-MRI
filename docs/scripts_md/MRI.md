@@ -94,7 +94,7 @@ Inserts scans that do not correspond to any of the defined protocol from the
 database.
 
 INPUTS:
-  - $dbhr           : database handle reference
+  - $db             : database object
   - $series\_desc    : series description of the scan
   - $minc\_location  : location of the MINC file
   - $patient\_name   : patient name of the scan

@@ -284,6 +284,7 @@ INPUTS:
   - $visit\_label : visit label associated with the scan
   - $file        : information about the scan
   - $data\_dir    : path to the LORIS MRI data directory
+  - $scan\_type   : scan type associated to the file
 
 ### loadAndCreateObjectFile($minc, $upload\_id)
 
