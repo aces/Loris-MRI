@@ -166,10 +166,10 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         parameter_file).
         """
 
-        exclude_entries = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+        exclude_entries = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
             self.tarchive_id, "exclude"
         )
-        warning_entries = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+        warning_entries = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
             self.tarchive_id, "warning"
         )
 

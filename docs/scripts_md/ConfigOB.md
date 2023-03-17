@@ -195,6 +195,24 @@ Get the createCandidates Config setting.
 
 RETURN: (boolean) 1 if createCandidates is set to Yes in the Config module, 0 otherwise
 
+### getCreateVisit()
+
+Get the createVisit Config setting.
+
+RETURN: (boolean) 1 if createVisit is set to Yes in the Config module, 0 otherwise
+
+### getDefaultProject()
+
+Get the default_project Config setting.
+
+RETURN: value (string) of the default_project config in the Config table.
+
+### getDefaultCohort()
+
+Get the default_cohort Config setting.
+
+RETURN: value (string) of the default_cohort config in the Config table.
+
 ### getPythonConfigFile()
 
 Get the MriPythonConfigFile Config setting.
@@ -206,6 +224,43 @@ RETURN: value (string) of the MRI python config file in the Config table.
 Get the compute\_snr\_modalities Config setting
 
 RETURN: an array (possibly empty) of the modality IDs (i.e t1w, etc..) for which to compute the SNR
+
+### getExcludedSeriesDescription()
+
+Get the excluded\_series\_description Config setting
+
+RETURN: an array (possibly empty) of the series description to exclude from import
+
+### getModalitiesToDeface()
+
+Get the modalities\_to\_deface Config setting
+
+RETURN: an array (possibly empty) of the modalities to run the defacing pipeline on
+
+### getBidsDatasetAuthors()
+
+Get the bids\_dataset\_authors Config setting
+
+RETURN: an array (possibly empty) of the authors to use for a BIDS dataset
+
+### getBidsAcknowledgmentsText()
+
+Get the bids\_acknowledgments\_text Config setting
+
+RETURN: a string of the acknowledgment text to use for a BIDS dataset (or undef)
+
+### getBidsReadmeText()
+
+Get the bids\_readme\_text Config setting
+
+RETURN: a string of the README text to use for a BIDS dataset (or undef)
+
+### getBidsValidatorOptionsToIgnore()
+
+Get the bids\_validator\_options\_to\_ignore Config setting
+
+RETURN: an array of the BIDS validator options to ignore
+to use when creating a BIDS dataset
 
 # TO DO
 

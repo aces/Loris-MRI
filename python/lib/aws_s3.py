@@ -99,3 +99,22 @@ class AwsS3:
             self.s3_bucket_obj.download_file(s3_file_name, destination_file)
         except ClientError as err:
             raise Exception(f"{s3_object_name} download failure = {format(err)}")
+
+    def delete_file(self, s3_object_name):
+        """
+        Function to delete a s3 file or directory.
+
+        :param s3_object_name: name of the s3 file or directory
+         :type s3_object_name: str
+        """
+
+        s3_bucket_prefix = f"s3://{self.bucket_name}/"
+        s3_file_name = s3_object_name[len(s3_bucket_prefix):] \
+            if s3_object_name.startswith(s3_bucket_prefix) else s3_object_name
+        objects_to_delete = [{'Key': obj.key} for obj in
+                             self.s3_bucket_obj.objects.filter(Prefix=s3_file_name)]
+        self.s3_bucket_obj.delete_objects(
+            Delete={
+                'Objects': objects_to_delete
+            }
+        )

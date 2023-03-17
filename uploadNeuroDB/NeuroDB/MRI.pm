@@ -48,6 +48,7 @@ use FindBin;
 use Encode;
 use DICOM::DICOM;
 
+use NeuroDB::objectBroker::MriProtocolViolatedScansOB;
 use NeuroDB::objectBroker::MriScanTypeOB;
 use NeuroDB::objectBroker::MriScannerOB;
 use NeuroDB::objectBroker::PSCOB;
@@ -517,15 +518,15 @@ sub identify_scan_db {
     }   # if (@rows==0)....else...
 
     # if we got here, we're really clueless: insert scan in mri_protocol_violated_scans
-    # table. Note that $mriProtocolGroupID will be undef unless exactly one protocol 
+    # table. Note that $mriProtocolGroupID will be undef unless exactly one protocol
     # group was used to try to identify the scan
     insert_violated_scans(
-        $dbhr,         $series_description, $minc_location,   $patient_name,
+        $db,           $series_description, $minc_location,   $patient_name,
         $candid,       $pscid,              $tr,              $te,
         $ti,           $slice_thickness,    $xstep,           $ystep,
         $zstep,        $xspace,             $yspace,          $zspace,
         $time,         $seriesUID,          $tarchiveID,      $image_type,
-        $echo_numbers,  $phase_enc_dir,      $data_dir,        $mriProtocolGroupID
+        $echo_numbers, $phase_enc_dir,      $data_dir,        $mriProtocolGroupID
     );
 
     return 'unknown';
@@ -540,7 +541,7 @@ C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
 database.
 
 INPUTS:
-  - $dbhr           : database handle reference
+  - $db             : database object
   - $series_desc    : series description of the scan
   - $minc_location  : location of the MINC file
   - $patient_name   : patient name of the scan
@@ -570,45 +571,62 @@ INPUTS:
 
 sub insert_violated_scans {
 
-    my ($dbhr,         $series_description, $minc_location, $patient_name,
-        $candid,       $pscid,              $tr,            $te,
-        $ti,           $slice_thickness,    $xstep,         $ystep,
-        $zstep,        $xspace,             $yspace,        $zspace,
-        $time,         $seriesUID,          $tarchiveID,    $image_type,
+    my ($db,          $series_description, $minc_location, $patient_name,
+        $candid,      $pscid,              $tr,            $te,
+        $ti,          $slice_thickness,    $xstep,         $ystep,
+        $zstep,       $xspace,             $yspace,        $zspace,
+        $time,        $seriesUID,          $tarchiveID,    $image_type,
         $echo_number, $phase_enc_dir,  $data_dir,      $mriProtocolGroupID) = @_;
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
     my $file_rel_path = get_trashbin_file_rel_path($minc_location, $data_dir, 1);
 
-    (my $query = <<QUERY) =~ s/\n//gm;
-  INSERT INTO mri_protocol_violated_scans (
-    CandID,                 PSCID,         TarchiveID,            time_run,
-    series_description,     minc_location, PatientName,           TR_range,
-    TE_range,               TI_range,      slice_thickness_range, xspace_range,
-    yspace_range,           zspace_range,  xstep_range,           ystep_range,
-    zstep_range,            time_range,    SeriesUID,             image_type,
-    PhaseEncodingDirection, EchoNumber,   MriProtocolGroupID
-  ) VALUES (
-    ?, ?, ?, now(),
-    ?, ?, ?, ?,
-    ?, ?, ?, ?,
-    ?, ?, ?, ?,
-    ?, ?, ?, ?,
-    ?, ?, ?
-  )
-QUERY
+    # determine time run
+    my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
+    my $time_run = sprintf("%4d-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec);
 
-    my $sth = $${dbhr}->prepare($query);
-    my $success = $sth->execute(
-        $candid,        $pscid,              $tarchiveID, $series_description,
-        $file_rel_path, $patient_name,       $tr,         $te,
-        $ti,            $slice_thickness,    $xspace,     $yspace,
-        $zspace,        $xstep,              $ystep,      $zstep,
-        $time,          $seriesUID,          $image_type, $phase_enc_dir,
-        $echo_number,   $mriProtocolGroupID
+    my %newMriProtocolViolatedScans = (
+        'CandID'                 => $candid,
+        'PSCID'                  => $pscid,
+        'TarchiveID'             => $tarchiveID,
+        'time_run'               => $time_run,
+        'series_description'     => $series_description,
+        'minc_location'          => $file_rel_path,
+        'PatientName'            => $patient_name,
+        'TR_range'               => $tr,
+        'TE_range'               => $te,
+        'TI_range'               => $ti,
+        'slice_thickness_range'  => $slice_thickness,
+        'xspace_range'           => $xspace,
+        'yspace_range'           => $yspace,
+        'zspace_range'           => $zspace,
+        'xstep_range'            => $xstep,
+        'ystep_range'            => $ystep,
+        'zstep_range'            => $zstep,
+        'time_range'             => $time,
+        'SeriesUID'              => $seriesUID,
+        'image_type'             => $image_type,
+        'PhaseEncodingDirection' => $phase_enc_dir,
+        'EchoNumber'             => $echo_number,
+        'MriProtocolGroupID'     => $mriProtocolGroupID
     );
 
+    my $mriProtocolViolatedScansOB = NeuroDB::objectBroker::MriProtocolViolatedScansOB->new(db => $db);
+    my $mriProtocolViolatedScansRef = $mriProtocolViolatedScansOB->getWithTarchiveID($tarchiveID);
+
+    my $already_inserted = undef;
+    foreach my $dbProtViolScan (@$mriProtocolViolatedScansRef) {
+        if ($dbProtViolScan->{'SeriesUID'} eq $newMriProtocolViolatedScans{'SeriesUID'}
+            && $dbProtViolScan->{'TE_range'} eq $newMriProtocolViolatedScans{'TE_range'}
+            && $dbProtViolScan->{'PhaseEncodingDirection'} eq $newMriProtocolViolatedScans{'PhaseEncodingDirection'}
+            && $dbProtViolScan->{'EchoNumber'} eq $newMriProtocolViolatedScans{'EchoNumber'}
+        ) {
+            $already_inserted = 1;
+            last;
+        }
+    }
+    $mriProtocolViolatedScansOB->insert(\%newMriProtocolViolatedScans) unless defined $already_inserted;
 }
 
 
@@ -1104,7 +1122,7 @@ sub getPSC {
 
         my $sth = $${dbhr}->prepare($query);
         $sth->execute($PSCID, $visitLabel);
-        if ( $sth->rows > 0) {
+        if ($sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
             return ($row->{'MRI_alias'},$row->{'CenterID'});
         }
@@ -1118,6 +1136,136 @@ sub getPSC {
         if ($patientName =~ /$psc->{'Alias'}/i || $patientName =~ /$psc->{'MRI_alias'}/i) {
             return ($psc->{'MRI_alias'}, $psc->{'CenterID'}); 
         }
+    }
+
+    return ("UNKN", 0);
+}
+
+=pod
+
+=head3 getProject($subjectIDsref, $dbhr, $db)
+
+Looks for the project id using the C<session> table C<ProjectID> as
+a first resource, then using the C<candidate> table C<RegistrationProjectID>,
+otherwise, look for the default_project config value, and return C<ProjectID>.
+
+INPUTS:
+  - $subjectIDsref: subject's information hash ref
+  - $dbhr       : database handle reference
+  - $db         : database object
+
+RETURNS: the C<ProjectID> or an error if not found
+
+=cut
+
+sub getProject {
+    my ($subjectIDsref, $dbhr, $db) = @_;
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    my $visitLabel = $subjectIDsref->{'visitLabel'};
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+    ## Get the ProjectID from the session table, if the PSCID and visit labels exist
+    ## and could be extracted
+    if ($PSCID && $visitLabel) {
+        my $query = "SELECT s.ProjectID FROM session s
+                    JOIN candidate c on c.CandID=s.CandID
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID, $visitLabel);
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'ProjectID'};
+        }
+    }
+
+    ## Otherwise get the ProjectID from the candidate table, if the PSCID exists
+    if ($PSCID) {
+        my $query = "SELECT RegistrationProjectID
+                    FROM candidate
+                    WHERE PSCID = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID);
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'RegistrationProjectID'};
+        }
+    }
+
+    ## Otherwise, use the default_project config value
+    my $query = "SELECT ProjectID
+                 FROM Project
+                 WHERE Name = ?";
+
+    my $default_project = $configOB->getDefaultProject();
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($default_project);
+    if ( $sth->rows > 0) {
+        my $row = $sth->fetchrow_hashref();
+        if ($row->{'ProjectID'}) {
+            return $row->{'ProjectID'};
+        }
+    }
+
+    print STDERR "\nERROR: ProjectID cannot be initialized. ".
+                 "Please set the default_project config.\n\n";
+    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
+}
+
+=pod
+
+=head3 getCohort($subjectIDsref, $projectID, $dbhr, $db)
+
+Looks for the cohort id using the C<session> table C<ProjectID> as
+a first resource, for the cases where it is created using the front-end,
+otherwise, look for the default_cohort config value, and return C<CohortID>.
+
+INPUTS:
+  - $subjectIDsref: subject's information hash ref
+  - $projectID    : the project ID
+  - $dbhr         : database handle reference
+  - $db           : database object
+
+RETURNS: the C<CohortID> or 0
+
+=cut
+
+sub getCohort {
+    my ($subjectIDsref, $projectID, $dbhr, $db) = @_;
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    my $visitLabel = $subjectIDsref->{'visitLabel'};
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+    ## Get the CohortID from the session table, if the PSCID and visit labels exist
+    ## and could be extracted
+    if ($PSCID && $visitLabel) {
+        my $query = "SELECT s.CohortID FROM session s
+                    JOIN candidate c on c.CandID=s.CandID
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID, $visitLabel);
+        if ( $sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'CohortID'};
+        }
+    }
+
+    ## Otherwise, use the default_cohort config value
+    my $query = "SELECT CohortID
+                 FROM cohort
+                 JOIN project_cohort_rel USING (CohortID)
+                 JOIN Project USING(ProjectID)
+                 WHERE title = ? AND Name = ?";
+
+    my $default_cohort = $configOB->getDefaultCohort();
+    my $default_project = $configOB->getDefaultProject();
+    my $sth = $${dbhr}->prepare($query);
+    $sth->execute($default_cohort, $default_project);
+    if ( $sth->rows > 0) {
+        my $row = $sth->fetchrow_hashref();
+        return $row->{'CohortID'};
     }
 
     return ("UNKN", 0);

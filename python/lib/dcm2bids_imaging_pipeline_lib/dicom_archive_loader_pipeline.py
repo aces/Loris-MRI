@@ -419,7 +419,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             self.tarchive_id
         )
         protocol_violations_list = [v["minc_location"] for v in prot_viol_results] if prot_viol_results else None
-        excl_viol_results = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+        excl_viol_results = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
             self.tarchive_id, "exclude"
         )
         excluded_violations_list = [v["MincFile"] for v in excl_viol_results] if excl_viol_results else None

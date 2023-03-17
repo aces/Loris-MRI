@@ -40,33 +40,44 @@ sub getSubjectIDs {
      # If patientName is phantom scan or test scan
      # CandID is scanner DCCID (based on site alias)
      # visitLabel is scan patient name
-     # Set createVisitLable to 
-     #      a. 1 if imaging pipeline should create the visit label (when visit label has not been created yet in the database. 
-     #      b. 0 if imaging pipeline should not create the visit label (when visit label has not been created yet in the database. 
     if ($patientName =~ /PHA/i or $patientName =~ /TEST/i) {
 
         $subjectID{'CandID'}     = NeuroDB::MRI::my_trim(NeuroDB::MRI::getScannerCandID($scannerID, $db));
         $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($patientName);
         $subjectID{'isPhantom'} = 1;
 
-        $subjectID{'createVisitLabel'} = 1;
+        # Override createVisitLabel here if its value needs to be different than the createVisit DB config
+        # $subjectID{'createVisitLabel'} = undef;
+        # Set createVisitLabel to
+        #      a. 1 if imaging pipeline should create the visit label (when visit label has not been created yet in the database.
+        #      b. 0 if imaging pipeline should not create the visit label (when visit label has not been created yet in the database.
+        #
+        # When $subjectID{'createVisitLabel'} is set to 1:
+        #   - $subjectID{'ProjectID'} must be set to the project ID of the newly created visit
+        #   - $subjectID{'CohortID'} must be set to the cohort ID of the newly created visit
+        #
+        # If $subjectID{'ProjectID'} is undef, the following rules will be tried in order to assign a default value:
+        #	- the ProjectID from the session table, if the PSCID and visit labels exist
+        #       - the ProjectID from the candidate table, if the PSCID exists
+        #       - the default_project DB config value
+        #
+        # If $subjectID{'CohortID'} is undef, the following rules will be tried in order to assign a default value:
+        #       - the CohortID from the session table, if the PSCID and visit labels exist
+        #       - the default_cohort DB config value
+        #
+        # When createVisitLabel is set to 0, $subjectID{'ProjectID'} and $subjectID{'CohortID'} are ignored.
 
-        # When createVisitLabel is set to 1, CohortID must also
-        # be set to the ID of the cohort that the newly created
-        # visit should have. Assuming for example that all patient
-        # names end with "_<myCohortID>", then we could write:
-        # ($subjectID{'CohortID'}) = $patientName =~ /_(\d+)$/;
-        # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
-
-        # If config setting 'createVisitLabel' is true
-        # then $subjectID{'ProjectID'} must be set to the project ID of the
-        # newly created visit. Assuming for example that all patients
-        # names that contain the string 'HOSPITAL' are associated to visit
+        # $subjectID{'ProjectID'} = undef;
+        # Assuming that all patient names that contain the string 'HOSPITAL' are associated to visit
         # done for project with ID 1 and all others to projects with ID 2, we
         # could write:
-        # $subjectID{'ProjectID'} = $patientName =~ /HOSPITAL/  
-        #     ? 1 : 2;
+        # $subjectID{'ProjectID'} = $patientName =~ /HOSPITAL/ ? 1 : 2;
         # When createVisitLabel is set to 0, $subjectID{'ProjectID'} is ignored.
+
+        # $subjectID{'CohortID'} = undef;
+        # Assuming that all patient names end with "_<myCohortID>", then we could write:
+        # $subjectID{'CohortID'} = $patientName =~ /_(\d+)$/;
+        # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
 
      # If patient match PSCID_DCCID_VisitLabel
      # Determine PSCID, DCCID and visitLabel based on patient name
@@ -77,30 +88,43 @@ sub getSubjectIDs {
         $subjectID{'visitLabel'} = NeuroDB::MRI::my_trim($3);
         $subjectID{'isPhantom'}  = 0;
 
-        $subjectID{'createVisitLabel'} = 0;
-  
-        # When createVisitLabel is set to 1, CohortID must also
-        # be set to the ID of the cohort that the newly created
-        # visit should have. Assuming for example that visits V01 and V02
-        # are associated with cohort with ID 1 and all others to cohort
-        # with ID 2, then we could write:
-        # ($subjectID{'CohortID'}) = $subjectID{'visitLabel'} =~ /^V0[12]$/ 
-        #     ? 1 : 2;
-        # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
-        
-        # If config setting 'createVisitLabel' is true
-        # then $subjectID{'ProjectID'} must be set to the project ID of the
-        # newly created visit. Assuming for example that candidates with a
-        # candidate ID greater than 400000 are seen in project 1 and others are
-        # seen in project 2, we could write
-        # could write:
+        # Override createVisitLabel here if its value needs to be different than the createVisit DB config
+        # $subjectID{'createVisitLabel'} = undef;
+        # Set createVisitLabel to
+        #      a. 1 if imaging pipeline should create the visit label (when visit label has not been created yet in the database.
+        #      b. 0 if imaging pipeline should not create the visit label (when visit label has not been created yet in the database.
+        #
+        # When $subjectID{'createVisitLabel'} is set to 1:
+        #   - $subjectID{'ProjectID'} must be set to the project ID of the newly created visit
+        #   - $subjectID{'CohortID'} must be set to the cohort ID of the newly created visit
+        #
+        # If $subjectID{'ProjectID'} is undef, the following rules will be tried in order to assign a default value:
+        #       - the ProjectID from the session table, if the PSCID and visit labels exist
+        #       - the ProjectID from the candidate table, if the PSCID exists
+        #       - the default_project DB config value
+        #
+        # If $subjectID{'CohortID'} is undef, the following rules will be tried in order to assign a default value:
+        #       - the CohortID from the session table, if the PSCID and visit labels exist
+        #       - the default_cohort DB config value
+        #
+        # When createVisitLabel is set to 0, $subjectID{'ProjectID'} and $subjectID{'CohortID'} are ignored.
+
+        # $subjectID{'ProjectID'} = undef;
+        # Assuming for example that candidates with a candidate ID greater than 400000 are seen in project 1
+        # and others are seen in project 2, we could write:
         # $subjectID{'ProjectID'} = $subjectID{'CandID'} > 400000 ? 1 : 2;
-        #     ? 1 : 2;
         # When createVisitLabel is set to 0, $subjectID{'ProjectID'} is ignored.
 
-        print "PSCID is: "            . $subjectID{'PSCID'}      . 
-                "\n CandID id: "      . $subjectID{'CandID'}     .
-                "\n visit_label is: " . $subjectID{'visitLabel'} . "\n";
+        # $subjectID{'CohortID'} = undef;
+        # Assuming for example that visits V01 and V02 are associated with cohort with ID 1 and all others
+        # to cohort with ID 2, then we could write:
+        # $subjectID{'CohortID'} = $subjectID{'visitLabel'} =~ /^V0[12]$/ ? 1 : 2;
+        # When createVisitLabel is set to 0, $subjectID{'CohortID'} is ignored.
+
+        print "PSCID is: "            . $subjectID{'PSCID'}  .
+                "\n CandID id: "      . $subjectID{'CandID'} .
+                "\n visit_label is: " . $subjectID{'visitLabel'} . "\n" .
+                "\n ProjectID is: "   . $subjectID{'ProjectID'} . "\n";
     }
    
     # Return subjectIDs

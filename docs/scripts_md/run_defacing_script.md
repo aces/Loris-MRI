@@ -22,15 +22,15 @@ specified in the Config module of LORIS.
 
 # METHODS
 
-### grep\_FileIDs\_to\_deface($session\_id\_arr, $modalities\_to\_deface\_arr)
+### grep\_FileIDs\_to\_deface($session\_id\_ref, @modalities\_to\_deface)
 
 Queries the database for the list of acquisitions' FileID to be used to run the
 defacing algorithm based on the provided list of SessionID and Scan\_type to
 restrict the search.
 
 INPUTS:
-  - $session\_id\_arr          : array of SessionIDs to use when grepping FileIDs
-  - $modalities\_to\_deface\_arr: array of Scan\_type to use when grepping FileIDs
+  - $session\_id\_ref      : array of SessionIDs to use when grepping FileIDs
+  - @modalities\_to\_deface: array of Scan\_type to use when grepping FileIDs
 
 RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
          organized in a hash as follows:

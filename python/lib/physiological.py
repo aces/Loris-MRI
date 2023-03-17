@@ -628,7 +628,7 @@ class Physiological:
         """
         Inserts the events metadata information read from the file *events.json
         into the physiological_event_file, physiological_event_parameter
-        and physiological_event_parameter_category_level tables, linking it to the 
+        and physiological_event_parameter_category_level tables, linking it to the
         physiological file ID already inserted in physiological_file.
 
         :param event_metadata      : list with dictionaries of events
@@ -695,12 +695,18 @@ class Physiological:
             physiological_file_id, 'event_file_json_blake2b_hash', blake2
         )
 
-    def insert_event_file(self, event_data, event_file, physiological_file_id,
-                          blake2):
+    def insert_event_file_legacy(self, event_data, event_file, physiological_file_id,
+                                 blake2):
         """
         Inserts the event information read from the file *events.tsv
         into the physiological_task_event table, linking it to the
         physiological file ID already inserted in physiological_file.
+
+        TODO: LEGACY method. Its previous name was `insert_event_file`.
+        Try the new `insert_event_file` first then use this one as
+        fallback method. The new method changes the code logic by
+        taking additional events data into account. This old method
+        simply ignores it. Only called in `eeg.py`.
 
         :param event_data           : list with dictionaries of events
                                       information to insert into
@@ -788,7 +794,7 @@ class Physiological:
 
         :param event_tsv           : path to event data file
          :type event_tsv           : str
-        
+
         :param event_json           : path to the event metadata file
          :type event_json           : str
 
@@ -818,6 +824,272 @@ class Physiological:
                         "SET AssembledHED = %s " \
                         "WHERE PhysiologicalTaskEventID = %s"
                     self.db.update(query=updateAssembledHED, args=(assembledHED, eventID,))
+
+
+    def insert_event_file(self, event_data, event_file, physiological_file_id,
+                          blake2):
+        """
+        Inserts the event information read from the file *events.tsv
+        into the physiological_task_event table, linking it to the
+        physiological file ID already inserted in physiological_file.
+
+        TODO: NEW method. See the previous iteration named
+        `insert_event_file_legacy`. This should be the one and only
+        method once we are sure every data will not be impacted in db.
+        Only called in `eeg.py`.
+        :param event_data           : list with dictionaries of events
+                                      information to insert into
+                                      physiological_task_event
+         :type event_data           : list
+        :param event_file           : name of the event file
+         :type event_file           : str
+        :param physiological_file_id: PhysiologicalFileID to link the event info to
+         :type physiological_file_id: int
+        :param blake2               : blake2b hash of the task event file
+         :type blake2               : str
+        """
+
+        event_fields = (
+            'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
+            'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
+            'EventType',           'FilePath'
+        )
+        # known opt fields
+        optional_fields = (
+            'trial_type',  'response_time', 'event_code',
+            'event_value', 'event_sample',  'event_type',
+            'value',       'sample',        'duration',
+            'onset'
+        )
+        # all listed fields
+        known_fields = {*event_fields, *optional_fields}
+
+        for row in event_data:
+            # nullify not present optional cols
+            for field in optional_fields:
+                if field not in row.keys():
+                    row[field] = None
+
+            # has additional fields?
+            additional_fields = {}
+            for field in row:
+                if field not in known_fields and row[field].lower() != 'nan':
+                    additional_fields[field] = row[field]
+
+            # get values of present optional cols
+            onset = 0
+            if isinstance(row['onset'], (int, float)):
+                onset = row['onset']
+            else:
+                # try casting to float, cannot be n/a
+                # should raise an error if not a number
+                onset = float(row['onset'])
+
+            duration = 0
+            if isinstance(row['duration'], (int, float)):
+                duration = row['duration']
+            else:
+                try:
+                    # try casting to float
+                    duration = float(row['duration'])
+                except ValueError:
+                    # value could be 'n/a', 
+                    # should not raise
+                    # let default value (0)
+                    pass
+            assert duration >= 0
+
+            sample = None
+            if isinstance(row['event_sample'], (int, float)):
+                sample = row['event_sample']
+            if row['sample'] and isinstance(row['sample'], (int, float)):
+                sample = row['sample']
+
+            response_time = None
+            if isinstance(row['response_time'], (int, float)):
+                response_time = row['response_time']
+
+            event_value = None
+            if row['event_value']:
+                event_value = str(row['event_value'])
+            elif row['value']:
+                event_value = str(row['value'])
+
+            trial_type = None
+            if row['trial_type']:
+                trial_type = str(row['trial_type'])
+
+            # insert one event and get its db id
+            last_task_id = self.db.insert(
+                table_name   = 'physiological_task_event',
+                column_names = event_fields,
+                values       = [(
+                    str(physiological_file_id),
+                    onset,
+                    duration,
+                    trial_type,
+                    response_time,
+                    row['event_code'],
+                    event_value,
+                    sample,
+                    row['event_type'],
+                    event_file
+                )],
+                get_last_id  = True
+            )
+
+            # if needed, process additional and unlisted
+            # fields and send them in secondary table
+            if additional_fields:
+                # table cols
+                add_event_fields = (
+                    'PhysiologicalTaskEventID',
+                    'PropertyName',
+                    'PropertyValue'
+                )
+                # each additional fields is a new entry
+                add_event_values = []
+                for add_field, add_value in additional_fields.items():
+                    add_event_values.append((
+                        last_task_id,
+                        add_field,
+                        add_value
+                    ))
+                self.db.insert(
+                    table_name   = 'physiological_task_event_opt',
+                    column_names = add_event_fields,
+                    values       = add_event_values
+                )
+        # insert blake2b hash of task event file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'event_file_blake2b_hash', blake2
+        )
+
+    def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id, blake2):
+        """
+        Inserts the annotation metadata information read from the file *annotations.json
+        into the physiological_annotation_file, physiological_annotation_parameter
+        and physiological_annotation_label tables, linking it to the physiological file ID
+        already inserted in physiological_file.
+
+        :param annotation_metadata      : list with dictionaries of annotations
+                                          metadata to insert into the database
+         :type annotation_metadata      : list
+        :param annotation_metadata_file : name of the annotation metadata file
+         :type annotation_file          : str
+        :param physiological_file_id    : PhysiologicalFileID to link the annotation info to
+         :type physiological_file_id    : int
+        :param blake2                   : blake2b hash of the annotation file
+         :type blake2                   : str
+
+        :return: annotation file id
+         :rtype: int
+        """
+
+        optional_fields = (
+            'Sources',  'Author', 'LabelDescription'
+        )
+
+        for field in optional_fields:
+            if field not in annotation_metadata.keys():
+                annotation_metadata[field] = None
+
+        annotation_file_id = self.physiological_annotation_file_obj.insert(
+            physiological_file_id,
+            'json',
+            annotation_metadata_file
+        )
+        self.physiological_annotation_parameter_obj.insert(
+            annotation_file_id,
+            annotation_metadata['Description'],
+            annotation_metadata['Sources'],
+            annotation_metadata['Author']
+        )
+
+        if annotation_metadata['LabelDescription']:
+            for label_name, label_desc in annotation_metadata['LabelDescription'].items():
+                self.physiological_annotation_label_obj.insert(annotation_file_id, label_name, label_desc)
+
+        # insert blake2b hash of annotation file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'annotation_file_blake2b_hash', blake2
+        )
+
+        return annotation_file_id
+
+    def insert_annotation_data(self, annotation_data, annotation_file, physiological_file_id, blake2):
+        """
+        Inserts the annotation information read from the file *annotations.tsv
+        into the physiological_annotation_file and physiological_annotation_instance tables,
+        linking it to the physiological file ID already inserted in physiological_file.
+
+        :param annotation_data      : list with dictionaries of annotations
+                                      information to insert into
+                                      physiological_annotation_file
+         :type annotation_data      : list
+        :param annotation_file      : name of the annotation file
+         :type annotation_file      : str
+        :param physiological_file_id: PhysiologicalFileID to link the event info to
+         :type physiological_file_id: int
+        :param blake2               : blake2b hash of the task event file
+         :type blake2               : str
+
+        :return: annotation file id
+         :rtype: int
+        """
+
+        annotation_file_id = self.physiological_annotation_file_obj.insert(
+            physiological_file_id,
+            'tsv',
+            annotation_file
+        )
+
+        annotation_values = []
+        for row in annotation_data:
+            optional_fields = (
+                'channels', 'absolute_time', 'description'
+            )
+            for field in optional_fields:
+                if field not in row.keys():
+                    row[field] = None
+
+            if re.match(r'^-?\d+(?:\.\d+)?$', row['duration']) is None:
+                row['duration'] = None
+
+            if re.match(r'^-?\d+(?:\.\d+)?$', row['onset']) is None:
+                row['onset'] = None
+
+            if row['channels'] and "n/a" in row['channels']:
+                row['channels'] = None
+
+            if row['absolute_time'] and "n/a" in row['absolute_time']:
+                row['absolute_time'] = None
+
+            labelID = self.physiological_annotation_label_obj.grep_id(row['label'], insert_if_not_found=True)
+            paramID = self.physiological_annotation_parameter_obj.grep_id_from_physiological_file_id(
+                physiological_file_id
+            )
+
+            values_tuple = (
+                str(annotation_file_id),
+                paramID,
+                row['onset'],
+                row['duration'],
+                labelID,
+                row['channels'],
+                row['absolute_time'],
+                row['description']
+            )
+            annotation_values.append(values_tuple)
+
+        self.physiological_annotation_instance_obj.insert(annotation_values)
+
+        # insert blake2b hash of annotation file into physiological_parameter_file
+        self.insert_physio_parameter_file(
+            physiological_file_id, 'annotation_file_blake2b_hash', blake2
+        )
+
+        return annotation_file_id
 
     def grep_archive_info_from_file_id(self, physiological_file_id):
         """

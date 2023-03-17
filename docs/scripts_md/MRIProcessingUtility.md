@@ -284,6 +284,7 @@ INPUTS:
   - $visit\_label : visit label associated with the scan
   - $file        : information about the scan
   - $data\_dir    : path to the LORIS MRI data directory
+  - $scan\_type   : scan type associated to the file
 
 ### loadAndCreateObjectFile($minc, $upload\_id)
 
@@ -329,7 +330,7 @@ INPUTS:
 
 RETURNS: acquisition protocol ID of the MINC file
 
-### dicom\_to\_minc($study\_dir, $converter, $get\_dicom\_info, $exclude, $mail\_user, $upload\_id)
+### dicom\_to\_minc($study\_dir, $converter, $get\_dicom\_info, $mail\_user, $upload\_id, @exclude)
 
 Converts a DICOM study into MINC files.
 
@@ -337,9 +338,9 @@ INPUTS:
   - $study\_dir      : DICOM study directory to convert
   - $converter      : converter to be used
   - $get\_dicom\_info : get DICOM information setting from the `Config` table
-  - $exclude        : which files to exclude from the `dcm2mnc` command
   - $mail\_user      : mail of the user
   - $upload\_id      : upload ID of the study
+  - @exclude        : which files to exclude from the `dcm2mnc` command
 
 ### get\_mincs($minc\_files, $upload\_id)
 
