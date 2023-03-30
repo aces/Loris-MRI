@@ -626,6 +626,13 @@ class Physiological:
             # insert ref point/coord system relations
             self.physiological_coord_system_db.insert_coord_system_point_3d_relation(coord_system_id, point_ids)
 
+        # insert the relation between coordinate file electrode and physio file 
+        self.physiological_coord_system_db.insert_coord_system_electrodes_relation(
+            physiological_file_id,
+            coord_system_id,
+            electrode_ids
+        )
+
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id,
