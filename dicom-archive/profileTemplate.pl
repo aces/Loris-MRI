@@ -33,7 +33,7 @@
 # extracts the subject and timepoint identifiers from the patient name 
 # assumes identifers are stored as <PSCID>_<DCCID>_<visit> in PatientName field, where <visit> is 3 digits.
 sub getSubjectIDs {
-    my ($patientName, $patientID, $scannerID, $dbhr, $db) = @_;
+    my ($patientName, $scannerID, $dbhr, $db) = @_;
 
     my %subjectID; # Will stored subject IDs.
     
@@ -127,7 +127,6 @@ sub getSubjectIDs {
                 "\n ProjectID is: "   . $subjectID{'ProjectID'} . "\n";
     }
    
-    # Return subjectIDs
     return \%subjectID;
 }
 

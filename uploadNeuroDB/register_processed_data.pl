@@ -242,7 +242,31 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 }
 
 
-# ----- STEP 3: Determine ScannerID based: 
+# ----- STEP 3: Determine using sourceFileID:
+#                   - subject's identifiers
+#                   - sessionID
+my ($sessionID,$subjectIDsref) = getSessionID($sourceFileID,$dbh);
+if  (!defined($sessionID))  {
+    print LOG "\nERROR: could not determine sessionID based on sourceFileID "
+              . "$sourceFileID. Are you sure the sourceFile was registered "
+              . "in DB?\n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+}
+print LOG "\n==> Data found for candidate   : $subjectIDsref->{'CandID'} - Visit: $subjectIDsref->{'visitLabel'}\n";
+$file->setFileData('SessionID', $sessionID);
+print LOG "\t -> Set SessionID to $sessionID.\n";
+$file->setFileData('SourceFileID', $sourceFileID);
+print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
+
+
+# ----- STEP 4: Verify project information
+my $projectID = NeuroDB::MRI::getProject($subjectIDsref, \$dbh, $db);
+print LOG "\nERROR: No project found for this candidate \n\n";
+exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+print LOG  "\n==> ProjectID : $projectID\n";
+
+
+# ----- STEP 5: Determine ScannerID based:
 #                   - on mincheader information if minc file
 #                   - on sourceFileID for other type of files
 my $scannerID;
@@ -264,10 +288,10 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     $scannerID  =   NeuroDB::MRI::findScannerID(
         $scannerInfo{'ScannerManufacturer'}, $scannerInfo{'ScannerModel'},
         $scannerInfo{'ScannerSerialNumber'}, $scannerInfo{'ScannerSoftwareVersion'},
-        $centerID,                           \$dbh,
-        $db
+        $centerID,                           $projectID,
+        \$dbh,                               $db
     );
-}else   {
+} else {
     $scannerID  =   getScannerID($sourceFileID,$dbh);
 }
 
@@ -280,24 +304,7 @@ $file->setFileData('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
 
 
-# ----- STEP 4: Determine using sourceFileID: 
-#                   - subject's identifiers 
-#                   - sessionID 
-my ($sessionID,$subjectIDsref)    =   getSessionID($sourceFileID,$dbh);
-if  (!defined($sessionID))  {
-    print LOG "\nERROR: could not determine sessionID based on sourceFileID "
-              . "$sourceFileID. Are you sure the sourceFile was registered "
-              . "in DB?\n\n";
-    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
-}
-print LOG "\n==> Data found for candidate   : $subjectIDsref->{'CandID'} - Visit: $subjectIDsref->{'visitLabel'}\n";
-$file->setFileData('SessionID', $sessionID);
-print LOG "\t -> Set SessionID to $sessionID.\n";
-$file->setFileData('SourceFileID', $sourceFileID);
-print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
-
-
-# ----- STEP 5: Determine AcquisitionProtocolID based on $scanType
+# ----- STEP 6: Determine AcquisitionProtocolID based on $scanType
 my  ($acqProtID)    =   getAcqProtID($scanType,$dbh);
 if  (!defined($acqProtID))  {
     print LOG "\nERROR: could not determine AcquisitionProtocolID based on scanType $scanType.\n\n";
@@ -307,7 +314,7 @@ $file->setFileData('AcquisitionProtocolID',$acqProtID);
 print LOG "\t -> Set AcquisitionProtocolID to $acqProtID.\n";
 
 
-# ----- STEP 6: Set other parameters based on command line arguments
+# ----- STEP 7: Set other parameters based on command line arguments
 $file->setFileData('CoordinateSpace',$coordinateSpace);
 print LOG "\t -> Set CoordinateSpace to $coordinateSpace.\n";
 $file->setFileData('SourcePipeline',$sourcePipeline);
@@ -321,7 +328,7 @@ if ($protocolID) {
     print LOG "\t -> Set ProcessProtocolID to $protocolID.\n";
 }
 
-# ----- STEP 7: Compute the md5 hash
+# ----- STEP 8: Compute the md5 hash
 my  $md5hash    =   &NeuroDB::MRI::compute_hash(\$file);
 $file->setParameter('md5hash', $md5hash);
 print LOG "\t -> Set md5hash to $md5hash.\n";
@@ -331,7 +338,7 @@ if  (!NeuroDB::MRI::is_unique_hash(\$file)) {
 }
 
 
-# ----- STEP 8: Copy files to assembly folder and register them into the db.
+# ----- STEP 9: Copy files to assembly folder and register them into the db.
 # Rename and copy file into assembly folder
 my $file_protocol_identified    =   &copy_file(\$filename, $subjectIDsref, $scanType, \$file);
 my $file_path   =   $filename; 
