@@ -129,7 +129,11 @@ class BidsReader:
             else:
                 continue
 
-        self.candidates_list_validation(participants_info)
+        if participants_info:
+            self.candidates_list_validation(participants_info)
+        else:
+            bids_subjects = self.bids_layout.get_subjects()
+            participants_info = [{'participant_id': sub_id} for sub_id in bids_subjects]
 
         if self.verbose:
             print('\t=> List of participants found:')
