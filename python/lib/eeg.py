@@ -3,7 +3,6 @@
 import os
 import json
 import getpass
-from pyblake2 import blake2b
 
 import lib.exitcode
 import lib.utilities as utilities
