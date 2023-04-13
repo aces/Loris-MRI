@@ -3,8 +3,8 @@
 import os
 import sys
 import csv
-from datetime import datetime
 import filecmp
+import hashlib
 import numpy
 import scipy.io
 import shutil
@@ -17,6 +17,8 @@ import io
 import mat73
 import lib.exitcode
 
+from datetime import datetime
+from pathlib import Path
 
 __license__ = "GPLv3"
 
@@ -195,7 +197,7 @@ def update_set_file_path_info(set_file, fdt_file):
 
         # write the new .set file with the correct path info
         scipy.io.savemat(set_file, dataset, False)
-    except NotImplementedError:     # Thrown for matlab v7.3 files
+    except NotImplementedError:  # Thrown for matlab v7.3 files
         # read the .set EEG file using skjerns/mat7.3
         dataset = mat73.loadmat(set_file, only_include=['filename', 'datfile'])
 
@@ -270,11 +272,20 @@ def create_processing_tmp_dir(template_prefix):
 
 
 def remove_empty_folders(path_abs):
-
     walk = list(os.walk(path_abs))
     for path, _, _ in walk[::-1]:
         if len(os.listdir(path)) == 0:
             os.rmdir(path)
+
+
+def compute_blake2b_hash(file_path):
+    data = Path(file_path).read_bytes()
+    return hashlib.blake2b(data).hexdigest()
+
+
+def compute_md5_hash(file_path):
+    data = Path(file_path).read_bytes()
+    return hashlib.md5(data).hexdigest()
 
 
 def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
