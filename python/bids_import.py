@@ -286,7 +286,7 @@ def validateids(bids_dir, db, verbose):
         sys.exit(lib.exitcode.CANDID_NOT_FOUND)
     if loris_cand_info['PSCID'] != psc_id:
         print("ERROR: cand_id " + cand_id + " and psc_id " + psc_id + " do not match.")
-        sys.exit(lib.exitcode.PSCID_MISMATCH)
+        sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
 
 def create_loris_bids_directory(bids_reader, data_dir, verbose):
     """

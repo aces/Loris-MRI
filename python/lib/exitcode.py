@@ -41,9 +41,8 @@ UNREADABLE_FILE            = 64  # if could not properly read a file content
 COPY_FAILURE               = 65  # if copy failed
 CREATE_DIR_FAILURE         = 66  # if dir creation failed
 CANDID_NOT_FOUND           = 67  # if candidate's cand_id not found in LORIS' DB
-PSCID_MISMATCH             = 68  # if candidate's cand_id and psc_id do not match
-CANDIDATE_CREATION_FAILURE = 69  # if candidate creation failed
-CANDIDATE_NOT_FOUND        = 70  # if candidate not found in LORIS' DB
+CANDIDATE_CREATION_FAILURE = 68  # if candidate creation failed
+CANDIDATE_NOT_FOUND        = 69  # if candidate not found in LORIS' DB
 
 # -- Other common generic failures (exit codes from 80 to 149)
 CLEANUP_FAILURE           = 80  # if cleanup after script execution failed
