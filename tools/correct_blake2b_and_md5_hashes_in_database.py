@@ -114,7 +114,7 @@ def handle_imaging_files(db, data_dir, tmp_dir, s3_obj):
             new_blake2b_hash = utilities.compute_blake2b_hash(file_full_path)
             param_file_id = file_dict['file_blake2b_hash']['ParameterFileID']
             update_parameter_file_hash(db, param_file_id, new_blake2b_hash)
-        if file_dict['FilePath'].startswith('s3://'):
+        if file_dict['FilePath'].startswith('s3://') and os.path.exists(file_full_path):
             os.remove(file_full_path)
 
         # update BIDS JSON file's blake2b hash if file present in database
@@ -122,7 +122,8 @@ def handle_imaging_files(db, data_dir, tmp_dir, s3_obj):
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['bids_json_file']['FullFilePath'])
             param_file_id = file_dict['bids_json_file_blake2b_hash']['ParameterFileID']
             update_parameter_file_hash(db, param_file_id, new_blake2b_hash)
-            if file_dict['bids_json_file']['Value'].startswith('s3://'):
+            if file_dict['bids_json_file']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['bids_json_file']['FullFilePath']):
                 os.remove(file_dict['bids_json_file']['FullFilePath'])
 
         # update BVAL NIfTI file's blake2b hash if file present in database
@@ -130,7 +131,8 @@ def handle_imaging_files(db, data_dir, tmp_dir, s3_obj):
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['check_bval_filename']['FullFilePath'])
             param_file_id = file_dict['check_bval_filename_blake2b_hash']['ParameterFileID']
             update_parameter_file_hash(db, param_file_id, new_blake2b_hash)
-            if file_dict['check_bval_filename']['Value'].startswith('s3://'):
+            if file_dict['check_bval_filename']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['check_bval_filename']['FullFilePath']):
                 os.remove(file_dict['check_bval_filename']['FullFilePath'])
 
         # update BVEC NIfTI file's blake2b hash if file present in database
@@ -138,7 +140,8 @@ def handle_imaging_files(db, data_dir, tmp_dir, s3_obj):
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['check_bvec_filename']['FullFilePath'])
             param_file_id = file_dict['check_bvec_filename_blake2b_hash']['ParameterFileID']
             update_parameter_file_hash(db, param_file_id, new_blake2b_hash)
-            if file_dict['check_bvec_filename']['Value'].startswith('s3://'):
+            if file_dict['check_bvec_filename']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['check_bvec_filename']['FullFilePath']):
                 os.remove(file_dict['check_bvec_filename']['FullFilePath'])
 
 
@@ -270,42 +273,47 @@ def handle_physiological_files(db, data_dir, tmp_dir, s3_obj):
             new_blake2b_hash = utilities.compute_blake2b_hash(file_full_path)
             phys_param_file_id = file_dict['physiological_file_blake2b_hash']['PhysiologicalParameterFileID']
             update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
-            if file_dict['FilePath'].startswith('s3://'):
+            if file_dict['FilePath'].startswith('s3://') and os.path.exists(file_full_path):
                 os.remove(file_full_path)
 
         if 'physiological_json_file_blake2b_hash' in file_dict.keys() and 'eegjson_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['eegjson_file']['FullFilePath'])
             phys_param_file_id = file_dict['physiological_json_file_blake2b_hash']['PhysiologicalParameterFileID']
             update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
-            if file_dict['eegjson_file']['Value'].startswith('s3://'):
+            if file_dict['eegjson_file']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['eegjson_file']['FullFilePath']):
                 os.remove(file_dict['eegjson_file']['FullFilePath'])
 
         if 'channel_file_blake2b_hash' in file_dict.keys() and 'channel_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['channel_file']['FullFilePath'])
             phys_param_file_id = file_dict['channel_file_blake2b_hash']['PhysiologicalParameterFileID']
             update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
-            if file_dict['eegjson_file']['Value'].startswith('s3://'):
-                os.remove(file_dict['eegjson_file']['FullFilePath'])
+            if file_dict['channel_file']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['channel_file']['FullFilePath']):
+                os.remove(file_dict['channel_file']['FullFilePath'])
 
         if 'electrode_file_blake2b_hash' in file_dict.keys() and 'electrode_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['electrode_file']['FullFilePath'])
             phys_param_file_id = file_dict['electrode_file_blake2b_hash']['PhysiologicalParameterFileID']
             update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
-            if file_dict['electrode_file']['Value'].startswith('s3://'):
+            if file_dict['electrode_file']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['electrode_file']['FullFilePath']):
                 os.remove(file_dict['electrode_file']['FullFilePath'])
 
         if 'event_file_blake2b_hash' in file_dict.keys() and 'event_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['event_file']['FullFilePath'])
             phys_param_file_id = file_dict['event_file_blake2b_hash']['PhysiologicalParameterFileID']
             update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
-            if file_dict['event_file']['Value'].startswith('s3://'):
+            if file_dict['event_file']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['event_file']['FullFilePath']):
                 os.remove(file_dict['event_file']['FullFilePath'])
 
         if 'physiological_scans_tsv_file_bake2hash' in file_dict.keys() and 'scans_tsv_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['scans_tsv_file']['FullFilePath'])
             phys_param_file_id = file_dict['physiological_scans_tsv_file_bake2hash']['PhysiologicalParameterFileID']
             update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
-            if file_dict['scans_tsv_file']['Value'].startswith('s3://'):
+            if file_dict['scans_tsv_file']['Value'].startswith('s3://') \
+                    and os.path.exists(file_dict['scans_tsv_file']['FullFilePath']):
                 os.remove(file_dict['scans_tsv_file']['FullFilePath'])
 
 
