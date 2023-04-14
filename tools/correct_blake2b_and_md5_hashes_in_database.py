@@ -211,6 +211,16 @@ def determine_file_full_path(file_rel_path, s3_obj, tmp_dir, data_dir):
 
 
 def update_parameter_file_hash(db, param_file_id, new_hash):
+    """
+    Updates parameter_file table with the new hashes.
+
+    :param db: database object
+     :type db: Database
+    :param param_file_id: ParameterFileID to use in the update statement
+     :type param_file_id: str
+    :param new_hash: new hash to use in the update statement
+     :type new_hash: str
+    """
 
     if not param_file_id or not new_hash:
         return
@@ -249,27 +259,27 @@ def handle_physiological_files(db, data_dir, tmp_dir, s3_obj):
         if 'physiological_file_blake2b_hash' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_full_path)
             phys_param_file_id = file_dict['physiological_file_blake2b_hash']['PhysiologicalParameterFileID']
-            update_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
+            update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
         if 'physiological_json_file_blake2b_hash' in file_dict.keys() and 'eegjson_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['eegjson_file']['FullFilePath'])
             phys_param_file_id = file_dict['physiological_json_file_blake2b_hash']['PhysiologicalParameterFileID']
-            update_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
+            update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
         if 'channel_file_blake2b_hash' in file_dict.keys() and 'channel_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['channel_file']['FullFilePath'])
             phys_param_file_id = file_dict['channel_file_blake2b_hash']['PhysiologicalParameterFileID']
-            update_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
+            update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
         if 'electrode_file_blake2b_hash' in file_dict.keys() and 'electrode_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['electrode_file']['FullFilePath'])
             phys_param_file_id = file_dict['electrode_file_blake2b_hash']['PhysiologicalParameterFileID']
-            update_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
+            update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
         if 'event_file_blake2b_hash' in file_dict.keys() and 'event_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['event_file']['FullFilePath'])
             phys_param_file_id = file_dict['event_file_blake2b_hash']['PhysiologicalParameterFileID']
-            update_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
+            update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
         if 'physiological_scans_tsv_file_bake2hash' in file_dict.keys() and 'scans_tsv_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['scans_tsv_file']['FullFilePath'])
             phys_param_file_id = file_dict['physiological_scans_tsv_file_bake2hash']['PhysiologicalParameterFileID']
-            update_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
+            update_phys_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
 
 
 def query_hashes_and_associated_files_to_physiological_file_id(db, file_dict, s3_obj, tmp_dir, data_dir):
@@ -340,6 +350,24 @@ def query_hashes_and_associated_files_to_physiological_file_id(db, file_dict, s3
         file_dict['event_file'] = {
             'FullFilePath': determine_file_full_path(event_file_results[0]['FilePath'], s3_obj, tmp_dir, data_dir)
         }
+
+
+def update_phys_parameter_file_hash(db, phys_param_file_id, new_hash):
+    """
+    Updates physiological_parameter_file table with the new hashes.
+
+    :param db: database object
+     :type db: Database
+    :param phys_param_file_id: ParameterFileID to use in the update statement
+     :type phys_param_file_id: str
+    :param new_hash: new hash to use in the update statement
+     :type new_hash: str
+    """
+    if not phys_param_file_id or not new_hash:
+        return
+
+    query = "UPDATE physiological_parameter_file SET Value=%s WHERE PhysiologicalParameterFileID=%s"
+    db.update(query, (new_hash, phys_param_file_id))
 
 
 if __name__ == "__main__":
