@@ -217,34 +217,6 @@ def update_set_file_path_info(set_file, fdt_file):
     return True
 
 
-def compute_md5sum(file):
-    """
-    Compute the md5sum of a file and returns it.
-
-    :param file: file on which to compute the md5sum
-     :type file: str
-
-    :return: the md5sum of the file
-     :rtype: str
-    """
-
-    if not os.path.exists(file):
-        message = '\n\tERROR: file ' + file + ' not found\n'
-        print(message)
-        sys.exit(lib.exitcode.INVALID_PATH)
-
-    out = subprocess.Popen(
-        ['md5sum', file],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT
-    )
-    stdout, stderr = out.communicate()
-
-    md5sum = stdout.split()[0].decode('ASCII')
-
-    return md5sum
-
-
 def create_processing_tmp_dir(template_prefix):
     """
     Creates a temporary directory with a name based on the concatenation of the
@@ -279,11 +251,29 @@ def remove_empty_folders(path_abs):
 
 
 def compute_blake2b_hash(file_path):
+    """
+    Compute the blake2b hash of a file and returns it.
+
+    :param file_path: path to the file on which to compute the blake2b hash
+     :type file_path: str
+
+    :return: the blake2b hash of the file
+     :rtype: str
+    """
     data = Path(file_path).read_bytes()
     return hashlib.blake2b(data).hexdigest()
 
 
 def compute_md5_hash(file_path):
+    """
+    Compute the md5 hash of a file and returns it.
+
+    :param file_path: path to the file on which to compute the md5 hash
+     :type file_path: str
+
+    :return: the md5 hash of the file
+     :rtype: str
+    """
     data = Path(file_path).read_bytes()
     return hashlib.md5(data).hexdigest()
 
