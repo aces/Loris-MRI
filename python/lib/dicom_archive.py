@@ -95,7 +95,7 @@ class DicomArchive:
         """
 
         # compute the md5sum of the tarchive file
-        tarchive_file_md5sum = utilities.compute_md5sum(tarchive_path)
+        tarchive_file_md5sum = utilities.compute_md5_hash(tarchive_path)
 
         # grep the md5sum stored in the database
         tarchive_db_md5sum = self.tarchive_info_dict['md5sumArchive'].split()[0]
