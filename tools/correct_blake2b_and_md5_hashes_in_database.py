@@ -319,27 +319,27 @@ def query_hashes_and_associated_files_to_physiological_file_id(db, file_dict, s3
         (file_dict['PhysiologicalFileID'],)
     )
     if channel_file_results:
-        file_dict['channel_file']['FullFilePath'] = determine_file_full_path(
-            channel_file_results[0]['FilePath'], s3_obj, tmp_dir, data_dir
-        )
+        file_dict['channel_file'] = {
+            'FullFilePath': determine_file_full_path(channel_file_results[0]['FilePath'], s3_obj, tmp_dir, data_dir)
+        }
 
     electrode_file_results = db.pselect(
         "SELECT DISTINCT(FilePath) FROM physiological_electrode WHERE PhysiologicalFileID=%s",
         (file_dict['PhysiologicalFileID'],)
     )
     if electrode_file_results:
-        file_dict['electrode_file']['FullFilePath'] = determine_file_full_path(
-            electrode_file_results[0]['FilePath'], s3_obj, tmp_dir, data_dir
-        )
+        file_dict['electrode_file'] = {
+            'FullFilePath': determine_file_full_path(electrode_file_results[0]['FilePath'], s3_obj, tmp_dir, data_dir)
+        }
 
     event_file_results = db.pselect(
         "SELECT DISTINCT(FilePath) FROM physiological_task_event WHERE PhysiologicalFileID=%s",
         (file_dict['PhysiologicalFileID'],)
     )
     if event_file_results:
-        file_dict['event_file']['FullFilePath'] = determine_file_full_path(
-            event_file_results[0]['FilePath'], s3_obj, tmp_dir, data_dir
-        )
+        file_dict['event_file'] = {
+            'FullFilePath': determine_file_full_path(event_file_results[0]['FilePath'], s3_obj, tmp_dir, data_dir)
+        }
 
 
 if __name__ == "__main__":
