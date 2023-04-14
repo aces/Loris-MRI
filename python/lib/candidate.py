@@ -72,7 +72,12 @@ class Candidate:
          :rtype: dict
         """
 
-        self.cand_id = self.generate_cand_id(db)
+        if not self.psc_id:
+            print("Cannot create a candidate without a PSCID.\n")
+            sys.exit(lib.exitcode.CANDIDATE_CREATION_FAILURE)
+
+        if not self.cand_id:
+            self.cand_id = self.generate_cand_id(db)
 
         for row in participants_info:
             if not row['participant_id'] == self.psc_id:
@@ -83,12 +88,11 @@ class Candidate:
             if 'age' in row:
                 self.age = row['age']
 
-            # three steps to find site:
+            # two steps to find site:
             #   1. try matching full name from 'site' column in participants.tsv in db
             #   2. try extracting alias from pscid
-            #   3. try finding previous site in candidate table
 
-            if 'site' in row and row['site'].lower() not in ("null", ""):
+            if 'site' in row:
                 # search site id in psc table by its full name
                 site_info = db.pselect(
                     "SELECT CenterID FROM psc WHERE Name = %s",
@@ -104,20 +108,9 @@ class Candidate:
                     if site['Alias'] in row['participant_id']:
                         self.center_id = site['CenterID']
 
-            if self.center_id is None:
-                # try to find participant site in db
-                candidate_site_project = db.pselect(
-                    "SELECT RegistrationCenterID FROM candidate WHERE pscid = %s",
-                    [self.psc_id, ]
-                )
-                if len(candidate_site_project) > 0:
-                    self.center_id = candidate_site_project[0]['RegistrationCenterID']
+            # try to find full name in 'project' column in participants.tsv
 
-            # two steps to find project:
-            #   1. find full name in 'project' column in participants.tsv
-            #   2. find previous in candidate table
-
-            if 'project' in row and row['project'].lower() not in ("null", ""):
+            if 'project' in row:
                 # search project id in Project table by its full name
                 project_info = db.pselect(
                     "SELECT ProjectID FROM Project WHERE Name = %s",
@@ -125,15 +118,6 @@ class Candidate:
                 )
                 if len(project_info) > 0:
                     self.project_id = project_info[0]['ProjectID']
-
-            if self.project_id is None:
-                # try to find participant project
-                candidate_site_project = db.pselect(
-                    "SELECT RegistrationProjectID FROM candidate WHERE pscid = %s",
-                    [self.psc_id, ]
-                )
-                if len(candidate_site_project) > 0:
-                    self.center_id = candidate_site_project[0]['RegistrationProjectID']
 
         if not self.center_id:
             print("ERROR: could not determine site for " + self.psc_id + "."
@@ -171,13 +155,12 @@ class Candidate:
             values=insert_val
         )
 
-        loris_cand_info = self.get_candidate_info_from_loris(db)
+        return self.get_candidate_info_from_loris(db)
 
-        return loris_cand_info
 
     def get_candidate_info_from_loris(self, db):
         """
-        Grep candidate information from the candidate table using PSCID.
+        Grep candidate information from the candidate table using the PSCID or CandID.
 
         :param db: database handler object
          :type db: object
@@ -186,10 +169,17 @@ class Candidate:
          :rtype: dict
         """
 
-        loris_cand_info = db.pselect(
-            "SELECT * FROM candidate WHERE PSCID = %s",
-            (self.psc_id,),
-        )
+        loris_cand_info = None
+        if self.cand_id:
+            loris_cand_info = db.pselect(
+                "SELECT * FROM candidate WHERE CandID = %s",
+                (self.cand_id,),
+            )
+        elif self.psc_id:
+            loris_cand_info = db.pselect(
+                "SELECT * FROM candidate WHERE PSCID = %s",
+                (self.psc_id,),
+            )
 
         return loris_cand_info[0] if loris_cand_info else None
 

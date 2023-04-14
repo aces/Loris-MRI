@@ -1,6 +1,7 @@
 """Deals with EEG BIDS datasets and register them into the database."""
 
 import os
+import sys
 import json
 import getpass
 from pyblake2 import blake2b
@@ -163,10 +164,19 @@ class Eeg:
          :rtype: list
         """
 
-        candidate = Candidate(verbose=self.verbose, psc_id=self.bids_sub_id)
+        candidate = Candidate(verbose=self.verbose, cand_id=self.bids_sub_id)
         loris_cand_info = candidate.get_candidate_info_from_loris(self.db)
 
+        if not loris_cand_info:
+            candidate = Candidate(verbose=self.verbose, psc_id=self.bids_sub_id)
+            loris_cand_info = candidate.get_candidate_info_from_loris(self.db)
+
+        if not loris_cand_info:
+            print("Candidate " + self.bids_sub_id + " not found. You can retry with the --createcandidate option.\n")
+            sys.exit(lib.exitcode.CANDIDATE_NOT_FOUND)
+
         return loris_cand_info
+
 
     def get_loris_session_id(self):
         """
@@ -189,8 +199,8 @@ class Eeg:
         loris_vl_info = session.get_session_info_from_loris()
 
         if not loris_vl_info:
-            message = "ERROR: visit label " + visit_label + "does not exist in " + \
-                      "the session table for candidate "  + self.cand_id         + \
+            message = "ERROR: visit label " + visit_label + " does not exist in " + \
+                      "the session table for candidate "  + str(self.cand_id)    + \
                       "\nPlease make sure the visit label is created in the "    + \
                       "database or run bids_import.py with the -s option -s if " + \
                       "you wish that the insertion pipeline creates the visit "  + \

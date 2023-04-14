@@ -33,13 +33,16 @@ PROJECT_CUSTOMIZATION_FAILURE = 41  # missing a function or a custom variable
 
 
 # -- Common file manipulation failures (exit codes from 60 to 79)
-EXTRACTION_FAILURE      = 60  # if archive extraction failed
-FILE_TYPE_CHECK_FAILURE = 61  # if different file type from what's expected
-INVALID_DICOM           = 62  # if DICOM is invalid
-MISSING_FILES           = 63  # if there are missing files from what's expected
-UNREADABLE_FILE         = 64  # if could not properly read a file content
-COPY_FAILURE            = 65  # if copy failed
-CREATE_DIR_FAILURE      = 66  # if dir creation failed
+EXTRACTION_FAILURE         = 60  # if archive extraction failed
+FILE_TYPE_CHECK_FAILURE    = 61  # if different file type from what's expected
+INVALID_DICOM              = 62  # if DICOM is invalid
+MISSING_FILES              = 63  # if there are missing files from what's expected
+UNREADABLE_FILE            = 64  # if could not properly read a file content
+COPY_FAILURE               = 65  # if copy failed
+CREATE_DIR_FAILURE         = 66  # if dir creation failed
+CANDID_NOT_FOUND           = 67  # if candidate's cand_id not found in LORIS' DB
+CANDIDATE_CREATION_FAILURE = 68  # if candidate creation failed
+CANDIDATE_NOT_FOUND        = 69  # if candidate not found in LORIS' DB
 
 # -- Other common generic failures (exit codes from 80 to 149)
 CLEANUP_FAILURE           = 80  # if cleanup after script execution failed

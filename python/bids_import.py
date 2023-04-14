@@ -26,30 +26,31 @@ sys.path.append('/home/user/python')
 # sys.tracebacklimit = 0
 
 def main():
-    bids_dir    = ''
-    verbose     = False
-    createcand  = False
-    createvisit = False
-    profile     = ''
+    bids_dir      = ''
+    verbose       = False
+    createcand    = False
+    createvisit   = False
+    idsvalidation = False
+    profile       = ''
 
     long_options = [
         "help",            "profile=",      "directory=",
-        "createcandidate", "createsession", "verbose"
+        "createcandidate", "createsession", "idsvalidation", "verbose"
     ]
     usage        = (
         '\n'
         'usage  : bids_import -d <bids_directory> -p <profile> \n\n'
         'options: \n'
-        '\t-p, --profile        : name of the python database config file in '
-                                  'dicom-archive/.loris-mri\n'
+        '\t-p, --profile        : name of the python database config file in dicom-archive/.loris-mri\n'
         '\t-d, --directory      : BIDS directory to parse & insert into LORIS\n'
         '\t-c, --createcandidate: to create BIDS candidates in LORIS (optional)\n'
         '\t-s, --createsession  : to create BIDS sessions in LORIS (optional)\n'
+        '\t-i, --idsvalidation  : to validate BIDS directory for a matching pscid/candid pair (optional)\n'
         '\t-v, --verbose        : be verbose\n'
     )
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csv', long_options)
+        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csiv', long_options)
     except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
@@ -68,12 +69,14 @@ def main():
             createcand = True
         elif opt in ('-s', '--createsession'):
             createvisit = True
+        elif opt in ('-i', '--idsvalidation'):
+            idsvalidation = True
 
     # input error checking and load config_file file
     config_file = input_error_checking(profile, bids_dir, usage)
 
     # read and insert BIDS data
-    read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit)
+    read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation)
 
 
 def input_error_checking(profile, bids_dir, usage):
@@ -127,20 +130,22 @@ def input_error_checking(profile, bids_dir, usage):
     return config_file
 
 
-def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit):
+def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation):
     """
     Read the provided BIDS structure and import it into the database.
 
-    :param bids_dir   : path to the BIDS directory
-     :type bids_dir   : str
-    :param config_file: path to the config file with database connection information
-     :type config_file: str
-    :param verbose    : flag for more printing if set
-     :type verbose    : bool
-    :param createcand : allow database candidate creation if it did not exist already
-     :type createcand : bool
-    :param createvisit: allow database visit creation if it did not exist already
-     :type createvisit: bool
+    :param bids_dir     : path to the BIDS directory
+     :type bids_dir     : str
+    :param config_file  : path to the config file with database connection information
+     :type config_file  : str
+    :param verbose      : flag for more printing if set
+     :type verbose      : bool
+    :param createcand   : allow database candidate creation if it did not exist already
+     :type createcand   : bool
+    :param createvisit  : allow database visit creation if it did not exist already
+     :type createvisit  : bool
+    :param idsvalidation: allow pscid/candid validation in the BIDS directory name'
+     :type idsvalidation: bool
     """
 
     # database connection
@@ -154,6 +159,10 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
 
     # making sure that there is a final / in data_dir
     data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
+
+    # Validate that pscid and candid matches
+    if idsvalidation:
+        validateids(bids_dir, db, verbose)
 
     # load the BIDS directory
     bids_reader = BidsReader(bids_dir, verbose)
@@ -180,8 +189,12 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         # greps BIDS candidate's info from LORIS (creates the candidate if it
         # does not exist yet in LORIS and the createcand flag is set to true)
         loris_cand_info = grep_or_create_candidate_db_info(
-            bids_reader, bids_id, db, createcand, loris_bids_root_dir, verbose
+            bids_reader, bids_id, db, createcand, verbose
         )
+
+        # create the candidate's directory in the LORIS BIDS import directory
+        lib.utilities.create_dir(loris_bids_root_dir + "sub-" + bids_id, verbose)
+
         cand_id    = loris_cand_info['CandID']
         center_id  = loris_cand_info['RegistrationCenterID']
         project_id = loris_cand_info['RegistrationProjectID']
@@ -247,6 +260,33 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
     # disconnect from the database
     db.disconnect()
 
+
+def validateids(bids_dir, db, verbose):
+    """
+    Validate that pscid and candid matches
+
+    :param bids_dir : path to the BIDS directory
+     :type bids_dir : str
+    :param db       : database handler object
+     :type db       : object
+    :param verbose      : flag for more printing if set
+     :type verbose      : bool
+    """
+
+    bids_folder = bids_dir.rstrip('/').split('/')[-1]
+    bids_folder_parts = bids_folder.split('_')
+    psc_id = bids_folder_parts[0]
+    cand_id = bids_folder_parts[1]
+
+    candidate = Candidate(verbose, cand_id=cand_id)
+    loris_cand_info = candidate.get_candidate_info_from_loris(db)
+
+    if not loris_cand_info:
+        print("ERROR: could not find a candidate with cand_id " + cand_id + ".")
+        sys.exit(lib.exitcode.CANDID_NOT_FOUND)
+    if loris_cand_info['PSCID'] != psc_id:
+        print("ERROR: cand_id " + cand_id + " and psc_id " + psc_id + " do not match.")
+        sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
 
 def create_loris_bids_directory(bids_reader, data_dir, verbose):
     """
@@ -314,8 +354,7 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
     return loris_bids_dirname
 
 
-def grep_or_create_candidate_db_info(bids_reader, bids_id,        db,
-                                     createcand,  loris_bids_dir, verbose):
+def grep_or_create_candidate_db_info(bids_reader, bids_id, db, createcand, verbose):
     """
     Greps (or creates if candidate does not exist and createcand is true) the
     BIDS candidate in the LORIS candidate's table and return a list of
@@ -323,14 +362,12 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id,        db,
 
     :param bids_reader   : BIDS information handler object
      :type bids_reader   : object
-    :param bids_id       : bids_id to be used as PSCID
+    :param bids_id       : bids_id to be used (CandID or PSCID)
      :type bids_id       : str
     :param db            : database handler object
      :type db            : object
     :param createcand    : if true, creates the candidate in LORIS
      :type createcand    : bool
-    :param loris_bids_dir: LORIS BIDS import root directory to copy data
-     :type loris_bids_dir: str
     :param verbose       : if true, prints out information while executing
      :type verbose       : bool
 
@@ -339,16 +376,24 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id,        db,
      :rtype: list
     """
 
-    candidate = Candidate(verbose, psc_id=bids_id)
+    candidate = Candidate(verbose=verbose, cand_id=bids_id)
     loris_cand_info = candidate.get_candidate_info_from_loris(db)
+
+    if not loris_cand_info:
+        candidate = Candidate(verbose, psc_id=bids_id)
+        loris_cand_info = candidate.get_candidate_info_from_loris(db)
 
     if not loris_cand_info and createcand:
         loris_cand_info = candidate.create_candidate(
             db, bids_reader.participants_info
         )
+        if not loris_cand_info:
+            print("Creating candidate failed. Cannot importing the files.\n")
+            sys.exit(lib.exitcode.CANDIDATE_CREATION_FAILURE)
 
-    # create the candidate's directory in the LORIS BIDS import directory
-    lib.utilities.create_dir(loris_bids_dir + "sub-" + bids_id, verbose)
+    if not loris_cand_info:
+        print("Candidate " + bids_id + " not found. You can retry with the --createcandidate option.\n")
+        sys.exit(lib.exitcode.CANDIDATE_NOT_FOUND)
 
     return loris_cand_info
 
