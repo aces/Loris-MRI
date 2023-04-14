@@ -8,7 +8,6 @@ import hashlib
 import numpy
 import scipy.io
 import shutil
-import subprocess
 import tarfile
 import tempfile
 import mat73
@@ -222,8 +221,9 @@ def compute_blake2b_hash(file_path):
     :return: the blake2b hash of the file
      :rtype: str
     """
-    data = Path(file_path).read_bytes()
-    return hashlib.blake2b(data).hexdigest()
+    if os.path.exists(file_path):
+        data = Path(file_path).read_bytes()
+        return hashlib.blake2b(data).hexdigest()
 
 
 def compute_md5_hash(file_path):
@@ -234,8 +234,9 @@ def compute_md5_hash(file_path):
     :return: the md5 hash of the file
      :rtype: str
     """
-    data = Path(file_path).read_bytes()
-    return hashlib.md5(data).hexdigest()
+    if os.path.exists(file_path):
+        data = Path(file_path).read_bytes()
+        return hashlib.md5(data).hexdigest()
 
 
 def create_processing_tmp_dir(template_prefix):
