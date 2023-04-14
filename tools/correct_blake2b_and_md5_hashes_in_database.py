@@ -248,7 +248,7 @@ def handle_physiological_files(db, data_dir, tmp_dir, s3_obj):
         file_full_path = determine_file_full_path(file_dict['FilePath'], s3_obj, tmp_dir, data_dir)
         if 'physiological_file_blake2b_hash' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_full_path)
-            phys_param_file_id = file_dict['file_blake2b_hash']['PhysiologicalParameterFileID']
+            phys_param_file_id = file_dict['physiological_file_blake2b_hash']['PhysiologicalParameterFileID']
             update_parameter_file_hash(db, phys_param_file_id, new_blake2b_hash)
         if 'physiological_json_file_blake2b_hash' in file_dict.keys() and 'eegjson_file' in file_dict.keys():
             new_blake2b_hash = utilities.compute_blake2b_hash(file_dict['eegjson_file']['FullFilePath'])
