@@ -1106,6 +1106,7 @@ sub getPSC {
     my $subjectIDsref = Settings::getSubjectIDs(
                             $patientName,
                             undef,
+                            undef,
                             $dbhr,
                             $db
                         );

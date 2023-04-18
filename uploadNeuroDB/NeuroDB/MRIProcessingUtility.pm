@@ -415,7 +415,7 @@ sub determineSubjectID {
     my $patientID   = $tarchiveInfo->{'PatientID'};
     my $patientName = $tarchiveInfo->{'PatientName'};
     my $subjectIDsref = Settings::getSubjectIDs(
-        $patientName, $scannerID, $dbhr, $this->{'db'}
+        $patientName, $patientID, $scannerID, $dbhr, $this->{'db'}
     );
 
     if (!$subjectIDsref->{'createVisitLabel'}) {
@@ -659,6 +659,7 @@ sub determineProjectID {
     my ($tarchiveInfo) = @_;
     my $subjectIDsref = Settings::getSubjectIDs(
         $tarchiveInfo->{'PatientName'},
+        undef,
         undef,
         $this->{dbhr},
         $this->{db}
