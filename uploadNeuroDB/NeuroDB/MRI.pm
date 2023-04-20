@@ -961,7 +961,7 @@ sub mapDicomParameters {
 }
 =pod
 
-=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
+=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db)
 
 Finds the scanner ID for the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
@@ -974,6 +974,7 @@ INPUTS:
   - $serialNumber   : scanner's serial number
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
+  - $projectID      : scanner's project ID
   - $dbhr           : database handle reference
   - $db             : database object
 
@@ -982,7 +983,7 @@ RETURNS: (int) scanner ID
 =cut
 
 sub findScannerID {
-    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db) = @_;
+    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db) = @_;
 
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( {
@@ -996,14 +997,14 @@ sub findScannerID {
     return $resultsRef->[0]->{'ID'} if @$resultsRef;
     
     # register new scanners
-    my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db);
+    my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db);
 
     return $scanner_id;
 }
 
 =pod
 
-=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
+=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db)
 
 Registers the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
@@ -1015,6 +1016,7 @@ INPUTS:
   - $serialNumber   : scanner's serial number
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
+  - $projectID      : scanner's project ID
   - $dbhr           : database handle reference
   - $db             : database object
 
@@ -1023,7 +1025,7 @@ RETURNS: (int) scanner ID
 =cut
 
 sub registerScanner {
-    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db) = @_;
+    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db) = @_;
     # my $scanner_id = 0;
     my @results = ();
     my $dbh = $$dbhr;
@@ -1036,11 +1038,10 @@ sub registerScanner {
     if(!defined($candID) || ($candID eq 'NULL')) {
         $candID = createNewCandID($dbhr);
         $query = "INSERT INTO candidate "
-                 . "(CandID,          PSCID,  RegistrationCenterID, Date_active,  "
-                 . " Date_registered, UserID, Entity_type                       ) "
+                 . "(CandID,          PSCID,  RegistrationCenterID, RegistrationProjectID, Date_active,  "
+                 . " Date_registered, UserID, Entity_type) "
                  . "VALUES "
-                 . "($candID, 'scanner',      $centerID,  NOW(),   "
-                 . " NOW(),   'NeuroDB::MRI', 'Scanner'          ) ";
+                 . "($candID, 'scanner', $centerID, $projectID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
         $dbh->do($query);
     }   
     

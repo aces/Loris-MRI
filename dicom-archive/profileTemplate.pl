@@ -127,7 +127,6 @@ sub getSubjectIDs {
                 "\n ProjectID is: "   . $subjectID{'ProjectID'} . "\n";
     }
    
-    # Return subjectIDs
     return \%subjectID;
 }
 

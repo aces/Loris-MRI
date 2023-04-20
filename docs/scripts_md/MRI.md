@@ -184,7 +184,7 @@ referenced by `$file_ref`.
 
 INPUT: file hash ref
 
-### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
+### findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db)
 
 Finds the scanner ID for the scanner as defined by `$manufacturer`, `$model`,
 `$serialNumber`, `$softwareVersion`, using the database attached to the DBI
@@ -197,12 +197,13 @@ INPUTS:
   - $serialNumber   : scanner's serial number
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
+  - $projectID      : scanner's project ID
   - $dbhr           : database handle reference
   - $db             : database object
 
 RETURNS: (int) scanner ID
 
-### registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
+### registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db)
 
 Registers the scanner as defined by `$manufacturer`, `$model`,
 `$serialNumber`, `$softwareVersion`, into the database attached to the DBI
@@ -214,6 +215,7 @@ INPUTS:
   - $serialNumber   : scanner's serial number
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
+  - $projectID      : scanner's project ID
   - $dbhr           : database handle reference
   - $db             : database object
 
@@ -243,7 +245,7 @@ RETURNS: a two element array:
   - first is the MRI alias of the PSC or "UNKN"
   - second is the `CenterID` or 0
 
-### getProject($patientName, $dbhr, $db)
+### getProject($subjectIDsref, $dbhr, $db)
 
 Looks for the project id using the C<session> table C<ProjectID> as
 a first resource, then using the C<candidate> table C<RegistrationProjectID>,
@@ -252,6 +254,7 @@ otherwise, look for the default_project config value, and return C<ProjectID>.
 INPUTS:
   - $subjectIDsref: subject's information hash ref
   - $dbhr       : database handle reference
+  - $db         : database object
 
 RETURNS: the C<ProjectID> or an error if not found
 
