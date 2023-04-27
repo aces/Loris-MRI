@@ -159,7 +159,7 @@ class BasePipeline:
             else:
                 err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
 
-        if not success and not self.options_dict["force"]["value"]:
+        if not success and not self.force:
             self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
 
     def determine_study_info(self):
