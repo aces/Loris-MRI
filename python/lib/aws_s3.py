@@ -1,6 +1,7 @@
 """This class interacts with S3 Buckets"""
 
 import boto3
+import os
 
 from botocore.exceptions import ClientError
 
@@ -62,6 +63,23 @@ class AwsS3:
         except ClientError as err:
             raise Exception(f"{file_name} upload failure - {format(err)}")
 
+    def upload_dir(self, dir_name, object_name):
+        """
+        Upload a directory to an S3 bucket
+
+        :param dir_name: Full path to the dir to upload
+         :type dir_name: str
+        :param object_name: S3 object name. It should be identical to the LORIS relative path to data_dir
+         :type object_name: str
+        """
+
+        for (root, dirs, files) in os.walk(dir_name):
+            for file in files:
+                self.upload_file(
+                    os.path.join(root, file),
+                    os.path.join(object_name, root.replace(dir_name, ""), file)
+                )
+
     def check_if_file_key_exists_in_bucket(self, file_key):
         """
         Checks whether a file (key) exists in the bucket. Return True if file found, False otherwise.
@@ -76,7 +94,6 @@ class AwsS3:
         try:
             self.s3_bucket_obj.Object(file_key).get()
         except ClientError as err:
-            print(err)
             return False
 
         return True

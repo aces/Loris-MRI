@@ -61,8 +61,8 @@ class LorisGetOpt:
 
     # get the options provided by the user
     loris_getopt_obj = LorisGetOpt(usage, options_dict)
-
     """
+
 
     def __init__(self, usage, options_dict, script_name):
         """
@@ -105,12 +105,20 @@ class LorisGetOpt:
         # ---------------------------------------------------------------------------------------------
         s3_endpoint = self.config_db_obj.get_config("AWS_S3_Endpoint")
         s3_bucket_name = self.config_db_obj.get_config("AWS_S3_Default_Bucket")
-        self.s3_obj = AwsS3(
-            aws_access_key_id=self.config_file.s3["aws_access_key_id"],
-            aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
-            aws_endpoint_url=s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"],
-            bucket_name=s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
-        )
+
+        self.s3_obj = None
+        try:
+            self.s3_obj = AwsS3(
+                aws_access_key_id=self.config_file.s3["aws_access_key_id"],
+                aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
+                aws_endpoint_url=s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"],
+                bucket_name=s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
+            )
+        except Exception as err:
+            print(
+                "[WARNING] Could not connect to an S3 server, "
+                + f"the dataDirBasepath location will be used. Error was\n{err}"
+            )
 
         self.check_options_file_path_exists()
 
