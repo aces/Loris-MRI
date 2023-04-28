@@ -108,12 +108,14 @@ class LorisGetOpt:
         self.s3_obj = None
         if hasattr(self.config_file, 's3'):
             if not self.config_file.s3["aws_access_key_id"] or not self.config_file.s3["aws_secret_access_key"]:
-                print(f"\n[ERROR   ] missing 'aws_access_key_id' or 'aws_secret_access_key' in config file 's3' object\n")
+                print(
+                    "\n[ERROR   ] missing 'aws_access_key_id' or 'aws_secret_access_key' in config file 's3' object\n"
+                )
                 sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
             s3_endpoint = s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"]
             s3_bucket_name = s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
             if not s3_endpoint or not s3_bucket_name:
-                print(f'\n[ERROR   ] missing configuration for S3 endpoint URL or S3 bucket name\n')
+                print('\n[ERROR   ] missing configuration for S3 endpoint URL or S3 bucket name\n')
                 sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
             self.s3_obj = AwsS3(
                 aws_access_key_id=self.config_file.s3["aws_access_key_id"],
