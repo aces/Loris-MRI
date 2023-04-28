@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 
 __license__ = "GPLv3"
 
+
 class AwsS3:
 
     def __init__(self, aws_access_key_id, aws_secret_access_key, aws_endpoint_url, bucket_name):
