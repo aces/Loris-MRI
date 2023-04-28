@@ -16,6 +16,7 @@ DB_SETTINGS_FAILURE = 4  # if DB settings in profile file are not set
 INVALID_PATH        = 5  # if path to file or folder does not exist
 INVALID_ARG         = 6  # if one of the program argument is invalid
 INVALID_IMPORT      = 7  # if an import statement failed
+S3_SETTINGS_FAILURE = 8  # if S3 settings in profile file are not properly set
 
 
 # -- Common database related failures (exit codes from 20 to 39)

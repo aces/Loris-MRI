@@ -105,12 +105,22 @@ class LorisGetOpt:
         # ---------------------------------------------------------------------------------------------
         s3_endpoint = self.config_db_obj.get_config("AWS_S3_Endpoint")
         s3_bucket_name = self.config_db_obj.get_config("AWS_S3_Default_Bucket")
-        self.s3_obj = AwsS3(
-            aws_access_key_id=self.config_file.s3["aws_access_key_id"],
-            aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
-            aws_endpoint_url=s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"],
-            bucket_name=s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
-        )
+        self.s3_obj = None
+        if hasattr(self.config_file, 's3'):
+            if not self.config_file.s3["aws_access_key_id"] or not self.config_file.s3["aws_secret_access_key"]:
+                print(f"\n[ERROR   ] missing 'aws_access_key_id' or 'aws_secret_access_key' in config file 's3' object\n")
+                sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+            s3_endpoint = s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"]
+            s3_bucket_name = s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
+            if not s3_endpoint or not s3_bucket_name:
+                print(f'\n[ERROR   ] missing configuration for S3 endpoint URL or S3 bucket name\n')
+                sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+            self.s3_obj = AwsS3(
+                aws_access_key_id=self.config_file.s3["aws_access_key_id"],
+                aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
+                aws_endpoint_url=s3_endpoint,
+                bucket_name=s3_bucket_name
+            )
 
         self.check_options_file_path_exists()
 
@@ -213,6 +223,12 @@ class LorisGetOpt:
         for key in self.options_dict:
             opt_value = self.options_dict[key]["value"]
             if self.options_dict[key]["is_path"] and opt_value and opt_value.startswith('s3://'):
+                if not self.s3_obj:
+                    print(
+                        f"\n[ERROR   ] No valid S3 connection, please check that S3 is correctly configured"
+                        f" in {self.options_dict['profile']['value']} and Config module"
+                    )
+                    sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
                 try:
                     file_path = os.path.join(self.tmp_dir, os.path.basename(opt_value))
                     self.s3_obj.download_file(opt_value, file_path)

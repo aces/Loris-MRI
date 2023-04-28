@@ -1,11 +1,15 @@
 """This class interacts with S3 Buckets"""
 
 import boto3
+import botocore.exceptions
+import sys
 
 from botocore.exceptions import ClientError
 
 
 __license__ = "GPLv3"
+
+import lib.exitcode
 
 
 class AwsS3:
@@ -34,11 +38,15 @@ class AwsS3:
                 aws_secret_access_key=self.aws_secret_access_key,
                 endpoint_url=self.aws_endpoint_url
             )
-        except ClientError as err:
-            raise Exception("S3 connection failure: " + format(err))
-
-        if s3.Bucket(self.bucket_name) not in s3.buckets.all():
-            raise Exception(f"S3 <{self.bucket_name}> bucket not found in <{self.aws_endpoint_url}>")
+            if s3.Bucket(self.bucket_name) not in s3.buckets.all():
+                print(f"\n[ERROR   ] S3 <{self.bucket_name}> bucket not found in <{self.aws_endpoint_url}>\n")
+                sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+        except botocore.exceptions.ClientError as err:
+            print(f'\n[ERROR   ] S3 connection failure: {format(err)}\n')
+            sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+        except botocore.exceptions.EndpointConnectionError as err:
+            print(f'[ERROR   ] {format(err)}\n')
+            sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
 
         return s3
 
