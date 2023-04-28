@@ -2,8 +2,6 @@
 
 import boto3
 import botocore.exceptions
-import lib.exitcode
-import sys
 
 from botocore.exceptions import ClientError
 
@@ -21,7 +19,8 @@ class AwsS3:
         self.bucket_name = bucket_name
 
         self.s3 = self.connect_to_s3_bucket()
-        self.s3_bucket_obj = self.s3.Bucket(self.bucket_name)
+        if self.s3:
+            self.s3_bucket_obj = self.s3.Bucket(self.bucket_name)
 
     def connect_to_s3_bucket(self):
         """
@@ -39,13 +38,13 @@ class AwsS3:
             )
             if s3.Bucket(self.bucket_name) not in s3.buckets.all():
                 print(f"\n[ERROR   ] S3 <{self.bucket_name}> bucket not found in <{self.aws_endpoint_url}>\n")
-                sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+                return
         except botocore.exceptions.ClientError as err:
             print(f'\n[ERROR   ] S3 connection failure: {format(err)}\n')
-            sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+            return
         except botocore.exceptions.EndpointConnectionError as err:
             print(f'[ERROR   ] {format(err)}\n')
-            sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+            return
 
         return s3
 

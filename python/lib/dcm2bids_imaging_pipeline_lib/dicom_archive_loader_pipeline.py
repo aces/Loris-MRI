@@ -356,6 +356,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         for key in fmap_files_dict.keys():
             sorted_fmap_files_list = fmap_files_dict[key]
+            for fmap_dict in sorted_fmap_files_list:
+                if fmap_dict['json_file_path'].startswith('s3://') and not self.s3_obj:
+                    message = f"[ERROR   ] S3 configs not configured properly"
+                    self.log_error_and_exit(message, lib.exitcode.S3_SETTINGS_FAILURE, is_error="Y", is_verbose="N")
             self.imaging_obj.modify_fmap_json_file_to_write_intended_for(
                 sorted_fmap_files_list, self.s3_obj, self.tmp_dir
             )
