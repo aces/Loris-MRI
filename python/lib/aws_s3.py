@@ -2,15 +2,13 @@
 
 import boto3
 import botocore.exceptions
+import lib.exitcode
 import sys
 
 from botocore.exceptions import ClientError
 
 
 __license__ = "GPLv3"
-
-import lib.exitcode
-
 
 class AwsS3:
 
