@@ -696,7 +696,7 @@ class Physiological:
                     levelName = level
                     levelDescription = event_metadata[parameter]['Levels'][level]
                     levelHED = event_metadata[parameter]['HED'][level] \
-                        if level in event_metadata[parameter]['HED'] \
+                        if 'HED' in event_metadata[parameter] and level in event_metadata[parameter]['HED'] \
                         else None
 
                     self.physiological_event_parameter_category_level_obj.insert(
