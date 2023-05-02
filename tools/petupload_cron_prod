@@ -14,9 +14,14 @@ project = ""
 incomingDir="/data/incoming/hrrt/"
 lorisMRIDir="/opt/${project}/bin/mri/"
 tmpDir="/data/backups/"
-currentDate=`date +%Y%m%d`
-uploadList="/data/backups/pet_uploads/pet_upload_list_${currentDate}.txt"
+currentDate=`date +%Y-%m-%d-%T`
+uploadDir="/data/backups/pet_uploads"
+uploadList="${uploadDir}/pet_upload_list_${currentDate}.txt"
 archiveExtension=".tar.gz" # .tar.gz or .tgz, BIC server doesn't have zip package
+
+# Create dirs if they do not exist on the system
+mkdir -p ${incomingDir}
+mkdir -p ${uploadDir}
 
 # Check for tar extension ..
 if [[ $archiveExtension != ".tar.gz" && $archiveExtension != ".tgz" ]];
