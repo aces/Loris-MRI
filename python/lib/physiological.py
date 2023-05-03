@@ -667,88 +667,187 @@ class Physiological:
             event_metadata_file
         )
 
-        for parameter in event_metadata:
-            parameterName = parameter
-            description = event_metadata[parameter]['Description'] \
-                if 'Description' in event_metadata[parameter] \
-                else None
-            longName = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
-            units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
-            if 'Levels' in event_metadata[parameter]:
-                isCategorical = 'Y'
-                valueHED = None
-            else:
-                isCategorical = 'N'
-                valueHED = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
-
-            event_parameter_id = self.physiological_event_parameter_obj.insert(
-                str(event_file_id),
-                parameterName,
-                description,
-                longName,
-                units,
-                isCategorical,
-                valueHED
-            )
-
-            if isCategorical == 'Y':
-                for level in event_metadata[parameter]['Levels']:
-                    levelName = level
-                    levelDescription = event_metadata[parameter]['Levels'][level]
-                    levelHED = event_metadata[parameter]['HED'][level] \
-                        if 'HED' in event_metadata[parameter] and level in event_metadata[parameter]['HED'] \
-                        else None
-
-                    self.physiological_event_parameter_category_level_obj.insert(
-                        str(event_parameter_id),
-                        levelName,
-                        levelDescription,
-                        levelHED
-                    )
+        self.parse_and_insert_event_metadata(event_metadata, event_file_id, project_wide=False)
 
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_json_blake2b_hash', blake2
         )
 
-    def insert_event_assembled_hed_tags(self, data_dir, event_tsv, event_json, physio_file_id):
+    def parse_and_insert_event_metadata(self, event_metadata, target_id, project_wide):
+        for parameter in event_metadata:
+            parameter_name = parameter
+            description = event_metadata[parameter]['Description'] \
+                if 'Description' in event_metadata[parameter] \
+                else None
+            long_name = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
+            units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
+            if 'Levels' in event_metadata[parameter]:
+                is_categorical = 'Y'
+                value_hed = None
+            else:
+                is_categorical = 'N'
+                value_hed = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
+
+            # Keeping for legacy reasons -- TODO: refactor
+            # event_parameter_id = self.physiological_event_parameter_obj.insert(
+            #     str(event_file_id),
+            #     parameter_name,
+            #     description,
+            #     long_name,
+            #     units,
+            #     is_categorical,
+            #     value_hed
+            # )
+
+            if is_categorical == 'Y':
+                for level in event_metadata[parameter]['Levels']:
+                    level_name = level
+                    level_description = event_metadata[parameter]['Levels'][level]
+                    level_hed = event_metadata[parameter]['HED'][level] \
+                        if 'HED' in event_metadata[parameter] and level in event_metadata[parameter]['HED'] \
+                        else None
+
+                    # Keeping for legacy reasons -- TODO: refactor
+                    # self.physiological_event_parameter_category_level_obj.insert(
+                    #     str(event_parameter_id),
+                    #     level_name,
+                    #     level_description,
+                    #     level_hed
+                    # )
+
+                    if level_hed:
+                        self.insert_hed_string(level_hed, target_id, parameter_name,
+                                               level_name, level_description, project_wide)
+
+    def insert_hed_string(self, hed_string, target_id, property_name, property_value,
+                          level_description, project_wide=False):
         """
-        Assembles physiological event HED annotations.
+        Assembles physiological event HED tags.
 
-        :param event_tsv           : path to event data file
-         :type event_tsv           : str
+        :param hed_string           : HED string
+         :type hed_string           : str
 
-        :param event_json           : path to the event metadata file
-         :type event_json           : str
+        :param target_id            : ProjectID if project_wide else PhysiologicalEventFileID
+         :type target_id            : str
 
-        :param physio_file_id : Physiological file's ID
-         :type physio_file_id       : int
+        :param property_name        : PropertyName
+         :type property_name        : str
+
+        :param property_value       : PropertyValue
+         :type property_value       : str
+
+        :param level_description    : Tag Description
+         :type level_description    : str
+
+        :param project_wide         : Target ProjectID or PhysiologicalEventFileID
+         :type project_wide         : bool
+
         """
-        hedDict = utilities.assemble_hed_service(data_dir, event_tsv, event_json)
+        # TODO: VALIDATE HED TAGS VIA SERVICE
+        # hedDict = utilities.assemble_hed_service(data_dir, event_tsv, event_json)
 
-        # get EventFileID from FilePath
-        physiological_event_file_obj = PhysiologicalEventFile(self.db, self.verbose)
-        event_file_id = physiological_event_file_obj.grep_event_file_id_from_event_path(event_tsv, physio_file_id)
+        # NOT SUPPORTED: DEFS & VALUES
 
-        # get all task events for specified EventFileID
-        query = "SELECT PhysiologicalTaskEventID as TaskEventID, Onset " \
-                "FROM physiological_task_event " \
-                "WHERE EventFileID = %s"
-        task_event_data = self.db.pselect(query=query, args=(event_file_id,))
+        # We need to assume that we're using all schemas -- TODO: work backwards to do project -> schema rel
+        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
+        hed_union = self.db.pselect(query=hed_query, args=())
 
-        for index in range(len(task_event_data)):
-            eventID = task_event_data[index]['TaskEventID']
-            onset = task_event_data[index]['Onset']
-            if hedDict[index] and 'onset' in hedDict[index]:
-                hedOnset = '{0:.6f}'.format(float(hedDict[index]['onset']))
-                if (float(hedOnset) == float(onset)):
-                    assembledHED = hedDict[index]['HED_assembled']
-                    updateAssembledHED = "UPDATE physiological_task_event " \
-                        "SET AssembledHED = %s " \
-                        "WHERE PhysiologicalTaskEventID = %s"
-                    self.db.update(query=updateAssembledHED, args=(assembledHED, eventID,))
+        string_split = hed_string.split(',')
+        group_depth = 0
+        pair_rel_id = None
 
-    def insert_event_file(self, event_data, event_file, physiological_file_id, blake2):
+        for split_element in string_split.__reversed__():
+            if group_depth == 0:
+                pair_rel_id = None
+            element = split_element.strip()
+            if element.endswith(')'):   # May also start with (
+                has_pairing = False
+                right_stripped = element.rstrip(')')
+                group_depth += (len(element) - len(right_stripped))
+
+                left_stripped = right_stripped
+                if right_stripped.startswith('('):
+                    has_pairing = pair_rel_id is None   # Only True when first element
+                    left_stripped = right_stripped.lstrip('(')
+                    group_depth -= 1
+
+                # INSERT HED TAG
+                pair_rel_id = self.grep_hed_tag_and_insert(
+                    left_stripped, hed_union, target_id, property_name, property_value,
+                    level_description, has_pairing, pair_rel_id, project_wide
+                )
+                
+                num_opening_parentheses = len(right_stripped) - len(left_stripped)
+                for i in range(1, num_opening_parentheses):
+                    has_pairing = True
+                    group_depth -= 1
+                    # INSERT SURROUNDING PARENTHESIS TAG
+                    pair_rel_id = self.grep_hed_tag_and_insert(
+                        '', hed_union, target_id, property_name, property_value,
+                        level_description, has_pairing, pair_rel_id, project_wide
+                    )
+            elif element.startswith('('):
+                has_pairing = True
+                group_depth -= 1
+                left_stripped = element.lstrip('(')
+
+                # INSERT HED TAG
+                pair_rel_id = self.grep_hed_tag_and_insert(
+                    left_stripped, hed_union, target_id, property_name, property_value,
+                    level_description, has_pairing, pair_rel_id, project_wide
+                )
+
+                num_opening_parentheses = len(element) - len(left_stripped)
+                for i in range(1, num_opening_parentheses):
+                    group_depth -= 1
+                    # INSERT PARENTHESES TAG
+                    has_pairing = True
+                    pair_rel_id = self.grep_hed_tag_and_insert(
+                        '', hed_union, target_id, property_name, property_value,
+                        level_description, has_pairing, pair_rel_id, project_wide
+                    )
+            else:
+                # Not part of parenthesis group
+                has_pairing = False
+
+                # INSERT HED TAG
+                pair_rel_id = self.grep_hed_tag_and_insert(
+                    element, hed_union, target_id, property_name, property_value,
+                    level_description, has_pairing, pair_rel_id, project_wide
+                )
+
+    def grep_hed_tag_and_insert(self, tag_string, hed_union, target_id, property_name, property_value,
+                                level_description, has_pairing, pair_rel_id, project_wide=False):
+        bids_event_mapping_fields = (
+            'ProjectID' if project_wide else 'EventFileID',
+            'PropertyName', 'PropertyValue', 'HEDTagID',
+            'TagValue', 'Description', 'HasPairing', 'PairRelID'
+        )
+
+        leaf_node = tag_string.split('/')[-1]  # LIMITED SUPPORT FOR NOW - NO VALUES OR DEFS
+        if len(tag_string) > 0:
+            hed_tag = next(filter(lambda tag: tag['Name'] == leaf_node, list(hed_union)), None)
+            if not hed_tag:
+                print('ERROR: UNRECOGNIZED HED TAG: {}'.format(element))
+                raise
+            hed_tag_id = hed_tag['ID']
+        else:
+            hed_tag_id = None
+
+        # INSERT HED TAG
+        bids_event_mapping_values = [
+            target_id, property_name, property_value, hed_tag_id,
+            None, level_description, has_pairing, pair_rel_id
+        ]
+        return self.db.insert(
+            table_name='bids_event_dataset_mapping' if project_wide else 'bids_event_file_mapping',
+            column_names=bids_event_mapping_fields,
+            values=bids_event_mapping_values
+        )
+
+    def insert_event_file(self, event_data, event_file, physiological_file_id,
+                          blake2):
         """
         Inserts the event information read from the file *events.tsv
         into the physiological_task_event table, linking it to the
@@ -882,132 +981,6 @@ class Physiological:
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_blake2b_hash', blake2
         )
-
-    def insert_annotation_metadata(self, annotation_metadata, annotation_metadata_file, physiological_file_id, blake2):
-        """
-        Inserts the annotation metadata information read from the file *annotations.json
-        into the physiological_annotation_file, physiological_annotation_parameter
-        and physiological_annotation_label tables, linking it to the physiological file ID
-        already inserted in physiological_file.
-
-        :param annotation_metadata      : list with dictionaries of annotations
-                                          metadata to insert into the database
-         :type annotation_metadata      : list
-        :param annotation_metadata_file : name of the annotation metadata file
-         :type annotation_file          : str
-        :param physiological_file_id    : PhysiologicalFileID to link the annotation info to
-         :type physiological_file_id    : int
-        :param blake2                   : blake2b hash of the annotation file
-         :type blake2                   : str
-
-        :return: annotation file id
-         :rtype: int
-        """
-
-        optional_fields = (
-            'Sources',  'Author', 'LabelDescription'
-        )
-
-        for field in optional_fields:
-            if field not in annotation_metadata.keys():
-                annotation_metadata[field] = None
-
-        annotation_file_id = self.physiological_annotation_file_obj.insert(
-            physiological_file_id,
-            'json',
-            annotation_metadata_file
-        )
-        self.physiological_annotation_parameter_obj.insert(
-            annotation_file_id,
-            annotation_metadata['Description'],
-            annotation_metadata['Sources'],
-            annotation_metadata['Author']
-        )
-
-        if annotation_metadata['LabelDescription']:
-            for label_name, label_desc in annotation_metadata['LabelDescription'].items():
-                self.physiological_annotation_label_obj.insert(annotation_file_id, label_name, label_desc)
-
-        # insert blake2b hash of annotation file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id, 'annotation_file_blake2b_hash', blake2
-        )
-
-        return annotation_file_id
-
-    def insert_annotation_data(self, annotation_data, annotation_file, physiological_file_id, blake2):
-        """
-        Inserts the annotation information read from the file *annotations.tsv
-        into the physiological_annotation_file and physiological_annotation_instance tables,
-        linking it to the physiological file ID already inserted in physiological_file.
-
-        :param annotation_data      : list with dictionaries of annotations
-                                      information to insert into
-                                      physiological_annotation_file
-         :type annotation_data      : list
-        :param annotation_file      : name of the annotation file
-         :type annotation_file      : str
-        :param physiological_file_id: PhysiologicalFileID to link the event info to
-         :type physiological_file_id: int
-        :param blake2               : blake2b hash of the task event file
-         :type blake2               : str
-
-        :return: annotation file id
-         :rtype: int
-        """
-
-        annotation_file_id = self.physiological_annotation_file_obj.insert(
-            physiological_file_id,
-            'tsv',
-            annotation_file
-        )
-
-        annotation_values = []
-        for row in annotation_data:
-            optional_fields = (
-                'channels', 'absolute_time', 'description'
-            )
-            for field in optional_fields:
-                if field not in row.keys():
-                    row[field] = None
-
-            if re.match(r'^-?\d+(?:\.\d+)?$', row['duration']) is None:
-                row['duration'] = None
-
-            if re.match(r'^-?\d+(?:\.\d+)?$', row['onset']) is None:
-                row['onset'] = None
-
-            if row['channels'] and "n/a" in row['channels']:
-                row['channels'] = None
-
-            if row['absolute_time'] and "n/a" in row['absolute_time']:
-                row['absolute_time'] = None
-
-            labelID = self.physiological_annotation_label_obj.grep_id(row['label'], insert_if_not_found=True)
-            paramID = self.physiological_annotation_parameter_obj.grep_id_from_physiological_file_id(
-                physiological_file_id
-            )
-
-            values_tuple = (
-                str(annotation_file_id),
-                paramID,
-                row['onset'],
-                row['duration'],
-                labelID,
-                row['channels'],
-                row['absolute_time'],
-                row['description']
-            )
-            annotation_values.append(values_tuple)
-
-        self.physiological_annotation_instance_obj.insert(annotation_values)
-
-        # insert blake2b hash of annotation file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id, 'annotation_file_blake2b_hash', blake2
-        )
-
-        return annotation_file_id
 
     def grep_archive_info_from_file_id(self, physiological_file_id):
         """

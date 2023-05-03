@@ -179,6 +179,9 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         bids_reader, data_dir, verbose
     )
 
+    # Assumption all same project (for project-wide tags)
+    single_project_id = None
+
     # loop through subjects
     for bids_subject_info in bids_reader.participants_info:
 
@@ -198,6 +201,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         cand_id    = loris_cand_info['CandID']
         center_id  = loris_cand_info['RegistrationCenterID']
         project_id = loris_cand_info['RegistrationProjectID']
+        single_project_id = project_id
 
         cohort_id = None
         # TODO: change subproject -> cohort in participants.tsv?
@@ -258,6 +262,48 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
+
+
+    # Import root-level (dataset-wide) events.json
+    # Assumption: Single project for project-wide tags
+    bids_layout = bids_reader.bids_layout
+    root_event_metadata_file = bids_layout.get_nearest(
+        loris_bids_root_dir,
+        return_type='tuple',
+        strict=False,
+        extension='json',
+        suffix='events',
+        all_=False,
+        full_search=False,  # Likely not needed
+    )
+
+    if not root_event_metadata_file:
+        message = '\nWARNING: no events metadata files (event.json) in ' \
+                  'root directory'
+        print(message)
+    else:
+        # copy the event file to the LORIS BIDS import directory
+        verbose = True
+        copy_file = str.replace(
+            root_event_metadata_file.path,
+            bids_layout.root,
+            ""
+        )
+        utilities.copy_file(root_event_metadata_file.path, loris_bids_root_dir + copy_file, verbose)
+        event_metadata_path = copy_file.replace(data_dir, "")
+
+        # TODO: Insert ref in DB
+        # # get the blake2b hash of the json events file
+        # blake2 = blake2b(root_event_metadata_file.path.encode('utf-8')).hexdigest()
+        # # insert event metadata in the database
+        # physiological.insert_event_metadata(
+        #     event_metadata, event_metadata_path, physiological_file_id, blake2
+        # )
+
+        # load json data
+        with open(root_event_metadata_file.path) as metadata_file:
+            event_metadata = json.load(metadata_file)
+            physiological.parse_and_insert_event_metadata(event_metadata, single_project_id, project_wide=True)
 
     # disconnect from the database
     db.disconnect()

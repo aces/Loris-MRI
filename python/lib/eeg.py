@@ -290,11 +290,11 @@ class Eeg:
                 derivatives
             )
 
-            annotation_file_paths = self.fetch_and_insert_annotation_files(
-                eeg_file_id,
-                original_file_data.path,
-                derivatives
-            )
+            # annotation_file_paths = self.fetch_and_insert_annotation_files(
+            #     eeg_file_id,
+            #     original_file_data.path,
+            #     derivatives
+            # )
 
             # archive all files in a tar ball for downloading all files at once
             files_to_archive = (os.path.join(self.data_dir, eeg_file_path),)
@@ -319,20 +319,20 @@ class Eeg:
                 self.create_and_insert_event_archive(
                     event_files_to_archive, event_archive_rel_name, eeg_file_id
                 )
-            if annotation_file_paths:
-                # archive all annotation files in a tar ball for annotation download
-                annotation_files_to_archive = ()
-
-                for annotation_file_path in annotation_file_paths:
-                    files_to_archive = files_to_archive + (os.path.join(self.data_dir, annotation_file_path),)
-                    annotation_files_to_archive = annotation_files_to_archive + (
-                        os.path.join(self.data_dir, annotation_file_path),
-                    )
-
-                annotation_archive_rel_name = os.path.splitext(annotation_file_path)[0] + ".tgz"
-                self.create_and_insert_annotation_archive(
-                    annotation_files_to_archive, annotation_archive_rel_name, eeg_file_id
-                )
+            # if annotation_file_paths:
+            #     # archive all annotation files in a tar ball for annotation download
+            #     annotation_files_to_archive = ()
+            #
+            #     for annotation_file_path in annotation_file_paths:
+            #         files_to_archive = files_to_archive + (os.path.join(self.data_dir, annotation_file_path),)
+            #         annotation_files_to_archive = annotation_files_to_archive + (
+            #             os.path.join(self.data_dir, annotation_file_path),
+            #         )
+            #
+            #     annotation_archive_rel_name = os.path.splitext(annotation_file_path)[0] + ".tgz"
+            #     self.create_and_insert_annotation_archive(
+            #         annotation_files_to_archive, annotation_archive_rel_name, eeg_file_id
+            #     )
             if channel_file_path:
                 files_to_archive = files_to_archive + (os.path.join(self.data_dir, channel_file_path),)
 
@@ -758,45 +758,39 @@ class Eeg:
                 )
                 inheritance = False
 
+                # # global events metadata
+                # event_metadata_file = self.bids_layout.get_nearest(
+                #     event_data_file.path,
+                #     return_type = 'tuple',
+                #     strict = False,
+                #     extension = 'json',
+                #     suffix = 'events',
+                #     all_ = False,
+                #     full_search = False,
+                # )
+                # inheritance = True
+
                 if not event_metadata_file:
-                    # global events metadata
-                    event_metadata_file = self.bids_layout.get_nearest(
-                        event_data_file.path,
-                        return_type = 'tuple',
-                        strict = False,
-                        extension = 'json',
-                        suffix = 'events',
-                        all_ = False,
-                        full_search = False,
+                    message = '\nWARNING: no events metadata files (event.json) associated' \
+                              'with physiological file ID ' + str(physiological_file_id)
+                    print(message)
+                else:
+                    # copy the event file to the LORIS BIDS import directory
+                    event_metadata_path = self.copy_file_to_loris_bids_dir(
+                        event_metadata_file.path, derivatives, inheritance
                     )
-                    inheritance = True
+                    # load json data
+                    with open(event_metadata_file.path) as metadata_file:
+                        event_metadata = json.load(metadata_file)
+                    # get the blake2b hash of the json events file
+                    blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
+                    # insert event metadata in the database
+                    physiological.insert_event_metadata(
+                        event_metadata, event_metadata_path, physiological_file_id, blake2
+                    )
 
-                    if not event_metadata_file:
-                        message = '\nWARNING: no events metadata files (event.json) associated' \
-                                  'with physiological file ID ' + str(physiological_file_id)
-                        print(message)
-                    else:
-                        # copy the event file to the LORIS BIDS import directory
-                        event_metadata_path = self.copy_file_to_loris_bids_dir(
-                            event_metadata_file.path, derivatives, inheritance
-                        )
-                        # load json data
-                        with open(event_metadata_file.path) as metadata_file:
-                            event_metadata = json.load(metadata_file)
-                        # get the blake2b hash of the json events file
-                        blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
-                        # insert event metadata in the database
-                        physiological.insert_event_metadata(
-                            event_metadata, event_metadata_path, physiological_file_id, blake2
-                        )
+                    event_paths.extend([event_metadata_path])
 
-                        event_paths.extend([event_metadata_path])
-
-                        # insert assembled HED annotations
-                        physiological.insert_event_assembled_hed_tags(
-                            self.data_dir, event_path, event_metadata_path, physiological_file_id
-                        )             
-                        
         return event_paths
 
     def fetch_and_insert_annotation_files(
