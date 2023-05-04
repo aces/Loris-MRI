@@ -6,8 +6,10 @@ import os
 import sys
 import getopt
 import re
+import json
 import lib.exitcode
 import lib.utilities
+import lib.physiological
 from lib.database   import Database
 from lib.candidate  import Candidate
 from lib.bidsreader import BidsReader
@@ -263,18 +265,16 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
 
-
     # Import root-level (dataset-wide) events.json
     # Assumption: Single project for project-wide tags
     bids_layout = bids_reader.bids_layout
     root_event_metadata_file = bids_layout.get_nearest(
-        loris_bids_root_dir,
+        bids_dir,
         return_type='tuple',
         strict=False,
         extension='json',
         suffix='events',
-        all_=False,
-        full_search=False,  # Likely not needed
+        all_=False
     )
 
     if not root_event_metadata_file:
@@ -283,13 +283,12 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         print(message)
     else:
         # copy the event file to the LORIS BIDS import directory
-        verbose = True
         copy_file = str.replace(
             root_event_metadata_file.path,
             bids_layout.root,
             ""
         )
-        utilities.copy_file(root_event_metadata_file.path, loris_bids_root_dir + copy_file, verbose)
+        lib.utilities.copy_file(root_event_metadata_file.path, loris_bids_root_dir + copy_file, verbose)
         event_metadata_path = copy_file.replace(data_dir, "")
 
         # TODO: Insert ref in DB
@@ -303,7 +302,8 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         # load json data
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)
-            physiological.parse_and_insert_event_metadata(event_metadata, single_project_id, project_wide=True)
+            physio = lib.physiological.Physiological(db, verbose)
+            physio.parse_and_insert_event_metadata(event_metadata, single_project_id, project_wide=True)
 
     # disconnect from the database
     db.disconnect()

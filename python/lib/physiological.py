@@ -829,21 +829,22 @@ class Physiological:
         if len(tag_string) > 0:
             hed_tag = next(filter(lambda tag: tag['Name'] == leaf_node, list(hed_union)), None)
             if not hed_tag:
-                print('ERROR: UNRECOGNIZED HED TAG: {}'.format(element))
+                print('ERROR: UNRECOGNIZED HED TAG: {}'.format(tag_string))
                 raise
             hed_tag_id = hed_tag['ID']
         else:
             hed_tag_id = None
 
         # INSERT HED TAG
-        bids_event_mapping_values = [
+        bids_event_mapping_values = (
             target_id, property_name, property_value, hed_tag_id,
             None, level_description, has_pairing, pair_rel_id
-        ]
+        )
         return self.db.insert(
             table_name='bids_event_dataset_mapping' if project_wide else 'bids_event_file_mapping',
             column_names=bids_event_mapping_fields,
-            values=bids_event_mapping_values
+            values=bids_event_mapping_values,
+            get_last_id=True
         )
 
     def insert_event_file(self, event_data, event_file, physiological_file_id,
@@ -866,10 +867,16 @@ class Physiological:
          :type blake2               : str
         """
 
+        event_file_id = self.physiological_event_file_obj.insert(
+            physiological_file_id,
+            'tsv',
+            event_file
+        )
+
         event_fields = (
             'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
             'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
-            'EventType',           'FilePath'
+            'EventType',           'FilePath',  'EventFileID'
         )
         # known opt fields
         optional_fields = (
@@ -950,7 +957,8 @@ class Physiological:
                     event_value,
                     sample,
                     row['event_type'],
-                    event_file
+                    event_file,
+                    event_file_id
                 )],
                 get_last_id  = True
             )
