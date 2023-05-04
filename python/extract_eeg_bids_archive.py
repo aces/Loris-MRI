@@ -24,9 +24,9 @@ def main():
         "********************************************************************\n"
         " EXTRACT EEG ARCHIVES\n"
         "********************************************************************\n"
-        "The program gets an archive associated with an upload ID, extract it and and push its content "
-        "to EEGS3DataPath, an Amazon S3 bucket or {dataDirBasepath}/bids_assembly.\n\n"
-       
+        "The program gets an archive associated with an upload ID, extract it and push its content "
+        "to EEGS3DataPath, an Amazon S3 bucket or {dataDirBasepath}/assembly_bids.\n\n"
+
         "usage  : extract_eeg_bids_archive.py -p <profile> -u <upload_id> ...\n\n"
 
         "options: \n"
@@ -92,7 +92,7 @@ def main():
     # ---------------------------------------------------------------------------------------------
     # Grep config settings from the Config module
     # ---------------------------------------------------------------------------------------------
-    eeg_incoming_dir  = config_db_obj.get_config("EEGUploadIncomingPath")
+    eeg_incoming_dir = config_db_obj.get_config("EEGUploadIncomingPath")
 
     if upload_id:
         # ---------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ def main():
                 " WHERE Status = 'Not Started'" \
                 " AND UploadID = %s"
 
-        eeg_archives_list = db.pselect(query, [upload_id,])
+        eeg_archives_list = db.pselect(query, (upload_id,))
     else:
         # ---------------------------------------------------------------------------------------------
         # Get all EEG upload with status = Not Started
@@ -121,14 +121,14 @@ def main():
     # ---------------------------------------------------------------------------------------------
     # Check if the upload already exist (re-upload)
     # ---------------------------------------------------------------------------------------------
-   
+
     for eeg_archive_file in eeg_archives_list:
         eeg_archive_filename = eeg_archive_file['UploadLocation']
         eeg_archive_path = os.path.join(eeg_incoming_dir, eeg_archive_filename)
 
         if s3_obj and eeg_incoming_dir.startswith('s3://'):
             eeg_archive_local_path = os.path.join(tmp_dir, eeg_archive_filename)
-            try:    
+            try:
                 s3_obj.download_file(eeg_archive_path, eeg_archive_local_path)
             except Exception as err:
                 imaging_io_obj.log_error_and_exit(
@@ -159,7 +159,7 @@ def main():
                     eeg_session_rel_path = eeg_session_rel_path_re.group()
                 else:
                     imaging_io_obj.log_error_and_exit(
-                        "Could not find a subject folder in the bids structure for .",
+                        f"Could not find a subject folder in the BIDS structure for {eeg_archive_file}.",
                         MISSING_FILES
                     )
 
@@ -176,29 +176,29 @@ def main():
             if s3_obj and s3_data_dir and s3_data_dir.startswith('s3://'):
                 s3_data_eeg_modality_path = os.path.join(s3_data_dir, eeg_session_rel_path, modality)
 
-                """
-                If the suject/session/modality bids data already exists
-                on the destination folder, delete if first before
-                copying the data
-                """ 
-                s3_obj.delete_file(s3_data_eeg_modality_path)
-
                 try:
+                    """
+                    If the suject/session/modality BIDS data already exists
+                    on the destination folder, delete it first
+                    copying the data
+                    """
+                    s3_obj.delete_file(s3_data_eeg_modality_path)
+
                     # Move folder in S3 bucket
                     s3_obj.upload_dir(tmp_eeg_modality_path, s3_data_eeg_modality_path)
                 except Exception as err:
                     imaging_io_obj.log_error_and_exit(
                         f"{tmp_eeg_modality_path} could not be uploaded to the S3 bucket. Error was\n{err}",
                         COPY_FAILURE
-                    )          
+                    )
             else:
-                data_eeg_modality_path = os.path.join(data_dir, 'bids_assembly', eeg_session_rel_path, modality)
-                
+                data_eeg_modality_path = os.path.join(data_dir, 'assembly_bids', eeg_session_rel_path, modality)
+
                 """
-                If the suject/session/modality bids data already exists
-                on the destination folder, delete if first before
+                If the suject/session/modality BIDS data already exists
+                on the destination folder, delete if first
                 copying the data
-                """ 
+                """
                 imaging_io_obj.remove_dir(data_eeg_modality_path)
 
                 imaging_io_obj.copy_file(tmp_eeg_modality_path, data_eeg_modality_path)
@@ -211,7 +211,7 @@ def main():
             "UPDATE electrophysiology_uploader SET Status = 'Extracted' WHERE UploadLocation = %s",
             (eeg_archive_filename,)
         )
-            
+
 
 if __name__ == "__main__":
     main()

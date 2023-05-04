@@ -61,11 +61,11 @@ class MriScanner:
          :rtype: int
         """
 
-        query = 'SELECT ID AS ScannerID '   \
-                ' FROM mri_scanner '        \
-                ' WHERE Manufacturer = %s ' \
-                '   AND Software = %s '     \
-                '   AND Serial_number =%s ' \
+        query = 'SELECT ID AS ScannerID '    \
+                ' FROM mri_scanner '         \
+                ' WHERE Manufacturer = %s '  \
+                '   AND Software = %s '      \
+                '   AND Serial_number = %s ' \
                 '   AND Model = %s '
 
         arguments = (manufacturer, software_version, serial_number, scanner_model)

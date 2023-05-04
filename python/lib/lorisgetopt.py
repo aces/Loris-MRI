@@ -238,7 +238,7 @@ class LorisGetOpt:
                     )
                     sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
                 try:
-                    file_path = os.path.join(self.tmp_dir, os.path.basename(opt_value))
+                    file_path = os.path.join(self.tmp_dir, os.path.basename(os.path.normpath(opt_value)))
                     self.s3_obj.download_file(opt_value, file_path)
                     self.options_dict[key]["s3_url"] = opt_value
                     self.options_dict[key]["value"] = file_path

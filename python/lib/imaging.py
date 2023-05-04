@@ -171,7 +171,7 @@ class Imaging:
         if type(value) == list:
             if type(value[0]) in [float, int]:
                 value = [str(f) for f in value]
-            value = f"[{', '.join(value)}]"
+            value = f"[{', '.join(str(value))}]"
 
         # Gather column name & values to insert into parameter_file
         param_type_id = self.get_parameter_type_id(parameter_name)
