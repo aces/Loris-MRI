@@ -170,7 +170,7 @@ USAGE
 # Ensure option -uploadID is used
 if (!defined($upload_id)) {
     print "You have to supply an upload ID on the command line with option -uploadID. Aborting.\n";
-   exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
+    exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 }
 
 ################################################################
