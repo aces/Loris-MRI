@@ -148,7 +148,8 @@ def write_index_json(
 
 def encode_chunk(chunk, index, downsampling):
     encoded = chunk_pb.FloatChunk(
-        index=index, downsampling=downsampling, cutoff=len(chunk),  samples=chunk)
+        index=index, downsampling=downsampling, cutoff=len(chunk), samples=chunk
+    )
     return encoded.SerializeToString()
 
 
