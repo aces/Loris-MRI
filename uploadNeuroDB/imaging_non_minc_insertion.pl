@@ -273,20 +273,18 @@ my $log_file = $log_dir . "/" . $temp_log . ".log";
 my $message  = "\nlog dir is $log_dir and log file is $log_file.\n";
 print $message if $verbose;
 
-# open log file and write successful connection to DB
-open( LOG, ">>", $log_file ) or die "\nError Opening $log_file.\n";
-LOG->autoflush(1);
-&logHeader();
-$message = "\n==> Successfully connected to database\n";
-print LOG $message;
-
 # create Notify and Utility objects
 my $notifier = NeuroDB::Notify->new(\$dbh);
 my $utility  = NeuroDB::MRIProcessingUtility->new(
     $db, \$dbh, 0, $TmpDir, $log_file, $verbose, $profile
 );
 
-
+# open log file and write successful connection to DB
+open( LOG, ">>", $log_file ) or die "\nError Opening $log_file.\n";
+LOG->autoflush(1);
+&logHeader();
+$message = "\n==> Successfully connected to database\n";
+print LOG $message;
 
 
 ##### Exit if the provided scanner ID does not refer to a valid scanner entry
