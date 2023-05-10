@@ -174,7 +174,7 @@ if ($inputFileIDs !~ /^\d+(?:;\d+)*$/) {
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
-# Make sure all numbers in the input file IDs list are actual fiel IDs that exist
+# Make sure all numbers in the input file IDs list are actual file IDs that exist
 # in the files table
 my %inputFileIDs = map { $_ => 1 } split(';', $inputFileIDs);
 my $query        = "SELECT FileID FROM files WHERE FIND_IN_SET(FileID, ?)";
