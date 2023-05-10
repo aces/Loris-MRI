@@ -168,6 +168,25 @@ my $db  = NeuroDB::Database->new(
 );
 $db->connect();
 
+# Make sure inputFileIDs is valid is a list of number separated by ';'
+if ($inputFileIDs !~ /^\d+(?:;\d+)*$/) {
+    print STDERR "The argument to -inputFileIDs has to be a list of integers separated by ';'\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
+
+# Make sure all numbers in the input file IDs list are actual fiel IDs that exist
+# in the files table
+my %inputFileIDs = map { $_ => 1 } split(';', $inputFileIDs);
+my $query        = "SELECT FileID FROM files WHERE FIND_IN_SET(FileID, ?)";
+my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, join(',', keys %inputFileIDs));
+my %existingFileIDs = map { $_->{'FileID'} => 1 } @$rowsRef;
+foreach my $fid (keys %inputFileIDs) {
+    if (!defined($existingFileIDs{$fid})) {
+        print STDERR "Argument to -inputFileIDs contains an invalid file ID: $fid. Aborting.\n";
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    }
+}
+
 
 # ----------------------------------------------------------------
 ## Get config setting using ConfigOB
