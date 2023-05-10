@@ -177,10 +177,11 @@ if ($inputFileIDs !~ /^\d+(?:;\d+)*$/) {
 # Make sure all numbers in the input file IDs list are actual file IDs that exist
 # in the files table
 my %inputFileIDs = map { $_ => 1 } split(';', $inputFileIDs);
-my $query        = "SELECT FileID FROM files WHERE FIND_IN_SET(FileID, ?)";
-my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, join(',', keys %inputFileIDs));
+my @ids = keys %inputFileIDs;
+my $query = "SELECT FileID FROM files WHERE FileID IN (?)";
+my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, join(',', @ids));
 my %existingFileIDs = map { $_->{'FileID'} => 1 } @$rowsRef;
-foreach my $fid (keys %inputFileIDs) {
+foreach my $fid (@ids) {
     if (!defined($existingFileIDs{$fid})) {
         print STDERR "Argument to -inputFileIDs contains an invalid file ID: $fid. Aborting.\n";
         exit $NeuroDB::ExitCodes::INVALID_ARG;
