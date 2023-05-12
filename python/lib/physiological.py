@@ -6,13 +6,7 @@ import os
 import subprocess
 import lib.exitcode
 import lib.utilities as utilities
-from lib.database_lib.physiologicalannotationfile import PhysiologicalAnnotationFile
-from lib.database_lib.physiologicalannotationparameter import PhysiologicalAnnotationParameter
-from lib.database_lib.physiologicalannotationlabel import PhysiologicalAnnotationLabel
-from lib.database_lib.physiologicalannotationinstance import PhysiologicalAnnotationInstance
 from lib.database_lib.physiologicaleventfile import PhysiologicalEventFile
-from lib.database_lib.physiologicaleventparameter import PhysiologicalEventParameter
-from lib.database_lib.physiologicaleventparametercategorylevel import PhysiologicalEventParameterCategoryLevel
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.point_3d import Point3DDB
 from lib.point_3d import Point3D
@@ -64,15 +58,8 @@ class Physiological:
         self.db      = db
         self.verbose = verbose
 
-        self.physiological_annotation_file_obj      = PhysiologicalAnnotationFile(self.db, self.verbose)
-        self.physiological_annotation_parameter_obj = PhysiologicalAnnotationParameter(self.db, self.verbose)
-        self.physiological_annotation_label_obj     = PhysiologicalAnnotationLabel(self.db, self.verbose)
-        self.physiological_annotation_instance_obj  = PhysiologicalAnnotationInstance(self.db, self.verbose)
-
         self.physiological_event_file_obj                     = PhysiologicalEventFile(self.db, self.verbose)
-        self.physiological_event_parameter_obj                = PhysiologicalEventParameter(self.db, self.verbose)
-        self.physiological_event_parameter_category_level_obj = \
-            PhysiologicalEventParameterCategoryLevel(self.db, self.verbose)
+
         self.physiological_coord_system_db = PhysiologicalCoordSystem(self.db, self.verbose)
         self.point_3d_db = Point3DDB(self.db, self.verbose)
 
