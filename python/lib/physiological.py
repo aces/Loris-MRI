@@ -616,7 +616,7 @@ class Physiological:
         except (IndexError, KeyError):
             # no ref points
             is_ok_ref_coords = False
-        # insert ref points if found 
+        # insert ref points if found
         if is_ok_ref_coords:
             # insert ref points
             point_ids = {}
@@ -626,7 +626,7 @@ class Physiological:
             # insert ref point/coord system relations
             self.physiological_coord_system_db.insert_coord_system_point_3d_relation(coord_system_id, point_ids)
 
-        # insert the relation between coordinate file electrode and physio file 
+        # insert the relation between coordinate file electrode and physio file
         self.physiological_coord_system_db.insert_coord_system_electrodes_relation(
             physiological_file_id,
             coord_system_id,
@@ -689,17 +689,6 @@ class Physiological:
                 is_categorical = 'N'
                 value_hed = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
 
-            # Keeping for legacy reasons -- TODO: refactor
-            # event_parameter_id = self.physiological_event_parameter_obj.insert(
-            #     str(event_file_id),
-            #     parameter_name,
-            #     description,
-            #     long_name,
-            #     units,
-            #     is_categorical,
-            #     value_hed
-            # )
-
             if is_categorical == 'Y':
                 for level in event_metadata[parameter]['Levels']:
                     level_name = level
@@ -708,20 +697,12 @@ class Physiological:
                         if 'HED' in event_metadata[parameter] and level in event_metadata[parameter]['HED'] \
                         else None
 
-                    # Keeping for legacy reasons -- TODO: refactor
-                    # self.physiological_event_parameter_category_level_obj.insert(
-                    #     str(event_parameter_id),
-                    #     level_name,
-                    #     level_description,
-                    #     level_hed
-                    # )
-
                     if level_hed:
                         self.insert_hed_string(level_hed, target_id, parameter_name,
-                                               level_name, level_description, project_wide)
+                                               level_name, level_description, True, project_wide)
 
     def insert_hed_string(self, hed_string, target_id, property_name, property_value,
-                          level_description, project_wide=False):
+                          level_description, from_sidecar, project_wide):
         """
         Assembles physiological event HED tags.
 
@@ -775,9 +756,9 @@ class Physiological:
                 # INSERT HED TAG
                 pair_rel_id = self.grep_hed_tag_and_insert(
                     left_stripped, hed_union, target_id, property_name, property_value,
-                    level_description, has_pairing, pair_rel_id, project_wide
+                    level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
                 )
-                
+
                 num_opening_parentheses = len(right_stripped) - len(left_stripped)
                 for i in range(1, num_opening_parentheses):
                     has_pairing = True
@@ -785,7 +766,7 @@ class Physiological:
                     # INSERT SURROUNDING PARENTHESIS TAG
                     pair_rel_id = self.grep_hed_tag_and_insert(
                         '', hed_union, target_id, property_name, property_value,
-                        level_description, has_pairing, pair_rel_id, project_wide
+                        level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
                     )
             elif element.startswith('('):
                 has_pairing = True
@@ -795,7 +776,7 @@ class Physiological:
                 # INSERT HED TAG
                 pair_rel_id = self.grep_hed_tag_and_insert(
                     left_stripped, hed_union, target_id, property_name, property_value,
-                    level_description, has_pairing, pair_rel_id, project_wide
+                    level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
                 )
 
                 num_opening_parentheses = len(element) - len(left_stripped)
@@ -805,7 +786,7 @@ class Physiological:
                     has_pairing = True
                     pair_rel_id = self.grep_hed_tag_and_insert(
                         '', hed_union, target_id, property_name, property_value,
-                        level_description, has_pairing, pair_rel_id, project_wide
+                        level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
                     )
             else:
                 # Not part of parenthesis group
@@ -814,16 +795,11 @@ class Physiological:
                 # INSERT HED TAG
                 pair_rel_id = self.grep_hed_tag_and_insert(
                     element, hed_union, target_id, property_name, property_value,
-                    level_description, has_pairing, pair_rel_id, project_wide
+                    level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
                 )
 
     def grep_hed_tag_and_insert(self, tag_string, hed_union, target_id, property_name, property_value,
-                                level_description, has_pairing, pair_rel_id, project_wide=False):
-        bids_event_mapping_fields = (
-            'ProjectID' if project_wide else 'EventFileID',
-            'PropertyName', 'PropertyValue', 'HEDTagID',
-            'TagValue', 'Description', 'HasPairing', 'PairRelID'
-        )
+                                level_description, has_pairing, pair_rel_id, from_sidecar, project_wide):
 
         leaf_node = tag_string.split('/')[-1]  # LIMITED SUPPORT FOR NOW - NO VALUES OR DEFS
         if len(tag_string) > 0:
@@ -835,17 +811,35 @@ class Physiological:
         else:
             hed_tag_id = None
 
-        # INSERT HED TAG
-        bids_event_mapping_values = (
-            target_id, property_name, property_value, hed_tag_id,
-            None, level_description, has_pairing, pair_rel_id
-        )
-        return self.db.insert(
-            table_name='bids_event_dataset_mapping' if project_wide else 'bids_event_file_mapping',
-            column_names=bids_event_mapping_fields,
-            values=bids_event_mapping_values,
-            get_last_id=True
-        )
+        if from_sidecar:
+            bids_event_mapping_fields = (
+                'ProjectID' if project_wide else 'EventFileID',
+                'PropertyName', 'PropertyValue', 'HEDTagID',
+                'TagValue', 'Description', 'HasPairing', 'PairRelID'
+            )
+            bids_event_mapping_values = (
+                target_id, property_name, property_value, hed_tag_id,
+                None, level_description, has_pairing, pair_rel_id
+            )
+            return self.db.insert(
+                table_name='bids_event_dataset_mapping' if project_wide else 'bids_event_file_mapping',
+                column_names=bids_event_mapping_fields,
+                values=bids_event_mapping_values,
+                get_last_id=True
+            )
+        else:
+            event_hed_rel_fields = (
+                'PhysiologicalTaskEventID', 'HEDTagID', 'TagValue', 'HasPairing', 'PairRelID'
+            )
+            event_hed_rel_values = (
+                target_id, hed_tag_id, None, has_pairing, pair_rel_id
+            )
+            return self.db.insert(
+                table_name='physiological_task_event_hed_rel',
+                column_names=event_hed_rel_fields,
+                values=event_hed_rel_values,
+                get_last_id=True
+            )
 
     def insert_event_file(self, event_data, event_file, physiological_file_id,
                           blake2):
@@ -880,10 +874,9 @@ class Physiological:
         )
         # known opt fields
         optional_fields = (
-            'trial_type',  'response_time', 'event_code',
-            'event_value', 'event_sample',  'event_type',
-            'value',       'sample',        'duration',
-            'onset'
+            'trial_type', 'response_time', 'event_code',
+            'event_value', 'event_sample', 'event_type',
+            'value', 'sample', 'duration', 'onset', 'HED'
         )
         # all listed fields
         known_fields = {*event_fields, *optional_fields}
@@ -917,7 +910,7 @@ class Physiological:
                     # try casting to float
                     duration = float(row['duration'])
                 except ValueError:
-                    # value could be 'n/a', 
+                    # value could be 'n/a',
                     # should not raise
                     # let default value (0)
                     pass
@@ -962,6 +955,12 @@ class Physiological:
                 )],
                 get_last_id  = True
             )
+
+            if row['HED']:
+                self.insert_hed_string(
+                    row['HED'], last_task_id, None,
+                    None, False, False
+                )
 
             # if needed, process additional and unlisted
             # fields and send them in secondary table
