@@ -7,12 +7,14 @@ import getpass
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.candidate                                   import Candidate
-from lib.session                                     import Session
-from lib.physiological                               import Physiological
-from lib.scanstsv                                    import ScansTSV
-from lib.database_lib.physiologicaleventfile         import PhysiologicalEventFile
-from lib.database_lib.physiologicaleventarchive      import PhysiologicalEventArchive
+from lib.candidate                                  import Candidate
+from lib.session                                    import Session
+from lib.physiological                              import Physiological
+from lib.scanstsv                                   import ScansTSV
+from lib.database_lib.physiological_event_file      import PhysiologicalEventFile
+from lib.database_lib.physiological_event_archive   import PhysiologicalEventArchive
+from lib.database_lib.physiological_modality        import PhysiologicalModality
+from lib.database_lib.physiological_output_type     import PhysiologicalOutputType
 
 
 __license__ = "GPLv3"
@@ -398,13 +400,8 @@ class Eeg:
 
             # grep the output type from the physiological_output_type table
             output_type = 'derivative' if derivatives else 'raw'
-            output_type_id = self.db.grep_id_from_lookup_table(
-                id_field_name       = 'PhysiologicalOutputTypeID',
-                table_name          = 'physiological_output_type',
-                where_field_name    = 'OutputTypeName',
-                where_value         = output_type,
-                insert_if_not_found = False
-            )
+            output_type_obj = PhysiologicalOutputType(self.db, self.verbose)
+            output_type_id = output_type_obj.grep_id_from_output_type(output_type)
 
             # get the acquisition date of the EEG file or the age at the time of the EEG recording
             eeg_acq_time = None
@@ -445,15 +442,11 @@ class Eeg:
             physio_file_id = result['PhysiologicalFileID'] if result else None
             eeg_path       = result['FilePath']            if result else None
 
+            physiological_modality = PhysiologicalModality(self.db, self.verbose)
+
             if not physio_file_id:
                 # grep the modality ID from physiological_modality table
-                modality_id = self.db.grep_id_from_lookup_table(
-                    id_field_name='PhysiologicalModalityID',
-                    table_name='physiological_modality',
-                    where_field_name='PhysiologicalModality',
-                    where_value=self.bids_modality,
-                    insert_if_not_found=False
-                )
+                modality_id = physiological_modality.grep_id_from_modality_value(self.bids_modality)
 
                 # copy the eeg_file to the LORIS BIDS import directory
                 eeg_path = self.copy_file_to_loris_bids_dir(

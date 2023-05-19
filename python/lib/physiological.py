@@ -6,7 +6,14 @@ import os
 import subprocess
 import lib.exitcode
 import lib.utilities as utilities
-from lib.database_lib.physiologicaleventfile import PhysiologicalEventFile
+from lib.database_lib.parameter_type import ParameterType
+from lib.database_lib.physiological_file import PhysiologicalFile
+from lib.database_lib.physiological_event_file import PhysiologicalEventFile
+from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
+from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
+from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
+from lib.database_lib.bids_event_mapping import BidsEventMapping
+from lib.database_lib.physiological_parameter_file import PhysiologicalParameterFile
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.point_3d import Point3DDB
 from lib.point_3d import Point3D
@@ -58,8 +65,14 @@ class Physiological:
         self.db      = db
         self.verbose = verbose
 
-        self.physiological_event_file_obj                     = PhysiologicalEventFile(self.db, self.verbose)
-
+        self.physiological_event_file_obj                   = PhysiologicalEventFile(self.db, self.verbose)
+        self.physiological_task_event                       = PhysiologicalTaskEvent(self.db, self.verbose)
+        self.physiological_task_event_opt                   = PhysiologicalTaskEventOpt(self.db, self.verbose)
+        self.physiological_task_event_hed_rel               = PhysiologicalTaskEventHEDRel(self.db, self.verbose)
+        self.bids_event_mapping_obj                         = BidsEventMapping(self.db, self.verbose)
+        self.physiological_physiological_file_obj           = PhysiologicalFile(self.db, self.verbose)
+        self.physiological_physiological_parameter_file     = PhysiologicalParameterFile(self.db, self.verbose)
+        self.parameter_type_obj                             = ParameterType(self.db, self.verbose)
         self.physiological_coord_system_db = PhysiologicalCoordSystem(self.db, self.verbose)
         self.point_3d_db = Point3DDB(self.db, self.verbose)
 
@@ -97,29 +110,7 @@ class Physiological:
         return file_type
 
     def grep_file_id_from_hash(self, blake2b_hash):
-        """
-        Greps the physiological file ID from the physiological_file table. If
-        it cannot be found, the method will return None.
-
-        :param blake2b_hash: blake2b hash
-         :type blake2b_hash: str
-
-        :return: physiological file ID and physiological file path
-         :rtype: int
-        """
-
-        query = "SELECT pf.PhysiologicalFileID, pf.FilePath "     \
-                "FROM physiological_file AS pf "     \
-                "JOIN physiological_parameter_file " \
-                "USING (PhysiologicalFileID) "   \
-                "JOIN parameter_type "               \
-                "USING (ParameterTypeID) "       \
-                "WHERE Value=%s"
-
-        results = self.db.pselect(query=query, args=(blake2b_hash,))
-
-        # return the results
-        return results[0] if results else None
+        return self.physiological_physiological_file_obj.grep_file_id_from_hash(blake2b_hash)
 
     def insert_physiological_file(self, eeg_file_info, eeg_file_data):
         """
@@ -137,17 +128,14 @@ class Physiological:
          :rtype: int
         """
 
-        # insert info from eeg_file_info into physiological_file
-        file_fields = ()
-        file_values = ()
-        for key, value in eeg_file_info.items():
-            file_fields = file_fields + (key,)
-            file_values = file_values + (value,)
-        physiological_file_id = self.db.insert(
-            table_name   = 'physiological_file',
-            column_names = file_fields,
-            values       = [file_values],
-            get_last_id  = True
+        physiological_file_id = self.physiological_physiological_file_obj.insert(
+            physiological_modality_id=eeg_file_info['PhysiologicalModalityID'],
+            physiological_output_type_id=eeg_file_info['PhysiologicalOutputTypeID'],
+            session_id=eeg_file_info['SessionID'],
+            file_type=eeg_file_info['FileType'],
+            acquisition_time=eeg_file_info['AcquisitionTime'],
+            inserted_by_user=eeg_file_info['InsertedByUser'],
+            file_path=eeg_file_info['FilePath']
         )
 
         for key, value in eeg_file_data.items():
@@ -174,16 +162,10 @@ class Physiological:
         # Gather column name & values to insert into
         # physiological_parameter_file
         parameter_type_id = self.get_parameter_type_id(parameter_name)
-        parameter_file_fields = (
-            'PhysiologicalFileID', 'ParameterTypeID', 'Value'
-        )
-        parameter_file_values = (
-            physiological_file_id, parameter_type_id, value
-        )
-        self.db.insert(
-            table_name='physiological_parameter_file',
-            column_names=parameter_file_fields,
-            values=parameter_file_values
+        self.physiological_physiological_parameter_file.insert(
+            physiological_file_id=physiological_file_id,
+            parameter_type_id=parameter_type_id,
+            value=value
         )
 
     def get_parameter_type_id(self, parameter_name):
@@ -211,52 +193,28 @@ class Physiological:
             parameter_type_id = results[0]['ParameterTypeID']
         else:
             # if no results, create an entry in parameter_type
-            col_names = (
+            col_names = [
                 'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
-            )
+            ]
             parameter_desc = parameter_name + " magically created by lib.physiological python class"
             source_from    = 'physiological_parameter_file'
-            values = (
+            values = [
                 parameter_name, 'text', parameter_desc, source_from, 0
-            )
-            parameter_type_id = self.db.insert(
-                table_name   = 'parameter_type',
-                column_names = col_names,
-                values       = values,
-                get_last_id  = True
+            ]
+            parameter_type_id = self.parameter_type_obj.insert_parameter_type(
+                dict(zip(col_names, values))
             )
 
             # link the parameter_type_id to a parameter type category
-            category_id = self.get_parameter_type_category_id()
-            self.db.insert(
-                table_name   = 'parameter_type_category_rel',
-                column_names = ('ParameterTypeCategoryID', 'ParameterTypeID'),
-                values       = (category_id, parameter_type_id),
-                get_last_id  = False
+            category_id = self.parameter_type_obj.get_parameter_type_category_id(
+                'Electrophysiology Variables'
+            )
+            self.parameter_type_obj.insert_into_parameter_type_category_rel(
+                category_id,
+                parameter_type_id
             )
 
         return parameter_type_id
-
-    def get_parameter_type_category_id(self):
-        """
-        Greps ParameterTypeCategoryID from parameter_type_category table.
-        If no ParameterTypeCategoryID was found, it will return None.
-
-        :return: ParameterTypeCategoryID
-         :rtype: int
-        """
-
-        category_result = self.db.pselect(
-            query='SELECT ParameterTypeCategoryID '
-                  'FROM parameter_type_category '
-                  'WHERE Name = %s ',
-            args=('Electrophysiology Variables',)
-        )
-
-        if not category_result:
-            return None
-
-        return category_result[0]['ParameterTypeCategoryID']
 
     def grep_electrode_from_physiological_file_id(self, physiological_file_id):
         """
@@ -697,16 +655,19 @@ class Physiological:
          :type hed_string           : str
 
         :param target_id            : ProjectID if project_wide else PhysiologicalEventFileID
-         :type target_id            : str
+         :type target_id            : int
 
         :param property_name        : PropertyName
-         :type property_name        : str
+         :type property_name        : str | None
 
         :param property_value       : PropertyValue
-         :type property_value       : str
+         :type property_value       : str | None
 
         :param level_description    : Tag Description
-         :type level_description    : str
+         :type level_description    : str | None
+
+        :param from_sidecar         : Whether tag comes from an events.json file
+         :type from_sidecar         : bool
 
         :param project_wide         : Target ProjectID or PhysiologicalEventFileID
          :type project_wide         : bool
@@ -799,33 +760,24 @@ class Physiological:
             hed_tag_id = None
 
         if from_sidecar:
-            bids_event_mapping_fields = (
-                'ProjectID' if project_wide else 'EventFileID',
-                'PropertyName', 'PropertyValue', 'HEDTagID',
-                'TagValue', 'Description', 'HasPairing', 'PairRelID'
-            )
-            bids_event_mapping_values = (
-                target_id, property_name, property_value, hed_tag_id,
-                None, level_description, has_pairing, pair_rel_id
-            )
-            return self.db.insert(
-                table_name='bids_event_dataset_mapping' if project_wide else 'bids_event_file_mapping',
-                column_names=bids_event_mapping_fields,
-                values=bids_event_mapping_values,
-                get_last_id=True
+            return self.bids_event_mapping_obj.insert(
+                target_id=target_id,
+                property_name=property_name,
+                property_value=property_value,
+                hed_tag_id=hed_tag_id,
+                tag_value=None,
+                description=level_description,
+                has_pairing=has_pairing,
+                pair_rel_id=pair_rel_id,
+                project_wide=project_wide
             )
         else:
-            event_hed_rel_fields = (
-                'PhysiologicalTaskEventID', 'HEDTagID', 'TagValue', 'HasPairing', 'PairRelID'
-            )
-            event_hed_rel_values = (
-                target_id, hed_tag_id, None, has_pairing, pair_rel_id
-            )
-            return self.db.insert(
-                table_name='physiological_task_event_hed_rel',
-                column_names=event_hed_rel_fields,
-                values=event_hed_rel_values,
-                get_last_id=True
+            return self.physiological_task_event_hed_rel.insert(
+                target_id=target_id,
+                hed_tag_id=hed_tag_id,
+                tag_value=None,
+                has_pairing=has_pairing,
+                pair_rel_id=pair_rel_id
             )
 
     def insert_event_file(self, event_data, event_file, physiological_file_id,
@@ -924,53 +876,37 @@ class Physiological:
                 trial_type = str(row['trial_type'])
 
             # insert one event and get its db id
-            last_task_id = self.db.insert(
-                table_name   = 'physiological_task_event',
-                column_names = event_fields,
-                values       = [(
-                    str(physiological_file_id),
-                    onset,
-                    duration,
-                    trial_type,
-                    response_time,
-                    row['event_code'],
-                    event_value,
-                    sample,
-                    row['event_type'],
-                    event_file,
-                    event_file_id
-                )],
-                get_last_id  = True
+            last_task_id = self.physiological_task_event.insert(
+                physiological_file_id=physiological_file_id,
+                event_file_id=event_file_id,
+                onset=onset,
+                duration=duration,
+                event_code=row['event_code'],
+                event_value=event_value,
+                event_sample=sample,
+                event_type=row['event_type'],
+                trial_type=trial_type,
+                response_time=response_time,
+                file_path=event_file
             )
 
             if row['HED']:
                 self.insert_hed_string(
                     row['HED'], last_task_id, None,
-                    None, False, False
+                    None, None, False, False
                 )
 
             # if needed, process additional and unlisted
             # fields and send them in secondary table
             if additional_fields:
-                # table cols
-                add_event_fields = (
-                    'PhysiologicalTaskEventID',
-                    'PropertyName',
-                    'PropertyValue'
-                )
                 # each additional fields is a new entry
-                add_event_values = []
                 for add_field, add_value in additional_fields.items():
-                    add_event_values.append((
-                        last_task_id,
-                        add_field,
-                        add_value
-                    ))
-                self.db.insert(
-                    table_name   = 'physiological_task_event_opt',
-                    column_names = add_event_fields,
-                    values       = add_event_values
-                )
+                    self.physiological_task_event_opt.insert(
+                        target_id=last_task_id,
+                        property_name=add_field,
+                        property_value=add_value,
+                        get_last_id=False
+                    )
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
             physiological_file_id, 'event_file_blake2b_hash', blake2
