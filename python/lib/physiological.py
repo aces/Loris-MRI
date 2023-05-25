@@ -146,7 +146,7 @@ class Physiological:
         return physiological_file_id
 
     def insert_physio_parameter_file(self, physiological_file_id,
-                                     parameter_name, value):
+                                     parameter_name, value, project_id=None):
         """
         Insert a row into the physiological_parameter_file table for the
         provided PhysiologicalFileID, parameter Name and Value
@@ -158,15 +158,45 @@ class Physiological:
         :param value                : Value to insert into
                                       physiological_parameter_file
          :type value                : str
+        :param project_id           : ProjectID
+         :type project_id           : int
         """
         # Gather column name & values to insert into
         # physiological_parameter_file
         parameter_type_id = self.get_parameter_type_id(parameter_name)
+
+        if project_id is None:
+            project_id = self.get_project_id(physiological_file_id)
+        else:
+            physiological_file_id = None
+
         self.physiological_physiological_parameter_file.insert(
             physiological_file_id=physiological_file_id,
+            project_id=project_id,
             parameter_type_id=parameter_type_id,
             value=value
         )
+
+    def get_project_id(self, physiological_file_id):
+        """
+        Ultimately obtains ProjectID from Project table using PhysiologicalFileID
+
+        :param physiological_file_id    : PhysiologicalFileID
+         :type physiological_file_id    : int
+
+        :return: ProjectID
+         :rtype: int
+        """
+        results = self.db.pselect(
+            query="SELECT ProjectID "
+                  "FROM session AS s "
+                  "WHERE s.ID = ("
+                      "SELECT SessionID FROM physiological_file "
+                      "WHERE PhysiologicalFileID = %s"
+                  ")",
+            args=(physiological_file_id,)
+        )
+        return int(results[0]['ProjectID'])
 
     def get_parameter_type_id(self, parameter_name):
         """
@@ -585,22 +615,27 @@ class Physiological:
             blake2
         )
 
-    def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id, blake2):
+    def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id,
+                              project_id, blake2, project_wide):
         """
         Inserts the events metadata information read from the file *events.json
         into the physiological_event_file, physiological_event_parameter
         and physiological_event_parameter_category_level tables, linking it to the
         physiological file ID already inserted in physiological_file.
 
-        :param event_metadata      : list with dictionaries of events
+        :param event_metadata           : list with dictionaries of events
                                           metadata to insert into the database
-         :type event_metadata      : list
-        :param event_metadata_file : name of the event metadata file
-         :type event_file          : str
+         :type event_metadata           : list
+        :param event_metadata_file      : name of the event metadata file
+         :type event_file               : str
         :param physiological_file_id    : PhysiologicalFileID to link the event info to
-         :type physiological_file_id    : int
+         :type physiological_file_id    : int | None
+        :param project_id               : ProjectID
+         :type project_id               : int
         :param blake2                   : blake2b hash of the event file
          :type blake2                   : str
+        :param project_wide             : ProjectID if true, otherwise PhysiologicalFileID
+         :type project_wide             : bool
 
         :return: event file id
          :rtype: int
@@ -608,16 +643,26 @@ class Physiological:
 
         event_file_id = self.physiological_event_file_obj.insert(
             physiological_file_id,
+            project_id,
             'json',
             event_metadata_file
         )
 
-        self.parse_and_insert_event_metadata(event_metadata, event_file_id, project_wide=False)
+        self.parse_and_insert_event_metadata(
+            event_metadata=event_metadata,
+            target_id=project_id if project_wide else physiological_file_id,
+            project_wide=project_wide
+        )
 
         # insert blake2b hash of task event file into physiological_parameter_file
         self.insert_physio_parameter_file(
-            physiological_file_id, 'event_file_json_blake2b_hash', blake2
+            physiological_file_id,
+            'event_file_json_blake2b_hash',
+            blake2,
+            project_id
         )
+
+        return event_file_id
 
     def parse_and_insert_event_metadata(self, event_metadata, target_id, project_wide):
         for parameter in event_metadata:
@@ -781,7 +826,7 @@ class Physiological:
             )
 
     def insert_event_file(self, event_data, event_file, physiological_file_id,
-                          blake2):
+                          project_id, blake2):
         """
         Inserts the event information read from the file *events.tsv
         into the physiological_task_event table, linking it to the
@@ -796,12 +841,15 @@ class Physiological:
          :type event_file           : str
         :param physiological_file_id: PhysiologicalFileID to link the event info to
          :type physiological_file_id: int
+        :param project_id           : ProjectID to link the event info to
+         :type project_id           : int
         :param blake2               : blake2b hash of the task event file
          :type blake2               : str
         """
 
         event_file_id = self.physiological_event_file_obj.insert(
             physiological_file_id,
+            project_id,
             'tsv',
             event_file
         )
@@ -890,7 +938,7 @@ class Physiological:
                 file_path=event_file
             )
 
-            if row['HED']:
+            if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
                 self.insert_hed_string(
                     row['HED'], last_task_id, None,
                     None, None, False, False

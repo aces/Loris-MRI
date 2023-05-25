@@ -20,12 +20,14 @@ class PhysiologicalParameterFile:
         self.table = 'physiological_parameter_file'
         self.verbose = verbose
 
-    def insert(self, physiological_file_id, parameter_type_id, value):
+    def insert(self, physiological_file_id, project_id, parameter_type_id, value):
         """
         Inserts a new entry in the physiological_event_file table.
 
         :param physiological_file_id    : physiological file's ID
          :type physiological_file_id    : int
+        :param project_id               : Project ID
+         :type project_id               : int
         :param parameter_type_id        : type of the parameter
          :type parameter_type_id        : int
         :param value                    : value of the parameter
@@ -37,7 +39,7 @@ class PhysiologicalParameterFile:
 
         return self.db.insert(
             table_name   = self.table,
-            column_names = ('PhysiologicalFileID', 'ParameterTypeID', 'Value'),
-            values       = (physiological_file_id, parameter_type_id, value),
+            column_names = ('PhysiologicalFileID', 'ProjectID', 'ParameterTypeID', 'Value'),
+            values       = (physiological_file_id, project_id, parameter_type_id, value),
             get_last_id  = True
         )
