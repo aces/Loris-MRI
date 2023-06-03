@@ -20,6 +20,17 @@
 
 @db = ('DBNAME','DBUSER', 'DBPASS', 'DBHOST');
 
+# db parameters empty
+if (!@db)
+{
+    die "Database parameters need intialization in 'prod' file.";
+}
+
+# db parameters != 4
+if (scalar @db ne 4)
+{
+    die "Database intialization need 4 parameters in 'prod' file.";
+}
 
 =pod
 # SECTION II
