@@ -23,13 +23,13 @@
 # db parameters empty
 if (!@db)
 {
-    die "Database parameters need intialization in 'prod' file.";
+    die "Database parameters intialization required.";
 }
 
 # db parameters != 4
 if (scalar @db ne 4)
 {
-    die "Database intialization need 4 parameters in 'prod' file.";
+    die "Database intialization requires 4 parameters.";
 }
 
 =pod
