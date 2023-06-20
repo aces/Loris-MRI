@@ -53,9 +53,9 @@ def main():
         },
     }
 
-    script_name = os.path.basename(__file__)
+    script_name = os.path.basename(__file__[:-3])
     # get the options provided by the user
-    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
+    loris_getopt_obj = LorisGetOpt(usage, options_dict, script_name)
     verbose = loris_getopt_obj.options_dict['verbose']['value']
     upload_id = loris_getopt_obj.options_dict['upload_id']['value']
 
@@ -125,16 +125,19 @@ def main():
     for eeg_archive_file in eeg_archives_list:
         eeg_archive_filename = eeg_archive_file['UploadLocation']
         eeg_archive_path = os.path.join(eeg_incoming_dir, eeg_archive_filename)
+        error = False
 
         if s3_obj and eeg_incoming_dir.startswith('s3://'):
             eeg_archive_local_path = os.path.join(tmp_dir, eeg_archive_filename)
             try:
                 s3_obj.download_file(eeg_archive_path, eeg_archive_local_path)
             except Exception as err:
-                imaging_io_obj.log_error_and_exit(
+                imaging_io_obj.log_info(
                     f"{eeg_archive_path} could not be downloaded from S3 bucket. Error was\n{err}",
-                    MISSING_FILES
+                    is_error=True,
+                    is_verbose=False,
                 )
+                error = True
             else:
                 eeg_archive_path = eeg_archive_local_path
 
@@ -144,73 +147,99 @@ def main():
                 BAD_CONFIG_SETTING
             )
 
-        # Uncompress archive in tmp location
-        eeg_collection_path = imaging_io_obj.extract_archive(eeg_archive_path, 'EEG', tmp_dir)
-        tmp_eeg_session_path = None
-        eeg_session_rel_path = None
-        modalities = None
-        for (root, dirs, files) in os.walk(eeg_collection_path):
-            if os.path.basename(os.path.normpath(root)).startswith('ses-'):
-                tmp_eeg_session_path = root
-                modalities = dirs
+        if not error:
+            try:
+                # Uncompress archive in tmp location
+                eeg_collection_path = imaging_io_obj.extract_archive(eeg_archive_path, 'EEG', tmp_dir)
+            except Exception as err:
+                imaging_io_obj.log_info(
+                    f"Could not extract {eeg_archive_path} - {format(err)}",
+                    is_error=True,
+                    is_verbose=False,
+                )
+                error = True
 
-                eeg_session_rel_path_re = re.search(r'sub-.+$', root)
-                if eeg_session_rel_path_re:
-                    eeg_session_rel_path = eeg_session_rel_path_re.group()
-                else:
-                    imaging_io_obj.log_error_and_exit(
-                        f"Could not find a subject folder in the BIDS structure for {eeg_archive_file}.",
-                        MISSING_FILES
-                    )
+        if not error:
+            tmp_eeg_session_path = None
+            eeg_session_rel_path = None
+            modalities = None
+            for (root, dirs, files) in os.walk(eeg_collection_path):
+                if os.path.basename(os.path.normpath(root)).startswith('ses-'):
+                    tmp_eeg_session_path = root
+                    modalities = dirs
 
-        if not tmp_eeg_session_path:
-            imaging_io_obj.log_error_and_exit(
+                    eeg_session_rel_path_re = re.search(r'sub-.+$', root)
+                    if eeg_session_rel_path_re:
+                        eeg_session_rel_path = eeg_session_rel_path_re.group()
+                    else:
+                        imaging_io_obj.log_info(
+                            f"Could not find a subject folder in the BIDS structure for {eeg_archive_file}.",
+                            is_error=True,
+                            is_verbose=False,
+                        )
+                        error = True
+                        break
+
+        if not error and not tmp_eeg_session_path:
+            imaging_io_obj.log_info(
                 "Could not find a session folder in the bids structure for .",
-                MISSING_FILES
+                is_error=True,
+                is_verbose=False,
             )
+            error = True
 
-        for modality in modalities:
-            tmp_eeg_modality_path = os.path.join(tmp_eeg_session_path, modality)
-            s3_data_dir = config_db_obj.get_config("EEGS3DataPath")
+        if not error:
+            for modality in modalities:
+                tmp_eeg_modality_path = os.path.join(tmp_eeg_session_path, modality)
+                s3_data_dir = config_db_obj.get_config("EEGS3DataPath")
 
-            if s3_obj and s3_data_dir and s3_data_dir.startswith('s3://'):
-                s3_data_eeg_modality_path = os.path.join(s3_data_dir, eeg_session_rel_path, modality)
+                if s3_obj and s3_data_dir and s3_data_dir.startswith('s3://'):
+                    s3_data_eeg_modality_path = os.path.join(s3_data_dir, eeg_session_rel_path, modality)
 
-                try:
+                    try:
+                        """
+                        If the suject/session/modality BIDS data already exists
+                        on the destination folder, delete it first
+                        copying the data
+                        """
+                        s3_obj.delete_file(s3_data_eeg_modality_path)
+
+                        # Move folder in S3 bucket
+                        s3_obj.upload_dir(tmp_eeg_modality_path, s3_data_eeg_modality_path)
+                    except Exception as err:
+                        imaging_io_obj.log_info(
+                            f"{tmp_eeg_modality_path} could not be uploaded to the S3 bucket. Error was\n{err}",
+                            is_error=True,
+                            is_verbose=False,
+                        )
+                        error = True
+                else:
+                    data_eeg_modality_path = os.path.join(data_dir, 'assembly_bids', eeg_session_rel_path, modality)
+
                     """
                     If the suject/session/modality BIDS data already exists
-                    on the destination folder, delete it first
+                    on the destination folder, delete if first
                     copying the data
                     """
-                    s3_obj.delete_file(s3_data_eeg_modality_path)
+                    imaging_io_obj.remove_dir(data_eeg_modality_path)
 
-                    # Move folder in S3 bucket
-                    s3_obj.upload_dir(tmp_eeg_modality_path, s3_data_eeg_modality_path)
-                except Exception as err:
-                    imaging_io_obj.log_error_and_exit(
-                        f"{tmp_eeg_modality_path} could not be uploaded to the S3 bucket. Error was\n{err}",
-                        COPY_FAILURE
-                    )
-            else:
-                data_eeg_modality_path = os.path.join(data_dir, 'assembly_bids', eeg_session_rel_path, modality)
-
-                """
-                If the suject/session/modality BIDS data already exists
-                on the destination folder, delete if first
-                copying the data
-                """
-                imaging_io_obj.remove_dir(data_eeg_modality_path)
-
-                imaging_io_obj.copy_file(tmp_eeg_modality_path, data_eeg_modality_path)
+                    imaging_io_obj.copy_file(tmp_eeg_modality_path, data_eeg_modality_path)
 
         # Delete tmp location
         imaging_io_obj.remove_dir(tmp_dir)
 
-        # Set Status = Extracted
-        db.update(
-            "UPDATE electrophysiology_uploader SET Status = 'Extracted' WHERE UploadLocation = %s",
-            (eeg_archive_filename,)
-        )
+        if not error:
+            # Set Status = Extracted
+            db.update(
+                "UPDATE electrophysiology_uploader SET Status = 'Extracted' WHERE UploadLocation = %s",
+                (eeg_archive_filename,)
+            )
+        else:
+            # Set Status = 'Failed Extraction'
+            db.update(
+                "UPDATE electrophysiology_uploader SET Status = 'Failed Extraction' WHERE UploadLocation = %s",
+                (eeg_archive_filename,)
+            )
 
 
 if __name__ == "__main__":
