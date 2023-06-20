@@ -147,6 +147,12 @@ if(!defined $tmpExtractBaseDir or $tmpExtractBaseDir !~ /\S/) {
     die "The '-outdir' option was not used and the environment variable TMPDIR is not defined. Aborting.\n";
 }
  
+# check identifiers, if not found, raise an error
+my @validIdentifiers = ("pscid", "candid", "pscid_candid", "candid_pscid");
+if ( !grep( /^$candidateIdentifier$/, @validIdentifiers ) ) {
+    die "-id option must be followed by an one of the strings 'pscid', 'candid' , 'pscid_candid' or 'candid_pscid'\n";
+}
+
 #---------------------------------------#
 # Read prod file to get DB credentials  #
 #---------------------------------------#
