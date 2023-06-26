@@ -935,7 +935,6 @@ class Physiological:
                 event_type=row['event_type'],
                 trial_type=trial_type,
                 response_time=response_time,
-                file_path=event_file
             )
 
             if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':

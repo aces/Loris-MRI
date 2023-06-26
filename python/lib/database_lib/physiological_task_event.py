@@ -22,7 +22,7 @@ class PhysiologicalTaskEvent:
 
     def insert(self, physiological_file_id, event_file_id, onset, duration,
                event_code, event_value, event_sample, event_type,
-               trial_type, response_time, file_path):
+               trial_type, response_time):
         """
         Inserts a new entry in the physiological_task_event_hed_rel table.
 
@@ -46,8 +46,6 @@ class PhysiologicalTaskEvent:
          :type trial_type               : str | null
         :param response_time            : Response time in seconds
          :type response_time            : float | null
-        :param file_path                : Relative path of events.tsv file
-         :type file_path                : str
 
         :return                     : id of the row inserted
          :rtype                     : int
@@ -55,12 +53,12 @@ class PhysiologicalTaskEvent:
         column_names = (
             'PhysiologicalFileID', 'EventFileID', 'Onset', 'Duration',
             'EventCode', 'EventValue', 'EventSample', 'EventType',
-            'TrialType', 'ResponseTime', 'FilePath'
+            'TrialType', 'ResponseTime'
         )
         values = (
             physiological_file_id, event_file_id, onset, duration,
             event_code, event_value, event_sample, event_type,
-            trial_type, response_time, file_path
+            trial_type, response_time
         )
         return self.db.insert(
             table_name=self.table,
