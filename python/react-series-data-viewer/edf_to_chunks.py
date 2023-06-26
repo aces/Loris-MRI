@@ -65,6 +65,8 @@ if __name__ == '__main__':
             if len(stim_channel_idxs) == 1:
                 continue
 
+            print('Creating chunk for channel {} for {}'.format(i, path))
+
             # excluding channels in the loader reduce the time required to read the file
             # and avoid memory issues
             # we only load the channel at index channel_index+i

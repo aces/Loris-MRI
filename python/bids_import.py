@@ -292,18 +292,6 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         lib.utilities.copy_file(root_event_metadata_file.path, loris_bids_root_dir + copy_file, verbose)
         event_metadata_path = copy_file.replace(data_dir, "")
 
-        print('copyfile: {}'.format(copy_file))
-        print('data dir: {}'.format(data_dir))
-        print('the path: {}'.format(event_metadata_path))
-
-        # TODO: Insert ref in DB
-        # # get the blake2b hash of the json events file
-        # blake2 = blake2b(root_event_metadata_file.path.encode('utf-8')).hexdigest()
-        # # insert event metadata in the database
-        # physiological.insert_event_metadata(
-        #     event_metadata, event_metadata_path, physiological_file_id, blake2
-        # )
-
         # load json data
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)

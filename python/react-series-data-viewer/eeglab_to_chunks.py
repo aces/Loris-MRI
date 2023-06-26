@@ -42,6 +42,7 @@ if __name__ == '__main__':
         if args.channel_count and args.channel_count < 0:
             sys.exit("Channel count must be a positive integer")
 
+        print('Creating chunks for {}'.format(path))
         chunking.write_chunk_directory(
             path=path,
             from_channel_index=args.channel_index,
