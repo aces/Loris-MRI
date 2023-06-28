@@ -225,7 +225,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             s3_path = file["original_file_path_field_value"]
             file["s3_link"] = "/".join(["s3:/", self.s3_obj.bucket_name, s3_path])
 
-            self.s3_obj.upload_file(file_full_path, s3_path)
+            self.s3_obj.upload_file(file_full_path, file["s3_link"])
 
     def _update_database_tables_with_s3_path(self, file_info):
         """
