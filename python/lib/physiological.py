@@ -990,11 +990,13 @@ class Physiological:
                 response_time=response_time,
             )
 
-            if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
-                self.insert_hed_string(
-                    row['HED'], last_task_id, None,
-                    None, None, False, False
-                )
+            # Currently not supporting HED field ingestion. Must first filter out those that are defined
+            # in events.json and "duplicated" in this HED field
+            # if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
+            #     self.insert_hed_string(
+            #         row['HED'], last_task_id, None,
+            #         None, None, False, False
+            #     )
 
             # if needed, process additional and unlisted
             # fields and send them in secondary table
