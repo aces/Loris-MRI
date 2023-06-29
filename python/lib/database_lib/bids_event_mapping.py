@@ -22,7 +22,8 @@ class BidsEventMapping:
         self.verbose = verbose
 
     def insert(self, target_id, property_name, property_value, hed_tag_id,
-               tag_value, description, has_pairing, pair_rel_id, project_wide):
+               tag_value, description, has_pairing, pair_rel_id,
+               additional_members, project_wide):
         """
         Inserts a new entry in the bids_event_*_mapping table.
 
@@ -42,6 +43,8 @@ class BidsEventMapping:
          :type has_pairing          : bool
         :param pair_rel_id          : ID of pair
          :type pair_rel_id          : int
+        :param additional_members   : Number of additional members in group
+         :type additional_members   : int
         :param project_wide         : True if dataset mapping, otherwise file mapping
          :type project_wide         : bool
 
@@ -51,11 +54,13 @@ class BidsEventMapping:
         column_names = (
             'ProjectID' if project_wide else 'EventFileID',
             'PropertyName', 'PropertyValue', 'HEDTagID',
-            'TagValue', 'Description', 'HasPairing', 'PairRelID'
+            'TagValue', 'Description', 'HasPairing', 'PairRelID',
+            'AdditionalMembers'
         )
         values = (
             target_id, property_name, property_value, hed_tag_id,
-            tag_value, description, has_pairing, pair_rel_id
+            tag_value, description, has_pairing, pair_rel_id,
+            additional_members
         )
         return self.db.insert(
             table_name=self.dataset_mapping_table if project_wide else self.file_mapping_table,

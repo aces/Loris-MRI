@@ -20,7 +20,8 @@ class PhysiologicalTaskEventHEDRel:
         self.table = 'physiological_task_event_hed_rel'
         self.verbose = verbose
 
-    def insert(self, target_id, hed_tag_id, tag_value, has_pairing, pair_rel_id):
+    def insert(self, target_id, hed_tag_id, tag_value, has_pairing,
+               pair_rel_id, additional_members):
         """
         Inserts a new entry in the physiological_task_event_hed_rel table.
 
@@ -34,6 +35,8 @@ class PhysiologicalTaskEventHEDRel:
          :type has_pairing          : bool
         :param pair_rel_id          : ID of pair
          :type pair_rel_id          : int
+        :param additional_members   : Number of additional members in group
+         :type additional_members   : int
 
         :return                     : id of the row inserted
          :rtype                     : int
@@ -43,14 +46,16 @@ class PhysiologicalTaskEventHEDRel:
             'HEDTagID',
             'TagValue',
             'HasPairing',
-            'PairRelID'
+            'PairRelID',
+            'AdditionalMembers'
         )
         values = (
             target_id,
             hed_tag_id,
             tag_value,
             has_pairing,
-            pair_rel_id
+            pair_rel_id,
+            additional_members
         )
         return self.db.insert(
             table_name=self.table,

@@ -665,6 +665,10 @@ class Physiological:
         return event_file_id
 
     def parse_and_insert_event_metadata(self, event_metadata, target_id, project_wide):
+        # Assuming all schemas are used. TODO: project_hed_schema_rel
+        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
+        hed_union = self.db.pselect(query=hed_query, args=())
+
         for parameter in event_metadata:
             parameter_name = parameter
             description = event_metadata[parameter]['Description'] \
@@ -688,13 +692,44 @@ class Physiological:
                         else None
 
                     if level_hed:
-                        self.insert_hed_string(level_hed, target_id, parameter_name,
+                        self.insert_hed_string(hed_union, level_hed, target_id, parameter_name,
                                                level_name, level_description, True, project_wide)
 
-    def insert_hed_string(self, hed_string, target_id, property_name, property_value,
-                          level_description, from_sidecar, project_wide):
+    @staticmethod
+    def get_additional_members_from_parenthesis_index(parentheses_to_find, end_index):
+        """
+        Helper method for determining AdditionalMembers for DB insert
+
+         :param parentheses_to_find     : Number of closing parentheses to find
+          :type parentheses_to_find     : int
+
+         :param end_index               : Current array index, to look back from
+          :type end_index               : int
+
+         :return                        : Number of additional members in group
+          :rtype                        : int
+
+         """
+        left_to_find = parentheses_to_find
+        sub_string_split = string_split[(len(string_split) - end_index - 1):]
+        additional_members = 0
+
+        for element_index, split_element in enumerate(sub_string_split):
+            left_to_find -= split_element.count(')')
+            left_to_find += split_element.count('(') if element_index > 0 else 0
+            if left_to_find == 1 and split_element.endswith(')'):
+                additional_members += 1
+            if left_to_find < 1:
+                return additional_members
+        return 0
+
+    def insert_hed_string(self, hed_union, hed_string, target_id, property_name,
+                          property_value, level_description, from_sidecar, project_wide):
         """
         Assembles physiological event HED tags.
+
+        :param hed_union            : Union of HED schemas
+         :type hed_union            : any
 
         :param hed_string           : HED string
          :type hed_string           : str
@@ -714,7 +749,7 @@ class Physiological:
         :param from_sidecar         : Whether tag comes from an events.json file
          :type from_sidecar         : bool
 
-        :param project_wide         : Target ProjectID or PhysiologicalEventFileID
+        :param project_wide         : Whether target is ProjectID or PhysiologicalEventFileID
          :type project_wide         : bool
 
         """
@@ -723,86 +758,102 @@ class Physiological:
 
         # NOT SUPPORTED: DEFS & VALUES
 
-        # We need to assume that we're using all schemas -- TODO: work backwards to do project -> schema rel
-        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
-        hed_union = self.db.pselect(query=hed_query, args=())
-
         string_split = hed_string.split(',')
         group_depth = 0
         pair_rel_id = None
 
-        for split_element in string_split.__reversed__():
+        for element_index, split_element in enumerate(string_split.__reversed__()):
+            additional_members = 0
+            has_pairing = False
             if group_depth == 0:
                 pair_rel_id = None
+
             element = split_element.strip()
-            if element.endswith(')'):   # May also start with (
-                has_pairing = False
-                right_stripped = element.rstrip(')')
-                group_depth += (len(element) - len(right_stripped))
+            right_stripped = element.rstrip(')')
+            left_stripped = right_stripped.lstrip('(')
+            num_opening_parentheses = len(right_stripped) - len(left_stripped)
 
-                left_stripped = right_stripped
-                if right_stripped.startswith('('):
-                    has_pairing = pair_rel_id is None   # Only True when first element
-                    left_stripped = right_stripped.lstrip('(')
-                    group_depth -= 1
+            has_pairing = element.startswith('(') and (
+                    pair_rel_id is None or not element.endswith(')')
+            )
 
-                # INSERT HED TAG
-                pair_rel_id = self.grep_hed_tag_and_insert(
-                    left_stripped, hed_union, target_id, property_name, property_value,
-                    level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
-                )
+            if has_pairing:
+                additional_members = get_additional_members_from_parenthesis_index(1, element_index)
 
-                num_opening_parentheses = len(right_stripped) - len(left_stripped)
-                for i in range(1, num_opening_parentheses):
-                    has_pairing = True
-                    group_depth -= 1
-                    # INSERT SURROUNDING PARENTHESIS TAG
-                    pair_rel_id = self.grep_hed_tag_and_insert(
-                        '', hed_union, target_id, property_name, property_value,
-                        level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
-                    )
-            elif element.startswith('('):
+            # pair_rel_id = grep_hed_tag_and_insert(left_stripped, has_pairing, pair_rel_id, additional_members)
+            pair_rel_id = self.grep_hed_tag_and_insert(
+                left_stripped, hed_union, target_id, property_name, property_value,
+                level_description, has_pairing, pair_rel_id, additional_members,
+                from_sidecar, project_wide
+            )
+
+            for i in range(
+                0 if group_depth > 0 and element.startswith('(') and element.endswith(')') else 1,
+                num_opening_parentheses
+            ):
                 has_pairing = True
-                group_depth -= 1
-                left_stripped = element.lstrip('(')
-
-                # INSERT HED TAG
+                additional_members = get_additional_members_from_parenthesis_index(i + 1, element_index)
                 pair_rel_id = self.grep_hed_tag_and_insert(
-                    left_stripped, hed_union, target_id, property_name, property_value,
-                    level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
+                    None, hed_union, target_id, property_name, property_value,
+                    level_description, has_pairing, pair_rel_id, additional_members,
+                    from_sidecar, project_wide
                 )
-
-                num_opening_parentheses = len(element) - len(left_stripped)
-                for i in range(1, num_opening_parentheses):
-                    group_depth -= 1
-                    # INSERT PARENTHESES TAG
-                    has_pairing = True
-                    pair_rel_id = self.grep_hed_tag_and_insert(
-                        '', hed_union, target_id, property_name, property_value,
-                        level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
-                    )
-            else:
-                # Not part of parenthesis group
-                has_pairing = False
-
-                # INSERT HED TAG
-                pair_rel_id = self.grep_hed_tag_and_insert(
-                    element, hed_union, target_id, property_name, property_value,
-                    level_description, has_pairing, pair_rel_id, from_sidecar, project_wide
-                )
+            group_depth += (len(element) - len(right_stripped))
+            group_depth -= num_opening_parentheses
 
     def grep_hed_tag_and_insert(self, tag_string, hed_union, target_id, property_name, property_value,
-                                level_description, has_pairing, pair_rel_id, from_sidecar, project_wide):
+                                level_description, has_pairing, pair_rel_id, additional_members,
+                                from_sidecar, project_wide):
+        """
+        Inserts HED tag after finding reference in union of HED schemas
 
-        leaf_node = tag_string.split('/')[-1]  # LIMITED SUPPORT FOR NOW - NO VALUES OR DEFS
-        if len(tag_string) > 0:
-            hed_tag = next(filter(lambda tag: tag['Name'] == leaf_node, list(hed_union)), None)
-            if not hed_tag:
-                print('ERROR: UNRECOGNIZED HED TAG: {}'.format(tag_string))
-                raise
-            hed_tag_id = hed_tag['ID']
-        else:
-            hed_tag_id = None
+        :param tag_string            : Tag string to insert
+        :type tag_string            : str | None
+
+        :param hed_union             : Union of HED schemas to search
+        :type hed_union             : any
+
+        :param target_id             : ProjectID if project_wide else PhysiologicalEventFileID
+        :type target_id             : int
+
+        :param property_name         : PropertyName
+        :type property_name         : str | None
+
+        :param property_value        : PropertyValue
+        :type property_value        : str | None
+
+        :param level_description     : Tag Description
+        :type level_description     : str | None
+
+        :param has_pairing           : Whether tag comes from an events.json file
+        :type has_pairing           : bool
+
+        :param pair_rel_id           : PairRelID for DB
+        :type pair_rel_id           : int
+
+        :param additional_members    : Number of additional memers encapsulated in group
+        :type additional_members    : int
+
+        :param from_sidecar          : Whether tag comes from an events.json file
+        :type from_sidecar          : bool
+
+        :param project_wide          : Whether target is ProjectID or PhysiologicalEventFileID
+        :type project_wide          : bool
+
+        :return                     : ID of the row inserted (PairRelID for next insert)
+        :rtype                      : int
+
+        """
+
+        hed_tag_id = None
+        if tag_string is not None:
+            leaf_node = tag_string.split('/')[-1]  # LIMITED SUPPORT FOR NOW - NO VALUES OR DEFS
+            if len(tag_string) > 0:
+                hed_tag = next(filter(lambda tag: tag['Name'] == leaf_node, list(hed_union)), None)
+                if not hed_tag:
+                    print('ERROR: UNRECOGNIZED HED TAG: {}'.format(tag_string))
+                    raise
+                hed_tag_id = hed_tag['ID']
 
         if from_sidecar:
             return self.bids_event_mapping_obj.insert(
@@ -814,6 +865,7 @@ class Physiological:
                 description=level_description,
                 has_pairing=has_pairing,
                 pair_rel_id=pair_rel_id,
+                additional_members=additional_members,
                 project_wide=project_wide
             )
         else:
@@ -822,7 +874,8 @@ class Physiological:
                 hed_tag_id=hed_tag_id,
                 tag_value=None,
                 has_pairing=has_pairing,
-                pair_rel_id=pair_rel_id
+                pair_rel_id=pair_rel_id,
+                additional_members=additional_members,
             )
 
     def insert_event_file(self, event_data, event_file, physiological_file_id,
