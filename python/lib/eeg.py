@@ -739,7 +739,7 @@ class Eeg:
                     # get the blake2b hash of the json events file
                     blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
                     # insert event metadata in the database
-                    file_tag_dict = physiological.insert_event_metadata(
+                    file_id, file_tag_dict = physiological.insert_event_metadata(
                         event_metadata=event_metadata,
                         event_metadata_file=event_metadata_path,
                         physiological_file_id=physiological_file_id,

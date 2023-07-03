@@ -252,24 +252,27 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
             bids_layout.root,
             ""
         )
-        print('loris_bids_root_dir: {}'.format(loris_bids_root_dir))
-        print('copy_file: {}'.format(copy_file))
-        print('data_dir: {}'.format(data_dir))
-        lib.utilities.copy_file(root_event_metadata_file.path, loris_bids_root_dir + copy_file, verbose)
-        event_metadata_path = copy_file.replace(data_dir, "")
+        event_metadata_path = loris_bids_root_dir + copy_file.lstrip('/')
+        lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
+
+
+        # TODO: Move
+        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
+        hed_union = db.pselect(query=hed_query, args=())
 
         # load json data
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)
         blake2 = blake2b(root_event_metadata_file.path.encode('utf-8')).hexdigest()
         physio = lib.physiological.Physiological(db, verbose)
-        dataset_tag_dict = physio.insert_event_metadata(
+        file_id, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,
             event_metadata_file=event_metadata_path,
             physiological_file_id=None,
             project_id=single_project_id,
             blake2=blake2,
-            project_wide=True
+            project_wide=True,
+            hed_union=hed_union
         )
 
     # read list of modalities per session / candidate and register data

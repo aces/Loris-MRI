@@ -4,6 +4,8 @@ import sys
 import re
 import os
 import subprocess
+from functools import reduce
+
 import lib.exitcode
 import lib.utilities as utilities
 from dataclasses import dataclass
@@ -699,7 +701,7 @@ class Physiological:
                         tag_groups = Physiological.build_hed_tag_groups(hed_union, level_hed)
                         for tag_group in tag_groups:
                             self.insert_hed_tag_group(tag_group, target_id, parameter_name,
-                                                   level_name, level_description, True, project_wide)
+                                                      level_name, level_description, True, project_wide)
                         tag_dict[parameter_name][level_name] = tag_groups
         return tag_dict
 
@@ -746,7 +748,8 @@ class Physiological:
                 self.has_pairing == other.has_pairing and \
                 self.additional_members == other.additional_members
 
-    def build_hed_tag_groups(self, hed_union, hed_string):
+    @staticmethod
+    def build_hed_tag_groups(hed_union, hed_string):
         """
         Assembles physiological event HED tags.
 
@@ -776,6 +779,7 @@ class Physiological:
             if group_depth == 0:
                 if len(tag_group) > 0:
                     tag_groups.append(tag_group)
+                    tag_group = []
 
             element = split_element.strip()
             right_stripped = element.rstrip(')')
@@ -789,7 +793,7 @@ class Physiological:
             if has_pairing:
                 additional_members = Physiological.get_additional_members_from_parenthesis_index(string_split, 1, element_index)
 
-            hed_tag_id = self.get_hed_tag_id_from_name(left_stripped, hed_union)
+            hed_tag_id = Physiological.get_hed_tag_id_from_name(left_stripped, hed_union)
             tag_group.append(Physiological.TagGroupMember(hed_tag_id, has_pairing, additional_members))
 
             for i in range(
@@ -803,6 +807,7 @@ class Physiological:
             group_depth -= num_opening_parentheses
         if len(tag_group) > 0:
             tag_groups.append(tag_group)
+
         return tag_groups
 
 
@@ -856,10 +861,42 @@ class Physiological:
             )
 
     @staticmethod
+    def standardize_row_columns(row):
+        """
+        Standardizes LORIS-recognized events.tsv columns to their DB column name
+
+       :param row                  : A row item from the events.tsv
+        :type row                  : dict
+
+       :return: Standardized row
+        :rtype: dict
+       """
+        standardized_row = {}
+        recognized_event_fields = [
+            'Onset', 'Duration', 'TrialType',
+            'ResponseTime', 'EventCode',
+            'EventSample', 'EventType'
+        ]
+        for column_name in row:
+            column_value = row[column_name]
+            if column_value is None:
+                continue
+
+            stripped_name = column_name.replace('_', '')
+            try:
+                field_index = list(map(lambda f: f.lower(), recognized_event_fields)).index(stripped_name)
+                column = recognized_event_fields[field_index]
+            except ValueError:
+                column = 'EventValue' if (column_name == 'value' or column_name == 'event_value') else column_name
+            standardized_row[column] = column_value
+
+        return standardized_row
+
+    @staticmethod
     def filter_inherited_tags(row, tag_groups, dataset_tag_dict, file_tag_dict):
         """
         Filters for tags inherited from events.json
-        
+
         :param row                  : A row item from the events.tsv
          :type row                  : dict
         :param tag_groups           : Tag groups to filter
@@ -868,16 +905,19 @@ class Physiological:
          :type dataset_tag_dict     : dict
         :param file_tag_dict        : Dict of subject-inherited HED tags
          :type file_tag_dict        : dict
-          
+
         :return: List of tag groups not inherited from events.json
          :rtype: list[list[TagGroupMember]
         """
-        # Only dataset tags currently supported until overwrite
         # TODO: Overwrite dataset tags with file tags
-        inherited_tag_groups = [
-            dataset_tag_dict[column_name][row[column_name]]
-            for column_name in row
-        ]
+        # Only dataset tags currently supported until overwrite
+        standardized_row = Physiological.standardize_row_columns(row)
+        inherited_tag_groups = reduce(lambda a, b: a + b, [
+            dataset_tag_dict[column_name][standardized_row[column_name]]
+            for column_name in standardized_row
+            if column_name in dataset_tag_dict and
+               standardized_row[column_name] in dataset_tag_dict[column_name]
+        ], [])
         return filter(
             lambda tag_group: not any(
                 len(tag_group) == len(inherited_tag_group) and
@@ -1026,12 +1066,12 @@ class Physiological:
 
             # Insert HED tags after filtering out inherited tags from events.json, so that they are not "duplicated"
             if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
-                tag_groups = Physiological.build_hed_tag_groups(row['HED'], hed_union)
+                tag_groups = Physiological.build_hed_tag_groups(hed_union, row['HED'])
                 tag_groups_without_inherited = Physiological.filter_inherited_tags(
                     row, tag_groups, dataset_tag_dict, file_tag_dict
                 )
                 for tag_group in tag_groups_without_inherited:
-                    self.insert_hed_tag_group(tag_group, event_file_id)
+                    self.insert_hed_tag_group(tag_group, last_task_id)
 
             # if needed, process additional and unlisted
             # fields and send them in secondary table
