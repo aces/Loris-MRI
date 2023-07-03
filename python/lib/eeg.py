@@ -68,7 +68,8 @@ class Eeg:
                         data_dir      = data_dir,
                         default_visit_label    = default_bids_vl,
                         loris_bids_eeg_rel_dir = loris_bids_eeg_rel_dir,
-                        loris_bids_root_dir    = loris_bids_root_dir
+                        loris_bids_root_dir    = loris_bids_root_dir,
+                        dataset_tag_dict       = dataset_tag_dict
                     )
 
         # disconnect from the database
@@ -76,8 +77,8 @@ class Eeg:
     """
 
     def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
-                 verbose, data_dir, default_visit_label,
-                 loris_bids_eeg_rel_dir, loris_bids_root_dir):
+                 verbose, data_dir, default_visit_label, loris_bids_eeg_rel_dir,
+                 loris_bids_root_dir, dataset_tag_dict):
         """
         Constructor method for the Eeg class.
 
@@ -102,6 +103,9 @@ class Eeg:
          :type loris_bids_eeg_rel_dir: str
         :param loris_bids_root_dir   : LORIS BIDS root directory path
          :type loris_bids_root_dir   : str
+        :param dataset_tag_dict      : Dict of dataset-inherited HED tags
+         :type dataset_tag_dict      : dict
+
         """
 
         # load bids objects
@@ -115,9 +119,12 @@ class Eeg:
         self.data_dir               = data_dir
 
         # load bids subject, visit and modality
-        self.bids_sub_id   = bids_sub_id
-        self.bids_ses_id   = bids_ses_id
-        self.bids_modality = bids_modality
+        self.bids_sub_id        = bids_sub_id
+        self.bids_ses_id        = bids_ses_id
+        self.bids_modality      = bids_modality
+
+        # load dataset tag dict. Used to ensure HED tags aren't duplicated
+        self.dataset_tag_dict   = dataset_tag_dict
 
         # load database handler object and verbose bool
         self.db      = db
@@ -130,6 +137,9 @@ class Eeg:
         self.cand_id         = self.loris_cand_info['CandID']
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
+
+        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
+        self.hed_union = self.db.pselect(query=hed_query, args=())
 
         self.cohort_id   = None
         for row in bids_reader.participants_info:
@@ -696,25 +706,10 @@ class Eeg:
                 physiological_file_id
             )
 
+            file_tag_dict = {}
             if not event_paths:
                 event_paths = []
-
-                event_data = utilities.read_tsv_file(event_data_file.path)
-                # copy the event file to the LORIS BIDS import directory
-                event_path = self.copy_file_to_loris_bids_dir(
-                    event_data_file.path, derivatives
-                )
-
-                # get the blake2b hash of the task events file
-                blake2 = utilities.compute_blake2b_hash(event_data_file.path)
-
-                # insert event data in the database
-                physiological.insert_event_file(
-                    event_data, event_path, physiological_file_id, self.project_id, blake2
-                )
-
-                event_paths.extend([event_path])
-
+        
                 # get events.json file and insert
                 # subject-specific metadata
                 event_metadata_file = self.bids_layout.get_nearest(
@@ -728,18 +723,6 @@ class Eeg:
                     subject=self.psc_id,
                 )
                 inheritance = False
-
-                # # global events metadata
-                # event_metadata_file = self.bids_layout.get_nearest(
-                #     event_data_file.path,
-                #     return_type = 'tuple',
-                #     strict = False,
-                #     extension = 'json',
-                #     suffix = 'events',
-                #     all_ = False,
-                #     full_search = False,
-                # )
-                # inheritance = True
 
                 if not event_metadata_file:
                     message = '\nWARNING: no events metadata files (event.json) associated' \
@@ -756,16 +739,39 @@ class Eeg:
                     # get the blake2b hash of the json events file
                     blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
                     # insert event metadata in the database
-                    physiological.insert_event_metadata(
+                    file_tag_dict = physiological.insert_event_metadata(
                         event_metadata=event_metadata,
                         event_metadata_file=event_metadata_path,
                         physiological_file_id=physiological_file_id,
                         project_id=self.project_id,
                         blake2=blake2,
-                        project_wide=False
+                        project_wide=False,
+                        hed_union=self.hed_union
                     )
-
                     event_paths.extend([event_metadata_path])
+
+            # get events.tsv file and insert
+            event_data = utilities.read_tsv_file(event_data_file.path)
+            # copy the event file to the LORIS BIDS import directory
+            event_path = self.copy_file_to_loris_bids_dir(
+                event_data_file.path, derivatives
+            )
+            # get the blake2b hash of the task events file
+            blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
+
+            # insert event data in the database
+            physiological.insert_event_file(
+                event_data=event_data,
+                event_file=event_path,
+                physiological_file_id=physiological_file_id,
+                project_id=self.project_id,
+                blake2=blake2,
+                dataset_tag_dict=self.dataset_tag_dict,
+                file_tag_dict=file_tag_dict,
+                hed_union=self.hed_union
+            )
+
+            event_paths.extend([event_path])
 
         return event_paths
 

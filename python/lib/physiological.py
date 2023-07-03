@@ -6,6 +6,7 @@ import os
 import subprocess
 import lib.exitcode
 import lib.utilities as utilities
+from dataclasses import dataclass
 from lib.database_lib.parameter_type import ParameterType
 from lib.database_lib.physiological_file import PhysiologicalFile
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
@@ -616,7 +617,7 @@ class Physiological:
         )
 
     def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id,
-                              project_id, blake2, project_wide):
+                              project_id, blake2, project_wide, hed_union):
         """
         Inserts the events metadata information read from the file *events.json
         into the physiological_event_file, physiological_event_parameter
@@ -636,6 +637,8 @@ class Physiological:
          :type blake2                   : str
         :param project_wide             : ProjectID if true, otherwise PhysiologicalFileID
          :type project_wide             : bool
+        :param hed_union                : Union of HED schemas
+         :type hed_union                : any
 
         :return: event file id
          :rtype: int
@@ -648,10 +651,11 @@ class Physiological:
             event_metadata_file
         )
 
-        self.parse_and_insert_event_metadata(
+        tag_dict = self.parse_and_insert_event_metadata(
             event_metadata=event_metadata,
             target_id=project_id if project_wide else physiological_file_id,
-            project_wide=project_wide
+            project_wide=project_wide,
+            hed_union=hed_union
         )
 
         # insert blake2b hash of task event file into physiological_parameter_file
@@ -662,15 +666,14 @@ class Physiological:
             project_id
         )
 
-        return event_file_id
+        return event_file_id, tag_dict
 
-    def parse_and_insert_event_metadata(self, event_metadata, target_id, project_wide):
-        # Assuming all schemas are used. TODO: project_hed_schema_rel
-        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
-        hed_union = self.db.pselect(query=hed_query, args=())
+    def parse_and_insert_event_metadata(self, event_metadata, target_id, project_wide, hed_union):
+        tag_dict = {}
 
         for parameter in event_metadata:
             parameter_name = parameter
+            tag_dict[parameter_name] = {}
             description = event_metadata[parameter]['Description'] \
                 if 'Description' in event_metadata[parameter] \
                 else None
@@ -686,19 +689,27 @@ class Physiological:
             if is_categorical == 'Y':
                 for level in event_metadata[parameter]['Levels']:
                     level_name = level
+                    tag_dict[parameter_name][level_name] = []
                     level_description = event_metadata[parameter]['Levels'][level]
                     level_hed = event_metadata[parameter]['HED'][level] \
                         if 'HED' in event_metadata[parameter] and level in event_metadata[parameter]['HED'] \
                         else None
 
                     if level_hed:
-                        self.insert_hed_string(hed_union, level_hed, target_id, parameter_name,
-                                               level_name, level_description, True, project_wide)
+                        tag_groups = Physiological.build_hed_tag_groups(hed_union, level_hed)
+                        for tag_group in tag_groups:
+                            self.insert_hed_tag_group(tag_group, target_id, parameter_name,
+                                                   level_name, level_description, True, project_wide)
+                        tag_dict[parameter_name][level_name] = tag_groups
+        return tag_dict
 
     @staticmethod
-    def get_additional_members_from_parenthesis_index(parentheses_to_find, end_index):
+    def get_additional_members_from_parenthesis_index(string_split, parentheses_to_find, end_index):
         """
         Helper method for determining AdditionalMembers for DB insert
+
+         :param string_split            : String array to search
+          :type string_split            : list[str]
 
          :param parentheses_to_find     : Number of closing parentheses to find
           :type parentheses_to_find     : int
@@ -723,8 +734,19 @@ class Physiological:
                 return additional_members
         return 0
 
-    def insert_hed_string(self, hed_union, hed_string, target_id, property_name,
-                          property_value, level_description, from_sidecar, project_wide):
+    @dataclass
+    class TagGroupMember:
+        hed_tag_id: int | None
+        has_pairing: bool
+        additional_members: int
+        tag_value: str | None = None
+
+        def __eq__(self, other):
+            return self.hed_tag_id == other.hed_tag_id and \
+                self.has_pairing == other.has_pairing and \
+                self.additional_members == other.additional_members
+
+    def build_hed_tag_groups(self, hed_union, hed_string):
         """
         Assembles physiological event HED tags.
 
@@ -733,6 +755,64 @@ class Physiological:
 
         :param hed_string           : HED string
          :type hed_string           : str
+
+        :return                     : List of HEDTagID groups
+         :rtype                     : list[TagGroupMember]
+        """
+        # TODO: VALIDATE HED TAGS VIA SERVICE
+        # hedDict = utilities.assemble_hed_service(data_dir, event_tsv, event_json)
+
+        # NOT SUPPORTED: DEFS & VALUES
+
+        # TODO: TRANSACTION THAT ROLLS BACK IF HED_TAG_ID LIST MATCHES (CONSIDER ADDING ADDITIONAL + HP TO IT)
+
+        string_split = hed_string.split(',')
+        group_depth = 0
+        tag_groups = []
+        tag_group = []
+
+        for element_index, split_element in enumerate(string_split.__reversed__()):
+            additional_members = 0
+            if group_depth == 0:
+                if len(tag_group) > 0:
+                    tag_groups.append(tag_group)
+
+            element = split_element.strip()
+            right_stripped = element.rstrip(')')
+            left_stripped = right_stripped.lstrip('(')
+            num_opening_parentheses = len(right_stripped) - len(left_stripped)
+
+            has_pairing = element.startswith('(') and (
+                group_depth == 0 or not element.endswith(')')
+            )
+
+            if has_pairing:
+                additional_members = Physiological.get_additional_members_from_parenthesis_index(string_split, 1, element_index)
+
+            hed_tag_id = self.get_hed_tag_id_from_name(left_stripped, hed_union)
+            tag_group.append(Physiological.TagGroupMember(hed_tag_id, has_pairing, additional_members))
+
+            for i in range(
+                0 if group_depth > 0 and element.startswith('(') and element.endswith(')') else 1,
+                num_opening_parentheses
+            ):
+                has_pairing = True
+                additional_members = Physiological.get_additional_members_from_parenthesis_index(string_split, i + 1, element_index)
+                tag_group.append(Physiological.TagGroupMember(None, has_pairing, additional_members))
+            group_depth += (len(element) - len(right_stripped))
+            group_depth -= num_opening_parentheses
+        if len(tag_group) > 0:
+            tag_groups.append(tag_group)
+        return tag_groups
+
+
+    def insert_hed_tag_group(self, hed_tag_group, target_id, property_name=None, property_value=None,
+                             level_description=None, from_sidecar=False, project_wide=False):
+        """
+        Assembles physiological event HED tags.
+
+        :param hed_tag_group        : List of TagGroupMember to insert
+         :type hed_tag_group        : list[TagGroupMember]
 
         :param target_id            : ProjectID if project_wide else PhysiologicalEventFileID
          :type target_id            : int
@@ -753,98 +833,65 @@ class Physiological:
          :type project_wide         : bool
 
         """
-        # TODO: VALIDATE HED TAGS VIA SERVICE
-        # hedDict = utilities.assemble_hed_service(data_dir, event_tsv, event_json)
-
-        # NOT SUPPORTED: DEFS & VALUES
-
-        string_split = hed_string.split(',')
-        group_depth = 0
         pair_rel_id = None
-
-        for element_index, split_element in enumerate(string_split.__reversed__()):
-            additional_members = 0
-            has_pairing = False
-            if group_depth == 0:
-                pair_rel_id = None
-
-            element = split_element.strip()
-            right_stripped = element.rstrip(')')
-            left_stripped = right_stripped.lstrip('(')
-            num_opening_parentheses = len(right_stripped) - len(left_stripped)
-
-            has_pairing = element.startswith('(') and (
-                    pair_rel_id is None or not element.endswith(')')
+        for hed_tag in hed_tag_group:
+            pair_rel_id = self.bids_event_mapping_obj.insert(
+                target_id=target_id,
+                property_name=property_name,
+                property_value=property_value,
+                hed_tag_id=hed_tag.hed_tag_id,
+                tag_value=hed_tag.tag_value,
+                description=level_description,
+                has_pairing=hed_tag.has_pairing,
+                pair_rel_id=pair_rel_id,
+                additional_members=hed_tag.additional_members,
+                project_wide=project_wide
+            ) if from_sidecar else self.physiological_task_event_hed_rel.insert(
+                target_id=target_id,
+                hed_tag_id=hed_tag.hed_tag_id,
+                tag_value=hed_tag.tag_value,
+                has_pairing=hed_tag.has_pairing,
+                pair_rel_id=pair_rel_id,
+                additional_members=hed_tag.additional_members,
             )
 
-            if has_pairing:
-                additional_members = get_additional_members_from_parenthesis_index(1, element_index)
-
-            # pair_rel_id = grep_hed_tag_and_insert(left_stripped, has_pairing, pair_rel_id, additional_members)
-            pair_rel_id = self.grep_hed_tag_and_insert(
-                left_stripped, hed_union, target_id, property_name, property_value,
-                level_description, has_pairing, pair_rel_id, additional_members,
-                from_sidecar, project_wide
-            )
-
-            for i in range(
-                0 if group_depth > 0 and element.startswith('(') and element.endswith(')') else 1,
-                num_opening_parentheses
-            ):
-                has_pairing = True
-                additional_members = get_additional_members_from_parenthesis_index(i + 1, element_index)
-                pair_rel_id = self.grep_hed_tag_and_insert(
-                    None, hed_union, target_id, property_name, property_value,
-                    level_description, has_pairing, pair_rel_id, additional_members,
-                    from_sidecar, project_wide
+    @staticmethod
+    def filter_inherited_tags(row, tag_groups, dataset_tag_dict, file_tag_dict):
+        """
+        Filters for tags inherited from events.json
+        
+        :param row                  : A row item from the events.tsv
+         :type row                  : dict
+        :param tag_groups           : Tag groups to filter
+         :type tag_groups           : list[list[TagGroupMember]
+        :param dataset_tag_dict     : Dict of dataset-inherited HED tags
+         :type dataset_tag_dict     : dict
+        :param file_tag_dict        : Dict of subject-inherited HED tags
+         :type file_tag_dict        : dict
+          
+        :return: List of tag groups not inherited from events.json
+         :rtype: list[list[TagGroupMember]
+        """
+        # Only dataset tags currently supported until overwrite
+        # TODO: Overwrite dataset tags with file tags
+        inherited_tag_groups = [
+            dataset_tag_dict[column_name][row[column_name]]
+            for column_name in row
+        ]
+        return filter(
+            lambda tag_group: not any(
+                len(tag_group) == len(inherited_tag_group) and
+                all(
+                    tag_group[i] == inherited_tag_group[i]
+                    for i in range(len(tag_group))
                 )
-            group_depth += (len(element) - len(right_stripped))
-            group_depth -= num_opening_parentheses
+                for inherited_tag_group in inherited_tag_groups
+            ),
+            tag_groups
+        )
 
-    def grep_hed_tag_and_insert(self, tag_string, hed_union, target_id, property_name, property_value,
-                                level_description, has_pairing, pair_rel_id, additional_members,
-                                from_sidecar, project_wide):
-        """
-        Inserts HED tag after finding reference in union of HED schemas
-
-        :param tag_string            : Tag string to insert
-        :type tag_string            : str | None
-
-        :param hed_union             : Union of HED schemas to search
-        :type hed_union             : any
-
-        :param target_id             : ProjectID if project_wide else PhysiologicalEventFileID
-        :type target_id             : int
-
-        :param property_name         : PropertyName
-        :type property_name         : str | None
-
-        :param property_value        : PropertyValue
-        :type property_value        : str | None
-
-        :param level_description     : Tag Description
-        :type level_description     : str | None
-
-        :param has_pairing           : Whether tag comes from an events.json file
-        :type has_pairing           : bool
-
-        :param pair_rel_id           : PairRelID for DB
-        :type pair_rel_id           : int
-
-        :param additional_members    : Number of additional memers encapsulated in group
-        :type additional_members    : int
-
-        :param from_sidecar          : Whether tag comes from an events.json file
-        :type from_sidecar          : bool
-
-        :param project_wide          : Whether target is ProjectID or PhysiologicalEventFileID
-        :type project_wide          : bool
-
-        :return                     : ID of the row inserted (PairRelID for next insert)
-        :rtype                      : int
-
-        """
-
+    @staticmethod
+    def get_hed_tag_id_from_name(tag_string, hed_union):
         hed_tag_id = None
         if tag_string is not None:
             leaf_node = tag_string.split('/')[-1]  # LIMITED SUPPORT FOR NOW - NO VALUES OR DEFS
@@ -854,32 +901,12 @@ class Physiological:
                     print('ERROR: UNRECOGNIZED HED TAG: {}'.format(tag_string))
                     raise
                 hed_tag_id = hed_tag['ID']
+        return hed_tag_id
 
-        if from_sidecar:
-            return self.bids_event_mapping_obj.insert(
-                target_id=target_id,
-                property_name=property_name,
-                property_value=property_value,
-                hed_tag_id=hed_tag_id,
-                tag_value=None,
-                description=level_description,
-                has_pairing=has_pairing,
-                pair_rel_id=pair_rel_id,
-                additional_members=additional_members,
-                project_wide=project_wide
-            )
-        else:
-            return self.physiological_task_event_hed_rel.insert(
-                target_id=target_id,
-                hed_tag_id=hed_tag_id,
-                tag_value=None,
-                has_pairing=has_pairing,
-                pair_rel_id=pair_rel_id,
-                additional_members=additional_members,
-            )
 
     def insert_event_file(self, event_data, event_file, physiological_file_id,
-                          project_id, blake2):
+                          project_id, blake2, dataset_tag_dict, file_tag_dict,
+                          hed_union):
         """
         Inserts the event information read from the file *events.tsv
         into the physiological_task_event table, linking it to the
@@ -898,7 +925,14 @@ class Physiological:
          :type project_id           : int
         :param blake2               : blake2b hash of the task event file
          :type blake2               : str
+        :param dataset_tag_dict     : Dict of dataset-inherited HED tags
+         :type dataset_tag_dict     : dict
+        :param file_tag_dict        : Dict of subject-inherited HED tags
+         :type file_tag_dict        : dict
+        :param hed_union            : Union of HED schemas
+         :type hed_union            : any
         """
+
 
         event_file_id = self.physiological_event_file_obj.insert(
             physiological_file_id,
@@ -990,13 +1024,14 @@ class Physiological:
                 response_time=response_time,
             )
 
-            # Currently not supporting HED field ingestion. Must first filter out those that are defined
-            # in events.json and "duplicated" in this HED field
-            # if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
-            #     self.insert_hed_string(
-            #         row['HED'], last_task_id, None,
-            #         None, None, False, False
-            #     )
+            # Insert HED tags after filtering out inherited tags from events.json, so that they are not "duplicated"
+            if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
+                tag_groups = Physiological.build_hed_tag_groups(row['HED'], hed_union)
+                tag_groups_without_inherited = Physiological.filter_inherited_tags(
+                    row, tag_groups, dataset_tag_dict, file_tag_dict
+                )
+                for tag_group in tag_groups_without_inherited:
+                    self.insert_hed_tag_group(tag_group, event_file_id)
 
             # if needed, process additional and unlisted
             # fields and send them in secondary table

@@ -228,6 +228,50 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
             center_id,     project_id, cohort_id
         )
 
+    # Import root-level (dataset-wide) events.json
+    # Assumption: Single project for project-wide tags
+    bids_layout = bids_reader.bids_layout
+    root_event_metadata_file = bids_layout.get_nearest(
+        bids_dir,
+        return_type='tuple',
+        strict=False,
+        extension='json',
+        suffix='events',
+        all_=False
+    )
+
+    dataset_tag_dict = {}
+    if not root_event_metadata_file:
+        message = '\nWARNING: no events metadata files (event.json) in ' \
+                  'root directory'
+        print(message)
+    else:
+        # copy the event file to the LORIS BIDS import directory
+        copy_file = str.replace(
+            root_event_metadata_file.path,
+            bids_layout.root,
+            ""
+        )
+        print('loris_bids_root_dir: {}'.format(loris_bids_root_dir))
+        print('copy_file: {}'.format(copy_file))
+        print('data_dir: {}'.format(data_dir))
+        lib.utilities.copy_file(root_event_metadata_file.path, loris_bids_root_dir + copy_file, verbose)
+        event_metadata_path = copy_file.replace(data_dir, "")
+
+        # load json data
+        with open(root_event_metadata_file.path) as metadata_file:
+            event_metadata = json.load(metadata_file)
+        blake2 = blake2b(root_event_metadata_file.path.encode('utf-8')).hexdigest()
+        physio = lib.physiological.Physiological(db, verbose)
+        dataset_tag_dict = physio.insert_event_metadata(
+            event_metadata=event_metadata,
+            event_metadata_file=event_metadata_path,
+            physiological_file_id=None,
+            project_id=single_project_id,
+            blake2=blake2,
+            project_wide=True
+        )
+
     # read list of modalities per session / candidate and register data
     for row in bids_reader.cand_session_modalities_list:
         bids_session = row['bids_ses_id']
@@ -249,7 +293,8 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     data_dir      = data_dir,
                     default_visit_label    = default_bids_vl,
                     loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
-                    loris_bids_root_dir    = loris_bids_root_dir
+                    loris_bids_root_dir    = loris_bids_root_dir,
+                    dataset_tag_dict       = dataset_tag_dict
                 )
 
             elif modality in ['anat', 'dwi', 'fmap', 'func']:
@@ -265,46 +310,6 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
-
-    # Import root-level (dataset-wide) events.json
-    # Assumption: Single project for project-wide tags
-    bids_layout = bids_reader.bids_layout
-    root_event_metadata_file = bids_layout.get_nearest(
-        bids_dir,
-        return_type='tuple',
-        strict=False,
-        extension='json',
-        suffix='events',
-        all_=False
-    )
-
-    if not root_event_metadata_file:
-        message = '\nWARNING: no events metadata files (event.json) in ' \
-                  'root directory'
-        print(message)
-    else:
-        # copy the event file to the LORIS BIDS import directory
-        copy_file = str.replace(
-            root_event_metadata_file.path,
-            bids_layout.root,
-            ""
-        )
-        lib.utilities.copy_file(root_event_metadata_file.path, loris_bids_root_dir + copy_file, verbose)
-        event_metadata_path = copy_file.replace(data_dir, "")
-
-        # load json data
-        with open(root_event_metadata_file.path) as metadata_file:
-            event_metadata = json.load(metadata_file)
-        blake2 = blake2b(root_event_metadata_file.path.encode('utf-8')).hexdigest()
-        physio = lib.physiological.Physiological(db, verbose)
-        physio.insert_event_metadata(
-            event_metadata=event_metadata,
-            event_metadata_file=event_metadata_path,
-            physiological_file_id=None,
-            project_id=single_project_id,
-            blake2=blake2,
-            project_wide=True
-        )
 
     # disconnect from the database
     db.disconnect()
