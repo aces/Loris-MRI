@@ -93,7 +93,6 @@ use constant BIDS_DATASET_AUTHORS        => 'bids_dataset_authors';
 use constant BIDS_ACKNOWLEDGMENTS_TEXT   => 'bids_acknowledgments_text';
 use constant BIDS_README_TEXT            => 'bids_readme_text';
 use constant BIDS_VALIDATOR_OPTIONS_TO_IGNORE => 'bids_validator_options_to_ignore';
-use constant CREATE_CANDIDATES           => 'createCandidates';
 use constant CREATE_VISIT                => 'createVisit';
 use constant DEFAULT_PROJECT             => 'default_project';
 use constant DEFAULT_COHORT              => 'default_cohort';
