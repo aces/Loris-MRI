@@ -1292,7 +1292,7 @@ sub compute_hash {
     # open the file
     use Digest::MD5;
     my $filename = $file->getFileDatum('File');
-    my $fileType = $file->getFileDatum('FileType');
+    my $fileType = $file->getFileDatum('FileType') // "unknown";
     open FILE, "minctoraw -nonormalize $filename |" if $fileType eq 'mnc';
     open FILE, "<$filename" unless $fileType eq 'mnc';
 

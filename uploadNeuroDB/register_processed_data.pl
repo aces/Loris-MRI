@@ -217,8 +217,9 @@ my $file    =   NeuroDB::File->new(\$dbh);
 
 # Load File object
 $file->loadFileFromDisk($filename);
+my $fileType = $file->getFileDatum('FileType') // "unknown";
 
-if  ($file->getFileDatum('FileType') eq 'mnc')  {
+if  ($fileType eq 'mnc')  {
     
     # Map dicom fields
     &NeuroDB::MRI::mapDicomParameters(\$file);
@@ -235,7 +236,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 # ----- STEP 2: Verify PSC information using whatever field contains the site string 
 #       (only for minc files)
 my  ($center_name,$centerID);
-if  ($file->getFileDatum('FileType') eq 'mnc')  {
+if  ($fileType eq 'mnc')  {
     my $patientInfo;
     if ($lookupCenterName eq 'PatientName') {
         $patientInfo = &NeuroDB::MRI::fetch_header_info(
@@ -275,8 +276,11 @@ print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
 
 # ----- STEP 4: Verify project information
 my $projectID = NeuroDB::MRI::getProject($subjectIDsref, \$dbh, $db);
-print LOG "\nERROR: No project found for this candidate \n\n";
-exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+if (!defined $projectID) {
+    print LOG "\nERROR: No project found for this candidate \n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+}
+
 print LOG  "\n==> ProjectID : $projectID\n";
 
 
@@ -285,7 +289,7 @@ print LOG  "\n==> ProjectID : $projectID\n";
 #                   - on sourceFileID for other type of files
 my $scannerID;
 
-if  ($file->getFileDatum('FileType') eq 'mnc')  {
+if  ($fileType eq 'mnc')  {
     my  %scannerInfo;
     $scannerInfo{'ScannerManufacturer'} = &NeuroDB::MRI::fetch_header_info(
         $filename, 'study:manufacturer'
