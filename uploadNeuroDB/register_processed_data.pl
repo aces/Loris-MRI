@@ -139,19 +139,6 @@ unless  ($filename && $sourceFileID && $sourcePipeline && $scanType
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
-# Make sure sourceFileID is valid
-unless  ((defined($sourceFileID)) && ($sourceFileID =~ /^[0-9]+$/)) {
-    print STDERR "Files to be registered require the -sourceFileID option "
-                 . "with a valid FileID as an argument\n";
-    exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
-
-# Make sure we have permission to read the file
-unless  (-r $filename)  {
-    print STDERR "Cannot read $filename\n";
-    exit $NeuroDB::ExitCodes::INVALID_PATH;
-}
-
 # ----------------------------------------------------------------
 ## Establish database connection
 # ----------------------------------------------------------------
@@ -168,6 +155,33 @@ my $db  = NeuroDB::Database->new(
 );
 $db->connect();
 
+# Make sure sourceFileID is valid (i.e exists in table files)
+my $query = "SELECT FileID FROM files WHERE FileID = ?";
+my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $sourceFileID);
+if (@$rowsRef == 0) {
+    print STDERR "Argument '$sourceFileID' for option -sourceFileID is not an existing file ID. Aborting.\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
+
+# Make sure all file IDs in the list specified with -inputFileIDs
+# are valid (i.e exist in table files) and are not equal to $sourceFileID
+foreach my $fid (split(/;/, $inputFileIDs)) {
+    $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $fid);
+    if (@$rowsRef == 0) {
+        print STDERR "Argument '$fid' for option -inputFileIDs is not an existing file ID. Aborting.\n";
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    }
+    if ($rowsRef->[0]->{'FileID'} == $sourceFileID) {
+        print STDERR "Argument to -inputFileIDs cannot contain the source file ID ($sourceFileID). Aborting.\n";
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    }
+}
+
+# Make sure we have permission to read the file
+unless  (-r $filename)  {
+    print STDERR "Cannot read $filename\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
 
 # ----------------------------------------------------------------
 ## Get config setting using ConfigOB
