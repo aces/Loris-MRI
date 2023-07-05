@@ -223,8 +223,11 @@ if ( $metadata_file && !(-r $metadata_file) ){
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
-
-
+# Ensure argument to -date_acquired is a valid date in format YYYY-MM-DD
+if ($date_acquired !~ /^\d{4}-\d{2}-\d{2}$/ || !str2time($date_acquired)) {
+    print STDERR "$Usage\n\tERROR: argument '$date_acquired' for -date_acquired is not a valid date in YYYY-MM-DD format.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
 
 # ----------------------------------------------------------------
 ## Establish database connection
