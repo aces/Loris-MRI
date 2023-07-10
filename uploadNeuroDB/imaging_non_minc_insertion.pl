@@ -289,6 +289,23 @@ LOG->autoflush(1);
 $message = "\n==> Successfully connected to database\n";
 print LOG $message;
 
+##### Verify that the upload ID refers to a valid upload ID
+my $query = "SELECT UploadID FROM mri_upload WHERE UploadID=?";
+my $sth = $dbh->prepare($query);
+$sth->execute($upload_id);
+unless ($sth->rows > 0) {
+    # if no row returned, exits with message that did not find this upload ID
+    $message = "\n\tERROR: Invalid UploadID $upload_id.\n\n";
+    # write error message in the log file
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::SELECT_FAILURE, $log_file
+    );
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+}
+
+
+
+
 
 ##### Exit if the provided scanner ID does not refer to a valid scanner entry
 unless ( defined NeuroDB::MRI::getScannerCandID($scanner_id, $db) ) {
@@ -307,28 +324,6 @@ unless ( defined NeuroDB::MRI::getScannerCandID($scanner_id, $db) ) {
     exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 
-
-
-
-##### Verify that the upload ID refers to a valid upload ID
-my $query = "SELECT UploadID FROM mri_upload WHERE UploadID=?";
-my $sth = $dbh->prepare($query);
-$sth->execute($upload_id);
-unless ($sth->rows > 0) {
-    # if no row returned, exits with message that did not find this upload ID
-    $message = "\n\tERROR: Invalid UploadID $upload_id.\n\n";
-    # write error message in the log file
-    $utility->writeErrorLog(
-        $message, $NeuroDB::ExitCodes::SELECT_FAILURE, $log_file
-    );
-    # insert error message into notification spool table
-    $notifier->spool(
-        'imaging non minc file insertion'   , $message,   0,
-        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
-        'N'
-    );
-    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
-}
 
 
 
