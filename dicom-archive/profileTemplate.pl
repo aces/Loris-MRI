@@ -20,6 +20,17 @@
 
 @db = ('DBNAME','DBUSER', 'DBPASS', 'DBHOST');
 
+# db parameters empty
+if (!@db)
+{
+    die "Database parameters intialization required.";
+}
+
+# db parameters != 4
+if (scalar @db ne 4)
+{
+    die "Database intialization requires 4 parameters.";
+}
 
 =pod
 # SECTION II
