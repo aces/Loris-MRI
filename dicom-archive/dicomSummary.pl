@@ -12,13 +12,13 @@ dicomSummary.pl -- prints out an informative summary for DICOMs in a given direc
 
 =head1 SYNOPSIS
 
-perl dicomSummary.pl </PATH/TO/DICOM/DIR> [ -compare </PATH/TO/DICOM/COMPARE/DIR> ] [ -tmp </PATH/TO/TMP/DIR> ] `[options]`
+perl dicomSummary.pl </PATH/TO/DICOM/DIR> [ -comparedir </PATH/TO/DICOM/COMPARE/DIR> ] [ -tmp </PATH/TO/TMP/DIR> ] `[options]`
 
 Available options are:
 
--comparedir: path to another DICOM directory to compare with
+-comparedir: path to another DICOM directory to compare with (implies -xdiff)
 
--dbcompare : run a comparison with entries int he database
+-dbcompare : run a comparison with entries in the database (implies -xdiff)
 
 -database  : use the database
 
@@ -31,7 +31,7 @@ Available options are:
 -tmp       : to specify a temporary directory. It will contain the summaries if
              used with -noscreen option
 
--xdiff     : to see with tkdiff the result of the two folders comparison or the
+-xdiff     : to see with sdiff the result of the two folders comparison or the
              comparison with the database content with
 
 -batch     : run in batch mode if set. Will log differences to a /tmp/diff.log file.
@@ -63,6 +63,7 @@ use lib "$FindBin::Bin";
 use DICOM::DICOM;
 use DICOM::DCMSUM;
 use NeuroDB::DBI;
+use NeuroDB::ExitCodes;
 
 my $screen   = 1;
 my $verbose  = 0;
@@ -97,7 +98,7 @@ WHAT THIS IS:
 - a convenient way to compare two directories in terms of the dicom data they contain... 
   or the contents of a directory with a database repository 
 
-Usage:\n\t $0 </PATH/TO/DICOM/DIR> [ -compare </PATH/TO/DICOM/COMPARE/DIR> ] [ -tmp </PATH/TO/TMP/DIR> ] [options]
+Usage:\n\t $0 </PATH/TO/DICOM/DIR> [ -comparedir </PATH/TO/DICOM/COMPARE/DIR> ] [ -tmp </PATH/TO/TMP/DIR> ] [options]
 \n\n See $0 -help for more info\n\n";
 
 my @arg_table =
@@ -115,7 +116,7 @@ my @arg_table =
      # fixme add more options based on the capabilities of the DCMSUM class
      # ["-produce","string",1,    \$produce, "Default is summary, other options are header, files, and acquisitions"],
      ["-tmp","string",1,        \$temp, "You may specify a tmp dir. It will contain the summaries, if you use -noscreen"],
-     ["-xdiff","boolean",1,     \$xdiff, "You are comparing two folders or with the database and you want to see the result with tkdiff."],
+     ["-xdiff","boolean",1,     \$xdiff, "You are comparing two folders or with the database and you want to see the result with sdiff."],
      ["-batch","boolean",1,     \$batch, "Run in batchmode. Will log differences to a /tmp/diff.log"],
      
      ["General options", "section"],
@@ -138,6 +139,11 @@ if(scalar(@ARGV) != 1) { print $Usage; exit 1; } $dcm_folder = abs_path($ARGV[0]
 # basic checking for compare dir
 if ($compare && !-d $compare) { print $Usage; exit 1; } if ($compare) { $compare = abs_path($compare); }
 
+if (($compare || $databasecomp) && !$profile) {
+    print "-profile must be used if either option -database or -dbcompare are used. Aborting.\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
+
 # Some combinations are just not possible
 if ($xdiff || $compare || $batch || $databasecomp || $dbase){ $screen = undef; } elsif (!$compare || !$databasecomp) { $xdiff = undef; }
 
@@ -145,6 +151,10 @@ if ($xdiff || $compare || $batch || $databasecomp || $dbase){ $screen = undef; }
 if (($compare || $databasecomp) && $dbase) { print $Usage; 
     print "\t Please consider that some option combinations do not make sense. \n\n"; exit 1;
 }
+
+# If -comparedir or -dbcompare was used, -xdiff is turned on automatically
+$xdiff = 1 if $compare || $databasecomp;
+
 # get rid of the trailing slash of all given input dirs
 $dcm_folder =~ s/^(.*)\/$/$1/; $temp =~ s/^(.*)\/$/$1/ unless (!$temp); $compare =~ s/^(.*)\/$/$1/ unless (!$compare);
 
@@ -223,7 +233,7 @@ if ($databasecomp) {
     if ($conflict) { print "\n\n\tWARNING: You are using Version: $versionInfo but archived with Version : $conflict\n\n"; }
     $metaFiles[1] = &read_db_metadata($studyUnique);
     if (!$metaFiles[1]) { print "\nYou never archived this study or you are looking in the wrong database.\n\n"; exit; }
-    if ($xdiff) { $diff = "tkdiff $metaFiles[0] $metaFiles[1]"; `$diff`; }
+    if ($xdiff) { $diff = "sdiff $metaFiles[0] $metaFiles[1]"; system($diff); }
     else { 
 	$diff = "diff -q $metaFiles[0] $metaFiles[1]"; 
 	my $Comp = `$diff`;
@@ -233,8 +243,8 @@ if ($databasecomp) {
 }
 # if comparing to another directory in non batch mode
 if ($compare && !$batch) {
-    $diff = "tkdiff $metaFiles[0] $metaFiles[1]";
-    `$diff` if $xdiff;
+    $diff = "sdiff $metaFiles[0] $metaFiles[1]";
+    system($diff) if $xdiff;
 }
 # in batch mode you don't want any window to pop up. Just create a difference log in tmp
 if ($batch && $metaFiles[1] && $returnVal == 99) {
