@@ -275,8 +275,10 @@ print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
 
 # ----- STEP 4: Verify project information
 my $projectID = NeuroDB::MRI::getProject($subjectIDsref, \$dbh, $db);
-print LOG "\nERROR: No project found for this candidate \n\n";
-exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+if (!defined($projectID)) {
+    print LOG "\nERROR: No project found for this candidate \n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+}
 print LOG  "\n==> ProjectID : $projectID\n";
 
 
