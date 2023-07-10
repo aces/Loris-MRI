@@ -270,7 +270,7 @@ my %dataset_desc_hash   = (
     'BIDSVersion'           => $BIDS_VERSION,
     'Name'                  => $dataset_name,
     'LORISScriptVersion'    => $LORIS_SCRIPT_VERSION,
-    'Authors'               => @authors,
+    'Authors'               => [ @authors ],
     'HowToAcknowledge'      => $acknowledgments,
     'LORISReleaseVersion'   => $loris_mri_version
 );
