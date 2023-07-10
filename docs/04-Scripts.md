@@ -203,5 +203,5 @@ from the MRI upload. Note that by default, all removed data will be backed up.
 Detailed information about the script can be found in: 
 https://github.com/aces/Loris-MRI/blob/21.0-dev/docs/scripts_md/delete_imaging_upload.md
 
-> Accordng to chosen options, deleting values can generate backup files.
-> To allow the files to be sync, be sure the user accessing the database has the `RELOAD` privilege.
+> Accordng to chosen options, deleting values can generate backup files with `mysqldump`.
+> To allow `mysqldump` to work properly, be sure the user accessing the database has the `RELOAD` privilege.
