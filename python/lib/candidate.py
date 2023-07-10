@@ -72,7 +72,12 @@ class Candidate:
          :rtype: dict
         """
 
-        self.cand_id = self.generate_cand_id(db)
+        if not self.psc_id:
+            print("Cannot create a candidate without a PSCID.\n")
+            sys.exit(lib.exitcode.CANDIDATE_CREATION_FAILURE)
+
+        if not self.cand_id:
+            self.cand_id = self.generate_cand_id(db)
 
         for row in participants_info:
             if not row['participant_id'] == self.psc_id:
@@ -171,13 +176,12 @@ class Candidate:
             values=insert_val
         )
 
-        loris_cand_info = self.get_candidate_info_from_loris(db)
+        return self.get_candidate_info_from_loris(db)
 
-        return loris_cand_info
 
     def get_candidate_info_from_loris(self, db):
         """
-        Grep candidate information from the candidate table using PSCID.
+        Grep candidate information from the candidate table using the PSCID or CandID.
 
         :param db: database handler object
          :type db: object
@@ -186,10 +190,17 @@ class Candidate:
          :rtype: dict
         """
 
-        loris_cand_info = db.pselect(
-            "SELECT * FROM candidate WHERE PSCID = %s",
-            (self.psc_id,),
-        )
+        loris_cand_info = None
+        if self.cand_id:
+            loris_cand_info = db.pselect(
+                "SELECT * FROM candidate WHERE CandID = %s",
+                (self.cand_id,),
+            )
+        elif self.psc_id:
+            loris_cand_info = db.pselect(
+                "SELECT * FROM candidate WHERE PSCID = %s",
+                (self.psc_id,),
+            )
 
         return loris_cand_info[0] if loris_cand_info else None
 

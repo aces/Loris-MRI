@@ -24,19 +24,17 @@ def main():
         " PUSH IMAGING FILES TO AMAZON S3 BUCKET SCRIPT\n"
         "********************************************************************\n"
         "The program gets all the files associated to an upload ID and push them to an Amazon S3 bucket.\n\n"
-        # TODO more description on how the script works
 
         "usage  : run_push_imaging_files_to_s3_pipeline.py -p <profile> -u <upload_id> ...\n\n"
 
         "options: \n"
         "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
-        "\t-t, --tarchive_path      : Absolute path to the DICOM archive to process\n"
         "\t-u, --upload_id          : ID of the upload (from mri_upload) related to the DICOM archive to process\n"
         "\t-v, --verbose            : If set, be verbose\n\n"
 
         "required options are: \n"
         "\t--profile\n"
-        "\t--tarchive_path OR --upload_id\n"
+        "\t--upload_id\n"
     )
 
     options_dict = {
@@ -44,7 +42,7 @@ def main():
             "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "upload_id": {
-            "value": None, "required": False, "expect_arg": True, "short_opt": "u", "is_path": False
+            "value": None, "required": True, "expect_arg": True, "short_opt": "u", "is_path": False
         },
         "verbose": {
             "value": False, "required": False, "expect_arg": False, "short_opt": "v", "is_path": False

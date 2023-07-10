@@ -1,15 +1,14 @@
 import datetime
 import getpass
-import hashlib
 import json
 import lib.exitcode
+import lib.utilities as utilities
 import os
 import re
 import subprocess
 import sys
 
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
-from pyblake2 import blake2b
 
 __license__ = "GPLv3"
 
@@ -39,15 +38,15 @@ class NiftiInsertionPipeline(BasePipeline):
         self.nifti_path = self.options_dict["nifti_path"]["value"]
         self.nifti_s3_url = self.options_dict["nifti_path"]["s3_url"] \
             if 's3_url' in self.options_dict["nifti_path"].keys() else None
-        self.nifti_blake2 = blake2b(self.nifti_path.encode('utf-8')).hexdigest()
-        self.nifti_md5 = hashlib.md5(self.nifti_path.encode()).hexdigest()
+        self.nifti_blake2 = utilities.compute_blake2b_hash(self.nifti_path)
+        self.nifti_md5 = utilities.compute_md5_hash(self.nifti_path)
         self.json_path = self.options_dict["json_path"]["value"]
-        self.json_blake2 = blake2b(self.json_path.encode('utf-8')).hexdigest() if self.json_path else None
+        self.json_blake2 = utilities.compute_blake2b_hash(self.json_path) if self.json_path else None
         self.bval_path = self.options_dict["bval_path"]["value"]
-        self.bval_blake2 = blake2b(self.bval_path.encode('utf-8')).hexdigest() if self.bval_path else None
+        self.bval_blake2 = utilities.compute_blake2b_hash(self.bval_path) if self.bval_path else None
         self.bvec_path = self.options_dict["bvec_path"]["value"]
-        self.bvec_blake2 = blake2b(self.bvec_path.encode('utf-8')).hexdigest() if self.bval_path else None
-        self.json_md5 = hashlib.md5(self.json_path.encode()).hexdigest()
+        self.bvec_blake2 = utilities.compute_blake2b_hash(self.bvec_path) if self.bval_path else None
+        self.json_md5 = utilities.compute_md5_hash(self.json_path)
         self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
 

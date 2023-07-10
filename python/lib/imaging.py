@@ -3,12 +3,12 @@
 import os
 import datetime
 import json
+import lib.utilities as utilities
 import nibabel as nib
 import re
 import tarfile
 
 from nilearn import image, plotting
-from pyblake2 import blake2b
 
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
@@ -171,7 +171,7 @@ class Imaging:
         if type(value) == list:
             if type(value[0]) in [float, int]:
                 value = [str(f) for f in value]
-            value = f"[{', '.join(value)}]"
+            value = f"[{', '.join(str(value))}]"
 
         # Gather column name & values to insert into parameter_file
         param_type_id = self.get_parameter_type_id(parameter_name)
@@ -1145,7 +1145,7 @@ class Imaging:
             json_data['IntendedFor'] = fmap_dict['IntendedFor']
             with open(json_file_path, 'w') as json_file:
                 json_file.write(json.dumps(json_data, indent=4))
-            json_blake2 = blake2b(json_file_path.encode('utf-8')).hexdigest()
+            json_blake2 = utilities.compute_blake2b_hash(json_file_path)
             param_type_id = self.param_type_db_obj.get_parameter_type_id('bids_json_file_blake2b_hash')
             param_file_dict = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 fmap_dict['FileID'],

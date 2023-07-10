@@ -40,6 +40,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         # Get S3 object from loris_getopt object
         # ---------------------------------------------------------------------------------------------
         self.s3_obj = self.loris_getopt_obj.s3_obj
+        if not self.s3_obj:
+            message = "[ERROR   ] S3 configs not configured properly"
+            self.log_error_and_exit(message, lib.exitcode.S3_SETTINGS_FAILURE, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
         # Get all the files from files, parameter_file and violation tables
@@ -222,7 +225,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
             s3_path = file["original_file_path_field_value"]
             file["s3_link"] = "/".join(["s3:/", self.s3_obj.bucket_name, s3_path])
 
-            self.s3_obj.upload_file(file_full_path, s3_path)
+            self.s3_obj.upload_file(file_full_path, file["s3_link"])
 
     def _update_database_tables_with_s3_path(self, file_info):
         """

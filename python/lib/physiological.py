@@ -711,99 +711,6 @@ class Physiological:
             physiological_file_id, 'event_file_json_blake2b_hash', blake2
         )
 
-    def insert_event_file_legacy(self, event_data, event_file, physiological_file_id,
-                                 blake2):
-        """
-        Inserts the event information read from the file *events.tsv
-        into the physiological_task_event table, linking it to the
-        physiological file ID already inserted in physiological_file.
-
-        TODO: LEGACY method. Its previous name was `insert_event_file`.
-        Try the new `insert_event_file` first then use this one as
-        fallback method. The new method changes the code logic by
-        taking additional events data into account. This old method
-        simply ignores it. Only called in `eeg.py`.
-
-        :param event_data           : list with dictionaries of events
-                                      information to insert into
-                                      physiological_task_event
-         :type event_data           : list
-        :param event_file           : name of the event file
-         :type event_file           : str
-        :param physiological_file_id: PhysiologicalFileID to link the event info to
-         :type physiological_file_id: int
-        :param blake2               : blake2b hash of the task event file
-         :type blake2               : str
-        """
-
-        event_file_id = self.physiological_event_file_obj.insert(
-            physiological_file_id,
-            'tsv',
-            event_file
-        )
-
-        event_fields = (
-            'PhysiologicalFileID', 'EventFileID', 'Onset', 'Duration',   
-            'TrialType', 'ResponseTime', 'EventCode', 'EventValue', 
-            'EventSample', 'EventType'
-        )
-
-        event_values = []
-        for row in event_data:
-            optional_fields = (
-                'trial_type',  'response_time', 'event_code',
-                'event_value', 'event_sample',  'event_type',
-                'value',       'sample'
-            )
-            for field in optional_fields:
-                if field not in row.keys():
-                    row[field] = None
-
-            duration = 0
-            if (type(row['duration']) == int or type(row['duration']) == float):
-                duration = row['duration']
-
-            sample = None
-            if type(row['event_sample']) == int or type(row['event_sample']) == float:
-                sample = row['event_sample']
-            if row['sample'] and (type(row['sample']) == int or type(row['sample']) == float):
-                sample = row['sample']
-
-            event_value = None
-            if row['event_value']:
-                event_value = str(row['event_value'])
-            elif row['value']:
-                event_value = str(row['value'])
-
-            response_time = None
-            if type(row['response_time']) == int or type(row['response_time']) == float:
-                response_time = row['response_time']
-
-            values_tuple = (
-                str(physiological_file_id),
-                str(event_file_id),
-                row['onset'],
-                duration,
-                row['trial_type'],
-                response_time,
-                row['event_code'],
-                event_value,
-                sample,
-                row['event_type']
-            )
-            event_values.append(values_tuple)
-
-        self.db.insert(
-            table_name   = 'physiological_task_event',
-            column_names = event_fields,
-            values       = event_values
-        )
-
-        # insert blake2b hash of task event file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id, 'event_file_blake2b_hash', blake2
-        )
-
     def insert_event_assembled_hed_tags(self, data_dir, event_tsv, event_json, physio_file_id):
         """
         Assembles physiological event HED annotations.
@@ -841,17 +748,13 @@ class Physiological:
                         "WHERE PhysiologicalTaskEventID = %s"
                     self.db.update(query=updateAssembledHED, args=(assembledHED, eventID,))
 
-    def insert_event_file(self, event_data, event_file, physiological_file_id,
-                          blake2):
+    def insert_event_file(self, event_data, event_file, physiological_file_id, blake2):
         """
         Inserts the event information read from the file *events.tsv
         into the physiological_task_event table, linking it to the
         physiological file ID already inserted in physiological_file.
-
-        TODO: NEW method. See the previous iteration named
-        `insert_event_file_legacy`. This should be the one and only
-        method once we are sure every data will not be impacted in db.
         Only called in `eeg.py`.
+
         :param event_data           : list with dictionaries of events
                                       information to insert into
                                       physiological_task_event

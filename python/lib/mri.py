@@ -5,7 +5,6 @@ import json
 import getpass
 import re
 import sys
-from pyblake2 import blake2b
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -304,7 +303,7 @@ class Mri:
             # copy the JSON file to the LORIS BIDS import directory
             json_path = self.copy_file_to_loris_bids_dir(json_file)
             file_parameters['bids_json_file'] = json_path
-            json_blake2 = blake2b(json_file.encode('utf-8')).hexdigest()
+            json_blake2 = utilities.compute_blake2b_hash(json_file)
             file_parameters['bids_json_file_blake2b_hash'] = json_blake2
 
         # grep the file type from the ImagingFileTypes table
@@ -330,7 +329,7 @@ class Mri:
                 self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
             )
             file_parameters['scans_tsv_file'] = scans_path
-            scans_blake2 = blake2b(self.scans_file.encode('utf-8')).hexdigest()
+            scans_blake2 = utilities.compute_blake2b_hash(self.scans_file)
             file_parameters['scans_tsv_file_bake2hash'] = scans_blake2
 
         # grep voxel step from the NIfTI file header
@@ -351,14 +350,14 @@ class Mri:
         for type in other_assoc_files:
             original_file_path = other_assoc_files[type]
             copied_path = self.copy_file_to_loris_bids_dir(original_file_path)
-            file_param_name  = 'bids_' + type
+            file_param_name = 'bids_' + type
             file_parameters[file_param_name] = copied_path
-            file_blake2 = blake2b(original_file_path.encode('utf-8')).hexdigest()
+            file_blake2 = utilities.compute_blake2b_hash(original_file_path)
             hash_param_name = file_param_name + '_blake2b_hash'
             file_parameters[hash_param_name] = file_blake2
 
         # append the blake2b to the MRI file parameters dictionary
-        blake2 = blake2b(nifti_file.path.encode('utf-8')).hexdigest()
+        blake2 = utilities.compute_blake2b_hash(nifti_file.path)
         file_parameters['file_blake2b_hash'] = blake2
 
         # check that the file is not already inserted before inserting it
