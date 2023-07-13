@@ -445,9 +445,9 @@ sub determineSubjectID {
     if ($to_log) {
         my $message = sprintf(
             "\n==> Data found for candidate CandID: %s, PSCID %s, Visit %s, Acquisition Date %s\n ",
-            $subjectIDsref->{'CandID'},
-            $subjectIDsref->{'PSCID'},
-            $subjectIDsref->{'visitLabel'},
+            $subjectIDsref->{'CandID'}      // 'UNKNOWN',
+            $subjectIDsref->{'PSCID'}       // 'UNKNOWN',
+            $subjectIDsref->{'visitLabel'}  // 'UNKNOWN',
             $tarchiveInfo->{'DateAcquired'} // 'UNKNOWN'
         );
         $this->{LOG}->print($message);
@@ -1810,7 +1810,9 @@ sub CreateMRICandidates {
     # If there already is a candidate with that PSCID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
     # that pscid and candid match so we don't do it here.
-    return if $pscID ne 'scanner' && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr);
+    return if defined $pscID 
+        && $pscID ne 'scanner' 
+        && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr);
     
     # If there already is a candidate with that CandID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
