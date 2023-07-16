@@ -1487,6 +1487,16 @@ sub dicom_to_minc {
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
 
+    if (!-e $get_dicom_info) {
+        print "Warning! Value '$get_dicom_info' (config setting get_dicom_info) is not an existing script!\n";
+        return;
+    }
+
+    if (!-x $get_dicom_info) {
+        print "Warning! Script '$get_dicom_info' (config setting get_dicom_info) is not an executable script!\n";
+        return;
+    }
+
     #--------------------------------------------------------------------------------#
     # Create the excluded series description regex necessary to exclude the          #
     # series description specified in the Config Setting excluded_series_description #
