@@ -1701,6 +1701,8 @@ RETURNS:
 sub isDicomImage {
     my (@files_list) = @_;
 
+    return {} unless @files_list;
+
     # For now, the files list need to be written in a temporary file so that the
     # command does not fail on large amount of files. If doing directly
     # `ls @files_list | xargs file` then the argument list is too long at it does
@@ -1759,6 +1761,8 @@ RETURNS:
 
 sub isEcatImage {
     my (@files_list) = @_;
+
+    return {} unless @files_list;
 
     # For now, the files list need to be written in a temporary file so that the
     # command does not fail on large amount of files. If doing directly
