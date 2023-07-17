@@ -23,13 +23,16 @@ Available options are:
            the scan type name is not used to determine which DICOM files to extract. This option
            must be used if no patient name patterns were specified via `-names` (see above).
 
-\-outdir  : extract the files in directory `<dir_argument>/get_dicom_files.pl.<random_string>`
-           For example with `-d /data/tmp`, the DICOM files might be extracted in 
-           `/data/tmp/get_dicom_files.pl.n1d4`. By default, dir\_argument is set to the value of
-           the environment variable `TMPDIR`. Since the UNIX program `tar` has known limitations 
-           with NFS file systems (incorrect reports of files that changed while they are archived), the
-           argument to `-d` should not be a directory that resides on an NFS mounted file system.
-           Failure to do so might result in `get_dicom_files.pl` failing.
+\-outdir  : full path of the root directory in which the script will temporarily extract the DICOM
+           files before building the final `.tar.gz` file. The files will be extracted in directory
+           `<outdir>/get_dicom_files.pl.<random_string>`. For example with
+           `-outdir /data/tmp`, the DICOM files might be extracted in `/data/tmp/get_dicom_files.pl.n1d4`.
+           By default, outdir is set to the value of the environment variable `TMPDIR`.
+           Since the UNIX program `tar` has known limitations with NFS file systems (incorrect reports
+           of files that changed while they are archived), the argument to `-outdir` should not be a
+           directory that resides on an NFS mounted file system. Failure to do so might result in
+           `get_dicom_files.pl` failing. Note that this argument has no impact on the location of the
+           final `.tar.gz` file. Use option `-outfile` to control that.
 
 \-outfile : basename of the final `tar.gz` file to produce, in the current directory (defaults to 
            `dicoms.tar.gz`).

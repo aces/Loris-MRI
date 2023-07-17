@@ -28,13 +28,16 @@ Available options are:
            the scan type name is not used to determine which DICOM files to extract. This option
            must be used if no patient name patterns were specified via C<-names> (see above).
           
--outdir  : extract the files in directory C<< <dir_argument>/get_dicom_files.pl.<random_string> >>
-           For example with C<-d /data/tmp>, the DICOM files might be extracted in 
-           C</data/tmp/get_dicom_files.pl.n1d4>. By default, dir_argument is set to the value of
-           the environment variable C<TMPDIR>. Since the UNIX program C<tar> has known limitations 
-           with NFS file systems (incorrect reports of files that changed while they are archived), the
-           argument to C<-d> should not be a directory that resides on an NFS mounted file system.
-           Failure to do so might result in C<get_dicom_files.pl> failing.
+-outdir  : full path of the root directory in which the script will temporarily extract the DICOM
+           files before building the final C<.tar.gz> file. The files will be extracted in directory
+           C<< <outdir>/get_dicom_files.pl.<random_string> >>. For example with
+           C<-outdir /data/tmp>, the DICOM files might be extracted in C</data/tmp/get_dicom_files.pl.n1d4>.
+           By default, outdir is set to the value of the environment variable C<TMPDIR>.
+           Since the UNIX program C<tar> has known limitations with NFS file systems (incorrect reports
+           of files that changed while they are archived), the argument to C<-outdir> should not be a
+           directory that resides on an NFS mounted file system. Failure to do so might result in
+           C<get_dicom_files.pl> failing. Note that this argument has no impact on the location of the
+           final C<.tar.gz> file. Use option C<-outfile> to control that.
           
 -outfile : basename of the final C<tar.gz> file to produce, in the current directory (defaults to 
            C<dicoms.tar.gz>).
@@ -204,6 +207,9 @@ $tarchiveLibraryDir    =~ s#\/$##;
 #----------------------------------------------------------#
 # Create the directory where DICOM files will be extracted #
 #----------------------------------------------------------#
+if (!-e $tmpExtractBaseDir || !-w $tmpExtractBaseDir) {
+    die "Argument '$tmpExtractBaseDir' to -outdir either does not exist or is not writable. Aborting.\n";
+}
 my $tmpExtractDir = tempdir("$0.XXXX", DIR => $tmpExtractBaseDir, CLEANUP => 1);
 
 #------------------------------------------------------------#
