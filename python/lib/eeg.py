@@ -733,37 +733,14 @@ class Eeg:
                 event_path = self.copy_file_to_loris_bids_dir(
                     event_data_file.path, derivatives
                 )
+
                 # get the blake2b hash of the task events file
-                blake2 = utilities.compute_blake2b_hash(event_file.path)
+                blake2 = utilities.compute_blake2b_hash(event_data_file.path)
+
                 # insert event data in the database
-                # TODO: Temporary
-                # TODO: should not have two different insert_event_file methods
-                # TODO: remove this TRY/CATCH and the legacy method when
-                # TODO: all LORIS code will support additional events.
-                insert_fallback = False
-                msg = ""
-                try:
-                    physiological.insert_event_file(
-                        event_data, event_path, physiological_file_id, blake2
-                    )
-                except NameError:
-                    # when the insert_event_file function does not exist
-                    msg = "WARNING: function 'insert_event_file' not found. Using fallback method."
-                    insert_fallback = True
-                except Exception as ex:
-                    # when event table structure is still the old one
-                    if ex.args[0] and ex.args[0].startswith("Insert query failure: "):
-                        msg = "WARNING: error during DB insert. Using fallback method."
-                        insert_fallback = True
-                    else:
-                        # re-raise other errors from db insert
-                        raise ex
-                # insert fallback, call legacy method
-                if insert_fallback:
-                    print(msg)
-                    physiological.insert_event_file_legacy(
-                        event_data, event_path, physiological_file_id, blake2
-                    )
+                physiological.insert_event_file(
+                    event_data, event_path, physiological_file_id, blake2
+                )
 
                 event_paths.extend([event_path])
 
