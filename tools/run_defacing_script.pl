@@ -64,21 +64,19 @@ use NeuroDB::objectBroker::ConfigOB;
 # The %SPECIAL_ACQUISITIONS_FILTER variable has been created to filter out the
 # correct FileIDs of the images that need to be defaced for those special modalities
 my %SPECIAL_ACQUISITIONS_FILTER = (
-    'fieldmap'      => 'ORIGINAL\\PRIMARY\\M\\ND',
-    'MP2RAGEinv1'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
-    'MP2RAGEinv2'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\ND\\NORM',
-    'qT2starEcho1'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho2'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho3'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho4'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho5'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho6'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho7'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho8'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho9'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho10' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho11' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
-    'qT2starEcho12' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND'
+    'T2star'                   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE1'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE2'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE3'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE4'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE5'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE6'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE7'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE8'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE9'   => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'GRE10echosDrCollinsTE10'  => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND',
+    'BOLDRSgrefieldmappingTE1' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND\\\\\\\\NORM',
+    'BOLDRSgrefieldmappingTE2' => 'ORIGINAL\\\\\\\\PRIMARY\\\\\\\\M\\\\\\\\ND\\\\\\\\NORM'
 );
 
 # The @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES variable will store the base names
@@ -87,7 +85,7 @@ my %SPECIAL_ACQUISITIONS_FILTER = (
 # acquisition (a.k.a. fieldmap_file1,fieldmap_file2) which will tell the
 # deface_minipipe.pl script to not create 2 XFMs but instead reuse the XFM from
 # fieldmap_file1 to register fieldmap_file2
-my @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES = ( "fieldmap", "MP2RAGE", "qT2star" );
+my @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES = ( "T2star", "BOLDRSgrefieldmappingTE", "GRE10echosDrCollinsTE" );
 
 
 
@@ -363,6 +361,7 @@ sub grep_FileIDs_to_deface {
         $query .= sprintf(" AND (%s) ", join(" OR ", @where));
     }
 
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     my $sth = $dbh->prepare($query);
 
     # create array of parameters
@@ -406,6 +405,7 @@ RETURNS: the candidate's C<CandID> and the session visit label
 sub grep_candID_visit_from_SessionID {
     my ($session_id) = @_;
 
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     my $query  = "SELECT CandID, Visit_label FROM session WHERE ID = ?";
     my $result = $dbh->selectrow_hashref($query, undef, $session_id);
 
@@ -447,6 +447,7 @@ sub check_if_deface_files_already_in_db {
     $query   .= " AND SessionID = ?";
 
     # prepare and execute the query
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     my $sth   = $dbh->prepare($query);
     $sth->execute(@defaced_scan_types, $session_id);
 
@@ -701,6 +702,7 @@ INPUT: the scan type to look for or insert in the C<mri_scan_type> table
 sub create_defaced_scan_type {
     my ($scan_type) = @_;
 
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
     my $select     = "SELECT COUNT(*) FROM mri_scan_type WHERE Scan_type = ?";
     my $select_sth = $dbh->prepare($select);
     $select_sth->execute($scan_type);
