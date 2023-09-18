@@ -21,7 +21,8 @@ utilities
 
   my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
 
-  my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID);
+  my $projectID     = $utility->determineProjectID(\%tarchiveInfo);
+  my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID, $projectID);
 
   my $subjectIDsref = $utility->determineSubjectID(
                         $scannerID,
@@ -622,7 +623,40 @@ sub determinePSC {
 
 =pod
 
-=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $upload_id)
+=head3 determineProjectID($tarchiveInfo)
+
+Determines the Project.
+
+INPUTS:
+  - $tarchiveInfo: archive information hash ref
+
+RETURNS: project ID
+
+=cut
+
+sub determineProjectID {
+
+    my $this = shift;
+    my ($tarchiveInfo) = @_;
+    my $subjectIDsref = Settings::getSubjectIDs(
+        $tarchiveInfo->{'PatientName'},
+        undef,
+        undef,
+        $this->{dbhr},
+        $this->{db}
+    );
+
+    if (defined $subjectIDsref->{'ProjectID'}) {
+        return $subjectIDsref->{'ProjectID'}
+    }
+
+    return NeuroDB::MRI::getProject($subjectIDsref, $this->{dbhr}, $this->{db});
+}
+
+
+=pod
+
+=head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $projectID, $upload_id)
 
 Determines which scanner ID was used for DICOM acquisitions. Note, if 
 a scanner ID is not already associated to the scanner information found
@@ -632,6 +666,7 @@ INPUTS:
   - $tarchiveInfo: archive information hash ref
   - $to_log      : whether this step should be logged
   - $centerID    : center ID
+  - $projectID   : project ID
   - $upload_id   : upload ID of the study
 
 RETURNS: scanner ID
@@ -641,7 +676,7 @@ RETURNS: scanner ID
 sub determineScannerID {
 
     my $this = shift;
-    my ($tarchiveInfo, $to_log, $centerID, $upload_id) = @_;
+    my ($tarchiveInfo, $to_log, $centerID, $projectID, $upload_id) = @_;
     my $message = '';
     $to_log = 1 unless defined $to_log;
     if ($to_log) {
@@ -657,6 +692,7 @@ sub determineScannerID {
             $tarchiveInfo->{'ScannerSerialNumber'},
             $tarchiveInfo->{'ScannerSoftwareVersion'},
             $centerID,
+            $projectID,
             $this->{dbhr},
             $this->{'db'}
         );

@@ -387,8 +387,9 @@ my ($center_name, $centerID) =
 ################################################################
 ######### Determine the ScannerID ##############################
 ################################################################
+my $projectID = $utility->determineProjectID(\%tarchiveInfo);
 my $scannerID = $utility->determineScannerID(
-        \%tarchiveInfo, 0, $centerID, $upload_id
+        \%tarchiveInfo, 0, $centerID, $projectID, $upload_id
 );
 
 ################################################################

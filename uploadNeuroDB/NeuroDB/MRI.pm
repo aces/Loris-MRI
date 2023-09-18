@@ -943,7 +943,7 @@ sub mapDicomParameters {
 }
 =pod
 
-=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
+=head3 findScannerID($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db)
 
 Finds the scanner ID for the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, using the database attached to the DBI
@@ -956,6 +956,7 @@ INPUTS:
   - $serialNumber   : scanner's serial number
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
+  - $projectID      : scanner's project ID
   - $dbhr           : database handle reference
   - $db             : database object
 
@@ -964,7 +965,7 @@ RETURNS: (int) scanner ID
 =cut
 
 sub findScannerID {
-    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db) = @_;
+    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db) = @_;
 
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( {
@@ -978,14 +979,14 @@ sub findScannerID {
     return $resultsRef->[0]->{'ID'} if @$resultsRef;
     
     # register new scanners
-    my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db);
+    my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db);
 
     return $scanner_id;
 }
 
 =pod
 
-=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db)
+=head3 registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db)
 
 Registers the scanner as defined by C<$manufacturer>, C<$model>,
 C<$serialNumber>, C<$softwareVersion>, into the database attached to the DBI
@@ -997,6 +998,7 @@ INPUTS:
   - $serialNumber   : scanner's serial number
   - $softwareVersion: scanner's software version
   - $centerID       : scanner's center ID
+  - $projectID      : scanner's project ID
   - $dbhr           : database handle reference
   - $db             : database object
 
@@ -1005,7 +1007,7 @@ RETURNS: (int) scanner ID
 =cut
 
 sub registerScanner {
-    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $dbhr, $db) = @_;
+    my ($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db) = @_;
     # my $scanner_id = 0;
     my @results = ();
     my $dbh = $$dbhr;
@@ -1018,11 +1020,10 @@ sub registerScanner {
     if(!defined($candID) || ($candID eq 'NULL')) {
         $candID = createNewCandID($dbhr);
         $query = "INSERT INTO candidate "
-                 . "(CandID,          PSCID,  RegistrationCenterID, Date_active,  "
-                 . " Date_registered, UserID, Entity_type                       ) "
+                 . "(CandID,          PSCID,  RegistrationCenterID, RegistrationProjectID, Date_active,  "
+                 . " Date_registered, UserID, Entity_type) "
                  . "VALUES "
-                 . "($candID, 'scanner',      $centerID,  NOW(),   "
-                 . " NOW(),   'NeuroDB::MRI', 'Scanner'          ) ";
+                 . "($candID, 'scanner', $centerID, $projectID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner') ";
         $dbh->do($query);
     }   
     
@@ -1121,6 +1122,84 @@ sub getPSC {
     }
 
     return ("UNKN", 0);
+}
+
+=pod
+
+=head3 getProject($subjectIDsref, $dbhr, $db)
+
+Looks for the project id using the C<session> table C<ProjectID> as
+a first resource, then using the C<candidate> table C<RegistrationProjectID>,
+otherwise, look for the default_project config value, and return C<ProjectID>.
+
+INPUTS:
+  - $subjectIDsref: subject's information hash ref
+  - $dbhr       : database handle reference
+  - $db         : database object
+
+RETURNS: the C<ProjectID> or an error if not found
+
+=cut
+
+sub getProject {
+    my ($subjectIDsref, $dbhr, $db) = @_;
+    my $PSCID = $subjectIDsref->{'PSCID'};
+    my $visitLabel = $subjectIDsref->{'visitLabel'};
+    my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
+
+    ## Get the ProjectID from the session table, if the PSCID and visit labels exist
+    ## and could be extracted
+    if ($PSCID && $visitLabel) {
+        my $query = "SELECT s.ProjectID FROM session s
+                    JOIN candidate c on c.CandID=s.CandID
+                    WHERE c.PSCID = ? AND s.Visit_label = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID, $visitLabel);
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'ProjectID'};
+        }
+    }
+
+    ## Otherwise get the ProjectID from the candidate table, if the PSCID exists
+    if ($PSCID) {
+        my $query = "SELECT RegistrationProjectID
+                    FROM candidate
+                    WHERE PSCID = ?";
+
+        my $sth = $${dbhr}->prepare($query);
+        $sth->execute($PSCID);
+        if ($sth->rows > 0) {
+            my $row = $sth->fetchrow_hashref();
+            return $row->{'RegistrationProjectID'};
+        }
+    }
+
+    ## START OF CBIGR OVERRIDE - comment out this section as it is dependent
+    ##                           on config options in LORIS 25. The behaviour
+    ##                           will be to return error otherwise instead of
+    ##                           using default_project config value first.
+    ##                           TO-DO: uncomment when upgrading to LORIS-MRI v25
+    ## Otherwise, use the default_project config value
+    ## my $query = "SELECT ProjectID
+    ##              FROM Project
+    ##              WHERE Name = ?";
+
+    ## my $default_project = $configOB->getDefaultProject();
+    ## my $sth = $${dbhr}->prepare($query);
+    ## $sth->execute($default_project);
+    ## if ( $sth->rows > 0) {
+    ##     my $row = $sth->fetchrow_hashref();
+    ##     if ($row->{'ProjectID'}) {
+    ##         return $row->{'ProjectID'};
+    ##     }
+    ## }
+
+    print STDERR "\nERROR: ProjectID cannot be initialized. \n\n";
+                 ## "Please set the default_project config.\n\n";
+    ## END OF CBIGR OVERRIDE
+    exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
 }
 
 =pod

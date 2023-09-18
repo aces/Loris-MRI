@@ -284,8 +284,9 @@ my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo, 1, $upload
 ### new one if necessary) ######################################
 ################################################################
 ################################################################
+my $projectID = $utility->determineProjectID(\%tarchiveInfo);
 my $scannerID = $utility->determineScannerID(
-    \%tarchiveInfo, 1, $centerID, $upload_id
+    \%tarchiveInfo, 1, $centerID, $projectID, $upload_id
 );
 
 ################################################################
