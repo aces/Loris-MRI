@@ -1,9 +1,9 @@
 """This class interacts with S3 Buckets"""
 
 import boto3
+import lib.utilities
 import os
 from botocore.exceptions import ClientError, EndpointConnectionError
-from hashlib import md5
 
 __license__ = "GPLv3"
 
@@ -70,14 +70,6 @@ class AwsS3:
 
         return s3_client
 
-    def get_md5sum(self, file_path):
-        """
-        Get md5 hash of file content
-
-        :param file_path: Full path to the file to check hash
-         :type file_path: str
-        """
-        return md5(open(file_path,'rb').read()).hexdigest()
 
     def check_object_content_exists(self, file_path, key):
         """
@@ -89,7 +81,7 @@ class AwsS3:
          :type key: str
         """
         try:
-            etag = self.get_md5sum(file_path)
+            etag = lib.utilities.compute_md5_hash(file_path)
             self.s3_client.head_object(Bucket=self.bucket_name, Key=key, IfMatch=etag)
         except ClientError as e:
             """            
