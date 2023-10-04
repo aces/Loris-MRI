@@ -172,6 +172,32 @@ class AwsS3:
         except Exception as err:
             raise Exception(f"{s3_object_name} download failure = {format(err)}")
 
+    def copy_file(self, src_s3_object_name, dst_s3_object_name):
+        """
+        Function to copy a s3 file or directory.
+
+        :param src_s3_object_name: name of the source s3 file or directory
+         :type src_s3_object_name: str
+        :param dst_s3_object_name: name of the destination s3 file or directory
+         :type dst_s3_object_name: str
+        """
+
+        print(f"Copying {src_s3_object_name} to {dst_s3_object_name}")
+
+        try:
+            (src_s3_bucket_name, src_s3_bucket, src_s3_file_name) = self.get_s3_object_path_part(src_s3_object_name)
+            (dst_s3_bucket_name, dst_s3_bucket, dst_s3_file_name) = self.get_s3_object_path_part(dst_s3_object_name)
+            for obj in src_s3_bucket.objects.filter(Prefix=src_s3_file_name):
+                subcontent = obj.key.replace(src_s3_file_name, "")
+                dst_s3_bucket.Object(
+                    dst_s3_file_name + subcontent
+                ).copy_from(
+                    CopySource=f'{obj.bucket_name}/{obj.key}'
+                )
+                src_s3_bucket.Object(obj.key).delete()
+        except Exception as err:
+            raise Exception(f"{src_s3_object_name} => {dst_s3_object_name} copy failure = {format(err)}")
+
     def get_s3_object_path_part(self, s3_object_name):
         """
         Function to dissect a s3 file to extract the file prefix and the bucket name
