@@ -414,7 +414,7 @@ class Physiological:
             inserted_electrode_id = self.db.insert(
                 table_name   = 'physiological_electrode',
                 column_names = electrode_fields,
-                values       = electrode_values,
+                values       = values_tuple,
                 get_last_id  = True
             )
             electrode_ids.append(inserted_electrode_id)
