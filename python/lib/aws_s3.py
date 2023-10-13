@@ -172,7 +172,7 @@ class AwsS3:
         except Exception as err:
             raise Exception(f"{s3_object_name} download failure = {format(err)}")
 
-    def copy_file(self, src_s3_object_name, dst_s3_object_name):
+    def copy_file(self, src_s3_object_name, dst_s3_object_name, delete = False):
         """
         Function to copy a s3 file or directory.
 
@@ -180,6 +180,8 @@ class AwsS3:
          :type src_s3_object_name: str
         :param dst_s3_object_name: name of the destination s3 file or directory
          :type dst_s3_object_name: str
+        :param delete: whether to delete the source file after the copy
+         :type delete: bool
         """
 
         print(f"Copying {src_s3_object_name} to {dst_s3_object_name}")
@@ -194,7 +196,8 @@ class AwsS3:
                 ).copy_from(
                     CopySource=f'{obj.bucket_name}/{obj.key}'
                 )
-                src_s3_bucket.Object(obj.key).delete()
+                if delete:
+                    src_s3_bucket.Object(obj.key).delete()
         except Exception as err:
             raise Exception(f"{src_s3_object_name} => {dst_s3_object_name} copy failure = {format(err)}")
 
