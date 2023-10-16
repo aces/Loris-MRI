@@ -368,7 +368,6 @@ class Physiological:
             'Impedance',
             'FilePath'
         )
-        electrode_values = []
         electrode_ids = []
         optional_fields = ('type', 'material', 'impedance')
         for row in electrode_data:
@@ -409,8 +408,7 @@ class Physiological:
                 row.get('impedance'),
                 electrode_file
             )
-            electrode_values.append(values_tuple)
-
+            
             inserted_electrode_id = self.db.insert(
                 table_name   = 'physiological_electrode',
                 column_names = electrode_fields,
