@@ -80,7 +80,7 @@ class AwsS3:
 
         for (root, dirs, files) in os.walk(dir_name):
             for file in files:
-                s3_prefix = os.path.join(s3_file_name, root.replace(dir_name, ""), file)
+                s3_prefix = os.path.join(s3_file_name, root.replace(dir_name, "").lstrip('/'), file)
                 s3_dest = os.path.join(
                     's3://',
                     s3_bucket_name,

@@ -200,7 +200,7 @@ def main():
                         """
                         If the suject/session/modality BIDS data already exists
                         on the destination folder, delete it first
-                        copying the data
+                        before copying the data
                         """
                         s3_obj.delete_file(s3_data_eeg_modality_path)
 
@@ -222,7 +222,6 @@ def main():
                     copying the data
                     """
                     imaging_io_obj.remove_dir(data_eeg_modality_path)
-
                     imaging_io_obj.copy_file(tmp_eeg_modality_path, data_eeg_modality_path)
 
         # Delete tmp location
