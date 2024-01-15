@@ -74,7 +74,8 @@ class AwsS3:
         Check if file content already exists
         :param file_path: Full path to the file to check hash
          :type file_path: str
-        :param key: S3 object key. It should be identical to the S3 object key.  (It will not include `s3://BUCKET_NAME/`)
+        :param key: S3 object key. It should be identical to the S3 object key.
+                    (It will not include `s3://BUCKET_NAME/`)
          :type key: str
         """
         try:
