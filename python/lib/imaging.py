@@ -169,9 +169,9 @@ class Imaging:
 
         # convert list values into strings that could be inserted into parameter_file
         if type(value) == list:
-            if type(value[0]) in [float, int]:
+            if value and type(value[0]) in [float, int]:
                 value = [str(f) for f in value]
-            value = f"[{', '.join(str(value))}]"
+            value = f"[{', '.join(value)}]"
 
         # Gather column name & values to insert into parameter_file
         param_type_id = self.get_parameter_type_id(parameter_name)
