@@ -1,6 +1,7 @@
 """This class interacts with S3 Buckets"""
 
 import boto3
+import lib.utilities
 import os
 from botocore.exceptions import ClientError, EndpointConnectionError
 
@@ -16,6 +17,7 @@ class AwsS3:
         self.aws_endpoint_url = aws_endpoint_url
         self.bucket_name = bucket_name
         self.s3 = self.connect_to_s3_bucket()
+        self.s3_client = self.connect_to_s3_client()
         if self.s3:
             self.s3_bucket_obj = self.s3.Bucket(self.bucket_name)
 
@@ -45,6 +47,50 @@ class AwsS3:
 
         return s3
 
+    def connect_to_s3_client(self):
+        """
+        """
+
+        # connect to S3 client
+        try:
+            session = boto3.session.Session()
+            s3_client = session.client(
+                service_name="s3",
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                endpoint_url=self.aws_endpoint_url
+            )
+        except ClientError as err:
+            print(f'\n[ERROR   ] S3 connection failure: {format(err)}\n')
+            return
+        except EndpointConnectionError as err:
+            print(f'[ERROR   ] {format(err)}\n')
+            return
+
+        return s3_client
+
+    def check_object_content_exists(self, file_path, key):
+        """
+        Check if file content already exists
+        :param file_path: Full path to the file to check hash
+         :type file_path: str
+        :param key: S3 object key. It should be identical to the S3 object key.
+                    (It will not include `s3://BUCKET_NAME/`)
+         :type key: str
+        """
+        try:
+            etag = lib.utilities.compute_md5_hash(file_path)
+            self.s3_client.head_object(Bucket=self.bucket_name, Key=key, IfMatch=etag)
+        except ClientError:
+            """            
+            Per Boto3 documentation for S3.Client.head_object IfMatch will:
+            Return the object only if its entity tag (ETag) is the same as the one specified; 
+            otherwise, return a 412 (precondition failed) error.
+            """
+            return False
+        else:
+            return True
+
     def upload_file(self, file_name, s3_object_name):
         """
         Upload a file to an S3 bucket
@@ -59,12 +105,17 @@ class AwsS3:
 
         # Upload the file
         try:
-            print(f"Uploading {s3_file_name} to {self.aws_endpoint_url}/{s3_bucket_name}")
-            s3_bucket.upload_file(file_name, s3_file_name)
+            object_exists = self.check_object_content_exists(file_name, s3_file_name)
+            if not object_exists:
+                print(f"Uploading {s3_file_name} to {self.aws_endpoint_url}/{s3_bucket_name}")
+                s3_bucket.upload_file(file_name, s3_file_name)
+            elif object_exists:
+                print(
+                    f"Skipping! Key Content for {s3_file_name} matches key at {self.aws_endpoint_url}/{s3_bucket_name}")
         except ClientError as err:
             raise Exception(f"{file_name} upload failure - {format(err)}")
 
-    def upload_dir(self, dir_name, s3_object_name, force = False):
+    def upload_dir(self, dir_name, s3_object_name, force=False):
         """
         Upload a directory to an S3 bucket
 
