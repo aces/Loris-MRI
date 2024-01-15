@@ -4,7 +4,6 @@ protobuf>=3.0.0
 pybids==0.14.0
 mysqlclient
 mysql-connector
-pyblake2
 google
 matplotlib
 nose
