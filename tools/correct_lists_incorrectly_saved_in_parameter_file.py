@@ -62,7 +62,7 @@ def get_list_of_entries_in_parameter_file_to_correct(db):
         value_str = row['Value']
         new_value_str = value_str.replace("[[, ', ", "[").replace(", ', ]]", "]").replace(", ", "")
         new_value_str = new_value_str.replace("'", "").replace(" ", '').replace(",", ", ")
-        if new_value_str == "[[FalseFalseFalse]]":
+        if new_value_str == "[[False, False, False]]":
             print('in')
             new_value_str = "[False, False, False]"
 
