@@ -61,10 +61,10 @@ def get_list_of_entries_in_parameter_file_to_correct(db):
         param_file_id = row['ParameterFileID']
         value_str = row['Value']
         new_value_str = value_str.replace("[[, ', ", "[").replace(", ', ]]", "]").replace(", ", "")
-        new_value_str = new_value_str.replace("'", "").replace(" ", '').replace(",", ", ")
-        if new_value_str == "[[False, False, False]]":
-            print('in')
-            new_value_str = "[False, False, False]"
+        new_value_str = new_value_str.replace("'", "").replace(" ", '').replace(",", ", ").replace("[[", "[")
+        # if new_value_str == "[[False, False, False]]":
+        #     print('in')
+        #     new_value_str = "[False, False, False]"
 
         db.update('UPDATE parameter_file SET Value=%s WHERE ParameterFileID=%s', (new_value_str, param_file_id))
 
