@@ -18,7 +18,7 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/stale@v3
+    - uses: actions/stale@v9.0.0
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-issue-message: 'This issue is stale because it has been open 1 year with no activity.  Remove stale label or comment or this will be closed in 3 months.'
@@ -27,4 +27,4 @@ jobs:
         days-before-issue-close: 90 # ~3 months   
         days-before-pr-stale: 90 # ~3 months
         days-before-pr-close: 45 # ~1.5 month
-        close-issue-reason: 'not-planned'
+        close-issue-reason: 'not_planned'
