@@ -68,10 +68,5 @@ def get_list_of_entries_in_parameter_file_to_correct(db):
         print(new_value_str)
 
 
-def update_parameter_file(new_value, param_file_id):
-
-
-
-
 if __name__ == "__main__":
     main()
