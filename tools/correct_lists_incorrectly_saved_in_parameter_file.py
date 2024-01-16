@@ -55,17 +55,22 @@ def main():
 
 def get_list_of_entries_in_parameter_file_to_correct(db):
 
-    query = 'SELECT * FROM parameter_file WHERE Value LIKE %s'
-
-    results = db.pselect(query, ('[[%%]]',))
+    results = db.pselect('SELECT * FROM parameter_file WHERE Value LIKE %s', ('[[%%]]',))
 
     for row in results:
-
+        param_file_id = row['ParameterFileID']
         value_str = row['Value']
         new_value_str = value_str.replace("[[, ', ", "[").replace(", ', ]]", "]").replace(", ", "")
         new_value_str = new_value_str.replace("'", "").replace(" ", '').replace(",", ", ")
 
+        db.update('UPDATE parameter_file SET Value=%s WHERE ParameterFileID=%s', (new_value_str, param_file_id))
+
         print(new_value_str)
+
+
+def update_parameter_file(new_value, param_file_id):
+
+
 
 
 if __name__ == "__main__":
