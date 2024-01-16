@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import lib.exitcode
 import os
 
 from lib.database import Database
@@ -15,9 +14,12 @@ def main():
         "\n"
 
         "********************************************************************\n"
-        " CORRECT BLAKE2b AND MD5 HASHES STORED IN DATABASE SCRIPT\n"
+        " CORRECT LISTS INCORRECTLY SAVED IN PARAMETER_FILE TABLE\n"
         "********************************************************************\n"
-        "TODO\n\n"  # TODO
+        "This script will query any value in parameter_file like '[[%%]]' which is unique and typical of"
+        " incorrectly saved lists in parameter_file. It will replace the extra characters in the parameter_file"
+        " table so that the list is properly saved. This follows the correction made in PR"
+        " https://github.com/aces/Loris-MRI/pull/1025\n\n"
 
         "usage  : correct_lists_incorrectly_saved_in_parameter_file.py -p <profile> ...\n\n"
 
