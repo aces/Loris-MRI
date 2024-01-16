@@ -62,7 +62,8 @@ def get_list_of_entries_in_parameter_file_to_correct(db):
     for row in results:
 
         value_str = row['Value']
-        new_value_str = value_str.replace("[[, ', ", "").replace(", ', ]]", "").replace(", ", "").replace("'", "")
+        new_value_str = value_str.replace("[[, ', ", "").replace(", ', ]]", "").replace(", ", "")
+        new_value_str = new_value_str.replace("'", "").replace(" ", '')
         new_value_list = new_value_str.split(",")
         print(new_value_list)
 
