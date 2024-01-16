@@ -27,4 +27,3 @@ jobs:
         days-before-issue-close: 90 # ~3 months   
         days-before-pr-stale: 90 # ~3 months
         days-before-pr-close: 45 # ~1.5 month
-        close-issue-reason: 'not_planned'
