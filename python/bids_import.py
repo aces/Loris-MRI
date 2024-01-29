@@ -17,7 +17,6 @@ from lib.session    import Session
 from lib.eeg        import Eeg
 from lib.mri        import Mri
 from lib.database_lib.config import Config
-from pyblake2 import blake2b
 
 __license__ = "GPLv3"
 
@@ -263,7 +262,7 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         # load json data
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)
-        blake2 = blake2b(root_event_metadata_file.path.encode('utf-8')).hexdigest()
+        blake2 = lib.utilities.compute_blake2b_hash(root_event_metadata_file.path)
         physio = lib.physiological.Physiological(db, verbose)
         file_id, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,
