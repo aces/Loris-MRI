@@ -757,7 +757,7 @@ class Eeg:
                 event_data_file.path, derivatives
             )
             # get the blake2b hash of the task events file
-            blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
+            blake2 = utilities.compute_blake2b_hash(event_data_file.path)
 
             # insert event data in the database
             physiological.insert_event_file(
