@@ -920,8 +920,7 @@ class Physiological:
         ], [])
         return filter(
             lambda tag_group: not any(
-                len(tag_group) == len(inherited_tag_group) and
-                all(
+                len(tag_group) == len(inherited_tag_group) and all(
                     tag_group[i] == inherited_tag_group[i]
                     for i in range(len(tag_group))
                 )
@@ -942,7 +941,6 @@ class Physiological:
                     raise
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id
-
 
     def insert_event_file(self, event_data, event_file, physiological_file_id,
                           project_id, blake2, dataset_tag_dict, file_tag_dict,
