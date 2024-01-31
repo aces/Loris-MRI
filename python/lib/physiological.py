@@ -7,7 +7,6 @@ import subprocess
 from functools import reduce
 
 import lib.exitcode
-import lib.utilities as utilities
 from dataclasses import dataclass
 from lib.database_lib.parameter_type import ParameterType
 from lib.database_lib.physiological_file import PhysiologicalFile
@@ -194,8 +193,8 @@ class Physiological:
             query="SELECT ProjectID "
                   "FROM session AS s "
                   "WHERE s.ID = ("
-                      "SELECT SessionID FROM physiological_file "
-                      "WHERE PhysiologicalFileID = %s"
+                  "SELECT SessionID FROM physiological_file "
+                  "WHERE PhysiologicalFileID = %s"
                   ")",
             args=(physiological_file_id,)
         )
@@ -791,7 +790,8 @@ class Physiological:
             )
 
             if has_pairing:
-                additional_members = Physiological.get_additional_members_from_parenthesis_index(string_split, 1, element_index)
+                additional_members = \
+                    Physiological.get_additional_members_from_parenthesis_index(string_split, 1, element_index)
 
             hed_tag_id = Physiological.get_hed_tag_id_from_name(left_stripped, hed_union)
             tag_group.append(Physiological.TagGroupMember(hed_tag_id, has_pairing, additional_members))
@@ -801,7 +801,8 @@ class Physiological:
                 num_opening_parentheses
             ):
                 has_pairing = True
-                additional_members = Physiological.get_additional_members_from_parenthesis_index(string_split, i + 1, element_index)
+                additional_members = \
+                    Physiological.get_additional_members_from_parenthesis_index(string_split, i + 1, element_index)
                 tag_group.append(Physiological.TagGroupMember(None, has_pairing, additional_members))
             group_depth += (len(element) - len(right_stripped))
             group_depth -= num_opening_parentheses
@@ -809,7 +810,6 @@ class Physiological:
             tag_groups.append(tag_group)
 
         return tag_groups
-
 
     def insert_hed_tag_group(self, hed_tag_group, target_id, property_name=None, property_value=None,
                              level_description=None, from_sidecar=False, project_wide=False):
@@ -915,8 +915,8 @@ class Physiological:
         inherited_tag_groups = reduce(lambda a, b: a + b, [
             dataset_tag_dict[column_name][standardized_row[column_name]]
             for column_name in standardized_row
-            if column_name in dataset_tag_dict and
-               standardized_row[column_name] in dataset_tag_dict[column_name]
+            if column_name in dataset_tag_dict
+            and standardized_row[column_name] in dataset_tag_dict[column_name]
         ], [])
         return filter(
             lambda tag_group: not any(
@@ -970,7 +970,6 @@ class Physiological:
         :param hed_union            : Union of HED schemas
          :type hed_union            : any
         """
-
 
         event_file_id = self.physiological_event_file_obj.insert(
             physiological_file_id,

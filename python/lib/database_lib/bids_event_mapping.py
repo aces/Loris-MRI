@@ -8,7 +8,7 @@ class BidsEventMapping:
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the PhysiologicalParameterFile class.
+        Constructor method for the BidsEventMapping class.
 
         :param db                : Database class object
          :type db                 : object

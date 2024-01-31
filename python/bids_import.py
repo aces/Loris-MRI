@@ -254,7 +254,6 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         event_metadata_path = loris_bids_root_dir + copy_file.lstrip('/')
         lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
 
-
         # TODO: Move
         hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
         hed_union = db.pselect(query=hed_query, args=())
@@ -343,6 +342,7 @@ def validateids(bids_dir, db, verbose):
     if loris_cand_info['PSCID'] != psc_id:
         print("ERROR: cand_id " + cand_id + " and psc_id " + psc_id + " do not match.")
         sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
+
 
 def create_loris_bids_directory(bids_reader, data_dir, verbose):
     """

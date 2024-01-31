@@ -187,7 +187,6 @@ class Eeg:
 
         return loris_cand_info
 
-
     def get_loris_session_id(self):
         """
         Greps the LORIS session.ID corresponding to the BIDS visit. Note,
