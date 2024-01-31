@@ -675,17 +675,18 @@ class Physiological:
         for parameter in event_metadata:
             parameter_name = parameter
             tag_dict[parameter_name] = {}
-            description = event_metadata[parameter]['Description'] \
-                if 'Description' in event_metadata[parameter] \
-                else None
-            long_name = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
-            units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
+            # TODO: Commented fields below currently not supported
+            # description = event_metadata[parameter]['Description'] \
+            #     if 'Description' in event_metadata[parameter] \
+            #     else None
+            # long_name = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
+            # units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
             if 'Levels' in event_metadata[parameter]:
                 is_categorical = 'Y'
-                value_hed = None
+                # value_hed = None
             else:
                 is_categorical = 'N'
-                value_hed = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
+                # value_hed = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
 
             if is_categorical == 'Y':
                 for level in event_metadata[parameter]['Levels']:
