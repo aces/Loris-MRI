@@ -26,27 +26,35 @@ sys.path.append('/home/user/python')
 # sys.tracebacklimit = 0
 
 def main():
-    bids_dir      = ''
-    verbose       = False
-    createcand    = False
-    createvisit   = False
-    idsvalidation = False
-    profile       = ''
+    bids_dir         = ''
+    verbose          = False
+    createcand       = False
+    createvisit      = False
+    idsvalidation    = False
+    nobidsvalidation = False
+    type             = None
+    profile          = ''
+    nocopy           = False
 
     long_options = [
         "help",            "profile=",      "directory=",
-        "createcandidate", "createsession", "idsvalidation", "verbose"
+        "createcandidate", "createsession", "idsvalidation", "nobidsvalidation", "type", "verbose"
     ]
     usage        = (
         '\n'
         'usage  : bids_import -d <bids_directory> -p <profile> \n\n'
         'options: \n'
-        '\t-p, --profile        : name of the python database config file in dicom-archive/.loris-mri\n'
-        '\t-d, --directory      : BIDS directory to parse & insert into LORIS\n'
-        '\t-c, --createcandidate: to create BIDS candidates in LORIS (optional)\n'
-        '\t-s, --createsession  : to create BIDS sessions in LORIS (optional)\n'
-        '\t-i, --idsvalidation  : to validate BIDS directory for a matching pscid/candid pair (optional)\n'
-        '\t-v, --verbose        : be verbose\n'
+        '\t-p, --profile          : name of the python database config file in dicom-archive/.loris-mri\n'
+        '\t-d, --directory        : BIDS directory to parse & insert into LORIS\n' \
+                                    'If directory is within $data_dir/assembly_bids, no copy will be performed'
+        '\t-c, --createcandidate  : to create BIDS candidates in LORIS (optional)\n'
+        '\t-s, --createsession    : to create BIDS sessions in LORIS (optional)\n'
+        '\t-i, --idsvalidation    : to validate BIDS directory for a matching pscid/candid pair (optional)\n'
+        '\t-b, --nobidsvalidation : to disable BIDS validation for BIDS compliance\n'
+        '\t-t, --type             : raw | derivatives. Specify the dataset type.' \
+                                    'If not set, the pipeline will look for both raw and derivatives files.\n'
+                                    'Required if no dataset_description.json is found.\n'
+        '\t-v, --verbose          : be verbose\n'
     )
 
     try:
@@ -71,12 +79,31 @@ def main():
             createvisit = True
         elif opt in ('-i', '--idsvalidation'):
             idsvalidation = True
+        elif opt in ('-n', '--nobidsvalidation'):
+            nobidsvalidation = True
+        elif opt in ('-t', '--type'):
+            type = arg
 
     # input error checking and load config_file file
     config_file = input_error_checking(profile, bids_dir, usage)
 
+    dataset_json = bids_dir + "/dataset_description.json"
+    if not os.path.isfile(dataset_json):
+        print ('No dataset_description.json found. Please run with the --type option.')
+        print(usage)
+        sys.exit()
+
+    if type not in ('raw', 'derivatives'):
+        print ("--type must be one of 'raw', 'derivatives'")
+        print(usage)
+        sys.exit()
+
+    assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
+    if bids_dir.strip('/').startswith(assembly_bids_path.strip('/')):
+        nocopy = True
+
     # read and insert BIDS data
-    read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation)
+    read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation, nobidsvalidation, type, nocopy)
 
 
 def input_error_checking(profile, bids_dir, usage):
@@ -130,22 +157,28 @@ def input_error_checking(profile, bids_dir, usage):
     return config_file
 
 
-def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation):
+def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation, nobidsvalidation, type, nocopy):
     """
     Read the provided BIDS structure and import it into the database.
-
-    :param bids_dir     : path to the BIDS directory
-     :type bids_dir     : str
-    :param config_file  : path to the config file with database connection information
-     :type config_file  : str
-    :param verbose      : flag for more printing if set
-     :type verbose      : bool
-    :param createcand   : allow database candidate creation if it did not exist already
-     :type createcand   : bool
-    :param createvisit  : allow database visit creation if it did not exist already
-     :type createvisit  : bool
-    :param idsvalidation: allow pscid/candid validation in the BIDS directory name'
-     :type idsvalidation: bool
+b
+    :param bids_dir         : path to the BIDS directory
+     :type bids_dir         : str
+    :param config_file      : path to the config file with database connection information
+     :type config_file      : str
+    :param verbose          : flag for more printing if set
+     :type verbose          : bool
+    :param createcand       : allow database candidate creation if it did not exist already
+     :type createcand       : bool
+    :param createvisit      : allow database visit creation if it did not exist already
+     :type createvisit      : bool
+    :param idsvalidation    : allow pscid/candid validation in the BIDS directory name'
+     :type idsvalidation    : bool
+    :param nobidsvalidation : disable bids dataset validation'
+     :type nobidsvalidation : bool
+    :param type             : raw | derivatives. Type of the dataset
+     :type type             : string
+    :param nocopy           : disable bids dataset copy in assembly_bids'
+     :type nocopy           : bool
     """
 
     # database connection
@@ -165,7 +198,10 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         validateids(bids_dir, db, verbose)
 
     # load the BIDS directory
-    bids_reader = BidsReader(bids_dir, verbose)
+    if nobidsvalidation:
+        bids_reader = BidsReader(bids_dir, verbose, False)
+    else:
+        bids_reader = BidsReader(bids_dir, verbose)
     if not bids_reader.participants_info          \
             or not bids_reader.cand_sessions_list \
             or not bids_reader.cand_session_modalities_list:
@@ -174,10 +210,12 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         print(message)
         sys.exit(lib.exitcode.UNREADABLE_FILE)
 
-    # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
-    loris_bids_root_dir = create_loris_bids_directory(
-        bids_reader, data_dir, verbose
-    )
+    loris_bids_root_dir = None
+    if not nocopy:
+        # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
+        loris_bids_root_dir = create_loris_bids_directory(
+            bids_reader, data_dir, verbose
+        )
 
     # loop through subjects
     for bids_subject_info in bids_reader.participants_info:
@@ -192,8 +230,9 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
             bids_reader, bids_id, db, createcand, verbose
         )
 
-        # create the candidate's directory in the LORIS BIDS import directory
-        lib.utilities.create_dir(loris_bids_root_dir + "sub-" + bids_id, verbose)
+        if not nocopy:
+            # create the candidate's directory in the LORIS BIDS import directory
+            lib.utilities.create_dir(loris_bids_root_dir + "sub-" + bids_id, verbose)
 
         cand_id    = loris_cand_info['CandID']
         center_id  = loris_cand_info['RegistrationCenterID']
@@ -218,8 +257,10 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
         grep_candidate_sessions_info(
             bids_sessions, bids_id,    cand_id,       loris_bids_root_dir,
             createvisit,   verbose,    db,            default_bids_vl,
-            center_id,     project_id, cohort_id
+            center_id,     project_id, cohort_id,     nocopy
         )
+
+        ## TODO: Is this deadcode?
 
     # read list of modalities per session / candidate and register data
     for row in bids_reader.cand_session_modalities_list:
@@ -229,7 +270,8 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
 
         for modality in row['modalities']:
             loris_bids_modality_rel_dir = loris_bids_visit_rel_dir + '/' + modality + '/'
-            lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
+            if not nocopy:
+                lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
 
             if modality == 'eeg' or modality == 'ieeg':
                 Eeg(
@@ -242,7 +284,8 @@ def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit
                     data_dir      = data_dir,
                     default_visit_label    = default_bids_vl,
                     loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
-                    loris_bids_root_dir    = loris_bids_root_dir
+                    loris_bids_root_dir    = loris_bids_root_dir,
+                    type                   = type
                 )
 
             elif modality in ['anat', 'dwi', 'fmap', 'func']:
@@ -403,7 +446,7 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id, db, createcand, verbo
 def grep_or_create_session_db_info(
         bids_id,   cand_id,     visit_label,
         db,        createvisit, verbose,       loris_bids_dir,
-        center_id, project_id,  cohort_id):
+        center_id, project_id,  cohort_id,     nocopy):
     """
     Greps (or creates if session does not exist and createvisit is true) the
     BIDS session in the LORIS session's table and return a list of
@@ -429,6 +472,8 @@ def grep_or_create_session_db_info(
      :type project_id    : int
     :param cohort_id     : CohortID to use to create the session
      :type cohort_id     : int
+    :param nocopy        : if true, skip the assembly_bids dataset copy
+     :type nocopy        : bool
 
     :return: session information grepped from LORIS for cand_id and visit_label
      :rtype: dict
@@ -440,19 +485,20 @@ def grep_or_create_session_db_info(
     if not loris_vl_info and createvisit:
         loris_vl_info = session.create_session()
 
-    # create the visit directory for in the candidate folder of the LORIS
-    # BIDS import directory
-    lib.utilities.create_dir(
-        loris_bids_dir + "sub-" + bids_id + "/ses-" + visit_label,
-        verbose
-    )
+    if not nocopy:
+        # create the visit directory for in the candidate folder of the LORIS
+        # BIDS import directory
+        lib.utilities.create_dir(
+            loris_bids_dir + "sub-" + bids_id + "/ses-" + visit_label,
+            verbose
+        )
 
     return loris_vl_info
 
 
 def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_bids_dir,
                                  createvisit, verbose,    db,            default_vl,
-                                 center_id,   project_id, cohort_id):
+                                 center_id,   project_id, cohort_id,     nocopy):
     """
     Greps all session info dictionaries for a given candidate and aggregates
     them into a list, with one entry per session. If the session does not
@@ -477,6 +523,14 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
      :type default_vl    : str
     :param center_id     : center ID associated to the candidate and visit
      :type center_id     : int
+    :param project_id    : project ID associated to the candidate and visit
+     :type project_id    : int
+    :param cohort_id     : cohort ID associated to the candidate and visit
+     :type cohort_id     : int
+    :param nocopy        : if true, skip the assembly_bids dataset copy
+     :type nocopy        : bool
+
+
 
     :return: list of all session's dictionaries for a given candidate
      :rtype: list
@@ -488,7 +542,7 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
         loris_ses_info = grep_or_create_session_db_info(
             bids_id,     cand_id,    default_vl,     db,
             createvisit, verbose,    loris_bids_dir,
-            center_id,   project_id, cohort_id
+            center_id,   project_id, cohort_id,      nocopy
         )
         loris_sessions_info.append(loris_ses_info)
     else:
@@ -496,7 +550,7 @@ def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_b
             loris_ses_info = grep_or_create_session_db_info(
                 bids_id,     cand_id,    visit_label,    db,
                 createvisit, verbose,    loris_bids_dir,
-                center_id,   project_id, cohort_id
+                center_id,   project_id, cohort_id,      nocopy
             )
             loris_sessions_info.append(loris_ses_info)
 
