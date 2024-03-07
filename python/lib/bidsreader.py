@@ -43,7 +43,7 @@ class BidsReader:
         bids_reader = BidsReader(bids_dir)
     """
 
-    def __init__(self, bids_dir, verbose):
+    def __init__(self, bids_dir, verbose, validate = True):
         """
         Constructor method for the BidsReader class.
 
@@ -51,19 +51,26 @@ class BidsReader:
          :type bids_dir: str
         :param verbose : boolean to print verbose information
          :type verbose : bool
+        :param validate : boolean to validate the BIDS dataset
+         :type validate : bool
         """
 
         self.verbose     = verbose
         self.bids_dir    = bids_dir
-        self.bids_layout = self.load_bids_data()
+        self.bids_layout = self.load_bids_data(validate)
 
         # load dataset name and BIDS version
-        dataset_json = bids_dir + "/dataset_description.json"
-        dataset_description = {}
-        with open(dataset_json) as json_file:
-            dataset_description = json.load(json_file)
-        self.dataset_name = dataset_description['Name']
-        self.bids_version = dataset_description['BIDSVersion']
+        self.dataset_name = None
+        self.bids_version = None
+        try:
+            dataset_json = bids_dir + "/dataset_description.json"
+            dataset_description = {}
+            with open(dataset_json) as json_file:
+                dataset_description = json.load(json_file)
+            self.dataset_name = dataset_description['Name']
+            self.bids_version = dataset_description['BIDSVersion']
+        except Exception:
+            print("WARNING: Cannot read dataset_description.json")
 
         # load BIDS candidates information
         self.participants_info = self.load_candidates_from_bids()
@@ -75,7 +82,7 @@ class BidsReader:
         self.cand_session_modalities_list = self.load_modalities_from_bids()
 
 
-    def load_bids_data(self):
+    def load_bids_data(self, validate):
         """
         Loads the BIDS study using the BIDSLayout function (part of the pybids
         package) and return the object.
@@ -101,7 +108,7 @@ class BidsReader:
         #        indexer=BIDSLayoutIndexer(ignore=exclude_arr, force_index=force_arr)
         #    )
         #else:
-        bids_layout = BIDSLayout(root=self.bids_dir, ignore=exclude_arr, force_index=force_arr, derivatives=True)
+        bids_layout = BIDSLayout(root=self.bids_dir, ignore=exclude_arr, force_index=force_arr, derivatives=True, validate=validate)
 
         if self.verbose:
             print('\t=> BIDS dataset loaded with BIDS layout\n')

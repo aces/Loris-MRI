@@ -248,6 +248,7 @@ class AwsS3:
                     CopySource=f'{obj.bucket_name}/{obj.key}'
                 )
                 if delete:
+                    print(f"Deleting {src_s3_object_name}")
                     src_s3_bucket.Object(obj.key).delete()
         except Exception as err:
             raise Exception(f"{src_s3_object_name} => {dst_s3_object_name} copy failure = {format(err)}")
