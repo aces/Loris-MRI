@@ -45,13 +45,13 @@ def main():
         'usage  : bids_import -d <bids_directory> -p <profile> \n\n'
         'options: \n'
         '\t-p, --profile          : name of the python database config file in dicom-archive/.loris-mri\n'
-        '\t-d, --directory        : BIDS directory to parse & insert into LORIS\n' \
+        '\t-d, --directory        : BIDS directory to parse & insert into LORIS\n'
                                     'If directory is within $data_dir/assembly_bids, no copy will be performed'
         '\t-c, --createcandidate  : to create BIDS candidates in LORIS (optional)\n'
         '\t-s, --createsession    : to create BIDS sessions in LORIS (optional)\n'
         '\t-i, --idsvalidation    : to validate BIDS directory for a matching pscid/candid pair (optional)\n'
         '\t-b, --nobidsvalidation : to disable BIDS validation for BIDS compliance\n'
-        '\t-t, --type             : raw | derivatives. Specify the dataset type.' \
+        '\t-t, --type             : raw | derivatives. Specify the dataset type.'
                                     'If not set, the pipeline will look for both raw and derivatives files.\n'
                                     'Required if no dataset_description.json is found.\n'
         '\t-v, --verbose          : be verbose\n'
@@ -89,21 +89,41 @@ def main():
 
     dataset_json = bids_dir + "/dataset_description.json"
     if not os.path.isfile(dataset_json):
-        print ('No dataset_description.json found. Please run with the --type option.')
+        print('No dataset_description.json found. Please run with the --type option.')
         print(usage)
         sys.exit()
 
     if type not in ('raw', 'derivatives'):
-        print ("--type must be one of 'raw', 'derivatives'")
+        print("--type must be one of 'raw', 'derivatives'")
         print(usage)
         sys.exit()
+
+    # database connection
+    db = Database(config_file.mysql, verbose)
+    db.connect()
+
+    config_obj = Config(db, verbose)
+    data_dir   = config_obj.get_config('dataDirBasepath')
+    # making sure that there is a final / in data_dir
+    data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
 
     assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
     if bids_dir.strip('/').startswith(assembly_bids_path.strip('/')):
         nocopy = True
 
     # read and insert BIDS data
-    read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation, nobidsvalidation, type, nocopy)
+    read_and_insert_bids(
+        bids_dir,
+        data_dir,
+        verbose,
+        createcand,
+        createvisit,
+        idsvalidation,
+        nobidsvalidation,
+        type,
+        nocopy,
+        db
+    )
 
 
 def input_error_checking(profile, bids_dir, usage):
@@ -157,41 +177,39 @@ def input_error_checking(profile, bids_dir, usage):
     return config_file
 
 
-def read_and_insert_bids(bids_dir, config_file, verbose, createcand, createvisit, idsvalidation, nobidsvalidation, type, nocopy):
+def read_and_insert_bids(
+    bids_dir,      data_dir,      verbose, createcand, createvisit,
+    idsvalidation, nobidsvalidation, type,    nocopy,  db
+):
     """
     Read the provided BIDS structure and import it into the database.
-b
+
     :param bids_dir         : path to the BIDS directory
      :type bids_dir         : str
-    :param config_file      : path to the config file with database connection information
-     :type config_file      : str
+    :param data_dir         : data_dir config value
+     :type data_dir         : string
     :param verbose          : flag for more printing if set
      :type verbose          : bool
     :param createcand       : allow database candidate creation if it did not exist already
      :type createcand       : bool
     :param createvisit      : allow database visit creation if it did not exist already
      :type createvisit      : bool
-    :param idsvalidation    : allow pscid/candid validation in the BIDS directory name'
+    :param idsvalidation    : allow pscid/candid validation in the BIDS directory name
      :type idsvalidation    : bool
-    :param nobidsvalidation : disable bids dataset validation'
+    :param nobidsvalidation : disable bids dataset validation
      :type nobidsvalidation : bool
     :param type             : raw | derivatives. Type of the dataset
      :type type             : string
-    :param nocopy           : disable bids dataset copy in assembly_bids'
+    :param nocopy           : disable bids dataset copy in assembly_bids
      :type nocopy           : bool
-    """
+    :param db               : db object
+     :type db               : object
 
-    # database connection
-    db = Database(config_file.mysql, verbose)
-    db.connect()
+    """
 
     # grep config settings from the Config module
     config_obj      = Config(db, verbose)
     default_bids_vl = config_obj.get_config('default_bids_vl')
-    data_dir        = config_obj.get_config('dataDirBasepath')
-
-    # making sure that there is a final / in data_dir
-    data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
 
     # Validate that pscid and candid matches
     if idsvalidation:
@@ -245,20 +263,18 @@ b
                     "SELECT SubprojectID FROM subproject WHERE title = %s",
                     [subproject, ]
                 )
-            if(len(subproject_info) > 0):
+            if len(subproject_info) > 0:
                 subproject_id = subproject_info[0]['SubprojectID']
 
         # greps BIDS session's info for the candidate from LORIS (creates the
         # session if it does not exist yet in LORIS and the createvisit is set
         # to true. If no visit in BIDS structure, then use default visit_label
         # stored in the Config module)
-        loris_sessions_info = grep_candidate_sessions_info(
+        grep_candidate_sessions_info(
             bids_sessions, bids_id,    cand_id,       loris_bids_root_dir,
             createvisit,   verbose,    db,            default_bids_vl,
             center_id,     project_id, subproject_id, nocopy
         )
-
-        ## TODO: Is this deadcode?
 
     # read list of modalities per session / candidate and register data
     for row in bids_reader.cand_session_modalities_list:
@@ -331,6 +347,7 @@ def validateids(bids_dir, db, verbose):
         print("ERROR: cand_id " + cand_id + " and psc_id " + psc_id + " do not match.")
         sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
 
+
 def create_loris_bids_directory(bids_reader, data_dir, verbose):
     """
     Creates the LORIS BIDS import root directory (with name and BIDS version)
@@ -352,10 +369,9 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
     bids_dir = bids_reader.bids_dir
     bids_dir = bids_dir if bids_dir.endswith('/') else bids_dir + "/"
 
-    # determine the root directory of the LORIS BIDS and create it if does
-    # not exist
-    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name) # get name of the dataset
-    version = re.sub("[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version) # get BIDSVersion of the dataset
+    # determine the root directory of the LORIS BIDS and create it if does not exist
+    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)  # get name of the dataset
+    version = re.sub(r"[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version

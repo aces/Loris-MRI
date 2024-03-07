@@ -128,7 +128,7 @@ class Mri:
                     "SELECT SubprojectID FROM subproject WHERE title = %s",
                     [row['subproject'], ]
                 )
-                if(len(subproject_info) > 0):
+                if len(subproject_info) > 0:
                     self.subproject_id = subproject_info[0]['SubprojectID']
             break
         
@@ -146,7 +146,6 @@ class Mri:
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
             self.register_raw_file(nifti_file)
-
 
     def get_loris_cand_info(self):
         """
@@ -252,7 +251,6 @@ class Mri:
 
         # insert the NIfTI file
         self.fetch_and_insert_nifti_file(nifti_file)
-
 
     def fetch_and_insert_nifti_file(self, nifti_file, derivatives=None):
         """

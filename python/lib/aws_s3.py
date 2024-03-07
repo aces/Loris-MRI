@@ -170,6 +170,7 @@ class AwsS3:
         try:
             self.s3_bucket_obj.Object(file_key).get()
         except ClientError as err:
+            print(str(err))
             return False
 
         return True

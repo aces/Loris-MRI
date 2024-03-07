@@ -1,13 +1,12 @@
 """Reads a BIDS structure into a data dictionary using bids.grabbids."""
 
 import re
-import os
 import sys
 import json
 
 import lib.exitcode
 import lib.utilities as utilities
-import bids
+# import bids
 
 try:
     from bids import BIDSLayout
@@ -19,12 +18,12 @@ except ImportError:
         exit(lib.exitcode.INVALID_IMPORT)
 
 # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
-bids_pack_version = list(map(int, bids.__version__.split('.')))
-if (bids_pack_version[0] > 0
-        or bids_pack_version[1] > 12
-        or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
-    
-	from bids import BIDSLayoutIndexer
+# bids_pack_version = list(map(int, bids.__version__.split('.')))
+# if (bids_pack_version[0] > 0
+#     or bids_pack_version[1] > 12
+#    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
+
+# 	from bids import BIDSLayoutIndexer
 
 __license__ = "GPLv3"
 
@@ -81,7 +80,6 @@ class BidsReader:
         # load BIDS modality information
         self.cand_session_modalities_list = self.load_modalities_from_bids()
 
-
     def load_bids_data(self, validate):
         """
         Loads the BIDS study using the BIDSLayout function (part of the pybids
@@ -94,21 +92,29 @@ class BidsReader:
             print('Loading the BIDS dataset with BIDS layout library...\n')
 
         exclude_arr   = ['/code/', '/sourcedata/', '/log/', '.git/']
-        force_arr     = [re.compile("_annotations\.(tsv|json)$")]
+        force_arr     = [re.compile(r"_annotations\.(tsv|json)$")]
 
         # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
         # bids_pack_version = list(map(int, bids.__version__.split('.')))
         # disabled until is a workaround for https://github.com/bids-standard/pybids/issues/760 is found
-        # [file] bids_import.py [function] read_and_insert_bids [line] for modality in row['modalities']: (row['modalities'] is empty)
-        #if (bids_pack_version[0] > 0
+        # [file] bids_import.py 
+        # [function] read_and_insert_bids 
+        # [line] for modality in row['modalities']: (row['modalities'] is empty)
+        # if (bids_pack_version[0] > 0
         #    or bids_pack_version[1] > 12
         #    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
         #    bids_layout = BIDSLayout(
         #        root=self.bids_dir,
         #        indexer=BIDSLayoutIndexer(ignore=exclude_arr, force_index=force_arr)
         #    )
-        #else:
-        bids_layout = BIDSLayout(root=self.bids_dir, ignore=exclude_arr, force_index=force_arr, derivatives=True, validate=validate)
+        # else:
+        bids_layout = BIDSLayout(
+            root=self.bids_dir,
+            ignore=exclude_arr,
+            force_index=force_arr,
+            derivatives=True,
+            validate=validate
+        )
 
         if self.verbose:
             print('\t=> BIDS dataset loaded with BIDS layout\n')
@@ -252,7 +258,6 @@ class BidsReader:
             print('\t=> Done grepping the different modalities from the BIDS layout\n')
 
         return cand_session_modalities_list
-
 
     @staticmethod
     def grep_file(files_list, match_pattern, derivative_pattern=None):
