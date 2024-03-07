@@ -128,6 +128,6 @@ class ScansTSV:
             lib.utilities.copy_file(original_file_path, final_file_path, self.verbose)
 
         # determine the relative path and return it
-        relative_path = final_file_path.replace(data_dir,'')
+        relative_path = final_file_path.replace(data_dir, '')
 
         return relative_path

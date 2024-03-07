@@ -9,7 +9,7 @@ from lib.lorisgetopt import LorisGetOpt
 from lib.imaging_io import ImagingIO
 from lib.database import Database
 from lib.database_lib.config import Config
-from lib.exitcode import SUCCESS, MISSING_FILES, BAD_CONFIG_SETTING, COPY_FAILURE
+from lib.exitcode import SUCCESS, BAD_CONFIG_SETTING
 from lib.log import Log
 
 __license__ = "GPLv3"

@@ -1176,5 +1176,5 @@ class Physiological:
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
                     parameter_name = 'electrophyiology_chunked_dataset_path',
-                    value = chunk_path.replace(data_dir,'')
+                    value = chunk_path.replace(data_dir, '')
                 )

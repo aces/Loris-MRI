@@ -185,7 +185,6 @@ class Eeg:
 
         return loris_cand_info
 
-
     def get_loris_session_id(self):
         """
         Greps the LORIS session.ID corresponding to the BIDS visit. Note,
@@ -261,7 +260,8 @@ class Eeg:
         :param derivatives: True if the EEG file to insert is a derivative file.
                             Set by default to False when inserting raw file.
          :type derivatives: boolean
-        :param detect:      True if we want to perform a automatic detections of the derivatives files in case of mixed dataset.
+        :param detect:      True if we want to perform a automatic detections of the derivatives files
+                            in case of mixed dataset.
                             Set by default to True.
          :type detect:      boolean
         """
@@ -366,7 +366,8 @@ class Eeg:
         :param derivatives: True if the EEG file to insert is a derivative file.
                             Set by default to False when inserting raw file.
          :type derivatives: boolean
-        :param detect:      True if we want to perform a automatic detections of the derivatives files in case of mixed dataset.
+        :param detect:      True if we want to perform a automatic detections of the derivatives files
+                            in case of mixed dataset.
                             Set by default to True.
          :type detect:      boolean
         :return: dictionary with registered file ID and path to its file
@@ -426,7 +427,7 @@ class Eeg:
                 with open(eegjson_file.path) as data_file:
                     eeg_file_data = json.load(data_file)
 
-                eegjson_file_path = eegjson_file.path.replace(self.data_dir,'')
+                eegjson_file_path = eegjson_file.path.replace(self.data_dir, '')
                 if self.loris_bids_root_dir:
                     # copy the JSON file to the LORIS BIDS import directory
                     eegjson_file_path = self.copy_file_to_loris_bids_dir(
@@ -471,7 +472,7 @@ class Eeg:
             # eeg_file_data dictionary
             fdt_file_path = None
             if file_type == 'set' and fdt_file:
-                fdt_file_path = fdt_file.path.replace(self.data_dir,'')
+                fdt_file_path = fdt_file.path.replace(self.data_dir, '')
                 if self.loris_bids_root_dir:
                     # copy the fdt file to the LORIS BIDS import directory
                     fdt_file_path = self.copy_file_to_loris_bids_dir(
@@ -595,7 +596,7 @@ class Eeg:
                 )
                 if not result:
                     electrode_data = utilities.read_tsv_file(electrode_file.path)
-                    electrode_path = electrode_file.path.replace(self.data_dir,'')
+                    electrode_path = electrode_file.path.replace(self.data_dir, '')
                     if self.loris_bids_root_dir:
                         # copy the electrode file to the LORIS BIDS import directory
                         electrode_path = self.copy_file_to_loris_bids_dir(
@@ -626,7 +627,7 @@ class Eeg:
                         print(message)
 
                     else:
-                        electrode_metadata_path = coordsystem_metadata_file.path.replace(self.data_dir,'')
+                        electrode_metadata_path = coordsystem_metadata_file.path.replace(self.data_dir, '')
                         if self.loris_bids_root_dir:
                             # copy the electrode metadata file to the LORIS BIDS import directory
                             electrode_metadata_path = self.copy_file_to_loris_bids_dir(
@@ -695,7 +696,7 @@ class Eeg:
             channel_path = result[0]['FilePath'] if result else None
             channel_data = utilities.read_tsv_file(channel_file.path)
             if not result:
-                channel_path = channel_file.path.replace(self.data_dir,'')
+                channel_path = channel_file.path.replace(self.data_dir, '')
                 if self.loris_bids_root_dir:
                     # copy the channel file to the LORIS BIDS import directory
                     channel_path = self.copy_file_to_loris_bids_dir(
@@ -762,7 +763,7 @@ class Eeg:
                 event_paths = []
 
                 event_data = utilities.read_tsv_file(event_data_file.path)
-                event_path = event_data_file.path.replace(self.data_dir,'')
+                event_path = event_data_file.path.replace(self.data_dir, '')
                 if self.loris_bids_root_dir:
                     # copy the event file to the LORIS BIDS import directory
                     event_path = self.copy_file_to_loris_bids_dir(
@@ -872,7 +873,7 @@ class Eeg:
             subject=self.psc_id,
         )
 
-        if not(annotation_data_files):
+        if not annotation_data_files:
             message = "WARNING: no annotations files associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -900,8 +901,8 @@ class Eeg:
                         subject=self.psc_id,
                     )
 
-                    annotation_data_path = annotation_data_file.path.replace(self.data_dir,'')
-                    annotation_metadata_path = annotation_metadata_file.path.replace(self.data_dir,'')
+                    annotation_data_path = annotation_data_file.path.replace(self.data_dir, '')
+                    annotation_metadata_path = annotation_metadata_file.path.replace(self.data_dir, '')
                     if self.loris_bids_root_dir:
                         annotation_data_path = self.copy_file_to_loris_bids_dir(
                             annotation_data_file.path, derivatives

@@ -5,11 +5,9 @@
 import os
 import sys
 from lib.lorisgetopt import LorisGetOpt
-from lib.imaging_io import ImagingIO
 from lib.database import Database
 from lib.database_lib.config import Config
-from lib.exitcode import SUCCESS, INVALID_ARG, PROGRAM_EXECUTION_FAILURE
-from lib.log import Log
+from lib.exitcode import SUCCESS, INVALID_ARG
 import subprocess
 
 __license__ = "GPLv3"
@@ -59,7 +57,6 @@ def main():
     upload_id = loris_getopt_obj.options_dict['upload_id']['value']
     profile = loris_getopt_obj.options_dict['profile']['value']
 
-
     # ---------------------------------------------------------------------------------------------
     # Establish database connection
     # ---------------------------------------------------------------------------------------------
@@ -76,19 +73,8 @@ def main():
     # Get tmp dir from loris_getopt object
     # and create the log object (their basename being the name of the script run)
     # ---------------------------------------------------------------------------------------------
-    tmp_dir = loris_getopt_obj.tmp_dir
     data_dir = config_db_obj.get_config("dataDirBasepath")
     assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
-
-    log_obj = Log(
-        db,
-        data_dir,
-        script_name,
-        os.path.basename(tmp_dir),
-        loris_getopt_obj.options_dict,
-        verbose
-    )
-    imaging_io_obj = ImagingIO(log_obj, verbose)
 
     # ---------------------------------------------------------------------------------------------
     # Get all EEG upload with status = Extracted
@@ -129,7 +115,7 @@ def main():
       pscid = session_data[0]['PSCID']
       visit = session_data[0]['Visit_label']
 
-      ## SUBJECT ID
+      # Subject id
       subjectid = None
       # BIDS subject id is either the pscid or the candid
 
@@ -151,9 +137,8 @@ def main():
       if not subjectid:
         print('No BIDS dataset matching candidate ' + pscid + ' ' + str(candid) + ' found.')
         continue
-       
-      
-      ## VISIT
+
+      # Visit
       path = os.path.join(assembly_bids_path, 'sub-' + subjectid, 'ses-' + visit)
       if not os.path.isdir(path):
         print('No BIDS dataset matching visit ' + visit + ' for candidate ' + pscid + ' ' + str(candid) + ' found.')
@@ -161,7 +146,7 @@ def main():
 
       script = os.environ['LORIS_MRI'] + '/python/bids_import.py'
       eeg_path = os.path.join(path, 'eeg')
-      command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy'
+      command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --type raw'
       
       try:
         result = subprocess.run(command, shell = True, capture_output=True)
@@ -177,7 +162,10 @@ def main():
           print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
           continue
 
-        print(f'ERROR: EEG Dataset with uploadID {uploadid} failed ingestion. Error was:\n ' + result.stderr.decode('utf-8'))
+        print(
+          f'ERROR: EEG Dataset with uploadID {uploadid} failed ingestion. \
+          Error was:\n ' + result.stderr.decode('utf-8')
+        )
       
       except OSError:
         print('ERROR: ' + script + ' not found')
@@ -187,8 +175,9 @@ def main():
         (uploadid,)
       )
       
-      # TODO: reupload of archive after ingestion
-      # Delete if already exist
+    # TODO: reupload of archive after ingestion
+    # Delete if already exist
+
 
 if __name__ == "__main__":
     main()
