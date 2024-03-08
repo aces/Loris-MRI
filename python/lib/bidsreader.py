@@ -6,7 +6,6 @@ import json
 
 import lib.exitcode
 import lib.utilities as utilities
-# import bids
 
 try:
     from bids import BIDSLayout
@@ -17,6 +16,7 @@ except ImportError:
         print("Could not find bids.layout or bids.grabbids")
         exit(lib.exitcode.INVALID_IMPORT)
 
+# import bids
 # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
 # bids_pack_version = list(map(int, bids.__version__.split('.')))
 # if (bids_pack_version[0] > 0
