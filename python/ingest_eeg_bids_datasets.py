@@ -150,11 +150,16 @@ def main():
       
       try:
         result = subprocess.run(command, shell = True, capture_output=True)
-        
+
         if result.stdout:
           print(result.stdout.decode('utf-8'))
         
-        if not result.stderr:
+        if result.stderr:
+          print(
+            f'ERROR: EEG Dataset with uploadID {uploadid} ingestion log:\n ' + result.stderr.decode('utf-8')
+          )
+
+        if result.returncode == 0:
           db.update(
             "UPDATE electrophysiology_uploader SET Status = 'Ingested' WHERE UploadID = %s",
             (uploadid,)
@@ -162,11 +167,6 @@ def main():
           print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
           continue
 
-        print(
-          f'ERROR: EEG Dataset with uploadID {uploadid} failed ingestion. \
-          Error was:\n ' + result.stderr.decode('utf-8')
-        )
-      
       except OSError:
         print('ERROR: ' + script + ' not found')
 

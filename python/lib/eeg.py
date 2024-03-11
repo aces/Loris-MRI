@@ -14,7 +14,7 @@ from lib.scanstsv                                    import ScansTSV
 from lib.database_lib.physiologicalannotationfile    import PhysiologicalAnnotationFile
 from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotationArchive
 from lib.database_lib.physiologicalannotationrel     import PhysiologicalAnnotationRel
-
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -104,6 +104,9 @@ class Eeg:
         :param type             : raw | derivatives. Type of the dataset
          :type type             : string
         """
+
+        # config
+        self.config_db_obj = Config(db, verbose)
 
         # load bids objects
         self.bids_reader   = bids_reader
@@ -948,9 +951,7 @@ class Eeg:
             else:
                 return
 
-        # create the archive file
-        archive_rel_name = archive_rel_name.replace(self.data_dir, '')
-        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+        (archive_rel_name, archive_full_path) = self.create_archive(files_to_archive, archive_rel_name)
 
         # insert the archive file in physiological_archive
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -1003,9 +1004,22 @@ class Eeg:
             else:
                 return
 
-        # create the archive file
-        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+        (archive_rel_name, archive_full_path) = self.create_archive(files_to_archive, archive_rel_name)
 
         # insert the archive into the physiological_annotation_archive table
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
         physiological_annotation_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
+
+    def create_archive(self, files_to_archive, archive_rel_name):
+        # create the archive file
+        package_path = self.config_db_obj.get_config("prePackagedDownloadPath")
+        if package_path:
+            raw_package_dir = os.path.join(package_path, 'raw')
+            os.makedirs(raw_package_dir, exist_ok=True)
+            archive_rel_name = os.path.basename(archive_rel_name)
+            archive_full_path = os.path.join(raw_package_dir, archive_rel_name)
+            utilities.create_archive(files_to_archive, archive_full_path)
+        else:
+            archive_full_path = os.path.join(self.data_dir, archive_rel_name)
+            utilities.create_archive(files_to_archive, archive_full_path)
+        return (archive_rel_name, archive_full_path)

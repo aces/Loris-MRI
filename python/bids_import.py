@@ -38,7 +38,7 @@ def main():
 
     long_options = [
         "help",            "profile=",      "directory=",
-        "createcandidate", "createsession", "idsvalidation", "nobidsvalidation", "type", "verbose"
+        "createcandidate", "createsession", "idsvalidation", "nobidsvalidation", "type=", "verbose"
     ]
     usage        = (
         '\n'
@@ -58,7 +58,7 @@ def main():
     )
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csiv', long_options)
+        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csint:v', long_options)
     except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
@@ -88,15 +88,15 @@ def main():
     config_file = input_error_checking(profile, bids_dir, usage)
 
     dataset_json = bids_dir + "/dataset_description.json"
-    if not os.path.isfile(dataset_json):
+    if not os.path.isfile(dataset_json) and not type:
         print('No dataset_description.json found. Please run with the --type option.')
         print(usage)
-        sys.exit()
+        sys.exit(lib.exitcode.MISSING_ARG)
 
-    if type not in ('raw', 'derivatives'):
+    if type and type not in ('raw', 'derivatives'):
         print("--type must be one of 'raw', 'derivatives'")
         print(usage)
-        sys.exit()
+        sys.exit(lib.exitcode.MISSING_ARG)
 
     # database connection
     db = Database(config_file.mysql, verbose)
