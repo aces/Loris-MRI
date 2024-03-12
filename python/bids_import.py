@@ -37,8 +37,10 @@ def main():
     nocopy           = False
 
     long_options = [
-        "help",            "profile=",      "directory=",
-        "createcandidate", "createsession", "idsvalidation", "nobidsvalidation", "type=", "verbose"
+        "help",             "profile=",      "directory=",
+        "createcandidate",  "createsession", "idsvalidation",
+        "nobidsvalidation", "nocopy",        "type=",
+        "verbose"
     ]
     usage        = (
         '\n'
@@ -51,6 +53,7 @@ def main():
         '\t-s, --createsession    : to create BIDS sessions in LORIS (optional)\n'
         '\t-i, --idsvalidation    : to validate BIDS directory for a matching pscid/candid pair (optional)\n'
         '\t-b, --nobidsvalidation : to disable BIDS validation for BIDS compliance\n'
+        '\t-a, --nocopy           : to disable dataset copy in data assembly_bids\n'
         '\t-t, --type             : raw | derivatives. Specify the dataset type.'
                                     'If not set, the pipeline will look for both raw and derivatives files.\n'
                                     'Required if no dataset_description.json is found.\n'
@@ -81,6 +84,8 @@ def main():
             idsvalidation = True
         elif opt in ('-n', '--nobidsvalidation'):
             nobidsvalidation = True
+        elif opt in ('-a', '--nocopy'):
+            nocopy = True
         elif opt in ('-t', '--type'):
             type = arg
 
@@ -106,10 +111,6 @@ def main():
     data_dir   = config_obj.get_config('dataDirBasepath')
     # making sure that there is a final / in data_dir
     data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
-
-    assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
-    if bids_dir.strip('/').startswith(assembly_bids_path.strip('/')):
-        nocopy = True
 
     # read and insert BIDS data
     read_and_insert_bids(

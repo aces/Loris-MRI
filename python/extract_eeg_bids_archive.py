@@ -25,7 +25,7 @@ def main():
         " EXTRACT EEG ARCHIVES\n"
         "********************************************************************\n"
         "The program gets an archive associated with an upload ID, extract it and push its content "
-        "to EEGS3DataPath, an Amazon S3 bucket or {dataDirBasepath}/assembly_bids.\n\n"
+        "to EEGS3DataPath, an Amazon S3 bucket or EEGAssemblyBIDS.\n\n"
 
         "usage  : extract_eeg_bids_archive.py -p <profile> -u <upload_id> ...\n\n"
 
@@ -214,7 +214,12 @@ def main():
                         )
                         error = True
                 else:
-                    data_eeg_modality_path = os.path.join(data_dir, 'assembly_bids', eeg_session_rel_path, modality)
+                    assembly_bids_path = config_db_obj.get_config("EEGAssemblyBIDS")
+                    if not assembly_bids_path:
+                        data_dir = config_db_obj.get_config("dataDirBasepath")
+                        assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
+
+                    data_eeg_modality_path = os.path.join(assembly_bids_path, eeg_session_rel_path, modality)
 
                     """
                     If the suject/session/modality BIDS data already exists

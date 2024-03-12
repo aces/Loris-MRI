@@ -73,8 +73,10 @@ def main():
     # Get tmp dir from loris_getopt object
     # and create the log object (their basename being the name of the script run)
     # ---------------------------------------------------------------------------------------------
-    data_dir = config_db_obj.get_config("dataDirBasepath")
-    assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
+    assembly_bids_path = config_db_obj.get_config("EEGAssemblyBIDS")
+    if not assembly_bids_path:
+      data_dir = config_db_obj.get_config("dataDirBasepath")
+      assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
 
     # ---------------------------------------------------------------------------------------------
     # Get all EEG upload with status = Extracted
@@ -145,8 +147,9 @@ def main():
         continue
 
       script = os.environ['LORIS_MRI'] + '/python/bids_import.py'
+      # Assume eeg and raw data for now
       eeg_path = os.path.join(path, 'eeg')
-      command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --type raw'
+      command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
       
       try:
         result = subprocess.run(command, shell = True, capture_output=True)
