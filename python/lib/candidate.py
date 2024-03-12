@@ -157,7 +157,6 @@ class Candidate:
 
         return self.get_candidate_info_from_loris(db)
 
-
     def get_candidate_info_from_loris(self, db):
         """
         Grep candidate information from the candidate table using the PSCID or CandID.
@@ -229,7 +228,7 @@ class Candidate:
 
         id = random.randint(100000, 999999)
 
-        while(db.pselect("SELECT * FROM candidate WHERE CandID = %s", (id,))):
+        while (db.pselect("SELECT * FROM candidate WHERE CandID = %s", (id,))):
             # pick a new id
             id = random.randint(100000, 999999)
 

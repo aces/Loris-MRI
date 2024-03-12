@@ -431,7 +431,6 @@ class NiftiInsertionPipeline(BasePipeline):
         bids_cand_id = 'sub-' + self.subject_id_dict['CandID']
         bids_visit = 'ses-' + self.subject_id_dict['visitLabel']
         bids_subfolder = self.bids_categories_dict['BIDSCategoryName']
-        new_nifti_rel_dir = os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_subfolder)
 
         # determine NIfTI file name
         new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
