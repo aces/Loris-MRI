@@ -141,7 +141,7 @@ def create_dir(dir_name, verbose):
     return dir_name
 
 
-def create_archive(files_to_archive, archive_rel_name, data_dir):
+def create_archive(files_to_archive, archive_path):
     """
     Creates an archive with the files listed in the files_to_archive tuple.
 
@@ -154,8 +154,8 @@ def create_archive(files_to_archive, archive_rel_name, data_dir):
     """
 
     # if the archive does not already exists, create it
-    if not os.path.isfile(data_dir + archive_rel_name):
-        tar = tarfile.open(data_dir + archive_rel_name, "w:gz")
+    if not os.path.isfile(archive_path):
+        tar = tarfile.open(archive_path, "w:gz")
         for file in files_to_archive:
             filename = os.path.basename(file)
             tar.add(file, arcname=filename, recursive=False)
