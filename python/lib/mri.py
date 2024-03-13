@@ -127,8 +127,8 @@ class Mri:
                     "SELECT CohortID FROM cohort WHERE title = %s",
                     [row['cohort'], ]
                 )
-                if len(subproject_info) > 0:
-                    self.subproject_id = subproject_info[0]['SubprojectID']
+                if len(cohort_info) > 0:
+                    self.subproject_id = cohort_info[0]['SubprojectID']
             break
         
         self.session_id      = self.get_loris_session_id()
