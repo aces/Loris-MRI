@@ -1145,6 +1145,7 @@ class Eeg:
         # insert the archive into the physiological_annotation_archive table
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
         physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
+        
     def create_archive(self, files_to_archive, archive_rel_name):
         # create the archive file
         package_path = self.config_db_obj.get_config("prePackagedDownloadPath")
