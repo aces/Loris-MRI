@@ -113,7 +113,7 @@ class Database:
                 port=self.port,
                 db=self.db_name
             )
-            #self.cnx.cursor = self.cnx.cursor(prepared=True)
+            # self.cnx.cursor = self.cnx.cursor(prepared=True)
         except MySQLdb.Error as err:
             raise Exception("Database connection failure: " + format(err))
 
