@@ -61,7 +61,7 @@ def main():
     )
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csint:v', long_options)
+        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csinat:v', long_options)
     except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
