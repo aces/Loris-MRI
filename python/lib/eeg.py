@@ -1097,7 +1097,6 @@ class Eeg:
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
         physiological_annotation_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
 
-<<<<<<< HEAD
     def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
         """
         Create an archive with all event files associated to a specific recording
