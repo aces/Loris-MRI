@@ -16,7 +16,7 @@ from lib.database_lib.physiologicalannotationarchive import PhysiologicalAnnotat
 from lib.database_lib.physiologicalannotationrel     import PhysiologicalAnnotationRel
 from lib.database_lib.physiologicaleventfile         import PhysiologicalEventFile
 from lib.database_lib.physiologicaleventarchive      import PhysiologicalEventArchive
-
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -78,7 +78,7 @@ class Eeg:
 
     def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
                  verbose, data_dir, default_visit_label,
-                 loris_bids_eeg_rel_dir, loris_bids_root_dir):
+                 loris_bids_eeg_rel_dir, loris_bids_root_dir, type):
         """
         Constructor method for the Eeg class.
 
@@ -103,7 +103,12 @@ class Eeg:
          :type loris_bids_eeg_rel_dir: str
         :param loris_bids_root_dir   : LORIS BIDS root directory path
          :type loris_bids_root_dir   : str
+        :param type             : raw | derivatives. Type of the dataset
+         :type type             : string
         """
+
+        # config
+        self.config_db_obj = Config(db, verbose)
 
         # load bids objects
         self.bids_reader   = bids_reader
@@ -154,8 +159,13 @@ class Eeg:
             self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename')[0]
 
         # register the data into LORIS
-        self.register_data()
-        self.register_data(derivatives=True)
+        if (type and type == 'raw'):
+            self.register_data(detect=False)
+        elif (type and type == 'derivatives'):
+            self.register_data(derivatives=True, detect=False)
+        else:
+            self.register_data()
+            self.register_data(derivatives=True)
 
     def get_loris_cand_info(self):
         """
@@ -177,7 +187,6 @@ class Eeg:
             sys.exit(lib.exitcode.CANDIDATE_NOT_FOUND)
 
         return loris_cand_info
-
 
     def get_loris_session_id(self):
         """
@@ -240,7 +249,7 @@ class Eeg:
                 return_type = 'filename'
             )
 
-    def register_data(self, derivatives=False):
+    def register_data(self, derivatives=False, detect=True):
         """
         Registers raw and derivatives EEG data and related files into the following tables:
             - physiological_file
@@ -254,10 +263,14 @@ class Eeg:
         :param derivatives: True if the EEG file to insert is a derivative file.
                             Set by default to False when inserting raw file.
          :type derivatives: boolean
+        :param detect:      True if we want to perform a automatic detections of the derivatives files
+                            in case of mixed dataset.
+                            Set by default to True.
+         :type detect:      boolean
         """
 
         # insert EEG file
-        inserted_eegs = self.fetch_and_insert_eeg_files(derivatives)
+        inserted_eegs = self.fetch_and_insert_eeg_files(derivatives, detect)
 
         if not inserted_eegs:
             return
@@ -345,7 +358,7 @@ class Eeg:
             # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
             physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
-    def fetch_and_insert_eeg_files(self, derivatives=False):
+    def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
         """
         Gather EEG file information to insert into physiological_file and
         physiological_parameter_file. Once all the information has been
@@ -356,6 +369,10 @@ class Eeg:
         :param derivatives: True if the EEG file to insert is a derivative file.
                             Set by default to False when inserting raw file.
          :type derivatives: boolean
+        :param detect:      True if we want to perform a automatic detections of the derivatives files
+                            in case of mixed dataset.
+                            Set by default to True.
+         :type detect:      boolean
         :return: dictionary with registered file ID and path to its file
          :rtype: dict
         """
@@ -365,17 +382,22 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
 
-        # TODO if derivatives, grep the source file as well as the input file ID???
-
-        # grep the raw files
-        eeg_files = self.bids_layout.get(
-            subject   = self.bids_sub_id,
-            session   = self.bids_ses_id,
-            scope     = 'derivatives' if derivatives else 'raw',
-            # datatype  = self.bids_modality,
-            suffix    = self.bids_modality,
-            extension = ['set', 'edf', 'vhdr', 'vmrk', 'eeg', 'bdf']
-        )
+        if detect:
+            # TODO if derivatives, grep the source file as well as the input file ID???
+            eeg_files = self.bids_layout.get(
+                subject   = self.bids_sub_id,
+                session   = self.bids_ses_id,
+                scope     = 'derivatives' if derivatives else 'raw',
+                suffix    = self.bids_modality,
+                extension = ['set', 'edf', 'vhdr', 'vmrk', 'eeg', 'bdf']
+            )
+        else:
+            eeg_files = self.bids_layout.get(
+                subject   = self.bids_sub_id,
+                session   = self.bids_ses_id,
+                suffix    = self.bids_modality,
+                extension = ['set', 'edf', 'vhdr', 'vmrk', 'eeg', 'bdf']
+            )
 
         # return if no eeg_file was found
         if not eeg_files:
@@ -407,10 +429,14 @@ class Eeg:
             if eegjson_file:
                 with open(eegjson_file.path) as data_file:
                     eeg_file_data = json.load(data_file)
-                # copy the JSON file to the LORIS BIDS import directory
-                eegjson_file_path = self.copy_file_to_loris_bids_dir(
-                    eegjson_file.path, derivatives
-                )
+
+                eegjson_file_path = eegjson_file.path.replace(self.data_dir, '')
+                if self.loris_bids_root_dir:
+                    # copy the JSON file to the LORIS BIDS import directory
+                    eegjson_file_path = self.copy_file_to_loris_bids_dir(
+                        eegjson_file.path, derivatives
+                    )
+
                 eeg_file_data['eegjson_file'] = eegjson_file_path
                 json_blake2 = utilities.compute_blake2b_hash(eegjson_file.path)
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
@@ -435,10 +461,11 @@ class Eeg:
                 eeg_acq_time = scan_info.get_acquisition_time()
                 eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
 
-                # copy the scans.tsv file to the LORIS BIDS import directory
-                scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
-                    self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
-                )
+                if self.loris_bids_root_dir:
+                    # copy the scans.tsv file to the LORIS BIDS import directory
+                    scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
+                        self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
+                    )
 
                 eeg_file_data['scans_tsv_file'] = scans_path
                 scans_blake2 = utilities.compute_blake2b_hash(self.scans_file)
@@ -448,10 +475,12 @@ class Eeg:
             # eeg_file_data dictionary
             fdt_file_path = None
             if file_type == 'set' and fdt_file:
-                # copy the fdt file to the LORIS BIDS import directory
-                fdt_file_path = self.copy_file_to_loris_bids_dir(
-                    fdt_file.path, derivatives
-                )
+                fdt_file_path = fdt_file.path.replace(self.data_dir, '')
+                if self.loris_bids_root_dir:
+                    # copy the fdt file to the LORIS BIDS import directory
+                    fdt_file_path = self.copy_file_to_loris_bids_dir(
+                        fdt_file.path, derivatives
+                    )
 
                 eeg_file_data['fdt_file'] = fdt_file_path
                 fdt_blake2 = utilities.compute_blake2b_hash(fdt_file.path)
@@ -477,10 +506,12 @@ class Eeg:
                     insert_if_not_found=False
                 )
 
-                # copy the eeg_file to the LORIS BIDS import directory
-                eeg_path = self.copy_file_to_loris_bids_dir(
-                    eeg_file.path, derivatives
-                )
+                eeg_path = eeg_file.path.replace(self.data_dir, '')
+                if self.loris_bids_root_dir:
+                    # copy the eeg_file to the LORIS BIDS import directory
+                    eeg_path = self.copy_file_to_loris_bids_dir(
+                        eeg_file.path, derivatives
+                    )
 
                 # insert the file along with its information into
                 # physiological_file and physiological_parameter_file tables
@@ -568,10 +599,12 @@ class Eeg:
                 )
                 if not result:
                     electrode_data = utilities.read_tsv_file(electrode_file.path)
-                    # copy the electrode file to the LORIS BIDS import directory
-                    electrode_path = self.copy_file_to_loris_bids_dir(
-                        electrode_file.path, derivatives
-                    )
+                    electrode_path = electrode_file.path.replace(self.data_dir, '')
+                    if self.loris_bids_root_dir:
+                        # copy the electrode file to the LORIS BIDS import directory
+                        electrode_path = self.copy_file_to_loris_bids_dir(
+                            electrode_file.path, derivatives
+                        )
                     # get the blake2b hash of the electrode file
                     blake2 = utilities.compute_blake2b_hash(electrode_file.path)
 
@@ -597,10 +630,12 @@ class Eeg:
                         print(message)
 
                     else:
-                        # copy the electrode metadata file to the LORIS BIDS import directory
-                        electrode_metadata_path = self.copy_file_to_loris_bids_dir(
-                            coordsystem_metadata_file.path, derivatives
-                        )
+                        electrode_metadata_path = coordsystem_metadata_file.path.replace(self.data_dir, '')
+                        if self.loris_bids_root_dir:
+                            # copy the electrode metadata file to the LORIS BIDS import directory
+                            electrode_metadata_path = self.copy_file_to_loris_bids_dir(
+                                coordsystem_metadata_file.path, derivatives
+                            )
                         # load json data
                         with open(coordsystem_metadata_file.path) as metadata_file:
                             electrode_metadata = json.load(metadata_file)
@@ -664,10 +699,12 @@ class Eeg:
             channel_path = result[0]['FilePath'] if result else None
             channel_data = utilities.read_tsv_file(channel_file.path)
             if not result:
-                # copy the channel file to the LORIS BIDS import directory
-                channel_path = self.copy_file_to_loris_bids_dir(
-                    channel_file.path, derivatives
-                )
+                channel_path = channel_file.path.replace(self.data_dir, '')
+                if self.loris_bids_root_dir:
+                    # copy the channel file to the LORIS BIDS import directory
+                    channel_path = self.copy_file_to_loris_bids_dir(
+                        channel_file.path, derivatives
+                    )
                 # get the blake2b hash of the channel file
                 blake2 = utilities.compute_blake2b_hash(channel_file.path)
                 # insert the channel data in the database
@@ -724,16 +761,16 @@ class Eeg:
             event_paths = physiological_event_file_obj.grep_event_paths_from_physiological_file_id(
                 physiological_file_id
             )
-
             if not event_paths:
                 event_paths = []
 
                 event_data = utilities.read_tsv_file(event_data_file.path)
-                # copy the event file to the LORIS BIDS import directory
-                event_path = self.copy_file_to_loris_bids_dir(
-                    event_data_file.path, derivatives
-                )
-
+                event_path = event_data_file.path.replace(self.data_dir, '')
+                if self.loris_bids_root_dir:
+                    # copy the event file to the LORIS BIDS import directory
+                    event_path = self.copy_file_to_loris_bids_dir(
+                        event_data_file.path, derivatives
+                    )
                 # get the blake2b hash of the task events file
                 blake2 = utilities.compute_blake2b_hash(event_data_file.path)
 
@@ -837,7 +874,7 @@ class Eeg:
             subject=self.psc_id,
         )
 
-        if not(annotation_data_files):
+        if not annotation_data_files:
             message = "WARNING: no annotations files associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -865,13 +902,15 @@ class Eeg:
                         subject=self.psc_id,
                     )
 
-                    annotation_data_path = self.copy_file_to_loris_bids_dir(
-                        annotation_data_file.path, derivatives
-                    )
-
-                    annotation_metadata_path = self.copy_file_to_loris_bids_dir(
-                        annotation_metadata_file.path, derivatives
-                    )
+                    annotation_data_path = annotation_data_file.path.replace(self.data_dir, '')
+                    annotation_metadata_path = annotation_metadata_file.path.replace(self.data_dir, '')
+                    if self.loris_bids_root_dir:
+                        annotation_data_path = self.copy_file_to_loris_bids_dir(
+                            annotation_data_file.path, derivatives
+                        )
+                        annotation_metadata_path = self.copy_file_to_loris_bids_dir(
+                            annotation_metadata_file.path, derivatives
+                        )
 
                     # get the blake2b hash of the metadata file
                     blake2 = utilities.compute_blake2b_hash(annotation_metadata_file.path)
@@ -999,8 +1038,7 @@ class Eeg:
             else:
                 return
 
-        # create the archive file
-        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+        (archive_rel_name, archive_full_path) = self.create_archive(files_to_archive, archive_rel_name)
 
         # insert the archive file in physiological_archive
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -1053,8 +1091,7 @@ class Eeg:
             else:
                 return
 
-        # create the archive file
-        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+        (archive_rel_name, archive_full_path) = self.create_archive(files_to_archive, archive_rel_name)
 
         # insert the archive into the physiological_annotation_archive table
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -1108,3 +1145,17 @@ class Eeg:
         # insert the archive into the physiological_annotation_archive table
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
         physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
+
+    def create_archive(self, files_to_archive, archive_rel_name):
+        # create the archive file
+        package_path = self.config_db_obj.get_config("prePackagedDownloadPath")
+        if package_path:
+            raw_package_dir = os.path.join(package_path, 'raw')
+            os.makedirs(raw_package_dir, exist_ok=True)
+            archive_rel_name = os.path.basename(archive_rel_name)
+            archive_full_path = os.path.join(raw_package_dir, archive_rel_name)
+            utilities.create_archive(files_to_archive, archive_full_path)
+        else:
+            archive_full_path = os.path.join(self.data_dir, archive_rel_name)
+            utilities.create_archive(files_to_archive, archive_full_path)
+        return (archive_rel_name, archive_full_path)

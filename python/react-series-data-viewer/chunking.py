@@ -130,7 +130,8 @@ def write_index_json(
 
             indices = [channelMetadata['index'] for channelMetadata in json_dict['channelMetadata']]
             json_dict['channelMetadata'].extend(
-                channelMetadata for channelMetadata in data['channelMetadata'] if channelMetadata['index'] not in indices
+                channelMetadata for channelMetadata in data['channelMetadata']
+                if channelMetadata['index'] not in indices
             )
             json_dict['channelMetadata'] = sorted(json_dict['channelMetadata'], key=lambda k: k['index'])
             if data['seriesRange'][0] < json_dict['seriesRange'][0]:
@@ -213,8 +214,9 @@ def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_c
                           channel_count=None, downsamplings=None, prefix=None, destination=None):
 
     chunk_dir = chunk_dir_path(path, prefix=prefix, destination=destination)
-    channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges = mne_file_to_chunks(path, chunk_size, loader, 
-	                                                                                                     from_channel_name, channel_count)
+    channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges = mne_file_to_chunks(
+        path, chunk_size, loader, from_channel_name, channel_count
+    )
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]
     write_index_json(
