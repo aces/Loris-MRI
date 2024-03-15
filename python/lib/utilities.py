@@ -159,7 +159,7 @@ def create_archive(files_to_archive, archive_path):
         tar.close()
 
 
-def update_set_file_path_info(set_file, fdt_file):
+def update_set_file_path_info(set_file, with_fdt_file):
     """
     Updates the path info of the set file with the correct filenames for .set and
     .fdt files (for cases that had to be relabelled to include a Visit Label at
@@ -167,8 +167,8 @@ def update_set_file_path_info(set_file, fdt_file):
 
     :param set_file: complete path of the .set file
      :type set_file: str
-    :param fdt_file: complete path of the .fdt file
-     :type fdt_file: str
+    :param with_fdt_file: Confirm presence of a matching .fdt file
+     :type with_fdt_file: bool
     """
 
     # grep the basename without the extension of set_file
@@ -187,7 +187,7 @@ def update_set_file_path_info(set_file, fdt_file):
             dataset['setname'] = numpy.array(basename)
         if 'EEG' in dataset.keys():
             dataset['EEG'][0][0][1] = set_file_name
-        if fdt_file and 'EEG' in dataset.keys():
+        if with_fdt_file and 'EEG' in dataset.keys():
             dataset['EEG'][0][0][15] = fdt_file_name
             dataset['EEG'][0][0][40] = fdt_file_name
 
@@ -203,7 +203,7 @@ def update_set_file_path_info(set_file, fdt_file):
                   .format(set_file_name))
             return False
 
-        if fdt_file:
+        if with_fdt_file:
             if 'datfile' not in dataset.keys() or \
                     dataset['datfile'] != fdt_file_name:
                 print('Expected `datfile` field: {}'

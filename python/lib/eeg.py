@@ -513,26 +513,27 @@ class Eeg:
                     eeg_file_info, eeg_file_data
                 )
             
-            # if the EEG file was a set file, then update the filename for the .set
-            # and .fdt files in the .set file so it can find the proper file for
-            # visualization and analyses
-            file_paths_updated = file_type != 'set'
-            if not file_paths_updated:
-                set_full_path = os.path.join(self.data_dir, eeg_path)
-                fdt_full_path = eeg_file_data['fdt_file'] if 'fdt_file' in eeg_file_data.keys() else None
+            if self.loris_bids_root_dir:
+                # If we copy the file in assembly_bids and
+                # if the EEG file was a set file, then update the filename for the .set
+                # and .fdt files in the .set file so it can find the proper file for
+                # visualization and analyses
+                if file_type == 'set':
+                    set_full_path = os.path.join(self.data_dir, eeg_path)
+                    width_fdt_file = True if 'fdt_file' in eeg_file_data.keys() else False
 
-                if fdt_full_path:
-                    fdt_full_path = os.path.join(self.data_dir, eeg_file_data['fdt_file'])
-                file_paths_updated = utilities.update_set_file_path_info(set_full_path, fdt_full_path)
+                    file_paths_updated = utilities.update_set_file_path_info(set_full_path, width_fdt_file)
+                    if not file_paths_updated:
+                        message = "WARNING: cannot update the set file " + eeg_path + " path info"
+                        print(message)
 
-            if file_paths_updated:
-                inserted_eegs.append({
-                    'file_id': physio_file_id,
-                    'file_path': eeg_path,
-                    'eegjson_file_path': eegjson_file_path,
-                    'fdt_file_path': fdt_file_path,
-                    'original_file_data': eeg_file,
-                })
+            inserted_eegs.append({
+                'file_id': physio_file_id,
+                'file_path': eeg_path,
+                'eegjson_file_path': eegjson_file_path,
+                'fdt_file_path': fdt_file_path,
+                'original_file_data': eeg_file,
+            })
 
         return inserted_eegs
 
