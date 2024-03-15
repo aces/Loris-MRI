@@ -131,7 +131,8 @@ def write_index_json(
 
             indices = [channelMetadata['index'] for channelMetadata in json_dict['channelMetadata']]
             json_dict['channelMetadata'].extend(
-                channelMetadata for channelMetadata in data['channelMetadata'] if channelMetadata['index'] not in indices
+                channelMetadata for channelMetadata in data['channelMetadata']
+                if channelMetadata['index'] not in indices
             )
             json_dict['channelMetadata'] = sorted(json_dict['channelMetadata'], key=lambda k: k['index'])
             if data['seriesRange'][0] < json_dict['seriesRange'][0]:

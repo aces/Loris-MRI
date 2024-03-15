@@ -63,7 +63,6 @@ class LorisGetOpt:
     loris_getopt_obj = LorisGetOpt(usage, options_dict)
     """
 
-
     def __init__(self, usage, options_dict, script_name):
         """
         Initialize the class, run GetOpt and populate the options_dict with the values that
@@ -246,7 +245,9 @@ class LorisGetOpt:
                     print(f"[ERROR   ] {opt_value} could not be downloaded from S3 bucket. Error was\n{err}")
                     print(self.usage)
                     sys.exit(lib.exitcode.INVALID_PATH)
-            elif self.options_dict[key]["is_path"] and opt_value and not os.path.isfile(opt_value):
+            elif self.options_dict[key]["is_path"] and opt_value and not (
+                os.path.isfile(opt_value) or os.path.isdir(opt_value)
+            ) :
                 print(f"\n[ERROR   ] {opt_value} does not exist. Please provide a valid path for --{key}\n")
                 print(self.usage)
                 sys.exit(lib.exitcode.INVALID_PATH)

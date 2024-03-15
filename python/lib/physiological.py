@@ -16,7 +16,7 @@ from lib.database_lib.physiologicaleventparametercategorylevel import Physiologi
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.point_3d import Point3DDB
 from lib.point_3d import Point3D
-
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -63,6 +63,7 @@ class Physiological:
 
         self.db      = db
         self.verbose = verbose
+        self.config_db_obj = Config(self.db, self.verbose)
 
         self.physiological_annotation_file_obj      = PhysiologicalAnnotationFile(self.db, self.verbose)
         self.physiological_annotation_parameter_obj = PhysiologicalAnnotationParameter(self.db, self.verbose)
@@ -193,6 +194,7 @@ class Physiological:
         parameter_file_values = (
             physiological_file_id, parameter_type_id, value
         )
+
         self.db.insert(
             table_name='physiological_parameter_file',
             column_names=parameter_file_fields,
@@ -1133,23 +1135,24 @@ class Physiological:
 
         # check if chunks already exists for this PhysiologicalFileID
         results    = self.grep_parameter_value_from_file_id(
-            physio_file_id, 'electrophyiology_chunked_dataset_path'
+            physio_file_id, 'electrophysiology_chunked_dataset_path'
         )
         chunk_path = results['Value'] if results else None
 
-        # determine which script to run based on the file type
-        command   = None
-        script    = None
+        # No chunks found
         if not chunk_path:
-            file_type    = self.grep_file_type_from_file_id(physio_file_id)
-            file_path    = self.grep_file_path_from_file_id(physio_file_id)
-            # the bids_rel_dir is the first two directories in file_path (
-            # bids_imports/BIDS_dataset_name_BIDSVersion)
-            bids_rel_dir   = file_path.split('/')[0] + '/' + file_path.split('/')[1]
-            chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
-            # the final chunk path will be /data/%PROJECT%/data/bids_imports
-            # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
-            chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
+            script    = None
+            file_path = self.grep_file_path_from_file_id(physio_file_id)
+
+            chunk_root_dir = self.config_db_obj.get_config("EEGChunksPath")
+            if not chunk_root_dir:
+                # the bids_rel_dir is the first two directories in file_path (
+                # bids_imports/BIDS_dataset_name_BIDSVersion)
+                bids_rel_dir   = file_path.split('/')[0] + '/' + file_path.split('/')[1]
+                chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
+
+            # determine which script to run based on the file type
+            file_type = self.grep_file_type_from_file_id(physio_file_id)
             if file_type == 'set':
                 script = os.environ['LORIS_MRI'] + '/python/react-series-data-viewer/eeglab_to_chunks.py'
                 command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
@@ -1157,8 +1160,7 @@ class Physiological:
                 script = os.environ['LORIS_MRI'] + '/python/react-series-data-viewer/edf_to_chunks.py'
                 command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
 
-        # chunk the electrophysiology dataset if a command was determined above
-        if command:
+            # chunk the electrophysiology dataset if a command was determined above
             try:
                 subprocess.call(
                     command,
@@ -1172,9 +1174,12 @@ class Physiological:
                 print('ERROR: ' + script + ' not found')
                 sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
 
+            # the final chunk path will be /data/%PROJECT%/data/bids_imports
+            # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
+            chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
             if os.path.isdir(chunk_path):
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
-                    parameter_name = 'electrophyiology_chunked_dataset_path',
+                    parameter_name = 'electrophysiology_chunked_dataset_path',
                     value = chunk_path.replace(data_dir, '')
                 )
