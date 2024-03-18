@@ -128,7 +128,7 @@ class Mri:
                     [row['cohort'], ]
                 )
                 if len(cohort_info) > 0:
-                    self.subproject_id = cohort_info[0]['SubprojectID']
+                    self.subproject_id = cohort_info[0]['CohortID']
             break
         
         self.session_id      = self.get_loris_session_id()
