@@ -90,6 +90,7 @@ def write_index_json(
     channel_metadata,
     chunk_size,
     downsamplings,
+    valid_samples_in_last_chunk,
     shapes,
     trace_types={}
 ):
@@ -97,6 +98,7 @@ def write_index_json(
         ('timeInterval', list(time_interval)),
         ('seriesRange', series_range),
         ('chunkSize', chunk_size),
+        ('validSamples', valid_samples_in_last_chunk),
         ('downsamplings', downsamplings),
         ('shapes', shapes),
         ('traceTypes', trace_types),
@@ -230,6 +232,7 @@ def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_c
         signal_range,
         channel_metadata,
         chunk_size,
+        valid_samples_in_last_chunk,
         list(range(len(channel_chunks_list))),
         [list(downsampled.shape) for downsampled in channel_chunks_list]
     )
