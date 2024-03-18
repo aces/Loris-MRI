@@ -88,33 +88,20 @@ def write_index_json(
     chunk_dir,
     time_interval,
     series_range,
-    from_channel_index,
-    channel_count,
-    channel_names,
-    channel_ranges,
+    channel_metadata,
     chunk_size,
     downsamplings,
-    channel_chunks_list,
+    shapes,
     trace_types={}
 ):
     json_dict = OrderedDict([
         ('timeInterval', list(time_interval)),
         ('seriesRange', series_range),
         ('chunkSize', chunk_size),
-        ('downsamplings', list(downsamplings)),
-        ('shapes', [
-            list(downsampled.shape)
-            for downsampled in channel_chunks_list
-        ]),
+        ('downsamplings', downsamplings),
+        ('shapes', shapes),
         ('traceTypes', trace_types),
-        ('channelMetadata', [
-            {
-                'name': channel_names[i],
-                'seriesRange': channel_ranges[i],
-                'index': from_channel_index + i
-            }
-            for i in range(len(channel_ranges))
-        ])
+        ('channelMetadata', channel_metadata)
     ])
     create_path_dirs(chunk_dir)
     
@@ -217,18 +204,26 @@ def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_c
     channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges = mne_file_to_chunks(
         path, chunk_size, loader, from_channel_name, channel_count
     )
+
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]
+
+    channel_metadata = [
+        {
+            'name': channel_names[i],
+            'seriesRange': channel_ranges[i],
+            'index': from_channel_index + i
+        }
+        for i in range(len(channel_ranges))
+    ]
+
     write_index_json(
         chunk_dir,
         time_interval,
         signal_range,
-        from_channel_index,
-        channel_count,
-        channel_names,
-        channel_ranges,
+        channel_metadata,
         chunk_size,
-        range(len(channel_chunks_list)),
-        channel_chunks_list
+        list(range(len(channel_chunks_list))),
+        [list(downsampled.shape) for downsampled in channel_chunks_list]
     )
     write_chunks(chunk_dir, channel_chunks_list, from_channel_index)

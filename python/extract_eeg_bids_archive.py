@@ -11,6 +11,7 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import SUCCESS, BAD_CONFIG_SETTING
 from lib.log import Log
+import lib.utilities as utilities
 
 __license__ = "GPLv3"
 
@@ -191,8 +192,25 @@ def main():
         if not error:
             for modality in modalities:
                 tmp_eeg_modality_path = os.path.join(tmp_eeg_session_path, modality)
-                s3_data_dir = config_db_obj.get_config("EEGS3DataPath")
 
+                # if the EEG file was a set file, then update the filename for the .set
+                # and .fdt files in the .set file so it can find the proper file for
+                # visualization and analyses
+                set_files = [
+                    os.path.join(tmp_eeg_modality_path, file)
+                    for file in os.listdir(tmp_eeg_modality_path)
+                    if os.path.splitext(file)[1] == '.set'
+                ]
+                for set_full_path in set_files:
+                    width_fdt_file = os.path.isfile(set_full_path.replace(".set", ".fdt"))
+
+                    file_paths_updated = utilities.update_set_file_path_info(set_full_path, width_fdt_file)
+                    if not file_paths_updated:
+                        message = "WARNING: cannot update the set file " \
+                                  + os.path.basename(set_full_path) + " path info"
+                        print(message)
+
+                s3_data_dir = config_db_obj.get_config("EEGS3DataPath")
                 if s3_obj and s3_data_dir and s3_data_dir.startswith('s3://'):
                     s3_data_eeg_modality_path = os.path.join(s3_data_dir, eeg_session_rel_path, modality)
 
