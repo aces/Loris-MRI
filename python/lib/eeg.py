@@ -78,7 +78,7 @@ class Eeg:
 
     def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
                  verbose, data_dir, default_visit_label, loris_bids_eeg_rel_dir,
-                 loris_bids_root_dir, dataset_tag_dict, type):
+                 loris_bids_root_dir, dataset_tag_dict, dataset_type):
         """
         Constructor method for the Eeg class.
 
