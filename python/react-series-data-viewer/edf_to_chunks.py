@@ -4,8 +4,10 @@ import mne.io.edf.edf as mne_edf
 from chunking import write_chunk_directory
 import sys
 
+
 def load_channels(exclude):
     return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
