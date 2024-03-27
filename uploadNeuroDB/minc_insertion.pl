@@ -639,7 +639,7 @@ $file->setFileData('Caveat', $caveat);
       $file,
       $subjectIDsref,
       \%studyInfo,
-      $center_name,
+      $centerID,
       $minc,
       $acquisitionProtocol,
       $bypass_extra_file_checks,

@@ -284,13 +284,13 @@ sub getSessionInformation {
 
 =pod
 
-=head3 identify_scan_db($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID)
+=head3 identify_scan_db($centerID, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID)
 
 Determines the type of the scan described by MINC headers based on
 C<mri_protocol> table in the database.
 
 INPUTS:
-  - $psc            : center's name
+  - $centerID       : ID of the center where the scan was acquired
   - $subjectref     : reference on the hash that contains the subject information
   - $tarchiveInfoRef: reference on the tarchive
   - $fileref        : file hash ref
@@ -306,7 +306,7 @@ RETURNS: textual name of scan type from the C<mri_scan_type> table
 
 sub identify_scan_db {
 
-    my  ($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID, $data_dir) = @_;
+    my  ($centerID, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc_location, $uploadID, $data_dir) = @_;
 
     my $candid       = ${subjectref}->{'CandID'};
     my $pscid        = ${subjectref}->{'PSCID'};
@@ -396,7 +396,7 @@ sub identify_scan_db {
         
     $query .=  ' ORDER BY CenterID ASC, ScannerID DESC';
 
-    my @bindValues = ($psc, $ScannerID);
+    my @bindValues = ($centerID, $ScannerID);
     push(@bindValues, $projectID)    if defined $projectID;
     push(@bindValues, $cohortID) if defined $cohortID;
     push(@bindValues, $visitLabel)   if defined $visitLabel;

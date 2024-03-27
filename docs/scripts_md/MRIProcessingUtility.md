@@ -131,8 +131,8 @@ INPUTS:
   - $User        : user running the insertion pipeline
   - $centerID    : center ID of the candidate
 
-RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label 
-and `CandMismatchError` information
+RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label,
+ProjectID, CohortID and `CandMismatchError` information
 
 ### createTarchiveArray($tarchive)
 
@@ -170,6 +170,15 @@ INPUTS:
 
 RETURNS: array of two elements: center name and center ID
 
+### determineProjectID($tarchiveInfo)
+
+Determines the Project.
+
+INPUTS:
+  - $tarchiveInfo: archive information hash ref
+
+RETURNS: project ID
+
 ### determineScannerID($tarchiveInfo, $to\_log, $centerID, $projectID, $upload\_id)
 
 Determines which scanner ID was used for DICOM acquisitions. Note, if 
@@ -179,8 +188,8 @@ in the DICOM headers, then a new scanner will automatically be created.
 INPUTS:
   - $tarchiveInfo: archive information hash ref
   - $to\_log      : whether this step should be logged
-  - $centerID     : center ID
-  - $projectID    : project ID
+  - $centerID    : center ID
+  - $projectID   : project ID
   - $upload\_id   : upload ID of the study
 
 RETURNS: scanner ID
@@ -199,7 +208,7 @@ INPUTS:
 
 RETURNS: 1 if the file is unique, 0 otherwise
 
-### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center\_name, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id, $data\_dir)
+### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $centerID, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id, $data\_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If `$acquisitionProtocol` is not set, it will look for the acquisition
@@ -212,7 +221,7 @@ INPUTS:
   - $file                    : file's information hash ref
   - $subjectIDsref           : subject's information hash ref
   - $tarchiveInfo            : DICOM archive's information hash ref
-  - $center\_name             : center name
+  - $centerID                : ID of the center where the scan was acquired.
   - $minc                    : absolute path to the MINC file
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass\_extra\_file\_checks: boolean, if set bypass the extra checks

@@ -788,7 +788,7 @@ sub computeMd5Hash {
 
 =pod
 
-=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center_name, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id, $data_dir)
+=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $centerID, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id, $data_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If C<$acquisitionProtocol> is not set, it will look for the acquisition
@@ -801,7 +801,7 @@ INPUTS:
   - $file                    : file's information hash ref
   - $subjectIDsref           : subject's information hash ref
   - $tarchiveInfo            : DICOM archive's information hash ref
-  - $center_name             : center name
+  - $centerID                : ID of the center where the scan was acquired.
   - $minc                    : absolute path to the MINC file
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass_extra_file_checks: boolean, if set bypass the extra checks
@@ -820,7 +820,7 @@ RETURNS:
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfoRef,$center_name,$minc,
+    my ($file,$subjectIDsref,$tarchiveInfoRef,$centerID,$minc,
         $acquisitionProtocol,$bypass_extra_file_checks, $upload_id, $data_dir) = @_;
     my $message = '';
 
@@ -834,7 +834,7 @@ sub getAcquisitionProtocol {
       $this->spool($message, 'N', $upload_id, $notify_detailed);
 
       $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
-                                   $center_name,
+                                   $centerID,
                                    $subjectIDsref,
                                    $tarchiveInfoRef,
                                    $file, 

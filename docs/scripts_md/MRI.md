@@ -69,13 +69,13 @@ RETURNS: an array of 2 elements:
     The reference will be `undef` if the session cannot be retrieved/created.
   - An error message (`''` if no errors occured while retrieving/creating the session)
 
-### identify\_scan\_db($psc, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc\_location, $uploadID)
+### identify\_scan\_db($centerID, $subjectref, $tarchiveInfoRef, $fileref, $dbhr, $db, $minc\_location, $uploadID)
 
 Determines the type of the scan described by MINC headers based on
 `mri_protocol` table in the database.
 
 INPUTS:
-  - $psc            : center's name
+  - $centerID       : ID of the center where acquisition was done
   - $subjectref     : reference on the hash that contains the subject information
   - $tarchiveInfoRef: reference on the tarchive
   - $fileref        : file hash ref
@@ -247,16 +247,30 @@ RETURNS: a two element array:
 
 ### getProject($subjectIDsref, $dbhr, $db)
 
-Looks for the project id using the C<session> table C<ProjectID> as
-a first resource, then using the C<candidate> table C<RegistrationProjectID>,
-otherwise, look for the default_project config value, and return C<ProjectID>.
+Looks for the project id using the `session` table `ProjectID` as
+a first resource, then using the `candidate` table `RegistrationProjectID`,
+otherwise, look for the default\_project config value, and return `ProjectID`.
 
 INPUTS:
   - $subjectIDsref: subject's information hash ref
   - $dbhr       : database handle reference
   - $db         : database object
 
-RETURNS: the C<ProjectID> or an error if not found
+RETURNS: the `ProjectID` or an error if not found
+
+### getCohort($subjectIDsref, $projectID, $dbhr, $db)
+
+Looks for the cohort id using the `session` table `ProjectID` as
+a first resource, for the cases where it is created using the front-end,
+otherwise, look for the default\_cohort config value, and return `CohortID`.
+
+INPUTS:
+  - $subjectIDsref: subject's information hash ref
+  - $projectID    : the project ID
+  - $dbhr         : database handle reference
+  - $db           : database object
+
+RETURNS: the `CohortID` or 0
 
 ### compute\_hash($file\_ref)
 
