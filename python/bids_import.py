@@ -6,8 +6,10 @@ import os
 import sys
 import getopt
 import re
+import json
 import lib.exitcode
 import lib.utilities
+import lib.physiological
 from lib.database   import Database
 from lib.candidate  import Candidate
 from lib.bidsreader import BidsReader
@@ -236,6 +238,9 @@ def read_and_insert_bids(
             bids_reader, data_dir, verbose
         )
 
+    # Assumption all same project (for project-wide tags)
+    single_project_id = None
+
     # loop through subjects
     for bids_subject_info in bids_reader.participants_info:
 
@@ -256,6 +261,7 @@ def read_and_insert_bids(
         cand_id    = loris_cand_info['CandID']
         center_id  = loris_cand_info['RegistrationCenterID']
         project_id = loris_cand_info['RegistrationProjectID']
+        single_project_id = project_id
 
         cohort_id = None
         # TODO: change subproject -> cohort in participants.tsv?
@@ -277,6 +283,52 @@ def read_and_insert_bids(
             bids_sessions, bids_id,    cand_id,       loris_bids_root_dir,
             createvisit,   verbose,    db,            default_bids_vl,
             center_id,     project_id, cohort_id,     nocopy
+        )
+
+    # Import root-level (dataset-wide) events.json
+    # Assumption: Single project for project-wide tags
+    bids_layout = bids_reader.bids_layout
+    root_event_metadata_file = bids_layout.get_nearest(
+        bids_dir,
+        return_type='tuple',
+        strict=False,
+        extension='json',
+        suffix='events',
+        all_=False
+    )
+
+    dataset_tag_dict = {}
+    if not root_event_metadata_file:
+        message = '\nWARNING: no events metadata files (event.json) in ' \
+                  'root directory'
+        print(message)
+    else:
+        # copy the event file to the LORIS BIDS import directory
+        copy_file = str.replace(
+            root_event_metadata_file.path,
+            bids_layout.root,
+            ""
+        )
+        event_metadata_path = loris_bids_root_dir + copy_file.lstrip('/')
+        lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
+
+        # TODO: Move
+        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
+        hed_union = db.pselect(query=hed_query, args=())
+
+        # load json data
+        with open(root_event_metadata_file.path) as metadata_file:
+            event_metadata = json.load(metadata_file)
+        blake2 = lib.utilities.compute_blake2b_hash(root_event_metadata_file.path)
+        physio = lib.physiological.Physiological(db, verbose)
+        file_id, dataset_tag_dict = physio.insert_event_metadata(
+            event_metadata=event_metadata,
+            event_metadata_file=event_metadata_path,
+            physiological_file_id=None,
+            project_id=single_project_id,
+            blake2=blake2,
+            project_wide=True,
+            hed_union=hed_union
         )
 
     # read list of modalities per session / candidate and register data
@@ -302,6 +354,7 @@ def read_and_insert_bids(
                     default_visit_label    = default_bids_vl,
                     loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir,
+                    dataset_tag_dict       = dataset_tag_dict
                     type                   = type
                 )
 

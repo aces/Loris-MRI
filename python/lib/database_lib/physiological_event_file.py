@@ -20,27 +20,30 @@ class PhysiologicalEventFile:
         self.table = 'physiological_event_file'
         self.verbose = verbose
 
-    def insert(self, physiological_file_id, event_file_type, event_file):
+    def insert(self, physiological_file_id, project_id, event_file_type, event_file):
         """
         Inserts a new entry in the physiological_event_file table.
 
-        :param physiological_file_id : physiological file's ID
-         :type physiological_file_id : int
+        :param physiological_file_id    : physiological file's ID
+         :type physiological_file_id    : int
 
-        :param event_file_type  : type of the event file
-         :type event_file_type  : str
+        :param project_id               : associated ProjectID
+         :type project_id               : int
 
-        :param event_file       : path of the event file
-         :type event_file       : str
+        :param event_file_type          : type of the event file
+         :type event_file_type          : str
 
-        :return                  : id of the row inserted
-         :rtype                  : int
+        :param event_file               : path of the event file
+         :type event_file               : str
+
+        :return                         : id of the row inserted
+         :rtype                         : int
         """
 
         return self.db.insert(
             table_name   = self.table,
-            column_names = ('PhysiologicalFileID', 'FileType', 'FilePath'),
-            values       = (physiological_file_id, event_file_type, event_file),
+            column_names = ('PhysiologicalFileID', 'ProjectID', 'FileType', 'FilePath'),
+            values       = (physiological_file_id, project_id, event_file_type, event_file),
             get_last_id  = True
         )
 

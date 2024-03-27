@@ -249,7 +249,7 @@ class Candidate:
 
         id = random.randint(100000, 999999)
 
-        while (db.pselect("SELECT * FROM candidate WHERE CandID = %s", (id,))):
+        while db.pselect("SELECT * FROM candidate WHERE CandID = %s", (id,)):
             # pick a new id
             id = random.randint(100000, 999999)
 
