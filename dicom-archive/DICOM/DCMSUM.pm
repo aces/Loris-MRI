@@ -373,8 +373,12 @@ QUERY
            ?,          ?
           )
 QUERY
-    my $query_select_TarchiveSeriesID = "SELECT TarchiveSeriesID FROM tarchive_series WHERE SeriesUID = ? AND EchoTime = ?";
-    my $select_TarchiveSeriesID = $dbh->prepare($query_select_TarchiveSeriesID);
+    my $query_select_TarchiveSeriesID =
+        "SELECT TarchiveSeriesID FROM tarchive_series WHERE SeriesUID = ? AND EchoTime = ?";
+    my $query_select_TarchiveSeriesID_null_echo =
+        "SELECT TarchiveSeriesID FROM tarchive_series WHERE SeriesUID = ?";
+    my $select_TarchiveSeriesID           = $dbh->prepare($query_select_TarchiveSeriesID);
+    my $select_TarchiveSeriesID_null_echo = $dbh->prepare($query_select_TarchiveSeriesID_null_echo);
     my $insert_file = $dbh->prepare($insert_query);
     my $dcmdirRoot = dirname($self->{dcmdir});
     foreach my $file (@{$self->{'dcminfo'}}) {
@@ -383,8 +387,14 @@ QUERY
         $filename =~ s/^${dcmdirRoot}\///;
         $file->[2] = undef if($file->[2] eq '');
         $file->[3] = undef if($file->[3] eq '');
-        $select_TarchiveSeriesID->execute($file->[24], $file->[6]); # based on SeriesUID and EchoTime
-        my ($TarchiveSeriesID) = $select_TarchiveSeriesID->fetchrow_array();
+        my $TarchiveSeriesID;
+        if (!defined($file->[6]) || $file->[6] eq '') {
+            $select_TarchiveSeriesID_null_echo->execute($file->[24]); # based solely on SeriesUID
+            $TarchiveSeriesID = $select_TarchiveSeriesID_null_echo->fetchrow_array();
+        } else {
+            $select_TarchiveSeriesID->execute($file->[24], $file->[6]); # based on SeriesUID and EchoTime
+            $TarchiveSeriesID = $select_TarchiveSeriesID->fetchrow_array();
+        }
         my @values;
         if($file->[21] && $file->[25] eq 'MR') { # file is dicom and an MRI scan
             @values = 
