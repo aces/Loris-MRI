@@ -203,15 +203,15 @@ RETURN: (boolean) 1 if createVisit is set to Yes in the Config module, 0 otherwi
 
 ### getDefaultProject()
 
-Get the default_project Config setting.
+Get the default\_project Config setting.
 
-RETURN: value (string) of the default_project config in the Config table.
+RETURN: value (string) of the default\_project config in the Config table.
 
 ### getDefaultCohort()
 
-Get the default_cohort Config setting.
+Get the default\_cohort Config setting.
 
-RETURN: value (string) of the default_cohort config in the Config table.
+RETURN: value (string) of the default\_cohort config in the Config table.
 
 ### getPythonConfigFile()
 
