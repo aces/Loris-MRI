@@ -428,6 +428,7 @@ sub getSessionID    {
     if  ($sth->rows > 0) {
         my $row                         =   $sth->fetchrow_hashref();
         $sessionID                      =   $row->{'SessionID'};
+        $subjectIDsref{'PSCID'}         =   $row->{'PSCID'};
         $subjectIDsref{'CandID'}        =   $row->{'CandID'};
         $subjectIDsref{'visitLabel'}    =   $row->{'Visit_label'};
     }else{
