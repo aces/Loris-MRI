@@ -75,7 +75,7 @@ Determines the type of the scan described by MINC headers based on
 `mri_protocol` table in the database.
 
 INPUTS:
-  - $centerID       : ID of the center where acquisition was done
+  - $centerID       : ID of the center where the scan was acquired
   - $subjectref     : reference on the hash that contains the subject information
   - $tarchiveInfoRef: reference on the tarchive
   - $fileref        : file hash ref
