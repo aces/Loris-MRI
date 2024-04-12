@@ -17,8 +17,11 @@ select = ["E", "F", "I", "N", "UP", "W"]
 # `test` directory.
 [tool.pyright]
 include = [
+    "python/dicom_archive.py",
+    "python/dicom_summary.py",
     "python/tests",
     "python/lib/db",
+    "python/lib/dicom",
     "python/lib/exception",
     "python/lib/util",
     "python/lib/config_file.py",
