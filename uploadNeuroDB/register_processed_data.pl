@@ -415,9 +415,11 @@ sub getSessionID    {
     my  ($sessionID, %subjectIDsref);
     my  $query  =   "SELECT f.SessionID, " .
                            "s.CandID, " .
+                           "c.PSCID, " .
                            "s.Visit_label " .
                     "FROM files f " .
                     "JOIN session s ON (s.ID=f.SessionID) " .
+                    "JOIN candidate c USING (CandID) " .
                     "WHERE FileID=?";
 
     my  $sth    =   $dbh->prepare($query);
@@ -426,6 +428,7 @@ sub getSessionID    {
     if  ($sth->rows > 0) {
         my $row                         =   $sth->fetchrow_hashref();
         $sessionID                      =   $row->{'SessionID'};
+        $subjectIDsref{'PSCID'}         =   $row->{'PSCID'};
         $subjectIDsref{'CandID'}        =   $row->{'CandID'};
         $subjectIDsref{'visitLabel'}    =   $row->{'Visit_label'};
     }else{
