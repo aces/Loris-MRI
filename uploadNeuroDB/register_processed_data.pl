@@ -164,15 +164,12 @@ if (@$rowsRef == 0) {
 }
 
 # Make sure all file IDs in the list specified with -inputFileIDs
-# are valid (i.e exist in table files) and are not equal to $sourceFileID
+# are valid (i.e exist in table files)
+# Note: sourceFileID can be listed in the InputFileIDs
 foreach my $fid (split(/;/, $inputFileIDs)) {
     $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $fid);
     if (@$rowsRef == 0) {
         print STDERR "Argument '$fid' for option -inputFileIDs is not an existing file ID. Aborting.\n";
-        exit $NeuroDB::ExitCodes::INVALID_ARG;
-    }
-    if ($rowsRef->[0]->{'FileID'} == $sourceFileID) {
-        print STDERR "Argument to -inputFileIDs cannot contain the source file ID ($sourceFileID). Aborting.\n";
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
