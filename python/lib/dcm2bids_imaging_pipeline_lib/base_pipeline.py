@@ -138,7 +138,7 @@ class BasePipeline:
         if upload_id and tarchive_path:
             self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
             if not self.imaging_upload_obj.imaging_upload_dict:
-                err_msg += f"UploadID {upload_id} does not exist. Please, provide a valid UploadID."
+                err_msg += f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}."
                 self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
             tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
             if not tarchive_id:
