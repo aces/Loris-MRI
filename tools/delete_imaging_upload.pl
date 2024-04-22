@@ -1712,7 +1712,7 @@ sub deleteUploadsInDatabase {
     
     my(undef, $tmpSQLFile) = $optionsRef->{'NO_SQL_BK'}
         ? (undef, undef) : tempfile('sql_backup_XXXX', UNLINK => 1);
-        
+
     my @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
 
     my $nbRecordsDeleted = 0;
@@ -2141,10 +2141,10 @@ sub updateSQLBackupFile {
         quotemeta($Settings::db[0]),
         $table
     );
-        
-    system($cmd) != 0
+
+    system($cmd) == 0
         or die "Cannot run command $cmd. Aborting\n";
-        
+
     # Write back the original lines contained in $tmpSQlBackupFile at the end of the file.
     # This is so that the mysqldump results are written in the file in the reverse order in
     # which the mySQL delete statements are made.
@@ -2201,3 +2201,8 @@ LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
 Neuroscience
 
 =cut
+
+END {
+    # cleanup, prevent a segfault
+    undef($configOB);
+}
