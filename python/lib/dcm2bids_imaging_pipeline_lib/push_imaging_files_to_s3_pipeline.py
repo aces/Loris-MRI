@@ -40,8 +40,8 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         # Get S3 object from loris_getopt object
         # ---------------------------------------------------------------------------------------------
         self.s3_obj = self.loris_getopt_obj.s3_obj
-        if not self.s3_obj:
-            message = "[ERROR   ] S3 configs not configured properly"
+        if not self.s3_obj.s3:
+            message = "S3 configs not configured properly"
             self.log_error_and_exit(message, lib.exitcode.S3_SETTINGS_FAILURE, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
