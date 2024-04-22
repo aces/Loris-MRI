@@ -2,6 +2,8 @@
 # RUN CRON JOB EVERY FRIDAY EVENING
 # USAGE cron command: /var/www/loris/project/tools/cron/petupload_cron_prod > /data/backups/cron_logs/batch_imageuploader_cron_`date +\%y\%m\%d`.log
 
+source ./../environment
+
 # Note: Define directories with trailing slash
 # Define BIC vars
 outgoingUser=""
@@ -9,7 +11,7 @@ outgoingUser=""
 regex=""
 daysSince="7" # number of days since which you want to grab scans from
 
-project = ""
+project=""
 # Define LORIS vars
 incomingDir="/data/incoming/hrrt/"
 lorisMRIDir="/opt/${project}/bin/mri/"
