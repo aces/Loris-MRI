@@ -337,7 +337,8 @@ if ($upload_id && !$hrrt) {
       IsTarchiveValidated,
       ArchiveLocation
     FROM
-      mri_upload JOIN tarchive USING (TarchiveID)
+      mri_upload
+    LEFT JOIN tarchive USING (TarchiveID)
     WHERE
       UploadID = ?
 QUERY
@@ -345,6 +346,12 @@ QUERY
     my $sth = $dbh->prepare($query);
     $sth->execute($upload_id);
     my @array        = $sth->fetchrow_array;
+
+    die "Upload with ID '$upload_id' does not exist. Aborting.\n" unless @array;
+    if (!defined $array[1]) {
+        die "Upload ID '$upload_id' does not have an associated TarchiveID " .
+            "(dicomTar does not appear to have been successfully run on it...). Aborting.\n";
+    }
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
 
