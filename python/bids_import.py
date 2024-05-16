@@ -354,7 +354,7 @@ def read_and_insert_bids(
                     default_visit_label    = default_bids_vl,
                     loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir,
-                    dataset_tag_dict       = dataset_tag_dict
+                    dataset_tag_dict       = dataset_tag_dict,
                     type                   = type
                 )
 
