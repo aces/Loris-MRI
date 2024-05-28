@@ -303,10 +303,10 @@ unless (-e $readme_file_path) {
 my $bids_validator_config_file = $dest_dir . "/.bids-validator-config.json";
 if (!-e $bids_validator_config_file && @validator_ignore_opts) {
     print "\n******* Creating the .bids-validator-config.json file $bids_validator_config_file *******\n";
-    my $validator_ignore_string = join(", ", @validator_ignore_opts);
+    my $validator_ignore_string = join('", "', @validator_ignore_opts);
     my $bids_validator_config_content = <<TEXT;
 {
-  "ignore": [$validator_ignore_string]
+  "ignore": ["$validator_ignore_string"]
 }
 TEXT
     write_BIDS_TEXT_file($bids_validator_config_file, $bids_validator_config_content);
