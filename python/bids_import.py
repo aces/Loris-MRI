@@ -56,8 +56,8 @@ def main():
         '\t-i, --idsvalidation    : to validate BIDS directory for a matching pscid/candid pair (optional)\n'
         '\t-b, --nobidsvalidation : to disable BIDS validation for BIDS compliance\n'
         '\t-a, --nocopy           : to disable dataset copy in data assembly_bids\n'
-        '\t-t, --type             : raw | derivatives. Specify the dataset type.'
-                                    'If not set, the pipeline will look for both raw and derivatives files.\n'
+        '\t-t, --type             : raw | derivative. Specify the dataset type.'
+                                    'If not set, the pipeline will look for both raw and derivative files.\n'
                                     'Required if no dataset_description.json is found.\n'
         '\t-v, --verbose          : be verbose\n'
     )
@@ -100,8 +100,8 @@ def main():
         print(usage)
         sys.exit(lib.exitcode.MISSING_ARG)
 
-    if type and type not in ('raw', 'derivatives'):
-        print("--type must be one of 'raw', 'derivatives'")
+    if type and type not in ('raw', 'derivative'):
+        print("--type must be one of 'raw', 'derivative'")
         print(usage)
         sys.exit(lib.exitcode.MISSING_ARG)
 
@@ -201,7 +201,7 @@ def read_and_insert_bids(
      :type idsvalidation    : bool
     :param nobidsvalidation : disable bids dataset validation
      :type nobidsvalidation : bool
-    :param type             : raw | derivatives. Type of the dataset
+    :param type             : raw | derivative. Type of the dataset
      :type type             : string
     :param nocopy           : disable bids dataset copy in assembly_bids
      :type nocopy           : bool
@@ -354,8 +354,8 @@ def read_and_insert_bids(
                     default_visit_label    = default_bids_vl,
                     loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir,
-                    dataset_tag_dict       = dataset_tag_dict
-                    type                   = type
+                    dataset_tag_dict       = dataset_tag_dict,
+                    dataset_type           = type
                 )
 
             elif modality in ['anat', 'dwi', 'fmap', 'func']:

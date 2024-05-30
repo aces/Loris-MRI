@@ -105,7 +105,7 @@ class Eeg:
          :type loris_bids_root_dir   : str
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
          :type dataset_tag_dict      : dict
-        :param dataset_type          : raw | derivatives. Type of the dataset
+        :param dataset_type          : raw | derivative. Type of the dataset
          :type dataset_type          : string
         """
 
@@ -169,7 +169,7 @@ class Eeg:
         # register the data into LORIS
         if (dataset_type and dataset_type == 'raw'):
             self.register_data(detect=False)
-        elif (dataset_type and dataset_type == 'derivatives'):
+        elif (dataset_type and dataset_type == 'derivative'):
             self.register_data(derivatives=True, detect=False)
         else:
             self.register_data()
@@ -966,7 +966,7 @@ class Eeg:
                 return
 
         # create the archive file
-        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+        utilities.create_archive(files_to_archive, archive_full_path)
 
         # insert the archive into the physiological_annotation_archive table
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
