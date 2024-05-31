@@ -113,7 +113,7 @@ sudo dpkg -i beast-library-<version>.deb
 #### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
 ```bash 
-cd /opt/$projectname/bin/mri/
+cd /opt/$projectname/bin/mri/install/
 bash ./imaging_install.sh
 ```
 
@@ -131,7 +131,7 @@ You will be asked for the following input:
 If the imaging install script reports errors in creating directories 
 (due to `/data/` mount permissions), review and manually execute 
 `mkdir/chmod/chown` commands starting at 
-[imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/main/imaging_install.sh#L97)
+[imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/main/install/imaging_install.sh#L97)
 
 Note: The installer will allow Apache to write to the `/data/` and `/opt/` directories by 
 adding user `lorisadmin` to the Apache linux group.  To ensure this change takes 
