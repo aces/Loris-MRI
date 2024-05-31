@@ -147,10 +147,8 @@ def create_archive(files_to_archive, archive_path):
 
     :param files_to_archive: list of files to include in the archive
      :type files_to_archive: tuple
-    :param archive_rel_name: name of the archive relative to data_dir
-     :type archive_rel_name: str
-    :param data_dir        : data_dir path
-     :type data_dir        : str
+    :param archive_path: full path of archive
+     :type archive_path: str
     """
 
     # if the archive does not already exists, create it

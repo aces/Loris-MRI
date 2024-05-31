@@ -966,7 +966,7 @@ class Eeg:
                 return
 
         # create the archive file
-        utilities.create_archive(files_to_archive, archive_rel_name, self.data_dir)
+        utilities.create_archive(files_to_archive, archive_full_path)
 
         # insert the archive into the physiological_annotation_archive table
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
