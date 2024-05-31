@@ -82,7 +82,7 @@ sudo apt-get install libgl1-mesa-glx libglu1-mesa
 
 - Download the MINC pre-compiled package for your operating system from http://bic-mni.github.io/.
 
-- Then install your MINC toolkit package: 
+- Then install the MINC toolkit package: 
 
 ```bash
 # main minc lib
@@ -141,11 +141,8 @@ imaging pipeline. The installer will also set Apache group ownership of certain
 
 #### 5. HRRT PET
 
-For HRRT PET:
-- install [tpcclib](http://www.turkupetcentre.net/tpcclib-doc/md_install.html).
-- follow the [install instructions](http://www.turkupetcentre.net/petanalysis/sw_install.html#linux).
-- downloads are available: [source code](https://gitlab.utu.fi/vesoik/tpcclib/-/releases) or [binaries](https://seafile.utu.fi/d/15843078fb/).
-
+For HRRT PET, install [tpcclib](http://www.turkupetcentre.net/tpcclib-doc/md_install.html).
+Follow the [install instructions](http://www.turkupetcentre.net/petanalysis/sw_install.html).
 
 #### 6. Configure paths and environment
 
