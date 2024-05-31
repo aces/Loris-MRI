@@ -105,7 +105,7 @@ class Eeg:
          :type loris_bids_root_dir   : str
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
          :type dataset_tag_dict      : dict
-        :param dataset_type          : raw | derivatives. Type of the dataset
+        :param dataset_type          : raw | derivative. Type of the dataset
          :type dataset_type          : string
         """
 
@@ -169,7 +169,7 @@ class Eeg:
         # register the data into LORIS
         if (dataset_type and dataset_type == 'raw'):
             self.register_data(detect=False)
-        elif (dataset_type and dataset_type == 'derivatives'):
+        elif (dataset_type and dataset_type == 'derivative'):
             self.register_data(derivatives=True, detect=False)
         else:
             self.register_data()
