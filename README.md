@@ -153,8 +153,6 @@ Ensure that `/home/lorisadmin/.bashrc` includes the statement:
 
 ```bash
 source /opt/$projectname/bin/mri/environment
-# or
-source /opt/$projectname/bin/mri/environment_unix
 ```
 
 Then source the `.bashrc` file.
