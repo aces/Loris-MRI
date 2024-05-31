@@ -6,11 +6,12 @@ For documentation and detailed setup information, please see the [LORIS-MRI docu
 This repo can be installed on the same VM as the main LORIS codebase, or on a different machine such as a designated fileserver where large imaging filesets are to be stored. 
 
 # System Requirements
- * Perl
- * Python 3 with pip3 and virtualenv (step 2 below)
- * MINC toolkit (step 3 below)
- * DICOM toolkit (step 4 below)
- * tpcclib (for HRRT PET only) (step 5 below)
+
+* Perl
+* Python 3 with pip3 and virtualenv (step 2 below)
+* MINC toolkit (step 3 below)
+* DICOM toolkit (step 4 below)
+* tpcclib (for HRRT PET only) (step 5 below)
 
 On <u>Ubuntu</u>, DICOM toolkit will be installed by the imaging install script (step 4 below). This script will _apt-get install dcmtk_.   
 
@@ -19,17 +20,39 @@ For <u>CentOS</u>: The [LORIS wiki](https://github.com/aces/Loris/wiki/Imaging-D
 The following installation should be run by the `$lorisadmin` user. `sudo` permission is required.
 See [aces/Loris](https://github.com/aces/loris) README.md for further information. 
 
+# Dependencies
+
+## General
+
+```bash
+# ubuntu build essential packages useful for building
+sudo apt install build-essential checkinstall cmake
+```
+
+## Perl CPAN
+
+Update Perl dependency with:
+
+```bash
+sudo perl -MCPAN -e shell
+
+# then enter these two commands
+
+cpan[1]> install CPAN
+cpan[2]> reload cpan
+```
+
 # Installation
 
 #### 1. Create directories and download Loris-MRI code
 
-   ```bash
-   sudo mkdir -p /data/$projectname
-   sudo mkdir -p /opt/$projectname/bin/mri
-   sudo chown -R lorisadmin:lorisadmin /data/$projectname
-   sudo chown -R lorisadmin:lorisadmin /opt/$projectname
-   cd /opt/$projectname/bin
-   ```
+```bash
+sudo mkdir -p /data/$projectname
+sudo mkdir -p /opt/$projectname/bin/mri
+sudo chown -R lorisadmin:lorisadmin /data/$projectname
+sudo chown -R lorisadmin:lorisadmin /opt/$projectname
+cd /opt/$projectname/bin
+```
 
 Get the code: Download the latest release from the 
 [releases page](https://github.com/aces/Loris-MRI/releases) 
@@ -47,65 +70,90 @@ sudo apt install virtualenv
 
 #### 3. Install MINC toolkit from http://bic-mni.github.io/ 
 
-Download the pre-compiled package for your operating system.  Install required dependencies such as _imagemagick_. Then install your MINC toolkit package: 
+- Install MINC dependencies:
 
-   ```bash
-   sudo dpkg -i minc-toolkit<version>.deb
-   ```
+```bash
+# deps
+sudo apt-get install libc6 libstdc++6 imagemagick perl
 
-  Then source the MINC toolkit environment by running (for bash)
-  `source $mincToolsDirectory/minc-toolkit-config.sh` or (tcsh)
-  `source $mincToolsDirectory/minc-toolkit-config.csh`,
+# Install required dependencies such as _imagemagick_.
+sudo apt-get install libgl1-mesa-glx libglu1-mesa
+```
 
-  where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
+- Download the MINC pre-compiled package for your operating system from http://bic-mni.github.io/.
 
-For the defacing scripts, you will also need to download the pre-compiled `bic-mni-models` and `beast` data and model packages for you operation system.
+- Then install the MINC toolkit package: 
 
-   ```bash
-   sudo dpkg -i bic-mni-models-<version>.deb
-   sudo dpkg -i beast-library-<version>.deb
-   ```
+```bash
+# main minc lib
+sudo dpkg -i minc-toolkit-<version>.deb
+```
+
+- Check the model is installed in `/opt/minc/share`
+
+- Then source the MINC toolkit environment, where `$mincToolsDirectory` is the path where the MINC toolkit is installed (e.g. `/opt/minc/` OR `/opt/minc/$mincToolsVersion/` for more recent installs)
+
+```bash
+# bash
+source $mincToolsDirectory/minc-toolkit-config.sh
+
+# tcsh
+source $mincToolsDirectory/minc-toolkit-config.csh
+```
+
+- For the defacing scripts, you will also need to download the pre-compiled `bic-mni-models` and `beast` data and model packages for you operation system.
+
+```bash
+sudo dpkg -i bic-mni-models-<version>.deb
+sudo dpkg -i beast-library-<version>.deb
+
+# also check they are installed in `/opt/minc/share`
+```
 
 #### 4. Run installer to set up directories, configure environment, install Perl libraries and DICOM toolkit:
 
-   ```bash 
-   cd /opt/$projectname/bin/mri/
-   bash ./imaging_install.sh
-   ```
+```bash 
+cd /opt/$projectname/bin/mri/
+bash ./imaging_install.sh
+```
 
-  You will be asked for the following input: 
+You will be asked for the following input: 
 
- * What is the database name? $dbname
- * What is the database host? $dbhost
- * What is the MySQL user? $lorisuser [Use the same mysql user from the Loris installation, i.e. _lorisuser_]
- * What is the MySQL password? 
- * What is the Linux user which the installation will be based on? $lorisadmin
- * What is the project name? $projectname
- * What is your email address? 
- * What prod file name would you like to use? default: prod  [leave blank]
+* What is the database name? $dbname
+* What is the database host? $dbhost
+* What is the MySQL user? $lorisuser [Use the same mysql user from the Loris installation, i.e. _lorisuser_]
+* What is the MySQL password? 
+* What is the Linux user which the installation will be based on? $lorisadmin
+* What is the project name? $projectname
+* What is your email address? 
+* What prod file name would you like to use? default: prod  [leave blank]
 
-  If the imaging install script reports errors in creating directories 
-  (due to `/data/` mount permissions), review and manually execute 
-  `mkdir/chmod/chown` commands starting at 
-  [imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/main/imaging_install.sh#L97)
+If the imaging install script reports errors in creating directories 
+(due to `/data/` mount permissions), review and manually execute 
+`mkdir/chmod/chown` commands starting at 
+[imaging_install.sh:L97](https://github.com/aces/Loris-MRI/blob/main/imaging_install.sh#L97)
 
-  Note: The installer will allow Apache to write to the `/data/` and `/opt/` directories by 
-  adding user `lorisadmin` to the Apache linux group.  To ensure this change takes 
-  effect, log out and log back into your terminal session before running the 
-  imaging pipeline. The installer will also set Apache group ownership of certain 
-  `/data/` and `/opt/` subdirectories.
+Note: The installer will allow Apache to write to the `/data/` and `/opt/` directories by 
+adding user `lorisadmin` to the Apache linux group.  To ensure this change takes 
+effect, log out and log back into your terminal session before running the 
+imaging pipeline. The installer will also set Apache group ownership of certain 
+`/data/` and `/opt/` subdirectories.
 
 #### 5. HRRT PET
 
 For HRRT PET, install [tpcclib](http://www.turkupetcentre.net/tpcclib-doc/md_install.html).
+Follow the [install instructions](http://www.turkupetcentre.net/petanalysis/sw_install.html).
 
 #### 6. Configure paths and environment
 
-   Ensure that `/home/lorisadmin/.bashrc` includes the statement:
+Ensure that `/home/lorisadmin/.bashrc` includes the statement:
 
-   ```source /opt/$projectname/bin/mri/environment```
+```bash
+source /opt/$projectname/bin/mri/environment
+```
 
-   Then source the `.bashrc` file.   
+Then source the `.bashrc` file.
+
 
 **INSTALLATION COMPLETE!**
 
