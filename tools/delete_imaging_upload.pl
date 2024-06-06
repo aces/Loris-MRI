@@ -1557,9 +1557,13 @@ sub setFileExistenceStatus {
     my %missingFiles;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
-			$f->{'Exists'} = undef, next if !$f->{'FullPath'};
+	    $f->{'Exists'} = undef, next if !$f->{'FullPath'};
 			
-            $f->{'Exists'} = -e $f->{'FullPath'};
+            # The -f test is to ensure $f->{'FullPath'} is an actual file
+            # and not a directory. If $f->{'FullPath'} is a directory, it
+            # means that it has an incorrect/invalid value and should not be backed up
+            # later on.
+            $f->{'Exists'} = -f $f->{'FullPath'} && -e $f->{'FullPath'};
             
             # A file is only considered "missing" if it is expected to be on the file
             # system but is not. There are some file paths refered to in the database that

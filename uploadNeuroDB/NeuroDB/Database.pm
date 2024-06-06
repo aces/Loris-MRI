@@ -280,9 +280,7 @@ sub disconnect {
 	my $self = shift;
 	
         if($self->dbh) {
-	    try {
-	        $self->dbh->disconnect();
-	    } catch {
+	    if($self->dbh->disconnect()) {
 	   	NeuroDB::DatabaseException->throw(
                     statement    => 'Call to disconnect failed',
                     args         => [],
@@ -291,20 +289,6 @@ sub disconnect {
                 );
             }
 	}
-}
-
-=pod
-
-=head3 C<DESTROY()>
-
-Object destructor: terminates the connection previously instantiated to the
-database (if any).
-
-=cut
-sub DESTROY {
-	my $self = shift;
-	
-	$self->disconnect();
 }
 
 1;
