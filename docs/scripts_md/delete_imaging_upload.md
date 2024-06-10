@@ -6,7 +6,7 @@ delete\_imaging\_upload.pl -- Delete everything that was produced (or part of wh
 # SYNOPSIS
 
 perl delete\_imaging\_upload.pl \[-profile file\] \[-ignore\] \[-backup\_path basename\] \[-protocol\] \[-form\] \[-uploadID list\_of\_uploadIDs\]
-            \[-type list\_of\_scan\_types\] \[-defaced\] \[-basename fileBaseName\] \[-nosqlbk\] \[-nofilesbk\]
+            \[-type list\_of\_scan\_types\] \[-defaced\] \[-basename fileBaseName\] \[-nosqlbk\] \[-nofilesbk\] \[-extra\_mysqlcnf file\]
 
 Available options are:
 
@@ -61,9 +61,18 @@ Available options are:
                          `imaging_upload_restore.sql`, to the backup file is the default behaviour.
 
 \-dumpOptions           : options to add to the mysqldump command. By default, the following options are used
-                         `--no-create-info --compact --single-transaction --skip-extended-insert --no-tablespaces`.
+                         `--no-create-info --compact --skip-extended-insert --no-tablespaces`.
                          Example of additional option: `--column-statistics=0` to disable column statistics flag in
                          mysqldump 8.
+
+\-extra\_mysqlcnf &lt;file> : MySql config file containing the password to log in the database (see
+                         `https://dev.mysql.com/doc/refman/8.0/en/option-files.html` for a description of this file's format).
+                         This file should only contain the password stored in the `@db` array defined in your `prod` file.
+                         You should use that option if you do not have a default `.mysql.cnf` config file containing the credentials
+                         to log in the database. If this option is used, `delete_imaging_upload.pl` will pass the option
+                         `--defaults-extra-file=file` to the `mysqldump` command when creating a backup of the SQL tables. Note that
+                         only the password is fetched in this file, the host name and user name used to access the database are actually
+                         retrieved from the `prod` file.
 
 # DESCRIPTION
 
@@ -110,9 +119,13 @@ one must use `tar` with option `--absolute-names`.
 
 The script will also create a file that contains a backup of all the information that was deleted or modified from the 
 database tables. This backup is created using `mysqldump` and contains an `INSERT` statement for every record erased.
-It will be part of the backup archive mentioned above unless option `-nosqlbk` is used. If sourced back into the database
-with `mysql`, it should allow the database to be exactly like it was before `delete_imaging_upload.pl` was invoked, 
-provided the database was not modified in the meantime. The SQL backup file will be named `imaging_upload_restore.sql`.
+When running `mysqldump` the script uses the database credentials in file `~/.my.cnf` to connect to the database. Option
+`-extra_mysqlcnf` has to be used to specify an alternate credentials file when the default credential file does not exist
+(see `https://dev.mysql.com/doc/refman/8.0/en/option-files.html` for a descrption of MySQL option files format).
+The backup produced by `mysqldump` will be part of the backup archive mentioned above unless option `-nosqlbk` is used.
+If sourced back into the database with `mysql`, it should allow the database to be exactly like it was before
+`delete_imaging_upload.pl` was invoked, provided the database was not modified in the meantime. The SQL backup file will
+be named `imaging_upload_restore.sql`.
 
 2\. Delete specific scan types from an archive. The behaviour of the script is identical to the one described above, except 
    that:
@@ -491,7 +504,7 @@ INPUTS:
                 that are associated to the upload(s) passed on the command line.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
 
-### deleteMriParameterForm($dbh, $mriUploadsRef, $tmpSQLFile, $dump\_opt)
+### deleteMriParameterForm($dbh, $mriUploadsRef, $tmpSQLFile, $optionsRef)
 
 Delete the entries in `mri_parameter_form` (and associated `flag` entry) for the upload(s) passed on the
 command line. The script also adds an SQL statement in the SQL file whose path is passed as argument to 
@@ -504,7 +517,7 @@ INPUTS:
                  in the array. The properties stored for each hash are: `UploadID`, `TarchiveID`, `FullPath`
                  `Inserting`, `InsertionComplete` and `SessionID`.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-   - $dump\_opt: additional options to use for mysqldump
+   - $optionsRef: reference to the array that contains the options passed on the command line.
 
 RETURNS:
    - The numbers of records deleted as a result of this operation.
@@ -549,7 +562,7 @@ INPUTS:
 RETURNS:
   - A reference on an array containing the `TarchiveSeriesID` to delete.
 
-### deleteTableData($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $dump\_opt)
+### deleteTableData($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $optionsRef)
 
 Deletes records from a database table and adds in a file the SQL statements that allow rewriting the
 records back in the table. 
@@ -560,12 +573,12 @@ INPUTS:
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field `$key` has for the records to delete.
   - $tmpSQLBackupFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-  - $dump\_opt: additional options to use for mysqldump
+  - $optionsRef: reference to the array that contains the options passed on the command line.
 
 RETURNS:
   - The number of records deleted.
 
-### updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef, $dump\_opt)
+### updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef, $optionsRef)
 
 Updates the SQL file with the statements to restore the records whose properties are passed as argument.
 The block of statements is written at the beginning of the file.
@@ -575,7 +588,7 @@ INPUTS:
   - $table: name of the database table.
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field `$key` has for the records to delete.
-  - $dump\_opt: additional options to use for mysqldump
+  - $optionsRef: reference to the array that contains the options passed on the command line.
 
 ### getInvalidDefacedFiles($dbh, $filesRef, $scanTypesToDeleteRef)
 
