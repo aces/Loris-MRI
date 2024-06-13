@@ -117,11 +117,6 @@ INPUTS:
 Terminates the connection previously instantiated to the database if a 
 connection was previously established.
 
-### `DESTROY()`
-
-Object destructor: terminates the connection previously instantiated to the
-database (if any).
-
 # TO DO
 
 Nothing planned.
