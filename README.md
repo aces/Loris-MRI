@@ -1,4 +1,4 @@
-This Readme covers release 24.1.* of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
+This Readme covers release 26.0.* of the LORIS Imaging Insertion Pipeline for Ubuntu or CentOS systems
 
 This repo accompanies the [LORIS neuroimaging data platform main repo](https://github.com/aces/Loris/releases)</b>, release 24.1.*.<br>
 For documentation and detailed setup information, please see the [LORIS-MRI documentation](docs/) for your installed version</b>.
