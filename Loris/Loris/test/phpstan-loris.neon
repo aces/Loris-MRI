@@ -1,4 +1,0 @@
-parameters:
-    excludes_analyse:
-        - %currentWorkingDirectory%/modules/*/ajax/*
-        - %currentWorkingDirectory%/modules/*/test/*

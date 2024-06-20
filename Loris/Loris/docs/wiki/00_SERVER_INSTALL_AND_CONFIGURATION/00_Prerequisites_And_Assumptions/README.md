@@ -1,1 +1,0 @@
-System requirements, assumptions made in the remainder of the documentation, maybe security and setup recommendations ??

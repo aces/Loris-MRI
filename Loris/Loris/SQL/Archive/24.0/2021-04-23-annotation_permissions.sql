@@ -1,1 +1,0 @@
-INSERT INTO `permissions` (`code`, `description`, `moduleID`, `action`, `categoryID`) VALUES ('electrophysiology_browser_edit_annotations', 'Annotations', (SELECT ID FROM modules WHERE Name='electrophysiology_browser'), 'Create/Edit', 2);

@@ -1,1 +1,0 @@
-DROP TABLE mri_acquisition_dates;
