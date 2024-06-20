@@ -1,0 +1,16 @@
+.progress {
+    height: 40px;
+    margin-bottom: 0;
+}
+
+.progress-bar-male {
+    background-color: #1C70B6;
+}
+
+.progress-bar-female {
+    background-color: #2FA4E7;
+}
+
+.c3-chart-line.c3-target.c3-target-Total{
+    display: none !important;
+}

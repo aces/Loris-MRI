@@ -1,0 +1,666 @@
+#! /usr/bin/env perl
+
+=pod
+
+=head1 NAME
+
+mincpik - generate an image from a set of MINC volumes
+
+=head1 SYNOPSIS
+
+mincpik [options] minc_file [outfile]
+
+=head1 DESCRIPTION
+
+This script generates an image from the MINC volumes found in the file passed on
+the command line. Various scripts and external tools are used to accomplish this:
+C<mincinfo>, C<mincreshape>, C<mincextract>, C<convert>, C<rawtominc>, C<montage >
+and the open-source ImageMagick software (http://www.imagemagick.org). The list of 
+options that affect the behaviour of C<mincpik> is as follows:
+
+=over 4
+
+=item *
+B<-verbose> : be verbose
+
+=item *
+B<-clobber> : if it exists, overwrite the output file. An error is produced if F<outfile> exists
+and this option is not used.
+
+=item *
+B<-fake> : do not actually run the command but instead print on C<STDOUT> all
+the calls to the scripts and external tools (see above) issued to generate the image
+ 
+=item *
+B<-slice index> : C<index> (starts at 0) of the slice to use to generate the image. Defaults to
+C<int(n/2)> (where C<n> is the total number of slices) if not specified.
+
+=item *
+B<-scale scale> : scaling factor to use when generating the image. Defaults to 2. 
+Note that this option is ignored if C<-width> is used (see below)
+
+=item *
+B<-width width> : autoscale the image so it has a fixed width (in number of pixels). 
+If this option is used, then the scaling factor (C<-scale> option) is ignored.
+
+=item *
+B<-depth 8|16> : bit depth for resulting image (8 or 16). This option should
+be used on big-endian machines only.
+
+=item *
+B<-title> : whether the image should be generated with a title or not
+
+=item *
+B<-title_text title> : title text for the generated image
+
+=item *
+B<-title_size size> : font size (in pt.) to use when generating the image title
+
+=item *
+B<-anot_bar text> : use the supplied text argument as the annotation bar for the image.
+Note that the image height will be used to determine the bar size.
+
+=item *
+B<-lookup -hotmetal|-gray|-grey|-spectral>: use the specified lookup table to compute RGB
+values when generating the images (see the manpage for C<minclookup>).
+
+=item *
+B<-range min max> : specifies  the  range  of voxel values to consider, in their
+integer representation. Default is the full range for the type and sign. 
+This option is ignored for floating point values. See manpage for C<mincreshape>.
+
+=item *
+B<-image_range min max> : Normalize the image to a given C<min> and C<max> real value (not
+voxel value). Cannot be used with C<-auto_range>. See manpage for C<mincreshape>.
+
+=item *
+B<-auto_range> : Automatically find the range used to normalize the image. This is
+done by finding the 5% to 95% PcT image range using C<mincstats>. This option
+cannot be used with C<-image_range>. If not specified (and if C<-image_range> is not specified) 
+then the entire image (range = 0-100) is used.
+
+=item *
+B<-transverse> : add the transverse slices to the set of slices to consider during
+image generation. The transverse slices are always considered during image generation 
+so this option is useless/obsolete 
+
+=item *
+B<-coronal> : add the coronal slices to the set of slices to consider during image generation
+
+=item *
+B<-sagittal> : add the sagittal slices to the set of slices to consider during image generation
+
+=item *
+B<-axial> : same as transverse
+
+=item *
+B<-allthree> : deprecated. Use C<-triplanar> instead.
+
+=item *
+B<-triplanar> : use slices in all dimensions to generate the image. Same as specifying
+C<'-axial -coronal -sagittal'>
+
+=item *
+B<-tilesize size> : the size in pixel of each image when C<-triplanar> is used.
+
+=item *
+B<-sagittal_offset offset> : Offset the sagittal slices by C<offset>. For example:
+
+C<./mincpik -slice 15 -sagittal -sagittal_offset 3 in.mnc out.png>
+
+would generate an image using slice at index 18 (15+3). Cannot be used 
+with C<-sagittal_offset_perc> (see below)
+
+=item *
+B<-sagittal_offset_perc perc> : same as C<-sagittal_offset> but with an offset given as
+a percentage of the total number of slices in the sagittal dimension. Note that
+C<perc> should be a number between 0 and 100. This option cannot be used in conjunction
+with C<-sagittal_offset>
+
+=item *
+B<-vertical> : when generating triplanar images, put the image associated to each dimension
+stacked in a vertical row. This is the default behaviour when C<-triplanar> is used.
+
+=item *
+B<-horizontal> : when generating triplanar images, put the image associated to each
+dimension stacked in a horizontal row.
+
+=back
+
+The F<outfile> command line argument is optional. If not specified, output will be a PNG image
+written to STDOUT. If F<outfile> is specified, the file extension will determine the type of
+the generated image (F<.jpg> for JPEG images, F<.gif> for GIF images, etc...)
+
+=head1 LICENSING
+
+License: GPLv3
+
+=head1 AUTHORS
+
+Andrew Janke - a.janke@gmail.com,
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
+
+=cut
+
+#
+# Copyright 2009
+# Andrew Janke - a.janke@gmail.com
+# The University of Queensland
+#
+# Permission to use, copy, modify, and distribute this software and its
+# documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright notice appear in all copies.  The
+# author and the University make no representations about the
+# suitability of this software for any purpose.  It is provided "as is"
+# without express or implied warranty.
+
+
+use strict;
+use warnings "all";
+use Getopt::Tabular;
+use File::Basename;
+use File::Temp qw/ tempdir /;
+
+my($Help, $Usage, $me, @opt_table, $tmpdir, %opt);
+my(@args, $args, $infile, $outfile, %ordering, $CODE);
+
+# permutation 'matrix' for differing views
+%ordering = (
+   'zspace' => ['yspace', 'xspace'],
+   'yspace' => ['zspace', 'xspace'],
+   'xspace' => ['zspace', 'yspace'],
+   );
+
+$me = &basename($0);
+%opt = (
+   'verbose' => 0,
+   'clobber' => 0,
+   'fake' => 0,
+   
+   'slice' => undef,
+   'scale' => 2,
+   'width' => undef,
+   'bitdepth' => 8,
+   'range' => undef,
+   'image_range' => undef,
+   'auto_range' => 0,
+   'lookup' => undef,
+   'dirs' => ['zspace'],
+   
+   'triplanar' => 0,
+   'tilesize' => 250,
+   'title' => 0,
+   'title_text' => undef,
+   'title_size' => 16,
+   'sagittal_offset' => undef,
+   'sagittal_offset_perc' => undef,
+   'orientation' => 'vertical',
+   'anot_bar' => undef,
+   );
+
+$Help = <<HELP;
+| $me generates image files from MINC volumes using the Imagemagick
+|    convert utility. For a complete list of output file types see the
+|    convert man pages. (man convert) The resulting image is piped to
+|    STDOUT
+|
+| EXAMPLES:
+| To display a default view, transverse slicing, middle slice
+| using display. (display is part of the Imagemagick package)
+|
+|    \$ mincpik.pl infile.mnc PNG:- | display -
+|
+| To generate a PNG file of the 15th coronal slice
+|
+|    \$ mincpik.pl -slice 15 -coronal infile.mnc outfile.png
+|
+| To generate a JPG file using the hotmetal lookup table
+|    with the image range 0 to 100
+|
+|    \$ mincpik.pl -lookup '-hotmetal' -image_range 0 100 infile.mnc outfile.jpg
+|
+| ImageMagick:  http://www.wizards.dupont.com/cristy/ImageMagick.html
+|    NB: ImageMagick should be compiled without 16-bit quanta.
+|
+| Problems or comments should be sent to: a.janke\@gmail.com
+HELP
+
+$Usage = "Usage: $me [options] <infile.mnc> [<image.type>]\n".
+         "       $me -help to list options\n\n";
+
+@opt_table = (
+   ['-verbose', 'boolean', 0, \$opt{'verbose'},
+      'be verbose'],
+   ['-clobber', 'boolean', 0, \$opt{'clobber'},
+      'overwrite existing files'],
+   ['-fake', 'boolean', 0, \$opt{'fake'},
+      'do a dry run, (echo cmds only)' ],
+   ['-slice', 'integer', 1, \$opt{'slice'},
+      'slice number to get',
+      '<int>'],
+   ['-scale', 'integer', 1, \$opt{'scale'},
+      'scaling factor for resulting image',
+      '<int>'],
+   ['-width', 'integer', 1, \$opt{'width'},
+      'autoscale the image to have a fixed image width (in pixels)',
+      '<int>'],
+   ['-depth', 'integer', 1, \$opt{'bitdepth'},
+      'bitdepth for resulting image 8 or 16 (MSB machines only!)',
+      '<int>'],
+   ['-title', "boolean", 0, \$opt{'title'},
+      "add a title to the resulting image"],
+   ['-title_text', "string", 1, \$opt{'title_text'},
+      "use <string> for the title [default: input-filename]",
+      "<string>"],
+   ['-title_size', "integer", 1, \$opt{'title_size'},
+      "font point size for the title",
+      "<int>"],
+   ['-anot_bar', "string", 1, \$opt{'anot_bar'},
+      "create an annotated bar to match the image (use height of the output image)",
+      "<fname.png>"],
+   
+   ['Image range and lookup table options', 'section' ],
+   ['-range', 'float',   2, \@{$opt{'range'}},
+      'valid range of values for MINC file',
+      '<real> <real>'],
+   ['-image_range', 'float', 2, \@{$opt{'image_range'}},
+      'range of image values to use for pixel intensity',
+      '<real> <real>'],
+   ['-auto_range', 'boolean', 0, \$opt{'auto_range'},
+      'automatically determine image range'],
+   ['-lookup', 'string', 1, \$opt{'lookup'},
+      'arguments to pass to minclookup',
+      '<\'argument list\'>'],
+   
+   ['Slicing options', 'section' ],
+   ['-transverse', 'arrayconst', ['zspace'], \@{$opt{'dirs'}},
+      'get a transverse slice'],
+   ['-axial', 'arrayconst', ['zspace'], \@{$opt{'dirs'}},
+      'synonym for transverse'],
+   ['-coronal', 'arrayconst', ['yspace'], \@{$opt{'dirs'}},
+      'get a coronal slice'],
+   ['-sagittal', 'arrayconst', ['xspace'], \@{$opt{'dirs'}},
+      'get a sagital slice'],
+   ['-allthree', 'arrayconst', ['zspace', 'xspace', 'yspace'], \@{$opt{'dirs'}},
+      'you probably dont want this, it is somewhat broken, use -triplanar instead'],
+   
+   ['triplanar options', 'section' ],
+   ['-triplanar', 'boolean', 0, \$opt{'triplanar'},
+      'create a triplanar view of the input MINC file'],
+   ['-tilesize', "integer", 1, \$opt{'tilesize'},
+      "pixel size for each image in a triplanar"],
+   ['-sagittal_offset', "integer", 1, \$opt{'sagittal_offset'},
+      "offset the sagittal slice from the centre",
+      "<# slices>"],
+   ['-sagittal_offset_perc', "integer", 1, \$opt{'sagittal_offset_perc'},
+      "offset the sagittal slice by a percentage from the centre",
+      "<% offset>"],
+   ['-vertical', 'const', 'vertical', \$opt{'orientation'},
+     'create a vertical triplanar view (Default)'],
+   ['-horizontal', 'const', 'horizontal', \$opt{'orientation'},
+     'create a horizontal triplanar view'],
+   );
+
+# Check arguments
+&Getopt::Tabular::SetHelp ($Help, $Usage);
+&GetOptions (\@opt_table, \@ARGV) || exit 1;
+die $Usage if ($#ARGV < 0);
+
+# create temporary directory
+$tmpdir = &tempdir( "$me-XXXXXXXX", TMPDIR => 1, CLEANUP => 1 );
+
+# set up file names and do a few checks
+$infile = $ARGV[0];
+$outfile = (defined($ARGV[1])) ? $ARGV[1] : 'PNG:-';
+
+die "$me: Couldn't find $infile\n\n" if (!-e $infile);
+if($outfile ne 'PNG:-' && -e $outfile && !$opt{'clobber'}){
+   die "\n$me: $outfile exists, use -clobber to overwrite\n\n";
+   }
+
+if($opt{'bitdepth'} != 16 && $opt{bitdepth} != 8) {
+   die "\n$me: Invalid bitdepth specified - $opt{bitdepth} instead of 8 or 16\n\n";
+   }
+
+# sanity check
+if($opt{'auto_range'} && @{$opt{'image_range'}}){
+   die "\n$me: only specify one of -auto_range and -image_range (not both)\n\n";
+   }
+
+# warn about -slice and -triplanar
+if(defined($opt{'slice'}) && $opt{'triplanar'}){
+   warn "\n$me: you probably don't want to use both -triplanar and -slice\n\n";
+   } 
+
+# warn about -sagittal_offset and -sagittal_offset_perc
+if(defined($opt{'sagittal_offset'}) && $opt{'sagittal_offset_perc'}){
+   warn "\n$me: only use one of -sagittal_offset -sagittal_offset_perc\n\n";
+   } 
+
+# set up directions for triplanar
+if($opt{'triplanar'}){
+   $opt{'dirs'} = ['zspace', 'xspace', 'yspace'];
+   }
+
+my ($space, $n_slices, $convert_infile, $imgfile,
+    @extract_args, @convert_args,
+    $img_x, $img_y,
+    $img_step_x, $img_step_y, 
+    $img_length_x, $img_length_y,
+    $dim_names, $pipe_args, $dimorder,
+    @mont_files);
+
+# find the 5% to 95% PcT image range if -auto_range
+if($opt{'auto_range'}){
+   my $buf;
+   
+   print STDERR "Getting range of $infile\n" if $opt{'verbose'};
+   
+   chomp($buf = `mincstats -quiet -pctT 5 $infile`);
+   $buf *= 1.0;
+   @{$opt{'image_range'}}[0] = $buf;
+
+   chomp($buf = `mincstats -quiet -pctT 95 $infile`);
+   $buf *= 1.0;
+   @{$opt{'image_range'}}[1] = $buf;
+
+   # a bit of output
+   if($opt{'verbose'}){
+      print STDERR "Using image range of [@{$opt{image_range}}[0]:@{$opt{image_range}}[1]]\n";
+      }
+   }
+
+# foreach slicing direction
+foreach $space (@{$opt{'dirs'}}){
+
+   print STDERR "Doing direction $space\n" if $opt{'verbose'};
+   
+   my($slice);
+   $CODE = "GRAY";
+   
+   # set up the imgfile depending on triplanar and -title
+   if($opt{'triplanar'}){
+      $imgfile = "$tmpdir/trip-$space.png";
+      push(@mont_files, $imgfile);
+      }
+   elsif($opt{'title'}){
+      $imgfile = "$tmpdir/image.png";
+      }
+   else{
+      $imgfile = $outfile;
+      }
+   
+   # Get the info we need
+   $args = "mincinfo ".
+           "-dimlength $space ".
+           "-dimlength $ordering{$space}[0] ".
+           "-dimlength $ordering{$space}[1] ".
+           "-attvalue $ordering{$space}[0]:step ". 
+           "-attvalue $ordering{$space}[1]:step ".
+           "-dimnames ".
+           $infile;
+   ($n_slices, $img_x, $img_y, $img_step_x, $img_step_y, $dim_names) = split("\n", `$args`);
+
+   if(defined($opt{'width'})){ 
+      $opt{'scale'} = $opt{'width'}/abs($img_step_y * $img_y);
+      print STDERR "Auto-scaling width factor: $opt{'scale'}\n" if $opt{'verbose'}; 
+      }
+   $img_length_x = abs(int($img_step_x * $img_x * $opt{'scale'}));
+   $img_length_y = abs(int($img_step_y * $img_y * $opt{'scale'}));
+   
+   # figure out the slice to get
+   $slice = (!defined($opt{'slice'})) ? int($n_slices/2) : $opt{'slice'};
+   
+   # do the sagittal offset (only one of these should be done)
+   if($space eq 'xspace'){
+
+      # slice offset      
+      if(defined($opt{'sagittal_offset'})){
+         $slice += $opt{'sagittal_offset'};
+         }
+
+      # perc offset
+      if(defined($opt{'sagittal_offset_perc'})){
+         $slice += int($n_slices * $opt{'sagittal_offset_perc'} / 100);
+         }
+      }
+   
+   # check we didn't step of the edge
+   if($slice >= $n_slices || $slice < 0){ 
+      die "Slice $slice out of range (0-" . ($n_slices-1) . ")\n\n";
+      }
+   
+   # check if we have a vector_dimension already
+   if($dim_names =~ m/vector_dimension/){
+      $CODE = 'RGB';
+      }
+  
+   # take only the first timepoint if we have a time dimension
+   my @time_res_args = ();
+   if($dim_names =~ m/time/){
+      @time_res_args = ('-dimrange', "time=0,0");
+      }
+    
+   # do the reshaping
+   $dimorder = join(',', $space, @{$ordering{$space}});
+   if($CODE eq 'RGB'){
+      $dimorder .= ',vector_dimension';
+      }
+   @args = ('mincreshape', '-clobber', '-quiet',
+            '-normalize',
+            '+direction',
+            '-dimsize', "$space=-1",
+            '-dimsize', "$ordering{$space}[0]=-1",
+            '-dimsize', "$ordering{$space}[1]=-1",
+            '-dimorder', $dimorder,
+            '-dimrange', "$space=$slice,1",
+            @time_res_args,
+            $infile, "$tmpdir/reshaped.mnc");                  
+   if(scalar(@{$opt{'range'}}) != 0){
+      push(@args, '-valid_range', @{$opt{'range'}}[0], @{$opt{'range'}}[1]);
+      }
+   if(scalar(@{$opt{'image_range'}}) != 0){
+      push(@args, '-image_range', @{$opt{'image_range'}}[0], @{$opt{'image_range'}}[1]);
+      }
+   &do_cmd(@args);
+   
+   # do the lookup if required
+   $convert_infile = "$tmpdir/reshaped.mnc";
+   if($opt{'lookup'}){
+      if($CODE eq 'RGB'){
+         warn "$me: Input is vector-valued already.  No colour lookup done.\n";
+         }
+      else{
+         $convert_infile = "$tmpdir/lookup.mnc";
+         $CODE = 'RGB';
+         &do_cmd('minclookup', '-clobber', '-quiet', 
+                 split(' ', $opt{'lookup'}), 
+                 "$tmpdir/reshaped.mnc", $convert_infile);
+         }
+      }
+
+   # set up mincextract command
+   @extract_args = ('mincextract', $convert_infile,
+                    '-normalize',
+                    ($opt{'bitdepth'} == 16) ? ('-short', '-unsigned') : '-byte');
+   
+   # set up convert arguments
+   # a flip is 'normal' due to the difference between mnc and most image co-ordinates
+   @convert_args = ('convert',
+                    '-depth', $opt{'bitdepth'},
+                    '-flip', 
+                    '-size', $img_y . 'x' . $img_x,
+                    '-geometry', $img_length_y . 'x' . $img_length_x . '!',
+                    "$CODE:-", $imgfile);
+   
+   # check if we are big or little endian for convert's MSB wierdity
+   $pipe_args = '|';
+   if($opt{'bitdepth'} == 16){
+      if(unpack("c",substr(pack("s",1),0,1))){
+         warn "$me: LSB machine, swapping bytes with dd and crossing fingers\n";
+         $pipe_args .= ' dd conv=swab | ';
+         }
+      }
+   
+   &do_cmd(join(' ', @extract_args, $pipe_args, @convert_args));
+   }
+
+# do the triplanar if requested
+if($opt{'triplanar'}){
+   my @orient_args;
+
+   if($opt{'title'}){
+      $imgfile = "$tmpdir/mont.png";
+      }
+   else{
+      $imgfile = $outfile;
+      }
+   
+   if($opt{'orientation'} eq 'vertical'){
+      @orient_args = ('-tile', ('1x' . ($#mont_files + 1)));
+      }
+   else{ # $opt{orientation} eq 'horizontal'
+      @orient_args = ('-tile', (($#mont_files + 1) . 'x1'));
+      }
+   
+   # do the montage
+   &do_cmd('montage',
+           @orient_args, 
+           '-background', 'grey10',
+           '-geometry', "$opt{tilesize}x$opt{tilesize}+1+1",
+           @mont_files, $imgfile);
+   }
+               
+# Add the title
+if($opt{'title'}){
+   
+   # set up the title text
+   if(!defined($opt{'title_text'})){
+      $opt{'title_text'} = &basename($infile);
+      $opt{'title_text'} =~ s/\.mnc$//;
+      }
+     
+#   This really does not work all that well (but should), go figure
+#   &do_cmd('convert', '-box', 'black', 
+#           '-font', '7x13', 
+#           '-fill', 'white',
+#           '-draw', "text 4,12 \"$opt{'title_text'}\"",
+#           $imgfile, $outfile);
+#
+   # use montage instead
+   &do_cmd('montage', 
+           '-geometry', '100x100%',  
+           '-background', 'black',
+           '-fill', 'white',
+           '-label', $opt{'title_text'},
+           '-pointsize', $opt{'title_size'},
+           $imgfile, $outfile);
+   }
+
+# create the annotated bar if required
+if(defined($opt{'anot_bar'})){
+   
+   my($min, $max, $pcode, 
+      $q0, $q1, $q2, $q3, $q4, $bh, $bw, $bb, $ob, 
+      $textbump, $i, @buf);
+   
+   # set up a few constants
+   $textbump = 3;
+   $pcode = '%6g';
+   
+   # text border, other border, height, width
+   $bb = 50;
+   $ob = 25;
+   $bh = $img_length_y - ($ob*2);
+   $bw = int($bh/10);
+   
+   # get range if not defined
+   if(!(@{$opt{'image_range'}[0]})){
+      print STDERR "Getting image range\n" if $opt{'verbose'};
+      
+      @buf = split(/\n/, `mincstats -min -max -quiet $infile`);
+      @{$opt{'image_range'}}[0] = $buf[0] * 1.0;
+      @{$opt{'image_range'}}[1] = $buf[1] * 1.0;
+      }
+   
+   $min = @{$opt{'image_range'}}[0];
+   $max = @{$opt{'image_range'}}[1];
+   
+   # set up the datafile
+   my(@data) = undef;
+   my($packstring) = '';
+   for($i=0; $i<$bh; $i++){
+      $data[$i] = $i;
+      $packstring .= 'f';
+      }
+   
+   open(FH, ">$tmpdir/tmp-float.raw");
+   for($i=0; $i<$bw; $i++){
+      syswrite(FH, pack($packstring, @data));
+      }
+   close(FH);
+   
+   # make minc file
+   &do_cmd('rawtominc', '-clobber',
+           '-float',
+           '-input', "$tmpdir/tmp-float.raw",
+           '-xstep',  1, '-ystep',  1, '-zstep',  1,
+           '-xstart', 0, '-ystart', 0, '-zstart', 0,
+           '-dimorder', 'xspace,yspace,zspace',
+           "$tmpdir/bar.mnc", $bw, $bh, 1);
+   
+
+   # make .miff bar image (whoa... recursion!)
+   &do_cmd('mincpik.pl', '-clobber',
+           '-scale', 1,
+           (defined($opt{'lookup'})) ? ('-lookup', $opt{'lookup'}) : (),
+           "$tmpdir/bar.mnc", "$tmpdir/bar.png");
+   
+   # set up the text
+   $q0 = sprintf($pcode, $min);
+   $q1 = sprintf($pcode, (($max-$min) * 0.25) + $min);
+   $q2 = sprintf($pcode, (($max-$min) * 0.5)  + $min);
+   $q3 = sprintf($pcode, (($max-$min) * 0.75) + $min);
+   $q4 = sprintf($pcode, $max);
+   
+   
+   # create the bar itself via convert
+   &do_cmd('convert',
+           '-bordercolor', 'white',
+           '-border', $bb,
+
+           # color for all the decorations
+           '-fill', 'black',
+
+           # bar border
+           '-draw', "line " . join(',',  $bb,      $bb,      ($bb+$bw),  $bb     ),
+           '-draw', "line " . join(',',  $bb,     ($bb+$bh), ($bb+$bw), ($bb+$bh)),
+           '-draw', "line " . join(',',  $bb,      $bb,       $bb,      ($bb+$bh)),
+           '-draw', "line " . join(',', ($bb+$bw), $bb,      ($bb+$bw), ($bb+$bh)),
+
+           # 3 ticks at 1/4, 1/2 and 3/4
+           '-draw', "line " . join(',', ($bb+($bw*3/4)), ($bb+($bh*1/4)), ($bb+$bw), ($bb+($bh*1/4))),
+           '-draw', "line " . join(',', ($bb+($bw*3/4)), ($bb+($bh*2/4)), ($bb+$bw), ($bb+($bh*2/4))),
+           '-draw', "line " . join(',', ($bb+($bw*3/4)), ($bb+($bh*3/4)), ($bb+$bw), ($bb+($bh*3/4))),
+
+           # text
+           '-draw', 'text ' . ($bb+$bw) . ',' . ($bb+($bh*0/4)+$textbump) . " '$q4'",
+           '-draw', 'text ' . ($bb+$bw) . ',' . ($bb+($bh*1/4)+$textbump) . " '$q3'",
+           '-draw', 'text ' . ($bb+$bw) . ',' . ($bb+($bh*2/4)+$textbump) . " '$q2'",
+           '-draw', 'text ' . ($bb+$bw) . ',' . ($bb+($bh*3/4)+$textbump) . " '$q1'",
+           '-draw', 'text ' . ($bb+$bw) . ',' . ($bb+($bh*4/4)+$textbump) . " '$q0'",
+
+           # finally crop of the extra border
+           '-crop', (($bb*2)+$bw-($bb-$ob)) . "x" . (($bb*2)+$bh-$bb) . "+" . ($bb-$ob) . "+" . ($bb-$ob),
+
+           "$tmpdir/bar.png", $opt{'anot_bar'});
+   }
+
+
+sub do_cmd {
+   print STDERR "@_\n" if $opt{'verbose'};
+   if(!$opt{'fake'}){
+      system(@_) == 0 or die "\n$me: Failed executing @_\n\n";
+      }
+   }

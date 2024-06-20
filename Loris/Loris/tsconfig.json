@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["*", "jsx/*"]
+    },
+    "sourceMap": true,
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "lib": [
+      "es6", "dom", "es2017"
+    ],
+    "strict" : true
+  }
+}

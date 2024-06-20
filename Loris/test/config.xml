@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!--
+
+  NB: because study and sites elements get merged in a recursive and
+  overwriting manner, any time when multiple elements of the same type
+  (such as <item/> <item/>) occurs in the study or sites tree, the
+  sites tree will overwrite the element entirely instead of simply
+  merging - i.e., if the multiple elements are branches, the sites
+  branch in its entirely will override the study branch.
+-->
+<config>
+    <!-- set to 1 if development environment -->
+    <dev>
+        <sandbox>0</sandbox>
+        <selenium_url>http://selenium:4444/wd/hub</selenium_url>
+    </dev>
+
+    <!-- database settings -->
+    <database>
+        <host>db</host>
+        <username>SQLTestUser</username>
+        <password>TestPassword</password>
+        <database>LorisTest</database>
+        <adminUser>SQLTestUser</adminUser>
+        <adminPassword>TestPassword</adminPassword>
+        <name>Example database</name>
+    </database>
+
+    <CouchDB>
+    </CouchDB>
+
+    <!-- study variables -->
+    <study>
+        <PSCID>
+            <!-- PSCID (Study Center ID) generation method possible options: sequential/random/user -->
+            <generation>sequential</generation>
+            <structure>
+                <seq type="siteAbbrev"/>
+                <seq type="alphanumeric" length="4"/> <!-- Ex: AAA0001-->
+            </structure>
+        </PSCID>
+
+        <ExternalID>
+            <generation>random</generation>
+            <structure>
+                <seq type="static">BBB</seq>
+                <seq type="numeric" length="4" min='1000' max='9999'/>
+            </structure>
+        </ExternalID>
+        <!--Header table is diplayed on top of instrument list page and instrument pages -->
+        <HeaderTable>
+            <!--Specify the table as the tag and the field to query as the value inside the tag -->
+            <parameter_candidate>candidate_comment</parameter_candidate>
+            <candidate>ProbandDoB</candidate>
+            <parameter_session>MRI_Done</parameter_session>
+        </HeaderTable>
+
+         <!-- certification module -->
+        <Certification>
+            <EnableCertification>0</EnableCertification>
+            <CertificationProjects>
+                <!-- add project for which certification module should be enabled-->
+                <CertificationProject></CertificationProject>
+            </CertificationProjects>
+
+            <CertificationInstruments>
+                <!--test value=InstrumentName>InstrumentName</test-->
+            </CertificationInstruments>
+        </Certification>
+
+    </study>
+    <!-- end of study definition -->
+</config>

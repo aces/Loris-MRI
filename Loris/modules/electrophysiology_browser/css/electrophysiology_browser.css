@@ -1,0 +1,446 @@
+.react-series-data-viewer-scoped .dropdown-menu {
+  width: calc(100% - 5px);
+}
+
+.react-series-data-viewer-scoped .dropdown-menu li {
+  margin: 0;
+  padding: 0 10px;
+}
+
+.react-series-data-viewer-scoped .dropdown-menu li:hover {
+  background: #eee;
+  cursor: pointer;
+  margin-top: 0;
+  width: 100%;
+}
+
+.checkbox-flex-label > div > input[type="checkbox"] {
+  vertical-align: top;
+}
+
+.checkbox-flex-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  justify-content: flex-end;
+}
+
+.btn-dropdown-toggle {
+  padding: 5px 10%;
+}
+
+.col-xs-12 > .btn-dropdown-toggle {
+  padding: 5px;
+  max-width: fit-content;
+}
+
+.col-xs-12 > .dropdown-menu {
+  width: max-content;
+  line-height: 14px;
+  padding: 0
+}
+
+.col-xs-12 > .dropdown-menu li {
+  margin: 0;
+  padding: 0;
+}
+
+
+.btn.btn-xs {
+  font-size: 12px;
+}
+
+.btn-group .btn {
+  margin: 0;
+}
+
+.btn-group {
+  margin-right: 10px;
+}
+
+.btn-primary:focus:not(.active),
+.btn-primary:active:not(.active) {
+  color: #246EB6;
+  background-color: white;
+  border-color: #246EB6;
+  outline: 0;
+}
+
+.no-gutters > div {
+  padding:0;
+}
+
+svg {
+  user-select: none;
+}
+
+svg:not(:root) {
+  overflow: clip;
+}
+
+.annotation.list-group-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  width: 100%;
+}
+
+.annotation {
+  background: #fffae6;
+  border-left: 5px solid #8eecfa;
+}
+
+.epoch-details {
+  display: flex;
+  width: 100%;
+  padding: 10px 0;
+}
+
+.epoch-action {
+  display: flex;
+  flex-direction: row;
+  justify-content: end;
+  align-items: center;
+}
+
+.epoch-tag {
+  padding: 10px;
+  background: #e7e4e4;
+  word-wrap: break-word;
+  width: 100%;
+}
+
+.badge-pill {
+  max-width: 100%;
+}
+
+.badge-pill p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.badge-property {
+  background-color: #690096;
+}
+
+.badge-hed {
+  background-color: #d54a08;
+  cursor: help;
+  position: relative;
+  display: inline-block;
+}
+
+.tag-hed, .dataset-tag-hed {
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+}
+
+.toggle-long-hed label > div {
+  padding-right: 10px !important;
+}
+
+.toggle-long-hed input[type='checkbox'] {
+  vertical-align: top;
+}
+
+.tag-hed-score {
+  cursor: pointer;
+}
+
+.badge-hed .badge-hed-tooltip,
+.tag-hed .badge-hed-tooltip {
+  visibility: hidden;
+  background-color: #555555;
+  color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 1;
+  top: -50px;
+  right: 105%;
+  width: 500px;
+  max-height: 350px;
+  overflow-y: scroll;
+  white-space: normal;
+  text-align: left;
+}
+
+.badge-hed:hover .badge-hed-tooltip,
+.tag-hed:hover .badge-hed-tooltip {
+  visibility: visible;
+}
+
+.badge-hed-tooltip .tooltip-title {
+  font-size: 16px;
+}
+
+.tooltip-description {
+  font-weight: normal;
+  font-style: italic;
+}
+
+.badge-hed-add {
+  color: #246EB6 !important;
+  border: solid 1px #246EB6;
+  background-color: #fff !important;
+  cursor: pointer;
+}
+
+.selection-filter-tags {
+  margin: 0;
+  font-weight: bold;
+}
+
+.tag-remove-button {
+  cursor: pointer;
+  margin-left: 5px;
+  padding-left: 7.5px;
+  border-left: #b0885d solid 1px;
+  float: right;
+  width: 15px;
+}
+
+.dataset-tag-remove-button {
+  border-left: #999 solid 1px;
+}
+
+.selection-filter-tag {
+  display: inline-block;
+  margin: 2px 5px;
+  padding: 5px 10px;
+  color: black;
+  background-color: #E89A0C;
+  border-radius: 5px;
+  height: 30px;
+  max-width: 100vw;
+}
+
+.selection-filter-dataset-tag {
+  color: #fff;
+  background-color: #A9A9A9;
+}
+
+.dataset-tag-selected {
+  background-color: rgb(24, 99, 0);
+}
+
+.filter-tag-name {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  float: left;
+  max-width: 12vw;
+}
+
+.dataset-tag-dirty {
+  opacity: 0.6;
+}
+
+.tag-modal-container-dirty:before {
+  content: '*';
+}
+
+#select_column {
+  height: 27px;
+  text-align: center;
+}
+
+.dataset-filter-tags {
+  margin: 0 2px;
+}
+
+.dataset-filter-tag {
+  max-width: 52vw;
+}
+
+.dataset-tag-name {
+  max-width: calc(100% - 20px);
+}
+
+#tag-modal-container {
+  margin-bottom: 15px;
+}
+
+#tag-modal-container > div > button {
+  position: unset;
+  width: unset;
+}
+
+
+#tag-modal-container > div > div > div {
+  width: 75vw !important;
+  height: 75vh;
+}
+
+.line-height-14 {
+  line-height: 14px;
+}
+
+.margin-top-10 {
+  margin-top: 10px;
+}
+
+.flex-basis-45 {
+  flex-basis: 45%
+}
+
+.event-list .btn.btn-primary {
+  color: #555;
+  border: 1px solid #555;
+}
+
+.event-list .btn.btn-primary.active {
+  color: #000;
+  background-color: #ddd;
+  border: 1px solid #000;
+}
+
+.event-list .btn.btn-primary:hover {
+  color: #333;
+  background-color: #eee;
+  border: 1px solid #333;
+}
+
+.input-interval-bound {
+  width: 60px;
+  height: 22px;
+  font-size: 10px;
+  float: left;
+  text-align: center;
+}
+
+.btn-zoom {
+  margin: 0 auto 3px auto;
+  width: 55px;
+  text-align: center;
+  text-wrap: unset;
+}
+
+.col-xs-title {
+  color: #064785;
+  font-weight: bold;
+  text-align: center;
+}
+
+#electrode-montage .list-group {
+  border: 1px solid #ddd;
+}
+
+#electrode-montage .list-group-item:first-child {
+  border-top: none;
+}
+
+#electrode-montage .list-group-item {
+  margin-bottom: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.electrode:hover circle {
+  stroke: #064785;
+  cursor: pointer;
+  fill: #E4EBF2;
+}
+
+.electrode:hover text {
+  fill: #064785;
+  cursor: pointer;
+}
+
+#eegSessionView .table-scroll {
+  padding-bottom: 0;
+}
+
+#eegSessionView #lorisworkspace > .panel {
+  border: none;
+}
+
+#eegSessionView .panel-heading {
+  height: auto !important;
+}
+
+#eegSessionView .panel-heading > div > i {
+  cursor: pointer;
+}
+
+#eegSessionView .panel-heading > div > i:hover {
+  scale: 1.05;
+}
+
+#eegSidebar {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(100%);
+  position: fixed;
+}
+
+#page.eegBrowser {
+  vertical-align: top;
+  position: relative;
+  width: auto;
+}
+
+.cursor-default {
+  cursor: default;
+}
+
+/* Custom, iPhone Retina */
+@media only screen and (min-width : 320px) {
+  .pagination-nav {
+    padding-top: 8px;
+  }
+
+  #eegSidebar {
+    display: none;
+  }
+}
+
+/* Extra Small Devices, Phones */
+@media only screen and (min-width : 480px) {
+
+}
+
+/* Small Devices, Tablets */
+@media only screen and (min-width : 768px) {
+  #eegSidebar {
+    display: block;
+  }
+
+  #page.eegBrowser {
+    margin-left: 150px;
+  }
+
+  #tag-modal-container > div > button {
+    position: fixed;
+    left: 15px;
+    bottom: 20px;
+    width: 120px;
+    white-space: normal;
+  }
+}
+
+/* Medium Devices, Desktops */
+@media only screen and (min-width : 992px) {
+  .event-list {
+    margin-top: 40px;
+    margin-bottom: 0;
+  }
+}
+
+/* Large Devices, Wide Screens */
+@media only screen and (min-width : 1200px) {
+  .pull-right-lg {
+    text-align: right;
+  }
+
+  .pagination-nav {
+    padding-top: 0;
+  }
+}
