@@ -620,7 +620,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'PatientName': self.subject_id_dict['PatientName'],
             'CandID': self.subject_id_dict['CandID'],
             'Visit_label': self.subject_id_dict['visitLabel'],
-            'Scan_type': self.scan_type_id,
+            'MriScanTypeID': self.scan_type_id,
             'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
             'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
             'PhaseEncodingDirection': phase_enc_dir,

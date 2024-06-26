@@ -720,15 +720,15 @@ class Imaging:
 
         matching_protocols_list = []
         for protocol in protocols_list:
-            if scan_type_id and protocol['Scan_type'] == scan_type_id:
-                matching_protocols_list.append(protocol['Scan_type'])
+            if scan_type_id and protocol['MriScanTypeID'] == scan_type_id:
+                matching_protocols_list.append(protocol['MriScanTypeID'])
             elif protocol['series_description_regex']:
                 if re.search(
                         rf"{protocol['series_description_regex']}", scan_param['SeriesDescription'], re.IGNORECASE
                 ):
-                    matching_protocols_list.append(protocol['Scan_type'])
+                    matching_protocols_list.append(protocol['MriScanTypeID'])
             elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
-                matching_protocols_list.append(protocol['Scan_type'])
+                matching_protocols_list.append(protocol['MriScanTypeID'])
 
         return list(dict.fromkeys(matching_protocols_list))
 
@@ -1110,7 +1110,7 @@ class Imaging:
             sorted_files_list = sorted(new_files_list, key=lambda x: x['acq_time'])
         except TypeError:
             return None
-        
+
         return sorted_files_list
 
     def modify_fmap_json_file_to_write_intended_for(self, sorted_fmap_files_list, s3_obj, tmp_dir):
