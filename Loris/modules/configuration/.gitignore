@@ -1,8 +1,0 @@
-# This should be *, but there are non-JSX files
-# in this directory which need to be migrated before
-# we can just ignore the whole directory.
-js/CohortRelations.js
-js/configuration_helper.js
-js/CohortRelations.js.map
-js/configuration_helper.js.map
-js/DiagnosisEvolution.js

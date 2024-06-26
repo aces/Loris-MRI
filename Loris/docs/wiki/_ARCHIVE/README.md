@@ -1,1 +1,0 @@
-`deprecated_wiki` pages with content that no longer applies to the current state of LORIS but can still be helpful for users on older branches. This directory will eventually get deleted when everyone is on a branch with a local wiki.
