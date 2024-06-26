@@ -365,9 +365,9 @@ class Mri:
             # grep the scan type ID from the mri_scan_type table (if it is not already in
             # the table, it will add a row to the mri_scan_type table)
             scan_type_id = self.db.grep_id_from_lookup_table(
-                id_field_name       = 'ID',
+                id_field_name       = 'MriScanTypeID',
                 table_name          = 'mri_scan_type',
-                where_field_name    = 'Scan_type',
+                where_field_name    = 'MriScanTypeName',
                 where_value         = scan_type,
                 insert_if_not_found = True
             )
@@ -391,7 +391,7 @@ class Mri:
                 'PhaseEncodingDirection': phase_enc_dir,
                 'EchoNumber'      : echo_nb,
                 'SourceFileID'    : None,
-                'AcquisitionProtocolID': scan_type_id
+                'MriScanTypeID'   : scan_type_id
             }
             file_id = imaging.insert_imaging_file(file_info, file_parameters)
 

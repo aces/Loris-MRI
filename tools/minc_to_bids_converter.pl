@@ -383,30 +383,30 @@ RETURNS:
 
     {
         "1" => {
-            'fileID'                => 'FileID value',
-            'file'                  => 'file path',
-            'echoTime'              => 'Echo Time of the file',
-            'AcquisitionProtocolID' => 'Scan type ID',
-            'candID'                => 'Candidate CandID',
-            'sessionID'             => 'Session ID',
-            'visitLabel'            => 'Visit Label',
-            'echoNumber'            => 'Echo Number of the scan',
-            'seriesNumber'          => 'Series Number of the scan',
-            'imageType'             => 'Image Type',
-            'lorisScanType'         => 'LORIS Scan Type name'
+            'fileID'        => 'FileID value',
+            'file'          => 'file path',
+            'echoTime'      => 'Echo Time of the file',
+            'MriScanTypeID' => 'Scan type ID',
+            'candID'        => 'Candidate CandID',
+            'sessionID'     => 'Session ID',
+            'visitLabel'    => 'Visit Label',
+            'echoNumber'    => 'Echo Number of the scan',
+            'seriesNumber'  => 'Series Number of the scan',
+            'imageType'     => 'Image Type',
+            'lorisScanType' => 'LORIS Scan Type name'
         },
         "2" => {
-            'fileID'                => 'FileID value',
-            'file'                  => 'file path',
-            'echoTime'              => 'Echo Time of the file',
-            'AcquisitionProtocolID' => 'Scan type ID',
-            'candID'                => 'Candidate CandID',
-            'sessionID'             => 'Session ID',
-            'visitLabel'            => 'Visit Label',
-            'echoNumber'            => 'Echo Number of the scan',
-            'seriesNumber'          => 'Series Number of the scan',
-            'imageType'             => 'Image Type',
-            'lorisScanType'         => 'LORIS Scan Type name'
+            'fileID'        => 'FileID value',
+            'file'          => 'file path',
+            'echoTime'      => 'Echo Time of the file',
+            'MriScanTypeID' => 'Scan type ID',
+            'candID'        => 'Candidate CandID',
+            'sessionID'     => 'Session ID',
+            'visitLabel'    => 'Visit Label',
+            'echoNumber'    => 'Echo Number of the scan',
+            'seriesNumber'  => 'Series Number of the scan',
+            'imageType'     => 'Image Type',
+            'lorisScanType' => 'LORIS Scan Type name'
         }
         ...
     }
@@ -427,7 +427,7 @@ sub getFileList {
 SELECT
   f.FileID,
   File,
-  AcquisitionProtocolID,
+  MriScanTypeID,
   EchoTime,
   c.CandID,
   s.Visit_label,
@@ -436,11 +436,11 @@ SELECT
   pf_echonb.Value as EchoNumber,
   pf_seriesnb.Value as SeriesNumber,
   pf_imagetype.Value as ImageType,
-  mst.Scan_type AS LorisScanType
+  mst.MriScanTypeName AS LorisScanType
 FROM files f
 JOIN session s         ON (s.ID        = f.SessionID)
 JOIN candidate c       ON (c.CandID    = s.CandID)
-JOIN mri_scan_type mst ON (mst.ID      = f.AcquisitionProtocolID)
+JOIN mri_scan_type mst ON (mst.MriScanTypeID = f.MriScanTypeID)
 JOIN tarchive t        ON (t.SessionID = s.ID)
 LEFT JOIN parameter_file pf_echonb    ON (f.FileID=pf_echonb.FileID)    AND pf_echonb.ParameterTypeID    = ?
 LEFT JOIN parameter_file pf_seriesnb  ON (f.FileID=pf_seriesnb.FileID)  AND pf_seriesnb.ParameterTypeID  = ?
@@ -461,18 +461,18 @@ QUERY
     my %file_list;
     my $i = 0;
     while ( my $rowhr = $st_handle->fetchrow_hashref()) {
-        $file_list{$i}{'fileID'}                = $rowhr->{'FileID'};
-        $file_list{$i}{'file'}                  = $rowhr->{'File'};
-        $file_list{$i}{'AcquisitionProtocolID'} = $rowhr->{'AcquisitionProtocolID'};
-        $file_list{$i}{'candID'}                = $rowhr->{'CandID'};
-        $file_list{$i}{'sessionID'}             = $rowhr->{'SessionID'};
-        $file_list{$i}{'visitLabel'}            = $rowhr->{'Visit_label'};
-        $file_list{$i}{'echoNumber'}            = $rowhr->{'EchoNumber'};
-        $file_list{$i}{'echoNumber'}            =~ s/\.$//g if $file_list{$i}{'echoNumber'};  # remove trailing dot of the echo number
-        $file_list{$i}{'seriesNumber'}          = $rowhr->{'SeriesNumber'};
-        $file_list{$i}{'imageType'}             = $rowhr->{'ImageType'};
-        $file_list{$i}{'lorisScanType'}         = $rowhr->{'LorisScanType'};
-        $file_list{$i}{'AcqOrderPerModality'}   = $rowhr->{'AcqOrderPerModality'};
+        $file_list{$i}{'fileID'}              = $rowhr->{'FileID'};
+        $file_list{$i}{'file'}                = $rowhr->{'File'};
+        $file_list{$i}{'MriScanTypeID'}       = $rowhr->{'MriScanTypeID'};
+        $file_list{$i}{'candID'}              = $rowhr->{'CandID'};
+        $file_list{$i}{'sessionID'}           = $rowhr->{'SessionID'};
+        $file_list{$i}{'visitLabel'}          = $rowhr->{'Visit_label'};
+        $file_list{$i}{'echoNumber'}          = $rowhr->{'EchoNumber'};
+        $file_list{$i}{'echoNumber'}          =~ s/\.$//g if $file_list{$i}{'echoNumber'};  # remove trailing dot of the echo number
+        $file_list{$i}{'seriesNumber'}        = $rowhr->{'SeriesNumber'};
+        $file_list{$i}{'imageType'}           = $rowhr->{'ImageType'};
+        $file_list{$i}{'lorisScanType'}       = $rowhr->{'LorisScanType'};
+        $file_list{$i}{'AcqOrderPerModality'} = $rowhr->{'AcqOrderPerModality'};
         $i++;
     }
 
@@ -601,7 +601,7 @@ sub makeNIIAndHeader {
         my $file_id         = $file_list{$row}{'fileID'};
         my $minc            = $file_list{$row}{'file'};
         my $minc_basename   = basename($minc);
-        my $acq_protocol_id = $file_list{$row}{'AcquisitionProtocolID'};
+        my $acq_protocol_id = $file_list{$row}{'MriScanTypeID'};
         my $loris_scan_type = $file_list{$row}{'lorisScanType'};
         my $session_id      = $file_list{$row}{'sessionID'};
 
@@ -719,7 +719,7 @@ OUTPUT:
         'BIDSCategoryName'        => 'BIDS category to use for the NIfTI file, aka anat, func, fmap, dwi...',
         'BIDSScanTypeSubCategory' => 'BIDS subcategory to use for the NIfTI file, aka task-rest, task-memory...',
         'BIDSEchoNumber'          => 'Echo Number associated with the NIfTI file',
-        'Scan_type'               => 'label of the LORIS Scan type from the mri_scan_type table'
+        'ScanType'                => 'label of the LORIS Scan type from the mri_scan_type table'
     }
 
 Note: BIDSEchoNumber and BIDSScanTypeSubCategory can be null for a given NIfTI file.
@@ -738,15 +738,15 @@ SELECT
   bids_scan_type.BIDSScanType,
   bmstr.BIDSEchoNumber,
   bids_phase_encoding_direction.BIDSPhaseEncodingDirectionName,
-  mst.Scan_type
+  mst.MriScanTypeName AS ScanType
 FROM bids_mri_scan_type_rel bmstr
-  JOIN      mri_scan_type mst             ON mst.ID = bmstr.MRIScanTypeID
+  JOIN      mri_scan_type mst             ON mst.MriScanTypeID = bmstr.MRIScanTypeID
   JOIN      bids_category                 USING (BIDSCategoryID)
   JOIN      bids_scan_type                USING (BIDSScanTypeID)
   LEFT JOIN bids_scan_type_subcategory    USING (BIDSScanTypeSubCategoryID)
   LEFT JOIN bids_phase_encoding_direction USING (BIDSPhaseEncodingDirectionID)
 WHERE
-  mst.ID = ?
+  mst.MriScanTypeID = ?
 QUERY
     # Prepare and execute query
     my $st_handle = $db_handle->prepare($bids_query);
@@ -1633,7 +1633,7 @@ sub grep_phasediff_associated_magnitude_files {
 
     my %magnitude_files;
     foreach my $row (keys %$loris_files_list) {
-        my $acq_prot_id   = $loris_files_list->{$row}{'AcquisitionProtocolID'};
+        my $acq_prot_id   = $loris_files_list->{$row}{'MriScanTypeID'};
         my $session_id    = $loris_files_list->{$row}{'sessionID'};
         my $echo_number   = $loris_files_list->{$row}{'echoNumber'};
         my $series_number = $loris_files_list->{$row}{'seriesNumber'};
@@ -1658,14 +1658,14 @@ sub grep_phasediff_associated_magnitude_files {
 
 =head3 grep_acquisitionProtocolID_from_BIDS_scan_type($db_handle, $bids_scan_type)
 
-Greps the AcquisitionProtocolID associated to a BIDS magnitude file in the database.
+Greps the MriScanTypeID associated to a BIDS magnitude file in the database.
 
 INPUTS:
     - $db_handle     : database handle
     - $bids_scan_type: name of the BIDS scan type (for example: magnitude)
 
 OUTPUT:
-    - AcquisitionProtocolID associated to the BIDS scan type file in the database
+    - MriScanTypeID associated to the BIDS scan type file in the database
 
 =cut
 
@@ -1674,9 +1674,9 @@ sub grep_acquisitionProtocolID_from_BIDS_scan_type {
 
     (my $scan_type_query = <<QUERY ) =~ s/\n/ /g;
 SELECT
-  mst.ID
+  mst.MriScanTypeID
 FROM bids_mri_scan_type_rel bmstr
-  JOIN mri_scan_type mst ON bmstr.MRIScanTypeID=mst.ID
+  JOIN mri_scan_type mst ON bmstr.MRIScanTypeID=mst.MriScanTypeID
   JOIN bids_scan_type bst USING (BIDSScanTypeID)
 WHERE
   bst.BIDSScanType = ?
@@ -1719,7 +1719,7 @@ sub create_BIDS_magnitude_files {
 
     foreach my $row (keys %$magnitude_files_hash) {
         my $minc        = $magnitude_files_hash->{$row}{'file'};
-        my $acq_prot_id = $magnitude_files_hash->{$row}{'AcquisitionProtocolID'};
+        my $acq_prot_id = $magnitude_files_hash->{$row}{'MriScanTypeID'};
         my $echo_nb     = $magnitude_files_hash->{$row}{'echoNumber'};
         my $file_id     = $magnitude_files_hash->{$row}{'fileID'};
 

@@ -333,7 +333,7 @@ unless ( defined NeuroDB::MRI::getScannerCandID($scanner_id, $db) ) {
 # verify that an acquisition protocol ID exists for $scan_type
 my $acqProtocolID = NeuroDB::MRI::scan_type_text_to_id($scan_type, $db);
 unless ($acqProtocolID) {
-    $message = "\n\tERROR: no AcquisitionProtocolID found for $scan_type.\n\n";
+    $message = "\n\tERROR: no MriScanTypeID found for $scan_type.\n\n";
     # write error message in the log file
     $utility->writeErrorLog($message, $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL,
         $log_file);
