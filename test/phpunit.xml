@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<phpunit
+        bootstrap="bootstrap.php"
+        verbose="true"
+        testdox="true"
+        colors="true">
+    <testsuites>
+        <testsuite name='LorisModuleIntegrationTests'>
+            <directory>../modules/brainbrowser/test/</directory>
+            <directory>../modules/dicom_archive/test/</directory>
+            <directory>../modules/genomic_browser/test/</directory>
+            <directory>../modules/imaging_browser/test/</directory>
+            <directory>../modules/imaging_uploader/test/</directory>
+        </testsuite>
+    </testsuites>
+    <!-- This is currently breaking the coverage.xml generation, so
+         for now it's disabled, but eventually we'll want to make
+         sure everything is tested.. -->
+
+    <coverage>
+        <include>
+            <directory suffix=".inc">../php/libraries</directory>
+            <!-- CodeCov crashes because installer/ has classes with the same
+                 name as libraries/, so for now we only cover libraries and
+                 exceptions under php/ -->
+            <directory suffix=".inc">../php/exceptions</directory>
+            <!--directory suffix=".php">../htdocs</directory-->
+            <directory suffix=".inc">../modules/*/php</directory>
+            <!--directory>../modules/dashboard/ajax/</directory-->
+        </include>
+    </coverage>
+
+</phpunit>

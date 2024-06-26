@@ -30,6 +30,9 @@ jobs:
     - name: Clone Loris repo
       run: git clone https://github.com/aces/Loris.git
 
+    - name: Override Test Files
+      run: cp test/Dockerfile.test.php8 Loris/
+           cp test/phpunit.xml Loris/test/
 
     - name: Validate composer.json and composer.lock
       run: |
