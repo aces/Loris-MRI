@@ -26,6 +26,11 @@ jobs:
         php-version: ${{ matrix.php }}
         extensions: zip, php-ast
 
+
+    - name: Clone Loris repo
+      run: git clone https://github.com/aces/Loris.git
+
+
     - name: Validate composer.json and composer.lock
       run: |
         cd Loris
