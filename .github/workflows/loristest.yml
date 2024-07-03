@@ -33,6 +33,7 @@ jobs:
     - name: Override Test Files
       run: |
         cp test/Dockerfile.test.php8 Loris/
+        cp test/docker-compose.yml Loris/
         cp test/phpunit.xml Loris/test/
         cp test/RB_SQL/* Loris/raisinbread/RB_files/
         cp -r test/modules/* Loris/modules/
