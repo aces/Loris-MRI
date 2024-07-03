@@ -156,7 +156,7 @@ class DicomArchiveTestIntegrationTest extends LorisIntegrationTest
      *
      * @return void
      */
-    function testLinksViewImagesoooooooooooo()
+    function testLinksViewImages()
     {
         $this->safeGet($this->url . "/dicom_archive/");
         $location = "#dynamictable>tbody>tr:nth-child(1)>td:nth-child(9)>a";
