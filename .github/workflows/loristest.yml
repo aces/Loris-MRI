@@ -12,11 +12,11 @@ jobs:
         matrix:
             testsuite: ['integration']
             php: ['8.1','8.2', '8.3']
-            ci_node_index: [1]
+            ci_node_index: [0]
 
             include:
             # add a variable but do not display it in the job's name
-            - ci_node_total: 4
+            - ci_node_total: 1
     steps:
     - uses: actions/checkout@v3
 
