@@ -6,11 +6,6 @@
         colors="true">
     <testsuites>
         <testsuite name='LorisModuleIntegrationTests'>
-            <directory>../modules/brainbrowser/test/</directory>
-            <directory>../modules/dicom_archive/test/</directory>
-            <directory>../modules/genomic_browser/test/</directory>
-            <directory>../modules/imaging_browser/test/</directory>
-            <directory>../modules/imaging_uploader/test/</directory>
         </testsuite>
     </testsuites>
     <!-- This is currently breaking the coverage.xml generation, so
