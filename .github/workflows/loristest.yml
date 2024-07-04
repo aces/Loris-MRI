@@ -36,7 +36,6 @@ jobs:
         cp test/docker-compose.yml Loris/
         cp test/phpunit.xml Loris/test/
         cp test/RB_SQL/* Loris/raisinbread/RB_files/
-        cp -r test/modules/* Loris/modules/
 
     - name: Validate composer.json and composer.lock
       run: |
