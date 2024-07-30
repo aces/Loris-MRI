@@ -9,6 +9,7 @@ import subprocess
 import sys
 
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.validate_subject import validate_subject_parts
 
 __license__ = "GPLv3"
 
@@ -86,19 +87,26 @@ class NiftiInsertionPipeline(BasePipeline):
             )
         else:
             self._determine_subject_ids_based_on_json_patient_name()
-        self.validate_subject_ids()
-        if "CandMismatchError" in self.subject_id_dict.keys():
+
+        validation_result = validate_subject_parts(self.db, self.log_obj, self.verbose,
+            self.subject_id_dict['PSCID'],
+            self.subject_id_dict['CandID'],
+            self.subject_id_dict['visitLabel'],
+            bool(self.subject_id_dict['createVisitLabel']),
+        )
+
+        if isinstance(validation_result, str):
             self.imaging_obj.insert_mri_candidate_errors(
                 self.dicom_archive_obj.tarchive_info_dict["PatientName"],
                 self.dicom_archive_obj.tarchive_info_dict["TarchiveID"],
                 self.json_file_dict,
                 self.nifti_path,
-                self.subject_id_dict["CandMismatchError"]
+                validation_result,
             )
             if self.nifti_s3_url:  # push candidate errors to S3 if provided file was on S3
                 self._run_push_to_s3_pipeline()
             self.log_error_and_exit(
-                self.subject_id_dict['CandMismatchError'], lib.exitcode.CANDIDATE_MISMATCH, is_error="Y", is_verbose="N"
+                validation_result, lib.exitcode.CANDIDATE_MISMATCH, is_error="Y", is_verbose="N"
             )
 
         # ---------------------------------------------------------------------------------------------

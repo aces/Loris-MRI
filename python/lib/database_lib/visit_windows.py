@@ -35,7 +35,7 @@ class VisitWindows:
         self.db = db
         self.verbose = verbose
 
-    def check_visit_label_exits(self, visit_label):
+    def check_visit_label_exits(self, visit_label: str) -> bool:
         """
         Returns a list of dictionaries storing the list of Visit_label present in the Visit_Windows table.
 
@@ -44,6 +44,5 @@ class VisitWindows:
         """
 
         query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
-        results = self.db.pselect(query=query, args=(visit_label,))
-
-        return results if results else None
+        results = self.db.pselect(query=query, args=[visit_label])
+        return bool(results)
