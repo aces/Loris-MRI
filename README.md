@@ -8,7 +8,7 @@ This repo can be installed on the same VM as the main LORIS codebase, or on a di
 # System Requirements
 
 * Perl
-* Python 3 with pip3 and virtualenv (step 2 below)
+* Python 3.11 with pip3 and venv (step 2 below)
 * MINC toolkit (step 3 below)
 * DICOM toolkit (step 4 below)
 * tpcclib (for HRRT PET only) (step 5 below)
@@ -58,7 +58,7 @@ Get the code: Download the latest release from the
 [releases page](https://github.com/aces/Loris-MRI/releases)
 and extract it to `/opt/$projectname/bin/mri`
 
-#### 2. Install Python 3 with `pip` and `virtualenv`
+#### 2. Install Python 3.11 with `pip` and `venv`
 
 ```bash
 sudo apt install python3.11 python3.11-dev python3.11-venv
