@@ -61,10 +61,7 @@ and extract it to `/opt/$projectname/bin/mri`
 #### 2. Install Python 3 with `pip` and `virtualenv`
 
 ```bash
-sudo apt install software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install python3.12 python3.12-dev python3.12-distutils python3.12-venv
+sudo apt install python3.11 python3.11-dev python3.11-distutils python3.11-venv
 sudo apt install python3-pip
 sudo apt install libmysqlclient-dev
 ```
