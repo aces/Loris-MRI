@@ -7,19 +7,19 @@ name: Flake8 Linter
 on: pull_request
 
 jobs:
-  
+
   flake8-lint:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Check out source repository
         uses: actions/checkout@v2
-      
+
       - name: Set up Python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
-      
+          python-version: "3.12"
+
       - name: Flake8 Lint
         uses: reviewdog/action-flake8@v3
         with:
