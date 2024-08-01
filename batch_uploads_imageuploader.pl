@@ -63,8 +63,8 @@ use NeuroDB::objectBroker::ConfigOB;
 
 
 my $profile   = '';
-my $upload_id = undef; 
-my ($debug, $verbose) = (0,1);
+my $upload_id = undef;
+my ($debug, $verbose) = (0,0);
 my $stdout = '';
 my $stderr = '';
 
@@ -158,7 +158,7 @@ my $is_qsub   = $configOB->getIsQsub();
 
 
 
-my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/imuploadstdout.log", 
+my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/imuploadstdout.log",
 				 "$data_dir/batch_output/imuploadstderr.log");
 
 while($_ = $ARGV[0] // '', /^-/) {
@@ -201,7 +201,7 @@ foreach my $input (@fullpatharray)
     my $phantom     = $phantomarray[$counter-1];
     my $patientname = $patientnamearray[$counter-1];
 
-    ## Ensure that 
+    ## Ensure that
     ## 1) the uploaded file is of type .tgz or .tar.gz or .zip
     ## 2) check that input file provides phantom details (Y for phantom, N for real candidates)
     ## 3) for non-phantoms, the patient name and path entries are identical; this mimics the imaging uploader in the front-end
@@ -229,13 +229,34 @@ foreach my $input (@fullpatharray)
        	    print STDERR "Please leave the patient name blank for phantom "
        	                 . "entries\n";
 	        exit $NeuroDB::ExitCodes::PNAME_FILENAME_MISMATCH;
-	}
-	else {
-	    $patientname = 'NULL';
-	}
+        }
+        else {
+            $patientname = 'NULL';
+        }
     }
 
-    ## Populate the mri_upload table with necessary entries and get an upload_id 
+    ## Check the subject information before inserting anything
+
+    if ($phantom eq 'N') {
+        my $python_config = $configOB->getPythonConfigFile();
+
+        my $command = sprintf(
+            "validate_subject_ids.py --profile %s --subject %s",
+            $python_config,
+            $patientname,
+        );
+
+        if ($verbose) {
+            $command .= " --verbose";
+        }
+
+        if (system($command) != 0) {
+            # The error is already printed by the Python script, just exit
+            exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
+        }
+    }
+
+    ## Populate the mri_upload table with necessary entries and get an upload_id
 
     $upload_id = insertIntoMRIUpload(\$dbh,
 				     $patientname,
@@ -259,8 +280,8 @@ foreach my $input (@fullpatharray)
     }
     ##if qsub is not enabled
     else {
-	print "Running now the following command: $command\n" if $verbose;
-	system($command);
+        print "Running now the following command: $command\n" if $verbose;
+        system($command);
     }
 
      push @submitted, $input;

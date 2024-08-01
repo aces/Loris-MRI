@@ -3,6 +3,7 @@
 import os
 import datetime
 import json
+from typing import Any, Optional
 import lib.utilities as utilities
 import nibabel as nib
 import re
@@ -21,6 +22,7 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
+from lib.exception.determine_subject_exception import DetermineSubjectException
 
 __license__ = "GPLv3"
 
@@ -510,33 +512,61 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_ids(self, tarchive_info_dict, scanner_id=None):
+    def determine_subject_ids(self, tarchive_info_dict, scanner_id: Optional[int] = None) -> dict[str, Any]:
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
-        config setting. This function will call a function in the config file that can be
+        config setting. This function will call a function in the configuration file that can be
         customized for each project.
 
-        :param tarchive_info_dict: dictionary with information about the DICOM archive queried
-                                   from the tarchive table
-         :type tarchive_info_dict: dict
-        :param scanner_id        : ScannerID
-         :type scanner_id        : int or None
+        :param tarchive_info_dict : Dictionary with information about the DICOM archive queried
+                                    from the tarchive table
+        :param scanner_id         : ScannerID
+
+        :raises DetermineSubjectException: Exception if the subject IDs cannot be determined from
+                                           the configuration file.
 
         :return subject_id_dict: dictionary with subject IDs and visit label or error status
-         :rtype subject_id_dict: dict
         """
 
         config_obj = Config(self.db, self.verbose)
         dicom_header = config_obj.get_config('lookupCenterNameUsing')
         dicom_value = tarchive_info_dict[dicom_header]
 
-        try:
-            subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
-            subject_id_dict['PatientName'] = dicom_value
-        except AttributeError:
-            message = 'Config file does not contain a get_subject_ids routine. Upload will exit now.'
-            return {'error_message': message}
+        subject_id_dict = self.determine_subject_ids_from_name(dicom_value, scanner_id)
+        return subject_id_dict
 
+
+    def determine_subject_ids_from_name(self, subject_name: str, scanner_id: Optional[int] = None) -> dict[str, Any]:
+        """
+        Determine subject IDs based on its name. This function will call a function in the
+        configuration file that can be customized for each project.
+
+        :param subject_name : The Subject name
+        :param scanner_id   : The ScannerID if there is one
+
+        :raises DetermineSubjectException: Exception if the subject IDs cannot be determined from
+                                           the configuration file.
+
+        :return: Dictionary with subject IDs and visit label.
+        """
+
+        try:
+            subject_id_dict = self.config_file.get_subject_ids(self.db, subject_name, scanner_id)
+        except AttributeError:
+            raise DetermineSubjectException(
+                'Config file does not contain a `get_subject_ids` function. Upload will exit now.'
+            )
+
+        if subject_id_dict == {}:
+            raise DetermineSubjectException(
+                f'Cannot get subject IDs for subject \'{subject_name}\'.\n'
+                'Possible causes:\n'
+                '- The subject name is not correctly formatted (should usually be \'PSCID_CandID_VisitLabel\').\n'
+                '- The function `get_subject_ids` in the Python configuration file is not properly defined.\n'
+                '- Other project specific reason.'
+            )
+
+        subject_id_dict['PatientName'] = subject_name
         return subject_id_dict
 
     def map_bids_param_to_loris_param(self, file_parameters):
