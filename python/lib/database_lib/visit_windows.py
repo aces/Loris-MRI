@@ -44,5 +44,5 @@ class VisitWindows:
         """
 
         query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
-        results = self.db.pselect(query=query, args=[visit_label])
+        results = self.db.pselect(query=query, args=(visit_label,))
         return bool(results)
