@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from lib.database import Database
 from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.visit_windows import VisitWindows
@@ -6,19 +7,15 @@ from lib.exception.validate_subject_exception import ValidateSubjectException
 
 # Utility class
 
+@dataclass
 class Subject:
     """
     Wrapper for the properties of a subject.
     """
 
-    psc_id: str
-    cand_id: str
+    psc_id:      str
+    cand_id:     str
     visit_label: str
-
-    def __init__(self, psc_id: str, cand_id: str, visit_label: str):
-        self.psc_id = psc_id
-        self.cand_id = cand_id
-        self.visit_label = visit_label
 
     def get_name(self):
         return f'{self.psc_id}_{self.cand_id}_{self.visit_label}'
