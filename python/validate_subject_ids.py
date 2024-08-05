@@ -3,16 +3,13 @@
 import os
 import sys
 
-from lib.database_lib.config import Config
 from lib.exception.determine_subject_exception import DetermineSubjectException
 from lib.exception.validate_subject_exception import ValidateSubjectException
 import lib.exitcode
 from lib.imaging import Imaging
-from lib.log import Log
 import lib.utilities
 from lib.lorisgetopt import LorisGetOpt
-from lib.dcm2bids_imaging_pipeline_lib.nifti_insertion_pipeline import NiftiInsertionPipeline
-from lib.validate_subject_ids import validate_subject_name
+from lib.validate_subject_ids import validate_subject_parts
 
 __license__ = "GPLv3"
 
@@ -67,13 +64,21 @@ def main():
 
     imaging = Imaging(db, opt_verbose, loris_getopt_obj.config_info)
     try:
-        create_visit = imaging.determine_subject_ids_from_name(opt_subject)['createVisitLabel']
+        subject = imaging.determine_subject_ids_from_name(opt_subject)
     except DetermineSubjectException as exception:
         print(exception.message, file=sys.stderr)
         exit(lib.exitcode.CANDIDATE_MISMATCH)
 
     try:
-        validate_subject_name(db, opt_verbose, opt_subject, create_visit)
+        validate_subject_parts(
+            db,
+            opt_verbose,
+            subject['PSCID'],
+            subject['CandID'],
+            subject['VisitLabel'],
+            bool(subject['validate_subject_parts']),
+        )
+
         print(f'Validation successful for subject \'{opt_subject}\'.')
         exit(lib.exitcode.SUCCESS)
     except ValidateSubjectException as exception:

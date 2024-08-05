@@ -69,5 +69,6 @@ def validate_subject(db: Database, verbose: bool, subject: Subject, create_visit
 
     print(f'Validation success for subject \'{subject.get_name()}\'.')
 
+
 def validate_subject_error(subject: Subject, message: str):
     raise ValidateSubjectException(f'Validation error for subject \'{subject.get_name()}\'.\n{message}')
