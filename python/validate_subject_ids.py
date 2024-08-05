@@ -75,11 +75,11 @@ def main():
             opt_verbose,
             subject['PSCID'],
             subject['CandID'],
-            subject['VisitLabel'],
-            bool(subject['validate_subject_parts']),
+            subject['visitLabel'],
+            bool(subject['createVisitLabel']),
         )
 
-        print(f'Validation successful for subject \'{opt_subject}\'.')
+        print(f'Validation success for subject \'{opt_subject}\'.')
         exit(lib.exitcode.SUCCESS)
     except ValidateSubjectException as exception:
         print(exception.message, file=sys.stderr)

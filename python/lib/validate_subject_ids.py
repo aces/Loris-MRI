@@ -64,8 +64,6 @@ def validate_subject(db: Database, verbose: bool, subject: Subject, create_visit
             f'Visit label \'{subject.visit_label}\' does not exist in the database (table `Visit_Windows`).'
         )
 
-    print(f'Validation success for subject \'{subject.get_name()}\'.')
-
 
 def validate_subject_error(subject: Subject, message: str):
     raise ValidateSubjectException(f'Validation error for subject \'{subject.get_name()}\'.\n{message}')
