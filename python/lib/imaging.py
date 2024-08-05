@@ -535,7 +535,6 @@ class Imaging:
         subject_id_dict = self.determine_subject_ids_from_name(dicom_value, scanner_id)
         return subject_id_dict
 
-
     def determine_subject_ids_from_name(self, subject_name: str, scanner_id: Optional[int] = None) -> dict[str, Any]:
         """
         Determine subject IDs based on its name. This function will call a function in the

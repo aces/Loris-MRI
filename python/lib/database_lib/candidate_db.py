@@ -35,7 +35,6 @@ class CandidateDB:
         self.db = db
         self.verbose = verbose
 
-
     def get_candidate_psc_id(self, cand_id: str | int) -> str | None:
         """
         Return a candidate PSCID and based on its CandID, or `None` if no candidate is found in

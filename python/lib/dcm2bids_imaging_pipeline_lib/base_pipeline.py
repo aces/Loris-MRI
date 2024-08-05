@@ -245,7 +245,9 @@ class BasePipeline:
             return
 
         try:
-            validate_subject_parts(self.db, self.verbose,
+            validate_subject_parts(
+                self.db,
+                self.verbose,
                 self.subject_id_dict['PSCID'],
                 self.subject_id_dict['CandID'],
                 self.subject_id_dict['visitLabel'],
