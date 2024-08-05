@@ -57,7 +57,7 @@ def validate_subject(db: Database, verbose: bool, subject: Subject, create_visit
         )
 
     visit_window_db = VisitWindows(db, verbose)
-    visit_window_exists = visit_window_db.check_visit_label_exits(subject.visit_label)
+    visit_window_exists = visit_window_db.check_visit_label_exists(subject.visit_label)
     if not visit_window_exists and not create_visit:
         validate_subject_error(
             subject,

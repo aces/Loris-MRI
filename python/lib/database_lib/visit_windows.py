@@ -35,12 +35,9 @@ class VisitWindows:
         self.db = db
         self.verbose = verbose
 
-    def check_visit_label_exits(self, visit_label: str) -> bool:
+    def check_visit_label_exists(self, visit_label: str) -> bool:
         """
-        Returns a list of dictionaries storing the list of Visit_label present in the Visit_Windows table.
-
-        :return: list of dictionaries with the list of Visit_label present in the Visit_Windows table
-         :rtype: list
+        Check if a visit label exists in the Visit_Windows database table.
         """
 
         query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
