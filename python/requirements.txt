@@ -2,6 +2,7 @@ mne
 mne-bids>=0.6
 protobuf>=3.0.0
 pybids==0.14.0
+pydicom
 mysqlclient
 mysql-connector
 google
