@@ -45,6 +45,6 @@ class CandidateDB:
             'FROM candidate ' \
             'WHERE CandID = %s'
 
-        results = self.db.pselect(query, args=[cand_id])
+        results = self.db.pselect(query, args=(cand_id,))
 
         return results[0]['PSCID'] if results else None
