@@ -3,18 +3,19 @@ import re
 import shutil
 import sys
 
+from lib.exception.determine_subject_exception import DetermineSubjectException
+from lib.exception.validate_subject_exception import ValidateSubjectException
 import lib.exitcode
 import lib.utilities
 
-from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.config import Config
-from lib.database_lib.visit_windows import VisitWindows
 from lib.database import Database
 from lib.dicom_archive import DicomArchive
 from lib.imaging import Imaging
 from lib.log import Log
 from lib.imaging_upload import ImagingUpload
 from lib.session import Session
+from lib.validate_subject_ids import validate_subject_ids
 
 
 class BasePipeline:
@@ -105,10 +106,11 @@ class BasePipeline:
         # Grep scanner information based on what is in the DICOM headers
         # ---------------------------------------------------------------------------------
         if self.dicom_archive_obj.tarchive_info_dict.keys():
-            self.subject_id_dict = self.imaging_obj.determine_subject_ids(self.dicom_archive_obj.tarchive_info_dict)
-            if 'error_message' in self.subject_id_dict:
+            try:
+                self.subject_id_dict = self.imaging_obj.determine_subject_ids(self.dicom_archive_obj.tarchive_info_dict)
+            except DetermineSubjectException as exception:
                 self.log_error_and_exit(
-                    self.subject_id_dict['error_message'],
+                    exception.message,
                     lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
                     is_error="Y",
                     is_verbose="N"
@@ -235,52 +237,30 @@ class BasePipeline:
         """
         Ensure that the subject PSCID/CandID corresponds to a single candidate in the candidate
         table and that the visit label can be found in the Visit_Windows table. If those
-        conditions are not fulfilled, then a 'CandMismatchError' with the validation error
-        is added to the subject IDs dictionary (subject_id_dict).
+        conditions are not fulfilled.
         """
 
-        psc_id = self.subject_id_dict["PSCID"]
-        cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["visitLabel"]
-        is_phantom = self.subject_id_dict["isPhantom"]
-
         # no further checking if the subject is phantom
-        if is_phantom:
+        if self.subject_id_dict['isPhantom']:
             return
 
-        # check that the CandID and PSCID are valid
-        candidate_db_obj = CandidateDB(self.db, self.verbose)
-        results = candidate_db_obj.check_candid_pscid_combination(psc_id, cand_id)
-        if not results:
-            # if no rows were returned, then the CandID is not valid
-            self.subject_id_dict["message"] = f"=> Could not find candidate with CandID={cand_id} in the database"
-            self.subject_id_dict["CandMismatchError"] = "CandID does not exist"
-        elif not results[0]["PSCID"]:
-            # if no PSCID returned in the row, then PSCID and CandID do not match
-            self.subject_id_dict["message"] = "=> PSCID and CandID of the image mismatch"
-            self.subject_id_dict["CandMismatchError"] = self.subject_id_dict['message']
-
-        # check if visit label is valid
-        visit_windows_obj = VisitWindows(self.db, self.verbose)
-        results = visit_windows_obj.check_visit_label_exits(visit_label)
-        if results:
-            self.subject_id_dict["message"] = f"Found visit label {visit_label} in Visit_Windows"
-        elif self.subject_id_dict["createVisitLabel"]:
-            self.subject_id_dict["message"] = f"Will create visit label {visit_label} in Visit_Windows"
-        else:
-            self.subject_id_dict["message"] = f"Visit Label {visit_label} does not exist in Visit_Windows"
-            self.subject_id_dict["CandMismatchError"] = self.subject_id_dict['message']
-
-        if "CandMismatchError" in self.subject_id_dict.keys():
-            # if there is a candidate mismatch error, log it but do not exit. It will be logged later in SQL table
-            self.log_info(self.subject_id_dict["CandMismatchError"], is_error="Y", is_verbose="N")
-            self.imaging_upload_obj.update_mri_upload(
-                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
+        try:
+            validate_subject_ids(
+                self.db,
+                self.verbose,
+                self.subject_id_dict['PSCID'],
+                self.subject_id_dict['CandID'],
+                self.subject_id_dict['visitLabel'],
+                bool(self.subject_id_dict['createVisitLabel']),
             )
-        else:
-            self.log_info(self.subject_id_dict["message"], is_error="N", is_verbose="Y")
+
             self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
+            )
+        except ValidateSubjectException as exception:
+            self.log_info(exception.message, is_error='Y', is_verbose='N')
+            self.imaging_upload_obj.update_mri_upload(
+                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
             )
 
     def log_error_and_exit(self, message, exit_code, is_error, is_verbose):
