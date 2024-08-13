@@ -19,6 +19,7 @@ class GetCandidateDicomProcessesProcess:
         self.progress  = object['PROGRESS']
         self.state     = object['STATE']
 
+
 class GetCandidateDicomProcessesUpload:
     upload_id: int
     processes: list[GetCandidateDicomProcessesProcess]
