@@ -41,7 +41,7 @@ class Api:
     ):
         """
         Generic method to call any LORIS API route. This method uses unstructured values as the
-        parameter route and the return value. As such, it should not be used directly into a script
+        parameter route and the return value. As such, it should not be used directly in a script
         but rather used into a wrapper for a specific route that structures both its arguments and
         return value.
         """
