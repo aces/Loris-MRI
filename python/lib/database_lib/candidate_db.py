@@ -41,9 +41,7 @@ class CandidateDB:
         the database.
         """
 
-        query = 'SELECT PSCID ' \
-            'FROM candidate ' \
-            'WHERE CandID = %s'
+        query = 'SELECT PSCID FROM candidate WHERE CandID = %s'
 
         results = self.db.pselect(query, args=(cand_id,))
 
