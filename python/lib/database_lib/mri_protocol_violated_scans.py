@@ -11,7 +11,7 @@ class MriProtocolViolatedScans:
     :Example:
 
         from lib.mri_protocol_violated_scans import MriProtocolViolatedScans
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

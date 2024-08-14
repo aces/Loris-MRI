@@ -28,8 +28,8 @@ class Eeg:
     :Example:
 
         from lib.bidsreader import BidsReader
-        from lib.eeg        import Eeg
-        from lib.database   import Database
+        from lib.eeg import Eeg
+        from lib.dataclass.database import Database
         from lib.database_lib.config import Config
 
         # database connection

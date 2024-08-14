@@ -11,7 +11,7 @@ class VisitWindows:
     :Example:
 
         from lib.visit_windows import VisitWindows
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

@@ -14,8 +14,8 @@ class Session:
 
     :Example:
 
-        from lib.session  import Session
-        from lib.database import Database
+        from lib.session import Session
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

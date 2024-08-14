@@ -10,7 +10,7 @@ class MriUploadDB:
     :Example:
 
         from lib.mri_upload import MriUploadDB
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

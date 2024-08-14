@@ -13,7 +13,7 @@ class ImagingUpload:
     :Example:
 
         from lib.imaging_upload  import ImagingUpload
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

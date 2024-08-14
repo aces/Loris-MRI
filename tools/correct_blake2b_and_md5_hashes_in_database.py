@@ -6,7 +6,7 @@ import os
 import shutil
 import sys
 
-from lib.database import Database
+from lib.dataclass.database import Database
 from lib.database_lib.config import Config
 from lib.lorisgetopt import LorisGetOpt
 

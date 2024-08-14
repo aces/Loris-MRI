@@ -7,7 +7,7 @@ import os
 import sys
 
 from lib.aws_s3 import AwsS3
-from lib.database import Database
+from lib.dataclass.database import Database
 from lib.database_lib.config import Config
 
 

@@ -32,7 +32,7 @@ class Physiological:
     :Example:
 
         from lib.physiological import Physiological
-        from lib.database      import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

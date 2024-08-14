@@ -10,12 +10,12 @@ import json
 import lib.exitcode
 import lib.utilities
 import lib.physiological
-from lib.database   import Database
-from lib.candidate  import Candidate
+from lib.dataclass.database import Database
+from lib.candidate import Candidate
 from lib.bidsreader import BidsReader
-from lib.session    import Session
-from lib.eeg        import Eeg
-from lib.mri        import Mri
+from lib.session import Session
+from lib.eeg import Eeg
+from lib.mri import Mri
 from lib.database_lib.config import Config
 
 __license__ = "GPLv3"

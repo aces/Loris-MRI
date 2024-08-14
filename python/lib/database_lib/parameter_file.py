@@ -10,7 +10,7 @@ class ParameterFile:
     :Example:
 
         from lib.parameter_file import ParameterFile
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

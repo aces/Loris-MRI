@@ -11,7 +11,7 @@ class MriScanType:
     :Example:
 
         from lib.mri_scan_type import MriScanType
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

@@ -11,7 +11,7 @@ class Site:
     :Example:
 
         from lib.site import Site
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

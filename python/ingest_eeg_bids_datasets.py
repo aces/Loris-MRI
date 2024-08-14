@@ -5,7 +5,7 @@
 import os
 import sys
 from lib.lorisgetopt import LorisGetOpt
-from lib.database import Database
+from lib.dataclass.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import SUCCESS, INVALID_ARG
 import subprocess
@@ -112,7 +112,7 @@ def main():
       if not session_data:
         print('Session ID ' + eeg_dataset['SessionID'] + ' associated with UploadID ' + uploadid + ' does not exist.')
         sys.exit(INVALID_ARG)
-         
+
       candid = session_data[0]['CandID']
       pscid = session_data[0]['PSCID']
       visit = session_data[0]['Visit_label']
@@ -150,13 +150,13 @@ def main():
       # Assume eeg and raw data for now
       eeg_path = os.path.join(path, 'eeg')
       command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
-      
+
       try:
         result = subprocess.run(command, shell = True, capture_output=True)
 
         if result.stdout:
           print(result.stdout.decode('utf-8'))
-        
+
         if result.stderr:
           print(
             f'ERROR: EEG Dataset with uploadID {uploadid} ingestion log:\n ' + result.stderr.decode('utf-8')
@@ -177,7 +177,7 @@ def main():
         "UPDATE electrophysiology_uploader SET Status = 'Failed Ingestion' WHERE UploadID = %s",
         (uploadid,)
       )
-      
+
     # TODO: reupload of archive after ingestion
     # Delete if already exist
 

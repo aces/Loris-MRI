@@ -11,7 +11,7 @@ class SessionDB:
     :Example:
 
         from lib.database_lib.session_db import SessionDB
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

@@ -12,7 +12,7 @@ class Notification:
     :Example:
 
         from lib.notification import Notification
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

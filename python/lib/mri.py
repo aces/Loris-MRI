@@ -25,8 +25,8 @@ class Mri:
     :Example:
 
         from lib.bidsreader import BidsReader
-        from lib.mri        import Mri
-        from lib.database   import Database
+        from lib.mri import Mri
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config_file.mysql, verbose)

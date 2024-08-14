@@ -9,7 +9,7 @@ import lib.utilities
 from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.config import Config
 from lib.database_lib.visit_windows import VisitWindows
-from lib.database import Database
+from lib.dataclass.database import Database
 from lib.dicom_archive import DicomArchive
 from lib.imaging import Imaging
 from lib.log import Log

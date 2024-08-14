@@ -6,7 +6,7 @@ import os
 import sys
 import getopt
 import lib.exitcode
-from lib.database      import Database
+from lib.dataclass.database import Database
 from lib.physiological import Physiological
 from lib.database_lib.config import Config
 

@@ -32,7 +32,7 @@ class Imaging:
     :Example:
 
         from lib.imaging  import Imaging
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

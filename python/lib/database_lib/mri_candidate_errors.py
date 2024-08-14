@@ -11,7 +11,7 @@ class MriCandidateErrors:
     :Example:
 
         from lib.mri_candidate_errors import MriCandidateErrors
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)

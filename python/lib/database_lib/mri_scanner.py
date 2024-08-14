@@ -13,7 +13,7 @@ class MriScanner:
     :Example:
 
         from lib.mri_scanner import MriScanner
-        from lib.database import Database
+        from lib.dataclass.database import Database
 
         # database connection
         db = Database(config.mysql, verbose)
