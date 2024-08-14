@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
             # check if channel_index is a stim channel
             # to avoid a bug in mne.io.edf.edf
-            # (see issue https://github.com/mne-tools/mne-python/issues/9811) 
+            # (see issue https://github.com/mne-tools/mne-python/issues/9811)
             stim_channel_idxs, _ = mne_edf._check_stim_channel(
                 'auto', [channel_names[channel_index]]
             )

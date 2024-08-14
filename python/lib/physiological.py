@@ -386,7 +386,7 @@ class Physiological:
                 row.get('impedance'),
                 electrode_file
             )
-            
+
             inserted_electrode_id = self.db.insert(
                 table_name   = 'physiological_electrode',
                 column_names = electrode_fields,

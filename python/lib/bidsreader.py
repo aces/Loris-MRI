@@ -97,8 +97,8 @@ class BidsReader:
         # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
         # bids_pack_version = list(map(int, bids.__version__.split('.')))
         # disabled until is a workaround for https://github.com/bids-standard/pybids/issues/760 is found
-        # [file] bids_import.py 
-        # [function] read_and_insert_bids 
+        # [file] bids_import.py
+        # [function] read_and_insert_bids
         # [line] for modality in row['modalities']: (row['modalities'] is empty)
         # if (bids_pack_version[0] > 0
         #    or bids_pack_version[1] > 12
@@ -147,7 +147,7 @@ class BidsReader:
         else:
             bids_subjects = self.bids_layout.get_subjects()
             participants_info = [{'participant_id': sub_id} for sub_id in bids_subjects]
-        
+
         if self.verbose:
             print('\t=> List of participants found:')
             for participant in participants_info:
