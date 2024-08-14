@@ -81,7 +81,7 @@ class ScansTSV:
                 else:
                     print('More than one or no acquisition time has been found for ', self.acquisition_file)
                     exit()
-            else: 
+            else:
                 eeg_acq_time = self.acquisition_data['acq_time']
 
             if eeg_acq_time == 'n/a':

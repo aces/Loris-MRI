@@ -130,7 +130,7 @@ class Mri:
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
             break
-        
+
         self.session_id      = self.get_loris_session_id()
 
         # grep all the NIfTI files for the modality
@@ -139,7 +139,7 @@ class Mri:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, 
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id,
                                                    return_type='filename', extension='tsv')[0]
 
         # loop through NIfTI files and register them in the DB

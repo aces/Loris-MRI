@@ -507,7 +507,7 @@ class Eeg:
                 physio_file_id = physiological.insert_physiological_file(
                     eeg_file_info, eeg_file_data
                 )
-            
+
                 if self.loris_bids_root_dir:
                     # If we copy the file in assembly_bids and
                     # if the EEG file was a set file, then update the filename for the .set
@@ -767,7 +767,7 @@ class Eeg:
                     event_metadata_path = self.copy_file_to_loris_bids_dir(
                         event_metadata_file.path, derivatives, inheritance
                     )
-                    
+
                     # load json data
                     with open(event_metadata_file.path) as metadata_file:
                         event_metadata = json.load(metadata_file)
@@ -921,7 +921,6 @@ class Eeg:
             'FilePath'           : archive_rel_name
         }
         physiological.insert_archive_file(archive_info)
-
 
     def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
         """

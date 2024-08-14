@@ -82,9 +82,9 @@ class AwsS3:
             etag = lib.utilities.compute_md5_hash(file_path)
             self.s3_client.head_object(Bucket=self.bucket_name, Key=key, IfMatch=etag)
         except ClientError:
-            """            
+            """
             Per Boto3 documentation for S3.Client.head_object IfMatch will:
-            Return the object only if its entity tag (ETag) is the same as the one specified; 
+            Return the object only if its entity tag (ETag) is the same as the one specified;
             otherwise, return a 412 (precondition failed) error.
             """
             return False
