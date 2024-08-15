@@ -1,7 +1,10 @@
+from dataclasses import dataclass
+import json
 from typing import Any, Literal
 from python.lib.dataclass.api import Api
 
 
+@dataclass
 class GetCandidateDicomMeta:
     cand_id: int
     visit:   str
@@ -11,13 +14,14 @@ class GetCandidateDicomMeta:
         self.visit   = object['Visit']
 
 
+@dataclass
 class GetCandidateDicomTarSeries:
     series_description: str
     series_number:      int
-    echo_time:          float
-    repetition_time:    int
-    inversion_time:     int
-    slice_thickness:    int
+    echo_time:          float | None
+    repetition_time:    int | None
+    inversion_time:     int | None
+    slice_thickness:    int | None
     modality:           Literal['MR', 'PT']
     series_uid:         str
 
@@ -32,26 +36,28 @@ class GetCandidateDicomTarSeries:
         self.series_uid         = object['SeriesUID']
 
 
+@dataclass
 class GetCandidateDicomTar:
     tar_name:     str
     patient_name: str
     series:       list[GetCandidateDicomTarSeries]
 
     def __init__(self, object: Any):
-        self.tar_name     = object['Tarname']
-        self.patient_name = object['Patientname']
-        self.series       = map(GetCandidateDicomTarSeries, object['SeriesInfo'])
+        self.tar_name     = object['ArchiveName']
+        self.patient_name = object['PatientName']
+        self.series       = list(map(GetCandidateDicomTarSeries, object['SeriesInfo']))
 
 
+@dataclass
 class GetCandidateDicom:
     meta: GetCandidateDicomMeta
     tars: list[GetCandidateDicomTar]
 
     def __init__(self, object: Any):
         self.meta = GetCandidateDicomMeta(object['Meta'])
-        self.tars = map(GetCandidateDicomTar, object['DicomTars'])
+        self.tars = list(map(GetCandidateDicomTar, object['DicomArchives']))
 
 
 def get_candidate_dicom(api: Api, cand_id: int, visit: str):
-    object = api.call('v0.0.4-dev', f'/candidates/{cand_id}/{visit}/dicoms')
-    return GetCandidateDicom(object)
+    response = api.call('v0.0.4-dev', f'/candidates/{cand_id}/{visit}/dicoms')
+    return GetCandidateDicom(json.loads(response.read().decode('utf-8')))

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 import json
 from typing import Literal
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
-
 
 @dataclass
 class Api:
@@ -39,7 +39,7 @@ class Api:
         route: str,
         method: Literal['GET', 'POST'] = 'GET',
         headers: dict[str, str] = {},
-        data: bytes = None
+        data: bytes | None = None
     ):
         """
         Generic method to call any LORIS API route. This method uses unstructured values as the
@@ -54,12 +54,19 @@ class Api:
         :param data:    A body to add to the request
         """
 
+        print(f'{self.loris_url}/api/{version}/{route}')
+
         request = Request(f'{self.loris_url}/api/{version}/{route}', data, method=method)
         request.add_header('Authorization', f'Bearer {self.api_token}')
         for key, value in headers.items():
             request.add_header(key, value)
 
-        return urlopen(request, data)
+        try:
+            return urlopen(request, data)
+        except HTTPError as error:
+            # TODO: Better error handling
+            print(error.read())
+            exit(0)
 
 
 def get_api_token(loris_url: str, username: str, password: str) -> str:
@@ -67,7 +74,7 @@ def get_api_token(loris_url: str, username: str, password: str) -> str:
     Call the LORIS API to get an API token for a given LORIS user using this user's credentials.
     """
 
-    args = {
+    credentials = {
         'username': username,
         'password': password,
     }
@@ -75,9 +82,20 @@ def get_api_token(loris_url: str, username: str, password: str) -> str:
     request = Request(
         f'{loris_url}/api/v0.0.3/login',
         method='POST',
-        data=json.dumps(args)
+        data=json.dumps(credentials).encode('utf-8')
     )
 
-    response = urlopen(request).read()
+    try:
+        response = urlopen(request).read()
+    except HTTPError as error:
+        error_description = json.loads(error.read().decode('utf-8'))['error']
+        if error_description == 'Unacceptable JWT key':
+            # TODO: Specialzied exception.
+            raise Exception(
+                'Unacceptable LORIS JWT key.\n'
+                'To use the API, please enter a sufficiently complex JWT key in the LORIS configuration module.'
+            )
+
+        exit(0)
     object = json.loads(response)
     return object['token']

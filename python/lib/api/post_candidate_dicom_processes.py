@@ -1,3 +1,4 @@
+import json
 from python.lib.dataclass.api import Api
 
 
@@ -11,7 +12,7 @@ def post_candidate_dicom_processes(api: Api, cand_id: int, visit_label: str, dic
         'v0.0.4-dev',
         f'/candidates/{cand_id}/{visit_label}/dicoms/{dicom_tar_name}/processes',
         method='POST',
-        data=data
+        data=json.dumps(data).encode('utf-8')
     )
 
     # TODO: Handle 202
