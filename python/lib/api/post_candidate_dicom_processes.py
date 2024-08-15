@@ -1,4 +1,4 @@
-from lib.api import Api
+from python.lib.dataclass.api import Api
 
 
 def post_candidate_dicom_processes(api: Api, cand_id: int, visit_label: str, dicom_tar_name: str, upload_id: int):

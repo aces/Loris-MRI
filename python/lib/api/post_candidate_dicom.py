@@ -1,4 +1,4 @@
-from lib.api import Api
+from python.lib.dataclass.api import Api
 
 
 def post_candidate_dicom(api: Api, cand_id: int, psc_id: str, visit_label: str, is_phantom: bool, overwrite: bool):

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Literal
-from lib.api import Api
+from python.lib.dataclass.api import Api
 
 
 class GetCandidateDicomProcessesProcess:

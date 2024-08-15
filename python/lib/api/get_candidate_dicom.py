@@ -1,10 +1,10 @@
 from typing import Any, Literal
-from lib.api import Api
+from python.lib.dataclass.api import Api
 
 
 class GetCandidateDicomMeta:
     cand_id: int
-    visit: str
+    visit:   str
 
     def __init__(self, object: Any):
         self.cand_id = object['CandID']
