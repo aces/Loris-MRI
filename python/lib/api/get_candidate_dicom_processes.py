@@ -37,5 +37,5 @@ class GetCandidateDicomProcesses:
 
 
 def get_candidate_dicom_processes(api: Api, cand_id: int, visit_label: str, dicom_tar_name: str):
-    object = api.call('v0.0.4-dev', f'/candidates/{cand_id}/{visit_label}/dicoms/{dicom_tar_name}/processes')
+    object = api.get('v0.0.4-dev', f'/candidates/{cand_id}/{visit_label}/dicoms/{dicom_tar_name}/processes')
     return GetCandidateDicomProcesses(object)

@@ -1,8 +1,16 @@
-import json
+import os
 from python.lib.dataclass.api import Api
 
 
-def post_candidate_dicom(api: Api, cand_id: int, psc_id: str, visit_label: str, is_phantom: bool, overwrite: bool = False):
+def post_candidate_dicom(
+    api: Api,
+    cand_id: int,
+    psc_id: str,
+    visit_label: str,
+    is_phantom: bool,
+    file_path: str,
+    overwrite: bool = False,
+):
     data = {
         'CandID':    cand_id,
         'PSCID':     psc_id,
@@ -15,13 +23,14 @@ def post_candidate_dicom(api: Api, cand_id: int, psc_id: str, visit_label: str, 
     else:
         headers = {}
 
-    response = api.call(
+    response = api.post(
         'v0.0.4-dev',
         f'/candidates/{cand_id}/{visit_label}/dicoms',
-        method='POST',
         headers=headers,
-        data=json.dumps(data).encode('utf-8')
+        data=data,
+        # TODO: Look into https://docs.python.org/3/library/mimetypes.html
+        files={'mriFile': (os.path.basename(file_path), open(file_path, 'rb'), 'application/tar')},
     )
 
-    return response.read()
+    return response.text
     # TODO: Handle 303

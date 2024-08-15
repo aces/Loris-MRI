@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import json
 from typing import Any, Literal
 from python.lib.dataclass.api import Api
 
@@ -59,5 +58,5 @@ class GetCandidateDicom:
 
 
 def get_candidate_dicom(api: Api, cand_id: int, visit: str):
-    response = api.call('v0.0.4-dev', f'/candidates/{cand_id}/{visit}/dicoms')
-    return GetCandidateDicom(json.loads(response.read().decode('utf-8')))
+    response = api.get('v0.0.4-dev', f'/candidates/{cand_id}/{visit}/dicoms')
+    return GetCandidateDicom(response.json())
