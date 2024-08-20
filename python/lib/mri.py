@@ -26,7 +26,7 @@ class Mri:
 
         from lib.bidsreader import BidsReader
         from lib.mri import Mri
-        from lib.dataclass.database import Database
+        from lib.database_mysqldb import Database
 
         # database connection
         db = Database(config_file.mysql, verbose)

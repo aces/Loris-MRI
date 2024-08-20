@@ -10,7 +10,7 @@ class ParameterType:
     :Example:
 
         from lib.parameter_type import ParameterType
-        from lib.dataclass.database import Database
+        from lib.database_mysqldb import Database
 
         # database connection
         db = Database(config.mysql, verbose)

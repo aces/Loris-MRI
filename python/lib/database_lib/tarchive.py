@@ -11,7 +11,7 @@ class Tarchive:
     :Example:
 
         from lib.tarchive import Tarchive
-        from lib.dataclass.database import Database
+        from lib.database_mysqldb import Database
 
         # database connection
         db = Database(config.mysql, verbose)

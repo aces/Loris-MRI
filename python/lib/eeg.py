@@ -29,7 +29,7 @@ class Eeg:
 
         from lib.bidsreader import BidsReader
         from lib.eeg import Eeg
-        from lib.dataclass.database import Database
+        from lib.database_mysqldb import Database
         from lib.database_lib.config import Config
 
         # database connection

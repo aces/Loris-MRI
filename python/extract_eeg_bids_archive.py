@@ -7,7 +7,7 @@ import sys
 import re
 from lib.lorisgetopt import LorisGetOpt
 from lib.imaging_io import ImagingIO
-from lib.dataclass.database import Database
+from lib.database_mysqldb import Database
 from lib.database_lib.config import Config
 from lib.exitcode import SUCCESS, BAD_CONFIG_SETTING
 from lib.log import Log

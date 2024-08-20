@@ -11,7 +11,7 @@ class MriProtocol:
     :Example:
 
         from lib.mri_protocol import MriProtocol
-        from lib.dataclass.database import Database
+        from lib.database_mysqldb import Database
 
         # database connection
         db = Database(config.mysql, verbose)

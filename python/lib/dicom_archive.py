@@ -14,7 +14,7 @@ class DicomArchive:
 
     :Example:
 
-        from lib.dataclass.database import Database
+        from lib.database_mysqldb import Database
         from lib.dicom_archive import DicomArchive
 
         # database connection

@@ -15,7 +15,7 @@ class Database:
 
     :Example:
 
-        from lib.dataclass.database import Database
+        from lib.database_mysqldb import Database
 
         db = Database(config.mysql, verbose)
 
