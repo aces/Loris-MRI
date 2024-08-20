@@ -11,7 +11,7 @@ class ProjectCohortRel:
     :Example:
 
         from lib.database_lib.project_cohort_rel import ProjectCohortRel
-        from lib.database_mysqldb import Database
+        from lib.database_lib import Database
 
         # database connection
         db = Database(config.mysql, verbose)

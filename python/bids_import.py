@@ -10,7 +10,7 @@ import json
 import lib.exitcode
 import lib.utilities
 import lib.physiological
-from lib.database_mysqldb import Database
+from lib.database_lib import Database
 from lib.candidate import Candidate
 from lib.bidsreader import BidsReader
 from lib.session import Session

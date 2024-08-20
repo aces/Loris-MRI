@@ -11,7 +11,7 @@ class CandidateDB:
     :Example:
 
         from lib.database_lib.candidate_db import CandidateDB
-        from lib.database_mysqldb import Database
+        from lib.database_lib import Database
 
         # database connection
         db = Database(config.mysql, verbose)

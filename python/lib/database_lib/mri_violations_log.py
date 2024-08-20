@@ -11,7 +11,7 @@ class MriViolationsLog:
     :Example:
 
         from lib.mri_violations_log import MriViolationsLog
-        from lib.database_mysqldb import Database
+        from lib.database_lib import Database
 
         # database connection
         db = Database(config.mysql, verbose)

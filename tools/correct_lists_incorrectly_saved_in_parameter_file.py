@@ -2,7 +2,7 @@
 
 import os
 
-from lib.database_mysqldb import Database
+from lib.database_lib import Database
 from lib.lorisgetopt import LorisGetOpt
 
 

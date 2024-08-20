@@ -7,7 +7,7 @@ import re
 import sys
 import getopt
 import lib.exitcode
-from lib.database_mysqldb import Database
+from lib.database_lib import Database
 from lib.imaging  import Imaging
 from lib.database_lib.config import Config
 

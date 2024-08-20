@@ -5,7 +5,7 @@
 import os
 import sys
 from lib.lorisgetopt import LorisGetOpt
-from lib.database_mysqldb import Database
+from lib.database_lib import Database
 from lib.database_lib.config import Config
 from lib.exitcode import SUCCESS, INVALID_ARG
 import subprocess
