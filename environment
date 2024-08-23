@@ -1,5 +1,5 @@
-PROJECT=%PROJECT%
-MINC_TOOLKIT_DIR=%MINC_TOOLKIT_DIR%
+PROJECT=bic
+MINC_TOOLKIT_DIR=/opt/minc/1.9.18
 
 # to source the MINC toolkit
 source ${MINC_TOOLKIT_DIR}/minc-toolkit-config.sh

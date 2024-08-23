@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from json import dumps
 from typing import Any, Literal
 import requests
 from requests.exceptions import HTTPError
@@ -38,7 +39,7 @@ class Api:
         version: Literal['v0.0.3', 'v0.0.4-dev'],
         route: str,
         headers: dict[str, str] = {},
-        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
     ):
         """
         Generic method to call any LORIS API route. This method uses unstructured values as the
@@ -57,7 +58,7 @@ class Api:
         headers['Authorization'] = f'Bearer {self.api_token}'
 
         try:
-            response = requests.get(f'{self.loris_url}/api/{version}/{route}', headers=headers, data=data)
+            response = requests.get(f'{self.loris_url}/api/{version}/{route}', headers=headers, json=json)
             response.raise_for_status()
             return response
         except HTTPError as error:
@@ -70,7 +71,43 @@ class Api:
         version: Literal['v0.0.3', 'v0.0.4-dev'],
         route: str,
         headers: dict[str, str] = {},
-        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+    ):
+        """
+        Generic method to call any LORIS API route. This method uses unstructured values as the
+        parameter route and the return value. As such, it should not be used directly in a script
+        but rather used into a wrapper for a specific route that structures both its arguments and
+        return value.
+
+        :param version: The version of the API to use for this call
+        :param route:   The API route to call, example: `/candidates/123456`
+        :param headers: Additional HTTP headers to add to the request
+        :param data:    A body to add to the request
+        """
+
+        print(f'{self.loris_url}/api/{version}/{route}')
+
+        headers['Authorization'] = f'Bearer {self.api_token}'
+
+        try:
+            response = requests.post(f'{self.loris_url}/api/{version}/{route}',headers=headers, json=json)
+            print(response.status_code)
+            print(response.text)
+            response.raise_for_status()
+            return response
+        except HTTPError as error:
+            # TODO: Better error handling
+            print(error.response.status_code)
+            print(error.response.text)
+            exit(0)
+
+
+    def post_file(
+        self,
+        version: Literal['v0.0.3', 'v0.0.4-dev'],
+        route: str,
+        headers: dict[str, str] = {},
+        json: dict[str, Any] | None = None,
         files: dict[str, Any] | None = None,
     ):
         """
@@ -85,13 +122,15 @@ class Api:
         :param data:    A body to add to the request
         """
 
-        print(f'{self.loris_url}/api/{version}/{route}')
-
         headers['Authorization'] = f'Bearer {self.api_token}'
+
+        # Since it is not possible to send both a file and a JSON directly in a multipart/form-data
+        # POST request, we send the JSON as a form data attribute.
+        data = { 'json': dumps(json) }
 
         try:
             response = requests.post(f'{self.loris_url}/api/{version}/{route}',headers=headers, data=data, files=files)
-            print(response.status_code)
+            response.raise_for_status()
             return response
         except HTTPError as error:
             # TODO: Better error handling
