@@ -2,8 +2,8 @@ from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 from lib.db.base import Base
-import lib.db.orm.dicom_archive as dicom_archive
-import lib.db.orm.dicom_archive_file as dicom_archive_file
+import lib.db.orm.dicom_archive as db_dicom_archive
+import lib.db.orm.dicom_archive_file as db_dicom_archive_file
 
 
 class DbDicomArchiveSeries(Base):
@@ -11,9 +11,9 @@ class DbDicomArchiveSeries(Base):
 
     id                 : Mapped[int]             = mapped_column('TarchiveSeriesID', primary_key=True)
     archive_id         : Mapped[int]             = mapped_column('TarchiveID', ForeignKey("tarchive.TarchiveID"))
-    archive            : Mapped['dicom_archive.DbDicomArchive'] \
+    archive            : Mapped['db_dicom_archive.DbDicomArchive'] \
         = relationship('DbDicomArchive', back_populates="series")
-    files              : Mapped[List['dicom_archive_file.DbDicomArchiveFile']] \
+    files              : Mapped[List['db_dicom_archive_file.DbDicomArchiveFile']] \
         = relationship('DbDicomArchiveFile', back_populates="series")
     series_number      : Mapped[int]             = mapped_column('SeriesNumber')
     series_description : Mapped[Optional[str]]   = mapped_column('SeriesDescription')

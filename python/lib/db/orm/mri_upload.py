@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
-import lib.db.orm.dicom_archive as dicom_archive
+import lib.db.orm.dicom_archive as db_dicom_archive
 
 
 class DbMriUpload(Base):
@@ -19,8 +19,9 @@ class DbMriUpload(Base):
     patient_name                : Mapped[str]                = mapped_column('PatientName')
     number_of_minc_inserted     : Mapped[Optional[int]]      = mapped_column('number_of_mincInserted')
     number_of_minc_created      : Mapped[Optional[int]]      = mapped_column('number_of_mincCreated')
-    dicom_archive_id            : Mapped[Optional[int]]      = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    dicom_archive               : Mapped[Optional['dicom_archive.DbDicomArchive']] \
+    dicom_archive_id            : Mapped[Optional[int]] \
+        = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
+    dicom_archive               : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
         = relationship('DicomArchive', back_populates='upload')
     session_id                  : Mapped[Optional[int]]      = mapped_column('SessionID')
     is_candidate_info_validated : Mapped[Optional[bool]]     = mapped_column('IsCandidateInfoValidated')

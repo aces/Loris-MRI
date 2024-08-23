@@ -3,20 +3,20 @@ from typing import List, Optional
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
-import lib.db.orm.dicom_archive_file as dicom_archive_file
-import lib.db.orm.dicom_archive_series as dicom_archive_series
-import lib.db.orm.mri_upload as mri_upload
+import lib.db.orm.dicom_archive_file as db_dicom_archive_file
+import lib.db.orm.dicom_archive_series as db_dicom_archive_series
+import lib.db.orm.mri_upload as db_mri_upload
 
 
 class DbDicomArchive(Base):
     __tablename__ = 'tarchive'
 
     id                       : Mapped[int]                = mapped_column('TarchiveID', primary_key=True)
-    series                   : Mapped[List['dicom_archive_series.DbDicomArchiveSeries']] \
+    series                   : Mapped[List['db_dicom_archive_series.DbDicomArchiveSeries']] \
         = relationship('DbDicomArchiveSeries', back_populates='archive')
-    files                    : Mapped[List['dicom_archive_file.DbDicomArchiveFile']] \
+    files                    : Mapped[List['db_dicom_archive_file.DbDicomArchiveFile']] \
         = relationship('DbDicomArchiveFile', back_populates='archive')
-    upload                   : Mapped[Optional['mri_upload.DbMriUpload']] \
+    upload                   : Mapped[Optional['db_mri_upload.DbMriUpload']] \
         = relationship('DbMriUpload', back_populates='dicom_archive')
     study_uid                : Mapped[str]                = mapped_column('DicomArchiveID', type_ = String())
     patient_id               : Mapped[str]                = mapped_column('PatientID')
