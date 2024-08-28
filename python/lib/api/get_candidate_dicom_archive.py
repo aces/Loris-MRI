@@ -1,4 +1,4 @@
-from python.lib.dataclass.api import Api
+from lib.dataclass.api import Api
 
 
 def get_candidate_dicom_archive(api: Api, cand_id: int, visit_label: str, dicom_tar_name: str):

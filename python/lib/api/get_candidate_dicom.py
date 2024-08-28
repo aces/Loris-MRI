@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Literal
-from python.lib.dataclass.api import Api
+from lib.dataclass.api import Api
 
 
 @dataclass

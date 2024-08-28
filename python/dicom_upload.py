@@ -6,9 +6,9 @@ import os
 from lib.api.post_candidate_dicom_processes import post_candidate_dicom_processes
 from lib.lorisgetopt import LorisGetOpt
 import lib.api
-from python.lib.api.get_candidate_dicom import get_candidate_dicom
-from python.lib.api.post_candidate_dicom import post_candidate_dicom
-from python.lib.dataclass.api import Api
+from lib.api.get_candidate_dicom import get_candidate_dicom
+from lib.api.post_candidate_dicom import post_candidate_dicom
+from lib.dataclass.api import Api
 
 
 def main():
@@ -69,11 +69,11 @@ def main():
     arg_dicoms:    str        = loris_getopt_obj.options_dict['dicoms']['value']
     arg_user:      str        = loris_getopt_obj.options_dict['user']['value']
     arg_pass:      str        = loris_getopt_obj.options_dict['pass']['value']
-    # arg_verbose:   bool       = loris_getopt_obj.options_dict['verbose']['value']
+    arg_verbose:   bool       = loris_getopt_obj.options_dict['verbose']['value']
     api = Api.from_credentials('https://mmulder-dev.loris.ca', arg_user, arg_pass)
-    # print(get_candidate_dicom(api, 587630, 'V1'))
+    # get(post_candidate_dicom(api, 587630, 'V1'))
     # print(post_candidate_dicom(api, 587630, 'DCC090', 'V1', False, arg_dicoms))
-    print(post_candidate_dicom_processes(api, 587630, 'V1', 'DCC090_587630_V1.tar', 124))
+    print(post_candidate_dicom_processes(api, 587630, 'V1', 'DCC090_587630_V1.tar', 126))
 
 if __name__ == "__main__":
     main()

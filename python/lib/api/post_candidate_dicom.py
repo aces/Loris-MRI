@@ -1,5 +1,5 @@
 import os
-from python.lib.dataclass.api import Api
+from lib.dataclass.api import Api
 
 
 def post_candidate_dicom(
