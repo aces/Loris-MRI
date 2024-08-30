@@ -1,0 +1,17 @@
+[tool.ruff]
+include = ["python/*.py"]
+exclude = ["python/react-series-data-viewer"]
+line-length = 120
+preview = true
+
+[tool.ruff.lint]
+ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
+# TODO: Add and apply "F", "I", "N", "UP"
+select = ["E", "W"]
+
+[tool.pyright]
+include = ["python"]
+exclude = ["python/react-series-data-viewer"]
+
+[tool.pytest.ini-options]
+testpaths = ["python/tests"]
