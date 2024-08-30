@@ -93,7 +93,10 @@ jobs:
           # Use the index from matrix as an environment variable
           CI_NODE_INDEX: ${{ matrix.ci_node_index }}
 
+    - 
+
     - name: Build and run Docker Compose
       run: |
-        docker compose up --build --exit-code-from pytest
+        ls -alt
+        docker compose run -T --rm  pytest
 
