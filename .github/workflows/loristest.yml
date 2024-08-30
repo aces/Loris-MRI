@@ -97,6 +97,4 @@ jobs:
     - name: Build and run Docker Compose
       run: |
         cd Loris
-        ls -alt
-        docker compose -f docker-compose.yml up --build --exit-code-from pytest
-
+        docker compose run -T --rm pytest pytest
