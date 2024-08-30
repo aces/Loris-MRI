@@ -5,7 +5,7 @@ FROM python:3.11.3-slim
 WORKDIR /app
 
 # Copy test files into the container
-COPY test /app/test
+COPY . /app/test
 
 RUN echo "Working directory:"
 RUN pwd
