@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test.py
+    volumes:
+      - ./:/app
+    working_dir: /app/test
     command: pytest
 
   db:
