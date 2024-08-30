@@ -11,7 +11,7 @@ RUN echo "Working directory:"
 RUN pwd
 RUN echo "Directory contents:"
 RUN ls -R
-
+RUN cd test
 
 
 # Install pytest
