@@ -26,10 +26,6 @@ jobs:
         php-version: ${{ matrix.php }}
         extensions: zip, php-ast
 
-    - name: Build LORIS-MRI-PYTEST
-      run: |
-        docker compose up --build --exit-code-from pytest
-
     - name: Clone Loris repo
       run: git clone https://github.com/aces/Loris.git
 
@@ -40,6 +36,10 @@ jobs:
         cp test/docker-compose.yml Loris/
         cp test/phpunit.xml Loris/test/
         cp test/RB_SQL/* Loris/raisinbread/RB_files/
+
+    - name: Build LORIS-MRI-PYTEST
+      run: |
+        docker compose up --build --exit-code-from pytest
 
     - name: Validate composer.json and composer.lock
       run: |
