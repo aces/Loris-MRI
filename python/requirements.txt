@@ -1,4 +1,5 @@
 boto3
+flake8
 google
 mat73
 matplotlib
