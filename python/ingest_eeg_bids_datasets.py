@@ -75,8 +75,8 @@ def main():
     # ---------------------------------------------------------------------------------------------
     assembly_bids_path = config_db_obj.get_config("EEGAssemblyBIDS")
     if not assembly_bids_path:
-      data_dir = config_db_obj.get_config("dataDirBasepath")
-      assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
+        data_dir = config_db_obj.get_config("dataDirBasepath")
+        assembly_bids_path = os.path.join(data_dir, 'assembly_bids')
 
     # ---------------------------------------------------------------------------------------------
     # Get all EEG upload with status = Extracted
@@ -86,10 +86,10 @@ def main():
             " WHERE Status = 'Extracted'" \
 
     if upload_id:
-      query = query + " AND UploadID = %s"
-      eeg_dataset_list = db.pselect(query, (upload_id,))
+        query = query + " AND UploadID = %s"
+        eeg_dataset_list = db.pselect(query, (upload_id,))
     else:
-      eeg_dataset_list = db.pselect(query, ())
+        eeg_dataset_list = db.pselect(query, ())
 
     if not eeg_dataset_list:
         print('No new EEG datasets to ingest.')
@@ -100,84 +100,84 @@ def main():
     # ---------------------------------------------------------------------------------------------
 
     for eeg_dataset in eeg_dataset_list:
-      uploadid = str(eeg_dataset['UploadID'])
+        uploadid = str(eeg_dataset['UploadID'])
 
-      query = "SELECT s.CandID, c.PSCID, s.Visit_label " \
+        query = "SELECT s.CandID, c.PSCID, s.Visit_label " \
             " FROM session s " \
             " JOIN candidate c ON c.CandID = s.CandID " \
             " WHERE s.ID = %s" \
 
-      session_data = db.pselect(query, (eeg_dataset['SessionID'],))
+        session_data = db.pselect(query, (eeg_dataset['SessionID'],))
 
-      if not session_data:
-        print('Session ID ' + eeg_dataset['SessionID'] + ' associated with UploadID ' + uploadid + ' does not exist.')
-        sys.exit(INVALID_ARG)
-         
-      candid = session_data[0]['CandID']
-      pscid = session_data[0]['PSCID']
-      visit = session_data[0]['Visit_label']
+        if not session_data:
+            print(f'Session ID {eeg_dataset["SessionID"]} associated with UploadID {uploadid} does not exist.')
+            sys.exit(INVALID_ARG)
 
-      # Subject id
-      subjectid = None
-      # BIDS subject id is either the pscid or the candid
+        candid = session_data[0]['CandID']
+        pscid = session_data[0]['PSCID']
+        visit = session_data[0]['Visit_label']
 
-      # Try the candid
-      if os.path.isdir(
-        os.path.join(assembly_bids_path, 'sub-' + str(candid))
-      ):
-        subjectid = str(candid)
+        # Subject id
+        subjectid = None
+        # BIDS subject id is either the pscid or the candid
 
-      # Try the pscid, case insensitive
-      if not subjectid:
-        gen = (
-          dir for dir in os.listdir(assembly_bids_path)
-          if dir.lower() == 'sub-' + pscid.lower()
-        )
-        subjectid = next(gen, None)
+        # Try the candid
+        if os.path.isdir(
+            os.path.join(assembly_bids_path, 'sub-' + str(candid))
+        ):
+            subjectid = str(candid)
 
-      # No match
-      if not subjectid:
-        print('No BIDS dataset matching candidate ' + pscid + ' ' + str(candid) + ' found.')
-        continue
+        # Try the pscid, case insensitive
+        if not subjectid:
+            gen = (
+                dir for dir in os.listdir(assembly_bids_path)
+                if dir.lower() == 'sub-' + pscid.lower()
+            )
+            subjectid = next(gen, None)
 
-      # Visit
-      path = os.path.join(assembly_bids_path, 'sub-' + subjectid, 'ses-' + visit)
-      if not os.path.isdir(path):
-        print('No BIDS dataset matching visit ' + visit + ' for candidate ' + pscid + ' ' + str(candid) + ' found.')
-        continue
+        # No match
+        if not subjectid:
+            print('No BIDS dataset matching candidate ' + pscid + ' ' + str(candid) + ' found.')
+            continue
 
-      script = os.environ['LORIS_MRI'] + '/python/bids_import.py'
-      # Assume eeg and raw data for now
-      eeg_path = os.path.join(path, 'eeg')
-      command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
-      
-      try:
-        result = subprocess.run(command, shell = True, capture_output=True)
+        # Visit
+        path = os.path.join(assembly_bids_path, 'sub-' + subjectid, 'ses-' + visit)
+        if not os.path.isdir(path):
+            print(f'No BIDS dataset matching visit {visit} for candidate {pscid} {candid} found.')
+            continue
 
-        if result.stdout:
-          print(result.stdout.decode('utf-8'))
-        
-        if result.stderr:
-          print(
-            f'ERROR: EEG Dataset with uploadID {uploadid} ingestion log:\n ' + result.stderr.decode('utf-8')
-          )
+        script = os.environ['LORIS_MRI'] + '/python/bids_import.py'
+        # Assume eeg and raw data for now
+        eeg_path = os.path.join(path, 'eeg')
+        command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
 
-        if result.returncode == 0:
-          db.update(
-            "UPDATE electrophysiology_uploader SET Status = 'Ingested' WHERE UploadID = %s",
+        try:
+            result = subprocess.run(command, shell = True, capture_output=True)
+
+            if result.stdout:
+                print(result.stdout.decode('utf-8'))
+
+            if result.stderr:
+                print(
+                    f'ERROR: EEG Dataset with uploadID {uploadid} ingestion log:\n ' + result.stderr.decode('utf-8')
+                )
+
+            if result.returncode == 0:
+                db.update(
+                    "UPDATE electrophysiology_uploader SET Status = 'Ingested' WHERE UploadID = %s",
+                     (uploadid,)
+                )
+                print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
+                continue
+
+        except OSError:
+            print('ERROR: ' + script + ' not found')
+
+        db.update(
+            "UPDATE electrophysiology_uploader SET Status = 'Failed Ingestion' WHERE UploadID = %s",
             (uploadid,)
-          )
-          print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
-          continue
+        )
 
-      except OSError:
-        print('ERROR: ' + script + ' not found')
-
-      db.update(
-        "UPDATE electrophysiology_uploader SET Status = 'Failed Ingestion' WHERE UploadID = %s",
-        (uploadid,)
-      )
-      
     # TODO: reupload of archive after ingestion
     # Delete if already exist
 
