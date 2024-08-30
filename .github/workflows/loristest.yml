@@ -37,6 +37,9 @@ jobs:
         cp test/phpunit.xml Loris/test/
         cp test/RB_SQL/* Loris/raisinbread/RB_files/
 
+    - name: List directory contents
+      run: ls -la
+
     - name: Build LORIS-MRI-PYTEST
       run: |
         docker compose up --build --exit-code-from pytest
