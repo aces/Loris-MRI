@@ -1,0 +1,5 @@
+SET FOREIGN_KEY_CHECKS=0;
+TRUNCATE TABLE `user_account_history`;
+LOCK TABLES `user_account_history` WRITE;
+UNLOCK TABLES;
+SET FOREIGN_KEY_CHECKS=1;

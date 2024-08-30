@@ -1,0 +1,5 @@
+SET FOREIGN_KEY_CHECKS=0;
+TRUNCATE TABLE `notification_modules`;
+LOCK TABLES `notification_modules` WRITE;
+UNLOCK TABLES;
+SET FOREIGN_KEY_CHECKS=1;

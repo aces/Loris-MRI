@@ -1,0 +1,5 @@
+SET FOREIGN_KEY_CHECKS=0;
+TRUNCATE TABLE `data_release_permissions`;
+LOCK TABLES `data_release_permissions` WRITE;
+UNLOCK TABLES;
+SET FOREIGN_KEY_CHECKS=1;
