@@ -80,4 +80,5 @@ jobs:
 
     - name: Build and run Docker Compose
       run: |
-        docker compose up --build --exit-code-from pytest
+        docker compose -f test/docker-compose.yml up --build --exit-code-from pytest
+
