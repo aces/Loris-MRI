@@ -1,4 +1,4 @@
-name: LORIS Test Suite
+name: LORIS-MRI Test Suite
 
 on:
   - push
@@ -92,6 +92,6 @@ jobs:
           CI_NODE_INDEX: ${{ matrix.ci_node_index }}
     - name: Build LORIS-MRI-PYTEST
       run: |
-        cd test/hello-world-pytest
+        cd test
         docker compose up --build --exit-code-from pytest
 
