@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test.py
-    command: pytest test/hello-world-pytest
+    command: pytest /app/test/hello-world-pytest
 
   db:
     build:
