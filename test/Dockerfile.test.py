@@ -18,5 +18,5 @@ RUN cd test
 RUN pip install pytest
 
 # Set the default command to run tests
-CMD ["pytest"]
+CMD ["pytest","/app/test"]
 
