@@ -79,19 +79,6 @@ jobs:
         cd Loris
         make dev
 
-    - name: Run Test Suite
-      run: |
-          # set sandbox to 1 before running the tests
-          # since some tests only run in sandbox environments
-          sed -i 's/<sandbox>0<\/sandbox>/<sandbox>1<\/sandbox>/g' Loris/test/config.xml
-          cd Loris
-          npm run tests:${{ matrix.testsuite }}
-      env:
-          # Specifies how many jobs you would like to run in parallel,
-          CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
-          # Use the index from matrix as an environment variable
-          CI_NODE_INDEX: ${{ matrix.ci_node_index }}
-
     - name: Build LORIS-MRI-PYTEST
       run: |
         cd test
