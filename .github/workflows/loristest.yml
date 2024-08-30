@@ -42,7 +42,7 @@ jobs:
 
     - name: Build LORIS-MRI-PYTEST
       run: |
-        docker compose up --build --exit-code-from pytest
+        docker compose -f test/docker-compose.yml up --build --exit-code-from pytest
 
     - name: Validate composer.json and composer.lock
       run: |
