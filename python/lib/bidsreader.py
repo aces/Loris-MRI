@@ -23,7 +23,7 @@ except ImportError:
 #     or bids_pack_version[1] > 12
 #    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
 
-# 	from bids import BIDSLayoutIndexer
+# from bids import BIDSLayoutIndexer
 
 __license__ = "GPLv3"
 
