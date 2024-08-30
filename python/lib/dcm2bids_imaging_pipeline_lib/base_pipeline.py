@@ -484,7 +484,7 @@ class BasePipeline:
         """
 
         self.log_info(f'Moving {old_file_path} to {new_file_path}', is_error='N', is_verbose='Y')
-        shutil.move(old_file_path, new_file_path, self.verbose)
+        shutil.move(old_file_path, new_file_path)
         if not os.path.exists(new_file_path):
             message = f'Could not move {old_file_path} to {new_file_path}'
             self.log_error_and_exit(message, lib.exitcode.COPY_FAILURE, is_error='Y', is_verbose='N')
