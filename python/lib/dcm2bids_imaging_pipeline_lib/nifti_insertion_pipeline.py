@@ -1,6 +1,8 @@
 import datetime
 import getpass
 import json
+from lib.exception.determine_subject_exception import DetermineSubjectException
+from lib.exception.validate_subject_exception import ValidateSubjectException
 import lib.exitcode
 import lib.utilities as utilities
 import os
@@ -9,6 +11,7 @@ import subprocess
 import sys
 
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.validate_subject_ids import validate_subject_ids
 
 __license__ = "GPLv3"
 
@@ -86,19 +89,30 @@ class NiftiInsertionPipeline(BasePipeline):
             )
         else:
             self._determine_subject_ids_based_on_json_patient_name()
-        self.validate_subject_ids()
-        if "CandMismatchError" in self.subject_id_dict.keys():
+
+        try:
+            validate_subject_ids(
+                self.db,
+                self.verbose,
+                self.subject_id_dict['PSCID'],
+                self.subject_id_dict['CandID'],
+                self.subject_id_dict['visitLabel'],
+                bool(self.subject_id_dict['createVisitLabel']),
+            )
+        except ValidateSubjectException as exception:
             self.imaging_obj.insert_mri_candidate_errors(
-                self.dicom_archive_obj.tarchive_info_dict["PatientName"],
-                self.dicom_archive_obj.tarchive_info_dict["TarchiveID"],
+                self.dicom_archive_obj.tarchive_info_dict['PatientName'],
+                self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
                 self.json_file_dict,
                 self.nifti_path,
-                self.subject_id_dict["CandMismatchError"]
+                exception.message,
             )
+
             if self.nifti_s3_url:  # push candidate errors to S3 if provided file was on S3
                 self._run_push_to_s3_pipeline()
+
             self.log_error_and_exit(
-                self.subject_id_dict['CandMismatchError'], lib.exitcode.CANDIDATE_MISMATCH, is_error="Y", is_verbose="N"
+                exception.message, lib.exitcode.CANDIDATE_MISMATCH, is_error='Y', is_verbose='N'
             )
 
         # ---------------------------------------------------------------------------------------------
@@ -312,11 +326,14 @@ class NiftiInsertionPipeline(BasePipeline):
         dicom_value = self.json_file_dict[dicom_header]
 
         try:
-            self.subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, None)
-            self.subject_id_dict["PatientName"] = dicom_value
-        except AttributeError:
-            message = "Config file does not contain a get_subject_ids routine. Upload will exit now."
-            self.log_error_and_exit(message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE, is_error="Y", is_verbose="N")
+            self.subject_id_dict = self.imaging_obj.determine_subject_ids(dicom_value)
+        except DetermineSubjectException as exception:
+            self.log_error_and_exit(
+                exception.message,
+                lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
+                is_error='Y',
+                is_verbose='N'
+            )
 
         self.log_info("Determined subject IDs based on PatientName stored in JSON file", is_error="N", is_verbose="Y")
 

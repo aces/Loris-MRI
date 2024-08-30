@@ -3,6 +3,7 @@
 import os
 import datetime
 import json
+from typing import Any, Optional
 import lib.utilities as utilities
 import nibabel as nib
 import re
@@ -21,6 +22,7 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
+from lib.exception.determine_subject_exception import DetermineSubjectException
 
 __license__ = "GPLv3"
 
@@ -510,93 +512,44 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_ids(self, tarchive_info_dict, scanner_id=None):
+    def determine_subject_ids(self, tarchive_info_dict, scanner_id: Optional[int] = None) -> dict[str, Any]:
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
-        config setting. This function will call a function in the config file that can be
+        config setting. This function will call a function in the configuration file that can be
         customized for each project.
 
-        :param tarchive_info_dict: dictionary with information about the DICOM archive queried
-                                   from the tarchive table
-         :type tarchive_info_dict: dict
-        :param scanner_id        : ScannerID
-         :type scanner_id        : int or None
+        :param tarchive_info_dict : Dictionary with information about the DICOM archive queried
+                                    from the tarchive table
+        :param scanner_id         : The ScannerID if there is one
 
-        :return subject_id_dict: dictionary with subject IDs and visit label or error status
-         :rtype subject_id_dict: dict
+        :raises DetermineSubjectException: Exception if the subject IDs cannot be determined from
+                                           the configuration file.
+
+        :return: Dictionary with subject IDs and visit label.
         """
 
         config_obj = Config(self.db, self.verbose)
         dicom_header = config_obj.get_config('lookupCenterNameUsing')
-        dicom_value = tarchive_info_dict[dicom_header]
+        subject_name = tarchive_info_dict[dicom_header]
 
         try:
-            subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
-            subject_id_dict['PatientName'] = dicom_value
+            subject_id_dict = self.config_file.get_subject_ids(self.db, subject_name, scanner_id)
         except AttributeError:
-            message = 'Config file does not contain a get_subject_ids routine. Upload will exit now.'
-            return {'error_message': message}
+            raise DetermineSubjectException(
+                'Config file does not contain a `get_subject_ids` function. Upload will exit now.'
+            )
 
+        if subject_id_dict == {}:
+            raise DetermineSubjectException(
+                f'Cannot get subject IDs for subject \'{subject_name}\'.\n'
+                'Possible causes:\n'
+                '- The subject name is not correctly formatted (should usually be \'PSCID_CandID_VisitLabel\').\n'
+                '- The function `get_subject_ids` in the Python configuration file is not properly defined.\n'
+                '- Other project specific reason.'
+            )
+
+        subject_id_dict['PatientName'] = subject_name
         return subject_id_dict
-
-    def validate_subject_ids(self, subject_id_dict):
-        """
-        Ensure that the subject PSCID/CandID corresponds to a single candidate in the candidate
-        table and that the visit label can be found in the Visit_Windows table. If those
-        conditions are not fulfilled, then a 'CandMismatchError' with the validation error
-        is added to the subject IDs dictionary (subject_id_dict).
-
-        :param subject_id_dict : dictionary with subject IDs and visit label
-         :type subject_id_dict : dict
-
-        :return: True if the subject IDs are valid, False otherwise
-         :rtype: bool
-        """
-
-        psc_id = subject_id_dict['PSCID']
-        cand_id = subject_id_dict['CandID']
-        visit_label = subject_id_dict['visitLabel']
-        is_phantom = subject_id_dict['isPhantom']
-
-        # no further checking if the subject is phantom
-        if is_phantom:
-            return True
-
-        # check that the CandID and PSCID are valid
-        # TODO use candidate_db class for that for bids_import
-        query = 'SELECT c1.CandID, c2.PSCID AS PSCID ' \
-                ' FROM candidate c1 ' \
-                ' LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) ' \
-                ' WHERE c1.CandID = %s'
-        results = self.db.pselect(query=query, args=(psc_id, cand_id))
-        if not results:
-            # if no rows were returned, then the CandID is not valid
-            subject_id_dict['message'] = '=> Could not find candidate with CandID=' + cand_id \
-                                         + ' in the database'
-            subject_id_dict['CandMismatchError'] = 'CandID does not exist'
-            return False
-        elif not results[0]['PSCID']:
-            # if no PSCID returned in the row, then PSCID and CandID do not match
-            subject_id_dict['message'] = '=> PSCID and CandID of the image mismatch'
-            # Message is undefined
-            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
-            return False
-
-        # check if visit label is valid
-        # TODO use visit_windows class for that for bids_import
-        query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
-        results = self.db.pselect(query=query, args=(visit_label,))
-        if results:
-            subject_id_dict['message'] = f'=> Found visit label {visit_label} in Visit_Windows'
-            return True
-        elif subject_id_dict['createVisitLabel']:
-            subject_id_dict['message'] = f'=> Will create visit label {visit_label} in Visit_Windows'
-            return True
-        else:
-            subject_id_dict['message'] = f'=> Visit Label {visit_label} does not exist in Visit_Windows'
-            # Message is undefined
-            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
-            return False
 
     def map_bids_param_to_loris_param(self, file_parameters):
         """
