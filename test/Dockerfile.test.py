@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY . /app
+COPY ./hello-world-pytest /app
 
 RUN pip install pytest
 
