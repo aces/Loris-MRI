@@ -26,6 +26,9 @@ jobs:
         php-version: ${{ matrix.php }}
         extensions: zip, php-ast
 
+    - name: Build LORIS-MRI-PYTEST
+      run: |
+        docker compose up --build --exit-code-from pytest
 
     - name: Clone Loris repo
       run: git clone https://github.com/aces/Loris.git
@@ -78,9 +81,4 @@ jobs:
       run: |
         cd Loris
         make dev
-
-    - name: Build LORIS-MRI-PYTEST
-      run: |
-        cd test
-        docker compose up --build --exit-code-from pytest
 
