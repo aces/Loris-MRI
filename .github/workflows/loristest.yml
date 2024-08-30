@@ -35,9 +35,7 @@ jobs:
         cp test/Dockerfile.test.php8 Loris/
         cp test/Dockerfile.test.py Loris/
         cp test/docker-compose.yml Loris/
-        cp test/test_example.py Loris/
         cp test/test_example.py Loris/test
-        cp test/test_example.py .
         cp test/phpunit.xml Loris/test/
         cp test/RB_SQL/* Loris/raisinbread/RB_files/
 
