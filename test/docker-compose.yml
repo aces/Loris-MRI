@@ -1,7 +1,8 @@
 version: '3'
 services:
   pytest:
-    build: .
+    build:
+      context: .
       dockerfile: Dockerfile.test.py
     command: pytest
 
