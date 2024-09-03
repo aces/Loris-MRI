@@ -5,6 +5,7 @@ mat73
 matplotlib
 mne
 mne-bids>=0.6
+mypy
 mysql-connector
 mysqlclient
 nilearn

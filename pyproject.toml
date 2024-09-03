@@ -6,12 +6,34 @@ preview = true
 
 [tool.ruff.lint]
 ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
-# TODO: Add and apply "F", "I", "N", "UP"
+# TODO: Select "F", "I", "N", "UP" and format the codebase accordingly.
 select = ["E", "W"]
+
+# We use Mypy to type check modern (typed) modules, and run a few Pyright-specific type checks on
+# all code including untyped modules. We could also run a few Mypy type checks on untyped code in
+# addition to the typed modules but configuring this behaviour is a little awkward at the time of
+# this comment (Mypy 1.11.2).
+
+[tool.mypy]
+files = "python"
+exclude = "python/react-series-data-viewer"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "lib.db.*",
+    "lib.exception.*",
+    "lib.dataclass.*",
+]
+ignore_errors = false
+strict = true
 
 [tool.pyright]
 include = ["python"]
 exclude = ["python/react-series-data-viewer"]
+typeCheckingMode = "off"
+reportDeprecated = "error"
+reportMissingImports = "error"
 
 [tool.pytest.ini-options]
 testpaths = ["python/tests"]
