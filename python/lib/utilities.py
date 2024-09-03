@@ -283,7 +283,7 @@ def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
     tokenResponse = requests.get(requestTokenURL)
 
     cookie = tokenResponse.headers['Set-Cookie']
-    token = re.search('csrf_token" value="(.+?)"', tokenResponse.text).group(1)
+    token = re.search(r'csrf_token" value="(.+?)"', tokenResponse.text).group(1)
 
     # Define headers for assemble POST request, containing token and cookie
     headers = {

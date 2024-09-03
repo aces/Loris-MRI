@@ -25,8 +25,8 @@ def get_subject_ids(db, dicom_value=None, scanner_id=None):
 
     imaging = Imaging(db, False)
 
-    phantom_match   = re.search('(pha)|(test)', dicom_value, re.IGNORECASE)
-    candidate_match = re.search('([^_]+)_(\d+)_([^_]+)', dicom_value, re.IGNORECASE)
+    phantom_match   = re.search(r'(pha)|(test)', dicom_value, re.IGNORECASE)
+    candidate_match = re.search(r'([^_]+)_(\d+)_([^_]+)', dicom_value, re.IGNORECASE)
 
     if phantom_match:
         subject_id_dict['isPhantom']  = True

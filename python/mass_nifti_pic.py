@@ -171,7 +171,7 @@ def make_pic(file_id, config_file, force, verbose):
     if not nii_file_path:
         print('WARNING: no file in the database with FileID = ' + str(file_id))
         return
-    if not re.search('.nii.gz$', nii_file_path):
+    if not re.search(r'.nii.gz$', nii_file_path):
         print('WARNING: wrong file type. File ' + nii_file_path + ' is not a .nii.gz file')
         return
     if not os.path.exists(data_dir + nii_file_path):
