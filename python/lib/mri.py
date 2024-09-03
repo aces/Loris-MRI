@@ -287,9 +287,9 @@ class Mri:
                 other_assoc_files['bvec_file'] = assoc_file.path
             elif re.search(r'bval$', file_info['extension']):
                 other_assoc_files['bval_file'] = assoc_file.path
-            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'events':
+            elif re.search(r'tsv$', file_info['extension']) and file_info['suffix'] == 'events':
                 other_assoc_files['task_file'] = assoc_file.path
-            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'physio':
+            elif re.search(r'tsv$', file_info['extension']) and file_info['suffix'] == 'physio':
                 other_assoc_files['physio_file'] = assoc_file.path
 
         # read the json file if it exists
