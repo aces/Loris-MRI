@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 default_port = 3306
 
 
-def connect_to_db(credentials: dict[str, Any]):
+def connect_to_db(credentials: dict[str, Any]) -> Session:
     host     = credentials['host']
     port     = credentials['port']
     username = credentials['username']
