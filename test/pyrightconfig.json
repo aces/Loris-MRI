@@ -1,5 +1,3 @@
-// Global Pyright configuration used to check all Python code.
-// It is a very lax configuration as it must work even on untyped code.
 {
     "include": ["../python"],
     "exclude": ["../python/react-series-data-viewer"],
