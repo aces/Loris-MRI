@@ -2,6 +2,21 @@ FROM php:8.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+
+# Update the package list and install build-essential, checkinstall, and cmake
+RUN apt-get update && \
+    apt-get install -y build-essential checkinstall cmake
+
+# Install Perl and CPAN
+RUN apt-get install -y perl && \
+    apt-get install -y libterm-readline-gnu-perl && \
+    apt-get install -y perl-doc && \
+    apt-get install -y libssl-dev && \
+    apt-get install -y liblwp-protocol-https-perl && \
+    cpan CPAN
+
+# Update the package list and install required packages
+
 RUN apt-get update && \
     apt-get install -y mariadb-client libzip-dev
 
@@ -12,7 +27,6 @@ ARG projectname=Loris-MRI
 RUN useradd -ms /bin/bash lorisadmin \
     && mkdir -p /data/${projectname} \
     && mkdir -p /opt/${projectname}/bin/mri \
-WORKDIR /opt/${projectname}/bin/mri
 
 # Update packages and install necessary tools and libraries
 RUN apt-get update \
