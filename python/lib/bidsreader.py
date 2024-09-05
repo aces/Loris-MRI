@@ -7,14 +7,7 @@ import json
 import lib.exitcode
 import lib.utilities as utilities
 
-try:
-    from bids import BIDSLayout
-except ImportError:
-    try:
-        from bids.grabbids import BIDSLayout
-    except ImportError:
-        print("Could not find bids.layout or bids.grabbids")
-        exit(lib.exitcode.INVALID_IMPORT)
+from bids import BIDSLayout
 
 # import bids
 # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
@@ -177,7 +170,7 @@ class BidsReader:
         for row in participants_info:
             # remove the "sub-" in front of the subject ID if present
             row['participant_id'] = row['participant_id'].replace('sub-', '')
-            if not row['participant_id'] in subjects:
+            if row['participant_id'] not in subjects:
                 print(mismatch_message)
                 print(row['participant_id'] + 'is missing from the BIDS Layout')
                 print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects))
