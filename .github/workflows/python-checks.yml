@@ -42,7 +42,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-      # Like in the other run Pyrihgt step, the `jq` arcane is used to format the errors to the
+      # Like in the other Pyrihgt run, the `jq` arcane is used to translate the errors to the
       # GitHub actions format
     - name: Run Pyright
       run: |
