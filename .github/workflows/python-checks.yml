@@ -43,7 +43,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Run Pyright
-      run: pyright --outputjson
+      run: |
+        pyright --outputjson > pyright-output.json
+        cat pyright-output.json \
+          | jq -r '.generalDiagnostics[] \
+          | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
 
   pyrigh-global:
     name: "Pyright global"
@@ -65,4 +69,7 @@ jobs:
     - name: Run Pyright
       run: |
         cd test
-        pyright --outputjson
+        pyright --outputjson > pyright-output.json
+        cat pyright-output.json \
+          | jq -r '.generalDiagnostics[] \
+          | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
