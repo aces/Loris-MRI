@@ -5,7 +5,6 @@ import shutil
 import os
 import sys
 from lib.exitcode import COPY_FAILURE
-import b
 
 """Set of io functions."""
 
