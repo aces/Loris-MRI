@@ -42,10 +42,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+      # Like in the other run Pyrihgt step, the `jq` arcane is used to format the errors to the
+      # GitHub actions format
     - name: Run Pyright
       run: |
-        pyright --outputjson > pyright-output.json || true
-        cat pyright-output.json | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
+        pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
+        (exit ${PIPESTATUS[0]})
 
   pyrigh-global:
     name: "Pyright global"
@@ -67,5 +69,5 @@ jobs:
     - name: Run Pyright
       run: |
         cd test
-        pyright --outputjson > pyright-output.json || true
-        cat pyright-output.json | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
+        pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
+        (exit ${PIPESTATUS[0]})
