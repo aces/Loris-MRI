@@ -42,8 +42,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-      # Like in the other Pyrihgt run, the `jq` arcane is used to translate the errors to the
-      # GitHub actions format
+      # Like in the other Pyright run, the `jq` arcane is used to translate the errors from JSON to
+      # the GitHub actions format
     - name: Run Pyright
       run: |
         pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
