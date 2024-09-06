@@ -1,10 +1,8 @@
-# This workflow runs flake8 with reviewdog. The documentation can be found below:
-# https://github.com/marketplace/actions/run-flake8-with-reviewdog
-# Flake8 is a Python linter that analyzes code and checks for programming and stylistic errors
-name: Flake8 Linter
+name: Python checks
 
-# This workflow acts only on pull requests
-on: pull_request
+on:
+  - push
+  - pull_request
 
 jobs:
 
