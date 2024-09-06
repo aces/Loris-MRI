@@ -21,6 +21,7 @@ from bids import BIDSLayout
 __license__ = "GPLv3"
 
 
+
 class BidsReader:
     """
     This class reads a BIDS structure into a data dictionary using BIDS grabbids.
