@@ -1,6 +1,8 @@
 name: LORIS Test Suite
 
-on: workflow_dispatch
+on:
+  - push
+  - pull_request
 
 jobs:
   docker:

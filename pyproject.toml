@@ -1,5 +1,5 @@
 [tool.ruff]
-include = ["python/*.py"]
+include = ["python/**/*.py"]
 exclude = ["python/react-series-data-viewer"]
 line-length = 120
 preview = true
