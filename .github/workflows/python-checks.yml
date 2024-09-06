@@ -18,12 +18,12 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: ./.github/actions/setup-python
+      uses: setup-python
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Run Ruff
-      run: ruff check --output-format=github
+      run: ruff check
 
   pyright-strict:
     name: "Pyright strict"
@@ -38,16 +38,12 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: ./.github/actions/setup-python
+      uses: setup-python
       with:
         python-version: ${{ matrix.python-version }}
 
-      # Like in the other Pyright run, the `jq` arcane is used to translate the errors from JSON to
-      # the GitHub actions format
     - name: Run Pyright
-      run: |
-        pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
-        (exit ${PIPESTATUS[0]})
+      run: pyright
 
   pyrigh-global:
     name: "Pyright global"
@@ -62,12 +58,11 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: ./.github/actions/setup-python
+      uses: setup-python
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Run Pyright
       run: |
         cd test
-        pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
-        (exit ${PIPESTATUS[0]})
+        pyright
