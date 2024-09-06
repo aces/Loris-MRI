@@ -18,7 +18,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: setup-python
+      uses: ./.github/actions/setup-python.yml
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -38,7 +38,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: setup-python
+      uses: ./.github/actions/setup-python.yml
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -58,7 +58,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: setup-python
+      uses: ./.github/actions/setup-python.yml
       with:
         python-version: ${{ matrix.python-version }}
 
