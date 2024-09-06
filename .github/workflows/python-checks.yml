@@ -45,9 +45,7 @@ jobs:
     - name: Run Pyright
       run: |
         pyright --outputjson > pyright-output.json || true
-        cat pyright-output.json \
-          | jq -r '.generalDiagnostics[] \
-          | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
+        cat pyright-output.json | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
 
   pyrigh-global:
     name: "Pyright global"
@@ -70,6 +68,4 @@ jobs:
       run: |
         cd test
         pyright --outputjson > pyright-output.json || true
-        cat pyright-output.json \
-          | jq -r '.generalDiagnostics[] \
-          | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
+        cat pyright-output.json | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
