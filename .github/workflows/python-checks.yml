@@ -18,17 +18,10 @@ jobs:
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
-    - name: Set up the Python environment
-      uses: actions/setup-python@v5
+    - name: Set up Python
+      uses: setup-python
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-
-    - name: Install Python dependencies
-      run: pip install -r python/requirements.txt
-
-    - name: Set up environment variables
-      run: export PYTHONPATH=$PYTHONPATH:/`pwd`/python:/`pwd`/python/react-series-data-viewer
 
     - name: Run Ruff
       run: ruff check
@@ -45,17 +38,10 @@ jobs:
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
-    - name: Set up the Python environment
-      uses: actions/setup-python@v5
+    - name: Set up Python
+      uses: setup-python
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-
-    - name: Install Python dependencies
-      run: pip install -r python/requirements.txt
-
-    - name: Set up Python environment variables
-      run: export PYTHONPATH=$PYTHONPATH:/`pwd`/python:/`pwd`/python/react-series-data-viewer
 
     - name: Run Pyright
       run: pyright
@@ -72,17 +58,10 @@ jobs:
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
-    - name: Set up the Python environment
-      uses: actions/setup-python@v5
+    - name: Set up Python
+      uses: setup-python
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-
-    - name: Install Python dependencies
-      run: pip install -r python/requirements.txt
-
-    - name: Set up Python environment variables
-      run: export PYTHONPATH=$PYTHONPATH:/`pwd`/python:/`pwd`/python/react-series-data-viewer
 
     - name: Run Pyright
       run: |
