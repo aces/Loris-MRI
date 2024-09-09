@@ -37,8 +37,8 @@ jobs:
           # TODO: Add the `requirements.txt` hash to the image path
           tags: ghcr.io/maximemulder/python:${{ matrix.python-version }}
           # tags: ghcr.io/${{ github.repository_owner }}/python:${{ matrix.python-version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=local,src=/tmp/.docker-cache
+          cache-to: type=local,dest=/tmp/.docker-cache
 
   ruff:
     name: Ruff
