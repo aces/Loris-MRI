@@ -8,19 +8,23 @@ jobs:
   ruff:
     name: "Ruff"
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
+
+    container:
+      image: ./test/python
+      env:
+        python-version: ${{ matrix.python-version }}
 
     steps:
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: ./.github/actions/setup-python
-      with:
-        python-version: ${{ matrix.python-version }}
+    # - name: Set up Python
+    #  uses: ./.github/actions/setup-python
+    #  with:
+    #    python-version: ${{ matrix.python-version }}
 
     - name: Run Ruff
       run: ruff check --output-format=github
