@@ -1,8 +1,6 @@
 name: Python checks
 
-on:
-  - push
-  - pull_request
+on: pull_request
 
 jobs:
   docker:
@@ -33,73 +31,79 @@ jobs:
           context: .
           file: ./test/python.Dockerfile
           build-args: |
-            PYTHON-VERSION=${{ matrix.python-version }}
+            PYTHON_VERSION=${{ matrix.python-version }}
+            WORKSPACE=/__w/Loris-MRI/Loris-MRI
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/python:${{ matrix.python-version }}
+          # TODO: Add the `requirements.txt` hash to the image path
+          tags: ghcr.io/maximemulder/python:${{ matrix.python-version }}
+          # tags: ghcr.io/${{ github.repository_owner }}/python:${{ matrix.python-version }}
           cache-from: type=gha
           cache-to: type=gha
 
   ruff:
     name: Ruff
-    runs-on: ubuntu-latest
     needs: docker
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
 
     container:
-      image: ghcr.io/${{ github.repository_owner }}/python:${{ matrix.python-version }}
+      image: ghcr.io/maximemulder/python:${{ matrix.python-version }}
+      # image: ghcr.io/${{ github.repository_owner }}/python:${{ matrix.python-version }}
 
     steps:
       - name: Checkout LORIS-MRI
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Ruff
         run: ruff check --output-format=github
 
   pyright-strict:
-    name: "Pyright strict"
+    name: Pyright strict
+    needs: docker
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
 
+    container:
+      image: ghcr.io/maximemulder/python:${{ matrix.python-version }}
+      # image: ghcr.io/${{ github.repository_owner }}/python:${{ matrix.python-version }}
+
     steps:
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: ./.github/actions/setup-python
-      with:
-        python-version: ${{ matrix.python-version }}
-
-      # Like in the other Pyright run, the `jq` arcane is used to translate the errors from JSON to
-      # the GitHub actions format
+      # The `jq` arcane is used to translate the errors from JSON to the GitHub actions format
     - name: Run Pyright
+      shell: bash
       run: |
         pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
         (exit ${PIPESTATUS[0]})
 
   pyrigh-global:
-    name: "Pyright global"
+    name: Pyright global
+    needs: docker
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
 
+    container:
+      image: ghcr.io/maximemulder/python:${{ matrix.python-version }}
+      # image: ghcr.io/${{ github.repository_owner }}/python:${{ matrix.python-version }}
+
     steps:
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: ./.github/actions/setup-python
-      with:
-        python-version: ${{ matrix.python-version }}
-
+      # The `jq` arcane is used to translate the errors from JSON to the GitHub actions format
     - name: Run Pyright
+      shell: bash
       run: |
         cd test
         pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
