@@ -7,7 +7,9 @@ jobs:
     name: Docker
     runs-on: ubuntu-latest
     
-    permissions: read-all|write-all
+    permissions:
+      packages: write
+      contents: read
 
     strategy:
       matrix:
