@@ -1,0 +1,5 @@
+SET FOREIGN_KEY_CHECKS=0;
+TRUNCATE TABLE `feedback_mri_comments`;
+LOCK TABLES `feedback_mri_comments` WRITE;
+UNLOCK TABLES;
+SET FOREIGN_KEY_CHECKS=1;

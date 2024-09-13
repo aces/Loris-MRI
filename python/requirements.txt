@@ -1,5 +1,4 @@
 boto3
-flake8
 google
 mat73
 matplotlib
@@ -13,7 +12,10 @@ nose
 numpy
 protobuf>=3.0.0
 pybids==0.17.0
+pyright
+pytest
 python-dateutil
+ruff
 scikit-learn
 scipy
 sqlalchemy>=2.0.0
