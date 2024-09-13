@@ -1,0 +1,26 @@
+[tool.ruff]
+include = ["python/**/*.py"]
+exclude = ["python/react-series-data-viewer"]
+line-length = 120
+preview = true
+
+[tool.ruff.lint]
+ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
+# TODO: Select "F", "I", "N", "UP" and format the codebase accordingly.
+select = ["E", "W"]
+
+# The strict type checking configuration is used to type check only the modern (typed) modules. An
+# additional basic type checking configuration to type check legacy modules can be found in the
+# `test` directory.
+
+[tool.pyright]
+include = [
+    "python/lib/db",
+    "python/lib/exception",
+    "python/lib/validate_subject_ids.py"
+]
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "none"
+
+[tool.pytest.ini-options]
+testpaths = ["python/tests"]

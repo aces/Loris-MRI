@@ -1,0 +1,7 @@
+{
+    "include": ["../python"],
+    "exclude": ["../python/react-series-data-viewer"],
+    "typeCheckingMode": "off",
+    "reportDeprecated": "warning",
+    "reportMissingImports": "error"
+}
