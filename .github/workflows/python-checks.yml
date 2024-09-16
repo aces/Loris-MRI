@@ -1,12 +1,10 @@
 name: Python checks
 
-on:
-  - push
-  - pull_request
+on: pull_request
 
 jobs:
-  ruff:
-    name: "Ruff"
+  docker:
+    name: Docker
     runs-on: ubuntu-latest
 
     strategy:
@@ -14,19 +12,62 @@ jobs:
         python-version: ["3.11", "3.12"]
 
     steps:
-    - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      - name: Check out LORIS-MRI
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: ./.github/actions/setup-python
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Run Ruff
-      run: ruff check --output-format=github
+      - name: Build Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./test/python.Dockerfile
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python-version }}
+            WORKSPACE=/workspace
+          tags: loris-python:${{ matrix.python-version }}
+          cache-from: type=gha,scope=loris-python-${{ matrix.python-version }}
+          cache-to: type=gha,scope=loris-python-${{ matrix.python-version }}
+          outputs: type=docker,dest=/tmp/loris-python-${{ matrix.python-version }}.tar
+
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v4
+        with:
+          name: loris-python-${{ matrix.python-version }}
+          path: /tmp/loris-python-${{ matrix.python-version }}.tar
+  
+  ruff:
+    name: Ruff
+    needs: docker
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout LORIS-MRI
+        uses: actions/checkout@v4
+
+      - name: Download Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: loris-python-${{ matrix.python-version }}
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/loris-python-${{ matrix.python-version }}.tar
+
+      - name: Run Ruff
+        run: |
+          docker run -v ${{ github.workspace }}:/workspace -w /workspace loris-python:${{ matrix.python-version }} \
+            ruff check --output-format=github
 
   pyright-strict:
-    name: "Pyright strict"
+    name: Pyright strict
+    needs: docker
     runs-on: ubuntu-latest
 
     strategy:
@@ -37,20 +78,23 @@ jobs:
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: ./.github/actions/setup-python
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        name: loris-python-${{ matrix.python-version }}
+        path: /tmp
 
-      # Like in the other Pyrihgt run, the `jq` arcane is used to translate the errors to the
-      # GitHub actions format
+    - name: Load Docker image
+      run: docker load -i /tmp/loris-python-${{ matrix.python-version }}.tar
+
     - name: Run Pyright
       run: |
-        pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
-        (exit ${PIPESTATUS[0]})
+        docker run -v ${{ github.workspace }}:/workspace -w /workspace loris-python:${{ matrix.python-version }} bash -c \
+          "set -o pipefail && pyright --outputjson | bash test/pyright_to_github.sh"
 
   pyrigh-global:
-    name: "Pyright global"
+    name: Pyright global
+    needs: docker
     runs-on: ubuntu-latest
 
     strategy:
@@ -58,16 +102,19 @@ jobs:
         python-version: ["3.11", "3.12"]
 
     steps:
-    - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      - name: Check out LORIS-MRI
+        uses: actions/checkout@v4
+  
+      - name: Download Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: loris-python-${{ matrix.python-version }}
+          path: /tmp
+  
+      - name: Load Docker image
+        run: docker load -i /tmp/loris-python-${{ matrix.python-version }}.tar
 
-    - name: Set up Python
-      uses: ./.github/actions/setup-python
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Run Pyright
-      run: |
-        cd test
-        pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
-        (exit ${PIPESTATUS[0]})
+      - name: Run Pyright
+        run: |
+          docker run -v ${{ github.workspace }}:/workspace -w /workspace loris-python:${{ matrix.python-version }} bash -c \
+            "cd test && set -o pipefail && pyright --outputjson | bash pyright_to_github.sh"
