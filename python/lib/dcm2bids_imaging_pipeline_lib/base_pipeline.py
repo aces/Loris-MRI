@@ -16,6 +16,7 @@ from lib.log import Log
 from lib.imaging_upload import ImagingUpload
 from lib.session import Session
 from lib.validate_subject_ids import validate_subject_ids
+from lib.db.connect import connect_to_db
 
 
 class BasePipeline:
@@ -59,6 +60,8 @@ class BasePipeline:
         # ----------------------------------------------------
         self.db = Database(self.config_file.mysql, self.verbose)
         self.db.connect()
+
+        self.db_orm = connect_to_db(self.config_file.mysql)
 
         # -----------------------------------------------------------------------------------
         # Load the Config, Imaging, ImagingUpload, Tarchive, Session database classes
@@ -246,8 +249,7 @@ class BasePipeline:
 
         try:
             validate_subject_ids(
-                self.db,
-                self.verbose,
+                self.db_orm,
                 self.subject_id_dict['PSCID'],
                 self.subject_id_dict['CandID'],
                 self.subject_id_dict['visitLabel'],
