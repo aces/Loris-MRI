@@ -3,6 +3,7 @@
 import MySQLdb
 import sys
 import lib.exitcode
+from lib.dataclass.config import DatabaseConfig
 
 
 __license__ = "GPLv3"
@@ -61,25 +62,22 @@ class Database:
         db.disconnect()
     """
 
-    def __init__(self, credentials, verbose):
+    def __init__(self, config: DatabaseConfig, verbose: bool):
         """
         Constructor method for the Database class.
 
-        :param credentials: LORIS database credentials
-         :type credentials: dict
-        :param verbose    : whether to be verbose or not
-         :type verbose    : bool
+        :param config:  LORIS database credentials
+        :param verbose: whether to be verbose or not
         """
 
         self.verbose = verbose
 
         # grep database credentials
-        default_port   = 3306
-        self.db_name   = credentials['database']
-        self.user_name = credentials['username']
-        self.password  = credentials['passwd']
-        self.host_name = credentials['host']
-        port           = credentials['port']
+        self.db_name   = config.database
+        self.user_name = config.username
+        self.password  = config.password
+        self.host_name = config.host
+        self.port      = config.port
 
         if not self.user_name:
             raise Exception("\nUser name cannot be empty string.\n")
@@ -87,8 +85,6 @@ class Database:
             raise Exception("\nDatabase name cannot be empty string.\n")
         if not self.host_name:
             raise Exception("\nDatabase host cannot be empty string.\n")
-
-        self.port = int(port) if port else default_port
 
     def connect(self):
         """
