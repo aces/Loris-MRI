@@ -1,0 +1,60 @@
+name: Integration tests
+
+on:
+  pull_request:
+  push:
+    branches:
+    - 'main'
+    - '*-release'
+
+jobs:
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out LORIS-MRI
+      uses: actions/checkout@v4
+
+    - name: Clone the LORIS core repository
+      run: git clone https://github.com/aces/Loris.git /tmp/Loris
+
+    - name: Import database files 
+      run: |
+        mkdir -p ./test/database
+        mkdir -p ./test/database/SQL
+        mkdir -p ./test/database/raisinbread/RB_files
+        mkdir -p ./test/database/raisinbread/instruments/instrument_sql
+        mkdir -p ./test/database/test/test_instrument
+        cp -r /tmp/Loris/SQL/* ./test/database/SQL
+        cp -r ./test/RB_SQL/* ./test/database/raisinbread/RB_files
+        cp -r -n /tmp/Loris/raisinbread/RB_files/* ./test/database/raisinbread/RB_files
+        cp -r /tmp/Loris/raisinbread/instruments/instrument_sql/* ./test/database/raisinbread/instruments/instrument_sql
+        cp -r /tmp/Loris/test/test_instrument/testtest.sql ./test/database/test/test_instrument/testtest.sql
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker database image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./test/db.Dockerfile
+        build-args: |
+          BASE_DIR=/app/
+        tags: loris-db
+        load: true
+        cache-from: type=gha,scope=loris-db
+        cache-to: type=gha,scope=loris-db
+
+    - name: Build Docker MRI image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./test/mri.Dockerfile
+        tags: loris-mri
+        load: true
+        cache-from: type=gha,scope=loris-mri
+        cache-to: type=gha,scope=loris-mri
+
+    - name: Run integration tests
+      run: docker compose --file ./test/docker-compose.yml run mri pytest python/tests/integration
