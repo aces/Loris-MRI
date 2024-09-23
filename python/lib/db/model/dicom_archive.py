@@ -3,9 +3,9 @@ from typing import List, Optional
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
-import lib.db.orm.dicom_archive_file as db_dicom_archive_file
-import lib.db.orm.dicom_archive_series as db_dicom_archive_series
-import lib.db.orm.mri_upload as db_mri_upload
+import lib.db.model.dicom_archive_file as db_dicom_archive_file
+import lib.db.model.dicom_archive_series as db_dicom_archive_series
+import lib.db.model.mri_upload as db_mri_upload
 
 
 class DbDicomArchive(Base):

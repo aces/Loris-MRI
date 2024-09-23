@@ -2,8 +2,8 @@ from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 from lib.db.base import Base
-import lib.db.orm.dicom_archive as db_dicom_archive
-import lib.db.orm.dicom_archive_file as db_dicom_archive_file
+import lib.db.model.dicom_archive as db_dicom_archive
+import lib.db.model.dicom_archive_file as db_dicom_archive_file
 
 
 class DbDicomArchiveSeries(Base):

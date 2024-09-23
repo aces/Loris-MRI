@@ -1,12 +1,15 @@
 name: Python checks
 
 on:
-  - push
-  - pull_request
+  pull_request:
+  push:
+    branches:
+    - 'main'
+    - '*-release'
 
 jobs:
   ruff:
-    name: "Ruff"
+    name: Lints
     runs-on: ubuntu-latest
 
     strategy:
@@ -26,7 +29,7 @@ jobs:
       run: ruff check --output-format=github
 
   pyright-strict:
-    name: "Pyright strict"
+    name: Strict type checks
     runs-on: ubuntu-latest
 
     strategy:
@@ -50,7 +53,7 @@ jobs:
         (exit ${PIPESTATUS[0]})
 
   pyrigh-global:
-    name: "Pyright global"
+    name: Global type checks
     runs-on: ubuntu-latest
 
     strategy:
@@ -71,3 +74,23 @@ jobs:
         cd test
         pyright --outputjson | jq -r '.generalDiagnostics[] | "::error file=\(.file),line=\(.range.start.line),col=\(.range.start.character)::\(.message)"'
         (exit ${PIPESTATUS[0]})
+
+  pytest:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+    - name: Check out LORIS-MRI
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: ./.github/actions/setup-python
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Run Pytest
+      run: pytest python/tests/unit

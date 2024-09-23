@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from lib.database import Database
-from lib.database_lib.candidate_db import CandidateDB
-from lib.database_lib.visit_windows import VisitWindows
+from typing import cast
+from sqlalchemy.orm import Session as Database
+from lib.db.model.candidate import DbCandidate
+from lib.db.query.candidate import try_get_candidate_with_cand_id
+from lib.db.query.visit import try_get_visit_window_with_visit_label
 from lib.exception.validate_subject_exception import ValidateSubjectException
 
 
@@ -25,7 +27,6 @@ class Subject:
 
 def validate_subject_ids(
     db: Database,
-    verbose: bool,
     psc_id: str,
     cand_id: str,
     visit_label: str,
@@ -37,28 +38,29 @@ def validate_subject_ids(
     """
 
     subject = Subject(psc_id, cand_id, visit_label)
-    validate_subject(db, verbose, subject, create_visit)
+    validate_subject(db, subject, create_visit)
 
 
-def validate_subject(db: Database, verbose: bool, subject: Subject, create_visit: bool):
-    candidate_db = CandidateDB(db, verbose)
-    candidate_psc_id = candidate_db.get_candidate_psc_id(subject.cand_id)
-    if candidate_psc_id is None:
+def validate_subject(db: Database, subject: Subject, create_visit: bool):
+    candidate = try_get_candidate_with_cand_id(db, int(subject.cand_id))
+    if candidate is None:
         validate_subject_error(
             subject,
             f'Candidate (CandID = \'{subject.cand_id}\') does not exist in the database.'
         )
 
-    if candidate_psc_id != subject.psc_id:
+    # Safe because the previous check raises an exception if the candidate is `None`.
+    candidate = cast(DbCandidate, candidate)
+
+    if candidate.psc_id != subject.psc_id:
         validate_subject_error(
             subject,
             f'Candidate (CandID = \'{subject.cand_id}\') PSCID does not match the subject PSCID.\n'
-            f'Candidate PSCID = \'{candidate_psc_id}\', Subject PSCID = \'{subject.psc_id}\''
+            f'Candidate PSCID = \'{candidate.psc_id}\', Subject PSCID = \'{subject.psc_id}\''
         )
 
-    visit_window_db = VisitWindows(db, verbose)
-    visit_window_exists = visit_window_db.check_visit_label_exists(subject.visit_label)
-    if not visit_window_exists and not create_visit:
+    visit_window = try_get_visit_window_with_visit_label(db, subject.visit_label)
+    if visit_window is None and not create_visit:
         validate_subject_error(
             subject,
             f'Visit label \'{subject.visit_label}\' does not exist in the database (table `Visit_Windows`).'

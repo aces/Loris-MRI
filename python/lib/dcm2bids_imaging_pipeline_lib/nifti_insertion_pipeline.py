@@ -92,8 +92,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
         try:
             validate_subject_ids(
-                self.db,
-                self.verbose,
+                self.db_orm,
                 self.subject_id_dict['PSCID'],
                 self.subject_id_dict['CandID'],
                 self.subject_id_dict['visitLabel'],
