@@ -32,6 +32,8 @@ def get_subject_ids(db: Database, subject_name: str, scanner_id: int | None = No
     if phantom_match:
         return SubjectConfig.from_phantom(
             name         = subject_name,
+            # Pass the scanner candidate CandID. If the scanner candidate does not exist in the
+            # database yet, create it in this function.
             cand_id      = imaging.get_scanner_candid(scanner_id),
             visit_label  = subject_name.strip(),
             create_visit = CreateVisitConfig(

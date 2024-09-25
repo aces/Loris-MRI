@@ -193,11 +193,10 @@ class BasePipeline:
 
         # get the CenterID from the session table if the PSCID and visit label exists
         # and could be extracted from the database
-        if self.subject.cand_id and self.subject.visit_label:
-            self.session_obj.create_session_dict(self.subject.cand_id, self.subject.visit_label)
-            session_dict = self.session_obj.session_info_dict
-            if session_dict:
-                return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
+        self.session_obj.create_session_dict(self.subject.cand_id, self.subject.visit_label)
+        session_dict = self.session_obj.session_info_dict
+        if session_dict:
+            return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
 
         # if could not find center information based on cand_id and visit_label, use the
         # patient name to match it to the site alias or MRI alias
@@ -238,10 +237,6 @@ class BasePipeline:
         table and that the visit label can be found in the Visit_Windows table. If those
         conditions are not fulfilled.
         """
-
-        # no further checking if the subject is phantom
-        if self.subject.is_phantom:
-            return
 
         try:
             validate_subject_ids(self.db_orm, self.subject)
@@ -365,7 +360,7 @@ class BasePipeline:
         center_id = 0
 
         if self.subject.is_phantom:
-            center_info_dict = self.determine_phantom_data_site(string_with_site_acronym=self.subject.visit_label)
+            center_info_dict = self.session_obj.get_session_center_info(self.subject.psc_id, self.subject.visit_label)
             if center_info_dict:
                 center_id = center_info_dict["CenterID"]
                 visit_nb = 1
@@ -376,23 +371,6 @@ class BasePipeline:
                 visit_nb = center_info_dict["newVisitNo"]
 
         return center_id, visit_nb
-
-    def determine_phantom_data_site(self, string_with_site_acronym):
-        """
-        Determine the site of a phantom dataset.
-
-        :param string_with_site_acronym: string to use to look for Alias or MRI_alias in the psc table
-         :type string_with_site_acronym: str
-        """
-
-        # first check whether there is already a session in the database for the phantom scan
-        if self.subject.psc_id and self.subject.visit_label:
-            return self.session_obj.get_session_center_info(self.subject.psc_id, self.subject.visit_label)
-
-        # if no session found, use a string_with_site_acronym to match it to a site alias or MRI alias
-        for row in self.site_dict:
-            if re.search(rf"{row['Alias']}|{row['MRI_alias']}", string_with_site_acronym, re.IGNORECASE):
-                return row
 
     def check_if_tarchive_validated_in_db(self):
         """
