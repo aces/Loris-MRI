@@ -2,6 +2,7 @@ from typing import Never
 from sqlalchemy.orm import Session as Database
 from lib.dataclass.config import SubjectConfig
 from lib.db.query.candidate import try_get_candidate_with_cand_id
+from lib.db.query.project import try_get_project_cohort_with_project_id_cohort_id
 from lib.db.query.visit import try_get_visit_window_with_visit_label
 from lib.exception.validate_subject_exception import ValidateSubjectException
 
@@ -22,15 +23,33 @@ def validate_subject_ids(db: Database, subject: SubjectConfig):
     if candidate.psc_id != subject.psc_id:
         validate_subject_error(
             subject,
-            f'Candidate (CandID = \'{subject.cand_id}\') PSCID does not match the subject PSCID.\n'
-            f'Candidate PSCID = \'{candidate.psc_id}\', Subject PSCID = \'{subject.psc_id}\''
+            (
+                f'Candidate (CandID = \'{subject.cand_id}\') PSCID does not match the subject PSCID.\n'
+                f'Candidate PSCID = \'{candidate.psc_id}\', Subject PSCID = \'{subject.psc_id}\''
+            ),
         )
 
     visit_window = try_get_visit_window_with_visit_label(db, subject.visit_label)
-    if visit_window is None and subject.create_visit is not None:
+    if visit_window is not None:
+        return
+
+    if subject.create_visit is None:
         validate_subject_error(
             subject,
             f'Visit label \'{subject.visit_label}\' does not exist in the database (table `Visit_Windows`).'
+        )
+
+    project_id = subject.create_visit.project_id
+    cohort_id  = subject.create_visit.cohort_id
+
+    project_cohort = try_get_project_cohort_with_project_id_cohort_id(db, project_id, cohort_id)
+    if project_cohort is None:
+        validate_subject_error(
+            subject,
+            (
+                f'Cannot create a session with project ID {project_id} and cohort ID {cohort_id}.\n'
+                f'This project and this cohort are not associated in the database (table `project_cohort_rel`).'
+            ),
         )
 
 

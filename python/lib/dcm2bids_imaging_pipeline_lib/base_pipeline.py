@@ -11,13 +11,14 @@ import lib.utilities
 
 from lib.database_lib.config import Config
 from lib.database import Database
+from lib.db.connect import connect_to_database
+from lib.db.query.session import try_get_session_with_cand_id_visit_label
 from lib.dicom_archive import DicomArchive
 from lib.imaging import Imaging
 from lib.log import Log
 from lib.imaging_upload import ImagingUpload
 from lib.session import Session
 from lib.validate_subject_ids import validate_subject_ids
-from lib.db.connect import connect_to_database
 
 
 class BasePipeline:
@@ -194,10 +195,14 @@ class BasePipeline:
 
         # get the CenterID from the session table if the PSCID and visit label exists
         # and could be extracted from the database
-        self.session_obj.create_session_dict(self.subject.cand_id, self.subject.visit_label)
-        session_dict = self.session_obj.session_info_dict
-        if session_dict:
-            return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
+        self.session = try_get_session_with_cand_id_visit_label(
+            self.db_orm,
+            self.subject.cand_id,
+            self.subject.visit_label,
+        )
+
+        if self.session is not None:
+            return {"CenterName": self.session.site.mri_alias, "CenterID": self.session.site_id}
 
         # if could not find center information based on cand_id and visit_label, use the
         # patient name to match it to the site alias or MRI alias
@@ -226,7 +231,7 @@ class BasePipeline:
             self.dicom_archive_obj.tarchive_info_dict['ScannerSerialNumber'],
             self.dicom_archive_obj.tarchive_info_dict['ScannerModel'],
             self.site_dict['CenterID'],
-            self.session_obj.session_info_dict['ProjectID'] if self.session_obj.session_info_dict else None
+            self.session.project_id if self.session is not None else None,
         )
         message = f"Found Scanner ID: {str(scanner_id)}"
         self.log_info(message, is_error="N", is_verbose="Y")
@@ -293,85 +298,6 @@ class BasePipeline:
         self.log_obj.write_to_notification_table(log_msg, is_error, is_verbose)
         if self.verbose:
             print(f"{log_msg}\n")
-
-    def get_session_info(self):
-        """
-        Creates the session info dictionary based on entries found in the session table.
-        """
-
-        self.session_obj.create_session_dict(self.subject.cand_id, self.subject.visit_label)
-
-        if self.session_obj.session_info_dict:
-            message = f"Session ID for the file to insert is {self.session_obj.session_info_dict['ID']}"
-            self.log_info(message, is_error="N", is_verbose="Y")
-
-    def create_session(self):
-        """
-        Function that will create a new visit in the session table for the imaging scans after verification
-        that all the information necessary for the creation of the visit are present.
-        """
-
-        create_visit = self.subject.create_visit
-
-        # check if whether the visit label should be created
-        if create_visit is None:
-            message = f"Visit {self.subject.visit_label} for candidate {self.subject.cand_id} does not exist."
-            self.log_error_and_exit(message, lib.exitcode.GET_SESSION_ID_FAILURE, is_error="Y", is_verbose="N")
-
-        # check that the project ID and cohort ID refers to an existing row in project_cohort_rel table
-        self.session_obj.create_proj_cohort_rel_info_dict(create_visit.project_id, create_visit.cohort_id)
-        if not self.session_obj.proj_cohort_rel_info_dict.keys():
-            message = f"Cannot create visit with project ID {create_visit.project_id} and " \
-                      f"cohort ID {create_visit.cohort_id}: no such association in table project_cohort_rel"
-            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
-
-        # determine the visit number and center ID for the next session to be created
-        center_id, visit_nb = self.determine_new_session_site_and_visit_nb()
-        if not center_id:
-            message = f"No center ID found for candidate {self.subject.cand_id}, visit {self.subject.visit_label}"
-            self.log_error_and_exit(message, is_error="Y", is_verbose="N")
-        else:
-            message = f"Set newVisitNo = {visit_nb} and center ID = {center_id}"
-            self.log_info(message, is_error="N", is_verbose="Y")
-
-        # create the new visit
-        session_id = self.session_obj.insert_into_session(
-            {
-                'CandID': self.subject.cand_id,
-                'Visit_label': self.subject.visit_label,
-                'CenterID': center_id,
-                'VisitNo': visit_nb,
-                'Current_stage': 'Not Started',
-                'Scan_done': 'Y',
-                'Submitted': 'N',
-                'CohortID': create_visit.cohort_id,
-                'ProjectID': create_visit.project_id
-            }
-        )
-        if session_id:
-            self.get_session_info()
-
-    def determine_new_session_site_and_visit_nb(self):
-        """
-        Determines the site and visit number of the new session to be created.
-
-        :returns: The center ID and visit number of the future new session
-        """
-        visit_nb = 0
-        center_id = 0
-
-        if self.subject.is_phantom:
-            center_info_dict = self.session_obj.get_session_center_info(self.subject.psc_id, self.subject.visit_label)
-            if center_info_dict:
-                center_id = center_info_dict["CenterID"]
-                visit_nb = 1
-        else:
-            center_info_dict = self.session_obj.get_next_session_site_id_and_visit_number(self.subject.cand_id)
-            if center_info_dict:
-                center_id = center_info_dict["CenterID"]
-                visit_nb = center_info_dict["newVisitNo"]
-
-        return center_id, visit_nb
 
     def check_if_tarchive_validated_in_db(self):
         """
