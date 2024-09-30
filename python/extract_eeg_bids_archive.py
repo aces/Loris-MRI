@@ -6,11 +6,12 @@ import os
 import sys
 import re
 from lib.lorisgetopt import LorisGetOpt
-from lib.imaging_io import ImagingIO
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import SUCCESS, BAD_CONFIG_SETTING
-from lib.log import Log
+from lib.file_system import copy_file, delete_dir, extract_archive
+from lib.make_env import make_env
+from lib.log import log, log_error, log_error_exit, log_verbose, log_warning
 import lib.utilities as utilities
 
 __license__ = "GPLv3"
@@ -79,16 +80,7 @@ def main():
     # and create the log object (their basename being the name of the script run)
     # ---------------------------------------------------------------------------------------------
     tmp_dir = loris_getopt_obj.tmp_dir
-    data_dir = config_db_obj.get_config("dataDirBasepath")
-    log_obj = Log(
-        db,
-        data_dir,
-        script_name,
-        os.path.basename(tmp_dir),
-        loris_getopt_obj.options_dict,
-        verbose
-    )
-    imaging_io_obj = ImagingIO(log_obj, verbose)
+    env = make_env(loris_getopt_obj)
 
     # ---------------------------------------------------------------------------------------------
     # Grep config settings from the Config module
@@ -116,7 +108,7 @@ def main():
         eeg_archives_list = db.pselect(query, ())
 
     if not eeg_archives_list:
-        print('No new EEG upload to extract.')
+        log(env, "No new EEG upload to extract.")
         sys.exit(SUCCESS)
 
     # ---------------------------------------------------------------------------------------------
@@ -133,31 +125,24 @@ def main():
             try:
                 s3_obj.download_file(eeg_archive_path, eeg_archive_local_path)
             except Exception as err:
-                imaging_io_obj.log_info(
-                    f"{eeg_archive_path} could not be downloaded from S3 bucket. Error was\n{err}",
-                    is_error=True,
-                    is_verbose=False,
-                )
+                log_error(env, f"{eeg_archive_path} could not be downloaded from S3 bucket. Error was\n{err}")
                 error = True
             else:
                 eeg_archive_path = eeg_archive_local_path
 
         elif eeg_incoming_dir.startswith('s3://'):
-            imaging_io_obj.log_error_and_exit(
+            log_error_exit(
+                env,
                 f"{eeg_incoming_dir} is a S3 path but S3 server connection could not be established.",
-                BAD_CONFIG_SETTING
+                BAD_CONFIG_SETTING,
             )
 
         if not error:
             try:
                 # Uncompress archive in tmp location
-                eeg_collection_path = imaging_io_obj.extract_archive(eeg_archive_path, 'EEG', tmp_dir)
+                eeg_collection_path = extract_archive(env, eeg_archive_path, 'EEG', tmp_dir)
             except Exception as err:
-                imaging_io_obj.log_info(
-                    f"Could not extract {eeg_archive_path} - {format(err)}",
-                    is_error=True,
-                    is_verbose=False,
-                )
+                log_error(env, f"Could not extract {eeg_archive_path} - {format(err)}")
                 error = True
 
         if not error:
@@ -173,20 +158,12 @@ def main():
                     if eeg_session_rel_path_re:
                         eeg_session_rel_path = eeg_session_rel_path_re.group()
                     else:
-                        imaging_io_obj.log_info(
-                            f"Could not find a subject folder in the BIDS structure for {eeg_archive_file}.",
-                            is_error=True,
-                            is_verbose=False,
-                        )
+                        log_error(env, f"Could not find a subject folder in the BIDS structure for {eeg_archive_file}.")
                         error = True
                         break
 
         if not error and not tmp_eeg_session_path:
-            imaging_io_obj.log_info(
-                "Could not find a session folder in the bids structure for .",
-                is_error=True,
-                is_verbose=False,
-            )
+            log_error(env, "Could not find a session folder in the bids structure for .")
             error = True
 
         if not error:
@@ -206,9 +183,7 @@ def main():
 
                     file_paths_updated = utilities.update_set_file_path_info(set_full_path, width_fdt_file)
                     if not file_paths_updated:
-                        message = "WARNING: cannot update the set file " \
-                                  + os.path.basename(set_full_path) + " path info"
-                        print(message)
+                        log_warning(env, f"Cannot update the set file {os.path.basename(set_full_path)} path info")
 
                 s3_data_dir = config_db_obj.get_config("EEGS3DataPath")
                 if s3_obj and s3_data_dir and s3_data_dir.startswith('s3://'):
@@ -225,11 +200,11 @@ def main():
                         # Move folder in S3 bucket
                         s3_obj.upload_dir(tmp_eeg_modality_path, s3_data_eeg_modality_path)
                     except Exception as err:
-                        imaging_io_obj.log_info(
+                        log_error(
+                            env,
                             f"{tmp_eeg_modality_path} could not be uploaded to the S3 bucket. Error was\n{err}",
-                            is_error=True,
-                            is_verbose=False,
                         )
+
                         error = True
                 else:
                     assembly_bids_path = config_db_obj.get_config("EEGAssemblyBIDS")
@@ -239,16 +214,14 @@ def main():
 
                     data_eeg_modality_path = os.path.join(assembly_bids_path, eeg_session_rel_path, modality)
 
-                    """
-                    If the suject/session/modality BIDS data already exists
-                    on the destination folder, delete if first
-                    copying the data
-                    """
-                    imaging_io_obj.remove_dir(data_eeg_modality_path)
-                    imaging_io_obj.copy_file(tmp_eeg_modality_path, data_eeg_modality_path)
+                    # If the suject/session/modality BIDS data already exists
+                    # on the destination folder, delete if first
+                    # copying the data
+                    delete_dir(env, data_eeg_modality_path)
+                    copy_file(env, tmp_eeg_modality_path, data_eeg_modality_path)
 
         # Delete tmp location
-        imaging_io_obj.remove_dir(tmp_dir)
+        delete_dir(env, tmp_dir)
 
         if not error:
             # Set Status = Extracted
