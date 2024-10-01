@@ -5,7 +5,9 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.model.dicom_archive as db_dicom_archive
+import lib.db.model.session as db_session
 from lib.db.base import Base
+from lib.db.decorator.y_n_bool import YNBool
 
 
 class DbMriUpload(Base):
@@ -23,9 +25,12 @@ class DbMriUpload(Base):
     number_of_minc_created      : Mapped[Optional[int]]      = mapped_column('number_of_mincCreated')
     dicom_archive_id            : Mapped[Optional[int]] \
         = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    dicom_archive               : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
-        = relationship('DicomArchive', back_populates='upload')
-    session_id                  : Mapped[Optional[int]]      = mapped_column('SessionID')
+    session_id                  : Mapped[Optional[int]]      = mapped_column('SessionID', ForeignKey('session.ID'))
     is_candidate_info_validated : Mapped[Optional[bool]]     = mapped_column('IsCandidateInfoValidated')
     is_dicom_archive_validated  : Mapped[bool]               = mapped_column('IsTarchiveValidated')
-    is_phantom                  : Mapped[str]                = mapped_column('IsPhantom')
+    is_phantom                  : Mapped[bool]               = mapped_column('IsPhantom', YNBool)
+
+    dicom_archive               : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
+        = relationship('DbDicomArchive', back_populates='upload')
+    session                     : Mapped[Optional['db_session.DbSession']] \
+        = relationship('DbSession')
