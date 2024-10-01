@@ -11,6 +11,7 @@ import nibabel as nib
 from nilearn import image, plotting
 
 import lib.utilities as utilities
+from lib.config_file import SubjectInfo
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_candidate_errors import MriCandidateErrors
@@ -23,7 +24,6 @@ from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
-from lib.dataclass.config import SubjectConfig
 
 __license__ = "GPLv3"
 
@@ -513,7 +513,7 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_ids(self, tarchive_info_dict, scanner_id: Optional[int] = None) -> SubjectConfig:
+    def determine_subject_info(self, tarchive_info_dict, scanner_id: Optional[int] = None) -> SubjectInfo:
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
         config setting. This function will call a function in the configuration file that can be
@@ -534,22 +534,22 @@ class Imaging:
         subject_name = tarchive_info_dict[dicom_header]
 
         try:
-            subject = self.config_file.get_subject_ids(self.db, subject_name, scanner_id)
+            subject_info = self.config_file.get_subject_info(self.db, subject_name, scanner_id)
         except AttributeError:
             raise DetermineSubjectInfoError(
-                'Config file does not contain a `get_subject_ids` function. Upload will exit now.'
+                'Config file does not contain a `get_subject_info` function. Upload will exit now.'
             )
 
-        if subject is None:
+        if subject_info is None:
             raise DetermineSubjectInfoError(
                 f'Cannot get subject IDs for subject \'{subject_name}\'.\n'
                 'Possible causes:\n'
                 '- The subject name is not correctly formatted (should usually be \'PSCID_CandID_VisitLabel\').\n'
-                '- The function `get_subject_ids` in the Python configuration file is not properly defined.\n'
+                '- The function `get_subject_info` in the Python configuration file is not properly defined.\n'
                 '- Other project specific reason.'
             )
 
-        return subject
+        return subject_info
 
     def map_bids_param_to_loris_param(self, file_parameters):
         """

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 @dataclass
 class DatabaseConfig:
     """
-    Class wrapping the MariaDB / MySQL database access information.
+    Class wrapping the MariaDB / MySQL database access configuration.
     """
 
     host:     str
@@ -21,7 +21,7 @@ class DatabaseConfig:
 @dataclass
 class S3Config:
     """
-    Class wrapping AWS S3 access information.
+    Class wrapping AWS S3 access configuration.
     """
 
     aws_access_key_id:     str
@@ -31,9 +31,9 @@ class S3Config:
 
 
 @dataclass
-class CreateVisitConfig:
+class CreateVisitInfo:
     """
-    Class wrapping the parameters for automated visit creatinon (in the `Visit_Windows` table).
+    Class wrapping the parameters for automated visit creation (in the `Visit_Windows` table).
     """
 
     project_id: int
@@ -41,7 +41,7 @@ class CreateVisitConfig:
 
 
 @dataclass
-class SubjectConfig:
+class SubjectInfo:
     """
     Dataclass wrapping information about a subject configuration, including information about the
     candidate, the visit label, and the automated visit creation (or not).
@@ -56,9 +56,9 @@ class SubjectConfig:
     # For a phantom scan, the CandID is that of the scanner.
     cand_id: int
     visit_label: str
-    # `CreateVisitConfig` means that a visit can be created automatically using the parameters
+    # `CreateVisitInfo` means that a visit can be created automatically using the parameters
     # provided, `None` means that the visit needs to already exist in the database.
-    create_visit: CreateVisitConfig | None
+    create_visit: CreateVisitInfo | None
 
     @staticmethod
     def from_candidate(
@@ -66,15 +66,15 @@ class SubjectConfig:
         psc_id: str,
         cand_id: int,
         visit_label: str,
-        create_visit: CreateVisitConfig | None,
+        create_visit: CreateVisitInfo | None,
     ):
-        return SubjectConfig(name, False, psc_id, cand_id, visit_label, create_visit)
+        return SubjectInfo(name, False, psc_id, cand_id, visit_label, create_visit)
 
     @staticmethod
     def from_phantom(
         name: str,
         cand_id: int,
         visit_label: str,
-        create_visit: CreateVisitConfig | None,
+        create_visit: CreateVisitInfo | None,
     ):
-        return SubjectConfig(name, True, 'scanner', cand_id, visit_label, create_visit)
+        return SubjectInfo(name, True, 'scanner', cand_id, visit_label, create_visit)

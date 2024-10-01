@@ -2,7 +2,7 @@
 
 import sys
 import lib.exitcode
-from lib.dataclass.config import DatabaseConfig
+from lib.config_file import DatabaseConfig
 
 import MySQLdb
 

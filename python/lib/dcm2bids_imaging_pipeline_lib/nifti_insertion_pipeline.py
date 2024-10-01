@@ -11,7 +11,7 @@ import lib.utilities as utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
-from lib.validate_subject_ids import validate_subject_ids
+from lib.validate_subject_info import validate_subject_info
 
 __license__ = "GPLv3"
 
@@ -84,14 +84,14 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         if self.dicom_archive_obj.tarchive_info_dict.keys():
             self._validate_nifti_patient_name_with_dicom_patient_name()
-            self.subject = self.imaging_obj.determine_subject_ids(
+            self.subject_info = self.imaging_obj.determine_subject_info(
                 self.dicom_archive_obj.tarchive_info_dict, self.scanner_id
             )
         else:
-            self._determine_subject_ids_based_on_json_patient_name()
+            self._determine_subject_info_based_on_json_patient_name()
 
         try:
-            validate_subject_ids(self.db_orm, self.subject)
+            validate_subject_info(self.db_orm, self.subject_info)
         except ValidateSubjectInfoError as error:
             self.imaging_obj.insert_mri_candidate_errors(
                 self.dicom_archive_obj.tarchive_info_dict['PatientName'],
@@ -310,7 +310,7 @@ class NiftiInsertionPipeline(BasePipeline):
         if error_msg:
             self.log_error_and_exit(error_msg, lib.exitcode.FILE_NOT_UNIQUE, is_error="Y", is_verbose="N")
 
-    def _determine_subject_ids_based_on_json_patient_name(self):
+    def _determine_subject_info_based_on_json_patient_name(self):
         """
         Determines the subject IDs information based on the patient name information present in the JSON file.
         """
@@ -319,7 +319,7 @@ class NiftiInsertionPipeline(BasePipeline):
         dicom_value = self.json_file_dict[dicom_header]
 
         try:
-            self.subject = self.imaging_obj.determine_subject_ids(dicom_value)
+            self.subject_info = self.imaging_obj.determine_subject_info(dicom_value)
         except DetermineSubjectInfoError as error:
             self.log_error_and_exit(
                 error.message,
@@ -425,8 +425,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # determine file BIDS entity values for the file into a dictionary
         file_bids_entities_dict = {
-            'sub': self.subject.cand_id,
-            'ses': self.subject.visit_label,
+            'sub': self.subject_info.cand_id,
+            'ses': self.subject_info.visit_label,
             'run': 1
         }
         if self.bids_categories_dict['BIDSEchoNumber']:
@@ -438,8 +438,8 @@ class NiftiInsertionPipeline(BasePipeline):
                 file_bids_entities_dict[key] = value
 
         # determine where the file should go
-        bids_cand_id = 'sub-' + str(self.subject.cand_id)
-        bids_visit = 'ses-' + self.subject.visit_label
+        bids_cand_id = 'sub-' + str(self.subject_info.cand_id)
+        bids_visit = 'ses-' + self.subject_info.visit_label
         bids_subfolder = self.bids_categories_dict['BIDSCategoryName']
 
         # determine NIfTI file name
@@ -590,8 +590,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
         self.imaging_obj.insert_protocol_violated_scan(
             patient_name,
-            self.subject.cand_id,
-            self.subject.psc_id,
+            self.subject_info.cand_id,
+            self.subject_info.psc_id,
             self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
             self.json_file_dict,
             self.trashbin_nifti_rel_path,
@@ -627,9 +627,9 @@ class NiftiInsertionPipeline(BasePipeline):
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
             'TarchiveID': self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
             'MincFile': file_rel_path,
-            'PatientName': self.subject.name,
-            'CandID': self.subject.cand_id,
-            'Visit_label': self.subject.visit_label,
+            'PatientName': self.subject_info.name,
+            'CandID': self.subject_info.cand_id,
+            'Visit_label': self.subject_info.visit_label,
             'Scan_type': self.scan_type_id,
             'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
             'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
@@ -691,7 +691,7 @@ class NiftiInsertionPipeline(BasePipeline):
         Creates the pic image of the NIfTI file.
         """
         file_info = {
-            'cand_id': self.subject.cand_id,
+            'cand_id': self.subject_info.cand_id,
             'data_dir_path': self.data_dir,
             'file_rel_path': self.assembly_nifti_rel_path,
             'is_4D_dataset': True if self.json_file_dict['time'] else False,

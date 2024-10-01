@@ -3,7 +3,7 @@
 import re
 from lib.database import Database
 from lib.imaging import Imaging
-from lib.dataclass.config import CreateVisitConfig, DatabaseConfig, S3Config, SubjectConfig
+from lib.config_file import CreateVisitInfo, DatabaseConfig, S3Config, SubjectInfo
 
 
 mysql: DatabaseConfig = DatabaseConfig(
@@ -23,26 +23,26 @@ s3: S3Config = S3Config(
 )
 
 
-def get_subject_ids(db: Database, subject_name: str, scanner_id: int | None = None) -> SubjectConfig | None:
+def get_subject_info(db: Database, subject_name: str, scanner_id: int | None = None) -> SubjectInfo | None:
     imaging = Imaging(db, False)
 
     phantom_match   = re.search(r'(pha)|(test)', subject_name, re.IGNORECASE)
     candidate_match = re.search(r'([^_]+)_(\d+)_([^_]+)', subject_name, re.IGNORECASE)
 
     if phantom_match:
-        return SubjectConfig.from_phantom(
+        return SubjectInfo.from_phantom(
             name         = subject_name,
             # Pass the scanner candidate CandID. If the scanner candidate does not exist in the
             # database yet, create it in this function.
             cand_id      = imaging.get_scanner_candid(scanner_id),
             visit_label  = subject_name.strip(),
-            create_visit = CreateVisitConfig(
+            create_visit = CreateVisitInfo(
                project_id = 1, # Change to relevant project ID
                cohort_id  = 1, # Change to relevant cohort ID
             ),
         )
     elif candidate_match:
-        return SubjectConfig.from_candidate(
+        return SubjectInfo.from_candidate(
             name         = subject_name,
             psc_id       = candidate_match.group(1),
             cand_id      = int(candidate_match.group(2)),
