@@ -160,7 +160,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT
         )
-        stdout, stderr = dcm2niix_process.communicate()
+        stdout, _ = dcm2niix_process.communicate()
         self.log_info(stdout, is_error="N", is_verbose="Y")
 
         return nifti_tmp_dir
@@ -302,7 +302,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             nifti_insertion_command.append("-v")
 
         insertion_process = subprocess.Popen(nifti_insertion_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr = insertion_process.communicate()
+        stdout, _ = insertion_process.communicate()
 
         if insertion_process.returncode == 0:
             message = f"run_nifti_insertion.py successfully executed for file {nifti_file_path}"

@@ -75,7 +75,7 @@ class LorisGetOpt:
         self.config_info = None
 
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "".join(self.short_options), self.long_options)
+            opts, _ = getopt.getopt(sys.argv[1:], "".join(self.short_options), self.long_options)
         except getopt.GetoptError as err:
             print(err)
             print(self.usage)

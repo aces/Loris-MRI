@@ -63,7 +63,7 @@ def main():
     )
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hp:d:csinat:v', long_options)
+        opts, _ = getopt.getopt(sys.argv[1:], 'hp:d:csinat:v', long_options)
     except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)
@@ -321,7 +321,7 @@ def read_and_insert_bids(
             event_metadata = json.load(metadata_file)
         blake2 = lib.utilities.compute_blake2b_hash(root_event_metadata_file.path)
         physio = lib.physiological.Physiological(db, verbose)
-        file_id, dataset_tag_dict = physio.insert_event_metadata(
+        _, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,
             event_metadata_file=event_metadata_path,
             physiological_file_id=None,

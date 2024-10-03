@@ -722,7 +722,7 @@ class NiftiInsertionPipeline(BasePipeline):
             push_to_s3_cmd.append("-v")
 
         s3_process = subprocess.Popen(push_to_s3_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr = s3_process.communicate()
+        stdout, _ = s3_process.communicate()
 
         if s3_process.returncode == 0:
             message = f"run_push_imaging_files_to_s3_pipeline.py successfully executed for Upload ID {self.upload_id}"

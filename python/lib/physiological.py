@@ -937,7 +937,7 @@ class Physiological:
             if len(tag_string) > 0:
                 hed_tag = next(filter(lambda tag: tag['Name'] == leaf_node, list(hed_union)), None)
                 if not hed_tag:
-                    print('ERROR: UNRECOGNIZED HED TAG: {}'.format(tag_string))
+                    print(f'ERROR: UNRECOGNIZED HED TAG: {tag_string}')
                     raise
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id
