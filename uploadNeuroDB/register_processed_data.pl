@@ -216,7 +216,7 @@ my $file    =   NeuroDB::File->new(\$dbh);
 $file->loadFileFromDisk($filename);
 
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
-    
+
     # Map dicom fields
     &NeuroDB::MRI::mapDicomParameters(\$file);
     print LOG "\n==>Mapped DICOM parameters\n";
@@ -229,7 +229,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 }
 
 
-# ----- STEP 2: Verify PSC information using whatever field contains the site string 
+# ----- STEP 2: Verify PSC information using whatever field contains the site string
 #       (only for minc files)
 my  ($center_name,$centerID);
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
@@ -245,8 +245,8 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
     }
     ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh, $db);
     my  $psc    =   $center_name;
-    if  (!$psc)     { 
-        print LOG "\nERROR: No center found for this candidate \n\n"; 
+    if  (!$psc)     {
+        print LOG "\nERROR: No center found for this candidate \n\n";
         exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
     print LOG  "\n==> Verifying acquisition center\n - Center Name  : $center_name\n - CenterID     : $centerID\n";
@@ -317,14 +317,14 @@ $file->setFileData('ScannerID',$scannerID);
 print LOG "\t -> Set ScannerID to $scannerID.\n";
 
 
-# ----- STEP 6: Determine AcquisitionProtocolID based on $scanType
+# ----- STEP 6: Determine MriScanTypeID based on $scanType
 my  ($acqProtID)    =   getAcqProtID($scanType,$dbh);
 if  (!defined($acqProtID))  {
-    print LOG "\nERROR: could not determine AcquisitionProtocolID based on scanType $scanType.\n\n";
+    print LOG "\nERROR: could not determine MriScanTypeID based on scanType $scanType.\n\n";
     exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }
-$file->setFileData('AcquisitionProtocolID',$acqProtID);
-print LOG "\t -> Set AcquisitionProtocolID to $acqProtID.\n";
+$file->setFileData('MriScanTypeID',$acqProtID);
+print LOG "\t -> Set MriScanTypeID to $acqProtID.\n";
 
 
 # ----- STEP 7: Set other parameters based on command line arguments
@@ -354,7 +354,7 @@ if  (!NeuroDB::MRI::is_unique_hash(\$file)) {
 # ----- STEP 9: Copy files to assembly folder and register them into the db.
 # Rename and copy file into assembly folder
 my $file_protocol_identified    =   &copy_file(\$filename, $subjectIDsref, $scanType, \$file);
-my $file_path   =   $filename; 
+my $file_path   =   $filename;
 $file_path      =~  s/$data_dir\///i;
 print "new NAME: ".$file_protocol_identified ."\n";
 $file->setFileData('File', $file_path);
@@ -366,7 +366,7 @@ $fileID     =   &NeuroDB::MRI::register_db(\$file);
 # if we don't have a valid MRIID
 unless  ($fileID)   {
     # tell the user something went wrong
-    print LOG "\n==> FAILED TO REGISTER FILE $filename!\n\n";    
+    print LOG "\n==> FAILED TO REGISTER FILE $filename!\n\n";
     # and exit
     exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 }
@@ -410,7 +410,7 @@ RETURNS: session ID
 
 sub getSessionID    {
     my  ($sourceFileID,$dbh)    =   @_;
-    
+
     # get sessionID using sourceFileID
     my  ($sessionID, %subjectIDsref);
     my  $query  =   "SELECT f.SessionID, " .
@@ -455,7 +455,7 @@ RETURNS: scanner ID
 =cut
 
 sub getScannerID    {
-    my  ($sourceFileID,$dbh)    =   @_;    
+    my  ($sourceFileID,$dbh)    =   @_;
 
     my $scannerID;
     my $query   =   "SELECT f.ScannerID AS ScannerID " .
@@ -478,8 +478,8 @@ sub getScannerID    {
 
 =head3 getAcqProtID($scanType, $dbh)
 
-This function returns the C<AcquisitionProtocolID> of the file to register in
-the database based on C<scanType> in the C<mri_scan_type> table.
+This function returns the C<MriScanTypeID> of the file to register in
+the database based on C<ScanType> in the C<mri_scan_type> table.
 
 INPUTS:
   - $scanType: scan type
@@ -493,14 +493,14 @@ sub getAcqProtID    {
     my  ($scanType,$dbh)    =   @_;
 
     my  $acqProtID;
-    my  $query  =   "SELECT ID " .
+    my  $query  =   "SELECT MriScanTypeID " .
                     "FROM mri_scan_type " .
-                    "WHERE Scan_type=?";
+                    "WHERE MriScanTypeName=?";
     my  $sth    =   $dbh->prepare($query);
     $sth->execute($scanType);
     if($sth->rows > 0) {
         my $row     =   $sth->fetchrow_hashref();
-        $acqProtID  =   $row->{'ID'};
+        $acqProtID  =   $row->{'MriScanTypeID'};
     }else{
         return  undef;
     }
@@ -561,7 +561,7 @@ sub copy_file {
 
     my $cmd     =   "cp $$filename $new_name";
     system($cmd);
-    
+
     print LOG "File $$filename \n moved to:\n $new_name\n";
     $$filename  =   $new_name;
 
@@ -619,13 +619,13 @@ RETURNS: directory where the MINC files will go
 
 sub which_directory {
     my ($subjectIDsref) =   @_;
-    
+
     my %subjectIDs  =   %$subjectIDsref;
     my $dir         =   $data_dir;
 
     $dir    =   "$dir/assembly/$subjectIDs{'CandID'}/$subjectIDs{'visitLabel'}/mri";
     $dir    =~  s/ //;
-    
+
     return ($dir);
 }
 
@@ -652,7 +652,7 @@ sub insert_intermedFiles {
 
     return undef if ((!$fileID) || (!$inputFileIDs) || (!$tool));
 
-    # Prepare query to execute in the for loop 
+    # Prepare query to execute in the for loop
     my $query   = "INSERT INTO files_intermediary " .
                   "(Output_FileID, Input_FileID, Tool) " .
                   "Values (?, ?, ?)";

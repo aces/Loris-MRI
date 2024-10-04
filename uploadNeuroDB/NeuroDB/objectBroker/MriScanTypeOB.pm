@@ -68,7 +68,7 @@ use NeuroDB::objectBroker::ObjectBrokerException;
 
 use TryCatch;
 
-my @MRI_SCAN_TYPE_FIELDS = qw(ID Scan_type);
+my @MRI_SCAN_TYPE_FIELDS = qw(MriScanTypeID MriScanTypeName);
 
 =pod
 
@@ -99,15 +99,15 @@ INPUTS:
     - reference to a hash array that contains the column values that the MRI records
       should have in order to be part of the result set (key: column name, value: column
       value).
-      
+
 RETURNS: a reference to an array of hash references. Every hash contains the values
         for a given row returned by the method call: the key/value pairs contain
-        the name of a column (see C<@MRI_SCAN_TYPE_FIELDS>) and the value it 
+        the name of a column (see C<@MRI_SCAN_TYPE_FIELDS>) and the value it
         holds, respectively. As an example, suppose array C<$r> contains the result of a
-        given call to this function. One would fetch the C<Scan_type> of the 2nd record 
-        returned using C<$r->[1]->{'Scan_type'}>.
+        given call to this function. One would fetch the C<MriScanTypeName> of the 2nd record
+        returned using C<$r->[1]->{'MriScanTypeName'}>.
         If the method is called with C<$isCount> set to true, then it will return
-        a reference to an array containing a single hash reference, its unique key being 
+        a reference to an array containing a single hash reference, its unique key being
         C<'COUNT(*)'> with the associated value set to the selected count.
 =cut
 
@@ -115,7 +115,7 @@ sub get {
 	my($self, $isCount, $columnValuesRef) = @_;
 
     my @where;
-    
+
     if (%$columnValuesRef) {
         foreach my $k (keys %$columnValuesRef) {
             if(!grep($k eq $_, @MRI_SCAN_TYPE_FIELDS)) {

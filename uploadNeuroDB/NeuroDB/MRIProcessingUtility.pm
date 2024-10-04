@@ -77,10 +77,10 @@ use DateTime;
 use Time::Piece;
 
 ## Define Constants ##
-my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
-                             # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary = 'N'; # notification_spool message flag for messages to be displayed 
-                             # with SUMMARY Option in the front-end/imaging_uploader 
+my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed
+                             # with DETAILED OPTION in the front-end/imaging_uploader
+my $notify_notsummary = 'N'; # notification_spool message flag for messages to be displayed
+                             # with SUMMARY Option in the front-end/imaging_uploader
 
 
 =pod
@@ -91,7 +91,7 @@ Creates a new instance of this class. The parameter C<$dbhr> is a reference
 to a C<DBI> database handle, used to set the object's database handle, so that
 all the DB-driven methods will work.
 
-INPUT: 
+INPUT:
   - $db      : database object
   - $dbhr    : DBI database handle reference
   - $debug   : degug flag (1 for debug, 0 otherwise)
@@ -112,7 +112,7 @@ sub new {
            "Usage: ".$params."->new(\$databaseHandleReference)"
        );
     }
-    
+
     unless(defined $db && blessed($db) && $db->isa('NeuroDB::Database')) {
         croak(
            "Usage: ".$params."->new(\$databaseObject)"
@@ -155,7 +155,7 @@ sub new {
     $self->{'logfile'}  = $logfile;
     $self->{'db'}       = $db;
     $self->{'configOB'} = $configOB;
-    
+
     return bless $self, $params;
 }
 
@@ -355,7 +355,7 @@ sub extractAndParseTarchive {
     my $study_dir = $this->{TmpDir}  . "/" .
         $this->extract_tarchive($tarchive, $upload_id, $seriesuid);
     my $ExtractSuffix  = basename($tarchive, ".tar");
-    # get rid of the tarchive Prefix 
+    # get rid of the tarchive Prefix
     $ExtractSuffix =~ s/DCM_(\d{4}-\d{2}-\d{2})?_//;
     my $info       = "head -n 12 $this->{TmpDir}/${ExtractSuffix}.meta";
     my $header     = `$info`;
@@ -373,9 +373,9 @@ sub extractAndParseTarchive {
 
 This function does:
 1) Determine subject's ID based on scanner ID and DICOM archive information.
-2) Call the C<CreateMRICandidate> function (will create the candidate if it does 
+2) Call the C<CreateMRICandidate> function (will create the candidate if it does
 not exists and C<createCandidates> config option is set to yes)
-3) Call the C<validateCandidate> to validate the candidate information 
+3) Call the C<validateCandidate> to validate the candidate information
 (it will return a C<CandMismatchError> if there is one)
 
 INPUTS:
@@ -518,7 +518,7 @@ QUERY
         }
 
         return %tarchiveInfo;
-        
+
     } else {
 
         my $tarchiveOB = NeuroDB::objectBroker::TarchiveOB->new(db => $this->{'db'});
@@ -635,7 +635,7 @@ sub determinePSC {
             $this->{LOG}->print($message);
             $this->spool($message, 'N', $upload_id, $notify_detailed);
     }
-    
+
     return ($center_name, $centerID);
 }
 
@@ -677,7 +677,7 @@ sub determineProjectID {
 
 =head3 determineScannerID($tarchiveInfo, $to_log, $centerID, $projectID, $upload_id)
 
-Determines which scanner ID was used for DICOM acquisitions. Note, if 
+Determines which scanner ID was used for DICOM acquisitions. Note, if
 a scanner ID is not already associated to the scanner information found
 in the DICOM headers, then a new scanner will automatically be created.
 
@@ -818,7 +818,7 @@ RETURNS:
 =cut
 
 sub getAcquisitionProtocol {
-   
+
     my $this = shift;
     my ($file,$subjectIDsref,$tarchiveInfoRef,$centerID,$minc,
         $acquisitionProtocol,$bypass_extra_file_checks, $upload_id, $data_dir) = @_;
@@ -837,8 +837,8 @@ sub getAcquisitionProtocol {
                                    $centerID,
                                    $subjectIDsref,
                                    $tarchiveInfoRef,
-                                   $file, 
-                                   $this->{dbhr}, 
+                                   $file,
+                                   $this->{dbhr},
                                    $this->{'db'},
                                    $minc,
                                    $upload_id,
@@ -878,16 +878,16 @@ sub getAcquisitionProtocol {
 
         if ($bypass_extra_file_checks == 0) {
             $extra_validation_status = $this->extra_file_checks(
-                $acquisitionProtocolID, 
-                $file, 
-                $subjectIDsref, 
+                $acquisitionProtocolID,
+                $file,
+                $subjectIDsref,
                 $tarchiveInfoRef->{'PatientName'},
                 $data_dir
             );
             $message = "\nextra_file_checks from table mri_protocol_check " .
                      "logged in table mri_violations_log: $extra_validation_status\n";
             $this->{LOG}->print($message);
-            
+
             # 'warn' and 'exclude' are errors, while 'pass' is not
             # log in the notification_spool_table the $Verbose flag accordingly
             if ($extra_validation_status ne 'pass'){
@@ -902,7 +902,7 @@ sub getAcquisitionProtocol {
             $acquisitionProtocol, $this->{'db'}
         );
     }
-    
+
     return ($acquisitionProtocol, $acquisitionProtocolID, $extra_validation_status);
 }
 
@@ -928,14 +928,14 @@ RETURNS:
 =cut
 
 sub extra_file_checks() {
-      
+
     my $this          = shift;
     my $scan_type     = shift;
     my $file          = shift;
     my $subjectIDsref = shift;
     my $pname         = shift;
     my $data_dir      = shift;
-    
+
     my $candID        = $subjectIDsref->{'CandID'};
     my $projectID     = $subjectIDsref->{'ProjectID'};
     my $cohortID      = $subjectIDsref->{'CohortID'};
@@ -944,7 +944,7 @@ sub extra_file_checks() {
     ## Step 1 - select all distinct exclude and warning headers for the scan type
     my $query = "SELECT DISTINCT(mpc.Header) FROM mri_protocol_checks mpc "
               . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
-              . "WHERE Scan_type=? AND Severity=?";
+              . "WHERE MriScanTypeID=? AND Severity=?";
     $query .= defined $projectID
         ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
         : ' AND mpcgt.ProjectID IS NULL';
@@ -968,7 +968,7 @@ sub extra_file_checks() {
         push(@bindValues, $cohortID) if defined $cohortID;
         push(@bindValues, $visitLabel)   if defined $visitLabel;
         $sth->execute(@bindValues);
-        
+
         my @headers = map { $_->{'Header'} } @{ $sth->fetchall_arrayref({}) };
         my %validFields = $this->loop_through_protocol_violations_checks(
             $scan_type, $severity, \@headers, $file, $projectID, $cohortID, $visitLabel
@@ -1057,7 +1057,7 @@ sub loop_through_protocol_violations_checks {
     # query to fetch list of valid protocols in mri_protocol_checks table
     my $query = "SELECT * FROM mri_protocol_checks mpc "
               . "JOIN mri_protocol_checks_group_target mpcgt USING(MriProtocolChecksGroupID) "
-              . "WHERE mpc.Scan_type=? AND mpc.Severity=? AND mpc.Header=? ";
+              . "WHERE mpc.MriScanTypeID=? AND mpc.Severity=? AND mpc.Header=? ";
     $query .= defined $projectID
         ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
         : ' AND mpcgt.ProjectID IS NULL';
@@ -1092,9 +1092,9 @@ sub loop_through_protocol_violations_checks {
                 push(@valid_ranges, $valid_range);
             }
             push(@valid_regexs, $row->{'ValidRegex'}) if $row->{'ValidRegex'};
-            
+
             # the group on each row should be the same if the mri_protocol_checks_group_target
-            # table was setup properly 
+            # table was setup properly
             $mriProtocolChecksGroupID = $row->{'MriProtocolChecksGroupID'};
         }
 
@@ -1155,7 +1155,7 @@ sub insert_into_mri_violations_log {
         'PatientName'            => $pname,
         'CandID'                 => $candID,
         'Visit_label'            => $visit_label,
-        'Scan_type'              => $scan_type,
+        'MriScanTypeID'          => $scan_type,
         'Severity'               => $severity,
         'EchoTime'               => $file->getParameter('echo_time'),
         'PhaseEncodingDirection' => $file->getParameter('phase_encoding_direction'),
@@ -1192,7 +1192,7 @@ sub insert_into_mri_violations_log {
                 && $dbViolLog->{'EchoTime'} eq $newViolationsLog{'EchoTime'}
                 && $dbViolLog->{'EchoNumber'} eq $newViolationsLog{'EchoNumber'}
                 && $dbViolLog->{'PhaseEncodingDirection'} eq $newViolationsLog{'PhaseEncodingDirection'}
-                && $dbViolLog->{'Scan_type'} eq $newViolationsLog{'Scan_type'}
+                && $dbViolLog->{'MriScanTypeID'} eq $newViolationsLog{'MriScanTypeID'}
                 && $dbViolLog->{'Severity'} eq $newViolationsLog{'Severity'}
                 && $dbViolLog->{'Header'} eq $newViolationsLog{'Header'}
                 && $dbViolLog->{'Value'} eq $newViolationsLog{'Value'}
@@ -1239,7 +1239,7 @@ sub loadAndCreateObjectFile {
     ########## load File object ################################
     ############################################################
     $message =  "\n==> Loading file from disk $minc\n";
-    $this->{LOG}->print($message); 
+    $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
     $file->loadFileFromDisk($minc);
 
@@ -1274,7 +1274,7 @@ RETURNS: new name of the MINC file with path relative to C<$data_dir>
 =cut
 
 sub move_minc {
-    
+
     my $this = shift;
     my ($minc, $subjectIDsref, $minc_type, $prefix, $data_dir, $hrrt, $upload_id) = @_;
     my ($new_name, $version,$cmd,$new_dir,$extension,@exts,$dir);
@@ -1373,24 +1373,24 @@ sub registerScanIntoDB {
         || (defined(&Settings::isFileToBeRegisteredGivenProtocol)
             && Settings::isFileToBeRegisteredGivenProtocol($acquisitionProtocol)
            )
-        ) 
+        )
         && (!defined($extra_validation_status) || $extra_validation_status !~ /exclude/)) {
 
         $${minc_file}->setFileData(
-            'AcquisitionProtocolID', 
-             $acquisitionProtocolID
+            'MriScanTypeID',
+            $acquisitionProtocolID
         );
-        
-        $message = "\nAcq protocol: $acquisitionProtocol " 
+
+        $message = "\nAcq protocol: $acquisitionProtocol "
             . "- ID: $acquisitionProtocolID\n";
         $this->spool($message, 'N', $upload_id, $notify_detailed);
 
         ########################################################
-        # set Date_taken = last modification timestamp ######### 
+        # set Date_taken = last modification timestamp #########
         # (can't seem to get creation timestamp) ################
         ########################################################
         $Date_taken = (stat($minc))[9];
-        
+
         ########################################################
         ##### rename and move files ############################
         ########################################################
@@ -1402,34 +1402,34 @@ sub registerScanIntoDB {
 
         ########################################################
         #################### set the new file_path #############
-        ######################################################## 
+        ########################################################
         $file_path =  $minc;
         $file_path =~ s/$data_dir\///i;
         $${minc_file}->setFileData(
-            'File', 
+            'File',
             $file_path
         );
 
         #### set the acquisition_date
         my $study_start_date = (
-            defined($${minc_file}->getParameter('study:start_year')) 
+            defined($${minc_file}->getParameter('study:start_year'))
             && defined($${minc_file}->getParameter('study:start_month'))
             && defined($${minc_file}->getParameter('study:start_day'))
-            ? DateTime->new(   
-                day        => $${minc_file}->getParameter('study:start_day'),   
-                month      => $${minc_file}->getParameter('study:start_month'), 
-                year       => $${minc_file}->getParameter('study:start_year'),  
-            )->strftime('%Y-%m-%d') 
+            ? DateTime->new(
+                day        => $${minc_file}->getParameter('study:start_day'),
+                month      => $${minc_file}->getParameter('study:start_month'),
+                year       => $${minc_file}->getParameter('study:start_year'),
+            )->strftime('%Y-%m-%d')
             : undef
-        );   
+        );
 
-        my $acquisition_date = 
+        my $acquisition_date =
             $${minc_file}->getParameter('acquisition_date')
             || $study_start_date
             || undef;
 
         print "Acquisition date: " . $acquisition_date . "\n";
-        
+
         $${minc_file}->setFileData(
             'AcquisitionDate',
             $acquisition_date
@@ -1450,7 +1450,7 @@ sub registerScanIntoDB {
         }
 
         ########################################################
-        # register into the db fixme if I ever want a dry run ## 
+        # register into the db fixme if I ever want a dry run ##
         ########################################################
         $message = "\nRegistering file into database\n";
         $this->spool($message, 'N', $upload_id, $notify_detailed);
@@ -1532,7 +1532,7 @@ sub dicom_to_minc {
         my $pattern = join('$\'\t\'', quotemeta($studyUID), quotemeta($seriesUID), quotemeta($echo), quotemeta($seriesDesc));
 
         # For each file in $study_dir...
-        my $d2m_cmd = "find $study_dir -type f ";                        
+        my $d2m_cmd = "find $study_dir -type f ";
 
         # ...invoke get_dicom_info to get its study UID, series instance UID, echo time, series description and file name
         $d2m_cmd   .= "| $get_dicom_info -studyuid -attvalue 0020 000e -echo -series_descr -file -stdin";
@@ -1549,7 +1549,7 @@ sub dicom_to_minc {
             $d2m_cmd .= " | $converter -dname '' -stdin -clobber -usecoordinates $this->{TmpDir} ";
         }
 
-        # forcing bash to make sure ANSI-C quoting ($'\t') is supported. 
+        # forcing bash to make sure ANSI-C quoting ($'\t') is supported.
         # It's not supported in some shells like Ubuntu dash.
         my $d2m_log = `/bin/bash -c "$d2m_cmd"`;
 
@@ -1588,7 +1588,7 @@ INPUTS:
 =cut
 
 sub get_mincs {
-  
+
     my $this = shift;
     my ($minc_files, $upload_id) = @_;
     my $message = '';
@@ -1629,7 +1629,7 @@ sub get_mincs {
         join("\n", @$minc_files)."\n";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-}  
+}
 
 
 =pod
@@ -1643,12 +1643,12 @@ INPUT: list of MINC files to concat
 =cut
 
 sub concat_mri {
-  
+
     my $this = shift;
     my ($minc_files) = @_;
     my ($cmd,$log,$concat_count);
     ############################################################
-    # make a list of the mincs to concat ####################### 
+    # make a list of the mincs to concat #######################
     # (avoid arg list too long errors) #########################
     ############################################################
     open CONCATFILES, ">$this->{TmpDir} /concatfilelist.txt";
@@ -1697,7 +1697,7 @@ sub registerProgs() {
     my @toregister = @_;
     foreach my $prog (@toregister) {
         my $present = `which $prog`;
-        if (!$present) { 
+        if (!$present) {
             die("$prog not found")
         };
     }
@@ -1770,9 +1770,9 @@ sub moveAndUpdateTarchive {
     my $newArchiveLocationField = $newTarchiveLocation;
     $newArchiveLocationField    =~ s/$tarchivePath\/?//g;
     $query = "UPDATE tarchive ".
-             " SET ArchiveLocation=" . 
+             " SET ArchiveLocation=" .
               ${$this->{'dbhr'}}->quote($newArchiveLocationField) .
-             " WHERE DicomArchiveID=". 
+             " WHERE DicomArchiveID=".
              ${$this->{'dbhr'}}->quote(
                 $tarchiveInfo->{'DicomArchiveID'}
              );
@@ -1790,7 +1790,7 @@ Registers a new candidate in the C<candidate> table.
 
 Note: before doing so, the following checks will be performed:
 1) check that the C<createCandidates> config option was set to yes
-2) check that the C<PSCID> given in C<$subjectIDsref> is not already associated 
+2) check that the C<PSCID> given in C<$subjectIDsref> is not already associated
 to an existing candidate
 3) check that the C<CandID> given in C<$subjectIDsref> is not already associated
 to an existing candidate
@@ -1820,15 +1820,15 @@ sub CreateMRICandidates {
     # If there already is a candidate with that PSCID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
     # that pscid and candid match so we don't do it here.
-    return if defined $pscID 
-        && $pscID ne 'scanner' 
+    return if defined $pscID
+        && $pscID ne 'scanner'
         && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr);
-    
+
     # If there already is a candidate with that CandID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
     # that pscid and candid match so we don't do it here.
     return if NeuroDB::MRI::subjectIDExists('CandID', $candID, $dbhr);
-    
+
     # return from the function if createCandidate config setting is not set
     my $configOB = $this->{'configOB'};
     return if (!$configOB->getCreateCandidates());
@@ -2002,8 +2002,8 @@ sub which_directory {
 
 Check that the candidate's information derived from the patient name field of
 the DICOM files is valid (C<CandID> and C<PSCID> of the candidate should
-correspond to the same subject in the database). It will also check that the 
-Visit Label of C<$subjectIDsref> is a valid Visit Label present in the 
+correspond to the same subject in the database). It will also check that the
+Visit Label of C<$subjectIDsref> is a valid Visit Label present in the
 C<Visit_Windows> table.
 
 INPUT: subject's ID information hash ref
@@ -2129,9 +2129,9 @@ sub computeSNR {
     my @modalities = $configOB->getComputeSnrModalities();
 
     (my $query = <<QUERY) =~ s/\n//gm;
-  SELECT    FileID, File, Scan_type
+  SELECT    FileID, File, mst.MriScanTypeName AS ScanType
   FROM      files f
-  JOIN      mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID)
+  JOIN      mri_scan_type mst ON (mst.MriScanTypeID=f.MriScanTypeID)
   WHERE     f.TarchiveSource=?
 QUERY
     print $query . "\n" if ($this->{debug});
@@ -2140,7 +2140,7 @@ QUERY
     while (my $row = $minc_file_arr->fetchrow_hashref()) {
         my $filename     = $row->{'File'};
         my $fileID       = $row->{'FileID'};
-        my $fileScanType = $row->{'Scan_type'};
+        my $fileScanType = $row->{'ScanType'};
         my $base         = basename($filename);
         my $fullpath     = "$data_dir/$filename";
         my $message;
@@ -2194,9 +2194,9 @@ sub orderModalitiesByAcq {
     my ($file, $acqProtID, $dataArr, $message, $sth);
     my ($tarchiveID, $upload_id)= @_;
 
-    my $queryAcqProt = "SELECT DISTINCT f.AcquisitionProtocolID ".
+    my $queryAcqProt = "SELECT DISTINCT f.MriScanTypeID ".
                         "FROM files f ".
-                        "WHERE f.TarchiveSource=?";   
+                        "WHERE f.TarchiveSource=?";
 
     if ($this->{debug}) {
         print $queryAcqProt . "\n";
@@ -2204,13 +2204,13 @@ sub orderModalitiesByAcq {
 
     my $acqArr = ${$this->{'dbhr'}}->prepare($queryAcqProt);
     $acqArr->execute($tarchiveID);
-    # For each of the files having this AcquisitionProtocolID
-    # load the file object to get the series_number  
+    # For each of the files having this MriScanTypeID
+    # load the file object to get the series_number
     while (my $rowAcqProt = $acqArr->fetchrow_hashref()) {
-        $acqProtID = $rowAcqProt->{'AcquisitionProtocolID'};
+        $acqProtID = $rowAcqProt->{'MriScanTypeID'};
         my $queryDataArr = "SELECT f.FileID, f.AcqOrderPerModality ".
                             "FROM files f ".
-                            "WHERE f.TarchiveSource=? AND f.AcquisitionProtocolID=?";
+                            "WHERE f.TarchiveSource=? AND f.MriScanTypeID=?";
 
         if ($this->{debug}) {
             print $queryDataArr . "\n";
