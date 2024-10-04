@@ -1,6 +1,6 @@
-class ValidateSubjectException(Exception):
+class ValidateSubjectInfoError(Exception):
     """
-    Exception raised if some subject IDs validation fails.
+    Exception raised if some subject information validation fails.
     """
 
     message: str

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session as Database
 from lib.db.model.candidate import DbCandidate
 from lib.db.query.candidate import try_get_candidate_with_cand_id
 from lib.db.query.visit import try_get_visit_window_with_visit_label
-from lib.exception.validate_subject_exception import ValidateSubjectException
+from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 
 
 # Utility class
@@ -68,4 +68,4 @@ def validate_subject(db: Database, subject: Subject, create_visit: bool):
 
 
 def validate_subject_error(subject: Subject, message: str):
-    raise ValidateSubjectException(f'Validation error for subject \'{subject.get_name()}\'.\n{message}')
+    raise ValidateSubjectInfoError(f'Validation error for subject \'{subject.get_name()}\'.\n{message}')

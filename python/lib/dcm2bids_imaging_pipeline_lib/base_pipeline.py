@@ -3,8 +3,8 @@ import re
 import shutil
 import sys
 
-from lib.exception.determine_subject_exception import DetermineSubjectException
-from lib.exception.validate_subject_exception import ValidateSubjectException
+from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
+from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 import lib.exitcode
 import lib.utilities
 
@@ -111,9 +111,9 @@ class BasePipeline:
         if self.dicom_archive_obj.tarchive_info_dict.keys():
             try:
                 self.subject_id_dict = self.imaging_obj.determine_subject_ids(self.dicom_archive_obj.tarchive_info_dict)
-            except DetermineSubjectException as exception:
+            except DetermineSubjectInfoError as error:
                 self.log_error_and_exit(
-                    exception.message,
+                    error.message,
                     lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
                     is_error="Y",
                     is_verbose="N"
@@ -259,8 +259,8 @@ class BasePipeline:
             self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
             )
-        except ValidateSubjectException as exception:
-            self.log_info(exception.message, is_error='Y', is_verbose='N')
+        except ValidateSubjectInfoError as error:
+            self.log_info(error.message, is_error='Y', is_verbose='N')
             self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
             )
