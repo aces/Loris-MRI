@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 import sys
 from typing import Never
@@ -8,6 +7,7 @@ import lib.exitcode
 import lib.utilities
 from lib.database import Database
 from lib.database_lib.config import Config
+from lib.db.connect import connect_to_database
 from lib.dicom_archive import DicomArchive
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
@@ -16,7 +16,6 @@ from lib.imaging_upload import ImagingUpload
 from lib.log import Log
 from lib.session import Session
 from lib.validate_subject_info import validate_subject_info
-from lib.db.connect import connect_to_database
 
 
 class BasePipeline:

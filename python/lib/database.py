@@ -1,11 +1,11 @@
 """Allows LORIS database connectivity for LORIS-MRI python code base"""
 
 import sys
-import lib.exitcode
-from lib.config_file import DatabaseConfig
 
 import MySQLdb
 
+import lib.exitcode
+from lib.config_file import DatabaseConfig
 
 __license__ = "GPLv3"
 
