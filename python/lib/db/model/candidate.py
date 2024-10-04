@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.model.project as db_project
 import lib.db.model.session as db_session
 import lib.db.model.site as db_site
 from lib.db.base import Base
@@ -22,7 +23,8 @@ class DbCandidate(Base):
     edc                     : Mapped[Optional[date]] = mapped_column('EDC')
     sex                     : Mapped[Optional[str]]  = mapped_column('Sex')
     registration_site_id    : Mapped[int]            = mapped_column('RegistrationCenterID', ForeignKey('psc.CenterID'))
-    registration_project_id : Mapped[int]            = mapped_column('RegistrationProjectID')
+    registration_project_id : Mapped[int] \
+        = mapped_column('RegistrationProjectID', ForeignKey('Project.ProjectID'))
     ethnicity               : Mapped[Optional[str]]  = mapped_column('Ethnicity')
     active                  : Mapped[bool]           = mapped_column('Active', YNBool)
     date_active             : Mapped[Optional[date]] = mapped_column('Date_active')
@@ -38,7 +40,9 @@ class DbCandidate(Base):
     proband_sex             : Mapped[Optional[str]]  = mapped_column('ProbandSex')
     proband_sate_of_birth   : Mapped[Optional[date]] = mapped_column('ProbandDoB')
 
-    sessions          : Mapped[list['db_session.DbSession']] \
+    sessions             : Mapped[list['db_session.DbSession']] \
         = relationship('DbSession', back_populates='candidate')
-    registration_site : Mapped['db_site.DbSite'] \
+    registration_site    : Mapped['db_site.DbSite'] \
         = relationship('DbSite')
+    registration_project : Mapped['db_project.DbProject'] \
+        = relationship('DbProject')

@@ -5,6 +5,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.model.candidate as db_candidate
+import lib.db.model.project as db_project
 import lib.db.model.site as db_site
 from lib.db.base import Base
 from lib.db.decorator.y_n_bool import YNBool
@@ -16,7 +17,7 @@ class DbSession(Base):
     id                       : Mapped[int]                = mapped_column('ID', primary_key=True)
     cand_id                  : Mapped[int]                = mapped_column('CandID', ForeignKey('candidate.CandID'))
     site_id                  : Mapped[int]                = mapped_column('CenterID', ForeignKey('psc.CenterID'))
-    project_id               : Mapped[int]                = mapped_column('ProjectID')
+    project_id               : Mapped[int]                = mapped_column('ProjectID', ForeignKey('Project.ProjectID'))
     visit_number             : Mapped[Optional[int]]      = mapped_column('VisitNo')
     visit_label              : Mapped[str]                = mapped_column('Visit_label')
     cohort_id                : Mapped[int]                = mapped_column('CohortID')
@@ -50,4 +51,5 @@ class DbSession(Base):
     language_id              : Mapped[Optional[int]]      = mapped_column('languageID')
 
     candidate : Mapped['db_candidate.DbCandidate'] = relationship('DbCandidate', back_populates='sessions')
+    project   : Mapped['db_project.DbProject']     = relationship('DbProject')
     site      : Mapped['db_site.DbSite']           = relationship('DbSite')
