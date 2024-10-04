@@ -6,15 +6,15 @@ from lib.db.model.session import DbSession
 from lib.db.model.site import DbSite
 
 
-def try_get_site_with_psc_id_visit_label(db: Database, psc_id: str, visit_label: str):
+def try_get_site_with_cand_id_visit_label(db: Database, cand_id: int, visit_label: str):
     """
-    Get a session from the database using its candidate CandID and visit label, or return `None`
-    if no session is found.
+    Get a site from the database using a candidate CandID and visit label, or return `None` if no
+    site is found.
     """
 
     return db.execute(select(DbSite)
         .join(DbSession.site)
         .join(DbSession.candidate)
-        .where(DbCandidate.psc_id == psc_id)
+        .where(DbCandidate.cand_id == cand_id)
         .where(DbSession.visit_label == visit_label)
     ).scalar_one_or_none()
