@@ -1,6 +1,5 @@
 from datetime import date, datetime
 from typing import List, Optional
-from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
 import lib.db.model.dicom_archive_file as db_dicom_archive_file
@@ -12,13 +11,7 @@ class DbDicomArchive(Base):
     __tablename__ = 'tarchive'
 
     id                       : Mapped[int]                = mapped_column('TarchiveID', primary_key=True)
-    series                   : Mapped[List['db_dicom_archive_series.DbDicomArchiveSeries']] \
-        = relationship('DbDicomArchiveSeries', back_populates='archive')
-    files                    : Mapped[List['db_dicom_archive_file.DbDicomArchiveFile']] \
-        = relationship('DbDicomArchiveFile', back_populates='archive')
-    upload                   : Mapped[Optional['db_mri_upload.DbMriUpload']] \
-        = relationship('DbMriUpload', back_populates='dicom_archive')
-    study_uid                : Mapped[str]                = mapped_column('DicomArchiveID', type_ = String())
+    study_uid                : Mapped[str]                = mapped_column('DicomArchiveID')
     patient_id               : Mapped[str]                = mapped_column('PatientID')
     patient_name             : Mapped[str]                = mapped_column('PatientName')
     patient_birthdate        : Mapped[Optional[date]]     = mapped_column('PatientDoB')
@@ -49,3 +42,10 @@ class DbDicomArchive(Base):
     acquisition_metadata     : Mapped[str]                = mapped_column('AcquisitionMetadata')
     date_sent                : Mapped[Optional[datetime]] = mapped_column('DateSent')
     pending_transfer         : Mapped[int]                = mapped_column('PendingTransfer')
+
+    series : Mapped[List['db_dicom_archive_series.DbDicomArchiveSeries']] \
+        = relationship('DbDicomArchiveSeries', back_populates='archive')
+    files  : Mapped[List['db_dicom_archive_file.DbDicomArchiveFile']] \
+        = relationship('DbDicomArchiveFile', back_populates='archive')
+    upload : Mapped[Optional['db_mri_upload.DbMriUpload']] \
+        = relationship('DbMriUpload', back_populates='dicom_archive')

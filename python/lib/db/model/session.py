@@ -1,17 +1,20 @@
 from datetime import date, datetime
 from typing import Optional
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
+import lib.db.model.candidate as db_candidate
+import lib.db.model.site as db_site
 
 
 class DbSession(Base):
     __tablename__ = 'session'
 
     id                       : Mapped[int]                = mapped_column('ID', primary_key=True)
-    cand_id                  : Mapped[int]                = mapped_column('CandID')
-    center_id                : Mapped[int]                = mapped_column('CenterID')
+    cand_id                  : Mapped[int]                = mapped_column('CandID', ForeignKey('candidate.CandID'))
+    site_id                  : Mapped[int]                = mapped_column('CenterID', ForeignKey('psc.CenterID'))
     project_id               : Mapped[int]                = mapped_column('ProjectID')
-    visit_no                 : Mapped[Optional[int]]      = mapped_column('VisitNo')
+    visit_number             : Mapped[Optional[int]]      = mapped_column('VisitNo')
     visit_label              : Mapped[str]                = mapped_column('Visit_label')
     cohort_id                : Mapped[int]                = mapped_column('CohortID')
     submitted                : Mapped[str]                = mapped_column('Submitted')
@@ -42,3 +45,6 @@ class DbSession(Base):
     mri_qc_last_change_time  : Mapped[Optional[datetime]] = mapped_column('MRIQCLastChange')
     mri_caveat               : Mapped[str]                = mapped_column('MRICaveat')
     language_id              : Mapped[Optional[int]]      = mapped_column('languageID')
+
+    candidate : Mapped['db_candidate.DbCandidate'] = relationship('DbCandidate', back_populates='sessions')
+    site      : Mapped['db_site.DbSite']           = relationship('DbSite')

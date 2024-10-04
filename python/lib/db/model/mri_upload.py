@@ -21,9 +21,10 @@ class DbMriUpload(Base):
     number_of_minc_created      : Mapped[Optional[int]]      = mapped_column('number_of_mincCreated')
     dicom_archive_id            : Mapped[Optional[int]] \
         = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    dicom_archive               : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
-        = relationship('DicomArchive', back_populates='upload')
     session_id                  : Mapped[Optional[int]]      = mapped_column('SessionID')
     is_candidate_info_validated : Mapped[Optional[bool]]     = mapped_column('IsCandidateInfoValidated')
     is_dicom_archive_validated  : Mapped[bool]               = mapped_column('IsTarchiveValidated')
     is_phantom                  : Mapped[str]                = mapped_column('IsPhantom')
+
+    dicom_archive : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
+        = relationship('DicomArchive', back_populates='upload')

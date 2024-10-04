@@ -3,7 +3,7 @@
 import os
 import datetime
 import json
-from typing import Any, Optional
+from typing import Optional
 import lib.utilities as utilities
 import nibabel as nib
 import re
@@ -22,6 +22,7 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
+from lib.dataclass.config import SubjectConfig
 from lib.exception.determine_subject_exception import DetermineSubjectException
 
 __license__ = "GPLv3"
@@ -512,7 +513,7 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_ids(self, tarchive_info_dict, scanner_id: Optional[int] = None) -> dict[str, Any]:
+    def determine_subject_ids(self, tarchive_info_dict, scanner_id: Optional[int] = None) -> SubjectConfig:
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
         config setting. This function will call a function in the configuration file that can be
@@ -533,13 +534,13 @@ class Imaging:
         subject_name = tarchive_info_dict[dicom_header]
 
         try:
-            subject_id_dict = self.config_file.get_subject_ids(self.db, subject_name, scanner_id)
+            subject = self.config_file.get_subject_ids(self.db, subject_name, scanner_id)
         except AttributeError:
             raise DetermineSubjectException(
                 'Config file does not contain a `get_subject_ids` function. Upload will exit now.'
             )
 
-        if subject_id_dict == {}:
+        if subject is None:
             raise DetermineSubjectException(
                 f'Cannot get subject IDs for subject \'{subject_name}\'.\n'
                 'Possible causes:\n'
@@ -548,8 +549,7 @@ class Imaging:
                 '- Other project specific reason.'
             )
 
-        subject_id_dict['PatientName'] = subject_name
-        return subject_id_dict
+        return subject
 
     def map_bids_param_to_loris_param(self, file_parameters):
         """

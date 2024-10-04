@@ -17,6 +17,7 @@ include = [
     "python/tests",
     "python/lib/db",
     "python/lib/exception",
+    "python/lib/get_subject_session.py",
     "python/lib/validate_subject_ids.py",
 ]
 typeCheckingMode = "strict"
