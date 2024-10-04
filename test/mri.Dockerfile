@@ -1,25 +1,19 @@
 FROM python:3.11
 
 RUN cat /etc/os-release
-
-RUN apt-get update && \
-    apt-get install -y mariadb-client libzip-dev
-
-# Update the package list and install build-essential, checkinstall, and cmake
-RUN apt-get update && \
-    apt-get install -y build-essential checkinstall cmake
-
-# Install Perl and CPAN
-RUN apt-get install -y perl && \
-    apt-get install -y libterm-readline-gnu-perl && \
-    apt-get install -y perl-doc && \
-    apt-get install -y libssl-dev && \
-    apt-get install -y liblwp-protocol-https-perl && \
-    cpan CPAN
+RUN apt-get update
 
 #####################
 # Install utilities #
 #####################
+
+# Update the package list and install build-essential, checkinstall, and cmake
+# Install some general dependencies
+RUN apt-get install -y build-essential checkinstall cmake libzip-dev mariadb-client
+
+# Install Perl and update CPAN
+RUN apt-get install -y perl && \
+    cpan CPAN
 
 # Install utilities
 # - `wget` is used by some installation commands
@@ -59,14 +53,14 @@ ENV MANPATH=${MINC_TOOLKIT}/man${MANPATH:+:$MANPATH}
 ENV ANTSPATH=${MINC_TOOLKIT}/bin
 
 # Download MINC Toolkit auxiliary packages
-RUN wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/minc-toolkit-testsuite-0.1.3-20131212.deb
-RUN wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/bic-mni-models-0.1.1-20120421.deb
-RUN wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/beast-library-1.1.0-20121212.deb
+RUN wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/minc-toolkit-testsuite-0.1.3-20131212.deb && \
+    wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/bic-mni-models-0.1.1-20120421.deb && \
+    wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/beast-library-1.1.0-20121212.deb
 
 # Install MINC Toolkit auxiliary packages
-RUN dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb
-RUN dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb
-RUN dpkg -i /tmp/beast-library-1.1.0-20121212.deb
+RUN dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb && \
+    dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb && \
+    dpkg -i /tmp/beast-library-1.1.0-20121212.deb
 
 #####################
 # Install LORIS-MRI #
@@ -76,27 +70,27 @@ RUN dpkg -i /tmp/beast-library-1.1.0-20121212.deb
 RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 
 # Install the Perl libraries
-RUN cpan install Math::Round
-RUN cpan install DBI
-RUN cpan install DBD::mysql@4.052
-RUN cpan install Getopt::Tabular
-RUN cpan install Time::JulianDay
-RUN cpan install Path::Class
-RUN cpan install Archive::Extract
-RUN cpan install Archive::Zip
-RUN cpan install Pod::Perldoc
-RUN cpan install Pod::Markdown
-RUN cpan install Pod::Usage
-RUN cpan install JSON
-RUN cpan install Moose
-RUN cpan install MooseX::Privacy
-RUN cpan install TryCatch
-RUN cpan install Throwable
-RUN cpan install App::cpanminus
-RUN cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
-RUN cpan install File::Type
-RUN cpan install String::ShellQuote
-RUN cpan install DateTime
+RUN cpan install Math::Round && \
+    cpan install DBI && \
+    cpan install DBD::mysql@4.052 && \
+    cpan install Getopt::Tabular && \
+    cpan install Time::JulianDay && \
+    cpan install Path::Class && \
+    cpan install Archive::Extract && \
+    cpan install Archive::Zip && \
+    cpan install Pod::Perldoc && \
+    cpan install Pod::Markdown && \
+    cpan install Pod::Usage && \
+    cpan install JSON && \
+    cpan install Moose && \
+    cpan install MooseX::Privacy && \
+    cpan install TryCatch && \
+    cpan install Throwable && \
+    cpan install App::cpanminus && \
+    cpan install File::Type && \
+    cpan install String::ShellQuote && \
+    cpan install DateTime && \
+    cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 
 # Install the Python libraries
 COPY python/requirements.txt ./python/requirements.txt
