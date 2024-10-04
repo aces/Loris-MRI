@@ -4,6 +4,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
 import lib.db.model.dicom_archive as db_dicom_archive
+import lib.db.model.session as db_session
 
 
 class DbMriUpload(Base):
@@ -22,8 +23,11 @@ class DbMriUpload(Base):
     dicom_archive_id            : Mapped[Optional[int]] \
         = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
     dicom_archive               : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
-        = relationship('DicomArchive', back_populates='upload')
-    session_id                  : Mapped[Optional[int]]      = mapped_column('SessionID')
+        = relationship('DbDicomArchive')
+    session_id                  : Mapped[Optional[int]] \
+        = mapped_column('SessionID', ForeignKey('session.ID'))
+    session                     : Mapped[Optional['db_session.DbSession']] \
+        = relationship('DbSession')
     is_candidate_info_validated : Mapped[Optional[bool]]     = mapped_column('IsCandidateInfoValidated')
     is_dicom_archive_validated  : Mapped[bool]               = mapped_column('IsTarchiveValidated')
     is_phantom                  : Mapped[str]                = mapped_column('IsPhantom')

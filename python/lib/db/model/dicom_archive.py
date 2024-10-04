@@ -1,11 +1,12 @@
 from datetime import date, datetime
 from typing import List, Optional
-from sqlalchemy import String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
 import lib.db.model.dicom_archive_file as db_dicom_archive_file
 import lib.db.model.dicom_archive_series as db_dicom_archive_series
 import lib.db.model.mri_upload as db_mri_upload
+import lib.db.model.session as db_session
 
 
 class DbDicomArchive(Base):
@@ -43,7 +44,9 @@ class DbDicomArchive(Base):
     scanner_model            : Mapped[str]                = mapped_column('ScannerModel')
     scanner_serial_number    : Mapped[str]                = mapped_column('ScannerSerialNumber')
     scanner_software_version : Mapped[str]                = mapped_column('ScannerSoftwareVersion')
-    session_id               : Mapped[Optional[int]]      = mapped_column('SessionID')
+    session_id               : Mapped[Optional[int]]      = mapped_column('SessionID', ForeignKey('session.ID'))
+    session                  : Mapped[Optional['db_session.DbSession']] \
+        = relationship('DbSession')
     upload_attempt           : Mapped[int]                = mapped_column('uploadAttempt')
     create_info              : Mapped[Optional[str]]      = mapped_column('CreateInfo')
     acquisition_metadata     : Mapped[str]                = mapped_column('AcquisitionMetadata')
