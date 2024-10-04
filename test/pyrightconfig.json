@@ -3,5 +3,11 @@
     "exclude": ["../python/react-series-data-viewer"],
     "typeCheckingMode": "off",
     "reportDeprecated": "warning",
-    "reportMissingImports": "error"
+    "reportAbstractUsage": "error",
+    "reportInvalidTypeForm": "error",
+    "reportMissingImports": "error",
+    "reportUnboundVariable": "error",
+    "reportUnnecessaryIsInstance": "error",
+    "reportUnusedExcept": "error",
+    "reportUnusedExpression": "error"
 }

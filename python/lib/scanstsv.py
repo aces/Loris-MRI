@@ -73,16 +73,13 @@ class ScansTSV:
             return None
 
         if 'acq_time' in self.acquisition_data:
-            if isinstance(self.tsv_entries, list):
-                acq_time_list = [ele for ele in self.tsv_entries if ele['filename'] in self.acquisition_file]
-                if len(acq_time_list) == 1:
-                    # the variable name could be mri_acq_time, but is eeg originally.
-                    eeg_acq_time = acq_time_list[0]['acq_time']
-                else:
-                    print('More than one or no acquisition time has been found for ', self.acquisition_file)
-                    exit()
+            acq_time_list = [ele for ele in self.tsv_entries if ele['filename'] in self.acquisition_file]
+            if len(acq_time_list) == 1:
+                # the variable name could be mri_acq_time, but is eeg originally.
+                eeg_acq_time = acq_time_list[0]['acq_time']
             else:
-                eeg_acq_time = self.acquisition_data['acq_time']
+                print('More than one or no acquisition time has been found for ', self.acquisition_file)
+                exit()
 
             if eeg_acq_time == 'n/a':
                 return None
