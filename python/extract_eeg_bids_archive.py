@@ -3,15 +3,16 @@
 """Script that extract EEG archives"""
 
 import os
-import sys
 import re
-from lib.lorisgetopt import LorisGetOpt
-from lib.imaging_io import ImagingIO
+import sys
+
+import lib.utilities as utilities
 from lib.database import Database
 from lib.database_lib.config import Config
-from lib.exitcode import SUCCESS, BAD_CONFIG_SETTING
+from lib.exitcode import BAD_CONFIG_SETTING, SUCCESS
+from lib.imaging_io import ImagingIO
 from lib.log import Log
-import lib.utilities as utilities
+from lib.lorisgetopt import LorisGetOpt
 
 __license__ = "GPLv3"
 

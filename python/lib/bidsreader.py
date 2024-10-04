@@ -1,13 +1,13 @@
 """Reads a BIDS structure into a data dictionary using bids.grabbids."""
 
+import json
 import re
 import sys
-import json
+
+from bids import BIDSLayout
 
 import lib.exitcode
 import lib.utilities as utilities
-
-from bids import BIDSLayout
 
 # import bids
 # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1

@@ -1,16 +1,16 @@
 import datetime
 import getpass
 import json
-from lib.exception.determine_subject_exception import DetermineSubjectException
-from lib.exception.validate_subject_exception import ValidateSubjectException
-import lib.exitcode
-import lib.utilities as utilities
 import os
 import re
 import subprocess
 import sys
 
+import lib.exitcode
+import lib.utilities as utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
+from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.validate_subject_ids import validate_subject_ids
 
 __license__ = "GPLv3"
@@ -98,20 +98,20 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.subject_id_dict['visitLabel'],
                 bool(self.subject_id_dict['createVisitLabel']),
             )
-        except ValidateSubjectException as exception:
+        except ValidateSubjectInfoError as error:
             self.imaging_obj.insert_mri_candidate_errors(
                 self.dicom_archive_obj.tarchive_info_dict['PatientName'],
                 self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
                 self.json_file_dict,
                 self.nifti_path,
-                exception.message,
+                error.message,
             )
 
             if self.nifti_s3_url:  # push candidate errors to S3 if provided file was on S3
                 self._run_push_to_s3_pipeline()
 
             self.log_error_and_exit(
-                exception.message, lib.exitcode.CANDIDATE_MISMATCH, is_error='Y', is_verbose='N'
+                error.message, lib.exitcode.CANDIDATE_MISMATCH, is_error='Y', is_verbose='N'
             )
 
         # ---------------------------------------------------------------------------------------------
@@ -326,9 +326,9 @@ class NiftiInsertionPipeline(BasePipeline):
 
         try:
             self.subject_id_dict = self.imaging_obj.determine_subject_ids(dicom_value)
-        except DetermineSubjectException as exception:
+        except DetermineSubjectInfoError as error:
             self.log_error_and_exit(
-                exception.message,
+                error.message,
                 lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
                 is_error='Y',
                 is_verbose='N'
@@ -722,7 +722,7 @@ class NiftiInsertionPipeline(BasePipeline):
             push_to_s3_cmd.append("-v")
 
         s3_process = subprocess.Popen(push_to_s3_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr = s3_process.communicate()
+        stdout, _ = s3_process.communicate()
 
         if s3_process.returncode == 0:
             message = f"run_push_imaging_files_to_s3_pipeline.py successfully executed for Upload ID {self.upload_id}"

@@ -2,15 +2,15 @@
 
 """Script to mass create the pic images of inserted NIfTI files."""
 
+import getopt
 import os
 import re
 import sys
-import getopt
+
 import lib.exitcode
 from lib.database import Database
-from lib.imaging  import Imaging
 from lib.database_lib.config import Config
-
+from lib.imaging import Imaging
 
 __license__ = "GPLv3"
 
@@ -45,7 +45,7 @@ def main():
     )
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hp:s:l:fv', long_options)
+        opts, _ = getopt.getopt(sys.argv[1:], 'hp:s:l:fv', long_options)
     except getopt.GetoptError:
         print(usage)
         sys.exit(lib.exitcode.GETOPT_FAILURE)

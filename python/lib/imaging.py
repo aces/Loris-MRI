@@ -1,16 +1,16 @@
 """This class performs database queries and common imaging checks (MRI...)"""
 
-import os
 import datetime
 import json
-from typing import Any, Optional
-import lib.utilities as utilities
-import nibabel as nib
+import os
 import re
 import tarfile
+from typing import Any, Optional
 
+import nibabel as nib
 from nilearn import image, plotting
 
+import lib.utilities as utilities
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_candidate_errors import MriCandidateErrors
@@ -22,7 +22,7 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
-from lib.exception.determine_subject_exception import DetermineSubjectException
+from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 
 __license__ = "GPLv3"
 
@@ -522,7 +522,7 @@ class Imaging:
                                     from the tarchive table
         :param scanner_id         : The ScannerID if there is one
 
-        :raises DetermineSubjectException: Exception if the subject IDs cannot be determined from
+        :raises DetermineSubjectInfoError: Exception if the subject IDs cannot be determined from
                                            the configuration file.
 
         :return: Dictionary with subject IDs and visit label.
@@ -535,12 +535,12 @@ class Imaging:
         try:
             subject_id_dict = self.config_file.get_subject_ids(self.db, subject_name, scanner_id)
         except AttributeError:
-            raise DetermineSubjectException(
+            raise DetermineSubjectInfoError(
                 'Config file does not contain a `get_subject_ids` function. Upload will exit now.'
             )
 
         if subject_id_dict == {}:
-            raise DetermineSubjectException(
+            raise DetermineSubjectInfoError(
                 f'Cannot get subject IDs for subject \'{subject_name}\'.\n'
                 'Possible causes:\n'
                 '- The subject name is not correctly formatted (should usually be \'PSCID_CandID_VisitLabel\').\n'

@@ -1,9 +1,10 @@
 """Allows LORIS database connectivity for LORIS-MRI python code base"""
 
-import MySQLdb
 import sys
-import lib.exitcode
 
+import MySQLdb
+
+import lib.exitcode
 
 __license__ = "GPLv3"
 
@@ -166,9 +167,7 @@ class Database:
 
         placeholders = ','.join(map(lambda x: '%s', column_names))
 
-        query = "INSERT INTO %s (%s) VALUES (%s)" % (
-            table_name, ', '.join(column_names), placeholders
-        )
+        query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({placeholders})"
 
         if self.verbose:
             print("\nExecuting query:\n\t" + query + "\n"

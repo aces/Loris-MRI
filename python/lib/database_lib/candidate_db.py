@@ -2,7 +2,6 @@
 
 from typing_extensions import deprecated
 
-
 __license__ = "GPLv3"
 
 

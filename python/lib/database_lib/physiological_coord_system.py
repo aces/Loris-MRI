@@ -9,6 +9,7 @@
 """
 
 from typing import Dict, List
+
 # from lib.point_3d import Point3D
 # from lib.database_lib.point_3d import Point3DDB
 

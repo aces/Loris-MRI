@@ -1,9 +1,11 @@
 """This class interacts with S3 Buckets"""
 
-import boto3
-import lib.utilities
 import os
+
+import boto3
 from botocore.exceptions import ClientError, EndpointConnectionError
+
+import lib.utilities
 
 __license__ = "GPLv3"
 
@@ -214,7 +216,7 @@ class AwsS3:
         print(f"Deleting {s3_object_name}")
 
         try:
-            (s3_bucket_name, s3_bucket, s3_file_name) = self.get_s3_object_path_part(s3_object_name)
+            (_, s3_bucket, s3_file_name) = self.get_s3_object_path_part(s3_object_name)
             objects_to_delete = [{'Key': obj.key} for obj in s3_bucket.objects.filter(Prefix=s3_file_name)]
             s3_bucket.delete_objects(
                 Delete={
@@ -239,8 +241,8 @@ class AwsS3:
         print(f"Copying {src_s3_object_name} to {dst_s3_object_name}")
 
         try:
-            (src_s3_bucket_name, src_s3_bucket, src_s3_file_name) = self.get_s3_object_path_part(src_s3_object_name)
-            (dst_s3_bucket_name, dst_s3_bucket, dst_s3_file_name) = self.get_s3_object_path_part(dst_s3_object_name)
+            (_, src_s3_bucket, src_s3_file_name) = self.get_s3_object_path_part(src_s3_object_name)
+            (_, dst_s3_bucket, dst_s3_file_name) = self.get_s3_object_path_part(dst_s3_object_name)
             for obj in src_s3_bucket.objects.filter(Prefix=src_s3_file_name):
                 subcontent = obj.key.replace(src_s3_file_name, "")
                 dst_s3_bucket.Object(

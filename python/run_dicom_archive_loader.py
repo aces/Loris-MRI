@@ -5,8 +5,8 @@
 import os
 import sys
 
-from lib.lorisgetopt import LorisGetOpt
 from lib.dcm2bids_imaging_pipeline_lib.dicom_archive_loader_pipeline import DicomArchiveLoaderPipeline
+from lib.lorisgetopt import LorisGetOpt
 
 __license__ = "GPLv3"
 

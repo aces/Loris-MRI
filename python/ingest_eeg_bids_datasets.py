@@ -3,12 +3,13 @@
 """Script that ingests EEG BIDS datasets"""
 
 import os
+import subprocess
 import sys
-from lib.lorisgetopt import LorisGetOpt
+
 from lib.database import Database
 from lib.database_lib.config import Config
-from lib.exitcode import SUCCESS, INVALID_ARG
-import subprocess
+from lib.exitcode import INVALID_ARG, SUCCESS
+from lib.lorisgetopt import LorisGetOpt
 
 __license__ = "GPLv3"
 

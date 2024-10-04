@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
+
 from lib.db.model.candidate import DbCandidate
 
 

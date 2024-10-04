@@ -1,11 +1,11 @@
 """Deals with sub-XXX_scans.tsv BIDS files"""
 
 import os
+
 from dateutil.parser import parse
 
 import lib
 import lib.utilities as utilities
-
 
 __license__ = "GPLv3"
 

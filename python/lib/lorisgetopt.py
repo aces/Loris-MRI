@@ -1,15 +1,13 @@
 """"""
 import getopt
-
-import lib.exitcode
-import lib.utilities
 import os
 import sys
 
+import lib.exitcode
+import lib.utilities
 from lib.aws_s3 import AwsS3
 from lib.database import Database
 from lib.database_lib.config import Config
-
 
 __license__ = "GPLv3"
 
@@ -75,7 +73,7 @@ class LorisGetOpt:
         self.config_info = None
 
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "".join(self.short_options), self.long_options)
+            opts, _ = getopt.getopt(sys.argv[1:], "".join(self.short_options), self.long_options)
         except getopt.GetoptError as err:
             print(err)
             print(self.usage)

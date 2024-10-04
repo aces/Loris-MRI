@@ -1,18 +1,17 @@
 """Deals with MRI BIDS datasets and register them into the database."""
 
-import os
-import json
 import getpass
+import json
+import os
 import re
 import sys
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.candidate  import Candidate
-from lib.session    import Session
-from lib.imaging    import Imaging
-from lib.scanstsv   import ScansTSV
-
+from lib.candidate import Candidate
+from lib.imaging import Imaging
+from lib.scanstsv import ScansTSV
+from lib.session import Session
 
 __license__ = "GPLv3"
 

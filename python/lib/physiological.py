@@ -1,25 +1,25 @@
 """This class performs database queries for BIDS physiological dataset (EEG, MEG...)"""
 
-import sys
-import re
 import os
+import re
 import subprocess
+import sys
+from dataclasses import dataclass
 from functools import reduce
 
 import lib.exitcode
-from dataclasses import dataclass
-from lib.database_lib.parameter_type import ParameterType
-from lib.database_lib.physiological_file import PhysiologicalFile
-from lib.database_lib.physiological_event_file import PhysiologicalEventFile
-from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
-from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
-from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
 from lib.database_lib.bids_event_mapping import BidsEventMapping
-from lib.database_lib.physiological_parameter_file import PhysiologicalParameterFile
+from lib.database_lib.config import Config
+from lib.database_lib.parameter_type import ParameterType
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
+from lib.database_lib.physiological_event_file import PhysiologicalEventFile
+from lib.database_lib.physiological_file import PhysiologicalFile
+from lib.database_lib.physiological_parameter_file import PhysiologicalParameterFile
+from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
+from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
+from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
 from lib.point_3d import Point3D
-from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -937,7 +937,7 @@ class Physiological:
             if len(tag_string) > 0:
                 hed_tag = next(filter(lambda tag: tag['Name'] == leaf_node, list(hed_union)), None)
                 if not hed_tag:
-                    print('ERROR: UNRECOGNIZED HED TAG: {}'.format(tag_string))
+                    print(f'ERROR: UNRECOGNIZED HED TAG: {tag_string}')
                     raise
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id

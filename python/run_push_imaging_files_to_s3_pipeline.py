@@ -5,8 +5,8 @@
 import os
 import sys
 
-from lib.lorisgetopt import LorisGetOpt
 from lib.dcm2bids_imaging_pipeline_lib.push_imaging_files_to_s3_pipeline import PushImagingFilesToS3Pipeline
+from lib.lorisgetopt import LorisGetOpt
 
 __license__ = "GPLv3"
 
