@@ -1,110 +1,94 @@
-""""""
+from datetime import datetime
+import sys
+from typing import Never
 
-import os
-
-from lib.database_lib.notification import Notification
-
-__license__ = "GPLv3"
+from lib.db.model.notification_spool import DbNotificationSpool
+from lib.dataclass.env import Env
 
 
-class Log:
+def log(env: Env, message: str):
     """
-    Class that handles the log edition of the imaging pipeline.
+    Log a standard message.
     """
 
-    def __init__(self, db, data_dir, script_name, log_file_basename, script_options, verbose):
-        """
-        Initialize the Log class and creates the log file in which all messages created
-        by the script being run will be stored.
+    print(message)
+    write_to_log_file(env, message)
+    register_notification(env, message, False, False)
 
-        :param db: database class object
-         :type db: object
-        :param data_dir: path to the imaging data_dir
-         :type data_dir: str
-        :param script_name: name of the script creating this log
-         :type script_name: str
-        :param log_file_basename: the basename to use for the log file name
-         :type log_file_basename: str
-        :param script_options: dictionary with all the script options to be logged
-         :type script_options: dict
-        :param verbose: whether to be verbose
-         :type verbose: bool
-        """
-        self.db = db
-        self.verbose = verbose
 
-        self.script_name = script_name
-        self.script_options = script_options
-        self.log_dir = os.path.join(data_dir, "logs", script_name)
-        if not os.path.isdir(self.log_dir):
-            os.makedirs(self.log_dir)
-        self.log_file = os.path.join(self.log_dir, f"{log_file_basename}.log")
+def log_verbose(env: Env, message: str):
+    """
+    Log a verbose message, which is displayed only if the script is running in verbose mode.
+    """
 
-        # set notification_db_obj to None until we get a confirmed UploadID to insert proper notification into the
-        # database related to the UploadID
-        self.notification_db_obj = None
+    if env.verbose:
+        print(message)
 
-        self.create_log_header()
+    write_to_log_file(env, message)
+    register_notification(env, message, False, True)
 
-    def initiate_notification_db_obj(self, upload_id):
-        """
-        Instantiate the notification_db_obj to be able to write in the notification table. This can only be done
-        once we know the upload_id, hence the separate function to initiate the database object.
 
-        :param upload_id: UploadID that will be used as the ProcessID for the notification table
-         :type upload_id: int
-        """
-        self.notification_db_obj = Notification(
-            self.db,
-            self.verbose,
-            notification_type=f"PYTHON {self.script_name.replace('_', ' ').upper()}",
-            notification_origin=f"{self.script_name}.py",
-            process_id=upload_id
-        )
+def log_warning(env: Env, message: str):
+    """
+    Log a warning message.
+    """
 
-    def write_to_notification_table(self, message, is_error, is_verbose):
-        """
-        Writes a message into the notification table.
+    full_message = f"WARNING: {message}"
+    print(full_message, file=sys.stderr)
+    write_to_log_file(env, full_message)
+    register_notification(env, full_message, True, False)
 
-        :param message: message to be logged in the notification table
-         :type message: str
-        :param is_error: 'Y' or 'N' to be inserted into the notification table column 'Error'
-         :type is_error: str
-        :param is_verbose: 'Y' or 'N' to be inserted into the notification table column 'Verbose'
-         :type is_verbose: str
-        """
-        # if notification_db_obj initiated, write message to notification table
-        if self.notification_db_obj:
-            self.notification_db_obj.write_to_notification_spool(message, is_error, is_verbose)
 
-    def write_to_log_file(self, message):
-        """
-        Function that writes a message at the end of the log file.
+def log_error(env: Env, message: str):
+    """
+    Log an error message without exiting the program.
+    """
 
-        :param message: the message to be written in the log file
-         :type message: str
-        """
+    full_message = f"ERROR: {message}"
+    print(full_message, file=sys.stderr)
+    write_to_log_file(env, full_message)
+    register_notification(env, full_message, True, False)
 
-        f = open(self.log_file, "a")
-        f.write(message)
-        f.close()
 
-    def create_log_header(self):
-        """
-        Function that creates the header of the log file with the script name information
-        as well as the options that were provided to the script.
-        """
+def log_error_exit(env: Env, message: str, exit_code: int = -1) -> Never:
+    """
+    Log an error message and exit the program, executing the cleanup procedures while doing so.
+    """
 
-        run_info = os.path.basename(self.log_file[:-13])
-        message = f"""
-----------------------------------------------------------------
-  {run_info.replace("_", " ").upper()}
-----------------------------------------------------------------
+    log_error(env, message)
+    env.run_cleanups()
+    sys.exit(exit_code)
 
-Script run with the following options set
-"""
-        for key in self.script_options:
-            if self.script_options[key]["value"]:
-                message += f"  --{key}: {self.script_options[key]['value']}\n"
 
-        self.write_to_log_file(f"{message}\n\n")
+def write_to_log_file(env: Env, message: str):
+    """
+    Write a message to the log file of the environment.
+    """
+
+    with open(env.log_file, 'a') as file:
+        file.write(f"{message}\n")
+
+
+def register_notification(env: Env, message: str, is_error: bool, is_verbose: bool):
+    """
+    Log a message in the database notifications if the notification information of the environment
+    have been initialized.
+    """
+
+    if env.notif_info is None:
+        return
+
+    notification = DbNotificationSpool(
+        type_id      = env.notif_info.type_id,
+        time_spooled = datetime.now(),
+        message      = message,
+        origin       = env.notif_info.origin,
+        process_id   = env.notif_info.process_id,
+        error        = is_error,
+        verbose      = is_verbose,
+        sent         = False,
+        active       = True,
+    )
+
+    env.db.add(notification)
+    env.db.commit()

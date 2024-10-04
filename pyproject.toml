@@ -16,7 +16,11 @@ select = ["E", "W"]
 include = [
     "python/tests",
     "python/lib/db",
+    "python/lib/dataclass",
     "python/lib/exception",
+    "python/lib/file_system.py",
+    "python/lib/log.py",
+    "python/lib/make_env.py",
     "python/lib/validate_subject_ids.py",
 ]
 typeCheckingMode = "strict"
