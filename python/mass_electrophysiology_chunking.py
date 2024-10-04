@@ -2,14 +2,14 @@
 
 """Script to mass chunk electrophysiology datasets."""
 
+import getopt
 import os
 import sys
-import getopt
-import lib.exitcode
-from lib.database      import Database
-from lib.physiological import Physiological
-from lib.database_lib.config import Config
 
+import lib.exitcode
+from lib.database import Database
+from lib.database_lib.config import Config
+from lib.physiological import Physiological
 
 __license__ = "GPLv3"
 

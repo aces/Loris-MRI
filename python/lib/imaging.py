@@ -1,16 +1,16 @@
 """This class performs database queries and common imaging checks (MRI...)"""
 
-import os
 import datetime
 import json
-from typing import Any, Optional
-import lib.utilities as utilities
-import nibabel as nib
+import os
 import re
 import tarfile
+from typing import Any, Optional
 
+import nibabel as nib
 from nilearn import image, plotting
 
+import lib.utilities as utilities
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_candidate_errors import MriCandidateErrors

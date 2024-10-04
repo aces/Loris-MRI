@@ -2,21 +2,22 @@
 
 """Script to import BIDS structure into LORIS."""
 
-import os
-import sys
 import getopt
-import re
 import json
+import os
+import re
+import sys
+
 import lib.exitcode
-import lib.utilities
 import lib.physiological
-from lib.database   import Database
-from lib.candidate  import Candidate
+import lib.utilities
 from lib.bidsreader import BidsReader
-from lib.session    import Session
-from lib.eeg        import Eeg
-from lib.mri        import Mri
+from lib.candidate import Candidate
+from lib.database import Database
 from lib.database_lib.config import Config
+from lib.eeg import Eeg
+from lib.mri import Mri
+from lib.session import Session
 
 __license__ = "GPLv3"
 

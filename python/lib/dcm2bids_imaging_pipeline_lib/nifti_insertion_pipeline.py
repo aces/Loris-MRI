@@ -1,16 +1,16 @@
 import datetime
 import getpass
 import json
-from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
-from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
-import lib.exitcode
-import lib.utilities as utilities
 import os
 import re
 import subprocess
 import sys
 
+import lib.exitcode
+import lib.utilities as utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
+from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.validate_subject_ids import validate_subject_ids
 
 __license__ = "GPLv3"

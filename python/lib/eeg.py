@@ -1,21 +1,21 @@
 """Deals with EEG BIDS datasets and register them into the database."""
 
+import getpass
+import json
 import os
 import sys
-import json
-import getpass
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.candidate                                  import Candidate
-from lib.session                                    import Session
-from lib.physiological                              import Physiological
-from lib.scanstsv                                   import ScansTSV
-from lib.database_lib.physiological_event_file      import PhysiologicalEventFile
-from lib.database_lib.physiological_event_archive   import PhysiologicalEventArchive
-from lib.database_lib.physiological_modality        import PhysiologicalModality
-from lib.database_lib.physiological_output_type     import PhysiologicalOutputType
+from lib.candidate import Candidate
 from lib.database_lib.config import Config
+from lib.database_lib.physiological_event_archive import PhysiologicalEventArchive
+from lib.database_lib.physiological_event_file import PhysiologicalEventFile
+from lib.database_lib.physiological_modality import PhysiologicalModality
+from lib.database_lib.physiological_output_type import PhysiologicalOutputType
+from lib.physiological import Physiological
+from lib.scanstsv import ScansTSV
+from lib.session import Session
 
 __license__ = "GPLv3"
 

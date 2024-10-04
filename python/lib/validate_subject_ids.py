@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from typing import cast
+
 from sqlalchemy.orm import Session as Database
+
 from lib.db.model.candidate import DbCandidate
 from lib.db.query.candidate import try_get_candidate_with_cand_id
 from lib.db.query.visit import try_get_visit_window_with_visit_label
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 
-
 # Utility class
+
 
 @dataclass
 class Subject:

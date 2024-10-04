@@ -1,9 +1,10 @@
 import datetime
-import tempfile
-import tarfile
-import shutil
 import os
+import shutil
 import sys
+import tarfile
+import tempfile
+
 from lib.exitcode import COPY_FAILURE
 
 """Set of io functions."""

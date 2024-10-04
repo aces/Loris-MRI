@@ -1,9 +1,11 @@
 """This class interacts with S3 Buckets"""
 
-import boto3
-import lib.utilities
 import os
+
+import boto3
 from botocore.exceptions import ClientError, EndpointConnectionError
+
+import lib.utilities
 
 __license__ = "GPLv3"
 

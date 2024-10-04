@@ -1,23 +1,24 @@
 """Set of utility functions."""
 
-import os
-import sys
 import csv
 import filecmp
 import hashlib
-import numpy
-import scipy.io
+import io
+import os
+import re
 import shutil
+import sys
 import tarfile
 import tempfile
-import requests
-import re
-import io
-import mat73
-import lib.exitcode
-
 from datetime import datetime
 from pathlib import Path
+
+import mat73
+import numpy
+import requests
+import scipy.io
+
+import lib.exitcode
 
 __license__ = "GPLv3"
 

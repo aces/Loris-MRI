@@ -2,15 +2,15 @@
 
 """Script to mass create the pic images of inserted NIfTI files."""
 
+import getopt
 import os
 import re
 import sys
-import getopt
+
 import lib.exitcode
 from lib.database import Database
-from lib.imaging  import Imaging
 from lib.database_lib.config import Config
-
+from lib.imaging import Imaging
 
 __license__ = "GPLv3"
 
