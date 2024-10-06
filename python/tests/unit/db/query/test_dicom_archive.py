@@ -44,7 +44,7 @@ def setup():
         scanner_software_version  = 'Test scanner software version',
         upload_attempt            = 0,
         acquisition_metadata      = '',
-        pending_transfer          = 0,
+        pending_transfer          = False,
     )
 
     dicom_archive_2 = DbDicomArchive(
@@ -65,7 +65,7 @@ def setup():
         scanner_software_version  = 'Test scanner software version',
         upload_attempt            = 0,
         acquisition_metadata      = '',
-        pending_transfer          = 0,
+        pending_transfer          = False,
     )
 
     db.add(dicom_archive_1)

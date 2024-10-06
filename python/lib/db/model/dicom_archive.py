@@ -22,7 +22,7 @@ class DbDicomArchive(Base):
     patient_sex              : Mapped[Optional[str]]      = mapped_column('PatientSex')
     neuro_db_center_name     : Mapped[Optional[str]]      = mapped_column('neurodbCenterName')
     center_name              : Mapped[str]                = mapped_column('CenterName')
-    last_update              : Mapped[Optional[date]]     = mapped_column('LastUpdate')
+    last_update              : Mapped[Optional[datetime]] = mapped_column('LastUpdate')
     date_acquired            : Mapped[Optional[date]]     = mapped_column('DateAcquired')
     date_first_archived      : Mapped[Optional[datetime]] = mapped_column('DateFirstArchived')
     date_last_archived       : Mapped[Optional[datetime]] = mapped_column('DateLastArchived')
@@ -45,7 +45,7 @@ class DbDicomArchive(Base):
     create_info              : Mapped[Optional[str]]      = mapped_column('CreateInfo')
     acquisition_metadata     : Mapped[str]                = mapped_column('AcquisitionMetadata')
     date_sent                : Mapped[Optional[datetime]] = mapped_column('DateSent')
-    pending_transfer         : Mapped[int]                = mapped_column('PendingTransfer')
+    pending_transfer         : Mapped[bool]               = mapped_column('PendingTransfer')
 
     series  : Mapped[list['db_dicom_archive_series.DbDicomArchiveSeries']] \
         = relationship('DbDicomArchiveSeries', back_populates='archive')

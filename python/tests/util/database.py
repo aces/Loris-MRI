@@ -12,3 +12,7 @@ def create_test_database():
     engine = create_engine('sqlite:///:memory:')
     Base.metadata.create_all(engine)
     return Session(engine)
+
+
+def get_integration_database_engine():
+    return create_engine('mariadb+mysqlconnector://SQLTestUser:TestPassword@db:3306/LorisTest')
