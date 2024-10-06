@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy import ForeignKey
@@ -35,7 +35,7 @@ class DbCandidate(Base):
     flagged_reason          : Mapped[Optional[int]]  = mapped_column('flagged_reason')
     flagged_other           : Mapped[Optional[str]]  = mapped_column('flagged_other')
     flagged_other_status    : Mapped[Optional[str]]  = mapped_column('flagged_other_status')
-    test_date               : Mapped[int]            = mapped_column('Testdate')
+    test_date               : Mapped[datetime]       = mapped_column('Testdate')
     entity_type             : Mapped[str]            = mapped_column('Entity_type')
     proband_sex             : Mapped[Optional[str]]  = mapped_column('ProbandSex')
     proband_sate_of_birth   : Mapped[Optional[date]] = mapped_column('ProbandDoB')

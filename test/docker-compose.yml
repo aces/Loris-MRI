@@ -8,6 +8,12 @@ services:
       MYSQL_RANDOM_ROOT_PASSWORD: yes
     ports:
       - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysql", "-u", "SQLTestUser", "-pTestPassword", "LorisTest", "-e", "SELECT 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
   mri:
     image: loris-mri
     volumes:
