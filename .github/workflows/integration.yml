@@ -39,8 +39,6 @@ jobs:
       with:
         context: .
         file: ./test/db.Dockerfile
-        build-args: |
-          BASE_DIR=/app/
         tags: loris-db
         load: true
         cache-from: type=gha,scope=loris-db

@@ -15,4 +15,4 @@ def create_test_database():
 
 
 def get_integration_database_engine():
-    return create_engine('mariadb+mysqlconnector://SQLTestUser:TestPassword@db:3306/LorisTest')
+    return create_engine('mysql+mysqldb://SQLTestUser:TestPassword@db:3306/LorisTest')

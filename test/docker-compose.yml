@@ -3,21 +3,16 @@ services:
     image: loris-db
     volumes:
       - ./test/mysql-config:/etc/mysql/conf.d
-    environment:
-      MYSQL_DATABASE: LorisTest
-      MYSQL_RANDOM_ROOT_PASSWORD: yes
-    ports:
-      - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysql", "-u", "SQLTestUser", "-pTestPassword", "LorisTest", "-e", "SELECT 1"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
       interval: 10s
-      timeout: 10s
-      retries: 20
-      start_period: 30s
+      timeout: 5s
+      retries: 5
   mri:
     image: loris-mri
     volumes:
       - ../:/opt/loris/bin/mri
     depends_on:
-      - db
-    command: pytest
+      db:
+        condition: service_healthy
