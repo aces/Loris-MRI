@@ -22,7 +22,7 @@ include = [
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
 
-[tool.pytest.ini-options]
+[tool.pytest.ini_options]
 # Integration tests are located in `python/tests/integration`, but they should be ran from the
 # appropriate Docker image (usually using GitHub Actions).
 testpaths = ["python/tests/unit"]
