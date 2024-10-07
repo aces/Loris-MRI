@@ -1,28 +1,13 @@
 import importlib
 from pathlib import Path
-from time import sleep
 from typing import Any
 
-from sqlalchemy import Engine, MetaData
+from sqlalchemy import MetaData
 from sqlalchemy.dialects.mysql.types import DOUBLE, TINYINT
-from sqlalchemy.exc import InterfaceError
 from sqlalchemy.types import TypeDecorator, TypeEngine
 
 from lib.db.base import Base
 from tests.util.database import get_integration_database_engine
-
-
-# TODO: Implement a good health check for integration tests and remove this function.
-def reflect(engine: Engine, sql_metadata: MetaData):
-    for counter in range(0, 20):
-        try:
-            sql_metadata.reflect(engine)
-            return
-        except InterfaceError:
-            print(f'Failed connection (tentative {counter})')
-            sleep(10)
-
-    exit(-1)
 
 
 def test_orm_sql_sync():
@@ -38,7 +23,7 @@ def test_orm_sql_sync():
 
     engine = get_integration_database_engine()
     sql_metadata = MetaData()
-    reflect(engine, sql_metadata)
+    sql_metadata.reflect(engine)
 
     for orm_table in orm_metadata.sorted_tables:
         print(f'test table: {orm_table.name}')

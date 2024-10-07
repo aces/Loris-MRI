@@ -2,6 +2,8 @@ FROM mariadb:latest
 
 ARG BASE_DIR
 
+RUN apt-get update && apt-get install -y mysql-client
+
 COPY test/database/SQL/0000-00-00-schema.sql /0000-00-00-schema.sql
 COPY test/database/SQL/0000-00-01-Modules.sql /0000-00-01-Modules.sql
 COPY test/database/SQL/0000-00-02-Permission.sql /0000-00-02-Permission.sql

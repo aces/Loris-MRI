@@ -7,17 +7,19 @@ services:
       MYSQL_DATABASE: LorisTest
       MYSQL_RANDOM_ROOT_PASSWORD: yes
     ports:
-      - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysql", "-u", "SQLTestUser", "-pTestPassword", "LorisTest", "-e", "SELECT 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 20
-      start_period: 30s
+      - 3306:3306
+    #healthcheck:
+    #  test: mysql -uSQLTestUser -pTestPassword LorisTest -e "SELECT 1"
+    #  interval: 10s
+    #  timeout: 10s
+    #  retries: 10
+    #  start_period: 30s
+    command: mysql -uSQLTestUser -pTestPassword LorisTest -e "SELECT 1"
   mri:
     image: loris-mri
     volumes:
       - ../:/opt/loris/bin/mri
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: pytest
