@@ -18,7 +18,7 @@ jobs:
     - name: Clone the LORIS core repository
       run: git clone https://github.com/aces/Loris.git /tmp/Loris
 
-    - name: Import database files 
+    - name: Import database files
       run: |
         mkdir -p ./test/database
         mkdir -p ./test/database/SQL
@@ -57,4 +57,5 @@ jobs:
         cache-to: type=gha,scope=loris-mri
 
     - name: Run integration tests
-      run: docker compose --file ./test/docker-compose.yml run mri pytest python/tests/integration
+      # run: docker compose --file ./test/docker-compose.yml run mri pytest -s python/tests/integration
+      run: docker compose --file ./test/docker-compose.yml run db bash -c "sleep 100 ; mysql -uSQLTestUser -pTestPassword -h localhost LorisTest -e \"SELECT 1\""

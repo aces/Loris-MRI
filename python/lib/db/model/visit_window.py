@@ -9,7 +9,7 @@ class DbVisitWindow(Base):
     __tablename__  = 'Visit_Windows'
 
     id                   : Mapped[int]           = mapped_column('ID', primary_key=True)
-    visit_label          : Mapped[str]           = mapped_column('Visit_label')
+    visit_label          : Mapped[Optional[str]] = mapped_column('Visit_label')
     window_min_days      : Mapped[Optional[int]] = mapped_column('WindowMinDays')
     window_max_days      : Mapped[Optional[int]] = mapped_column('WindowMaxDays')
     optimum_min_days     : Mapped[Optional[int]] = mapped_column('OptimumMinDays')
