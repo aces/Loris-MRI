@@ -38,7 +38,7 @@ class CandidateDB:
         self.verbose = verbose
 
     @deprecated('Use `lib.db.query.candidate.try_get_candidate_with_cand_id` instead')
-    def get_candidate_psc_id(self, cand_id: str | int) -> str | None:
+    def get_candidate_psc_id(self, cand_id: int) -> str | None:
         """
         Return a candidate PSCID and based on its CandID, or `None` if no candidate is found in
         the database.

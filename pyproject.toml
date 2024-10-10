@@ -17,7 +17,8 @@ include = [
     "python/tests",
     "python/lib/db",
     "python/lib/exception",
-    "python/lib/validate_subject_ids.py",
+    "python/lib/config_file.py",
+    "python/lib/validate_subject_info.py",
 ]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"

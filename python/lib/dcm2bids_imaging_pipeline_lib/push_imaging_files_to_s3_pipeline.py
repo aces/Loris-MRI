@@ -262,8 +262,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
         # remove empty folders from file system
         print("Cleaning up empty folders")
-        cand_id = self.subject_id_dict["CandID"]
-        bids_cand_id = f"sub-{cand_id}"
+        bids_cand_id = f"sub-{self.subject_info.cand_id}"
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
-        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", cand_id))
+        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", str(self.subject_info.cand_id)))
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "trashbin"))
