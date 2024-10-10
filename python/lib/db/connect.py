@@ -1,6 +1,4 @@
-from urllib.parse import quote
-
-from sqlalchemy import create_engine
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session
 
 from lib.config_file import DatabaseConfig
@@ -12,10 +10,15 @@ def connect_to_database(config: DatabaseConfig):
     credentials.
     """
 
-    host     = config.host
-    port     = config.port
-    username = quote(config.username)
-    password = quote(config.password)
-    database = config.database
-    engine = create_engine(f'mysql+mysqldb://{username}:{password}@{host}:{port}/{database}')
+    # The SQLAlchemy URL object notably escapes special characters in the configuration attributes
+    url = URL.create(
+        drivername = 'mysql+mysqldb',
+        host       = config.host,
+        port       = config.port,
+        username   = config.username,
+        password   = config.password,
+        database   = config.database,
+    )
+
+    engine = create_engine(url)
     return Session(engine)
