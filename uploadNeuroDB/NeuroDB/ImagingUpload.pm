@@ -65,10 +65,10 @@ use NeuroDB::objectBroker::ConfigOB;
 
 
 ## Define Constants ##
-my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed 
-                             # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary = 'N'; # notification_spool message flag for messages to be displayed 
-                             # with SUMMARY Option in the front-end/imaging_uploader 
+my $notify_detailed   = 'Y'; # notification_spool message flag for messages to be displayed
+                             # with DETAILED OPTION in the front-end/imaging_uploader
+my $notify_notsummary = 'N'; # notification_spool message flag for messages to be displayed
+                             # with SUMMARY Option in the front-end/imaging_uploader
 
 ################################################################
 #####################Constructor ###############################
@@ -235,7 +235,7 @@ sub IsCandidateInfoValid {
         my $query              = "SELECT t.ArchiveLocation FROM tarchive t "
                                . " WHERE t.TarchiveID =?";
         my $sth                = ${ $this->{'dbhr'} }->prepare($query);
-        $sth->execute( $row[1] );   
+        $sth->execute( $row[1] );
         if ( $sth->rows > 0 ) {
             $archived_file_path = $sth->fetchrow_array();
         }
@@ -253,16 +253,16 @@ sub IsCandidateInfoValid {
         $command .= " -verbose" if $this->{verbose};
 
         $message =
-            "\nThe Scan for the uploadID " . $this->{'upload_id'} 
+            "\nThe Scan for the uploadID " . $this->{'upload_id'}
             . " has already been run";
 
         if (defined $row[1]) {
             $message .= " with tarchiveID: " . $row[1];
         }
-            
+
         $message .= ". \nTo continue with the rest of the insertion pipeline, "
             . "please run tarchiveLoader.pl from a terminal as follows: "
-            . $command 
+            . $command
             . "\n";
         $this->spool($message, 'Y', $notify_notsummary);
         return 0;
@@ -284,7 +284,7 @@ sub IsCandidateInfoValid {
             $this->spool($message, 'N', $notify_notsummary);
         }
     }
-	
+
     # Issue a warning for the total number of files that are not
     # DICOM images
     my $files_not_dicom = scalar @non_image_files;
@@ -363,7 +363,7 @@ sub runHrrtInsertion {
     $command .= " -verbose " if ($this->{'verbose'});
 
     my $output = $this->runCommandWithExitCode($command);
-    
+
     if ( $output == 0 ) {
         return 1;
     }
@@ -537,7 +537,7 @@ sub runPythonArchiveLoader {
     my $python_config = $configOB->getPythonConfigFile();
 
     my $command = sprintf(
-        "%s/python/run_dicom_archive_loader.py -p %s -u %s",
+        "%s/python/scripts/run_dicom_archive_loader.py -p %s -u %s",
         quotemeta($bin_dirPath),
         $python_config,
         quotemeta($this->{upload_id})
@@ -727,12 +727,12 @@ sub CleanUpDataIncomingDir {
 
 
     ############################################################
-    ################ Removes the uploaded file ################# 
-    ##### Check first that the file is in the tarchive dir ##### 
+    ################ Removes the uploaded file #################
+    ##### Check first that the file is in the tarchive dir #####
     ############################################################
 
-    my $base_decompressed_loc = basename($this->{'uploaded_temp_folder'}); 
-    my $command = "find " . $tarchive_location . "/ " . "-name *" . 
+    my $base_decompressed_loc = basename($this->{'uploaded_temp_folder'});
+    my $command = "find " . $tarchive_location . "/ " . "-name *" .
 		   $base_decompressed_loc . "*";
     my $tarchive_file = $this->runCommand($command);
     if ($tarchive_file) {

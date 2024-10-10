@@ -14,11 +14,11 @@ C<tarchiveLoader.pl>
 =head1 DESCRIPTION
 
 This script uploads a list of DICOM archives to the database by calling script
-C<tarchiveLoader.pl> on each file in succession. The list of files to process is read 
+C<tarchiveLoader.pl> on each file in succession. The list of files to process is read
 from C<STDIN>, one file name per line. Each file name is assumed to be a path
 relative to C<tarchiveLibraryDir> (see below).
 
-The following settings of file F<$ENV{LORIS_CONFIG}/.loris-mri/prod> affect the 
+The following settings of file F<$ENV{LORIS_CONFIG}/.loris-mri/prod> affect the
 behvaviour of C<batch_uploads_tarchive> (where C<$ENV{LORIS_CONFIG}> is the
 value of the Unix environment variable C<LORIS_CONFIG>):
 
@@ -31,22 +31,22 @@ command (see below) will go, namely in
   F<< $dataDirBasepath/batch_output/tarstderr.log<index> >>
   (where C<< <index> >> is the index of the DICOM archive processed, the
   first file having index 1).
-   
-=item * 
+
+=item *
 B<tarchiveLibraryDir>: directory that contains the DICOM archives to process.
 The path of the files listed on C<STDIN> should be relative to this directory.
-  
+
 =item *
 B<is_qsub>: whether the output (STDOUT) of each C<tarchiveLoader.pl> command
 should be processed by the C<qsub> Unix command (allows batch execution of jobs
 on the Sun Grid Engine, if available). If set, then the C<qsub> command will
 send its C<STDOUT> and C<STDERR> according to the value of C<dataDirBasepath>
 (see above).
-  
+
 =item *
 B<mail_use>: upon completion of the script, an email will be sent to email address
   $mail_user containing the list of files processed by C<batch_uploads_tarchive>
-  
+
 =back
 
 File prod should also contain the information needed to connect to the database in an
@@ -250,7 +250,7 @@ foreach my $input (@inputs)
     } elsif ($converter =~ m/dcm2niix/i) {
         my $python_config = $configOB->getPythonConfigFile();
             $command = sprintf(
-            "%s/python/run_dicom_archive_loader.py -p %s -t %s",
+            "%s/python/scripts/run_dicom_archive_loader.py -p %s -t %s",
             quotemeta($bin_dirPath),
             $python_config,
             quotemeta($tarchive_path)

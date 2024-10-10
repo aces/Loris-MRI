@@ -147,7 +147,7 @@ def main():
             print(f'No BIDS dataset matching visit {visit} for candidate {pscid} {candid} found.')
             continue
 
-        script = os.environ['LORIS_MRI'] + '/python/bids_import.py'
+        script = os.environ['LORIS_MRI'] + '/python/scripts/bids_import.py'
         # Assume eeg and raw data for now
         eeg_path = os.path.join(path, 'eeg')
         command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
