@@ -1,3 +1,4 @@
 **/__pycache__/*
 *.pyc
 .loris_mri/
+python_virtualenvs/
