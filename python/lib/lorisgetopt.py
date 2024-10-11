@@ -67,6 +67,7 @@ class LorisGetOpt:
         were provided to the script.
         """
         self.usage = usage
+        self.script_name = script_name
         self.options_dict = options_dict
         self.long_options = self.get_long_options()
         self.short_options = self.get_short_options()

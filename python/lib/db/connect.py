@@ -1,13 +1,11 @@
 from sqlalchemy import URL, create_engine
-from sqlalchemy.orm import Session
 
 from lib.config_file import DatabaseConfig
 
 
-def connect_to_database(config: DatabaseConfig):
+def get_database_engine(config: DatabaseConfig):
     """
-    Connect to the database and get an SQLAlchemy session to interract with it using the provided
-    credentials.
+    Connect to the database and return an SQLAlchemy engine using the provided credentials.
     """
 
     # The SQLAlchemy URL object notably escapes special characters in the configuration attributes
@@ -20,5 +18,4 @@ def connect_to_database(config: DatabaseConfig):
         database   = config.database,
     )
 
-    engine = create_engine(url)
-    return Session(engine)
+    return create_engine(url)

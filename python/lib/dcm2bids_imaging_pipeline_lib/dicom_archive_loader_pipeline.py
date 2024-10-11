@@ -7,6 +7,7 @@ import sys
 import lib.exitcode
 import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.logging import log_error_exit, log_verbose
 
 __license__ = "GPLv3"
 
@@ -75,11 +76,12 @@ class DicomArchiveLoaderPipeline(BasePipeline):
                 message += f"{self.excluded_series_desc_regex_list} will not be considered!"
             else:
                 message += f"{', '.join(self.excluded_series_desc_regex_list)} will not be considered!"
-            self.log_error_and_exit(message, lib.exitcode.NO_VALID_NIfTI_CREATED, is_error="Y", is_verbose="N")
+            log_error_exit(self.env, message, lib.exitcode.NO_VALID_NIfTI_CREATED)
         else:
-            message = f"Number of NIfTI files that will be considered for insertion into the database: " \
-                      f"{self.file_to_insert_count}"
-            self.log_info(message, is_error="N", is_verbose="Y")
+            log_verbose(self.env, (
+                f"Number of NIfTI files that will be considered for insertion into the database: "
+                f"{self.file_to_insert_count}"
+            ))
 
         # ---------------------------------------------------------------------------------------------
         # Loop through NIfTI files and call run_nifti_insertion.pl
@@ -121,15 +123,21 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         validation_process = subprocess.Popen(validation_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         validation_process.communicate()
         if validation_process.returncode == 0:
-            message = f"run_dicom_archive_validation.py successfully executed for UploadID {self.upload_id} " \
-                      f"and ArchiveLocation {self.tarchive_path}"
-            self.log_info(message, is_error="N", is_verbose="Y")
+            log_verbose(self.env, (
+                f"run_dicom_archive_validation.py successfully executed for UploadID {self.upload_id} "
+                f"and ArchiveLocation {self.tarchive_path}"
+            ))
             # reset mri_upload to Inserting as run_dicom_archive_validation.py will set Inserting=0 after execution
             self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
         else:
-            message = f"run_dicom_archive_validation.py failed validation for UploadID {self.upload_id}" \
-                      f"and ArchiveLocation {self.tarchive_path}. Exit code was {validation_process.returncode}."
-            self.log_error_and_exit(message, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
+            log_error_exit(
+                self.env,
+                (
+                    f"run_dicom_archive_validation.py failed validation for UploadID {self.upload_id}"
+                    f"and ArchiveLocation {self.tarchive_path}. Exit code was {validation_process.returncode}."
+                ),
+                lib.exitcode.INVALID_DICOM,
+            )
 
         # now that the DICOM archive validation has run, check the database to ensure the validation was completed
         # and correctly updated in the DB
@@ -152,16 +160,20 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         converter = self.config_db_obj.get_config("converter")
         if not re.search(r'.*dcm2niix.*', converter, re.IGNORECASE):
-            message = f"{converter} does not appear to be a dcm2niix binary."
-            self.log_error_and_exit(message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE, is_error="Y", is_verbose="N")
+            log_error_exit(
+                self.env,
+                f"{converter} does not appear to be a dcm2niix binary.",
+                lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
+            )
 
         dcm2niix_process = subprocess.Popen(
             [converter, "-ba", "n", "-z", "y", "-o", nifti_tmp_dir, self.extracted_dicom_dir],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT
         )
+
         stdout, _ = dcm2niix_process.communicate()
-        self.log_info(stdout, is_error="N", is_verbose="Y")
+        log_verbose(self.env, str(stdout))
 
         return nifti_tmp_dir
 
@@ -305,15 +317,13 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         stdout, _ = insertion_process.communicate()
 
         if insertion_process.returncode == 0:
-            message = f"run_nifti_insertion.py successfully executed for file {nifti_file_path}"
-            self.log_info(message, is_error="N", is_verbose="Y")
+            log_verbose(self.env, f"run_nifti_insertion.py successfully executed for file {nifti_file_path}")
             self.inserted_file_count += 1
             # reset mri_upload to Inserting as run_nifti_insertion.py will set Inserting=0 after execution
             self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
         else:
-            message = f"run_nifti_insertion.py failed for file {nifti_file_path}.\n{stdout}"
             print(stdout)
-            self.log_info(message, is_error="Y", is_verbose="Y")
+            log_verbose(self.env, f"run_nifti_insertion.py failed for file {nifti_file_path}.\n{stdout}")
 
     def _move_and_update_dicom_archive(self):
         """
@@ -362,8 +372,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             sorted_fmap_files_list = fmap_files_dict[key]
             for fmap_dict in sorted_fmap_files_list:
                 if fmap_dict['json_file_path'].startswith('s3://') and not self.s3_obj:
-                    message = "[ERROR   ] S3 configs not configured properly"
-                    self.log_error_and_exit(message, lib.exitcode.S3_SETTINGS_FAILURE, is_error="Y", is_verbose="N")
+                    log_error_exit(self.env, "S3 configs not configured properly", lib.exitcode.S3_SETTINGS_FAILURE)
             self.imaging_obj.modify_fmap_json_file_to_write_intended_for(
                 sorted_fmap_files_list, self.s3_obj, self.tmp_dir
             )
@@ -442,6 +451,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         - {nb_files_inserted} files were inserted into the files table: {files_list}
         - {nb_prot_violation} files did not match any protocol: {prot_viol_list}
         - {nb_excluded_viol} files were exclusionary violations: {excl_viol_list}
-        - Log of process in {self.log_obj.log_file}
+        - Log of process in {self.env.log_file}
         """
-        self.log_info(summary, is_error="N", is_verbose="Y")
+
+        log_verbose(self.env, summary)

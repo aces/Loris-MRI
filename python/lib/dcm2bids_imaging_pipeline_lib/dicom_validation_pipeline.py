@@ -3,6 +3,7 @@ import sys
 
 import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.logging import log_error_exit, log_verbose
 
 __license__ = "GPLv3"
 
@@ -33,8 +34,7 @@ class DicomValidationPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # If we get here, the tarchive is validated & the script stops running so update mri_upload
         # ---------------------------------------------------------------------------------------------
-        message = f"DICOM archive {self.options_dict['tarchive_path']['value']} is valid!"
-        self.log_info(message, is_error="N", is_verbose="Y")
+        log_verbose(self.env, f"DICOM archive {self.options_dict['tarchive_path']['value']} is valid!")
         self.imaging_upload_obj.update_mri_upload(
             upload_id=self.upload_id,
             fields=("isTarchiveValidated", "Inserting",),
@@ -49,18 +49,18 @@ class DicomValidationPipeline(BasePipeline):
         logged in the <tarchive> table.
         """
 
-        self.log_info(message="Verifying DICOM archive md5sum (checksum)", is_error="N", is_verbose="Y")
+        log_verbose(self.env, "Verifying DICOM archive md5sum (checksum)")
 
         tarchive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"])
         result = self.dicom_archive_obj.validate_dicom_archive_md5sum(tarchive_path)
         message = result["message"]
 
         if result['success']:
-            self.log_info(message, is_error="N", is_verbose="Y")
+            log_verbose(self.env, message)
         else:
             self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id,
                 fields=("isTarchiveValidated", "IsCandidateInfoValidated"),
                 values=("0", "0")
             )
-            self.log_error_and_exit(message, lib.exitcode.CORRUPTED_FILE, is_error="Y", is_verbose="N")
+            log_error_exit(self.env,  message, lib.exitcode.CORRUPTED_FILE)
