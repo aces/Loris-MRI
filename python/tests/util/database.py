@@ -1,7 +1,12 @@
-from sqlalchemy import create_engine
+import os
+import sys
+from typing import cast
+
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
 from lib.db.base import Base
+from lib.db.connect import connect_to_database
 
 
 def create_test_database():
@@ -15,4 +20,13 @@ def create_test_database():
 
 
 def get_integration_database_engine():
-    return create_engine('mysql+mysqldb://SQLTestUser:TestPassword@db:3306/LorisTest')
+    """
+    Get an SQLAlchemy engine for the integration testing database using the configuration from the
+    Python configuration file.
+    """
+
+    config_file = os.path.join(os.environ['LORIS_CONFIG'], '.loris_mri', 'database_config.py')
+    sys.path.append(os.path.dirname(config_file))
+    config = __import__(os.path.basename(config_file[:-3]))
+    session = connect_to_database(config.mysql)
+    return cast(Engine, session.get_bind())
