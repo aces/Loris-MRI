@@ -36,7 +36,7 @@ class DbCandidate(Base):
     flagged_other           : Mapped[Optional[str]]  = mapped_column('flagged_other')
     flagged_other_status    : Mapped[Optional[str]]  = mapped_column('flagged_other_status')
     test_date               : Mapped[datetime]       = mapped_column('Testdate')
-    entity_type             : Mapped[str]            = mapped_column('Entity_type')
+    entity_type             : Mapped[int]            = mapped_column('Entity_type')
     proband_sex             : Mapped[Optional[str]]  = mapped_column('ProbandSex')
     proband_sate_of_birth   : Mapped[Optional[date]] = mapped_column('ProbandDoB')
 
