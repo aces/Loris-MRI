@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 import pytest
 from sqlalchemy.orm import Session as Database
@@ -26,7 +27,7 @@ def setup():
         registration_project_id = 1,
         active = True,
         user_id = 'admin',
-        test_date = 0,
+        test_date = datetime.now(),
         entity_type = 'human',
     )
 
@@ -37,7 +38,7 @@ def setup():
         registration_project_id = 1,
         active = True,
         user_id = 'admin',
-        test_date = 0,
+        test_date = datetime.now(),
         entity_type = 'human',
     )
 

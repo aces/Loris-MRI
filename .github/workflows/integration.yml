@@ -18,7 +18,7 @@ jobs:
     - name: Clone the LORIS core repository
       run: git clone https://github.com/aces/Loris.git /tmp/Loris
 
-    - name: Import database files 
+    - name: Import database files
       run: |
         mkdir -p ./test/database
         mkdir -p ./test/database/SQL
@@ -39,8 +39,6 @@ jobs:
       with:
         context: .
         file: ./test/db.Dockerfile
-        build-args: |
-          BASE_DIR=/app/
         tags: loris-db
         load: true
         cache-from: type=gha,scope=loris-db

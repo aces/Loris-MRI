@@ -1,7 +1,5 @@
 FROM mariadb:latest
 
-ARG BASE_DIR
-
 COPY test/database/SQL/0000-00-00-schema.sql /0000-00-00-schema.sql
 COPY test/database/SQL/0000-00-01-Modules.sql /0000-00-01-Modules.sql
 COPY test/database/SQL/0000-00-02-Permission.sql /0000-00-02-Permission.sql
@@ -16,7 +14,7 @@ COPY test/database/raisinbread/instruments/instrument_sql/mri_parameter_form.sql
 COPY test/database/raisinbread/instruments/instrument_sql/radiology_review.sql  /radiology_review.sql
 COPY test/database/test/test_instrument/testtest.sql /test_instrument.sql
 
-RUN echo "Use LorisTest;" | cat - \
+RUN echo "CREATE DATABASE LorisTest; USE LorisTest;" | cat - \
     0000-00-00-schema.sql \
     0000-00-01-Modules.sql \
     0000-00-02-Permission.sql \
@@ -31,11 +29,22 @@ RUN echo "Use LorisTest;" | cat - \
     test_instrument.sql \
     RB_files/*.sql > /docker-entrypoint-initdb.d/0000-compiled.sql
 
-RUN echo "Use LorisTest;" >> /docker-entrypoint-initdb.d/0001-paths.sql
-RUN echo "UPDATE Config SET Value='${BASE_DIR}/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='base');" >> /docker-entrypoint-initdb.d/0001-paths.sql
-RUN echo "GRANT UPDATE,INSERT,SELECT,DELETE,DROP,CREATE TEMPORARY TABLES ON LorisTest.* TO 'SQLTestUser'@'%' IDENTIFIED BY 'TestPassword' WITH GRANT OPTION;" >> /docker-entrypoint-initdb.d/0004-sql-user.sql
+RUN echo "CREATE USER 'SQLTestUser'@'%' IDENTIFIED BY 'TestPassword';" >> /docker-entrypoint-initdb.d/0000-compiled.sql
+RUN echo "CREATE USER 'SQLTestUser'@'localhost' IDENTIFIED BY 'TestPassword';" >> /docker-entrypoint-initdb.d/0000-compiled.sql
+RUN echo "GRANT SELECT,INSERT,UPDATE,DELETE,DROP,CREATE TEMPORARY TABLES ON LorisTest.* TO 'SQLTestUser'@'%';" >> /docker-entrypoint-initdb.d/0000-compiled.sql
 
 # Run the LORIS-MRI database installation script
 COPY install/install_database.sql /tmp/install_database.sql
-RUN echo "SET @email := 'root@localhost'; SET @project := 'loris'; SET @minc_dir = '/opt/minc/1.9.18';" >> 0001-paths.sql
-RUN cat /tmp/install_database.sql >> /docker-entrypoint-initdb.d/0001-paths.sql
+RUN echo "SET @email := 'root@localhost'; SET @project := 'loris'; SET @minc_dir = '/opt/minc/1.9.18';" >> 0000-compiled.sql
+RUN cat /tmp/install_database.sql >> /docker-entrypoint-initdb.d/0000-compiled.sql
+
+# By default, MariaDB runs the scripts in /docker-entrypoint-initdb.d/ at the time of the first
+# startup to initialize the database. However, we want to populate the database at build time so
+# that the database is part of the final image (and can be cached for CI).
+RUN mariadb-install-db
+RUN docker-entrypoint.sh mariadbd & \
+    sleep 30 && \
+    mariadb < /docker-entrypoint-initdb.d/0000-compiled.sql && \
+    killall mariadbd
+
+CMD ["mariadbd", "--user=root"]
