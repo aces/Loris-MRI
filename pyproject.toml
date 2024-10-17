@@ -20,6 +20,7 @@ include = [
     "python/lib/config_file.py",
     "python/lib/env.py",
     "python/lib/file_system.py",
+    "python/lib/get_subject_session.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
     "python/lib/validate_subject_info.py",
