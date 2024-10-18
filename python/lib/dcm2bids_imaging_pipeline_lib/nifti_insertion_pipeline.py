@@ -75,11 +75,6 @@ class NiftiInsertionPipeline(BasePipeline):
         self._add_step_and_space_params_to_json_file_dict()
 
         # ---------------------------------------------------------------------------------------------
-        # Get the mapping dictionary between BIDS and MINC terms
-        # ---------------------------------------------------------------------------------------------
-        self.bids_mapping_dict = self.imaging_obj.get_bids_to_minc_terms_mapping()
-
-        # ---------------------------------------------------------------------------------------------
         # Check that the PatientName in NIfTI and DICOMs are the same and then validate the Subject IDs
         # ---------------------------------------------------------------------------------------------
         if self.dicom_archive_obj.tarchive_info_dict.keys():
