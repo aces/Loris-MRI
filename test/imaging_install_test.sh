@@ -1,9 +1,9 @@
 #!/bin/bash
 
-mysqldb="LorisTest"
+mysqldb=$1
 mysqlhost="db"
-mysqluser="SQLTestUser"
-mysqlpass="TestPassword"
+mysqluser=$2
+mysqlpass=$3
 USER="root"
 PROJ="loris"
 prodfilename="prod"
