@@ -50,8 +50,8 @@ jobs:
         file: ./test/mri.Dockerfile
         build-args: |
           DATABASE_NAME=${{ env.DATABASE_NAME }}
-          DATABASE_USERNAME=${{ env.DATABASE_USERNAME }}
-          DATABASE_PASSWORD=${{ env.DATABASE_PASSWORD }}
+          DATABASE_USER=${{ env.DATABASE_USERNAME }}
+          DATABASE_PASS=${{ env.DATABASE_PASSWORD }}
         tags: loris-mri
         load: true
         cache-from: type=gha,scope=loris-mri

@@ -98,13 +98,13 @@ RUN pip install --no-cache-dir -r ./python/requirements.txt
 
 # Get the database credentials as parameters
 ARG DATABASE_NAME
-ARG DATABASE_USERNAME
-ARG DATABASE_PASSWORD
+ARG DATABASE_USER
+ARG DATABASE_PASS
 
 # Checkout the LORIS-MRI repository
 COPY . /opt/loris/bin/mri
 WORKDIR /opt/loris/bin/mri
-RUN bash ./test/imaging_install_test.sh $DATABASE_NAME $DATABASE_USERNAME $DATABASE_PASSWORD
+RUN bash ./test/imaging_install_test.sh $DATABASE_NAME $DATABASE_USER $DATABASE_PASS
 
 # Setup the LORIS-MRI environment variables
 ENV PROJECT=loris
