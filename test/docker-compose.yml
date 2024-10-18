@@ -11,6 +11,8 @@ services:
       retries: 5
   mri:
     image: loris-mri
+    volumes:
+      - /data-imaging:/data-imaging
     depends_on:
       db:
         condition: service_healthy

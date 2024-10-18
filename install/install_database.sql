@@ -13,11 +13,11 @@ UPDATE Config SET Value = @project
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'prefix');
 UPDATE Config SET Value = @minc_dir
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'MINCToolsPath');
-UPDATE Config SET Value = CONCAT('/data/', @project, '/data/')
+UPDATE Config SET Value = CONCAT('/data/', @project, '/')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'dataDirBasepath');
-UPDATE Config SET Value = CONCAT('/data/', @project, '/data/')
+UPDATE Config SET Value = CONCAT('/data/', @project, '/')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'imagePath');
-UPDATE Config SET Value = CONCAT('/data/', @project, '/data/tarchive/')
+UPDATE Config SET Value = CONCAT('/data/', @project, '/tarchive/')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'tarchiveLibraryDir');
 UPDATE Config SET Value = CONCAT('/opt/', @project, '/bin/mri/dicom-archive/get_dicom_info.pl')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'get_dicom_info');

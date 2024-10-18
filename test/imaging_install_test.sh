@@ -14,16 +14,16 @@ mridir="/opt/loris/bin/mri"
 #############################Create directories########################################
 #######################################################################################
 echo "Creating the data directories"
-  sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/data/"
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/trashbin"         #holds mincs that didn't match protocol
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/tarchive"         #holds tared dicom-folder
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/hrrtarchive"      #holds tared hrrt-folder
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/pic"              #holds jpegs generated for the MRI-browser
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/logs"             #holds logs from pipeline script
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly"         #holds the MINC files
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly_bids"    #holds the BIDS files derived from DICOMs
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"     #contains the result of the SGE (queue)
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/bids_imports"     #contains imported BIDS studies
+  sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/"
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/trashbin"         #holds mincs that didn't match protocol
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/tarchive"         #holds tared dicom-folder
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/hrrtarchive"      #holds tared hrrt-folder
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/pic"              #holds jpegs generated for the MRI-browser
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/logs"             #holds logs from pipeline script
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/assembly"         #holds the MINC files
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/assembly_bids"    #holds the BIDS files derived from DICOMs
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/batch_output"     #contains the result of the SGE (queue)
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/bids_imports"     #contains imported BIDS studies
   sudo -S su $USER -c "mkdir -m 770 -p $mridir/dicom-archive/.loris_mri"
 echo
 
@@ -71,8 +71,8 @@ sudo usermod -a -G $group $USER
 sudo chgrp $group -R /opt/$PROJ/
 sudo chgrp $group -R /data/$PROJ/
 
-#Setting group ID for all files/dirs under /data/$PROJ/data
-sudo chmod -R g+s /data/$PROJ/data/
+#Setting group ID for all files/dirs under /data/$PROJ/
+sudo chmod -R g+s /data/$PROJ/
 
 # Setting group permissions and group ID for all files/dirs under /data/incoming
 # If the directory was not created earlier, then instructions to do so manually are provided.

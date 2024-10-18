@@ -108,7 +108,8 @@ class Database:
                 user=self.user_name,
                 passwd=self.password,
                 port=self.port,
-                db=self.db_name
+                db=self.db_name,
+                autocommit=True,
             )
             # self.cnx.cursor = self.cnx.cursor(prepared=True)
         except MySQLdb.Error as err:
@@ -178,7 +179,6 @@ class Database:
             else:
                 # else, values is a tuple and want to execute only one insert
                 cursor.execute(query, values)
-            self.con.commit()
             last_id = cursor.lastrowid
             cursor.close()
         except MySQLdb.Error as err:
@@ -206,7 +206,6 @@ class Database:
         try:
             cursor = self.con.cursor()
             cursor.execute(query, args)
-            self.con.commit()
         except MySQLdb.Error as err:
             raise Exception("Update query failure: " + format(err))
 

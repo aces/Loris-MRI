@@ -28,3 +28,12 @@ def get_integration_database_engine():
     sys.path.append(os.path.dirname(config_file))
     config = __import__(os.path.basename(config_file[:-3]))
     return get_database_engine(config.mysql)
+
+
+def get_integration_database_session():
+    """
+    Get an SQLAlchemy session for the integration testing database using the configuration from the
+    Python configuration file.
+    """
+
+    return Session(get_integration_database_engine())

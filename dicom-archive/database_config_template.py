@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import re
+
+from lib.config_file import CreateVisitInfo, DatabaseConfig, SubjectInfo
 from lib.database import Database
 from lib.imaging import Imaging
-from lib.config_file import CreateVisitInfo, DatabaseConfig, S3Config, SubjectInfo
-
 
 mysql: DatabaseConfig = DatabaseConfig(
     host     = 'DBHOST',
@@ -14,13 +14,13 @@ mysql: DatabaseConfig = DatabaseConfig(
     port     = 3306,
 )
 
-# This statement can be omitted if the project does not use AWS S3.
-s3: S3Config = S3Config(
-    aws_access_key_id     = 'AWS_ACCESS_KEY_ID',
-    aws_secret_access_key = 'AWS_SECRET_ACCESS_KEY',
-    aws_s3_endpoint_url   = 'AWS_S3_ENDPOINT',
-    aws_s3_bucket_name    = 'AWS_S3_BUCKET_NAME',
-)
+# Uncomment this statement if your project uses AWS S3.
+# s3: S3Config = S3Config(
+#     aws_access_key_id     = 'AWS_ACCESS_KEY_ID',
+#     aws_secret_access_key = 'AWS_SECRET_ACCESS_KEY',
+#     aws_s3_endpoint_url   = 'AWS_S3_ENDPOINT',
+#     aws_s3_bucket_name    = 'AWS_S3_BUCKET_NAME',
+# )
 
 
 def get_subject_info(db: Database, subject_name: str, scanner_id: int | None = None) -> SubjectInfo | None:
