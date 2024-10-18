@@ -7,21 +7,14 @@ RUN apt-get update
 # Install utilities #
 #####################
 
-# Update the package list and install build-essential, checkinstall, and cmake
-# Install some general dependencies
-RUN apt-get install -y build-essential checkinstall cmake libzip-dev mariadb-client
-
-# Install Perl and update CPAN
-RUN apt-get install -y perl && \
-    cpan CPAN
+# Install the dependencies of LORIS-MRI
+RUN apt-get install -y build-essential checkinstall cmake dcmtk libzip-dev mariadb-client perl
 
 # Install utilities
-# - `wget` is used by some installation commands
 # - `sudo` is used by the imaging install script
-RUN apt-get install -y wget sudo
-
-# Install the DICOM Toolkit
-RUN apt-get install -y dcmtk
+# - `s3fs` is used to mount the imaging files on the file system
+# - `wget` is used by some installation commands
+RUN apt-get install -y sudo wget
 
 ########################
 # Install MINC Toolkit #
@@ -70,7 +63,8 @@ RUN dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb && \
 RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 
 # Install the Perl libraries
-RUN cpan install Math::Round && \
+RUN cpan CPAN && \
+    cpan install Math::Round && \
     cpan install DBI && \
     cpan install DBD::mysql@4.052 && \
     cpan install Getopt::Tabular && \
