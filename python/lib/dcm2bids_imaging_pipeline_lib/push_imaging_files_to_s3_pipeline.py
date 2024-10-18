@@ -5,6 +5,7 @@ import sys
 import lib.exitcode
 import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.logging import log_error_exit
 
 __license__ = "GPLv3"
 
@@ -41,8 +42,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         self.s3_obj = self.loris_getopt_obj.s3_obj
         if not self.s3_obj.s3:
-            message = "S3 configs not configured properly"
-            self.log_error_and_exit(message, lib.exitcode.S3_SETTINGS_FAILURE, is_error="Y", is_verbose="N")
+            log_error_exit(self.env, "S3 configs not configured properly", lib.exitcode.S3_SETTINGS_FAILURE)
 
         # ---------------------------------------------------------------------------------------------
         # Get all the files from files, parameter_file and violation tables
