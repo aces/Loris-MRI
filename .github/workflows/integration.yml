@@ -7,6 +7,11 @@ on:
     - 'main'
     - '*-release'
 
+env:
+  DATABASE_NAME: TestDatabase
+  DATABASE_USERNAME: TestUsername
+  DATABASE_PASSWORD: TestPassword
+
 jobs:
   docker:
     name: Docker
@@ -16,20 +21,10 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Clone the LORIS core repository
-      run: git clone https://github.com/aces/Loris.git /tmp/Loris
+      run: git clone https://github.com/aces/Loris.git ./test/Loris
 
-    - name: Import database files
-      run: |
-        mkdir -p ./test/database
-        mkdir -p ./test/database/SQL
-        mkdir -p ./test/database/raisinbread/RB_files
-        mkdir -p ./test/database/raisinbread/instruments/instrument_sql
-        mkdir -p ./test/database/test/test_instrument
-        cp -r /tmp/Loris/SQL/* ./test/database/SQL
-        cp -r ./test/RB_SQL/* ./test/database/raisinbread/RB_files
-        cp -r -n /tmp/Loris/raisinbread/RB_files/* ./test/database/raisinbread/RB_files
-        cp -r /tmp/Loris/raisinbread/instruments/instrument_sql/* ./test/database/raisinbread/instruments/instrument_sql
-        cp -r /tmp/Loris/test/test_instrument/testtest.sql ./test/database/test/test_instrument/testtest.sql
+    - name: Overwrite Raisinbread SQL files
+      run: cp -f ./test/RB_SQL/*.sql ./test/Loris/raisinbread/RB_files/
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -39,6 +34,10 @@ jobs:
       with:
         context: .
         file: ./test/db.Dockerfile
+        build-args: |
+          DATABASE_NAME=${{ env.DATABASE_NAME }}
+          DATABASE_USER=${{ env.DATABASE_USERNAME }}
+          DATABASE_PASS=${{ env.DATABASE_PASSWORD }}
         tags: loris-db
         load: true
         cache-from: type=gha,scope=loris-db
@@ -49,6 +48,10 @@ jobs:
       with:
         context: .
         file: ./test/mri.Dockerfile
+        build-args: |
+          DATABASE_NAME=${{ env.DATABASE_NAME }}
+          DATABASE_USERNAME=${{ env.DATABASE_USERNAME }}
+          DATABASE_PASSWORD=${{ env.DATABASE_PASSWORD }}
         tags: loris-mri
         load: true
         cache-from: type=gha,scope=loris-mri
