@@ -35,16 +35,13 @@ def setup():
         dicom_file_count          = 2,
         non_dicom_file_count      = 0,
         creating_user             = 'admin',
-        sum_type_version          = 2,
-        tar_type_version          = 2,
         source_location           = '/tests/DCC001_111111_V1',
         scanner_manufacturer      = 'Test scanner manufacturer',
         scanner_model             = 'Test scanner model',
         scanner_serial_number     = 'Test scanner serial number',
         scanner_software_version  = 'Test scanner software version',
-        upload_attempt            = 0,
+        create_info               = '',
         acquisition_metadata      = '',
-        pending_transfer          = False,
     )
 
     dicom_archive_2 = DbDicomArchive(
@@ -56,16 +53,13 @@ def setup():
         dicom_file_count          = 1,
         non_dicom_file_count      = 0,
         creating_user             = 'admin',
-        sum_type_version          = 2,
-        tar_type_version          = 2,
         source_location           = '/test/DCC002_222222_V2',
         scanner_manufacturer      = 'Test scanner manufacturer',
         scanner_model             = 'Test scanner model',
         scanner_serial_number     = 'Test scanner serial number',
         scanner_software_version  = 'Test scanner software version',
-        upload_attempt            = 0,
         acquisition_metadata      = '',
-        pending_transfer          = False,
+        create_info               = '',
     )
 
     db.add(dicom_archive_1)
