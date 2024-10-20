@@ -13,10 +13,12 @@ ARG DATABASE_PASS
 
 # Compile the SQL instructions into a single file that will be sourced by MariaDB.
 RUN ( \
-        echo "CREATE DATABASE $DATABASE_NAME; USE $DATABASE_NAME;" && \
-        echo "CREATE USER '$DATABASE_USER'@'%' IDENTIFIED BY '$DATABASE_PASS';" && \
-        echo "GRANT SELECT,INSERT,UPDATE,DELETE,DROP,CREATE TEMPORARY TABLES ON $DATABASE_NAME.* TO '$DATABASE_USER'@'%';" && \
-        cat \
+        echo \
+        "CREATE DATABASE $DATABASE_NAME;" \
+        "USE $DATABASE_NAME;" \
+        "CREATE USER '$DATABASE_USER'@'%' IDENTIFIED BY '$DATABASE_PASS';" \
+        "GRANT SELECT,INSERT,UPDATE,DELETE,DROP,CREATE TEMPORARY TABLES ON $DATABASE_NAME.* TO '$DATABASE_USER'@'%';" \
+        && cat \
         0000-00-00-schema.sql \
         0000-00-01-Modules.sql \
         0000-00-02-Permission.sql \

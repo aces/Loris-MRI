@@ -47,6 +47,7 @@ def test_orm_sql_sync():
             sql_column_python_type = get_sql_python_type(sql_column.type)
             assert orm_column_python_type == sql_column_python_type
             assert orm_column.nullable == sql_column.nullable
+            assert orm_column.default == sql_column.default
 
         print()
 
