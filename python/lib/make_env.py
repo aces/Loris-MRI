@@ -27,8 +27,8 @@ def make_env(loris_get_opt: LorisGetOpt):
             'Connecting to the database using the following configuration:\n'
             f'  Host: {config.host}\n'
             f'  Port: {config.port}\n'
-            f'  Username: {config.username}\n'
             f'  Database: {config.database}\n'
+            f'  Username: {config.username}\n'
             '  (password hidden)'
         )
 
