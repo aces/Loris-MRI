@@ -35,23 +35,27 @@ sudo ln -s /usr/local/mysql/lib/*.dylib .
 ```
 
 ```
-sudo -S cpan install Math::Round
-sudo -S cpan install Getopt::Tabular
-sudo -S cpan install Time::JulianDay
-sudo -S cpan install Path::Class
-sudo -S cpan install DBI
-sudo -S cpan install DBD::mysql
-sudo -S cpan install Archive::Extract
-sudo -S cpan install Archive::Zip
-sudo -S cpan install Pod::Perldoc
-sudo -S cpan install Pod::Markdown
-sudo -S cpan install Pod::Usage
-sudo -S cpan install JSON
-sudo -S cpan install Moose
-sudo -S cpan install MooseX::Privacy
-sudo -S cpan install TryCatch
-sudo -S cpan install Throwable
-sudo -S cpan install App::cpanminus
+sudo -S cpan App::cpanminus
+sudo -S cpanm Module::Pluggable@5.2
+sudo -S cpanm DBD::mysql@4.052
+sudo -S cpanm Math::Round
+sudo -S cpanm DateTime
+sudo -S cpanm DBI
+sudo -S cpanm Getopt::Tabular
+sudo -S cpanm Time::JulianDay
+sudo -S cpanm Path::Class
+sudo -S cpanm Archive::Extract
+sudo -S cpanm Archive::Zip
+sudo -S cpanm Pod::Perldoc
+sudo -S cpanm Pod::Markdown
+sudo -S cpanm Pod::Usage
+sudo -S cpanm JSON
+sudo -S cpanm Moose
+sudo -S cpanm MooseX::Privacy
+sudo -S cpanm TryCatch
+sudo -S cpanm Throwable
+sudo -S cpanm File::Type
+sudo -S cpanm String::ShellQuote
 sudo -S cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 ```
 

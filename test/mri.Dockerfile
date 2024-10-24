@@ -70,26 +70,31 @@ RUN dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb && \
 RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 
 # Install the Perl libraries
-RUN cpan install Math::Round && \
-    cpan install DBI && \
-    cpan install DBD::mysql@4.052 && \
-    cpan install Getopt::Tabular && \
-    cpan install Time::JulianDay && \
-    cpan install Path::Class && \
-    cpan install Archive::Extract && \
-    cpan install Archive::Zip && \
-    cpan install Pod::Perldoc && \
-    cpan install Pod::Markdown && \
-    cpan install Pod::Usage && \
-    cpan install JSON && \
-    cpan install Moose && \
-    cpan install MooseX::Privacy && \
-    cpan install TryCatch && \
-    cpan install Throwable && \
-    cpan install App::cpanminus && \
-    cpan install File::Type && \
-    cpan install String::ShellQuote && \
-    cpan install DateTime && \
+# NOTES:
+# - Module::Pluggable is required by other modules. Installation fails for v6.1
+#   (at the time of this writing)
+# - DBD::mysql v5+ is no longer compatible with MariaDB
+RUN cpan App::cpanminus && \
+    cpanm Module::Pluggable@5.2 && \
+    cpanm DBD::mysql@4.052 && \
+    cpanm Math::Round && \
+    cpanm DateTime && \
+    cpanm DBI && \
+    cpanm Getopt::Tabular && \
+    cpanm Time::JulianDay && \
+    cpanm Path::Class && \
+    cpanm Archive::Extract && \
+    cpanm Archive::Zip && \
+    cpanm Pod::Perldoc && \
+    cpanm Pod::Markdown && \
+    cpanm Pod::Usage && \
+    cpanm JSON && \
+    cpanm Moose && \
+    cpanm MooseX::Privacy && \
+    cpanm TryCatch && \
+    cpanm Throwable && \
+    cpanm File::Type && \
+    cpanm String::ShellQuote && \
     cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 
 # Install the Python libraries
