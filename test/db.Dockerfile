@@ -30,7 +30,7 @@ RUN ( \
 # Copy the LORIS-MRI database installation script and add it to the compiled SQL file.
 COPY install/install_database.sql /tmp/install_database.sql
 RUN echo "SET @email := 'root@localhost'; SET @project := 'loris'; SET @minc_dir = '/opt/minc/1.9.18';" >> source.sql
-RUN cat /tmp/install_database.sql >> /docker-entrypoint-initdb.d/source.sql
+RUN cat /tmp/install_database.sql >> source.sql
 
 # By default, MariaDB runs the SQL files provided by the user at the time of the first startup of
 # the image. However, we want to populate the database at build time, we therefore need to manually

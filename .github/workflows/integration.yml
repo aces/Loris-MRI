@@ -13,7 +13,7 @@ env:
   DATABASE_PASSWORD: TestPassword
   BUCKET_URL: https://ace-minio-1.loris.ca:9000
   BUCKET_NAME: loris-rb-data
-  BUCKET_ACCESS_KEY: lorisadmin
+  BUCKET_ACCESS_KEY: lorisadmin-ro
   BUCKET_SECRET_KEY: Tn=qP3LupmXnMuc
 
 jobs:
