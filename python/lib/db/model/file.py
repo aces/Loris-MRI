@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from lib.db.base import Base
 
 
-class DbMriFile(Base):
+class DbFile(Base):
     __tablename__ = 'files'
 
     id                             : Mapped[int]             = mapped_column('FileID', primary_key=True)

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from lib.db.base import Base
 
 
-class DbMriFileParameter(Base):
+class DbFileParameter(Base):
     __tablename__ = 'parameter_file'
 
     id                : Mapped[int]           = mapped_column('ParameterFileID', primary_key=True)
