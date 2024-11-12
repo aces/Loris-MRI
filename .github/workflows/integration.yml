@@ -11,10 +11,10 @@ env:
   DATABASE_NAME: TestDatabase
   DATABASE_USERNAME: TestUsername
   DATABASE_PASSWORD: TestPassword
-  BUCKET_URL: https://ace-minio-1.loris.ca:9000
-  BUCKET_NAME: loris-rb-data
-  BUCKET_ACCESS_KEY: lorisadmin-ro
-  BUCKET_SECRET_KEY: Tn=qP3LupmXnMuc
+  BUCKET_URL: ${{ vars.S3_BUCKET_URL }}
+  BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
+  BUCKET_ACCESS_KEY: ${{ secrets.S3_BUCKET_ACCESS_KEY }}
+  BUCKET_SECRET_KEY: ${{ secrets.S3_BUCKET_SECRET_KEY }}
 
 jobs:
   docker:
