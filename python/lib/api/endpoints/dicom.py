@@ -2,7 +2,7 @@ import json
 import os
 
 from lib.api.client import ApiClient
-from lib.api.models.dicom import GetDicom, GetDicomProcess, GetDicomProcesses
+from lib.api.models.dicom import GetDicom, GetDicomProcess, GetDicomProcesses, PostDicomProcesses
 
 
 def get_candidate_dicom(api: ApiClient, cand_id: int, visit_label: str):
@@ -34,7 +34,7 @@ def post_candidate_dicom(
     }
 
     response = api.post('v0.0.4-dev', f'candidates/{cand_id}/{visit_label}/dicoms', data=data, files=files)
-    return response
+    return response.headers['Location']
 
 
 def get_candidate_dicom_archive(api: ApiClient, cand_id: int, visit_label: str, tar_name: str):
@@ -53,11 +53,13 @@ def post_candidate_dicom_processes(api: ApiClient, cand_id: int, visit_label: st
         'MriUploadID': upload_id,
     }
 
-    api.post(
+    response = api.post(
         'v0.0.4-dev',
         f'/candidates/{cand_id}/{visit_label}/dicoms/{tar_name}/processes',
         json=json,
     )
+
+    return PostDicomProcesses.model_validate(response.json())
 
 
 def get_candidate_dicom_process(api: ApiClient, cand_id: int, visit_label: str, tar_name: str, process_id: int):

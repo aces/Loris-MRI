@@ -23,19 +23,19 @@ class ApiClient:
             'Authorization': f'Bearer {self.api_token}',
         }
 
-        print(f'https://{self.loris_url}/api/{version}/{route}')
-
         try:
             response = requests.get(
                 f'https://{self.loris_url}/api/{version}/{route}',
                 headers=headers,
                 json=json,
+                allow_redirects=False,
             )
 
             response.raise_for_status()
             return response
         except HTTPError as error:
             # TODO: Better error handling
+            print(error.response.status_code)
             print(error.response.text)
             exit(0)
 
@@ -58,6 +58,7 @@ class ApiClient:
                 data=data,
                 json=json,
                 files=files,
+                allow_redirects=False,
             )
 
             response.raise_for_status()
