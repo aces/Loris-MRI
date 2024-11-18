@@ -16,7 +16,6 @@ pyright
 pytest
 python-dateutil
 requests
-requests_toolbelt
 ruff
 scikit-learn
 scipy

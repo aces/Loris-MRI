@@ -1,8 +1,6 @@
 import json
 import os
 
-from requests_toolbelt import MultipartEncoder
-
 from lib.api.client import ApiClient
 from lib.api.models.dicom import GetDicom, GetDicomProcess, GetDicomProcesses, PostDicomProcesses
 
@@ -21,7 +19,7 @@ def post_candidate_dicom(
     overwrite: bool,
     file_path: str,
 ):
-    multipart = MultipartEncoder(fields={
+    data = {
         'Json': json.dumps({
             'CandID': cand_id,
             'PSCID': psc_id,
@@ -29,10 +27,13 @@ def post_candidate_dicom(
             'IsPhantom': is_phantom,
             'Overwrite': overwrite,
         }),
-        'File': (os.path.basename(file_path), open(file_path, 'rb'), 'application/x-tar'),
-    })
+    }
 
-    response = api.post('v0.0.4-dev', f'candidates/{cand_id}/{visit_label}/dicoms', data=multipart)
+    files = {
+        'File': (os.path.basename(file_path), open(file_path, 'rb'), 'application/x-tar'),
+    }
+
+    response = api.post('v0.0.4-dev', f'candidates/{cand_id}/{visit_label}/dicoms', data=data, files=files)
     return response.headers['Location']
 
 

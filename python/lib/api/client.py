@@ -3,7 +3,6 @@ from typing import Any, Literal
 
 import requests
 from requests import HTTPError
-from requests_toolbelt import MultipartEncoder
 
 # TODO: Turn into a type declaration with Python 3.12
 ApiVersion = Literal['v0.0.3', 'v0.0.4-dev']
@@ -44,16 +43,13 @@ class ApiClient:
         self,
         version: ApiVersion,
         route: str,
-        data: dict[str, str] | MultipartEncoder = {},
+        data: dict[str, str] = {},
         json: dict[str, Any] | None = None,
         files: dict[str, Any] | None = None,
     ):
         headers = {
             'Authorization': f'Bearer {self.api_token}',
         }
-
-        if isinstance(data, MultipartEncoder):
-            headers['Content-Type'] = data.content_type
 
         try:
             response = requests.post(
