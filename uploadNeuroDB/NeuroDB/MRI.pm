@@ -669,7 +669,7 @@ sub scan_type_text_to_id {
         0, { MriScanTypeName => $type }
     );
 
-    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'ID'} : undef;
+    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'MriScanTypeID'} : undef;
 }
 
 
