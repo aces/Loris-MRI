@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.model.session as db_session
@@ -11,7 +12,7 @@ class DbFile(Base):
     __tablename__ = 'files'
 
     id                             : Mapped[int]             = mapped_column('FileID', primary_key=True)
-    session_id                     : Mapped[int]             = mapped_column('SessionID')
+    session_id                     : Mapped[int]             = mapped_column('SessionID', ForeignKey('session.ID'))
     file_name                      : Mapped[str]             = mapped_column('File')
     series_uid                     : Mapped[Optional[str]]   = mapped_column('SeriesUID')
     echo_time                      : Mapped[Optional[float]] = mapped_column('EchoTime')
