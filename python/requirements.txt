@@ -11,9 +11,11 @@ nose
 numpy
 protobuf>=3.0.0
 pybids==0.17.0
+pydantic
 pyright
 pytest
 python-dateutil
+requests
 ruff
 scikit-learn
 scipy
