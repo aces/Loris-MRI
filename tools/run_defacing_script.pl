@@ -439,7 +439,7 @@ sub check_if_deface_files_already_in_db {
     # base query
     my $query = "SELECT COUNT(*) "
                  . " FROM files f "
-                 . " JOIN mri_scan_type mst USING (mst.MriScanTypeID=f.MriScanTypeID) ";
+                 . " JOIN mri_scan_type mst ON (mst.MriScanTypeID=f.MriScanTypeID) ";
 
     # add where clause for the different defaced scan types
     my @where = map { "mst.MriScanTypeName = ?" } @defaced_scan_types;
