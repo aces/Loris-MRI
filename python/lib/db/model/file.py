@@ -1,8 +1,9 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.model.session as db_session
 from lib.db.base import Base
 
 
@@ -32,3 +33,5 @@ class DbFile(Base):
     scanner_id                     : Mapped[Optional[int]]   = mapped_column('ScannerID')
     acquisition_order_per_modality : Mapped[Optional[int]]   = mapped_column('AcqOrderPerModality')
     acquisition_date               : Mapped[Optional[date]]  = mapped_column('AcquisitionDate')
+
+    session : Mapped['db_session.DbSession'] = relationship('DbSession', back_populates='files')
