@@ -427,7 +427,7 @@ sub getFileList {
 SELECT
   f.FileID,
   File,
-  MriScanTypeID,
+  mst.MriScanTypeID,
   EchoTime,
   c.CandID,
   s.Visit_label,
