@@ -21,6 +21,8 @@ jobs:
     name: Docker
     runs-on: ubuntu-latest
     steps:
+    - name: Print variables
+      run: echo ${{ vars.S3_BUCKET_URL }} ${{ vars.S3_BUCKET_NAME }}
     - name: Check out LORIS-MRI
       uses: actions/checkout@v4
 
