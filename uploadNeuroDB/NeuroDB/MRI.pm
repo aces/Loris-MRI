@@ -640,7 +640,7 @@ sub scan_type_id_to_text {
         db => $db
     );
 
-    my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $typeID });
+    my $mriScanTypeRef = $mriScanTypeOB->get(0, { MriScanTypeID => $typeID });
 
     return $mriScanTypeRef->[0]->{'MriScanTypeName'};
 }
