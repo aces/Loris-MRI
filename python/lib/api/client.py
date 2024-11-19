@@ -80,19 +80,9 @@ def get_api_token(loris_url: str, username: str, password: str) -> str:
         'password': password,
     }
 
-    try:
-        response = requests.post(f'https://{loris_url}/api/v0.0.4-dev/login', json=credentials)
-        response.raise_for_status()
-        return response.json()['token']
-    except HTTPError as error:
-        error_description = error.response.json()['error']
-        if error_description == 'Unacceptable JWT key':
-            raise Exception(
-                'Unacceptable LORIS JWT key.\n'
-                'To use the API, please enter a sufficiently complex JWT key in the LORIS configuration module.'
-            )
-
-        exit(0)
+    response = requests.post(f'https://{loris_url}/api/v0.0.4-dev/login', json=credentials)
+    response.raise_for_status()
+    return response.json()['token']
 
 
 def get_api_client(loris_url: str, username: str, password: str):

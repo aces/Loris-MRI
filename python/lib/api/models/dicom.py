@@ -15,8 +15,8 @@ class DicomArchiveSeries(BaseModel):
 
 
 class DicomArchive(BaseModel):
-    tar_name     : str                         = Field(alias='Tarname')
-    patient_name : str                         = Field(alias='Patientname')
+    tar_name     : str                      = Field(alias='Tarname')
+    patient_name : str                      = Field(alias='Patientname')
     series       : list[DicomArchiveSeries] = Field(alias='SeriesInfo')
 
 
