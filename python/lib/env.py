@@ -4,7 +4,8 @@ from typing import Callable
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from lib.db.query.notification import get_notification_type_with_name
+from lib.db.model.notification_type import DbNotificationType
+from lib.db.query.notification import try_get_notification_type_with_name
 
 
 @dataclass
@@ -63,11 +64,20 @@ class Env:
         execution information in the database.
         """
 
-        notification_session = Session(self.db_engine)
+        notification_db = Session(self.db_engine)
         notification_type_name = f'PYTHON {self.script_name.replace("_", " ").upper()}'
-        notification_type = get_notification_type_with_name(self.db, notification_type_name)
+        notification_type = try_get_notification_type_with_name(notification_db, notification_type_name)
+        if notification_type is None:
+            notification_type = DbNotificationType(
+                name    = notification_type_name,
+                private = False,
+            )
+
+            notification_db.add(notification_type)
+            notification_db.commit()
+
         self.notifier = Notifier(
-            notification_session,
+            notification_db,
             notification_type.id,
             f'{self.script_name}.py',
             process_id,

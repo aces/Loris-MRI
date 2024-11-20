@@ -2,9 +2,12 @@
 
 import datetime
 
+from typing_extensions import deprecated
+
 __license__ = "GPLv3"
 
 
+@deprecated('Use `lib.db.model.notification_spool` instead')
 class Notification:
     """
     This class performs database queries for imaging pipeline notification_spool table.
@@ -46,6 +49,7 @@ class Notification:
         self.notification_origin = notification_origin
         self.process_id = process_id
 
+    @deprecated('Use `lib.logging.register_notification` instead')
     def write_to_notification_spool(self, message, is_error, is_verbose, center_id=None):
         """
         Insert a row in the notification_spool table.
