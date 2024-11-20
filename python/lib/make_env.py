@@ -18,7 +18,7 @@ def make_env(loris_get_opt: LorisGetOpt):
 
     verbose = cast(bool, loris_get_opt.options_dict['verbose']['value'])
     config = cast(DatabaseConfig, loris_get_opt.config_info.mysql)  # type: ignore
-    script_name = loris_get_opt.script_name
+    script_name = cast(str, loris_get_opt.script_name)
 
     # Connect to the database
 
@@ -54,7 +54,7 @@ def make_env(loris_get_opt: LorisGetOpt):
         [],
     )
 
-    log_file_header = get_log_file_header(env, loris_get_opt.options_dict)
+    log_file_header = get_log_file_header(env, loris_get_opt.options_dict)  # type: ignore
     write_to_log_file(env, log_file_header)
 
     log_verbose(env, 'Successfully connected to the database')
