@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -27,5 +27,5 @@ class DbDicomArchiveSeries(Base):
 
     archive            : Mapped['db_dicom_archive.DbDicomArchive'] \
         = relationship('DbDicomArchive', back_populates='series')
-    files              : Mapped[List['db_dicom_archive_file.DbDicomArchiveFile']] \
+    files              : Mapped[list['db_dicom_archive_file.DbDicomArchiveFile']] \
         = relationship('DbDicomArchiveFile', back_populates='series')
