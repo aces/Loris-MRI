@@ -23,7 +23,3 @@ UPDATE Config SET Value = CONCAT('/opt/', @project, '/bin/mri/dicom-archive/get_
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'get_dicom_info');
 UPDATE Config SET Value = CONCAT('/opt/', @project, '/bin/mri/')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'MRICodePath');
-
--- TODO: Maybe move out of this file to the tests ?
-UPDATE Config SET Value = 'dcm2niix'
-  WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'converter');

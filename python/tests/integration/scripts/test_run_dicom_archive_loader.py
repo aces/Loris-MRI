@@ -1,9 +1,9 @@
-import os
 import subprocess
 
 from lib.db.query.config import set_config_with_setting_name
 from lib.db.query.mri_upload import get_mri_upload_with_patient_name
 from tests.util.database import get_integration_database_session
+from tests.util.file_system import check_file_tree
 
 
 def test():
@@ -28,8 +28,17 @@ def test():
     assert process.returncode == 0
     assert process.stderr == b''
 
-    # Check that the expected file has been created
-    assert os.path.exists('/data/loris/assembly_bids/sub-300001')
+    # Check that the expected files have been created
+    assert check_file_tree('/data/raisinbread/assembly_bids', {
+        'sub-300001': {
+            'ses-V2': {
+                'anat': {
+                    'sub-300001_ses-V2_run-1_T1w.json': None,
+                    'sub-300001_ses-V2_run-1_T1w.nii.gz': None,
+                }
+            }
+        }
+    })
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
