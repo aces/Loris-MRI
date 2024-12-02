@@ -1,11 +1,18 @@
 import os
 import subprocess
 
+from lib.db.query.config import set_config_with_setting_name
 from lib.db.query.mri_upload import get_mri_upload_with_patient_name
 from tests.util.database import get_integration_database_session
 
 
 def test():
+    db = get_integration_database_session()
+
+    # Set the configuration to use the DICOM to BIDS pipeline
+    set_config_with_setting_name(db, 'converter', 'dcm2niix')
+    db.commit()
+
     # Run the script to test
     process = subprocess.run([
         'run_dicom_archive_loader.py',
@@ -25,7 +32,6 @@ def test():
     assert os.path.exists('/data/loris/assembly_bids/sub-300001')
 
     # Check that the expected data has been inserted in the database
-    db = get_integration_database_session()
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
     assert mri_upload.session is not None
     assert len(mri_upload.session.files) == 1
