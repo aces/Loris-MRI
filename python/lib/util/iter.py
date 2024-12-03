@@ -63,3 +63,17 @@ def flatten(iterables: Iterable[Iterable[T]]) -> Iterator[T]:
 
     for iterable in iterables:
         yield from iterable
+
+
+def replace_or_append(elements: list[T], predicate: Callable[[T], bool], value: T) -> None:
+    """
+    Replace the first element of a list that satisfies a predicate with a value, or append that
+    value to the list.
+    """
+
+    for i, element in enumerate(elements):
+        if predicate(element):
+            elements[i] = value
+            return
+
+    elements.append(value)
