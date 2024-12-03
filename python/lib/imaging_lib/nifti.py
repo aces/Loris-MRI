@@ -5,9 +5,9 @@ from typing import Any, cast
 import nibabel as nib
 
 
-def add_nifti_spatial_file_parameters(nifti_path: str, file_parameters: dict[str, Any]):
+def add_nifti_file_parameters(nifti_path: str, nifti_file_hash: str, file_parameters: dict[str, Any]):
     """
-    Read a NIfTI image and add its spatial metadata to the file parameters.
+    Read a NIfTI image and add some of its properties to the file parameters.
     """
 
     img = nib.load(nifti_path)  # type: ignore
@@ -29,6 +29,9 @@ def add_nifti_spatial_file_parameters(nifti_path: str, file_parameters: dict[str
         file_parameters['time'] = shape[3]
     else:
         file_parameters['time'] = None
+
+    # Add the file BLAKE2b hash.
+    file_parameters['file_blake2b_hash'] = nifti_file_hash
 
 
 def find_dir_nifti_names(dir_path: str) -> Iterator[str]:
