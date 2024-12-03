@@ -324,51 +324,49 @@ def read_and_insert_bids(
         )
 
     # read list of modalities per session / candidate and register data
-    for bids_sub_dir_info in bids_reader.cand_session_modalities_list:
-        if bids_sub_dir_info.session_label is not None:
-            visit_label = bids_sub_dir_info.session_label
+    for subject_label, session_label, modality in bids_reader.iter_modality_combinations():
+        if session_label is not None:
+            visit_label = session_label
         else:
             visit_label = default_bids_vl
 
-        loris_bids_visit_rel_dir = os.path.join(
-            f'sub-{bids_sub_dir_info.subject_label}',
+        loris_bids_modality_rel_dir = os.path.join(
+            f'sub-{subject_label}',
             f'ses-{visit_label}',
+            modality,
         )
 
-        for modality in bids_sub_dir_info.modalities:
-            loris_bids_modality_rel_dir = loris_bids_visit_rel_dir + '/' + modality + '/'
-            if not nocopy:
-                lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
+        if not nocopy:
+            lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
 
-            if modality in bids_eeg_modalities:
-                Eeg(
-                    bids_reader   = bids_reader,
-                    bids_sub_id   = bids_sub_dir_info.subject_label,
-                    bids_ses_id   = bids_sub_dir_info.session_label,
-                    bids_modality = modality,
-                    db            = db,
-                    verbose       = verbose,
-                    data_dir      = data_dir,
-                    default_visit_label    = default_bids_vl,
-                    loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
-                    loris_bids_root_dir    = loris_bids_root_dir,
-                    dataset_tag_dict       = dataset_tag_dict,
-                    dataset_type           = type
-                )
-
-            elif modality in bids_mri_modalities:
-                Mri(
-                    bids_reader   = bids_reader,
-                    bids_sub_id   = bids_sub_dir_info.subject_label,
-                    bids_ses_id   = bids_sub_dir_info.session_label,
-                    bids_modality = modality,
-                    db            = db,
-                    verbose       = verbose,
-                    data_dir      = data_dir,
-                    default_visit_label    = default_bids_vl,
-                    loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
-                    loris_bids_root_dir    = loris_bids_root_dir
-                )
+        if modality in bids_eeg_modalities:
+            Eeg(
+                bids_reader   = bids_reader,
+                bids_sub_id   = subject_label,
+                bids_ses_id   = session_label,
+                bids_modality = modality,
+                db            = db,
+                verbose       = verbose,
+                data_dir      = data_dir,
+                default_visit_label    = default_bids_vl,
+                loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
+                loris_bids_root_dir    = loris_bids_root_dir,
+                dataset_tag_dict       = dataset_tag_dict,
+                dataset_type           = type
+            )
+        elif modality in bids_mri_modalities:
+            Mri(
+                bids_reader   = bids_reader,
+                bids_sub_id   = subject_label,
+                bids_ses_id   = session_label,
+                bids_modality = modality,
+                db            = db,
+                verbose       = verbose,
+                data_dir      = data_dir,
+                default_visit_label    = default_bids_vl,
+                loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
+                loris_bids_root_dir    = loris_bids_root_dir
+            )
 
     # disconnect from the database
     db.disconnect()
