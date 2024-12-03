@@ -16,7 +16,7 @@ def get_patient_id_dicom_header_config(env: Env) -> Literal['PatientID', 'Patien
     patient_id_dicom_header = _get_config_value(env, 'lookupCenterNameUsing')
 
     if patient_id_dicom_header not in ('PatientID', 'PatientName'):
-        log_error_exit(
+        return log_error_exit(
             env,
             (
                 "Unexpected patient ID DICOM header configuration value, expected 'PatientID' or 'PatientName' but"
