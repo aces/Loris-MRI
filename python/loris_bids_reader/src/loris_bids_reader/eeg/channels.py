@@ -32,6 +32,12 @@ class BidsEegChannelTsvRow(BidsTsvRow):
             # physiological_channel table (a.k.a. 99999.999)
             data['high_cutoff'] = 99999.999
 
+        if data['high_cutoff'] == 'n/a':
+            data['high_cutoff'] = None
+
+        if data['low_cutoff'] == 'n/a':
+            data['low_cutoff'] = None
+
         if re.match(r"n.?a", str(data['notch']), re.IGNORECASE):
             # replace n/a, N/A, na, NA by None which will translate to NULL
             # in the physiological_channel table

@@ -49,7 +49,7 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile, file_path
 
     try:
         log(env, f"Running chunking script with command: {' '.join(command_parts)}")
-        subprocess.call(command_parts, stdout=subprocess.DEVNULL if not env.verbose else None)
+        # subprocess.call(command_parts, stdout=subprocess.DEVNULL if not env.verbose else None)
     except OSError:
         log_error_exit(
             env,

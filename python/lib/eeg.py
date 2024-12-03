@@ -20,11 +20,7 @@ from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.session import DbSession
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
-from lib.import_bids_dataset.copy_files import (
-    copy_loris_bids_file,
-    copy_scans_tsv_file_to_loris_bids_dir,
-    get_loris_bids_file_path,
-)
+from lib.import_bids_dataset.copy_files import copy_loris_bids_file, get_loris_bids_file_path
 from lib.import_bids_dataset.env import BidsImportEnv
 from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
 from lib.import_bids_dataset.physio import (
@@ -50,17 +46,14 @@ class Eeg:
         """
         Constructor method for the Eeg class.
 
-        :param bids_reader  : dictionary with BIDS reader information
-         :type bids_reader  : dict
+        :param bids_layout  : PyBIDS layout
         :param bids_info    : the BIDS data type information
         :param session      : The LORIS session the EEG datasets are linked to
         :param db           : Database class object
          :type db           : object
         :param info         : The BIDS import pipeline information
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
-         :type dataset_tag_dict      : dict
         :param dataset_type          : raw | derivative. Type of the dataset
-         :type dataset_type          : string
         """
 
         self.env = env
@@ -319,16 +312,8 @@ class Eeg:
                         print(f"ERROR: {error}")
                         sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
 
-                    if self.info.loris_bids_path:
-                        # copy the scans.tsv file to the LORIS BIDS import directory
-                        scans_path = copy_scans_tsv_file_to_loris_bids_dir(
-                            self.scans_file,
-                            self.bids_info.subject,
-                            self.info.data_dir_path / self.info.loris_bids_path,
-                            self.data_dir,
-                        )
-
-                    eeg_file_data['scans_tsv_file'] = scans_path
+                    # TODO: Better handle scans.tsv path (LORIS one instead of real one).
+                    eeg_file_data['scans_tsv_file'] = self.scans_file.path
                     scans_blake2 = compute_file_blake2b_hash(self.scans_file.path)
                     eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 

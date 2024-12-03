@@ -61,6 +61,7 @@ def import_bids_mri_acquisition(
 
     loris_file = try_get_file_with_path(env.db, loris_file_path)
     if loris_file is not None:
+        import_env.ignored_files_count += 1
         log(env, f"File '{loris_file_path}' is already registered in LORIS. Skipping.")
         return
 
@@ -150,6 +151,8 @@ def import_bids_mri_acquisition(
     pic_rel_path = create_nifti_preview_picture(env, file)
 
     register_mri_file_parameter(env, file, 'check_pic_filename', str(pic_rel_path))
+
+    import_env.imported_files_count += 1
 
 
 def get_check_bids_nifti_file_hash(env: Env, acquisition: MriAcquisition) -> str:

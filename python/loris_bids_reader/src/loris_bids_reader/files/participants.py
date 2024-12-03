@@ -3,7 +3,7 @@ from pathlib import Path
 
 import dateutil.parser
 from dateutil.parser import ParserError
-from loris_utils.iter import find
+from loris_utils.iter import find, replace_or_append
 
 from loris_bids_reader.tsv import BidsTsvFile, BidsTsvRow
 
@@ -67,3 +67,19 @@ class BidsParticipantsTsvFile(BidsTsvFile[BidsParticipantTsvRow]):
         """
 
         return find(self.rows, lambda row: row.participant_id == participant_id)
+
+    def set_row(self, participant: BidsParticipantTsvRow):
+        """
+        Get the row corresponding to the given participant ID.
+        """
+
+        replace_or_append(self.rows, participant, lambda row: row.participant_id == participant.participant_id)
+
+    def merge(self, other: 'BidsParticipantsTsvFile'):
+        """
+        Copy another `participants.tsv` file into this file. The rows of this file are replaced by
+        those of the other file if there are duplicates.
+        """
+
+        for other_row in other.rows:
+            self.set_row(other_row)

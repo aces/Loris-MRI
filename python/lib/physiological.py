@@ -1,6 +1,5 @@
 """This class performs database queries for BIDS physiological dataset (EEG, MEG...)"""
 
-from dataclasses import dataclass
 from functools import reduce
 
 from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
@@ -17,6 +16,7 @@ from lib.db.models.physio_file import DbPhysioFile
 from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
 from lib.logging import log_error_exit
+from lib.physio.hed import TagGroupMember
 from lib.physio.parameters import insert_physio_file_parameter, insert_physio_project_parameter
 from lib.point_3d import Point3D
 
@@ -481,18 +481,6 @@ class Physiological:
                 return additional_members
         return 0
 
-    @dataclass
-    class TagGroupMember:
-        hed_tag_id: int | None
-        has_pairing: bool
-        additional_members: int
-        tag_value: str | None = None
-
-        def __eq__(self, other):
-            return self.hed_tag_id == other.hed_tag_id and \
-                self.has_pairing == other.has_pairing and \
-                self.additional_members == other.additional_members
-
     @staticmethod
     def build_hed_tag_groups(hed_union, hed_string):
         """
@@ -540,7 +528,7 @@ class Physiological:
                     Physiological.get_additional_members_from_parenthesis_index(string_split, 1, element_index)
 
             hed_tag_id = Physiological.get_hed_tag_id_from_name(left_stripped, hed_union)
-            tag_group.append(Physiological.TagGroupMember(hed_tag_id, has_pairing, additional_members))
+            tag_group.append(TagGroupMember(hed_tag_id, has_pairing, additional_members))
 
             for i in range(
                 0 if group_depth > 0 and element.startswith('(') and element.endswith(')') else 1,
@@ -549,7 +537,7 @@ class Physiological:
                 has_pairing = True
                 additional_members = \
                     Physiological.get_additional_members_from_parenthesis_index(string_split, i + 1, element_index)
-                tag_group.append(Physiological.TagGroupMember(None, has_pairing, additional_members))
+                tag_group.append(TagGroupMember(None, has_pairing, additional_members))
             group_depth += (len(element) - len(right_stripped))
             group_depth -= num_opening_parentheses
         if len(tag_group) > 0:

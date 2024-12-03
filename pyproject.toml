@@ -80,6 +80,7 @@ include = [
     "python/lib/get_session_info.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
+    "python/scripts/import_bids_dataset.py",
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
     "python/loris_bids_reader",

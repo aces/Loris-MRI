@@ -18,7 +18,7 @@ def test_import_eeg_bids_dataset():
     db.commit()
 
     process = run_integration_script([
-        'bids_import.py',
+        'import_bids_dataset.py',
         '--createcandidate', '--createsession',
         '--directory', '/data/loris/incoming/Face13',
     ])
