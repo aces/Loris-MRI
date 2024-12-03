@@ -3,6 +3,7 @@
 import json
 import re
 import sys
+from collections.abc import Generator
 from dataclasses import dataclass
 
 from bids import BIDSLayout
@@ -249,6 +250,16 @@ class BidsReader:
             print('\t=> Done grepping the different modalities from the BIDS layout\n')
 
         return cand_session_modalities_list
+
+    def iter_modality_combinations(self) -> Generator[tuple[str, str | None, str], None, None]:
+        """
+        Iterate over the different subject / session / modality combinations present in the BIDS
+        dataset.
+        """
+
+        for cand_session_modalities in self.cand_session_modalities_list:
+            for modality in cand_session_modalities.modalities:
+                yield cand_session_modalities.subject_label, cand_session_modalities.session_label, modality
 
     @staticmethod
     def grep_file(files_list: list[str], match_pattern: str, derivative_pattern: str | None = None) -> str | None:
