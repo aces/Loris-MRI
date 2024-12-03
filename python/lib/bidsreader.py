@@ -3,6 +3,7 @@
 import json
 import re
 import sys
+from typing import Any
 
 from bids import BIDSLayout
 
@@ -35,16 +36,13 @@ class BidsReader:
         bids_reader = BidsReader(bids_dir)
     """
 
-    def __init__(self, bids_dir, verbose, validate = True):
+    def __init__(self, bids_dir: str, verbose: bool, validate: bool = True):
         """
         Constructor method for the BidsReader class.
 
-        :param bids_dir: path to the BIDS structure to read
-         :type bids_dir: str
-        :param verbose : boolean to print verbose information
-         :type verbose : bool
+        :param bids_dir : path to the BIDS structure to read
+        :param verbose  : boolean to print verbose information
         :param validate : boolean to validate the BIDS dataset
-         :type validate : bool
         """
 
         self.verbose     = verbose
@@ -73,7 +71,7 @@ class BidsReader:
         # load BIDS modality information
         self.cand_session_modalities_list = self.load_modalities_from_bids()
 
-    def load_bids_data(self, validate):
+    def load_bids_data(self, validate: bool):
         """
         Loads the BIDS study using the BIDSLayout function (part of the pybids
         package) and return the object.
@@ -114,13 +112,12 @@ class BidsReader:
 
         return bids_layout
 
-    def load_candidates_from_bids(self):
+    def load_candidates_from_bids(self) -> list[dict[str, Any]]:
         """
         Loads the list of candidates from the BIDS study. List of
         participants and their information will be stored in participants_info.
 
         :return: list of dictionaries with participant information from BIDS
-         :rtype: list
         """
 
         if self.verbose:
@@ -149,7 +146,7 @@ class BidsReader:
 
         return participants_info
 
-    def candidates_list_validation(self, participants_info):
+    def candidates_list_validation(self, participants_info: list[dict[str, Any]]):
         """
         Validates whether the subjects listed in participants.tsv match the
         list of participant directory. If there is a mismatch, will exit with
@@ -186,14 +183,13 @@ class BidsReader:
         if self.verbose:
             print('\t=> Passed validation of the list of participants\n')
 
-    def load_sessions_from_bids(self):
+    def load_sessions_from_bids(self) -> dict[str, list[str]]:
         """
         Grep the list of sessions for each candidate directly from the BIDS
         structure.
 
         :return: dictionary with the list of sessions and candidates found in the
                  BIDS structure
-         :rtype: dict
         """
 
         if self.verbose:
@@ -216,13 +212,12 @@ class BidsReader:
 
         return cand_sessions
 
-    def load_modalities_from_bids(self):
+    def load_modalities_from_bids(self) -> list[dict[str, Any]]:
         """
         Grep the list of modalities available for each session and candidate directly
         from the BIDS structure.
 
         :return: dictionary for candidate and session with list of modalities
-         :rtype: dict
         """
 
         if self.verbose:
@@ -253,20 +248,16 @@ class BidsReader:
         return cand_session_modalities_list
 
     @staticmethod
-    def grep_file(files_list, match_pattern, derivative_pattern=None):
+    def grep_file(files_list: list[str], match_pattern: str, derivative_pattern: str | None = None) -> str | None:
         """
         Grep a unique file based on a match pattern and returns it.
 
-        :param files_list        : list of files to look into
-         :type files_list        : list
-        :param match_pattern     : pattern to use to find the file
-         :type match_pattern     : str
-        :param derivative_pattern: derivative pattern to use if the file we look for
-                                   is a derivative file
-         :type derivative_pattern: str
+        :param files_list         : list of files to look into
+        :param match_pattern      : pattern to use to find the file
+        :param derivative_pattern : derivative pattern to use if the file we look for
+                                    is a derivative file
 
         :return: name of the first file that matches the pattern
-         :rtype: str
         """
 
         for filename in files_list:

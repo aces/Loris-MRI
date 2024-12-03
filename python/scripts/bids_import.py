@@ -7,6 +7,7 @@ import json
 import os
 import re
 import sys
+from typing import Any, Literal
 
 import lib.exitcode
 import lib.physiological
@@ -101,7 +102,7 @@ def main():
         print(usage)
         sys.exit(lib.exitcode.MISSING_ARG)
 
-    if type and type not in ('raw', 'derivative'):
+    if type not in (None, 'raw', 'derivative'):
         print("--type must be one of 'raw', 'derivative'")
         print(usage)
         sys.exit(lib.exitcode.MISSING_ARG)
@@ -130,21 +131,17 @@ def main():
     )
 
 
-def input_error_checking(profile, bids_dir, usage):
+def input_error_checking(profile: str, bids_dir: str, usage: str) -> Any:
     """
     Checks whether the required inputs are set and that paths are valid. If
     the path to the config_file file valid, then it will import the file as a
     module so the database connection information can be used to connect.
 
     :param profile : path to the profile file with MySQL credentials
-     :type profile : str
     :param bids_dir: path to the BIDS directory to parse and insert into LORIS
-     :type bids_dir: str
     :param usage   : script usage to be displayed when encountering an error
-     :type usage   : st
 
     :return: config_file module with database credentials (config_file.mysql)
-     :rtype: module
     """
 
     if not profile:
@@ -182,33 +179,22 @@ def input_error_checking(profile, bids_dir, usage):
 
 
 def read_and_insert_bids(
-    bids_dir,      data_dir,      verbose, createcand, createvisit,
-    idsvalidation, nobidsvalidation, type,    nocopy,  db
+    bids_dir: str, data_dir: str, verbose: bool, createcand: bool, createvisit: bool,
+    idsvalidation: bool, nobidsvalidation: bool, type: Literal['raw', 'derivative'] | None, nocopy: bool, db: Database,
 ):
     """
     Read the provided BIDS structure and import it into the database.
 
     :param bids_dir         : path to the BIDS directory
-     :type bids_dir         : str
     :param data_dir         : data_dir config value
-     :type data_dir         : string
     :param verbose          : flag for more printing if set
-     :type verbose          : bool
     :param createcand       : allow database candidate creation if it did not exist already
-     :type createcand       : bool
     :param createvisit      : allow database visit creation if it did not exist already
-     :type createvisit      : bool
     :param idsvalidation    : allow pscid/candid validation in the BIDS directory name
-     :type idsvalidation    : bool
     :param nobidsvalidation : disable bids dataset validation
-     :type nobidsvalidation : bool
-    :param type             : raw | derivative. Type of the dataset
-     :type type             : string
+    :param type             : Type of the dataset
     :param nocopy           : disable bids dataset copy in assembly_bids
-     :type nocopy           : bool
     :param db               : db object
-     :type db               : object
-
     """
 
     # grep config settings from the Config module
@@ -377,16 +363,13 @@ def read_and_insert_bids(
     db.disconnect()
 
 
-def validateids(bids_dir, db, verbose):
+def validateids(bids_dir: str, db: Database, verbose: bool):
     """
     Validate that pscid and candid matches
 
     :param bids_dir : path to the BIDS directory
-     :type bids_dir : str
     :param db       : database handler object
-     :type db       : object
-    :param verbose      : flag for more printing if set
-     :type verbose      : bool
+    :param verbose  : flag for more printing if set
     """
 
     bids_folder = bids_dir.rstrip('/').split('/')[-1]
@@ -405,21 +388,17 @@ def validateids(bids_dir, db, verbose):
         sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
 
 
-def create_loris_bids_directory(bids_reader, data_dir, verbose):
+def create_loris_bids_directory(bids_reader: BidsReader, data_dir: str, verbose: bool) -> str:
     """
     Creates the LORIS BIDS import root directory (with name and BIDS version)
     and copy over the dataset_description.json, README and participants.tsv
     files.
 
-    :param bids_reader: BIDS information handler object
-     :type bids_reader: object
-    :param data_dir   : path of the LORIS data directory
-     :type data_dir   : str
-    :param verbose    : if true, prints out information while executing
-     :type verbose    : bool
+    :param bids_reader : BIDS information handler object
+    :param data_dir    : path of the LORIS data directory
+    :param verbose     : if true, prints out information while executing
 
     :return: path to the LORIS BIDS import root directory
-     :rtype: str
     """
 
     # making sure that there is a final / in bids_dir
@@ -470,26 +449,21 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
     return loris_bids_dirname
 
 
-def grep_or_create_candidate_db_info(bids_reader, bids_id, db, createcand, verbose):
+def grep_or_create_candidate_db_info(
+    bids_reader: BidsReader, bids_id: str, db: Database, createcand: bool, verbose: bool
+) -> dict[str, Any]:
     """
     Greps (or creates if candidate does not exist and createcand is true) the
     BIDS candidate in the LORIS candidate's table and return a list of
     candidates with their related fields from the database.
 
     :param bids_reader   : BIDS information handler object
-     :type bids_reader   : object
     :param bids_id       : bids_id to be used (CandID or PSCID)
-     :type bids_id       : str
     :param db            : database handler object
-     :type db            : object
     :param createcand    : if true, creates the candidate in LORIS
-     :type createcand    : bool
     :param verbose       : if true, prints out information while executing
-     :type verbose       : bool
 
-    :return: list of candidate's dictionaries. One entry in the list holds
-             a dictionary with field's values from the candidate table
-     :rtype: list
+    :return: The dictionary of the candidate database record
     """
 
     candidate = Candidate(verbose=verbose, cand_id=bids_id)
@@ -515,39 +489,27 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id, db, createcand, verbo
 
 
 def grep_or_create_session_db_info(
-        bids_id,   cand_id,     visit_label,
-        db,        createvisit, verbose,       loris_bids_dir,
-        center_id, project_id,  cohort_id,     nocopy):
+        bids_id: str, cand_id: int, visit_label: str, db: Database, createvisit: bool, verbose: bool,
+        loris_bids_dir: str, center_id: int, project_id: int, cohort_id: int, nocopy: bool
+) -> dict[str, Any]:
     """
     Greps (or creates if session does not exist and createvisit is true) the
     BIDS session in the LORIS session's table and return a list of
     sessions with their related fields from the database.
 
-    :parma bids_id       : BIDS ID of the session
-     :type bids_id       : str
-    :param cand_id       : CandID to use to create the session
-     :type cand_id       : int
-    :param visit_label   : Visit label to use to create the session
-     :type visit_label   : str
-    :param db            : database handler object
-     :type db            : object
-    :param createvisit   : if true, creates the session in LORIS
-     :type createvisit   : bool
-    :param verbose       : if true, prints out information while executing
-     :type verbose       : bool
-    :param loris_bids_dir: LORIS BIDS import root directory to copy data
-     :type loris_bids_dir: str
-    :param center_id     : CenterID  to use to create the session
-     :type center_id     : int
-    :param project_id    : ProjectID  to use to create the session
-     :type project_id    : int
-    :param cohort_id     : CohortID to use to create the session
-     :type cohort_id     : int
-    :param nocopy        : if true, skip the assembly_bids dataset copy
-     :type nocopy        : bool
+    :parma bids_id        : BIDS ID of the session
+    :param cand_id        : CandID to use to create the session
+    :param visit_label    : Visit label to use to create the session
+    :param db             : database handler object
+    :param createvisit    : if true, creates the session in LORIS
+    :param verbose        : if true, prints out information while executing
+    :param loris_bids_dir : LORIS BIDS import root directory to copy data
+    :param center_id      : CenterID  to use to create the session
+    :param project_id     : ProjectID  to use to create the session
+    :param cohort_id      : CohortID to use to create the session
+    :param nocopy         : if true, skip the assembly_bids dataset copy
 
     :return: session information grepped from LORIS for cand_id and visit_label
-     :rtype: dict
     """
 
     session = Session(db, verbose, cand_id, visit_label, center_id, project_id, cohort_id)
@@ -567,44 +529,30 @@ def grep_or_create_session_db_info(
     return loris_vl_info
 
 
-def grep_candidate_sessions_info(bids_ses,    bids_id,    cand_id,       loris_bids_dir,
-                                 createvisit, verbose,    db,            default_vl,
-                                 center_id,   project_id, cohort_id,     nocopy):
+def grep_candidate_sessions_info(
+    bids_ses: list[str], bids_id: str, cand_id: int, loris_bids_dir: str, createvisit: bool, verbose: bool,
+    db: Database, default_vl: str, center_id: int, project_id: int, cohort_id: int, nocopy: bool,
+) -> list[dict[str, Any]]:
     """
     Greps all session info dictionaries for a given candidate and aggregates
     them into a list, with one entry per session. If the session does not
     exist in LORIS and that createvisit is true, it will create the session
     first.
 
-    :param bids_ses      : list of BIDS sessions to grep info or insert
-     :type bids_ses      : list
-    :param bids_id       : BIDS ID of the candidate
-     :type bids_id       : str
-    :param cand_id       : candidate's CandID
-     :type cand_id       : int
-    :param loris_bids_dir: LORIS BIDS import root directory to copy data
-     :type loris_bids_dir: str
-    :param createvisit   : if true, creates the visits in LORIS
-     :type createvisit   : bool
-    :param verbose       : if true, prints out information while executing
-     :type verbose       : bool
-    :param db            : database handler object
-     :type db            : object
-    :param default_vl    : default visit label from the Config module
-     :type default_vl    : str
-    :param center_id     : center ID associated to the candidate and visit
-     :type center_id     : int
-    :param project_id    : project ID associated to the candidate and visit
-     :type project_id    : int
-    :param cohort_id     : cohort ID associated to the candidate and visit
-     :type cohort_id     : int
-    :param nocopy        : if true, skip the assembly_bids dataset copy
-     :type nocopy        : bool
-
-
+    :param bids_ses       : list of BIDS sessions to grep info or insert
+    :param bids_id        : BIDS ID of the candidate
+    :param cand_id        : candidate's CandID
+    :param loris_bids_dir : LORIS BIDS import root directory to copy data
+    :param createvisit    : if true, creates the visits in LORIS
+    :param verbose        : if true, prints out information while executing
+    :param db             : database handler object
+    :param default_vl     : default visit label from the Config module
+    :param center_id      : center ID associated to the candidate and visit
+    :param project_id     : project ID associated to the candidate and visit
+    :param cohort_id      : cohort ID associated to the candidate and visit
+    :param nocopy         : if true, skip the assembly_bids dataset copy
 
     :return: list of all session's dictionaries for a given candidate
-     :rtype: list
     """
 
     loris_sessions_info = []
