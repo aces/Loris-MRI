@@ -234,10 +234,10 @@ def read_and_insert_bids(
     single_project_id = None
 
     # loop through subjects
-    for bids_subject_info in bids_reader.participants_info:
+    for participant_info in bids_reader.participants_info:
 
         # greps BIDS information for the candidate
-        bids_id       = bids_subject_info['participant_id']
+        bids_id       = participant_info.participant_id
         bids_sessions = bids_reader.cand_sessions_list[bids_id]
 
         # greps BIDS candidate's info from LORIS (creates the candidate if it
@@ -257,9 +257,9 @@ def read_and_insert_bids(
 
         cohort_id = None
         # TODO: change subproject -> cohort in participants.tsv?
-        if 'subproject' in bids_subject_info:
+        if participant_info.subproject is not None:
             # TODO: change subproject -> cohort in participants.tsv?
-            cohort = bids_subject_info['subproject']
+            cohort = participant_info.subproject
             cohort_info = db.pselect(
                 "SELECT CohortID FROM cohort WHERE title = %s",
                 [cohort, ]

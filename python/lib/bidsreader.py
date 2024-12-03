@@ -4,8 +4,8 @@ import json
 import re
 import sys
 from dataclasses import dataclass
-from typing import Any
 
+import dateutil.parser
 from bids import BIDSLayout
 
 import lib.exitcode
@@ -33,6 +33,52 @@ class BidsSessionInfo:
     subject_label: str
     session_label: str | None
     modalities: list[str]
+
+
+@dataclass
+class BidsParticipantInfo:
+    """
+    Information about a BIDS participant, obtained from the `participants.tsv` file of the BIDS
+    dataset.
+    """
+
+    participant_id: str
+    date_of_birth:  str | None = None
+    sex:            str | None = None
+    age:            str | None = None
+    site:           str | None = None
+    cohort:         str | None = None
+    project:        str | None = None
+    # FIXME: Both "cohort" and "subproject" are used in scripts, this may be a bug
+    subproject:     str | None = None
+
+
+def get_bids_participant_info_from_csv_row(row: dict[str, str]):
+    """
+    Get a BIDS participant object from the dictionary of a line of the `participants.tsv` file of
+    the BIDS dataset.
+    """
+
+    # Remove the `sub-` prefix of the participant ID if present
+    participant_id = row['participant_id'].replace('sub-', '')
+
+    # Get the date of birth from the possible participant fields
+    date_of_birth = None
+    for date_of_birth_name in ['date_of_birth', 'birth_date', 'dob']:
+        if date_of_birth_name in row:
+            date_of_birth = dateutil.parser.parse(row[date_of_birth_name]).strftime('%Y-%m-%d')
+            break
+
+    return BidsParticipantInfo(
+        participant_id = participant_id,
+        date_of_birth  = date_of_birth,
+        sex            = row.get('sex'),
+        age            = row.get('age'),
+        site           = row.get('site'),
+        cohort         = row.get('cohort'),
+        project        = row.get('project'),
+        subproject     = row.get('subproject'),
+    )
 
 
 class BidsReader:
@@ -125,7 +171,7 @@ class BidsReader:
 
         return bids_layout
 
-    def load_candidates_from_bids(self) -> list[dict[str, Any]]:
+    def load_candidates_from_bids(self) -> list[BidsParticipantInfo]:
         """
         Loads the list of candidates from the BIDS study. List of
         participants and their information will be stored in participants_info.
@@ -141,7 +187,7 @@ class BidsReader:
         for file in self.bids_layout.get(suffix='participants', return_type='filename'):
             # note file[0] returns the path to participants.tsv
             if 'participants.tsv' in file:
-                participants_info = utilities.read_tsv_file(file)
+                participants_info = list(map(get_bids_participant_info_from_csv_row, utilities.read_tsv_file(file)))
             else:
                 continue
 
@@ -149,17 +195,17 @@ class BidsReader:
             self.candidates_list_validation(participants_info)
         else:
             bids_subjects = self.bids_layout.get_subjects()
-            participants_info = [{'participant_id': sub_id} for sub_id in bids_subjects]
+            participants_info = [BidsParticipantInfo(sub_id) for sub_id in bids_subjects]
 
         if self.verbose:
             print('\t=> List of participants found:')
             for participant in participants_info:
-                print('\t\t' + participant['participant_id'])
+                print('\t\t' + participant.participant_id)
             print('\n')
 
         return participants_info
 
-    def candidates_list_validation(self, participants_info: list[dict[str, Any]]):
+    def candidates_list_validation(self, participants_info: list[BidsParticipantInfo]):
         """
         Validates whether the subjects listed in participants.tsv match the
         list of participant directory. If there is a mismatch, will exit with
@@ -177,16 +223,14 @@ class BidsReader:
 
         # check that all subjects listed in participants_info are also in
         # subjects array and vice versa
-        for row in participants_info:
-            # remove the "sub-" in front of the subject ID if present
-            row['participant_id'] = row['participant_id'].replace('sub-', '')
-            if row['participant_id'] not in subjects:
+        for participant_info in participants_info:
+            if participant_info.participant_id not in subjects:
                 print(mismatch_message)
-                print(row['participant_id'] + 'is missing from the BIDS Layout')
+                print(participant_info.participant_id + 'is missing from the BIDS Layout')
                 print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects))
                 sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
             # remove the subject from the list of subjects
-            subjects.remove(row['participant_id'])
+            subjects.remove(participant_info.participant_id)
 
         # check that no subjects are left in subjects array
         if subjects:
@@ -210,9 +254,9 @@ class BidsReader:
 
         cand_sessions = {}
 
-        for row in self.participants_info:
-            ses = self.bids_layout.get_sessions(subject=row['participant_id'])
-            cand_sessions[row['participant_id']] = ses
+        for participant_info in self.participants_info:
+            ses = self.bids_layout.get_sessions(subject=participant_info.participant_id)
+            cand_sessions[participant_info.participant_id] = ses
 
         if self.verbose:
             print('\t=> List of sessions found:\n')
