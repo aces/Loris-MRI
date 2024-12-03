@@ -4,10 +4,13 @@ import getpass
 import json
 import os
 import sys
+from typing import Any, Literal
 
 import lib.exitcode
 import lib.utilities as utilities
+from lib.bidsreader import BidsReader
 from lib.candidate import Candidate
+from lib.database import Database
 from lib.database_lib.config import Config
 from lib.database_lib.physiological_event_archive import PhysiologicalEventArchive
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
@@ -77,37 +80,28 @@ class Eeg:
         db.disconnect()
     """
 
-    def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
-                 verbose, data_dir, default_visit_label, loris_bids_eeg_rel_dir,
-                 loris_bids_root_dir, dataset_tag_dict, dataset_type):
+    def __init__(
+        self, bids_reader: BidsReader, bids_sub_id: str, bids_ses_id: str | None, bids_modality: str, db: Database,
+        verbose: bool, data_dir: str, default_visit_label: str, loris_bids_eeg_rel_dir: str,
+        loris_bids_root_dir: str | None, dataset_tag_dict: dict[Any, Any],
+        dataset_type: Literal['raw', 'derivative'] | None,
+    ):
         """
         Constructor method for the Eeg class.
 
-        :param bids_reader  : dictionary with BIDS reader information
-         :type bids_reader  : dict
+        :param bids_reader  : The BIDS reader object
         :param bids_sub_id  : BIDS subject ID (that will be used as PSCID)
-         :type bids_sub_id  : str
         :param bids_ses_id  : BIDS session ID (that will be used for the visit label)
-         :type bids_ses_id  : str
         :param bids_modality: BIDS modality (a.k.a. EEG)
-         :tyoe bids_modality: str
         :param db           : Database class object
-         :type db           : object
         :param verbose      : whether to be verbose
-         :type verbose      : bool
         :param data_dir     : LORIS data directory path (usually /data/PROJECT/data)
-         :type data_dir     : str
         :param default_visit_label   : default visit label to be used if no BIDS
                                        session are present in the BIDS structure
-         :type default_visit_label   : str
         :param loris_bids_eeg_rel_dir: LORIS BIDS EEG relative dir path to data_dir
-         :type loris_bids_eeg_rel_dir: str
         :param loris_bids_root_dir   : LORIS BIDS root directory path
-         :type loris_bids_root_dir   : str
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
-         :type dataset_tag_dict      : dict
         :param dataset_type          : raw | derivative. Type of the dataset
-         :type dataset_type          : string
         """
 
         # config
@@ -147,13 +141,13 @@ class Eeg:
         self.hed_union = self.db.pselect(query=hed_query, args=())
 
         self.cohort_id   = None
-        for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.bids_sub_id:
+        for bids_participant in bids_reader.bids_participants:
+            if bids_participant.id != self.bids_sub_id:
                 continue
-            if 'cohort' in row:
+            if bids_participant.cohort is not None:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    [row['cohort'], ]
+                    [bids_participant.cohort, ]
                 )
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']

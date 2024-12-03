@@ -19,6 +19,7 @@ select = ["E", "EXE", "F", "I", "N", "UP", "W"]
 include = [
     "python/tests",
     "python/lib/db",
+    "python/lib/import_bids_dataset",
     "python/lib/import_dicom_study",
     "python/lib/util",
     "python/lib/bids.py",

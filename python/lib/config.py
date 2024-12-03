@@ -26,6 +26,15 @@ def get_patient_id_dicom_header_config(env: Env) -> Literal['PatientID', 'Patien
     return patient_id_dicom_header
 
 
+def get_default_bids_visit_label_config(env: Env) -> str:
+    """
+    Get the default BIDS visit label from the in-database configuration, or exit the program with
+    an error if that configuration value does not exist.
+    """
+
+    return _get_config_value(env, 'default_bids_vl')
+
+
 def get_data_dir_path_config(env: Env) -> str:
     """
     Get the LORIS base data directory path from the in-database configuration, or exit the program
