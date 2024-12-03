@@ -6,9 +6,13 @@ import os
 import re
 import sys
 
+from bids.layout import BIDSFile
+
 import lib.exitcode
 import lib.utilities as utilities
+from lib.bidsreader import BidsReader
 from lib.candidate import Candidate
+from lib.database import Database
 from lib.imaging import Imaging
 from lib.scanstsv import ScansTSV
 from lib.session import Session
@@ -71,10 +75,11 @@ class Mri:
         db.disconnect()
     """
 
-    def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
-                 verbose, data_dir, default_visit_label,
-                 loris_bids_mri_rel_dir, loris_bids_root_dir):
-
+    def __init__(
+        self, bids_reader: BidsReader, bids_sub_id: str, bids_ses_id: str | None, bids_modality: str, db: Database,
+        verbose: bool, data_dir: str, default_visit_label: str, loris_bids_mri_rel_dir: str,
+        loris_bids_root_dir : str | None,
+    ):
         # enumerate the different suffixes supported by BIDS per modality type
         self.possible_suffix_per_modality = {
             'anat' : [
@@ -119,13 +124,13 @@ class Mri:
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
         self.cohort_id       = None
-        for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.psc_id:
+        for bids_participant in bids_reader.bids_participants:
+            if bids_participant.id != self.psc_id:
                 continue
-            if 'cohort' in row:
+            if bids_participant.cohort is not None:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    [row['cohort'], ]
+                    [bids_participant.cohort, ]
                 )
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
@@ -191,12 +196,11 @@ class Mri:
 
         return loris_vl_info['ID']
 
-    def grep_nifti_files(self):
+    def grep_nifti_files(self) -> list[BIDSFile]:
         """
         Returns the list of NIfTI files found for the modality.
 
         :return: list of NIfTI files found for the modality
-         :rtype: list
         """
 
         # grep all the possible suffixes for the modality
@@ -210,18 +214,15 @@ class Mri:
         # return the list of found NIfTI files
         return nii_files_list
 
-    def grep_bids_files(self, bids_type, extension):
+    def grep_bids_files(self, bids_type: str, extension: str) -> list[BIDSFile]:
         """
         Greps the BIDS files and their layout information from the BIDSLayout
         and return that list.
 
         :param bids_type: the BIDS type to use to grep files (T1w, T2w, bold, dwi...)
-         :type bids_type: str
         :param extension: extension of the file to look for (nii.gz, json...)
-         :type extension: str
 
         :return: list of files from the BIDS layout
-         :rtype: list
         """
 
         if self.bids_ses_id:
@@ -240,25 +241,23 @@ class Mri:
                 suffix      = bids_type
             )
 
-    def register_raw_file(self, nifti_file):
+    def register_raw_file(self, nifti_file: BIDSFile):
         """
         Registers raw MRI files and related files into the files and parameter_file tables.
 
         :param nifti_file: NIfTI file object
-         :type nifti_file: pybids NIfTI file object
         """
 
         # insert the NIfTI file
         self.fetch_and_insert_nifti_file(nifti_file)
 
-    def fetch_and_insert_nifti_file(self, nifti_file, derivatives=None):
+    def fetch_and_insert_nifti_file(self, nifti_file: BIDSFile, derivatives=None):
         """
         Gather NIfTI file information to insert into the files and parameter_file tables.
         Once all the information has been gathered, it will call imaging.insert_imaging_file
         that will perform the insertion into the files and parameter_file tables.
 
         :param nifti_file : NIfTI file object
-         :type nifti_file : pybids NIfTI file object
         :param derivatives: whether the file to be registered is a derivative file
          :type derivatives: bool
 
@@ -406,7 +405,7 @@ class Mri:
                     'file_id'      : file_id
                 }
             )
-            if os.path.exists(os.path.join(self.data_dir, 'pic/', pic_rel_path)):
+            if os.path.exists(os.path.join(self.data_dir, 'pic', pic_rel_path)):
                 imaging.insert_parameter_file(file_id, 'check_pic_filename', pic_rel_path)
 
         return {'file_id': file_id, 'file_path': file_path}
@@ -429,24 +428,28 @@ class Mri:
         # determine the path of the copied file
         copy_file = self.loris_bids_mri_rel_dir
         if self.bids_ses_id:
-            copy_file += os.path.basename(file)
+            copy_file = os.path.join(copy_file, os.path.basename(file))
         else:
             # make sure the ses- is included in the new filename if using
             # default visit label from the LORIS config
-            copy_file += str.replace(
-                os.path.basename(file),
-                "sub-" + self.bids_sub_id,
-                "sub-" + self.bids_sub_id + "_ses-" + self.default_vl
+            copy_file = os.path.join(
+                copy_file,
+                str.replace(
+                    os.path.basename(file),
+                    f"sub-{self.bids_sub_id}",
+                    f"sub-{self.bids_sub_id}_ses-{self.default_vl}"
+                )
             )
         if derivatives_path:
             # create derivative subject/vl/modality directory
             lib.utilities.create_dir(
-                derivatives_path + self.loris_bids_mri_rel_dir,
+                os.path.join(derivatives_path, self.loris_bids_mri_rel_dir),
                 self.verbose
             )
-            copy_file = derivatives_path + copy_file
+
+            copy_file = os.path.join(derivatives_path, copy_file)
         else:
-            copy_file = self.loris_bids_root_dir + copy_file
+            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
 
         # copy the file
         utilities.copy_file(file, copy_file, self.verbose)
