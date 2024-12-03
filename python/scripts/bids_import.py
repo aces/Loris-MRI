@@ -215,7 +215,7 @@ def read_and_insert_bids(
         bids_reader = BidsReader(bids_dir, verbose, False)
     else:
         bids_reader = BidsReader(bids_dir, verbose)
-    if not bids_reader.participants_info          \
+    if not bids_reader.bids_participants          \
             or not bids_reader.cand_sessions_list \
             or not bids_reader.cand_session_modalities_list:
         message = '\n\tERROR: could not properly parse the following' \
@@ -234,10 +234,10 @@ def read_and_insert_bids(
     single_project_id = None
 
     # loop through subjects
-    for bids_subject_info in bids_reader.participants_info:
+    for bids_participant in bids_reader.bids_participants:
 
         # greps BIDS information for the candidate
-        bids_id       = bids_subject_info['participant_id']
+        bids_id       = bids_participant.id
         bids_sessions = bids_reader.cand_sessions_list[bids_id]
 
         # greps BIDS candidate's info from LORIS (creates the candidate if it
@@ -257,9 +257,9 @@ def read_and_insert_bids(
 
         cohort_id = None
         # TODO: change subproject -> cohort in participants.tsv?
-        if 'subproject' in bids_subject_info:
+        if bids_participant.subproject is not None:
             # TODO: change subproject -> cohort in participants.tsv?
-            cohort = bids_subject_info['subproject']
+            cohort = bids_participant.subproject
             cohort_info = db.pselect(
                 "SELECT CohortID FROM cohort WHERE title = %s",
                 [cohort, ]
@@ -486,7 +486,7 @@ def grep_or_create_candidate_db_info(
 
     if not loris_cand_info and createcand:
         loris_cand_info = candidate.create_candidate(
-            db, bids_reader.participants_info
+            db, bids_reader.bids_participants
         )
         if not loris_cand_info:
             print("Creating candidate failed. Cannot importing the files.\n")

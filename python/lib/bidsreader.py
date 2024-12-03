@@ -4,12 +4,11 @@ import json
 import re
 import sys
 from dataclasses import dataclass
-from typing import Any
 
 from bids import BIDSLayout
 
 import lib.exitcode
-import lib.utilities as utilities
+from lib.bids.participant import BidsParticipant, read_bids_participants_file
 
 # import bids
 # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
@@ -76,7 +75,7 @@ class BidsReader:
             print("WARNING: Cannot read dataset_description.json")
 
         # load BIDS candidates information
-        self.participants_info = self.load_candidates_from_bids()
+        self.bids_participants = self.load_candidates_from_bids()
 
         # load BIDS sessions information
         self.cand_sessions_list = self.load_sessions_from_bids()
@@ -125,10 +124,10 @@ class BidsReader:
 
         return bids_layout
 
-    def load_candidates_from_bids(self) -> list[dict[str, Any]]:
+    def load_candidates_from_bids(self) -> list[BidsParticipant]:
         """
         Loads the list of candidates from the BIDS study. List of
-        participants and their information will be stored in participants_info.
+        participants and their information will be stored in bids_participants.
 
         :return: list of dictionaries with participant information from BIDS
         """
@@ -136,30 +135,23 @@ class BidsReader:
         if self.verbose:
             print('Grepping candidates from the BIDS layout...')
 
-        # grep the participant.tsv file and parse it
-        participants_info = None
-        for file in self.bids_layout.get(suffix='participants', return_type='filename'):
-            # note file[0] returns the path to participants.tsv
-            if 'participants.tsv' in file:
-                participants_info = utilities.read_tsv_file(file)
-            else:
-                continue
+        bids_participants = read_bids_participants_file(self.bids_layout)
 
-        if participants_info:
-            self.candidates_list_validation(participants_info)
+        if bids_participants:
+            self.candidates_list_validation(bids_participants)
         else:
             bids_subjects = self.bids_layout.get_subjects()
-            participants_info = [{'participant_id': sub_id} for sub_id in bids_subjects]
+            bids_participants = [BidsParticipant(sub_id) for sub_id in bids_subjects]
 
         if self.verbose:
             print('\t=> List of participants found:')
-            for participant in participants_info:
-                print('\t\t' + participant['participant_id'])
+            for bids_participant in bids_participants:
+                print('\t\t' + bids_participant.id)
             print('\n')
 
-        return participants_info
+        return bids_participants
 
-    def candidates_list_validation(self, participants_info: list[dict[str, Any]]):
+    def candidates_list_validation(self, bids_participants: list[BidsParticipant]):
         """
         Validates whether the subjects listed in participants.tsv match the
         list of participant directory. If there is a mismatch, will exit with
@@ -175,18 +167,16 @@ class BidsReader:
                             "participants.tsv and raw data found in the BIDS "
                             "directory")
 
-        # check that all subjects listed in participants_info are also in
+        # check that all subjects listed in bids_participants are also in
         # subjects array and vice versa
-        for row in participants_info:
-            # remove the "sub-" in front of the subject ID if present
-            row['participant_id'] = row['participant_id'].replace('sub-', '')
-            if row['participant_id'] not in subjects:
+        for bids_participant in bids_participants:
+            if bids_participant.id not in subjects:
                 print(mismatch_message)
-                print(row['participant_id'] + 'is missing from the BIDS Layout')
+                print(bids_participant.id + 'is missing from the BIDS Layout')
                 print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects))
                 sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
             # remove the subject from the list of subjects
-            subjects.remove(row['participant_id'])
+            subjects.remove(bids_participant.id)
 
         # check that no subjects are left in subjects array
         if subjects:
@@ -210,9 +200,9 @@ class BidsReader:
 
         cand_sessions = {}
 
-        for row in self.participants_info:
-            ses = self.bids_layout.get_sessions(subject=row['participant_id'])
-            cand_sessions[row['participant_id']] = ses
+        for bids_participant in self.bids_participants:
+            ses = self.bids_layout.get_sessions(subject=bids_participant.id)
+            cand_sessions[bids_participant.id] = ses
 
         if self.verbose:
             print('\t=> List of sessions found:\n')

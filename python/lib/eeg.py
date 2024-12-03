@@ -140,13 +140,13 @@ class Eeg:
         self.hed_union = self.db.pselect(query=hed_query, args=())
 
         self.cohort_id   = None
-        for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.psc_id:
+        for bids_participant in bids_reader.bids_participants:
+            if bids_participant.id != self.psc_id:
                 continue
-            if 'cohort' in row:
+            if bids_participant.cohort is not None:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    [row['cohort'], ]
+                    [bids_participant.cohort, ]
                 )
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
