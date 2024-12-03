@@ -7,11 +7,11 @@ import subprocess
 import sys
 
 import lib.exitcode
-from lib.bids import get_bids_json_session_info
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
-from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
+from lib.imaging_lib.bids.json import get_bids_json_session_info
+from lib.imaging_lib.nifti import add_nifti_file_parameters
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
@@ -74,7 +74,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Load the JSON file object with scan parameters if a JSON file was provided
         # ---------------------------------------------------------------------------------------------
         self.json_file_dict = self._load_json_sidecar_file()
-        add_nifti_spatial_file_parameters(self.nifti_path, self.json_file_dict)
+        add_nifti_file_parameters(self.nifti_path, self.nifti_blake2, self.json_file_dict)
 
         # ---------------------------------------------------------------------------------
         # Determine subject IDs based on DICOM headers and validate the IDs against the DB
@@ -560,7 +560,6 @@ class NiftiInsertionPipeline(BasePipeline):
             self.move_file(original_file_path, new_file_path)
 
         if destination == 'assembly_bids':
-            self.json_file_dict['file_blake2b_hash'] = self.nifti_blake2
             if self.json_path:
                 self.json_file_dict['bids_json_file'] = json_rel_path
                 self.json_file_dict['bids_json_file_blake2b_hash'] = self.json_blake2
