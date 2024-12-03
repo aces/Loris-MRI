@@ -51,17 +51,14 @@ class Eeg:
         """
         Constructor method for the Eeg class.
 
-        :param bids_reader  : dictionary with BIDS reader information
-         :type bids_reader  : dict
+        :param bids_layout  : PyBIDS layout
         :param bids_info    : the BIDS data type information
         :param session      : The LORIS session the EEG datasets are linked to
         :param db           : Database class object
          :type db           : object
         :param info         : The BIDS import pipeline information
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
-         :type dataset_tag_dict      : dict
         :param dataset_type          : raw | derivative. Type of the dataset
-         :type dataset_type          : string
         """
 
         self.env = env

@@ -1,0 +1,26 @@
+[project]
+name = "loris-meegqc-module"
+version = "27.0.0"
+description = "The LORIS MEEGqc module."
+readme = "README.md"
+requires-python = ">= 3.11"
+dependencies = [
+    "loris-bids-importer",
+    "loris-bids-reader",
+    "loris-server",
+    "loris-utils",
+]
+
+[project.entry-points."loris-bids-importer.loaders"]
+meegqc = "loris_meegqc_module.importer:import_meegqc_derivatives"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/loris_meegqc_module"]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+src = ["src"]

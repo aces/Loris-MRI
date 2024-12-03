@@ -38,12 +38,6 @@ class DbPhysioFile(Base):
     path is relative to the LORIS data directory.
     """
 
-    download_path: Mapped[Path] = mapped_column('DownloadPath', StringPath)
-    """
-    The path from which to download this physiological file, which is guaranteed to be a normal
-    file or an archive. The path is relative to the LORIS data directory.
-    """
-
     head_shape_file_id: Mapped[int | None] = mapped_column('HeadShapeFileID', ForeignKey('meg_ctf_head_shape_file.ID'))
     """
     ID of the head shape file associated to this file, which is only present for MEG CTF files.

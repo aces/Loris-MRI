@@ -1,3 +1,4 @@
+from importlib.metadata import entry_points
 from typing import Any
 
 from lib.config import get_data_dir_path_config, get_default_bids_visit_label_config
@@ -7,6 +8,7 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.env import Env
 from lib.logging import log, log_error, log_error_exit, log_warning
+from loris_bids_utils.meg.reader import BidsMegDataTypeReader
 from loris_bids_utils.mri.reader import BidsMriDataTypeReader
 from loris_bids_utils.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
 
@@ -22,6 +24,7 @@ from loris_bids_importer.copy_files import (
 from loris_bids_importer.eeg.main import Eeg
 from loris_bids_importer.env import BidsImportEnv
 from loris_bids_importer.events import import_bids_root_event_dict_file
+from loris_bids_importer.meg.ctf import import_bids_meg_data_type
 from loris_bids_importer.mri.main import import_bids_mri_data_type
 from loris_bids_importer.print import print_bids_import_summary, print_bids_info
 from loris_bids_importer.validation.sessions import validate_bids_sessions
@@ -113,6 +116,18 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     for bids_session in bids.sessions:
         import_bids_session(env, import_env, args, bids_session, dataset_tag_dict, legacy_db)
 
+    # Run custom importers.
+
+    for entry_point in entry_points(group='loris-bids-importer.loaders'):
+        print(f"Loading importer '{entry_point.name}'")
+        try:
+            importer = entry_point.load()
+        except Exception as exception:
+            log_error(env, f"Error loading importer '{entry_point.name}'. Skipping. Full error:\n{exception}")
+            continue
+
+        importer(env, import_env, bids)
+
     # Print import summary.
 
     print_bids_import_summary(env, import_env)
@@ -190,6 +205,8 @@ def import_bids_data_type(
     match data_type:
         case BidsMriDataTypeReader():
             import_bids_mri_data_type(env, import_env, session, data_type)
+        case BidsMegDataTypeReader():
+            import_bids_meg_data_type(env, import_env, args, session, data_type)
         case BidsDataTypeReader():
             import_bids_eeg_data_type_files(env, import_env, args, session, data_type, dataset_tag_dict, legacy_db)
 

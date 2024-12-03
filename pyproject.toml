@@ -59,6 +59,9 @@ loris_bids_importer  = { workspace = true }
 loris_bids_utils     = { workspace = true }
 loris_dicom_importer = { workspace = true }
 loris_ephys_chunker  = { workspace = true }
+loris_ephys_server   = { workspace = true }
+loris_meegqc_module  = { workspace = true }
+loris_server         = { workspace = true }
 loris_utils          = { workspace = true }
 
 [tool.ruff]
@@ -68,8 +71,8 @@ line-length = 120
 preview = true
 
 [tool.ruff.lint]
-ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
-select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
+ignore = ["E202", "E203", "E221", "E241", "E251", "E272", "FAST003"]
+select = ["E", "EXE", "F", "FAST", "I", "N", "RUF", "UP", "W"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 100
@@ -77,6 +80,7 @@ max-doc-length = 100
 [tool.ruff.lint.per-file-ignores]
 # ORM models often have very long lines.
 "python/lib/db/models/*.py" = ["E501"]
+"python/loris_meegqc_module/src/loris_meegqc_module/database/models/*.py" = ["E501"]
 
 # The strict type checking configuration is used to type check only the modern (typed) modules. An
 # additional basic type checking configuration to type check legacy modules can be found in the
