@@ -18,6 +18,7 @@ select = ["E", "F", "I", "N", "UP", "W"]
 [tool.pyright]
 include = [
     "python/tests",
+    "python/lib/bids",
     "python/lib/db",
     "python/lib/exception",
     "python/lib/import_dicom_study",
