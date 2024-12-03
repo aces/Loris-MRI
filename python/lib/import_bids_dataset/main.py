@@ -1,5 +1,6 @@
 from typing import Any
 
+from loris_bids_reader.meg.reader import BidsMegDataTypeReader
 from loris_bids_reader.mri.reader import BidsMriDataTypeReader
 from loris_bids_reader.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
 
@@ -23,6 +24,7 @@ from lib.import_bids_dataset.copy_files import (
 )
 from lib.import_bids_dataset.env import BidsImportEnv
 from lib.import_bids_dataset.events import import_bids_root_event_dict_file
+from lib.import_bids_dataset.meg import import_bids_meg_data_type
 from lib.import_bids_dataset.mri import import_bids_mri_data_type
 from lib.import_bids_dataset.print import print_bids_import_summary, print_bids_info
 from lib.logging import log, log_error_exit, log_warning
@@ -190,6 +192,8 @@ def import_bids_data_type(
     match data_type:
         case BidsMriDataTypeReader():
             import_bids_mri_data_type(env, import_env, session, data_type)
+        case BidsMegDataTypeReader():
+            import_bids_meg_data_type(env, import_env, args, session, data_type)
         case BidsDataTypeReader():
             import_bids_eeg_data_type_files(env, import_env, args, session, data_type, dataset_tag_dict, legacy_db)
 

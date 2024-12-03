@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from lib.db.models.imaging_file_type import DbImagingFileType
+from lib.db.models.meg_ctf_head_shape_file import DbMegCtfHeadShapeFile
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_modality import DbPhysioModality
 from lib.db.models.physio_output_type import DbPhysioOutputType
@@ -19,6 +20,7 @@ def insert_physio_file(
     output_type: DbPhysioOutputType,
     acquisition_time: datetime | None,
     download_path: Path | None = None,
+    head_shape_file: DbMegCtfHeadShapeFile | None = None,
 ) -> DbPhysioFile:
     """
     Insert a physiological file into the database.
@@ -37,6 +39,7 @@ def insert_physio_file(
         output_type_id   = output_type.id,
         acquisition_time = acquisition_time,
         inserted_by_user = getpass.getuser(),
+        head_shape_file_id = head_shape_file.id if head_shape_file is not None else None,
     )
 
     env.db.add(file)
