@@ -26,6 +26,11 @@ __license__ = "GPLv3"
 sys.path.append('/home/user/python')
 
 
+bids_eeg_modalities = ['eeg', 'ieeg']
+
+bids_mri_modalities = ['anat', 'dwi', 'fmap', 'func']
+
+
 # to limit the traceback when raising exceptions.
 # sys.tracebacklimit = 0
 
@@ -319,21 +324,27 @@ def read_and_insert_bids(
         )
 
     # read list of modalities per session / candidate and register data
-    for row in bids_reader.cand_session_modalities_list:
-        bids_session = row['bids_ses_id']
-        visit_label  = bids_session if bids_session else default_bids_vl
-        loris_bids_visit_rel_dir    = 'sub-' + row['bids_sub_id'] + '/' + 'ses-' + visit_label
+    for bids_sub_dir_info in bids_reader.cand_session_modalities_list:
+        if bids_sub_dir_info.session_label is not None:
+            visit_label = bids_sub_dir_info.session_label
+        else:
+            visit_label = default_bids_vl
 
-        for modality in row['modalities']:
+        loris_bids_visit_rel_dir = os.path.join(
+            f'sub-{bids_sub_dir_info.subject_label}',
+            f'ses-{visit_label}',
+        )
+
+        for modality in bids_sub_dir_info.modalities:
             loris_bids_modality_rel_dir = loris_bids_visit_rel_dir + '/' + modality + '/'
             if not nocopy:
                 lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
 
-            if modality == 'eeg' or modality == 'ieeg':
+            if modality in bids_eeg_modalities:
                 Eeg(
                     bids_reader   = bids_reader,
-                    bids_sub_id   = row['bids_sub_id'],
-                    bids_ses_id   = row['bids_ses_id'],
+                    bids_sub_id   = bids_sub_dir_info.subject_label,
+                    bids_ses_id   = bids_sub_dir_info.session_label,
                     bids_modality = modality,
                     db            = db,
                     verbose       = verbose,
@@ -345,11 +356,11 @@ def read_and_insert_bids(
                     dataset_type           = type
                 )
 
-            elif modality in ['anat', 'dwi', 'fmap', 'func']:
+            elif modality in bids_mri_modalities:
                 Mri(
                     bids_reader   = bids_reader,
-                    bids_sub_id   = row['bids_sub_id'],
-                    bids_ses_id   = row['bids_ses_id'],
+                    bids_sub_id   = bids_sub_dir_info.subject_label,
+                    bids_ses_id   = bids_sub_dir_info.session_label,
                     bids_modality = modality,
                     db            = db,
                     verbose       = verbose,

@@ -3,6 +3,7 @@
 import json
 import re
 import sys
+from dataclasses import dataclass
 from typing import Any
 
 from bids import BIDSLayout
@@ -20,6 +21,18 @@ import lib.utilities as utilities
 # from bids import BIDSLayoutIndexer
 
 __license__ = "GPLv3"
+
+
+@dataclass
+class BidsSessionInfo:
+    """
+    Information about a BIDS session, that is, the label of the subject and the session, and the
+    modalities of this session.
+    """
+
+    subject_label: str
+    session_label: str | None
+    modalities: list[str]
 
 
 class BidsReader:
@@ -212,7 +225,7 @@ class BidsReader:
 
         return cand_sessions
 
-    def load_modalities_from_bids(self) -> list[dict[str, Any]]:
+    def load_modalities_from_bids(self) -> list[BidsSessionInfo]:
         """
         Grep the list of modalities available for each session and candidate directly
         from the BIDS structure.
@@ -223,24 +236,24 @@ class BidsReader:
         if self.verbose:
             print('Grepping the different modalities from the BIDS layout...')
 
-        cand_session_modalities_list = []
+        cand_session_modalities_list: list[BidsSessionInfo] = []
 
         for subject, visit_list in self.cand_sessions_list.items():
             if visit_list:
                 for visit in visit_list:
                     modalities = self.bids_layout.get_datatype(subject=subject, session=visit)
-                    cand_session_modalities_list.append({
-                        'bids_sub_id': subject,
-                        'bids_ses_id': visit,
-                        'modalities' : modalities
-                    })
+                    cand_session_modalities_list.append(BidsSessionInfo(
+                        subject_label = subject,
+                        session_label = visit,
+                        modalities = modalities,
+                    ))
             else:
                 modalities = self.bids_layout.get_datatype(subject=subject)
-                cand_session_modalities_list.append({
-                    'bids_sub_id': subject,
-                    'bids_ses_id': None,
-                    'modalities' : modalities
-                })
+                cand_session_modalities_list.append(BidsSessionInfo(
+                    subject_label = subject,
+                    session_label = None,
+                    modalities = modalities,
+                ))
 
         if self.verbose:
             print('\t=> Done grepping the different modalities from the BIDS layout\n')
