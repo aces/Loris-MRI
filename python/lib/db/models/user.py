@@ -1,7 +1,11 @@
 from datetime import date
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.project as db_project
+import lib.db.models.site as db_site
+import lib.db.models.user_project  # type: ignore  # noqa: F401
+import lib.db.models.user_site  # type: ignore  # noqa: F401
 from lib.db.base import Base
 from lib.db.decorators.int_bool import IntBool
 from lib.db.decorators.y_n_bool import YNBool
@@ -11,7 +15,7 @@ class DbUser(Base):
     __tablename__ = 'users'
 
     id                       : Mapped[int]          = mapped_column('ID', primary_key=True)
-    user_id                  : Mapped[str]          = mapped_column('UserID')
+    username                 : Mapped[str]          = mapped_column('UserID')
     password                 : Mapped[str | None]   = mapped_column('Password')
     real_name                : Mapped[str | None]   = mapped_column('Real_name')
     first_name               : Mapped[str | None]   = mapped_column('First_name')
@@ -41,3 +45,13 @@ class DbUser(Base):
     active_from              : Mapped[date | None]  = mapped_column('active_from')
     active_to                : Mapped[date | None]  = mapped_column('active_to')
     account_request_date     : Mapped[date | None]  = mapped_column('account_request_date')
+
+    projects: Mapped[list['db_project.DbProject']] = relationship('DbProject', secondary='user_project_rel')
+    """
+    The projects to which this user belongs to.
+    """
+
+    sites: Mapped[list['db_site.DbSite']] = relationship('DbSite', secondary='user_psc_rel')
+    """
+    The sites to which this user belongs to.
+    """

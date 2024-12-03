@@ -83,7 +83,7 @@ def insert_bids_events_file(
     loris_events_file_path: Path,
     dataset_tag_dict: dict[str, Any],
     file_tag_dict: dict[str, Any],
-    hed_union: dict[str, Any],
+    hed_union: list[dict[str, Any]],
 ):
     """
     Inserts the event information read from the file *events.tsv
