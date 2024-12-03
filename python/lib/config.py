@@ -7,6 +7,14 @@ from lib.env import Env
 from lib.logging import log_error_exit
 
 
+def get_jwt_secret_key_config(env: Env) -> str:
+    """
+    Get the LORIS JWT secret key from the in-database configuration.
+    """
+
+    return _get_config_value(env, 'JWTKey')
+
+
 def get_patient_id_dicom_header_config(env: Env) -> Literal['PatientID', 'PatientName']:
     """
     Get the DICOM header in which to look for the patient ID from the in-database configuration, or

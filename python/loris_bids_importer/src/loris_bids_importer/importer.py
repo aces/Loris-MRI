@@ -1,8 +1,11 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 from lib.db.models.bids_dataset import DbBidsDataset
+from lib.env import Env
+from loris_bids_utils.reader import BidsDatasetReader
 
 
 @dataclass
@@ -39,6 +42,11 @@ class BidsImporter:
     loris_bids_dataset: DbBidsDataset
     """
     The LORIS BIDS dataset populated by this import.
+    """
+
+    module_importers: 'list[Callable[[Env, BidsImporter, BidsDatasetReader], None]]'
+    """
+    The BIDS importer functions added through module entry points.
     """
 
     imported_acquisitions_count: int = 0

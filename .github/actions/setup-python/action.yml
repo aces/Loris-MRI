@@ -17,7 +17,7 @@ runs:
   - name: Install Python project
     shell: bash
     run: |
-      pip install --no-cache-dir --editable .[dev] && \
+      pip install --no-cache-dir --editable .[all,dev] && \
       for pkg in python/loris_*; do \
           pip install --no-cache-dir --no-deps --editable "$pkg"; \
       done

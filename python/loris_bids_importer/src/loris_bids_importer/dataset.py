@@ -1,5 +1,7 @@
 import re
+from collections.abc import Callable
 from datetime import datetime
+from importlib.metadata import entry_points
 from pathlib import Path
 
 from lib.config import get_data_dir_path_config
@@ -29,10 +31,16 @@ def make_bids_importer(env: Env, args: BidsImporterArgs, bids: BidsDatasetReader
 
     loris_bids_dataset = get_or_create_loris_bids_dataset(env, loris_bids_path)
 
+    module_importers: list[Callable[[Env, BidsImporter, BidsDatasetReader], None]] = []
+    for module in entry_points(group='loris-bids-importer.loaders'):
+        print(f"Loading BIDS importer module '{module.name}'")
+        module_importers.append(module.load())
+
     return BidsImporter(
         args               = args,
         data_dir_path      = data_dir_path,
-        loris_bids_dataset = loris_bids_dataset
+        loris_bids_dataset = loris_bids_dataset,
+        module_importers   = module_importers,
     )
 
 
