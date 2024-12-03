@@ -9,6 +9,9 @@ import re
 import sys
 from typing import Any, Literal
 
+from bids import BIDSLayout
+from bids.layout import BIDSFile
+
 import lib.exitcode
 import lib.physiological
 import lib.utilities
@@ -323,12 +326,31 @@ def read_and_insert_bids(
             hed_union=hed_union
         )
 
+    # TODO: What if `loris_bids_root_dir` is `None` (nocopy) ?
+    loris_bids = BIDSLayout(loris_bids_root_dir)
+
     # read list of modalities per session / candidate and register data
     for subject_label, session_label, modality in bids_reader.iter_modality_combinations():
         if session_label is not None:
             visit_label = session_label
         else:
             visit_label = default_bids_vl
+
+        loris_bids_modality_files: list[BIDSFile] = loris_bids.get(  # type: ignore
+            subject=subject_label,
+            session=visit_label,
+            suffix=modality,
+        )
+
+        if loris_bids_modality_files != []:
+            print(
+                'Files already inserted in LORIS, skipping:\n'
+                f'- Subject: {subject_label}\n'
+                f'- Session: {session_label}\n'
+                f'- Modality: {modality}'
+            )
+
+            continue
 
         loris_bids_modality_rel_dir = os.path.join(
             f'sub-{subject_label}',
