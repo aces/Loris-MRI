@@ -1,12 +1,11 @@
 import os
 import sys
-from typing import cast
 
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from lib.db.base import Base
-from lib.db.connect import connect_to_database
+from lib.db.connect import get_database_engine
 
 
 def create_test_database():
@@ -28,5 +27,4 @@ def get_integration_database_engine():
     config_file = os.path.join(os.environ['LORIS_CONFIG'], '.loris_mri', 'database_config.py')
     sys.path.append(os.path.dirname(config_file))
     config = __import__(os.path.basename(config_file[:-3]))
-    session = connect_to_database(config.mysql)
-    return cast(Engine, session.get_bind())
+    return get_database_engine(config.mysql)

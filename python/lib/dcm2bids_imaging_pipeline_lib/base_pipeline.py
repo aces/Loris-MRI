@@ -1,19 +1,17 @@
 import os
 import shutil
-import sys
-from typing import Never
 
 import lib.exitcode
 import lib.utilities
 from lib.database import Database
 from lib.database_lib.config import Config
-from lib.db.connect import connect_to_database
 from lib.dicom_archive import DicomArchive
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.imaging import Imaging
 from lib.imaging_upload import ImagingUpload
-from lib.log import Log
+from lib.logging import log_error_exit, log_verbose, log_warning
+from lib.make_env import make_env
 from lib.session import Session
 from lib.validate_subject_info import validate_subject_info
 
@@ -60,8 +58,6 @@ class BasePipeline:
         self.db = Database(self.config_file.mysql, self.verbose)
         self.db.connect()
 
-        self.db_orm = connect_to_database(self.config_file.mysql)
-
         # -----------------------------------------------------------------------------------
         # Load the Config, Imaging, ImagingUpload, Tarchive, Session database classes
         # -----------------------------------------------------------------------------------
@@ -81,10 +77,9 @@ class BasePipeline:
         # Create tmp dir and log file (their basename being the name of the script run)
         # ---------------------------------------------------------------------------------------------
         self.tmp_dir = self.loris_getopt_obj.tmp_dir
-        self.log_obj = Log(
-            self.db, self.data_dir, script_name, os.path.basename(self.tmp_dir), self.options_dict, self.verbose
-        )
-        self.log_info("Successfully connected to database", is_error="N", is_verbose="Y")
+        self.env = make_env(self.loris_getopt_obj)
+        self.env.add_cleanup(self.remove_tmp_dir)
+        self.env.add_cleanup(self.end_upload)
 
         # ---------------------------------------------------------------------------------------------
         # Load imaging_upload and tarchive dictionary
@@ -100,7 +95,7 @@ class BasePipeline:
             self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
 
             # Initiate the notification object now that we have a confirmed UploadID
-            self.log_obj.initiate_notification_db_obj(self.upload_id)
+            self.env.init_notifier(self.upload_id)
 
         # ---------------------------------------------------------------------------------
         # Determine subject IDs based on DICOM headers and validate the IDs against the DB
@@ -111,18 +106,14 @@ class BasePipeline:
             try:
                 self.subject_info = self.imaging_obj.determine_subject_info(self.dicom_archive_obj.tarchive_info_dict)
             except DetermineSubjectInfoError as error:
-                self.log_error_and_exit(
-                    error.message,
-                    lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
-                    is_error="Y",
-                    is_verbose="N"
-                )
+                log_error_exit(self.env, error.message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
 
             # verify PSC information stored in DICOMs
             self.site_dict = self.determine_study_info()
-            message = f"Found Center Name: {self.site_dict['CenterName']}," \
-                      f" Center ID: {str(self.site_dict['CenterID'])}"
-            self.log_info(message, is_error="N", is_verbose="Y")
+            log_verbose(self.env, (
+                f"Found Center Name: {self.site_dict['CenterName']},"
+                f" Center ID: {self.site_dict['CenterID']}"
+            ))
 
             # grep scanner information based on what is in the DICOM headers
             self.scanner_id = self.determine_scanner_info()
@@ -138,22 +129,31 @@ class BasePipeline:
         tarchive_path = self.options_dict["tarchive_path"]["value"] \
             if "tarchive_path" in self.options_dict.keys() else None
         success = False
-        err_msg = ''
         if upload_id and tarchive_path:
             self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
             if not self.imaging_upload_obj.imaging_upload_dict:
-                err_msg += f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}."
-                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+                log_error_exit(
+                    self.env,
+                    f"Did not find an entry in mri_upload associated with \'UploadID\' {upload_id}.",
+                    lib.exitcode.SELECT_FAILURE,
+                )
             tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
             if not tarchive_id:
-                err_msg += f"UploadID {upload_id} is not linked to any tarchive in mri_upload."
-                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+                log_error_exit(
+                    self.env,
+                    f"UploadID {upload_id} is not linked to any tarchive in mri_upload.",
+                    lib.exitcode.SELECT_FAILURE,
+                )
             self.dicom_archive_obj.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
             db_archive_location = self.dicom_archive_obj.tarchive_info_dict['ArchiveLocation']
             if os.path.join(self.data_dir, 'tarchive', db_archive_location) != tarchive_path:
-                err_msg += f"UploadID {upload_id} and ArchiveLocation {tarchive_path} do not refer to the same upload"
-                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+                log_error_exit(
+                    self.env,
+                    f"UploadID {upload_id} and ArchiveLocation {tarchive_path} do not refer to the same upload",
+                    lib.exitcode.SELECT_FAILURE,
+                )
 
+        err_msg = ''
         if upload_id:
             self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
             if not self.imaging_upload_obj.imaging_upload_dict:
@@ -179,7 +179,7 @@ class BasePipeline:
                 err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
 
         if not success and not self.force:
-            self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+            log_error_exit(self.env, err_msg, lib.exitcode.SELECT_FAILURE)
 
     def determine_study_info(self):
         """
@@ -207,11 +207,10 @@ class BasePipeline:
                 return {"CenterName": site_dict["MRI_alias"], "CenterID": site_dict["CenterID"]}
 
         # if we got here, it means we could not find a center associated to the dataset
-        self.log_error_and_exit(
-            message="ERROR: No center found for this DICOM study",
-            exit_code=lib.exitcode.SELECT_FAILURE,
-            is_error="Y",
-            is_verbose="N"
+        log_error_exit(
+            self.env,
+            "No center found for this DICOM study",
+            lib.exitcode.SELECT_FAILURE,
         )
 
     def determine_scanner_info(self):
@@ -226,8 +225,8 @@ class BasePipeline:
             self.site_dict['CenterID'],
             self.session_obj.session_info_dict['ProjectID'] if self.session_obj.session_info_dict else None
         )
-        message = f"Found Scanner ID: {str(scanner_id)}"
-        self.log_info(message, is_error="N", is_verbose="Y")
+
+        log_verbose(self.env, f"Found Scanner ID: {scanner_id}")
         return scanner_id
 
     def validate_subject_info(self):
@@ -238,59 +237,16 @@ class BasePipeline:
         """
 
         try:
-            validate_subject_info(self.db_orm, self.subject_info)
+            validate_subject_info(self.env.db, self.subject_info)
 
             self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
             )
         except ValidateSubjectInfoError as error:
-            self.log_info(error.message, is_error='Y', is_verbose='N')
+            log_warning(self.env, error.message)
             self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
             )
-
-    def log_error_and_exit(self, message, exit_code, is_error, is_verbose) -> Never:
-        """
-        Function to commonly executes all logging information when the script needs to be
-        interrupted due to an error. It will log the error in the log file created by the
-        script being executed, add an entry with the error in the notification_spool table
-        and print the error to the user in the terminal.
-
-        :param message: message to log before exit
-         :type message: str
-        :param exit_code: exit code to use to exit the script
-         :type exit_code: int
-        :param is_error: whether the message to log is an error or not
-         :type is_error: str
-        :param is_verbose: whether the message is considered verbose or not in the notification_spool table
-         :type is_verbose: str
-        """
-        err_msg = f"[ERROR   ] {message}"
-        self.log_obj.write_to_log_file(f"\n{err_msg}\n")
-        self.log_obj.write_to_notification_table(err_msg, is_error, is_verbose)
-        if self.upload_id:
-            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=("Inserting",), values=("0",))
-        print(f"\n{err_msg}\n")
-        self.remove_tmp_dir()
-        sys.exit(exit_code)
-
-    def log_info(self, message, is_error, is_verbose):
-        """
-        Function to log information that need to be logged in the notification_spool table and in the log
-        file produced by the script executed.
-
-        :param message: message to log
-         :type message: str
-        :param is_error: whether the message to log is an error or not
-         :type is_error: str
-        :param is_verbose: whether the message is considered verbose or not in the notification_spool table
-         :type is_verbose: str
-        """
-        log_msg = f"==> {message}"
-        self.log_obj.write_to_log_file(f"{log_msg}\n")
-        self.log_obj.write_to_notification_table(log_msg, is_error, is_verbose)
-        if self.verbose:
-            print(f"{log_msg}\n")
 
     def get_session_info(self):
         """
@@ -300,8 +256,7 @@ class BasePipeline:
         self.session_obj.create_session_dict(self.subject_info.cand_id, self.subject_info.visit_label)
 
         if self.session_obj.session_info_dict:
-            message = f"Session ID for the file to insert is {self.session_obj.session_info_dict['ID']}"
-            self.log_info(message, is_error="N", is_verbose="Y")
+            log_verbose(self.env, f"Session ID for the file to insert is {self.session_obj.session_info_dict['ID']}")
 
     def create_session(self):
         """
@@ -311,30 +266,38 @@ class BasePipeline:
 
         create_visit = self.subject_info.create_visit
 
-        # check if whether the visit label should be created
         if create_visit is None:
-            message = f"Visit {self.subject_info.visit_label} for candidate {self.subject_info.cand_id} does not exist."
-            self.log_error_and_exit(message, lib.exitcode.GET_SESSION_ID_FAILURE, is_error="Y", is_verbose="N")
+            log_error_exit(
+                self.env,
+                f"Visit {self.subject_info.visit_label} for candidate {self.subject_info.cand_id} does not exist.",
+                lib.exitcode.GET_SESSION_ID_FAILURE,
+            )
 
         # check that the project ID and cohort ID refers to an existing row in project_cohort_rel table
         self.session_obj.create_proj_cohort_rel_info_dict(create_visit.project_id, create_visit.cohort_id)
         if not self.session_obj.proj_cohort_rel_info_dict.keys():
-            message = f"Cannot create visit with project ID {create_visit.project_id} and " \
-                      f"cohort ID {create_visit.cohort_id}: no such association in table project_cohort_rel"
-            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
+            log_error_exit(
+                self.env,
+                (
+                    f"Cannot create visit with project ID {create_visit.project_id}"
+                    f" and cohort ID {create_visit.cohort_id}:"
+                    f" no such association in table project_cohort_rel"
+                ),
+                lib.exitcode.CREATE_SESSION_FAILURE,
+            )
 
         # determine the visit number and center ID for the next session to be created
         center_id, visit_nb = self.determine_new_session_site_and_visit_nb()
         if not center_id:
-            message = (
-                f"No center ID found for candidate {self.subject_info.cand_id}, "
-                f"visit {self.subject_info.visit_label}"
+            log_error_exit(
+                self.env,
+                (
+                    f"No center ID found for candidate {self.subject_info.cand_id}"
+                    f", visit {self.subject_info.visit_label}"
+                )
             )
-
-            self.log_error_and_exit(message, is_error="Y", is_verbose="N")
         else:
-            message = f"Set newVisitNo = {visit_nb} and center ID = {center_id}"
-            self.log_info(message, is_error="N", is_verbose="Y")
+            log_verbose(self.env, f"Set newVisitNo = {visit_nb} and center ID = {center_id}")
 
         # create the new visit
         session_id = self.session_obj.insert_into_session(
@@ -389,9 +352,14 @@ class BasePipeline:
         self.load_imaging_upload_and_tarchive_dictionaries()
         mu_dict = self.imaging_upload_obj.imaging_upload_dict
         if ("IsTarchiveValidated" not in mu_dict.keys() or not mu_dict["IsTarchiveValidated"]) and not self.force:
-            err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \
-                      f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
-            self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
+            log_error_exit(
+                self.env,
+                (
+                    f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the"
+                    f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
+                ),
+                lib.exitcode.INVALID_DICOM,
+            )
 
     def create_dir(self, directory_path):
         """
@@ -402,11 +370,14 @@ class BasePipeline:
         """
 
         if not os.path.exists(directory_path):
-            self.log_info(f'Creating directory {directory_path}', is_error='N', is_verbose='Y')
+            log_verbose(self.env, f"Creating directory {directory_path}")
             os.makedirs(directory_path)
             if not os.path.exists(directory_path):
-                message = f'Failed creating directory {directory_path}'
-                self.log_error_and_exit(message, lib.exitcode.CREATE_DIR_FAILURE, is_error='Y', is_verbose='N')
+                log_error_exit(
+                    self.env,
+                    f"Failed creating directory {directory_path}",
+                    lib.exitcode.CREATE_DIR_FAILURE,
+                )
 
     def move_file(self, old_file_path, new_file_path):
         """
@@ -418,11 +389,18 @@ class BasePipeline:
          :type new_file_path: str
         """
 
-        self.log_info(f'Moving {old_file_path} to {new_file_path}', is_error='N', is_verbose='Y')
+        log_verbose(self.env, f"Moving {old_file_path} to {new_file_path}")
         shutil.move(old_file_path, new_file_path)
         if not os.path.exists(new_file_path):
-            message = f'Could not move {old_file_path} to {new_file_path}'
-            self.log_error_and_exit(message, lib.exitcode.COPY_FAILURE, is_error='Y', is_verbose='N')
+            log_error_exit(
+                self.env,
+                f"Could not move {old_file_path} to {new_file_path}",
+                lib.exitcode.COPY_FAILURE,
+            )
+
+    def end_upload(self):
+        if self.upload_id:
+            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=("Inserting",), values=("0",))
 
     def remove_tmp_dir(self):
         """
@@ -433,4 +411,4 @@ class BasePipeline:
             try:
                 shutil.rmtree(self.tmp_dir)
             except PermissionError as err:
-                self.log_info(f"Could not delete {self.tmp_dir}. Error was: {err}", "N", "Y")
+                log_verbose(self.env, f"Could not delete {self.tmp_dir}. Error was: {err}")
