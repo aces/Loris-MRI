@@ -11,7 +11,7 @@ Type that represents a file hierarchy relative to a path.
 
 def check_file_tree(path: str, file_tree: FileTree):
     """
-    Check that the given path as at least all the directories and files of a given file tree.
+    Check that a path has at least all the directories and files of a file tree.
     """
 
     if file_tree is None:
