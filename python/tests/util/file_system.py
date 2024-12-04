@@ -20,9 +20,9 @@ def check_file_tree(path: str, file_tree: FileTree):
     if not os.path.isdir(path):
         return False
 
-    for sub_dir_name, sub_hierarchy in file_tree.items():
+    for sub_dir_name, sub_file_tree in file_tree.items():
         sub_dir_path = os.path.join(path, sub_dir_name)
-        if not check_file_tree(sub_dir_path, sub_hierarchy):
+        if not check_file_tree(sub_dir_path, sub_file_tree):
             return False
 
     return True
