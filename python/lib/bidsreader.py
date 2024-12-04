@@ -3,7 +3,10 @@
 import json
 import re
 import sys
+from collections.abc import Generator
+from dataclasses import dataclass
 
+import dateutil.parser
 from bids import BIDSLayout
 
 import lib.exitcode
@@ -21,6 +24,64 @@ import lib.utilities as utilities
 __license__ = "GPLv3"
 
 
+@dataclass
+class BidsSessionInfo:
+    """
+    Information about a BIDS session, that is, the label of the subject and the session, and the
+    modalities of this session.
+    """
+
+    subject_label: str
+    session_label: str | None
+    modalities: list[str]
+
+
+@dataclass
+class BidsParticipantInfo:
+    """
+    Information about a BIDS participant, obtained from the `participants.tsv` file of the BIDS
+    dataset.
+    """
+
+    participant_id: str
+    date_of_birth:  str | None = None
+    sex:            str | None = None
+    age:            str | None = None
+    site:           str | None = None
+    cohort:         str | None = None
+    project:        str | None = None
+    # FIXME: Both "cohort" and "subproject" are used in scripts, this may be a bug
+    subproject:     str | None = None
+
+
+def get_bids_participant_info_from_csv_row(row: dict[str, str]):
+    """
+    Get a BIDS participant object from the dictionary of a line of the `participants.tsv` file of
+    the BIDS dataset.
+    """
+
+    # Remove the `sub-` prefix of the participant ID if present
+    participant_id = row['participant_id'].replace('sub-', '')
+
+    # Get the date of birth from the possible participant fields
+    date_of_birth = None
+    for date_of_birth_name in ['date_of_birth', 'birth_date', 'dob']:
+        if date_of_birth_name in row:
+            date_of_birth = dateutil.parser.parse(row[date_of_birth_name]).strftime('%Y-%m-%d')
+            break
+
+    return BidsParticipantInfo(
+        participant_id = participant_id,
+        date_of_birth  = date_of_birth,
+        sex            = row.get('sex'),
+        age            = row.get('age'),
+        site           = row.get('site'),
+        cohort         = row.get('cohort'),
+        project        = row.get('project'),
+        subproject     = row.get('subproject'),
+    )
+
+
 class BidsReader:
     """
     This class reads a BIDS structure into a data dictionary using BIDS grabbids.
@@ -35,16 +96,13 @@ class BidsReader:
         bids_reader = BidsReader(bids_dir)
     """
 
-    def __init__(self, bids_dir, verbose, validate = True):
+    def __init__(self, bids_dir: str, verbose: bool, validate: bool = True):
         """
         Constructor method for the BidsReader class.
 
-        :param bids_dir: path to the BIDS structure to read
-         :type bids_dir: str
-        :param verbose : boolean to print verbose information
-         :type verbose : bool
+        :param bids_dir : path to the BIDS structure to read
+        :param verbose  : boolean to print verbose information
         :param validate : boolean to validate the BIDS dataset
-         :type validate : bool
         """
 
         self.verbose     = verbose
@@ -73,7 +131,7 @@ class BidsReader:
         # load BIDS modality information
         self.cand_session_modalities_list = self.load_modalities_from_bids()
 
-    def load_bids_data(self, validate):
+    def load_bids_data(self, validate: bool):
         """
         Loads the BIDS study using the BIDSLayout function (part of the pybids
         package) and return the object.
@@ -84,7 +142,7 @@ class BidsReader:
         if self.verbose:
             print('Loading the BIDS dataset with BIDS layout library...\n')
 
-        exclude_arr   = ['/code/', '/sourcedata/', '/log/', '.git/']
+        exclude_arr   = ['code', 'sourcedata', 'log', '.git']
         force_arr     = [re.compile(r"_annotations\.(tsv|json)$")]
 
         # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
@@ -114,13 +172,12 @@ class BidsReader:
 
         return bids_layout
 
-    def load_candidates_from_bids(self):
+    def load_candidates_from_bids(self) -> list[BidsParticipantInfo]:
         """
         Loads the list of candidates from the BIDS study. List of
         participants and their information will be stored in participants_info.
 
         :return: list of dictionaries with participant information from BIDS
-         :rtype: list
         """
 
         if self.verbose:
@@ -131,7 +188,7 @@ class BidsReader:
         for file in self.bids_layout.get(suffix='participants', return_type='filename'):
             # note file[0] returns the path to participants.tsv
             if 'participants.tsv' in file:
-                participants_info = utilities.read_tsv_file(file)
+                participants_info = list(map(get_bids_participant_info_from_csv_row, utilities.read_tsv_file(file)))
             else:
                 continue
 
@@ -139,17 +196,17 @@ class BidsReader:
             self.candidates_list_validation(participants_info)
         else:
             bids_subjects = self.bids_layout.get_subjects()
-            participants_info = [{'participant_id': sub_id} for sub_id in bids_subjects]
+            participants_info = [BidsParticipantInfo(sub_id) for sub_id in bids_subjects]
 
         if self.verbose:
             print('\t=> List of participants found:')
             for participant in participants_info:
-                print('\t\t' + participant['participant_id'])
+                print('\t\t' + participant.participant_id)
             print('\n')
 
         return participants_info
 
-    def candidates_list_validation(self, participants_info):
+    def candidates_list_validation(self, participants_info: list[BidsParticipantInfo]):
         """
         Validates whether the subjects listed in participants.tsv match the
         list of participant directory. If there is a mismatch, will exit with
@@ -167,16 +224,14 @@ class BidsReader:
 
         # check that all subjects listed in participants_info are also in
         # subjects array and vice versa
-        for row in participants_info:
-            # remove the "sub-" in front of the subject ID if present
-            row['participant_id'] = row['participant_id'].replace('sub-', '')
-            if row['participant_id'] not in subjects:
+        for participant_info in participants_info:
+            if participant_info.participant_id not in subjects:
                 print(mismatch_message)
-                print(row['participant_id'] + 'is missing from the BIDS Layout')
+                print(participant_info.participant_id + 'is missing from the BIDS Layout')
                 print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects))
                 sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
             # remove the subject from the list of subjects
-            subjects.remove(row['participant_id'])
+            subjects.remove(participant_info.participant_id)
 
         # check that no subjects are left in subjects array
         if subjects:
@@ -186,14 +241,13 @@ class BidsReader:
         if self.verbose:
             print('\t=> Passed validation of the list of participants\n')
 
-    def load_sessions_from_bids(self):
+    def load_sessions_from_bids(self) -> dict[str, list[str]]:
         """
         Grep the list of sessions for each candidate directly from the BIDS
         structure.
 
         :return: dictionary with the list of sessions and candidates found in the
                  BIDS structure
-         :rtype: dict
         """
 
         if self.verbose:
@@ -201,9 +255,9 @@ class BidsReader:
 
         cand_sessions = {}
 
-        for row in self.participants_info:
-            ses = self.bids_layout.get_sessions(subject=row['participant_id'])
-            cand_sessions[row['participant_id']] = ses
+        for participant_info in self.participants_info:
+            ses = self.bids_layout.get_sessions(subject=participant_info.participant_id)
+            cand_sessions[participant_info.participant_id] = ses
 
         if self.verbose:
             print('\t=> List of sessions found:\n')
@@ -216,57 +270,62 @@ class BidsReader:
 
         return cand_sessions
 
-    def load_modalities_from_bids(self):
+    def load_modalities_from_bids(self) -> list[BidsSessionInfo]:
         """
         Grep the list of modalities available for each session and candidate directly
         from the BIDS structure.
 
         :return: dictionary for candidate and session with list of modalities
-         :rtype: dict
         """
 
         if self.verbose:
             print('Grepping the different modalities from the BIDS layout...')
 
-        cand_session_modalities_list = []
+        cand_session_modalities_list: list[BidsSessionInfo] = []
 
         for subject, visit_list in self.cand_sessions_list.items():
             if visit_list:
                 for visit in visit_list:
                     modalities = self.bids_layout.get_datatype(subject=subject, session=visit)
-                    cand_session_modalities_list.append({
-                        'bids_sub_id': subject,
-                        'bids_ses_id': visit,
-                        'modalities' : modalities
-                    })
+                    cand_session_modalities_list.append(BidsSessionInfo(
+                        subject_label = subject,
+                        session_label = visit,
+                        modalities = modalities,
+                    ))
             else:
                 modalities = self.bids_layout.get_datatype(subject=subject)
-                cand_session_modalities_list.append({
-                    'bids_sub_id': subject,
-                    'bids_ses_id': None,
-                    'modalities' : modalities
-                })
+                cand_session_modalities_list.append(BidsSessionInfo(
+                    subject_label = subject,
+                    session_label = None,
+                    modalities = modalities,
+                ))
 
         if self.verbose:
             print('\t=> Done grepping the different modalities from the BIDS layout\n')
 
         return cand_session_modalities_list
 
+    def iter_modality_combinations(self) -> Generator[tuple[str, str | None, str], None, None]:
+        """
+        Iterate over the different subject / session / modality combinations present in the BIDS
+        dataset.
+        """
+
+        for cand_session_modalities in self.cand_session_modalities_list:
+            for modality in cand_session_modalities.modalities:
+                yield cand_session_modalities.subject_label, cand_session_modalities.session_label, modality
+
     @staticmethod
-    def grep_file(files_list, match_pattern, derivative_pattern=None):
+    def grep_file(files_list: list[str], match_pattern: str, derivative_pattern: str | None = None) -> str | None:
         """
         Grep a unique file based on a match pattern and returns it.
 
-        :param files_list        : list of files to look into
-         :type files_list        : list
-        :param match_pattern     : pattern to use to find the file
-         :type match_pattern     : str
-        :param derivative_pattern: derivative pattern to use if the file we look for
-                                   is a derivative file
-         :type derivative_pattern: str
+        :param files_list         : list of files to look into
+        :param match_pattern      : pattern to use to find the file
+        :param derivative_pattern : derivative pattern to use if the file we look for
+                                    is a derivative file
 
         :return: name of the first file that matches the pattern
-         :rtype: str
         """
 
         for filename in files_list:

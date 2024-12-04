@@ -3,9 +3,8 @@
 import random
 import sys
 
-from dateutil.parser import parse
-
 import lib.exitcode
+from lib.bidsreader import BidsParticipantInfo
 
 __license__ = "GPLv3"
 
@@ -59,7 +58,7 @@ class Candidate:
         self.center_id  = None
         self.project_id = None
 
-    def create_candidate(self, db, participants_info):
+    def create_candidate(self, db, participants_info: list[BidsParticipantInfo]):
         """
         Creates a candidate using BIDS information provided in the
         participants_info's list.
@@ -68,7 +67,6 @@ class Candidate:
          :type db               : object
         :param participants_info: list of dictionary with participants
                                   information from BIDS
-         :type participants_info: list
 
         :return: dictionary with candidate info from the candidate's table
          :rtype: dict
@@ -81,25 +79,26 @@ class Candidate:
         if not self.cand_id:
             self.cand_id = self.generate_cand_id(db)
 
-        for row in participants_info:
-            if not row['participant_id'] == self.psc_id:
+        for participant_info in participants_info:
+            if participant_info.participant_id != self.psc_id:
                 continue
-            self.grep_bids_dob(row)
-            if 'sex' in row:
-                self.map_sex(row['sex'])
-            if 'age' in row:
-                self.age = row['age']
+
+            self.dob = participant_info.date_of_birth
+            if participant_info.sex is not None:
+                self.map_sex(participant_info.sex)
+            if participant_info.age is not None:
+                self.age = participant_info.age
 
             # three steps to find site:
             #   1. try matching full name from 'site' column in participants.tsv in db
             #   2. try extracting alias from pscid
             #   3. try finding previous site in candidate table
 
-            if 'site' in row and row['site'].lower() not in ("null", ""):
+            if participant_info.site is not None and participant_info.site.lower() not in ('', 'null'):
                 # search site id in psc table by its full name
                 site_info = db.pselect(
                     "SELECT CenterID FROM psc WHERE Name = %s",
-                    [row['site'], ]
+                    [participant_info.site, ]
                 )
                 if len(site_info) > 0:
                     self.center_id = site_info[0]['CenterID']
@@ -108,7 +107,7 @@ class Candidate:
                 # search site id in psc table by its alias extracted from pscid
                 db_sites = db.pselect("SELECT CenterID, Alias FROM psc")
                 for site in db_sites:
-                    if site['Alias'] in row['participant_id']:
+                    if site['Alias'] in participant_info.participant_id:
                         self.center_id = site['CenterID']
 
             if self.center_id is None:
@@ -124,11 +123,11 @@ class Candidate:
             #   1. find full name in 'project' column in participants.tsv
             #   2. find previous in candidate table
 
-            if 'project' in row and row['project'].lower() not in ("null", ""):
+            if participant_info.project is not None and participant_info.project.lower() not in ('', 'null'):
                 # search project id in Project table by its full name
                 project_info = db.pselect(
                     "SELECT ProjectID FROM Project WHERE Name = %s",
-                    [row['project'], ]
+                    [participant_info.project, ]
                 )
                 if len(project_info) > 0:
                     self.project_id = project_info[0]['ProjectID']
@@ -219,22 +218,6 @@ class Candidate:
 
         if sex.lower() in ('f', 'female'):
             self.sex = 'Female'
-
-    def grep_bids_dob(self, subject_info):
-        """
-        Greps the date of birth from the BIDS structure and add it to self.dob which
-        will be inserted into the DoB field of the candidate table
-
-        :param subject_info: dictionary with all information present in the BIDS
-                             participants.tsv file for a given candidate
-         :type subject_info: dict
-        """
-
-        dob_names = ['date_of_birth', 'birth_date', 'dob']
-        for name in dob_names:
-            if name in subject_info:
-                dob   = parse(subject_info[name])
-                self.dob = dob.strftime('%Y-%m-%d')
 
     @staticmethod
     def generate_cand_id(db):
