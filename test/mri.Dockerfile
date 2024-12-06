@@ -7,21 +7,13 @@ RUN apt-get update
 # Install utilities #
 #####################
 
-# Update the package list and install build-essential, checkinstall, and cmake
-# Install some general dependencies
-RUN apt-get install -y build-essential checkinstall cmake libzip-dev mariadb-client
-
-# Install Perl and update CPAN
-RUN apt-get install -y perl && \
-    cpan CPAN
+# Install the dependencies of LORIS-MRI
+RUN apt-get install -y build-essential checkinstall cmake dcmtk dcm2niix libzip-dev mariadb-client perl
 
 # Install utilities
-# - `wget` is used by some installation commands
 # - `sudo` is used by the imaging install script
-RUN apt-get install -y wget sudo
-
-# Install the DICOM Toolkit
-RUN apt-get install -y dcmtk
+# - `wget` is used by some installation commands
+RUN apt-get install -y sudo wget
 
 ########################
 # Install MINC Toolkit #
@@ -122,3 +114,5 @@ ENV LORIS_MRI=/opt/${PROJECT}/bin/mri
 ENV PYTHONPATH=$PYTHONPATH:/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
 ENV BEASTLIB=${MINC_TOOLKIT_DIR}/../share/beast-library-1.1
 ENV MNI_MODELS=${MINC_TOOLKIT_DIR}/../share/icbm152_model_09c
+
+ENTRYPOINT ["./test/entrypoint.sh"]

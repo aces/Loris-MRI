@@ -5,6 +5,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.model.candidate as db_candidate
+import lib.db.model.file as db_file
 import lib.db.model.project as db_project
 import lib.db.model.site as db_site
 from lib.db.base import Base
@@ -51,5 +52,6 @@ class DbSession(Base):
     language_id              : Mapped[Optional[int]]      = mapped_column('languageID')
 
     candidate : Mapped['db_candidate.DbCandidate'] = relationship('DbCandidate', back_populates='sessions')
+    files     : Mapped[list['db_file.DbFile']]     = relationship('DbFile', back_populates='session')
     project   : Mapped['db_project.DbProject']     = relationship('DbProject')
     site      : Mapped['db_site.DbSite']           = relationship('DbSite')

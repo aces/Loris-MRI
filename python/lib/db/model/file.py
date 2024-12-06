@@ -1,8 +1,10 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.model.session as db_session
 from lib.db.base import Base
 
 
@@ -10,7 +12,7 @@ class DbFile(Base):
     __tablename__ = 'files'
 
     id                             : Mapped[int]             = mapped_column('FileID', primary_key=True)
-    session_id                     : Mapped[int]             = mapped_column('SessionID')
+    session_id                     : Mapped[int]             = mapped_column('SessionID', ForeignKey('session.ID'))
     file_name                      : Mapped[str]             = mapped_column('File')
     series_uid                     : Mapped[Optional[str]]   = mapped_column('SeriesUID')
     echo_time                      : Mapped[Optional[float]] = mapped_column('EchoTime')
@@ -32,3 +34,5 @@ class DbFile(Base):
     scanner_id                     : Mapped[Optional[int]]   = mapped_column('ScannerID')
     acquisition_order_per_modality : Mapped[Optional[int]]   = mapped_column('AcqOrderPerModality')
     acquisition_date               : Mapped[Optional[date]]  = mapped_column('AcquisitionDate')
+
+    session : Mapped['db_session.DbSession'] = relationship('DbSession', back_populates='files')
