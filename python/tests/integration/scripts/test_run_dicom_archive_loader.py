@@ -17,7 +17,7 @@ def test():
     process = subprocess.run([
         'run_dicom_archive_loader.py',
         '--profile', 'database_config.py',
-        '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
+        '--tarchive_path', '/data/imaging/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
     ], capture_output=True)
 
     # Print the standard output and error for debugging
@@ -29,7 +29,7 @@ def test():
     assert process.stderr == b''
 
     # Check that the expected files have been created
-    assert check_file_tree('/data/raisinbread/assembly_bids', {
+    assert check_file_tree('/data/imaging/assembly_bids', {
         'sub-300001': {
             'ses-V2': {
                 'anat': {

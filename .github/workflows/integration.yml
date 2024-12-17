@@ -13,6 +13,12 @@ env:
   DATABASE_PASSWORD: TestPassword
   BUCKET_URL: https://ace-minio-1.loris.ca:9000
   BUCKET_NAME: loris-rb-data
+  # NOTE: These are read-only keys on public data.
+  # Ideally, we would like to hide these keys. However, both GitHub variables and GitHub secrets
+  # are not accessible from pull requests from forks. Since we want to run integration tests on
+  # pull requests, we define these variables here.
+  BUCKET_ACCESS_KEY: lorisadmin-ro
+  BUCKET_SECRET_KEY: Tn=qP3LupmXnMuc
 
 jobs:
   docker:
@@ -54,14 +60,13 @@ jobs:
           DATABASE_NAME=${{ env.DATABASE_NAME }}
           DATABASE_USER=${{ env.DATABASE_USERNAME }}
           DATABASE_PASS=${{ env.DATABASE_PASSWORD }}
-          BUCKET_URL=${{ env.BUCKET_URL }}
-          BUCKET_NAME=${{ env.BUCKET_NAME }}
         tags: loris-mri
         load: true
         cache-from: type=gha,scope=loris-mri
         cache-to: type=gha,mode=max,scope=loris-mri
 
-    # TODO: Move as much as possible of this in the MRI dockerfile
+    # NOTE: Ideally, we would like to mount the S3 bucket in the Docker image, but since it
+    # interacts with the kernel to add a file system, it is hard to do so.
     - name: Mount imaging files S3 bucket
       run: |
         sudo apt-get update
@@ -70,7 +75,8 @@ jobs:
         sudo mkdir /data-imaging
         touch .passwd-s3fs
         chmod 600 .passwd-s3fs
-        sudo s3fs ${{ env.BUCKET_NAME }} /data-imaging -o url=${{ env.BUCKET_URL }} -o use_path_request_style -o allow_other
+        echo ${{ env.BUCKET_ACCESS_KEY }}:${{ env.BUCKET_SECRET_KEY }} > .passwd-s3fs
+        sudo s3fs ${{ env.BUCKET_NAME }} /data-imaging -o url=${{ env.BUCKET_URL }} -o passwd_file=.passwd-s3fs -o use_path_request_style -o allow_other
 
     - name: Run integration tests
       run: docker compose --file ./test/docker-compose.yml run mri pytest python/tests/integration
