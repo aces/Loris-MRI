@@ -8,6 +8,8 @@ from functools import reduce
 
 import lib.exitcode
 from dataclasses import dataclass
+# Remove when we will drop the support for python 3.9
+from typing import Optional
 from lib.database_lib.parameter_type import ParameterType
 from lib.database_lib.physiological_file import PhysiologicalFile
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
@@ -530,7 +532,7 @@ class Physiological:
                 print(f"Modality {modality} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name("Not registered")
 
         # type (Fiducials, AnatomicalLandmark, HeadCoil, DigitizedHeapPoints)
@@ -544,7 +546,7 @@ class Physiological:
                 print(f"Type {coord_system_type} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             coord_system_type = None
             type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
 
@@ -556,7 +558,7 @@ class Physiological:
                 print(f"Unit {unit_data} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
 
         # name
@@ -567,7 +569,7 @@ class Physiological:
                 print(f"Name {coord_system_name} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name("Not registered")
 
         # get or create coord system in db
@@ -589,7 +591,7 @@ class Physiological:
                 ref_key : Point3D(None, *ref_val)
                 for ref_key, ref_val in ref_coords.items()
             }
-        except (IndexError, KeyError):
+        except Exception:
             # no ref points
             is_ok_ref_coords = False
         # insert ref points if found
@@ -609,12 +611,13 @@ class Physiological:
             electrode_ids
         )
 
-        # insert blake2b hash of task event file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id,
-            'coordsystem_file_json_blake2b_hash',
-            blake2
-        )
+        if blake2:
+            # insert blake2b hash of task event file into physiological_parameter_file
+            self.insert_physio_parameter_file(
+                physiological_file_id,
+                'coordsystem_file_json_blake2b_hash',
+                blake2
+            )
 
     def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id,
                               project_id, blake2, project_wide, hed_union):
@@ -737,10 +740,18 @@ class Physiological:
 
     @dataclass
     class TagGroupMember:
+        """
+        Uncomment when we will drop the support for python 3.9
+
         hed_tag_id: int | None
         has_pairing: bool
         additional_members: int
         tag_value: str | None = None
+        """
+        hed_tag_id: Optional[int]
+        has_pairing: bool
+        additional_members: int
+        tag_value: Optional[str] = None
 
         def __eq__(self, other):
             return self.hed_tag_id == other.hed_tag_id and \

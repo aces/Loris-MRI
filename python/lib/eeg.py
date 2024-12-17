@@ -147,7 +147,7 @@ class Eeg:
 
         self.cohort_id   = None
         for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.psc_id:
+            if not row['participant_id'] == self.bids_sub_id:
                 continue
             if 'cohort' in row:
                 cohort_info = db.pselect(
@@ -163,8 +163,8 @@ class Eeg:
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
-        if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename')[0]
+        if self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename'):
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename')[0]
 
         # register the data into LORIS
         if (dataset_type and dataset_type == 'raw'):
@@ -593,6 +593,7 @@ class Eeg:
                     electrode_ids = physiological.insert_electrode_file(
                         electrode_data, electrode_path, physiological_file_id, blake2
                     )
+
                     # get coordsystem.json file
                     # subject-specific metadata
                     coordsystem_metadata_file = self.bids_layout.get_nearest(
@@ -603,18 +604,28 @@ class Eeg:
                         suffix = 'coordsystem',
                         all_ = False,
                         full_search = False,
-                        subject=self.psc_id,
+                        subject=self.bids_sub_id,
                     )
                     if not coordsystem_metadata_file:
                         message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
                                   f'associated with physiological file ID {physiological_file_id}'
                         print(message)
 
-                    else:
-                        # copy the electrode metadata file to the LORIS BIDS import directory
-                        electrode_metadata_path = self.copy_file_to_loris_bids_dir(
-                            coordsystem_metadata_file.path, derivatives
+                        # insert default (not registered) coordsystem in the database
+                        physiological.insert_electrode_metadata(
+                            None,
+                            None,
+                            physiological_file_id,
+                            None,
+                            electrode_ids
                         )
+                    else:
+                        electrode_metadata_path = coordsystem_metadata_file.path.replace(self.data_dir, '')
+                        if self.loris_bids_root_dir:
+                            # copy the electrode metadata file to the LORIS BIDS import directory
+                            electrode_metadata_path = self.copy_file_to_loris_bids_dir(
+                                coordsystem_metadata_file.path, derivatives
+                            )
                         # load json data
                         with open(coordsystem_metadata_file.path) as metadata_file:
                             electrode_metadata = json.load(metadata_file)
@@ -754,20 +765,21 @@ class Eeg:
                     suffix = 'events',
                     all_ = False,
                     full_search = False,
-                    subject=self.psc_id,
+                    subject=self.bids_sub_id,
                 )
                 inheritance = False
 
                 if not event_metadata_file:
-                    message = '\nWARNING: no events metadata files (event.json) associated' \
+                    message = '\nWARNING: no events metadata files (events.json) associated ' \
                               'with physiological file ID ' + str(physiological_file_id)
                     print(message)
                 else:
-                    # copy the event file to the LORIS BIDS import directory
-                    event_metadata_path = self.copy_file_to_loris_bids_dir(
-                        event_metadata_file.path, derivatives, inheritance
-                    )
-                    
+                    event_metadata_path = event_metadata_file.path.replace(self.data_dir, '')
+                    if self.loris_bids_root_dir:
+                        # copy the event file to the LORIS BIDS import directory
+                        event_metadata_path = self.copy_file_to_loris_bids_dir(
+                            event_metadata_file.path, derivatives, inheritance
+                        )
                     # load json data
                     with open(event_metadata_file.path) as metadata_file:
                         event_metadata = json.load(metadata_file)
@@ -787,10 +799,12 @@ class Eeg:
 
             # get events.tsv file and insert
             event_data = utilities.read_tsv_file(event_data_file.path)
-            # copy the event file to the LORIS BIDS import directory
-            event_path = self.copy_file_to_loris_bids_dir(
-                event_data_file.path, derivatives
-            )
+            event_path = event_data_file.path.replace(self.data_dir, '')
+            if self.loris_bids_root_dir:
+                # copy the event file to the LORIS BIDS import directory
+                event_path = self.copy_file_to_loris_bids_dir(
+                    event_data_file.path, derivatives
+                )
             # get the blake2b hash of the task events file
             blake2 = utilities.compute_blake2b_hash(event_data_file.path)
 

@@ -294,23 +294,28 @@ def read_and_insert_bids(
         strict=False,
         extension='json',
         suffix='events',
-        all_=False
+        all_=False,
+        subject=None,
+        session=None
     )
 
     dataset_tag_dict = {}
     if not root_event_metadata_file:
-        message = '\nWARNING: no events metadata files (event.json) in ' \
+        message = '\nWARNING: no events metadata files (events.json) in ' \
                   'root directory'
         print(message)
     else:
         # copy the event file to the LORIS BIDS import directory
         copy_file = str.replace(
             root_event_metadata_file.path,
-            bids_layout.root,
+            data_dir,
             ""
-        )
-        event_metadata_path = loris_bids_root_dir + copy_file.lstrip('/')
-        lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
+        ).lstrip('/')
+
+        event_metadata_path = copy_file
+        if not nocopy:
+            event_metadata_path = loris_bids_root_dir + copy_file
+            lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
 
         # TODO: Move
         hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'

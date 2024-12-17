@@ -8,6 +8,7 @@ from lib.lorisgetopt import LorisGetOpt
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import SUCCESS, INVALID_ARG
+from delete_physiological_file import delete_physiological_file_in_db
 import subprocess
 
 __license__ = "GPLv3"
@@ -146,6 +147,15 @@ def main():
         print('No BIDS dataset matching visit ' + visit + ' for candidate ' + pscid + ' ' + str(candid) + ' found.')
         continue
 
+      # Get previous upload files
+      previous_eeg_files = db.pselect(
+        "SELECT PhysiologicalFileID FROM physiological_file WHERE SessionID = %s",
+        (eeg_dataset['SessionID'],)
+      )
+      # Delete previous uploads
+      for previous_eeg_file in previous_eeg_files:
+        delete_physiological_file_in_db(db, previous_eeg_file['PhysiologicalFileID'])
+
       script = os.environ['LORIS_MRI'] + '/python/bids_import.py'
       # Assume eeg and raw data for now
       eeg_path = os.path.join(path, 'eeg')
@@ -168,6 +178,7 @@ def main():
             (uploadid,)
           )
           print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
+
           continue
 
       except OSError:
@@ -177,9 +188,6 @@ def main():
         "UPDATE electrophysiology_uploader SET Status = 'Failed Ingestion' WHERE UploadID = %s",
         (uploadid,)
       )
-      
-    # TODO: reupload of archive after ingestion
-    # Delete if already exist
 
 
 if __name__ == "__main__":

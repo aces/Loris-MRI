@@ -183,7 +183,7 @@ def main():
 
         if not error and not tmp_eeg_session_path:
             imaging_io_obj.log_info(
-                "Could not find a session folder in the bids structure for .",
+                f"Could not find a session folder in the bids structure for {eeg_archive_file}.",
                 is_error=True,
                 is_verbose=False,
             )
