@@ -159,7 +159,6 @@ class Eeg:
             break
 
         self.session_id      = self.get_loris_session_id()
-        # self.event_files = self.grep_bids_files('events')     # This variable and function are never otherwise used
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
@@ -900,7 +899,7 @@ class Eeg:
         physiological = Physiological(self.db, self.verbose)
 
         # check if archive is on the filesystem
-        archive_full_path = os.path.join(self.data_dir, archive_rel_name)
+        (archive_rel_name, archive_full_path) = self.get_archive_paths(archive_rel_name)
         blake2            = None
         if os.path.isfile(archive_full_path):
             blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -925,7 +924,8 @@ class Eeg:
             else:
                 return
 
-        (archive_rel_name, archive_full_path) = self.create_archive(files_to_archive, archive_rel_name)
+        # create the archive file
+        utilities.create_archive(files_to_archive, archive_full_path)
 
         # insert the archive file in physiological_archive
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -951,7 +951,7 @@ class Eeg:
         """
 
         # check if archive is on the filesystem
-        archive_full_path = os.path.join(self.data_dir, archive_rel_name)
+        (archive_rel_name, archive_full_path) = self.get_archive_paths(archive_rel_name)
         blake2            = None
         if os.path.isfile(archive_full_path):
             blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -986,16 +986,15 @@ class Eeg:
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
         physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
 
-    def create_archive(self, files_to_archive, archive_rel_name):
-        # create the archive file
+
+    def get_archive_paths(self, archive_rel_name):
         package_path = self.config_db_obj.get_config("prePackagedDownloadPath")
         if package_path:
             raw_package_dir = os.path.join(package_path, 'raw')
             os.makedirs(raw_package_dir, exist_ok=True)
             archive_rel_name = os.path.basename(archive_rel_name)
             archive_full_path = os.path.join(raw_package_dir, archive_rel_name)
-            utilities.create_archive(files_to_archive, archive_full_path)
         else:
             archive_full_path = os.path.join(self.data_dir, archive_rel_name)
-            utilities.create_archive(files_to_archive, archive_full_path)
+
         return (archive_rel_name, archive_full_path)
