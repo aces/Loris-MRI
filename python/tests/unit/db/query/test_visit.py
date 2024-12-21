@@ -3,8 +3,8 @@ from dataclasses import dataclass
 import pytest
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.visit_window import DbVisitWindow
-from lib.db.query.visit import try_get_visit_window_with_visit_label
+from lib.db.models.visit_window import DbVisitWindow
+from lib.db.queries.visit import try_get_visit_window_with_visit_label
 from tests.util.database import create_test_database
 
 

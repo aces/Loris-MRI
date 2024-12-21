@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Mapped, mapped_column
 
 from lib.db.base import Base
-from lib.db.decorator.y_n_bool import YNBool
+from lib.db.decorators.y_n_bool import YNBool
 
 
 class DbSite(Base):

@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.session as db_session
+import lib.db.models.session as db_session
 from lib.db.base import Base
 
 

@@ -3,9 +3,9 @@ from typing import Optional
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.dicom_archive import DbDicomArchive
-from lib.db.model.dicom_archive_file import DbDicomArchiveFile
-from lib.db.model.dicom_archive_series import DbDicomArchiveSeries
+from lib.db.models.dicom_archive import DbDicomArchive
+from lib.db.models.dicom_archive_file import DbDicomArchiveFile
+from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
 
 
 def try_get_dicom_archive_with_study_uid(db: Database, study_uid: str):

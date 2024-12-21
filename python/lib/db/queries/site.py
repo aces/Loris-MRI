@@ -1,9 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.candidate import DbCandidate
-from lib.db.model.session import DbSession
-from lib.db.model.site import DbSite
+from lib.db.models.candidate import DbCandidate
+from lib.db.models.session import DbSession
+from lib.db.models.site import DbSite
 
 
 def try_get_site_with_cand_id_visit_label(db: Database, cand_id: int, visit_label: str):

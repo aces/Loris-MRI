@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.visit_window import DbVisitWindow
+from lib.db.models.visit_window import DbVisitWindow
 
 
 def try_get_visit_window_with_visit_label(db: Database, visit_label: str):

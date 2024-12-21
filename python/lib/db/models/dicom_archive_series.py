@@ -3,8 +3,8 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.dicom_archive as db_dicom_archive
-import lib.db.model.dicom_archive_file as db_dicom_archive_file
+import lib.db.models.dicom_archive as db_dicom_archive
+import lib.db.models.dicom_archive_file as db_dicom_archive_file
 from lib.db.base import Base
 
 

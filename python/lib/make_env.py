@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from lib.config_file import DatabaseConfig
 from lib.db.connect import get_database_engine
-from lib.db.query.config import get_config_with_setting_name
+from lib.db.queries.config import get_config_with_setting_name
 from lib.env import Env
 from lib.logging import log_verbose, write_to_log_file
 from lib.lorisgetopt import LorisGetOpt

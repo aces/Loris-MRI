@@ -3,8 +3,8 @@ from typing import Never
 from sqlalchemy.orm import Session as Database
 
 from lib.config_file import SubjectInfo
-from lib.db.query.candidate import try_get_candidate_with_cand_id
-from lib.db.query.visit import try_get_visit_window_with_visit_label
+from lib.db.queries.candidate import try_get_candidate_with_cand_id
+from lib.db.queries.visit import try_get_visit_window_with_visit_label
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 
 

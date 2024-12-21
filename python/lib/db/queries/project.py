@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.project_cohort import DbProjectCohort
+from lib.db.models.project_cohort import DbProjectCohort
 
 
 def try_get_project_cohort_with_project_id_cohort_id(db: Database, project_id: int, cohort_id: int):

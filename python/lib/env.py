@@ -4,8 +4,8 @@ from typing import Callable
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from lib.db.model.notification_type import DbNotificationType
-from lib.db.query.notification import try_get_notification_type_with_name
+from lib.db.models.notification_type import DbNotificationType
+from lib.db.queries.notification import try_get_notification_type_with_name
 
 
 @dataclass

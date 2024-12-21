@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.notification_type import DbNotificationType
+from lib.db.models.notification_type import DbNotificationType
 
 
 def try_get_notification_type_with_name(db: Database, name: str):

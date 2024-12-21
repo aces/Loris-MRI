@@ -4,12 +4,12 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.candidate as db_candidate
-import lib.db.model.file as db_file
-import lib.db.model.project as db_project
-import lib.db.model.site as db_site
+import lib.db.models.candidate as db_candidate
+import lib.db.models.file as db_file
+import lib.db.models.project as db_project
+import lib.db.models.site as db_site
 from lib.db.base import Base
-from lib.db.decorator.y_n_bool import YNBool
+from lib.db.decorators.y_n_bool import YNBool
 
 
 class DbSession(Base):

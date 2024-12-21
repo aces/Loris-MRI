@@ -1,8 +1,8 @@
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.config import DbConfig
-from lib.db.model.config_setting import DbConfigSetting
+from lib.db.models.config import DbConfig
+from lib.db.models.config_setting import DbConfigSetting
 
 
 def get_config_with_setting_name(db: Database, name: str):

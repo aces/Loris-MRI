@@ -4,8 +4,8 @@ from datetime import datetime
 import pytest
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.candidate import DbCandidate
-from lib.db.query.candidate import try_get_candidate_with_cand_id
+from lib.db.models.candidate import DbCandidate
+from lib.db.queries.candidate import try_get_candidate_with_cand_id
 from tests.util.database import create_test_database
 
 

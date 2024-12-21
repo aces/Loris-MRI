@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.config_setting as db_config_setting
+import lib.db.models.config_setting as db_config_setting
 from lib.db.base import Base
 
 
