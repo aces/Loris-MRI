@@ -4,10 +4,10 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.dicom_archive as db_dicom_archive
-import lib.db.model.session as db_session
+import lib.db.models.dicom_archive as db_dicom_archive
+import lib.db.models.session as db_session
 from lib.db.base import Base
-from lib.db.decorator.y_n_bool import YNBool
+from lib.db.decorators.y_n_bool import YNBool
 
 
 class DbMriUpload(Base):

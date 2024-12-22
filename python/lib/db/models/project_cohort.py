@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.project as db_project
+import lib.db.models.project as db_project
 from lib.db.base import Base
 
 

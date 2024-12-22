@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.candidate import DbCandidate
+from lib.db.models.candidate import DbCandidate
 
 
 def try_get_candidate_with_cand_id(db: Database, cand_id: int):

@@ -2,7 +2,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.session import DbSession
+from lib.db.models.session import DbSession
 
 
 def try_get_session_with_cand_id_visit_label(db: Database, cand_id: int, visit_label: str):

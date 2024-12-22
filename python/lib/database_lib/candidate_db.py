@@ -5,7 +5,7 @@ from typing_extensions import deprecated
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.db.model.candidate.DbCandidate` instead')
+@deprecated('Use `lib.db.models.candidate.DbCandidate` instead')
 class CandidateDB:
     """
     This class performs database queries for candidate table.
@@ -37,7 +37,7 @@ class CandidateDB:
         self.db = db
         self.verbose = verbose
 
-    @deprecated('Use `lib.db.query.candidate.try_get_candidate_with_cand_id` instead')
+    @deprecated('Use `lib.db.queries.candidate.try_get_candidate_with_cand_id` instead')
     def get_candidate_psc_id(self, cand_id: int) -> str | None:
         """
         Return a candidate PSCID and based on its CandID, or `None` if no candidate is found in

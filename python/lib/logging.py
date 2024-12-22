@@ -2,7 +2,7 @@ import sys
 from datetime import datetime
 from typing import Never
 
-from lib.db.model.notification_spool import DbNotificationSpool
+from lib.db.models.notification_spool import DbNotificationSpool
 from lib.env import Env
 
 

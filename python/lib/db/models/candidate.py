@@ -4,11 +4,11 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.project as db_project
-import lib.db.model.session as db_session
-import lib.db.model.site as db_site
+import lib.db.models.project as db_project
+import lib.db.models.session as db_session
+import lib.db.models.site as db_site
 from lib.db.base import Base
-from lib.db.decorator.y_n_bool import YNBool
+from lib.db.decorators.y_n_bool import YNBool
 
 
 class DbCandidate(Base):

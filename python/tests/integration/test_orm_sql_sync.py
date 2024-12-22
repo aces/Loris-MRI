@@ -16,8 +16,8 @@ def test_orm_sql_sync():
     """
 
     # Load all the ORM table definitions in the SQLAlchemy schema
-    for file in Path('python/lib/db/model').glob('*.py'):
-        importlib.import_module(f'lib.db.model.{file.name[:-3]}')
+    for file in Path('python/lib/db/models').glob('*.py'):
+        importlib.import_module(f'lib.db.models.{file.name[:-3]}')
 
     orm_metadata = Base.metadata
 

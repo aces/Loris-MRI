@@ -4,10 +4,10 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.dicom_archive_file as db_dicom_archive_file
-import lib.db.model.dicom_archive_series as db_dicom_archive_series
-import lib.db.model.mri_upload as db_mri_upload
-import lib.db.model.session as db_session
+import lib.db.models.dicom_archive_file as db_dicom_archive_file
+import lib.db.models.dicom_archive_series as db_dicom_archive_series
+import lib.db.models.mri_upload as db_mri_upload
+import lib.db.models.session as db_session
 from lib.db.base import Base
 
 

@@ -7,7 +7,7 @@ from typing_extensions import deprecated
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.db.model.notification_spool` instead')
+@deprecated('Use `lib.db.models.notification_spool` instead')
 class Notification:
     """
     This class performs database queries for imaging pipeline notification_spool table.

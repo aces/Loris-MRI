@@ -4,9 +4,9 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.model.notification_type as db_notification_type
+import lib.db.models.notification_type as db_notification_type
 from lib.db.base import Base
-from lib.db.decorator.y_n_bool import YNBool
+from lib.db.decorators.y_n_bool import YNBool
 
 
 class DbNotificationSpool(Base):

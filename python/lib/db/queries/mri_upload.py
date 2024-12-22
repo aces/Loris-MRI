@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.model.mri_upload import DbMriUpload
+from lib.db.models.mri_upload import DbMriUpload
 
 
 def try_get_mri_upload_with_id(db: Database, id: int):
