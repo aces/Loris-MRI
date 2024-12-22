@@ -1,5 +1,7 @@
 """This class gather functions for session handling."""
 
+from typing_extensions import deprecated
+
 from lib.database_lib.project_cohort_rel import ProjectCohortRel
 from lib.database_lib.session_db import SessionDB
 from lib.database_lib.site import Site
@@ -126,6 +128,7 @@ class Session:
 
         return loris_session_info[0] if loris_session_info else None
 
+    @deprecated('Use `lib.db.queries.site.try_get_site_with_psc_id_visit_label` instead')
     def get_session_center_info(self, pscid, visit_label):
         """
         Get the session center information based on the PSCID and visit label of a session.
@@ -140,6 +143,7 @@ class Session:
         """
         return self.session_db_obj.get_session_center_info(pscid, visit_label)
 
+    @deprecated('Use `lib.db.queries.try_get_candidate_with_cand_id_visit_label` instead')
     def create_session_dict(self, cand_id, visit_label):
         """
         Creates the session information dictionary based on a candidate ID and visit label. This will populate
@@ -159,6 +163,7 @@ class Session:
             self.cohort_id = self.session_info_dict['CohortID']
             self.session_id = self.session_info_dict['ID']
 
+    @deprecated('Use `lib.db.models.session.DbSession` instead')
     def insert_into_session(self, session_info_to_insert_dict):
         """
         Insert a new row in the session table using fields list as column names and values as values.
@@ -176,6 +181,7 @@ class Session:
 
         return self.session_id
 
+    @deprecated('Use `lib.get_subject_session.get_candidate_next_visit_number` instead')
     def get_next_session_site_id_and_visit_number(self, cand_id):
         """
         Determines the next session site and visit number based on the last session inserted for a given candidate.

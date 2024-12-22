@@ -25,5 +25,4 @@ class DbNotificationSpool(Base):
     origin       : Mapped[Optional[str]]      = mapped_column('Origin')
     active       : Mapped[bool]               = mapped_column('Active', YNBool)
 
-    type : Mapped['db_notification_type.DbNotificationType'] \
-        = relationship('DbNotificationType')
+    type : Mapped['db_notification_type.DbNotificationType'] = relationship('DbNotificationType')
