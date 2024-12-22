@@ -35,13 +35,13 @@ RUN dpkg -i /tmp/minc-toolkit-1.9.18-20200813-Debian_10-x86_64.deb
 ENV MINC_TOOLKIT=/opt/minc/1.9.18
 ENV MINC_TOOLKIT_VERSION="1.9.18-20200813"
 ENV PATH=${MINC_TOOLKIT}/bin:${MINC_TOOLKIT}/pipeline:${PATH}
-ENV PERL5LIB=${MINC_TOOLKIT}/perl:${MINC_TOOLKIT}/pipeline${PERL5LIB:+:$PERL5LIB}
-ENV LD_LIBRARY_PATH=${MINC_TOOLKIT}/lib:${MINC_TOOLKIT}/lib/InsightToolkit${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+ENV PERL5LIB=${MINC_TOOLKIT}/perl:${MINC_TOOLKIT}/pipeline
+ENV LD_LIBRARY_PATH=${MINC_TOOLKIT}/lib:${MINC_TOOLKIT}/lib/InsightToolkit
 ENV MNI_DATAPATH=${MINC_TOOLKIT}/../share:${MINC_TOOLKIT}/share
 ENV MINC_FORCE_V2=1
 ENV MINC_COMPRESS=4
 ENV VOLUME_CACHE_THRESHOLD=-1
-ENV MANPATH=${MINC_TOOLKIT}/man${MANPATH:+:$MANPATH}
+ENV MANPATH=${MINC_TOOLKIT}/man
 ENV ANTSPATH=${MINC_TOOLKIT}/bin
 
 # Download MINC Toolkit auxiliary packages
@@ -111,7 +111,7 @@ ENV PERL5LIB=/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/dicom
 ENV TMPDIR=/tmp
 ENV LORIS_CONFIG=/opt/${PROJECT}/bin/mri/dicom-archive
 ENV LORIS_MRI=/opt/${PROJECT}/bin/mri
-ENV PYTHONPATH=$PYTHONPATH:/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
+ENV PYTHONPATH=/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
 ENV BEASTLIB=${MINC_TOOLKIT_DIR}/../share/beast-library-1.1
 ENV MNI_MODELS=${MINC_TOOLKIT_DIR}/../share/icbm152_model_09c
 
