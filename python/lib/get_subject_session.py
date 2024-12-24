@@ -66,6 +66,8 @@ def _get_subject_session(env: Env, subject_info: SubjectInfo) -> DbSession:
             f"No center ID found for candidate {subject_info.cand_id}, visit {subject_info.visit_label}"
         )
 
+    log_verbose(env, f"Set newVisitNo = {visit_number} and center ID = {site.id}")
+
     session = DbSession(
         cand_id       = subject_info.cand_id,
         site_id       = site.id,
