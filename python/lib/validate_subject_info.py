@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session as Database
 
 from lib.config_file import SubjectInfo
 from lib.db.queries.candidate import try_get_candidate_with_cand_id
+from lib.db.queries.project import try_get_project_cohort_with_project_id_cohort_id
 from lib.db.queries.visit import try_get_visit_window_with_visit_label
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 
@@ -29,10 +30,26 @@ def validate_subject_info(db: Database, subject_info: SubjectInfo):
         )
 
     visit_window = try_get_visit_window_with_visit_label(db, subject_info.visit_label)
-    if visit_window is None and subject_info.create_visit is not None:
+    if visit_window is not None:
+        return
+
+    if subject_info.create_visit is None:
         validate_subject_error(
             subject_info,
             f'Visit label \'{subject_info.visit_label}\' does not exist in the database (table `Visit_Windows`).'
+        )
+
+    project_id = subject_info.create_visit.project_id
+    cohort_id  = subject_info.create_visit.cohort_id
+
+    project_cohort = try_get_project_cohort_with_project_id_cohort_id(db, project_id, cohort_id)
+    if project_cohort is None:
+        validate_subject_error(
+            subject_info,
+            (
+                f'Cannot create a session with project ID {project_id} and cohort ID {cohort_id}.\n'
+                f'This project and this cohort are not associated in the database (table `project_cohort_rel`).'
+            ),
         )
 
 

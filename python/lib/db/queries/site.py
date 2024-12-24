@@ -1,7 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.models.candidate import DbCandidate
 from lib.db.models.session import DbSession
 from lib.db.models.site import DbSite
 
@@ -14,7 +13,6 @@ def try_get_site_with_cand_id_visit_label(db: Database, cand_id: int, visit_labe
 
     return db.execute(select(DbSite)
         .join(DbSession.site)
-        .join(DbSession.candidate)
-        .where(DbCandidate.cand_id == cand_id)
+        .where(DbSession.cand_id == cand_id)
         .where(DbSession.visit_label == visit_label)
     ).scalar_one_or_none()

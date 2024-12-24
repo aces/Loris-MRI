@@ -11,6 +11,7 @@ import lib.utilities as utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
+from lib.get_subject_session import get_subject_session
 from lib.logging import log_error_exit, log_verbose
 from lib.validate_subject_info import validate_subject_info
 
@@ -110,9 +111,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Determine/create the session the file should be linked to
         # ---------------------------------------------------------------------------------------------
-        self.get_session_info()
-        if not self.session_obj.session_info_dict:
-            self.create_session()
+        self.session = get_subject_session(self.env, self.subject_info)
 
         # ---------------------------------------------------------------------------------------------
         # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
@@ -169,9 +168,9 @@ class NiftiInsertionPipeline(BasePipeline):
         self.exclude_violations_list = []
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
-                self.session_obj.session_info_dict['ProjectID'],
-                self.session_obj.session_info_dict['CohortID'],
-                self.session_obj.session_info_dict['Visit_label'],
+                self.session.project_id,
+                self.session.cohort_id,
+                self.session.visit_label,
                 self.scan_type_id,
                 self.json_file_dict
             )
@@ -357,15 +356,15 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.json_file_dict['DeviceSerialNumber'],
                 self.json_file_dict['ManufacturersModelName'],
                 self.site_dict['CenterID'],
-                self.session_obj.session_info_dict['ProjectID']
+                self.session.project_id,
             )
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
-            self.session_obj.session_info_dict['ProjectID'],
-            self.session_obj.session_info_dict['CohortID'],
-            self.session_obj.session_info_dict['CenterID'],
-            self.session_obj.session_info_dict['Visit_label'],
+            self.session.project_id,
+            self.session.cohort_id,
+            self.session.site_id,
+            self.session.visit_label,
             self.scanner_id
         )
 
@@ -458,7 +457,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # determine NIfTI file name
         new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
         already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_session_id(
-            self.session_obj.session_info_dict['ID']
+            self.session.id,
         )
         while new_nifti_name in already_inserted_filenames:
             file_bids_entities_dict['run'] += 1
@@ -680,7 +679,7 @@ class NiftiInsertionPipeline(BasePipeline):
             )
 
         files_insert_info_dict = {
-            'SessionID': self.session_obj.session_info_dict['ID'],
+            'SessionID': self.session.id,
             'File': nifti_rel_path,
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
             'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
