@@ -8,6 +8,7 @@ import sys
 
 import lib.exitcode
 import lib.utilities as utilities
+from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
@@ -79,10 +80,10 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Check that the PatientName in NIfTI and DICOMs are the same and then validate the Subject IDs
         # ---------------------------------------------------------------------------------------------
-        if self.dicom_archive_obj.tarchive_info_dict.keys():
+        if self.dicom_archive is not None:
             self._validate_nifti_patient_name_with_dicom_patient_name()
             self.subject_info = self.imaging_obj.determine_subject_info(
-                self.dicom_archive_obj.tarchive_info_dict, self.scanner_id
+                self.dicom_archive, self.scanner_id
             )
         else:
             self._determine_subject_info_based_on_json_patient_name()
@@ -91,8 +92,8 @@ class NiftiInsertionPipeline(BasePipeline):
             validate_subject_info(self.env.db, self.subject_info)
         except ValidateSubjectInfoError as error:
             self.imaging_obj.insert_mri_candidate_errors(
-                self.dicom_archive_obj.tarchive_info_dict['PatientName'],
-                self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
+                self.dicom_archive.patient_name,
+                self.dicom_archive.id,
                 self.json_file_dict,
                 self.nifti_path,
                 error.message,
@@ -247,7 +248,6 @@ class NiftiInsertionPipeline(BasePipeline):
         Note: if no JSON file was provided to the script or if no "PatientName" was provided in the JSON file,
         the scripts will rely solely on the PatientName present in the <tarchive> table.
         """
-        tarchive_pname = self.dicom_archive_obj.tarchive_info_dict["PatientName"]
         if "PatientName" not in self.json_file_dict:
             log_verbose(self.env, (
                 "PatientName not present in the JSON file or no JSON file provided along with"
@@ -257,11 +257,11 @@ class NiftiInsertionPipeline(BasePipeline):
             return
 
         nifti_pname = self.json_file_dict["PatientName"]
-        if tarchive_pname != nifti_pname:
+        if self.dicom_archive.patient_name != nifti_pname:
             err_msg = "PatientName in DICOM and NIfTI files differ."
             self.imaging_obj.insert_mri_candidate_errors(
                 nifti_pname,
-                self.dicom_archive_obj.tarchive_info_dict["TarchiveID"],
+                self.dicom_archive.id,
                 self.json_file_dict,
                 self.nifti_path,
                 err_msg
@@ -299,14 +299,18 @@ class NiftiInsertionPipeline(BasePipeline):
             # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
             if self.force:
                 tar_echo_time = echo_time * 1000
-                self.dicom_archive_obj.populate_tarchive_info_dict_from_series_uid_and_echo_time(
-                    series_uid, tar_echo_time
+                dicom_archive_series = try_get_dicom_archive_series_with_series_uid_echo_time(
+                    self.env.db,
+                    series_uid,
+                    tar_echo_time
                 )
-                if not self.dicom_archive_obj.tarchive_info_dict:
+
+                self.dicom_archive = dicom_archive_series.archive if dicom_archive_series is not None else None
+                if self.dicom_archive is not None:
                     error_msg = f"Found a DICOM archive containing DICOM files with the same SeriesUID ({series_uid})" \
                                 f" and EchoTime ({tar_echo_time}) as the one present in the JSON side car file. " \
                                 f" The DICOM archive location containing those DICOM files is " \
-                                f" {self.dicom_archive_obj.tarchive_info_dict['ArchiveLocation']}. Please, rerun " \
+                                f" {self.dicom_archive.archive_location}. Please, rerun " \
                                 f" <run_nifti_insertion.py> with either --upload_id or --tarchive_path option."
 
         # verify that a file with the same MD5 or blake2b hash has not already been inserted
@@ -331,6 +335,7 @@ class NiftiInsertionPipeline(BasePipeline):
         dicom_value = self.json_file_dict[dicom_header]
 
         try:
+            # TODO: The following line looks like a bug.
             self.subject_info = self.imaging_obj.determine_subject_info(dicom_value)
         except DetermineSubjectInfoError as error:
             log_error_exit(self.env, error.message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
@@ -597,14 +602,14 @@ class NiftiInsertionPipeline(BasePipeline):
         patient_name = None
         if "PatientName" in self.json_file_dict.keys():
             patient_name = self.json_file_dict["PatientName"]
-        elif "PatientName" in self.dicom_archive_obj.tarchive_info_dict.keys():
-            patient_name = self.dicom_archive_obj.tarchive_info_dict["PatientName"]
+        elif self.dicom_archive is not None:
+            patient_name = self.dicom_archive.patient_name
 
         self.imaging_obj.insert_protocol_violated_scan(
             patient_name,
             self.subject_info.cand_id,
             self.subject_info.psc_id,
-            self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
+            self.dicom_archive.id,
             self.json_file_dict,
             self.trashbin_nifti_rel_path,
             self.mri_protocol_group_id
@@ -615,8 +620,8 @@ class NiftiInsertionPipeline(BasePipeline):
         patient_name = None
         if "PatientName" in self.json_file_dict.keys():
             patient_name = self.json_file_dict["PatientName"]
-        elif "PatientName" in self.dicom_archive_obj.tarchive_info_dict.keys():
-            patient_name = self.dicom_archive_obj.tarchive_info_dict["PatientName"]
+        elif self.dicom_archive is not None:
+            patient_name = self.dicom_archive.patient_name
 
         self.imaging_obj.insert_mri_candidate_errors(
             patient_name
@@ -637,7 +642,7 @@ class NiftiInsertionPipeline(BasePipeline):
         base_info_dict = {
             'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
-            'TarchiveID': self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
+            'TarchiveID': self.dicom_archive.id,
             'MincFile': file_rel_path,
             'PatientName': self.subject_info.name,
             'CandID': self.subject_info.cand_id,
@@ -692,7 +697,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'InsertedByUserID': getpass.getuser(),
             'InsertTime': datetime.datetime.now().timestamp(),
             'Caveat': 1 if self.warning_violations_list else 0,
-            'TarchiveSource': self.dicom_archive_obj.tarchive_info_dict['TarchiveID'],
+            'TarchiveSource': self.dicom_archive.id,
             'ScannerID': self.scanner_id,
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None

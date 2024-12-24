@@ -37,9 +37,9 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         super().__init__(loris_getopt_obj, script_name)
         self.series_uid = self.options_dict["series_uid"]["value"]
         self.tarchive_path = os.path.join(
-            self.data_dir, "tarchive", self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]
+            self.data_dir, "tarchive", self.dicom_archive.archive_location
         )
-        self.tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
+        self.tarchive_id = self.dicom_archive.id
 
         # ---------------------------------------------------------------------------------------------
         # Run the DICOM archive validation script to check if the DICOM archive is valid
@@ -50,7 +50,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # Extract DICOM files from the tarchive
         # ---------------------------------------------------------------------------------------------
         self.extracted_dicom_dir = self.imaging_obj.extract_files_from_dicom_archive(
-            os.path.join(self.data_dir, 'tarchive', self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]),
+            os.path.join(self.data_dir, 'tarchive', self.dicom_archive.archive_location),
             self.tmp_dir
         )
 
@@ -331,12 +331,9 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         the `tarchive` table with the new `ArchiveLocation` and `SessionID`.
         """
 
-        tarchive_id = self.tarchive_id
-        acq_date = self.dicom_archive_obj.tarchive_info_dict["DateAcquired"]
-        archive_location = self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"]
+        acq_date = self.dicom_archive.date_acquired
+        archive_location = self.dicom_archive.archive_location
 
-        fields_to_update = ("SessionID",)
-        values_for_update = (self.session.id,)
         pattern = re.compile("^[0-9]{4}/")
         if acq_date and not pattern.match(archive_location):
             # move the DICOM archive into a year subfolder
@@ -350,10 +347,12 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             os.replace(self.tarchive_path, new_tarchive_path)
             self.tarchive_path = new_tarchive_path
             # add the new archive location to the list of fields to update in the tarchive table
-            fields_to_update += ("ArchiveLocation",)
-            values_for_update += (new_archive_location,)
+            self.dicom_archive.archive_location = new_archive_location
 
-        self.dicom_archive_obj.tarchive_db_obj.update_tarchive(tarchive_id, fields_to_update, values_for_update)
+        self.dicom_archive.session = self.session
+
+        # Update the DICOM archive in the database
+        self.env.db.commit()
 
     def _compute_snr(self):
         # TODO: to be implemented later on. No clear paths as to how to compute that

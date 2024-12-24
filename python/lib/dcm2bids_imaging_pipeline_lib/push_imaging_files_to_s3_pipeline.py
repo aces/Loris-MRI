@@ -30,7 +30,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         super().__init__(loris_getopt_obj, script_name)
-        self.tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
+        self.tarchive_id = self.dicom_archive.id
 
         # ---------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
