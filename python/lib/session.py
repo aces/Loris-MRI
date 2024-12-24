@@ -194,6 +194,7 @@ class Session:
         """
         return self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
 
+    @deprecated('Use `lib.db.queries.site.get_all_sites` instead')
     def get_list_of_sites(self):
         """
         Get the list of sites available in the psc table.
@@ -204,6 +205,7 @@ class Session:
 
         return self.site_db_obj.get_list_of_sites()
 
+    @deprecated('Use `lib.db.models.project_cohort.DbProjectCohort` instead')
     def create_proj_cohort_rel_info_dict(self, project_id, cohort_id):
         """
         Populate self.proj_cohort_rel_info_dict with the content returned from the database for the ProjectID and

@@ -6,6 +6,7 @@ import lib.utilities
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
+from lib.db.queries.site import get_all_sites
 from lib.dicom_archive import DicomArchive
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
@@ -13,7 +14,6 @@ from lib.imaging import Imaging
 from lib.imaging_upload import ImagingUpload
 from lib.logging import log_error_exit, log_verbose, log_warning
 from lib.make_env import make_env
-from lib.session import Session
 from lib.validate_subject_info import validate_subject_info
 
 
@@ -66,7 +66,6 @@ class BasePipeline:
         self.dicom_archive_obj = DicomArchive(self.db, self.verbose)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
         self.imaging_upload_obj = ImagingUpload(self.db, self.verbose)
-        self.session_obj = Session(self.db, self.verbose)
 
         # ---------------------------------------------------------------------------------------------
         # Grep config settings from the Config module
@@ -204,12 +203,12 @@ class BasePipeline:
 
         # if could not find center information based on cand_id and visit_label, use the
         # patient name to match it to the site alias or MRI alias
-        list_of_sites = self.session_obj.get_list_of_sites()
-        for site_dict in list_of_sites:
-            if site_dict["Alias"] in self.subject_info.name:
-                return {"CenterName": site_dict["Alias"], "CenterID": site_dict["CenterID"]}
-            elif site_dict["MRI_alias"] in self.subject_info.name:
-                return {"CenterName": site_dict["MRI_alias"], "CenterID": site_dict["CenterID"]}
+        sites = get_all_sites(self.env.db)
+        for site in sites:
+            if site.alias in self.subject_info.name:
+                return {"CenterName": site.alias, "CenterID": site.id}
+            elif site.mri_alias in self.subject_info.name:
+                return {"CenterName": site.mri_alias, "CenterID": site.id}
 
         # if we got here, it means we could not find a center associated to the dataset
         log_error_exit(
