@@ -4,6 +4,7 @@ import dateutil.parser
 from bids import BIDSLayout
 
 import lib.utilities as utilities
+from lib.db.models.candidate import DbCandidate
 
 
 @dataclass
@@ -71,4 +72,22 @@ def read_bids_participant_row(row: dict[str, str]) -> BidsParticipant:
         cohort     = row.get('cohort'),
         project    = row.get('project'),
         subproject = row.get('subproject'),
+    )
+
+
+def get_bids_participant_from_candidate(candidate: DbCandidate) -> BidsParticipant:
+    """
+    Generate a BIDS participant entry from a database candidate.
+    """
+
+    # Stringify the candidate date of birth if there is one.
+    birth_date = candidate.date_of_birth.strftime('%Y-%m-%d') if candidate.date_of_birth is not None else None
+
+    # Create the BIDS participant object corresponding to the database candidate.
+    return BidsParticipant(
+        id         = candidate.psc_id,
+        birth_date = birth_date,
+        sex        = candidate.sex,
+        site       = candidate.registration_site.name,
+        project    = candidate.registration_project.name,
     )
