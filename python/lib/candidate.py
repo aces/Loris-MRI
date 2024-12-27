@@ -4,7 +4,7 @@ import random
 import sys
 
 import lib.exitcode
-from lib.bids.participant import BidsParticipant
+from lib.import_bids_dataset.participant import BidsParticipant
 
 __license__ = "GPLv3"
 
@@ -83,7 +83,7 @@ class Candidate:
             if bids_participant.id != self.psc_id:
                 continue
 
-            self.dob = bids_participant.date_of_birth
+            self.dob = bids_participant.birth_date
             if bids_participant.sex is not None:
                 self.map_sex(bids_participant.sex)
             if bids_participant.age is not None:
