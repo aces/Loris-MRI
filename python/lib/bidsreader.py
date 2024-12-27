@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from bids import BIDSLayout
 
 import lib.exitcode
-from lib.bids.participant import BidsParticipant, read_bids_participants_file
+from lib.import_bids_dataset.participant import BidsParticipant, read_bids_participants_file
 
 # import bids
 # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1

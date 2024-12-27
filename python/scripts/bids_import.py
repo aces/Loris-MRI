@@ -2,26 +2,29 @@
 
 """Script to import BIDS structure into LORIS."""
 
-import getopt
 import json
 import os
 import re
 import sys
+from dataclasses import dataclass
 from typing import Any, Literal
-
-from bids import BIDSLayout
-from bids.layout import BIDSFile
 
 import lib.exitcode
 import lib.physiological
 import lib.utilities
 from lib.bidsreader import BidsReader
-from lib.candidate import Candidate
 from lib.database import Database
-from lib.database_lib.config import Config
+from lib.db.queries.candidate import try_get_candidate_with_cand_id
+from lib.db.queries.config import get_config_with_setting_name
 from lib.eeg import Eeg
+from lib.env import Env
+from lib.import_bids_dataset.database import check_or_create_bids_candidates_and_sessions
+from lib.import_bids_dataset.dataset_files import add_dataset_files
+from lib.logging import log, log_error_exit, log_warning
+from lib.lorisgetopt import LorisGetOpt
+from lib.make_env import make_env
 from lib.mri import Mri
-from lib.session import Session
+from lib.util import try_parse_int
 
 __license__ = "GPLv3"
 
@@ -34,257 +37,160 @@ bids_eeg_modalities = ['eeg', 'ieeg']
 bids_mri_modalities = ['anat', 'dwi', 'fmap', 'func']
 
 
+@dataclass
+class Args:
+    source_bids_dir_path: str
+    type: Literal[None, 'raw', 'derivative']
+    ids_validation: bool
+    bids_validation: bool
+    create_candidate: bool
+    create_session: bool
+    copy: bool
+    verbose: bool
+
+    def __init__(self, options_dict: dict[str, Any]):
+        self.source_bids_dir_path = os.path.normpath(options_dict['directory']['value'])
+        self.type                 = options_dict['type']['value']
+        self.ids_validation       = options_dict['idsvalidation']['value']
+        self.bids_validation      = not options_dict['nobidsvalidation']['value']
+        self.create_candidate     = options_dict['createcandidate']['value']
+        self.create_session       = options_dict['createsession']['value']
+        self.copy                 = not options_dict['nocopy']['value']
+        self.verbose              = options_dict['verbose']['value']
+
+
 # to limit the traceback when raising exceptions.
 # sys.tracebacklimit = 0
 
 def main():
-    bids_dir         = ''
-    verbose          = False
-    createcand       = False
-    createvisit      = False
-    idsvalidation    = False
-    nobidsvalidation = False
-    type             = None
-    profile          = ''
-    nocopy           = False
-
-    long_options = [
-        "help",             "profile=",      "directory=",
-        "createcandidate",  "createsession", "idsvalidation",
-        "nobidsvalidation", "nocopy",        "type=",
-        "verbose"
-    ]
-    usage        = (
-        '\n'
-        'usage  : bids_import -d <bids_directory> -p <profile> \n\n'
-        'options: \n'
-        '\t-p, --profile          : name of the python database config file in dicom-archive/.loris-mri\n'
-        '\t-d, --directory        : BIDS directory to parse & insert into LORIS\n'
-                                    'If directory is within $data_dir/assembly_bids, no copy will be performed'
-        '\t-c, --createcandidate  : to create BIDS candidates in LORIS (optional)\n'
-        '\t-s, --createsession    : to create BIDS sessions in LORIS (optional)\n'
-        '\t-i, --idsvalidation    : to validate BIDS directory for a matching pscid/candid pair (optional)\n'
-        '\t-b, --nobidsvalidation : to disable BIDS validation for BIDS compliance\n'
-        '\t-a, --nocopy           : to disable dataset copy in data assembly_bids\n'
-        '\t-t, --type             : raw | derivative. Specify the dataset type.'
-                                    'If not set, the pipeline will look for both raw and derivative files.\n'
-                                    'Required if no dataset_description.json is found.\n'
-        '\t-v, --verbose          : be verbose\n'
+    usage = (
+        "\n"
+        "usage  : bids_import -d <bids_directory> -p <profile> \n"
+        "\n"
+        "options: \n"
+        "\t-p, --profile          : name of the python database config file in dicom-archive/.loris-mri\n"
+        "\t-d, --directory        : BIDS directory to parse & insert into LORIS\n"
+        "\t                         If directory is within $data_dir/assembly_bids, no copy will be performed\n"
+        "\t-c, --createcandidate  : to create BIDS candidates in LORIS (optional)\n"
+        "\t-s, --createsession    : to create BIDS sessions in LORIS (optional)\n"
+        "\t-i, --idsvalidation    : to validate BIDS directory for a matching pscid/candid pair (optional)\n"
+        "\t-b, --nobidsvalidation : to disable BIDS validation for BIDS compliance\n"
+        "\t-a, --nocopy           : to disable dataset copy in data assembly_bids\n"
+        "\t-t, --type             : raw | derivative. Specify the dataset type.\n"
+        "\t                         If not set, the pipeline will look for both raw and derivative files.\n"
+        "\t                         Required if no dataset_description.json is found.\n"
+        "\t-v, --verbose          : be verbose\n"
     )
 
-    try:
-        opts, _ = getopt.getopt(sys.argv[1:], 'hp:d:csinat:v', long_options)
-    except getopt.GetoptError:
-        print(usage)
-        sys.exit(lib.exitcode.GETOPT_FAILURE)
+    options_dict = {
+        "profile": {
+            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+        },
+        "directory": {
+            "value": None, "required": True, "expect_arg": True, "short_opt": "d", "is_path": True
+        },
+        "createcandidate": {
+            "value": False, "required": False, "expect_arg": False, "short_opt": "cc", "is_path": False
+        },
+        "createsession": {
+            "value": False, "required": False, "expect_arg": False, "short_opt": "cc", "is_path": False
+        },
+        "idsvalidation": {
+            "value": False, "required": False, "expect_arg": False, "short_opt": "iv", "is_path": False
+        },
+        "nobidsvalidation": {
+            "value": False, "required": False, "expect_arg": False, "short_opt": "nv", "is_path": False
+        },
+        "nocopy": {
+            "value": False, "required": False, "expect_arg": False, "short_opt": "nc", "is_path": False
+        },
+        "type": {
+            "value": None, "required": False, "expect_arg": True, "short_opt": "t", "is_path": False
+        },
+        "verbose": {
+            "value": False, "required": False, "expect_arg": False, "short_opt": "v", "is_path": False
+        },
+        "help": {
+            "value": False, "required": False, "expect_arg": False, "short_opt": "h", "is_path": False
+        },
+    }
 
-    for opt, arg in opts:
-        if opt in ('-h', '--help'):
-            print(usage)
-            sys.exit()
-        elif opt in ('-p', '--profile'):
-            profile = os.environ['LORIS_CONFIG'] + "/.loris_mri/" + arg
-        elif opt in ('-d', '--directory'):
-            bids_dir = arg
-        elif opt in ('-v', '--verbose'):
-            verbose = True
-        elif opt in ('-c', '--createcandidate'):
-            createcand = True
-        elif opt in ('-s', '--createsession'):
-            createvisit = True
-        elif opt in ('-i', '--idsvalidation'):
-            idsvalidation = True
-        elif opt in ('-n', '--nobidsvalidation'):
-            nobidsvalidation = True
-        elif opt in ('-a', '--nocopy'):
-            nocopy = True
-        elif opt in ('-t', '--type'):
-            type = arg
+    # Get the CLI arguments and initiate the environment.
 
-    # input error checking and load config_file file
-    config_file = input_error_checking(profile, bids_dir, usage)
+    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
 
-    dataset_json = bids_dir + "/dataset_description.json"
-    if not os.path.isfile(dataset_json) and not type:
-        print('No dataset_description.json found. Please run with the --type option.')
-        print(usage)
-        sys.exit(lib.exitcode.MISSING_ARG)
+    env = make_env(loris_getopt_obj)
 
-    if type not in (None, 'raw', 'derivative'):
-        print("--type must be one of 'raw', 'derivative'")
-        print(usage)
-        sys.exit(lib.exitcode.MISSING_ARG)
+    # Check the CLI arguments.
 
-    # database connection
-    db = Database(config_file.mysql, verbose)
-    db.connect()
+    type      = loris_getopt_obj.options_dict['type']['value']
+    directory = loris_getopt_obj.options_dict['directory']['value']
 
-    config_obj = Config(db, verbose)
-    data_dir   = config_obj.get_config('dataDirBasepath')
-    # making sure that there is a final / in data_dir
-    data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
+    dataset_description_path = os.path.join(directory, 'dataset_description.json')
+    if not os.path.isfile(dataset_description_path) and type is None:
+        log_error_exit(
+            env,
+            "No 'dataset_description.json' file found. Please run with the --type option.",
+            lib.exitcode.MISSING_ARG,
+        )
+
+    if type not in [None, 'raw', 'derivative']:
+        log_error_exit(
+            env,
+            f"--type must be one of 'raw', 'derivative'\n{usage}",
+            lib.exitcode.MISSING_ARG,
+        )
+
+    args = Args(loris_getopt_obj.options_dict)
 
     # read and insert BIDS data
     read_and_insert_bids(
-        bids_dir,
-        data_dir,
-        verbose,
-        createcand,
-        createvisit,
-        idsvalidation,
-        nobidsvalidation,
-        type,
-        nocopy,
-        db
+        env,
+        args,
+        loris_getopt_obj.db,
     )
 
 
-def input_error_checking(profile: str, bids_dir: str, usage: str) -> Any:
-    """
-    Checks whether the required inputs are set and that paths are valid. If
-    the path to the config_file file valid, then it will import the file as a
-    module so the database connection information can be used to connect.
-
-    :param profile : path to the profile file with MySQL credentials
-    :param bids_dir: path to the BIDS directory to parse and insert into LORIS
-    :param usage   : script usage to be displayed when encountering an error
-
-    :return: config_file module with database credentials (config_file.mysql)
-    """
-
-    if not profile:
-        message = '\n\tERROR: you must specify a profile file using -p or ' \
-                  '--profile option'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.MISSING_ARG)
-
-    if not bids_dir:
-        message = '\n\tERROR: you must specify a BIDS directory using -d or ' \
-                  '--directory option'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.MISSING_ARG)
-
-    if os.path.isfile(profile):
-        sys.path.append(os.path.dirname(profile))
-        config_file = __import__(os.path.basename(profile[:-3]))
-    else:
-        message = '\n\tERROR: you must specify a valid profile file.\n' + \
-                  profile + ' does not exist!'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.INVALID_PATH)
-
-    if not os.path.isdir(bids_dir):
-        message = '\n\tERROR: you must specify a valid BIDS directory.\n' + \
-                  bids_dir + ' does not exist!'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.INVALID_PATH)
-
-    return config_file
-
-
-def read_and_insert_bids(
-    bids_dir: str, data_dir: str, verbose: bool, createcand: bool, createvisit: bool,
-    idsvalidation: bool, nobidsvalidation: bool, type: Literal['raw', 'derivative'] | None, nocopy: bool, db: Database,
-):
+def read_and_insert_bids(env: Env, args: Args, legacy_db: Database):
     """
     Read the provided BIDS structure and import it into the database.
-
-    :param bids_dir         : path to the BIDS directory
-    :param data_dir         : data_dir config value
-    :param verbose          : flag for more printing if set
-    :param createcand       : allow database candidate creation if it did not exist already
-    :param createvisit      : allow database visit creation if it did not exist already
-    :param idsvalidation    : allow pscid/candid validation in the BIDS directory name
-    :param nobidsvalidation : disable bids dataset validation
-    :param type             : Type of the dataset
-    :param nocopy           : disable bids dataset copy in assembly_bids
-    :param db               : db object
     """
 
-    # grep config settings from the Config module
-    config_obj      = Config(db, verbose)
-    default_bids_vl = config_obj.get_config('default_bids_vl')
-
     # Validate that pscid and candid matches
-    if idsvalidation:
-        validateids(bids_dir, db, verbose)
+    if args.ids_validation:
+        validateids(env, args.source_bids_dir_path)
 
     # load the BIDS directory
-    if nobidsvalidation:
-        bids_reader = BidsReader(bids_dir, verbose, False)
-    else:
-        bids_reader = BidsReader(bids_dir, verbose)
-    if not bids_reader.bids_participants          \
-            or not bids_reader.cand_sessions_list \
-            or not bids_reader.cand_session_modalities_list:
-        message = '\n\tERROR: could not properly parse the following' \
-                  'BIDS directory:' + bids_dir + '\n'
-        print(message)
-        sys.exit(lib.exitcode.UNREADABLE_FILE)
+    bids_reader = BidsReader(args.source_bids_dir_path, args.verbose, args.bids_validation)
 
-    loris_bids_root_dir = None
-    if not nocopy:
-        # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
-        loris_bids_root_dir = create_loris_bids_directory(
-            bids_reader, data_dir, verbose
+    if (
+        bids_reader.bids_participants == []
+        or bids_reader.cand_sessions_list == {}
+        or bids_reader.cand_session_modalities_list == []
+    ):
+        log_error_exit(
+            env,
+            f"Could not properly parse the following BIDS directory: {args.source_bids_dir_path}.",
+            lib.exitcode.UNREADABLE_FILE,
         )
+
+    loris_data_dir_path = get_config_with_setting_name(env.db, 'dataDirBasepath').value
+
+    loris_bids_dir_path = None
+    if args.copy:
+        # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
+        loris_bids_dir_path = create_loris_bids_directory(bids_reader, loris_data_dir_path, args.verbose)
 
     # Assumption all same project (for project-wide tags)
     single_project_id = None
 
-    # loop through subjects
-    for bids_participant in bids_reader.bids_participants:
-
-        # greps BIDS information for the candidate
-        bids_id       = bids_participant.id
-        bids_sessions = bids_reader.cand_sessions_list[bids_id]
-
-        # greps BIDS candidate's info from LORIS (creates the candidate if it
-        # does not exist yet in LORIS and the createcand flag is set to true)
-        loris_cand_info = grep_or_create_candidate_db_info(
-            bids_reader, bids_id, db, createcand, verbose
-        )
-
-        if not nocopy:
-            # create the candidate's directory in the LORIS BIDS import directory
-            lib.utilities.create_dir(loris_bids_root_dir + "sub-" + bids_id, verbose)
-
-        cand_id    = loris_cand_info['CandID']
-        center_id  = loris_cand_info['RegistrationCenterID']
-        project_id = loris_cand_info['RegistrationProjectID']
-        single_project_id = project_id
-
-        cohort_id = None
-        # TODO: change subproject -> cohort in participants.tsv?
-        if bids_participant.subproject is not None:
-            # TODO: change subproject -> cohort in participants.tsv?
-            cohort = bids_participant.subproject
-            cohort_info = db.pselect(
-                "SELECT CohortID FROM cohort WHERE title = %s",
-                [cohort, ]
-            )
-            if len(cohort_info) > 0:
-                cohort_id = cohort_info[0]['CohortID']
-
-        # greps BIDS session's info for the candidate from LORIS (creates the
-        # session if it does not exist yet in LORIS and the createvisit is set
-        # to true. If no visit in BIDS structure, then use default visit_label
-        # stored in the Config module)
-        grep_candidate_sessions_info(
-            bids_sessions, bids_id,    cand_id,       loris_bids_root_dir,
-            createvisit,   verbose,    db,            default_bids_vl,
-            center_id,     project_id, cohort_id,     nocopy
-        )
+    check_or_create_bids_candidates_and_sessions(env, bids_reader, args.create_candidate, args.create_session)
 
     # Import root-level (dataset-wide) events.json
     # Assumption: Single project for project-wide tags
     bids_layout = bids_reader.bids_layout
     root_event_metadata_file = bids_layout.get_nearest(
-        bids_dir,
+        loris_bids_dir_path,
         return_type='tuple',
         strict=False,
         extension='json',
@@ -294,28 +200,22 @@ def read_and_insert_bids(
 
     dataset_tag_dict = {}
     if not root_event_metadata_file:
-        message = '\nWARNING: no events metadata files (event.json) in ' \
-                  'root directory'
-        print(message)
+        log_warning(env, "no events metadata files (event.json) in root directory")
     else:
         # copy the event file to the LORIS BIDS import directory
-        copy_file = str.replace(
-            root_event_metadata_file.path,
-            bids_layout.root,
-            ""
-        )
-        event_metadata_path = loris_bids_root_dir + copy_file.lstrip('/')
-        lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
+        copy_file = str.replace(root_event_metadata_file.path, bids_layout.root, '')
+        event_metadata_path = os.path.join(loris_bids_dir_path, copy_file)
+        lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, args.verbose)
 
         # TODO: Move
         hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
-        hed_union = db.pselect(query=hed_query, args=())
+        hed_union = legacy_db.pselect(query=hed_query, args=())
 
         # load json data
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)
         blake2 = lib.utilities.compute_blake2b_hash(root_event_metadata_file.path)
-        physio = lib.physiological.Physiological(db, verbose)
+        physio = lib.physiological.Physiological(legacy_db, args.verbose)
         _, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,
             event_metadata_file=event_metadata_path,
@@ -326,40 +226,37 @@ def read_and_insert_bids(
             hed_union=hed_union
         )
 
-    # TODO: What if `loris_bids_root_dir` is `None` (nocopy) ?
-    loris_bids = BIDSLayout(loris_bids_root_dir)
+    default_visit_label = get_config_with_setting_name(env.db, 'default_bids_vl').value
 
     # read list of modalities per session / candidate and register data
     for subject_label, session_label, modality in bids_reader.iter_modality_combinations():
         if session_label is not None:
             visit_label = session_label
         else:
-            visit_label = default_bids_vl
+            visit_label = default_visit_label
 
-        loris_bids_modality_files: list[BIDSFile] = loris_bids.get(  # type: ignore
-            subject=subject_label,
-            session=visit_label,
-            suffix=modality,
-        )
-
-        if loris_bids_modality_files != []:
-            print(
-                'Files already inserted in LORIS, skipping:\n'
-                f'- Subject: {subject_label}\n'
-                f'- Session: {session_label}\n'
-                f'- Modality: {modality}'
-            )
-
-            continue
-
-        loris_bids_modality_rel_dir = os.path.join(
+        loris_modality_dir_rel_path = os.path.join(
             f'sub-{subject_label}',
             f'ses-{visit_label}',
             modality,
         )
 
-        if not nocopy:
-            lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
+        loris_modality_dir_path = os.path.join(loris_bids_dir_path, loris_modality_dir_rel_path)
+        if os.path.exists(loris_modality_dir_path):
+            log(
+                env,
+                (
+                    "Files already inserted in LORIS, skipping:\n"
+                    f"- Subject: {subject_label}\n"
+                    f"- Session: {visit_label}\n"
+                    f"- Modality: {modality}"
+                )
+            )
+
+            continue
+
+        if args.copy:
+            lib.utilities.create_dir(loris_modality_dir_path, args.verbose)
 
         if modality in bids_eeg_modalities:
             Eeg(
@@ -367,14 +264,14 @@ def read_and_insert_bids(
                 bids_sub_id   = subject_label,
                 bids_ses_id   = session_label,
                 bids_modality = modality,
-                db            = db,
-                verbose       = verbose,
-                data_dir      = data_dir,
-                default_visit_label    = default_bids_vl,
-                loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
-                loris_bids_root_dir    = loris_bids_root_dir,
+                db            = legacy_db,
+                verbose       = args.verbose,
+                data_dir      = loris_data_dir_path,
+                default_visit_label    = default_visit_label,
+                loris_bids_eeg_rel_dir = loris_modality_dir_rel_path,
+                loris_bids_root_dir    = loris_bids_dir_path,
                 dataset_tag_dict       = dataset_tag_dict,
-                dataset_type           = type
+                dataset_type           = args.type
             )
         elif modality in bids_mri_modalities:
             Mri(
@@ -382,19 +279,19 @@ def read_and_insert_bids(
                 bids_sub_id   = subject_label,
                 bids_ses_id   = session_label,
                 bids_modality = modality,
-                db            = db,
-                verbose       = verbose,
-                data_dir      = data_dir,
-                default_visit_label    = default_bids_vl,
-                loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
-                loris_bids_root_dir    = loris_bids_root_dir
+                db            = legacy_db,
+                verbose       = args.verbose,
+                data_dir      = loris_data_dir_path,
+                default_visit_label    = default_visit_label,
+                loris_bids_mri_rel_dir = loris_modality_dir_rel_path,
+                loris_bids_root_dir    = loris_bids_dir_path
             )
 
-    # disconnect from the database
-    db.disconnect()
+    if args.copy:
+        add_dataset_files(env, args.source_bids_dir_path, loris_bids_dir_path, args.verbose)
 
 
-def validateids(bids_dir: str, db: Database, verbose: bool):
+def validateids(env: Env, bids_dir: str):
     """
     Validate that pscid and candid matches
 
@@ -403,23 +300,36 @@ def validateids(bids_dir: str, db: Database, verbose: bool):
     :param verbose  : flag for more printing if set
     """
 
-    bids_folder = bids_dir.rstrip('/').split('/')[-1]
+    bids_folder = bids_dir.split('/')[-1]
     bids_folder_parts = bids_folder.split('_')
     psc_id = bids_folder_parts[0]
     cand_id = bids_folder_parts[1]
 
-    candidate = Candidate(verbose, cand_id=cand_id)
-    loris_cand_info = candidate.get_candidate_info_from_loris(db)
+    cand_id = try_parse_int(cand_id)
+    if cand_id is None:
+        log_error_exit(
+            env,
+            f"{cand_id} is not a valid CandID.",
+            lib.exitcode.CANDIDATE_NOT_FOUND,
+        )
 
-    if not loris_cand_info:
-        print("ERROR: could not find a candidate with cand_id " + cand_id + ".")
-        sys.exit(lib.exitcode.CANDID_NOT_FOUND)
-    if loris_cand_info['PSCID'] != psc_id:
-        print("ERROR: cand_id " + cand_id + " and psc_id " + psc_id + " do not match.")
-        sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
+    candidate = try_get_candidate_with_cand_id(env.db, cand_id)
+
+    if candidate is None:
+        log_error_exit(
+            env,
+            f"Could not find a candidate with CandID {cand_id}.",
+            lib.exitcode.CANDID_NOT_FOUND,
+        )
+
+    if candidate.psc_id != psc_id:
+        log_error_exit(
+            env,
+            f"CandID {cand_id} and PSCID {psc_id} do not match in the database."
+        )
 
 
-def create_loris_bids_directory(bids_reader: BidsReader, data_dir: str, verbose: bool) -> str:
+def create_loris_bids_directory(bids_reader: BidsReader, loris_data_dir: str, verbose: bool) -> str:
     """
     Creates the LORIS BIDS import root directory (with name and BIDS version)
     and copy over the dataset_description.json, README and participants.tsv
@@ -432,180 +342,19 @@ def create_loris_bids_directory(bids_reader: BidsReader, data_dir: str, verbose:
     :return: path to the LORIS BIDS import root directory
     """
 
-    # making sure that there is a final / in bids_dir
-    bids_dir = bids_reader.bids_dir
-    bids_dir = bids_dir if bids_dir.endswith('/') else bids_dir + "/"
-
     # determine the root directory of the LORIS BIDS and create it if does not exist
-    name = re.sub("[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)  # get name of the dataset
-    version = re.sub(r"[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
+    dataset_name    = re.sub(r'[^0-9a-zA-Z]+',   '_', bids_reader.dataset_name)  # get name of the dataset
+    dataset_version = re.sub(r'[^0-9a-zA-Z\.]+', '_', bids_reader.bids_version)  # get BIDSVersion of the dataset
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version
-    loris_bids_dirname = lib.utilities.create_dir(
-        data_dir + "bids_imports/" + name + "_BIDSVersion_" + version + "/",
+    loris_bids_dir_path = lib.utilities.create_dir(
+        os.path.join(loris_data_dir, 'bids_imports', f'{dataset_name}_BIDSVersion_{dataset_version}'),
         verbose
     )
 
-    # copy the dataset JSON file to the new directory
-    lib.utilities.copy_file(
-        bids_dir + "dataset_description.json",
-        loris_bids_dirname + "dataset_description.json",
-        verbose
-    )
-
-    # copy the README file to the new directory
-    if os.path.isfile(bids_dir + "README"):
-        lib.utilities.copy_file(
-            bids_dir + "README",
-            loris_bids_dirname + "README",
-            verbose
-        )
-
-    # copy the participant.tsv file to the new directory
-    if os.path.exists(loris_bids_dirname + "participants.tsv"):
-        lib.utilities.append_to_tsv_file(
-            bids_dir + "participants.tsv",
-            loris_bids_dirname + "participants.tsv",
-            "participant_id",
-            verbose
-        )
-    else:
-        lib.utilities.copy_file(
-            bids_dir + "participants.tsv",
-            loris_bids_dirname + "participants.tsv",
-            verbose
-        )
-
-    return loris_bids_dirname
+    return loris_bids_dir_path
 
 
-def grep_or_create_candidate_db_info(
-    bids_reader: BidsReader, bids_id: str, db: Database, createcand: bool, verbose: bool
-) -> dict[str, Any]:
-    """
-    Greps (or creates if candidate does not exist and createcand is true) the
-    BIDS candidate in the LORIS candidate's table and return a list of
-    candidates with their related fields from the database.
-
-    :param bids_reader   : BIDS information handler object
-    :param bids_id       : bids_id to be used (CandID or PSCID)
-    :param db            : database handler object
-    :param createcand    : if true, creates the candidate in LORIS
-    :param verbose       : if true, prints out information while executing
-
-    :return: The dictionary of the candidate database record
-    """
-
-    candidate = Candidate(verbose=verbose, cand_id=bids_id)
-    loris_cand_info = candidate.get_candidate_info_from_loris(db)
-
-    if not loris_cand_info:
-        candidate = Candidate(verbose, psc_id=bids_id)
-        loris_cand_info = candidate.get_candidate_info_from_loris(db)
-
-    if not loris_cand_info and createcand:
-        loris_cand_info = candidate.create_candidate(
-            db, bids_reader.bids_participants
-        )
-        if not loris_cand_info:
-            print("Creating candidate failed. Cannot importing the files.\n")
-            sys.exit(lib.exitcode.CANDIDATE_CREATION_FAILURE)
-
-    if not loris_cand_info:
-        print("Candidate " + bids_id + " not found. You can retry with the --createcandidate option.\n")
-        sys.exit(lib.exitcode.CANDIDATE_NOT_FOUND)
-
-    return loris_cand_info
-
-
-def grep_or_create_session_db_info(
-        bids_id: str, cand_id: int, visit_label: str, db: Database, createvisit: bool, verbose: bool,
-        loris_bids_dir: str, center_id: int, project_id: int, cohort_id: int, nocopy: bool
-) -> dict[str, Any]:
-    """
-    Greps (or creates if session does not exist and createvisit is true) the
-    BIDS session in the LORIS session's table and return a list of
-    sessions with their related fields from the database.
-
-    :parma bids_id        : BIDS ID of the session
-    :param cand_id        : CandID to use to create the session
-    :param visit_label    : Visit label to use to create the session
-    :param db             : database handler object
-    :param createvisit    : if true, creates the session in LORIS
-    :param verbose        : if true, prints out information while executing
-    :param loris_bids_dir : LORIS BIDS import root directory to copy data
-    :param center_id      : CenterID  to use to create the session
-    :param project_id     : ProjectID  to use to create the session
-    :param cohort_id      : CohortID to use to create the session
-    :param nocopy         : if true, skip the assembly_bids dataset copy
-
-    :return: session information grepped from LORIS for cand_id and visit_label
-    """
-
-    session = Session(db, verbose, cand_id, visit_label, center_id, project_id, cohort_id)
-    loris_vl_info = session.get_session_info_from_loris()
-
-    if not loris_vl_info and createvisit:
-        loris_vl_info = session.create_session()
-
-    if not nocopy:
-        # create the visit directory for in the candidate folder of the LORIS
-        # BIDS import directory
-        lib.utilities.create_dir(
-            loris_bids_dir + "sub-" + bids_id + "/ses-" + visit_label,
-            verbose
-        )
-
-    return loris_vl_info
-
-
-def grep_candidate_sessions_info(
-    bids_ses: list[str], bids_id: str, cand_id: int, loris_bids_dir: str, createvisit: bool, verbose: bool,
-    db: Database, default_vl: str, center_id: int, project_id: int, cohort_id: int, nocopy: bool,
-) -> list[dict[str, Any]]:
-    """
-    Greps all session info dictionaries for a given candidate and aggregates
-    them into a list, with one entry per session. If the session does not
-    exist in LORIS and that createvisit is true, it will create the session
-    first.
-
-    :param bids_ses       : list of BIDS sessions to grep info or insert
-    :param bids_id        : BIDS ID of the candidate
-    :param cand_id        : candidate's CandID
-    :param loris_bids_dir : LORIS BIDS import root directory to copy data
-    :param createvisit    : if true, creates the visits in LORIS
-    :param verbose        : if true, prints out information while executing
-    :param db             : database handler object
-    :param default_vl     : default visit label from the Config module
-    :param center_id      : center ID associated to the candidate and visit
-    :param project_id     : project ID associated to the candidate and visit
-    :param cohort_id      : cohort ID associated to the candidate and visit
-    :param nocopy         : if true, skip the assembly_bids dataset copy
-
-    :return: list of all session's dictionaries for a given candidate
-    """
-
-    loris_sessions_info = []
-
-    if not bids_ses:
-        loris_ses_info = grep_or_create_session_db_info(
-            bids_id,     cand_id,    default_vl,     db,
-            createvisit, verbose,    loris_bids_dir,
-            center_id,   project_id, cohort_id,      nocopy
-        )
-        loris_sessions_info.append(loris_ses_info)
-    else:
-        for visit_label in bids_ses:
-            loris_ses_info = grep_or_create_session_db_info(
-                bids_id,     cand_id,    visit_label,    db,
-                createvisit, verbose,    loris_bids_dir,
-                center_id,   project_id, cohort_id,      nocopy
-            )
-            loris_sessions_info.append(loris_ses_info)
-
-    return loris_sessions_info
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -1,9 +1,13 @@
+import csv
+import os
+import re
 from dataclasses import dataclass
 
 import dateutil.parser
 from bids import BIDSLayout
 
 import lib.utilities as utilities
+from lib.db.models.candidate import DbCandidate
 
 
 @dataclass
@@ -20,8 +24,6 @@ class BidsParticipant:
     site:       str | None = None
     cohort:     str | None = None
     project:    str | None = None
-    # FIXME: Both "cohort" and "subproject" are used in scripts, this may be a bug.
-    subproject: str | None = None
 
 
 def read_bids_participants_file(bids_layout: BIDSLayout) -> list[BidsParticipant] | None:
@@ -48,17 +50,24 @@ def read_bids_participants_file(bids_layout: BIDSLayout) -> list[BidsParticipant
 
 def read_bids_participant_row(row: dict[str, str]) -> BidsParticipant:
     """
-    Get a BIDS participant entry from a parsed TSV line of a `participants.tsv` file.
+    Get a BIDS participant entry from a `participants.tsv` line.
     """
 
-    # Get the participant ID by removing the `sub-` prefix if it is present.
-    participant_id = row['participant_id'].replace('sub-', '')
+    # Get the participant ID and removing the `sub-` prefix if it is present.
+    participant_id = re.sub(r'^sub-', '', row['participant_id'])
 
     # Get the participant date of birth from one of the possible date of birth fields.
     birth_date = None
-    for birth_date_name in ['date_of_birth', 'birth_date', 'dob']:
-        if birth_date_name in row:
-            birth_date = dateutil.parser.parse(row[birth_date_name]).strftime('%Y-%m-%d')
+    for birth_date_field_ame in ['date_of_birth', 'birth_date', 'dob']:
+        if birth_date_field_ame in row:
+            birth_date = dateutil.parser.parse(row[birth_date_field_ame]).strftime('%Y-%m-%d')
+            break
+
+    # Get the cohort name from one of the possible cohort fields.
+    cohort = None
+    for cohort_field_name in ['cohort', 'subproject']:
+        if cohort_field_name in row:
+            cohort = row[cohort_field_name]
             break
 
     # Create the BIDS participant object.
@@ -68,7 +77,33 @@ def read_bids_participant_row(row: dict[str, str]) -> BidsParticipant:
         sex        = row.get('sex'),
         age        = row.get('age'),
         site       = row.get('site'),
-        cohort     = row.get('cohort'),
         project    = row.get('project'),
-        subproject = row.get('subproject'),
+        cohort     = cohort,
+    )
+
+
+def write_bids_participants_file(bids_participants: list[BidsParticipant], bids_dir_path: str):
+    participants_file_path = os.path.join(bids_dir_path, 'participants.tsv')
+    with open(participants_file_path, 'w') as participants_file:
+        writer = csv.writer(participants_file, delimiter='\t')
+        writer.writerow(['participant_id'])
+        for bids_participant in bids_participants:
+            writer.writerow([bids_participant.id])
+
+
+def get_bids_participant_from_candidate(candidate: DbCandidate) -> BidsParticipant:
+    """
+    Generate a BIDS participant entry from a database candidate.
+    """
+
+    # Stringify the candidate date of birth if there is one.
+    birth_date = candidate.date_of_birth.strftime('%Y-%m-%d') if candidate.date_of_birth is not None else None
+
+    # Create the BIDS participant object corresponding to the database candidate.
+    return BidsParticipant(
+        id         = candidate.psc_id,
+        birth_date = birth_date,
+        sex        = candidate.sex,
+        site       = candidate.registration_site.name,
+        project    = candidate.registration_project.name,
     )
