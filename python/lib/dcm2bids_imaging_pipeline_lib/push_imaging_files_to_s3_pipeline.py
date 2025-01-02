@@ -30,7 +30,6 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         super().__init__(loris_getopt_obj, script_name)
-        self.tarchive_id = self.dicom_archive.id
 
         # ---------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
@@ -94,7 +93,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         Get the list of files associated to the TarchiveID present in the files table.
         """
 
-        file_entries = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
+        file_entries = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
         for file in file_entries:
             if file['File'].startswith('s3://'):
                 # skip since file already pushed to S3
@@ -144,7 +143,10 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         Will also return the JSON, BVAL and BVEC files associated to protocol violated scan.
         """
 
-        entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(self.tarchive_id)
+        entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
+            self.dicom_archive.id
+        )
+
         for entry in entries:
             if entry['minc_location'].startswith('s3://'):
                 # skip since file already pushed to S3
@@ -170,10 +172,10 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         exclude_entries = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
-            self.tarchive_id, "exclude"
+            self.dicom_archive.id, "exclude"
         )
         warning_entries = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
-            self.tarchive_id, "warning"
+            self.dicom_archive.id, "warning"
         )
 
         for entry in exclude_entries + warning_entries:

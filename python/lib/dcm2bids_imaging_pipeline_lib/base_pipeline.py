@@ -170,8 +170,10 @@ class BasePipeline:
             archive_location = tarchive_path.replace(self.dicom_lib_dir, "")
             self.dicom_archive = try_get_dicom_archive_with_archive_location(self.env.db, archive_location)
             if self.dicom_archive is not None:
-                tarchive_id = self.dicom_archive.id
-                success, new_err_msg = self.imaging_upload_obj.create_imaging_upload_dict_from_tarchive_id(tarchive_id)
+                success, new_err_msg = self.imaging_upload_obj.create_imaging_upload_dict_from_tarchive_id(
+                    self.dicom_archive.id
+                )
+
                 if not success:
                     err_msg += new_err_msg
             else:

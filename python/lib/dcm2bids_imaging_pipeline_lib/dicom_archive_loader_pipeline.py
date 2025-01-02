@@ -39,7 +39,6 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         self.tarchive_path = os.path.join(
             self.data_dir, "tarchive", self.dicom_archive.archive_location
         )
-        self.tarchive_id = self.dicom_archive.id
 
         # ---------------------------------------------------------------------------------------------
         # Run the DICOM archive validation script to check if the DICOM archive is valid
@@ -363,7 +362,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         Add IntendedFor field in JSON file of fieldmap acquisitions according to BIDS standard for fieldmaps.
         """
 
-        fmap_files_dict = self.imaging_obj.determine_intended_for_field_for_fmap_json_files(self.tarchive_id)
+        fmap_files_dict = self.imaging_obj.determine_intended_for_field_for_fmap_json_files(self.dicom_archive.id)
         if not fmap_files_dict:
             return
 
@@ -381,13 +380,12 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         Determine the file order based on the modality and populated the `files` table field `AcqOrderPerModality`.
         """
 
-        tarchive_id = self.tarchive_id
         scan_type_id_list = self.imaging_obj.files_db_obj.select_distinct_acquisition_protocol_id_per_tarchive_source(
-            tarchive_id
+            self.dicom_archive.id
         )
         for scan_type_id in scan_type_id_list:
             results = self.imaging_obj.files_db_obj.get_file_ids_and_series_number_per_scan_type_and_tarchive_id(
-                tarchive_id, scan_type_id
+                self.dicom_archive.id, scan_type_id
             )
             file_id_series_nb_ordered_list = sorted(results, key=lambda x: x["SeriesNumber"])
             acq_number = 0
@@ -407,7 +405,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             - `SessionID`              => `SessionID` associated to the upload
         """
 
-        files_inserted_list = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
+        files_inserted_list = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
         self.imaging_upload_obj.update_mri_upload(
             upload_id=self.upload_id,
             fields=("Inserting", "InsertionComplete", "number_of_mincInserted", "number_of_mincCreated", "SessionID"),
@@ -425,14 +423,14 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             - path to the log file
         """
 
-        files_results = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
+        files_results = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
         files_inserted_list = [v["File"] for v in files_results] if files_results else None
         prot_viol_results = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
-            self.tarchive_id
+            self.dicom_archive.id
         )
         protocol_violations_list = [v["minc_location"] for v in prot_viol_results] if prot_viol_results else None
         excl_viol_results = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
-            self.tarchive_id, "exclude"
+            self.dicom_archive.id, "exclude"
         )
         excluded_violations_list = [v["MincFile"] for v in excl_viol_results] if excl_viol_results else None
 
@@ -446,7 +444,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         summary = f"""
         Finished processing UploadID {self.upload_id}!
-        - DICOM archive info: {self.tarchive_id} => {self.tarchive_path}
+        - DICOM archive info: {self.dicom_archive.id} => {self.tarchive_path}
         - {nb_files_inserted} files were inserted into the files table: {files_list}
         - {nb_prot_violation} files did not match any protocol: {prot_viol_list}
         - {nb_excluded_viol} files were exclusionary violations: {excl_viol_list}
