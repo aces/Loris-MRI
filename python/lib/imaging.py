@@ -538,8 +538,10 @@ class Imaging:
             case 'PatientName':
                 subject_name = dicom_archive.patient_name
             case _:
-                print("TODO: ERROR")
-                exit(-1)
+                raise DetermineSubjectInfoError(
+                    "Unexpected 'lookupCenterNameUsing' configuration setting, expected 'PatientName' or 'PatientID'"
+                    f" but found '{dicom_header}'."
+                )
 
         try:
             subject_info = self.config_file.get_subject_info(self.db, subject_name, scanner_id)
