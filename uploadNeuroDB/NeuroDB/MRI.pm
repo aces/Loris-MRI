@@ -106,8 +106,8 @@ RETURNS: the C<CandID> or (if none exists) undef
 
 sub getScannerCandID {
     my ($scannerID, $db) = @_;
-    
-    my $mriScannerOB = 
+
+    my $mriScannerOB =
         NeuroDB::objectBroker::MriScannerOB->new(db => $db);
     my $resultRef = $mriScannerOB->get({ID => $scannerID});
     return @$resultRef ? $resultRef->[0]->{'CandID'} : undef;
@@ -124,10 +124,10 @@ exists, the method will try to create it using the supplied parameters.
 INPUTS:
   - $subjectIDref: hash reference of subject IDs
   - $studyDate   : study date
-  - $dbh         : database handle 
+  - $dbh         : database handle
   - $db          : database object
 
-RETURNS: an array of 2 elements: 
+RETURNS: an array of 2 elements:
   - A reference to a hash containing the session properties:
     C<ID> => session ID.
     C<ProjectID> => project ID for the session.
@@ -167,7 +167,7 @@ sub getSessionInformation {
 
         return (\%session, '');
     }
-    
+
     if (!$subjectIDref->{'createVisitLabel'}) {
         my $msg = sprintf(
             "Visit %s for candidate %d does not exist.",
@@ -176,7 +176,7 @@ sub getSessionInformation {
         );
         return (undef, $msg);
     }
-    
+
     # Since we'll be creating a visit, ensure that the cohortID and ProjectID
     # have been defined in the profile file
     if (!defined $subjectIDref->{'CohortID'}) {
@@ -206,11 +206,11 @@ sub getSessionInformation {
         );
         return (undef, $msg);
     }
-    
+
     # determine the visit number and centerID for the next session
     my $newVisitNo = 0;
     my $centerID = 0;
-    
+
     if($subjectIDref->{'isPhantom'}) {
         # calibration data (PHANTOM_site_date | LIVING_PHANTOM_site_date | *test*)
         my @pscInfo = getPSC($subjectIDref->{'visitLabel'}, \$dbh, $db);
@@ -245,11 +245,11 @@ sub getSessionInformation {
             }
         }
     }
-    
+
     $newVisitNo = 1 unless $newVisitNo;
     $centerID = 0 unless $centerID;
 
-    # Insert the new session setting Current_stage to 'Not started' because that column is important 
+    # Insert the new session setting Current_stage to 'Not started' because that column is important
     # to the behavioural data entry gui.
     $query = "INSERT INTO session "
            . "SET CandID        = ?, "
@@ -262,11 +262,11 @@ sub getSessionInformation {
            . "    CohortID  = ?, "
            . "    ProjectID     = ?";
     $dbh->do(
-        $query, undef, 
-        $subjectIDref->{'CandID'}, 
-        $subjectIDref->{'visitLabel'}, 
-        $centerID, 
-        $newVisitNo, 
+        $query, undef,
+        $subjectIDref->{'CandID'},
+        $subjectIDref->{'visitLabel'},
+        $centerID,
+        $newVisitNo,
         $subjectIDref->{'CohortID'},
         $subjectIDref->{'ProjectID'}
     );
@@ -313,7 +313,7 @@ sub identify_scan_db {
     my $visitLabel   = ${subjectref}->{'visitLabel'};
     my $projectID    = ${subjectref}->{'ProjectID'};
     my $cohortID = ${subjectref}->{'CohortID'};
-    
+
     my $tarchiveID = $tarchiveInfoRef->{'TarchiveID'};
 
     # get parameters from minc header
@@ -365,10 +365,10 @@ sub identify_scan_db {
         Serial_number => $fileref->getParameter('device_serial_number'),
         Software      => $fileref->getParameter('software_versions')
     });
-    
+
     # default ScannerID to NULL if we have no better clue.
     my $ScannerID = @$resultsRef> 0 ? $resultsRef->[0]->{'ID'} : undef;
-    
+
     #===========================================================#
     # Get the list of lines in the mri_protocol table that      #
     # apply to the given scan based on the center name          #
@@ -393,17 +393,17 @@ sub identify_scan_db {
     $query .= defined $visitLabel
         ? ' AND (mpgt.Visit_label IS NULL OR mpgt.Visit_label = ?)'
         : ' AND mpgt.Visit_label IS NULL';
-        
+
     $query .=  ' ORDER BY CenterID ASC, ScannerID DESC';
 
     my @bindValues = ($centerID, $ScannerID);
     push(@bindValues, $projectID)    if defined $projectID;
     push(@bindValues, $cohortID) if defined $cohortID;
     push(@bindValues, $visitLabel)   if defined $visitLabel;
-    
+
     $sth = $${dbhr}->prepare($query);
     $sth->execute(@bindValues);
-    
+
     my @rows = @{ $sth->fetchall_arrayref({}) };
     # If no lines in the mri_protocol_group_target matches the ProjectID/CohortID/VisitLabel
     # then no lines of the mri_protocol table can be used to identify the scan type. This is most
@@ -412,7 +412,7 @@ sub identify_scan_db {
     if(@rows == 0) {
         my $msg = "Warning! No protocol group can be used to determine the scan type "
                 . "of $minc_location.\nIncorrect/incomplete setup of table mri_protocol_group_target: "
-                . " setting scan type to 'unknown'"; 
+                . " setting scan type to 'unknown'";
         print "$msg\n";
         my $notify = NeuroDB::Notify->new( $dbhr );
         $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
@@ -422,12 +422,12 @@ sub identify_scan_db {
         my %mriProtocolGroupIDs = map { $_->{'MriProtocolGroupID'} => 1 } @rows;
         if(keys %mriProtocolGroupIDs > 1) {
             my $msg = "Warning! More than one protocol group can be used to identify the scan type of $minc_location\n"
-                    . "Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'"; 
+                    . "Ambiguous setup of table mri_protocol_group_target: setting scan type to 'unknown'";
             print "$msg\n";
             my $notify = NeuroDB::Notify->new( $dbhr );
             $notify->spool('mri upload processing class', $msg, 0, 'MRI.pm', $uploadID, 'N', 'Y');
         } else {
-        
+
             $mriProtocolGroupID = [ keys %mriProtocolGroupIDs ]->[0];
 
             # check against all possible scan types
@@ -456,21 +456,10 @@ sub identify_scan_db {
                 my $slice_thick_min = $rowref->{'slice_thickness_min'};
                 my $slice_thick_max = $rowref->{'slice_thickness_max'};
 
-
-                my $scan_type = &scan_type_id_to_text($rowref->{'Scan_type'}, $db);
-                # if no scan type found in mri_scan_type for $rowref->{'Scan_type'},
-                # then throw an error
-                unless ($scan_type) {
-                    NeuroDB::UnexpectedValueException->throw(
-                        errorMessage => sprintf(
-                            "Unknown acquisition protocol ID %d for ",
-                            $rowref->{'Scan_type'}
-                        )
-                    );
-                }
+                my $scan_type = &scan_type_id_to_text($rowref->{'MriScanTypeID'}, $db);
 
                 if(0) {
-                    print "\tChecking ".$scan_type." ($rowref->{'Scan_type'}) ($series_description =~ $sd_regex)\n";
+                    print "\tChecking ".$scan_type." ($rowref->{'MriScanTypeID'}) ($series_description =~ $sd_regex)\n";
                     print "\t";
                     if($sd_regex && ($series_description =~ /$sd_regex/i)) {
                         print "series_description\t";
@@ -650,9 +639,10 @@ sub scan_type_id_to_text {
     my $mriScanTypeOB = NeuroDB::objectBroker::MriScanTypeOB->new(
         db => $db
     );
-    my $mriScanTypeRef = $mriScanTypeOB->get(0, { ID => $typeID });
 
-    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'Scan_type'} : undef;
+    my $mriScanTypeRef = $mriScanTypeOB->get(0, { MriScanTypeID => $typeID });
+
+    return $mriScanTypeRef->[0]->{'MriScanTypeName'};
 }
 
 =pod
@@ -676,10 +666,10 @@ sub scan_type_text_to_id {
         db => $db
     );
     my $mriScanTypeRef = $mriScanTypeOB->get(
-        0, { Scan_type => $type }
+        0, { MriScanTypeName => $type }
     );
 
-    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'ID'} : undef;
+    return @$mriScanTypeRef ? $mriScanTypeRef->[0]->{'MriScanTypeID'} : undef;
 }
 
 
@@ -794,7 +784,7 @@ sub register_db {
     my $query = "INSERT INTO files SET ";
     my @field_array = (
         'File',            'SessionID',        'EchoTime',
-        'CoordinateSpace', 'OutputType',       'AcquisitionProtocolID',
+        'CoordinateSpace', 'OutputType',       'MriScanTypeID',
         'FileType',        'InsertedByUserID', 'Caveat',
         'SeriesUID',       'TarchiveSource',   'HrrtArchiveID',
         'SourcePipeline',  'PipelineDate',     'SourceFileID',
@@ -827,7 +817,7 @@ sub register_db {
         my $typeID = $file->getParameterTypeID($key);
         my $value = '';
         $value = $dbh->quote(encode_utf8($${params{$key}}));
-        
+
         if($query =~ /\)$/) { $query .= ",\n"; }
 
         $query .= "($fileID, $typeID, $value, UNIX_TIMESTAMP())";
@@ -992,10 +982,10 @@ sub findScannerID {
         Software      => $softwareVersion,
         Serial_number => $serialNumber
     });
-    
+
     # Scanner exists
     return $resultsRef->[0]->{'ID'} if @$resultsRef;
-    
+
     # register new scanners
     my $scanner_id = registerScanner($manufacturer, $model, $serialNumber, $softwareVersion, $centerID, $projectID, $dbhr, $db);
 
@@ -1029,7 +1019,7 @@ sub registerScanner {
     # my $scanner_id = 0;
     my @results = ();
     my $dbh = $$dbhr;
-    
+
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( { Serial_number => $serialNumber } );
     my $candID = @$resultsRef > 0 ? $resultsRef->[0]->{'CandID'} : undef;
@@ -1043,8 +1033,8 @@ sub registerScanner {
                  . "VALUES "
                  . "($candID, 'scanner', $centerID, $projectID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
         $dbh->do($query);
-    }   
-    
+    }
+
     return $mriScannerOB->insertOne({
         Manufacturer  => $manufacturer,
         Model         => $model,
@@ -1116,9 +1106,9 @@ sub getPSC {
     ## Get the CenterID from the session table, if the PSCID and visit labels exist
     ## and could be extracted
     if ($PSCID && $visitLabel) {
-        my $query = "SELECT s.CenterID, p.MRI_alias FROM session s 
-                    JOIN psc p on p.CenterID=s.CenterID  
-                    JOIN candidate c on c.CandID=s.CandID  
+        my $query = "SELECT s.CenterID, p.MRI_alias FROM session s
+                    JOIN psc p on p.CenterID=s.CenterID
+                    JOIN candidate c on c.CandID=s.CandID
                     WHERE c.PSCID = ? AND s.Visit_label = ?";
 
         my $sth = $${dbhr}->prepare($query);
@@ -1129,13 +1119,13 @@ sub getPSC {
         }
     }
 
-    ## Otherwise, use the patient name to match it to the site alias or MRI alias 
+    ## Otherwise, use the patient name to match it to the site alias or MRI alias
     my $pscOB   = NeuroDB::objectBroker::PSCOB->new( db => $db );
     my $pscsRef = $pscOB->get({ MRI_alias => { NOT => '' } });
 
     foreach my $psc (@$pscsRef) {
         if ($patientName =~ /$psc->{'Alias'}/i || $patientName =~ /$psc->{'MRI_alias'}/i) {
-            return ($psc->{'MRI_alias'}, $psc->{'CenterID'}); 
+            return ($psc->{'MRI_alias'}, $psc->{'CenterID'});
         }
     }
 
@@ -1384,8 +1374,8 @@ sub make_pics {
     my $sth = $${dbhr}->prepare("SELECT CandID, Visit_label FROM session WHERE ID=".$file->getFileDatum('SessionID'));
     $sth->execute();
     my $rowhr = $sth->fetchrow_hashref();
-    
-    my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('AcquisitionProtocolID'), $db);
+
+    my $acquisitionProtocol = scan_type_id_to_text($file->getFileDatum('MriScanTypeID'), $db);
     my $minc = $data_dir . '/' . $file->getFileDatum('File');
     my $mincbase = basename($minc);
     $mincbase =~ s/\.mnc(\.gz)?$//;
@@ -1838,11 +1828,11 @@ that could not be deleted.
 INPUTS:
 
   - @files: list of files to delete.
-  
+
 =cut
 sub deleteFiles {
     my(@files) = @_;
-    
+
     foreach(@files) {
         unlink $_ or warn "Warning! File '$_' could not be deleted: $!\n";
     }

@@ -306,7 +306,7 @@ class Imaging:
         echo_number = repr(info_to_insert_dict["EchoNumber"])
         phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"]
         echo_time = info_to_insert_dict['EchoTime']
-        scan_type = info_to_insert_dict['Scan_type']
+        scan_type = info_to_insert_dict['MriScanTypeID']
         severity = info_to_insert_dict['Severity']
         header = info_to_insert_dict['Header']
         value = info_to_insert_dict['Value']
@@ -321,7 +321,7 @@ class Imaging:
             if str(row['SeriesUID']) == str(series_uid) \
                     and str(row['PhaseEncodingDirection']) == str(phase_encoding_dir) \
                     and str(row['EchoNumber']) == str(echo_number) \
-                    and str(row['Scan_type']) == str(scan_type) \
+                    and str(row['MriScanTypeID']) == str(scan_type) \
                     and str(row['EchoTime']) == str(echo_time) \
                     and str(row['Severity']) == str(severity) \
                     and str(row['Header']) == str(header) \
@@ -673,15 +673,15 @@ class Imaging:
 
         matching_protocols_list = []
         for protocol in protocols_list:
-            if scan_type_id and protocol['Scan_type'] == scan_type_id:
-                matching_protocols_list.append(protocol['Scan_type'])
+            if scan_type_id and protocol['MriScanTypeID'] == scan_type_id:
+                matching_protocols_list.append(protocol['MriScanTypeID'])
             elif protocol['series_description_regex']:
                 if re.search(
                         rf"{protocol['series_description_regex']}", scan_param['SeriesDescription'], re.IGNORECASE
                 ):
-                    matching_protocols_list.append(protocol['Scan_type'])
+                    matching_protocols_list.append(protocol['MriScanTypeID'])
             elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
-                matching_protocols_list.append(protocol['Scan_type'])
+                matching_protocols_list.append(protocol['MriScanTypeID'])
 
         return list(dict.fromkeys(matching_protocols_list))
 
@@ -969,7 +969,7 @@ class Imaging:
         for file_dict in files_list:
 
             bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
-                file_dict['AcquisitionProtocolID']
+                file_dict['MriScanTypeID']
             )
             param_file_result = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 file_dict['FileID'],
@@ -1030,7 +1030,7 @@ class Imaging:
         new_files_list = []
         for file_dict in files_list:
             bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
-                file_dict['AcquisitionProtocolID']
+                file_dict['MriScanTypeID']
             )
             param_file_result = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 file_dict['FileID'],

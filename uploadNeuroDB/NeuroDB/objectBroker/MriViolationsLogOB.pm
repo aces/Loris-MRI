@@ -72,7 +72,7 @@ use TryCatch;
 
 my @MRIVIOLATIONSLOG_FIELDS = qw(
     LogID TimeRun SeriesUID TarchiveID MincFile PatientName CandID Visit_label
-    CheckID Scan_type Severity Header Value ValidRange ValidRegex
+    CheckID MriScanTypeID Severity Header Value ValidRange ValidRegex
     EchoTime PhaseEncodingDirection EchoNumber MriProtocolChecksGroupID
 );
 
