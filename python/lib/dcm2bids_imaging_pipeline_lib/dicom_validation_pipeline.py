@@ -2,7 +2,10 @@ import os
 import sys
 
 import lib.exitcode
+import lib.utilities as utilities
+from lib.db.models.dicom_archive import DbDicomArchive
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
+from lib.env import Env
 from lib.logging import log_error_exit, log_verbose
 
 __license__ = "GPLv3"
@@ -51,16 +54,40 @@ class DicomValidationPipeline(BasePipeline):
 
         log_verbose(self.env, "Verifying DICOM archive md5sum (checksum)")
 
-        tarchive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"])
-        result = self.dicom_archive_obj.validate_dicom_archive_md5sum(tarchive_path)
-        message = result["message"]
-
-        if result['success']:
-            log_verbose(self.env, message)
-        else:
+        dicom_archive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive.archive_location)
+        result = _validate_dicom_archive_md5sum(self.env, self.dicom_archive, dicom_archive_path)
+        if not result:
             self.imaging_upload_obj.update_mri_upload(
                 upload_id=self.upload_id,
                 fields=("isTarchiveValidated", "IsCandidateInfoValidated"),
                 values=("0", "0")
             )
-            log_error_exit(self.env,  message, lib.exitcode.CORRUPTED_FILE)
+
+            log_error_exit(
+                self.env,
+                "ERROR: DICOM archive seems corrupted or modified. Upload will exit now.",
+                lib.exitcode.CORRUPTED_FILE,
+            )
+
+
+def _validate_dicom_archive_md5sum(env: Env, dicom_archive: DbDicomArchive, dicom_archive_path: str) -> bool:
+    """
+    This function validates that the md5sum of the DICOM archive on the filesystem is the same
+    as the md5sum of the registered entry in the tarchive table.
+
+    Retrun `true` if the MD5 sums match, or `false` if they don't.
+    """
+
+    # compute the md5sum of the tarchive file
+    dicom_archive_file_md5_sum = utilities.compute_md5_hash(dicom_archive_path)
+
+    # grep the md5sum stored in the database
+    dicom_archive_db_md5_sum = dicom_archive.md5_sum_archive.split()[0]
+
+    log_verbose(
+        env,
+        f"checksum for target: {dicom_archive_file_md5_sum};  checksum from database: {dicom_archive_db_md5_sum}",
+    )
+
+    # check that the two md5sum are the same
+    return dicom_archive_file_md5_sum == dicom_archive_db_md5_sum

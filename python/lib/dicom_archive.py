@@ -1,5 +1,7 @@
 """This class gather functions for DICOM archive handling."""
 
+from typing_extensions import deprecated
+
 import lib.utilities as utilities
 from lib.database_lib.tarchive import Tarchive
 from lib.database_lib.tarchive_series import TarchiveSeries
@@ -7,6 +9,7 @@ from lib.database_lib.tarchive_series import TarchiveSeries
 __license__ = "GPLv3"
 
 
+@deprecated('Use `lib.db.models.dicom_archive.DbDicomArchive` instead')
 class DicomArchive:
     """
     This class gather functions that interact with the database and allow session
@@ -44,6 +47,7 @@ class DicomArchive:
 
         self.tarchive_info_dict = dict()
 
+    @deprecated('Use `lib.db.queries.dicom_archive.try_get_dicom_archive_with_archive_location` instead')
     def populate_tarchive_info_dict_from_archive_location(self, archive_location):
         """
         Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
@@ -54,6 +58,7 @@ class DicomArchive:
         """
         self.tarchive_info_dict = self.tarchive_db_obj.create_tarchive_dict(archive_location=archive_location)
 
+    @deprecated('Use `lib.db.queries.dicom_archive.try_get_dicom_archive_with_id` instead')
     def populate_tarchive_info_dict_from_tarchive_id(self, tarchive_id):
         """
         Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
@@ -64,6 +69,7 @@ class DicomArchive:
         """
         self.tarchive_info_dict = self.tarchive_db_obj.create_tarchive_dict(tarchive_id=tarchive_id)
 
+    @deprecated('Use `lib.db.queries.dicom_archive.try_get_dicom_archive_series_with_series_uid_echo_time` instead')
     def populate_tarchive_info_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
         """
         Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
@@ -82,6 +88,9 @@ class DicomArchive:
             tarchive_id = tarchive_series_info_dict["TarchiveID"]
             self.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
 
+    @deprecated(
+        'Use `lib.dcm2bids_imaging_pipeline_lib.dicom_validation_pipeline._validate_dicom_archive_md5sum` instead'
+    )
     def validate_dicom_archive_md5sum(self, tarchive_path):
         """
         This function validates that the md5sum of the DICOM archive on the filesystem is the same

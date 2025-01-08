@@ -23,6 +23,7 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
+from lib.db.models.dicom_archive import DbDicomArchive
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 
 __license__ = "GPLv3"
@@ -513,7 +514,7 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_info(self, tarchive_info_dict, scanner_id: Optional[int] = None) -> SubjectInfo:
+    def determine_subject_info(self, dicom_archive: DbDicomArchive, scanner_id: Optional[int] = None) -> SubjectInfo:
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
         config setting. This function will call a function in the configuration file that can be
@@ -531,7 +532,16 @@ class Imaging:
 
         config_obj = Config(self.db, self.verbose)
         dicom_header = config_obj.get_config('lookupCenterNameUsing')
-        subject_name = tarchive_info_dict[dicom_header]
+        match dicom_header:
+            case 'PatientID':
+                subject_name = dicom_archive.patient_id
+            case 'PatientName':
+                subject_name = dicom_archive.patient_name
+            case _:
+                raise DetermineSubjectInfoError(
+                    "Unexpected 'lookupCenterNameUsing' configuration setting, expected 'PatientName' or 'PatientID'"
+                    f" but found '{dicom_header}'."
+                )
 
         try:
             subject_info = self.config_file.get_subject_info(self.db, subject_name, scanner_id)

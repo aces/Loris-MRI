@@ -8,10 +8,32 @@ from lib.db.models.dicom_archive_file import DbDicomArchiveFile
 from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
 
 
+def try_get_dicom_archive_with_id(db: Database, dicom_archive_id: int) -> Optional[DbDicomArchive]:
+    """
+    Get a DICOM archive from the database using its ID, or return `None` if no DICOM archive is
+    found.
+    """
+
+    return db.execute(select(DbDicomArchive)
+        .where(DbDicomArchive.id == dicom_archive_id)
+    ).scalar_one_or_none()
+
+
+def try_get_dicom_archive_with_archive_location(db: Database, archive_location: str) -> Optional[DbDicomArchive]:
+    """
+    Get a DICOM archive from the database using its archive location, or return `None` if no DICOM
+    archive is found.
+    """
+
+    return db.execute(select(DbDicomArchive)
+        .where(DbDicomArchive.archive_location.like(f'%{archive_location}%'))
+    ).scalar_one_or_none()
+
+
 def try_get_dicom_archive_with_study_uid(db: Database, study_uid: str):
     """
-    Get a DICOM archive from the database using its study UID, or return `None` if no DICOM
-    archive is found.
+    Get a DICOM archive from the database using its study UID, or return `None` if no DICOM archive
+    is found.
     """
 
     query = select(DbDicomArchive).where(DbDicomArchive.study_uid == study_uid)
@@ -39,8 +61,8 @@ def get_dicom_archive_series_with_file_info(
     sequence_name: Optional[str],
 ):
     """
-    Get a DICOM archive series from the database using its file information, or raise an
-    exception if no DICOM archive series is found.
+    Get a DICOM archive series from the database using its file information, or raise an exception
+    if no DICOM archive series is found.
     """
 
     query = select(DbDicomArchiveSeries) \
@@ -50,3 +72,19 @@ def get_dicom_archive_series_with_file_info(
         .where(DbDicomArchiveSeries.sequence_name == sequence_name)
 
     return db.execute(query).scalar_one()
+
+
+def try_get_dicom_archive_series_with_series_uid_echo_time(
+    db: Database,
+    series_uid: str,
+    echo_time: float,
+) -> Optional[DbDicomArchiveSeries]:
+    """
+    Get a DICOM archive series from the database using its series UID and echo time, or return
+    `None` if no DICOM archive series is found.
+    """
+
+    return db.execute(select(DbDicomArchiveSeries)
+        .where(DbDicomArchiveSeries.series_uid == series_uid)
+        .where(DbDicomArchiveSeries.echo_time  == echo_time)
+    ).scalar_one_or_none()
