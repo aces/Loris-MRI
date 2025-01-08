@@ -319,6 +319,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         if insertion_process.returncode == 0:
             log_verbose(self.env, f"run_nifti_insertion.py successfully executed for file {nifti_file_path}")
             self.inserted_file_count += 1
+
             # reset mri_upload to Inserting as run_nifti_insertion.py will set Inserting=False after execution
             self.mri_upload.inserting = True
             self.env.db.commit()
