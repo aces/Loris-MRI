@@ -30,7 +30,7 @@ class DbMriUpload(Base):
     is_dicom_archive_validated  : Mapped[bool]               = mapped_column('IsTarchiveValidated')
     is_phantom                  : Mapped[bool]               = mapped_column('IsPhantom', YNBool)
 
-    dicom_archive               : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
-        = relationship('DbDicomArchive', back_populates='upload')
-    session                     : Mapped[Optional['db_session.DbSession']] \
+    dicom_archive : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
+        = relationship('DbDicomArchive', back_populates='mri_uploads')
+    session       : Mapped[Optional['db_session.DbSession']] \
         = relationship('DbSession')

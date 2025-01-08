@@ -42,5 +42,8 @@ def test():
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
+    assert mri_upload.inserting is False
+    assert mri_upload.is_candidate_info_validated is True
+    assert mri_upload.is_dicom_archive_validated is True
     assert mri_upload.session is not None
     assert len(mri_upload.session.files) == 1
