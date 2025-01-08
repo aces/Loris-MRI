@@ -1232,7 +1232,8 @@ class Physiological:
             script    = None
             file_path = self.grep_file_path_from_file_id(physio_file_id)
 
-            chunk_root_dir = self.config_db_obj.get_config("EEGChunksPath")
+            chunk_root_dir_config = self.config_db_obj.get_config("EEGChunksPath")
+            chunk_root_dir = chunk_root_dir_config
             if not chunk_root_dir:
                 # the bids_rel_dir is the first two directories in file_path (
                 # bids_imports/BIDS_dataset_name_BIDSVersion)
@@ -1262,12 +1263,10 @@ class Physiological:
                 print('ERROR: ' + script + ' not found')
                 sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
 
-            # the final chunk path will be /data/%PROJECT%/data/bids_imports
-            # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
             chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
             if os.path.isdir(chunk_path):
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
                     parameter_name = 'electrophysiology_chunked_dataset_path',
-                    value = chunk_path.replace(data_dir, '')
+                    value = chunk_path.replace(chunk_root_dir_config, '') if chunk_root_dir_config else chunk_path.replace(data_dir, '')
                 )

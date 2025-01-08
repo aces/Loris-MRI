@@ -342,9 +342,10 @@ class Eeg:
                 files_to_archive, archive_rel_name, eeg_file_id
             )
 
-            # create data chunks for React visualization in
-            # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
-            physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
+            # create data chunks for React visualization
+            eeg_viz_enabled = self.config_db_obj.get_config("useEEGBrowserVisualizationComponents")
+            if eeg_viz_enabled == 'true' or eeg_viz_enabled == '1':
+                physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
     def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
         """
