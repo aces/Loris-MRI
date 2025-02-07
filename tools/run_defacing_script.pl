@@ -182,14 +182,14 @@ my $configOB = NeuroDB::objectBroker::ConfigOB->new(db => $db);
 
 my $data_dir      = $configOB->getDataDirPath();
 my $ref_scan_type = $configOB->getDefacingRefScanType();
+my @to_deface     = $configOB->getModalitiesToDeface();
 
 
 # -----------------------------------------------------------------
 ## Get config setting using the old database calls
 # -----------------------------------------------------------------
 
-my $to_deface = &NeuroDB::DBI::getConfigSetting(\$dbh, 'modalities_to_deface');
-unless ($ref_scan_type && $to_deface) {
+unless ($ref_scan_type && @to_deface) {
     print STDERR "\n==> ERROR: you need to configure both the "
                  . "reference_scan_type_for_defacing & modalities_to_deface config "
                  . "settings in the imaging pipeline section of the Config module.\n"
@@ -233,14 +233,14 @@ my $today = sprintf( "%4d-%02d-%02d", $year + 1900, $mon + 1, $mday );
 print "\n==> Fetching all FileIDs to deface.\n" if $verbose;
 my @session_ids = defined $session_ids ? split(",", $session_ids) : ();
 
-unless ($to_deface) {
+unless (@to_deface) {
     print "\nNo modalities were set to be defaced in the Config module. Ensure"
           . " to select modalities to deface in the Config module under the imaging"
           . " pipeline section (setting called modalities_to_deface. \n\n";
     exit $NeuroDB::ExitCodes::SUCCESS;
 }
 
-my %files_hash  = grep_FileIDs_to_deface(\@session_ids, $to_deface);
+my %files_hash  = grep_FileIDs_to_deface(\@session_ids, @to_deface);
 
 
 
@@ -291,15 +291,15 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =pod
 
-=head3 grep_FileIDs_to_deface($session_id_arr, $modalities_to_deface_arr)
+=head3 grep_FileIDs_to_deface($session_id_ref, @modalities_to_deface)
 
 Queries the database for the list of acquisitions' FileID to be used to run the
 defacing algorithm based on the provided list of SessionID and Scan_type to
 restrict the search.
 
 INPUTS:
-  - $session_id_arr          : array of SessionIDs to use when grepping FileIDs
-  - $modalities_to_deface_arr: array of Scan_type to use when grepping FileIDs
+  - $session_id_ref      : array of SessionIDs to use when grepping FileIDs
+  - @modalities_to_deface: array of Scan_type to use when grepping FileIDs
 
 RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
          organized in a hash as follows:
@@ -316,7 +316,7 @@ RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
 =cut
 
 sub grep_FileIDs_to_deface {
-    my ($session_id_arr, $modalities_to_deface_arr) = @_;
+    my ($session_id_ref, @modalities_to_deface) = @_;
 
     # separate the special modalities specified in %SPECIAL_ACQUISITIONS from the
     # standard scan types
@@ -324,10 +324,10 @@ sub grep_FileIDs_to_deface {
     my @special_cases;
     foreach my $special (@special_scan_types) {
         # push the special modalities to a new array @special_cases
-        push @special_cases, grep(/$special/, @$modalities_to_deface_arr);
+        push @special_cases, grep(/$special/, @modalities_to_deface);
         # remove the special modalities from the modalities array as they will be
         # dealt with differently than standard modalities
-        @$modalities_to_deface_arr = grep(! /$special/, @$modalities_to_deface_arr);
+        @modalities_to_deface = grep(! /$special/, @modalities_to_deface);
     }
 
     # base query
@@ -340,8 +340,8 @@ sub grep_FileIDs_to_deface {
 
     # add where clause for the different standard scan types to deface
     my @where;
-    if (@$modalities_to_deface_arr) {
-        @where = map { "mst.Scan_type = ?" } @$modalities_to_deface_arr;
+    if (@modalities_to_deface) {
+        @where = map { "mst.Scan_type = ?" } @modalities_to_deface;
         $query   .= sprintf(" %s ", join(" OR ", @where));
     }
 
@@ -356,8 +356,8 @@ sub grep_FileIDs_to_deface {
 
     # add where clause for the session IDs specified to the script if -sessionIDs
     # was set
-    if ($session_id_arr) {
-        @where  = map { "f.SessionID = ?" } @$session_id_arr;
+    if ($session_id_ref) {
+        @where  = map { "f.SessionID = ?" } @$session_id_ref;
         $query .= sprintf(" AND (%s) ", join(" OR ", @where));
     }
 
@@ -365,12 +365,12 @@ sub grep_FileIDs_to_deface {
     my $sth = $dbh->prepare($query);
 
     # create array of parameters
-    my @bind_param = @$modalities_to_deface_arr;
+    my @bind_param = @modalities_to_deface;
     foreach my $special_scan_type (@special_cases) {
         push @bind_param, $special_scan_type;
         push @bind_param, $SPECIAL_ACQUISITIONS_FILTER{$special_scan_type};
     }
-    push @bind_param, @$session_id_arr;
+    push @bind_param, @$session_id_ref;
 
     # execute the query
     $sth->execute(@bind_param);
@@ -434,7 +434,7 @@ RETURNS: 1 if there are defaced images found, 0 otherwise
 sub check_if_deface_files_already_in_db {
     my ($session_files, $session_id) = @_;
 
-    my @defaced_scan_types = map { $_ . '-defaced' } keys $session_files;
+    my @defaced_scan_types = map { $_ . '-defaced' } keys %{ $session_files };
 
     # base query
     my $query = "SELECT COUNT(*) "
@@ -555,7 +555,7 @@ sub deface_session {
 
     # add multi-constrast modalities to cmd line & remove them from $session_files
     foreach my $multi (@MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES) {
-        my @scan_types         = keys $session_files;
+        my @scan_types         = keys %{ $session_files };
         my @matching_types     = grep (/$multi/i, @scan_types);
         my @non_matching_types = grep (!/$multi/i, @scan_types);
         my (@multi_files_list, @other_files);
@@ -624,7 +624,7 @@ sub fetch_defaced_files {
     $defaced_images{$deface_ref}{Scan_type}   = $$ref_file{Scan_type};
 
     # for each files in $session_files, append the defaced images to the hash
-    foreach my $scan_type (keys $session_files) {
+    foreach my $scan_type (keys %{ $session_files }) {
         my %files = %{ $$session_files{$scan_type} };
         foreach my $fileID (keys %files) {
             my $deface_file   = $deface_dir . '/' . basename($files{$fileID});
@@ -664,7 +664,7 @@ sub register_defaced_files {
                        . " -coordinateSpace native "
                        . " -outputType defaced ";
 
-    foreach my $file (keys $defaced_images) {
+    foreach my $file (keys %{ $defaced_images }) {
         my $input_fileID = $$defaced_images{$file}{InputFileID};
         my $scan_type    = $$defaced_images{$file}{Scan_type} . "-defaced";
 

@@ -49,3 +49,18 @@ class MriCandidateErrors:
             values=field_value_dict.values(),
             get_last_id=False
         )
+
+    def get_candidate_errors_for_tarchive_id(self, tarchive_id):
+        """
+        Get the list of MRI candidate errors logged in `MRICandidateErrors` for a given `TarchiveID`.
+
+        :param tarchive_id: `TarchiveID` to restrict the query on
+         :type tarchive_id: int
+
+        :return: list of files inserted into the `MRICandidateErrors` table
+         :rtype: list
+        """
+
+        query = "SELECT * FROM MRICandidateErrors WHERE TarchiveID = %s"
+
+        return self.db.pselect(query=query, args=(tarchive_id,))

@@ -62,7 +62,7 @@ class Files:
             query += " AND PhaseEncodingDirection IS NULL "
 
         if echo_number:
-            query += " AND EchoNumber = % "
+            query += " AND EchoNumber = %s "
             args.append(echo_number)
         else:
             query += " AND EchoNumber IS NULL "
@@ -192,3 +192,18 @@ class Files:
         query = "SELECT * FROM files WHERE TarchiveSource = %s"
 
         return self.db.pselect(query=query, args=(tarchive_id,))
+
+    def get_files_inserted_for_session_id(self, session_id):
+        """
+        Get the list of files that were inserted into the `files` table for a given `SessionID`.
+
+        :param session_id: `SessionID` to restrict the query on
+         :type session_id: int
+
+        :return: list of relative file path present in the `files` table associated to the `SessionID`
+         :rtype: list
+        """
+
+        query = "SELECT * FROM files WHERE SessionID = %s"
+
+        return self.db.pselect(query=query, args=(session_id,))

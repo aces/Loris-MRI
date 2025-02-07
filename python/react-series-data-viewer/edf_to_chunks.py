@@ -4,8 +4,10 @@ import mne.io.edf.edf as mne_edf
 from chunking import write_chunk_directory
 import sys
 
+
 def load_channels(exclude):
     return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -27,7 +29,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     for path in args.files:
-        _, edf_info, _ = mne_edf._get_info(path, stim_channel='auto', eog=None, misc=None, exclude=(), preload=False)
+        _, edf_info, _ = mne_edf._get_info(
+            path,
+            stim_channel='auto',
+            eog=None,
+            misc=None,
+            exclude=(),
+            preload=False,
+            infer_types=False
+        )
         channel_names = edf_info['ch_names']
 
         if args.channel_index < 0:
@@ -56,6 +66,8 @@ if __name__ == '__main__':
             )
             if len(stim_channel_idxs) == 1:
                 continue
+
+            print('Creating chunk for channel {} for {}'.format(i, path))
 
             # excluding channels in the loader reduce the time required to read the file
             # and avoid memory issues

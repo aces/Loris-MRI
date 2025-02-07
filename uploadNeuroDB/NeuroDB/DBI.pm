@@ -72,47 +72,6 @@ sub connect_to_db
     return $dbh;
 }
 
-=pod
-
-=head3 getConfigSetting($dbh, $name)
-
-This method fetches the value (C<$value>) stored in the C<Config> table for a
-specific config setting (C<$name>) specified as an input.
-
-INPUTS:
-  - $dbh : database handler
-  - $name: name of the config setting
-
-RETURNS: value corresponding to the config setting in the C<Config> table
-         of LORIS
-
-=cut
-sub getConfigSetting
-{
-    my ($dbh, $name) = @_;
-    my ($message, $query, $where) = '';
-    my $value = undef;
-
-    $where = " WHERE c.ConfigID=(Select cs.ID from ConfigSettings cs where cs.Name=?)";
-    $query = " SELECT c.Value FROM Config c";
-    $query = $query . $where;
-    my $sth = $$dbh->prepare($query);
-    $sth->execute($name);
-
-    if ( $sth->rows > 1 ){
-        # if more than one row returned, push data into an array that will be
-        #  dereferenced into $value
-        my @values;
-        while (my $row = $sth->fetchrow_array()) {
-            push (@values, $row);
-        }
-        $value = \@values;
-    } elsif ( $sth->rows > 0 ) {
-        $value = $sth->fetchrow_array();
-    }
-    return $value;
-}
-
 1;
 
 =pod

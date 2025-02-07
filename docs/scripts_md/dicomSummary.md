@@ -4,13 +4,13 @@ dicomSummary.pl -- prints out an informative summary for DICOMs in a given direc
 
 # SYNOPSIS
 
-perl dicomSummary.pl &lt;/PATH/TO/DICOM/DIR> \[ -compare &lt;/PATH/TO/DICOM/COMPARE/DIR> \] \[ -tmp &lt;/PATH/TO/TMP/DIR> \] \`\[options\]\`
+perl dicomSummary.pl &lt;/PATH/TO/DICOM/DIR> \[ -comparedir &lt;/PATH/TO/DICOM/COMPARE/DIR> \] \[ -tmp &lt;/PATH/TO/TMP/DIR> \] \`\[options\]\`
 
 Available options are:
 
-\-comparedir: path to another DICOM directory to compare with
+\-comparedir: path to another DICOM directory to compare with (implies -xdiff)
 
-\-dbcompare : run a comparison with entries int he database
+\-dbcompare : run a comparison with entries in the database (implies -xdiff)
 
 \-database  : use the database
 
@@ -23,7 +23,7 @@ Available options are:
 \-tmp       : to specify a temporary directory. It will contain the summaries if
              used with -noscreen option
 
-\-xdiff     : to see with tkdiff the result of the two folders comparison or the
+\-xdiff     : to see with sdiff the result of the two folders comparison or the
              comparison with the database content with
 
 \-batch     : run in batch mode if set. Will log differences to a /tmp/diff.log file.

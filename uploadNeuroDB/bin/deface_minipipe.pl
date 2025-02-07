@@ -17,6 +17,7 @@
 
 use strict;
 use File::Basename;
+use File::Path qw(make_path);
 use File::Temp qw/ tempfile tempdir /;
 use Getopt::Long;
 
@@ -88,7 +89,7 @@ my @other_scans = grep(! /,/, @ARGV);    # grep the non-multi-contrast, non mp2r
 
 # create the directory where the final outputs will be saved
 unless (-e $output_dir) {
-  mkdir($output_dir) or print "\nCould not create directory '$output_dir'. Error is: '$!'\n";
+  make_path($output_dir) or print "\nCould not create directory '$output_dir'. Error is: '$!'\n";
 }
 
 

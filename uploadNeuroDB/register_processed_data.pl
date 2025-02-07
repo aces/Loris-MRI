@@ -139,19 +139,6 @@ unless  ($filename && $sourceFileID && $sourcePipeline && $scanType
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
-# Make sure sourceFileID is valid
-unless  ((defined($sourceFileID)) && ($sourceFileID =~ /^[0-9]+$/)) {
-    print STDERR "Files to be registered require the -sourceFileID option "
-                 . "with a valid FileID as an argument\n";
-    exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
-
-# Make sure we have permission to read the file
-unless  (-r $filename)  {
-    print STDERR "Cannot read $filename\n";
-    exit $NeuroDB::ExitCodes::INVALID_PATH;
-}
-
 # ----------------------------------------------------------------
 ## Establish database connection
 # ----------------------------------------------------------------
@@ -168,6 +155,30 @@ my $db  = NeuroDB::Database->new(
 );
 $db->connect();
 
+# Make sure sourceFileID is valid (i.e exists in table files)
+my $query = "SELECT FileID FROM files WHERE FileID = ?";
+my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $sourceFileID);
+if (@$rowsRef == 0) {
+    print STDERR "Argument '$sourceFileID' for option -sourceFileID is not an existing file ID. Aborting.\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
+
+# Make sure all file IDs in the list specified with -inputFileIDs
+# are valid (i.e exist in table files)
+# Note: sourceFileID can be listed in the InputFileIDs
+foreach my $fid (split(/;/, $inputFileIDs)) {
+    $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, $fid);
+    if (@$rowsRef == 0) {
+        print STDERR "Argument '$fid' for option -inputFileIDs is not an existing file ID. Aborting.\n";
+        exit $NeuroDB::ExitCodes::INVALID_ARG;
+    }
+}
+
+# Make sure we have permission to read the file
+unless  (-r $filename)  {
+    print STDERR "Cannot read $filename\n";
+    exit $NeuroDB::ExitCodes::INVALID_PATH;
+}
 
 # ----------------------------------------------------------------
 ## Get config setting using ConfigOB
@@ -261,8 +272,10 @@ print LOG "\t -> Set SourceFileID to $sourceFileID.\n";
 
 # ----- STEP 4: Verify project information
 my $projectID = NeuroDB::MRI::getProject($subjectIDsref, \$dbh, $db);
-print LOG "\nERROR: No project found for this candidate \n\n";
-exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+if (!defined($projectID)) {
+    print LOG "\nERROR: No project found for this candidate \n\n";
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+}
 print LOG  "\n==> ProjectID : $projectID\n";
 
 
@@ -402,9 +415,11 @@ sub getSessionID    {
     my  ($sessionID, %subjectIDsref);
     my  $query  =   "SELECT f.SessionID, " .
                            "s.CandID, " .
+                           "c.PSCID, " .
                            "s.Visit_label " .
                     "FROM files f " .
                     "JOIN session s ON (s.ID=f.SessionID) " .
+                    "JOIN candidate c USING (CandID) " .
                     "WHERE FileID=?";
 
     my  $sth    =   $dbh->prepare($query);
@@ -413,6 +428,7 @@ sub getSessionID    {
     if  ($sth->rows > 0) {
         my $row                         =   $sth->fetchrow_hashref();
         $sessionID                      =   $row->{'SessionID'};
+        $subjectIDsref{'PSCID'}         =   $row->{'PSCID'};
         $subjectIDsref{'CandID'}        =   $row->{'CandID'};
         $subjectIDsref{'visitLabel'}    =   $row->{'Visit_label'};
     }else{

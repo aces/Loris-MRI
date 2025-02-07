@@ -3,12 +3,12 @@
 import os
 import datetime
 import json
+import lib.utilities as utilities
 import nibabel as nib
 import re
 import tarfile
 
 from nilearn import image, plotting
-from pyblake2 import blake2b
 
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
@@ -169,7 +169,7 @@ class Imaging:
 
         # convert list values into strings that could be inserted into parameter_file
         if type(value) == list:
-            if type(value[0]) in [float, int]:
+            if value and type(value[0]) in [float, int]:
                 value = [str(f) for f in value]
             value = f"[{', '.join(value)}]"
 
@@ -204,14 +204,26 @@ class Imaging:
          :type reason: str
         """
 
+        series_uid = scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None
+        echo_time = scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None
+
+        existing_cand_errors = self.mri_cand_errors_db_obj.get_candidate_errors_for_tarchive_id(tarchive_id)
+
+        for row in existing_cand_errors:
+            if str(row['SeriesUID']) == str(series_uid) \
+                    and str(row['EchoTime']) == str(echo_time) \
+                    and str(row['PatientName']) == str(patient_name) \
+                    and str(row['Reason']) == str(reason):
+                return
+
         info_to_insert_dict = {
             "TimeRun": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "SeriesUID": scan_param["SeriesUID"] if "SeriesUID" in scan_param.keys() else None,
+            "SeriesUID": series_uid,
             "TarchiveID": tarchive_id,
             "MincFile": file_rel_path,
             "PatientName": patient_name,
             "Reason": reason,
-            "EchoTime": scan_param["EchoTime"] if "EchoTime" in scan_param.keys() else None
+            "EchoTime": echo_time
         }
         self.mri_cand_errors_db_obj.insert_mri_candidate_errors(info_to_insert_dict)
 
@@ -236,14 +248,28 @@ class Imaging:
          :type mri_protocol_group_id: int
         """
 
-        phase_encoding_dir = scan_param["PhaseEncodingDirection"] if "PhaseEncodingDirection" in scan_param else None
+        series_uid = scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None
+        image_type = str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None
+        echo_time = str(scan_param["EchoTime"]) if "EchoTime" in scan_param.keys() else None
+        echo_number = repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param.keys() else None
+        phase_encoding_dir = scan_param["PhaseEncodingDirection"] \
+            if "PhaseEncodingDirection" in scan_param.keys() else None
+
+        # if there is already an entry for this violation in mri_protocol_violated_scans, do not insert anything
+        existing_prot_viol_scans = self.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(tarchive_id)
+        for row in existing_prot_viol_scans:
+            if row['SeriesUID'] == series_uid \
+                    and row['PhaseEncodingDirection'] == phase_encoding_dir \
+                    and row['TE_range'] == echo_time \
+                    and row['EchoNumber'] == echo_number:
+                return
 
         info_to_insert_dict = {
             "CandID": cand_id,
             "PSCID": psc_id,
             "TarchiveID": tarchive_id,
             "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "series_description": scan_param["SeriesDescription"],
+            "series_description": scan_param["SeriesDescription"] if "SeriesDescription" in scan_param.keys() else None,
             "minc_location": file_rel_path,
             "PatientName": patient_name,
             "TR_range": scan_param["RepetitionTime"] if "RepetitionTime" in scan_param.keys() else None,
@@ -257,10 +283,10 @@ class Imaging:
             "ystep_range": scan_param["ystep"] if "ystep" in scan_param.keys() else None,
             "zstep_range": scan_param["zstep"] if "zstep" in scan_param.keys() else None,
             "time_range": scan_param["time"] if "time" in scan_param.keys() else None,
-            "SeriesUID": scan_param["SeriesInstanceUID"] if "SeriesInstanceUID" in scan_param.keys() else None,
-            "image_type": str(scan_param["ImageType"]) if "ImageType" in scan_param.keys() else None,
+            "SeriesUID": series_uid,
+            "image_type": image_type,
             "PhaseEncodingDirection": phase_encoding_dir,
-            "EchoNumber": repr(scan_param["EchoNumber"]) if "EchoNumber" in scan_param else None,
+            "EchoNumber": echo_number,
             "MriProtocolGroupID": mri_protocol_group_id if mri_protocol_group_id else None
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
@@ -272,6 +298,35 @@ class Imaging:
         :param info_to_insert_dict: dictionary with the information to be inserted in mri_violations_log
          :type info_to_insert_dict: dict
         """
+
+        series_uid = info_to_insert_dict["SeriesUID"]
+        echo_number = repr(info_to_insert_dict["EchoNumber"])
+        phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"]
+        echo_time = info_to_insert_dict['EchoTime']
+        scan_type = info_to_insert_dict['Scan_type']
+        severity = info_to_insert_dict['Severity']
+        header = info_to_insert_dict['Header']
+        value = info_to_insert_dict['Value']
+        valid_regex = info_to_insert_dict['ValidRegex']
+        valid_range = info_to_insert_dict['ValidRange']
+
+        # if there is already an entry for this violation in mri_violations_log, do not insert anything
+        existing_viol_logs = self.mri_viol_log_db_obj.get_violations_for_tarchive_id(
+            info_to_insert_dict['TarchiveID']
+        )
+        for row in existing_viol_logs:
+            if str(row['SeriesUID']) == str(series_uid) \
+                    and str(row['PhaseEncodingDirection']) == str(phase_encoding_dir) \
+                    and str(row['EchoNumber']) == str(echo_number) \
+                    and str(row['Scan_type']) == str(scan_type) \
+                    and str(row['EchoTime']) == str(echo_time) \
+                    and str(row['Severity']) == str(severity) \
+                    and str(row['Header']) == str(header) \
+                    and str(row['Value']) == str(value) \
+                    and str(row['ValidRange']) == str(valid_range) \
+                    and str(row['ValidRegex']) == str(valid_regex):
+                return
+
         self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
     def get_parameter_type_id(self, parameter_name):
@@ -344,15 +399,15 @@ class Imaging:
         """
         return self.param_type_db_obj.get_bids_to_minc_mapping_dict()
 
-    def get_list_of_eligible_protocols_based_on_session_info(self, project_id, subproject_id,
+    def get_list_of_eligible_protocols_based_on_session_info(self, project_id, cohort_id,
                                                              center_id, visit_label, scanner_id):
         """
         Get the list of eligible protocols based on the scan session information.
 
         :param project_id: ProjectID associated to the scan
          :type project_id: int
-        :param subproject_id: SubprojectID associated to the scan
-         :type subproject_id: int
+        :param cohort_id: CohortID associated to the scan
+         :type cohort_id: int
         :param center_id: CenterID associated to the scan
          :type center_id: int
         :param visit_label: Visit label associated to the scan
@@ -364,7 +419,7 @@ class Imaging:
          :rtype: list
         """
         return self.mri_prot_db_obj.get_list_of_protocols_based_on_session_info(
-            project_id, subproject_id, center_id, visit_label, scanner_id
+            project_id, cohort_id, center_id, visit_label, scanner_id
         )
 
     def get_bids_files_info_from_parameter_file_for_file_id(self, file_id):
@@ -567,7 +622,7 @@ class Imaging:
 
         return file_parameters
 
-    def get_acquisition_protocol_info(self, protocols_list, nifti_name, scan_param):
+    def get_acquisition_protocol_info(self, protocols_list, nifti_name, scan_param, scan_type=None):
         """
         Get acquisition protocol information (scan_type_id or message to be printed in the log).
         - If the protocols list provided as input is empty, the scan_type_id will be set to None and proper message
@@ -608,7 +663,7 @@ class Imaging:
 
         # look for matching protocols
         mri_protocol_group_id = protocols_list[0]['MriProtocolGroupID']
-        matching_protocols_list = self.look_for_matching_protocols(protocols_list, scan_param)
+        matching_protocols_list = self.look_for_matching_protocols(protocols_list, scan_param, scan_type)
 
         # if more than one protocol matching, return False, otherwise, return the scan type ID
         if not matching_protocols_list:
@@ -648,7 +703,7 @@ class Imaging:
 
         return self.mri_prot_db_obj.get_bids_info_for_scan_type_id(scan_type_id)
 
-    def look_for_matching_protocols(self, protocols_list, scan_param):
+    def look_for_matching_protocols(self, protocols_list, scan_param, scan_type=None):
         """
         Look for matching protocols in protocols_list given scan parameters stored in scan_param.
 
@@ -661,9 +716,13 @@ class Imaging:
          :rtype: list
         """
 
+        scan_type_id = self.get_scan_type_id_from_scan_type_name(scan_type) if scan_type else None
+
         matching_protocols_list = []
         for protocol in protocols_list:
-            if protocol['series_description_regex']:
+            if scan_type_id and protocol['Scan_type'] == scan_type_id:
+                matching_protocols_list.append(protocol['Scan_type'])
+            elif protocol['series_description_regex']:
                 if re.search(
                         rf"{protocol['series_description_regex']}", scan_param['SeriesDescription'], re.IGNORECASE
                 ):
@@ -710,14 +769,14 @@ class Imaging:
                 and (not db_prot['image_type'] or scan_img_type == db_prot['image_type']):
             return True
 
-    def run_extra_file_checks(self, project_id, subproject_id, visit_label, scan_type_id, scan_param_dict):
+    def run_extra_file_checks(self, project_id, cohort_id, visit_label, scan_type_id, scan_param_dict):
         """
         Runs the extra file checks for a given scan type to determine if there are any violations to protocol.
 
         :param project_id: Project ID associated with the image to be inserted
          :type project_id: int
-        :param subproject_id: Subproject ID associated with the image to be inserted
-         :type subproject_id: int
+        :param cohort_id: Cohort ID associated with the image to be inserted
+         :type cohort_id: int
         :param visit_label: Visit label associated with the image to be inserted
          :type visit_label: str
         :param scan_type_id: Scan type ID identified for the image to be inserted
@@ -731,7 +790,7 @@ class Imaging:
 
         # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
         checks_list = self.mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
-            project_id, subproject_id, visit_label, scan_type_id
+            project_id, cohort_id, visit_label, scan_type_id
         )
 
         distinct_headers = set(map(lambda x: x['Header'], checks_list))
@@ -910,6 +969,26 @@ class Imaging:
 
         return files_list
 
+    def get_list_of_files_already_inserted_for_session_id(self, session_id):
+        """
+        Get the list of filenames already inserted for a given SessionID.
+
+        :param session_id: the Session ID to process
+         :type session_id: int
+
+        :return: a list with file names already inserted in the files table for SessionID
+         :rtype: list
+        """
+
+        # get list files from a given tarchive ID
+        results = self.files_db_obj.get_files_inserted_for_session_id(session_id)
+
+        files_list = []
+        for entry in results:
+            files_list.append(os.path.basename(entry['File']))
+
+        return files_list
+
     def get_list_of_fmap_files_sorted_by_acq_time(self, files_list):
         """
         Get the list of fieldmap acquisitions that requires the IntendedFor field in their JSON file.
@@ -1066,7 +1145,7 @@ class Imaging:
             json_data['IntendedFor'] = fmap_dict['IntendedFor']
             with open(json_file_path, 'w') as json_file:
                 json_file.write(json.dumps(json_data, indent=4))
-            json_blake2 = blake2b(json_file_path.encode('utf-8')).hexdigest()
+            json_blake2 = utilities.compute_blake2b_hash(json_file_path)
             param_type_id = self.param_type_db_obj.get_parameter_type_id('bids_json_file_blake2b_hash')
             param_file_dict = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 fmap_dict['FileID'],

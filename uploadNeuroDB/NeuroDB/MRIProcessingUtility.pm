@@ -65,6 +65,7 @@ use NeuroDB::Database;
 use NeuroDB::DatabaseException;
 
 use NeuroDB::objectBroker::ObjectBrokerException;
+use NeuroDB::objectBroker::MriViolationsLogOB;
 use NeuroDB::objectBroker::ConfigOB;
 use NeuroDB::objectBroker::TarchiveOB;
 use NeuroDB::objectBroker::MriUploadOB;
@@ -386,8 +387,8 @@ INPUTS:
   - $User        : user running the insertion pipeline
   - $centerID    : center ID of the candidate
 
-RETURNS: subject's ID hash ref containing C<CandID>, C<PSCID>, Visit Label 
-and C<CandMismatchError> information
+RETURNS: subject's ID hash ref containing C<CandID>, C<PSCID>, Visit Label,
+ProjectID, CohortID and C<CandMismatchError> information
 
 =cut
 
@@ -395,6 +396,8 @@ sub determineSubjectID {
 
     my $this = shift;
     my ($scannerID, $tarchiveInfo, $to_log, $upload_id, $User, $centerID) = @_;
+    my $dbhr = $this->{dbhr};
+
     $to_log = 1 unless defined $to_log;
     if (!defined(&Settings::getSubjectIDs)) {
         if ($to_log) {
@@ -412,8 +415,24 @@ sub determineSubjectID {
     my $patientID   = $tarchiveInfo->{'PatientID'};
     my $patientName = $tarchiveInfo->{'PatientName'};
     my $subjectIDsref = Settings::getSubjectIDs(
-        $patientName, $patientID, $scannerID, $this->{dbhr}, $this->{'db'}
+        $patientName, $patientID, $scannerID, $dbhr, $this->{'db'}
     );
+
+    if (!$subjectIDsref->{'createVisitLabel'}) {
+	my $configOB = $this->{'configOB'};
+        $subjectIDsref->{'createVisitLabel'} = $configOB->getCreateVisit();
+    }
+
+    if (!$subjectIDsref->{'ProjectID'}) {
+        my $projectID = NeuroDB::MRI::getProject($subjectIDsref, $dbhr, $this->{'db'});
+        $subjectIDsref->{'ProjectID'} = $projectID;
+    }
+
+    if (!$subjectIDsref->{'CohortID'}) {
+        $subjectIDsref->{'CohortID'} = NeuroDB::MRI::getCohort(
+            $subjectIDsref, $subjectIDsref->{'ProjectID'}, $dbhr, $this->{'db'}
+        );
+    }
 
     # create the candidate if it does not exist
     $this->CreateMRICandidates(
@@ -426,9 +445,9 @@ sub determineSubjectID {
     if ($to_log) {
         my $message = sprintf(
             "\n==> Data found for candidate CandID: %s, PSCID %s, Visit %s, Acquisition Date %s\n ",
-            $subjectIDsref->{'CandID'},
-            $subjectIDsref->{'PSCID'},
-            $subjectIDsref->{'visitLabel'},
+            $subjectIDsref->{'CandID'}      // 'UNKNOWN',
+            $subjectIDsref->{'PSCID'}       // 'UNKNOWN',
+            $subjectIDsref->{'visitLabel'}  // 'UNKNOWN',
             $tarchiveInfo->{'DateAcquired'} // 'UNKNOWN'
         );
         $this->{LOG}->print($message);
@@ -782,7 +801,7 @@ sub computeMd5Hash {
 
 =pod
 
-=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center_name, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id, $data_dir)
+=head3 getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $centerID, $minc, $acquisitionProtocol, $bypass_extra_file_checks, $upload_id, $data_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If C<$acquisitionProtocol> is not set, it will look for the acquisition
@@ -795,7 +814,7 @@ INPUTS:
   - $file                    : file's information hash ref
   - $subjectIDsref           : subject's information hash ref
   - $tarchiveInfo            : DICOM archive's information hash ref
-  - $center_name             : center name
+  - $centerID                : ID of the center where the scan was acquired.
   - $minc                    : absolute path to the MINC file
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass_extra_file_checks: boolean, if set bypass the extra checks
@@ -814,7 +833,7 @@ RETURNS:
 sub getAcquisitionProtocol {
    
     my $this = shift;
-    my ($file,$subjectIDsref,$tarchiveInfoRef,$center_name,$minc,
+    my ($file,$subjectIDsref,$tarchiveInfoRef,$centerID,$minc,
         $acquisitionProtocol,$bypass_extra_file_checks, $upload_id, $data_dir) = @_;
     my $message = '';
 
@@ -828,7 +847,7 @@ sub getAcquisitionProtocol {
       $this->spool($message, 'N', $upload_id, $notify_detailed);
 
       $acquisitionProtocol =  &NeuroDB::MRI::identify_scan_db(
-                                   $center_name,
+                                   $centerID,
                                    $subjectIDsref,
                                    $tarchiveInfoRef,
                                    $file, 
@@ -932,7 +951,7 @@ sub extra_file_checks() {
     
     my $candID        = $subjectIDsref->{'CandID'};
     my $projectID     = $subjectIDsref->{'ProjectID'};
-    my $subprojectID  = $subjectIDsref->{'SubprojectID'};
+    my $cohortID      = $subjectIDsref->{'CohortID'};
     my $visitLabel    = $subjectIDsref->{'visitLabel'};
 
     ## Step 1 - select all distinct exclude and warning headers for the scan type
@@ -942,9 +961,9 @@ sub extra_file_checks() {
     $query .= defined $projectID
         ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
         : ' AND mpcgt.ProjectID IS NULL';
-    $query .= defined $subprojectID
-        ? ' AND (mpcgt.SubprojectID IS NULL OR mpcgt.SubprojectID = ?)'
-        : ' AND mpcgt.SubprojectID IS NULL';
+    $query .= defined $cohortID
+        ? ' AND (mpcgt.CohortID IS NULL OR mpcgt.CohortID = ?)'
+        : ' AND mpcgt.CohortID IS NULL';
     $query .= defined $visitLabel
         ? ' AND (mpcgt.Visit_label IS NULL OR mpcgt.Visit_label = ?)'
         : ' AND mpcgt.Visit_label IS NULL';
@@ -959,17 +978,17 @@ sub extra_file_checks() {
     foreach my $severity (qw/exclude warning/) {
         my @bindValues = ($scan_type, $severity);
         push(@bindValues, $projectID)    if defined $projectID;
-        push(@bindValues, $subprojectID) if defined $subprojectID;
+        push(@bindValues, $cohortID) if defined $cohortID;
         push(@bindValues, $visitLabel)   if defined $visitLabel;
         $sth->execute(@bindValues);
         
         my @headers = map { $_->{'Header'} } @{ $sth->fetchall_arrayref({}) };
         my %validFields = $this->loop_through_protocol_violations_checks(
-            $scan_type, $severity, \@headers, $file, $projectID, $subprojectID, $visitLabel
+            $scan_type, $severity, \@headers, $file, $projectID, $cohortID, $visitLabel
         );
         if (%validFields) {
             $this->insert_into_mri_violations_log(
-                \%validFields, $severity, $pname, $candID, $visitLabel, $file, $data_dir
+                \%validFields, $severity, $pname, $candID, $visitLabel, $file, $data_dir, $scan_type
             );
             return $severity;
         }
@@ -1001,20 +1020,28 @@ INPUTS: file handle reference to the NeuroDB::File object
 sub update_mri_violations_log_MincFile_path {
     my ($this, $file_ref) = @_;
 
-    my $seriesUID = $file_ref->getParameter('series_instance_uid');
-    my $file_path = $file_ref->getFileDatum('File');
+    # grep file parameters determining a unique file in the DB
+    my $seriesUID   = $file_ref->getParameter('series_instance_uid');
+    my $echoTime    = $file_ref->getParameter('echo_time');
+    my $phEncDir    = $file_ref->getParameter('phase_encoding_direction');
+    my $echoNumbers = $file_ref->getParameter('echo_numbers');
 
-    # TODO: in a different PR, should add the echo time to the mri_violation table
-    # TODO: and add the echo time in the where part of the statement
-    my $query = "UPDATE mri_violations_log SET MincFile = ? WHERE SeriesUID = ?";
+    # determine the new file path to use for update
+    my $file_path   = $file_ref->getFileDatum('File');
+
+    (my $query = <<QUERY) =~ s/\n/ /gm;
+    UPDATE mri_violations_log
+    SET MincFile = ?
+    WHERE SeriesUID = ? AND EchoTime = ? AND PhaseEncodingDirection = ? AND EchoNumber = ?
+QUERY
     my $sth   = ${$this->{'dbhr'}}->prepare($query);
 
-    $sth->execute($file_path, $seriesUID);
+    $sth->execute($file_path, $seriesUID, $echoTime, $phEncDir, $echoNumbers);
 }
 
 =pod
 
-=head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel)
+=head3 loop_through_protocol_violations_checks($scan_type, $severity, $headers, $file, $projectID, $cohortID, $visitLabel)
 
 Loops through all protocol violations checks for a given severity and creates
 a hash with all the checks that need to be applied on that specific scan type
@@ -1027,7 +1054,7 @@ INPUTS:
                    table for a given scan type
   - $file        : file information hash ref
   - $projectID   : candidate's project ID
-  - $subprojectID: session's subproject ID
+  - $cohortID    : session's cohort ID
   - $visitLabel  : session name
 
 RETURNS: a hash with all information about the checks for a given scan type
@@ -1036,7 +1063,7 @@ and severity
 =cut
 
 sub loop_through_protocol_violations_checks {
-    my ($this, $scan_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel) = @_;
+    my ($this, $scan_type, $severity, $headers, $file, $projectID, $cohortID, $visitLabel) = @_;
 
     my %valid_fields; # will store all information about what fails
 
@@ -1047,9 +1074,9 @@ sub loop_through_protocol_violations_checks {
     $query .= defined $projectID
         ? ' AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = ?)'
         : ' AND mpcgt.ProjectID IS NULL';
-    $query .= defined $subprojectID
-        ? ' AND (mpcgt.SubprojectID IS NULL OR mpcgt.SubprojectID = ?)'
-        : ' AND mpcgt.SubprojectID IS NULL';
+    $query .= defined $cohortID
+        ? ' AND (mpcgt.CohortID IS NULL OR mpcgt.CohortID = ?)'
+        : ' AND mpcgt.CohortID IS NULL';
     $query .= defined $visitLabel
         ? ' AND (mpcgt.Visit_label IS NULL OR mpcgt.Visit_label = ?)'
         : ' AND mpcgt.Visit_label IS NULL';
@@ -1063,10 +1090,10 @@ sub loop_through_protocol_violations_checks {
         my $value = $file->getParameter($header);
 
         # execute query for $scan_type, $severity, $header and (possibly)
-        # $projectID, $subprojectID and $visitLabel
+        # $projectID, $cohortID and $visitLabel
         my @bindValues = ($scan_type, $severity, $header);
         push(@bindValues, $projectID)    if defined $projectID;
-        push(@bindValues, $subprojectID) if defined $subprojectID;
+        push(@bindValues, $cohortID) if defined $cohortID;
         push(@bindValues, $visitLabel)   if defined $visitLabel;
         $sth->execute(@bindValues);
 
@@ -1119,68 +1146,77 @@ INPUTS:
   - $visit_label : visit label associated with the scan
   - $file        : information about the scan
   - $data_dir    : path to the LORIS MRI data directory
+  - $scan_type   : scan type associated to the file
 
 =cut
 
 sub insert_into_mri_violations_log {
-    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir) = @_;
+    my ($this, $valid_fields, $severity, $pname, $candID, $visit_label, $file, $data_dir, $scan_type) = @_;
+
+    my $tarchiveID = $file->getFileDatum('TarchiveSource');
 
     # determine the future relative path when the file will be moved to
     # data_dir/trashbin at the end of the script's execution
     my $file_path        = $file->getFileDatum('File');
-    my $file_rel_path    = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, 1);
-    my $file_ph_enc_dir  = $file->getParameter('phase_encoding_direction');
-    my $file_echo_number = $file->getParameter('echo_numbers');
+    my $move_file        = $severity eq 'exclude' ? 1 : undef;
+    my $file_rel_path    = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, $move_file);
 
-    my $query = "INSERT INTO mri_violations_log"
-                    . "("
-                    . " SeriesUID,              TarchiveID,  MincFile,           PatientName, "
-                    . " CandID,                 Visit_label, Scan_type,          Severity, "
-                    . " Header,                 Value,       ValidRange,         ValidRegex, "
-                    . " PhaseEncodingDirection, EchoNumber,  MriProtocolChecksGroupID "
-                    . ") VALUES ("
-                    . " ?,        ?,           ?,          ?, "
-                    . " ?,        ?,           ?,          ?, "
-                    . " ?,        ?,           ?,          ?, "
-                    . " ?,        ?,           ?"
-                    . ")";
-    if ($this->{debug}) {
-        print $query . "\n";
-    }
-    my $sth = ${$this->{'dbhr'}}->prepare($query);
+    my %newViolationsLog = (
+        'TarchiveID'             => $tarchiveID,
+        'SeriesUID'              => $file->getFileDatum('SeriesUID'),
+        'MincFile'               => $file_rel_path,
+        'PatientName'            => $pname,
+        'CandID'                 => $candID,
+        'Visit_label'            => $visit_label,
+        'Scan_type'              => $scan_type,
+        'Severity'               => $severity,
+        'EchoTime'               => $file->getParameter('echo_time'),
+        'PhaseEncodingDirection' => $file->getParameter('phase_encoding_direction'),
+        'EchoNumber'             => $file->getParameter('echo_numbers')
+    );
+
+    my $mriViolationsLogOB = NeuroDB::objectBroker::MriViolationsLogOB->new(db => $this->{db});
+    my $mriViolationsLogRef = $mriViolationsLogOB->getWithTarchiveID($tarchiveID);
 
     # foreach header, concatenate arrays of ranges into a string
     foreach my $header (keys(%$valid_fields)) {
+        $file->setFileData('Caveat', 1) if ($severity eq 'warning');
+
         my $valid_range_str  = "NULL";
         my $valid_regex_str  = "NULL";
         my @valid_range_list = @{ $valid_fields->{$header}{ValidRanges} };
         my @valid_regex_list = @{ $valid_fields->{$header}{ValidRegexs} };
-
         if (@valid_range_list) {
             $valid_range_str = join(',', @valid_range_list);
         }
         if (@valid_regex_list) {
             $valid_regex_str = join(',', @valid_regex_list);
         }
-        $file->setFileData('Caveat', 1) if ($severity eq 'warning');
 
-        $sth->execute(
-            $file->getFileDatum('SeriesUID'),
-            $file->getFileDatum('TarchiveSource'),
-            $file_rel_path,
-            $pname,
-            $candID,
-            $visit_label,
-            $valid_fields->{$header}{ScanType},
-            $severity,
-            $header,
-            $valid_fields->{$header}{HeaderValue},
-            $valid_range_str,
-            $valid_regex_str,
-            $file_ph_enc_dir,
-            $file_echo_number,
-            $valid_fields->{$header}{MriProtocolChecksGroupID}
-        );
+        $newViolationsLog{'Header'}     = $header;
+        $newViolationsLog{'Value'}      = $valid_fields->{$header}{HeaderValue};
+        $newViolationsLog{'ValidRange'} = $valid_range_str;
+        $newViolationsLog{'ValidRegex'} = $valid_regex_str;
+        $newViolationsLog{'MriProtocolChecksGroupID'} = $valid_fields->{$header}{MriProtocolChecksGroupID};
+
+        my $already_inserted = undef;
+        foreach my $dbViolLog (@$mriViolationsLogRef) {
+            if ($dbViolLog->{'SeriesUID'} eq $newViolationsLog{'SeriesUID'}
+                && $dbViolLog->{'EchoTime'} eq $newViolationsLog{'EchoTime'}
+                && $dbViolLog->{'EchoNumber'} eq $newViolationsLog{'EchoNumber'}
+                && $dbViolLog->{'PhaseEncodingDirection'} eq $newViolationsLog{'PhaseEncodingDirection'}
+                && $dbViolLog->{'Scan_type'} eq $newViolationsLog{'Scan_type'}
+                && $dbViolLog->{'Severity'} eq $newViolationsLog{'Severity'}
+                && $dbViolLog->{'Header'} eq $newViolationsLog{'Header'}
+                && $dbViolLog->{'Value'} eq $newViolationsLog{'Value'}
+                && $dbViolLog->{'ValidRange'} eq $newViolationsLog{'ValidRange'}
+                && $dbViolLog->{'ValidRegex'} eq $newViolationsLog{'ValidRegex'}
+            ) {
+                $already_inserted = 1;
+                last;
+            }
+        }
+        $mriViolationsLogOB->insert(\%newViolationsLog) unless defined $already_inserted;
     }
 }
 
@@ -1394,8 +1430,8 @@ sub registerScanIntoDB {
             && defined($${minc_file}->getParameter('study:start_day'))
             ? DateTime->new(   
                 day        => $${minc_file}->getParameter('study:start_day'),   
-                month      => $${minc_file}->getParameter('study:start_month'),   
-                year       => $${minc_file}->getParameter('study:start_year'),   
+                month      => $${minc_file}->getParameter('study:start_month'), 
+                year       => $${minc_file}->getParameter('study:start_year'),  
             )->strftime('%Y-%m-%d') 
             : undef
         );   
@@ -1444,7 +1480,7 @@ sub registerScanIntoDB {
 
 =pod
 
-=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, $exclude, $mail_user, $upload_id)
+=head3 dicom_to_minc($study_dir, $converter, $get_dicom_info, $mail_user, $upload_id, @exclude)
 
 Converts a DICOM study into MINC files.
 
@@ -1452,28 +1488,34 @@ INPUTS:
   - $study_dir      : DICOM study directory to convert
   - $converter      : converter to be used
   - $get_dicom_info : get DICOM information setting from the C<Config> table
-  - $exclude        : which files to exclude from the C<dcm2mnc> command
   - $mail_user      : mail of the user
   - $upload_id      : upload ID of the study
+  - @exclude        : which files to exclude from the C<dcm2mnc> command
 
 =cut
 
 sub dicom_to_minc {
     my $this = shift;
-    my ($study_dir, $converter, $get_dicom_info, $exclude,$mail_user, $upload_id) = @_;
+    my ($study_dir, $converter, $get_dicom_info, $mail_user, $upload_id, @exclude) = @_;
     my ($d2m_cmd, $d2m_log, $exit_code, $excluded_regex);
     my $message = '';
+
+    if (!-e $get_dicom_info) {
+        print "Warning! Value '$get_dicom_info' (config setting get_dicom_info) is not an existing script!\n";
+        return;
+    }
+
+    if (!-x $get_dicom_info) {
+        print "Warning! Script '$get_dicom_info' (config setting get_dicom_info) is not an executable script!\n";
+        return;
+    }
 
     #--------------------------------------------------------------------------------#
     # Create the excluded series description regex necessary to exclude the          #
     # series description specified in the Config Setting excluded_series_description #
     # If there are no series to exclude, $excluded_regex remains undef               #
     #--------------------------------------------------------------------------------#
-    if ($exclude && ref($exclude) eq 'ARRAY') {
-        $excluded_regex = join('|', map { quotemeta($_) } @$exclude);
-    } elsif ($exclude) {
-        $excluded_regex = $exclude;
-    }
+    $excluded_regex = join('|', map { quotemeta($_) } @exclude) if (@exclude);
 
     #-----------------------------------------------------------------------------------#
     # Run get_dicom_info on all the DICOM files and build the set of all the distinct   #
@@ -1788,11 +1830,12 @@ sub CreateMRICandidates {
     my $pscID  = $subjectIDsref->{'PSCID'};
     my $candID = $subjectIDsref->{'CandID'};
 
-
     # If there already is a candidate with that PSCID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
     # that pscid and candid match so we don't do it here.
-    return if $pscID ne 'scanner' && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr);
+    return if defined $pscID 
+        && $pscID ne 'scanner' 
+        && NeuroDB::MRI::subjectIDExists('PSCID', $pscID, $dbhr);
     
     # If there already is a candidate with that CandID, skip the creation.
     # Note that validateCandidate (which is called later on) will validate
@@ -1836,13 +1879,13 @@ sub CreateMRICandidates {
     chomp($User);
     $candID = NeuroDB::MRI::createNewCandID($dbhr) unless $candID;
     my %record = (
-        CandID               => $subjectIDsref->{'CandID'},
-        PSCID                => $subjectIDsref->{'PSCID'},
-        DoB                  => $subjectIDsref->{'PatientDoB'},
-        ProjectID            => $subjectIDsref->{'ProjectID'},
-        Sex                  => $sex,
-        RegistrationCenterID => $centerID,
-        UserID               => $User,
+        CandID                => $subjectIDsref->{'CandID'},
+        PSCID                 => $subjectIDsref->{'PSCID'},
+        DoB                   => $subjectIDsref->{'PatientDoB'},
+        Sex                   => $sex,
+        RegistrationCenterID  => $centerID,
+        RegistrationProjectID => $subjectIDsref->{'ProjectID'},
+        UserID                => $User,
     );
 
     $query = sprintf(
@@ -1858,7 +1901,6 @@ sub CreateMRICandidates {
     $message = "\n==> CREATED NEW CANDIDATE: $candID";
     $this->{LOG}->print($message);
     $this->spool($message, 'N', $upload_id, $notify_detailed);
-
 }
 
 

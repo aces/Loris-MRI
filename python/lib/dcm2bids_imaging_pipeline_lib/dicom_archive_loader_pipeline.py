@@ -241,6 +241,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # get the series description from the JSON file
         with open(json_file_path) as json_file:
             json_data_dict = json.load(json_file)
+
+        if "SeriesDescription" not in json_data_dict.keys():
+            return False
+
         series_desc = json_data_dict["SeriesDescription"]
 
         if type(self.excluded_series_desc_regex_list) is str:
@@ -356,6 +360,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         for key in fmap_files_dict.keys():
             sorted_fmap_files_list = fmap_files_dict[key]
+            for fmap_dict in sorted_fmap_files_list:
+                if fmap_dict['json_file_path'].startswith('s3://') and not self.s3_obj:
+                    message = "[ERROR   ] S3 configs not configured properly"
+                    self.log_error_and_exit(message, lib.exitcode.S3_SETTINGS_FAILURE, is_error="Y", is_verbose="N")
             self.imaging_obj.modify_fmap_json_file_to_write_intended_for(
                 sorted_fmap_files_list, self.s3_obj, self.tmp_dir
             )
@@ -415,7 +423,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             self.tarchive_id
         )
         protocol_violations_list = [v["minc_location"] for v in prot_viol_results] if prot_viol_results else None
-        excl_viol_results = self.imaging_obj.mri_viol_log_db_obj.get_excluded_violations_for_tarchive_id(
+        excl_viol_results = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
             self.tarchive_id, "exclude"
         )
         excluded_violations_list = [v["MincFile"] for v in excl_viol_results] if excl_viol_results else None

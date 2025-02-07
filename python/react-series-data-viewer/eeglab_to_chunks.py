@@ -30,7 +30,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     for path in args.files:
         eeg = mne_eeglab._check_load_mat(path, None)
-        eeglab_info = mne_eeglab._get_info(eeg)
+        eeglab_info = mne_eeglab._get_info(eeg, eog=())
         channel_names = eeglab_info[0]['ch_names']
 
         if args.channel_index < 0:
@@ -42,6 +42,7 @@ if __name__ == '__main__':
         if args.channel_count and args.channel_count < 0:
             sys.exit("Channel count must be a positive integer")
 
+        print('Creating chunks for {}'.format(path))
         chunking.write_chunk_directory(
             path=path,
             from_channel_index=args.channel_index,

@@ -3,17 +3,21 @@
 import os
 import sys
 import csv
-from datetime import datetime
 import filecmp
+import hashlib
 import numpy
 import scipy.io
 import shutil
-import subprocess
 import tarfile
 import tempfile
-
+import requests
+import re
+import io
+import mat73
 import lib.exitcode
 
+from datetime import datetime
+from pathlib import Path
 
 __license__ = "GPLv3"
 
@@ -137,28 +141,26 @@ def create_dir(dir_name, verbose):
     return dir_name
 
 
-def create_archive(files_to_archive, archive_rel_name, data_dir):
+def create_archive(files_to_archive, archive_path):
     """
     Creates an archive with the files listed in the files_to_archive tuple.
 
     :param files_to_archive: list of files to include in the archive
      :type files_to_archive: tuple
-    :param archive_rel_name: name of the archive relative to data_dir
-     :type archive_rel_name: str
-    :param data_dir        : data_dir path
-     :type data_dir        : str
+    :param archive_path: full path of archive
+     :type archive_path: str
     """
 
     # if the archive does not already exists, create it
-    if not os.path.isfile(data_dir + archive_rel_name):
-        tar = tarfile.open(data_dir + archive_rel_name, "w:gz")
+    if not os.path.isfile(archive_path):
+        tar = tarfile.open(archive_path, "w:gz")
         for file in files_to_archive:
             filename = os.path.basename(file)
             tar.add(file, arcname=filename, recursive=False)
         tar.close()
 
 
-def update_set_file_path_info(set_file, fdt_file):
+def update_set_file_path_info(set_file, with_fdt_file):
     """
     Updates the path info of the set file with the correct filenames for .set and
     .fdt files (for cases that had to be relabelled to include a Visit Label at
@@ -166,57 +168,76 @@ def update_set_file_path_info(set_file, fdt_file):
 
     :param set_file: complete path of the .set file
      :type set_file: str
-    :param fdt_file: complete path of the .fdt file
-     :type fdt_file: str
+    :param with_fdt_file: Confirm presence of a matching .fdt file
+     :type with_fdt_file: bool
     """
 
     # grep the basename without the extension of set_file
     basename = os.path.splitext(os.path.basename(set_file))[0]
+    set_file_name = numpy.array(basename + ".set")
+    fdt_file_name = numpy.array(basename + ".fdt")
 
-    # read the .set EEG file using scipy
-    dataset = scipy.io.loadmat(set_file)
+    try:
+        # read the .set EEG file using scipy
+        dataset = scipy.io.loadmat(set_file)
 
-    # update the EEG paths in the .set file
-    if 'filename' in dataset.keys():
-        dataset['filename'] = numpy.array(basename + ".set")
-    if 'setname' in dataset.keys():
-        dataset['setname'] = numpy.array(basename)
-    if 'EEG' in dataset.keys():
-        dataset['EEG'][0][0][1] = numpy.array(basename + ".set")
-    if fdt_file and 'EEG' in dataset.keys():
-        dataset['EEG'][0][0][15] = numpy.array(basename + ".fdt")
-        dataset['EEG'][0][0][40] = numpy.array(basename + ".fdt")
+        # update the EEG paths in the .set file
+        if 'filename' in dataset.keys():
+            dataset['filename'] = set_file_name
+        if 'setname' in dataset.keys():
+            dataset['setname'] = numpy.array(basename)
+        if 'EEG' in dataset.keys():
+            dataset['EEG'][0][0][1] = set_file_name
+        if with_fdt_file and 'EEG' in dataset.keys():
+            dataset['EEG'][0][0][15] = fdt_file_name
+            dataset['EEG'][0][0][40] = fdt_file_name
 
-    # write the new .set file with the correct path info
-    scipy.io.savemat(set_file, dataset, False)
+        # write the new .set file with the correct path info
+        scipy.io.savemat(set_file, dataset, False)
+    except NotImplementedError:     # Thrown for matlab v7.3 files
+        # read the .set EEG file using skjerns/mat7.3
+        dataset = mat73.loadmat(set_file, only_include=['filename', 'datfile'])
+
+        if 'filename' not in dataset.keys() or \
+                dataset['filename'] != set_file_name:
+            print('Expected `filename` field: {}'
+                  .format(set_file_name))
+            return False
+
+        if with_fdt_file:
+            if 'datfile' not in dataset.keys() or \
+                    dataset['datfile'] != fdt_file_name:
+                print('Expected `datfile` field: {}'
+                      .format(fdt_file_name))
+                return False
+
+    return True
 
 
-def compute_md5sum(file):
+def compute_blake2b_hash(file_path):
     """
-    Compute the md5sum of a file and returns it.
-
-    :param file: file on which to compute the md5sum
-     :type file: str
-
-    :return: the md5sum of the file
+    Compute the blake2b hash of a file and returns it.
+    :param file_path: path to the file on which to compute the blake2b hash
+     :type file_path: str
+    :return: the blake2b hash of the file
      :rtype: str
     """
+    if os.path.exists(file_path):
+        data = Path(file_path).read_bytes()
+        return hashlib.blake2b(data).hexdigest()
 
-    if not os.path.exists(file):
-        message = '\n\tERROR: file ' + file + ' not found\n'
-        print(message)
-        sys.exit(lib.exitcode.INVALID_PATH)
 
-    out = subprocess.Popen(
-        ['md5sum', file],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT
-    )
-    stdout, stderr = out.communicate()
-
-    md5sum = stdout.split()[0].decode('ASCII')
-
-    return md5sum
+def compute_md5_hash(file_path):
+    """
+    Compute the md5 hash of a file and returns it.
+    :param file_path: path to the file on which to compute the md5 hash
+     :type file_path: str
+    :return: the md5 hash of the file
+     :rtype: str
+    """
+    if os.path.exists(file_path):
+        data = Path(file_path).read_bytes()
+        return hashlib.md5(data).hexdigest()
 
 
 def create_processing_tmp_dir(template_prefix):
@@ -251,3 +272,50 @@ def remove_empty_folders(path_abs):
     for path, _, _ in walk[::-1]:
         if len(os.listdir(path)) == 0:
             os.rmdir(path)
+
+
+def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
+    # Using HED Tool Rest Services to assemble the HED Tags
+    # https://hed-examples.readthedocs.io/en/latest/HedToolsOnline.html#hed-restful-services
+
+    # Request CSRF Token & session cookie
+    requestTokenURL = 'https://hedtools.ucsd.edu/hed/services'
+    tokenResponse = requests.get(requestTokenURL)
+
+    cookie = tokenResponse.headers['Set-Cookie']
+    token = re.search('csrf_token" value="(.+?)"', tokenResponse.text).group(1)
+
+    # Define headers for assemble POST request, containing token and cookie
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-CSRFToken": token,
+        "Cookie": cookie
+    }
+
+    # Read event files as str
+    eventJsonText = open(data_dir + event_json_path, 'r').read()
+    eventTsvText = open(data_dir + event_tsv_path, 'r').read()
+
+    # Define request parameters
+    params = {
+        'service': 'events_assemble',
+        'schema_version': '8.0.0',
+        'json_string': eventJsonText,
+        'events_string': eventTsvText,
+        'check_for_warnings': 'off',
+        'expand_defs': 'on',
+        'columns_included': ['onset']
+    }
+
+    # Make the request to assemble
+    requestAssembleURL = 'https://hedtools.ucsd.edu/hed/services_submit'
+    assembleResponse = requests.post(
+        requestAssembleURL, headers=headers, json=params
+    )
+
+    # get assembled results as dictionary
+    data = assembleResponse.json()['results']['data']
+    results = list(csv.DictReader(io.StringIO(data), delimiter='\t'))
+
+    return results

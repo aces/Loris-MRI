@@ -135,6 +135,21 @@ class BasePipeline:
             if "tarchive_path" in self.options_dict.keys() else None
         success = False
         err_msg = ''
+        if upload_id and tarchive_path:
+            self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
+            if not self.imaging_upload_obj.imaging_upload_dict:
+                err_msg += f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}."
+                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+            tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
+            if not tarchive_id:
+                err_msg += f"UploadID {upload_id} is not linked to any tarchive in mri_upload."
+                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+            self.dicom_archive_obj.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
+            db_archive_location = self.dicom_archive_obj.tarchive_info_dict['ArchiveLocation']
+            if os.path.join(self.data_dir, 'tarchive', db_archive_location) != tarchive_path:
+                err_msg += f"UploadID {upload_id} and ArchiveLocation {tarchive_path} do not refer to the same upload"
+                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+
         if upload_id:
             self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
             if not self.imaging_upload_obj.imaging_upload_dict:
@@ -159,7 +174,7 @@ class BasePipeline:
             else:
                 err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
 
-        if not success and not self.options_dict["force"]["value"]:
+        if not success and not self.force:
             self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
 
     def determine_study_info(self):
@@ -333,7 +348,7 @@ class BasePipeline:
         visit_label = self.subject_id_dict["visitLabel"]
         create_visit_label = self.subject_id_dict["createVisitLabel"]
         project_id = self.subject_id_dict["ProjectID"] if "ProjectID" in self.subject_id_dict.keys() else None
-        subproject_id = self.subject_id_dict["SubprojectID"] if "SubprojectID" in self.subject_id_dict.keys() else None
+        cohort_id = self.subject_id_dict["CohortID"] if "CohortID" in self.subject_id_dict.keys() else None
 
         # check if whether the visit label should be created
         if not create_visit_label:
@@ -345,16 +360,16 @@ class BasePipeline:
             message = "Cannot create visit: profile file does not defined the visit's ProjectID"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
-        # check if a subproject ID was provided in the config file for the visit label
-        if not subproject_id:
-            message = "Cannot create visit: profile file does not defined the visit's SubprojectID"
+        # check if a cohort ID was provided in the config file for the visit label
+        if not cohort_id:
+            message = "Cannot create visit: profile file does not defined the visit's CohortID"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
-        # check that the project ID and subproject ID refers to an existing row in project_subproject_rel table
-        self.session_obj.create_proj_subproj_rel_info_dict(project_id, subproject_id)
-        if not self.session_obj.proj_subproj_rel_info_dict.keys():
-            message = f"Cannot create visit with project ID {project_id} and subproject ID {subproject_id}:" \
-                      f" no such association in table project_subproject_rel"
+        # check that the project ID and cohort ID refers to an existing row in project_cohort_rel table
+        self.session_obj.create_proj_cohort_rel_info_dict(project_id, cohort_id)
+        if not self.session_obj.proj_cohort_rel_info_dict.keys():
+            message = f"Cannot create visit with project ID {project_id} and cohort ID {cohort_id}:" \
+                      f" no such association in table project_cohort_rel"
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
         # determine the visit number and center ID for the next session to be created
@@ -376,7 +391,7 @@ class BasePipeline:
                 'Current_stage': 'Not Started',
                 'Scan_done': 'Y',
                 'Submitted': 'N',
-                'SubprojectID': subproject_id,
+                'CohortID': cohort_id,
                 'ProjectID': project_id
             }
         )

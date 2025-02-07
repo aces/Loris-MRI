@@ -223,8 +223,11 @@ if ( $metadata_file && !(-r $metadata_file) ){
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
-
-
+# Ensure argument to -date_acquired is a valid date in format YYYY-MM-DD
+if ($date_acquired !~ /^\d{4}-\d{2}-\d{2}$/ || !str2time($date_acquired)) {
+    print STDERR "$Usage\n\tERROR: argument '$date_acquired' for -date_acquired is not a valid date in YYYY-MM-DD format.\n\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
 
 # ----------------------------------------------------------------
 ## Establish database connection
@@ -273,6 +276,12 @@ my $log_file = $log_dir . "/" . $temp_log . ".log";
 my $message  = "\nlog dir is $log_dir and log file is $log_file.\n";
 print $message if $verbose;
 
+# create Notify and Utility objects
+my $notifier = NeuroDB::Notify->new(\$dbh);
+my $utility  = NeuroDB::MRIProcessingUtility->new(
+    $db, \$dbh, 0, $TmpDir, $log_file, $verbose, $profile
+);
+
 # open log file and write successful connection to DB
 open( LOG, ">>", $log_file ) or die "\nError Opening $log_file.\n";
 LOG->autoflush(1);
@@ -280,11 +289,20 @@ LOG->autoflush(1);
 $message = "\n==> Successfully connected to database\n";
 print LOG $message;
 
-# create Notify and Utility objects
-my $notifier = NeuroDB::Notify->new(\$dbh);
-my $utility  = NeuroDB::MRIProcessingUtility->new(
-    $db, \$dbh, 0, $TmpDir, $log_file, $verbose, $profile
-);
+##### Verify that the upload ID refers to a valid upload ID
+my $query = "SELECT UploadID FROM mri_upload WHERE UploadID=?";
+my $sth = $dbh->prepare($query);
+$sth->execute($upload_id);
+unless ($sth->rows > 0) {
+    # if no row returned, exits with message that did not find this upload ID
+    $message = "\n\tERROR: Invalid UploadID $upload_id.\n\n";
+    # write error message in the log file
+    $utility->writeErrorLog(
+        $message, $NeuroDB::ExitCodes::SELECT_FAILURE, $log_file
+    );
+    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
+}
+
 
 
 
@@ -306,28 +324,6 @@ unless ( defined NeuroDB::MRI::getScannerCandID($scanner_id, $db) ) {
     exit $NeuroDB::ExitCodes::SELECT_FAILURE;
 }
 
-
-
-
-##### Verify that the upload ID refers to a valid upload ID
-my $query = "SELECT UploadID FROM mri_upload WHERE UploadID=?";
-my $sth = $dbh->prepare($query);
-$sth->execute($upload_id);
-unless ($sth->rows > 0) {
-    # if no row returned, exits with message that did not find this upload ID
-    $message = "\n\tERROR: Invalid UploadID $upload_id.\n\n";
-    # write error message in the log file
-    $utility->writeErrorLog(
-        $message, $NeuroDB::ExitCodes::SELECT_FAILURE, $log_file
-    );
-    # insert error message into notification spool table
-    $notifier->spool(
-        'imaging non minc file insertion'   , $message,   0,
-        'imaging_non_minc_insertion.pl', $upload_id, 'Y',
-        'N'
-    );
-    exit $NeuroDB::ExitCodes::SELECT_FAILURE;
-}
 
 
 

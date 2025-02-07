@@ -152,8 +152,24 @@ Under the `Imaging Pipeline` section:
     typically `/data/$PROJECT/data/tarchive/`
  * `Patient identifiers and center name lookup variable`: DICOM header that
     contains the LORIS candidate identifiers; typically `PatientName`
- * `Upload creation of candidates`: enable or disable candidate creation into LORIS
+ * `Enable candidate creation`: enable or disable candidate creation into LORIS
     when running the insertion pipeline
+ * `Enable visit creation`: enable or disable visit creation into LORIS
+    when running the insertion pipeline
+ * `Default project`: Default cohort used when Enable visit creation is set to true. This value is used when
+   the following rules fails:
+      - the $subjectID{'ProjectID'} is undef in the profileTemplate (prod) file;
+      - the ProjectID from the session table, if the PSCID and visit labels exist;
+      - the ProjectID from the candidate table, if the PSCID exists.
+ * `Default cohort`: Default cohort used when Enable visit creation is set to true. This value is used when
+   the following rules fails:
+      - the $subjectID{'CohortID'} is undef in the profileTemplate (prod) file;
+      - the CohortID from the session table, if the PSCID and visit labels exist;
+      - the default_cohort DB config value.
+ * `Default visit label for BIDS dataset`: the visit directory in BIDS
+    structure is optional in the case of only one visit for the whole dataset. In
+    this case, we need to specify to LORIS what would be the default visit label
+    the project wants to use to store the electrophysiology datasets (*e.g.* V01).
  * `Project batch management used`: enable or disable batch management
  * `Number of volumes in native DTI acquisitions`: used by the DTIPrep pipeline
  * `Scan type of native T1 acquisition`: name as specified in the `mri_scan_type`
@@ -170,10 +186,6 @@ Under the `Imaging Pipeline` section:
     control. Feature to be integrated in the code base in a **future** release.
  * `Name of the Perl MRI config file`: name of the perl-based MRI config file to use when running
     the Perl insertion scripts; typically `prod`; used when Auto launch is turned on.
- * `Default visit label for BIDS dataset`: the visit directory in BIDS 
-    structure is optional in the case of only one visit for the whole dataset. In
-    this case, we need to specify to LORIS what would be the default visit label 
-    the project wants to use to store the electrophysiology datasets (*e.g.* V01).
  * `Name of the environment file`: name of the MRI environment file to source before
     running the insertion scripts; typically `environment`; used when Auto-launch
     is turned on for the pipeline.

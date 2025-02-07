@@ -65,7 +65,7 @@ The MINC images that can be viewed via BrainBrowser in the imaging browser
   type (such as `native` or `processed`). For example, a native T1W image for 
   subject 123456's V1 visit will be located in 
   `data/assembly/123456/V1/mri/native/project_123456_V1_T1W_001.mnc`.
-    
+
 ```
 ## Content of the /data/$PROJECT/data/assembly directory
 .
@@ -91,7 +91,7 @@ The BIDS images derived from DICOM files that can be viewed via BrainBrowser in 
   For example, a native T1W image for subject 123456's V1 visit will be located in 
   `data/assembly_bids/sub-123456/ses-V1/anat/sub-123456_ses-V1_run-1_T1w.nii.gz` along with its
   JSON side car file `data/assembly_bids/sub-123456/ses-V1/anat/sub-123456_ses-V1_run-1_T1w.json`.
-    
+
 ```
 ## Content of the /data/$PROJECT/data/assembly_bids directory
 .
@@ -347,7 +347,7 @@ First, all DICOMs are converted into either MINC format (using `dcm2mnc`
       in the `mri_protocol` table belongs to one and only one group. 
   * the `mri_protocol_group_target` table is used to determine which scanning protocol
       group to use in order to identify the type of a given scan based on the 
-      subject's project, the subject's subproject or the visit at which the scan was
+      subject's project, the subject's cohort or the visit at which the scan was
       done.
   * the `mri_protocol_checks` table stores additional protocol checks 
   	  after an acquisition has been identified in order to automatically flag 
@@ -357,7 +357,7 @@ First, all DICOMs are converted into either MINC format (using `dcm2mnc`
       group.
   * the `mri_protocol_checks_group_target` table is used to determine which protocol
       checks to use when an archive is processed by the MRI pipeline based on the
-      subject's project, the subject's subproject or the visit at which the scan was 
+      subject's project, the subject's cohort or the visit at which the scan was 
       done.
   * the `bids_mri_scan_type_rel*` table is used to determine the name convention to be 
       used for the BIDS data based on a specific scan type. It is linked to the 

@@ -166,7 +166,7 @@ foreach my $row (@$arr_ref) {
     # create the gzipped NIfTI file
     my $gzip_nifti = &NeuroDB::MRI::gzip_file($nifti_full_path);
     unless ($gzip_nifti) {
-        print "WARNING: Failure to create $gzip_nifti on the filesystem\n";
+        print "WARNING: Failure to create $nifti_full_path.gz on the filesystem\n";
         next;
     }
 

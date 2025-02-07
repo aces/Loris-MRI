@@ -131,8 +131,8 @@ INPUTS:
   - $User        : user running the insertion pipeline
   - $centerID    : center ID of the candidate
 
-RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label 
-and `CandMismatchError` information
+RETURNS: subject's ID hash ref containing `CandID`, `PSCID`, Visit Label,
+ProjectID, CohortID and `CandMismatchError` information
 
 ### createTarchiveArray($tarchive)
 
@@ -188,8 +188,8 @@ in the DICOM headers, then a new scanner will automatically be created.
 INPUTS:
   - $tarchiveInfo: archive information hash ref
   - $to\_log      : whether this step should be logged
-  - $centerID     : center ID
-  - $projectID    : project ID
+  - $centerID    : center ID
+  - $projectID   : project ID
   - $upload\_id   : upload ID of the study
 
 RETURNS: scanner ID
@@ -208,7 +208,7 @@ INPUTS:
 
 RETURNS: 1 if the file is unique, 0 otherwise
 
-### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $center\_name, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id, $data\_dir)
+### getAcquisitionProtocol($file, $subjectIDsref, $tarchiveInfo, $centerID, $minc, $acquisitionProtocol, $bypass\_extra\_file\_checks, $upload\_id, $data\_dir)
 
 Determines the acquisition protocol and acquisition protocol ID for the MINC
 file. If `$acquisitionProtocol` is not set, it will look for the acquisition
@@ -221,7 +221,7 @@ INPUTS:
   - $file                    : file's information hash ref
   - $subjectIDsref           : subject's information hash ref
   - $tarchiveInfo            : DICOM archive's information hash ref
-  - $center\_name             : center name
+  - $centerID                : ID of the center where the scan was acquired.
   - $minc                    : absolute path to the MINC file
   - $acquisitionProtocol     : acquisition protocol if already knows it
   - $bypass\_extra\_file\_checks: boolean, if set bypass the extra checks
@@ -263,7 +263,7 @@ updated in the `mri_violations_log` table.
 
 INPUTS: file handle reference to the NeuroDB::File object
 
-### loop\_through\_protocol\_violations\_checks($scan\_type, $severity, $headers, $file, $projectID, $subprojectID, $visitLabel)
+### loop\_through\_protocol\_violations\_checks($scan\_type, $severity, $headers, $file, $projectID, $cohortID, $visitLabel)
 
 Loops through all protocol violations checks for a given severity and creates
 a hash with all the checks that need to be applied on that specific scan type
@@ -276,7 +276,7 @@ INPUTS:
                    table for a given scan type
   - $file        : file information hash ref
   - $projectID   : candidate's project ID
-  - $subprojectID: session's subproject ID
+  - $cohortID    : session's cohort ID
   - $visitLabel  : session name
 
 RETURNS: a hash with all information about the checks for a given scan type
@@ -295,6 +295,7 @@ INPUTS:
   - $visit\_label : visit label associated with the scan
   - $file        : information about the scan
   - $data\_dir    : path to the LORIS MRI data directory
+  - $scan\_type   : scan type associated to the file
 
 ### loadAndCreateObjectFile($minc, $upload\_id)
 
@@ -340,7 +341,7 @@ INPUTS:
 
 RETURNS: acquisition protocol ID of the MINC file
 
-### dicom\_to\_minc($study\_dir, $converter, $get\_dicom\_info, $exclude, $mail\_user, $upload\_id)
+### dicom\_to\_minc($study\_dir, $converter, $get\_dicom\_info, $mail\_user, $upload\_id, @exclude)
 
 Converts a DICOM study into MINC files.
 
@@ -348,9 +349,9 @@ INPUTS:
   - $study\_dir      : DICOM study directory to convert
   - $converter      : converter to be used
   - $get\_dicom\_info : get DICOM information setting from the `Config` table
-  - $exclude        : which files to exclude from the `dcm2mnc` command
   - $mail\_user      : mail of the user
   - $upload\_id      : upload ID of the study
+  - @exclude        : which files to exclude from the `dcm2mnc` command
 
 ### get\_mincs($minc\_files, $upload\_id)
 

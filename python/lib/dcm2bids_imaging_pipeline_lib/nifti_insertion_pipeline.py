@@ -1,15 +1,14 @@
 import datetime
 import getpass
-import hashlib
 import json
 import lib.exitcode
+import lib.utilities as utilities
 import os
 import re
 import subprocess
 import sys
 
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
-from pyblake2 import blake2b
 
 __license__ = "GPLv3"
 
@@ -39,15 +38,15 @@ class NiftiInsertionPipeline(BasePipeline):
         self.nifti_path = self.options_dict["nifti_path"]["value"]
         self.nifti_s3_url = self.options_dict["nifti_path"]["s3_url"] \
             if 's3_url' in self.options_dict["nifti_path"].keys() else None
-        self.nifti_blake2 = blake2b(self.nifti_path.encode('utf-8')).hexdigest()
-        self.nifti_md5 = hashlib.md5(self.nifti_path.encode()).hexdigest()
+        self.nifti_blake2 = utilities.compute_blake2b_hash(self.nifti_path)
+        self.nifti_md5 = utilities.compute_md5_hash(self.nifti_path)
         self.json_path = self.options_dict["json_path"]["value"]
-        self.json_blake2 = blake2b(self.json_path.encode('utf-8')).hexdigest() if self.json_path else None
+        self.json_blake2 = utilities.compute_blake2b_hash(self.json_path) if self.json_path else None
         self.bval_path = self.options_dict["bval_path"]["value"]
-        self.bval_blake2 = blake2b(self.bval_path.encode('utf-8')).hexdigest() if self.bval_path else None
+        self.bval_blake2 = utilities.compute_blake2b_hash(self.bval_path) if self.bval_path else None
         self.bvec_path = self.options_dict["bvec_path"]["value"]
-        self.bvec_blake2 = blake2b(self.bvec_path.encode('utf-8')).hexdigest() if self.bval_path else None
-        self.json_md5 = hashlib.md5(self.json_path.encode()).hexdigest()
+        self.bvec_blake2 = utilities.compute_blake2b_hash(self.bvec_path) if self.bval_path else None
+        self.json_md5 = utilities.compute_md5_hash(self.json_path)
         self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
 
@@ -117,8 +116,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
         # ---------------------------------------------------------------------------------------------
+        self.scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
         if not self.loris_scan_type:
-            self.scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
             if not self.scan_type_id:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
@@ -127,7 +126,7 @@ class NiftiInsertionPipeline(BasePipeline):
                 message = f"{self.nifti_path}'s acquisition protocol is 'unknown'."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
             else:
-                self.scan_type_name = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
+                self.loris_scan_type = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
         else:
             self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
             if not self.scan_type_id:
@@ -135,7 +134,7 @@ class NiftiInsertionPipeline(BasePipeline):
                 self._register_protocol_violated_scan()
                 if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
                     self._run_push_to_s3_pipeline()
-                message = f"{self.nifti_path}'s scan type {self.scan_type_name} provided to run_nifti_insertion.py" \
+                message = f"{self.nifti_path}'s scan type {self.loris_scan_type} provided to run_nifti_insertion.py" \
                           f" is not a valid scan type in the database."
                 self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
@@ -148,22 +147,24 @@ class NiftiInsertionPipeline(BasePipeline):
             self._register_protocol_violated_scan()
             if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
                 self._run_push_to_s3_pipeline()
-            message = f"Scan type {self.scan_type_name} does not have BIDS tables set up."
+            message = f"Scan type {self.loris_scan_type} does not have BIDS tables set up."
             self.log_error_and_exit(message, lib.exitcode.UNKNOWN_PROTOCOL, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
         # ---------------------------------------------------------------------------------------------
+        self.warning_violations_list = []
+        self.exclude_violations_list = []
         if not self.bypass_extra_checks:
             self.violations_summary = self.imaging_obj.run_extra_file_checks(
                 self.session_obj.session_info_dict['ProjectID'],
-                self.session_obj.session_info_dict['SubprojectID'],
+                self.session_obj.session_info_dict['CohortID'],
                 self.session_obj.session_info_dict['Visit_label'],
                 self.scan_type_id,
                 self.json_file_dict
             )
-        self.warning_violations_list = self.violations_summary['warning']
-        self.exclude_violations_list = self.violations_summary['exclude']
+            self.warning_violations_list = self.violations_summary['warning']
+            self.exclude_violations_list = self.violations_summary['exclude']
 
         # ---------------------------------------------------------------------------------------------
         # Register files in the proper tables
@@ -344,13 +345,15 @@ class NiftiInsertionPipeline(BasePipeline):
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
             self.session_obj.session_info_dict['ProjectID'],
-            self.session_obj.session_info_dict['SubprojectID'],
+            self.session_obj.session_info_dict['CohortID'],
             self.session_obj.session_info_dict['CenterID'],
             self.session_obj.session_info_dict['Visit_label'],
             self.scanner_id
         )
 
-        protocol_info = self.imaging_obj.get_acquisition_protocol_info(protocols_list, nifti_name, scan_param)
+        protocol_info = self.imaging_obj.get_acquisition_protocol_info(
+            protocols_list, nifti_name, scan_param, self.loris_scan_type
+        )
         self.log_info(protocol_info['error_message'], is_error="N", is_verbose="Y")
 
         return protocol_info['scan_type_id'], protocol_info['mri_protocol_group_id']
@@ -396,7 +399,7 @@ class NiftiInsertionPipeline(BasePipeline):
         self.log_info(message, is_error='N', is_verbose='Y')
 
         # add an entry in the violations log table if there is a warning violation associated to the file
-        if self.violations_summary['warning']:
+        if self.warning_violations_list:
             message = f"Inserting warning violations related to {self.assembly_nifti_rel_path}." \
                       f"  List of violations found: {self.warning_violations_list}"
             self.log_info(message, is_error='N', is_verbose='Y')
@@ -428,12 +431,11 @@ class NiftiInsertionPipeline(BasePipeline):
         bids_cand_id = 'sub-' + self.subject_id_dict['CandID']
         bids_visit = 'ses-' + self.subject_id_dict['visitLabel']
         bids_subfolder = self.bids_categories_dict['BIDSCategoryName']
-        new_nifti_rel_dir = os.path.join('assembly_bids', bids_cand_id, bids_visit, bids_subfolder)
 
         # determine NIfTI file name
         new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
-        already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_tarchive_id(
-            self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
+        already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_session_id(
+            self.session_obj.session_info_dict['ID']
         )
         while new_nifti_name in already_inserted_filenames:
             file_bids_entities_dict['run'] += 1

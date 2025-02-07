@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 =pod
 
@@ -10,7 +10,7 @@ delete_imaging_upload.pl -- Delete everything that was produced (or part of what
 =head1 SYNOPSIS
 
 perl delete_imaging_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
-            [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk]
+            [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk] [-extra_mysqlcnf file]
 
 Available options are:
 
@@ -65,9 +65,18 @@ Available options are:
                          C<imaging_upload_restore.sql>, to the backup file is the default behaviour.
 
 -dumpOptions           : options to add to the mysqldump command. By default, the following options are used
-                         C<--no-create-info --compact --single-transaction --skip-extended-insert --no-tablespaces>.
+                         C<--no-create-info --compact --skip-extended-insert --no-tablespaces>.
                          Example of additional option: C<--column-statistics=0> to disable column statistics flag in
                          mysqldump 8.
+
+-extra_mysqlcnf <file> : MySql config file containing the password to log in the database (see
+                         C<https://dev.mysql.com/doc/refman/8.0/en/option-files.html> for a description of this file's format).
+                         This file should only contain the password stored in the C<@db> array defined in your C<prod> file.
+                         You should use that option if you do not have a default C<.mysql.cnf> config file containing the credentials
+                         to log in the database. If this option is used, C<delete_imaging_upload.pl> will pass the option
+                         C<--defaults-extra-file=file> to the C<mysqldump> command when creating a backup of the SQL tables. Note that
+                         only the password is fetched in this file, the host name and user name used to access the database are actually
+                         retrieved from the C<prod> file.
 
 =head1 DESCRIPTION
 
@@ -114,9 +123,13 @@ one must use C<tar> with option C<--absolute-names>.
 
 The script will also create a file that contains a backup of all the information that was deleted or modified from the 
 database tables. This backup is created using C<mysqldump> and contains an C<INSERT> statement for every record erased.
-It will be part of the backup archive mentioned above unless option C<-nosqlbk> is used. If sourced back into the database
-with C<mysql>, it should allow the database to be exactly like it was before C<delete_imaging_upload.pl> was invoked, 
-provided the database was not modified in the meantime. The SQL backup file will be named C<imaging_upload_restore.sql>.
+When running C<mysqldump> the script uses the database credentials in file C<~/.my.cnf> to connect to the database. Option
+C<-extra_mysqlcnf> has to be used to specify an alternate credentials file when the default credential file does not exist
+(see C<https://dev.mysql.com/doc/refman/8.0/en/option-files.html> for a descrption of MySQL option files format).
+The backup produced by C<mysqldump> will be part of the backup archive mentioned above unless option C<-nosqlbk> is used.
+If sourced back into the database with C<mysql>, it should allow the database to be exactly like it was before
+C<delete_imaging_upload.pl> was invoked, provided the database was not modified in the meantime. The SQL backup file will
+be named C<imaging_upload_restore.sql>.
 
 2. Delete specific scan types from an archive. The behaviour of the script is identical to the one described above, except 
    that:
@@ -167,7 +180,10 @@ use NeuroDB::DatabaseException;
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
 
+# Default credentials file used when running mysqldump
+use constant DEFAULT_MYSQLDUMP_CNF_FILE        => '~/.my.cnf';
 
+# Default values for various options
 use constant DEFAULT_PROFILE                   => 'prod';
 use constant DEFAULT_DIE_ON_FILE_ERROR         => 1;
 use constant DEFAULT_NO_FILES_BK               => 0;
@@ -215,7 +231,8 @@ my %options = (
     BACKUP_PATH               => '',
     UPLOAD_ID                 => '',
     BASENAME                  => '',
-    DUMP_ADDITIONAL_OPTIONS   => ''
+    DUMP_ADDITIONAL_OPTIONS   => '',
+    EXTRA_MYSQLCNF            => ''
 );
 
 my $scanTypeList           = undef;
@@ -248,8 +265,11 @@ my @opt_table = (
      'Delete a file with a specific basename.'],
     ['-dumpOptions', 'string'       , 1, \$options{'DUMP_ADDITIONAL_OPTIONS'},
      'Additional options to use with the mysqldump command. By default, the following options are used when running'
-     . 'mysqldump: --no-create-info --compact --single-transaction --skip-extended-insert --no-tablespaces.'
-     . 'Example of additional option: \'--column-statistics=0\' to disable column statistics flag in mysqldump 8.']
+     . 'mysqldump: --no-create-info --compact --skip-extended-insert --no-tablespaces.'
+     . 'Example of additional option: \'--column-statistics=0\' to disable column statistics flag in mysqldump 8.'],
+    ['-extra_mysqlcnf', 'string'    , 1, \$options{'EXTRA_MYSQLCNF'},
+     '(OPTIONAL) Path of the extra MySQL configuration file to use'],
+
 );
 
 my $Help = <<HELP;
@@ -258,7 +278,7 @@ HELP
 my $usage = <<USAGE;
 Usage: $0 [-profile file] [-ignore] [-backup_path path] [-protocol] [-form] [-uploadID list_of_uploadIDs]
             [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk]
-            [-dumpOptions 'dumpOption']
+            [-dumpOptions 'dumpOption'] [-extra_mysqlcnf file]
 USAGE
 
 &Getopt::Tabular::SetHelp($Help, $usage);
@@ -318,6 +338,15 @@ if($options{'BACKUP_PATH'} ne '' && -e "$options{'BACKUP_PATH'}.tar.gz") {
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
+if($options{'EXTRA_MYSQLCNF'} ne '' && !-e "$options{'EXTRA_MYSQLCNF'}") {
+    printf STDERR "Invalid argument to -extra_mysqlcnf: file $options{'EXTRA_MYSQLCNF'} does not exist. Aborting.\n";
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
+
+if($options{'EXTRA_MYSQLCNF'} eq '' && !-r DEFAULT_MYSQLDUMP_CNF_FILE) {
+    printf STDERR "You must use option -extra_mysqlcnf since file %s does not exist or is not readable. Aborting.\n", DEFAULT_MYSQLDUMP_CNF_FILE;
+    exit $NeuroDB::ExitCodes::INVALID_ARG;
+}
 # Split the comma-separated string into a list of numbers
 $options{'UPLOAD_ID'} = [ split(',', $options{'UPLOAD_ID'}) ];
 
@@ -1528,9 +1557,13 @@ sub setFileExistenceStatus {
     my %missingFiles;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
-			$f->{'Exists'} = undef, next if !$f->{'FullPath'};
+	    $f->{'Exists'} = undef, next if !$f->{'FullPath'};
 			
-            $f->{'Exists'} = -e $f->{'FullPath'};
+            # The -f test is to ensure $f->{'FullPath'} is an actual file
+            # and not a directory. If $f->{'FullPath'} is a directory, it
+            # means that it has an incorrect/invalid value and should not be backed up
+            # later on.
+            $f->{'Exists'} = -f $f->{'FullPath'} && -e $f->{'FullPath'};
             
             # A file is only considered "missing" if it is expected to be on the file
             # system but is not. There are some file paths refered to in the database that
@@ -1708,7 +1741,6 @@ sub deleteUploadsInDatabase {
     # This starts a DB transaction. All operations are delayed until
     # commit is called
     $dbh->begin_work;
-    my $dump_opt = $options{DUMP_ADDITIONAL_OPTIONS};
     
     my(undef, $tmpSQLFile) = $optionsRef->{'NO_SQL_BK'}
         ? (undef, undef) : tempfile('sql_backup_XXXX', UNLINK => 1);
@@ -1717,52 +1749,52 @@ sub deleteUploadsInDatabase {
 
     my $nbRecordsDeleted = 0;
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
-        $nbRecordsDeleted += &deleteTableData($dbh, 'notification_spool', 'ProcessID', \@IDs, $tmpSQLFile, $dump_opt);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'notification_spool', 'ProcessID', \@IDs, $tmpSQLFile, $optionsRef);
     }
     
     # If only specific scan types are targeted for deletion, do not delete the entries in
     # tarchive_files and tarchive_series as these are tied to the archive, not the MINC files   
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         my $IDsRef = &getTarchiveSeriesIDs($dbh, $filesRef);  
-        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_files', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile, $dump_opt);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_files', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile, $optionsRef);
     
-        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_series', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile, $dump_opt);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_series', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile, $optionsRef);
     }
     
     @IDs = map { $_->{'ParameterFileID'} } @{ $filesRef->{'parameter_file'} };
-    $nbRecordsDeleted += &deleteTableData($dbh, 'parameter_file', 'ParameterFileID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'parameter_file', 'ParameterFileID', \@IDs, $tmpSQLFile, $optionsRef);
     
     @IDs = map { $_->{'IntermedID'} } @{ $filesRef->{'files_intermediary'} };
-    $nbRecordsDeleted += &deleteTableData($dbh, 'files_intermediary', 'IntermedID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'files_intermediary', 'IntermedID', \@IDs, $tmpSQLFile, $optionsRef);
     
     # Since all files in files_intermediary are linked to other files in table files, we
     # have to delete these files first from table files.
     if(!$optionsRef->{'KEEP_DEFACED'}) {
         @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
-        $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile, $dump_opt);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile, $optionsRef);
     } else { 
         &updateFilesIntermediaryTable($dbh, $filesRef, $tmpSQLFile);
     }
 
     @IDs = map { $_->{'BIDSExportedFileID'} } @{ $filesRef->{'bids_export_files'}};
-    $nbRecordsDeleted += &deleteTableData($dbh, 'bids_export_files', 'BIDSExportedFileID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'bids_export_files', 'BIDSExportedFileID', \@IDs, $tmpSQLFile, $optionsRef);
 
     @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
-    $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile, $optionsRef);
     
     @IDs = map { $_->{'ProcessProtocolID'} } @{ $filesRef->{'mri_processing_protocol'} };
-    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_processing_protocol', 'ProcessProtocolID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_processing_protocol', 'ProcessProtocolID', \@IDs, $tmpSQLFile, $optionsRef);
 
     @IDs = map { $_->{'ID'} } @{ $filesRef->{'mri_protocol_violated_scans'} };
-    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_protocol_violated_scans', 'ID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_protocol_violated_scans', 'ID', \@IDs, $tmpSQLFile, $optionsRef);
     
     @IDs = map { $_->{'LogID'} } @{ $filesRef->{'mri_violations_log'} };
-    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_violations_log', 'LogID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_violations_log', 'LogID', \@IDs, $tmpSQLFile, $optionsRef);
     
     @IDs = map { $_->{'ID'} } @{ $filesRef->{'MRICandidateErrors'} };
-    $nbRecordsDeleted += &deleteTableData($dbh, 'MRICandidateErrors', 'ID', \@IDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'MRICandidateErrors', 'ID', \@IDs, $tmpSQLFile, $optionsRef);
     
-    $nbRecordsDeleted += &deleteMriParameterForm($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile, $dump_opt) if $optionsRef->{'DELETE_MRI_PARAMETER_FORM'};
+    $nbRecordsDeleted += &deleteMriParameterForm($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile, $optionsRef) if $optionsRef->{'DELETE_MRI_PARAMETER_FORM'};
 
     # Should check instead if the tarchive is not tied to anything
     # (i.e no associated entries in files, mri_violations_log, etc...)
@@ -1772,9 +1804,9 @@ sub deleteUploadsInDatabase {
     my $tarchiveID = $filesRef->{'mri_upload'}->[0]->{'TarchiveID'};
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
-        $nbRecordsDeleted += &deleteTableData($dbh, 'mri_upload', 'UploadID', \@IDs, $tmpSQLFile, $dump_opt);
+        $nbRecordsDeleted += &deleteTableData($dbh, 'mri_upload', 'UploadID', \@IDs, $tmpSQLFile, $optionsRef);
    
-        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile, $dump_opt) if defined $tarchiveID;
+        $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile, $optionsRef) if defined $tarchiveID;
     }
     
     &updateSessionTable($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) unless @$scanTypesToDeleteRef || $optionsRef->{'BASENAME'} ne '';
@@ -1915,7 +1947,7 @@ sub updateFilesIntermediaryTable {
 
 =pod
 
-=head3 deleteMriParameterForm($dbh, $mriUploadsRef, $tmpSQLFile, $dump_opt)
+=head3 deleteMriParameterForm($dbh, $mriUploadsRef, $tmpSQLFile, $optionsRef)
 
 Delete the entries in C<mri_parameter_form> (and associated C<flag> entry) for the upload(s) passed on the
 command line. The script also adds an SQL statement in the SQL file whose path is passed as argument to 
@@ -1928,14 +1960,14 @@ INPUTS:
                  in the array. The properties stored for each hash are: C<UploadID>, C<TarchiveID>, C<FullPath>
                  C<Inserting>, C<InsertionComplete> and C<SessionID>.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-   - $dump_opt: additional options to use for mysqldump
+   - $optionsRef: reference to the array that contains the options passed on the command line.
 
 RETURNS:
    - The numbers of records deleted as a result of this operation.
   
 =cut
 sub deleteMriParameterForm {
-    my($dbh, $mriUploadsRef, $tmpSQLFile, $dump_opt) = @_;
+    my($dbh, $mriUploadsRef, $tmpSQLFile, $optionsRef) = @_;
     
     my @uploadIDs = map { $_->{'UploadID'} } @$mriUploadsRef;
     my $query = "SELECT f.CommentID FROM flag f "
@@ -1951,8 +1983,8 @@ sub deleteMriParameterForm {
     return if !@commentIDs;
 
     my $nbRecordsDeleted = 0;
-    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_parameter_form', 'CommentID', \@commentIDs, $tmpSQLFile, $dump_opt);
-    $nbRecordsDeleted += &deleteTableData($dbh, 'flag'              , 'CommentID', \@commentIDs, $tmpSQLFile, $dump_opt);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'mri_parameter_form', 'CommentID', \@commentIDs, $tmpSQLFile, $optionsRef);
+    $nbRecordsDeleted += &deleteTableData($dbh, 'flag'              , 'CommentID', \@commentIDs, $tmpSQLFile, $optionsRef);
 
     return $nbRecordsDeleted;
 }
@@ -2014,8 +2046,8 @@ sub getScanTypesToDelete {
     return () if !defined $scanTypeList && !$keepDefaced;
     
     if($keepDefaced) {
-        my $scanTypesRef = &NeuroDB::DBI::getConfigSetting(\$dbh, 'modalities_to_deface');
-        return defined $scanTypesRef ? (map { $_ => 1 } @$scanTypesRef) : ();
+        my @scanTypes = $configOB->getModalitiesToDeface();
+        return (map { $_ => 1 } @scanTypes);
     }
     
     my %types = map { $_=> 1 } split(/,/, $scanTypeList);
@@ -2062,7 +2094,7 @@ sub getTarchiveSeriesIDs {
     return [ map { $_->{'TarchiveSeriesID'} } @$tarchiveFilesRef ];
 }
 
-=head3 deleteTableData($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $dump_opt)
+=head3 deleteTableData($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $optionsRef)
 
 Deletes records from a database table and adds in a file the SQL statements that allow rewriting the
 records back in the table. 
@@ -2074,14 +2106,14 @@ INPUTS:
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field C<$key> has for the records to delete.
   - $tmpSQLBackupFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-  - $dump_opt: additional options to use for mysqldump
+  - $optionsRef: reference to the array that contains the options passed on the command line.
 
 RETURNS:
   - The number of records deleted.
                
 =cut
 sub deleteTableData {
-    my($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $dump_opt) = @_;
+    my($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $optionsRef) = @_;
     
     return 0 unless @$keyValuesRef;
     
@@ -2089,14 +2121,14 @@ sub deleteTableData {
               . join(',', ('?') x @$keyValuesRef)
               . ')';
 
-    &updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef, $dump_opt) if $tmpSQLBackupFile;
+    &updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef, $optionsRef) if $tmpSQLBackupFile;
 
     my $nbRecordsDeleted = $dbh->do($query, undef, @$keyValuesRef);
 
     return $nbRecordsDeleted;
 }
 
-=head3 updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef, $dump_opt)
+=head3 updateSQLBackupFile($tmpSQLBackupFile, $table, $key, $keyValuesRef, $optionsRef)
 
 Updates the SQL file with the statements to restore the records whose properties are passed as argument.
 The block of statements is written at the beginning of the file.
@@ -2106,11 +2138,11 @@ INPUTS:
   - $table: name of the database table.
   - $key: name of the key used to delete the records.
   - $keyValuesRef: reference on the list of values that field C<$key> has for the records to delete.
-  - $dump_opt: additional options to use for mysqldump
+  - $optionsRef: reference to the array that contains the options passed on the command line.
 
 =cut
 sub updateSQLBackupFile {
-    my($tmpSQLBackupFile, $table, $key, $keyValuesRef, $dump_opt) = @_;
+    my($tmpSQLBackupFile, $table, $key, $keyValuesRef, $optionsRef) = @_;
             
     # Make sure all keys are quoted before using them in the Unix command
     my %quotedKeys;
@@ -2127,24 +2159,43 @@ sub updateSQLBackupFile {
         
     # Run the mysqldump command for the current table and store the
     # result in $tmpSqlBackupFile (overwrite contents)
-    my $mysqldumpOptions = "$dump_opt --no-create-info --compact --single-transaction --skip-extended-insert --no-tablespaces";
-    
-    my $warningToIgnore = 'mysqldump: [Warning] Using a password on the command line interface can be insecure.';
+    # Note that --defaults-extra-file has to be the first option (it it is provided)
+    my $mySqldumpOptions = $optionsRef->{'EXTRA_MYSQLCNF'} ne ''
+        ? sprintf("--defaults-extra-file=%s", quotemeta($optionsRef->{'EXTRA_MYSQLCNF'}))
+        : '';
+    $mySqldumpOptions .= sprintf(
+        " %s --no-create-info --compact --skip-extended-insert --no-tablespaces",
+        $optionsRef->{'DUMP_ADDITIONAL_OPTIONS'}
+    );
+
+    # Create a temporary file for mySqlDump's stdout and stderr
+    my($unusedFileHandle, $mySqlDumpOutputFile) = tempfile("mysqlDumpXXXXX", UNLINK => 1);
     my $cmd = sprintf(
-        "mysqldump $mysqldumpOptions --where='%s IN (%s)' --result-file=%s  -h %s -p%s -u %s %s %s 2>&1 | fgrep -v '$warningToIgnore'",
+        "mysqldump $mySqldumpOptions --where='%s IN (%s)' --result-file=%s  -h %s -u %s %s %s >$mySqlDumpOutputFile 2>&1",
         $key,
         join(',', keys %quotedKeys),
         quotemeta($tmpSQLBackupFile),
         quotemeta($Settings::db[3]),
-        quotemeta($Settings::db[2]),
         quotemeta($Settings::db[1]),
         quotemeta($Settings::db[0]),
         $table
     );
-        
-    system($cmd) != 0
-        or die "Cannot run command $cmd. Aborting\n";
-        
+
+
+    # Execute the command and read the file containing the warnings+errors of the mysqldump command
+    my $mySqlDumpReturnCode = system($cmd);
+    open(MYSQLDUMP_OUTPUT, "<$mySqlDumpOutputFile") or die "Cannot read $mySqlDumpOutputFile: $!\n";
+    my @mySqlDumpOutput = <MYSQLDUMP_OUTPUT>;
+    close(MYSQLDUMP_OUTPUT);
+
+    # Check that command succeeded. Echo the warnings and errors on stdout in all cases.
+    if ($mySqlDumpReturnCode == 0) {
+        printf("Backup of table $table succeeded but a warning was issued: %s.\n", join('', @mySqlDumpOutput)) if @mySqlDumpOutput;
+    } else {
+        die sprintf("Backup of table $table failed with the following output:\n%sAborting\n", join('', @mySqlDumpOutput));
+    }
+    unlink $mySqlDumpOutputFile or warn "Warning! Cannot delete $mySqlDumpOutputFile: $!.\n";
+
     # Write back the original lines contained in $tmpSQlBackupFile at the end of the file.
     # This is so that the mysqldump results are written in the file in the reverse order in
     # which the mySQL delete statements are made.

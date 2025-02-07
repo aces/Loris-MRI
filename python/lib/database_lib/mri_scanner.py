@@ -41,8 +41,8 @@ class MriScanner:
                                       center_id, project_id):
         """
         Select a ScannerID based on the scanner information gathered from the headers of the
-        DICOM archive. If a ScannerID is not found for the scanner but register_new_scanner
-        is set to True in the Config table, a new entry will be inserted into the mri_scanner table.
+        DICOM archive. If a ScannerID is not found for the scanner a new entry will be inserted
+        into the mri_scanner table.
 
         :param manufacturer: scanner manufacturer
          :type manufacturer: str
@@ -61,11 +61,11 @@ class MriScanner:
          :rtype: int
         """
 
-        query = 'SELECT ID AS ScannerID '   \
-                ' FROM mri_scanner '        \
-                ' WHERE Manufacturer = %s ' \
-                '   AND Software = %s '     \
-                '   AND Serial_number =%s ' \
+        query = 'SELECT ID AS ScannerID '    \
+                ' FROM mri_scanner '         \
+                ' WHERE Manufacturer = %s '  \
+                '   AND Software = %s '      \
+                '   AND Serial_number = %s ' \
                 '   AND Model = %s '
 
         arguments = (manufacturer, software_version, serial_number, scanner_model)

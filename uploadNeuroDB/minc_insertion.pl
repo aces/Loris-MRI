@@ -73,6 +73,9 @@ use Data::Dumper;
 use FindBin;
 use Cwd qw/ abs_path /;
 
+use NeuroDB::objectBroker::MriCandidateErrorsOB;
+
+
 # These are the NeuroDB modules to be used
 use lib "$FindBin::Bin";
 use NeuroDB::File;
@@ -334,7 +337,8 @@ if ($upload_id && !$hrrt) {
       IsTarchiveValidated,
       ArchiveLocation
     FROM
-      mri_upload JOIN tarchive USING (TarchiveID)
+      mri_upload
+    LEFT JOIN tarchive USING (TarchiveID)
     WHERE
       UploadID = ?
 QUERY
@@ -342,6 +346,12 @@ QUERY
     my $sth = $dbh->prepare($query);
     $sth->execute($upload_id);
     my @array        = $sth->fetchrow_array;
+
+    die "Upload with ID '$upload_id' does not exist. Aborting.\n" unless @array;
+    if (!defined $array[1]) {
+        die "Upload ID '$upload_id' does not have an associated TarchiveID " .
+            "(dicomTar does not appear to have been successfully run on it...). Aborting.\n";
+    }
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
 
@@ -504,11 +514,6 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
     print LOG " -> WARNING: This candidate was invalid. Logging to
               MRICandidateErrors table with reason $CandMismatchError";
 
-    my $logQuery = "INSERT INTO MRICandidateErrors".
-        "(SeriesUID, TarchiveID, MincFile, PatientName, Reason) ".
-        "VALUES (?, ?, ?, ?, ?)";
-    my $candlogSth = $dbh->prepare($logQuery);
-
     # Strip all trailing newlines from the error message. Reason:
     # you cannot search for records in the LORIS MRI violations
     # module that have a message (i.e. a rejection reason) containing
@@ -521,13 +526,34 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
     # move the file into trashbin
     my $file_rel_path = NeuroDB::MRI::get_trashbin_file_rel_path($minc, $data_dir, 1);
 
-    $candlogSth->execute(
-        $file->getParameter('series_instance_uid'),
-        $studyInfo{'TarchiveID'},
-        $file_rel_path,
-        $studyInfo{'PatientName'},
-        $CandMismatchError
+    my %newMriCandidateErrors = (
+        'TarchiveID'             => $studyInfo{'TarchiveID'},
+        'SeriesUID'              => $file->getParameter('series_instance_uid'),
+        'EchoTime'               => $file->getParameter('echo_time'),
+        'EchoNumber'             => $file->getParameter('echo_numbers'),
+        'PhaseEncodingDirection' => $file->getParameter('phase_encoding_direction'),
+        'MincFile'               => $file_rel_path,
+        'PatientName'            => $studyInfo{'PatientName'},
+        'Reason'                 => $CandMismatchError
     );
+
+    my $mriCandidateErrorsOB = NeuroDB::objectBroker::MriCandidateErrorsOB->new(db => $db);
+    my $mriCandidateErrorsRef = $mriCandidateErrorsOB->getWithTarchiveID($studyInfo{'TarchiveID'});
+
+    my $already_inserted = undef;
+    foreach my $dbMriCandError (@$mriCandidateErrorsRef) {
+        if ($dbMriCandError->{'SeriesUID'} eq $newMriCandidateErrors{'SeriesUID'}
+            && $dbMriCandError->{'EchoTime'} eq $newMriCandidateErrors{'EchoTime'}
+            && $dbMriCandError->{'EchoNumber'} eq $newMriCandidateErrors{'EchoNumber'}
+            && $dbMriCandError->{'PhaseEncodingDirection'} eq $newMriCandidateErrors{'PhaseEncodingDirection'}
+            && $dbMriCandError->{'PatientName'} eq $newMriCandidateErrors{'PatientName'}
+            && $dbMriCandError->{'Reason'} eq $newMriCandidateErrors{'Reason'}
+        ) {
+            $already_inserted = 1;
+            last;
+        }
+    }
+    $mriCandidateErrorsOB->insert(\%newMriCandidateErrors) unless defined $already_inserted;
 
     $notifier->spool('tarchive validation', $message, 0,
         'minc_insertion.pl', $upload_id, 'Y',
@@ -569,10 +595,10 @@ if (!$sessionRef) {
 
 
 # Copy the session info into the %$subjectIDsref hash array
-$subjectIDsref->{'SessionID'}    = $sessionRef->{'ID'};
-$subjectIDsref->{'ProjectID'}    = $sessionRef->{'ProjectID'};
-$subjectIDsref->{'SubprojectID'} = $sessionRef->{'SubprojectID'};
- 
+$subjectIDsref->{'SessionID'} = $sessionRef->{'ID'};
+$subjectIDsref->{'ProjectID'} = $sessionRef->{'ProjectID'};
+$subjectIDsref->{'CohortID'}  = $sessionRef->{'CohortID'};
+
 ################################################################
 ############ Compute the md5 hash ##############################
 ################################################################
@@ -620,7 +646,7 @@ $file->setFileData('Caveat', $caveat);
       $file,
       $subjectIDsref,
       \%studyInfo,
-      $center_name,
+      $centerID,
       $minc,
       $acquisitionProtocol,
       $bypass_extra_file_checks,

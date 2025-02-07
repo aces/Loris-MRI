@@ -1,14 +1,14 @@
-"""This class performs database queries for the physiological_annotation_archive table"""
+"""This class performs database queries for the physiological_event_archive table"""
 
 
 __license__ = "GPLv3"
 
 
-class PhysiologicalAnnotationArchive:
+class PhysiologicalEventArchive:
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the PhysiologicalAnnotationArchive class.
+        Constructor method for the PhysiologicalEventArchive class.
 
         :param db                 : Database class object
          :type db                 : object
@@ -17,7 +17,7 @@ class PhysiologicalAnnotationArchive:
         """
 
         self.db = db
-        self.table = 'physiological_annotation_archive'
+        self.table = 'physiological_event_archive'
         self.verbose = verbose
 
     def grep_from_physiological_file_id(self, physiological_file_id):
@@ -38,7 +38,7 @@ class PhysiologicalAnnotationArchive:
 
     def insert(self, physiological_file_id, blake2, archive_path):
         """
-        Inserts a new entry in the physiological_annotation_archive table.
+        Inserts a new entry in the physiological_event_archive table.
 
         :param physiological_file_id : Physiological file's ID
          :type physiological_file_id : int

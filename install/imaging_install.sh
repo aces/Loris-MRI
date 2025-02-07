@@ -102,7 +102,8 @@ sudo -S cpan install Moose
 sudo -S cpan install MooseX::Privacy
 sudo -S cpan install TryCatch
 sudo -S cpan install Throwable
-sudo -S cpan install Digest::BLAKE2
+sudo -S cpan install App::cpanminus
+sudo -S cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 sudo -S cpan install File::Type
 sudo -S cpan install String::ShellQuote
 sudo -S cpan install DateTime
