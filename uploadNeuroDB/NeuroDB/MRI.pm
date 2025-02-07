@@ -1100,6 +1100,11 @@ sub getPSC {
                             $dbhr,
                             $db
                         );
+    ## First check if they are already defined
+    if ($subjectIDsref->{'MRI_alias'} && $subjectIDsref->{'CenterID'}) {
+        return ($subjectIDsref->{'MRI_alias'},$subjectIDsref->{'CenterID'});
+    }
+
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
 
