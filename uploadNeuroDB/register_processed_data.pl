@@ -231,7 +231,7 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
 
 # ----- STEP 2: Verify PSC information using whatever field contains the site string
 #       (only for minc files)
-my  ($center_name,$centerID);
+my  $centerID;
 if  ($file->getFileDatum('FileType') eq 'mnc')  {
     my $patientInfo;
     if ($lookupCenterName eq 'PatientName') {
@@ -243,13 +243,12 @@ if  ($file->getFileDatum('FileType') eq 'mnc')  {
             $filename, 'patient:identification'
         );
     }
-    ($center_name, $centerID)   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh, $db);
-    my  $psc    =   $center_name;
-    if  (!$psc)     {
+    $centerID   =   NeuroDB::MRI::getPSC($patientInfo, \$dbh, $db);
+    if  (!$centerID)     {
         print LOG "\nERROR: No center found for this candidate \n\n";
         exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
-    print LOG  "\n==> Verifying acquisition center\n - Center Name  : $center_name\n - CenterID     : $centerID\n";
+    print LOG  "\n==> Verifying acquisition center\n - CenterID: $centerID\n";
 }
 
 

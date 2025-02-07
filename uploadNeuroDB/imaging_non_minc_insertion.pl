@@ -407,7 +407,7 @@ my %info = (
 
 
 # determine Center ID
-my ($center_name, $centerID) = $utility->determinePSC(\%info, 0, undef);
+my $centerID = $utility->determinePSC(\%info, 0, undef);
 
 
 
