@@ -282,7 +282,7 @@ $utility->validateArchive($tarchive, \%tarchiveInfo, $upload_id);
 ### Verify PSC information using whatever field ################ 
 ### contains site string #######################################
 ################################################################
-my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
+my $centerID = $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
 
 ################################################################
 ################################################################

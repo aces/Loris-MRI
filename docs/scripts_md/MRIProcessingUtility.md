@@ -14,7 +14,7 @@ utilities
 
     %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
-    my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+    my $centerID      = $utility->determinePSC(\%tarchiveInfo,0);
 
     my $projectID     = $utility->determineProjectID(\%tarchiveInfo);
     my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID, $projectID);

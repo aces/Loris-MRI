@@ -19,7 +19,7 @@ utilities
 
   %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
-  my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo,0);
+  my $centerID = $utility->determinePSC(\%tarchiveInfo,0);
 
   my $projectID     = $utility->determineProjectID(\%tarchiveInfo);
   my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID, $projectID);
@@ -613,14 +613,13 @@ sub determinePSC {
     my $lookupCenterNameUsing = $configOB->getLookupCenterNameUsing();
 
 
-    my ($center_name, $centerID) =
-    NeuroDB::MRI::getPSC(
+    my $centerID = NeuroDB::MRI::getPSC(
         $tarchiveInfo->{$lookupCenterNameUsing},
         $this->{dbhr},
         $this->{'db'}
     );
     if ($to_log) {
-        if (!$center_name) {
+        if (!$centerID) {
 
             my $message = "\nERROR: No center found for this candidate \n\n";
             $this->writeErrorLog(
@@ -630,13 +629,12 @@ sub determinePSC {
                 exit $NeuroDB::ExitCodes::SELECT_FAILURE;
             }
             my $message = "\n==> Verifying acquisition center\n-> " .
-                          "Center Name : $center_name\n-> CenterID ".
-                          " : $centerID\n";
+                          "CenterID: $centerID\n";
             $this->{LOG}->print($message);
             $this->spool($message, 'N', $upload_id, $notify_detailed);
     }
 
-    return ($center_name, $centerID);
+    return $centerID;
 }
 
 
@@ -2287,6 +2285,38 @@ sub getUploadIDUsingTarchiveSrcLoc {
         }
     }
     return $upload_id;
+}
+
+=pod
+
+=head3 getCenterName($centerID)
+
+Gets the MRI ALIAS form the C<psc> table.
+
+INPUT: Center ID
+
+RETURNS: MRI ALIAS
+
+=cut
+
+
+sub getCenterNameFromCenterID {
+    my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
+
+    my $centerID = shift;
+    my $query = '';
+    my $alias = undef;
+
+    if ($centerID) {
+    $query = "SELECT MRI_alias FROM psc "
+            . "WHERE CenterID =?";
+    my $sth = $dbh->prepare($query);
+        $sth->execute($centerID);
+        if ( $sth->rows > 0 ) {
+           $alias = $sth->fetchrow_array;
+        }
+    }
+    return $alias;
 }
 
 
