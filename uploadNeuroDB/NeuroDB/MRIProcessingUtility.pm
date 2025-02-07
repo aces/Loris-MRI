@@ -594,6 +594,19 @@ sub determinePSC {
     my $lookupCenterNameUsing = $configOB->getLookupCenterNameUsing();
 
 
+    ## CBIGR OVERRIDE START: add logic to bypass the random pattern match in MRI::getPSC if CenterID is passed
+    my $subjectIDsref = Settings::getSubjectIDs(
+        $tarchiveInfo->{'PatientName'},
+        undef,
+        undef,
+        $this->{dbhr},
+        $this->{db}
+    );
+    if (defined $subjectIDsref->{'CenterID'}) {
+        return ($subjectIDsref->{'CenterAlias'},$subjectIDsref->{'CenterID'});
+    }
+    ## CBIGR OVERRIDE END
+
     my ($center_name, $centerID) =
     NeuroDB::MRI::getPSC(
         $tarchiveInfo->{$lookupCenterNameUsing},

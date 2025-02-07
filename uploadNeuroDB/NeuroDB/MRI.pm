@@ -1195,7 +1195,8 @@ sub getProject {
     ##         return $row->{'ProjectID'};
     ##     }
     ## }
-
+    
+    
     print STDERR "\nERROR: ProjectID cannot be initialized. \n\n";
                  ## "Please set the default_project config.\n\n";
     ## END OF CBIGR OVERRIDE
