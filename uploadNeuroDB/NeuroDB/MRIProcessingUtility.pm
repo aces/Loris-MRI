@@ -2309,9 +2309,9 @@ sub getUploadIDUsingTarchiveSrcLoc {
 
 =pod
 
-=head3 getCenterName($centerID)
+=head3 getCenterNameFromCenterID($centerID)
 
-Gets the MRI ALIAS form the C<psc> table.
+Gets the MRI ALIAS form the C<psc> table using the center ID.
 
 INPUT: Center ID
 
