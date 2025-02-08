@@ -1,9 +1,9 @@
-from lib.dicom.text import write_value
+from lib.import_dicom_study.text import write_value
 
 
 class DictWriter:
     """
-    Writer for a text dictionary, i.e, a text of the form:
+    Writer for a text dictionary, that is, a text of the form:
 
     Key 1 : Value 1
     Key 2 : Value 2
@@ -15,8 +15,9 @@ class DictWriter:
 
     def get_keys_length(self):
         """
-        Get the maximal length of the keys, used for padding
+        Get the maximal length of the keys, used for padding.
         """
+
         length = 0
         for entry in self.entries:
             key = entry[0]
@@ -27,7 +28,7 @@ class DictWriter:
 
     def write(self):
         """
-        Serialize the text dictionary into a string
+        Serialize the text dictionary into a string.
         """
 
         if not self.entries:

@@ -86,25 +86,6 @@ def append_to_tsv_file(new_tsv_file, old_tsv_file, key_value_check, verbose):
             writer.writerow(data)
 
 
-def get_all_files(dir: str) -> list[str]:
-    """
-    Recursively get the all the files inside a given directory, without including the directories
-    themselves. The returned paths are relative to the given directory.
-    """
-
-    def get_all_files_rec(dir: str, path: str):
-        if os.path.isdir(dir + '/' + path):
-            files = []
-            for file in os.listdir(dir + '/' + path):
-                files += get_all_files_rec(dir, path + '/' + file)
-
-            return files
-
-        return [path]
-
-    return get_all_files_rec(dir, '')
-
-
 def copy_file(file_orig, file_copy, verbose):
     """
     Copies a file to a new location. If something goes wrong during the copy
