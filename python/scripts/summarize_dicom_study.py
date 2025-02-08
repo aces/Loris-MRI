@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
-from dataclasses import dataclass
 import sys
-import traceback
+from dataclasses import dataclass
 
-import lib.dicom.summary_make
-import lib.dicom.summary_write
 import lib.exitcode
+from lib.import_dicom_study.summary_get import get_dicom_study_summary
+from lib.import_dicom_study.summary_write import write_dicom_study_summary
 
 parser = argparse.ArgumentParser(description=(
         'Read a DICOM directory and print the DICOM summary of this directory '
@@ -30,20 +29,23 @@ class Args:
     verbose: bool
 
 
-def main():
+def main() -> None:
     parsed_args = parser.parse_args()
     args = Args(parsed_args.directory, parsed_args.verbose)
 
     try:
-        summary = lib.dicom.summary_make.make(args.directory, args.verbose)
+        summary = get_dicom_study_summary(args.directory, args.verbose)
     except Exception as e:
-        print(f'ERROR: Cannot create a summary for the directory \'{args.directory}\'.', file=sys.stderr)
-        print('Exception message:', file=sys.stderr)
-        print(e, file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
+        print(
+            (
+                f"ERROR: Cannot create a summary for the directory '{args.directory}'.\n"
+                f"Exception message:\n{e}"
+            ),
+            file=sys.stderr
+        )
         exit(lib.exitcode.INVALID_DICOM)
 
-    print(lib.dicom.summary_write.write_to_string(summary))
+    print(write_dicom_study_summary(summary))
 
 
 if __name__ == "__main__":

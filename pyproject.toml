@@ -17,12 +17,10 @@ select = ["E", "F", "I", "N", "UP", "W"]
 # `test` directory.
 [tool.pyright]
 include = [
-    "python/dicom_archive.py",
-    "python/dicom_summary.py",
     "python/tests",
     "python/lib/db",
-    "python/lib/dicom",
     "python/lib/exception",
+    "python/lib/import_dicom_study",
     "python/lib/util",
     "python/lib/config_file.py",
     "python/lib/env.py",
@@ -31,6 +29,9 @@ include = [
     "python/lib/make_env.py",
     "python/lib/scanner.py",
     "python/lib/validate_subject_info.py",
+    "python/lib/util.py",
+    "python/scripts/import_dicom_study.py",
+    "python/scripts/summarize_dicom_study.py",
 ]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"

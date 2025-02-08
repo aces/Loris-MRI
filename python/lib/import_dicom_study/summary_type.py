@@ -3,9 +3,9 @@ from datetime import date
 
 
 @dataclass
-class Patient:
+class DicomStudyPatient:
     """
-    DICOM patient object, which contains information about a DICOM patient.
+    Information about a DICOM study patient.
     """
 
     id:         str
@@ -15,9 +15,9 @@ class Patient:
 
 
 @dataclass
-class Scanner:
+class DicomStudyScanner:
     """
-    DICOM scanner object, which contains information about a DICOM scanner.
+    Information about a DICOM study scanner.
     """
 
     manufacturer:     str
@@ -27,25 +27,23 @@ class Scanner:
 
 
 @dataclass
-class Info:
+class DicomStudyInfo:
     """
-    General DICOM information object, which contains general information about
-    a DICOM directory.
+    General information about a DICOM study.
     """
 
     study_uid:   str
-    patient:     Patient
-    scanner:     Scanner
+    patient:     DicomStudyPatient
+    scanner:     DicomStudyScanner
     scan_date:   date | None
     institution: str | None
     modality:    str
 
 
 @dataclass
-class DicomFile:
+class DicomStudyDicomFile:
     """
-    DICOM file object, which contains information about a DICOM file inside a
-    DICOM directory.
+    Information about a DICOM file within a DICOM sutdy.
     """
 
     file_name:          str
@@ -60,10 +58,9 @@ class DicomFile:
 
 
 @dataclass
-class OtherFile:
+class DicomStudyOtherFile:
     """
-    Non-DICOM file object, which contains information about a non-DICOM file
-    inside a DICOM directory.
+    Information about a non-DICOM file within a DICOM study.
     """
 
     file_name: str
@@ -71,9 +68,9 @@ class OtherFile:
 
 
 @dataclass
-class Acquisition:
+class DicomStudyAcquisition:
     """
-    DICOM acquisition object, which contains information about a DICOM series.
+    Information about an acquisition within a DICOM study.
     """
 
     series_number:      int
@@ -89,13 +86,24 @@ class Acquisition:
     modality:           str | None
 
 
-@dataclass
-class Summary:
+@dataclass(frozen=True)
+class DicomStudyAcquisitionKey:
     """
-    DICOM summary object, which contains information about a DICOM directory.
+    Identifying information about an acquisition within a DICOM study.
     """
 
-    info: Info
-    acquis: list[Acquisition]
-    dicom_files: list[DicomFile]
-    other_files: list[OtherFile]
+    series_number: int
+    echo_numbers: str | None
+    sequence_name: str | None
+
+
+@dataclass
+class DicomStudySummary:
+    """
+    Information about a DICOM study and its files.
+    """
+
+    info: DicomStudyInfo
+    acquisitions: list[DicomStudyAcquisition]
+    dicom_files: list[DicomStudyDicomFile]
+    other_files: list[DicomStudyOtherFile]

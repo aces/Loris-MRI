@@ -3,9 +3,9 @@ A bunch of functions to convert values between (possibly empty) strings and
 different types of values.
 """
 
-from datetime import datetime, date
 import hashlib
 import os
+from datetime import date, datetime
 
 
 def write_value(value: str | int | float | None):

@@ -1,9 +1,9 @@
-from lib.dicom.text import write_value
+from lib.import_dicom_study.text import write_value
 
 
 class TableWriter:
     """
-    Writer for a text table, i.e, a table of the form:
+    Writer for a text table, that is, a table of the form:
 
     Field 1 | Field 2 | Field 3
     Value 1 | Value 2 | Value 3
@@ -18,7 +18,7 @@ class TableWriter:
 
     def get_cells_lengths(self):
         """
-        Get the longest value length of each column, used for padding
+        Get the longest value length of each column, used for padding.
         """
 
         lengths = [0] * len(self.rows[0])
