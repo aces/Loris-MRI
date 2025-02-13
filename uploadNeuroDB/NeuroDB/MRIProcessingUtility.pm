@@ -2308,9 +2308,8 @@ sub getCenterNameFromCenterID {
     my $alias = undef;
 
     if ($centerID) {
-    $query = "SELECT MRI_alias FROM psc "
-            . "WHERE CenterID =?";
-    my $sth = $dbh->prepare($query);
+        $query = "SELECT MRI_alias FROM psc WHERE CenterID =?";
+        my $sth = $dbh->prepare($query);
         $sth->execute($centerID);
         if ( $sth->rows > 0 ) {
            $alias = $sth->fetchrow_array;
