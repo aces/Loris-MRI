@@ -13,4 +13,4 @@ class DbMriScanner(Base):
     model            : Mapped[Optional[str]] = mapped_column('Model')
     serial_number    : Mapped[Optional[str]] = mapped_column('Serial_number')
     software_version : Mapped[Optional[str]] = mapped_column('Software')
-    cand_id          : Mapped[Optional[int]] = mapped_column('CandID')
+    candidate_id     : Mapped[Optional[int]] = mapped_column('CandidateID')
