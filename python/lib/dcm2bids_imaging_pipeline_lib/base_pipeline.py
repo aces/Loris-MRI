@@ -75,7 +75,6 @@ class BasePipeline:
         self.tmp_dir = self.loris_getopt_obj.tmp_dir
         self.env = make_env(self.loris_getopt_obj)
         self.env.add_cleanup(self.remove_tmp_dir)
-        self.env.add_cleanup(self.end_upload)
 
         # ---------------------------------------------------------------------------------------------
         # Load imaging_upload and tarchive dictionary
@@ -90,6 +89,7 @@ class BasePipeline:
         self.mri_upload.inserting = True
         self.env.db.commit()
 
+        self.env.add_cleanup(self.end_upload)
         self.env.init_notifier(self.mri_upload.id)
 
         # ---------------------------------------------------------------------------------
