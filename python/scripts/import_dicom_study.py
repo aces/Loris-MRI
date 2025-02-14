@@ -11,6 +11,7 @@ import lib.database
 import lib.exitcode
 import lib.import_dicom_study.text
 from lib.db.models.dicom_archive import DbDicomArchive
+from lib.db.queries.config import get_config_with_setting_name
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_uid
 from lib.db.queries.mri_upload import try_get_mri_upload_with_id
 from lib.db.queries.session import try_get_session_with_id
@@ -31,20 +32,16 @@ from lib.util import iter_all_files
 class Args:
     profile:   str
     source:    str
-    target:    str
     insert:    bool
     update:    bool
     upload:    int | None
     session:   int | None
     overwrite: bool
-    year:      bool
     verbose:   bool
 
     def __init__(self, options_dict: dict[str, Any]):
         self.profile   = options_dict['profile']['value']
         self.source    = os.path.normpath(options_dict['source']['value'])
-        self.target    = os.path.normpath(options_dict['target']['value'])
-        self.year      = options_dict['year']['value']
         self.overwrite = options_dict['overwrite']['value']
         self.insert    = options_dict['insert']['value']
         self.update    = options_dict['update']['value']
@@ -63,18 +60,14 @@ def main() -> None:
         "directory into a structured and compressed archive, and inserts or uploads the study\n"
         "into the LORIS database.\n"
         "\n"
-        "Usage: import_dicom_study.py -p <profile> -s <source_dir> -t <target_dir> ...\n"
+        "Usage: import_dicom_study.py -p <profile> -s <source_dir> ...\n"
         "\n"
         "Options: \n"
         "\t-p, --profile   : Name of the LORIS Python configuration file (usually\n"
         "\t                  'database_config.py')\n"
         "\t-s, --source    : Path of the source directory containing the DICOM files of the"
         "\t                  study.\n"
-        "\t-t, --target    : Path of the directory in which to create the resulting DICOM\n"
-        "\t                  archive\n"
         "\t    --overwrite : Overwrite the DICOM archive file if it already exists.\n"
-        "\t    --year      : Create the archive in a year subdirectory according to its scan\n"
-        "\t                  date.\n"
         "\t    --insert    : Insert the created DICOM archive in the database (requires the archive\n"
         "\t                  to not be already inserted).\n"
         "\t    --update    : Update the DICOM archive in the database (requires the archive to be\n"
@@ -97,12 +90,6 @@ def main() -> None:
         },
         "source": {
             "value": None, "required": True,  "expect_arg": True, "short_opt": "s", "is_path": True,
-        },
-        "target": {
-            "value": None, "required": True,  "expect_arg": True, "short_opt": "t", "is_path": True,
-        },
-        "year": {
-            "value": False, "required": False,  "expect_arg": False, "short_opt": "year", "is_path": False,
         },
         "overwrite": {
             "value": False, "required": False, "expect_arg": False, "short_opt": "overwrite", "is_path": False,
@@ -139,13 +126,6 @@ def main() -> None:
         log_error_exit(
             env,
             "Argument '--source' must be a readable directory path.",
-            lib.exitcode.INVALID_ARG,
-        )
-
-    if not os.path.isdir(args.target) or not os.access(args.target, os.W_OK):
-        log_error_exit(
-            env,
-            "Argument '--target' must be a writable directory path.",
             lib.exitcode.INVALID_ARG,
         )
 
@@ -227,34 +207,30 @@ def main() -> None:
 
     log(env, 'Checking DICOM scan date...')
 
-    dicom_archive_dir_path = args.target
+    # TODO: Factorize this into a `lib.config` module and add some checks (directory exists, permissions).
+    dicom_archive_dir_path = get_config_with_setting_name(env.db, 'tarchiveLibraryDir').value
+    if dicom_archive_dir_path is None:
+        log_error_exit(env, "No value found for configuration setting 'tarchiveLibraryDir'.")
 
     if dicom_summary.info.scan_date is None:
         log_warning(env, "No DICOM scan date found in the DICOM files.")
 
-        if args.year:
-            log_error_exit(
-                env,
-                "Cannot put the DICOM study in a year subdirectory since no scan date was found."
-                " Remove the argument '--year' to import the study without putting it in a year"
-                " subdirectory."
-            )
-
-        dicom_archive_name = f'DCM_{dicom_study_name}'
+        dicom_archive_rel_path = f'DCM_{dicom_study_name}.tar'
     else:
         log(env, f"Found DICOM scan date: {dicom_summary.info.scan_date}")
 
         scan_date_string = lib.import_dicom_study.text.write_date(dicom_summary.info.scan_date)
-        dicom_archive_name = f'DCM_{scan_date_string}_{dicom_study_name}'
+        dicom_archive_rel_path = os.path.join(
+            str(dicom_summary.info.scan_date.year),
+            f'DCM_{scan_date_string}_{dicom_study_name}.tar',
+        )
 
-        if args.year:
-            dicom_archive_dir_path = os.path.join(dicom_archive_dir_path, str(dicom_summary.info.scan_date.year))
+        dicom_archive_year_dir_path = os.path.join(dicom_archive_dir_path, str(dicom_summary.info.scan_date.year))
+        if not os.path.exists(dicom_archive_year_dir_path):
+            log(env, f"Creating year directory '{dicom_archive_year_dir_path}'...")
+            os.mkdir(dicom_archive_year_dir_path)
 
-            if not os.path.exists(dicom_archive_dir_path):
-                log(env, f"Creating year directory '{dicom_archive_dir_path}'")
-                os.mkdir(dicom_archive_dir_path)
-
-    dicom_archive_path = os.path.join(dicom_archive_dir_path, f'{dicom_archive_name}.tar')
+    dicom_archive_path = os.path.join(dicom_archive_dir_path, dicom_archive_rel_path)
 
     if os.path.exists(dicom_archive_path):
         if not args.overwrite:
@@ -324,12 +300,10 @@ def main() -> None:
 
     dicom_import_log.archive_md5_sum = lib.import_dicom_study.text.make_hash(dicom_import_log.target_path, True)
 
-    archive_location = os.path.relpath(dicom_archive_path, start=args.target)
-
     if args.insert:
         log(env, "Inserting the DICOM study in the LORIS database...")
 
-        insert_dicom_archive(env.db, dicom_summary, dicom_import_log, archive_location)
+        insert_dicom_archive(env.db, dicom_summary, dicom_import_log, dicom_archive_rel_path)
 
     if args.update:
         log(env, "Updating the DICOM study in the LORIS database...")
@@ -337,7 +311,7 @@ def main() -> None:
         # Safe because we previously checked that the DICOM study is in LORIS.
         dicom_archive = cast(DbDicomArchive, dicom_archive)
 
-        update_dicom_archive(env.db, dicom_archive, dicom_summary, dicom_import_log, archive_location)
+        update_dicom_archive(env.db, dicom_archive, dicom_summary, dicom_import_log, dicom_archive_rel_path)
 
     if mri_upload is not None:
         log(env, "Updating the DICOM study MRI upload...")
