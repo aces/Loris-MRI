@@ -114,13 +114,19 @@ class MriScanner:
             new_cand_id,  'scanner', center_id,  datetime.datetime.now(),
             'imaging.py', 'Scanner', project_id, datetime.datetime.now()
         )
-        self.db.insert(table_name='candidate', column_names=column_names, values=values)
+
+        candidate_id = self.db.insert(
+            table_name='candidate',
+            column_names=column_names,
+            values=values,
+            get_last_id=True,
+        )
 
         # create the new scanner ID
         scanner_id = self.db.insert(
             table_name='mri_scanner',
-            column_names=('Manufacturer', 'Model', 'Serial_number', 'Software', 'CandID'),
-            values=(manufacturer, scanner_model, serial_number, software_version, new_cand_id),
+            column_names=('Manufacturer', 'Model', 'Serial_number', 'Software', 'CandidateID'),
+            values=(manufacturer, scanner_model, serial_number, software_version, candidate_id),
             get_last_id=True
         )
 
