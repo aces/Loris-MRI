@@ -185,7 +185,7 @@ class BasePipeline:
                 case []:
                     log_error_exit(
                         self.env,
-                        f"Did not find an entry in mri_upload associated with 'TarchiveID' {self.dicom_archive.id}",
+                        f"Did not find an entry in mri_upload associated with DICOM archive ID {self.dicom_archive.id}",
                         lib.exitcode.SELECT_FAILURE,
                     )
                 case [mri_upload]:
@@ -193,7 +193,10 @@ class BasePipeline:
                 case _:
                     log_error_exit(
                         self.env,
-                       f"Found {len(mri_uploads)} rows in mri_upload for 'TarchiveID' {self.dicom_archive.id}",
+                        (
+                            f"Found {len(mri_uploads)} rows in mri_upload for DICOM archive ID {self.dicom_archive.id}."
+                            f" MRI upload IDs are {', '.join(map(lambda mri_upload: str(mri_upload.id), mri_uploads))}."
+                        ),
                         lib.exitcode.SELECT_FAILURE,
                     )
 
