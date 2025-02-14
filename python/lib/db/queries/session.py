@@ -17,13 +17,3 @@ def try_get_session_with_cand_id_visit_label(db: Database, cand_id: int, visit_l
         .where(DbSession.visit_label == visit_label)
         .where(DbCandidate.cand_id == cand_id)
     ).scalar_one_or_none()
-
-
-def try_get_session_with_id(db: Database, session_id: int):
-    """
-    Get a session from the database using its ID, or return `None` if no session is found.
-    """
-
-    return db.execute(select(DbSession)
-        .where(DbSession.id == session_id)
-    ).scalar_one_or_none()
