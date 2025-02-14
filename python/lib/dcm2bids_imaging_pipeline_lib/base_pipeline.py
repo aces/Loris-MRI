@@ -194,8 +194,8 @@ class BasePipeline:
                     log_error_exit(
                         self.env,
                         (
-                            f"Found {len(mri_uploads)} rows in mri_upload for DICOM archive ID {self.dicom_archive.id}.\n"
-                            f"MRI upload IDs are {', '.join(map(lambda mri_upload: str(mri_upload.id), mri_uploads))}."
+                            f"Found {len(mri_uploads)} rows in mri_upload for DICOM archive ID {self.dicom_archive.id}."
+                            f" MRI upload IDs are {', '.join(map(lambda mri_upload: str(mri_upload.id), mri_uploads))}."
                         ),
                         lib.exitcode.SELECT_FAILURE,
                     )
