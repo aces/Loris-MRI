@@ -59,7 +59,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
         # ---------------------------------------------------------------------------------------------
-        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+        self.mri_upload.inserting = True
+        self.env.db.commit()
 
         # ---------------------------------------------------------------------------------------------
         # Get S3 object from loris_getopt object
@@ -217,7 +218,9 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # If we get there, the insertion was complete and successful
         # ---------------------------------------------------------------------------------------------
-        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('0',))
+        self.mri_upload.inserting = False
+        self.env.db.commit()
+
         sys.exit(lib.exitcode.SUCCESS)
 
     def _load_json_sidecar_file(self):
@@ -730,7 +733,7 @@ class NiftiInsertionPipeline(BasePipeline):
         push_to_s3_cmd = [
             "run_push_imaging_files_to_s3_pipeline.py",
             "-p", self.options_dict["profile"]["value"],
-            "-u", str(self.upload_id),
+            "-u", str(self.mri_upload.id),
         ]
         if self.verbose:
             push_to_s3_cmd.append("-v")
@@ -741,10 +744,10 @@ class NiftiInsertionPipeline(BasePipeline):
         if s3_process.returncode == 0:
             log_verbose(
                 self.env,
-                f"run_push_imaging_files_to_s3_pipeline.py successfully executed for Upload ID {self.upload_id}"
+                f"run_push_imaging_files_to_s3_pipeline.py successfully executed for Upload ID {self.mri_upload.id}"
             )
         else:
             log_verbose(
                 self.env,
-                f"run_push_imaging_files_to_s3_pipeline.py failed for Upload ID {self.upload_id}.\n{stdout}"
+                f"run_push_imaging_files_to_s3_pipeline.py failed for Upload ID {self.mri_upload.id}.\n{stdout}"
             )

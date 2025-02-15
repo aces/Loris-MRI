@@ -1,8 +1,11 @@
 """This class performs database queries for the mri_upload table"""
 
+from typing_extensions import deprecated
+
 __license__ = "GPLv3"
 
 
+@deprecated('Use `lib.db.models.mri_upload.DbMriUpload` instead')
 class MriUploadDB:
     """
     This class performs database queries for imaging dataset stored in the mri_upload table.
@@ -34,6 +37,7 @@ class MriUploadDB:
         self.db = db
         self.verbose = verbose
 
+    @deprecated('Use `lib.db.models.mri_upload.DbMriUpload` instead')
     def update_mri_upload(self, upload_id, fields, values):
         """
         Update the `isTarchiveValidated` field of the upload with the value provided
@@ -57,6 +61,7 @@ class MriUploadDB:
 
         self.db.update(query=query, args=args)
 
+    @deprecated('Use `lib.db.models.mri_upload.DbMriUpload` instead')
     def create_mri_upload_dict(self, where_field, where_value):
         """
         Create a dictionary out of the entry available in the `mri_upload` table.
