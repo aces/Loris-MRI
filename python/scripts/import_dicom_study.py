@@ -13,7 +13,6 @@ import lib.import_dicom_study.text
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.queries.config import get_config_with_setting_name
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_uid
-from lib.db.queries.mri_upload import try_get_mri_upload_with_id
 from lib.get_subject_session import get_subject_session
 from lib.import_dicom_study.dicom_database import insert_dicom_archive, update_dicom_archive
 from lib.import_dicom_study.import_log import (
@@ -35,7 +34,6 @@ class Args:
     source:    str
     insert:    bool
     update:    bool
-    upload:    int | None
     session:   bool
     overwrite: bool
     verbose:   bool
@@ -46,7 +44,6 @@ class Args:
         self.overwrite = options_dict['overwrite']['value']
         self.insert    = options_dict['insert']['value']
         self.update    = options_dict['update']['value']
-        self.upload    = options_dict['upload']['value']
         self.session   = options_dict['session']['value']
         self.verbose   = options_dict['verbose']['value']
 
@@ -73,7 +70,6 @@ def main() -> None:
         "\t                  to not be already inserted).\n"
         "\t    --update    : Update the DICOM archive in the database (requires the archive to be\n"
         "\t                  already be inserted), generally used with '--overwrite'.\n"
-        "\t    --upload    : Associate the DICOM study with an existing MRI upload.\n"
         "\t    --session   : Associate the DICOM study with an existing session using the LORIS-MRI\n"
         "\t                  Python configuration.\n"
         "\t-v, --verbose   : If set, be verbose\n"
@@ -101,9 +97,6 @@ def main() -> None:
         },
         "update": {
             "value": False, "required": False, "expect_arg": False, "short_opt": "update", "is_path": False,
-        },
-        "upload": {
-            "value": None, "required": False, "expect_arg": True, "short_opt": "upload", "is_path": False,
         },
         "session": {
             "value": False, "required": False, "expect_arg": False, "short_opt": "session", "is_path": False,
@@ -138,28 +131,16 @@ def main() -> None:
             lib.exitcode.INVALID_ARG,
         )
 
-    if (args.session or args.upload is not None) and not (args.insert or args.update):
+    if args.session and not (args.insert or args.update):
         log_error_exit(
             env,
-            "Argument '--insert' or '--update' must be used when '--upload' or '--session' is used.",
+            "Argument '--insert' or '--update' must be used when '--session' is used.",
             lib.exitcode.INVALID_ARG,
         )
 
     # Utility variables.
 
     dicom_study_name = os.path.basename(args.source)
-
-    # Check MRI upload.
-
-    mri_upload = None
-    if args.upload is not None:
-        mri_upload = try_get_mri_upload_with_id(env.db, args.upload)
-        if mri_upload is None:
-            log_error_exit(
-                env,
-                f"No MRI upload found in LORIS with ID {args.upload}.",
-                lib.exitcode.UPDATE_FAILURE,
-            )
 
     log(env, "Extracting DICOM information... (may take a long time)")
 
@@ -316,26 +297,12 @@ def main() -> None:
 
         update_dicom_archive(env.db, dicom_archive, dicom_summary, dicom_import_log, dicom_archive_rel_path)
 
-    if mri_upload is not None:
-        log(env, "Updating the DICOM study MRI upload...")
-
-        # Safe because we previously checked that the DICOM study is in LORIS.
-        dicom_archive = cast(DbDicomArchive, dicom_archive)
-
-        dicom_archive.upload = mri_upload
-        env.db.commit()
-
     if session is not None:
         log(env, "Updating the DICOM study session...")
 
         # Safe because we previously checked that the DICOM study is in LORIS.
         dicom_archive = cast(DbDicomArchive, dicom_archive)
-
         dicom_archive.session = session
-
-        if mri_upload is not None:
-            mri_upload.session = session
-
         env.db.commit()
 
     log(env, "Success !")
