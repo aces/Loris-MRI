@@ -14,6 +14,7 @@ from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.get_subject_session import get_subject_session
 from lib.logging import log_error_exit, log_verbose
+from lib.scanner import get_or_create_scanner
 from lib.validate_subject_info import validate_subject_info
 
 __license__ = "GPLv3"
@@ -59,7 +60,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
         # ---------------------------------------------------------------------------------------------
-        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+        self.mri_upload.inserting = True
+        self.env.db.commit()
 
         # ---------------------------------------------------------------------------------------------
         # Get S3 object from loris_getopt object
@@ -83,7 +85,7 @@ class NiftiInsertionPipeline(BasePipeline):
         if self.dicom_archive is not None:
             self._validate_nifti_patient_name_with_dicom_patient_name()
             self.subject_info = self.imaging_obj.determine_subject_info(
-                self.dicom_archive, self.scanner_id
+                self.dicom_archive, self.mri_scanner.id
             )
         else:
             self._determine_subject_info_based_on_json_patient_name()
@@ -217,7 +219,9 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # If we get there, the insertion was complete and successful
         # ---------------------------------------------------------------------------------------------
-        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('0',))
+        self.mri_upload.inserting = False
+        self.env.db.commit()
+
         sys.exit(lib.exitcode.SUCCESS)
 
     def _load_json_sidecar_file(self):
@@ -354,12 +358,13 @@ class NiftiInsertionPipeline(BasePipeline):
         scan_param = self.json_file_dict
 
         # get scanner ID if not already figured out
-        if not self.scanner_id:
-            self.scanner_id = self.imaging_obj.get_scanner_id(
+        if self.mri_scanner is None:
+            self.mri_scanner = get_or_create_scanner(
+                self.env,
                 self.json_file_dict['Manufacturer'],
-                self.json_file_dict['SoftwareVersions'],
-                self.json_file_dict['DeviceSerialNumber'],
                 self.json_file_dict['ManufacturersModelName'],
+                self.json_file_dict['DeviceSerialNumber'],
+                self.json_file_dict['SoftwareVersions'],
                 self.site_dict['CenterID'],
                 self.session.project_id,
             )
@@ -370,7 +375,7 @@ class NiftiInsertionPipeline(BasePipeline):
             self.session.cohort_id,
             self.session.site_id,
             self.session.visit_label,
-            self.scanner_id
+            self.mri_scanner.id,
         )
 
         protocol_info = self.imaging_obj.get_acquisition_protocol_info(
@@ -698,7 +703,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'InsertTime': datetime.datetime.now().timestamp(),
             'Caveat': 1 if self.warning_violations_list else 0,
             'TarchiveSource': self.dicom_archive.id,
-            'ScannerID': self.scanner_id,
+            'ScannerID': self.mri_scanner.id,
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None
         }
@@ -730,7 +735,7 @@ class NiftiInsertionPipeline(BasePipeline):
         push_to_s3_cmd = [
             "run_push_imaging_files_to_s3_pipeline.py",
             "-p", self.options_dict["profile"]["value"],
-            "-u", str(self.upload_id),
+            "-u", str(self.mri_upload.id),
         ]
         if self.verbose:
             push_to_s3_cmd.append("-v")
@@ -741,10 +746,10 @@ class NiftiInsertionPipeline(BasePipeline):
         if s3_process.returncode == 0:
             log_verbose(
                 self.env,
-                f"run_push_imaging_files_to_s3_pipeline.py successfully executed for Upload ID {self.upload_id}"
+                f"run_push_imaging_files_to_s3_pipeline.py successfully executed for Upload ID {self.mri_upload.id}"
             )
         else:
             log_verbose(
                 self.env,
-                f"run_push_imaging_files_to_s3_pipeline.py failed for Upload ID {self.upload_id}.\n{stdout}"
+                f"run_push_imaging_files_to_s3_pipeline.py failed for Upload ID {self.mri_upload.id}.\n{stdout}"
             )

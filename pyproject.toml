@@ -23,6 +23,7 @@ include = [
     "python/lib/get_subject_session.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
+    "python/lib/scanner.py",
     "python/lib/validate_subject_info.py",
 ]
 typeCheckingMode = "strict"

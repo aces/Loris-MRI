@@ -47,11 +47,11 @@ class DbDicomArchive(Base):
     date_sent                : Mapped[Optional[datetime]] = mapped_column('DateSent')
     pending_transfer         : Mapped[bool]               = mapped_column('PendingTransfer')
 
-    series  : Mapped[list['db_dicom_archive_series.DbDicomArchiveSeries']] \
+    series      : Mapped[list['db_dicom_archive_series.DbDicomArchiveSeries']] \
         = relationship('DbDicomArchiveSeries', back_populates='archive')
-    files   : Mapped[list['db_dicom_archive_file.DbDicomArchiveFile']] \
+    files       : Mapped[list['db_dicom_archive_file.DbDicomArchiveFile']] \
         = relationship('DbDicomArchiveFile', back_populates='archive')
-    upload  : Mapped[Optional['db_mri_upload.DbMriUpload']] \
+    mri_uploads : Mapped[list['db_mri_upload.DbMriUpload']] \
         = relationship('DbMriUpload', back_populates='dicom_archive')
-    session : Mapped[Optional['db_session.DbSession']] \
+    session     : Mapped[Optional['db_session.DbSession']] \
         = relationship('DbSession')
