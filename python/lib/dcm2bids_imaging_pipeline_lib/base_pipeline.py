@@ -5,13 +5,13 @@ import lib.exitcode
 import lib.utilities
 from lib.database import Database
 from lib.database_lib.config import Config
-from lib.db.queries.dicom_archive import try_get_dicom_archive_with_archive_location, try_get_dicom_archive_with_id
+from lib.db.queries.dicom_archive import try_get_dicom_archive_with_archive_location
+from lib.db.queries.mri_upload import try_get_mri_upload_with_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.db.queries.site import get_all_sites
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.imaging import Imaging
-from lib.imaging_upload import ImagingUpload
 from lib.logging import log_error_exit, log_verbose, log_warning
 from lib.make_env import make_env
 from lib.validate_subject_info import validate_subject_info
@@ -32,10 +32,9 @@ class BasePipeline:
         These includes the following steps:
         - load pipeline options
         - establish database connection
-        - load the Config, Imaging, Tarchive, ImagingUpload, Session and other classes
+        - load the Config, Imaging and other classes
         - creates the processing temporary directory
         - creates the log file for the script execution
-        - populate the imaging_upload and tarchive info dictionaries
         - determine the subject IDs
         - determine the site information
         - determine the scanner information
@@ -51,7 +50,6 @@ class BasePipeline:
         self.options_dict = loris_getopt_obj.options_dict
         self.force = self.options_dict["force"]["value"] if "force" in self.options_dict else None
         self.verbose = self.options_dict["verbose"]["value"]
-        self.upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
 
         # ----------------------------------------------------
         # Establish database connection
@@ -64,7 +62,6 @@ class BasePipeline:
         # -----------------------------------------------------------------------------------
         self.config_db_obj = Config(self.db, self.verbose)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
-        self.imaging_upload_obj = ImagingUpload(self.db, self.verbose)
 
         # ---------------------------------------------------------------------------------------------
         # Grep config settings from the Config module
@@ -78,48 +75,46 @@ class BasePipeline:
         self.tmp_dir = self.loris_getopt_obj.tmp_dir
         self.env = make_env(self.loris_getopt_obj)
         self.env.add_cleanup(self.remove_tmp_dir)
-        self.env.add_cleanup(self.end_upload)
 
         # ---------------------------------------------------------------------------------------------
         # Load imaging_upload and tarchive dictionary
         # ---------------------------------------------------------------------------------------------
-        self.load_imaging_upload_and_tarchive_dictionaries()
+        self.load_mri_upload_and_dicom_archive()
 
         # ---------------------------------------------------------------------------------------------
         # Set Inserting field of mri_upload to indicate a script is running on the upload
         # and load the notification object
         # ---------------------------------------------------------------------------------------------
-        if "UploadID" in self.imaging_upload_obj.imaging_upload_dict.keys():
-            self.upload_id = self.imaging_upload_obj.imaging_upload_dict["UploadID"]
-            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+        # Update the MRI upload.
+        self.mri_upload.inserting = True
+        self.env.db.commit()
 
-            # Initiate the notification object now that we have a confirmed UploadID
-            self.env.init_notifier(self.upload_id)
+        self.env.add_cleanup(self.end_upload)
+        self.env.init_notifier(self.mri_upload.id)
 
         # ---------------------------------------------------------------------------------
         # Determine subject IDs based on DICOM headers and validate the IDs against the DB
         # Verify PSC information stored in DICOMs
         # Grep scanner information based on what is in the DICOM headers
         # ---------------------------------------------------------------------------------
-        if self.dicom_archive is not None:
-            try:
-                self.subject_info = self.imaging_obj.determine_subject_info(self.dicom_archive)
-            except DetermineSubjectInfoError as error:
-                log_error_exit(self.env, error.message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
+        try:
+            self.subject_info = self.imaging_obj.determine_subject_info(self.dicom_archive)
+        except DetermineSubjectInfoError as error:
+            log_error_exit(self.env, error.message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
 
-            # verify PSC information stored in DICOMs
-            self.site_dict = self.determine_study_info()
-            log_verbose(self.env, (
-                f"Found Center Name: {self.site_dict['CenterName']},"
-                f" Center ID: {self.site_dict['CenterID']}"
-            ))
+        # verify PSC information stored in DICOMs
+        self.site_dict = self.determine_study_info()
+        log_verbose(self.env, (
+            f"Found Center Name: {self.site_dict['CenterName']},"
+            f" Center ID: {self.site_dict['CenterID']}"
+        ))
 
-            # grep scanner information based on what is in the DICOM headers
-            self.scanner_id = self.determine_scanner_info()
+        # grep scanner information based on what is in the DICOM headers
+        self.scanner_id = self.determine_scanner_info()
 
-    def load_imaging_upload_and_tarchive_dictionaries(self):
+    def load_mri_upload_and_dicom_archive(self):
         """
-        Loads the imaging_upload and tarchive info dictionaries based on the content of the imaging_upload
+        Loads the MRI upload and DICOM archives based on the content of the imaging_upload
         and tarchive tables found for the processed UploadID/ArchiveLocation given as argument to
         the script.
         """
@@ -127,24 +122,26 @@ class BasePipeline:
         upload_id = self.options_dict["upload_id"]["value"]
         tarchive_path = self.options_dict["tarchive_path"]["value"] \
             if "tarchive_path" in self.options_dict.keys() else None
-        success = False
+
         if upload_id and tarchive_path:
-            self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
-            if not self.imaging_upload_obj.imaging_upload_dict:
+            mri_upload = try_get_mri_upload_with_id(self.env.db, upload_id)
+            if mri_upload is None:
                 log_error_exit(
                     self.env,
                     f"Did not find an entry in mri_upload associated with \'UploadID\' {upload_id}.",
                     lib.exitcode.SELECT_FAILURE,
                 )
-            tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
-            if not tarchive_id:
+
+            self.mri_upload = mri_upload
+
+            if self.mri_upload.dicom_archive is None:
                 log_error_exit(
                     self.env,
                     f"UploadID {upload_id} is not linked to any tarchive in mri_upload.",
                     lib.exitcode.SELECT_FAILURE,
                 )
 
-            self.dicom_archive = try_get_dicom_archive_with_id(self.env.db, tarchive_id)
+            self.dicom_archive = self.mri_upload.dicom_archive
             if os.path.join(self.data_dir, 'tarchive', self.dicom_archive.archive_location) != tarchive_path:
                 log_error_exit(
                     self.env,
@@ -152,35 +149,56 @@ class BasePipeline:
                     lib.exitcode.SELECT_FAILURE,
                 )
 
-        err_msg = ''
         if upload_id:
-            self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
-            if not self.imaging_upload_obj.imaging_upload_dict:
-                err_msg += f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}"
-            else:
-                if self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]:
-                    tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
-                    self.dicom_archive = try_get_dicom_archive_with_id(self.env.db, tarchive_id)
-                    if self.dicom_archive is not None:
-                        success = True
-                    else:
-                        err_msg += f"Could not load tarchive dictionary for TarchiveID {tarchive_id}"
+            mri_upload = try_get_mri_upload_with_id(self.env.db, upload_id)
+            if mri_upload is None:
+                log_error_exit(
+                    self.env,
+                    f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}",
+                    lib.exitcode.SELECT_FAILURE,
+                )
+
+            self.mri_upload = mri_upload
+            if self.mri_upload.dicom_archive is None:
+                log_error_exit(
+                    self.env,
+                    f"Did not find a DICOM archive associated with upload ID {upload_id}",
+                    lib.exitcode.SELECT_FAILURE,
+                )
+
+            self.dicom_archive = self.mri_upload.dicom_archive
 
         elif tarchive_path:
             archive_location = tarchive_path.replace(self.dicom_lib_dir, "")
-            self.dicom_archive = try_get_dicom_archive_with_archive_location(self.env.db, archive_location)
-            if self.dicom_archive is not None:
-                success, new_err_msg = self.imaging_upload_obj.create_imaging_upload_dict_from_tarchive_id(
-                    self.dicom_archive.id
+            dicom_archive = try_get_dicom_archive_with_archive_location(self.env.db, archive_location)
+            if dicom_archive is None:
+                log_error_exit(
+                    self.env,
+                    f"Could not load tarchive dictionary for ArchiveLocation {archive_location}",
+                    lib.exitcode.SELECT_FAILURE,
                 )
 
-                if not success:
-                    err_msg += new_err_msg
-            else:
-                err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
+            self.dicom_archive = dicom_archive
 
-        if not success and not self.force:
-            log_error_exit(self.env, err_msg, lib.exitcode.SELECT_FAILURE)
+            mri_uploads = self.dicom_archive.mri_uploads
+            match mri_uploads:
+                case []:
+                    log_error_exit(
+                        self.env,
+                        f"Did not find an entry in mri_upload associated with DICOM archive ID {self.dicom_archive.id}",
+                        lib.exitcode.SELECT_FAILURE,
+                    )
+                case [mri_upload]:
+                    self.mri_upload = mri_upload
+                case _:
+                    log_error_exit(
+                        self.env,
+                        (
+                            f"Found {len(mri_uploads)} rows in mri_upload for DICOM archive ID {self.dicom_archive.id}."
+                            f" MRI upload IDs are {', '.join(map(lambda mri_upload: str(mri_upload.id), mri_uploads))}."
+                        ),
+                        lib.exitcode.SELECT_FAILURE,
+                    )
 
     def determine_study_info(self):
         """
@@ -244,14 +262,15 @@ class BasePipeline:
         try:
             validate_subject_info(self.env.db, self.subject_info)
 
-            self.imaging_upload_obj.update_mri_upload(
-                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
-            )
+            # Update the MRI upload.
+            self.mri_upload.is_candidate_info_validated = True
+            self.env.db.commit()
         except ValidateSubjectInfoError as error:
             log_warning(self.env, error.message)
-            self.imaging_upload_obj.update_mri_upload(
-                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
-            )
+
+            # Update the MRI upload.
+            self.mri_upload.is_candidate_info_validated = False
+            self.env.db.commit()
 
     def check_if_tarchive_validated_in_db(self):
         """
@@ -261,13 +280,13 @@ class BasePipeline:
         If the DICOM archive was not validated, the pipeline will exit and log the proper error information.
         """
         # reload the mri_upload object with updated database values
-        self.load_imaging_upload_and_tarchive_dictionaries()
-        mu_dict = self.imaging_upload_obj.imaging_upload_dict
-        if ("IsTarchiveValidated" not in mu_dict.keys() or not mu_dict["IsTarchiveValidated"]) and not self.force:
+        self.load_mri_upload_and_dicom_archive()
+
+        if not self.mri_upload.is_dicom_archive_validated and not self.force:
             log_error_exit(
                 self.env,
                 (
-                    f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the"
+                    f"The DICOM archive validation has failed for UploadID {self.mri_upload.id}. Either run the"
                     f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
                 ),
                 lib.exitcode.INVALID_DICOM,
@@ -311,8 +330,9 @@ class BasePipeline:
             )
 
     def end_upload(self):
-        if self.upload_id:
-            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=("Inserting",), values=("0",))
+        # Update the MRI upload.
+        self.mri_upload.inserting = False
+        self.env.db.commit()
 
     def remove_tmp_dir(self):
         """

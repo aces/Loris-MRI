@@ -114,7 +114,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             "run_dicom_archive_validation.py",
             "-p", self.options_dict["profile"]["value"],
             "-t", self.tarchive_path,
-            "-u", str(self.upload_id)
+            "-u", str(self.mri_upload.id)
         ]
         if self.verbose:
             validation_command.append("-v")
@@ -123,16 +123,17 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         validation_process.communicate()
         if validation_process.returncode == 0:
             log_verbose(self.env, (
-                f"run_dicom_archive_validation.py successfully executed for UploadID {self.upload_id} "
+                f"run_dicom_archive_validation.py successfully executed for UploadID {self.mri_upload.id} "
                 f"and ArchiveLocation {self.tarchive_path}"
             ))
-            # reset mri_upload to Inserting as run_dicom_archive_validation.py will set Inserting=0 after execution
-            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+            # reset mri_upload to Inserting as run_dicom_archive_validation.py will set Inserting=False after execution
+            self.mri_upload.inserting = True
+            self.env.db.commit()
         else:
             log_error_exit(
                 self.env,
                 (
-                    f"run_dicom_archive_validation.py failed validation for UploadID {self.upload_id}"
+                    f"run_dicom_archive_validation.py failed validation for UploadID {self.mri_upload.id}"
                     f"and ArchiveLocation {self.tarchive_path}. Exit code was {validation_process.returncode}."
                 ),
                 lib.exitcode.INVALID_DICOM,
@@ -300,7 +301,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         nifti_insertion_command = [
             "run_nifti_insertion.py",
             "-p", self.options_dict["profile"]["value"],
-            "-u", str(self.upload_id),
+            "-u", str(self.mri_upload.id),
             "-n", nifti_file_path,
             "-j", json_file_path,
             "-c"
@@ -318,8 +319,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         if insertion_process.returncode == 0:
             log_verbose(self.env, f"run_nifti_insertion.py successfully executed for file {nifti_file_path}")
             self.inserted_file_count += 1
-            # reset mri_upload to Inserting as run_nifti_insertion.py will set Inserting=0 after execution
-            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+
+            # reset mri_upload to Inserting as run_nifti_insertion.py will set Inserting=False after execution
+            self.mri_upload.inserting = True
+            self.env.db.commit()
         else:
             print(stdout)
             log_verbose(self.env, f"run_nifti_insertion.py failed for file {nifti_file_path}.\n{stdout}")
@@ -406,11 +409,14 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         """
 
         files_inserted_list = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
-        self.imaging_upload_obj.update_mri_upload(
-            upload_id=self.upload_id,
-            fields=("Inserting", "InsertionComplete", "number_of_mincInserted", "number_of_mincCreated", "SessionID"),
-            values=("0", "1", len(files_inserted_list), len(self.nifti_files_to_insert), self.session.id)
-        )
+
+        # Update the MRI upload.
+        self.mri_upload.inserting = False
+        self.mri_upload.insertion_complete = True
+        self.mri_upload.number_of_minc_inserted = len(files_inserted_list)
+        self.mri_upload.number_of_minc_created = len(self.nifti_files_to_insert)
+        self.mri_upload.session = self.session
+        self.env.db.commit()
 
     def _get_summary_of_insertion(self):
         """
@@ -443,7 +449,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         excl_viol_list = ', '.join(excluded_violations_list) if excluded_violations_list else 0
 
         summary = f"""
-        Finished processing UploadID {self.upload_id}!
+        Finished processing UploadID {self.mri_upload.id}!
         - DICOM archive info: {self.dicom_archive.id} => {self.tarchive_path}
         - {nb_files_inserted} files were inserted into the files table: {files_list}
         - {nb_prot_violation} files did not match any protocol: {prot_viol_list}

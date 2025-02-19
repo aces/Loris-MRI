@@ -38,11 +38,12 @@ class DicomValidationPipeline(BasePipeline):
         # If we get here, the tarchive is validated & the script stops running so update mri_upload
         # ---------------------------------------------------------------------------------------------
         log_verbose(self.env, f"DICOM archive {self.options_dict['tarchive_path']['value']} is valid!")
-        self.imaging_upload_obj.update_mri_upload(
-            upload_id=self.upload_id,
-            fields=("isTarchiveValidated", "Inserting",),
-            values=("1", "0")
-        )
+
+        # Update the MRI upload.
+        self.mri_upload.is_dicom_archive_validated = True
+        self.mri_upload.inserting = False
+        self.env.db.commit()
+
         self.remove_tmp_dir()  # remove temporary directory
         sys.exit(lib.exitcode.SUCCESS)
 
@@ -57,11 +58,10 @@ class DicomValidationPipeline(BasePipeline):
         dicom_archive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive.archive_location)
         result = _validate_dicom_archive_md5sum(self.env, self.dicom_archive, dicom_archive_path)
         if not result:
-            self.imaging_upload_obj.update_mri_upload(
-                upload_id=self.upload_id,
-                fields=("isTarchiveValidated", "IsCandidateInfoValidated"),
-                values=("0", "0")
-            )
+            # Update the MRI upload.
+            self.mri_upload.is_dicom_archive_validated = False
+            self.mri_upload.is_candidate_info_validated = False
+            self.env.db.commit()
 
             log_error_exit(
                 self.env,
