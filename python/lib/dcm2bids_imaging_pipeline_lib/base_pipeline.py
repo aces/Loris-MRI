@@ -14,6 +14,7 @@ from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.imaging import Imaging
 from lib.logging import log_error_exit, log_verbose, log_warning
 from lib.make_env import make_env
+from lib.scanner import get_or_create_scanner
 from lib.validate_subject_info import validate_subject_info
 
 
@@ -110,7 +111,7 @@ class BasePipeline:
         ))
 
         # grep scanner information based on what is in the DICOM headers
-        self.scanner_id = self.determine_scanner_info()
+        self.mri_scanner = self.determine_scanner_info()
 
     def load_mri_upload_and_dicom_archive(self):
         """
@@ -240,17 +241,19 @@ class BasePipeline:
         """
         Determine the scanner information found in the database for the uploaded DICOM archive.
         """
-        scanner_id = self.imaging_obj.get_scanner_id(
+
+        mri_scanner = get_or_create_scanner(
+            self.env,
             self.dicom_archive.scanner_manufacturer,
-            self.dicom_archive.scanner_software_version,
-            self.dicom_archive.scanner_serial_number,
             self.dicom_archive.scanner_model,
+            self.dicom_archive.scanner_serial_number,
+            self.dicom_archive.scanner_software_version,
             self.site_dict['CenterID'],
             self.session.project_id if self.session is not None else None,
         )
 
-        log_verbose(self.env, f"Found Scanner ID: {scanner_id}")
-        return scanner_id
+        log_verbose(self.env, f"Found scanner ID: {mri_scanner.id}")
+        return mri_scanner
 
     def validate_subject_info(self):
         """

@@ -9,6 +9,7 @@ from typing import Optional
 
 import nibabel as nib
 from nilearn import image, plotting
+from typing_extensions import deprecated
 
 import lib.utilities as utilities
 from lib.config_file import SubjectInfo
@@ -832,6 +833,7 @@ class Imaging:
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
 
+    @deprecated('Use `lib.scanner.get_or_create_scanner` instead')
     def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id, project_id):
         """
         Get the scanner ID based on the scanner information provided as input.
@@ -858,6 +860,7 @@ class Imaging:
             project_id
         )
 
+    @deprecated('Use `lib.db.models.DbScanner.candidate` instead')
     def get_scanner_candid(self, scanner_id):
         """
         Select a ScannerID CandID based on the scanner ID in mri_scanner.

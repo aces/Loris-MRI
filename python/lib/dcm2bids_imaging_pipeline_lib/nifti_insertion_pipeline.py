@@ -14,6 +14,7 @@ from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.get_subject_session import get_subject_session
 from lib.logging import log_error_exit, log_verbose
+from lib.scanner import get_or_create_scanner
 from lib.validate_subject_info import validate_subject_info
 
 __license__ = "GPLv3"
@@ -84,7 +85,7 @@ class NiftiInsertionPipeline(BasePipeline):
         if self.dicom_archive is not None:
             self._validate_nifti_patient_name_with_dicom_patient_name()
             self.subject_info = self.imaging_obj.determine_subject_info(
-                self.dicom_archive, self.scanner_id
+                self.dicom_archive, self.mri_scanner.id
             )
         else:
             self._determine_subject_info_based_on_json_patient_name()
@@ -357,12 +358,13 @@ class NiftiInsertionPipeline(BasePipeline):
         scan_param = self.json_file_dict
 
         # get scanner ID if not already figured out
-        if not self.scanner_id:
-            self.scanner_id = self.imaging_obj.get_scanner_id(
+        if self.mri_scanner is None:
+            self.mri_scanner = get_or_create_scanner(
+                self.env,
                 self.json_file_dict['Manufacturer'],
-                self.json_file_dict['SoftwareVersions'],
-                self.json_file_dict['DeviceSerialNumber'],
                 self.json_file_dict['ManufacturersModelName'],
+                self.json_file_dict['DeviceSerialNumber'],
+                self.json_file_dict['SoftwareVersions'],
                 self.site_dict['CenterID'],
                 self.session.project_id,
             )
@@ -373,7 +375,7 @@ class NiftiInsertionPipeline(BasePipeline):
             self.session.cohort_id,
             self.session.site_id,
             self.session.visit_label,
-            self.scanner_id
+            self.mri_scanner.id,
         )
 
         protocol_info = self.imaging_obj.get_acquisition_protocol_info(
@@ -701,7 +703,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'InsertTime': datetime.datetime.now().timestamp(),
             'Caveat': 1 if self.warning_violations_list else 0,
             'TarchiveSource': self.dicom_archive.id,
-            'ScannerID': self.scanner_id,
+            'ScannerID': self.mri_scanner.id,
             'AcquisitionDate': acquisition_date,
             'SourceFileID': None
         }
