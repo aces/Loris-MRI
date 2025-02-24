@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from functools import reduce
 
 import lib.exitcode
+# Remove when we will drop the support for python 3.9
+from typing import Optional
 from lib.database_lib.bids_event_mapping import BidsEventMapping
 from lib.database_lib.config import Config
 from lib.database_lib.parameter_type import ParameterType
@@ -530,7 +532,7 @@ class Physiological:
                 print(f"Modality {modality} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name("Not registered")
 
         # type (Fiducials, AnatomicalLandmark, HeadCoil, DigitizedHeapPoints)
@@ -544,7 +546,7 @@ class Physiological:
                 print(f"Type {coord_system_type} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             coord_system_type = None
             type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
 
@@ -556,7 +558,7 @@ class Physiological:
                 print(f"Unit {unit_data} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
 
         # name
@@ -567,7 +569,7 @@ class Physiological:
                 print(f"Name {coord_system_name} unknown in DB")
                 # force default
                 raise IndexError
-        except (IndexError, KeyError):
+        except Exception:
             name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name("Not registered")
 
         # get or create coord system in db
@@ -589,7 +591,7 @@ class Physiological:
                 ref_key : Point3D(None, *ref_val)
                 for ref_key, ref_val in ref_coords.items()
             }
-        except (IndexError, KeyError):
+        except Exception:
             # no ref points
             is_ok_ref_coords = False
         # insert ref points if found
@@ -609,12 +611,13 @@ class Physiological:
             electrode_ids
         )
 
-        # insert blake2b hash of task event file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id,
-            'coordsystem_file_json_blake2b_hash',
-            blake2
-        )
+        if blake2:
+            # insert blake2b hash of task event file into physiological_parameter_file
+            self.insert_physio_parameter_file(
+                physiological_file_id,
+                'coordsystem_file_json_blake2b_hash',
+                blake2
+            )
 
     def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id,
                               project_id, blake2, project_wide, hed_union):
@@ -737,10 +740,18 @@ class Physiological:
 
     @dataclass
     class TagGroupMember:
+        """
+        Uncomment when we will drop the support for python 3.9
+
         hed_tag_id: int | None
         has_pairing: bool
         additional_members: int
         tag_value: str | None = None
+        """
+        hed_tag_id: Optional[int]
+        has_pairing: bool
+        additional_members: int
+        tag_value: Optional[str] = None
 
         def __eq__(self, other):
             return self.hed_tag_id == other.hed_tag_id and \
@@ -1221,7 +1232,8 @@ class Physiological:
             script    = None
             file_path = self.grep_file_path_from_file_id(physio_file_id)
 
-            chunk_root_dir = self.config_db_obj.get_config("EEGChunksPath")
+            chunk_root_dir_config = self.config_db_obj.get_config("EEGChunksPath")
+            chunk_root_dir = chunk_root_dir_config
             if not chunk_root_dir:
                 # the bids_rel_dir is the first two directories in file_path (
                 # bids_imports/BIDS_dataset_name_BIDSVersion)
@@ -1251,12 +1263,10 @@ class Physiological:
                 print('ERROR: ' + script + ' not found')
                 sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
 
-            # the final chunk path will be /data/%PROJECT%/data/bids_imports
-            # /BIDS_dataset_name_BIDSVersion_chunks/EEG_FILENAME.chunks
             chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
             if os.path.isdir(chunk_path):
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
                     parameter_name = 'electrophysiology_chunked_dataset_path',
-                    value = chunk_path.replace(data_dir, '')
+                    value = chunk_path.replace(chunk_root_dir_config, '') if chunk_root_dir_config else chunk_path.replace(data_dir, '')
                 )
