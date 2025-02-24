@@ -13,7 +13,7 @@ export LORIS_CONFIG=/opt/${PROJECT}/bin/mri/dicom-archive
 
 # for the Python scripts
 export LORIS_MRI=/opt/${PROJECT}/bin/mri
-export PYTHONPATH=$PYTHONPATH:/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
+export PYTHONPATH=$PYTHONPATH:/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/tools:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
 source /opt/${PROJECT}/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
 
 # for the defacing scripts

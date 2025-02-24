@@ -147,7 +147,7 @@ class Eeg:
 
         self.cohort_id   = None
         for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.psc_id:
+            if not row['participant_id'] == self.bids_sub_id:
                 continue
             if 'cohort' in row:
                 cohort_info = db.pselect(
@@ -159,12 +159,11 @@ class Eeg:
             break
 
         self.session_id      = self.get_loris_session_id()
-        # self.event_files = self.grep_bids_files('events')     # This variable and function are never otherwise used
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
-        if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename')[0]
+        if self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename'):
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename')[0]
 
         # register the data into LORIS
         if (dataset_type and dataset_type == 'raw'):
@@ -343,9 +342,10 @@ class Eeg:
                 files_to_archive, archive_rel_name, eeg_file_id
             )
 
-            # create data chunks for React visualization in
-            # data_dir/bids_import/bids_dataset_name_BIDSVersion_chunks directory
-            physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
+            # create data chunks for React visualization
+            eeg_viz_enabled = self.config_db_obj.get_config("useEEGBrowserVisualizationComponents")
+            if eeg_viz_enabled == 'true' or eeg_viz_enabled == '1':
+                physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
     def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
         """
@@ -593,6 +593,7 @@ class Eeg:
                     electrode_ids = physiological.insert_electrode_file(
                         electrode_data, electrode_path, physiological_file_id, blake2
                     )
+
                     # get coordsystem.json file
                     # subject-specific metadata
                     coordsystem_metadata_file = self.bids_layout.get_nearest(
@@ -603,18 +604,28 @@ class Eeg:
                         suffix = 'coordsystem',
                         all_ = False,
                         full_search = False,
-                        subject=self.psc_id,
+                        subject=self.bids_sub_id,
                     )
                     if not coordsystem_metadata_file:
                         message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
                                   f'associated with physiological file ID {physiological_file_id}'
                         print(message)
 
-                    else:
-                        # copy the electrode metadata file to the LORIS BIDS import directory
-                        electrode_metadata_path = self.copy_file_to_loris_bids_dir(
-                            coordsystem_metadata_file.path, derivatives
+                        # insert default (not registered) coordsystem in the database
+                        physiological.insert_electrode_metadata(
+                            None,
+                            None,
+                            physiological_file_id,
+                            None,
+                            electrode_ids
                         )
+                    else:
+                        electrode_metadata_path = coordsystem_metadata_file.path.replace(self.data_dir, '')
+                        if self.loris_bids_root_dir:
+                            # copy the electrode metadata file to the LORIS BIDS import directory
+                            electrode_metadata_path = self.copy_file_to_loris_bids_dir(
+                                coordsystem_metadata_file.path, derivatives
+                            )
                         # load json data
                         with open(coordsystem_metadata_file.path) as metadata_file:
                             electrode_metadata = json.load(metadata_file)
@@ -754,20 +765,21 @@ class Eeg:
                     suffix = 'events',
                     all_ = False,
                     full_search = False,
-                    subject=self.psc_id,
+                    subject=self.bids_sub_id,
                 )
                 inheritance = False
 
                 if not event_metadata_file:
-                    message = '\nWARNING: no events metadata files (event.json) associated' \
+                    message = '\nWARNING: no events metadata files (events.json) associated ' \
                               'with physiological file ID ' + str(physiological_file_id)
                     print(message)
                 else:
-                    # copy the event file to the LORIS BIDS import directory
-                    event_metadata_path = self.copy_file_to_loris_bids_dir(
-                        event_metadata_file.path, derivatives, inheritance
-                    )
-
+                    event_metadata_path = event_metadata_file.path.replace(self.data_dir, '')
+                    if self.loris_bids_root_dir:
+                        # copy the event file to the LORIS BIDS import directory
+                        event_metadata_path = self.copy_file_to_loris_bids_dir(
+                            event_metadata_file.path, derivatives, inheritance
+                        )
                     # load json data
                     with open(event_metadata_file.path) as metadata_file:
                         event_metadata = json.load(metadata_file)
@@ -787,10 +799,12 @@ class Eeg:
 
             # get events.tsv file and insert
             event_data = utilities.read_tsv_file(event_data_file.path)
-            # copy the event file to the LORIS BIDS import directory
-            event_path = self.copy_file_to_loris_bids_dir(
-                event_data_file.path, derivatives
-            )
+            event_path = event_data_file.path.replace(self.data_dir, '')
+            if self.loris_bids_root_dir:
+                # copy the event file to the LORIS BIDS import directory
+                event_path = self.copy_file_to_loris_bids_dir(
+                    event_data_file.path, derivatives
+                )
             # get the blake2b hash of the task events file
             blake2 = utilities.compute_blake2b_hash(event_data_file.path)
 
@@ -886,7 +900,7 @@ class Eeg:
         physiological = Physiological(self.db, self.verbose)
 
         # check if archive is on the filesystem
-        archive_full_path = os.path.join(self.data_dir, archive_rel_name)
+        (archive_rel_name, archive_full_path) = self.get_archive_paths(archive_rel_name)
         blake2            = None
         if os.path.isfile(archive_full_path):
             blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -911,7 +925,8 @@ class Eeg:
             else:
                 return
 
-        (archive_rel_name, archive_full_path) = self.create_archive(files_to_archive, archive_rel_name)
+        # create the archive file
+        utilities.create_archive(files_to_archive, archive_full_path)
 
         # insert the archive file in physiological_archive
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -936,7 +951,7 @@ class Eeg:
         """
 
         # check if archive is on the filesystem
-        archive_full_path = os.path.join(self.data_dir, archive_rel_name)
+        (archive_rel_name, archive_full_path) = self.get_archive_paths(archive_rel_name)
         blake2            = None
         if os.path.isfile(archive_full_path):
             blake2 = utilities.compute_blake2b_hash(archive_full_path)
@@ -971,16 +986,15 @@ class Eeg:
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
         physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
 
-    def create_archive(self, files_to_archive, archive_rel_name):
-        # create the archive file
+
+    def get_archive_paths(self, archive_rel_name):
         package_path = self.config_db_obj.get_config("prePackagedDownloadPath")
         if package_path:
             raw_package_dir = os.path.join(package_path, 'raw')
             os.makedirs(raw_package_dir, exist_ok=True)
             archive_rel_name = os.path.basename(archive_rel_name)
             archive_full_path = os.path.join(raw_package_dir, archive_rel_name)
-            utilities.create_archive(files_to_archive, archive_full_path)
         else:
             archive_full_path = os.path.join(self.data_dir, archive_rel_name)
-            utilities.create_archive(files_to_archive, archive_full_path)
+
         return (archive_rel_name, archive_full_path)
