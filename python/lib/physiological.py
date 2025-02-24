@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from functools import reduce
 
 import lib.exitcode
-# Remove when we will drop the support for python 3.9
-from typing import Optional
 from lib.database_lib.bids_event_mapping import BidsEventMapping
 from lib.database_lib.config import Config
 from lib.database_lib.parameter_type import ParameterType
@@ -740,18 +738,10 @@ class Physiological:
 
     @dataclass
     class TagGroupMember:
-        """
-        Uncomment when we will drop the support for python 3.9
-
         hed_tag_id: int | None
         has_pairing: bool
         additional_members: int
         tag_value: str | None = None
-        """
-        hed_tag_id: Optional[int]
-        has_pairing: bool
-        additional_members: int
-        tag_value: Optional[str] = None
 
         def __eq__(self, other):
             return self.hed_tag_id == other.hed_tag_id and \

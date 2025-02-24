@@ -157,10 +157,9 @@ def main():
         for previous_eeg_file in previous_eeg_files:
             delete_physiological_file_in_db(db, previous_eeg_file['PhysiologicalFileID'])
 
-        script = os.environ['LORIS_MRI'] + '/python/bids_import.py'
         # Assume eeg and raw data for now
         eeg_path = os.path.join(path, 'eeg')
-        command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
+        command = 'python bids_import.py -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
 
         try:
             result = subprocess.run(command, shell = True, capture_output=True)
