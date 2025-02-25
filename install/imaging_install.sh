@@ -273,4 +273,4 @@ fi
 ######################################################################
 echo "Populating database configuration entries for the Imaging Pipeline and LORIS-MRI code and images Path:"
 mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e \
-	"SET @email := '$email'; SET @project := '$PROJ'; SET @minc_dir := '$MINC_TOOLKIT_DIR'; SOURCE install_database.sql"
+	"SET @email := '$email'; SET @project := '$PROJ'; SET @minc_dir := '$MINC_TOOLKIT_DIR'; SOURCE install_database.sql;"
