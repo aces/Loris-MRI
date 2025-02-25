@@ -66,14 +66,14 @@ RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 # - Module::Pluggable is required by other modules. Installation fails for v6.1
 #   (at the time of this writing)
 # - DBD::mysql v5+ is no longer compatible with MariaDB
-COPY install/cpanfile ./install/cpanfile
+COPY install/requirements/cpanfile ./install/requirements/cpanfile
 
 RUN cpan App::cpanminus && \
-    cpanm --installdeps install/
+    cpanm --installdeps install/requirements/
 
 # Install the Python libraries
-COPY install/python_requirements.txt ./install/python_requirements.txt
-RUN pip install --no-cache-dir -r ./install/python_requirements.txt
+COPY install/requirements/python_requirements.txt ./install/requirements/python_requirements.txt
+RUN pip install --no-cache-dir -r ./install/requirements/python_requirements.txt
 
 # Get the database credentials as parameters
 ARG DATABASE_NAME
