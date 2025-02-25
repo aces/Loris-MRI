@@ -1,3 +1,7 @@
+# NOTES:
+# - Module::Pluggable is required by other modules. Installation fails for v6.1
+#   (at the time of this writing)
+# - DBD::mysql v5+ is no longer compatible with MariaDB
 requires 'Module::Pluggable', '== 5.2';
 requires 'DBD::mysql', '== 4.052';
 requires 'Math::Round';
@@ -18,4 +22,3 @@ requires 'TryCatch';
 requires 'Throwable';
 requires 'File::Type';
 requires 'String::ShellQuote';
-requires 'https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz';
