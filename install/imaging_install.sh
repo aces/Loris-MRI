@@ -231,7 +231,7 @@ echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
 echo "Creating python database config file with database credentials"
-cp $mridir/install/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
+cp $mridir/install/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
 sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
