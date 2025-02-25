@@ -66,6 +66,8 @@ RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 # - Module::Pluggable is required by other modules. Installation fails for v6.1
 #   (at the time of this writing)
 # - DBD::mysql v5+ is no longer compatible with MariaDB
+COPY install/cpanfile ./install/cpanfile
+
 RUN cpan App::cpanminus && \
     cpanm --installdeps install/
 
