@@ -23,6 +23,16 @@ def try_get_site_with_cand_id_visit_label(db: Database, cand_id: int, visit_labe
     ).scalar_one_or_none()
 
 
+def try_get_site_with_name(db: Database, name: str) -> Optional[DbSite]:
+    """
+    Get a site from the database using a site name, or return `None` if no site is found.
+    """
+
+    return db.execute(select(DbSite)
+        .where(DbSite.name == name)
+    ).scalar_one_or_none()
+
+
 def get_all_sites(db: Database) -> Sequence[DbSite]:
     """
     Get a sequence of all sites from the database.
