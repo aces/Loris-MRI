@@ -226,7 +226,7 @@ cp $mridir/install/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfile
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
@@ -234,7 +234,7 @@ echo "Creating python database config file with database credentials"
 cp $mridir/install/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
 echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/database_config.py"
 echo
 
