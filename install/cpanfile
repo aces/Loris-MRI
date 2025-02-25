@@ -18,4 +18,5 @@ requires 'TryCatch';
 requires 'Throwable';
 requires 'File::Type';
 requires 'String::ShellQuote';
+requires 'CPAN::DistnameInfo';
 requires 'Digest::BLAKE2', dist => "https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz";
