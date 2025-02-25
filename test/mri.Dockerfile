@@ -90,7 +90,7 @@ RUN cpan App::cpanminus && \
     cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 
 # Install the Python libraries
-COPY python/requirements.txt ./python/requirements.txt
+COPY install/python_requirements.txt ./python/requirements.txt
 RUN pip install --no-cache-dir -r ./python/requirements.txt
 
 # Get the database credentials as parameters
