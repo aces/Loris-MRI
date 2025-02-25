@@ -6,11 +6,12 @@ import os
 import subprocess
 import sys
 
+from delete_physiological_file import delete_physiological_file_in_db
+
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import INVALID_ARG, SUCCESS
 from lib.lorisgetopt import LorisGetOpt
-from delete_physiological_file import delete_physiological_file_in_db
 
 __license__ = "GPLv3"
 
@@ -159,7 +160,7 @@ def main():
 
         # Assume eeg and raw data for now
         eeg_path = os.path.join(path, 'eeg')
-        command = 'python bids_import.py -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
+        command = 'bids_import.py -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
 
         try:
             result = subprocess.run(command, shell = True, capture_output=True)
@@ -175,14 +176,14 @@ def main():
             if result.returncode == 0:
                 db.update(
                     "UPDATE electrophysiology_uploader SET Status = 'Ingested' WHERE UploadID = %s",
-                     (uploadid,)
+                    (uploadid,)
                 )
                 print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
 
                 continue
 
         except OSError:
-            print('ERROR: ' + script + ' not found')
+            print('ERROR: error while executing bids_import.py')
 
         db.update(
             "UPDATE electrophysiology_uploader SET Status = 'Failed Ingestion' WHERE UploadID = %s",

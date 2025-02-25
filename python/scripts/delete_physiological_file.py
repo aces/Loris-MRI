@@ -2,13 +2,15 @@
 
 """Script that handles deletion of EEG files"""
 
-import sys
 import os
 import shutil
-from lib.exitcode import SUCCESS, INVALID_ARG
-from lib.lorisgetopt import LorisGetOpt
+import sys
+
 from lib.database import Database
 from lib.database_lib.config import Config
+from lib.exitcode import INVALID_ARG
+from lib.lorisgetopt import LorisGetOpt
+
 
 def main():
     usage = (
@@ -81,6 +83,7 @@ def main():
     validate_file_id(db, file_id)
     delete_physiological_file(db, data_path, file_id, confirm, deleteondisk)
 
+
 def validate_file_id(db, file_id):
     """
     Check that the file id exists in the database
@@ -103,6 +106,7 @@ def validate_file_id(db, file_id):
     if (file_exists == 0):
         print(f"\nThe physiological file with id : {file_id} does not exist in the database.\n")
         sys.exit(INVALID_ARG)
+
 
 def delete_physiological_file_in_db(db, file_id):
     print(f"\nDropping all DB entries for physiological file: {file_id}\n")
@@ -342,6 +346,7 @@ def delete_physiological_file_in_db(db, file_id):
         (file_id,)
     )
 
+
 def delete_physiological_file(db, data_path, file_id, confirm, deleteondisk):
     """
     Deletes the provided physiological file and all its associated metadata in the db
@@ -512,6 +517,7 @@ def delete_physiological_file(db, data_path, file_id, confirm, deleteondisk):
     else:
         print("\nRun this tool again with argument --confirm to confirm database entries deletion.")
         print("To also delete files on disk, run with both --confirm and optional argument --deleteondisk.\n")
+
 
 if __name__ == "__main__":
     main()

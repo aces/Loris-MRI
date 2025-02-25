@@ -986,7 +986,6 @@ class Eeg:
         blake2 = utilities.compute_blake2b_hash(archive_full_path)
         physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
 
-
     def get_archive_paths(self, archive_rel_name):
         package_path = self.config_db_obj.get_config("prePackagedDownloadPath")
         if package_path:
