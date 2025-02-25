@@ -404,7 +404,7 @@ class Mri:
                     'file_id'      : file_id
                 }
             )
-            if os.path.exists(os.path.join(self.data_dir, 'pic/', pic_rel_path)):
+            if os.path.exists(os.path.join(self.data_dir, 'pic', pic_rel_path)):
                 imaging.insert_parameter_file(file_id, 'check_pic_filename', pic_rel_path)
 
         return {'file_id': file_id, 'file_path': file_path}
@@ -427,24 +427,28 @@ class Mri:
         # determine the path of the copied file
         copy_file = self.loris_bids_mri_rel_dir
         if self.bids_ses_id:
-            copy_file += os.path.basename(file)
+            copy_file = os.path.join(copy_file, os.path.basename(file))
         else:
             # make sure the ses- is included in the new filename if using
             # default visit label from the LORIS config
-            copy_file += str.replace(
-                os.path.basename(file),
-                "sub-" + self.bids_sub_id,
-                "sub-" + self.bids_sub_id + "_ses-" + self.default_vl
+            copy_file = os.path.join(
+                copy_file,
+                str.replace(
+                    os.path.basename(file),
+                    f"sub-{self.bids_sub_id}",
+                    f"sub-{self.bids_sub_id}_ses-{self.default_vl}"
+                )
             )
         if derivatives_path:
             # create derivative subject/vl/modality directory
             lib.utilities.create_dir(
-                derivatives_path + self.loris_bids_mri_rel_dir,
+                os.path.join(derivatives_path, self.loris_bids_mri_rel_dir),
                 self.verbose
             )
-            copy_file = derivatives_path + copy_file
+
+            copy_file = os.path.join(derivatives_path, copy_file)
         else:
-            copy_file = self.loris_bids_root_dir + copy_file
+            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
 
         # copy the file
         utilities.copy_file(file, copy_file, self.verbose)
