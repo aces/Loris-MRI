@@ -67,27 +67,7 @@ RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 #   (at the time of this writing)
 # - DBD::mysql v5+ is no longer compatible with MariaDB
 RUN cpan App::cpanminus && \
-    cpanm Module::Pluggable@5.2 && \
-    cpanm DBD::mysql@4.052 && \
-    cpanm Math::Round && \
-    cpanm DateTime && \
-    cpanm DBI && \
-    cpanm Getopt::Tabular && \
-    cpanm Time::JulianDay && \
-    cpanm Path::Class && \
-    cpanm Archive::Extract && \
-    cpanm Archive::Zip && \
-    cpanm Pod::Perldoc && \
-    cpanm Pod::Markdown && \
-    cpanm Pod::Usage && \
-    cpanm JSON && \
-    cpanm Moose && \
-    cpanm MooseX::Privacy && \
-    cpanm TryCatch && \
-    cpanm Throwable && \
-    cpanm File::Type && \
-    cpanm String::ShellQuote && \
-    cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
+    cpanm --installdeps install/
 
 # Install the Python libraries
 COPY install/python_requirements.txt ./install/python_requirements.txt

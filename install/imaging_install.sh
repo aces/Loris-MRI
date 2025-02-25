@@ -89,27 +89,7 @@ echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo perl -MCPAN -e shell
 #echo $rootpass | sudo -S cpan install Bundle::CPAN
 sudo -S cpan App::cpanminus
-sudo -S cpanm Module::Pluggable@5.2
-sudo -S cpanm DBD::mysql@4.052
-sudo -S cpanm Math::Round
-sudo -S cpanm DateTime
-sudo -S cpanm DBI
-sudo -S cpanm Getopt::Tabular
-sudo -S cpanm Time::JulianDay
-sudo -S cpanm Path::Class
-sudo -S cpanm Archive::Extract
-sudo -S cpanm Archive::Zip
-sudo -S cpanm Pod::Perldoc
-sudo -S cpanm Pod::Markdown
-sudo -S cpanm Pod::Usage
-sudo -S cpanm JSON
-sudo -S cpanm Moose
-sudo -S cpanm MooseX::Privacy
-sudo -S cpanm TryCatch
-sudo -S cpanm Throwable
-sudo -S cpanm File::Type
-sudo -S cpanm String::ShellQuote
-sudo -S cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
+sudo -S cpanm --installdeps $mridir/install/
 echo
 
 ################################################################################
