@@ -54,7 +54,9 @@ if [ -z "$prodfilename" ]; then
     prodfilename="prod"
 fi
 
-mridir=`pwd`
+# determine the mridir
+installdir=`pwd`
+mridir=${installdir%"/install"}
 
 # Test the connection to the database before proceeding
 echo "Testing connection to database..."
@@ -119,7 +121,7 @@ sudo -S su $USER -c "mkdir -m 770 -p $mridir/python_virtualenvs/loris-mri-python
 python3.11 -m venv $mridir/python_virtualenvs/loris-mri-python
 source $mridir/python_virtualenvs/loris-mri-python/bin/activate
 echo "Installing the Python libraries into the loris-mri virtualenv..."
-pip3 install -r "$mridir/python/requirements.txt"
+pip3 install -r "$mridir/install/python_requirements.txt"
 # deactivate the virtualenv for now
 deactivate
 
@@ -158,6 +160,7 @@ fi
 #######set environment variables under .bashrc#####################################
 ###################################################################################
 echo "Modifying environment script"
+cp $mridir/install/environment $mridir/environment
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 sed -i "s#%MINC_TOOLKIT_DIR%#$MINC_TOOLKIT_DIR#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
@@ -219,7 +222,7 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $mridir/dicom-archive/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
+cp $mridir/install/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
@@ -228,7 +231,7 @@ echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
 echo "Creating python database config file with database credentials"
-cp $mridir/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
+cp $mridir/install/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
 sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py

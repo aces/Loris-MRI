@@ -35,7 +35,9 @@ if [ -z "$prodfilename" ]; then
     prodfilename="prod"
 fi 
  
-mridir=`pwd`
+# determine the mridir
+installdir=`pwd`
+mridir=${installdir%"/install"}
 
 #####################################################################################
 #############################Create directories######################################
@@ -63,6 +65,7 @@ sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/";
 #######set environment variables under .bashrc#####################################
 ###################################################################################
 echo "Modifying environment script"
+cp $mridir/install/environment $mridir/environment
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
 #source /data/$PROJ/bin/$mridirname/environment
@@ -113,7 +116,7 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $mridir/dicom-archive/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
+cp $mridir/install/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
@@ -122,7 +125,7 @@ echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
 echo "Creating python database config file with database credentials"
-cp $mridir/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
+cp $mridir/install/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
 sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
