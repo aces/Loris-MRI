@@ -67,9 +67,8 @@ RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 #   (at the time of this writing)
 # - DBD::mysql v5+ is no longer compatible with MariaDB
 COPY install/requirements/cpanfile ./install/requirements/cpanfile
-
 RUN cpan App::cpanminus && \
-    cpanm --installdeps install/requirements/
+    cpanm --installdeps ./install/requirements/
 
 # Install the Python libraries
 COPY install/requirements/python_requirements.txt ./install/requirements/python_requirements.txt
