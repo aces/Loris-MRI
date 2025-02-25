@@ -90,6 +90,7 @@ echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo -S cpan install Bundle::CPAN
 sudo -S cpan App::cpanminus
 sudo -S cpanm --installdeps $mridir/install/requirements/
+sudo -S cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 echo
 
 ################################################################################

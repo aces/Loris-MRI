@@ -63,12 +63,11 @@ RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 
 # Install the Perl libraries
 # NOTES:
-# - Module::Pluggable is required by other modules. Installation fails for v6.1
-#   (at the time of this writing)
-# - DBD::mysql v5+ is no longer compatible with MariaDB
+# - not able to install BLAKE2 using a URL so installing it directly with cpanm
 COPY install/requirements/cpanfile ./install/requirements/cpanfile
 RUN cpan App::cpanminus && \
-    cpanm --installdeps ./install/requirements/
+    cpanm --installdeps ./install/requirements/ && \
+    cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 
 # Install the Python libraries
 COPY install/requirements/python_requirements.txt ./install/requirements/python_requirements.txt
