@@ -287,7 +287,7 @@ def main() -> None:
     if args.insert:
         log(env, "Inserting the DICOM study in the LORIS database...")
 
-        insert_dicom_archive(env.db, dicom_summary, dicom_import_log, dicom_archive_rel_path)
+        dicom_archive = insert_dicom_archive(env.db, dicom_summary, dicom_import_log, dicom_archive_rel_path)
 
     if args.update:
         log(env, "Updating the DICOM study in the LORIS database...")
