@@ -2,3 +2,5 @@
 *.pyc
 .loris_mri/
 python_virtualenvs/
+environment
+**/.DS_Store

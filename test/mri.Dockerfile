@@ -63,35 +63,15 @@ RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 
 # Install the Perl libraries
 # NOTES:
-# - Module::Pluggable is required by other modules. Installation fails for v6.1
-#   (at the time of this writing)
-# - DBD::mysql v5+ is no longer compatible with MariaDB
+# - not able to install BLAKE2 using a URL so installing it directly with cpanm
+COPY install/requirements/cpanfile ./install/requirements/cpanfile
 RUN cpan App::cpanminus && \
-    cpanm Module::Pluggable@5.2 && \
-    cpanm DBD::mysql@4.052 && \
-    cpanm Math::Round && \
-    cpanm DateTime && \
-    cpanm DBI && \
-    cpanm Getopt::Tabular && \
-    cpanm Time::JulianDay && \
-    cpanm Path::Class && \
-    cpanm Archive::Extract && \
-    cpanm Archive::Zip && \
-    cpanm Pod::Perldoc && \
-    cpanm Pod::Markdown && \
-    cpanm Pod::Usage && \
-    cpanm JSON && \
-    cpanm Moose && \
-    cpanm MooseX::Privacy && \
-    cpanm TryCatch && \
-    cpanm Throwable && \
-    cpanm File::Type && \
-    cpanm String::ShellQuote && \
+    cpanm --installdeps ./install/requirements/ && \
     cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 
 # Install the Python libraries
-COPY python/requirements.txt ./python/requirements.txt
-RUN pip install --no-cache-dir -r ./python/requirements.txt
+COPY install/requirements/requirements.txt ./install/requirements/requirements.txt
+RUN pip install --no-cache-dir -r ./install/requirements/requirements.txt
 
 # Get the database credentials as parameters
 ARG DATABASE_NAME
