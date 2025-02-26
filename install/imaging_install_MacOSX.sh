@@ -65,7 +65,7 @@ sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/";
 #######set environment variables under .bashrc#####################################
 ###################################################################################
 echo "Modifying environment script"
-cp $mridir/install/templates/environment $mridir/environment
+cp $installdir/templates/environment_template $mridir/environment
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
 #source /data/$PROJ/bin/$mridirname/environment
@@ -116,18 +116,18 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $mridir/install/templates/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
+cp $installdir/templates/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/templates/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
 echo "Creating python database config file with database credentials"
-cp $mridir/install/templates/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
+cp $installdir/templates/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/templates/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
 echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/database_config.py"
 echo
