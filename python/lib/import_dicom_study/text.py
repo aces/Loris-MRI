@@ -70,8 +70,13 @@ def make_hash(path: str, with_name: bool = False):
     Get the MD5 sum hash of a file, with or without the filename appended.
     """
 
+    # Since the file given to this function can be up to several gigabytes, we read it in chunks to
+    # avoid running out of memory.
+    hash = hashlib.md5()
     with open(path, 'rb') as file:
-        hash = hashlib.md5(file.read()).hexdigest()
+        while chunk := file.read(1048576):
+            hash.update(chunk)
+    hash = hash.hexdigest()
 
     if with_name:
         hash = f'{hash}   {os.path.basename(path)}'
