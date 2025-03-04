@@ -1006,7 +1006,7 @@ class Physiological:
 
             # get values of present optional cols
             onset = 0
-            if isinstance(row['onset'], (int, float)):
+            if isinstance(row['onset'], int | float):
                 onset = row['onset']
             else:
                 # try casting to float, cannot be n/a
@@ -1014,7 +1014,7 @@ class Physiological:
                 onset = float(row['onset'])
 
             duration = 0
-            if isinstance(row['duration'], (int, float)):
+            if isinstance(row['duration'], int | float):
                 duration = row['duration']
             else:
                 try:
@@ -1028,13 +1028,13 @@ class Physiological:
             assert duration >= 0
 
             sample = None
-            if isinstance(row['event_sample'], (int, float)):
+            if isinstance(row['event_sample'], int | float):
                 sample = row['event_sample']
-            if row['sample'] and isinstance(row['sample'], (int, float)):
+            if row['sample'] and isinstance(row['sample'], int | float):
                 sample = row['sample']
 
             response_time = None
-            if isinstance(row['response_time'], (int, float)):
+            if isinstance(row['response_time'], int | float):
                 response_time = row['response_time']
 
             event_value = None

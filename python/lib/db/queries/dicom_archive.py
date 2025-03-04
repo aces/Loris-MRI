@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session as Database
@@ -8,7 +7,7 @@ from lib.db.models.dicom_archive_file import DbDicomArchiveFile
 from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
 
 
-def try_get_dicom_archive_with_id(db: Database, dicom_archive_id: int) -> Optional[DbDicomArchive]:
+def try_get_dicom_archive_with_id(db: Database, dicom_archive_id: int) -> DbDicomArchive | None:
     """
     Get a DICOM archive from the database using its ID, or return `None` if no DICOM archive is
     found.
@@ -19,7 +18,7 @@ def try_get_dicom_archive_with_id(db: Database, dicom_archive_id: int) -> Option
     ).scalar_one_or_none()
 
 
-def try_get_dicom_archive_with_archive_location(db: Database, archive_location: str) -> Optional[DbDicomArchive]:
+def try_get_dicom_archive_with_archive_location(db: Database, archive_location: str) -> DbDicomArchive | None:
     """
     Get a DICOM archive from the database using its archive location, or return `None` if no DICOM
     archive is found.
@@ -57,8 +56,8 @@ def get_dicom_archive_series_with_file_info(
     db: Database,
     series_uid: str,
     series_number: int,
-    echo_time: Optional[float],
-    sequence_name: Optional[str],
+    echo_time: float | None,
+    sequence_name: str | None,
 ):
     """
     Get a DICOM archive series from the database using its file information, or raise an exception
@@ -78,7 +77,7 @@ def try_get_dicom_archive_series_with_series_uid_echo_time(
     db: Database,
     series_uid: str,
     echo_time: float,
-) -> Optional[DbDicomArchiveSeries]:
+) -> DbDicomArchiveSeries | None:
     """
     Get a DICOM archive series from the database using its series UID and echo time, or return
     `None` if no DICOM archive series is found.

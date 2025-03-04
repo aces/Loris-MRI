@@ -11,16 +11,16 @@ from lib.db.base import Base
 class DbDicomArchiveFile(Base):
     __tablename__ = 'tarchive_files'
 
-    id                 : Mapped[int]           = mapped_column('TarchiveFileID', primary_key=True)
-    archive_id         : Mapped[int]           = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    series_id          : Mapped[Optional[int]] \
+    id                 : Mapped[int]        = mapped_column('TarchiveFileID', primary_key=True)
+    archive_id         : Mapped[int]        = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
+    series_id          : Mapped[int | None] \
         = mapped_column('TarchiveSeriesID', ForeignKey('tarchive_series.TarchiveSeriesID'))
-    series_number      : Mapped[Optional[int]] = mapped_column('SeriesNumber')
-    series_description : Mapped[Optional[str]] = mapped_column('SeriesDescription')
-    file_number        : Mapped[Optional[int]] = mapped_column('FileNumber')
-    echo_number        : Mapped[Optional[int]] = mapped_column('EchoNumber')
-    md5_sum            : Mapped[str]           = mapped_column('Md5Sum')
-    file_name          : Mapped[str]           = mapped_column('FileName')
+    series_number      : Mapped[int | None] = mapped_column('SeriesNumber')
+    series_description : Mapped[str | None] = mapped_column('SeriesDescription')
+    file_number        : Mapped[int | None] = mapped_column('FileNumber')
+    echo_number        : Mapped[int | None] = mapped_column('EchoNumber')
+    md5_sum            : Mapped[str]        = mapped_column('Md5Sum')
+    file_name          : Mapped[str]        = mapped_column('FileName')
 
     archive : Mapped['db_dicom_archive.DbDicomArchive'] \
         = relationship('DbDicomArchive', back_populates='files')

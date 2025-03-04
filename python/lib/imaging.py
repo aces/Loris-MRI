@@ -5,7 +5,6 @@ import json
 import os
 import re
 import tarfile
-from typing import Optional
 
 import nibabel as nib
 from nilearn import image, plotting
@@ -515,7 +514,7 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_info(self, dicom_archive: DbDicomArchive, scanner_id: Optional[int] = None) -> SubjectInfo:
+    def determine_subject_info(self, dicom_archive: DbDicomArchive, scanner_id: int | None = None) -> SubjectInfo:
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
         config setting. This function will call a function in the configuration file that can be
