@@ -40,6 +40,15 @@ def get_dicom_study_summary(dicom_study_dir_path: str, verbose: bool):
             if study_info is None:
                 study_info = get_dicom_study_info(dicom)
 
+            modality = read_value_none(dicom, 'Modality')
+            if modality is None:
+                print(f"Found no modality for DICOM file '{file_rel_path}'.")
+                raise pydicom.errors.InvalidDicomError
+
+            if modality != 'MR' and modality != 'PT':
+                print(f"Found unhandled modality '{modality}' for DICOM file '{file_rel_path}'.")
+                raise pydicom.errors.InvalidDicomError
+
             dicom_files.append(get_dicom_file_info(dicom))
 
             acquisition_key = DicomStudyAcquisitionKey(
