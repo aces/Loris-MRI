@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
@@ -12,7 +11,7 @@ def try_get_scanner_with_info(
     software_version: str,
     serial_number: str,
     model: str,
-) -> Optional[DbMriScanner]:
+) -> DbMriScanner | None:
     """
     Get an MRI scanner from the database using the provided information, or return `None` if no
     scanner is found.

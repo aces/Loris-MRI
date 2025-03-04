@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,19 +10,19 @@ from lib.db.base import Base
 class DbDicomArchiveSeries(Base):
     __tablename__ = 'tarchive_series'
 
-    id                 : Mapped[int]             = mapped_column('TarchiveSeriesID', primary_key=True)
-    archive_id         : Mapped[int]             = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    series_number      : Mapped[int]             = mapped_column('SeriesNumber')
-    series_description : Mapped[Optional[str]]   = mapped_column('SeriesDescription')
-    sequence_name      : Mapped[Optional[str]]   = mapped_column('SequenceName')
-    echo_time          : Mapped[Optional[float]] = mapped_column('EchoTime')
-    repetition_time    : Mapped[Optional[float]] = mapped_column('RepetitionTime')
-    inversion_time     : Mapped[Optional[float]] = mapped_column('InversionTime')
-    slice_thickness    : Mapped[Optional[float]] = mapped_column('SliceThickness')
-    phase_encoding     : Mapped[Optional[str]]   = mapped_column('PhaseEncoding')
-    number_of_files    : Mapped[int]             = mapped_column('NumberOfFiles')
-    series_uid         : Mapped[Optional[str]]   = mapped_column('SeriesUID')
-    modality           : Mapped[Optional[str]]   = mapped_column('Modality')
+    id                 : Mapped[int]          = mapped_column('TarchiveSeriesID', primary_key=True)
+    archive_id         : Mapped[int]          = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
+    series_number      : Mapped[int]          = mapped_column('SeriesNumber')
+    series_description : Mapped[str | None]   = mapped_column('SeriesDescription')
+    sequence_name      : Mapped[str | None]   = mapped_column('SequenceName')
+    echo_time          : Mapped[float | None] = mapped_column('EchoTime')
+    repetition_time    : Mapped[float | None] = mapped_column('RepetitionTime')
+    inversion_time     : Mapped[float | None] = mapped_column('InversionTime')
+    slice_thickness    : Mapped[float | None] = mapped_column('SliceThickness')
+    phase_encoding     : Mapped[str | None]   = mapped_column('PhaseEncoding')
+    number_of_files    : Mapped[int]          = mapped_column('NumberOfFiles')
+    series_uid         : Mapped[str | None]   = mapped_column('SeriesUID')
+    modality           : Mapped[str | None]   = mapped_column('Modality')
 
     archive            : Mapped['db_dicom_archive.DbDicomArchive'] \
         = relationship('DbDicomArchive', back_populates='series')
