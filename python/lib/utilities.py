@@ -11,7 +11,6 @@ import sys
 import tarfile
 import tempfile
 from datetime import datetime
-from pathlib import Path
 
 import mat73
 import numpy
@@ -222,8 +221,13 @@ def compute_blake2b_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        data = Path(file_path).read_bytes()
-        return hashlib.blake2b(data).hexdigest()
+        # Since the file given to this function can be large, we read it in chunks to avoid running
+        # out of memory.
+        hash = hashlib.blake2b()
+        with open(file_path, 'rb') as file:
+            while chunk := file.read(1048576):
+                hash.update(chunk)
+        return hash.hexdigest()
 
 
 def compute_md5_hash(file_path):
@@ -235,8 +239,13 @@ def compute_md5_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        data = Path(file_path).read_bytes()
-        return hashlib.md5(data).hexdigest()
+        # Since the file given to this function can be large, we read it in chunks to avoid running
+        # out of memory.
+        hash = hashlib.md5()
+        with open(file_path, 'rb') as file:
+            while chunk := file.read(1048576):
+                hash.update(chunk)
+        return hash.hexdigest()
 
 
 def create_processing_tmp_dir(template_prefix):
