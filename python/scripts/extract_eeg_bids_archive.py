@@ -10,10 +10,10 @@ import lib.utilities as utilities
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import BAD_CONFIG_SETTING, SUCCESS
-from lib.file_system import copy_file, extract_archive, remove_directory
 from lib.logging import log, log_error, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env
+from lib.util.fs import copy_file, extract_archive, remove_directory
 
 __license__ = "GPLv3"
 
