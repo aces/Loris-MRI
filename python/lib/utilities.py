@@ -2,7 +2,6 @@
 
 import csv
 import filecmp
-import hashlib
 import io
 import os
 import re
@@ -16,8 +15,10 @@ import mat73
 import numpy
 import requests
 import scipy.io
+from typing_extensions import deprecated
 
 import lib.exitcode
+import lib.util.crypto
 
 __license__ = "GPLv3"
 
@@ -212,6 +213,7 @@ def update_set_file_path_info(set_file, with_fdt_file):
     return True
 
 
+@deprecated('Use `lib.util.crypto.compute_file_blake2b_hash` instead.')
 def compute_blake2b_hash(file_path):
     """
     Compute the blake2b hash of a file and returns it.
@@ -221,15 +223,10 @@ def compute_blake2b_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        # Since the file given to this function can be large, we read it in chunks to avoid running
-        # out of memory.
-        hash = hashlib.blake2b()
-        with open(file_path, 'rb') as file:
-            while chunk := file.read(1048576):
-                hash.update(chunk)
-        return hash.hexdigest()
+        return lib.util.crypto.compute_file_blake2b_hash(file_path)
 
 
+@deprecated('Use `lib.util.crypto.compute_file_md5_hash` instead.')
 def compute_md5_hash(file_path):
     """
     Compute the md5 hash of a file and returns it.
@@ -239,13 +236,7 @@ def compute_md5_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        # Since the file given to this function can be large, we read it in chunks to avoid running
-        # out of memory.
-        hash = hashlib.md5()
-        with open(file_path, 'rb') as file:
-            while chunk := file.read(1048576):
-                hash.update(chunk)
-        return hash.hexdigest()
+        return lib.util.crypto.compute_file_md5_hash(file_path)
 
 
 def create_processing_tmp_dir(template_prefix):

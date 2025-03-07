@@ -14,13 +14,13 @@ from lib.exitcode import COPY_FAILURE
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.logging` and `lib.file_system` instead')
+@deprecated('Use `lib.logging` and `lib.util.fs` instead')
 class ImagingIO:
     def __init__(self, log_obj, verbose):
         self.log_obj = log_obj
         self.verbose = verbose
 
-    @deprecated('Use `lib.file_system.extract_archive` instead')
+    @deprecated('Use `lib.util.fs.extract_archive` instead')
     def extract_archive(self, location, prefix, tmp_dir):
         """
         Extract Archive in the temporary directory
@@ -37,7 +37,7 @@ class ImagingIO:
         tar_file.close()
         return extract_location
 
-    @deprecated('Use `lib.file_system.remove_directory` instead')
+    @deprecated('Use `lib.util.fs.remove_directory` instead')
     def remove_dir(self, dir):
         """
         Removes a directory and its content
@@ -49,7 +49,7 @@ class ImagingIO:
             except PermissionError as err:
                 self.log_info(f"Could not delete {dir}. Error was: {err}", is_error=True, is_verbose=False)
 
-    @deprecated('Use `lib.file_system.copy_file` instead')
+    @deprecated('Use `lib.util.fs.copy_file` instead')
     def copy_file(self, old_file_path, new_file_path):
         """
         Move a file on the file system.
