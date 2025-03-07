@@ -3,9 +3,10 @@ A bunch of functions to convert values between (possibly empty) strings and
 different types of values.
 """
 
-import hashlib
 import os
 from datetime import date, datetime
+
+from lib.util.crypto import compute_file_md5_hash
 
 
 def write_value(value: str | int | float | None):
@@ -65,20 +66,9 @@ def read_float_none(string: str | None):
     return float(string)
 
 
-def make_hash(path: str, with_name: bool = False):
+def compute_md5_hash_with_name(path: str):
     """
-    Get the MD5 sum hash of a file, with or without the filename appended.
+    Get the MD5 sum hash of a file with the filename appended.
     """
 
-    # Since the file given to this function can be up to several gigabytes, we read it in chunks to
-    # avoid running out of memory.
-    hash = hashlib.md5()
-    with open(path, 'rb') as file:
-        while chunk := file.read(1048576):
-            hash.update(chunk)
-    hash = hash.hexdigest()
-
-    if with_name:
-        hash = f'{hash}   {os.path.basename(path)}'
-
-    return hash
+    return f'{compute_file_md5_hash(path)}   {os.path.basename(path)}'

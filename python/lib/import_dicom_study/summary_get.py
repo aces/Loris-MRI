@@ -14,8 +14,9 @@ from lib.import_dicom_study.summary_type import (
     DicomStudyScanner,
     DicomStudySummary,
 )
-from lib.import_dicom_study.text import make_hash, read_dicom_date_none
-from lib.util import iter_all_files
+from lib.import_dicom_study.text import read_dicom_date_none
+from lib.util.crypto import compute_file_md5_hash
+from lib.util.fs import iter_all_dir_files
 
 
 def get_dicom_study_summary(dicom_study_dir_path: str, verbose: bool):
@@ -28,7 +29,7 @@ def get_dicom_study_summary(dicom_study_dir_path: str, verbose: bool):
     other_files: list[DicomStudyOtherFile] = []
     acquisitions_dict: dict[DicomStudyAcquisitionKey, DicomStudyAcquisition] = dict()
 
-    file_rel_paths = list(iter_all_files(dicom_study_dir_path))
+    file_rel_paths = list(iter_all_dir_files(dicom_study_dir_path))
     for i, file_rel_path in enumerate(file_rel_paths, start=1):
         if verbose:
             print(f"Processing file '{file_rel_path}' ({i}/{len(file_rel_paths)})")
@@ -114,7 +115,7 @@ def get_dicom_file_info(dicom: pydicom.Dataset) -> DicomStudyDicomFile:
 
     return DicomStudyDicomFile(
         os.path.basename(dicom.filename),
-        make_hash(dicom.filename),
+        compute_file_md5_hash(dicom.filename),
         read_value_none(dicom, 'SeriesNumber'),
         read_value_none(dicom, 'SeriesInstanceUID'),
         read_value_none(dicom, 'SeriesDescription'),
@@ -132,7 +133,7 @@ def get_other_file_info(file_path: str) -> DicomStudyOtherFile:
 
     return DicomStudyOtherFile(
         os.path.basename(file_path),
-        make_hash(file_path),
+        compute_file_md5_hash(file_path),
     )
 
 

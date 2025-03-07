@@ -25,7 +25,7 @@ from lib.import_dicom_study.summary_write import write_dicom_study_summary_to_fi
 from lib.logging import log, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env
-from lib.util import iter_all_files
+from lib.util.fs import iter_all_dir_files
 from lib.validate_subject_info import validate_subject_info
 
 
@@ -236,14 +236,14 @@ def main() -> None:
         log(env, "Copying the DICOM files into a new tar archive...")
 
         with tarfile.open(tar_path, 'w') as tar:
-            for file_rel_path in iter_all_files(args.source):
+            for file_rel_path in iter_all_dir_files(args.source):
                 file_path = os.path.join(args.source, file_rel_path)
                 file_tar_path = os.path.join(os.path.basename(args.source), file_rel_path)
                 tar.add(file_path, arcname=file_tar_path)
 
         log(env, "Calculating the tar archive MD5 sum...")
 
-        tar_md5_sum = lib.import_dicom_study.text.make_hash(tar_path, True)
+        tar_md5_sum = lib.import_dicom_study.text.compute_md5_hash_with_name(tar_path)
 
         log(env, "Zipping the tar archive... (may take a long time)")
 
@@ -255,7 +255,7 @@ def main() -> None:
 
         log(env, "Calculating the zipped tar archive MD5 sum...")
 
-        zip_md5_sum = lib.import_dicom_study.text.make_hash(zip_path, True)
+        zip_md5_sum = lib.import_dicom_study.text.compute_md5_hash_with_name(zip_path)
 
         log(env, "Creating DICOM study import log...")
 
@@ -282,7 +282,9 @@ def main() -> None:
 
     log(env, "Calculating final DICOM study archive MD5 sum...")
 
-    dicom_import_log.archive_md5_sum = lib.import_dicom_study.text.make_hash(dicom_import_log.target_path, True)
+    dicom_import_log.archive_md5_sum = lib.import_dicom_study.text.compute_md5_hash_with_name(
+        dicom_import_log.target_path
+    )
 
     if args.insert:
         log(env, "Inserting the DICOM study in the LORIS database...")

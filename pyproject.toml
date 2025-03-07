@@ -29,7 +29,6 @@ include = [
     "python/lib/make_env.py",
     "python/lib/scanner.py",
     "python/lib/validate_subject_info.py",
-    "python/lib/util.py",
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
 ]
