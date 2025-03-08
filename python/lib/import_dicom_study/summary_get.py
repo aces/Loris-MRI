@@ -178,6 +178,10 @@ def read_value_none(dicom: pydicom.Dataset, tag: str):
     """
 
     if tag not in dicom:
+        for elem in dicom.iterall():
+            # to find header information in enhanced DICOMs, need to look into subheaders
+            if elem.tag == tag:
+                return elem.value
         return None
 
     return dicom[tag].value or None
