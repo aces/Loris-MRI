@@ -11,6 +11,7 @@ nose
 numpy
 protobuf>=3.0.0
 pybids==0.17.0
+pydicom
 pyright
 pytest
 python-dateutil
