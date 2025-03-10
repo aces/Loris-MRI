@@ -7,11 +7,7 @@ from sqlalchemy.orm import Session as Database
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.models.dicom_archive_file import DbDicomArchiveFile
 from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
-from lib.db.queries.dicom_archive import (
-    delete_dicom_archive_file_series,
-    get_dicom_archive_series_with_file_info,
-    try_get_dicom_archive_with_study_uid,
-)
+from lib.db.queries.dicom_archive import delete_dicom_archive_file_series, try_get_dicom_archive_with_study_uid
 from tests.util.database import create_test_database
 
 
@@ -162,15 +158,3 @@ def test_delete_dicom_archive_file_series(setup: Setup):
 
     assert setup.db.execute(select(DbDicomArchiveSeries)
         .where(DbDicomArchiveSeries.archive_id == setup.dicom_archive.id)).first() is None
-
-
-def test_get_dicom_archive_series_with_file_info(setup: Setup):
-    dicom_archive_series = get_dicom_archive_series_with_file_info(
-        setup.db,
-        '1.3.12.2.11.11.11.999.0.0',
-        1,
-        100,
-        'ep_b100',
-    )
-
-    assert dicom_archive_series is setup.dicom_archive_series

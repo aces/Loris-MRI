@@ -1,7 +1,28 @@
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sized
 from typing import TypeVar
 
 T = TypeVar('T')
+
+
+def count(iterable: Iterable[T]) -> int:
+    """
+    Count the number of elements in an iterable.
+
+    If the iterable is sized, this function uses the `__len__` method.
+    If the iterable is an iterator, this function consumes the iterator.
+    """
+
+    if isinstance(iterable, Sized):
+        return len(iterable)
+
+    count = 0
+    for _ in iterable:
+        count += 1
+
+    return count
+
+
+T = TypeVar('T')  # type: ignore
 
 
 def find(predicate: Callable[[T], bool], iterable: Iterable[T]) -> T | None:
@@ -30,3 +51,15 @@ def filter_map(function: Callable[[T], U | None], iterable: Iterable[T]) -> Iter
         result = function(item)
         if result is not None:
             yield result
+
+
+T = TypeVar('T')  # type: ignore
+
+
+def flatten(iterables: Iterable[Iterable[T]]) -> Iterator[T]:
+    """
+    Flatten an iterable of iterables into a single iterator.
+    """
+
+    for iterable in iterables:
+        yield from iterable
