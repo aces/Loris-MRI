@@ -67,10 +67,19 @@ class DicomStudyOtherFile:
     md5_sum:   str
 
 
-@dataclass
-class DicomStudyAcquisition:
+# This dataclass does not correspond to a "real" DICOM series, as a DICOM series may actually have
+# files that have different echo times, inversion times, repetition times... (for instance in
+# multi-echo series).
+# Generally, a "real" DICOM series should be uniquely identifiable by using the series instance UID
+# DICOM attribute.
+# This class corresponds more to a LORIS database DICOM series entry, which is a unique tuple of
+# some parameters of the DICOM files of a study (including the DICOM series instance UID). As such,
+# there is a 1-to-n relationship between a "real" DICOM series, and the LORIS database DICOM series
+# entries.
+@dataclass(frozen=True)
+class DicomStudyDicomSeries:
     """
-    Information about an acquisition within a DICOM study.
+    Information about an DICOM series within a DICOM study.
     """
 
     series_number:      int
@@ -82,19 +91,7 @@ class DicomStudyAcquisition:
     inversion_time:     float | None  # In Milliseconds
     slice_thickness:    float | None  # In Millimeters
     phase_encoding:     str | None
-    number_of_files:    int
     modality:           str | None
-
-
-@dataclass(frozen=True)
-class DicomStudyAcquisitionKey:
-    """
-    Identifying information about an acquisition within a DICOM study.
-    """
-
-    series_number: int
-    echo_numbers: str | None
-    sequence_name: str | None
 
 
 @dataclass
@@ -104,6 +101,5 @@ class DicomStudySummary:
     """
 
     info: DicomStudyInfo
-    acquisitions: list[DicomStudyAcquisition]
-    dicom_files: list[DicomStudyDicomFile]
+    dicom_series_files: dict[DicomStudyDicomSeries, list[DicomStudyDicomFile]]
     other_files: list[DicomStudyOtherFile]

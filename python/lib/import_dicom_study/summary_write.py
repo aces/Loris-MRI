@@ -1,8 +1,9 @@
 import xml.etree.ElementTree as ET
+from functools import cmp_to_key
 
 from lib.import_dicom_study.summary_type import (
-    DicomStudyAcquisition,
     DicomStudyDicomFile,
+    DicomStudyDicomSeries,
     DicomStudyInfo,
     DicomStudyOtherFile,
     DicomStudySummary,
@@ -10,6 +11,7 @@ from lib.import_dicom_study.summary_type import (
 from lib.import_dicom_study.text import write_date_none
 from lib.import_dicom_study.text_dict import DictWriter
 from lib.import_dicom_study.text_table import TableWriter
+from lib.util.iter import count, flatten
 
 
 def write_dicom_study_summary_to_file(dicom_summary: DicomStudySummary, filename: str):
@@ -29,9 +31,9 @@ def write_dicom_study_summary(dicom_summary: DicomStudySummary) -> str:
 
     xml = ET.Element('STUDY')
     ET.SubElement(xml, 'STUDY_INFO').text   = write_dicom_study_info(dicom_summary.info)
-    ET.SubElement(xml, 'FILES').text        = write_dicom_study_dicom_files(dicom_summary.dicom_files)
+    ET.SubElement(xml, 'FILES').text        = write_dicom_study_dicom_files(dicom_summary.dicom_series_files)
     ET.SubElement(xml, 'OTHERS').text       = write_dicom_study_other_files(dicom_summary.other_files)
-    ET.SubElement(xml, 'ACQUISITIONS').text = write_dicom_study_acquisitions(dicom_summary.acquisitions)
+    ET.SubElement(xml, 'ACQUISITIONS').text = write_dicom_study_dicom_series(dicom_summary.dicom_series_files)
     ET.SubElement(xml, 'SUMMARY').text      = write_dicom_study_ending(dicom_summary)
     ET.indent(xml, space='')
     return ET.tostring(xml, encoding='unicode') + '\n'
@@ -58,10 +60,13 @@ def write_dicom_study_info(info: DicomStudyInfo) -> str:
     ]).write()
 
 
-def write_dicom_study_dicom_files(dicom_files: list[DicomStudyDicomFile]) -> str:
+def write_dicom_study_dicom_files(dicom_series_files: dict[DicomStudyDicomSeries, list[DicomStudyDicomFile]]) -> str:
     """
     Serialize information about the DICOM files of a DICOM study into a table.
     """
+
+    dicom_files = list(flatten(dicom_series_files.values()))
+    dicom_files.sort(key=cmp_to_key(compare_dicom_files))
 
     writer = TableWriter()
     writer.append_row(['SN', 'FN', 'EN', 'Series', 'md5sum', 'File name'])
@@ -94,10 +99,13 @@ def write_dicom_study_other_files(other_files: list[DicomStudyOtherFile]) -> str
     return '\n' + writer.write()
 
 
-def write_dicom_study_acquisitions(acquisitions: list[DicomStudyAcquisition]) -> str:
+def write_dicom_study_dicom_series(dicom_series_files: dict[DicomStudyDicomSeries, list[DicomStudyDicomFile]]) -> str:
     """
-    Serialize information about the acquisitions of a DICOM study into a table.
+    Serialize information about the DICOM series of a DICOM study into a table.
     """
+
+    dicom_series_list = list(dicom_series_files.keys())
+    dicom_series_list.sort(key=cmp_to_key(compare_dicom_series))
 
     writer = TableWriter()
     writer.append_row([
@@ -114,19 +122,21 @@ def write_dicom_study_acquisitions(acquisitions: list[DicomStudyAcquisition]) ->
         'Mod'
     ])
 
-    for acquisition in acquisitions:
+    for dicom_series in dicom_series_list:
+        dicom_files = dicom_series_files[dicom_series]
+
         writer.append_row([
-            acquisition.series_number,
-            acquisition.series_description,
-            acquisition.sequence_name,
-            acquisition.echo_time,
-            acquisition.repetition_time,
-            acquisition.inversion_time,
-            acquisition.slice_thickness,
-            acquisition.phase_encoding,
-            acquisition.number_of_files,
-            acquisition.series_uid,
-            acquisition.modality,
+            dicom_series.series_number,
+            dicom_series.series_description,
+            dicom_series.sequence_name,
+            dicom_series.echo_time,
+            dicom_series.repetition_time,
+            dicom_series.inversion_time,
+            dicom_series.slice_thickness,
+            dicom_series.phase_encoding,
+            len(dicom_files),
+            dicom_series.series_uid,
+            dicom_series.modality,
         ])
 
     return '\n' + writer.write()
@@ -149,7 +159,69 @@ def write_dicom_study_ending(dicom_summary: DicomStudySummary) -> str:
     else:
         age = ''
 
+    dicom_files_count = count(flatten(dicom_summary.dicom_series_files.values()))
+    other_files_count = len(dicom_summary.other_files)
+
     return '\n' + DictWriter([
-        ('Total number of files', len(dicom_summary.dicom_files) + len(dicom_summary.other_files)),
+        ('Total number of files', dicom_files_count + other_files_count),
         ('Age at scan', age),
     ]).write()
+
+
+# Comparison functions used to sort the various DICOM study information objects.
+
+def compare_dicom_files(a: DicomStudyDicomFile, b: DicomStudyDicomFile):
+    """
+    Compare two DICOM file informations in accordance with `functools.cmp_to_key`.
+    """
+
+    return \
+        compare_int_none(a.series_number, b.series_number) or \
+        compare_int_none(a.file_number, b.file_number) or \
+        compare_int_none(a.echo_number, b.echo_number)
+
+
+def compare_dicom_series(a: DicomStudyDicomSeries, b: DicomStudyDicomSeries):
+    """
+    Compare two acquisition informations in accordance with `functools.cmp_to_key`.
+    """
+
+    return \
+        a.series_number - b.series_number or \
+        compare_string_none(a.sequence_name, b.sequence_name)
+
+
+def compare_int_none(a: int | None, b: int | None):
+    """
+    Compare two nullable integers in accordance with `functools.cmp_to_key`.
+    """
+
+    match a, b:
+        case None, None:
+            return 0
+        case _, None:
+            return -1
+        case None, _:
+            return 1
+        case a, b:
+            return a - b
+
+
+def compare_string_none(a: str | None, b: str | None):
+    """
+    Compare two nullable strings in accordance with `functools.cmp_to_key`.
+    """
+
+    match a, b:
+        case None, None:
+            return 0
+        case _, None:
+            return -1
+        case None, _:
+            return 1
+        case a, b if a < b:
+            return -1
+        case a, b if a > b:
+            return 1
+        case a, b:
+            return 0

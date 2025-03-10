@@ -52,27 +52,6 @@ def delete_dicom_archive_file_series(db: Database, dicom_archive: DbDicomArchive
         .where(DbDicomArchiveSeries.archive_id == dicom_archive.id))
 
 
-def get_dicom_archive_series_with_file_info(
-    db: Database,
-    series_uid: str,
-    series_number: int,
-    echo_time: float | None,
-    sequence_name: str | None,
-):
-    """
-    Get a DICOM archive series from the database using its file information, or raise an exception
-    if no DICOM archive series is found.
-    """
-
-    query = select(DbDicomArchiveSeries) \
-        .where(DbDicomArchiveSeries.series_uid    == series_uid) \
-        .where(DbDicomArchiveSeries.series_number == series_number) \
-        .where(DbDicomArchiveSeries.echo_time     == echo_time) \
-        .where(DbDicomArchiveSeries.sequence_name == sequence_name)
-
-    return db.execute(query).scalar_one()
-
-
 def try_get_dicom_archive_series_with_series_uid_echo_time(
     db: Database,
     series_uid: str,

@@ -5,10 +5,11 @@ from sqlalchemy.orm import Session as Database
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.models.dicom_archive_file import DbDicomArchiveFile
 from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
-from lib.db.queries.dicom_archive import delete_dicom_archive_file_series, get_dicom_archive_series_with_file_info
+from lib.db.queries.dicom_archive import delete_dicom_archive_file_series
 from lib.import_dicom_study.import_log import DicomStudyImportLog, write_dicom_study_import_log_to_string
 from lib.import_dicom_study.summary_type import DicomStudySummary
 from lib.import_dicom_study.summary_write import write_dicom_study_summary
+from lib.util.iter import count, flatten
 
 
 def insert_dicom_archive(
@@ -73,8 +74,8 @@ def populate_dicom_archive(
     dicom_archive.last_update              = None
     dicom_archive.date_acquired            = dicom_summary.info.scan_date
     dicom_archive.date_last_archived       = datetime.now()
-    dicom_archive.acquisition_count        = len(dicom_summary.acquisitions)
-    dicom_archive.dicom_file_count         = len(dicom_summary.dicom_files)
+    dicom_archive.acquisition_count        = len(dicom_summary.dicom_series_files)
+    dicom_archive.dicom_file_count         = count(flatten(dicom_summary.dicom_series_files.values()))
     dicom_archive.non_dicom_file_count     = len(dicom_summary.other_files)
     dicom_archive.md5_sum_dicom_only       = dicom_import_log.tarball_md5_sum
     dicom_archive.md5_sum_archive          = dicom_import_log.archive_md5_sum
@@ -100,42 +101,36 @@ def insert_files_series(db: Database, dicom_archive: DbDicomArchive, dicom_summa
     Insert the DICOM files and series related to a DICOM archive in the database.
     """
 
-    for acquisition in dicom_summary.acquisitions:
-        db.add(DbDicomArchiveSeries(
+    for dicom_series, dicom_files in dicom_summary.dicom_series_files.items():
+        dicom_series = DbDicomArchiveSeries(
             archive_id         = dicom_archive.id,
-            series_number      = acquisition.series_number,
-            series_description = acquisition.series_description,
-            sequence_name      = acquisition.sequence_name,
-            echo_time          = acquisition.echo_time,
-            repetition_time    = acquisition.repetition_time,
-            inversion_time     = acquisition.inversion_time,
-            slice_thickness    = acquisition.slice_thickness,
-            phase_encoding     = acquisition.phase_encoding,
-            number_of_files    = acquisition.number_of_files,
-            series_uid         = acquisition.series_uid,
-            modality           = acquisition.modality,
-        ))
-
-    db.commit()
-
-    for dicom_file in dicom_summary.dicom_files:
-        dicom_series = get_dicom_archive_series_with_file_info(
-            db,
-            dicom_file.series_uid or '',
-            dicom_file.series_number or 1,
-            dicom_file.echo_time,
-            dicom_file.sequence_name,
+            series_number      = dicom_series.series_number,
+            series_description = dicom_series.series_description,
+            sequence_name      = dicom_series.sequence_name,
+            echo_time          = dicom_series.echo_time,
+            repetition_time    = dicom_series.repetition_time,
+            inversion_time     = dicom_series.inversion_time,
+            slice_thickness    = dicom_series.slice_thickness,
+            phase_encoding     = dicom_series.phase_encoding,
+            number_of_files    = len(dicom_files),
+            series_uid         = dicom_series.series_uid,
+            modality           = dicom_series.modality,
         )
 
-        db.add(DbDicomArchiveFile(
-            archive_id         = dicom_archive.id,
-            series_number      = dicom_file.series_number,
-            file_number        = dicom_file.file_number,
-            echo_number        = dicom_file.echo_number,
-            series_description = dicom_file.series_description,
-            md5_sum            = dicom_file.md5_sum,
-            file_name          = dicom_file.file_name,
-            series_id          = dicom_series.id,
-        ))
+        # Populate the DICOM series ID.
+        db.add(dicom_series)
+        db.commit()
+
+        for dicom_file in dicom_files:
+            db.add(DbDicomArchiveFile(
+                archive_id         = dicom_archive.id,
+                series_number      = dicom_file.series_number,
+                file_number        = dicom_file.file_number,
+                echo_number        = dicom_file.echo_number,
+                series_description = dicom_file.series_description,
+                md5_sum            = dicom_file.md5_sum,
+                file_name          = dicom_file.file_name,
+                series_id          = dicom_series.id,
+            ))
 
     db.commit()
