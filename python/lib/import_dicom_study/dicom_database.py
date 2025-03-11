@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import cmp_to_key
 
 from sqlalchemy.orm import Session as Database
 
@@ -8,7 +9,7 @@ from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
 from lib.db.queries.dicom_archive import delete_dicom_archive_file_series
 from lib.import_dicom_study.import_log import DicomStudyImportLog, write_dicom_study_import_log_to_string
 from lib.import_dicom_study.summary_type import DicomStudySummary
-from lib.import_dicom_study.summary_write import write_dicom_study_summary
+from lib.import_dicom_study.summary_write import compare_dicom_files, compare_dicom_series, write_dicom_study_summary
 from lib.util.iter import count, flatten
 
 
@@ -101,7 +102,14 @@ def insert_files_series(db: Database, dicom_archive: DbDicomArchive, dicom_summa
     Insert the DICOM files and series related to a DICOM archive in the database.
     """
 
-    for dicom_series, dicom_files in dicom_summary.dicom_series_files.items():
+    # Sort the DICOM series and files to insert them in the correct order.
+    dicom_series_list = list(dicom_summary.dicom_series_files.keys())
+    dicom_series_list.sort(key=cmp_to_key(compare_dicom_series))
+
+    for dicom_series in dicom_series_list:
+        dicom_files = dicom_summary.dicom_series_files[dicom_series]
+        dicom_files.sort(key=cmp_to_key(compare_dicom_files))
+
         dicom_series = DbDicomArchiveSeries(
             archive_id         = dicom_archive.id,
             series_number      = dicom_series.series_number,
