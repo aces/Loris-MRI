@@ -20,6 +20,7 @@ include = [
     "python/tests",
     "python/lib/db",
     "python/lib/exception",
+    "python/lib/import_dicom_study",
     "python/lib/util",
     "python/lib/config_file.py",
     "python/lib/env.py",
@@ -28,6 +29,8 @@ include = [
     "python/lib/make_env.py",
     "python/lib/scanner.py",
     "python/lib/validate_subject_info.py",
+    "python/scripts/import_dicom_study.py",
+    "python/scripts/summarize_dicom_study.py",
 ]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
