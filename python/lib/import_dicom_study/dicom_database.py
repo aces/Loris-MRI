@@ -85,10 +85,10 @@ def populate_dicom_archive(
     dicom_archive.tar_type_version         = dicom_import_log.archive_version
     dicom_archive.source_location          = dicom_import_log.source_path
     dicom_archive.archive_location         = archive_location
-    dicom_archive.scanner_manufacturer     = dicom_summary.info.scanner.manufacturer
-    dicom_archive.scanner_model            = dicom_summary.info.scanner.model
-    dicom_archive.scanner_serial_number    = dicom_summary.info.scanner.serial_number
-    dicom_archive.scanner_software_version = dicom_summary.info.scanner.software_version
+    dicom_archive.scanner_manufacturer     = dicom_summary.info.scanner.manufacturer or ''
+    dicom_archive.scanner_model            = dicom_summary.info.scanner.model or ''
+    dicom_archive.scanner_serial_number    = dicom_summary.info.scanner.serial_number or ''
+    dicom_archive.scanner_software_version = dicom_summary.info.scanner.software_version or ''
     dicom_archive.session_id               = None
     dicom_archive.upload_attempt           = 0
     dicom_archive.create_info              = write_dicom_study_import_log_to_string(dicom_import_log)

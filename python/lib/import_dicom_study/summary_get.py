@@ -78,10 +78,10 @@ def get_dicom_study_info(dicom: pydicom.Dataset) -> DicomStudyInfo:
     )
 
     scanner = DicomStudyScanner(
-        read_value(dicom, 'Manufacturer'),
-        read_value(dicom, 'ManufacturerModelName'),
-        read_value(dicom, 'DeviceSerialNumber'),
-        read_value(dicom, 'SoftwareVersions'),
+        read_value_none(dicom, 'Manufacturer'),
+        read_value_none(dicom, 'ManufacturerModelName'),
+        read_value_none(dicom, 'DeviceSerialNumber'),
+        read_value_none(dicom, 'SoftwareVersions'),
     )
 
     return DicomStudyInfo(

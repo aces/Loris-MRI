@@ -20,10 +20,10 @@ class DicomStudyScanner:
     Information about a DICOM study scanner.
     """
 
-    manufacturer:     str
-    model:            str
-    serial_number:    str
-    software_version: str
+    manufacturer:     str | None
+    model:            str | None
+    serial_number:    str | None
+    software_version: str | None
 
 
 @dataclass
