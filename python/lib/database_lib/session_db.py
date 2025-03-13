@@ -54,6 +54,7 @@ class SessionDB:
 
         query = "SELECT * FROM session" \
                 " JOIN psc USING (CenterID)" \
+                " JOIN candidate ON (candidate.ID=session.CandidateID)" \
                 " WHERE CandID=%s AND LOWER(Visit_label)=LOWER(%s) AND Active='Y'"
         results = self.db.pselect(query=query, args=(cand_id, visit_label))
 
@@ -75,7 +76,7 @@ class SessionDB:
 
         query = "SELECT * FROM session" \
                 " JOIN psc USING (CenterID)" \
-                " JOIN candidate USING (CandID)" \
+                " JOIN candidate ON (candidate.ID = session.CandidateID)" \
                 " WHERE PSCID=%s AND Visit_label=%s"
         results = self.db.pselect(query=query, args=(pscid, visit_label))
 

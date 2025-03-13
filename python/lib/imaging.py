@@ -24,6 +24,7 @@ from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
 from lib.db.models.dicom_archive import DbDicomArchive
+from lib.db.queries.candidate import try_get_candidate_with_cand_id
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 
 __license__ = "GPLv3"
@@ -268,8 +269,11 @@ class Imaging:
                     and row['EchoNumber'] == echo_number:
                 return
 
+        candidate = try_get_candidate_with_cand_id(self.db, cand_id)
+        candidate_id = candidate.id if candidate else None
+
         info_to_insert_dict = {
-            "CandID": cand_id,
+            "CandID": candidate_id,
             "PSCID": psc_id,
             "TarchiveID": tarchive_id,
             "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -506,6 +510,7 @@ class Imaging:
 
         query = "SELECT CandID " + \
                 " FROM session s " + \
+                " JOIN candidate c ON (c.ID=s.CandidateID)" \
                 " JOIN files f ON (s.ID=f.SessionID) " + \
                 " WHERE FileID = %s"
 

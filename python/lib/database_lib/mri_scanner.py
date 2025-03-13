@@ -148,6 +148,11 @@ class MriScanner:
         :return: scanner CandID
          :rtype: int
         """
-        query = 'SELECT CandID FROM mri_scanner WHERE ID = %s'
+        query = '''
+        SELECT CandID
+        FROM mri_scanner
+            JOIN candidate ON (candidate.ID=mri_scanner.CandidateID)
+        WHERE ID = %s
+        '''
         results = self.db.pselect(query=query, args=(scanner_id,))
         return results[0]['CandID'] if results else None
