@@ -103,9 +103,9 @@ def main():
     for eeg_dataset in eeg_dataset_list:
         uploadid = str(eeg_dataset['UploadID'])
 
-        query = "SELECT s.CandID, c.PSCID, s.Visit_label " \
+        query = "SELECT c.CandID, c.PSCID, s.Visit_label " \
             " FROM session s " \
-            " JOIN candidate c ON c.CandID = s.CandID " \
+            " JOIN candidate c ON c.ID = s.CandidateID " \
             " WHERE s.ID = %s" \
 
         session_data = db.pselect(query, (eeg_dataset['SessionID'],))

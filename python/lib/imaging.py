@@ -23,8 +23,8 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
-from lib.db.queries.candidate import try_get_candidate_with_cand_id
 from lib.db.models.dicom_archive import DbDicomArchive
+from lib.db.queries.candidate import try_get_candidate_with_cand_id
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 
 __license__ = "GPLv3"
@@ -69,7 +69,6 @@ class Imaging:
         self.db = db
         self.verbose = verbose
         self.config_file = config_file
-        self.candidate_db_obj = CandidateDB
         self.config_db_obj = Config(self.db, self.verbose)
         self.files_db_obj = Files(db, verbose)
         self.mri_cand_errors_db_obj = MriCandidateErrors(db, verbose)

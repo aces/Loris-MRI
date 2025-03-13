@@ -149,9 +149,9 @@ class MriScanner:
          :rtype: int
         """
         query = '''
-        SELECT CandID 
-        FROM mri_scanner 
-            JOIN candidate ON (candidate.ID=mri_scanner.CandidateID) 
+        SELECT CandID
+        FROM mri_scanner
+            JOIN candidate ON (candidate.ID=mri_scanner.CandidateID)
         WHERE ID = %s
         '''
         results = self.db.pselect(query=query, args=(scanner_id,))

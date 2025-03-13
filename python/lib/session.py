@@ -127,8 +127,8 @@ class Session:
         # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in different PR though
         loris_session_info = self.db.pselect(
             """
-            SELECT PSCID, CandID, session.* 
-            FROM session 
+            SELECT PSCID, CandID, session.*
+            FROM session
                 JOIN candidate ON (candidate.ID=session.CandidateID)
             WHERE CandID = %s AND Visit_label = %s
             """,
