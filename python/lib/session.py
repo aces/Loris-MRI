@@ -2,6 +2,7 @@
 
 from typing_extensions import deprecated
 
+from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.project_cohort_rel import ProjectCohortRel
 from lib.database_lib.session_db import SessionDB
 from lib.database_lib.site import Site
@@ -60,6 +61,7 @@ class Session:
         self.verbose = verbose
 
         self.proj_cohort_rel_db_obj = ProjectCohortRel(db, verbose)
+        self.candidate_db_obj = CandidateDB(db, verbose)
         self.session_db_obj = SessionDB(db, verbose)
         self.site_db_obj = Site(db, verbose)
 
@@ -88,8 +90,10 @@ class Session:
             print("Creating visit " + self.visit_label
                   + " for CandID "  + self.cand_id)
 
-        column_names = ('CandID', 'Visit_label', 'CenterID', 'Current_stage')
-        values = (self.cand_id, self.visit_label, str(self.center_id), 'Not Started')
+        # fetch the candidate.ID associated to the CandID first
+        candidate_id = self.candidate_db_obj.get_candidate_id(self.cand_id)
+        column_names = ('CandidateID', 'Visit_label', 'CenterID', 'Current_stage')
+        values = (candidate_id, self.visit_label, str(self.center_id), 'Not Started')
 
         if self.project_id:
             column_names = column_names + ('ProjectID',)
@@ -122,7 +126,12 @@ class Session:
         """
         # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in different PR though
         loris_session_info = self.db.pselect(
-            "SELECT * FROM session WHERE CandID = %s AND Visit_label = %s",
+            """
+            SELECT PSCID, CandID, session.* 
+            FROM session 
+                JOIN candidate ON (candidate.ID=session.CandidateID)
+            WHERE CandID = %s AND Visit_label = %s
+            """,
             (self.cand_id, self.visit_label)
         )
 
