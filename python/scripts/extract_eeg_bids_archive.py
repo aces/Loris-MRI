@@ -164,7 +164,7 @@ def main():
                         break
 
         if not error and not tmp_eeg_session_path:
-            log_error(env, "Could not find a session folder in the bids structure for .")
+            log_error(env, f"Could not find a session folder in the bids structure for {eeg_archive_file}.")
             error = True
 
         if not error:
