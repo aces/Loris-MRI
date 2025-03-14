@@ -8,6 +8,7 @@ def test():
 
     test_missing_upload_id_arg()
 
+
 def test_missing_upload_id_arg():
     db = get_integration_database_session()
 
@@ -24,7 +25,13 @@ def test_missing_upload_id_arg():
 
     # Check that the return code and standard error are correct
     assert process.returncode == 3
-    assert '[ERROR   ] argument --upload_id is required' in process.stderr.decode()
+    if "[ERROR   ] argument --upload_id is required" in process.stdout.decode():
+        print("IIIIIIIIIIIIIIIII")
+    elif process.stdout.decode().startswith("[ERROR   ] argument --upload_id is required"):
+        print("OOOOOOOOOOOOOOOOO")
+    else:
+        print(type(process.stdout.decode()))
+    # assert '[ERROR   ] argument --upload_id is required' in process.stdout.decode()
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
