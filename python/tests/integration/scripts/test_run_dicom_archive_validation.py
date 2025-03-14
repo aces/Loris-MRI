@@ -39,4 +39,3 @@ def test_missing_upload_id_arg():
     assert mri_upload.is_candidate_info_validated is False
     assert mri_upload.is_dicom_archive_validated is False
     assert mri_upload.session is None
-    assert len(mri_upload.session.files) == 1
