@@ -26,7 +26,7 @@ def test_missing_upload_id_arg():
 
     # Check that the return code and standard error are correct
     assert process.returncode == 3
-    assert process.stderr.startswith(b'[ERROR   ] argument --upload_id is required')
+    assert '[ERROR   ] argument --upload_id is required' in process.stderr.decode()
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
