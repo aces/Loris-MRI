@@ -23,15 +23,13 @@ def test_missing_upload_id_arg():
     print(f'STDOUT:\n{process.stdout.decode()}')
     print(f'STDERR:\n{process.stderr.decode()}')
 
+    # Isolate error message
+    error_msg = "[ERROR   ] argument --upload_id is required"
+    error_msg_is_valid = True if error_msg in process.stdout.decode() else False
+
     # Check that the return code and standard error are correct
     assert process.returncode == 3
-    if "[ERROR   ] argument --upload_id is required" in process.stdout.decode():
-        print("IIIIIIIIIIIIIIIII")
-    elif process.stdout.decode().startswith("[ERROR   ] argument --upload_id is required"):
-        print("OOOOOOOOOOOOOOOOO")
-    else:
-        print(type(process.stdout.decode()))
-    # assert '[ERROR   ] argument --upload_id is required' in process.stdout.decode()
+    assert error_msg_is_valid is True
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
