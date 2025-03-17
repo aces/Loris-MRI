@@ -62,7 +62,7 @@ def test_missing_tarchive_path_arg():
     process = subprocess.run([
         'run_dicom_archive_validation.py',
         '--profile', 'database_config.py',
-        '--upload_id', 126,
+        '--upload_id', '126',
     ], capture_output=True)
 
     # Print the standard output and error for debugging
