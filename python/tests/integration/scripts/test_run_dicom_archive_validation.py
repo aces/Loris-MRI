@@ -18,7 +18,7 @@ def reset_mri_upload_before_running(db: Database):
 
 
 def check_error_code_and_process_errors(
-        process: subprocess,
+        process: subprocess.CompletedProcess,
         expected_error_code: int,
         expected_error_message: str
 ):
