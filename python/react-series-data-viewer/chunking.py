@@ -168,7 +168,7 @@ def mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_coun
     time_interval = (parsed.times[0], parsed.times[-1])
     channel_names = parsed.info["ch_names"]
     channel_ranges = []
-    signal_range = [np.PINF, np.NINF]
+    signal_range = [np.inf, -np.inf]
     channel_chunks_list = []
     selected_channels = []
     valid_samples_in_last_chunk = []

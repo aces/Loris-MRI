@@ -10,6 +10,7 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import INVALID_ARG, SUCCESS
 from lib.lorisgetopt import LorisGetOpt
+from scripts.delete_physiological_file import delete_physiological_file_in_db
 
 __license__ = "GPLv3"
 
@@ -147,10 +148,18 @@ def main():
             print(f'No BIDS dataset matching visit {visit} for candidate {pscid} {candid} found.')
             continue
 
-        script = os.environ['LORIS_MRI'] + '/python/scripts/bids_import.py'
+        # Get previous upload files
+        previous_eeg_files = db.pselect(
+            "SELECT PhysiologicalFileID FROM physiological_file WHERE SessionID = %s",
+            (eeg_dataset['SessionID'],)
+        )
+        # Delete previous uploads
+        for previous_eeg_file in previous_eeg_files:
+            delete_physiological_file_in_db(db, previous_eeg_file['PhysiologicalFileID'])
+
         # Assume eeg and raw data for now
         eeg_path = os.path.join(path, 'eeg')
-        command = 'python ' + script + ' -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
+        command = 'bids_import.py -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
 
         try:
             result = subprocess.run(command, shell = True, capture_output=True)
@@ -166,21 +175,19 @@ def main():
             if result.returncode == 0:
                 db.update(
                     "UPDATE electrophysiology_uploader SET Status = 'Ingested' WHERE UploadID = %s",
-                     (uploadid,)
+                    (uploadid,)
                 )
                 print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
+
                 continue
 
         except OSError:
-            print('ERROR: ' + script + ' not found')
+            print('ERROR: error while executing bids_import.py')
 
         db.update(
             "UPDATE electrophysiology_uploader SET Status = 'Failed Ingestion' WHERE UploadID = %s",
             (uploadid,)
         )
-
-    # TODO: reupload of archive after ingestion
-    # Delete if already exist
 
 
 if __name__ == "__main__":
