@@ -18,21 +18,23 @@ def reset_mri_upload_before_running(db: Database):
 
 
 def check_error_code_and_process_errors(
-        process: subprocess.CompletedProcess,
+        process_return_code: int,
+        process_stderr: str,
+        process_stdout: str,
         expected_error_code: int,
         expected_error_message: str
 ):
     # Print the standard output and error for debugging
-    print(f'STDOUT:\n{process.stdout.decode()}')
-    print(f'STDERR:\n{process.stderr.decode()}')
+    print(f'STDOUT:\n{process_stdout}')
+    print(f'STDERR:\n{process_stderr}')
 
     # Isolate STDOUT message and check that it contains the expected error message
-    error_msg_is_valid = True if expected_error_message in process.stdout.decode() else False
+    error_msg_is_valid = True if expected_error_message in process_stdout else False
     assert error_msg_is_valid is True
 
     # Check that the return code and standard error are correct
-    assert process.returncode == expected_error_code
-    assert process.stderr == b''
+    assert process_return_code == expected_error_code
+    assert process_stderr == ''
 
 
 def test_missing_upload_id_arg():
@@ -50,7 +52,9 @@ def test_missing_upload_id_arg():
 
     # Check error code, error message returned and STDERR - will also print out STDERR and STDOUT
     check_error_code_and_process_errors(
-        process,
+        process_return_code=process.returncode,
+        process_stderr=process.stderr.decode(),
+        process_stdout=process.stdout.decode(),
         expected_error_code=MISSING_ARG,
         expected_error_message="[ERROR   ] argument --upload_id is required"
     )
@@ -78,7 +82,9 @@ def test_missing_tarchive_path_arg():
 
     # Check error code, error message returned and STDERR - will also print out STDERR and STDOUT
     check_error_code_and_process_errors(
-        process,
+        process_return_code=process.returncode,
+        process_stderr=process.stderr.decode(),
+        process_stdout=process.stdout.decode(),
         expected_error_code=MISSING_ARG,
         expected_error_message="[ERROR   ] argument --tarchive_path is required"
     )
