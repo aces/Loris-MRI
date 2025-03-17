@@ -1,16 +1,26 @@
 import subprocess
 
+from sqlalchemy.orm import Session as Database
+
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from tests.util.database import get_integration_database_session
 
 
-def test():
+def reset_mri_upload_before_running(db: Database):
 
-    test_missing_upload_id_arg()
+    mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
+    mri_upload.is_candidate_info_validated = False
+    mri_upload.is_dicom_archive_validated = False
+    mri_upload.session_id = None
+    mri_upload.number_of_minc_inserted = None
+    mri_upload.number_of_minc_inserted = None
 
 
 def test_missing_upload_id_arg():
     db = get_integration_database_session()
+
+    # Set some tarchive fields
+    reset_mri_upload_before_running(db)
 
     # Run the script to test
     process = subprocess.run([
