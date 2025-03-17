@@ -6,12 +6,11 @@ import os
 import subprocess
 import sys
 
-from scripts.delete_physiological_file import delete_physiological_file_in_db
-
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import INVALID_ARG, SUCCESS
 from lib.lorisgetopt import LorisGetOpt
+from scripts.delete_physiological_file import delete_physiological_file_in_db
 
 __license__ = "GPLv3"
 
