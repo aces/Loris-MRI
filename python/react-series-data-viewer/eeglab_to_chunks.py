@@ -30,7 +30,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     for path in args.files:
         eeg = mne_eeglab._check_load_mat(path, None)
-        eeglab_info = mne_eeglab._get_info(eeg, eog=())
+        eeglab_info = mne_eeglab._get_info(eeg, eog=(), montage_units="auto")
         channel_names = eeglab_info[0]['ch_names']
 
         if args.channel_index < 0:

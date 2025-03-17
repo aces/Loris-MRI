@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-from delete_physiological_file import delete_physiological_file_in_db
+from scripts.delete_physiological_file import delete_physiological_file_in_db
 
 from lib.database import Database
 from lib.database_lib.config import Config
