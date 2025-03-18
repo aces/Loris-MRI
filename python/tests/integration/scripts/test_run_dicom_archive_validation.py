@@ -2,8 +2,8 @@ import subprocess
 
 from sqlalchemy.orm import Session as Database
 
-from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_id
+from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE
 from tests.util.database import get_integration_database_session
 
