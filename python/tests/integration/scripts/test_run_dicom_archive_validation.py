@@ -3,6 +3,7 @@ import subprocess
 from sqlalchemy.orm import Session as Database
 
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
+from lib.db.queries.dicom_archive import try_get_dicom_archive_with_id
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE
 from tests.util.database import get_integration_database_session
 
@@ -18,10 +19,17 @@ def reset_mri_upload_before_running(db: Database):
     db.commit()
 
 
+def reset_tarchive_path_before_running(db: Database):
+
+    tarchive = try_get_dicom_archive_with_id(db, 74)
+    tarchive.archive_location = "DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar"
+    db.commit()
+
+
 def test_missing_upload_id_arg():
     db = get_integration_database_session()
 
-    # Set some tarchive fields
+    # Reset some mri_upload fields
     reset_mri_upload_before_running(db)
 
     # Run the script to test
@@ -56,7 +64,7 @@ def test_missing_upload_id_arg():
 def test_missing_tarchive_path_arg():
     db = get_integration_database_session()
 
-    # Set some tarchive fields
+    # Reset some mri_upload fields
     reset_mri_upload_before_running(db)
 
     # Run the script to test
@@ -91,7 +99,7 @@ def test_missing_tarchive_path_arg():
 def test_invalid_arg():
     db = get_integration_database_session()
 
-    # Set some tarchive fields
+    # Reset some mri_upload fields
     reset_mri_upload_before_running(db)
 
     # Run the script to test
@@ -126,8 +134,9 @@ def test_invalid_arg():
 def test_invalid_tarchive_path_arg():
     db = get_integration_database_session()
 
-    # Set some tarchive fields
+    # Reset some mri_upload and tarchive fields
     reset_mri_upload_before_running(db)
+    reset_tarchive_path_before_running(db)
 
     # Run the script to test
     process = subprocess.run([
@@ -162,14 +171,15 @@ def test_invalid_tarchive_path_arg():
 def test_non_existent_upload_id():
     db = get_integration_database_session()
 
-    # Set some tarchive fields
+    # Reset some mri_upload and tarchive fields
     reset_mri_upload_before_running(db)
+    reset_tarchive_path_before_running(db)
 
     # Run the script to test
     process = subprocess.run([
         'run_dicom_archive_validation.py',
         '--profile', 'database_config.py',
-        '--tarchive_path', '/data/loris/tarchive/2015/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
+        '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
         '--upload_id', '16666',
     ], capture_output=True)
 
@@ -179,7 +189,7 @@ def test_non_existent_upload_id():
 
     # Isolate STDOUT message and check that it contains the expected error message
     error_msg = "[ERROR   ] Did not find an entry in mri_upload associated with 'UploadID' 16666"
-    error_msg_is_valid = True if error_msg in process.stdout.decode() else False
+    error_msg_is_valid = True if error_msg in process.stderr.decode() else False
     assert error_msg_is_valid is True
 
     # Check that the return code and standard error are correct
