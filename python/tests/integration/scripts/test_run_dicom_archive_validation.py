@@ -2,7 +2,6 @@ import subprocess
 
 from sqlalchemy.orm import Session as Database
 
-from lib.db.queries.dicom_archive import try_get_dicom_archive_with_id
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE
 from tests.util.database import get_integration_database_session
@@ -16,7 +15,6 @@ def reset_mri_upload_before_running(db: Database):
     mri_upload.session_id = None
     mri_upload.number_of_minc_created = None
     mri_upload.number_of_minc_inserted = None
-    mri_upload.dicom_archive.archive_location = "DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar"
     db.commit()
 
 
