@@ -140,7 +140,6 @@ def test_invalid_tarchive_path_arg():
 
 
 def test_non_existent_upload_id():
-    db = get_integration_database_session()
 
     # Run the script to test
     process = subprocess.run([
