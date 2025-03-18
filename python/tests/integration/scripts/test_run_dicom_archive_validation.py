@@ -87,6 +87,7 @@ def test_missing_tarchive_path_arg():
     assert mri_upload.is_dicom_archive_validated is False
     assert mri_upload.session is None
 
+
 def test_invalid_arg():
     db = get_integration_database_session()
 
@@ -106,7 +107,7 @@ def test_invalid_arg():
 
     # Isolate STDOUT message and check that it contains the expected error message
     error_msg_is_valid = True \
-        if "[ERROR   ] --invalid_arg is not a valid option for the script" in process.stdout.decode() \
+        if "option --invalid_arg not recognized" in process.stdout.decode() \
         else False
     assert error_msg_is_valid is True
 
