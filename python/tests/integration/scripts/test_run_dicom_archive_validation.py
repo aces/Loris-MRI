@@ -169,7 +169,7 @@ def test_non_existent_upload_id():
     process = subprocess.run([
         'run_dicom_archive_validation.py',
         '--profile', 'database_config.py',
-        '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
+        '--tarchive_path', '/data/loris/tarchive/2015/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
         '--upload_id', '16666',
     ], capture_output=True)
 
