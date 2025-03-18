@@ -71,7 +71,7 @@ def test_missing_tarchive_path_arg():
 
     # Isolate STDOUT message and check that it contains the expected error message
     error_msg_is_valid = True \
-        if "[ERROR   ] argument --tarchive_path is required" in process.stdout.decode() \
+        if "[ERROR   ] argument --tarchive_path bbbbbbb is required" in process.stdout.decode() \
         else False
     assert error_msg_is_valid is True
 
