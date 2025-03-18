@@ -13,7 +13,7 @@ def reset_mri_upload_before_running(db: Database):
     mri_upload.is_candidate_info_validated = False
     mri_upload.is_dicom_archive_validated = False
     mri_upload.session_id = None
-    mri_upload.number_of_minc_inserted = None
+    mri_upload.number_of_minc_created = None
     mri_upload.number_of_minc_inserted = None
 
 
