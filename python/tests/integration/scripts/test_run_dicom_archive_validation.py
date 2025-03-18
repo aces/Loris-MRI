@@ -121,3 +121,39 @@ def test_invalid_arg():
     assert mri_upload.is_candidate_info_validated is False
     assert mri_upload.is_dicom_archive_validated is False
     assert mri_upload.session is None
+
+
+def test_invalid_tarchive_path_arg():
+    db = get_integration_database_session()
+
+    # Set some tarchive fields
+    reset_mri_upload_before_running(db)
+
+    # Run the script to test
+    process = subprocess.run([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', '/data/loris/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
+        '--upload_id', '126',
+    ], capture_output=True)
+
+    # Print the standard output and error for debugging
+    print(f'STDOUT:\n{process.stdout.decode()}')
+    print(f'STDERR:\n{process.stderr.decode()}')
+
+    # Isolate STDOUT message and check that it contains the expected error message
+    error_msg = "[ERROR   ] /data/loris/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar does not exist." \
+                " Please provide a valid path for --tarchive_path "
+    error_msg_is_valid = True if error_msg in process.stdout.decode() else False
+    assert error_msg_is_valid is True
+
+    # Check that the return code and standard error are correct
+    assert process.returncode == MISSING_ARG
+    assert process.stderr == b''
+
+    # Check that the expected data has been inserted in the database
+    mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
+    assert mri_upload.inserting is False
+    assert mri_upload.is_candidate_info_validated is False
+    assert mri_upload.is_dicom_archive_validated is False
+    assert mri_upload.session is None
