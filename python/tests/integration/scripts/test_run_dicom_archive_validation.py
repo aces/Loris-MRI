@@ -5,10 +5,10 @@ from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILU
 from tests.util.database import get_integration_database_session
 
 
-VALID_UPLOAD_ID = 127
+VALID_UPLOAD_ID = '127'
 VALID_TARCHIVE_PATH = "/data/loris/tarchive/DCM_2016-08-19_OTT203_300203_V3_t1w.tar"
 INVALID_TARCHIVE_PATH = "/data/tmp/invalid_path"
-INVALID_UPLOAD_ID = 16666
+INVALID_UPLOAD_ID = '16666'
 
 
 def test_missing_upload_id_arg():
