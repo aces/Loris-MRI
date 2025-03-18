@@ -143,7 +143,7 @@ def test_invalid_tarchive_path_arg():
 
     # Isolate STDOUT message and check that it contains the expected error message
     error_msg = "[ERROR   ] /data/loris/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar does not exist." \
-                " Please provide a valid path for --tarchive_path "
+                " Please provide a valid path for --tarchive_path"
     error_msg_is_valid = True if error_msg in process.stdout.decode() else False
     assert error_msg_is_valid is True
 
