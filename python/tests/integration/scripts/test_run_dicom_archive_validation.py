@@ -15,6 +15,7 @@ def reset_mri_upload_before_running(db: Database):
     mri_upload.session_id = None
     mri_upload.number_of_minc_created = None
     mri_upload.number_of_minc_inserted = None
+    db.commit()
 
 
 def test_missing_upload_id_arg():
