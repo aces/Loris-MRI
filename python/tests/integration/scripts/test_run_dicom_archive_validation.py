@@ -3,7 +3,7 @@ import subprocess
 from sqlalchemy.orm import Session as Database
 
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
-from lib.exitcode import MISSING_ARG, INVALID_ARG
+from lib.exitcode import GETOPT_FAILURE, MISSING_ARG
 from tests.util.database import get_integration_database_session
 
 
@@ -112,7 +112,7 @@ def test_invalid_arg():
     assert error_msg_is_valid is True
 
     # Check that the return code and standard error are correct
-    assert process.returncode == INVALID_ARG
+    assert process.returncode == GETOPT_FAILURE
     assert process.stderr == b''
 
     # Check that the expected data has been inserted in the database
