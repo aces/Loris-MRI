@@ -153,7 +153,7 @@ def test_non_existent_upload_id():
     print(f'STDERR:\n{process.stderr.decode()}')
 
     # Isolate STDOUT message and check that it contains the expected error message
-    error_msg = f"[ERROR   ] Did not find an entry in mri_upload associated with 'UploadID' {INVALID_UPLOAD_ID}"
+    error_msg = f"ERROR: Did not find an entry in mri_upload associated with 'UploadID' {INVALID_UPLOAD_ID}"
     error_msg_is_valid = True if error_msg in process.stderr.decode() else False
     assert error_msg_is_valid is True
 
