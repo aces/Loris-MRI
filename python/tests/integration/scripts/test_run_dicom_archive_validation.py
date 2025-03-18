@@ -22,6 +22,7 @@ def reset_mri_upload_before_running(db: Database):
 def reset_tarchive_path_before_running(db: Database):
 
     tarchive = try_get_dicom_archive_with_id(db, 74)
+    print(f'tarchive:\n{tarchive}')
     if tarchive:
         tarchive.archive_location = "DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar"
         db.commit()
