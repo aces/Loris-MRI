@@ -2,6 +2,7 @@ import subprocess
 
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE, SUCCESS
+from tests.util.assert_process import assert_process
 from tests.util.database import get_integration_database_session
 
 INVALID_TARCHIVE_PATH = "/data/tmp/invalid_path"
@@ -14,25 +15,16 @@ def test_missing_upload_id_arg():
     db = get_integration_database_session()
 
     # Run the script to test
-    process = subprocess.run([
-        'run_dicom_archive_validation.py',
-        '--profile', 'database_config.py',
-        '--tarchive_path', VALID_TARCHIVE_PATH,
-    ], capture_output=True)
-
-    # Print the standard output and error for debugging
-    print(f'STDOUT:\n{process.stdout.decode()}')
-    print(f'STDERR:\n{process.stderr.decode()}')
-
-    # Isolate STDOUT message and check that it contains the expected error message
-    error_msg_is_valid = True \
-        if "[ERROR   ] argument --upload_id is required" in process.stdout.decode() \
-        else False
-    assert error_msg_is_valid is True
-
-    # Check that the return code and standard error are correct
-    assert process.returncode == MISSING_ARG
-    assert process.stderr == b''
+    assert_process(
+        command=[
+            'run_dicom_archive_validation.py',
+            '--profile', 'database_config.py',
+            '--tarchive_path', VALID_TARCHIVE_PATH,
+        ],
+        return_code=MISSING_ARG,
+        stdout_msg="[ERROR   ] argument --upload_id is required",
+        stderr_msg=None
+    )
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'OTT203_300203_V3')
