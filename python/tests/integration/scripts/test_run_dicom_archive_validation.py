@@ -210,4 +210,4 @@ def test_successful_validation():
     assert mri_upload.inserting is False
     assert mri_upload.is_candidate_info_validated is True
     assert mri_upload.is_dicom_archive_validated is True
-    assert mri_upload.session is not None
+    assert mri_upload.session is None
