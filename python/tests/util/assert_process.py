@@ -21,7 +21,7 @@ def assert_process(
 
     # Isolate STDERR message and check that it contains the expected error message
     if stderr_msg:
-        error_msg_is_valid = True if stderr_msg in process.stdout.decode() else False
+        error_msg_is_valid = True if stderr_msg in process.stderr.decode() else False
         assert error_msg_is_valid is True
 
     # Check that return code, standard error and standard output are correct
