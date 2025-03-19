@@ -160,3 +160,27 @@ def test_non_existent_upload_id():
     # Check that the return code and standard error are correct
     assert process.returncode == SELECT_FAILURE
     assert process.stdout == b''
+
+
+def test_mixed_up_upload_id_tarchive_path():
+
+    # Run the script to test
+    process = subprocess.run([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', VALID_TARCHIVE_PATH,
+        '--upload_id', '126',
+    ], capture_output=True)
+
+    # Print the standard output and error for debugging
+    print(f'STDOUT:\n{process.stdout.decode()}')
+    print(f'STDERR:\n{process.stderr.decode()}')
+
+    # Isolate STDOUT message and check that it contains the expected error message
+    error_msg = f"ERROR: UploadID 126 and ArchiveLocation {VALID_TARCHIVE_PATH} do not refer to the same upload"
+    error_msg_is_valid = True if error_msg in process.stderr.decode() else False
+    assert error_msg_is_valid is True
+
+    # Check that the return code and standard error are correct
+    assert process.returncode == SELECT_FAILURE
+    assert process.stdout == b''
