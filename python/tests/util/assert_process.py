@@ -1,7 +1,12 @@
 import subprocess
 
 
-def assert_process(command: list, return_code: int, stdout_msg: str | None, stderr_msg: str | None):
+def assert_process(
+    command: list[str],
+    return_code: int,
+    stdout_msg: str | None,
+    stderr_msg: str | None
+):
     # Run the script to test
     process = subprocess.run(command, capture_output=True)
 
