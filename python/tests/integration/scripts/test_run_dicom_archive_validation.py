@@ -159,4 +159,4 @@ def test_non_existent_upload_id():
 
     # Check that the return code and standard error are correct
     assert process.returncode == SELECT_FAILURE
-    assert process.stderr == b''
+    assert process.stdout == b''
