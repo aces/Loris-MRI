@@ -1,7 +1,7 @@
-import subprocess
-
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
+from lib.exitcode import SUCCESS
+from tests.util.assert_process import assert_process
 from tests.util.database import get_integration_database_session
 from tests.util.file_system import check_file_tree
 
@@ -14,19 +14,16 @@ def test():
     db.commit()
 
     # Run the script to test
-    process = subprocess.run([
-        'run_dicom_archive_loader.py',
-        '--profile', 'database_config.py',
-        '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
-    ], capture_output=True)
-
-    # Print the standard output and error for debugging
-    print(f'STDOUT:\n{process.stdout.decode()}')
-    print(f'STDERR:\n{process.stderr.decode()}')
-
-    # Check that the return code and standard error are correct
-    assert process.returncode == 0
-    assert process.stderr == b''
+    assert_process(
+        [
+            'run_dicom_archive_loader.py',
+            '--profile', 'database_config.py',
+            '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
+        ],
+        return_code=SUCCESS,
+        stdout_msg=None,
+        stderr_msg=None
+    )
 
     # Check that the expected files have been created
     assert check_file_tree('/data/loris/assembly_bids', {
