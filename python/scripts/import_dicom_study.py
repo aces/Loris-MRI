@@ -7,7 +7,6 @@ import tarfile
 import tempfile
 from typing import Any, cast
 
-import lib.database
 import lib.exitcode
 import lib.import_dicom_study.text
 from lib.db.models.dicom_archive import DbDicomArchive
