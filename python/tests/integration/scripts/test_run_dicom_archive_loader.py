@@ -106,6 +106,6 @@ def test_successful_run_on_valid_tarchive_path():
     assert mri_upload.number_of_minc_inserted == 1
     assert mri_upload.number_of_minc_created == 1
     assert mri_upload.session is not None
-    assert mri_upload.dicom_archive.session_id is not None
-    assert mri_upload.dicom_archive.archive_location == archive_new_path
+    assert mri_upload.dicom_archive is not None and mri_upload.dicom_archive.session_id is not None
+    assert mri_upload.dicom_archive is not None and mri_upload.dicom_archive.archive_location == archive_new_path
     assert len(mri_upload.session.files) == 1
