@@ -20,8 +20,8 @@ def test_missing_upload_id_arg():
             '--tarchive_path', VALID_TARCHIVE_PATH,
         ],
         return_code=MISSING_ARG,
-        stdout_msg="[ERROR   ] argument --upload_id is required",
-        stderr_msg=None
+        stdout="[ERROR   ] argument --upload_id is required",
+        stderr=None,
     )
 
     # Check that the expected data has been inserted in the database
@@ -43,8 +43,8 @@ def test_missing_tarchive_path_arg():
             '--upload_id', VALID_UPLOAD_ID,
         ],
         return_code=MISSING_ARG,
-        stdout_msg="[ERROR   ] argument --tarchive_path is required",
-        stderr_msg=None
+        stdout="[ERROR   ] argument --tarchive_path is required",
+        stderr=None,
     )
 
     # Check that the expected data has been inserted in the database
@@ -65,8 +65,8 @@ def test_invalid_arg():
             '--invalid_arg',
         ],
         return_code=GETOPT_FAILURE,
-        stdout_msg="option --invalid_arg not recognized",
-        stderr_msg=None
+        stdout="option --invalid_arg not recognized",
+        stderr=None,
     )
 
     # Check that the expected data has been inserted in the database
@@ -89,9 +89,9 @@ def test_invalid_tarchive_path_arg():
             '--upload_id', VALID_UPLOAD_ID,
         ],
         return_code=INVALID_PATH,
-        stdout_msg=f"[ERROR   ] {INVALID_TARCHIVE_PATH} does not exist."
+        stdout=f"[ERROR   ] {INVALID_TARCHIVE_PATH} does not exist."
                    f" Please provide a valid path for --tarchive_path",
-        stderr_msg=None
+        stderr=None,
     )
 
     # Check that the expected data has been inserted in the database
@@ -113,8 +113,8 @@ def test_non_existent_upload_id():
             '--upload_id', INVALID_UPLOAD_ID,
         ],
         return_code=SELECT_FAILURE,
-        stdout_msg=None,
-        stderr_msg=f"ERROR: Did not find an entry in mri_upload associated with 'UploadID' {INVALID_UPLOAD_ID}"
+        stdout=None,
+        stderr=f"ERROR: Did not find an entry in mri_upload associated with 'UploadID' {INVALID_UPLOAD_ID}",
     )
 
 
@@ -129,8 +129,8 @@ def test_mixed_up_upload_id_tarchive_path():
             '--upload_id', '126',
         ],
         return_code=SELECT_FAILURE,
-        stdout_msg=None,
-        stderr_msg=f"ERROR: UploadID 126 and ArchiveLocation {VALID_TARCHIVE_PATH} do not refer to the same upload"
+        stdout=None,
+        stderr=f"ERROR: UploadID 126 and ArchiveLocation {VALID_TARCHIVE_PATH} do not refer to the same upload"
     )
 
 
@@ -146,8 +146,8 @@ def test_successful_validation():
             '--upload_id', VALID_UPLOAD_ID,
         ],
         return_code=SUCCESS,
-        stdout_msg=None,
-        stderr_msg=None
+        stdout=None,
+        stderr=None,
     )
 
     # Check that the expected data has been inserted in the database

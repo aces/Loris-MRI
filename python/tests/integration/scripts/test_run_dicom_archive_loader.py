@@ -21,8 +21,8 @@ def test():
             '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
         ],
         return_code=SUCCESS,
-        stdout_msg=None,
-        stderr_msg=None
+        stdout=None,
+        stderr=None,
     )
 
     # Check that the expected files have been created
