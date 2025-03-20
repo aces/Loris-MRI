@@ -4,9 +4,15 @@ import subprocess
 def assert_process(
     command: list[str],
     return_code: int,
-    stdout_msg: str | None,
-    stderr_msg: str | None
+    stdout: str | None,
+    stderr: str | None,
 ):
+    """
+    Run the provided command and check that its return code, standard output message, and standard
+    error message contain their expected values. A `None` value means that the message must be
+    empty.
+    """
+
     # Run the script to test
     process = subprocess.run(command, capture_output=True, text=True)
 
@@ -14,20 +20,17 @@ def assert_process(
     print(f'STDOUT:\n{process.stdout}')
     print(f'STDERR:\n{process.stderr}')
 
-    # Check that return code, standard error and standard output are correct
+    # Check that the actual return code is equal to the expected return code
     assert process.returncode == return_code
 
-    # Isolate STDOUT message and check that it contains the expected error message
-    if stdout_msg:
-        error_msg_is_valid = True if stdout_msg in process.stdout else False
-        assert error_msg_is_valid is True
+    # Check that the actual output message matches or contains the expected error message
+    if stdout is not None:
+        assert stdout in process.stdout
+    else:
+        assert process.stdout == ""
 
-    # Isolate STDERR message and check that it contains the expected error message
-    if stderr_msg:
-        error_msg_is_valid = True if stderr_msg in process.stderr else False
-        assert error_msg_is_valid is True
-
-    if not stdout_msg:
-        assert process.stdout == b''
-    if not stderr_msg:
-        assert process.stderr == b''
+    # Check that the actual error message matches or contains the expected error message
+    if stderr is not None:
+        assert stderr in process.stderr
+    else:
+        assert process.stderr == ""
