@@ -13,6 +13,7 @@ from typing_extensions import deprecated
 import lib.utilities as utilities
 from lib.config_file import SubjectInfo
 from lib.database_lib.config import Config
+from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.files import Files
 from lib.database_lib.mri_candidate_errors import MriCandidateErrors
 from lib.database_lib.mri_protocol import MriProtocol
@@ -24,7 +25,6 @@ from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
 from lib.db.models.dicom_archive import DbDicomArchive
-from lib.db.queries.candidate import try_get_candidate_with_cand_id
 from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 
 __license__ = "GPLv3"
@@ -269,11 +269,11 @@ class Imaging:
                     and row['EchoNumber'] == echo_number:
                 return
 
-        candidate = try_get_candidate_with_cand_id(self.db, cand_id)
-        candidate_id = candidate.id if candidate else None
+        candidate_obj = CandidateDB(self.db, self.verbose)
+        candidate_id = candidate_obj.get_candidate_id(cand_id)
 
         info_to_insert_dict = {
-            "CandID": candidate_id,
+            "CandidateID": candidate_id,
             "PSCID": psc_id,
             "TarchiveID": tarchive_id,
             "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
