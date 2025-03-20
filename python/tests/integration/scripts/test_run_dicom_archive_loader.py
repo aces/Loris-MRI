@@ -83,7 +83,7 @@ def test_successful_run_on_valid_tarchive_path():
         command=[
             'run_dicom_archive_loader.py',
             '--profile', 'database_config.py',
-            '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar',
+            '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar',
         ]
     )
 
@@ -105,7 +105,7 @@ def test_successful_run_on_valid_tarchive_path():
     })
 
     # Check that the expected data has been inserted in the database
-    archive_new_path = '/data/loris/tarchive/2015/DCM_2015-07-07_ImagingUpload-14-30-FoTt1K.tar'
+    archive_new_path = '/data/loris/tarchive/2015/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar'
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
     assert mri_upload.inserting is False
     assert mri_upload.insertion_complete is True
