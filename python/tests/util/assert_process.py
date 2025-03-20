@@ -8,20 +8,20 @@ def assert_process(
     stderr_msg: str | None
 ):
     # Run the script to test
-    process = subprocess.run(command, capture_output=True)
+    process = subprocess.run(command, capture_output=True, text=True)
 
     # Print the standard output and error for debugging
-    print(f'STDOUT:\n{process.stdout.decode()}')
-    print(f'STDERR:\n{process.stderr.decode()}')
+    print(f'STDOUT:\n{process.stdout}')
+    print(f'STDERR:\n{process.stderr}')
 
     # Isolate STDOUT message and check that it contains the expected error message
     if stdout_msg:
-        error_msg_is_valid = True if stdout_msg in process.stdout.decode() else False
+        error_msg_is_valid = True if stdout_msg in process.stdout else False
         assert error_msg_is_valid is True
 
     # Isolate STDERR message and check that it contains the expected error message
     if stderr_msg:
-        error_msg_is_valid = True if stderr_msg in process.stderr.decode() else False
+        error_msg_is_valid = True if stderr_msg in process.stderr else False
         assert error_msg_is_valid is True
 
     # Check that return code, standard error and standard output are correct
