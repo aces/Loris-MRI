@@ -97,7 +97,7 @@ def test_successful_run_on_valid_tarchive_path():
     })
 
     # Check that the expected data has been inserted in the database
-    archive_new_path = '/data/loris/tarchive/2015/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar'
+    archive_new_path = '2015/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar'
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
     assert mri_upload.inserting is False
     assert mri_upload.insertion_complete is True
@@ -108,7 +108,6 @@ def test_successful_run_on_valid_tarchive_path():
     assert mri_upload.session is not None
     assert mri_upload.dicom_archive is not None
     if mri_upload.dicom_archive is not None:
-        print("innnn")
         assert mri_upload.dicom_archive.session_id is not None
         assert mri_upload.dicom_archive.archive_location == archive_new_path
     assert len(mri_upload.session.files) == 1
