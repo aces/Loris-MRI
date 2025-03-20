@@ -24,7 +24,6 @@ from lib.logging import log, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env
 from lib.mri import Mri
-from lib.util import try_parse_int
 
 __license__ = "GPLv3"
 
@@ -309,8 +308,9 @@ def validateids(env: Env, bids_dir: str):
     psc_id = bids_folder_parts[0]
     cand_id = bids_folder_parts[1]
 
-    cand_id = try_parse_int(cand_id)
-    if cand_id is None:
+    try:
+        cand_id = int(cand_id)
+    except ValueError:
         log_error_exit(
             env,
             f"{cand_id} is not a valid CandID.",

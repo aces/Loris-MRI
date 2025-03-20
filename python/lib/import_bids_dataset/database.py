@@ -17,7 +17,6 @@ from lib.db.queries.site import get_all_sites, try_get_site_with_name
 from lib.env import Env
 from lib.import_bids_dataset.participant import BidsParticipant
 from lib.logging import log, log_error_exit
-from lib.util import try_parse_int
 
 
 def check_or_create_bids_candidates_and_sessions(
@@ -67,7 +66,11 @@ def check_or_create_bids_candidate(env: Env, bids_participant: BidsParticipant, 
     program with an error if the candidate cannot be created.
     """
 
-    cand_id = try_parse_int(bids_participant.id)
+    try:
+        cand_id = int(bids_participant.id)
+    except ValueError:
+        cand_id = None
+
     if cand_id is not None:
         candidate = try_get_candidate_with_cand_id(env.db, cand_id)
         if candidate is not None:

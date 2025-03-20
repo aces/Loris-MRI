@@ -22,7 +22,7 @@ def try_get_site_with_cand_id_visit_label(db: Database, cand_id: int, visit_labe
     ).scalar_one_or_none()
 
 
-def try_get_site_with_name(db: Database, name: str) -> Optional[DbSite]:
+def try_get_site_with_name(db: Database, name: str) -> DbSite | None:
     """
     Get a site from the database using a site name, or return `None` if no site is found.
     """
