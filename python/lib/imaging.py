@@ -12,8 +12,8 @@ from typing_extensions import deprecated
 
 import lib.utilities as utilities
 from lib.config_file import SubjectInfo
-from lib.database_lib.config import Config
 from lib.database_lib.candidate_db import CandidateDB
+from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_candidate_errors import MriCandidateErrors
 from lib.database_lib.mri_protocol import MriProtocol
