@@ -22,13 +22,6 @@ def test_invalid_arg():
     assert "option --invalid_arg not recognized" in process.stdout
     assert process.stderr == ""
 
-    # Check that the expected data has been inserted in the database
-    mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
-    assert mri_upload.inserting is False
-    assert mri_upload.is_candidate_info_validated is False
-    assert mri_upload.is_dicom_archive_validated is False
-    assert mri_upload.session is None
-
 
 def test_non_existent_upload_id():
 
@@ -37,7 +30,7 @@ def test_non_existent_upload_id():
     # Run the script to test
     process = run_integration_script(
         command=[
-            'run_dicom_archive_validation.py',
+            'run_dicom_archive_loader.py',
             '--profile', 'database_config.py',
             '--upload_id', invalid_upload_id,
         ]
