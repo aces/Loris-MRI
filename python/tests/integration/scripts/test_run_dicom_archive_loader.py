@@ -99,13 +99,20 @@ def test_successful_run_on_valid_tarchive_path():
     # Check that the expected data has been inserted in the database
     archive_new_path = '2015/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar'
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
+    # check mri_upload flags
     assert mri_upload.inserting is False
     assert mri_upload.insertion_complete is True
     assert mri_upload.is_candidate_info_validated is True
     assert mri_upload.is_dicom_archive_validated is True
-    assert mri_upload.number_of_minc_inserted == 1
-    assert mri_upload.number_of_minc_created == 1
+    # check session has been linked to tarchive and mri_upload
     assert mri_upload.session is not None
     assert mri_upload.dicom_archive is not None and mri_upload.dicom_archive.session_id is not None
+    # check that archive location has been updated
     assert mri_upload.dicom_archive is not None and mri_upload.dicom_archive.archive_location == archive_new_path
+    # check series/files counts
+    # notes: - tarchive_series should have 2 series for this upload (localizer + T1W)
+    #        - localizer is skipped from conversion because of config settings `excluded_series_description`
+    assert mri_upload.dicom_archive is not None and len(mri_upload.dicom_archive.series) == 2
+    assert mri_upload.number_of_minc_inserted == 1
+    assert mri_upload.number_of_minc_created == 1
     assert len(mri_upload.session.files) == 1
