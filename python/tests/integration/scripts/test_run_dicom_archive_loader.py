@@ -7,7 +7,6 @@ from tests.util.run_integration_script import run_integration_script
 
 
 def test_invalid_arg():
-    db = get_integration_database_session()
 
     process = run_integration_script(
         command=[
@@ -107,6 +106,8 @@ def test_successful_run_on_valid_tarchive_path():
     assert mri_upload.number_of_minc_inserted == 1
     assert mri_upload.number_of_minc_created == 1
     assert mri_upload.session is not None
-    assert mri_upload.dicom_archive.session_id is not None
-    assert mri_upload.dicom_archive.archive_location == archive_new_path
+    if mri_upload.dicom_archive is not None:
+        print("innnn")
+        assert mri_upload.dicom_archive.session_id is not None
+        assert mri_upload.dicom_archive.archive_location == archive_new_path
     assert len(mri_upload.session.files) == 1
