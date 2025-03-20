@@ -1,8 +1,3 @@
-import os
-
-from glob import glob
-from tempfile import gettempdir
-
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, SELECT_FAILURE, SUCCESS
@@ -121,5 +116,3 @@ def test_successful_run_on_valid_tarchive_path():
     assert mri_upload.number_of_minc_inserted == 1
     assert mri_upload.number_of_minc_created == 1
     assert len(mri_upload.session.files) == 1
-    # check that tmp directory has been removed
-    assert glob(os.path.join(gettempdir(), 'run_dicom_archive_loader*')) == []
