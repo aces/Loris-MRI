@@ -1,7 +1,7 @@
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE, SUCCESS
-from tests.util.run_integration_script import run_integration_script
 from tests.util.database import get_integration_database_session
+from tests.util.run_integration_script import run_integration_script
 
 INVALID_TARCHIVE_PATH = "/data/tmp/invalid_path"
 INVALID_UPLOAD_ID = '16666'

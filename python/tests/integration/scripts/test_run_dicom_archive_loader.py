@@ -1,9 +1,9 @@
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import SUCCESS
-from tests.util.run_integration_script import run_integration_script
 from tests.util.database import get_integration_database_session
 from tests.util.file_system import check_file_tree
+from tests.util.run_integration_script import run_integration_script
 
 
 def test():
