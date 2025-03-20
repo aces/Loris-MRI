@@ -14,6 +14,9 @@ def assert_process(
     print(f'STDOUT:\n{process.stdout}')
     print(f'STDERR:\n{process.stderr}')
 
+    # Check that return code, standard error and standard output are correct
+    assert process.returncode == return_code
+
     # Isolate STDOUT message and check that it contains the expected error message
     if stdout_msg:
         error_msg_is_valid = True if stdout_msg in process.stdout else False
@@ -24,8 +27,6 @@ def assert_process(
         error_msg_is_valid = True if stderr_msg in process.stderr else False
         assert error_msg_is_valid is True
 
-    # Check that return code, standard error and standard output are correct
-    assert process.returncode == return_code
     if not stdout_msg:
         assert process.stdout == b''
     if not stderr_msg:
