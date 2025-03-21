@@ -1,11 +1,11 @@
 """Deals with sub-XXX_scans.tsv BIDS files"""
 
 import os
-
 from dateutil.parser import parse
 
 import lib
 import lib.utilities as utilities
+
 
 __license__ = "GPLv3"
 
@@ -73,13 +73,16 @@ class ScansTSV:
             return None
 
         if 'acq_time' in self.acquisition_data:
-            acq_time_list = [ele for ele in self.tsv_entries if ele['filename'] in self.acquisition_file]
-            if len(acq_time_list) == 1:
-                # the variable name could be mri_acq_time, but is eeg originally.
-                eeg_acq_time = acq_time_list[0]['acq_time']
-            else:
-                print('More than one or no acquisition time has been found for ', self.acquisition_file)
-                exit()
+            if isinstance(self.tsv_entries, list):
+                acq_time_list = [ele for ele in self.tsv_entries if ele['filename'] in self.acquisition_file]
+                if len(acq_time_list) == 1:
+                    # the variable name could be mri_acq_time, but is eeg originally.
+                    eeg_acq_time = acq_time_list[0]['acq_time']
+                else:
+                    print('More than one or no acquisition time has been found for ', self.acquisition_file)
+                    exit()
+            else: 
+                eeg_acq_time = self.acquisition_data['acq_time']
 
             if eeg_acq_time == 'n/a':
                 return None

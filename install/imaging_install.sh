@@ -54,9 +54,7 @@ if [ -z "$prodfilename" ]; then
     prodfilename="prod"
 fi
 
-# determine the mridir
-installdir=`pwd`
-mridir=${installdir%"/install"}
+mridir=`pwd`
 
 # Test the connection to the database before proceeding
 echo "Testing connection to database..."
@@ -87,10 +85,28 @@ echo "Successfully connected to database\n"
 #################################################################################################
 echo "Installing the perl libraries...This will take a few minutes..."
 #echo $rootpass | sudo perl -MCPAN -e shell
+sudo -S cpan install Math::Round
 #echo $rootpass | sudo -S cpan install Bundle::CPAN
-sudo -S cpan App::cpanminus
-sudo -S cpanm --installdeps $installdir/requirements/
+sudo -S cpan install DBI
+sudo -S cpan install DBD::mysql
+sudo -S cpan install Getopt::Tabular
+sudo -S cpan install Time::JulianDay
+sudo -S cpan install Path::Class
+sudo -S cpan install Archive::Extract
+sudo -S cpan install Archive::Zip
+sudo -S cpan install Pod::Perldoc
+sudo -S cpan install Pod::Markdown
+sudo -S cpan install Pod::Usage
+sudo -S cpan install JSON
+sudo -S cpan install Moose
+sudo -S cpan install MooseX::Privacy
+sudo -S cpan install TryCatch
+sudo -S cpan install Throwable
+sudo -S cpan install App::cpanminus
 sudo -S cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
+sudo -S cpan install File::Type
+sudo -S cpan install String::ShellQuote
+sudo -S cpan install DateTime
 echo
 
 ################################################################################
@@ -102,7 +118,7 @@ sudo -S su $USER -c "mkdir -m 770 -p $mridir/python_virtualenvs/loris-mri-python
 python3.11 -m venv $mridir/python_virtualenvs/loris-mri-python
 source $mridir/python_virtualenvs/loris-mri-python/bin/activate
 echo "Installing the Python libraries into the loris-mri virtualenv..."
-pip3 install -r "$installdir/requirements/requirements.txt"
+pip3 install -r "$mridir/python/requirements.txt"
 # deactivate the virtualenv for now
 deactivate
 
@@ -141,7 +157,6 @@ fi
 #######set environment variables under .bashrc#####################################
 ###################################################################################
 echo "Modifying environment script"
-cp $installdir/templates/environment_template $mridir/environment
 sed -i "s#%PROJECT%#$PROJ#g" $mridir/environment
 sed -i "s#%MINC_TOOLKIT_DIR%#$MINC_TOOLKIT_DIR#g" $mridir/environment
 #Make sure that CIVET stuff are placed in the right place
@@ -203,19 +218,19 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $installdir/templates/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
+cp $mridir/dicom-archive/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
 
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
 echo "Creating python database config file with database credentials"
-cp $installdir/templates/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
+cp $mridir/dicom-archive/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
 sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/dicom-archive/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
 echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/database_config.py"
 echo
 
@@ -253,5 +268,12 @@ fi
 ###### Update the Database table, Config, with the user values #######
 ######################################################################
 echo "Populating database configuration entries for the Imaging Pipeline and LORIS-MRI code and images Path:"
-mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e \
-	"SET @email := '$email'; SET @project := '$PROJ'; SET @minc_dir := '$MINC_TOOLKIT_DIR'; SOURCE install_database.sql;"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='dataDirBasepath')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='imagePath')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$PROJ' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='prefix')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$email' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='mail_user')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/opt/$PROJ/bin/mri/dicom-archive/get_dicom_info.pl' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='get_dicom_info')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/data/$PROJ/data/tarchive/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='tarchiveLibraryDir')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='/opt/$PROJ/bin/mri/' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MRICodePath')"
+mysql $mysqldb -h$mysqlhost --user=$mysqluser --password="$mysqlpass" -A -e "UPDATE Config SET Value='$MINC_TOOLKIT_DIR' WHERE ConfigID=(SELECT ID FROM ConfigSettings WHERE Name='MINCToolsPath')"
+echo

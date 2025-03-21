@@ -1,13 +1,20 @@
 """Reads a BIDS structure into a data dictionary using bids.grabbids."""
 
-import json
 import re
 import sys
-
-from bids import BIDSLayout
+import json
 
 import lib.exitcode
 import lib.utilities as utilities
+
+try:
+    from bids import BIDSLayout
+except ImportError:
+    try:
+        from bids.grabbids import BIDSLayout
+    except ImportError:
+        print("Could not find bids.layout or bids.grabbids")
+        exit(lib.exitcode.INVALID_IMPORT)
 
 # import bids
 # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
@@ -16,7 +23,7 @@ import lib.utilities as utilities
 #     or bids_pack_version[1] > 12
 #    or (bids_pack_version[1] == 12 and bids_pack_version[2] > 0)):
 
-# from bids import BIDSLayoutIndexer
+# 	from bids import BIDSLayoutIndexer
 
 __license__ = "GPLv3"
 
@@ -90,8 +97,8 @@ class BidsReader:
         # BIDSLayoutIndexer is required for PyBIDS >= 0.12.1
         # bids_pack_version = list(map(int, bids.__version__.split('.')))
         # disabled until is a workaround for https://github.com/bids-standard/pybids/issues/760 is found
-        # [file] bids_import.py
-        # [function] read_and_insert_bids
+        # [file] bids_import.py 
+        # [function] read_and_insert_bids 
         # [line] for modality in row['modalities']: (row['modalities'] is empty)
         # if (bids_pack_version[0] > 0
         #    or bids_pack_version[1] > 12
@@ -140,7 +147,7 @@ class BidsReader:
         else:
             bids_subjects = self.bids_layout.get_subjects()
             participants_info = [{'participant_id': sub_id} for sub_id in bids_subjects]
-
+        
         if self.verbose:
             print('\t=> List of participants found:')
             for participant in participants_info:
@@ -170,7 +177,7 @@ class BidsReader:
         for row in participants_info:
             # remove the "sub-" in front of the subject ID if present
             row['participant_id'] = row['participant_id'].replace('sub-', '')
-            if row['participant_id'] not in subjects:
+            if not row['participant_id'] in subjects:
                 print(mismatch_message)
                 print(row['participant_id'] + 'is missing from the BIDS Layout')
                 print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects))

@@ -1,25 +1,25 @@
 """This class performs database queries for BIDS physiological dataset (EEG, MEG...)"""
 
-import os
-import re
-import subprocess
 import sys
-from dataclasses import dataclass
+import re
+import os
+import subprocess
 from functools import reduce
 
 import lib.exitcode
-from lib.database_lib.bids_event_mapping import BidsEventMapping
-from lib.database_lib.config import Config
+from dataclasses import dataclass
 from lib.database_lib.parameter_type import ParameterType
-from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
-from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_file import PhysiologicalFile
-from lib.database_lib.physiological_parameter_file import PhysiologicalParameterFile
+from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
-from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
 from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
+from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
+from lib.database_lib.bids_event_mapping import BidsEventMapping
+from lib.database_lib.physiological_parameter_file import PhysiologicalParameterFile
+from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.point_3d import Point3DDB
 from lib.point_3d import Point3D
+from lib.database_lib.config import Config
 
 __license__ = "GPLv3"
 
@@ -386,7 +386,7 @@ class Physiological:
                 row.get('impedance'),
                 electrode_file
             )
-
+            
             inserted_electrode_id = self.db.insert(
                 table_name   = 'physiological_electrode',
                 column_names = electrode_fields,
@@ -937,7 +937,7 @@ class Physiological:
             if len(tag_string) > 0:
                 hed_tag = next(filter(lambda tag: tag['Name'] == leaf_node, list(hed_union)), None)
                 if not hed_tag:
-                    print(f'ERROR: UNRECOGNIZED HED TAG: {tag_string}')
+                    print('ERROR: UNRECOGNIZED HED TAG: {}'.format(tag_string))
                     raise
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id
@@ -1006,7 +1006,7 @@ class Physiological:
 
             # get values of present optional cols
             onset = 0
-            if isinstance(row['onset'], int | float):
+            if isinstance(row['onset'], (int, float)):
                 onset = row['onset']
             else:
                 # try casting to float, cannot be n/a
@@ -1014,7 +1014,7 @@ class Physiological:
                 onset = float(row['onset'])
 
             duration = 0
-            if isinstance(row['duration'], int | float):
+            if isinstance(row['duration'], (int, float)):
                 duration = row['duration']
             else:
                 try:
@@ -1028,13 +1028,13 @@ class Physiological:
             assert duration >= 0
 
             sample = None
-            if isinstance(row['event_sample'], int | float):
+            if isinstance(row['event_sample'], (int, float)):
                 sample = row['event_sample']
-            if row['sample'] and isinstance(row['sample'], int | float):
+            if row['sample'] and isinstance(row['sample'], (int, float)):
                 sample = row['sample']
 
             response_time = None
-            if isinstance(row['response_time'], int | float):
+            if isinstance(row['response_time'], (int, float)):
                 response_time = row['response_time']
 
             event_value = None

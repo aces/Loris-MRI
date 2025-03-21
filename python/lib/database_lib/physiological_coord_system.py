@@ -8,6 +8,7 @@
 - physiological_coord_system_point_3d_rel
 """
 
+from typing import Dict, List
 # from lib.point_3d import Point3D
 # from lib.database_lib.point_3d import Point3DDB
 
@@ -226,7 +227,7 @@ class PhysiologicalCoordSystem:
 
     def insert_coord_system_electrodes_relation(self, physiological_file_id: int,
                                                 coord_system_id: int,
-                                                electrode_ids: list[int]):
+                                                electrode_ids: List[int]):
         """
         Inserts new entries in the physiological_coord_system_electrode_rel table.
         :param physiological_file_id : physiological file ID
@@ -251,7 +252,7 @@ class PhysiologicalCoordSystem:
         )
 
     def insert_coord_system_point_3d_relation(self, coord_system_id: int,
-                                              point_ids: dict[str, int]):
+                                              point_ids: Dict[str, int]):
         """
         Insert new entries in the physiological_coord_system_point_3d_rel table.
         :param coord_system_id : coordinate system ID

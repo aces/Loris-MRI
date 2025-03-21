@@ -1,11 +1,9 @@
 """This class performs session table related database queries and common checks"""
 
-from typing_extensions import deprecated
 
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.db.models.session.DbSession` instead')
 class SessionDB:
     """
     This class performs database queries for session table.
@@ -37,7 +35,6 @@ class SessionDB:
         self.db = db
         self.verbose = verbose
 
-    @deprecated('Use `lib.db.queries.try_get_candidate_with_cand_id_visit_label` instead')
     def create_session_dict(self, cand_id, visit_label):
         """
         Queries the session table for a particular candidate ID and visit label and returns a dictionary
@@ -54,13 +51,11 @@ class SessionDB:
 
         query = "SELECT * FROM session" \
                 " JOIN psc USING (CenterID)" \
-                " JOIN candidate ON (candidate.ID=session.CandidateID)" \
                 " WHERE CandID=%s AND LOWER(Visit_label)=LOWER(%s) AND Active='Y'"
         results = self.db.pselect(query=query, args=(cand_id, visit_label))
 
         return results[0] if results else None
 
-    @deprecated('Use `lib.db.queries.site.try_get_site_with_psc_id_visit_label` instead')
     def get_session_center_info(self, pscid, visit_label):
         """
         Get site information for a given visit.
@@ -76,13 +71,12 @@ class SessionDB:
 
         query = "SELECT * FROM session" \
                 " JOIN psc USING (CenterID)" \
-                " JOIN candidate ON (candidate.ID = session.CandidateID)" \
+                " JOIN candidate USING (CandID)" \
                 " WHERE PSCID=%s AND Visit_label=%s"
         results = self.db.pselect(query=query, args=(pscid, visit_label))
 
         return results[0] if results else None
 
-    @deprecated('Use `lib.get_subject_session.get_candidate_next_visit_number` instead')
     def determine_next_session_site_id_and_visit_number(self, cand_id):
         """
         Determines the next session site and visit number based on the last session inserted for a given candidate.
@@ -105,7 +99,6 @@ class SessionDB:
 
         return results[0] if results else None
 
-    @deprecated('Use `lib.db.models.session.DbSession` instead')
     def insert_into_session(self, fields, values):
         """
         Insert a new row in the session table using fields list as column names and values as values.

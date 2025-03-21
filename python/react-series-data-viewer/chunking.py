@@ -105,7 +105,7 @@ def write_index_json(
         ('channelMetadata', channel_metadata)
     ])
     create_path_dirs(chunk_dir)
-
+    
     data = None
     try:
         with open(os.path.join(chunk_dir, 'index.json'), 'r+') as index_json:
@@ -206,14 +206,14 @@ def mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_coun
     return channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges, valid_samples_in_last_chunk
 
 
-def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_channel_name=None,
+def write_chunk_directory(path, chunk_size, loader, from_channel_index=0, from_channel_name=None, 
                           channel_count=None, downsamplings=None, prefix=None, destination=None):
 
     chunk_dir = chunk_dir_path(path, prefix=prefix, destination=destination)
     channel_chunks_list, time_interval, signal_range, \
         channel_names, channel_ranges, valid_samples_in_last_chunk = \
         mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_count)
-
+    
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]
 

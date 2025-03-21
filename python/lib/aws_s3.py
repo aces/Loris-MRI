@@ -1,11 +1,9 @@
 """This class interacts with S3 Buckets"""
 
-import os
-
 import boto3
-from botocore.exceptions import ClientError, EndpointConnectionError
-
 import lib.utilities
+import os
+from botocore.exceptions import ClientError, EndpointConnectionError
 
 __license__ = "GPLv3"
 
@@ -84,9 +82,9 @@ class AwsS3:
             etag = lib.utilities.compute_md5_hash(file_path)
             self.s3_client.head_object(Bucket=self.bucket_name, Key=key, IfMatch=etag)
         except ClientError:
-            """
+            """            
             Per Boto3 documentation for S3.Client.head_object IfMatch will:
-            Return the object only if its entity tag (ETag) is the same as the one specified;
+            Return the object only if its entity tag (ETag) is the same as the one specified; 
             otherwise, return a 412 (precondition failed) error.
             """
             return False
@@ -216,7 +214,7 @@ class AwsS3:
         print(f"Deleting {s3_object_name}")
 
         try:
-            (_, s3_bucket, s3_file_name) = self.get_s3_object_path_part(s3_object_name)
+            (s3_bucket_name, s3_bucket, s3_file_name) = self.get_s3_object_path_part(s3_object_name)
             objects_to_delete = [{'Key': obj.key} for obj in s3_bucket.objects.filter(Prefix=s3_file_name)]
             s3_bucket.delete_objects(
                 Delete={
@@ -241,8 +239,8 @@ class AwsS3:
         print(f"Copying {src_s3_object_name} to {dst_s3_object_name}")
 
         try:
-            (_, src_s3_bucket, src_s3_file_name) = self.get_s3_object_path_part(src_s3_object_name)
-            (_, dst_s3_bucket, dst_s3_file_name) = self.get_s3_object_path_part(dst_s3_object_name)
+            (src_s3_bucket_name, src_s3_bucket, src_s3_file_name) = self.get_s3_object_path_part(src_s3_object_name)
+            (dst_s3_bucket_name, dst_s3_bucket, dst_s3_file_name) = self.get_s3_object_path_part(dst_s3_object_name)
             for obj in src_s3_bucket.objects.filter(Prefix=src_s3_file_name):
                 subcontent = obj.key.replace(src_s3_file_name, "")
                 dst_s3_bucket.Object(

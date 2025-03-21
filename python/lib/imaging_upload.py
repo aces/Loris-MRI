@@ -1,13 +1,10 @@
 """This class gather functions for mri upload handling."""
 
-from typing_extensions import deprecated
-
 from lib.database_lib.mri_upload_db import MriUploadDB
 
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.db.models.mri_upload.DbMriUpload` instead')
 class ImagingUpload:
     """
     This class gather functions that interact with the database and allow mri_upload
@@ -44,7 +41,6 @@ class ImagingUpload:
 
         self.imaging_upload_dict = dict()
 
-    @deprecated('Use `lib.db.queries.mri_upload.try_get_mri_upload_with_id` instead')
     def create_imaging_upload_dict_from_upload_id(self, upload_id):
         """
         Fill in the imaging upload dictionary with the information found for a given upload ID in the mri_upload table.
@@ -56,7 +52,6 @@ class ImagingUpload:
         results = self.mri_upload_db_obj.create_mri_upload_dict('UploadID', upload_id)
         self.imaging_upload_dict = results[0] if results else None
 
-    @deprecated('Use `lib.db.models.dicom_archive.DbDicomArchive.mri_uploads` instead')
     def create_imaging_upload_dict_from_tarchive_id(self, tarchive_id):
         """
         Fill in the imaging upload dictionary with information found for a given TarchiveID in the mri_upload table.
@@ -78,7 +73,6 @@ class ImagingUpload:
         else:
             return False, f"Did not find an entry in mri_upload associated with 'TarchiveID' {tarchive_id}"
 
-    @deprecated('Use `lib.db.models.mri_upload.DbMriUpload` instead')
     def update_mri_upload(self, upload_id, fields, values):
         """
         Calls the MriUpload database lib to update the mri_upload table.

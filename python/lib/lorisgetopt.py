@@ -1,13 +1,15 @@
 """"""
 import getopt
-import os
-import sys
 
 import lib.exitcode
 import lib.utilities
+import os
+import sys
+
 from lib.aws_s3 import AwsS3
 from lib.database import Database
 from lib.database_lib.config import Config
+
 
 __license__ = "GPLv3"
 
@@ -67,14 +69,13 @@ class LorisGetOpt:
         were provided to the script.
         """
         self.usage = usage
-        self.script_name = script_name
         self.options_dict = options_dict
         self.long_options = self.get_long_options()
         self.short_options = self.get_short_options()
         self.config_info = None
 
         try:
-            opts, _ = getopt.getopt(sys.argv[1:], "".join(self.short_options), self.long_options)
+            opts, args = getopt.getopt(sys.argv[1:], "".join(self.short_options), self.long_options)
         except getopt.GetoptError as err:
             print(err)
             print(self.usage)
@@ -105,15 +106,20 @@ class LorisGetOpt:
         s3_bucket_name = self.config_db_obj.get_config("AWS_S3_Default_Bucket")
         self.s3_obj = None
         if hasattr(self.config_file, 's3'):
-            s3_endpoint = s3_endpoint if s3_endpoint else self.config_file.s3.aws_s3_endpoint_url
-            s3_bucket_name = s3_bucket_name if s3_bucket_name else self.config_file.s3.aws_s3_bucket_name
+            if not self.config_file.s3["aws_access_key_id"] or not self.config_file.s3["aws_secret_access_key"]:
+                print(
+                    "\n[ERROR   ] missing 'aws_access_key_id' or 'aws_secret_access_key' in config file 's3' object\n"
+                )
+                sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
+            s3_endpoint = s3_endpoint if s3_endpoint else self.config_file.s3["aws_s3_endpoint_url"]
+            s3_bucket_name = s3_bucket_name if s3_bucket_name else self.config_file.s3["aws_s3_bucket_name"]
             if not s3_endpoint or not s3_bucket_name:
                 print('\n[ERROR   ] missing configuration for S3 endpoint URL or S3 bucket name\n')
                 sys.exit(lib.exitcode.S3_SETTINGS_FAILURE)
             try:
                 self.s3_obj = AwsS3(
-                    aws_access_key_id=self.config_file.s3.aws_access_key_id,
-                    aws_secret_access_key=self.config_file.s3.aws_secret_access_key,
+                    aws_access_key_id=self.config_file.s3["aws_access_key_id"],
+                    aws_secret_access_key=self.config_file.s3["aws_secret_access_key"],
                     aws_endpoint_url=s3_endpoint,
                     bucket_name=s3_bucket_name
                 )

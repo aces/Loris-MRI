@@ -1,11 +1,9 @@
 """This class performs candidate table related database queries and common checks"""
 
-from typing_extensions import deprecated
 
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.db.models.candidate.DbCandidate` instead')
 class CandidateDB:
     """
     This class performs database queries for candidate table.
@@ -37,28 +35,23 @@ class CandidateDB:
         self.db = db
         self.verbose = verbose
 
-    @deprecated('Use `lib.db.queries.candidate.try_get_candidate_with_cand_id` instead')
-    def get_candidate_psc_id(self, cand_id: int) -> str | None:
+    def check_candid_pscid_combination(self, psc_id, cand_id):
         """
-        Return a candidate PSCID and based on its CandID, or `None` if no candidate is found in
-        the database.
-        """
+        Checks whether the PSCID/CandID combination corresponds to a valid candidate in the `candidate` table.
 
-        query = 'SELECT PSCID FROM candidate WHERE CandID = %s'
+        :param psc_id: PSCID of the candidate
+         :type psc_id: str
+        :param cand_id: CandID of the candidate
+         :type cand_id: int
 
-        results = self.db.pselect(query, args=(cand_id,))
-
-        return results[0]['PSCID'] if results else None
-
-    @deprecated('Use `lib.db.queries.candidate.try_get_candidate_with_cand_id` instead')
-    def get_candidate_id(self, cand_id: int) -> int | None:
-        """
-        Return a candidate ID based on its CandID, or `None` if no candidate is found in the
-        database.
+        :returns: the valid CandID and PSCID if the combination corresponds to a candidate, None otherwise
         """
 
-        query = 'SELECT ID FROM candidate WHERE CandID = %s'
+        query = "SELECT c1.CandID, c2.PSCID AS PSCID " \
+                " FROM candidate c1 " \
+                " LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) " \
+                " WHERE c1.CandID = %s"
 
-        results = self.db.pselect(query, args=(cand_id,))
+        results = self.db.pselect(query=query, args=(psc_id, cand_id))
 
-        return results[0]['ID'] if results else None
+        return results if results else None

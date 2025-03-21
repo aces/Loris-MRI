@@ -97,11 +97,11 @@ Register DTI_QC pipeline's output files of interest into the database via regist
 The following output files will be considered:
     - QCed minc file produced by DTIPrep preprocessing step (i.e. DTI dataset without the bad directions detected by DTIPrep)
     - QCReport produced by DTPrep
-    - XMLQCResult produced by DTIPrep
+    - XMLQCResult produced by DTIPrep 
     - RGB map produced by either DTIPrep or mincdiffusion post-processing (for visually of color artefact)
     - MD map produced by either DTIPrep or mincdiffusion post-processing
     - FA map produced by either DTIPrep or mincdiffusion post-processing
-    - baseline image produced by DTIPrep or mincdiffusion post-processing
+    - baseline image produced by DTIPrep or mincdiffusion post-processing 
     - DTI mask produced by mincdiffusion post-processing (if mincdiffusion was used to post-process the data)
 
 Usage: $0 [options]
@@ -218,11 +218,11 @@ if (!$protXMLrefs) {
 
 # 1.b Create a hash containing names of all outputs created by DTIPrep/mincdiffusion pipeline
 my @dti_files   = [$dti_file];  # createDTIhashref needs an array with dti_files
-my ($DTIrefs)   = &DTI::createDTIhashref(@dti_files,
-                                         $anat,
-                                         $DTIPrep_subdir,
-                                         $DTIPrepProtocol,
-                                         $protXMLrefs,
+my ($DTIrefs)   = &DTI::createDTIhashref(@dti_files, 
+                                         $anat, 
+                                         $DTIPrep_subdir, 
+                                         $DTIPrepProtocol, 
+                                         $protXMLrefs, 
                                          $QCed2_step
                                         );
 if  (!$DTIrefs) {
@@ -246,13 +246,13 @@ if ((!$mincdiffVersion) && ($DTIrefs->{$dti_file}->{'Postproc'}->{'Tool'} eq "mi
 # 2.a Fetch output path stored in $DTIrefs
 my  ($XMLProtocol, $QCReport, $XMLReport, $mri_files)   = &getFiles($dti_file, $DTIrefs, $protXMLrefs);
 
-# 2.b Checks that all required outputs were found (there are already a good level of checking in getFiles)
+# 2.b Checks that all required outputs were found (there are already a good level of checking in getFiles)     
 # If $QCed_minc is not defined, means that getFiles returned undef for all output files => ERROR.
 if  (!$QCReport) {
     print LOG "\nERROR:\n\tSome process files are missing in $DTIPrep_subdir.\n";
     exit $NeuroDB::ExitCodes::MISSING_FILES;
 }
-# If $QCed2_step is set, QCed2_minc should be defined in %mri_files hash!
+# If $QCed2_step is set, QCed2_minc should be defined in %mri_files hash! 
 if  (($QCed2_step) && (!$mri_files->{'Preproc'}{'QCed2'}{'minc'})) {
     print LOG "\nERROR:\n\tSecondary QCed DTIPrep nrrd & minc outputs are "
               . "missing in $DTIPrep_subdir.\n";
@@ -268,7 +268,7 @@ if  (($QCed2_step) && (!$mri_files->{'Preproc'}{'QCed2'}{'minc'})) {
     #######################
 
 # $registeredXMLprotocolID will store the ID to the registered XMLprotocolFile
-my ($registeredXMLprotocolID)   = &register_XMLProt($XMLProtocol,
+my ($registeredXMLprotocolID)   = &register_XMLProt($XMLProtocol, 
                                                     $data_dir,
                                                     "DTIPrep");
 if (!$registeredXMLprotocolID) {
@@ -276,7 +276,7 @@ if (!$registeredXMLprotocolID) {
     exit $NeuroDB::ExitCodes::INSERT_FAILURE;
 } else {
     print LOG "\nRegistered XML protocol with ID $registeredXMLprotocolID.\n";
-    $mri_files->{'Preproc'}{'QCProt'}{'xml'} = $registeredXMLprotocolID;
+    $mri_files->{'Preproc'}{'QCProt'}{'xml'} = $registeredXMLprotocolID; 
 }
 
 
@@ -288,10 +288,10 @@ if (!$registeredXMLprotocolID) {
 my ($report_input_file)         = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCReport'}->{'inputs'}->{'Raw_DWI'};
 $report_input_file              =~ s/$data_dir\///;
 my ($report_input_fileID)       = &getFileID($XMLReport, $report_input_file);
-my ($registeredXMLReportFile)   = &register_XMLFile($XMLReport,
-                                                    $dti_file,
+my ($registeredXMLReportFile)   = &register_XMLFile($XMLReport, 
+                                                    $dti_file, 
                                                     $data_dir,
-                                                    $QCReport,
+                                                    $QCReport, 
                                                     $report_input_fileID,
                                                     $registeredXMLprotocolID,
                                                     "DTIPrepPipeline",
@@ -312,8 +312,8 @@ if (!$registeredXMLReportFile) {
     #######################
 
 # $registeredQCReportFile will store the path to the registered QCReportFile
-my ($registeredQCReportFile)    = &register_QCReport($QCReport,
-                                                     $dti_file,
+my ($registeredQCReportFile)    = &register_QCReport($QCReport, 
+                                                     $dti_file, 
                                                      $data_dir,
                                                      $report_input_fileID,
                                                      $registeredXMLprotocolID,
@@ -344,7 +344,7 @@ if ($mri_files->{'Preproc'}{'QCed2'}{'minc'}) {
                                                 $registeredXMLprotocolID,
                                                 "DTIPrepPipeline",
                                                 $DTIPrepVersion,
-                                                'Preproc',
+                                                'Preproc', 
                                                 'QCed2'
                                                 );
     $mri_files->{'Preproc'}{'QCed2'}{'minc'} = $QCed2_registered;
@@ -357,7 +357,7 @@ my $QCed_registered = &register_Preproc($mri_files,
                                         $registeredXMLprotocolID,
                                         "DTIPrepPipeline",
                                         $DTIPrepVersion,
-                                        'Preproc',
+                                        'Preproc', 
                                         'QCed'
                                         );
 $mri_files->{'Preproc'}{'QCed'}{'minc'} = $QCed_registered;
@@ -369,7 +369,7 @@ $mri_files->{'Preproc'}{'QCed'}{'minc'} = $QCed_registered;
     ####### Step 7: #######  Register post processed files
     #######################
 
-# If mincdiffusion tools were used to create post processed files, register $RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc files into the database
+# If mincdiffusion tools were used to create post processed files, register $RGB_minc, $FA_minc, $MD_minc, $baseline_minc, $brain_mask_minc files into the database    
 my ($toolName);
 if ($mri_files->{'Postproc'}{'Tool'} eq "mincdiffusion") {
     $toolName   = $mincdiffVersion;
@@ -377,12 +377,12 @@ if ($mri_files->{'Postproc'}{'Tool'} eq "mincdiffusion") {
     $toolName   = $DTIPrepVersion;
 }
 
-my ($postproc_registered,
-    $postproc_failed_to_register)   = &register_images($mri_files,
+my ($postproc_registered, 
+    $postproc_failed_to_register)   = &register_images($mri_files, 
                                                        $dti_file,
                                                        $data_dir,
                                                        "DTIPrepPipeline",
-                                                       $toolName,
+                                                       $toolName, 
                                                        'Postproc'
                                                       );
 
@@ -423,8 +423,8 @@ RETURNS: ID of the registered protocol file
 
 sub register_XMLProt {
     my ($XMLProtocol, $data_dir, $tool) = @_;
-
-    my $md5_check       = `md5sum $XMLProtocol`;
+    
+    my $md5_check       = `md5sum $XMLProtocol`; 
     my ($md5sum, $file) = split(' ', $md5_check);
     my ($ProtocolID)    = &fetchProtocolID($md5sum);
 
@@ -435,7 +435,7 @@ sub register_XMLProt {
         ($ProtocolID)   = &registerProtocol($XMLProtocol, $md5sum, $tool, $data_dir);
     }
 
-    return ($ProtocolID);
+    return ($ProtocolID); 
 }
 
 
@@ -457,7 +457,7 @@ RETURNS: ID of the registered protocol file
 =cut
 
 sub registerProtocol {
-    my ($protocol, $md5sum, $tool, $data_dir) = @_;
+    my ($protocol, $md5sum, $tool, $data_dir) = @_; 
 
     # Move file into protocol folder
     my $tooldir = $data_dir . "/protocols/" . $tool;
@@ -508,7 +508,7 @@ sub fetchProtocolID {
     my $protocolID;
     if ($sth->rows > 0) {
         my $row     = $sth->fetchrow_hashref();
-        $protocolID = $row->{'ProcessProtocolID'};
+        $protocolID = $row->{'ProcessProtocolID'}; 
     }
 
     return ($protocolID);
@@ -548,8 +548,8 @@ sub register_minc {
     # Determine source file name and source file ID
     my ($src_name)      = basename($raw_file, '.mnc');
     my ($src_fileID)    = &getFileID($minc, $src_name);
-
-    # Determine pipeline used to create processed data
+    
+    # Determine pipeline used to create processed data 
     my  ($src_pipeline, $src_tool, $pipelineName_insert, $toolName_insert);
     if  (!$toolName)    {
         # need to develop this later once DTIPrep versioning will be reported into QC reports.
@@ -566,21 +566,21 @@ sub register_minc {
         );
         return undef    if ((!$toolName_insert) && (!$pipelineName_insert));
     }
-
+    
     # Determine date at which pipeline was run based on registered QC report file
     my  ($pipelineDate) =   &getPipelineDate($minc, $data_dir, $registeredQCReportFile); # if date not in $minc, use QC report and insert it into the mincheader.
-
+    
     # Insert into the mincheader the QC reports (txt & xml)
-    my ($Txtreport_insert,
-        $XMLreport_insert)   = &insertReports($minc,
-                                              $registeredXMLFile,
+    my ($Txtreport_insert, 
+        $XMLreport_insert)   = &insertReports($minc, 
+                                              $registeredXMLFile, 
                                               $registeredQCReportFile
                                              );
 
     # Insert pipeline summary (how many rejected directions...) into the mincheader
-    my ($summary_insert)    = &insertPipelineSummary($minc,
-                                                     $data_dir,
-                                                     $registeredXMLFile,
+    my ($summary_insert)    = &insertPipelineSummary($minc, 
+                                                     $data_dir, 
+                                                     $registeredXMLFile, 
                                                      $scanType);
 
     # Insert into the mincheader processed directory of the minc to register
@@ -591,7 +591,7 @@ sub register_minc {
 
     # Insert nrrd file into minc file if $registered_nrrd is defined
     my ($nrrd_insert) = &DTI::modify_header('processing:nrrd_file', $registered_nrrd, $minc) if ($registered_nrrd);
-
+    
     # Determine coordinate '}->{'pace
     my ($coordinateSpace);
     $coordinateSpace = "native"      if ($toolName =~ /DTIPrep/i);
@@ -601,31 +601,31 @@ sub register_minc {
     my $outputType  =   "qc";
 
     # Check is all information was correctly inserted into the minc file
-    return undef    unless (($Txtreport_insert)     && ($XMLreport_insert)
-                         && ($summary_insert)       && ($toolName_insert)
+    return undef    unless (($Txtreport_insert)     && ($XMLreport_insert) 
+                         && ($summary_insert)       && ($toolName_insert)      
                          && ($procdir_insert));
     # Return undef if a nrrd file was registered but not inserted into the mincheader of the associated minc
     return undef    if (($registered_nrrd) && (!$nrrd_insert));
 
     # If all necessary information are defined, register the file. Return undef otherwise
-    if  (($minc)            &&  ($src_fileID)   &&
-         ($src_pipeline)    &&  ($pipelineDate) &&
-         ($coordinateSpace) &&  ($scanType)     &&
+    if  (($minc)            &&  ($src_fileID)   && 
+         ($src_pipeline)    &&  ($pipelineDate) && 
+         ($coordinateSpace) &&  ($scanType)     && 
          ($outputType)      &&  ($inputs)       &&
          ($registeredXMLprotocolID)) {
 
-        my  ($registeredMincFile)   = &registerFile($minc,
-                                                    $src_fileID,
-                                                    $src_pipeline,
+        my  ($registeredMincFile)   = &registerFile($minc, 
+                                                    $src_fileID, 
+                                                    $src_pipeline, 
                                                     $src_tool,
-                                                    $pipelineDate,
-                                                    $coordinateSpace,
-                                                    $scanType,
+                                                    $pipelineDate, 
+                                                    $coordinateSpace, 
+                                                    $scanType, 
                                                     $outputType,
                                                     $inputs,
                                                     $registeredXMLprotocolID
-                                                   );
-
+                                                   ); 
+        
         return ($registeredMincFile);
 
     } else {
@@ -639,9 +639,9 @@ sub register_minc {
                   "outputType:      $outputType\n";
 
         return undef;
-    }
+    }    
 
-}
+}   
 
 
 =pod
@@ -730,7 +730,7 @@ sub register_XMLFile {
         return undef;
 
     }
-}
+}        
 
 
 =pod
@@ -799,21 +799,21 @@ sub register_QCReport {
                                                      );
 
         return ($registeredQCReportFile);
-
+    
     } else {
-
+    
         print LOG "\nERROR: a required option for register_processed_data.pl is not set!!\n";
         print LOG "sourceFileID:    $src_fileID\n"      .
                   "sourcePipeline:  $src_pipeline\n"    .
-                  "pipelineDate:    $pipelineDate\n"    .
+                  "pipelineDate:    $pipelineDate\n"    . 
                   "coordinateSpace: $coordinateSpace\n" .
-                  "scanType:        $scanType\n"        .
+                  "scanType:        $scanType\n"        . 
                   "outputType:      $outputType\n";
         return undef;
-
+        
     }
 
-}
+}        
 
 
 =pod
@@ -913,8 +913,8 @@ sub checkPreprocessFiles {
         $mri_files->{'Preproc'}{'QCed2'}{'nrrd'}     = $QCed2_nrrd;
         $mri_files->{'Preproc'}{'QCed2'}{'minc'}     = $QCed2_minc;
         $mri_files->{'Preproc'}{'QCed2'}{'scanType'} = 'DTIPrepNoReg';
-        $mri_files->{'Preproc'}{'QCed'}{'inputs'}    = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed'}->{'inputs'};
-        $mri_files->{'Preproc'}{'QCed2'}{'inputs'}   = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2'}->{'inputs'};
+        $mri_files->{'Preproc'}{'QCed'}{'inputs'}    = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed'}->{'inputs'};   
+        $mri_files->{'Preproc'}{'QCed2'}{'inputs'}   = $DTIrefs->{$dti_file}->{'Preproc'}->{'QCed2'}->{'inputs'};   
         return ($XMLProtocol, $QCReport, $XMLReport);
 
     } else {
@@ -954,7 +954,7 @@ sub checkPostprocessFiles {
     my ($dti_file, $DTIrefs, $mri_files) = @_;
 
     # Determine file path of each postprocessed outputs common to the two tools (DTIPrep & mincdiffusion)
-    my  $RGB_minc       =   $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'minc'};
+    my  $RGB_minc       =   $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'minc'}; 
     my  $FA_minc        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'minc'};
     my  $MD_minc        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'minc'};
     my  $baseline_minc  =   $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'minc'};
@@ -984,17 +984,17 @@ sub checkPostprocessFiles {
         my  $IDWI_minc      =   $DTIrefs->{$dti_file}->{'Postproc'}->{'IDWI'}->{'minc'};
         my  $tensor_minc    =   $DTIrefs->{$dti_file}->{'Postproc'}->{'tensor'}->{'minc'};
         if ((-e $IDWI_minc) && (-e $tensor_minc)) {
-            $mri_files->{'Postproc'}{'IDWI'}{'minc'}        = $IDWI_minc;
-            $mri_files->{'Postproc'}{'IDWI'}{'scanType'}    = 'DTPrepIDWI';
-            $mri_files->{'Postproc'}{'tensor'}{'minc'}      = $tensor_minc;
-            $mri_files->{'Postproc'}{'tensor'}{'scanType'}  = 'DTIPrepDTI';
+            $mri_files->{'Postproc'}{'IDWI'}{'minc'}        = $IDWI_minc; 
+            $mri_files->{'Postproc'}{'IDWI'}{'scanType'}    = 'DTPrepIDWI'; 
+            $mri_files->{'Postproc'}{'tensor'}{'minc'}      = $tensor_minc; 
+            $mri_files->{'Postproc'}{'tensor'}{'scanType'}  = 'DTIPrepDTI'; 
         } else {
             print LOG "Could not find post processing isotropic minc files on the filesystem.\n";
             return undef;
         }
 
         # Fetches info about DTIPrep nrrd post processing files
-        $RGB_nrrd       =   $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'nrrd'};
+        $RGB_nrrd       =   $DTIrefs->{$dti_file}->{'Postproc'}->{'RGB'}->{'nrrd'}; 
         $FA_nrrd        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'FA'}->{'nrrd'};
         $MD_nrrd        =   $DTIrefs->{$dti_file}->{'Postproc'}->{'MD'}->{'nrrd'};
         $baseline_nrrd  =   $DTIrefs->{$dti_file}->{'Postproc'}->{'baseline'}->{'nrrd'};
@@ -1073,20 +1073,20 @@ sub getFileID {
 
     # fetch the FileID of the raw dataset
     my $query   =   "SELECT FileID " .
-                    "FROM files " .
+                    "FROM files " . 
                     "WHERE File like ?";
-
-    my $like    =   "%$src_name%";
-    my $sth     =   $dbh->prepare($query);
+    
+    my $like    =   "%$src_name%";    
+    my $sth     =   $dbh->prepare($query); 
     $sth->execute($like);
-
+    
     if  ($sth->rows > 0)    {
         my $row =   $sth->fetchrow_hashref();
         $fileID =   $row->{'FileID'};
     }else   {
         print LOG "WARNING: No fileID matches the dataset $src_name used to produce $file.\n\n\n";
     }
-
+    
     return  ($fileID);
 }
 
@@ -1128,7 +1128,7 @@ sub getToolName {
         $src_tool       =~s/"//g;
         $src_pipeline   =~s/"//g;
     }
-
+    
     return  ($src_pipeline, $src_tool);
 }
 
@@ -1151,45 +1151,45 @@ RETURNS: date at which the pipeline has been run to obtain C<$file>
 
 sub getPipelineDate {
     my  ($file, $data_dir, $QCReport)   =   @_;
-
+    
     # Remove $data_dir path from $QCReport in the case it is included in the path
     $QCReport =~ s/$data_dir//i;
 
     my  ($pipelineDate, $date_insert);
-
+    
     if  ($file=~/\.mnc/)    {
         $pipelineDate   = &DTI::fetch_header_info('processing:processing_date',
                                                   $file,
                                                   '$3');
     }
-
+    
     if  (!$pipelineDate)   {
-
+    
         print LOG "\n> Fetching date of processing in the QCReport.txt file created by DTIPrep\n";
         my  $check_line = `cat $data_dir/$QCReport|grep "Check Time"`;
         $check_line     =~s/Check Time://i;      # Only keep date info in $check_line.
         #use Date::Parse library to read the date
         my ($ss,$mm,$hh,$day,$month,$year,$zone) = strptime($check_line);
         $pipelineDate   =  sprintf("%4d%02d%02d", $year+1900, $month+1, $day);
-
+        
         if ($file=~/\.mnc/) {
-            # insert pipelineDate into mincheader if not already in the mincheader.
+            # insert pipelineDate into mincheader if not already in the mincheader. 
             ($date_insert) = &DTI::modify_header(
                 'processing:processing_date', $pipelineDate, $file
             );
         }
-
+    
     } else  {
-
+        
         print LOG "\n> Fetching date of processing in the mincheader of $file";
         #remove leading spaces, trailing spaces and all instances of "
         $pipelineDate   =~s/"//g;
         $date_insert    = "already inserted";
-
+    
     }
-
+    
     # if date was not inserted into the mincheader, return undef
-    return undef    if (($file=~/\.mnc/) && (!$date_insert));
+    return undef    if (($file=~/\.mnc/) && (!$date_insert));   
     # return pipeline date otherwise
     return  ($pipelineDate);
 }
@@ -1253,7 +1253,7 @@ sub insertPipelineSummary   {
     my ($minc, $data_dir, $XMLReport, $scanType)   =   @_;
 
     my ($summary)   =   &DTI::getRejectedDirections($data_dir, $XMLReport);
-
+    
     # insert slice wise excluded gradients in mincheader
     my $rm_slicewise   = $summary->{'EXCLUDED'}{'slice'}{'txt'};
     my $count_slice    = $summary->{'EXCLUDED'}{'slice'}{'nb'};
@@ -1290,7 +1290,7 @@ sub insertPipelineSummary   {
     );
 
     # If all insertions went well, return 1, otherwise return undef
-    if (($total_insert) && ($insert_slice) && ($insert_inter)
+    if (($total_insert) && ($insert_slice) && ($insert_inter) 
             && (($insert_gradient) || ($scanType =~ /DTIPrepNoReg/i))) {
         return 1;
     } else {
@@ -1358,15 +1358,15 @@ sub registerFile  {
                     "-protocolID $registeredXMLprotocolID";
     system($cmd);
     print LOG "\n==> Command sent:\n$cmd\n";
-
+    
     my  ($registeredFile) = &fetchRegisteredFile($src_fileID, $src_pipeline, $pipelineDate, $coordinateSpace, $scanType, $outputType);
 
     if (!$registeredFile) {
         print LOG "> WARNING: No fileID found for SourceFileID=$src_fileID, SourcePipeline=$src_pipeline, PipelineDate=$pipelineDate, CoordinateSpace=$coordinateSpace, ScanType=$scanType and OutputType=$outputType.\n\n\n";
-    }
+    }    
 
     return ($registeredFile);
-}
+}        
 
 
 =pod
@@ -1396,12 +1396,12 @@ sub fetchRegisteredFile {
     my $query   =   "SELECT f.File "          .
                     "FROM files f "             .
                     "JOIN mri_scan_type mst "   .
-                        "ON mst.MriScanTypeID=f.MriScanTypeID ".
+                        "ON mst.ID=f.AcquisitionProtocolID ".
                     "WHERE f.SourceFileID=? "   .
                         "AND f.SourcePipeline=? "   .
                         "AND f.PipelineDate=? "     .
                         "AND f.CoordinateSpace=? "  .
-                        "AND mst.MriScanTypeName=? " .
+                        "AND mst.Scan_type=? "      .
                         "AND OutputType=?";
 
     my $sth     =   $dbh->prepare($query);
@@ -1451,8 +1451,8 @@ sub register_DTIPrep_files {
     my  ($minc, $nrrd, $raw_file, $data_dir, $inputs, $registeredXMLprotocolID, $pipelineName, $DTIPrepVersion, $registeredXMLReportFile, $registeredQCReportFile, $scanType) = @_;
 
     # Return undef if variables given as arguments are not defined
-    return undef    unless (($minc)                    && ($nrrd)
-                         && ($DTIPrepVersion)          && ($registeredXMLReportFile)
+    return undef    unless (($minc)                    && ($nrrd)                  
+                         && ($DTIPrepVersion)          && ($registeredXMLReportFile) 
                          && ($registeredQCReportFile)  && ($registeredXMLprotocolID)
                          && ($pipelineName)            && ($inputs));
 
@@ -1460,9 +1460,9 @@ sub register_DTIPrep_files {
     # First checks if DTIPrepReg file exists in DB (could be identical to $noRegQCedDTI)
     my ($registeredFile, $registeredScanType, $registered_nrrd);
     if ($scanType eq "DTIPrepReg") {
-        my $md5_check       = `md5sum $nrrd`;
+        my $md5_check       = `md5sum $nrrd`; 
         my ($md5sum, $file) = split(' ', $md5_check);
-        ($registeredFile,
+        ($registeredFile, 
         $registeredScanType)= &fetchRegisteredMD5($md5sum);
         $registered_nrrd    = $registeredFile if ($registeredScanType eq 'DTIPrepNoReg');
     }
@@ -1585,7 +1585,7 @@ sub register_nrrd {
         return undef;
 
     }
-}
+}   
 
 
 =pod
@@ -1693,9 +1693,9 @@ sub register_images {
                                                            $inputs,
                                                            $registeredXMLprotocolID,
                                                            $pipelineName,
-                                                           $toolName,
-                                                           $registeredXMLReportFile,
-                                                           $registeredQCReportFile,
+                                                           $toolName, 
+                                                           $registeredXMLReportFile, 
+                                                           $registeredQCReportFile, 
                                                            $scanType
                                                           );
 
@@ -1714,7 +1714,7 @@ sub register_images {
                                                  );
 
         }
-
+        
         # Update the minc file in mri_files to the registered_minc;
         $mri_files->{$process_step}{$proc_file}{'minc'} = $registered_minc;
 
@@ -1722,7 +1722,7 @@ sub register_images {
         push(@registered, $registered_minc) if ($registered_minc);
         push(@failed_to_register, $minc)    if (!$registered_minc);
     }
-
+    
     return (\@registered, \@failed_to_register);
 }
 
@@ -1749,7 +1749,7 @@ RETURNS: string with each inputs used separated by ';'
 sub getInputList {
     my ($mri_files, $data_dir, $process_step, $proc_file) = @_;
 
-    my @inputs;
+    my @inputs; 
     foreach my $input (keys $mri_files->{$process_step}{$proc_file}{'inputs'}) {
         my $input_file;
         if ($input =~ m/Raw/i) {
@@ -1776,7 +1776,7 @@ sub getInputList {
     }
 
     return ($input_list);
-}
+}    
 
 
 =pod
@@ -1796,11 +1796,11 @@ RETURNS:
 sub fetchRegisteredMD5 {
     my ($md5sum) = @_;
 
-    my $query   = "SELECT File, mst.MriScanTypeName AS ScanType" .
+    my $query   = "SELECT File, Scan_type" .
                     " FROM files f" .
                     " JOIN parameter_file pf ON (pf.FileID = f.FileID)" .
                     " JOIN parameter_type pt ON (pt.ParameterTypeID = pf.ParameterTypeID)" .
-                    " JOIN mri_scan_type mst ON (mst.MriScanTypeID=f.MriScanTypeID)" .
+                    " JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID)" .
                     " WHERE pt.Name = ? AND pf.Value = ?";
     my $sth     = $dbh->prepare($query);
     $sth->execute('md5hash', $md5sum);
@@ -1808,7 +1808,7 @@ sub fetchRegisteredMD5 {
     if  ($sth->rows > 0)    {
         my $row =   $sth->fetchrow_hashref();
         $registeredFile   = $row->{'File'};
-        $registeredScanType = $row->{'ScanType'}
+        $registeredScanType = $row->{'Scan_type'}
     }
 
     return ($registeredFile, $registeredScanType);

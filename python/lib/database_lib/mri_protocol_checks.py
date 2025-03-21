@@ -56,7 +56,7 @@ class MriProtocolChecks:
 
         query = "SELECT * FROM mri_protocol_checks" \
                 " JOIN mri_protocol_checks_group_target mpcgt USING (MriProtocolChecksGroupID)" \
-                " WHERE MriScanTypeID = %s "
+                " WHERE Scan_type = %s "
 
         query += " AND (mpcgt.ProjectID IS NULL OR mpcgt.ProjectID = %s)" \
             if project_id else " AND mpcgt.ProjectID IS NULL"

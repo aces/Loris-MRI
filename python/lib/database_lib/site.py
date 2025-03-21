@@ -1,11 +1,9 @@
 """This class performs database queries for the site (psc) table"""
 
-from typing_extensions import deprecated
 
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.db.models.site.DbSite` instead')
 class Site:
     """
     This class performs database queries on the psc (site) table.
@@ -37,7 +35,6 @@ class Site:
         self.db = db
         self.verbose = verbose
 
-    @deprecated('Use `lib.db.queries.site.get_all_sites` instead')
     def get_list_of_sites(self):
         """
         Returns a list of dictionaries storing the list of sites present in the psc table.

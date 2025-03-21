@@ -1,12 +1,9 @@
 import datetime
-import os
-import shutil
-import sys
-import tarfile
 import tempfile
-
-from typing_extensions import deprecated
-
+import tarfile
+import shutil
+import os
+import sys
 from lib.exitcode import COPY_FAILURE
 
 """Set of io functions."""
@@ -14,13 +11,11 @@ from lib.exitcode import COPY_FAILURE
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.logging` and `lib.util.fs` instead')
 class ImagingIO:
     def __init__(self, log_obj, verbose):
         self.log_obj = log_obj
         self.verbose = verbose
 
-    @deprecated('Use `lib.util.fs.extract_archive` instead')
     def extract_archive(self, location, prefix, tmp_dir):
         """
         Extract Archive in the temporary directory
@@ -37,7 +32,6 @@ class ImagingIO:
         tar_file.close()
         return extract_location
 
-    @deprecated('Use `lib.util.fs.remove_directory` instead')
     def remove_dir(self, dir):
         """
         Removes a directory and its content
@@ -49,7 +43,6 @@ class ImagingIO:
             except PermissionError as err:
                 self.log_info(f"Could not delete {dir}. Error was: {err}", is_error=True, is_verbose=False)
 
-    @deprecated('Use `lib.util.fs.copy_file` instead')
     def copy_file(self, old_file_path, new_file_path):
         """
         Move a file on the file system.
@@ -66,7 +59,6 @@ class ImagingIO:
             message = f'Could not copy {old_file_path} to {new_file_path}'
             self.log_error_and_exit(message, COPY_FAILURE, is_error=True)
 
-    @deprecated('Use `lib.logging.log_*` instead')
     def log_info(self, message, is_error=False, is_verbose=True, to_file=True, to_table=True):
         """
         Function to log information that need to be logged in the notification_spool table and in the log
@@ -98,7 +90,6 @@ class ImagingIO:
         if self.verbose:
             print(f"{log_msg}\n")
 
-    @deprecated('Use `lib.logging.log_error_exit` instead')
     def log_error_and_exit(self, message, exit_code, callback = None):
         """
         Function to commonly executes all logging information when the script needs to be

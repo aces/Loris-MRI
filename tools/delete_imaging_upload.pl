@@ -6,7 +6,7 @@
 
 delete_imaging_upload.pl -- Delete everything that was produced (or part of what was produced) by the imaging pipeline for a given set of imaging uploads
                         IDs, all associated to the same C<tarchive>.
-
+                        
 =head1 SYNOPSIS
 
 perl delete_imaging_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
@@ -18,49 +18,49 @@ Available options are:
 
 -ignore                : ignore files whose paths exist in the database but do not exist on the file system.
                          Default is to abort if such a file is found, irrespective of whether a backup file will
-                         be created by the script (see C<-nofilesbk> and C<-nosqlbk>). If this option is used, a
+                         be created by the script (see C<-nofilesbk> and C<-nosqlbk>). If this option is used, a 
                          warning is issued and program execution continues.
-
+               
 -nofilesbk             : when creating the backup file for the deleted upload(s), do not backup the files produced by
                          the imaging pipeline (default is to backup these files).
-
+               
 -backup_path <path>    : specify the path of the backup file, which by default contains a copy of everything that the
                          script will delete, both on the file system and in the database (but see C<-nofilesbk> and
                          C<-nosqlbk>). The extension C<.tar.gz> will be added to this base name to build the name of the final
                          backup file. If a file with this resulting name already exists, an error message is shown and the script
-                         will abort. Note that C<path> can be an absolute path or a path relative to the current directory. A
+                         will abort. Note that C<path> can be an absolute path or a path relative to the current directory. A 
                          backup file is always created unless options C<-nofilesbk> and C<-nosqlbk> are both used. By default, the
-                         backup file name is C<imaging_upload_backup.tar.gz> and is written in the current directory. Option
+                         backup file name is C<imaging_upload_backup.tar.gz> and is written in the current directory. Option 
                          C<-backup_path> cannot be used if C<-nofilesbk> and C<-nosqlbk> are also used.
-
--basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table C<files> or table
+                         
+-basename fileBaseName : basename of the file to delete. The file is assumed to either exist in table C<files> or table 
                          C<parameter_file>. This option should be used when targeting a specific (unique) file for deletion.
-                         Note that the file will be deleted from both the database and the filesystem. This option cannot be
+                         Note that the file will be deleted from both the database and the filesystem. This option cannot be 
                          used with options C<-defaced> and C<-form>.
-
--uploadID              : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. The program will
+               
+-uploadID              : comma-separated list of upload IDs (found in table C<mri_upload>) to delete. The program will 
                          abort if the list contains an upload ID that does not exist. Also, all upload IDs must
                          have the same C<tarchive> ID (which can be C<NULL>).
-
+               
 -protocol              : delete the imaging protocol(s) in table C<mri_processing_protocol> associated to either the
                          upload(s) specified via the C<-uploadID> option or any file that was produced using this (these)
                          upload(s). Let F be the set of files directly or indirectly associated to the upload(s) to delete.
                          This option must be used if there is at least one record in C<mri_processing_protocol> that is tied
                          only to files in F. Protocols that are tied to files not in F are never deleted. If the files in F
                          do not have a protocol associated to them, the switch is ignored if used.
-
+               
 -form                  : delete the entries in C<mri_parameter_form> associated to the upload(s) passed on
                          the command line, if any (default is NOT to delete them).
-
+               
 -type                  : comma-separated list of scan type names to delete. All the names must exist in table C<mri_scan_type> or
                          the script will issue an error. This option cannot be used in conjunction with C<-defaced>.
-
+               
 -defaced               : fetch the scan types listed in config setting C<modalities_to_delete> and perform a deletion of these scan
                          types as if their names were used with option C<-type>. Once all deletions are done, set the C<SourceFileID>
-                         and C<TarchiveSource> of all the defaced files in table <files> to C<NULL> and to the tarchive ID of the
+                         and C<TarchiveSource> of all the defaced files in table <files> to C<NULL> and to the tarchive ID of the 
                          upload(s) whose arguments were passed to C<-uploadID>, respectively.
-
--nosqlbk               : when creating the backup file, do not add to it an SQL file that contains the statements used to restore
+                
+-nosqlbk               : when creating the backup file, do not add to it an SQL file that contains the statements used to restore 
                          the database to the state it had before the script was invoked. Adding this file, which will be named
                          C<imaging_upload_restore.sql>, to the backup file is the default behaviour.
 
@@ -89,7 +89,7 @@ successfully run, this removes all records tied to the upload in the following t
    b) C<files>
    c) C<tarchive_series> and C<tarchive_files>
    d) C<mri_protocol_violated_scans>, C<MRICandidateErrors> and C<mri_violations_log>
-   e) C<files_intermediary>.
+   e) C<files_intermediary>. 
    f) C<parameter_file>
    g) C<tarchive>
    h) C<mri_upload>
@@ -99,29 +99,29 @@ successfully run, this removes all records tied to the upload in the following t
 
 All the deletions and modifications performed in the database are done as part of a single transaction, so they either
 all succeed or a rollback is performed and the database is not modified in any way. The ID of the upload to delete
-is specified via option C<-uploadID>. More than one upload can be deleted if they all have the same C<TarchiveID>
+is specified via option C<-uploadID>. More than one upload can be deleted if they all have the same C<TarchiveID> 
 in table C<mri_upload>: option C<-uploadID> can take as argument a comma-separated list of upload IDs for this case.
 If an upload that is deleted is the only one that was associated to a given session, the script will set the C<Scan_done>
-value for that session to 'N'. If option C<-form> is used, the C<mri_parameter_form> and its associated C<flag> record
-are also deleted, for each deleted upload. If option C<-protocol> is used and if there is a record in table
+value for that session to 'N'. If option C<-form> is used, the C<mri_parameter_form> and its associated C<flag> record 
+are also deleted, for each deleted upload. If option C<-protocol> is used and if there is a record in table 
 C<mri_processing_protocol> that is tied only to the deleted upload(s), then that record is also deleted.
 
 C<delete_imaging_upload.pl> cannot be used to delete an upload that has an associated MINC file that has been QCed.
-In other words, if there is a MINC file tied to the upload that is targeted for deletion and if that MINC file has
+In other words, if there is a MINC file tied to the upload that is targeted for deletion and if that MINC file has 
 an associated record in table C<files_qcstatus> or C<feedback_mri_comments>, the script will issue an error message
 and exit.
 
-Before deleting any records in the database, the script will verify that all the records in tables a) through j) that
+Before deleting any records in the database, the script will verify that all the records in tables a) through j) that 
 represent file names (e.g. a record in C<files>, a protocol file in C<mri_processing_protocol>, etc...) refer to files
-that actually exist on the file system. If it finds a record that does not meet that criterion, the script issues an
+that actually exist on the file system. If it finds a record that does not meet that criterion, the script issues an 
 error message and exits, leaving the database untouched. To avoid this check, use option C<-ignore>. Each time a file
-record is deleted, the file it refers to on the file system is also deleted. A backup will be created by
-C<delete_imaging_upload.pl> of all the files that were deleted during execution. Option C<-nofilesbk> can be used to
+record is deleted, the file it refers to on the file system is also deleted. A backup will be created by 
+C<delete_imaging_upload.pl> of all the files that were deleted during execution. Option C<-nofilesbk> can be used to 
 prevent this. If created, the backup file will be named C<imaging_upload_backup.tar.gz>. This name can be changed with
 option C<-backup_path>. Note that the file paths inside this backup archive are absolute. To restore the files in the archive,
 one must use C<tar> with option C<--absolute-names>.
 
-The script will also create a file that contains a backup of all the information that was deleted or modified from the
+The script will also create a file that contains a backup of all the information that was deleted or modified from the 
 database tables. This backup is created using C<mysqldump> and contains an C<INSERT> statement for every record erased.
 When running C<mysqldump> the script uses the database credentials in file C<~/.my.cnf> to connect to the database. Option
 C<-extra_mysqlcnf> has to be used to specify an alternate credentials file when the default credential file does not exist
@@ -131,33 +131,33 @@ If sourced back into the database with C<mysql>, it should allow the database to
 C<delete_imaging_upload.pl> was invoked, provided the database was not modified in the meantime. The SQL backup file will
 be named C<imaging_upload_restore.sql>.
 
-2. Delete specific scan types from an archive. The behaviour of the script is identical to the one described above, except
+2. Delete specific scan types from an archive. The behaviour of the script is identical to the one described above, except 
    that:
     a) the deletions are limited to MINC files of a specific scan type: use option C<-type> with a comma-separated list
        of scan type names to specify which ones.
-    b) everything associated to the MINC files deleted in a) is also deleted: this includes the processed files in
+    b) everything associated to the MINC files deleted in a) is also deleted: this includes the processed files in 
        C<files_intermediary> and the records in C<mri_violations_log>.
     c) if C<-protocol> is used and there is an entry in table C<mri_processing_protocol> that is tied only to the files
        deleted in a), then that record is also deleted.
     d) tables C<tarchive_series>, C<tarchive_files>, C<tarchive>, C<mri_upload>, C<notification_spool>, C<MRICandidateErrors>
        and C<mri_parameter_form> are never modified.
    Note that option C<-type> cannot be used in conjunction with either option C<-form> or option C<-defaced>.
-
-3. Replace MINC files with their defaced counterparts. This is the behaviour obtained when option C<-defaced> is used. As far as
-   deletions go, the behaviour of the script in this case is identical to the one described in 2), except that the list of
+       
+3. Replace MINC files with their defaced counterparts. This is the behaviour obtained when option C<-defaced> is used. As far as 
+   deletions go, the behaviour of the script in this case is identical to the one described in 2), except that the list of 
    scan types to delete is fetched from the config setting C<modalities_to_deface>. Use of option C<-defaced> is not permitted
-   in conjunction with option C<-type> or option C<-form>. Once all deletions are made, the script will change the C<SourceFileID>
-   of all defaced files to C<NULL> and set the C<TarchiveSource> of all defaced files to the C<TarchiveID> of the upload(s).
-   This effectively "replaces" the original MINC files with their corresponding defaced versions. Note that the script will issue
+   in conjunction with option C<-type> or option C<-form>. Once all deletions are made, the script will change the C<SourceFileID> 
+   of all defaced files to C<NULL> and set the C<TarchiveSource> of all defaced files to the C<TarchiveID> of the upload(s). 
+   This effectively "replaces" the original MINC files with their corresponding defaced versions. Note that the script will issue 
    an error message and abort, leaving the database and file system untouched, if:
        a) A MINC file should have a corresponding defaced file but does not.
        b) A MINC file that has been defaced has an associated file that is not a defaced file.
 
 4. Delete a specific file that exists in table C<files> or table C<parameter_file> (in which case it will be associated to parameter
    C<check_pic_filename>, C<check_nii_filename>, C<check_bval_filename> or C<check_bvec_filename>). Note that once a file is
-   deleted, all the files that have been derived/built using this deleted file will also be deleted. Use option C<-basename fileBaseName>,
+   deleted, all the files that have been derived/built using this deleted file will also be deleted. Use option C<-basename fileBaseName>, 
    where C<fileBaseName> is the basename of the file to delete, along with option C<-uploadID> to use the script this way.
-
+    
 
 =head2 Methods
 
@@ -192,7 +192,7 @@ use constant DEFAULT_DELETE_PROTOCOLS          => 0;
 use constant DEFAULT_DELETE_MRI_PARAMETER_FORM => 0;
 use constant DEFAULT_KEEP_DEFACED              => 0;
 
-use constant FILE_PARAMETER_NAMES              => ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename');
+use constant FILE_PARAMETER_NAMES              => ('check_pic_filename', 'check_nii_filename', 'check_bval_filename', 'check_bvec_filename'); 
 
 # Name that the SQL file will have inside the tar.gz backup archive
 use constant SQL_RESTORE_NAME              => 'imaging_upload_restore.sql';
@@ -217,7 +217,7 @@ my @PROCESSED_TABLES = (
 );
 
 # Stolen from get_dicom_files.pl: should be a constant global to both
-# scripts
+# scripts 
 my $FLOAT_EQUALS_THRESHOLD = 0.00001;
 
 my %options = (
@@ -238,11 +238,11 @@ my %options = (
 my $scanTypeList           = undef;
 
 my @opt_table = (
-    ['-profile'    , 'string'       , 1, \$options{'PROFILE'},
+    ['-profile'    , 'string'       , 1, \$options{'PROFILE'}, 
      'Name of config file in ../dicom-archive/.loris_mri (defaults to "prod")'],
-    ['-backup_path', 'string'       , 1, \$options{'BACKUP_PATH'},
+    ['-backup_path', 'string'       , 1, \$options{'BACKUP_PATH'}, 
      'Path of the backup file (defaults to "imaging_upload_backup", in the current directory)'],
-    ['-ignore'     , 'const'        , 0, \$options{'DIE_ON_FILE_ERROR'},
+    ['-ignore'     , 'const'        , 0, \$options{'DIE_ON_FILE_ERROR'}, 
      'Ignore files that exist in the database but not on the file system.'
      . ' Default is to abort if such a file is found.'],
     ['-nofilesbk'  , 'const'        , 1, \$options{'NO_FILES_BK'},
@@ -292,32 +292,32 @@ if(@ARGV != 0) {
 if(defined $scanTypeList && $options{'DELETE_MRI_PARAMETER_FORM'}) {
     print STDERR "Option -type cannot be used in conjunction with option -form. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
+} 
 
 if($options{'BASENAME'} =~ /\// ) {
     print STDERR "Argument $options{'BASENAME'} to -basename is not a file basename (contains a '/'). Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
+} 
 
 if($options{'BASENAME'} ne '' && $options{'DELETE_MRI_PARAMETER_FORM'}) {
     print STDERR "Option -basename cannot be used in conjunction with option -form. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
+} 
 
 if(defined $scanTypeList && $options{'KEEP_DEFACED'}) {
     print STDERR "Option -type cannot be used in conjunction with option -defaced. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
+} 
 
 if($options{'KEEP_DEFACED'} && $options{'DELETE_MRI_PARAMETER_FORM'}) {
     print STDERR "Option -defaced cannot be used in conjunction with option -form. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
+} 
 
 if($options{'KEEP_DEFACED'} && $options{'BASENAME'} ne '') {
     print STDERR "Option -defaced cannot be used in conjunction with option -basename. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
+} 
 
 if($options{'UPLOAD_ID'} eq '') {
     print STDERR "Missing -uploadID option. Aborting.\n";
@@ -360,12 +360,12 @@ if(grep(/\D/, @{ $options{'UPLOAD_ID'} })) {
 
 if (!$ENV{LORIS_CONFIG}) {
     print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
-    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
+    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
 }
 
 if (!-e "$ENV{LORIS_CONFIG}/.loris_mri/$options{'PROFILE'}") {
-    print $Help;
-    print STDERR "Cannot read profile file '$ENV{LORIS_CONFIG}/.loris_mri/$options{'PROFILE'}'\n";
+    print $Help; 
+    print STDERR "Cannot read profile file '$ENV{LORIS_CONFIG}/.loris_mri/$options{'PROFILE'}'\n";  
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
@@ -409,8 +409,8 @@ my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
 # been commited at that point will automatically be rolled back
 $dbh->{'RaiseError'} = 1;
 
-# Do not print an error message when a DB error occurs since the error message
-# will be printed when the program dies anyway
+# Do not print an error message when a DB error occurs since the error message 
+# will be printed when the program dies anyway 
 $dbh->{'PrintError'} = 0;
 
 my %files;
@@ -437,7 +437,7 @@ my @invalidTypes = grep($scanTypesToDelete{$_} == 0, keys %scanTypesToDelete);
 die "Invalid scan types argument: " . join(',', @invalidTypes) . "\n" if @invalidTypes;
 my @scanTypesToDelete = keys %scanTypesToDelete;
 die "Option -form cannot be used in conjunction with -type. Aborting\n" if $options{'DELETE_MRI_PARAMETER_FORM'} && @scanTypesToDelete;
-
+    
 #=================================================================#
 # Find the absolute paths of all files associated to the          #
 # upload(s) passed on the command lines in all the tables listed  #
@@ -451,7 +451,7 @@ if(!$tarchiveID) {
         printf STDERR  "option %s cannot be used. Aborting.\n", ($options{'KEEP_DEFACED'} ? '-defaced' : '-type');
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
-    if($options{'BASENAME'} ne '') {
+    if($options{'BASENAME'} ne '') { 
         print STDERR "The upload(s) specified on the command line are not tied to any records in table tarchive: ";
         printf STDERR  "option -basename cannot be used. Aborting.\n";
         exit $NeuroDB::ExitCodes::INVALID_ARG;
@@ -472,7 +472,7 @@ if(!defined $files{'tarchive'}) {
     print STDERR "Cannot determine absolute path for archive $tarchiveID since config "
         . "setting 'tarchiveLibraryDir' is not set. Aborting.\n";
     exit $NeuroDB::ExitCodes::MISSING_CONFIG_SETTING;
-}
+}  
 #=================================================================#
 # If -defaced was used, validate that:                            #
 #  a) All the MINCs that should have been defaced were defaced    #
@@ -491,7 +491,7 @@ if($options{'KEEP_DEFACED'}) {
                 printf STDERR join("", map { "\t$_\n" } @$invalidFilesRef);
             }
         }
-        print STDERR "\nAborting.\n";
+        print STDERR "\nAborting.\n"; 
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
@@ -533,7 +533,7 @@ if(@$missingFilesRef) {
             $msg .= "\t$_\n";
         }
     }
-
+    
     die "Error! $msg\nAborting.\n" if $options{'DIE_ON_FILE_ERROR'};
     print STDERR "Warning! $msg\n";
 }
@@ -575,14 +575,14 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 
 =head3 printExitMessage($filesRef, $scanTypesToDeleteRef, $deleteResultsRef)
 
-Prints an appropriate message before exiting.
+Prints an appropriate message before exiting. 
 
 INPUTS:
   - $filesRef: reference to the array that contains the file information for all the files
     that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $deleteResultsRef: reference on the hash that contains the result of the deletion of the records in the
-    database.
+    database. 
 
 =cut
 sub printExitMessage {
@@ -593,7 +593,7 @@ sub printExitMessage {
     if(@$scanTypesToDeleteRef) {
         if(!$deleteResultsRef->{'NB_RECORDS_DELETED'}) {
             printf(
-                "No scans of type %s found for upload %s.\n",
+                "No scans of type %s found for upload %s.\n", 
                 &prettyListPrint($scanTypesToDeleteRef, 'or'),
                 $filesRef->{'mri_upload'}->[0]->{'UploadID'}
             );
@@ -616,7 +616,7 @@ sub printExitMessage {
 
 =pod
 
-=head3 prettyListPrint($listRef, $andOr)
+=head3 prettyListPrint($listRef, $andOr) 
 
 Pretty prints a list in string form (e.g "1, 2, 3 and 4" or "7, 8 or 9").
 
@@ -627,9 +627,9 @@ INPUTS:
 =cut
 sub prettyListPrint {
     my($listRef, $andOr) = @_;
-
+    
     return $listRef->[0] if @$listRef == 1;
-
+     
     return join(', ', @$listRef[0..$#{ $listRef }-1]) . " $andOr " . $listRef->[$#{ $listRef } ];
 }
 
@@ -651,7 +651,7 @@ RETURNS:
 
 sub getMriUploadFiles {
     my($dbh, $uploadIDsRef) = @_;
-
+    
     my $query = "SELECT UploadID, TarchiveID, UploadLocation as FullPath, Inserting, InsertionComplete, SessionID "
               . "FROM mri_upload "
               . "WHERE UploadID IN ("
@@ -678,25 +678,25 @@ RETURNS:
   - a reference on an array that contains the C<tarchive> associated to the upload ID(s) passed on the command line.
     This array can contain one element (if the uploads are all tied to the same C<tarchive>) or be empty (if all the
     uploads have a C<TarchiveID> set to C<NULL>). If the C<ArchiveLocation> for the C<tarchive> is a relative path and
-    if config setting C<tarchiveLibraryDir>is not defined, the return value is C<undef>, indicating that something is
+    if config setting C<tarchiveLibraryDir>is not defined, the return value is C<undef>, indicating that something is 
     wrong.
 =cut
 
 sub getTarchiveFiles {
     my($dbh, $tarchiveID, $tarchiveLibraryDir) = @_;
-
+    
     return [] if !defined $tarchiveID;
-
+    
     my $query = "SELECT TarchiveID, ArchiveLocation "
               . "FROM tarchive "
               . "WHERE TarchiveID = ?";
     my $tarchiveRef = $dbh->selectall_arrayref($query, { Slice => {} }, $tarchiveID);
 
     my $archiveLocation = $tarchiveRef->[0]->{'ArchiveLocation'};
-
+    
     return undef if defined $archiveLocation && $archiveLocation !~ /^\// && !defined $tarchiveLibraryDir;
-
-    $tarchiveRef->[0]->{'FullPath'} =  !defined $archiveLocation || $archiveLocation =~ /^\//
+    
+    $tarchiveRef->[0]->{'FullPath'} =  !defined $archiveLocation || $archiveLocation =~ /^\// 
                 ? $archiveLocation : "$tarchiveLibraryDir/$archiveLocation",
 
     return $tarchiveRef;
@@ -720,7 +720,7 @@ INPUTS:
 
 sub validateMriUploads {
     my($mriUploadsRef, $optionsRef, $scanTypeList) = @_;
-
+    
     #======================================================#
     # Check that all upload IDs passed on the command line #
     # were found in the database                           #
@@ -742,7 +742,7 @@ sub validateMriUploads {
             exit $NeuroDB::ExitCodes::INVALID_ARG;
         }
     }
-
+    
     #===============================================================================#
     # Get the tarchive IDs of all the uploads. Note that if an upload does not      #
     # have a tarchiveID, its value will be undef: we remap it to the string 'NULL'  #
@@ -761,7 +761,7 @@ sub validateMriUploads {
     # If the upload IDs to delete are associated to an exsisting archive, ensure    #
     # that there are no other uploads with IDs *not* in the list associated to that #
     # archive. This check is done only if the user wants to delete the uploads and  #
-    # everything associated to them.
+    # everything associated to them. 
     #===============================================================================#
     my @tarchiveID = keys  %tarchiveID;
     if($tarchiveID[0] ne 'NULL') {
@@ -789,7 +789,7 @@ sub validateMriUploads {
 =head3 getMriProcessingProtocolFilesRef($dbh, $filesRef)
 
 Finds the list of C<ProcessingProtocolID>s to delete, namely those in table
-C<mri_processing_protocol> associated to the files to delete, and *only* to
+C<mri_processing_protocol> associated to the files to delete, and *only* to 
 those files that are going to be deleted.
 
 INPUTS:
@@ -799,37 +799,37 @@ INPUTS:
 
 RETURNS:
   - reference on an array that contains the C<ProcessProtocolID> in table C<mri_processing_protocol>
-    associated to the files to delete. This array has two keys: C<ProcessProtocolID> => the protocol
+    associated to the files to delete. This array has two keys: C<ProcessProtocolID> => the protocol 
     process ID found in table C<mri_processing_protocol> and C<FullPath> => the value of C<ProtocolFile>
     in the same table.
 
 =cut
 sub getMriProcessingProtocolFilesRef {
     my($dbh, $filesRef) = @_;
-
+    
     my %fileID;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
             $fileID{ $f->{'FileID'} } = 1 if defined $f->{'FileID'};
         }
     }
-
+    
     return [] if !%fileID;
-
+    
     my $query = 'SELECT DISTINCT(mpp.ProcessProtocolID), mpp.ProtocolFile AS FullPath '
               . 'FROM files f '
               . 'JOIN mri_processing_protocol mpp USING (ProcessProtocolID) '
               . 'WHERE f.FileID IN ('
               . join(',', ('?') x keys %fileID)
               . ') AND f.ProcessProtocolID IS NOT NULL';
-
+    
     # This variable will contain all the protocols associated to the files that will be
-    # deleted. Note that these protocols might also be associated to files that are *not*
+    # deleted. Note that these protocols might also be associated to files that are *not* 
     # going to be deleted
     my $protocolsRef = $dbh->selectall_arrayref($query, { Slice => {} }, keys %fileID);
-
+    
     return [] unless @$protocolsRef;
-
+    
     # Now get the list of protocols in @$protocolsRef that are also associated to files
     # that are not going to de deleted
     $query = 'SELECT ProcessProtocolID '
@@ -840,21 +840,21 @@ sub getMriProcessingProtocolFilesRef {
            . 'AND FileID NOT IN ('
            . join(',', ('?') x keys %fileID)
            . ')';
-
+    
     my $protocolsNotDeletedRef = $dbh->selectcol_arrayref(
-        $query,
+        $query, 
         { 'Columns' => [1] },
-        (map { $_->{'ProcessProtocolID'} } @$protocolsRef),
+        (map { $_->{'ProcessProtocolID'} } @$protocolsRef), 
         keys %fileID
     );
-
+    
     # Eliminate from @$protocolsRef the entries of that are also in @$protocolsNotDeletedRef
-    for(my $i=$#{ $protocolsRef }; $i >= 0; $i--) {
+    for(my $i=$#{ $protocolsRef }; $i >= 0; $i--) { 
         if(grep($_ == $protocolsRef->[$i]->{'ProcessProtocolID'}, @$protocolsNotDeletedRef)) {
             splice(@$protocolsRef, $i, 1);
         }
     }
-
+    
     return $protocolsRef;
 }
 
@@ -862,8 +862,8 @@ sub getMriProcessingProtocolFilesRef {
 
 =head3 hasQcOrComment($dbh, $mriUploadsRef)
 
-Determines if any of the MINC files associated to the C<tarchive> have QC
-information associated to them by looking at the contents of tables
+Determines if any of the MINC files associated to the C<tarchive> have QC 
+information associated to them by looking at the contents of tables 
 C<files_qcstatus> and C<feedback_mri_comments>.
 
 INPUTS:
@@ -879,25 +879,25 @@ RETURNS:
 =cut
 sub hasQcOrComment {
     my($dbh, $mriUploadsRef) = @_;
-
+    
     # Note: all uploads have the same TarchievID so examining the first one is OK
     my $tarchiveID = $mriUploadsRef->[0]->{'TarchiveID'};
-    return 0 if !defined $tarchiveID;
-
+    return 0 if !defined $tarchiveID; 
+    
     #=========================================#
     # Fetch contents of tables files_qcstatus #
     # and feedback_mri_comments               #
     #=========================================#
     (my $query =<<QUERY) =~ s/\s+/ /g;
          SELECT fqs.FileID
-         FROM files_qcstatus fqs
+         FROM files_qcstatus fqs 
          JOIN files f USING (FileID)
          WHERE f.TarchiveSource = ?
-
+         
          UNION
-
+          
          SELECT fmc.FileID
-         FROM feedback_mri_comments fmc
+         FROM feedback_mri_comments fmc 
          JOIN files f USING (FileID)
          WHERE f.TarchiveSource = ?
          LIMIT 1
@@ -912,7 +912,7 @@ QUERY
 
 =head3 getFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
-Get the absolute paths of all the files associated to a DICOM archive that are listed in
+Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table C<files>.
 
 INPUTS:
@@ -922,7 +922,7 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of names of scan types to delete.
   - $optionsRef: reference on the array of command line options.
 
-RETURNS:
+RETURNS: 
  - an array of hash references. Each hash has three keys: C<FileID> => ID of a file in table C<files>,
    C<File> => value of column C<File> for the file with the given ID and C<FullPath> => absolute path
    for the file with the given ID.
@@ -930,47 +930,47 @@ RETURNS:
 =cut
 sub getFilesRef {
     my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
-
+    
     return [] if !defined $tarchiveID;
-
+    
     my $fileBaseName = $optionsRef->{'BASENAME'};
 
     # Get FileID and File path of each files in files directly tied
     # to $tarchiveId
-    my $mriScanTypeJoin = @$scanTypesToDeleteRef
-        ? 'JOIN mri_scan_type mst ON (f.MriScanTypeID = mst.MriScanTypeID) '
+    my $mriScanTypeJoin = @$scanTypesToDeleteRef 
+        ? 'JOIN mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID) ' 
         : '';
-    my $mriScanTypeAnd = @$scanTypesToDeleteRef
-        ? sprintf(' AND mst.MriScanTypeName IN (%s) ', join(',', ('?') x  @$scanTypesToDeleteRef))
+    my $mriScanTypeAnd = @$scanTypesToDeleteRef 
+        ? sprintf(' AND mst.Scan_type IN (%s) ', join(',', ('?') x  @$scanTypesToDeleteRef)) 
         : '';
     my $fileBaseNameAnd = $fileBaseName ne ''
        ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
        : '';
 
-    my $query = 'SELECT f.FileID, f.File FROM files f '
+    my $query = 'SELECT f.FileID, f.File FROM files f '   
               . $mriScanTypeJoin
               . 'WHERE f.TarchiveSource = ? '
               . $mriScanTypeAnd
               . $fileBaseNameAnd;
-
+    
     my @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef);
     push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
     my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, @queryArgs);
-
+    
     # Set full path of every file
     foreach(@$filesRef) {
-        $_->{'FullPath'} = $_->{'File'} =~ /^\//
+        $_->{'FullPath'} = $_->{'File'} =~ /^\// 
             ? $_->{'File'} : "$dataDirBasePath/$_->{'File'}";
-    }
-
-    return $filesRef;
+    } 
+    
+    return $filesRef;   
 }
 
 =pod
 
 =head3 getIntermediaryFilesRef($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
-Get the absolute paths of all the intermediary files associated to an archive
+Get the absolute paths of all the intermediary files associated to an archive 
 that are listed in table C<files_intermediary>.
 
 INPUTS:
@@ -981,18 +981,18 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $optionsRef: reference on the array of command line options.
 
-RETURNS:
-  - an array of hash references. Each hash has seven keys: C<IntermedID> => ID of a file in
-    table C<files_intermediary>, C<Input_FileID> => ID of the file that was used as input to create
-    the intermediary file, C<Output_FileID> ID of the output file, C<FileID> => ID of this file in
-    table C<files>, C<File> => value of column C<File> in table C<files> for the file with the given
-    ID, C<SourceFileID> value of column C<SourceFileID> for the intermediary file and
+RETURNS: 
+  - an array of hash references. Each hash has seven keys: C<IntermedID> => ID of a file in 
+    table C<files_intermediary>, C<Input_FileID> => ID of the file that was used as input to create 
+    the intermediary file, C<Output_FileID> ID of the output file, C<FileID> => ID of this file in 
+    table C<files>, C<File> => value of column C<File> in table C<files> for the file with the given 
+    ID, C<SourceFileID> value of column C<SourceFileID> for the intermediary file and 
     C<FullPath> => absolute path of the file with the given ID.
 
 =cut
 sub getIntermediaryFilesRef {
     my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
-
+    
     return [] if !defined $tarchiveID;
 
     my $fileBaseName = $optionsRef->{'BASENAME'};
@@ -1000,13 +1000,13 @@ sub getIntermediaryFilesRef {
     # This should get all files in table files_intermediary that are tied
     # indirectly to the tarchive with ID $tarchiveId
     # Note that there can be multiple entries in files_intermediary that have
-    # the same Output_FileID: consequently, this select statement can return
+    # the same Output_FileID: consequently, this select statement can return 
     # entries with identical FileID and File values (but different IntermedID)
     my $mriScanTypeJoin = @$scanTypesToDeleteRef
-        ? 'JOIN mri_scan_type mst ON (f2.MriScanTypeID=mst.MriScanTypeID) '
+        ? 'JOIN mri_scan_type mst ON (f2.AcquisitionProtocolID=mst.ID) '
         : '';
     my $mriScanTypeAnd = @$scanTypesToDeleteRef
-        ? sprintf(' AND mst.MriScanTypeName IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef))
+        ? sprintf(' AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef))
         : '';
 
     my($query, @queryArgs);
@@ -1024,10 +1024,10 @@ sub getIntermediaryFilesRef {
                .      $mriScanTypeAnd
                . ') '
                . 'AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?';
-        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef, $fileBaseName); 
     # Either -basename was not used or it was used but nothing matched in table files.
 	} else {
-		my $fileBaseNameAnd = $fileBaseName ne ''
+		my $fileBaseNameAnd = $fileBaseName ne '' 
 		    ? ' AND BINARY SUBSTRING_INDEX(f2.File, "/", -1) = ?'
 		    : '';
         $query = 'SELECT fi.IntermedID, fi.Input_FileID, fi.Output_FileID, f.FileID, f.File, f.SourceFileID '
@@ -1041,19 +1041,19 @@ sub getIntermediaryFilesRef {
                .      $mriScanTypeAnd
                .      $fileBaseNameAnd
                . ')';
-        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef);
+        @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef); 
 		push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
 	}
-
+              
     my $intermedFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, @queryArgs);
 
     # Set full path of every file
     foreach(@$intermedFilesRef) {
-        $_->{'FullPath'} = $_->{'File'} =~ /^\//
+        $_->{'FullPath'} = $_->{'File'} =~ /^\// 
             ? $_->{'File'} : "$dataDirBasePath/$_->{'File'}";
-    }
-
-    return $intermedFilesRef;
+    } 
+    
+    return $intermedFilesRef;   
 }
 
 =pod
@@ -1070,8 +1070,8 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $optionsRef: reference on the array of command line options.
 
-RETURNS:
-  - an array of hash references. Each hash has four keys: C<FileID> => FileID of a file
+RETURNS: 
+  - an array of hash references. Each hash has four keys: C<FileID> => FileID of a file 
     in table C<parameter_file>, C<Value> => value of column C<Value> in table C<parameter_file>
     for the file with the given ID, C<Name> => name of the parameter and C<FullPath> => absolute
     path of the file with the given ID.
@@ -1079,14 +1079,14 @@ RETURNS:
 =cut
 sub getParameterFilesRef {
     my($dbh, $filesRef, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
-
+    
     return [] if !defined $tarchiveID;
 
     my $fileBaseName = $optionsRef->{'BASENAME'};
     my $mriScanTypeJoin = @$scanTypesToDeleteRef
-        ? 'JOIN mri_scan_type mst ON (mst.MriScanTypeID=f.MriScanTypeID) ' : '';
+        ? 'JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ' : '';
     my $mriScanTypeAnd = @$scanTypesToDeleteRef
-        ? sprintf('AND mst.MriScanTypeName IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
+        ? sprintf('AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
 
     # If -basename was used but nothing matched in tables files and files_intermediary
     # Try finding a file in parameter_file that matches the -basename argument
@@ -1114,10 +1114,10 @@ sub getParameterFilesRef {
                 . ' AND BINARY SUBSTRING_INDEX(pf.Value, "/", -1) = ?';
         push(@queryArgs, $tarchiveID, @$scanTypesToDeleteRef, $fileBaseName);
     } else {
-        my $fileBaseNameAnd = $fileBaseName ne ''
+        my $fileBaseNameAnd = $fileBaseName ne '' 
             ? ' AND BINARY SUBSTRING_INDEX(f.File, "/", -1) = ?'
             : '';
-
+		
         $query = 'SELECT pf.ParameterFileID, f.FileID, pf.Value, pt.Name FROM parameter_file pf '
                . 'JOIN files f ON (f.FileID=pf.FileID) '
                . 'JOIN parameter_type pt ON (pf.ParameterTypeID=pt.ParameterTypeID) '
@@ -1138,11 +1138,11 @@ sub getParameterFilesRef {
                 . 'WHERE 1=1 '
                 . $mriScanTypeAnd
                 . " $fileBaseNameAnd";
-
+     
         push(@queryArgs, $tarchiveID, @$scanTypesToDeleteRef);
         push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
     }
-
+   
     # If there are intermediary files and we do not want to keep the defaced files
     # then we have to add to the query the records in table parameter_file that are
     # associated to the files in files_intermediary. Note that some of these files might
@@ -1162,7 +1162,7 @@ sub getParameterFilesRef {
     my $parametersRef = $dbh->selectall_arrayref(
         $query, { Slice => {} }, @queryArgs
     );
-
+    
     # Set full path of every file
     foreach my $f (@$parametersRef) {
         # If the parameter is not a file
@@ -1173,7 +1173,7 @@ sub getParameterFilesRef {
         $f->{'FullPath'} = $f->{'Value'} =~ /^\//
             ? $f->{'Value'} : sprintf("%s/%s", $fileBasePath, $f->{'Value'});
     }
-
+    
     return $parametersRef;
 }
 
@@ -1181,7 +1181,7 @@ sub getParameterFilesRef {
 
 =head3 getMriProtocolViolatedScansFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
-Get the absolute paths of all the files associated to a DICOM archive that are listed in
+Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table C<mri_protocol_violated_scans>.
 
 INPUTS:
@@ -1191,16 +1191,16 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $optionsRef: reference on the array of command line options.
 
-RETURNS:
+RETURNS: 
  - an array of hash references. Each hash has three keys: C<ID> => ID of the record in table
-   C<mri_protocol_violated_scans>, C<minc_location> => value of column C<minc_location> in table
+   C<mri_protocol_violated_scans>, C<minc_location> => value of column C<minc_location> in table 
    C<mri_protocol_violated_scans> for the MINC file found and C<FullPath> => absolute path of the MINC
    file found.
 
 =cut
 sub getMriProtocolViolatedScansFilesRef {
     my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
-
+    
     # Return a reference to the empty array if:
     # 1. The upload(s) do not have a tarchiveID, which means that no MINC file
     #    were produced and consequently there cannot be any protocol violations
@@ -1221,18 +1221,18 @@ sub getMriProtocolViolatedScansFilesRef {
 
     # Set full path of every file
     foreach(@$filesRef) {
-        $_->{'FullPath'} = $_->{'minc_location'} =~ /^\//
+        $_->{'FullPath'} = $_->{'minc_location'} =~ /^\// 
             ? $_->{'minc_location'} : "$dataDirBasePath/$_->{'minc_location'}";
-    }
-
-    return $filesRef;
+    } 
+    
+    return $filesRef;   
 }
 
 =pod
 
 =head3 getMriViolationsLogFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef)
 
-Get the absolute paths of all the files associated to an archive that are listed in
+Get the absolute paths of all the files associated to an archive that are listed in 
 table C<mri_violations_log>.
 
 INPUTS:
@@ -1242,15 +1242,15 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $optionsRef: reference on the array of command line options.
 
-RETURNS:
- an array of hash references. Each hash has three keys: C<LogID> => ID of the record in table
+RETURNS: 
+ an array of hash references. Each hash has three keys: C<LogID> => ID of the record in table 
  C<mri_violations_log>, C<MincFile> => value of column C<MincFile> for the MINC file found in table
  C<mri_violations_log> and C<FullPath> => absolute path of the MINC file.
 
 =cut
 sub getMriViolationsLogFilesRef {
     my($dbh, $tarchiveID, $dataDirBasePath, $scanTypesToDeleteRef, $optionsRef) = @_;
-
+    
     return [] if !defined $tarchiveID;
 
     my $fileBaseName = $optionsRef->{'BASENAME'};
@@ -1262,9 +1262,9 @@ sub getMriViolationsLogFilesRef {
         $query = 'SELECT LogID, mvl.MincFile '
                . 'FROM mri_violations_log mvl '
                . 'JOIN files f ON (f.File COLLATE utf8_bin = mvl.MincFile) '
-               . 'JOIN mri_scan_type mst ON (f.MriScanTypeID = mst.MriScanTypeID) '
+               . 'JOIN mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID) '
                . 'WHERE TarchiveID = ? '
-               . 'AND mst.MriScanTypeName IN('
+               . 'AND mst.Scan_type IN('
                . join(',', ('?') x @$scanTypesToDeleteRef)
                . ')'
                . $fileBaseNameAnd;
@@ -1272,25 +1272,25 @@ sub getMriViolationsLogFilesRef {
         $query = 'SELECT LogID, MincFile FROM mri_violations_log WHERE TarchiveID = ?'
                . $fileBaseNameAnd;
     }
-
+    
     my @queryArgs = ($tarchiveID, @$scanTypesToDeleteRef);
     push(@queryArgs, $fileBaseName) if $fileBaseName ne '';
     my $filesRef = $dbh->selectall_arrayref($query, { Slice => {} }, @queryArgs);
 
     # Set full path of every file
     foreach(@$filesRef) {
-        $_->{'FullPath'} = $_->{'MincFile'} =~ /^\//
+        $_->{'FullPath'} = $_->{'MincFile'} =~ /^\// 
             ? $_->{'MincFile'} : "$dataDirBasePath/$_->{'MincFile'}";
-    }
+    } 
 
-    return $filesRef;
+    return $filesRef;   
 }
 
 =pod
 
 =head3 getMRICandidateErrorsFilesRef($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $optionsRef)
 
-Get the absolute paths of all the files associated to a DICOM archive that are listed in
+Get the absolute paths of all the files associated to a DICOM archive that are listed in 
 table C<MRICandidateErrors>.
 
 INPUTS:
@@ -1300,21 +1300,21 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $optionsRef: reference on the array of command line options.
 
-RETURNS:
- - an array of hash references. Each hash has three keys: C<ID> => ID of the record in the
-   table, C<MincFile> => value of column C<MincFile> for the MINC file found in table
+RETURNS: 
+ - an array of hash references. Each hash has three keys: C<ID> => ID of the record in the 
+   table, C<MincFile> => value of column C<MincFile> for the MINC file found in table 
    C<MRICandidateErrors> and C<FullPath> => absolute path of the MINC file.
 
 =cut
 sub getMRICandidateErrorsFilesRef {
     my($dbh, $tarchiveID, $dataDirBasePath, $scanTypeToDeleteRef, $optionsRef) = @_;
-
+    
     return [] if !defined $tarchiveID || @$scanTypeToDeleteRef;
 
     # Get file path of each files in files directly tied
     # to $tarchiveId
     my $fileBaseName = $optionsRef->{'BASENAME'};
-    my $fileBaseNameAnd = $fileBaseName ne ''
+    my $fileBaseNameAnd = $fileBaseName ne '' 
        ? ' AND BINARY SUBSTRING_INDEX(MincFile, "/", -1) = ?'
        : '';
     my $query = 'SELECT ID, MincFile FROM MRICandidateErrors WHERE TarchiveID = ?'
@@ -1325,11 +1325,11 @@ sub getMRICandidateErrorsFilesRef {
 
     # Set full path of every file
     foreach(@$filesRef) {
-        $_->{'FullPath'} = $_->{'MincFile'} =~ /^\//
+        $_->{'FullPath'} = $_->{'MincFile'} =~ /^\// 
             ? $_->{'MincFile'} : "$dataDirBasePath/$_->{'MincFile'}";
-    }
-
-    return $filesRef;
+    } 
+    
+    return $filesRef;   
 }
 
 =pod
@@ -1358,9 +1358,9 @@ sub getBidsExportFilesRef {
 
     my $fileBaseName = $optionsRef->{'BASENAME'};
     my $mriScanTypeJoin = @$scanTypesToDeleteRef
-        ? 'JOIN mri_scan_type mst ON (mst.MriScanTypeID=f.MriScanTypeID) ' : '';
+        ? 'JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ' : '';
     my $mriScanTypeAnd = @$scanTypesToDeleteRef
-        ? sprintf('AND mst.MriScanTypeName IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
+        ? sprintf('AND mst.Scan_type IN (%s) ', join(',', ('?') x @$scanTypesToDeleteRef)) : '';
 
     # If -basename was used but nothing matched in tables files and files_intermediary
     # Try finding a file in parameter_file that matches the -basename argument
@@ -1539,41 +1539,41 @@ sub updateBidsScansTsvFile {
 
 =head3 setFileExistenceStatus($filesRef)
 
-Checks the list of all the files related to the upload(s) that were found in the database and
+Checks the list of all the files related to the upload(s) that were found in the database and 
 determine whether they exist or not on the file system.
 
 INPUTS:
   - $filesRef: reference to the array that contains the file informations for all the files
                that are associated to the upload(s) passed on the command line.
-
-
+  
+  
 RETURNS:
   - Reference on the list of files that do not exist on the file system.
-
+                 
 =cut
 sub setFileExistenceStatus {
     my($filesRef) = @_;
-
+    
     my %missingFiles;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
 	    $f->{'Exists'} = undef, next if !$f->{'FullPath'};
-
+			
             # The -f test is to ensure $f->{'FullPath'} is an actual file
             # and not a directory. If $f->{'FullPath'} is a directory, it
             # means that it has an incorrect/invalid value and should not be backed up
             # later on.
             $f->{'Exists'} = -f $f->{'FullPath'} && -e $f->{'FullPath'};
-
+            
             # A file is only considered "missing" if it is expected to be on the file
             # system but is not. There are some file paths refered to in the database that
             # are expected to refer to files that have been moved or deleted and consequently
-            # they are not expected to be on the file system at the specified location (e.g.
+            # they are not expected to be on the file system at the specified location (e.g. 
             # ArchiveLocation for an upload on which the MRI pipeline was successfully run).
             $missingFiles{ $f->{'FullPath'} } = 1 if !$f->{'Exists'} && &shouldExist($t, $f);
         }
     }
-
+    
     return [ keys %missingFiles ];
 }
 
@@ -1586,17 +1586,17 @@ Checks whether a file path in the database refers to a file that should exist on
 INPUTS:
   - $table: name of the table in which the file path was found.
   - $fileRef: reference to the array that contains the file information for a given file.
-
+  
 RETURNS:
   - 0 or 1 depending on whether the file should exist or not.
-
+                 
 =cut
 sub shouldExist {
     my($table, $fileRef) = @_;
-
+    
     return 0 if $table eq 'mri_upload' && defined $fileRef->{'InsertionComplete'} && $fileRef->{'InsertionComplete'} == 1;
-
-
+    
+    
     return 1;
 }
 
@@ -1610,36 +1610,36 @@ INPUTS:
     that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $optionsRef: reference on the hash array of command line options.
-
+  
 RETURNS:
   - The number of files backed up.
 
 =cut
-
+    
 sub backupFiles {
     my($filesRef, $scanTypesToDeleteRef, $optionsRef) = @_;
-
+    
     my $hasSomethingToBackup = 0;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
             last if $hasSomethingToBackup;
-
+            
             # Not all entries in paramter_file are files...
             next if $t eq 'parameter_file' && !grep($f->{'Name'} eq $_, FILE_PARAMETER_NAMES);
-
+            
             # If the file is not going to be deleted, do not back it up
             next unless &shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $optionsRef->{'KEEP_DEFACED'}, $optionsRef->{'BASENAME'});
             $hasSomethingToBackup = 1 if $f->{'Exists'}
         }
     }
-
+    
     if(!$hasSomethingToBackup) {
         print "No files to backup.\n";
         return 0;
     }
-
+    
     # Create a temporary file that will list the absolute paths of all
-    # files to backup (archive).
+    # files to backup (archive). 
     my $nbToBackUp = 0;
     my($fh, $tmpFileName) = tempfile("$0.filelistXXXX", UNLINK => 1);
     foreach my $t (@PROCESSED_TABLES) {
@@ -1657,16 +1657,16 @@ sub backupFiles {
         print $fh "$filesRef->{'bids_export_files_scans_tsv'}{'scans_tsv_file_path'}";
     }
     close($fh);
-
+    
     # Put all files in a big compressed tar ball
     my $filesBackupPath = $optionsRef->{'BACKUP_PATH'} . '.tar';
     print "\nBacking up files related to the upload(s) to delete...\n";
     if(system('tar', 'cvf', $filesBackupPath, '--absolute-names', '--files-from', $tmpFileName)) {
         print STDERR "backup command failed: $!\n";
         exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
-    }
+    } 
     print "\n";
-
+    
     return $nbToBackUp;
 }
 
@@ -1682,30 +1682,30 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $keepDefaced: whether the defaced files should be kept or not.
   - $fileBaseName: value of option -basename (or '' if -basename was not used).
-
+  
 RETURNS:
   - 0 or 1 depending on whether the file should be deleted or not.
-
+                 
 =cut
 
 sub shouldDeleteFile {
     my($table, $fileRef, $scanTypesToDeleteRef, $keepDefaced, $fileBaseName) = @_;
-
+    
     # Do not delete/backup the tarchive if any of these is true:
     # 1. Specific scan types are deleted.
-    # 2. The defaced files are kept  (i.e @$scanTypesToDeleteRef is filled with the
+    # 2. The defaced files are kept  (i.e @$scanTypesToDeleteRef is filled with the 
     #    modalities_to_deface Config values).
     # 3. Option -basename was used.
     return 0 if $table eq 'tarchive' && (@$scanTypesToDeleteRef || ($fileBaseName ne ''));
-
+    
     # If the defaced files are kept, the entries in files_intermediary are deleted
-    # and backed up but the corresponding entries in table files are not.
+    # and backed up but the corresponding entries in table files are not.  
     return 0 if $table eq 'files_intermediary' && $keepDefaced;
-
+    
     # If the MRI pipeline was successfully run on the upload, the file has moved
     # so do not attempt to delete it
     return 0 if $table eq 'mri_upload' && ($fileRef->{'InsertionComplete'} == 1 || ($fileBaseName ne ''));
-
+    
     return 1;
 }
 
@@ -1713,12 +1713,12 @@ sub shouldDeleteFile {
 
 =head3 deleteUploadsInDatabase($dbh, $filesRef, $scanTypesToDeleteRef, $optionsRef)
 
-This method deletes all information in the database associated to the given upload(s)/scan type combination.
+This method deletes all information in the database associated to the given upload(s)/scan type combination. 
 More specifically, it deletes records from tables C<notification_spool>, C<tarchive_files>, C<tarchive_series>
 C<files_intermediary>, C<parameter_file>, C<files>, C<mri_protocol_violated_scans>, C<mri_violations_log>
-C<MRICandidateErrors>, C<mri_upload>, C<tarchive>, C<mri_processing_protocol> and C<mri_parameter_form>
+C<MRICandidateErrors>, C<mri_upload>, C<tarchive>, C<mri_processing_protocol> and C<mri_parameter_form> 
 (the later is done only if requested). It will also set the C<Scan_done> value of the scan's session to 'N' for
-each upload that is the last upload tied to that session. All the delete/update operations are done inside a single
+each upload that is the last upload tied to that session. All the delete/update operations are done inside a single 
 transaction so either they all succeed or they all fail (and a rollback is performed).
 
 INPUTS:
@@ -1727,52 +1727,52 @@ INPUTS:
                  that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $optionsRef: reference on the hash array of the options that were passed on the command line.
-
+  
 RETURNS:
   - A reference to a hash with two keys:
     * SQL_BACKUP_DONE    => 1 if this method produced a file containing the SQL statements that restore the database state to what it was before calling this
     method, 0 otherwise.
     * NB_RECORDS_DELETED => the number of records effectively deleted by this method.
-
+                 
 =cut
 sub deleteUploadsInDatabase {
     my($dbh, $filesRef, $scanTypesToDeleteRef, $optionsRef)= @_;
-
+    
     # This starts a DB transaction. All operations are delayed until
     # commit is called
     $dbh->begin_work;
-
+    
     my(undef, $tmpSQLFile) = $optionsRef->{'NO_SQL_BK'}
         ? (undef, undef) : tempfile('sql_backup_XXXX', UNLINK => 1);
-
+        
     my @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
 
     my $nbRecordsDeleted = 0;
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         $nbRecordsDeleted += &deleteTableData($dbh, 'notification_spool', 'ProcessID', \@IDs, $tmpSQLFile, $optionsRef);
     }
-
+    
     # If only specific scan types are targeted for deletion, do not delete the entries in
-    # tarchive_files and tarchive_series as these are tied to the archive, not the MINC files
+    # tarchive_files and tarchive_series as these are tied to the archive, not the MINC files   
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
-        my $IDsRef = &getTarchiveSeriesIDs($dbh, $filesRef);
+        my $IDsRef = &getTarchiveSeriesIDs($dbh, $filesRef);  
         $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_files', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile, $optionsRef);
-
+    
         $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive_series', 'TarchiveSeriesID', $IDsRef, $tmpSQLFile, $optionsRef);
     }
-
+    
     @IDs = map { $_->{'ParameterFileID'} } @{ $filesRef->{'parameter_file'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'parameter_file', 'ParameterFileID', \@IDs, $tmpSQLFile, $optionsRef);
-
+    
     @IDs = map { $_->{'IntermedID'} } @{ $filesRef->{'files_intermediary'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'files_intermediary', 'IntermedID', \@IDs, $tmpSQLFile, $optionsRef);
-
+    
     # Since all files in files_intermediary are linked to other files in table files, we
     # have to delete these files first from table files.
     if(!$optionsRef->{'KEEP_DEFACED'}) {
         @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files_intermediary'} };
         $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile, $optionsRef);
-    } else {
+    } else { 
         &updateFilesIntermediaryTable($dbh, $filesRef, $tmpSQLFile);
     }
 
@@ -1781,19 +1781,19 @@ sub deleteUploadsInDatabase {
 
     @IDs = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'files', 'FileID', \@IDs, $tmpSQLFile, $optionsRef);
-
+    
     @IDs = map { $_->{'ProcessProtocolID'} } @{ $filesRef->{'mri_processing_protocol'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'mri_processing_protocol', 'ProcessProtocolID', \@IDs, $tmpSQLFile, $optionsRef);
 
     @IDs = map { $_->{'ID'} } @{ $filesRef->{'mri_protocol_violated_scans'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'mri_protocol_violated_scans', 'ID', \@IDs, $tmpSQLFile, $optionsRef);
-
+    
     @IDs = map { $_->{'LogID'} } @{ $filesRef->{'mri_violations_log'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'mri_violations_log', 'LogID', \@IDs, $tmpSQLFile, $optionsRef);
-
+    
     @IDs = map { $_->{'ID'} } @{ $filesRef->{'MRICandidateErrors'} };
     $nbRecordsDeleted += &deleteTableData($dbh, 'MRICandidateErrors', 'ID', \@IDs, $tmpSQLFile, $optionsRef);
-
+    
     $nbRecordsDeleted += &deleteMriParameterForm($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile, $optionsRef) if $optionsRef->{'DELETE_MRI_PARAMETER_FORM'};
 
     # Should check instead if the tarchive is not tied to anything
@@ -1805,18 +1805,18 @@ sub deleteUploadsInDatabase {
     if(!@$scanTypesToDeleteRef && $optionsRef->{'BASENAME'} eq '') {
         @IDs = map { $_->{'UploadID'} } @{ $filesRef->{'mri_upload'} };
         $nbRecordsDeleted += &deleteTableData($dbh, 'mri_upload', 'UploadID', \@IDs, $tmpSQLFile, $optionsRef);
-
+   
         $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile, $optionsRef) if defined $tarchiveID;
     }
-
+    
     &updateSessionTable($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) unless @$scanTypesToDeleteRef || $optionsRef->{'BASENAME'} ne '';
-
+        
     $dbh->commit;
-
+    
     # If the SQL restore file should be produced
     my $sqlBackupDone = 0;
     if(!$optionsRef->{'NO_SQL_BK'}) {
-        # If there was actually *something* to restore. In some cases, there
+        # If there was actually *something* to restore. In some cases, there 
         # is nothing to delete and consequently nothing to restore.
         if(defined $tmpSQLFile && -s $tmpSQLFile) {
             my $tarOptions = $optionsRef->{'NO_FILES_BK'} ? 'cf' : 'rf';
@@ -1824,15 +1824,15 @@ sub deleteUploadsInDatabase {
                 print STDERR "Failed to add SQL restore statements file to the backup file: $!\n";
                 exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
             }
-
+        
             printf("Added %s to the backup file.\n", SQL_RESTORE_NAME);
-
+        
             $sqlBackupDone = 1;
         } else {
             print "Nothing deleted from the database: skipping creation of the SQL restore file.\n"
         }
-    }
-
+    } 
+    
     return {
         SQL_BACKUP_DONE    => $sqlBackupDone,
         NB_RECORDS_DELETED => $nbRecordsDeleted
@@ -1848,18 +1848,18 @@ from the file system and the database, using C<gzip>.
 
 INPUTS:
   - $backupPath: path of the backup file to compress (without the .tar.gz extension).
-
+  
 =cut
 sub gzipBackupFile {
     my($backupPath) = @_;
-
+    
     # Gzip the backup file
     my $cmd = sprintf("gzip -f %s.tar", quotemeta($backupPath));
     system($cmd) == 0
         or die "Failed running command $cmd. Aborting\n";
-
+        
     print "Wrote $backupPath.tar.gz\n";
-}
+}    
 
 =pod
 
@@ -1876,19 +1876,19 @@ INPUTS:
                  in the array. The properties stored for each hash are: C<UploadID>, C<TarchiveID>, C<FullPath>
                  C<Inserting>, C<InsertionComplete> and C<SessionID>.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-
+  
 =cut
 sub updateSessionTable {
     my($dbh, $mriUploadsRef, $tmpSQLFile) = @_;
-
-    # If any of the uploads to delete is the last upload that was part of the
+    
+    # If any of the uploads to delete is the last upload that was part of the 
     # session associated to it, then set the session's 'Scan_done' flag
     # to 'N'.
     my @sessionIDs = map { $_->{'SessionID'} } @$mriUploadsRef;
     @sessionIDs = grep(defined $_, @sessionIDs);
-
+    
     return if !@sessionIDs;
-
+    
     my $query = "UPDATE session s SET Scan_done = 'N'"
               . " WHERE s.ID IN ("
               . join(',', ('?') x @sessionIDs)
@@ -1898,7 +1898,7 @@ sub updateSessionTable {
     if($tmpSQLFile) {
         # Write an SQL statement to restore the 'Scan_done' column of the deleted uploads
         # to their appropriate values. This statement needs to be after the statement that
-        # restores table mri_upload (at the end of the file is good enough).
+        # restores table mri_upload (at the end of the file is good enough). 
         open(SQL, ">>$tmpSQLFile") or die "Cannot append text to file $tmpSQLFile: $!. Aborting.\n";
         print SQL "\n\n";
         print SQL "UPDATE session s SET Scan_done = 'Y'"
@@ -1914,7 +1914,7 @@ sub updateSessionTable {
 =head3 updateFilesIntermediaryTable($dbh, $filesRef, $tmpSQLFile)
 
 Sets the C<TarchiveSource> and C<SourceFileID> columns of all the defaced files to C<$tarchiveID> and C<NULL>
-respectively. The script also adds an SQL statement in the SQL file whose path is passed as argument to
+respectively. The script also adds an SQL statement in the SQL file whose path is passed as argument to 
 restore the state that the defaced files in the C<files> table had before the deletions.
 
 INPUTS:
@@ -1922,11 +1922,11 @@ INPUTS:
    - $filesRef: reference to the array that contains the file informations for all the files
                 that are associated to the upload(s) passed on the command line.
    - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-
+  
 =cut
 sub updateFilesIntermediaryTable {
     my($dbh, $filesRef, $tmpSQLFile) = @_;
-
+    
     my $tarchiveID = $filesRef->{'tarchive'}->[0]->{'TarchiveID'};
     my %defacedFiles = map { $_->{'FileID'} => $_->{'SourceFileID'} } @{ $filesRef->{'files_intermediary'} };
     if(%defacedFiles) {
@@ -1950,7 +1950,7 @@ sub updateFilesIntermediaryTable {
 =head3 deleteMriParameterForm($dbh, $mriUploadsRef, $tmpSQLFile, $optionsRef)
 
 Delete the entries in C<mri_parameter_form> (and associated C<flag> entry) for the upload(s) passed on the
-command line. The script also adds an SQL statement in the SQL file whose path is passed as argument to
+command line. The script also adds an SQL statement in the SQL file whose path is passed as argument to 
 restore the state that the C<mri_parameter_form> and C<flag> tables had before the deletions.
 
 INPUTS:
@@ -1964,22 +1964,22 @@ INPUTS:
 
 RETURNS:
    - The numbers of records deleted as a result of this operation.
-
+  
 =cut
 sub deleteMriParameterForm {
     my($dbh, $mriUploadsRef, $tmpSQLFile, $optionsRef) = @_;
-
+    
     my @uploadIDs = map { $_->{'UploadID'} } @$mriUploadsRef;
     my $query = "SELECT f.CommentID FROM flag f "
               . "JOIN session s ON (s.ID=f.SessionID) "
               . "JOIN mri_upload mu ON (s.ID=mu.SessionID) "
               . "WHERE f.Test_name='mri_parameter_form' "
-              . "AND mu.UploadID IN ( "
+              . "AND mu.UploadID IN ( " 
               . join(',', ('?') x @uploadIDs)
               . ") ";
     my $rowsRef = $dbh->selectall_arrayref($query, { Slice => {} }, @uploadIDs);
     my @commentIDs = map { $_->{'CommentID'} } @$rowsRef;
-
+    
     return if !@commentIDs;
 
     my $nbRecordsDeleted = 0;
@@ -2003,20 +2003,20 @@ INPUTS:
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
   - $keepDefaced: whether the defaced files should be kept or not.
   - $fileBaseName: value of option -basename (or '' if option was not used).
-
+               
 =cut
 sub deleteUploadsOnFileSystem {
     my($filesRef, $scanTypesToDeleteRef, $keepDefaced, $fileBaseName) = @_;
-
+    
     my %deletedFile;
     foreach my $t (@PROCESSED_TABLES) {
         foreach my $f (@{ $filesRef->{$t} }) {
             next if !shouldDeleteFile($t, $f, $scanTypesToDeleteRef, $keepDefaced, $fileBaseName);
-
+            
             next if !$f->{'Exists'};
-
+            
             next if $deletedFile{ $f->{'FullPath'} };
-
+            
             NeuroDB::MRI::deleteFiles($f->{'FullPath'});
             $deletedFile{ $f->{'FullPath'} } = 1;
         }
@@ -2035,29 +2035,29 @@ INPUTS:
   - $dbh: database handle.
   - $scanTypeList: comma separated string of scan type names.
   - $keepDefaced: whether the defaced files should be kept or not.
-
+                  
 RETURNS:
   - A reference on a hash of the names of the scan types to delete: key => scan type name,
     value => 1 or 0 depending on whether the name is valid or not.
 =cut
 sub getScanTypesToDelete {
     my($dbh, $scanTypeList, $keepDefaced) = @_;
-
+    
     return () if !defined $scanTypeList && !$keepDefaced;
-
+    
     if($keepDefaced) {
         my @scanTypes = $configOB->getModalitiesToDeface();
         return (map { $_ => 1 } @scanTypes);
     }
-
+    
     my %types = map { $_=> 1 } split(/,/, $scanTypeList);
-
-    my $query = 'SELECT MriScanTypeName, MriScanTypeID FROM mri_scan_type '
-           . 'WHERE MriScanTypeName IN ('
+    
+    my $query = 'SELECT Scan_type, ID FROM mri_scan_type '
+           . 'WHERE Scan_type IN ('
            . join(',', ('?') x keys %types)
            . ')';
-    my $validTypesRef = $dbh->selectall_hashref($query, 'MriScanTypeName', undef, keys %types);
-
+    my $validTypesRef = $dbh->selectall_hashref($query, 'Scan_type', undef, keys %types);
+    
     return map { $_ => defined $validTypesRef->{$_} } keys %types;
 }
 
@@ -2071,22 +2071,22 @@ INPUTS:
   - $dbh: database handle.
   - $filesRef: reference to the array that contains the file informations for all the files
                that are associated to the upload(s) passed on the command line.
-
+                  
 RETURNS:
   - A reference on an array containing the C<TarchiveSeriesID> to delete.
-
+  
 =cut
 sub getTarchiveSeriesIDs {
     my($dbh, $filesRef) = @_;
-
+    
     return [] unless @{ $filesRef->{'files'} };
-
+    
     my @fileID = map { $_->{'FileID'} } @{ $filesRef->{'files'} };
     my $query = 'SELECT tf.TarchiveSeriesID '
               . 'FROM tarchive_files tf '
               . 'JOIN tarchive_series ts ON (tf.TarchiveSeriesID=ts.TarchiveSeriesID) '
               . "JOIN files f ON (ts.SeriesUID=f.SeriesUID AND ABS(f.EchoTime*1000 - ts.EchoTime) < $FLOAT_EQUALS_THRESHOLD) "
-              . 'WHERE f.FileID IN ('
+              . 'WHERE f.FileID IN (' 
               . join(',', ('?') x @fileID)
               . ')';
     my $tarchiveFilesRef = $dbh->selectall_arrayref($query, { Slice => {} }, @fileID);
@@ -2097,7 +2097,7 @@ sub getTarchiveSeriesIDs {
 =head3 deleteTableData($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $optionsRef)
 
 Deletes records from a database table and adds in a file the SQL statements that allow rewriting the
-records back in the table.
+records back in the table. 
 
 
 INPUTS:
@@ -2110,13 +2110,13 @@ INPUTS:
 
 RETURNS:
   - The number of records deleted.
-
+               
 =cut
 sub deleteTableData {
     my($dbh, $table, $key, $keyValuesRef, $tmpSQLBackupFile, $optionsRef) = @_;
-
+    
     return 0 unless @$keyValuesRef;
-
+    
     my $query = "DELETE FROM $table WHERE $key IN("
               . join(',', ('?') x @$keyValuesRef)
               . ')';
@@ -2143,7 +2143,7 @@ INPUTS:
 =cut
 sub updateSQLBackupFile {
     my($tmpSQLBackupFile, $table, $key, $keyValuesRef, $optionsRef) = @_;
-
+            
     # Make sure all keys are quoted before using them in the Unix command
     my %quotedKeys;
     foreach my $k (@$keyValuesRef) {
@@ -2151,12 +2151,12 @@ sub updateSQLBackupFile {
         $quotedKey = "\"$quotedKey\"" if $quotedKey =~ /\D/;
         $quotedKeys{$quotedKey} = 1;
     }
-
+        
     # Read the current contents of the backup file
     open(SQL, "<$tmpSQLBackupFile") or die "Cannot read $tmpSQLBackupFile: $!\n";
     my @lines = <SQL>;
     close(SQL);
-
+        
     # Run the mysqldump command for the current table and store the
     # result in $tmpSqlBackupFile (overwrite contents)
     # Note that --defaults-extra-file has to be the first option (it it is provided)
@@ -2215,28 +2215,28 @@ INPUTS:
   - $filesRef: reference to the array that contains the information for all the files
                that are associated to the upload(s) passed on the command line.
   - $scanTypesToDeleteRef: reference to the array that contains the list of scan type names to delete.
-
+            
 RETURNS:
   - The hash of MINC files that were either not defaced (and should have been) or that have more than one
     processed file associated to them. Key => file path (relative), Value => reference on an array that contains the
     list of processed files associated to the MINC file (0, 2, 3 or more entries).
-
+     
 =cut
 sub getInvalidDefacedFiles {
     my($dbh, $filesRef, $scanTypesToDeleteRef) = @_;
-
+    
     my %invalidDefacedFile;
     foreach my $f (@{ $filesRef->{'files'} }) {
         my @processedFiles = grep($_->{'Input_FileID'} == $f->{'FileID'}, @{ $filesRef->{'files_intermediary'} });
         $invalidDefacedFile{ $f->{'File'} } = [] if !@processedFiles;
-
+            
         my @filesNotDefaced = grep( $_->{'File'} !~ /-defaced_\d+.mnc$/, @processedFiles);
         $invalidDefacedFile{ $f->{'File'} } = [ map { $_->{'File'} } @filesNotDefaced ] if @filesNotDefaced;
-
+        
         # otherwise it means that @processedFiles contains one and only one file
         # that ends with '-defaced', which is what is expected
     }
-
+    
     return \%invalidDefacedFile;
 }
 

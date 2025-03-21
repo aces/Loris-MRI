@@ -1,11 +1,9 @@
 """This class performs project_cohort_rel table related database queries and common checks"""
 
-from typing_extensions import deprecated
 
 __license__ = "GPLv3"
 
 
-@deprecated('Use `lib.db.models.project_cohort.DbProjectCohort` instead')
 class ProjectCohortRel:
     """
     This class performs database queries for project_cohort_rel table.
@@ -37,7 +35,6 @@ class ProjectCohortRel:
         self.db = db
         self.verbose = verbose
 
-    @deprecated('Use `lib.db.models.project_cohort.DbProjectCohort` instead')
     def create_proj_cohort_rel_dict(self, project_id, cohort_id):
         """
         Get the project/cohort rel information for a given project ID and cohort ID.

@@ -2,11 +2,7 @@ import os
 import sys
 
 import lib.exitcode
-import lib.utilities as utilities
-from lib.db.models.dicom_archive import DbDicomArchive
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
-from lib.env import Env
-from lib.logging import log_error_exit, log_verbose
 
 __license__ = "GPLv3"
 
@@ -31,19 +27,19 @@ class DicomValidationPipeline(BasePipeline):
          :type script_name: str
         """
         super().__init__(loris_getopt_obj, script_name)
-        self.validate_subject_info()
+        self.validate_subject_ids()
         self._validate_dicom_archive_md5sum()
 
         # ---------------------------------------------------------------------------------------------
         # If we get here, the tarchive is validated & the script stops running so update mri_upload
         # ---------------------------------------------------------------------------------------------
-        log_verbose(self.env, f"DICOM archive {self.options_dict['tarchive_path']['value']} is valid!")
-
-        # Update the MRI upload.
-        self.mri_upload.is_dicom_archive_validated = True
-        self.mri_upload.inserting = False
-        self.env.db.commit()
-
+        message = f"DICOM archive {self.options_dict['tarchive_path']['value']} is valid!"
+        self.log_info(message, is_error="N", is_verbose="Y")
+        self.imaging_upload_obj.update_mri_upload(
+            upload_id=self.upload_id,
+            fields=("isTarchiveValidated", "Inserting",),
+            values=("1", "0")
+        )
         self.remove_tmp_dir()  # remove temporary directory
         sys.exit(lib.exitcode.SUCCESS)
 
@@ -53,41 +49,18 @@ class DicomValidationPipeline(BasePipeline):
         logged in the <tarchive> table.
         """
 
-        log_verbose(self.env, "Verifying DICOM archive md5sum (checksum)")
+        self.log_info(message="Verifying DICOM archive md5sum (checksum)", is_error="N", is_verbose="Y")
 
-        dicom_archive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive.archive_location)
-        result = _validate_dicom_archive_md5sum(self.env, self.dicom_archive, dicom_archive_path)
-        if not result:
-            # Update the MRI upload.
-            self.mri_upload.is_dicom_archive_validated = False
-            self.mri_upload.is_candidate_info_validated = False
-            self.env.db.commit()
+        tarchive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive_obj.tarchive_info_dict["ArchiveLocation"])
+        result = self.dicom_archive_obj.validate_dicom_archive_md5sum(tarchive_path)
+        message = result["message"]
 
-            log_error_exit(
-                self.env,
-                "ERROR: DICOM archive seems corrupted or modified. Upload will exit now.",
-                lib.exitcode.CORRUPTED_FILE,
+        if result['success']:
+            self.log_info(message, is_error="N", is_verbose="Y")
+        else:
+            self.imaging_upload_obj.update_mri_upload(
+                upload_id=self.upload_id,
+                fields=("isTarchiveValidated", "IsCandidateInfoValidated"),
+                values=("0", "0")
             )
-
-
-def _validate_dicom_archive_md5sum(env: Env, dicom_archive: DbDicomArchive, dicom_archive_path: str) -> bool:
-    """
-    This function validates that the md5sum of the DICOM archive on the filesystem is the same
-    as the md5sum of the registered entry in the tarchive table.
-
-    Retrun `true` if the MD5 sums match, or `false` if they don't.
-    """
-
-    # compute the md5sum of the tarchive file
-    dicom_archive_file_md5_sum = utilities.compute_md5_hash(dicom_archive_path)
-
-    # grep the md5sum stored in the database
-    dicom_archive_db_md5_sum = dicom_archive.md5_sum_archive.split()[0]
-
-    log_verbose(
-        env,
-        f"checksum for target: {dicom_archive_file_md5_sum};  checksum from database: {dicom_archive_db_md5_sum}",
-    )
-
-    # check that the two md5sum are the same
-    return dicom_archive_file_md5_sum == dicom_archive_db_md5_sum
+            self.log_error_and_exit(message, lib.exitcode.CORRUPTED_FILE, is_error="Y", is_verbose="N")

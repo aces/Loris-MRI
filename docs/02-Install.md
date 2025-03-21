@@ -8,17 +8,17 @@ Dependencies and installation information are documented on the LORIS-MRI
 
 ## <a name="configuration"></a> 2.2 Configuration
 
-Following a successful install, some configurations and customizations are
+Following a successful install, some configurations and customizations are 
 needed and outlined in the next three sub-sections.
 
 ### 2.2.1 Database
 
-The following tables in the database need to be configured properly for the
+The following tables in the database need to be configured properly for the 
 insertion pipeline to successfully insert scans.
 
 1. **`psc`** table
 
-The `MRI_alias` field must be populated for each site that is scanning
+The `MRI_alias` field must be populated for each site that is scanning 
 candidates or phantoms.
 
 2. **`Visit_Windows`** table
@@ -28,11 +28,11 @@ To populate with visit labels, you can manually insert study-specific informatio
 
       INSERT INTO Visit_Windows (Visit_label,  WindowMinDays, WindowMaxDays, OptimumMinDays, OptimumMaxDays, WindowMidpointDays) VALUES ('V1', '0', '100', '40', '60', '50');
 
-If age is not a critical factor in study visit scheduling, define `Min` value as
+If age is not a critical factor in study visit scheduling, define `Min` value as 
 `0`, and `Max` value as `2147483647` (maximum `int`).
 
 
-Alternatively, LORIS provides a PHP script called `populate_visit_windows.php`
+Alternatively, LORIS provides a PHP script called `populate_visit_windows.php` 
 in its `tools/` directory that can be used.
 
 
@@ -40,7 +40,7 @@ in its `tools/` directory that can be used.
 
 > - `mri_scan_type`: this table is a lookup table that stores the name of
 the acquisition (*e.g.* t1, t2, flair...). Do not include commas, hyphens,
-spaces or periods in your `mri_scan_type.MriScanTypeName` column values. The ID
+spaces or periods in your `mri_scan_type.Scan_type` column values. The ID
 present in this table will be used in the `mri_protocol` and
 `mri_protocol_checks` tables described below. The ID is also used in the
 `bids_mri_scan_type_rel` table that will be described in 5.
@@ -81,7 +81,7 @@ there will be no constraint on that header.
 
 5. `bids_mri_scan_type_rel` and other `bids*` tables
 
-The following tables are used by pipelines generating BIDS files either directly from DICOM files
+The following tables are used by pipelines generating BIDS files either directly from DICOM files 
 (using dcm2niix as a converter) or from the MINC files already inserted into the database.
 
 > - `bids_mri_scan_type_rel`: this table maps a given scan type with BIDS labelling convention
@@ -96,7 +96,7 @@ modality folder where the NIfTI and JSON files will go (examples: `anat`, `func`
 the NIfTI and JSON files (examples: `T1w`, `T2w`, `bold`, `dwi`, `FLAIR`, `magnitude`, `phasediff`)
 
 > - `bids_scan_type_subcategory`: stores the series of entities used to label acquisitions
-(may refer to a custom study protocol) within the NIfTI and JSON file names
+(may refer to a custom study protocol) within the NIfTI and JSON file names 
 (e.g. `acq-25direction`, `task-rest`, `dir-AP`, `dir-PA`, `acq-B0_dir-AP`). Refer to the
 [BIDS specification](https://bids-specification.readthedocs.io/en/stable/) for details on how to
 label acquisitions.
@@ -115,25 +115,25 @@ how to properly fill in the BIDS tables above so that it is fully standard-compl
 6. **`Config`** table
 
 The `Config` table can also be accessed and customized from the LORIS front-end
-via the `Configuration` module, accessible under the `Admin` menu. Here are the
+via the `Configuration` module, accessible under the `Admin` menu. Here are the 
 configuration settings that impact directly or indirectly the pipeline:
 
 Under the `Study` section:
  * `ImagingUploader Auto Launch`: used by the Imaging Uploader to automatically launch the insertion scripts on the uploaded scan
-
-Under the `Paths` section:
+ 
+Under the `Paths` section: 
  * `LORIS-MRI Code`: where the LORIS-MRI codebase is installed; typically `/opt/$PROJECT/bin/mri/`
  * `MRI Incoming Directory`: where the uploaded scans get stored; typically `/data/incoming/`
  * `Images`: where the images displayed in Imaging Browser are stored; typically `/data/$PROJECT/data/`
-
-Under the `Imaging Modules` section:
+ 
+Under the `Imaging Modules` section: 
   * `Patient ID regex`: used by the DICOM Archive module to show/hide the PatientID info
   * `Patient name regex`: used by the DICOM Archive module to show/hide the Patient Name info
   * `Lego phantom regex`: used by the DICOM Archive module to show/hide the Patient Name info for phantoms
   * `Living phantom regex`: used by the DICOM Archive module to show/hide the Patient Name info for phantoms
   * `Imaging Browser Tabulated Scan Types`: used by Imaging Browser's main page which lists the different imaging sessions across candidates. This setting will determine which modalities will have their QC status displayed in that listing page
-
-Under the `Imaging Pipeline` section:
+     
+Under the `Imaging Pipeline` section: 
  * `LORIS-MRI Data Directory`: directory where imaging data is stored;
     typically `/data/$PROJECT/data/`
  * `Study Name`: prefix to be used in all filenames inserted into the `files`
@@ -145,7 +145,7 @@ Under the `Imaging Pipeline` section:
     should be used by mincpik when generating pictures to be displayed in Imaging Browser
  * `NIfTI file creation`: used to enable or disable automated NIfTI file creation
  * `DICOM converter tool to use (dcm2mnc or dcm2niix)`: allows the user to specify the binary
-    file to be used when converting DICOM files to MINC or NIfTI files. The default setting is to
+    file to be used when converting DICOM files to MINC or NIfTI files. The default setting is to 
     use the binary provided by the MINC tools, namely `dcm2mnc` for studies wishing to generate MINC
     files. For studies that want BIDS dataset generated out of the DICOM files, then specify `dcm2niix`
  * `Path to Tarchives`: directory where the original DICOMs are archived;
@@ -178,8 +178,8 @@ Under the `Imaging Pipeline` section:
     directions that can be removed from a DTI scan to pass QC. Used by the DTIPrep pipeline
  * `NIAK Path`: Path to NIAK if MINC diffusion is to be run. Used by the DTIPrep pipeline
  * `Secondary QCed dataset`: path where a secondary QC'ed dataset is to be stored. Used by the DTIPrep pipeline
- * `Series description to exclude from imaging insertion`: series descriptions to be
-    excluded from the steps of the pipeline that start at, and follow the DICOM to
+ * `Series description to exclude from imaging insertion`: series descriptions to be 
+    excluded from the steps of the pipeline that start at, and follow the DICOM to 
     MINC conversion. Note that the series description entered in that field needs to
     be an exact match of what is present in the DICOM series description field.
  * `ComputeDeepQC`: enable or disable the automated computation of image quality
@@ -189,18 +189,18 @@ Under the `Imaging Pipeline` section:
  * `Name of the environment file`: name of the MRI environment file to source before
     running the insertion scripts; typically `environment`; used when Auto-launch
     is turned on for the pipeline.
- * `Modalities on which SNR should be calculated`: list of modalities/scan types on
+ * `Modalities on which SNR should be calculated`: list of modalities/scan types on 
     which to compute SNR; typically all 3D images
  * `Scan type to use as a reference for defacing (typically T1W image)`: scan type
     name of the modality to use as a reference for defacing
  * `Modalities on which to run the defacing pipeline`: list of modalities/scan types
-    on which the defacing algorithm should be run; typically any scan showing the
+    on which the defacing algorithm should be run; typically any scan showing the 
     face of the candidate
  * `Name of the Python MRI config file`: name of the python-based MRI config file to use
     when running the Python insertion scripts (typically `database_config.py`)
-
-Under the `MINC to BIDS Converter Tool Options` section:
- * `BIDS Dataset Authors`: list of authors who should be included in the
+    
+Under the `MINC to BIDS Converter Tool Options` section: 
+ * `BIDS Dataset Authors`: list of authors who should be included in the 
 dataset_description.json BIDS file (generated by this script)
  * `BIDS Dataset Acknowledgments`: string with acknowledgment information to be used
 when generating the dataset_description.json BIDS file
@@ -214,85 +214,85 @@ to be ignored when running the BIDS Validator on the generated BIDS dataset
 1. **Imaging Uploader**
 
 
-Projects can upload scans and launch the pipeline in a variety of options
-detailed in the [PipelineLaunchOptions](05-PipelineLaunchOptions.md) section.
-Irrespective of the project's choice as to whether the imaging scan is to be
-uploaded through the Imaging Uploader GUI or not, pipeline insertion progress
+Projects can upload scans and launch the pipeline in a variety of options 
+detailed in the [PipelineLaunchOptions](05-PipelineLaunchOptions.md) section. 
+Irrespective of the project's choice as to whether the imaging scan is to be 
+uploaded through the Imaging Uploader GUI or not, pipeline insertion progress 
 can be consulted through a live 'Log Viewer' panel.
-Some settings need to be configured properly (`php.ini` variables,
-`MRI-Upload Directory` and `ImagingUploader Auto Launch`), and are documented in
+Some settings need to be configured properly (`php.ini` variables, 
+`MRI-Upload Directory` and `ImagingUploader Auto Launch`), and are documented in 
 the [LORIS repository: Imaging Uploader Specification](https://github.com/aces/Loris/blob/main/modules/imaging_uploader/README.md).
 
 
 2. **DICOM Archive**
 
-This LORIS module provides a front-end display with the details of the archived
-DICOM study from the database `tarchive_*` tables. The only setting that
-impacts the display of this module are the regex settings in the `Configuration`
-module under the section `Imaging Modules`. These settings determine whether the
-Patient Name/Patient ID header values are displayed in full, or show up as
+This LORIS module provides a front-end display with the details of the archived 
+DICOM study from the database `tarchive_*` tables. The only setting that 
+impacts the display of this module are the regex settings in the `Configuration` 
+module under the section `Imaging Modules`. These settings determine whether the 
+Patient Name/Patient ID header values are displayed in full, or show up as 
 **INVALID-HIDDEN**.
 
-More detailed specifications can be consulted in the
+More detailed specifications can be consulted in the 
 [LORIS repository: DICOM Archive Specification](https://github.com/aces/Loris/blob/main/modules/dicom_archive/README.md).
 
 
 3. **Imaging Browser**
 
-The Imaging Browser module accesses the screenshot (PIC) images directly from
-the filesystem where they are stored. It also provides the option to download
+The Imaging Browser module accesses the screenshot (PIC) images directly from 
+the filesystem where they are stored. It also provides the option to download 
 some files. Ensure that:
 - `/data/$PROJECT` directory and subdirectories are readable and executable by
     the Apache linux user.
-- the Configuration module (*Paths*) `Images` setting is set (typically: `/data/$PROJECT/data/`).
-
-More detailed specifications can be consulted in the
+- the Configuration module (*Paths*) `Images` setting is set (typically: `/data/$PROJECT/data/`). 
+    
+More detailed specifications can be consulted in the 
 [LORIS repository: Imaging Browser Specification](https://github.com/aces/Loris/blob/main/modules/imaging_browser/README.md).
 
 4. **Brainbrowser**
 
-Brainbrowser displays the MINC (or NIfTI) images within the browser. It accesses those
+Brainbrowser displays the MINC (or NIfTI) images within the browser. It accesses those 
 images directly from the filesystem. Ensure that:
 - `/data/$PROJECT` directory and subdirectories are readable and executable by
     the Apache linux user.
 - the Configuration module (*Paths*) `Images` setting is `/data/$PROJECT/data/`.
 - the `project/config.xml` file (in the main LORIS codebase) contains the
       proper MINC toolkit path in the `<MINCToolsPath>` tagset.
-
-More detailed specifications can be consulted in the
+      
+More detailed specifications can be consulted in the 
 [LORIS repository: Brainbrowser Specification](https://github.com/aces/Loris/blob/main/modules/brainbrowser/README.md).
 
 
 5. **MRI Violated Scans**
 
-No configuration setting is needed for the MRI Violated Scans module to work.
-Data loaded in this module gets populated automatically by the insertion
-scripts. As such, scans whose parameters can't be matched against the
-`mri_protocol` table during the imaging insertion process, will be flagged as
-protocol violations and will not have their MINC/NIfTI volumes loaded in the
-Imaging Browser module. Violated scans can be viewed and the type of error
+No configuration setting is needed for the MRI Violated Scans module to work. 
+Data loaded in this module gets populated automatically by the insertion 
+scripts. As such, scans whose parameters can't be matched against the 
+`mri_protocol` table during the imaging insertion process, will be flagged as 
+protocol violations and will not have their MINC/NIfTI volumes loaded in the 
+Imaging Browser module. Violated scans can be viewed and the type of error 
 (scan identification, protocol violation) can be reviewed from the front-end.
 
-More detailed specifications can be consulted in the
+More detailed specifications can be consulted in the 
 [LORIS repository: MRI Violated Scans Specification](https://github.com/aces/Loris/blob/main/modules/mri_violations/README.md).
 
 
 6. **Electrophysiology Browser**
 
-No configuration setting is needed for the Electrophysiology Browser module.
-Data loaded in this module get populated automatically by the BIDS insertion
-scripts (in the `python` directory). It accesses data stored in the
+No configuration setting is needed for the Electrophysiology Browser module. 
+Data loaded in this module get populated automatically by the BIDS insertion 
+scripts (in the `python` directory). It accesses data stored in the 
 `physiological_*` tables.
 
 
-### 2.2.3 LORIS-MRI
+### 2.2.3 LORIS-MRI 
 
 #### Filesystem
 
 - `/data/*` and `/opt/*` subdirectories were created by the imaging install script. If not,
     it may be due to `root:root` ownership of the `/data/` mount or `/opt` directory on your
     system. Ensure these subdirectories are created manually, particularly:
-    `/opt/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside
+    `/opt/$PROJECT/bin/mri/`, `/data/incoming/`, and those inside 
     `/data/$PROJECT/data/`, namely `assembly`, `assembly_bids`, `batch_output`, `bids_imports`, `logs`,
     `pic`, `tarchive`, and `trashbin`.
 
@@ -300,15 +300,15 @@ scripts (in the `python` directory). It accesses data stored in the
 - `/data/$PROJECT/` and `/opt/$PROJECT/` directory and subdirectories must be readable and executable
     by the Apache linux user. It may also help to ensure the `/data/` and `/opt/` mount is
     executable. After any modifications, ensure you restart apache.
-
+    
 #### Customizable routines in the Perl config file (a.k.a. `prod` under `dicom-archive/.loris_mri`)
 
 - `isFileToBeRegisteredGivenProtocol()`
 
-    * By default, any scan will be inserted if it matches an `mri_protocol`
+    * By default, any scan will be inserted if it matches an `mri_protocol` 
     table entry.
-    * To **whitelist/blacklist** specific scan types -- *e.g.* in the case of
-    protocol exclusion, case sensitivity or labelling variance -- modify the
+    * To **whitelist/blacklist** specific scan types -- *e.g.* in the case of 
+    protocol exclusion, case sensitivity or labelling variance -- modify the 
     subroutine, *e.g.*:
 
 ```perl
@@ -317,13 +317,13 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
 
 - `getSubjectIDs()`
 
-    Routine to parse candidate’s PSCID, CandID, Center (determined from the PSCID), and visit
-    label.
-
+    Routine to parse candidate’s PSCID, CandID, Center (determined from the PSCID), and visit 
+    label. 
+    
 - `get_DTI_CandID_Visit()`
 
     Used by the DTIPrep pipeline
-
+    
 - `determineHRRTprotocol()`
 
     Routine to determine the acquisition protocol to use to register an HRRT derived
@@ -380,7 +380,7 @@ The following must be recursively owned by the `lorisadmin` user and Apache grou
 
 #### 2.3.4 Verify Configuration module settings for Imaging Pipeline
 
-In the LORIS front-end, under the Admin menu, go to the `Config` module.  Verify/set
+In the LORIS front-end, under the Admin menu, go to the `Config` module.  Verify/set 
 the following config settings (examples are shown below for a project named `demo`):
 
 Under the `Imaging Pipeline` section:
@@ -390,7 +390,7 @@ Under the `Imaging Pipeline` section:
  * `Full path to get_dicom_info.pl script`(typically `/opt/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
  * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
  * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting)
- * `DICOM converter tool to use (dcm2mnc or dcm2niix)`: must be used to specify which tool the pipeline
+ * `DICOM converter tool to use (dcm2mnc or dcm2niix)`: must be used to specify which tool the pipeline 
    should run -- `dcm2mnc` to produce MINC files, or `dcm2niix` to produce BIDS-compatible files
 
 Under the `Path` section:
@@ -421,19 +421,19 @@ Typically, images insertion into LORIS is performed via the following steps:
      hosting LORIS).
 2. DICOM insertion into the `tarchive` tables in order to be able to see the
      information stored in the DICOMs via the **DICOM Archive** module.
-3. Conversion of the DICOMs into MINC files (via dcm2mnc) or BIDS NIfTI and JSON
+3. Conversion of the DICOMs into MINC files (via dcm2mnc) or BIDS NIfTI and JSON 
      files (via dcm2niix). Those converted files undergo protocol validation and
      insertion into the LORIS database. By default, NIfTI images will be generated
      from the MINC files and inserted into LORIS when generating MINC files (see the
      [Configuration](#2.2-configuration) section above if you want to disable
      this option). One of two possible actions will follow depending on the
      study-defined protocol:
-
+     
     a. If a scan matches one of the protocol defined in the `mri_protocol`
-         table and passes the optional additional file checks present in the
-         `mri_protocol_checks` table, then the image will be stored into
-         the `files` tables. This inserted image is then accessible via the
-         **Imaging Browser** module and can be displayed in 3D using
+         table and passes the optional additional file checks present in the 
+         `mri_protocol_checks` table, then the image will be stored into 
+         the `files` tables. This inserted image is then accessible via the 
+         **Imaging Browser** module and can be displayed in 3D using 
          **BrainBrowser**.
 
     b. If a scan does not match any of the protocol defined in the
@@ -458,13 +458,13 @@ The graph below shows the different modules mentioned above with the
 
 ### 2.4.2 PET data from an HRRT scanner
 
-The pipeline was initially designed for **raw HRRT PET datasets collected at
+The pipeline was initially designed for **raw HRRT PET datasets collected at 
 the Brain Imaging Center of the Montreal Neurological Institute**. Since there is
 no standard for HRRT datasets and only 7 scanners existing in the world, the
 insertion pipeline of PET data from an HRRT scanner might need to be updated/modified
 for other scanners and will be done when the need comes.
 
-Image insertion of PET dataset from an HRRT scanner is very similar to the
+Image insertion of PET dataset from an HRRT scanner is very similar to the 
 insertion described for DICOM datasets, to the exception that the HRRT archive
 information are stored in the `hrrt_archive` tables instead of the `tarchive` tables.
 
@@ -476,28 +476,28 @@ Insertion into LORIS is performed via the following steps:
 2. HRRT insertion into the `hrrt_archive` tables.
 3. Conversion of the ECAT7 files into MINC files for protocol identification and
      insertion into the LORIS database. Note that the ECAT7 images will be linked
-     to the inserted MINC files.
-
+     to the inserted MINC files. 
+     
 
 ### 2.4.3 BIDS insertion (Electrophysiology and Imaging)
 
-The pipeline to insert BIDS datasets into LORIS currently support the
+The pipeline to insert BIDS datasets into LORIS currently support the 
 following BIDS modalities/entities:
   - Electroencephalography ('eeg')
-  - Magnetic Resonance Imaging ('anat', 'func', 'fmap', 'dwi')
+  - Magnetic Resonance Imaging ('anat', 'func', 'fmap', 'dwi') 
   - Intracranial electroencephalography ('ieeg')
-      - **Note:** optional [electrical stimulation](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/04-intracranial-electroencephalography.html#electrical-stimulation) files for ieeg modality are currently not supported in LORIS-MRI (or LORIS).
-      If a BIDS-IEEG directory includes these files, they will be ignored during the import process.
+      - **Note:** optional [electrical stimulation](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/04-intracranial-electroencephalography.html#electrical-stimulation) files for ieeg modality are currently not supported in LORIS-MRI (or LORIS). 
+      If a BIDS-IEEG directory includes these files, they will be ignored during the import process. 
 
-With slight modifications and further customization, it could handle other
+With slight modifications and further customization, it could handle other 
 types of electrophysiology or imaging modalities.
 
 Typically, BIDS data insertion into LORIS is performed via the following steps:
 
-1. Transfer the BIDS-format data to the LORIS server via commandline. Due to the
-large size of electrophysiological/BIDS data, a suitable browser-based uploader is
+1. Transfer the BIDS-format data to the LORIS server via commandline. Due to the 
+large size of electrophysiological/BIDS data, a suitable browser-based uploader is 
 not presently available.
 
-2. Run the BIDS import script to import the data into the `physiological_*` tables
-for electrophysiology datasets and into the `file*` tables of LORIS. More details about this import script can
+2. Run the BIDS import script to import the data into the `physiological_*` tables 
+for electrophysiology datasets and into the `file*` tables of LORIS. More details about this import script can 
 be found in the [PipelineLaunchOptions](05-PipelineLaunchOptions.md) section.

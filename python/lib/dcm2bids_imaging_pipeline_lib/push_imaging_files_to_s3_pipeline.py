@@ -5,7 +5,6 @@ import sys
 import lib.exitcode
 import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
-from lib.logging import log_error_exit
 
 __license__ = "GPLv3"
 
@@ -30,19 +29,20 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         super().__init__(loris_getopt_obj, script_name)
+        self.tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
 
         # ---------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
         # ---------------------------------------------------------------------------------------------
-        self.mri_upload.inserting = True
-        self.env.db.commit()
+        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
 
         # ---------------------------------------------------------------------------------------------
         # Get S3 object from loris_getopt object
         # ---------------------------------------------------------------------------------------------
         self.s3_obj = self.loris_getopt_obj.s3_obj
         if not self.s3_obj.s3:
-            log_error_exit(self.env, "S3 configs not configured properly", lib.exitcode.S3_SETTINGS_FAILURE)
+            message = "S3 configs not configured properly"
+            self.log_error_and_exit(message, lib.exitcode.S3_SETTINGS_FAILURE, is_error="Y", is_verbose="N")
 
         # ---------------------------------------------------------------------------------------------
         # Get all the files from files, parameter_file and violation tables
@@ -69,8 +69,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
                     os.remove(full_path)
 
         self._clean_up_empty_folders()
-        self.mri_upload.inserting = False
-        self.env.db.commit()
+        self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('0',))
         sys.exit(lib.exitcode.SUCCESS)
 
     def _get_files_to_push_list(self):
@@ -95,7 +94,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         Get the list of files associated to the TarchiveID present in the files table.
         """
 
-        file_entries = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
+        file_entries = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.tarchive_id)
         for file in file_entries:
             if file['File'].startswith('s3://'):
                 # skip since file already pushed to S3
@@ -145,10 +144,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         Will also return the JSON, BVAL and BVEC files associated to protocol violated scan.
         """
 
-        entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
-            self.dicom_archive.id
-        )
-
+        entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(self.tarchive_id)
         for entry in entries:
             if entry['minc_location'].startswith('s3://'):
                 # skip since file already pushed to S3
@@ -174,10 +170,10 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         exclude_entries = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
-            self.dicom_archive.id, "exclude"
+            self.tarchive_id, "exclude"
         )
         warning_entries = self.imaging_obj.mri_viol_log_db_obj.get_violations_for_tarchive_id(
-            self.dicom_archive.id, "warning"
+            self.tarchive_id, "warning"
         )
 
         for entry in exclude_entries + warning_entries:
@@ -266,7 +262,8 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
         # remove empty folders from file system
         print("Cleaning up empty folders")
-        bids_cand_id = f"sub-{self.subject_info.cand_id}"
+        cand_id = self.subject_id_dict["CandID"]
+        bids_cand_id = f"sub-{cand_id}"
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
-        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", str(self.subject_info.cand_id)))
+        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", cand_id))
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "trashbin"))
