@@ -49,3 +49,15 @@ class CandidateDB:
         results = self.db.pselect(query, args=(cand_id,))
 
         return results[0]['PSCID'] if results else None
+
+    @deprecated('Use `lib.db.queries.candidate.try_get_candidate_with_cand_id` instead')
+    def get_candidate_id(self, cand_id: int) -> int | None:
+        """
+        Return a candidate ID and based on its CandID, or `None` if no candidate is found in the database.
+        """
+
+        query = 'SELECT ID FROM candidate WHERE CandID = %s'
+
+        results = self.db.pselect(query, args=(cand_id,))
+
+        return results[0]['ID'] if results else None

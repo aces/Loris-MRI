@@ -12,6 +12,7 @@ from typing_extensions import deprecated
 
 import lib.utilities as utilities
 from lib.config_file import SubjectInfo
+from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_candidate_errors import MriCandidateErrors
@@ -268,8 +269,11 @@ class Imaging:
                     and row['EchoNumber'] == echo_number:
                 return
 
+        candidate_obj = CandidateDB(self.db, self.verbose)
+        candidate_id = candidate_obj.get_candidate_id(cand_id)
+
         info_to_insert_dict = {
-            "CandID": cand_id,
+            "CandidateID": candidate_id,
             "PSCID": psc_id,
             "TarchiveID": tarchive_id,
             "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -506,6 +510,7 @@ class Imaging:
 
         query = "SELECT CandID " + \
                 " FROM session s " + \
+                " JOIN candidate c ON (c.ID=s.CandidateID)" \
                 " JOIN files f ON (s.ID=f.SessionID) " + \
                 " WHERE FileID = %s"
 
