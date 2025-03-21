@@ -1,5 +1,8 @@
 """This class gather functions for session handling."""
 
+from typing_extensions import deprecated
+
+from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.project_cohort_rel import ProjectCohortRel
 from lib.database_lib.session_db import SessionDB
 from lib.database_lib.site import Site
@@ -22,7 +25,7 @@ class Session:
         db.connect()
 
         session = Session(
-            verbose, cand_id, visit_label, 
+            verbose, cand_id, visit_label,
             center_id, project_id, cohort_id
         )
 
@@ -58,6 +61,7 @@ class Session:
         self.verbose = verbose
 
         self.proj_cohort_rel_db_obj = ProjectCohortRel(db, verbose)
+        self.candidate_db_obj = CandidateDB(db, verbose)
         self.session_db_obj = SessionDB(db, verbose)
         self.site_db_obj = Site(db, verbose)
 
@@ -86,8 +90,10 @@ class Session:
             print("Creating visit " + self.visit_label
                   + " for CandID "  + self.cand_id)
 
-        column_names = ('CandID', 'Visit_label', 'CenterID', 'Current_stage')
-        values = (self.cand_id, self.visit_label, str(self.center_id), 'Not Started')
+        # fetch the candidate.ID associated to the CandID first
+        candidate_id = self.candidate_db_obj.get_candidate_id(self.cand_id)
+        column_names = ('CandidateID', 'Visit_label', 'CenterID', 'Current_stage')
+        values = (candidate_id, self.visit_label, str(self.center_id), 'Not Started')
 
         if self.project_id:
             column_names = column_names + ('ProjectID',)
@@ -120,12 +126,18 @@ class Session:
         """
         # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in different PR though
         loris_session_info = self.db.pselect(
-            "SELECT * FROM session WHERE CandID = %s AND Visit_label = %s",
+            """
+            SELECT PSCID, CandID, session.*
+            FROM session
+                JOIN candidate ON (candidate.ID=session.CandidateID)
+            WHERE CandID = %s AND Visit_label = %s
+            """,
             (self.cand_id, self.visit_label)
         )
 
         return loris_session_info[0] if loris_session_info else None
 
+    @deprecated('Use `lib.db.queries.site.try_get_site_with_psc_id_visit_label` instead')
     def get_session_center_info(self, pscid, visit_label):
         """
         Get the session center information based on the PSCID and visit label of a session.
@@ -140,6 +152,7 @@ class Session:
         """
         return self.session_db_obj.get_session_center_info(pscid, visit_label)
 
+    @deprecated('Use `lib.db.queries.try_get_candidate_with_cand_id_visit_label` instead')
     def create_session_dict(self, cand_id, visit_label):
         """
         Creates the session information dictionary based on a candidate ID and visit label. This will populate
@@ -159,6 +172,7 @@ class Session:
             self.cohort_id = self.session_info_dict['CohortID']
             self.session_id = self.session_info_dict['ID']
 
+    @deprecated('Use `lib.db.models.session.DbSession` instead')
     def insert_into_session(self, session_info_to_insert_dict):
         """
         Insert a new row in the session table using fields list as column names and values as values.
@@ -176,6 +190,7 @@ class Session:
 
         return self.session_id
 
+    @deprecated('Use `lib.get_subject_session.get_candidate_next_visit_number` instead')
     def get_next_session_site_id_and_visit_number(self, cand_id):
         """
         Determines the next session site and visit number based on the last session inserted for a given candidate.
@@ -188,6 +203,7 @@ class Session:
         """
         return self.session_db_obj.determine_next_session_site_id_and_visit_number(cand_id)
 
+    @deprecated('Use `lib.db.queries.site.get_all_sites` instead')
     def get_list_of_sites(self):
         """
         Get the list of sites available in the psc table.
@@ -198,6 +214,7 @@ class Session:
 
         return self.site_db_obj.get_list_of_sites()
 
+    @deprecated('Use `lib.db.models.project_cohort.DbProjectCohort` instead')
     def create_proj_cohort_rel_info_dict(self, project_id, cohort_id):
         """
         Populate self.proj_cohort_rel_info_dict with the content returned from the database for the ProjectID and

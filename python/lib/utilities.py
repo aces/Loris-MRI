@@ -1,23 +1,24 @@
 """Set of utility functions."""
 
-import os
-import sys
 import csv
 import filecmp
-import hashlib
-import numpy
-import scipy.io
+import io
+import os
+import re
 import shutil
+import sys
 import tarfile
 import tempfile
-import requests
-import re
-import io
-import mat73
-import lib.exitcode
-
 from datetime import datetime
-from pathlib import Path
+
+import mat73
+import numpy
+import requests
+import scipy.io
+from typing_extensions import deprecated
+
+import lib.exitcode
+import lib.util.crypto
 
 __license__ = "GPLv3"
 
@@ -200,20 +201,19 @@ def update_set_file_path_info(set_file, with_fdt_file):
 
         if 'filename' not in dataset.keys() or \
                 dataset['filename'] != set_file_name:
-            print('Expected `filename` field: {}'
-                  .format(set_file_name))
+            print(f'Expected `filename` field: {set_file_name}')
             return False
 
         if with_fdt_file:
             if 'datfile' not in dataset.keys() or \
                     dataset['datfile'] != fdt_file_name:
-                print('Expected `datfile` field: {}'
-                      .format(fdt_file_name))
+                print(f'Expected `datfile` field: {fdt_file_name}')
                 return False
 
     return True
 
 
+@deprecated('Use `lib.util.crypto.compute_file_blake2b_hash` instead.')
 def compute_blake2b_hash(file_path):
     """
     Compute the blake2b hash of a file and returns it.
@@ -223,10 +223,10 @@ def compute_blake2b_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        data = Path(file_path).read_bytes()
-        return hashlib.blake2b(data).hexdigest()
+        return lib.util.crypto.compute_file_blake2b_hash(file_path)
 
 
+@deprecated('Use `lib.util.crypto.compute_file_md5_hash` instead.')
 def compute_md5_hash(file_path):
     """
     Compute the md5 hash of a file and returns it.
@@ -236,8 +236,7 @@ def compute_md5_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        data = Path(file_path).read_bytes()
-        return hashlib.md5(data).hexdigest()
+        return lib.util.crypto.compute_file_md5_hash(file_path)
 
 
 def create_processing_tmp_dir(template_prefix):
@@ -279,11 +278,11 @@ def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
     # https://hed-examples.readthedocs.io/en/latest/HedToolsOnline.html#hed-restful-services
 
     # Request CSRF Token & session cookie
-    requestTokenURL = 'https://hedtools.ucsd.edu/hed/services'
-    tokenResponse = requests.get(requestTokenURL)
+    request_token_url = 'https://hedtools.ucsd.edu/hed/services'
+    token_response = requests.get(request_token_url)
 
-    cookie = tokenResponse.headers['Set-Cookie']
-    token = re.search('csrf_token" value="(.+?)"', tokenResponse.text).group(1)
+    cookie = token_response.headers['Set-Cookie']
+    token = re.search(r'csrf_token" value="(.+?)"', token_response.text).group(1)
 
     # Define headers for assemble POST request, containing token and cookie
     headers = {
@@ -294,28 +293,28 @@ def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
     }
 
     # Read event files as str
-    eventJsonText = open(data_dir + event_json_path, 'r').read()
-    eventTsvText = open(data_dir + event_tsv_path, 'r').read()
+    event_json_text = open(data_dir + event_json_path).read()
+    event_tsv_text = open(data_dir + event_tsv_path).read()
 
     # Define request parameters
     params = {
         'service': 'events_assemble',
         'schema_version': '8.0.0',
-        'json_string': eventJsonText,
-        'events_string': eventTsvText,
+        'json_string': event_json_text,
+        'events_string': event_tsv_text,
         'check_for_warnings': 'off',
         'expand_defs': 'on',
         'columns_included': ['onset']
     }
 
     # Make the request to assemble
-    requestAssembleURL = 'https://hedtools.ucsd.edu/hed/services_submit'
-    assembleResponse = requests.post(
-        requestAssembleURL, headers=headers, json=params
+    request_assemble_url = 'https://hedtools.ucsd.edu/hed/services_submit'
+    assemble_response = requests.post(
+        request_assemble_url, headers=headers, json=params
     )
 
     # get assembled results as dictionary
-    data = assembleResponse.json()['results']['data']
+    data = assemble_response.json()['results']['data']
     results = list(csv.DictReader(io.StringIO(data), delimiter='\t'))
 
     return results

@@ -1,15 +1,18 @@
 """This class performs database queries and common imaging checks (MRI...)"""
 
-import os
 import datetime
 import json
-import lib.utilities as utilities
-import nibabel as nib
+import os
 import re
 import tarfile
 
+import nibabel as nib
 from nilearn import image, plotting
+from typing_extensions import deprecated
 
+import lib.utilities as utilities
+from lib.config_file import SubjectInfo
+from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
 from lib.database_lib.mri_candidate_errors import MriCandidateErrors
@@ -21,6 +24,8 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
+from lib.db.models.dicom_archive import DbDicomArchive
+from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 
 __license__ = "GPLv3"
 
@@ -168,7 +173,7 @@ class Imaging:
         """
 
         # convert list values into strings that could be inserted into parameter_file
-        if type(value) == list:
+        if type(value) is list:
             if value and type(value[0]) in [float, int]:
                 value = [str(f) for f in value]
             value = f"[{', '.join(value)}]"
@@ -264,8 +269,11 @@ class Imaging:
                     and row['EchoNumber'] == echo_number:
                 return
 
+        candidate_obj = CandidateDB(self.db, self.verbose)
+        candidate_id = candidate_obj.get_candidate_id(cand_id)
+
         info_to_insert_dict = {
-            "CandID": cand_id,
+            "CandidateID": candidate_id,
             "PSCID": psc_id,
             "TarchiveID": tarchive_id,
             "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -303,7 +311,7 @@ class Imaging:
         echo_number = repr(info_to_insert_dict["EchoNumber"])
         phase_encoding_dir = info_to_insert_dict["PhaseEncodingDirection"]
         echo_time = info_to_insert_dict['EchoTime']
-        scan_type = info_to_insert_dict['Scan_type']
+        scan_type = info_to_insert_dict['MriScanTypeID']
         severity = info_to_insert_dict['Severity']
         header = info_to_insert_dict['Header']
         value = info_to_insert_dict['Value']
@@ -318,7 +326,7 @@ class Imaging:
             if str(row['SeriesUID']) == str(series_uid) \
                     and str(row['PhaseEncodingDirection']) == str(phase_encoding_dir) \
                     and str(row['EchoNumber']) == str(echo_number) \
-                    and str(row['Scan_type']) == str(scan_type) \
+                    and str(row['MriScanTypeID']) == str(scan_type) \
                     and str(row['EchoTime']) == str(echo_time) \
                     and str(row['Severity']) == str(severity) \
                     and str(row['Header']) == str(header) \
@@ -502,6 +510,7 @@ class Imaging:
 
         query = "SELECT CandID " + \
                 " FROM session s " + \
+                " JOIN candidate c ON (c.ID=s.CandidateID)" \
                 " JOIN files f ON (s.ID=f.SessionID) " + \
                 " WHERE FileID = %s"
 
@@ -510,93 +519,52 @@ class Imaging:
         # return the result
         return results[0]['CandID'] if results else None
 
-    def determine_subject_ids(self, tarchive_info_dict, scanner_id=None):
+    def determine_subject_info(self, dicom_archive: DbDicomArchive, scanner_id: int | None = None) -> SubjectInfo:
         """
         Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
-        config setting. This function will call a function in the config file that can be
+        config setting. This function will call a function in the configuration file that can be
         customized for each project.
 
-        :param tarchive_info_dict: dictionary with information about the DICOM archive queried
-                                   from the tarchive table
-         :type tarchive_info_dict: dict
-        :param scanner_id        : ScannerID
-         :type scanner_id        : int or None
+        :param tarchive_info_dict : Dictionary with information about the DICOM archive queried
+                                    from the tarchive table
+        :param scanner_id         : The ScannerID if there is one
 
-        :return subject_id_dict: dictionary with subject IDs and visit label or error status
-         :rtype subject_id_dict: dict
+        :raises DetermineSubjectInfoError: Exception if the subject IDs cannot be determined from
+                                           the configuration file.
+
+        :return: Dictionary with subject IDs and visit label.
         """
 
         config_obj = Config(self.db, self.verbose)
         dicom_header = config_obj.get_config('lookupCenterNameUsing')
-        dicom_value = tarchive_info_dict[dicom_header]
+        match dicom_header:
+            case 'PatientID':
+                subject_name = dicom_archive.patient_id
+            case 'PatientName':
+                subject_name = dicom_archive.patient_name
+            case _:
+                raise DetermineSubjectInfoError(
+                    "Unexpected 'lookupCenterNameUsing' configuration setting, expected 'PatientName' or 'PatientID'"
+                    f" but found '{dicom_header}'."
+                )
 
         try:
-            subject_id_dict = self.config_file.get_subject_ids(self.db, dicom_value, scanner_id)
-            subject_id_dict['PatientName'] = dicom_value
+            subject_info = self.config_file.get_subject_info(self.db, subject_name, scanner_id)
         except AttributeError:
-            message = 'Config file does not contain a get_subject_ids routine. Upload will exit now.'
-            return {'error_message': message}
+            raise DetermineSubjectInfoError(
+                'Config file does not contain a `get_subject_info` function. Upload will exit now.'
+            )
 
-        return subject_id_dict
+        if subject_info is None:
+            raise DetermineSubjectInfoError(
+                f'Cannot get subject IDs for subject \'{subject_name}\'.\n'
+                'Possible causes:\n'
+                '- The subject name is not correctly formatted (should usually be \'PSCID_CandID_VisitLabel\').\n'
+                '- The function `get_subject_info` in the Python configuration file is not properly defined.\n'
+                '- Other project specific reason.'
+            )
 
-    def validate_subject_ids(self, subject_id_dict):
-        """
-        Ensure that the subject PSCID/CandID corresponds to a single candidate in the candidate
-        table and that the visit label can be found in the Visit_Windows table. If those
-        conditions are not fulfilled, then a 'CandMismatchError' with the validation error
-        is added to the subject IDs dictionary (subject_id_dict).
-
-        :param subject_id_dict : dictionary with subject IDs and visit label
-         :type subject_id_dict : dict
-
-        :return: True if the subject IDs are valid, False otherwise
-         :rtype: bool
-        """
-
-        psc_id = subject_id_dict['PSCID']
-        cand_id = subject_id_dict['CandID']
-        visit_label = subject_id_dict['visitLabel']
-        is_phantom = subject_id_dict['isPhantom']
-
-        # no further checking if the subject is phantom
-        if is_phantom:
-            return True
-
-        # check that the CandID and PSCID are valid
-        # TODO use candidate_db class for that for bids_import
-        query = 'SELECT c1.CandID, c2.PSCID AS PSCID ' \
-                ' FROM candidate c1 ' \
-                ' LEFT JOIN candidate c2 ON (c1.CandID=c2.CandID AND c2.PSCID = %s) ' \
-                ' WHERE c1.CandID = %s'
-        results = self.db.pselect(query=query, args=(psc_id, cand_id))
-        if not results:
-            # if no rows were returned, then the CandID is not valid
-            subject_id_dict['message'] = '=> Could not find candidate with CandID=' + cand_id \
-                                         + ' in the database'
-            subject_id_dict['CandMismatchError'] = 'CandID does not exist'
-            return False
-        elif not results[0]['PSCID']:
-            # if no PSCID returned in the row, then PSCID and CandID do not match
-            subject_id_dict['message'] = '=> PSCID and CandID of the image mismatch'
-            # Message is undefined
-            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
-            return False
-
-        # check if visit label is valid
-        # TODO use visit_windows class for that for bids_import
-        query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
-        results = self.db.pselect(query=query, args=(visit_label,))
-        if results:
-            subject_id_dict['message'] = f'=> Found visit label {visit_label} in Visit_Windows'
-            return True
-        elif subject_id_dict['createVisitLabel']:
-            subject_id_dict['message'] = f'=> Will create visit label {visit_label} in Visit_Windows'
-            return True
-        else:
-            subject_id_dict['message'] = f'=> Visit Label {visit_label} does not exist in Visit_Windows'
-            # Message is undefined
-            subject_id_dict['CandMismatchError'] = subject_id_dict['message']
-            return False
+        return subject_info
 
     def map_bids_param_to_loris_param(self, file_parameters):
         """
@@ -720,15 +688,15 @@ class Imaging:
 
         matching_protocols_list = []
         for protocol in protocols_list:
-            if scan_type_id and protocol['Scan_type'] == scan_type_id:
-                matching_protocols_list.append(protocol['Scan_type'])
+            if scan_type_id and protocol['MriScanTypeID'] == scan_type_id:
+                matching_protocols_list.append(protocol['MriScanTypeID'])
             elif protocol['series_description_regex']:
                 if re.search(
                         rf"{protocol['series_description_regex']}", scan_param['SeriesDescription'], re.IGNORECASE
                 ):
-                    matching_protocols_list.append(protocol['Scan_type'])
+                    matching_protocols_list.append(protocol['MriScanTypeID'])
             elif self.is_scan_protocol_matching_db_protocol(protocol, scan_param):
-                matching_protocols_list.append(protocol['Scan_type'])
+                matching_protocols_list.append(protocol['MriScanTypeID'])
 
         return list(dict.fromkeys(matching_protocols_list))
 
@@ -869,6 +837,7 @@ class Imaging:
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
 
+    @deprecated('Use `lib.scanner.get_or_create_scanner` instead')
     def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id, project_id):
         """
         Get the scanner ID based on the scanner information provided as input.
@@ -895,6 +864,7 @@ class Imaging:
             project_id
         )
 
+    @deprecated('Use `lib.db.models.DbScanner.candidate` instead')
     def get_scanner_candid(self, scanner_id):
         """
         Select a ScannerID CandID based on the scanner ID in mri_scanner.
@@ -1016,7 +986,7 @@ class Imaging:
         for file_dict in files_list:
 
             bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
-                file_dict['AcquisitionProtocolID']
+                file_dict['MriScanTypeID']
             )
             param_file_result = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 file_dict['FileID'],
@@ -1077,7 +1047,7 @@ class Imaging:
         new_files_list = []
         for file_dict in files_list:
             bids_info = self.mri_prot_db_obj.get_bids_info_for_scan_type_id(
-                file_dict['AcquisitionProtocolID']
+                file_dict['MriScanTypeID']
             )
             param_file_result = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 file_dict['FileID'],
@@ -1110,7 +1080,7 @@ class Imaging:
             sorted_files_list = sorted(new_files_list, key=lambda x: x['acq_time'])
         except TypeError:
             return None
-        
+
         return sorted_files_list
 
     def modify_fmap_json_file_to_write_intended_for(self, sorted_fmap_files_list, s3_obj, tmp_dir):

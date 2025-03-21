@@ -112,15 +112,15 @@ class MriProtocol:
                 bids_scan_type.BIDSScanType,
                 bmstr.BIDSEchoNumber,
                 bids_phase_encoding_direction.BIDSPhaseEncodingDirectionName,
-                mst.Scan_type
+                mst.MriScanTypeName AS ScanType
             FROM bids_mri_scan_type_rel bmstr
-                JOIN      mri_scan_type mst             ON mst.ID = bmstr.MRIScanTypeID
+                JOIN      mri_scan_type mst             ON mst.MriScanTypeID = bmstr.MRIScanTypeID
                 JOIN      bids_category                 USING (BIDSCategoryID)
                 JOIN      bids_scan_type                USING (BIDSScanTypeID)
                 LEFT JOIN bids_scan_type_subcategory    USING (BIDSScanTypeSubCategoryID)
                 LEFT JOIN bids_phase_encoding_direction USING (BIDSPhaseEncodingDirectionID)
             WHERE
-                mst.ID = %s
+                mst.MriScanTypeID = %s
         """
 
         results = self.db.pselect(query=query, args=(scan_type_id,))

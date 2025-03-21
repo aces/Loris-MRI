@@ -1,21 +1,21 @@
 """Deals with EEG BIDS datasets and register them into the database."""
 
+import getpass
+import json
 import os
 import sys
-import json
-import getpass
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.candidate                                  import Candidate
-from lib.session                                    import Session
-from lib.physiological                              import Physiological
-from lib.scanstsv                                   import ScansTSV
-from lib.database_lib.physiological_event_file      import PhysiologicalEventFile
-from lib.database_lib.physiological_event_archive   import PhysiologicalEventArchive
-from lib.database_lib.physiological_modality        import PhysiologicalModality
-from lib.database_lib.physiological_output_type     import PhysiologicalOutputType
+from lib.candidate import Candidate
 from lib.database_lib.config import Config
+from lib.database_lib.physiological_event_archive import PhysiologicalEventArchive
+from lib.database_lib.physiological_event_file import PhysiologicalEventFile
+from lib.database_lib.physiological_modality import PhysiologicalModality
+from lib.database_lib.physiological_output_type import PhysiologicalOutputType
+from lib.physiological import Physiological
+from lib.scanstsv import ScansTSV
+from lib.session import Session
 
 __license__ = "GPLv3"
 
@@ -507,7 +507,7 @@ class Eeg:
                 physio_file_id = physiological.insert_physiological_file(
                     eeg_file_info, eeg_file_data
                 )
-            
+
                 if self.loris_bids_root_dir:
                     # If we copy the file in assembly_bids and
                     # if the EEG file was a set file, then update the filename for the .set
@@ -767,14 +767,14 @@ class Eeg:
                     event_metadata_path = self.copy_file_to_loris_bids_dir(
                         event_metadata_file.path, derivatives, inheritance
                     )
-                    
+
                     # load json data
                     with open(event_metadata_file.path) as metadata_file:
                         event_metadata = json.load(metadata_file)
                     # get the blake2b hash of the json events file
                     blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
                     # insert event metadata in the database
-                    file_id, file_tag_dict = physiological.insert_event_metadata(
+                    _, file_tag_dict = physiological.insert_event_metadata(
                         event_metadata=event_metadata,
                         event_metadata_file=event_metadata_path,
                         physiological_file_id=physiological_file_id,
@@ -921,7 +921,6 @@ class Eeg:
             'FilePath'           : archive_rel_name
         }
         physiological.insert_archive_file(archive_info)
-
 
     def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
         """

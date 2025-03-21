@@ -1,9 +1,12 @@
 """This class performs database queries for the Visit_Windows table"""
 
 
+from typing_extensions import deprecated
+
 __license__ = "GPLv3"
 
 
+@deprecated('Use `lib.db.models.visit_window.DbVisitWindow` instead')
 class VisitWindows:
     """
     This class performs database queries for the VisitWindows table.
@@ -35,15 +38,12 @@ class VisitWindows:
         self.db = db
         self.verbose = verbose
 
-    def check_visit_label_exits(self, visit_label):
+    @deprecated('Use `lib.db.queries.visit.try_get_visit_window_with_visit_label` instead')
+    def check_visit_label_exists(self, visit_label: str) -> bool:
         """
-        Returns a list of dictionaries storing the list of Visit_label present in the Visit_Windows table.
-
-        :return: list of dictionaries with the list of Visit_label present in the Visit_Windows table
-         :rtype: list
+        Check if a visit label exists in the Visit_Windows database table.
         """
 
         query = 'SELECT Visit_label FROM Visit_Windows WHERE BINARY Visit_label = %s'
         results = self.db.pselect(query=query, args=(visit_label,))
-
-        return results if results else None
+        return bool(results)

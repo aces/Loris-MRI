@@ -1,20 +1,21 @@
 import os
-import re
 import shutil
-import sys
 
 import lib.exitcode
 import lib.utilities
-
-from lib.database_lib.candidate_db import CandidateDB
-from lib.database_lib.config import Config
-from lib.database_lib.visit_windows import VisitWindows
 from lib.database import Database
-from lib.dicom_archive import DicomArchive
+from lib.database_lib.config import Config
+from lib.db.queries.dicom_archive import try_get_dicom_archive_with_archive_location
+from lib.db.queries.mri_upload import try_get_mri_upload_with_id
+from lib.db.queries.session import try_get_session_with_cand_id_visit_label
+from lib.db.queries.site import get_all_sites
+from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
+from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
 from lib.imaging import Imaging
-from lib.log import Log
-from lib.imaging_upload import ImagingUpload
-from lib.session import Session
+from lib.logging import log_error_exit, log_verbose, log_warning
+from lib.make_env import make_env
+from lib.scanner import get_or_create_scanner
+from lib.validate_subject_info import validate_subject_info
 
 
 class BasePipeline:
@@ -32,10 +33,9 @@ class BasePipeline:
         These includes the following steps:
         - load pipeline options
         - establish database connection
-        - load the Config, Imaging, Tarchive, ImagingUpload, Session and other classes
+        - load the Config, Imaging and other classes
         - creates the processing temporary directory
         - creates the log file for the script execution
-        - populate the imaging_upload and tarchive info dictionaries
         - determine the subject IDs
         - determine the site information
         - determine the scanner information
@@ -51,7 +51,6 @@ class BasePipeline:
         self.options_dict = loris_getopt_obj.options_dict
         self.force = self.options_dict["force"]["value"] if "force" in self.options_dict else None
         self.verbose = self.options_dict["verbose"]["value"]
-        self.upload_id = loris_getopt_obj.options_dict["upload_id"]["value"]
 
         # ----------------------------------------------------
         # Establish database connection
@@ -63,10 +62,7 @@ class BasePipeline:
         # Load the Config, Imaging, ImagingUpload, Tarchive, Session database classes
         # -----------------------------------------------------------------------------------
         self.config_db_obj = Config(self.db, self.verbose)
-        self.dicom_archive_obj = DicomArchive(self.db, self.verbose)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
-        self.imaging_upload_obj = ImagingUpload(self.db, self.verbose)
-        self.session_obj = Session(self.db, self.verbose)
 
         # ---------------------------------------------------------------------------------------------
         # Grep config settings from the Config module
@@ -78,54 +74,48 @@ class BasePipeline:
         # Create tmp dir and log file (their basename being the name of the script run)
         # ---------------------------------------------------------------------------------------------
         self.tmp_dir = self.loris_getopt_obj.tmp_dir
-        self.log_obj = Log(
-            self.db, self.data_dir, script_name, os.path.basename(self.tmp_dir), self.options_dict, self.verbose
-        )
-        self.log_info("Successfully connected to database", is_error="N", is_verbose="Y")
+        self.env = make_env(self.loris_getopt_obj)
+        self.env.add_cleanup(self.remove_tmp_dir)
 
         # ---------------------------------------------------------------------------------------------
         # Load imaging_upload and tarchive dictionary
         # ---------------------------------------------------------------------------------------------
-        self.load_imaging_upload_and_tarchive_dictionaries()
+        self.load_mri_upload_and_dicom_archive()
 
         # ---------------------------------------------------------------------------------------------
         # Set Inserting field of mri_upload to indicate a script is running on the upload
         # and load the notification object
         # ---------------------------------------------------------------------------------------------
-        if "UploadID" in self.imaging_upload_obj.imaging_upload_dict.keys():
-            self.upload_id = self.imaging_upload_obj.imaging_upload_dict["UploadID"]
-            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=('Inserting',), values=('1',))
+        # Update the MRI upload.
+        self.mri_upload.inserting = True
+        self.env.db.commit()
 
-            # Initiate the notification object now that we have a confirmed UploadID
-            self.log_obj.initiate_notification_db_obj(self.upload_id)
+        self.env.add_cleanup(self.end_upload)
+        self.env.init_notifier(self.mri_upload.id)
 
         # ---------------------------------------------------------------------------------
         # Determine subject IDs based on DICOM headers and validate the IDs against the DB
         # Verify PSC information stored in DICOMs
         # Grep scanner information based on what is in the DICOM headers
         # ---------------------------------------------------------------------------------
-        if self.dicom_archive_obj.tarchive_info_dict.keys():
-            self.subject_id_dict = self.imaging_obj.determine_subject_ids(self.dicom_archive_obj.tarchive_info_dict)
-            if 'error_message' in self.subject_id_dict:
-                self.log_error_and_exit(
-                    self.subject_id_dict['error_message'],
-                    lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE,
-                    is_error="Y",
-                    is_verbose="N"
-                )
+        try:
+            self.subject_info = self.imaging_obj.determine_subject_info(self.dicom_archive)
+        except DetermineSubjectInfoError as error:
+            log_error_exit(self.env, error.message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
 
-            # verify PSC information stored in DICOMs
-            self.site_dict = self.determine_study_info()
-            message = f"Found Center Name: {self.site_dict['CenterName']}," \
-                      f" Center ID: {str(self.site_dict['CenterID'])}"
-            self.log_info(message, is_error="N", is_verbose="Y")
+        # verify PSC information stored in DICOMs
+        self.site_dict = self.determine_study_info()
+        log_verbose(self.env, (
+            f"Found Center Name: {self.site_dict['CenterName']},"
+            f" Center ID: {self.site_dict['CenterID']}"
+        ))
 
-            # grep scanner information based on what is in the DICOM headers
-            self.scanner_id = self.determine_scanner_info()
+        # grep scanner information based on what is in the DICOM headers
+        self.mri_scanner = self.determine_scanner_info()
 
-    def load_imaging_upload_and_tarchive_dictionaries(self):
+    def load_mri_upload_and_dicom_archive(self):
         """
-        Loads the imaging_upload and tarchive info dictionaries based on the content of the imaging_upload
+        Loads the MRI upload and DICOM archives based on the content of the imaging_upload
         and tarchive tables found for the processed UploadID/ArchiveLocation given as argument to
         the script.
         """
@@ -133,49 +123,83 @@ class BasePipeline:
         upload_id = self.options_dict["upload_id"]["value"]
         tarchive_path = self.options_dict["tarchive_path"]["value"] \
             if "tarchive_path" in self.options_dict.keys() else None
-        success = False
-        err_msg = ''
+
         if upload_id and tarchive_path:
-            self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
-            if not self.imaging_upload_obj.imaging_upload_dict:
-                err_msg += f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}."
-                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
-            tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
-            if not tarchive_id:
-                err_msg += f"UploadID {upload_id} is not linked to any tarchive in mri_upload."
-                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
-            self.dicom_archive_obj.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
-            db_archive_location = self.dicom_archive_obj.tarchive_info_dict['ArchiveLocation']
-            if os.path.join(self.data_dir, 'tarchive', db_archive_location) != tarchive_path:
-                err_msg += f"UploadID {upload_id} and ArchiveLocation {tarchive_path} do not refer to the same upload"
-                self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+            mri_upload = try_get_mri_upload_with_id(self.env.db, upload_id)
+            if mri_upload is None:
+                log_error_exit(
+                    self.env,
+                    f"Did not find an entry in mri_upload associated with \'UploadID\' {upload_id}.",
+                    lib.exitcode.SELECT_FAILURE,
+                )
+
+            self.mri_upload = mri_upload
+
+            if self.mri_upload.dicom_archive is None:
+                log_error_exit(
+                    self.env,
+                    f"UploadID {upload_id} is not linked to any tarchive in mri_upload.",
+                    lib.exitcode.SELECT_FAILURE,
+                )
+
+            self.dicom_archive = self.mri_upload.dicom_archive
+            if os.path.join(self.data_dir, 'tarchive', self.dicom_archive.archive_location) != tarchive_path:
+                log_error_exit(
+                    self.env,
+                    f"UploadID {upload_id} and ArchiveLocation {tarchive_path} do not refer to the same upload",
+                    lib.exitcode.SELECT_FAILURE,
+                )
 
         if upload_id:
-            self.imaging_upload_obj.create_imaging_upload_dict_from_upload_id(upload_id)
-            if not self.imaging_upload_obj.imaging_upload_dict:
-                err_msg += f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}"
-            else:
-                if self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]:
-                    tarchive_id = self.imaging_upload_obj.imaging_upload_dict["TarchiveID"]
-                    self.dicom_archive_obj.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
-                    if self.dicom_archive_obj.tarchive_info_dict:
-                        success = True
-                    else:
-                        err_msg += f"Could not load tarchive dictionary for TarchiveID {tarchive_id}"
+            mri_upload = try_get_mri_upload_with_id(self.env.db, upload_id)
+            if mri_upload is None:
+                log_error_exit(
+                    self.env,
+                    f"Did not find an entry in mri_upload associated with 'UploadID' {upload_id}",
+                    lib.exitcode.SELECT_FAILURE,
+                )
+
+            self.mri_upload = mri_upload
+            if self.mri_upload.dicom_archive is None:
+                log_error_exit(
+                    self.env,
+                    f"Did not find a DICOM archive associated with upload ID {upload_id}",
+                    lib.exitcode.SELECT_FAILURE,
+                )
+
+            self.dicom_archive = self.mri_upload.dicom_archive
 
         elif tarchive_path:
             archive_location = tarchive_path.replace(self.dicom_lib_dir, "")
-            self.dicom_archive_obj.populate_tarchive_info_dict_from_archive_location(archive_location=archive_location)
-            if self.dicom_archive_obj.tarchive_info_dict:
-                tarchive_id = self.dicom_archive_obj.tarchive_info_dict["TarchiveID"]
-                success, new_err_msg = self.imaging_upload_obj.create_imaging_upload_dict_from_tarchive_id(tarchive_id)
-                if not success:
-                    err_msg += new_err_msg
-            else:
-                err_msg += f"Could not load tarchive dictionary for ArchiveLocation {archive_location}"
+            dicom_archive = try_get_dicom_archive_with_archive_location(self.env.db, archive_location)
+            if dicom_archive is None:
+                log_error_exit(
+                    self.env,
+                    f"Could not load tarchive dictionary for ArchiveLocation {archive_location}",
+                    lib.exitcode.SELECT_FAILURE,
+                )
 
-        if not success and not self.force:
-            self.log_error_and_exit(err_msg, lib.exitcode.SELECT_FAILURE, is_error="Y", is_verbose="N")
+            self.dicom_archive = dicom_archive
+
+            mri_uploads = self.dicom_archive.mri_uploads
+            match mri_uploads:
+                case []:
+                    log_error_exit(
+                        self.env,
+                        f"Did not find an entry in mri_upload associated with DICOM archive ID {self.dicom_archive.id}",
+                        lib.exitcode.SELECT_FAILURE,
+                    )
+                case [mri_upload]:
+                    self.mri_upload = mri_upload
+                case _:
+                    log_error_exit(
+                        self.env,
+                        (
+                            f"Found {len(mri_uploads)} rows in mri_upload for DICOM archive ID {self.dicom_archive.id}."
+                            f" MRI upload IDs are {', '.join(map(lambda mri_upload: str(mri_upload.id), mri_uploads))}."
+                        ),
+                        lib.exitcode.SELECT_FAILURE,
+                    )
 
     def determine_study_info(self):
         """
@@ -186,262 +210,70 @@ class BasePipeline:
          :rtype: dict
         """
 
-        cand_id = self.subject_id_dict['CandID']
-        visit_label = self.subject_id_dict['visitLabel']
-        patient_name = self.subject_id_dict['PatientName']
-
         # get the CenterID from the session table if the PSCID and visit label exists
         # and could be extracted from the database
-        if cand_id and visit_label:
-            self.session_obj.create_session_dict(cand_id, visit_label)
-            session_dict = self.session_obj.session_info_dict
-            if session_dict:
-                return {"CenterName": session_dict["MRI_alias"], "CenterID": session_dict["CenterID"]}
+        self.session = try_get_session_with_cand_id_visit_label(
+            self.env.db,
+            self.subject_info.cand_id,
+            self.subject_info.visit_label,
+        )
+
+        if self.session is not None:
+            return {"CenterName": self.session.site.mri_alias, "CenterID": self.session.site_id}
 
         # if could not find center information based on cand_id and visit_label, use the
         # patient name to match it to the site alias or MRI alias
-        list_of_sites = self.session_obj.get_list_of_sites()
-        for site_dict in list_of_sites:
-            if site_dict["Alias"] in patient_name:
-                return {"CenterName": site_dict["Alias"], "CenterID": site_dict["CenterID"]}
-            elif site_dict["MRI_alias"] in patient_name:
-                return {"CenterName": site_dict["MRI_alias"], "CenterID": site_dict["CenterID"]}
+        sites = get_all_sites(self.env.db)
+        for site in sites:
+            if site.alias in self.subject_info.name:
+                return {"CenterName": site.alias, "CenterID": site.id}
+            elif site.mri_alias in self.subject_info.name:
+                return {"CenterName": site.mri_alias, "CenterID": site.id}
 
         # if we got here, it means we could not find a center associated to the dataset
-        self.log_error_and_exit(
-            message="ERROR: No center found for this DICOM study",
-            exit_code=lib.exitcode.SELECT_FAILURE,
-            is_error="Y",
-            is_verbose="N"
+        log_error_exit(
+            self.env,
+            "No center found for this DICOM study",
+            lib.exitcode.SELECT_FAILURE,
         )
 
     def determine_scanner_info(self):
         """
         Determine the scanner information found in the database for the uploaded DICOM archive.
         """
-        scanner_id = self.imaging_obj.get_scanner_id(
-            self.dicom_archive_obj.tarchive_info_dict['ScannerManufacturer'],
-            self.dicom_archive_obj.tarchive_info_dict['ScannerSoftwareVersion'],
-            self.dicom_archive_obj.tarchive_info_dict['ScannerSerialNumber'],
-            self.dicom_archive_obj.tarchive_info_dict['ScannerModel'],
-            self.site_dict['CenterID'],
-            self.session_obj.session_info_dict['ProjectID'] if self.session_obj.session_info_dict else None
-        )
-        message = f"Found Scanner ID: {str(scanner_id)}"
-        self.log_info(message, is_error="N", is_verbose="Y")
-        return scanner_id
 
-    def validate_subject_ids(self):
+        mri_scanner = get_or_create_scanner(
+            self.env,
+            self.dicom_archive.scanner_manufacturer,
+            self.dicom_archive.scanner_model,
+            self.dicom_archive.scanner_serial_number,
+            self.dicom_archive.scanner_software_version,
+            self.site_dict['CenterID'],
+            self.session.project_id if self.session is not None else None,
+        )
+
+        log_verbose(self.env, f"Found scanner ID: {mri_scanner.id}")
+        return mri_scanner
+
+    def validate_subject_info(self):
         """
         Ensure that the subject PSCID/CandID corresponds to a single candidate in the candidate
         table and that the visit label can be found in the Visit_Windows table. If those
-        conditions are not fulfilled, then a 'CandMismatchError' with the validation error
-        is added to the subject IDs dictionary (subject_id_dict).
+        conditions are not fulfilled.
         """
 
-        psc_id = self.subject_id_dict["PSCID"]
-        cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["visitLabel"]
-        is_phantom = self.subject_id_dict["isPhantom"]
+        try:
+            validate_subject_info(self.env.db, self.subject_info)
 
-        # no further checking if the subject is phantom
-        if is_phantom:
-            return
+            # Update the MRI upload.
+            self.mri_upload.is_candidate_info_validated = True
+            self.env.db.commit()
+        except ValidateSubjectInfoError as error:
+            log_warning(self.env, error.message)
 
-        # check that the CandID and PSCID are valid
-        candidate_db_obj = CandidateDB(self.db, self.verbose)
-        results = candidate_db_obj.check_candid_pscid_combination(psc_id, cand_id)
-        if not results:
-            # if no rows were returned, then the CandID is not valid
-            self.subject_id_dict["message"] = f"=> Could not find candidate with CandID={cand_id} in the database"
-            self.subject_id_dict["CandMismatchError"] = "CandID does not exist"
-        elif not results[0]["PSCID"]:
-            # if no PSCID returned in the row, then PSCID and CandID do not match
-            self.subject_id_dict["message"] = "=> PSCID and CandID of the image mismatch"
-            self.subject_id_dict["CandMismatchError"] = self.subject_id_dict['message']
-
-        # check if visit label is valid
-        visit_windows_obj = VisitWindows(self.db, self.verbose)
-        results = visit_windows_obj.check_visit_label_exits(visit_label)
-        if results:
-            self.subject_id_dict["message"] = f"Found visit label {visit_label} in Visit_Windows"
-        elif self.subject_id_dict["createVisitLabel"]:
-            self.subject_id_dict["message"] = f"Will create visit label {visit_label} in Visit_Windows"
-        else:
-            self.subject_id_dict["message"] = f"Visit Label {visit_label} does not exist in Visit_Windows"
-            self.subject_id_dict["CandMismatchError"] = self.subject_id_dict['message']
-
-        if "CandMismatchError" in self.subject_id_dict.keys():
-            # if there is a candidate mismatch error, log it but do not exit. It will be logged later in SQL table
-            self.log_info(self.subject_id_dict["CandMismatchError"], is_error="Y", is_verbose="N")
-            self.imaging_upload_obj.update_mri_upload(
-                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('0',)
-            )
-        else:
-            self.log_info(self.subject_id_dict["message"], is_error="N", is_verbose="Y")
-            self.imaging_upload_obj.update_mri_upload(
-                upload_id=self.upload_id, fields=('IsCandidateInfoValidated',), values=('1',)
-            )
-
-    def log_error_and_exit(self, message, exit_code, is_error, is_verbose):
-        """
-        Function to commonly executes all logging information when the script needs to be
-        interrupted due to an error. It will log the error in the log file created by the
-        script being executed, add an entry with the error in the notification_spool table
-        and print the error to the user in the terminal.
-
-        :param message: message to log before exit
-         :type message: str
-        :param exit_code: exit code to use to exit the script
-         :type exit_code: int
-        :param is_error: whether the message to log is an error or not
-         :type is_error: str
-        :param is_verbose: whether the message is considered verbose or not in the notification_spool table
-         :type is_verbose: str
-        """
-        err_msg = f"[ERROR   ] {message}"
-        self.log_obj.write_to_log_file(f"\n{err_msg}\n")
-        self.log_obj.write_to_notification_table(err_msg, is_error, is_verbose)
-        if self.upload_id:
-            self.imaging_upload_obj.update_mri_upload(upload_id=self.upload_id, fields=("Inserting",), values=("0",))
-        print(f"\n{err_msg}\n")
-        self.remove_tmp_dir()
-        sys.exit(exit_code)
-
-    def log_info(self, message, is_error, is_verbose):
-        """
-        Function to log information that need to be logged in the notification_spool table and in the log
-        file produced by the script executed.
-
-        :param message: message to log
-         :type message: str
-        :param is_error: whether the message to log is an error or not
-         :type is_error: str
-        :param is_verbose: whether the message is considered verbose or not in the notification_spool table
-         :type is_verbose: str
-        """
-        log_msg = f"==> {message}"
-        self.log_obj.write_to_log_file(f"{log_msg}\n")
-        self.log_obj.write_to_notification_table(log_msg, is_error, is_verbose)
-        if self.verbose:
-            print(f"{log_msg}\n")
-
-    def get_session_info(self):
-        """
-        Creates the session info dictionary based on entries found in the session table.
-        """
-
-        cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["visitLabel"]
-        self.session_obj.create_session_dict(cand_id, visit_label)
-
-        if self.session_obj.session_info_dict:
-            message = f"Session ID for the file to insert is {self.session_obj.session_info_dict['ID']}"
-            self.log_info(message, is_error="N", is_verbose="Y")
-
-    def create_session(self):
-        """
-        Function that will create a new visit in the session table for the imaging scans after verification
-        that all the information necessary for the creation of the visit are present.
-        """
-        cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["visitLabel"]
-        create_visit_label = self.subject_id_dict["createVisitLabel"]
-        project_id = self.subject_id_dict["ProjectID"] if "ProjectID" in self.subject_id_dict.keys() else None
-        cohort_id = self.subject_id_dict["CohortID"] if "CohortID" in self.subject_id_dict.keys() else None
-
-        # check if whether the visit label should be created
-        if not create_visit_label:
-            message = f"Visit {visit_label} for candidate {cand_id} does not exist."
-            self.log_error_and_exit(message, lib.exitcode.GET_SESSION_ID_FAILURE, is_error="Y", is_verbose="N")
-
-        # check if a project ID was provided in the config file for the visit label
-        if not project_id:
-            message = "Cannot create visit: profile file does not defined the visit's ProjectID"
-            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
-
-        # check if a cohort ID was provided in the config file for the visit label
-        if not cohort_id:
-            message = "Cannot create visit: profile file does not defined the visit's CohortID"
-            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
-
-        # check that the project ID and cohort ID refers to an existing row in project_cohort_rel table
-        self.session_obj.create_proj_cohort_rel_info_dict(project_id, cohort_id)
-        if not self.session_obj.proj_cohort_rel_info_dict.keys():
-            message = f"Cannot create visit with project ID {project_id} and cohort ID {cohort_id}:" \
-                      f" no such association in table project_cohort_rel"
-            self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
-
-        # determine the visit number and center ID for the next session to be created
-        center_id, visit_nb = self.determine_new_session_site_and_visit_nb()
-        if not center_id:
-            message = f"No center ID found for candidate {cand_id}, visit {visit_label}"
-            self.log_error_and_exit(message, is_error="Y", is_verbose="N")
-        else:
-            message = f"Set newVisitNo = {visit_nb} and center ID = {center_id}"
-            self.log_info(message, is_error="N", is_verbose="Y")
-
-        # create the new visit
-        session_id = self.session_obj.insert_into_session(
-            {
-                'CandID': cand_id,
-                'Visit_label': visit_label,
-                'CenterID': center_id,
-                'VisitNo': visit_nb,
-                'Current_stage': 'Not Started',
-                'Scan_done': 'Y',
-                'Submitted': 'N',
-                'CohortID': cohort_id,
-                'ProjectID': project_id
-            }
-        )
-        if session_id:
-            self.get_session_info()
-
-    def determine_new_session_site_and_visit_nb(self):
-        """
-        Determines the site and visit number of the new session to be created.
-
-        :returns: The center ID and visit number of the future new session
-        """
-        cand_id = self.subject_id_dict["CandID"]
-        visit_label = self.subject_id_dict["visitLabel"]
-        is_phantom = self.subject_id_dict["isPhantom"]
-        visit_nb = 0
-        center_id = 0
-
-        if is_phantom:
-            center_info_dict = self.determine_phantom_data_site(string_with_site_acronym=visit_label)
-            if center_info_dict:
-                center_id = center_info_dict["CenterID"]
-                visit_nb = 1
-        else:
-            center_info_dict = self.session_obj.get_next_session_site_id_and_visit_number(cand_id)
-            if center_info_dict:
-                center_id = center_info_dict["CenterID"]
-                visit_nb = center_info_dict["newVisitNo"]
-
-        return center_id, visit_nb
-
-    def determine_phantom_data_site(self, string_with_site_acronym):
-        """
-        Determine the site of a phantom dataset.
-
-        :param string_with_site_acronym: string to use to look for Alias or MRI_alias in the psc table
-         :type string_with_site_acronym: str
-        """
-
-        pscid = self.subject_id_dict["PSCID"]
-        visit_label = self.subject_id_dict["visitLabel"]
-
-        # first check whether there is already a session in the database for the phantom scan
-        if pscid and visit_label:
-            return self.session_obj.get_session_center_info(pscid, visit_label)
-
-        # if no session found, use a string_with_site_acronym to match it to a site alias or MRI alias
-        for row in self.site_dict:
-            if re.search(rf"{row['Alias']}|{row['MRI_alias']}", string_with_site_acronym, re.IGNORECASE):
-                return row
+            # Update the MRI upload.
+            self.mri_upload.is_candidate_info_validated = False
+            self.env.db.commit()
 
     def check_if_tarchive_validated_in_db(self):
         """
@@ -451,12 +283,17 @@ class BasePipeline:
         If the DICOM archive was not validated, the pipeline will exit and log the proper error information.
         """
         # reload the mri_upload object with updated database values
-        self.load_imaging_upload_and_tarchive_dictionaries()
-        mu_dict = self.imaging_upload_obj.imaging_upload_dict
-        if ("IsTarchiveValidated" not in mu_dict.keys() or not mu_dict["IsTarchiveValidated"]) and not self.force:
-            err_msg = f"The DICOM archive validation has failed for UploadID {self.upload_id}. Either run the" \
-                      f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
-            self.log_error_and_exit(err_msg, lib.exitcode.INVALID_DICOM, is_error="Y", is_verbose="N")
+        self.load_mri_upload_and_dicom_archive()
+
+        if not self.mri_upload.is_dicom_archive_validated and not self.force:
+            log_error_exit(
+                self.env,
+                (
+                    f"The DICOM archive validation has failed for UploadID {self.mri_upload.id}. Either run the"
+                    f" validation again and fix the problem or use --force to force the insertion of the NIfTI file."
+                ),
+                lib.exitcode.INVALID_DICOM,
+            )
 
     def create_dir(self, directory_path):
         """
@@ -467,11 +304,14 @@ class BasePipeline:
         """
 
         if not os.path.exists(directory_path):
-            self.log_info(f'Creating directory {directory_path}', is_error='N', is_verbose='Y')
+            log_verbose(self.env, f"Creating directory {directory_path}")
             os.makedirs(directory_path)
             if not os.path.exists(directory_path):
-                message = f'Failed creating directory {directory_path}'
-                self.log_error_and_exit(message, lib.exitcode.CREATE_DIR_FAILURE, is_error='Y', is_verbose='N')
+                log_error_exit(
+                    self.env,
+                    f"Failed creating directory {directory_path}",
+                    lib.exitcode.CREATE_DIR_FAILURE,
+                )
 
     def move_file(self, old_file_path, new_file_path):
         """
@@ -483,11 +323,19 @@ class BasePipeline:
          :type new_file_path: str
         """
 
-        self.log_info(f'Moving {old_file_path} to {new_file_path}', is_error='N', is_verbose='Y')
-        shutil.move(old_file_path, new_file_path, self.verbose)
+        log_verbose(self.env, f"Moving {old_file_path} to {new_file_path}")
+        shutil.move(old_file_path, new_file_path)
         if not os.path.exists(new_file_path):
-            message = f'Could not move {old_file_path} to {new_file_path}'
-            self.log_error_and_exit(message, lib.exitcode.COPY_FAILURE, is_error='Y', is_verbose='N')
+            log_error_exit(
+                self.env,
+                f"Could not move {old_file_path} to {new_file_path}",
+                lib.exitcode.COPY_FAILURE,
+            )
+
+    def end_upload(self):
+        # Update the MRI upload.
+        self.mri_upload.inserting = False
+        self.env.db.commit()
 
     def remove_tmp_dir(self):
         """
@@ -498,4 +346,4 @@ class BasePipeline:
             try:
                 shutil.rmtree(self.tmp_dir)
             except PermissionError as err:
-                self.log_info(f"Could not delete {self.tmp_dir}. Error was: {err}", "N", "Y")
+                log_verbose(self.env, f"Could not delete {self.tmp_dir}. Error was: {err}")

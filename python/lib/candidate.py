@@ -1,9 +1,11 @@
 """This class gather functions for candidate handling."""
 
 import random
-from dateutil.parser import parse
-import lib.exitcode
 import sys
+
+from dateutil.parser import parse
+
+import lib.exitcode
 
 __license__ = "GPLv3"
 

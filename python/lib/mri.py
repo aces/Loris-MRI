@@ -1,18 +1,17 @@
 """Deals with MRI BIDS datasets and register them into the database."""
 
-import os
-import json
 import getpass
+import json
+import os
 import re
 import sys
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.candidate  import Candidate
-from lib.session    import Session
-from lib.imaging    import Imaging
-from lib.scanstsv   import ScansTSV
-
+from lib.candidate import Candidate
+from lib.imaging import Imaging
+from lib.scanstsv import ScansTSV
+from lib.session import Session
 
 __license__ = "GPLv3"
 
@@ -130,7 +129,7 @@ class Mri:
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
             break
-        
+
         self.session_id      = self.get_loris_session_id()
 
         # grep all the NIfTI files for the modality
@@ -139,7 +138,7 @@ class Mri:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id, 
+            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id,
                                                    return_type='filename', extension='tsv')[0]
 
         # loop through NIfTI files and register them in the DB
@@ -287,9 +286,9 @@ class Mri:
                 other_assoc_files['bvec_file'] = assoc_file.path
             elif re.search(r'bval$', file_info['extension']):
                 other_assoc_files['bval_file'] = assoc_file.path
-            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'events':
+            elif re.search(r'tsv$', file_info['extension']) and file_info['suffix'] == 'events':
                 other_assoc_files['task_file'] = assoc_file.path
-            elif re.search('tsv$', file_info['extension']) and file_info['suffix'] == 'physio':
+            elif re.search(r'tsv$', file_info['extension']) and file_info['suffix'] == 'physio':
                 other_assoc_files['physio_file'] = assoc_file.path
 
         # read the json file if it exists
@@ -366,9 +365,9 @@ class Mri:
             # grep the scan type ID from the mri_scan_type table (if it is not already in
             # the table, it will add a row to the mri_scan_type table)
             scan_type_id = self.db.grep_id_from_lookup_table(
-                id_field_name       = 'ID',
+                id_field_name       = 'MriScanTypeID',
                 table_name          = 'mri_scan_type',
-                where_field_name    = 'Scan_type',
+                where_field_name    = 'MriScanTypeName',
                 where_value         = scan_type,
                 insert_if_not_found = True
             )
@@ -392,7 +391,7 @@ class Mri:
                 'PhaseEncodingDirection': phase_enc_dir,
                 'EchoNumber'      : echo_nb,
                 'SourceFileID'    : None,
-                'AcquisitionProtocolID': scan_type_id
+                'MriScanTypeID'   : scan_type_id
             }
             file_id = imaging.insert_imaging_file(file_info, file_parameters)
 

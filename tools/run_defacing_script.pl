@@ -296,12 +296,12 @@ exit $NeuroDB::ExitCodes::SUCCESS;
 =head3 grep_FileIDs_to_deface($session_id_ref, @modalities_to_deface)
 
 Queries the database for the list of acquisitions' FileID to be used to run the
-defacing algorithm based on the provided list of SessionID and Scan_type to
+defacing algorithm based on the provided list of SessionID and ScanType to
 restrict the search.
 
 INPUTS:
   - $session_id_ref      : array of SessionIDs to use when grepping FileIDs
-  - @modalities_to_deface: array of Scan_type to use when grepping FileIDs
+  - @modalities_to_deface: array of ScanType to use when grepping FileIDs
 
 RETURNS: hash of matching FileIDs to be used to run the defacing algorithm
          organized in a hash as follows:
@@ -333,9 +333,9 @@ sub grep_FileIDs_to_deface {
     }
 
     # base query
-    my $query = "SELECT  SessionID, FileID, Scan_type, File "
+    my $query = "SELECT  SessionID, FileID, mst.MriScanTypeName AS ScanType, File "
                 . "FROM  files f "
-                . "JOIN  mri_scan_type mst ON (f.AcquisitionProtocolID = mst.ID) "
+                . "JOIN  mri_scan_type mst ON (f.MriScanTypeID = mst.MriScanTypeID) "
                 . "JOIN  parameter_file pf USING (FileID) "
                 . "JOIN  parameter_type pt USING (ParameterTypeID) "
                 . "WHERE pt.Name='acquisition:image_type' AND ( ";
@@ -343,7 +343,7 @@ sub grep_FileIDs_to_deface {
     # add where clause for the different standard scan types to deface
     my @where;
     if (@modalities_to_deface) {
-        @where = map { "mst.Scan_type = ?" } @modalities_to_deface;
+        @where = map { "mst.MriScanTypeName = ?" } @modalities_to_deface;
         $query   .= sprintf(" %s ", join(" OR ", @where));
     }
 
@@ -351,7 +351,7 @@ sub grep_FileIDs_to_deface {
     # where we will restrict the images to be defaced to the ones with a face based
     # on parameter_type 'acquisition:image_type'
     if (@special_cases) {
-        @where  = map { "(mst.Scan_type = ? AND pf.Value LIKE ?)" } @special_cases;
+        @where  = map { "(mst.MriScanTypeName = ? AND pf.Value LIKE ?)" } @special_cases;
         $query .= sprintf(" OR %s ", join(" OR ", @where));
     }
     $query .= ")";  # closing the brackets of the modalities WHERE part of the query
@@ -380,7 +380,7 @@ sub grep_FileIDs_to_deface {
     my %file_id_hash;
     while (my $row = $sth->fetchrow_hashref){
         my $session_key   = $row->{'SessionID'};
-        my $scan_type_key = $row->{'Scan_type'};
+        my $scan_type_key = $row->{'ScanType'};
         my $file_id_value = $row->{'FileID'};
         my $file_value    = $row->{'File'};
         $file_id_hash{$session_key}{$scan_type_key}{$file_id_value} = $file_value;
@@ -439,10 +439,10 @@ sub check_if_deface_files_already_in_db {
     # base query
     my $query = "SELECT COUNT(*) "
                  . " FROM files f "
-                 . " JOIN mri_scan_type mst ON (mst.ID=f.AcquisitionProtocolID) ";
+                 . " JOIN mri_scan_type mst ON (mst.MriScanTypeID=f.MriScanTypeID) ";
 
     # add where clause for the different defaced scan types
-    my @where = map { "mst.Scan_type = ?" } @defaced_scan_types;
+    my @where = map { "mst.MriScanTypeName = ?" } @defaced_scan_types;
     $query   .= sprintf(" WHERE (%s) ", join(" OR ", @where));
     $query   .= " AND SessionID = ?";
 
@@ -481,7 +481,7 @@ sub grep_t1_ref_file {
     my %ref_file   = (
         "FileID"    => $t1_fileIDs[0],
         "File"      => $t1_files{$t1_fileIDs[0]},
-        "Scan_type" => $ref_t1_scan_type
+        "ScanType"  => $ref_t1_scan_type
     );
 
     # remove that reference file from the hash of other files to deface
@@ -523,7 +523,7 @@ sub determine_output_dir_and_basename {
 
     # determine the output base name for the *_deface_grid_0.mnc output
     my $output_basename = $output_basedir . basename($$ref_file{File});
-    $output_basename    =~ s/_$$ref_file{Scan_type}_\d\d\d\.mnc//i;
+    $output_basename    =~ s/_$$ref_file{ScanType}_\d\d\d\.mnc//i;
 
     # return the output base directory and output basename
     return $output_basedir, $output_basename;
@@ -620,7 +620,7 @@ sub fetch_defaced_files {
     my %defaced_images;
     # append the reference t1 defaced image to the hash
     $defaced_images{$deface_ref}{InputFileID} = $$ref_file{FileID};
-    $defaced_images{$deface_ref}{Scan_type}   = $$ref_file{Scan_type};
+    $defaced_images{$deface_ref}{ScanType}    = $$ref_file{ScanType};
 
     # for each files in $session_files, append the defaced images to the hash
     foreach my $scan_type (keys %{ $session_files }) {
@@ -629,7 +629,7 @@ sub fetch_defaced_files {
             my $deface_file   = $deface_dir . '/' . basename($files{$fileID});
             $deface_file      =~ s/\.mnc$/_defaced\.mnc/;
             $defaced_images{$deface_file}{InputFileID} = $fileID;
-            $defaced_images{$deface_file}{Scan_type}    = $scan_type;
+            $defaced_images{$deface_file}{ScanType}    = $scan_type;
         }
     }
 
@@ -665,7 +665,7 @@ sub register_defaced_files {
 
     foreach my $file (keys %{ $defaced_images }) {
         my $input_fileID = $$defaced_images{$file}{InputFileID};
-        my $scan_type    = $$defaced_images{$file}{Scan_type} . "-defaced";
+        my $scan_type    = $$defaced_images{$file}{ScanType} . "-defaced";
 
         # verify that the scan type exists in mri_scan_type, if not create it
         create_defaced_scan_type($scan_type);
@@ -701,13 +701,13 @@ INPUT: the scan type to look for or insert in the C<mri_scan_type> table
 sub create_defaced_scan_type {
     my ($scan_type) = @_;
 
-    my $select     = "SELECT COUNT(*) FROM mri_scan_type WHERE Scan_type = ?";
+    my $select     = "SELECT COUNT(*) FROM mri_scan_type WHERE MriScanTypeName = ?";
     my $select_sth = $dbh->prepare($select);
     $select_sth->execute($scan_type);
 
     my ($count) = $select_sth->fetchrow_array;
     unless ($count) {
-        my $insert = "INSERT INTO mri_scan_type SET Scan_type = ?";
+        my $insert = "INSERT INTO mri_scan_type SET MriScanTypeName = ?";
         my $sth    = $dbh->prepare($insert);
         $sth->execute($scan_type);
     }

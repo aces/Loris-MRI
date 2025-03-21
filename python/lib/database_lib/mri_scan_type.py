@@ -47,11 +47,11 @@ class MriScanType:
         """
 
         results = self.db.pselect(
-            query='SELECT Scan_type FROM mri_scan_type WHERE ID = %s',
+            query='SELECT MriScanTypeName FROM mri_scan_type WHERE MriScanTypeID = %s',
             args=(scan_type_id,)
         )
 
-        return results[0]['Scan_type'] if results else None
+        return results[0]['MriScanTypeName'] if results else None
 
     def get_scan_type_id_from_name(self, scan_type_name):
         """
@@ -65,8 +65,8 @@ class MriScanType:
         """
 
         results = self.db.pselect(
-            query='SELECT ID FROM mri_scan_type WHERE Scan_type = %s',
+            query='SELECT MriScanTypeID FROM mri_scan_type WHERE MriScanTypeName = %s',
             args=(scan_type_name,)
         )
 
-        return results[0]['ID'] if results else None
+        return results[0]['MriScanTypeID'] if results else None

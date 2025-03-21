@@ -73,30 +73,30 @@ RETURNS:
 
     {
         "1" => {
-            'fileID'                => 'FileID value',
-            'file'                  => 'file path',
-            'echoTime'              => 'Echo Time of the file',
-            'AcquisitionProtocolID' => 'Scan type ID',
-            'candID'                => 'Candidate CandID',
-            'sessionID'             => 'Session ID',
-            'visitLabel'            => 'Visit Label',
-            'echoNumber'            => 'Echo Number of the scan',
-            'seriesNumber'          => 'Series Number of the scan',
-            'imageType'             => 'Image Type',
-            'lorisScanType'         => 'LORIS Scan Type name'
+            'fileID'        => 'FileID value',
+            'file'          => 'file path',
+            'echoTime'      => 'Echo Time of the file',
+            'MriScanTypeID' => 'Scan type ID',
+            'candID'        => 'Candidate CandID',
+            'sessionID'     => 'Session ID',
+            'visitLabel'    => 'Visit Label',
+            'echoNumber'    => 'Echo Number of the scan',
+            'seriesNumber'  => 'Series Number of the scan',
+            'imageType'     => 'Image Type',
+            'lorisScanType' => 'LORIS Scan Type name'
         },
         "2" => {
-            'fileID'                => 'FileID value',
-            'file'                  => 'file path',
-            'echoTime'              => 'Echo Time of the file',
-            'AcquisitionProtocolID' => 'Scan type ID',
-            'candID'                => 'Candidate CandID',
-            'sessionID'             => 'Session ID',
-            'visitLabel'            => 'Visit Label',
-            'echoNumber'            => 'Echo Number of the scan',
-            'seriesNumber'          => 'Series Number of the scan',
-            'imageType'             => 'Image Type',
-            'lorisScanType'         => 'LORIS Scan Type name'
+            'fileID'        => 'FileID value',
+            'file'          => 'file path',
+            'echoTime'      => 'Echo Time of the file',
+            'MriScanTypeID' => 'Scan type ID',
+            'candID'        => 'Candidate CandID',
+            'sessionID'     => 'Session ID',
+            'visitLabel'    => 'Visit Label',
+            'echoNumber'    => 'Echo Number of the scan',
+            'seriesNumber'  => 'Series Number of the scan',
+            'imageType'     => 'Image Type',
+            'lorisScanType' => 'LORIS Scan Type name'
         }
         ...
     }
@@ -162,7 +162,7 @@ OUTPUT:
         'BIDSCategoryName'        => 'BIDS category to use for the NIfTI file, aka anat, func, fmap, dwi...',
         'BIDSScanTypeSubCategory' => 'BIDS subcategory to use for the NIfTI file, aka task-rest, task-memory...',
         'BIDSEchoNumber'          => 'Echo Number associated with the NIfTI file',
-        'Scan_type'               => 'label of the LORIS Scan type from the mri_scan_type table'
+        'ScanType'                => 'label of the LORIS Scan type from the mri_scan_type table'
     }
 
 Note: BIDSEchoNumber and BIDSScanTypeSubCategory can be null for a given NIfTI file.
@@ -371,14 +371,14 @@ OUTPUT:
 
 ### grep\_acquisitionProtocolID\_from\_BIDS\_scan\_type($db\_handle, $bids\_scan\_type)
 
-Greps the AcquisitionProtocolID associated to a BIDS magnitude file in the database.
+Greps the MriScanTypeID associated to a BIDS magnitude file in the database.
 
 INPUTS:
     - $db\_handle     : database handle
     - $bids\_scan\_type: name of the BIDS scan type (for example: magnitude)
 
 OUTPUT:
-    - AcquisitionProtocolID associated to the BIDS scan type file in the database
+    - MriScanTypeID associated to the BIDS scan type file in the database
 
 ### create\_BIDS\_magnitude\_files($phasediff\_filename, $magnitude\_files\_hash)
 

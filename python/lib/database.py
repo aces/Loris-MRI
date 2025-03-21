@@ -1,9 +1,11 @@
 """Allows LORIS database connectivity for LORIS-MRI python code base"""
 
-import MySQLdb
 import sys
-import lib.exitcode
 
+import MySQLdb
+
+import lib.exitcode
+from lib.config_file import DatabaseConfig
 
 __license__ = "GPLv3"
 
@@ -61,25 +63,22 @@ class Database:
         db.disconnect()
     """
 
-    def __init__(self, credentials, verbose):
+    def __init__(self, config: DatabaseConfig, verbose: bool):
         """
         Constructor method for the Database class.
 
-        :param credentials: LORIS database credentials
-         :type credentials: dict
-        :param verbose    : whether to be verbose or not
-         :type verbose    : bool
+        :param config:  LORIS database credentials
+        :param verbose: whether to be verbose or not
         """
 
         self.verbose = verbose
 
         # grep database credentials
-        default_port   = 3306
-        self.db_name   = credentials['database']
-        self.user_name = credentials['username']
-        self.password  = credentials['passwd']
-        self.host_name = credentials['host']
-        port           = credentials['port']
+        self.db_name   = config.database
+        self.user_name = config.username
+        self.password  = config.password
+        self.host_name = config.host
+        self.port      = config.port
 
         if not self.user_name:
             raise Exception("\nUser name cannot be empty string.\n")
@@ -87,8 +86,6 @@ class Database:
             raise Exception("\nDatabase name cannot be empty string.\n")
         if not self.host_name:
             raise Exception("\nDatabase host cannot be empty string.\n")
-
-        self.port = int(port) if port else default_port
 
     def connect(self):
         """
@@ -111,7 +108,8 @@ class Database:
                 user=self.user_name,
                 passwd=self.password,
                 port=self.port,
-                db=self.db_name
+                db=self.db_name,
+                autocommit=True,
             )
             # self.cnx.cursor = self.cnx.cursor(prepared=True)
         except MySQLdb.Error as err:
@@ -166,9 +164,7 @@ class Database:
 
         placeholders = ','.join(map(lambda x: '%s', column_names))
 
-        query = "INSERT INTO %s (%s) VALUES (%s)" % (
-            table_name, ', '.join(column_names), placeholders
-        )
+        query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({placeholders})"
 
         if self.verbose:
             print("\nExecuting query:\n\t" + query + "\n"
@@ -183,7 +179,6 @@ class Database:
             else:
                 # else, values is a tuple and want to execute only one insert
                 cursor.execute(query, values)
-            self.con.commit()
             last_id = cursor.lastrowid
             cursor.close()
         except MySQLdb.Error as err:
@@ -211,7 +206,6 @@ class Database:
         try:
             cursor = self.con.cursor()
             cursor.execute(query, args)
-            self.con.commit()
         except MySQLdb.Error as err:
             raise Exception("Update query failure: " + format(err))
 
