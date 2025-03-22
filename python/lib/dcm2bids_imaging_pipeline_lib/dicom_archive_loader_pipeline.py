@@ -35,6 +35,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         """
 
         super().__init__(loris_getopt_obj, script_name)
+        self.init_session_info()
         self.series_uid = self.options_dict["series_uid"]["value"]
         self.tarchive_path = os.path.join(
             self.data_dir, "tarchive", self.dicom_archive.archive_location

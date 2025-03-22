@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
@@ -35,6 +36,7 @@ class Env:
     db_engine: Engine
     db: Session
     script_name: str
+    config_info: Any
     log_file: str
     verbose: bool
     cleanups: list[Callable[[], None]]

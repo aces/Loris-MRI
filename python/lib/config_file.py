@@ -4,6 +4,10 @@ This module stores the classes used in the Python configuration file of LORIS-MR
 
 from dataclasses import dataclass
 
+from sqlalchemy.orm import Session as Database
+
+from lib.db.queries.site import get_all_sites
+
 
 @dataclass
 class DatabaseConfig:
@@ -31,50 +35,55 @@ class S3Config:
 
 
 @dataclass
-class CreateVisitInfo:
+class CreateSessionConfig:
     """
-    Class wrapping the parameters for automated visit creation (in the `Visit_Windows` table).
+    Configuration information used to create the session of a candidate scan.
     """
 
+    site_id:    int
     project_id: int
     cohort_id:  int
 
 
 @dataclass
-class SubjectInfo:
+class SessionCandidateConfig:
     """
-    Dataclass wrapping information about a subject configuration, including information about the
-    candidate, the visit label, and the automated visit creation (or not).
+    Configuration information used to identify the session of a candidate scan.
     """
 
-    # The name of the subject may be either the DICOM's PatientName or PatientID depending on the
-    # LORIS configuration.
-    name: str
-    is_phantom: bool
-    # For a phantom scan, the PSCID is 'scanner'.
     psc_id: str
-    # For a phantom scan, the CandID is that of the scanner.
     cand_id: int
     visit_label: str
-    # `CreateVisitInfo` means that a visit can be created automatically using the parameters
-    # provided, `None` means that the visit needs to already exist in the database.
-    create_visit: CreateVisitInfo | None
+    create_session: CreateSessionConfig | None
 
-    @staticmethod
-    def from_candidate(
-        name: str,
-        psc_id: str,
-        cand_id: int,
-        visit_label: str,
-        create_visit: CreateVisitInfo | None,
-    ):
-        return SubjectInfo(name, False, psc_id, cand_id, visit_label, create_visit)
 
-    @staticmethod
-    def from_phantom(
-        name: str,
-        cand_id: int,
-        visit_label: str,
-        create_visit: CreateVisitInfo | None,
-    ):
-        return SubjectInfo(name, True, 'scanner', cand_id, visit_label, create_visit)
+@dataclass
+class SessionPhantomConfig:
+    """
+    Configuration information used to register a phantom scan.
+    """
+
+    name: str
+    site_id: int
+    project_id: int
+
+
+# TODO: Replace with type alias in Python 3.12.
+SessionConfig = SessionCandidateConfig | SessionPhantomConfig
+
+
+def try_get_site_id_with_patient_id_heuristic(db: Database, patient_id: str) -> int | None:
+    """
+    Try to get the ID of a session's site based on its patient ID. This function is a heuristic
+    that is provided for older projects to ease their transition to the new session configuration
+    format, it should not be used in new projects.
+    """
+
+    sites = get_all_sites(db)
+    for site in sites:
+        if site.alias in patient_id:
+            return site.id
+        elif site.mri_alias in patient_id:
+            return site.id
+
+    return None

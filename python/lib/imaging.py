@@ -11,7 +11,6 @@ from nilearn import image, plotting
 from typing_extensions import deprecated
 
 import lib.utilities as utilities
-from lib.config_file import SubjectInfo
 from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
@@ -24,8 +23,6 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
-from lib.db.models.dicom_archive import DbDicomArchive
-from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
 
 __license__ = "GPLv3"
 
@@ -518,53 +515,6 @@ class Imaging:
 
         # return the result
         return results[0]['CandID'] if results else None
-
-    def determine_subject_info(self, dicom_archive: DbDicomArchive, scanner_id: int | None = None) -> SubjectInfo:
-        """
-        Determine subject IDs based on the DICOM header specified by the lookupCenterNameUsing
-        config setting. This function will call a function in the configuration file that can be
-        customized for each project.
-
-        :param tarchive_info_dict : Dictionary with information about the DICOM archive queried
-                                    from the tarchive table
-        :param scanner_id         : The ScannerID if there is one
-
-        :raises DetermineSubjectInfoError: Exception if the subject IDs cannot be determined from
-                                           the configuration file.
-
-        :return: Dictionary with subject IDs and visit label.
-        """
-
-        config_obj = Config(self.db, self.verbose)
-        dicom_header = config_obj.get_config('lookupCenterNameUsing')
-        match dicom_header:
-            case 'PatientID':
-                subject_name = dicom_archive.patient_id
-            case 'PatientName':
-                subject_name = dicom_archive.patient_name
-            case _:
-                raise DetermineSubjectInfoError(
-                    "Unexpected 'lookupCenterNameUsing' configuration setting, expected 'PatientName' or 'PatientID'"
-                    f" but found '{dicom_header}'."
-                )
-
-        try:
-            subject_info = self.config_file.get_subject_info(self.db, subject_name, scanner_id)
-        except AttributeError:
-            raise DetermineSubjectInfoError(
-                'Config file does not contain a `get_subject_info` function. Upload will exit now.'
-            )
-
-        if subject_info is None:
-            raise DetermineSubjectInfoError(
-                f'Cannot get subject IDs for subject \'{subject_name}\'.\n'
-                'Possible causes:\n'
-                '- The subject name is not correctly formatted (should usually be \'PSCID_CandID_VisitLabel\').\n'
-                '- The function `get_subject_info` in the Python configuration file is not properly defined.\n'
-                '- Other project specific reason.'
-            )
-
-        return subject_info
 
     def map_bids_param_to_loris_param(self, file_parameters):
         """

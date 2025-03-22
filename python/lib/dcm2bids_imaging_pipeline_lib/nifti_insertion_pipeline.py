@@ -8,14 +8,11 @@ import sys
 
 import lib.exitcode
 import lib.utilities as utilities
+from lib.bids import get_bids_json_session_info
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
-from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
-from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
-from lib.get_subject_session import get_subject_session
+from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.logging import log_error_exit, log_verbose
-from lib.scanner import get_or_create_scanner
-from lib.validate_subject_info import validate_subject_info
 
 __license__ = "GPLv3"
 
@@ -79,42 +76,17 @@ class NiftiInsertionPipeline(BasePipeline):
         self.json_file_dict = self._load_json_sidecar_file()
         self._add_step_and_space_params_to_json_file_dict()
 
-        # ---------------------------------------------------------------------------------------------
-        # Check that the PatientName in NIfTI and DICOMs are the same and then validate the Subject IDs
-        # ---------------------------------------------------------------------------------------------
-        if self.dicom_archive is not None:
-            self._validate_nifti_patient_name_with_dicom_patient_name()
-            self.subject_info = self.imaging_obj.determine_subject_info(
-                self.dicom_archive, self.mri_scanner.id
-            )
-        else:
-            self._determine_subject_info_based_on_json_patient_name()
-
-        try:
-            validate_subject_info(self.env.db, self.subject_info)
-        except ValidateSubjectInfoError as error:
-            self.imaging_obj.insert_mri_candidate_errors(
-                self.dicom_archive.patient_name,
-                self.dicom_archive.id,
-                self.json_file_dict,
-                self.nifti_path,
-                error.message,
-            )
-
-            if self.nifti_s3_url:  # push candidate errors to S3 if provided file was on S3
-                self._run_push_to_s3_pipeline()
-
-            log_error_exit(self.env, error.message, lib.exitcode.CANDIDATE_MISMATCH)
+        # ---------------------------------------------------------------------------------
+        # Determine subject IDs based on DICOM headers and validate the IDs against the DB
+        # Verify PSC information stored in DICOMs
+        # Grep scanner information based on what is in the DICOM headers
+        # ---------------------------------------------------------------------------------
+        self.init_session_info()
 
         # ---------------------------------------------------------------------------------------------
         # Verify if the image/NIfTI file was not already registered into the database
         # ---------------------------------------------------------------------------------------------
         self._check_if_nifti_file_was_already_inserted()
-
-        # ---------------------------------------------------------------------------------------------
-        # Determine/create the session the file should be linked to
-        # ---------------------------------------------------------------------------------------------
-        self.session = get_subject_session(self.env, self.subject_info)
 
         # ---------------------------------------------------------------------------------------------
         # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
@@ -224,6 +196,47 @@ class NiftiInsertionPipeline(BasePipeline):
 
         sys.exit(lib.exitcode.SUCCESS)
 
+    def init_session_info(self):
+        """
+        Get the session information and assign `self.session` and `self.scanner` for this pipeline.
+        """
+
+        try:
+            if self.dicom_archive is not None:
+                self._validate_nifti_patient_name_with_dicom_patient_name()
+                session_info = get_dicom_archive_session_info(self.env, self.dicom_archive)
+            else:
+                session_info = get_bids_json_session_info(self.env, self.json_file_dict)
+
+                log_verbose(self.env, "Determined subject IDs based on the patient identifier stored in JSON file")
+
+            self.session     = session_info.session
+            self.mri_scanner = session_info.scanner
+
+            # Update the MRI upload.
+            self.mri_upload.is_candidate_info_validated = True
+            self.env.db.commit()
+
+            log_verbose(self.env, (
+                f"Found Center Name: {self.session.site.name},"
+                f" Center ID: {self.session.site.id}"
+            ))
+
+            log_verbose(self.env, f"Found scanner ID: {self.mri_scanner.id}")
+        except SessionConfigError as error:
+            self.imaging_obj.insert_mri_candidate_errors(
+                self.dicom_archive.patient_name,
+                self.dicom_archive.id,
+                self.json_file_dict,
+                self.nifti_path,
+                str(error),
+            )
+
+            if self.nifti_s3_url:  # push candidate errors to S3 if provided file was on S3
+                self._run_push_to_s3_pipeline()
+
+            log_error_exit(self.env, str(error), lib.exitcode.CANDIDATE_MISMATCH)
+
     def _load_json_sidecar_file(self):
         """
         Loads the JSON file content into a dictionary.
@@ -330,22 +343,6 @@ class NiftiInsertionPipeline(BasePipeline):
         if error_msg:
             log_error_exit(self.env, error_msg, lib.exitcode.FILE_NOT_UNIQUE)
 
-    def _determine_subject_info_based_on_json_patient_name(self):
-        """
-        Determines the subject IDs information based on the patient name information present in the JSON file.
-        """
-
-        dicom_header = self.config_db_obj.get_config('lookupCenterNameUsing')
-        dicom_value = self.json_file_dict[dicom_header]
-
-        try:
-            # TODO: The following line looks like a bug.
-            self.subject_info = self.imaging_obj.determine_subject_info(dicom_value)
-        except DetermineSubjectInfoError as error:
-            log_error_exit(self.env, error.message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
-
-        log_verbose(self.env, "Determined subject IDs based on PatientName stored in JSON file")
-
     def _determine_acquisition_protocol(self):
         """
         Determines the acquisition protocol of the NIfTI file.
@@ -356,18 +353,6 @@ class NiftiInsertionPipeline(BasePipeline):
 
         nifti_name = os.path.basename(self.nifti_path)
         scan_param = self.json_file_dict
-
-        # get scanner ID if not already figured out
-        if self.mri_scanner is None:
-            self.mri_scanner = get_or_create_scanner(
-                self.env,
-                self.json_file_dict['Manufacturer'],
-                self.json_file_dict['ManufacturersModelName'],
-                self.json_file_dict['DeviceSerialNumber'],
-                self.json_file_dict['SoftwareVersions'],
-                self.site_dict['CenterID'],
-                self.session.project_id,
-            )
 
         # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
@@ -447,8 +432,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # determine file BIDS entity values for the file into a dictionary
         file_bids_entities_dict = {
-            'sub': self.subject_info.cand_id,
-            'ses': self.subject_info.visit_label,
+            'sub': self.session.candidate.cand_id,
+            'ses': self.session.visit_label,
             'run': 1
         }
         if self.bids_categories_dict['BIDSEchoNumber']:
@@ -460,8 +445,8 @@ class NiftiInsertionPipeline(BasePipeline):
                 file_bids_entities_dict[key] = value
 
         # determine where the file should go
-        bids_cand_id = 'sub-' + str(self.subject_info.cand_id)
-        bids_visit = 'ses-' + self.subject_info.visit_label
+        bids_cand_id = 'sub-' + str(self.session.candidate.cand_id)
+        bids_visit = 'ses-' + self.session.visit_label
         bids_subfolder = self.bids_categories_dict['BIDSCategoryName']
 
         # determine NIfTI file name
@@ -612,8 +597,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
         self.imaging_obj.insert_protocol_violated_scan(
             patient_name,
-            self.subject_info.cand_id,
-            self.subject_info.psc_id,
+            self.session.candidate.cand_id,
+            self.session.candidate.psc_id,
             self.dicom_archive.id,
             self.json_file_dict,
             self.trashbin_nifti_rel_path,
@@ -649,9 +634,9 @@ class NiftiInsertionPipeline(BasePipeline):
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
             'TarchiveID': self.dicom_archive.id,
             'MincFile': file_rel_path,
-            'PatientName': self.subject_info.name,
-            'CandID': self.subject_info.cand_id,
-            'Visit_label': self.subject_info.visit_label,
+            'PatientName': self.json_file_dict['PatientName'],
+            'CandID': self.session.candidate.cand_id,
+            'Visit_label': self.session.visit_label,
             'MriScanTypeID': self.scan_type_id,
             'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
             'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
@@ -716,7 +701,7 @@ class NiftiInsertionPipeline(BasePipeline):
         Creates the pic image of the NIfTI file.
         """
         file_info = {
-            'cand_id': self.subject_info.cand_id,
+            'cand_id': self.session.candidate.cand_id,
             'data_dir_path': self.data_dir,
             'file_rel_path': self.assembly_nifti_rel_path,
             'is_4D_dataset': True if self.json_file_dict['time'] else False,
