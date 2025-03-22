@@ -6,7 +6,7 @@ from lib.db.models.candidate import DbCandidate
 from lib.db.models.session import DbSession
 
 
-def try_get_session_with_cand_id_visit_label(db: Database, cand_id: int, visit_label: str):
+def try_get_session_with_cand_id_visit_label(db: Database, cand_id: int, visit_label: str) -> DbSession | None:
     """
     Get a session from the database using its candidate CandID and visit label, or return `None`
     if no session is found.

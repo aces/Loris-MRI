@@ -5,7 +5,7 @@ from lib.db.models.config import DbConfig
 from lib.db.models.config_setting import DbConfigSetting
 
 
-def get_config_with_setting_name(db: Database, name: str):
+def get_config_with_setting_name(db: Database, name: str) -> DbConfig:
     """
     Get a single configuration entry from the database using its configuration setting name, or
     raise an exception if no entry or several entries are found.
