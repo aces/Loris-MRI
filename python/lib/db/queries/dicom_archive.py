@@ -29,14 +29,15 @@ def try_get_dicom_archive_with_archive_location(db: Database, archive_location: 
     ).scalar_one_or_none()
 
 
-def try_get_dicom_archive_with_study_uid(db: Database, study_uid: str):
+def try_get_dicom_archive_with_study_uid(db: Database, study_uid: str) -> DbDicomArchive | None:
     """
     Get a DICOM archive from the database using its study UID, or return `None` if no DICOM archive
     is found.
     """
 
-    query = select(DbDicomArchive).where(DbDicomArchive.study_uid == study_uid)
-    return db.execute(query).scalar_one_or_none()
+    return db.execute(select(DbDicomArchive)
+        .where(DbDicomArchive.study_uid == study_uid)
+    ).scalar_one_or_none()
 
 
 def delete_dicom_archive_file_series(db: Database, dicom_archive: DbDicomArchive):
