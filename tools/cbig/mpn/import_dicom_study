@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# This script is a wrapper that loads the LORIS-MRI environment and executes the DICOM study import
+# LORIS-MRI script.
+
+# This script exists to allow non-lorisadmin users to execute the LORIS-MRI BIDS import script from
+# as lorisadmin without using a shell (as this wrapper creates one internally).
+
+# This script should ideally be located in `/usr/local/bin`, or another directory that is loaded in
+# the user's $PATH, it was created for the BIC C-BIG Linux user.
+
+# Source LORIS-MRI environment
+source /data/cbigr/bin/mri/environment_cbigr
+# Run the command
+import_dicom_study.py "$@"
