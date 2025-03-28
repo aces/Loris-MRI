@@ -439,7 +439,7 @@ SELECT
   mst.MriScanTypeName AS LorisScanType
 FROM files f
 JOIN session s         ON (s.ID        = f.SessionID)
-JOIN candidate c       ON (c.CandID    = s.CandID)
+JOIN candidate c       ON (c.ID        = s.CandidateID)
 JOIN mri_scan_type mst ON (mst.MriScanTypeID = f.MriScanTypeID)
 JOIN tarchive t        ON (t.SessionID = s.ID)
 LEFT JOIN parameter_file pf_echonb    ON (f.FileID=pf_echonb.FileID)    AND pf_echonb.ParameterTypeID    = ?
@@ -1123,7 +1123,7 @@ SELECT
   TIMESTAMPDIFF(MONTH, DoB, Date_visit)
 FROM
   candidate
-  JOIN session USING (CandID)
+  JOIN session ON (session.CandidateID=candidate.ID)
 WHERE
   CandID = ? AND Visit_label = ?;
 QUERY

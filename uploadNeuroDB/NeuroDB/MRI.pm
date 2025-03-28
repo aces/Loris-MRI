@@ -109,8 +109,7 @@ sub getScannerCandID {
 
     my $mriScannerOB =
         NeuroDB::objectBroker::MriScannerOB->new(db => $db);
-    my $resultRef = $mriScannerOB->get({ID => $scannerID});
-    return @$resultRef ? $resultRef->[0]->{'CandID'} : undef;
+    return $mriScannerOB->getScannerCandID($scannerID);
 }
 
 =pod
@@ -145,11 +144,12 @@ sub getSessionInformation {
     my ($query, $sth);
 
     # find a matching timepoint
-    $query = "SELECT ID, ProjectID, CohortID, CandID, Visit_label "
-           . "FROM session "
-           . "WHERE CandID=? "
-           . "AND LOWER(Visit_label)=LOWER(?) "
-           . "AND Active='Y'";
+    $query = "SELECT s.ID, s.ProjectID, s.CohortID, c.CandID, s.Visit_label "
+           . "FROM session s"
+           . "JOIN candidate c ON (s.CandidateID=c.ID) "
+           . "WHERE c.CandID=? "
+           . "AND LOWER(s.Visit_label)=LOWER(?) "
+           . "AND s.Active='Y'";
     $sth = $dbh->prepare($query);
     $sth->execute($subjectIDref->{'CandID'}, $subjectIDref->{'visitLabel'});
 
@@ -218,10 +218,11 @@ sub getSessionInformation {
     }
     # determine the centerID and new visit number (which is now deprecated) if getPSC() failed.
     if($centerID == 0) {
-        $query = "SELECT IFNULL(MAX(VisitNo), 0)+1 AS newVisitNo, CenterID "
-               . "FROM session "
-               . "WHERE CandID = ? "
-               . "GROUP BY CandID, CenterID";
+        $query = "SELECT IFNULL(MAX(s.VisitNo), 0)+1 AS newVisitNo, s.CenterID "
+               . "FROM session s "
+               . "JOIN candidate c ON (s.CandidateID=c.ID) "
+               . "WHERE c.CandID = ? "
+               . "GROUP BY c.CandID, s.CenterID";
         $sth = $dbh->prepare($query);
         $sth->execute($subjectIDref->{'CandID'});
         if($sth->rows > 0) {
@@ -252,7 +253,7 @@ sub getSessionInformation {
     # Insert the new session setting Current_stage to 'Not started' because that column is important
     # to the behavioural data entry gui.
     $query = "INSERT INTO session "
-           . "SET CandID        = ?, "
+           . "SET CandidateID   = (SELECT ID FROM candidate WHERE CandID=?), "
            . "    Visit_label   = ?, "
            . "    CenterID      = ?, "
            . "    VisitNo       = ?, "
@@ -1022,25 +1023,31 @@ sub registerScanner {
 
     my $mriScannerOB = NeuroDB::objectBroker::MriScannerOB->new( db => $db );
     my $resultsRef = $mriScannerOB->get( { Serial_number => $serialNumber } );
-    my $candID = @$resultsRef > 0 ? $resultsRef->[0]->{'CandID'} : undef;
 
-    # create a new candidate for the scanner if it does not exist.
-    if(!defined($candID) || ($candID eq 'NULL')) {
-        $candID = createNewCandID($dbhr);
-        $query = "INSERT INTO candidate "
-                 . "(CandID,          PSCID,  RegistrationCenterID, RegistrationProjectID, Date_active,  "
-                 . " Date_registered, UserID, Entity_type) "
-                 . "VALUES "
-                 . "($candID, 'scanner', $centerID, $projectID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
-        $dbh->do($query);
-    }
+    my $scannerID = @$resultsRef > 0 ? $resultsRef->[0]->{'ID'} : undef;
+    my $candID = defined($scannerID)
+        ? $mriScannerOB->getScannerCandID($scannerID)
+        : undef;
+
+    return $scannerID if defined($candID) && $candID ne 'NULL';
+
+    # create a new candidate and a new scanner (it is assumed that if the scanner
+    # exists it has a corresponding record in table candidate)
+    $candID = createNewCandID($dbhr);
+    $query = "INSERT INTO candidate "
+           . "(CandID,          PSCID,  RegistrationCenterID, RegistrationProjectID, Date_active,  "
+           . " Date_registered, UserID, Entity_type) "
+           . "VALUES "
+           . "($candID, 'scanner', $centerID, $projectID, NOW(), NOW(), 'NeuroDB::MRI', 'Scanner')";
+    $dbh->do($query);
+    $candidateID = $dbh->{'mysql_insertid'};
 
     return $mriScannerOB->insertOne({
         Manufacturer  => $manufacturer,
         Model         => $model,
         Serial_number => $serialNumber,
         Software      => $softwareVersion,
-        CandID        => $candID
+        CandidateID   => $candidateID
     });
 }
 
@@ -1108,7 +1115,7 @@ sub getPSC {
     if ($PSCID && $visitLabel) {
         my $query = "SELECT s.CenterID, p.MRI_alias FROM session s
                     JOIN psc p on p.CenterID=s.CenterID
-                    JOIN candidate c on c.CandID=s.CandID
+                    JOIN candidate c on c.ID=s.CandidateID
                     WHERE c.PSCID = ? AND s.Visit_label = ?";
 
         my $sth = $${dbhr}->prepare($query);
@@ -1159,7 +1166,7 @@ sub getProject {
     ## and could be extracted
     if ($PSCID && $visitLabel) {
         my $query = "SELECT s.ProjectID FROM session s
-                    JOIN candidate c on c.CandID=s.CandID
+                    JOIN candidate c on c.ID=s.CandidateID
                     WHERE c.PSCID = ? AND s.Visit_label = ?";
 
         my $sth = $${dbhr}->prepare($query);
@@ -1232,7 +1239,7 @@ sub getCohort {
     ## and could be extracted
     if ($PSCID && $visitLabel) {
         my $query = "SELECT s.CohortID FROM session s
-                    JOIN candidate c on c.CandID=s.CandID
+                    JOIN candidate c on c.ID=s.CandidateID
                     WHERE c.PSCID = ? AND s.Visit_label = ?";
 
         my $sth = $${dbhr}->prepare($query);
@@ -1371,7 +1378,9 @@ sub make_pics {
     my $file = $$fileref;
     my $dbhr = $file->getDatabaseHandleRef();
 
-    my $sth = $${dbhr}->prepare("SELECT CandID, Visit_label FROM session WHERE ID=".$file->getFileDatum('SessionID'));
+    my $sth = $${dbhr}->prepare(
+        "SELECT c.CandID, s.Visit_label FROM session s JOIN candidate c ON (c.ID=s.CandidateID) WHERE s.ID=" . $file->getFileDatum('SessionID')
+    );
     $sth->execute();
     my $rowhr = $sth->fetchrow_hashref();
 

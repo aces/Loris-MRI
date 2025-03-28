@@ -414,12 +414,12 @@ sub getSessionID    {
     # get sessionID using sourceFileID
     my  ($sessionID, %subjectIDsref);
     my  $query  =   "SELECT f.SessionID, " .
-                           "s.CandID, " .
+                           "c.CandID, " .
                            "c.PSCID, " .
                            "s.Visit_label " .
                     "FROM files f " .
                     "JOIN session s ON (s.ID=f.SessionID) " .
-                    "JOIN candidate c USING (CandID) " .
+                    "JOIN candidate c ON (c.ID=s.CandidateID) " .
                     "WHERE FileID=?";
 
     my  $sth    =   $dbh->prepare($query);
