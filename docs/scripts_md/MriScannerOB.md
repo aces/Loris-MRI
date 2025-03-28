@@ -93,3 +93,13 @@ Gets the column names for table mri\_scanner.
 INPUT: None
 
 RETURN: Column names for table mri\_scanner.
+
+### getScannerCandID($scannerID)
+
+Fetches the CandID for the record in the `mri_scanner` table that has a given scanner ID.
+
+INPUTS:
+    - value of column `ID` for the scanner record.
+
+RETURN: the CandID in table `candidate` for the record with a given ID in table `mri_scanner`
+        (or `undef` if none can be found).

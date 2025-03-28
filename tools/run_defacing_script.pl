@@ -406,7 +406,10 @@ RETURNS: the candidate's C<CandID> and the session visit label
 sub grep_candID_visit_from_SessionID {
     my ($session_id) = @_;
 
-    my $query  = "SELECT CandID, Visit_label FROM session WHERE ID = ?";
+    my $query  = "SELECT candidate.CandID, session.Visit_label "
+               . "FROM session "
+               . "JOIN candidate ON (session.CandidateID=candidate.ID) "
+               . "WHERE session.ID = ?";
     my $result = $dbh->selectrow_hashref($query, undef, $session_id);
 
     my $cand_id     = $result->{'CandID'     };

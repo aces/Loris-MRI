@@ -220,7 +220,7 @@ my $tmpExtractDir = tempdir("$0.XXXX", DIR => $tmpExtractBaseDir, CLEANUP => 1);
 my $query = "SELECT c.PSCID, c.CandID, s.Visit_label, t.DateAcquired, t.ArchiveLocation, t.TarchiveID, t.PatientName "
           . "FROM tarchive t "
           . "JOIN session s ON (t.SessionID=s.ID) "
-          . "JOIN candidate c ON (c.CandID=s.CandID) "
+          . "JOIN candidate c ON (c.ID=s.CandidateID) "
           . "WHERE 1=1";
 
 # Add patient name clause (if any)

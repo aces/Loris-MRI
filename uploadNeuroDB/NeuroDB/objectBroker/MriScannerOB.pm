@@ -95,7 +95,7 @@ use TryCatch;
 
 my $TABLE_NAME = "mri_scanner";
 
-my @COLUMN_NAMES = qw(ID Manufacturer Model Serial_number Software CandID);
+my @COLUMN_NAMES = qw(ID Manufacturer Model Serial_number Software CandidateID);
 
 =pod
 
@@ -127,6 +127,43 @@ RETURN: Column names for table mri_scanner.
 
 sub getColumnNames {
 	return @COLUMN_NAMES;
+}
+
+
+=pod
+
+=head3 getScannerCandID($scannerID)
+
+Fetches the CandID for the record in the C<mri_scanner> table that has a given scanner ID.
+
+INPUTS:
+    - value of column C<ID> for the scanner record.
+
+RETURN: the CandID in table C<candidate> for the record with a given ID in table C<mri_scanner>
+        (or C<undef> if none can be found).
+=cut
+
+sub getScannerCandID {
+    my($self, $scannerID) = @_;
+
+    my $query = "SELECT CandID "
+              . "FROM candidate c JOIN mri_scanner m ON (m.CandidateID=c.ID) "
+              . "WHERE m.ID=?";
+
+    try {
+        my $resultRef = $self->db->pselect(
+            $query,
+            ($scannerID)
+        );
+        return @$resultRef ? $resultRef->[0]->{'CandID'} : undef;
+    } catch(NeuroDB::DatabaseException $e) {
+        NeuroDB::objectBroker::ObjectBrokerException->throw(
+            errorMessage => sprintf(
+                "Failed to get CandID for scanner $scannerID. Reason:\n%s",
+                $e
+            )
+        );
+    }
 }
 
 1;
