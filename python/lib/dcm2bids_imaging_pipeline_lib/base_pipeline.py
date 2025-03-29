@@ -7,15 +7,10 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_archive_location
 from lib.db.queries.mri_upload import try_get_mri_upload_with_id
-from lib.db.queries.session import try_get_session_with_cand_id_visit_label
-from lib.db.queries.site import get_all_sites
-from lib.exception.determine_subject_info_error import DetermineSubjectInfoError
-from lib.exception.validate_subject_info_error import ValidateSubjectInfoError
+from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.imaging import Imaging
 from lib.logging import log_error_exit, log_verbose, log_warning
 from lib.make_env import make_env
-from lib.scanner import get_or_create_scanner
-from lib.validate_subject_info import validate_subject_info
 
 
 class BasePipeline:
@@ -93,25 +88,36 @@ class BasePipeline:
         self.env.add_cleanup(self.end_upload)
         self.env.init_notifier(self.mri_upload.id)
 
-        # ---------------------------------------------------------------------------------
-        # Determine subject IDs based on DICOM headers and validate the IDs against the DB
-        # Verify PSC information stored in DICOMs
-        # Grep scanner information based on what is in the DICOM headers
-        # ---------------------------------------------------------------------------------
+    def init_session_info(self):
+        """
+        Get the session information and assign `self.session` and `self.scanner` for this pipeline.
+        """
+
         try:
-            self.subject_info = self.imaging_obj.determine_subject_info(self.dicom_archive)
-        except DetermineSubjectInfoError as error:
-            log_error_exit(self.env, error.message, lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
+            session_info = get_dicom_archive_session_info(self.env, self.dicom_archive)
 
-        # verify PSC information stored in DICOMs
-        self.site_dict = self.determine_study_info()
-        log_verbose(self.env, (
-            f"Found Center Name: {self.site_dict['CenterName']},"
-            f" Center ID: {self.site_dict['CenterID']}"
-        ))
+            self.session     = session_info.session
+            self.mri_scanner = session_info.scanner
 
-        # grep scanner information based on what is in the DICOM headers
-        self.mri_scanner = self.determine_scanner_info()
+            # Update the MRI upload.
+            self.mri_upload.is_candidate_info_validated = True
+            self.env.db.commit()
+
+            log_verbose(self.env, (
+                f"Found Center Name: {self.session.site.name},"
+                f" Center ID: {self.session.site.id}"
+            ))
+
+            log_verbose(self.env, f"Found scanner ID: {self.mri_scanner.id}")
+        except SessionConfigError as error:
+            log_warning(self.env, str(error))
+
+            self.session     = None
+            self.mri_scanner = None
+
+            # Update the MRI upload.
+            self.mri_upload.is_candidate_info_validated = False
+            self.env.db.commit()
 
     def load_mri_upload_and_dicom_archive(self):
         """
@@ -200,80 +206,6 @@ class BasePipeline:
                         ),
                         lib.exitcode.SELECT_FAILURE,
                     )
-
-    def determine_study_info(self):
-        """
-        Determine the study center associated to the DICOM archive based on a DICOM header
-        specified by the lookupCenterNameUsing config setting.
-
-        :return: dictionary with CenterName and CenterID information
-         :rtype: dict
-        """
-
-        # get the CenterID from the session table if the PSCID and visit label exists
-        # and could be extracted from the database
-        self.session = try_get_session_with_cand_id_visit_label(
-            self.env.db,
-            self.subject_info.cand_id,
-            self.subject_info.visit_label,
-        )
-
-        if self.session is not None:
-            return {"CenterName": self.session.site.mri_alias, "CenterID": self.session.site_id}
-
-        # if could not find center information based on cand_id and visit_label, use the
-        # patient name to match it to the site alias or MRI alias
-        sites = get_all_sites(self.env.db)
-        for site in sites:
-            if site.alias in self.subject_info.name:
-                return {"CenterName": site.alias, "CenterID": site.id}
-            elif site.mri_alias in self.subject_info.name:
-                return {"CenterName": site.mri_alias, "CenterID": site.id}
-
-        # if we got here, it means we could not find a center associated to the dataset
-        log_error_exit(
-            self.env,
-            "No center found for this DICOM study",
-            lib.exitcode.SELECT_FAILURE,
-        )
-
-    def determine_scanner_info(self):
-        """
-        Determine the scanner information found in the database for the uploaded DICOM archive.
-        """
-
-        mri_scanner = get_or_create_scanner(
-            self.env,
-            self.dicom_archive.scanner_manufacturer,
-            self.dicom_archive.scanner_model,
-            self.dicom_archive.scanner_serial_number,
-            self.dicom_archive.scanner_software_version,
-            self.site_dict['CenterID'],
-            self.session.project_id if self.session is not None else None,
-        )
-
-        log_verbose(self.env, f"Found scanner ID: {mri_scanner.id}")
-        return mri_scanner
-
-    def validate_subject_info(self):
-        """
-        Ensure that the subject PSCID/CandID corresponds to a single candidate in the candidate
-        table and that the visit label can be found in the Visit_Windows table. If those
-        conditions are not fulfilled.
-        """
-
-        try:
-            validate_subject_info(self.env.db, self.subject_info)
-
-            # Update the MRI upload.
-            self.mri_upload.is_candidate_info_validated = True
-            self.env.db.commit()
-        except ValidateSubjectInfoError as error:
-            log_warning(self.env, error.message)
-
-            # Update the MRI upload.
-            self.mri_upload.is_candidate_info_validated = False
-            self.env.db.commit()
 
     def check_if_tarchive_validated_in_db(self):
         """

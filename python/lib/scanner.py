@@ -1,4 +1,5 @@
 import random
+from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy.orm import Session as Database
@@ -10,12 +11,21 @@ from lib.db.queries.mri_scanner import try_get_scanner_with_info
 from lib.env import Env
 
 
+@dataclass
+class MriScannerInfo:
+    """
+    Information about an MRI scanner extracted from DICOM data.
+    """
+
+    manufacturer:     str | None
+    model:            str | None
+    serial_number:    str | None
+    software_version: str | None
+
+
 def get_or_create_scanner(
     env: Env,
-    manufacturer: str,
-    model: str,
-    serial_number: str,
-    software_version: str,
+    scanner_info: MriScannerInfo,
     site_id: int,
     project_id: int,
 ) -> DbMriScanner:
@@ -24,7 +34,13 @@ def get_or_create_scanner(
     not already exist.
     """
 
-    mri_scanner = try_get_scanner_with_info(env.db, manufacturer, model, serial_number, software_version)
+    mri_scanner = try_get_scanner_with_info(
+        env.db,
+        scanner_info.manufacturer,
+        scanner_info.model,
+        scanner_info.serial_number,
+        scanner_info.software_version,
+    )
 
     if mri_scanner is not None:
         return mri_scanner
@@ -48,10 +64,10 @@ def get_or_create_scanner(
     env.db.commit()
 
     mri_scanner = DbMriScanner(
-        manufacturer     = manufacturer,
-        model            = model,
-        serial_number    = serial_number,
-        software_version = software_version,
+        manufacturer     = scanner_info.manufacturer,
+        model            = scanner_info.model,
+        serial_number    = scanner_info.serial_number,
+        software_version = scanner_info.software_version,
         candidate_id     = candidate.id,
     )
 

@@ -25,6 +25,16 @@ def try_get_project_with_name(db: Database, name: str) -> DbProject | None:
     ).scalar_one_or_none()
 
 
+def try_get_project_with_alias(db: Database, alias: str) -> DbProject | None:
+    """
+    Try to get a project from the database using its alias, or return `None` if no project is found.
+    """
+
+    return db.execute(select(DbProject)
+        .where(DbProject.alias == alias)
+    ).scalar_one_or_none()
+
+
 def try_get_project_cohort_with_project_id_cohort_id(
     db: Database,
     project_id: int,

@@ -30,6 +30,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         """
 
         super().__init__(loris_getopt_obj, script_name)
+        self.init_session_info()
 
         # ---------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
@@ -266,7 +267,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
         # remove empty folders from file system
         print("Cleaning up empty folders")
-        bids_cand_id = f"sub-{self.subject_info.cand_id}"
+        bids_cand_id = f"sub-{self.session.candidate.cand_id}"
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
-        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", str(self.subject_info.cand_id)))
+        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", str(self.session.candidate.cand_id)))
         lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "trashbin"))

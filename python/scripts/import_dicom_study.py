@@ -12,7 +12,7 @@ import lib.import_dicom_study.text
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.queries.config import get_config_with_setting_name
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_uid
-from lib.get_subject_session import get_subject_session
+from lib.get_session_info import SessionConfigError
 from lib.import_dicom_study.dicom_database import insert_dicom_archive, update_dicom_archive
 from lib.import_dicom_study.import_log import (
     make_dicom_study_import_log,
@@ -20,12 +20,12 @@ from lib.import_dicom_study.import_log import (
     write_dicom_study_import_log_to_string,
 )
 from lib.import_dicom_study.summary_get import get_dicom_study_summary
+from lib.import_dicom_study.summary_util import get_dicom_study_summary_session_info
 from lib.import_dicom_study.summary_write import write_dicom_study_summary_to_file
 from lib.logging import log, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env
 from lib.util.fs import iter_all_dir_files
-from lib.validate_subject_info import validate_subject_info
 
 
 class Args:
@@ -179,14 +179,12 @@ def main() -> None:
 
     session = None
     if args.session:
-        # TODO: Factorize this code into a streamlined way to get the session from the configuration.
-        subject_info = loris_getopt_obj.config_info.get_subject_info(  # type: ignore
-            loris_getopt_obj.db,
-            str(dicom_summary.info.patient.name)
-        )
+        try:
+            session_info = get_dicom_study_summary_session_info(env, dicom_summary)
+        except SessionConfigError as error:
+            log_error_exit(env, str(error))
 
-        validate_subject_info(env.db, subject_info)
-        session = get_subject_session(env, subject_info)
+        session = session_info.session
 
     log(env, 'Checking DICOM scan date...')
 
