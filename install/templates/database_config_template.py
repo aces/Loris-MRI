@@ -33,9 +33,9 @@ def get_session_config(db: Database, patient_id: str) -> SessionCandidateConfig 
 
     if phantom_match:
         return SessionPhantomConfig(
-            name       = patient_id,
-            site_id    = 1,  # Change to the relevant site ID.
-            project_id = 1,  # Change to the relevant project ID.
+            name    = patient_id,
+            site    = 'SITE',  # Change to the relevant site alias.
+            project = 'PROJECT',  # Change to the relevant project alias.
         )
     elif candidate_match:
         return SessionCandidateConfig(

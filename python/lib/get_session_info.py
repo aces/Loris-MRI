@@ -11,10 +11,10 @@ from lib.db.models.project import DbProject
 from lib.db.models.session import DbSession
 from lib.db.models.site import DbSite
 from lib.db.queries.candidate import try_get_candidate_with_cand_id
-from lib.db.queries.cohort import try_get_cohort_with_id
-from lib.db.queries.project import try_get_project_cohort_with_project_id_cohort_id, try_get_project_with_id
+from lib.db.queries.cohort import try_get_cohort_with_name
+from lib.db.queries.project import try_get_project_cohort_with_project_id_cohort_id, try_get_project_with_alias
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
-from lib.db.queries.site import try_get_site_with_id
+from lib.db.queries.site import try_get_site_with_alias
 from lib.db.queries.visit import try_get_visit_window_with_visit_label, try_get_visit_with_visit_label
 from lib.env import Env
 from lib.scanner import MriScannerInfo, get_or_create_scanner
@@ -91,13 +91,15 @@ def get_session_info(env: Env, patient_id: str, scanner_info: MriScannerInfo) ->
     """
 
     try:
-        session_config = env.config_info.get_session_config(env.db, patient_id)
+        get_session_config = env.config_info.get_session_config
     except AttributeError:
         raise SessionConfigError("Function `get_session_config` not found in the Python configuration file.")
 
+    session_config = get_session_config(env.db, patient_id)
+
     if session_config is None:
         raise SessionConfigError(
-            f"No session configuration returned by `get_session_config` for patient ID '{patient_id}'."
+            f"No session returned by function `get_session_config` for patient ID '{patient_id}'."
         )
 
     return get_session_config_info(env, session_config, scanner_info)
@@ -138,9 +140,8 @@ def get_candidate_session_info(
         raise_session_config_error(
             session_config,
             (
-                f"Candidate {session_config.cand_id} PSCID does not match the session configuration PSCID.\n"
-                f"The candidate PSCID is '{candidate.psc_id}', the session configuration PSCID is"
-                f" '{session_config.psc_id}'."
+                f"Session PSCID and CandID mismatch. No candidate has both CandID {candidate.cand_id} and PSCID"
+                f" '{candidate.psc_id}'."
             )
         )
 
@@ -181,15 +182,15 @@ def get_candidate_create_session_info(env: Env, session_config: SessionCandidate
             f"No visit window found for visit '{session_config.visit_label}'."
         )
 
-    site    = get_session_site(env, session_config, session_config.create_session.site_id)
-    project = get_session_project(env, session_config, session_config.create_session.project_id)
-    cohort  = get_session_cohort(env, session_config, session_config.create_session.cohort_id)
+    site    = get_session_site(env, session_config, session_config.create_session.site)
+    project = get_session_project(env, session_config, session_config.create_session.project)
+    cohort  = get_session_cohort(env, session_config, session_config.create_session.cohort)
 
     project_cohort = try_get_project_cohort_with_project_id_cohort_id(env.db, project.id, cohort.id)
     if project_cohort is None:
         raise_session_config_error(
             session_config,
-            f"No assiciation found for project '{project.name}' and cohort '{cohort.name}'."
+            f"No association found for project '{project.name}' and cohort '{cohort.name}'."
         )
 
     return CreateSessionInfo(
@@ -216,14 +217,14 @@ def get_phantom_session_info(
     return SessionInfo(session, scanner)
 
 
-def get_phantom_create_session_info(env: Env, session_info: SessionPhantomConfig) -> CreateSessionInfo:
+def get_phantom_create_session_info(env: Env, session_config: SessionPhantomConfig) -> CreateSessionInfo:
     """
     Get the session creation information for a phantom session configuration, or raise a
     `SessionConfigError` if that configuration is incorrect.
     """
 
-    site    = get_session_site(env, session_info, session_info.site_id)
-    project = get_session_project(env, session_info, session_info.project_id)
+    site    = get_session_site(env, session_config, session_config.site)
+    project = get_session_project(env, session_config, session_config.project)
 
     return CreateSessionInfo(
         site    = site,
@@ -261,41 +262,41 @@ def create_session(
     return session
 
 
-def get_session_site(env: Env, session_config: SessionConfig, site_id: int) -> DbSite:
+def get_session_site(env: Env, session_config: SessionConfig, site_alias: str) -> DbSite:
     """
-    Get the site for a session configuration site ID, or raise a `SessionConfigError` if that ID is
-    incorrect.
+    Get the site for a session configuration site alias, or raise a `SessionConfigError` if that
+    alias is incorrect.
     """
 
-    site = try_get_site_with_id(env.db, site_id)
+    site = try_get_site_with_alias(env.db, site_alias)
     if site is None:
-        raise_session_config_error(session_config, f"No site found for site ID {site_id}.")
+        raise_session_config_error(session_config, f"No site found for site alias '{site_alias}'.")
 
     return site
 
 
-def get_session_project(env: Env, session_config: SessionConfig, project_id: int) -> DbProject:
+def get_session_project(env: Env, session_config: SessionConfig, project_alias: str) -> DbProject:
     """
-    Get the project for a session configuration project ID, or raise a `SessionConfigError` if that
-    ID is incorrect.
+    Get the project for a session configuration project alias, or raise a `SessionConfigError` if
+    that alias is incorrect.
     """
 
-    project = try_get_project_with_id(env.db, project_id)
+    project = try_get_project_with_alias(env.db, project_alias)
     if project is None:
-        raise_session_config_error(session_config, f"No project found for project ID {project_id}.")
+        raise_session_config_error(session_config, f"No project found for project alias '{project_alias}'.")
 
     return project
 
 
-def get_session_cohort(env: Env, session_config: SessionConfig, cohort_id: int) -> DbCohort:
+def get_session_cohort(env: Env, session_config: SessionConfig, cohort_name: str) -> DbCohort:
     """
-    Get the cohort for a session configuration cohort ID, or raise a `SessionConfigError` if that
-    ID is incorrect.
+    Get the cohort for a session configuration cohort name, or raise a `SessionConfigError` if that
+    name is incorrect.
     """
 
-    cohort = try_get_cohort_with_id(env.db, cohort_id)
+    cohort = try_get_cohort_with_name(env.db, cohort_name)
     if cohort is None:
-        raise_session_config_error(session_config, f"No cohort found for cohort ID {cohort_id}.")
+        raise_session_config_error(session_config, f"No cohort found for cohort name '{cohort_name}'.")
 
     return cohort
 
@@ -325,4 +326,4 @@ def raise_session_config_error(session_config: SessionConfig, message: str) -> N
         case SessionPhantomConfig():
             session_name = session_config.name
 
-    raise SessionConfigError(f"Error in session configuration ({session_name}):\n{message}")
+    raise SessionConfigError(f"Configuration error for session ({session_name}):\n{message}")

@@ -26,6 +26,16 @@ def try_get_site_with_name(db: Database, name: str) -> DbSite | None:
     ).scalar_one_or_none()
 
 
+def try_get_site_with_alias(db: Database, alias: str) -> DbSite | None:
+    """
+    Get a site from the database using its alias, or return `None` if no site is found.
+    """
+
+    return db.execute(select(DbSite)
+        .where(DbSite.alias == alias)
+    ).scalar_one_or_none()
+
+
 def get_all_sites(db: Database) -> Sequence[DbSite]:
     """
     Get a sequence of all sites from the database.

@@ -40,9 +40,20 @@ class CreateSessionConfig:
     Configuration information used to create the session of a candidate scan.
     """
 
-    site_id:    int
-    project_id: int
-    cohort_id:  int
+    site: str
+    """
+    Alias of the session site.
+    """
+
+    project: str
+    """
+    Alias of the session project.
+    """
+
+    cohort: str
+    """
+    Name of the session cohort.
+    """
 
 
 @dataclass
@@ -64,8 +75,19 @@ class SessionPhantomConfig:
     """
 
     name: str
-    site_id: int
-    project_id: int
+    """
+    Name of the phantom scan.
+    """
+
+    site: str
+    """
+    Alias of the phantom site.
+    """
+
+    project: str
+    """
+    Alias of the phantom project.
+    """
 
 
 # TODO: Replace with type alias in Python 3.12.
