@@ -31,7 +31,7 @@ class DicomValidationPipeline(BasePipeline):
          :type script_name: str
         """
         super().__init__(loris_getopt_obj, script_name)
-        self.validate_subject_info()
+        self.init_session_info()
         self._validate_dicom_archive_md5sum()
 
         # ---------------------------------------------------------------------------------------------

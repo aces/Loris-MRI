@@ -16,8 +16,10 @@ def make_env(loris_get_opt: LorisGetOpt):
     Create a new script environment using the provided LORIS options object.
     """
 
+    config_info = cast(Any, loris_get_opt.config_info)
+
     verbose = cast(bool, loris_get_opt.options_dict['verbose']['value'])
-    config = cast(DatabaseConfig, loris_get_opt.config_info.mysql)  # type: ignore
+    db_config = cast(DatabaseConfig, config_info.mysql)
     script_name = cast(str, loris_get_opt.script_name)
 
     # Connect to the database
@@ -25,14 +27,14 @@ def make_env(loris_get_opt: LorisGetOpt):
     if verbose:
         print(
             'Connecting to the database using the following configuration:\n'
-            f'  Host: {config.host}\n'
-            f'  Port: {config.port}\n'
-            f'  Database: {config.database}\n'
-            f'  Username: {config.username}\n'
+            f'  Host: {db_config.host}\n'
+            f'  Port: {db_config.port}\n'
+            f'  Database: {db_config.database}\n'
+            f'  Username: {db_config.username}\n'
             '  (password hidden)'
         )
 
-    engine = get_database_engine(config)
+    engine = get_database_engine(db_config)
     db = Session(engine)
 
     # Create the log file
@@ -49,6 +51,7 @@ def make_env(loris_get_opt: LorisGetOpt):
         engine,
         db,
         script_name,
+        config_info,
         log_file,
         verbose,
         [],
