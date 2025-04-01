@@ -5,6 +5,7 @@ import lib.exitcode
 import lib.utilities
 from lib.config import get_data_dir_path_config, get_dicom_archive_dir_path_config
 from lib.database import Database
+from lib.database_lib.config import Config
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_archive_location
 from lib.db.queries.mri_upload import try_get_mri_upload_with_id
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
@@ -57,6 +58,7 @@ class BasePipeline:
         # Load the Imaging database class
         # -----------------------------------------------------------------------------------
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
+        self.config_db_obj = Config(self.db, self.verbose)
 
         # ---------------------------------------------------------------------------------------------
         # Create tmp dir and log file (their basename being the name of the script run)
