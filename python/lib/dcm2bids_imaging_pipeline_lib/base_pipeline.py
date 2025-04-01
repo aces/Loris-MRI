@@ -175,7 +175,7 @@ class BasePipeline:
             self.dicom_archive = self.mri_upload.dicom_archive
 
         elif tarchive_path:
-            archive_location = tarchive_path.replace(self.dicom_lib_dir, "")
+            archive_location = os.path.relpath(tarchive_path, self.dicom_lib_dir)
             dicom_archive = try_get_dicom_archive_with_archive_location(self.env.db, archive_location)
             if dicom_archive is None:
                 log_error_exit(
