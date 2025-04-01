@@ -1,11 +1,13 @@
 import os
+import sys
 from typing import Any, cast
 
 from sqlalchemy.orm import Session
 
+import lib.exitcode
 from lib.config_file import DatabaseConfig
 from lib.db.connect import get_database_engine
-from lib.db.queries.config import get_config_with_setting_name
+from lib.db.queries.config import try_get_config_with_setting_name
 from lib.env import Env
 from lib.logging import log_verbose, write_to_log_file
 from lib.lorisgetopt import LorisGetOpt
@@ -39,7 +41,12 @@ def make_env(loris_get_opt: LorisGetOpt):
 
     # Create the log file
 
-    data_dir = str(get_config_with_setting_name(db, 'dataDirBasepath').value)
+    data_dir_config = try_get_config_with_setting_name(db, 'dataDirBasepath')
+    if data_dir_config is None or data_dir_config.value is None:
+        print("Missing 'dataDirBasepath' configuration in the database.", file=sys.stderr)
+        sys.exit(lib.exitcode.BAD_CONFIG_SETTING)
+
+    data_dir = data_dir_config.value
     tmp_dir = os.path.basename(loris_get_opt.tmp_dir)
     log_dir = os.path.join(data_dir, 'logs', script_name)
     if not os.path.isdir(log_dir):

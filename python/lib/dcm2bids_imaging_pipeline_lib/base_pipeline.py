@@ -3,6 +3,7 @@ import shutil
 
 import lib.exitcode
 import lib.utilities
+from lib.config import get_data_dir_path_config, get_dicom_archive_dir_path_config
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_archive_location
@@ -54,16 +55,10 @@ class BasePipeline:
         self.db.connect()
 
         # -----------------------------------------------------------------------------------
-        # Load the Config, Imaging, ImagingUpload, Tarchive, Session database classes
+        # Load the Imaging database class
         # -----------------------------------------------------------------------------------
-        self.config_db_obj = Config(self.db, self.verbose)
         self.imaging_obj = Imaging(self.db, self.verbose, self.config_file)
-
-        # ---------------------------------------------------------------------------------------------
-        # Grep config settings from the Config module
-        # ---------------------------------------------------------------------------------------------
-        self.data_dir = self.config_db_obj.get_config("dataDirBasepath")
-        self.dicom_lib_dir = self.config_db_obj.get_config('tarchiveLibraryDir')
+        self.config_db_obj = Config(self.db, self.verbose)
 
         # ---------------------------------------------------------------------------------------------
         # Create tmp dir and log file (their basename being the name of the script run)
@@ -71,6 +66,12 @@ class BasePipeline:
         self.tmp_dir = self.loris_getopt_obj.tmp_dir
         self.env = make_env(self.loris_getopt_obj)
         self.env.add_cleanup(self.remove_tmp_dir)
+
+        # ---------------------------------------------------------------------------------------------
+        # Grep config settings from the config module
+        # ---------------------------------------------------------------------------------------------
+        self.data_dir = get_data_dir_path_config(self.env)
+        self.dicom_lib_dir = get_dicom_archive_dir_path_config(self.env)
 
         # ---------------------------------------------------------------------------------------------
         # Load imaging_upload and tarchive dictionary
@@ -176,7 +177,7 @@ class BasePipeline:
             self.dicom_archive = self.mri_upload.dicom_archive
 
         elif tarchive_path:
-            archive_location = tarchive_path.replace(self.dicom_lib_dir, "")
+            archive_location = os.path.relpath(tarchive_path, self.dicom_lib_dir)
             dicom_archive = try_get_dicom_archive_with_archive_location(self.env.db, archive_location)
             if dicom_archive is None:
                 log_error_exit(
