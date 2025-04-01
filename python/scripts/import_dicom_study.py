@@ -9,8 +9,8 @@ from typing import Any, cast
 
 import lib.exitcode
 import lib.import_dicom_study.text
+from lib.config import get_dicom_archive_dir_path_config
 from lib.db.models.dicom_archive import DbDicomArchive
-from lib.db.queries.config import get_config_with_setting_name
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_uid
 from lib.get_session_info import SessionConfigError
 from lib.import_dicom_study.dicom_database import insert_dicom_archive, update_dicom_archive
@@ -137,6 +137,10 @@ def main() -> None:
             lib.exitcode.INVALID_ARG,
         )
 
+    # Load configuration values.
+
+    dicom_archive_dir_path = get_dicom_archive_dir_path_config(env)
+
     # Utility variables.
 
     dicom_study_name = os.path.basename(args.source)
@@ -187,11 +191,6 @@ def main() -> None:
         session = session_info.session
 
     log(env, 'Checking DICOM scan date...')
-
-    # TODO: Factorize this into a `lib.config` module and add some checks (directory exists, permissions).
-    dicom_archive_dir_path = get_config_with_setting_name(env.db, 'tarchiveLibraryDir').value
-    if dicom_archive_dir_path is None:
-        log_error_exit(env, "No value found for configuration setting 'tarchiveLibraryDir'.")
 
     if dicom_summary.info.scan_date is None:
         log_warning(env, "No DICOM scan date found in the DICOM files.")
