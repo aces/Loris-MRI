@@ -5,9 +5,8 @@ from lib.exitcode import (
     INVALID_PATH,
     MISSING_ARG,
     SELECT_FAILURE,
-    UNKNOWN_PROTOCOL
+    UNKNOWN_PROTOCOL,
 )
-
 from tests.util.run_integration_script import run_integration_script
 
 
