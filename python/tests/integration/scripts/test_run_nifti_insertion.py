@@ -311,6 +311,6 @@ def test_nifti_mri_protocol_violated_scans():
         phase_encoding_direction
     )
     # Check that the file was not inserted in files table (still only one file in the files table)
-    assert len(mri_upload.session.files) == 1
+    assert mri_upload.session and len(mri_upload.session.files) == 1
     #
     assert violated_scans is not None
