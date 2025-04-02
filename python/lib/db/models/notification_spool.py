@@ -14,7 +14,7 @@ class DbNotificationSpool(Base):
     id           : Mapped[int]             = mapped_column('NotificationID', primary_key=True)
     type_id      : Mapped[int] \
         = mapped_column('NotificationTypeID', ForeignKey('notification_types.NotificationTypeID'))
-    process_id   : Mapped[int]             = mapped_column('ProcessID')
+    process_id   : Mapped[int | None]      = mapped_column('ProcessID')
     time_spooled : Mapped[datetime | None] = mapped_column('TimeSpooled')
     message      : Mapped[str | None]      = mapped_column('Message')
     error        : Mapped[bool | None]     = mapped_column('Error', YNBool)
