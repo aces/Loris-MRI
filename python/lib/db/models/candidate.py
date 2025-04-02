@@ -3,6 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.mri_protocol_violated_scans as db_mri_protocol_violated_scans
 import lib.db.models.project as db_project
 import lib.db.models.session as db_session
 import lib.db.models.site as db_site
@@ -45,3 +46,5 @@ class DbCandidate(Base):
         = relationship('DbSite')
     registration_project : Mapped['db_project.DbProject'] \
         = relationship('DbProject')
+    violated_scans       : Mapped['db_mri_protocol_violated_scans.DbMriProtocolViolatedScans'] \
+        = relationship('DbMriProtocolViolatedScans', back_populates='candidate')
