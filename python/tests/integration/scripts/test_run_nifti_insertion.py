@@ -1,4 +1,5 @@
-from lib.exitcode import FILE_NOT_UNIQUE, FILENAME_MISMATCH, GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE
+from lib.exitcode import FILE_NOT_UNIQUE, FILENAME_MISMATCH, GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, \
+    SELECT_FAILURE, UNKNOWN_PROTOCOL
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -246,5 +247,30 @@ def test_nifti_already_uploaded():
                       f" EchoTime 0.027, EchoNumber None and PhaseEncodingDirection j-. The already registered" \
                       f" file is {nifti_path.replace('/data/loris/', '')}"
     assert process.returncode == FILE_NOT_UNIQUE
+    assert expected_stderr in process.stderr
+    assert process.stdout == ""
+
+
+def test_nifti_mri_protocol_violated_scans():
+
+    series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
+    nifti_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.nii.gz'
+    json_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.json'
+    upload_id = '128'
+
+    # Run the script to test
+    process = run_integration_script(
+        command=[
+            'run_nifti_insertion.py',
+            '--profile', 'database_config.py',
+            '--nifti_path', nifti_path,
+            '--upload_id', upload_id,
+            '--json_path', json_path,
+        ]
+    )
+
+    # Check return code, STDOUT and STDERR
+    expected_stderr = f"ERROR: {nifti_path}'s acquisition protocol is 'unknown'."
+    assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
