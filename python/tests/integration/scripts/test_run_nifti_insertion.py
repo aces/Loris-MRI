@@ -1,4 +1,4 @@
-from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE, SUCCESS
+from lib.exitcode import FILENAME_MISMATCH, GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE, SUCCESS
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -191,9 +191,33 @@ def test_tarchive_path_and_upload_id_provided():
     )
 
     # Check return code, STDOUT and STDERR
-    expected_stdout = "ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
+    expected_stdout = "[ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
                       " (if no upload_id or tarchive_path is available for the NIfTI file to be uploaded)." \
                       " Make sure that you set only one of those options. Upload will exit now."
-    assert process.returncode == GETOPT_FAILURE
+    assert process.returncode == MISSING_ARG
     assert expected_stdout in process.stdout
     assert process.stderr == ""
+
+
+def test_nifti_and_tarchive_patient_name_differ():
+
+    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_localizer_invalid_pname.nii.gz'
+    json_path = '/data/loris/incoming/niftis/MTL001_300001_V2_localizer_invalid_pname.nii.gz'
+    upload_id = '126'
+
+    # Run the script to test
+    process = run_integration_script(
+        command=[
+            'run_nifti_insertion.py',
+            '--profile', 'database_config.py',
+            '--nifti_path', nifti_path,
+            '--upload_id', upload_id,
+            '--json_path', json_path,
+        ]
+    )
+
+    # Check return code, STDOUT and STDERR
+    expected_stderr = "ERROR: PatientName in DICOM and NIfTI files differ."
+    assert process.returncode == FILENAME_MISMATCH
+    assert expected_stderr in process.stderr
+    assert process.stdout == ""
