@@ -9,7 +9,6 @@ from lib.exitcode import (
     UNKNOWN_PROTOCOL,
 )
 from tests.util.database import get_integration_database_session
-from tests.util.file_system import check_file_tree
 from tests.util.run_integration_script import run_integration_script
 
 

@@ -40,7 +40,8 @@ class DbMriProtocolViolatedScans(Base):
     mri_protocol_group_id    : Mapped[int | None]      \
         = mapped_column('MriProtocolGroupID', ForeignKey('mri_protocol_group.MriProtocolGroupID'))
 
-    candidate     : Mapped[Optional['db_candidate.DbCandidate']] = relationship('DbCandidate', back_populates='sessions')
+    candidate     : Mapped[Optional['db_candidate.DbCandidate']] \
+        = relationship('DbCandidate', back_populates='violated_scans')
     archive       : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
         = relationship('DbDicomArchive', back_populates='violated_scans')
     protocol_group: Mapped['db_mri_protocol_group.DbMriProtocolGroup']\
