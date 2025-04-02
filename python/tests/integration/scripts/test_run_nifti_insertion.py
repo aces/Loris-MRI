@@ -1,5 +1,11 @@
-from lib.exitcode import FILE_NOT_UNIQUE, FILENAME_MISMATCH, GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, \
-    SELECT_FAILURE, UNKNOWN_PROTOCOL
+from lib.exitcode import \
+    FILE_NOT_UNIQUE, \
+    FILENAME_MISMATCH, \
+    GETOPT_FAILURE, \
+    INVALID_PATH, \
+    MISSING_ARG, \
+    SELECT_FAILURE, \
+    UNKNOWN_PROTOCOL
 
 from tests.util.run_integration_script import run_integration_script
 
@@ -275,3 +281,5 @@ def test_nifti_mri_protocol_violated_scans():
     assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
+
+    # TODO add checks in db tables
