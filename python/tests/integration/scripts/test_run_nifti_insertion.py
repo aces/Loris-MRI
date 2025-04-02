@@ -1,3 +1,4 @@
+from lib.db.queries.mri_protocol_violated_scans import try_get_protocol_violated_scans_with_unique_series_combination
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import (
     FILE_NOT_UNIQUE,
@@ -263,7 +264,10 @@ def test_nifti_already_uploaded():
 def test_nifti_mri_protocol_violated_scans():
     db = get_integration_database_session()
 
-    # series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
+    series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
+    phase_encoding_direction = 'i'
+    echo_time = '0.005'
+    echo_number = None
     nifti_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.nii.gz'
     json_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.json'
     upload_id = '128'
@@ -299,6 +303,13 @@ def test_nifti_mri_protocol_violated_scans():
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
+    violated_scans = try_get_protocol_violated_scans_with_unique_series_combination(
+        db,
+        series_uid,
+        echo_time,
+        echo_number,
+        phase_encoding_direction
+    )
     # Check that files was not inserted in files table (still only one file in the files table)
     assert len(mri_upload.session.files) == 1
 
