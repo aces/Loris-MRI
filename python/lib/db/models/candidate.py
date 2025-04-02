@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -46,5 +47,5 @@ class DbCandidate(Base):
         = relationship('DbSite')
     registration_project : Mapped['db_project.DbProject'] \
         = relationship('DbProject')
-    violated_scans       : Mapped['db_mri_protocol_violated_scans.DbMriProtocolViolatedScans'] \
+    violated_scans       : Mapped[Optional['db_mri_protocol_violated_scans.DbMriProtocolViolatedScans']] \
         = relationship('DbMriProtocolViolatedScans', back_populates='candidate')
