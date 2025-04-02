@@ -1,3 +1,4 @@
+from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import (
     FILE_NOT_UNIQUE,
     FILENAME_MISMATCH,
@@ -7,6 +8,8 @@ from lib.exitcode import (
     SELECT_FAILURE,
     UNKNOWN_PROTOCOL,
 )
+from tests.util.database import get_integration_database_session
+from tests.util.file_system import check_file_tree
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -259,6 +262,7 @@ def test_nifti_already_uploaded():
 
 
 def test_nifti_mri_protocol_violated_scans():
+    db = get_integration_database_session()
 
     # series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
     nifti_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.nii.gz'
@@ -282,4 +286,20 @@ def test_nifti_mri_protocol_violated_scans():
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
-    # TODO add checks in db tables
+    # Check that the expected files have been created
+    # assert check_file_tree('/data/loris/trashbin/', {
+    #     'sub-300001': {
+    #         'ses-V2': {
+    #             'anat': {
+    #                 'sub-300001_ses-V2_run-1_T1w.json': None,
+    #                 'sub-300001_ses-V2_run-1_T1w.nii.gz': None,
+    #             }
+    #         }
+    #     }
+    # })
+
+    # Check that the expected data has been inserted in the database
+    mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
+    # Check that files was not inserted in files table (still only one file in the files table)
+    assert len(mri_upload.session.files) == 1
+

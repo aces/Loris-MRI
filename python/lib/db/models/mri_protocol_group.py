@@ -1,0 +1,18 @@
+from datetime import date
+
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+import lib.db.models.mri_protocol_violated_scans as db_mri_protocol_violated_scans
+
+from lib.db.base import Base
+
+
+class DbMriProtocolGroup(Base):
+    __tablename__ = 'mri_protocol_group'
+
+    id   : Mapped[int] = mapped_column('MriProtocolGroupID', primary_key=True)
+    name : Mapped[str] = mapped_column('Name')
+
+    violated_scans: Mapped['db_mri_protocol_violated_scans.DbMriProtocolViolatedScans'] \
+        = relationship('DbMriProtocolViolatedScans', back_populates='protocol_group')
