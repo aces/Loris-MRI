@@ -302,7 +302,7 @@ def test_nifti_mri_protocol_violated_scans():
     # })
 
     # Check that the expected data has been inserted in the database
-    mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
+    mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
     violated_scans = try_get_protocol_violated_scans_with_unique_series_combination(
         db,
         series_uid,
@@ -310,6 +310,7 @@ def test_nifti_mri_protocol_violated_scans():
         echo_number,
         phase_encoding_direction
     )
-    # Check that files was not inserted in files table (still only one file in the files table)
+    # Check that the file was not inserted in files table (still only one file in the files table)
     assert len(mri_upload.session.files) == 1
+    #
     assert violated_scans is not None
