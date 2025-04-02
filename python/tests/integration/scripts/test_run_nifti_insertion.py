@@ -29,9 +29,8 @@ def test_missing_nifti_path_argument():
     )
 
     # Check return code, STDOUT and STDERR
-    expected_stdout = f"[ERROR   ] argument --nifti_path is required"
     assert process.returncode == MISSING_ARG
-    assert expected_stdout in process.stdout
+    assert "[ERROR   ] argument --nifti_path is required" in process.stdout
     assert process.stderr == ""
 
 
@@ -69,9 +68,9 @@ def test_missing_upload_id_or_tarchive_path():
     )
 
     # Check return code, STDOUT and STDERR
-    expected_stdout = f"[ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
-                      f" (if no upload_id or tarchive_path is available for the NIfTI file to be uploaded)." \
-                      f" Make sure that you set only one of those options. Upload will exit now."
+    expected_stdout = "[ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
+                      " (if no upload_id or tarchive_path is available for the NIfTI file to be uploaded)." \
+                      " Make sure that you set only one of those options. Upload will exit now."
     assert process.returncode == MISSING_ARG
     assert expected_stdout in process.stdout
     assert process.stderr == ""
@@ -93,8 +92,8 @@ def test_missing_json_path():
     )
 
     # Check return code, STDOUT and STDERR
-    expected_stdout = f"[ERROR   ] a json_path or a loris_scan_type need to be provided" \
-                      f" in order to determine the image file protocol."
+    expected_stdout = "[ERROR   ] a json_path or a loris_scan_type need to be provided" \
+                      " in order to determine the image file protocol."
     assert process.returncode == MISSING_ARG
     assert expected_stdout in process.stdout
     assert process.stderr == ""
@@ -192,9 +191,9 @@ def test_tarchive_path_and_upload_id_provided():
     )
 
     # Check return code, STDOUT and STDERR
-    expected_stdout = f"ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
-                      f" (if no upload_id or tarchive_path is available for the NIfTI file to be uploaded)." \
-                      f" Make sure that you set only one of those options. Upload will exit now."
+    expected_stdout = "ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
+                      " (if no upload_id or tarchive_path is available for the NIfTI file to be uploaded)." \
+                      " Make sure that you set only one of those options. Upload will exit now."
     assert process.returncode == GETOPT_FAILURE
     assert expected_stdout in process.stdout
     assert process.stderr == ""
