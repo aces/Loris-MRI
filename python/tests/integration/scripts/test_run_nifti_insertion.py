@@ -1,3 +1,5 @@
+import os.path
+
 from lib.db.queries.mri_protocol_violated_scans import try_get_protocol_violated_scans_with_unique_series_combination
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import (
@@ -301,7 +303,7 @@ def test_nifti_mri_protocol_violated_scans():
     #     }
     # })
 
-    # Check that the expected data has been inserted in the database
+    # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
     violated_scans = try_get_protocol_violated_scans_with_unique_series_combination(
         db,
@@ -310,7 +312,9 @@ def test_nifti_mri_protocol_violated_scans():
         echo_number,
         phase_encoding_direction
     )
-    # Check that the file was not inserted in files table (still only one file in the files table)
+    # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
     assert mri_upload.session and len(mri_upload.session.files) == 1
-    #
+    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table
     assert violated_scans is not None
+    assert violated_scans.minc_location is not None
+    assert os.path.exists(os.path.join('/data/loris/', str(violated_scans.minc_location)))
