@@ -268,8 +268,8 @@ def test_nifti_mri_protocol_violated_scans():
     phase_encoding_direction = 'i'
     echo_time = '0.005'
     echo_number = None
-    nifti_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.nii.gz'
-    json_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.json'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_unknown_scan_type.nii.gz'
+    json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_unknown_scan_type.json'
     upload_id = '128'
 
     # Run the script to test
