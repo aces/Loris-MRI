@@ -1,4 +1,4 @@
-from lib.exitcode import FILENAME_MISMATCH, FILE_NOT_UNIQUE, GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE
+from lib.exitcode import FILE_NOT_UNIQUE, FILENAME_MISMATCH, GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE
 from tests.util.run_integration_script import run_integration_script
 
 
