@@ -56,7 +56,7 @@ def test_invalid_nifti_path():
 
 def test_missing_upload_id_or_tarchive_path():
 
-    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.nii.gz'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
 
     # Run the script to test
     process = run_integration_script(
@@ -78,8 +78,8 @@ def test_missing_upload_id_or_tarchive_path():
 
 def test_missing_json_path():
 
-    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.nii.gz'
-    upload_id = '126'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
+    upload_id = '128'
 
     # Run the script to test
     process = run_integration_script(
@@ -101,9 +101,9 @@ def test_missing_json_path():
 
 def test_incorrect_json_path():
 
-    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.nii.gz'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
     json_path = '/data/tmp/non-existent-file.json'
-    upload_id = '126'
+    upload_id = '128'
 
     # Run the script to test
     process = run_integration_script(
@@ -125,8 +125,8 @@ def test_incorrect_json_path():
 
 def test_invalid_upload_id():
 
-    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.nii.gz'
-    json_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.json'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
+    json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.json'
     upload_id = '166666'
 
     # Run the script to test
@@ -149,8 +149,8 @@ def test_invalid_upload_id():
 
 def test_invalid_tarchive_path():
 
-    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.nii.gz'
-    json_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.json'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
+    json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.json'
     tarchive_path = '/data/tmp/non-existent-tarchive.tgz'
 
     # Run the script to test
@@ -173,10 +173,10 @@ def test_invalid_tarchive_path():
 
 def test_tarchive_path_and_upload_id_provided():
 
-    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.nii.gz'
-    json_path = '/data/loris/incoming/niftis/MTL001_300001_V2_t1_valid.json'
-    tarchive_path = '/data/tmp/non-existent-tarchive.tgz'
-    upload_id = '126'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
+    json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.json'
+    tarchive_path = '/data/loris/tarchive/DCM_2016-08-19_ROM184_400184_V3_for_nifti_insertion.tar'
+    upload_id = '128'
 
     # Run the script to test
     process = run_integration_script(
@@ -201,9 +201,9 @@ def test_tarchive_path_and_upload_id_provided():
 
 def test_nifti_and_tarchive_patient_name_differ():
 
-    nifti_path = '/data/loris/incoming/niftis/MTL001_300001_V2_localizer_invalid_pname.nii.gz'
-    json_path = '/data/loris/incoming/niftis/MTL001_300001_V2_localizer_invalid_pname.nii.gz'
-    upload_id = '126'
+    nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t2_invalid_pname.nii.gz'
+    json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t2_invalid_pname.nii.gz'
+    upload_id = '128'
 
     # Run the script to test
     process = run_integration_script(
