@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import lib.db.models.candidate as db_candidate
 import lib.db.models.dicom_archive as db_dicom_archive
 import lib.db.models.mri_protocol_group as db_mri_protocol_group
-
 from lib.db.base import Base
 
 

@@ -312,4 +312,4 @@ def test_nifti_mri_protocol_violated_scans():
     )
     # Check that files was not inserted in files table (still only one file in the files table)
     assert len(mri_upload.session.files) == 1
-
+    assert violated_scans is not None

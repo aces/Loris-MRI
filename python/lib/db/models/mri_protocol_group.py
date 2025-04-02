@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.mri_protocol_violated_scans as db_mri_protocol_violated_scans
-
 from lib.db.base import Base
 
 
