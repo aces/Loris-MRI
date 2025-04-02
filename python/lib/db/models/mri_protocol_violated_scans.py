@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import ForeignKey
@@ -18,7 +18,7 @@ class DbMriProtocolViolatedScans(Base):
     candidate_id             : Mapped[int | None]      = mapped_column('CandidateID', ForeignKey('candidate.ID'))
     pscid                    : Mapped[str | None]      = mapped_column('PSCID')
     dicom_archive_id         : Mapped[int | None]      = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    time_run                 : Mapped[date | None]     = mapped_column('time_run')
+    time_run                 : Mapped[datetime | None] = mapped_column('time_run')
     series_description       : Mapped[str | None]      = mapped_column('series_description')
     minc_location            : Mapped[str | None]      = mapped_column('minc_location')
     PatientName              : Mapped[str | None]      = mapped_column('PatientName')
