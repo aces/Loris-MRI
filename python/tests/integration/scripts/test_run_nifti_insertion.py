@@ -1,5 +1,6 @@
 from lib.exitcode import FILE_NOT_UNIQUE, FILENAME_MISMATCH, GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, \
     SELECT_FAILURE, UNKNOWN_PROTOCOL
+
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -253,7 +254,7 @@ def test_nifti_already_uploaded():
 
 def test_nifti_mri_protocol_violated_scans():
 
-    series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
+    # series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
     nifti_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.nii.gz'
     json_path = '/data/loris/incoming/ROM184_400184_V3_unknown_scan_type.json'
     upload_id = '128'
