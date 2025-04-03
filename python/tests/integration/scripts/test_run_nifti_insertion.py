@@ -14,6 +14,7 @@ from lib.exitcode import (
     UNKNOWN_PROTOCOL,
 )
 from tests.util.database import get_integration_database_session
+from tests.util.file_system import check_file_tree
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -366,6 +367,17 @@ def test_nifti_mri_protocol_violated_scans_insertion():
 #     assert violations_log is not None
 #     assert violations_log.minc_file is not None
 #     assert os.path.exists(os.path.join('/data/loris/', str(violations_log.minc_file)))
+#     # Check that the expected files have been created
+#     path_parts = os.path.split(str(violations_log.minc_file))
+#     file_name = path_parts[-1]
+#     assert check_file_tree('/data/loris/trashbin/', {
+#         path_parts[1]: {
+#             file_name: None,
+#             file_name.replace('nii.gz', '.bval'): None,
+#             file_name.replace('nii.gz', '.bvec'): None,
+#             file_name.replace('nii.gz', '.json'): None,
+#         }
+#     })
 
 
 def test_nifti_mri_violations_log_warning_insertion():
@@ -404,12 +416,24 @@ def test_nifti_mri_violations_log_warning_insertion():
         echo_number,
         phase_encoding_direction
     )
-    # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
-    assert mri_upload.session and len(mri_upload.session.files) == 1
+    # Check that the NIfTI file inserted in files table (there should be 2 files in the files table)
+    assert mri_upload.session and len(mri_upload.session.files) == 2
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
     # can be found on the disk
     assert violations_log is not None
-    path_parts = os.path.split(str(violations_log.minc_file))
-    print(path_parts)
     assert violations_log.minc_file is not None
-    assert os.path.exists(os.path.join('/data/loris/', str(violations_log.minc_file)))
+    assert str(violations_log.minc_file) \
+           == 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi.nii.gz'
+
+    assert check_file_tree('/data/loris/assembly_bids/', {
+        'sub-400184': {
+            'ses-V3': {
+                'dwi': {
+                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.bval': None,
+                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.bvec': None,
+                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.json': None,
+                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.nii.gz': None,
+                }
+            }
+        }
+    })

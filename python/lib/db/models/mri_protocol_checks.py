@@ -3,7 +3,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.mri_protocol_checks_group as db_mri_protocol_checks_group
 import lib.db.models.mri_scan_type as db_mri_scan_type
-import lib.db.models.mri_violations_log as db_mri_violations_log
 from lib.db.base import Base
 
 
