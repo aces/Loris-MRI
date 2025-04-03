@@ -35,7 +35,7 @@ class DbMriViolationsLog(Base):
     phase_encoding_direction    : Mapped[str | None]       = mapped_column('PhaseEncodingDirection')
     echo_number                 : Mapped[str | None]       = mapped_column('EchoNumber')
     mri_protocol_checks_group_id: Mapped[int | None]       \
-        = mapped_column('MriProtocolCheckGroupID', ForeignKey('mri_protocol_checks_group.MriProtocolChecksGroupID'))
+        = mapped_column('MriProtocolChecksGroupID', ForeignKey('mri_protocol_checks_group.MriProtocolChecksGroupID'))
 
     archive  : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
         = relationship('DbDicomArchive', back_populates='violations_log')

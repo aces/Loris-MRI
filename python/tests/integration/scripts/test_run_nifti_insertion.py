@@ -10,6 +10,7 @@ from lib.exitcode import (
     INVALID_PATH,
     MISSING_ARG,
     SELECT_FAILURE,
+    SUCCESS,
     UNKNOWN_PROTOCOL,
 )
 from tests.util.database import get_integration_database_session
@@ -310,21 +311,70 @@ def test_nifti_mri_protocol_violated_scans_insertion():
     assert os.path.exists(os.path.join('/data/loris/', str(violated_scans.minc_location)))
 
 
-def test_nifti_mri_violations_log_insertion():
+# def test_nifti_mri_violations_log_exclude_insertion():
+#     db = get_integration_database_session()
+#
+#     series_uid = ''
+#     phase_encoding_direction = ''
+#     echo_time = ''
+#     echo_number = None
+#     expected_violation = [{
+#         'Severity': 'exclude',
+#         'Header': 'RepetitionTime',
+#         'Value': 13.8,
+#         'ValidRange': '12.8-12.8',
+#         'ValidRegex': None,
+#         'MriProtocolChecksGroupID': 1
+#     }]
+#     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.nii.gz'
+#     json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.json'
+#     upload_id = '128'
+#
+#     # Run the script to test
+#     process = run_integration_script(
+#         command=[
+#             'run_nifti_insertion.py',
+#             '--profile', 'database_config.py',
+#             '--nifti_path', nifti_path,
+#             '--upload_id', upload_id,
+#             '--json_path', json_path,
+#         ]
+#     )
+#
+#     # Check return code, STDOUT and STDERR
+#     expected_stderr = f"ERROR: {nifti_path} violates exclusionary checks listed in mri_protocol_checks." \
+#                       f" List of violations are: {expected_violation}"
+#     assert process.returncode == SUCCESS
+#     assert expected_stderr in process.stderr
+#     assert process.stdout == ""
+#
+#     # Check that the expected data has been inserted in the database in the proper table
+#     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
+#     violations_log = try_get_violations_log_with_unique_series_combination(
+#         db,
+#         series_uid,
+#         echo_time,
+#         echo_number,
+#         phase_encoding_direction
+#     )
+#     path_parts = os.path.split(str(violations_log.minc_file))
+#     print(path_parts)
+#     # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
+#     assert mri_upload.session and len(mri_upload.session.files) == 1
+#     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
+#     # can be found on the disk
+#     assert violations_log is not None
+#     assert violations_log.minc_file is not None
+#     assert os.path.exists(os.path.join('/data/loris/', str(violations_log.minc_file)))
+
+
+def test_nifti_mri_violations_log_warning_insertion():
     db = get_integration_database_session()
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116492064679881426.0.0.0'
     phase_encoding_direction = 'j-'
     echo_time = '0.102'
     echo_number = None
-    expected_violation = [{
-        'Severity': 'exclude',
-        'Header': 'RepetitionTime',
-        'Value': 13.8,
-        'ValidRange': '12.8-12.8',
-        'ValidRegex': None,
-        'MriProtocolChecksGroupID': 1
-    }]
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.nii.gz'
     json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.json'
     upload_id = '128'
@@ -341,11 +391,9 @@ def test_nifti_mri_violations_log_insertion():
     )
 
     # Check return code, STDOUT and STDERR
-    expected_stderr = f"ERROR: {nifti_path} violates exclusionary checks listed in mri_protocol_checks." \
-                      f" List of violations are: {expected_violation}"
-    # assert process.returncode == UNKNOWN_PROTOCOL
-    # assert expected_stderr in process.stderr
-    # assert process.stdout == ""
+    assert process.returncode == SUCCESS
+    assert process.stderr == ""
+    assert process.stdout == ""
 
     # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
