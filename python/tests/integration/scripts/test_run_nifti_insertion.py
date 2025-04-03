@@ -427,19 +427,20 @@ def test_nifti_mri_violations_log_warning_insertion():
         echo_number,
         phase_encoding_direction
     )
-    file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
-    file_bval_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bval_filename')
-    file_bvec_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bvec_filename')
-    file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_pic_filename')
 
     # Check that the NIfTI file inserted in files and mri_violations_log tables
     assert file is not None
     assert violations_log is not None
     assert violations_log.minc_file is not None
     assert violations_log.severity == 'warning'
+    # Check that all files related to that image have been properly linked in the database
     assert str(violations_log.minc_file) \
            == str(file.file_name) \
            == 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi.nii.gz'
+    file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
+    file_bval_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bval_filename')
+    file_bvec_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bvec_filename')
+    file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_pic_filename')
     assert file_json_data is not None
     assert file_bvec_data is not None
     assert file_bval_data is not None
