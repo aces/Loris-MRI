@@ -12,7 +12,7 @@ from lib.db.base import Base
 
 
 class DbMriViolationsLog(Base):
-    __tablename = 'mri_violations_log'
+    __tablename__ = 'mri_violations_log'
 
     id                          : Mapped[int]              = mapped_column('LogID', primary_key=True)
     time_run                    : Mapped[datetime | None]  = mapped_column('TimeRun')
