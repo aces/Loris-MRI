@@ -1,6 +1,4 @@
-from typing import Any
-
-from sqlalchemy import select, Result, CursorResult
+from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
 from lib.db.models.file import DbFile
