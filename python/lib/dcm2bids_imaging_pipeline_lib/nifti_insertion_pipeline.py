@@ -635,7 +635,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'TarchiveID': self.dicom_archive.id,
             'MincFile': file_rel_path,
             'PatientName': self.json_file_dict['PatientName'],
-            'CandID': self.session.candidate.cand_id,
+            'CandidateID': self.session.candidate.id,
             'Visit_label': self.session.visit_label,
             'MriScanTypeID': self.scan_type_id,
             'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.candidate as db_candidate
 import lib.db.models.dicom_archive as db_dicom_archive
+import lib.db.models.mri_protocol_checks as db_mri_protocol_checks
 import lib.db.models.mri_protocol_checks_group as db_mri_protocol_checks_group
 import lib.db.models.mri_scan_type as db_mri_scan_type
 from lib.db.base import Base
@@ -37,11 +38,13 @@ class DbMriViolationsLog(Base):
     mri_protocol_checks_group_id: Mapped[int | None]       \
         = mapped_column('MriProtocolChecksGroupID', ForeignKey('mri_protocol_checks_group.MriProtocolChecksGroupID'))
 
-    archive  : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
+    archive              : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
         = relationship('DbDicomArchive', back_populates='violations_log')
-    candidate: Mapped[Optional['db_candidate.DbCandidate']] \
+    candidate            : Mapped[Optional['db_candidate.DbCandidate']] \
         = relationship('DbCandidate', back_populates='violations_log')
-    scan_type: Mapped[Optional['db_mri_scan_type.DbMriScanType']] \
+    scan_type            : Mapped[Optional['db_mri_scan_type.DbMriScanType']] \
         = relationship('DbMriScanType', back_populates='violations_log')
     protocol_checks_group: Mapped[Optional['db_mri_protocol_checks_group.DbMriProtocolChecksGroup']] \
         = relationship('DbMriProtocolChecksGroup', back_populates='violations_log')
+    protocol_checks      : Mapped[Optional['db_mri_protocol_checks.DbMriProtocolChecks']] \
+        = relationship('DbMriProtocolChecks', back_populates='violations_log')
