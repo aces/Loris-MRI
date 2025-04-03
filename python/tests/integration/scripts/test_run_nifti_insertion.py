@@ -1,5 +1,9 @@
 import os.path
 
+from lib.db.queries.file import (
+    try_get_file_with_unique_combination,
+    try_get_parameter_value_with_file_id_parameter_name,
+)
 from lib.db.queries.mri_protocol_violated_scans import try_get_protocol_violated_scans_with_unique_series_combination
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.db.queries.mri_violations_log import try_get_violations_log_with_unique_series_combination
@@ -399,6 +403,7 @@ def test_nifti_mri_violations_log_warning_insertion():
             '--nifti_path', nifti_path,
             '--upload_id', upload_id,
             '--json_path', json_path,
+            '--create_pic'
         ]
     )
 
@@ -408,7 +413,13 @@ def test_nifti_mri_violations_log_warning_insertion():
     assert process.stdout == ""
 
     # Check that the expected data has been inserted in the database in the proper table
-    mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
+    file = try_get_file_with_unique_combination(
+        db,
+        series_uid,
+        echo_time,
+        echo_number,
+        phase_encoding_direction
+    )
     violations_log = try_get_violations_log_with_unique_series_combination(
         db,
         series_uid,
@@ -416,24 +427,40 @@ def test_nifti_mri_violations_log_warning_insertion():
         echo_number,
         phase_encoding_direction
     )
-    # Check that the NIfTI file inserted in files table (there should be 2 files in the files table)
-    assert mri_upload.session and len(mri_upload.session.files) == 2
-    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
-    # can be found on the disk
+    file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
+    file_bval_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bval_filename')
+    file_bvec_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bvec_filename')
+    file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_pic_filename')
+
+    # Check that the NIfTI file inserted in files and mri_violations_log tables
+    assert file is not None
     assert violations_log is not None
     assert violations_log.minc_file is not None
+    assert violations_log.severity == 'warning'
     assert str(violations_log.minc_file) \
+           == str(file.file_name) \
            == 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi.nii.gz'
+    assert file_json_data is not None
+    assert file_bvec_data is not None
+    assert file_bval_data is not None
+    assert file_pic_data is not None
 
-    assert check_file_tree('/data/loris/assembly_bids/', {
-        'sub-400184': {
-            'ses-V3': {
-                'dwi': {
-                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.bval': None,
-                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.bvec': None,
-                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.json': None,
-                    'sub-400184_ses-V3_acq-25dir_run-1_dwi.nii.gz': None,
+    assert check_file_tree('/data/loris/', {
+        'assembly_bids': {
+            'sub-400184': {
+                'ses-V3': {
+                    'dwi': {
+                        os.path.basename(str(file.file_name)): None,
+                        os.path.basename(str(file_bval_data.value)): None,
+                        os.path.basename(str(file_bvec_data.value)): None,
+                        os.path.basename(str(file_json_data.value)): None,
+                    }
                 }
+            }
+        },
+        'pic': {
+            '400184': {
+                os.path.basename(str(file_pic_data.value)): None
             }
         }
     })
