@@ -15,9 +15,10 @@ class DbMriViolationsLog(Base):
     __tablename__ = 'mri_violations_log'
 
     id                          : Mapped[int]              = mapped_column('LogID', primary_key=True)
-    time_run                    : Mapped[datetime | None]  = mapped_column('TimeRun')
+    time_run                    : Mapped[datetime]         = mapped_column('TimeRun')
     series_uid                  : Mapped[str | None]       = mapped_column('SeriesUID')
-    dicom_archive_id            : Mapped[int | None]       = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
+    dicom_archive_id            : Mapped[int | None]       \
+        = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
     minc_file                   : Mapped[str | None]       = mapped_column('MincFile')
     PatientName                 : Mapped[str | None]       = mapped_column('PatientName')
     candidate_id                : Mapped[int | None]       = mapped_column('CandidateID', ForeignKey('candidate.ID'))
