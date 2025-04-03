@@ -23,7 +23,8 @@ class DbMriViolationsLog(Base):
     candidate_id                : Mapped[int | None]       = mapped_column('CandidateID', ForeignKey('candidate.ID'))
     visit_label                 : Mapped[str | None]       = mapped_column('Visit_label')
     check_id                    : Mapped[int | None]       = mapped_column('CheckID')
-    mri_scan_type_id            : Mapped[int | None]       = mapped_column('MriScanTypeID')
+    mri_scan_type_id            : Mapped[int | None]       \
+        = mapped_column('MriScanTypeID', ForeignKey('mri_scan_type.MriScanTypeID'))
     severity                    : Mapped[str | None]       = mapped_column('Severity')
     header                      : Mapped[str | None]       = mapped_column('Header')
     value                       : Mapped[str | None]       = mapped_column('Value')
