@@ -428,22 +428,24 @@ def test_nifti_mri_violations_log_warning_insertion():
         phase_encoding_direction
     )
 
-    # Check that the NIfTI file inserted in files and mri_violations_log tables
+    # Check that the NIfTI file was inserted in `files` and `mri_violations_log` tables
     assert file is not None
     assert violations_log is not None
     assert violations_log.minc_file is not None
     assert violations_log.severity == 'warning'
+
     # Check that all files related to that image have been properly linked in the database
+    file_base_rel_path = 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi'
     assert str(violations_log.minc_file) \
            == str(file.file_name) \
-           == 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi.nii.gz'
+           == f'{file_base_rel_path}.nii.gz'
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
     file_bval_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bval_filename')
     file_bvec_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bvec_filename')
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_pic_filename')
-    assert file_json_data is not None
-    assert file_bvec_data is not None
-    assert file_bval_data is not None
+    assert file_json_data is not None and file_json_data == f'{file_base_rel_path}.json'
+    assert file_bval_data is not None and file_bval_data == f'{file_base_rel_path}.bval'
+    assert file_bvec_data is not None and file_bvec_data == f'{file_base_rel_path}.bvec'
     assert file_pic_data is not None
 
     assert check_file_tree('/data/loris/', {
