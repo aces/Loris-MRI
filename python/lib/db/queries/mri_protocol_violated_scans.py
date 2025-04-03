@@ -12,7 +12,7 @@ def try_get_protocol_violated_scans_with_unique_series_combination(
         phase_encoding_direction: str | None
 ) -> DbMriProtocolViolatedScans | None:
     """
-    Get a protocol violated scans from the database using its SeriesInstanceUID, or return `None` if
+    Get the protocol violated scans from the database using its SeriesInstanceUID, or return `None` if
     no protocol violated scan was found.
     """
 

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import lib.db.models.dicom_archive_file as db_dicom_archive_file
 import lib.db.models.dicom_archive_series as db_dicom_archive_series
 import lib.db.models.mri_protocol_violated_scans as db_mri_protocol_violated_scans
+import lib.db.models.mri_violations_log as db_mri_violations_log
 import lib.db.models.mri_upload as db_mri_upload
 import lib.db.models.session as db_session
 from lib.db.base import Base
@@ -58,3 +59,5 @@ class DbDicomArchive(Base):
         = relationship('DbSession')
     violated_scans: Mapped[Optional['db_mri_protocol_violated_scans.DbMriProtocolViolatedScans']] \
         = relationship('DbMriProtocolViolatedScans', back_populates='archive')
+    violations_log       : Mapped[Optional['db_mri_violations_log.DbMriViolationsLog']] \
+        = relationship('DbMriViolationsLog', back_populates='archive')
