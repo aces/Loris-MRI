@@ -1,8 +1,11 @@
 from datetime import date, datetime
+from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.mri_protocol_violated_scans as db_mri_protocol_violated_scans
+import lib.db.models.mri_violations_log as db_mri_violations_log
 import lib.db.models.project as db_project
 import lib.db.models.session as db_session
 import lib.db.models.site as db_site
@@ -45,3 +48,7 @@ class DbCandidate(Base):
         = relationship('DbSite')
     registration_project : Mapped['db_project.DbProject'] \
         = relationship('DbProject')
+    violated_scans       : Mapped[Optional['db_mri_protocol_violated_scans.DbMriProtocolViolatedScans']] \
+        = relationship('DbMriProtocolViolatedScans', back_populates='candidate')
+    violations_log       : Mapped[Optional['db_mri_violations_log.DbMriViolationsLog']] \
+        = relationship('DbMriViolationsLog', back_populates='candidate')

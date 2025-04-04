@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.parameter_file as db_parameter_file
 import lib.db.models.session as db_session
 from lib.db.base import Base
 
@@ -34,4 +35,5 @@ class DbFile(Base):
     acquisition_order_per_modality : Mapped[int | None]   = mapped_column('AcqOrderPerModality')
     acquisition_date               : Mapped[date | None]  = mapped_column('AcquisitionDate')
 
-    session : Mapped['db_session.DbSession'] = relationship('DbSession', back_populates='files')
+    session       : Mapped['db_session.DbSession'] = relationship('DbSession', back_populates='files')
+    parameter_file: Mapped['db_parameter_file.DbParameterFile'] = relationship('DbParameterFile', back_populates='file')
