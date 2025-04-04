@@ -398,17 +398,15 @@ sub runDicomTar {
     # ----------------------------------------------------------------
     ## Get config settings using ConfigOB
     # ----------------------------------------------------------------
-    my $configOB             = $this->{configOB};
-    my $tarchive_location    = $configOB->getTarchiveLibraryDir();
-
+    my $configOB      = $this->{configOB};
+    my $python_config = $configOB->getPythonConfigFile();
 
     my $command = sprintf(
-        "dicomTar.pl %s %s -database -profile %s",
+        "import_dicom_study.py --profile %s --insert --source %s",
+        quotemeta($python_config),
         quotemeta($this->{'uploaded_temp_folder'}),
-        quotemeta($tarchive_location),
-        $this->{'profile'}
     );
-    $command .= " -verbose" if $this->{verbose};
+    $command .= " --verbose" if $this->{verbose};
     my $output = $this->runCommandWithExitCode($command);
 
     if ( $output == 0 ) {
