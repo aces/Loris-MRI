@@ -25,7 +25,7 @@ def test_import_dicom_study():
     # Check that the expected data has been inserted in the database.
     dicom_archive = try_get_dicom_archive_with_patient_name(db, 'ROM168_400168_V2')
     assert dicom_archive is not None
-    assert len(dicom_archive.series) == 31
+    assert len(dicom_archive.series) == 32
     assert len(dicom_archive.files) == 609
     assert dicom_archive.session is not None
     assert dicom_archive.session.candidate.psc_id == 'ROM168'
