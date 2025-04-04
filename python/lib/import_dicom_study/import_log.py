@@ -1,3 +1,4 @@
+import getpass
 import os
 import socket
 from dataclasses import dataclass
@@ -66,7 +67,7 @@ def make_dicom_study_import_log(source: str, target: str, tarball_md5_sum: str, 
         target,
         socket.gethostname(),
         os.uname().sysname,
-        os.environ["USER"],
+        getpass.getuser(),
         datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"),
         2,
         2,
