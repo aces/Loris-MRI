@@ -18,6 +18,7 @@ from lib.database_lib.config import Config
 from lib.eeg import Eeg
 from lib.mri import Mri
 from lib.session import Session
+from lib.util.crypto import compute_file_blake2b_hash
 
 __license__ = "GPLv3"
 
@@ -325,7 +326,7 @@ def read_and_insert_bids(
         # load json data
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)
-        blake2 = lib.utilities.compute_blake2b_hash(root_event_metadata_file.path)
+        blake2 = compute_file_blake2b_hash(root_event_metadata_file.path)
         physio = lib.physiological.Physiological(db, verbose)
         _, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,

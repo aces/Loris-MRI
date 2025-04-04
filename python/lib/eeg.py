@@ -16,6 +16,7 @@ from lib.database_lib.physiological_output_type import PhysiologicalOutputType
 from lib.physiological import Physiological
 from lib.scanstsv import ScansTSV
 from lib.session import Session
+from lib.util.crypto import compute_file_blake2b_hash
 
 __license__ = "GPLv3"
 
@@ -427,7 +428,7 @@ class Eeg:
                     )
 
                 eeg_file_data['eegjson_file'] = eegjson_file_path
-                json_blake2 = utilities.compute_blake2b_hash(eegjson_file.path)
+                json_blake2 = compute_file_blake2b_hash(eegjson_file.path)
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
             # greps the file type from the ImagingFileTypes table
@@ -452,7 +453,7 @@ class Eeg:
                     )
 
                 eeg_file_data['scans_tsv_file'] = scans_path
-                scans_blake2 = utilities.compute_blake2b_hash(self.scans_file)
+                scans_blake2 = compute_file_blake2b_hash(self.scans_file)
                 eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 
             # if file type is set and fdt file exists, append fdt path to the
@@ -467,11 +468,11 @@ class Eeg:
                     )
 
                 eeg_file_data['fdt_file'] = fdt_file_path
-                fdt_blake2 = utilities.compute_blake2b_hash(fdt_file.path)
+                fdt_blake2 = compute_file_blake2b_hash(fdt_file.path)
                 eeg_file_data['physiological_fdt_file_blake2b_hash'] = fdt_blake2
 
             # append the blake2b to the eeg_file_data dictionary
-            blake2 = utilities.compute_blake2b_hash(eeg_file.path)
+            blake2 = compute_file_blake2b_hash(eeg_file.path)
             eeg_file_data['physiological_file_blake2b_hash'] = blake2
 
             # check that the file using blake2b is not already inserted before
@@ -587,7 +588,7 @@ class Eeg:
                             electrode_file.path, derivatives
                         )
                     # get the blake2b hash of the electrode file
-                    blake2 = utilities.compute_blake2b_hash(electrode_file.path)
+                    blake2 = compute_file_blake2b_hash(electrode_file.path)
 
                     # insert the electrode data in the database
                     electrode_ids = physiological.insert_electrode_file(
@@ -630,7 +631,7 @@ class Eeg:
                         with open(coordsystem_metadata_file.path) as metadata_file:
                             electrode_metadata = json.load(metadata_file)
                         # get the blake2b hash of the json events file
-                        blake2 = utilities.compute_blake2b_hash(coordsystem_metadata_file.path)
+                        blake2 = compute_file_blake2b_hash(coordsystem_metadata_file.path)
                         # insert event metadata in the database
                         physiological.insert_electrode_metadata(
                             electrode_metadata,
@@ -696,7 +697,7 @@ class Eeg:
                         channel_file.path, derivatives
                     )
                 # get the blake2b hash of the channel file
-                blake2 = utilities.compute_blake2b_hash(channel_file.path)
+                blake2 = compute_file_blake2b_hash(channel_file.path)
                 # insert the channel data in the database
                 physiological.insert_channel_file(
                     channel_data, channel_path, physiological_file_id, blake2
@@ -784,7 +785,7 @@ class Eeg:
                     with open(event_metadata_file.path) as metadata_file:
                         event_metadata = json.load(metadata_file)
                     # get the blake2b hash of the json events file
-                    blake2 = utilities.compute_blake2b_hash(event_metadata_file.path)
+                    blake2 = compute_file_blake2b_hash(event_metadata_file.path)
                     # insert event metadata in the database
                     _, file_tag_dict = physiological.insert_event_metadata(
                         event_metadata=event_metadata,
@@ -806,7 +807,7 @@ class Eeg:
                     event_data_file.path, derivatives
                 )
             # get the blake2b hash of the task events file
-            blake2 = utilities.compute_blake2b_hash(event_data_file.path)
+            blake2 = compute_file_blake2b_hash(event_data_file.path)
 
             # insert event data in the database
             physiological.insert_event_file(
@@ -901,9 +902,10 @@ class Eeg:
 
         # check if archive is on the filesystem
         (archive_rel_name, archive_full_path) = self.get_archive_paths(archive_rel_name)
-        blake2            = None
         if os.path.isfile(archive_full_path):
-            blake2 = utilities.compute_blake2b_hash(archive_full_path)
+            blake2 = compute_file_blake2b_hash(archive_full_path)
+        else:
+            blake2 = None
 
         # check if archive already inserted in database and matches the one
         # on the filesystem using blake2b hash
@@ -929,7 +931,7 @@ class Eeg:
         utilities.create_archive(files_to_archive, archive_full_path)
 
         # insert the archive file in physiological_archive
-        blake2 = utilities.compute_blake2b_hash(archive_full_path)
+        blake2 = compute_file_blake2b_hash(archive_full_path)
         archive_info = {
             'PhysiologicalFileID': eeg_file_id,
             'Blake2bHash'        : blake2,
@@ -952,9 +954,10 @@ class Eeg:
 
         # check if archive is on the filesystem
         (archive_rel_name, archive_full_path) = self.get_archive_paths(archive_rel_name)
-        blake2            = None
         if os.path.isfile(archive_full_path):
-            blake2 = utilities.compute_blake2b_hash(archive_full_path)
+            blake2 = compute_file_blake2b_hash(archive_full_path)
+        else:
+            blake2 = None
 
         # check if archive already inserted in database and matches the one
         # on the filesystem using blake2b hash
@@ -983,7 +986,7 @@ class Eeg:
         utilities.create_archive(files_to_archive, archive_full_path)
 
         # insert the archive into the physiological_annotation_archive table
-        blake2 = utilities.compute_blake2b_hash(archive_full_path)
+        blake2 = compute_file_blake2b_hash(archive_full_path)
         physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
 
     def get_archive_paths(self, archive_rel_name):
