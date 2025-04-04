@@ -5,7 +5,7 @@ import os
 import boto3
 from botocore.exceptions import ClientError, EndpointConnectionError
 
-import lib.utilities
+from lib.util.crypto import compute_file_md5_hash
 
 __license__ = "GPLv3"
 
@@ -81,7 +81,7 @@ class AwsS3:
          :type key: str
         """
         try:
-            etag = lib.utilities.compute_md5_hash(file_path)
+            etag = compute_file_md5_hash(file_path)
             self.s3_client.head_object(Bucket=self.bucket_name, Key=key, IfMatch=etag)
         except ClientError:
             """

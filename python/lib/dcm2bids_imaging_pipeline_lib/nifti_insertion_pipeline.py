@@ -7,12 +7,12 @@ import subprocess
 import sys
 
 import lib.exitcode
-import lib.utilities as utilities
 from lib.bids import get_bids_json_session_info
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.logging import log_error_exit, log_verbose
+from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
 __license__ = "GPLv3"
 
@@ -42,15 +42,15 @@ class NiftiInsertionPipeline(BasePipeline):
         self.nifti_path = self.options_dict["nifti_path"]["value"]
         self.nifti_s3_url = self.options_dict["nifti_path"]["s3_url"] \
             if 's3_url' in self.options_dict["nifti_path"].keys() else None
-        self.nifti_blake2 = utilities.compute_blake2b_hash(self.nifti_path)
-        self.nifti_md5 = utilities.compute_md5_hash(self.nifti_path)
+        self.nifti_blake2 = compute_file_blake2b_hash(self.nifti_path)
+        self.nifti_md5 = compute_file_md5_hash(self.nifti_path)
         self.json_path = self.options_dict["json_path"]["value"]
-        self.json_blake2 = utilities.compute_blake2b_hash(self.json_path) if self.json_path else None
+        self.json_blake2 = compute_file_blake2b_hash(self.json_path) if self.json_path else None
+        self.json_md5 = compute_file_md5_hash(self.json_path) if self.json_path else None
         self.bval_path = self.options_dict["bval_path"]["value"]
-        self.bval_blake2 = utilities.compute_blake2b_hash(self.bval_path) if self.bval_path else None
+        self.bval_blake2 = compute_file_blake2b_hash(self.bval_path) if self.bval_path else None
         self.bvec_path = self.options_dict["bvec_path"]["value"]
-        self.bvec_blake2 = utilities.compute_blake2b_hash(self.bvec_path) if self.bval_path else None
-        self.json_md5 = utilities.compute_md5_hash(self.json_path)
+        self.bvec_blake2 = compute_file_blake2b_hash(self.bvec_path) if self.bval_path else None
         self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
 

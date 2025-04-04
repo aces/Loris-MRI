@@ -2,11 +2,11 @@ import os
 import sys
 
 import lib.exitcode
-import lib.utilities as utilities
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.env import Env
 from lib.logging import log_error_exit, log_verbose
+from lib.util.crypto import compute_file_md5_hash
 
 __license__ = "GPLv3"
 
@@ -79,7 +79,7 @@ def _validate_dicom_archive_md5sum(env: Env, dicom_archive: DbDicomArchive, dico
     """
 
     # compute the md5sum of the tarchive file
-    dicom_archive_file_md5_sum = utilities.compute_md5_hash(dicom_archive_path)
+    dicom_archive_file_md5_sum = compute_file_md5_hash(dicom_archive_path)
 
     # grep the md5sum stored in the database
     dicom_archive_db_md5_sum = dicom_archive.md5_sum_archive.split()[0]
