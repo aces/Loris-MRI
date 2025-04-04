@@ -443,9 +443,9 @@ def test_nifti_mri_violations_log_warning_insertion():
     file_bval_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bval_filename')
     file_bvec_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bvec_filename')
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_pic_filename')
-    assert file_json_data is not None and file_json_data == f'{file_base_rel_path}.json'
-    assert file_bval_data is not None and file_bval_data == f'{file_base_rel_path}.bval'
-    assert file_bvec_data is not None and file_bvec_data == f'{file_base_rel_path}.bvec'
+    assert file_json_data is not None and file_json_data.value == f'{file_base_rel_path}.json'
+    assert file_bval_data is not None and file_bval_data.value == f'{file_base_rel_path}.bval'
+    assert file_bvec_data is not None and file_bvec_data.value == f'{file_base_rel_path}.bvec'
     assert file_pic_data is not None
 
     assert check_file_tree('/data/loris/', {
@@ -453,10 +453,10 @@ def test_nifti_mri_violations_log_warning_insertion():
             'sub-400184': {
                 'ses-V3': {
                     'dwi': {
-                        os.path.basename(str(file.file_name)): None,
-                        os.path.basename(str(file_bval_data.value)): None,
-                        os.path.basename(str(file_bvec_data.value)): None,
-                        os.path.basename(str(file_json_data.value)): None,
+                        os.path.basename(file.file_name): None,
+                        os.path.basename(file_bval_data.value): None,
+                        os.path.basename(file_bvec_data.value): None,
+                        os.path.basename(file_json_data.value): None,
                     }
                 }
             }
