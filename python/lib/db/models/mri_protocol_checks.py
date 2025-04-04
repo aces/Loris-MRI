@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,9 +16,9 @@ class DbMriProtocolChecks(Base):
         = mapped_column('MriScanTypeID', ForeignKey('mri_scan_type.MriScanTypeID'))
     severity                    : Mapped[str | None]   = mapped_column('Severity')
     header                      : Mapped[str | None]   = mapped_column('Header')
-    valid_min                   : Mapped[float | None] = mapped_column('ValidMin')
-    valid_max                   : Mapped[float | None] = mapped_column('ValidMax')
-    valid_regex                 : Mapped[float | None] = mapped_column('ValidRegex')
+    valid_min                   : Mapped[Decimal | None] = mapped_column('ValidMin')
+    valid_max                   : Mapped[Decimal | None] = mapped_column('ValidMax')
+    valid_regex                 : Mapped[str | None]   = mapped_column('ValidRegex')
     mri_protocol_group_check_id : Mapped[int | None]   \
         = mapped_column('MriProtocolChecksGroupID', ForeignKey('mri_protocol_checks_group.MriProtocolChecksGroupID'))
 
