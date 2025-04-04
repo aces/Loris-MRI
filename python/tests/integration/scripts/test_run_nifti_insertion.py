@@ -394,6 +394,8 @@ def test_nifti_mri_violations_log_warning_insertion():
     echo_number = None
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.nii.gz'
     json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.json'
+    bval_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.bval'
+    bvec_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.bvec'
     upload_id = '128'
 
     # Run the script to test
@@ -404,6 +406,8 @@ def test_nifti_mri_violations_log_warning_insertion():
             '--nifti_path', nifti_path,
             '--upload_id', upload_id,
             '--json_path', json_path,
+            '--bval_path', bval_path,
+            '--bvec_path', bvec_path,
             '--create_pic'
         ]
     )
