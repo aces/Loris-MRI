@@ -71,8 +71,8 @@ def get_dicom_study_info(dicom: pydicom.Dataset) -> DicomStudyInfo:
     scan_date  = read_dicom_date_none(read_value_none(dicom, 'StudyDate'))
 
     patient = DicomStudyPatient(
-        read_value(dicom, 'PatientID'),
-        read_value(dicom, 'PatientName'),
+        str(read_value(dicom, 'PatientID')),
+        str(read_value(dicom, 'PatientName')),
         read_value_none(dicom, 'PatientSex'),
         birth_date,
     )

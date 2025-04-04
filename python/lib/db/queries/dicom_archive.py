@@ -18,6 +18,17 @@ def try_get_dicom_archive_with_id(db: Database, dicom_archive_id: int) -> DbDico
     ).scalar_one_or_none()
 
 
+def try_get_dicom_archive_with_patient_name(db: Database, patient_name: str) -> DbDicomArchive | None:
+    """
+    Get a DICOM archive from the database using its patient name, or return `None` if no DICOM
+    archive is found.
+    """
+
+    return db.execute(select(DbDicomArchive)
+        .where(DbDicomArchive.patient_name == patient_name)
+    ).scalar_one_or_none()
+
+
 def try_get_dicom_archive_with_archive_location(db: Database, archive_location: str) -> DbDicomArchive | None:
     """
     Get a DICOM archive from the database using its archive location, or return `None` if no DICOM
