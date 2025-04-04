@@ -1,4 +1,5 @@
 import os.path
+from os.path import basename
 
 from lib.db.queries.file import (
     try_get_file_with_unique_combination,
@@ -453,17 +454,17 @@ def test_nifti_mri_violations_log_warning_insertion():
             'sub-400184': {
                 'ses-V3': {
                     'dwi': {
-                        os.path.basename(file.file_name): None,
-                        os.path.basename(file_bval_data.value): None,
-                        os.path.basename(file_bvec_data.value): None,
-                        os.path.basename(file_json_data.value): None,
+                        basename(file.file_name): None,
+                        basename(str(file_bval_data.value)): None,
+                        basename(str(file_bvec_data.value)): None,
+                        basename(str(file_json_data.value)): None,
                     }
                 }
             }
         },
         'pic': {
             '400184': {
-                os.path.basename(str(file_pic_data.value)): None
+                basename(str(file_pic_data.value)): None
             }
         }
     })
