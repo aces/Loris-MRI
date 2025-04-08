@@ -10,7 +10,6 @@ import nibabel as nib
 from nilearn import image, plotting
 from typing_extensions import deprecated
 
-import lib.utilities as utilities
 from lib.database_lib.candidate_db import CandidateDB
 from lib.database_lib.config import Config
 from lib.database_lib.files import Files
@@ -23,6 +22,7 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
+from lib.util.crypto import compute_file_blake2b_hash
 
 __license__ = "GPLv3"
 
@@ -1065,7 +1065,7 @@ class Imaging:
             json_data['IntendedFor'] = fmap_dict['IntendedFor']
             with open(json_file_path, 'w') as json_file:
                 json_file.write(json.dumps(json_data, indent=4))
-            json_blake2 = utilities.compute_blake2b_hash(json_file_path)
+            json_blake2 = compute_file_blake2b_hash(json_file_path)
             param_type_id = self.param_type_db_obj.get_parameter_type_id('bids_json_file_blake2b_hash')
             param_file_dict = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(
                 fmap_dict['FileID'],
