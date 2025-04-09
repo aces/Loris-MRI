@@ -6,8 +6,7 @@ from lib.db.models.candidate import DbCandidate
 
 def try_get_candidate_with_cand_id(db: Database, cand_id: int) -> DbCandidate | None:
     """
-    Get a candidate from the database using its CandID, or return `None` if no candidate is
-    found.
+    Get a candidate from the database using its CandID, or return `None` if no candidate is found.
     """
 
     return db.execute(select(DbCandidate)
