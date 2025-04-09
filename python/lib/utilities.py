@@ -265,6 +265,7 @@ def create_processing_tmp_dir(template_prefix):
     return tmp_dir
 
 
+@deprecated('Use `lib.util.fs.remove_empty_subdirectories` instead')
 def remove_empty_folders(path_abs):
 
     walk = list(os.walk(path_abs))
