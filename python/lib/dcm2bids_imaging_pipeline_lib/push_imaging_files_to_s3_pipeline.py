@@ -3,9 +3,9 @@ import re
 import sys
 
 import lib.exitcode
-import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.logging import log_error_exit
+from lib.util.fs import remove_empty_directories
 
 __license__ = "GPLv3"
 
@@ -268,6 +268,6 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         # remove empty folders from file system
         print("Cleaning up empty folders")
         bids_cand_id = f"sub-{self.session.candidate.cand_id}"
-        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
-        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "pic", str(self.session.candidate.cand_id)))
-        lib.utilities.remove_empty_folders(os.path.join(self.data_dir, "trashbin"))
+        remove_empty_directories(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
+        remove_empty_directories(os.path.join(self.data_dir, "pic", str(self.session.candidate.cand_id)))
+        remove_empty_directories(os.path.join(self.data_dir, "trashbin"))

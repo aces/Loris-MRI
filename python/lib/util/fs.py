@@ -58,3 +58,22 @@ def copy_file(env: Env, old_path: str, new_path: str):
     shutil.copytree(old_path, new_path, dirs_exist_ok=True)
     if not os.path.exists(new_path):
         log_error_exit(env, f"Could not copy {old_path} to {new_path}", lib.exitcode.COPY_FAILURE)
+
+
+def is_directory_empty(dir_path: str) -> bool:
+    """
+    Check whether a directory is empty or not.
+    """
+
+    with os.scandir(dir_path) as dir_iterator:
+        return next(dir_iterator, None) is None
+
+
+def remove_empty_directories(dir_path: str):
+    """
+    Recursively remove all the empty directories in a directory, including itself if needed.
+    """
+
+    for subdir_path, _, _ in os.walk(dir_path, topdown=False):
+        if is_directory_empty(subdir_path):
+            os.rmdir(subdir_path)
