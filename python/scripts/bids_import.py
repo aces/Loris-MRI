@@ -15,7 +15,8 @@ import lib.utilities
 from lib.bidsreader import BidsReader
 from lib.config import get_data_dir_path_config, get_default_bids_visit_label_config
 from lib.database import Database
-from lib.db.queries.candidate import try_get_candidate_with_cand_id
+from lib.db.queries.candidate import try_get_candidate_with_cand_id, try_get_candidate_with_psc_id
+from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.eeg import Eeg
 from lib.env import Env
 from lib.import_bids_dataset.database import check_or_create_bids_candidates_and_sessions
@@ -279,15 +280,17 @@ def read_and_insert_bids(env: Env, args: Args, legacy_db: Database):
                 dataset_type           = args.type
             )
         elif modality in bids_mri_modalities:
+            candidate = try_get_candidate_with_psc_id(env.db, subject_label)
+            session = try_get_session_with_cand_id_visit_label(env.db, candidate.cand_id, visit_label)
+
             Mri(
+                env           = env,
+                session       = session,
                 bids_reader   = bids_reader,
                 bids_sub_id   = subject_label,
                 bids_ses_id   = session_label,
                 bids_modality = modality,
-                db            = legacy_db,
-                verbose       = args.verbose,
                 data_dir      = loris_data_dir_path,
-                default_visit_label    = default_visit_label,
                 loris_bids_mri_rel_dir = loris_modality_dir_rel_path,
                 loris_bids_root_dir    = loris_bids_dir_path
             )
