@@ -1,6 +1,8 @@
+import re
 from typing import Any
 
 from lib.config import get_patient_id_dicom_header_config
+from lib.db.queries.imaging_file_type import get_all_imaging_file_types
 from lib.env import Env
 from lib.get_session_info import SessionInfo, get_session_info
 from lib.scanner import MriScannerInfo
@@ -36,3 +38,19 @@ def get_bids_json_session_info(env: Env, bids_json: dict[str, Any]) -> SessionIn
     scanner_info = get_bids_json_scanner_info(bids_json)
 
     return get_session_info(env, patient_id, scanner_info)
+
+
+def determine_bids_file_type(env: Env, file_name: str) -> str | None:
+    """
+    Determine the file type of a BIDS file from the database using its name, or return `None` if no
+    corresponding file type is found.
+    """
+
+    imaging_file_types = get_all_imaging_file_types(env.db)
+
+    for imaging_file_type in imaging_file_types:
+        regex = re.escape(imaging_file_type.type) + r'(\.gz)?$'
+        if re.search(regex, file_name):
+            return imaging_file_type.type
+
+    return None
