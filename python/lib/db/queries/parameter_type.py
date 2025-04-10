@@ -12,3 +12,14 @@ def get_all_parameter_types(db: Database) -> Sequence[DbParameterType]:
     """
 
     return db.execute(select(DbParameterType)).scalars().all()
+
+
+def get_parameter_type_with_name(db: Database, name: str) -> DbParameterType:
+    """
+    Get a parameter type from the database using its name, or raise an exception if no file
+    parameter is found.
+    """
+
+    return db.execute(select(DbParameterType)
+        .where(DbParameterType.name == name)
+    ).scalar_one()
