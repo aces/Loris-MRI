@@ -368,15 +368,15 @@ def test_nifti_mri_violations_log_exclude_insertion():
         echo_number,
         phase_encoding_direction
     )
-    path_parts = os.path.split(str(violations_log.minc_file))
-    print(path_parts)
     # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
     assert mri_upload.session and len(mri_upload.session.files) == 1
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
     # can be found on the disk
     assert violations_log is not None
-    assert violations_log.minc_file is not None
-    assert os.path.exists(os.path.join('/data/loris/', str(violations_log.minc_file)))
+
+    # Check that the NIfTI file can be found in the filesystem
+    assert violations_log.minc_file is not None \
+           and os.path.exists(os.path.join('/data/loris/', str(violations_log.minc_file)))
     # Check that the expected files have been created
     path_parts = os.path.split(str(violations_log.minc_file))
     file_name = path_parts[-1]
