@@ -333,6 +333,7 @@ def test_nifti_mri_protocol_violated_scans_insertion():
     )
 
     # Check return code, STDOUT and STDERR
+    expected_stderr = f"ERROR: {new_nifti_path}'s acquisition protocol is 'unknown'."
     assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
@@ -409,18 +410,13 @@ def test_nifti_mri_violations_log_exclude_insertion():
     assert violation_entry.file_rel_path is not None \
            and os.path.exists(os.path.join('/data/loris/', str(violation_entry.file_rel_path)))
     # Check that the rest of the expected files have been created
-    path_parts = os.path.split(str(violation_entry.file_rel_path))
-    dir_path = os.path.join('/data/loris/', path_parts[0])
-    nifti_file_name = path_parts[-1]
-    json_file_name = nifti_file_name.replace('.nii.gz', '.json')
-    bval_file_name = nifti_file_name.replace('.nii.gz', '.bval')
-    bvec_file_name = nifti_file_name.replace('.nii.gz', '.bvec')
-    assert check_file_tree(dir_path, {
-        bval_file_name: None,
-        bvec_file_name: None,
-        json_file_name: None,
-        nifti_file_name: None,
-    })
+    new_nifti_path = os.path.join('/data/loris/', str(violation_entry.file_rel_path))
+    new_json_path = new_nifti_path.replace('.nii.gz', '.json')
+    new_bval_path = new_nifti_path.replace('.nii.gz', '.bval')
+    new_bvec_path = new_nifti_path.replace('.nii.gz', '.bvec')
+    assert os.path.exists(new_json_path)
+    assert os.path.exists(new_bval_path)
+    assert os.path.exists(new_bvec_path)
 
     # Rerun the script to test that it did not duplicate entry in MRI violations log
     # Note: using the new location of the files since they have been moved
@@ -428,14 +424,16 @@ def test_nifti_mri_violations_log_exclude_insertion():
         [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
-            '--nifti_path', os.path.join(dir_path, nifti_file_name),
+            '--nifti_path', new_nifti_path,
             '--upload_id', upload_id,
-            '--json_path', os.path.join(dir_path, json_file_name),
-            '--bval_path', os.path.join(dir_path, bval_file_name),
-            '--bvec_path', os.path.join(dir_path, bvec_file_name)
+            '--json_path', new_json_path,
+            '--bval_path', new_bval_path,
+            '--bvec_path', new_bvec_path
         ]
     )
 
+    expected_stderr = f"ERROR: {new_nifti_path} violates exclusionary checks listed in mri_protocol_checks." \
+                      f" List of violations are: {expected_violation}"
     assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
