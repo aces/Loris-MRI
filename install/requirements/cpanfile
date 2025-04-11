@@ -6,6 +6,7 @@ requires 'Module::Pluggable', '== 5.2';
 requires 'DBD::mysql', '== 4.052';
 requires 'Math::Round';
 requires 'DateTime';
+requires 'Date::Parse';
 requires 'DBI';
 requires 'Getopt::Tabular';
 requires 'Time::JulianDay';
