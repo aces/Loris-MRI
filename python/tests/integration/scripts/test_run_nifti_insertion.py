@@ -460,16 +460,16 @@ def test_dwi_insertion_with_mri_violations_log_warning():
                 'ses-V3': {
                     'dwi': {
                         basename(file.file_name): None,
-                        basename(str(file_bval_data.value)): None,
-                        basename(str(file_bvec_data.value)): None,
-                        basename(str(file_json_data.value)): None,
+                        basename(file_bval_data.value): None,
+                        basename(file_bvec_data.value): None,
+                        basename(file_json_data.value): None,
                     }
                 }
             }
         },
         'pic': {
             '400184': {
-                basename(str(file_pic_data.value)): None
+                basename(file_pic_data.value): None
             }
         }
     })
