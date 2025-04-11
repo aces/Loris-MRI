@@ -381,16 +381,12 @@ def test_nifti_mri_violations_log_exclude_insertion():
     # Check that the rest of the expected files have been created
     path_parts = os.path.split(str(violation_entry.minc_file))
     file_name = path_parts[-1]
-    print(path_parts)
-    print(path_parts[0])
-    print(path_parts[1])
-    assert check_file_tree('/data/loris/trashbin/', {
-        path_parts[0]: {
-            file_name: None,
-            file_name.replace('.nii.gz', '.bval'): None,
-            file_name.replace('.nii.gz', '.bvec'): None,
-            file_name.replace('.nii.gz', '.json'): None,
-        }
+    dir_path = os.path.join('/data/loris/', path_parts[0])
+    assert check_file_tree(dir_path, {
+        file_name: None,
+        file_name.replace('.nii.gz', '.bval'): None,
+        file_name.replace('.nii.gz', '.bvec'): None,
+        file_name.replace('.nii.gz', '.json'): None,
     })
 
     # Rerun the script to test that it did not duplicate entry in MRI violations log
@@ -463,13 +459,14 @@ def test_dwi_insertion_with_mri_violations_log_warning():
 
     # Check that the NIfTI file was inserted in `files` and `mri_violations_log` tables
     assert file is not None
-    assert violations_log is not None
-    assert violations_log.minc_file is not None
-    assert violations_log.severity == 'warning'
+    assert violations_log is not None and len(violations_log) == 1
+    violation_entry = violations_log[0]
+    assert violation_entry.minc_file is not None
+    assert violation_entry.severity == 'warning'
 
     # Check that all files related to that image have been properly linked in the database
     file_base_rel_path = 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi'
-    assert str(violations_log.minc_file) \
+    assert str(violation_entry.minc_file) \
            == str(file.file_name) \
            == f'{file_base_rel_path}.nii.gz'
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
