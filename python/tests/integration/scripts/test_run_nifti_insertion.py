@@ -384,7 +384,6 @@ def test_nifti_mri_violations_log_exclude_insertion():
     print(path_parts)
     print(path_parts[0])
     print(path_parts[1])
-    print(path_parts[2])
     assert check_file_tree('/data/loris/trashbin/', {
         path_parts[0]: {
             file_name: None,
