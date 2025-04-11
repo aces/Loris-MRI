@@ -383,9 +383,9 @@ def test_nifti_mri_violations_log_exclude_insertion():
     assert check_file_tree('/data/loris/trashbin/', {
         path_parts[1]: {
             file_name: None,
-            file_name.replace('nii.gz', '.bval'): None,
-            file_name.replace('nii.gz', '.bvec'): None,
-            file_name.replace('nii.gz', '.json'): None,
+            file_name.replace('.nii.gz', '.bval'): None,
+            file_name.replace('.nii.gz', '.bvec'): None,
+            file_name.replace('.nii.gz', '.json'): None,
         }
     })
 
@@ -406,6 +406,7 @@ def test_nifti_mri_violations_log_exclude_insertion():
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
+    # assert violations_log is not None and len(violations_log) == 1
 
 def test_dwi_insertion_with_mri_violations_log_warning():
     db = get_integration_database_session()
