@@ -321,9 +321,9 @@ def test_nifti_mri_protocol_violated_scans_insertion():
 def test_nifti_mri_violations_log_exclude_insertion():
     db = get_integration_database_session()
 
-    series_uid = ''
-    phase_encoding_direction = ''
-    echo_time = ''
+    series_uid = '1.3.12.2.1107.5.2.32.35412.2012101117085370136129517.0.0.0'
+    phase_encoding_direction = 'j-'
+    echo_time = '0.103'
     echo_number = None
     expected_violation = [{
         'Severity': 'exclude',
@@ -388,6 +388,23 @@ def test_nifti_mri_violations_log_exclude_insertion():
             file_name.replace('nii.gz', '.json'): None,
         }
     })
+
+    # Rerun the script to test that it did not duplicate entry in MRI violations log
+    process = run_integration_script(
+        [
+            'run_nifti_insertion.py',
+            '--profile', 'database_config.py',
+            '--nifti_path', nifti_path,
+            '--upload_id', upload_id,
+            '--json_path', json_path,
+            '--bval_path', bval_path,
+            '--bvec_path', bvec_path
+        ]
+    )
+
+    assert process.returncode == UNKNOWN_PROTOCOL
+    assert expected_stderr in process.stderr
+    assert process.stdout == ""
 
 
 def test_dwi_insertion_with_mri_violations_log_warning():
