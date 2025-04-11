@@ -1,4 +1,5 @@
 import os.path
+import shutil
 from os.path import basename
 
 from lib.db.queries.file import (
@@ -360,16 +361,18 @@ def test_nifti_mri_protocol_violated_scans_features():
            and os.path.exists(os.path.join('/data/loris/', str(violated_scan_entry.file_rel_path)))
 
     # Rerun the script to test that it did not duplicate the entry in MRI protocol violated scans
-    # Check that the rest of the expected files have been created
+    # Note: need to copy the violated file into incoming to rerun the script
     new_nifti_path = os.path.join('/data/loris/', str(violated_scan_entry.file_rel_path))
     new_json_path = new_nifti_path.replace('.nii.gz', '.json')
+    shutil.copyfile(new_nifti_path, nifti_path)
+    shutil.copyfile(new_json_path, json_path)
     process = run_integration_script(
         [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
-            '--nifti_path', new_nifti_path,
+            '--nifti_path', nifti_path,
             '--upload_id', upload_id,
-            '--json_path', new_json_path,
+            '--json_path', json_path,
         ]
     )
 
@@ -390,16 +393,16 @@ def test_nifti_mri_protocol_violated_scans_features():
     assert violated_scans is not None and len(violated_scans) == 1
 
     # Rerun the script and specify the scan type as an argument
-    # Note: using the new location of the files since they have been moved
-    new_nifti_path = os.path.join('/data/loris/', str(violated_scan_entry.file_rel_path))
-    new_json_path = new_nifti_path.replace('.nii.gz', '.json')
+    # Note: need to recopy the violated file into incoming to rerun the script
+    shutil.copyfile(new_nifti_path, nifti_path)
+    shutil.copyfile(new_json_path, json_path)
     process = run_integration_script(
         [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
-            '--nifti_path', new_nifti_path,
+            '--nifti_path', nifti_path,
             '--upload_id', upload_id,
-            '--json_path', new_json_path,
+            '--json_path', json_path,
             '--loris_scan_type', 't1',
             '--create_pic'
         ]
@@ -528,16 +531,20 @@ def test_nifti_mri_violations_log_exclude_features():
     assert os.path.exists(new_bvec_path)
 
     # Rerun the script to test that it did not duplicate the entry in MRI violations log
-    # Note: using the new location of the files since they have been moved
+    # Note: need to copy the violation file into incoming to rerun the script
+    shutil.copyfile(new_nifti_path, nifti_path)
+    shutil.copyfile(new_json_path, json_path)
+    shutil.copyfile(new_bval_path, bval_path)
+    shutil.copyfile(new_bvec_path, bvec_path)
     process = run_integration_script(
         [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
-            '--nifti_path', new_nifti_path,
+            '--nifti_path', nifti_path,
             '--upload_id', upload_id,
-            '--json_path', new_json_path,
-            '--bval_path', new_bval_path,
-            '--bvec_path', new_bvec_path
+            '--json_path', json_path,
+            '--bval_path', bval_path,
+            '--bvec_path', bvec_path
         ]
     )
 
@@ -557,16 +564,20 @@ def test_nifti_mri_violations_log_exclude_features():
     assert violations is not None and len(violations) == 1
 
     # Rerun the script with bypassing the extra checks and without creating the pic
-    # Note: using the new location of the files since they have been moved
+    # Note: need to recopy the violation file into incoming to rerun the script
+    shutil.copyfile(new_nifti_path, nifti_path)
+    shutil.copyfile(new_json_path, json_path)
+    shutil.copyfile(new_bval_path, bval_path)
+    shutil.copyfile(new_bvec_path, bvec_path)
     process = run_integration_script(
         [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
-            '--nifti_path', new_nifti_path,
+            '--nifti_path', nifti_path,
             '--upload_id', upload_id,
-            '--json_path', new_json_path,
-            '--bval_path', new_bval_path,
-            '--bvec_path', new_bvec_path,
+            '--json_path', json_path,
+            '--bval_path', bval_path,
+            '--bvec_path', bvec_path,
             '--bypass_extra_checks'
         ]
     )
