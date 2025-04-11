@@ -23,6 +23,6 @@ class DbMriProtocolCheck(Base):
         = mapped_column('MriProtocolChecksGroupID', ForeignKey('mri_protocol_checks_group.MriProtocolChecksGroupID'))
 
     scan_type            : Mapped['db_mri_scan_type.DbMriScanType'] \
-        = relationship('DbMriScanType', back_populates='protocol_checks')
+        = relationship('DbMriScanType', back_populates='protocol_check')
     protocol_check_group: Mapped['db_mri_protocol_check_group.DbMriProtocolCheckGroup'] \
-        = relationship('DbMriProtocolCheckGroup', back_populates='protocol_checks')
+        = relationship('DbMriProtocolCheckGroup', back_populates='protocol_check')
