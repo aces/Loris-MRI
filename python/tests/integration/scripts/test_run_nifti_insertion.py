@@ -452,7 +452,8 @@ def test_nifti_mri_violations_log_exclude_features():
     - provide a scan with exclusionary violation checks and check that it gets inserted in the violations log table
     - re-run the script on the same scan and check that no duplicated entries has been saved in the violations log table
     - re-run the script on the same scan with option to bypass the extra checks and check that the file got inserted
-      in the files table
+      in the files table (in addition, test not creating the pic for the scan and make sure
+      it is not generated)
     """
     db = get_integration_database_session()
 
@@ -571,8 +572,7 @@ def test_nifti_mri_violations_log_exclude_features():
             '--json_path', json_path,
             '--bval_path', bval_path,
             '--bvec_path', bvec_path,
-            '--bypass_extra_checks',
-            '--create_pic'
+            '--bypass_extra_checks'
         ]
     )
 
@@ -601,7 +601,7 @@ def test_nifti_mri_violations_log_exclude_features():
     assert file_json_data is not None and file_json_data.value == f'{file_base_rel_path}.json'
     assert file_bval_data is not None and file_bval_data.value == f'{file_base_rel_path}.bval'
     assert file_bvec_data is not None and file_bvec_data.value == f'{file_base_rel_path}.bvec'
-    assert file_pic_data is not None
+    assert file_pic_data is None
 
     assert check_file_tree('/data/loris/', {
         'assembly_bids': {
@@ -614,11 +614,6 @@ def test_nifti_mri_violations_log_exclude_features():
                         basename(str(file_json_data.value)): None,
                     }
                 }
-            }
-        },
-        'pic': {
-            '400184': {
-                basename(str(file_pic_data.value)): None
             }
         }
     })
