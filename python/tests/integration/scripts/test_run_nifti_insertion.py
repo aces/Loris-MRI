@@ -327,7 +327,7 @@ def test_nifti_mri_violations_log_exclude_insertion():
     echo_number = None
     expected_violation = [{
         'Severity': 'exclude',
-        'Header': 'RepetitionTime',
+        'Header': 'repetition_time',
         'Value': 11.2,
         'ValidRange': '11.1-11.1',
         'ValidRegex': None,
@@ -355,7 +355,7 @@ def test_nifti_mri_violations_log_exclude_insertion():
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: {nifti_path} violates exclusionary checks listed in mri_protocol_checks." \
                       f" List of violations are: {expected_violation}"
-    assert process.returncode == SUCCESS
+    assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
