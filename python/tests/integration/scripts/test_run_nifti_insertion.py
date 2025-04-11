@@ -352,8 +352,7 @@ def test_nifti_mri_protocol_violated_scans_features():
         phase_encoding_direction
     )
     # Check that the NIfTI file was not inserted in files table
-    # (2 = original file already inserted + forced violated scan file inserted by previous test)
-    assert mri_upload.session and len(mri_upload.session.files) == 2
+    assert mri_upload.session and len(mri_upload.session.files) == 1
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table
     assert violated_scans is not None and len(violated_scans) == 1
     violated_scan_entry = violated_scans[0]
@@ -504,8 +503,8 @@ def test_nifti_mri_violations_log_exclude_features():
         echo_number,
         phase_encoding_direction
     )
-    # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
-    assert mri_upload.session and len(mri_upload.session.files) == 1
+    # Check that the NIfTI file was not inserted in files table (original file + violated scan force-inserted above)
+    assert mri_upload.session and len(mri_upload.session.files) == 2
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
     # can be found on the disk
     assert violations is not None and len(violations) == 1
