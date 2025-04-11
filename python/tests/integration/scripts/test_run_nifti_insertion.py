@@ -312,7 +312,8 @@ def test_nifti_mri_protocol_violated_scans_features():
     - provide a scan with no matching protocol and check that it gets inserted in the violated scan table
     - re-run the script on the same scan and check that no duplicated entries has been saved in the violated scan table
     - re-run the script on the same scan with specification of the scan type as an argument to the script and check
-      that it got inserted into the files table
+      that it got inserted into the files table (in addition, test not creating the pic for the scan and make sure
+      it is not generated)
     """
     db = get_integration_database_session()
 
@@ -350,8 +351,9 @@ def test_nifti_mri_protocol_violated_scans_features():
         echo_number,
         phase_encoding_direction
     )
-    # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
-    assert mri_upload.session and len(mri_upload.session.files) == 1
+    # Check that the NIfTI file was not inserted in files table
+    # (2 = original file already inserted + forced violated scan file inserted by previous test)
+    assert mri_upload.session and len(mri_upload.session.files) == 2
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table
     assert violated_scans is not None and len(violated_scans) == 1
     violated_scan_entry = violated_scans[0]
@@ -402,8 +404,7 @@ def test_nifti_mri_protocol_violated_scans_features():
             '--nifti_path', nifti_path,
             '--upload_id', upload_id,
             '--json_path', json_path,
-            '--loris_scan_type', 't1',
-            '--create_pic'
+            '--loris_scan_type', 't1'
         ]
     )
 
@@ -430,7 +431,7 @@ def test_nifti_mri_protocol_violated_scans_features():
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_pic_filename')
     assert file_json_data is not None and file_json_data.value == f'{file_base_rel_path}.json'
-    assert file_pic_data is not None
+    assert file_pic_data is None
 
     assert check_file_tree('/data/loris/', {
         'assembly_bids': {
@@ -442,11 +443,6 @@ def test_nifti_mri_protocol_violated_scans_features():
                     }
                 }
             }
-        },
-        'pic': {
-            '400184': {
-                basename(str(file_pic_data.value)): None
-            }
         }
     })
 
@@ -456,8 +452,8 @@ def test_nifti_mri_violations_log_exclude_features():
     Test the following NIfTI violations exclusion features:
     - provide a scan with exclusionary violation checks and check that it gets inserted in the violations log table
     - re-run the script on the same scan and check that no duplicated entries has been saved in the violations log table
-    - re-run the script on the same scan with option to bypass the extra checks and without the option to create the pic
-      and check that the file got inserted in the files table and that the pic has not been generated
+    - re-run the script on the same scan with option to bypass the extra checks and check that the file got inserted
+      in the files table
     """
     db = get_integration_database_session()
 
@@ -561,7 +557,7 @@ def test_nifti_mri_violations_log_exclude_features():
     )
     assert violations is not None and len(violations) == 1
 
-    # Rerun the script with bypassing the extra checks and without creating the pic
+    # Rerun the script with bypassing the extra checks
     # Note: need to recopy the violation file into incoming to rerun the script
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
@@ -576,7 +572,8 @@ def test_nifti_mri_violations_log_exclude_features():
             '--json_path', json_path,
             '--bval_path', bval_path,
             '--bvec_path', bvec_path,
-            '--bypass_extra_checks'
+            '--bypass_extra_checks',
+            '--create_pic'
         ]
     )
 
@@ -605,7 +602,7 @@ def test_nifti_mri_violations_log_exclude_features():
     assert file_json_data is not None and file_json_data.value == f'{file_base_rel_path}.json'
     assert file_bval_data is not None and file_bval_data.value == f'{file_base_rel_path}.bval'
     assert file_bvec_data is not None and file_bvec_data.value == f'{file_base_rel_path}.bvec'
-    assert file_pic_data is None
+    assert file_pic_data is not None
 
     assert check_file_tree('/data/loris/', {
         'assembly_bids': {
@@ -618,6 +615,11 @@ def test_nifti_mri_violations_log_exclude_features():
                         basename(str(file_json_data.value)): None,
                     }
                 }
+            }
+        },
+        'pic': {
+            '400184': {
+                basename(str(file_pic_data.value)): None
             }
         }
     })
