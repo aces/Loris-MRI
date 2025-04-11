@@ -372,16 +372,21 @@ def test_nifti_mri_violations_log_exclude_insertion():
     assert mri_upload.session and len(mri_upload.session.files) == 1
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
     # can be found on the disk
-    assert violations_log is not None
+    assert violations_log is not None and len(violations_log) == 1
 
     # Check that the NIfTI file can be found in the filesystem
-    assert violations_log.minc_file is not None \
-           and os.path.exists(os.path.join('/data/loris/', str(violations_log.minc_file)))
+    violation_entry = violations_log[0]
+    assert violation_entry.minc_file is not None \
+           and os.path.exists(os.path.join('/data/loris/', str(violation_entry.minc_file)))
     # Check that the rest of the expected files have been created
-    path_parts = os.path.split(str(violations_log.minc_file))
+    path_parts = os.path.split(str(violation_entry.minc_file))
     file_name = path_parts[-1]
+    print(path_parts)
+    print(path_parts[0])
+    print(path_parts[1])
+    print(path_parts[2])
     assert check_file_tree('/data/loris/trashbin/', {
-        path_parts[1]: {
+        path_parts[0]: {
             file_name: None,
             file_name.replace('.nii.gz', '.bval'): None,
             file_name.replace('.nii.gz', '.bvec'): None,
@@ -407,6 +412,7 @@ def test_nifti_mri_violations_log_exclude_insertion():
     assert process.stdout == ""
 
     # assert violations_log is not None and len(violations_log) == 1
+
 
 def test_dwi_insertion_with_mri_violations_log_warning():
     db = get_integration_database_session()
