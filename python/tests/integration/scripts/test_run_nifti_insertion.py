@@ -5,9 +5,9 @@ from lib.db.queries.file import (
     try_get_file_with_unique_combination,
     try_get_parameter_value_with_file_id_parameter_name,
 )
-from lib.db.queries.mri_protocol_violated_scans import try_get_protocol_violated_scans_with_unique_series_combination
+from lib.db.queries.mri_protocol_violated_scan import get_all_protocol_violated_scans_with_unique_series_combination
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
-from lib.db.queries.mri_violations_log import try_get_violations_log_with_unique_series_combination
+from lib.db.queries.mri_violation_log import get_all_violations_log_with_unique_series_combination
 from lib.exitcode import (
     FILE_NOT_UNIQUE,
     FILENAME_MISMATCH,
@@ -301,7 +301,7 @@ def test_nifti_mri_protocol_violated_scans_insertion():
 
     # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
-    violated_scans = try_get_protocol_violated_scans_with_unique_series_combination(
+    violated_scans = get_all_protocol_violated_scans_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
@@ -311,11 +311,41 @@ def test_nifti_mri_protocol_violated_scans_insertion():
     # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
     assert mri_upload.session and len(mri_upload.session.files) == 1
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table
-    assert violated_scans is not None
+    assert violated_scans is not None and len(violated_scans) == 1
+    violated_scan_entry = violated_scans[0]
 
     # Check that the NIfTI file can be found on the disk
-    assert violated_scans.minc_location is not None \
-           and os.path.exists(os.path.join('/data/loris/', str(violated_scans.minc_location)))
+    assert violated_scan_entry.file_rel_path is not None \
+           and os.path.exists(os.path.join('/data/loris/', str(violated_scan_entry.file_rel_path)))
+
+    # Rerun the script to test that it did not duplicate entry in MRI protocol violated scans
+    # Check that the rest of the expected files have been created
+    new_nifti_path = os.path.join('/data/loris/', str(violated_scan_entry.file_rel_path))
+    new_json_path = new_nifti_path.replace('.nii.gz', '.json')
+    process = run_integration_script(
+        [
+            'run_nifti_insertion.py',
+            '--profile', 'database_config.py',
+            '--nifti_path', new_nifti_path,
+            '--upload_id', upload_id,
+            '--json_path', new_json_path,
+        ]
+    )
+
+    # Check return code, STDOUT and STDERR
+    assert process.returncode == UNKNOWN_PROTOCOL
+    assert expected_stderr in process.stderr
+    assert process.stdout == ""
+
+    # Check that there is still only 1 entry matching in violated scans
+    violated_scans = get_all_protocol_violated_scans_with_unique_series_combination(
+        db,
+        series_uid,
+        echo_time,
+        echo_number,
+        phase_encoding_direction
+    )
+    assert violated_scans is not None and len(violated_scans) == 1
 
 
 def test_nifti_mri_violations_log_exclude_insertion():
@@ -361,7 +391,7 @@ def test_nifti_mri_violations_log_exclude_insertion():
 
     # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
-    violations_log = try_get_violations_log_with_unique_series_combination(
+    violations = get_all_violations_log_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
@@ -372,33 +402,37 @@ def test_nifti_mri_violations_log_exclude_insertion():
     assert mri_upload.session and len(mri_upload.session.files) == 1
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
     # can be found on the disk
-    assert violations_log is not None and len(violations_log) == 1
+    assert violations is not None and len(violations) == 1
 
     # Check that the NIfTI file can be found in the filesystem
-    violation_entry = violations_log[0]
-    assert violation_entry.minc_file is not None \
-           and os.path.exists(os.path.join('/data/loris/', str(violation_entry.minc_file)))
+    violation_entry = violations[0]
+    assert violation_entry.file_rel_path is not None \
+           and os.path.exists(os.path.join('/data/loris/', str(violation_entry.file_rel_path)))
     # Check that the rest of the expected files have been created
-    path_parts = os.path.split(str(violation_entry.minc_file))
-    file_name = path_parts[-1]
+    path_parts = os.path.split(str(violation_entry.file_rel_path))
     dir_path = os.path.join('/data/loris/', path_parts[0])
+    nifti_file_name = path_parts[-1]
+    json_file_name = nifti_file_name.replace('.nii.gz', '.json')
+    bval_file_name = nifti_file_name.replace('.nii.gz', '.bval')
+    bvec_file_name = nifti_file_name.replace('.nii.gz', '.bvec')
     assert check_file_tree(dir_path, {
-        file_name: None,
-        file_name.replace('.nii.gz', '.bval'): None,
-        file_name.replace('.nii.gz', '.bvec'): None,
-        file_name.replace('.nii.gz', '.json'): None,
+        bval_file_name: None,
+        bvec_file_name: None,
+        json_file_name: None,
+        nifti_file_name: None,
     })
 
     # Rerun the script to test that it did not duplicate entry in MRI violations log
+    # Note: using the new location of the files since they have been moved
     process = run_integration_script(
         [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
+            '--nifti_path', os.path.join(dir_path, nifti_file_name),
             '--upload_id', upload_id,
-            '--json_path', json_path,
-            '--bval_path', bval_path,
-            '--bvec_path', bvec_path
+            '--json_path', os.path.join(dir_path, json_file_name),
+            '--bval_path', os.path.join(dir_path, bval_file_name),
+            '--bvec_path', os.path.join(dir_path, bvec_file_name)
         ]
     )
 
@@ -406,7 +440,14 @@ def test_nifti_mri_violations_log_exclude_insertion():
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
-    # assert violations_log is not None and len(violations_log) == 1
+    violations = get_all_violations_log_with_unique_series_combination(
+        db,
+        series_uid,
+        echo_time,
+        echo_number,
+        phase_encoding_direction
+    )
+    assert violations is not None and len(violations) == 1
 
 
 def test_dwi_insertion_with_mri_violations_log_warning():
@@ -449,7 +490,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
         echo_number,
         phase_encoding_direction
     )
-    violations_log = try_get_violations_log_with_unique_series_combination(
+    violations = get_all_violations_log_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
@@ -459,14 +500,14 @@ def test_dwi_insertion_with_mri_violations_log_warning():
 
     # Check that the NIfTI file was inserted in `files` and `mri_violations_log` tables
     assert file is not None
-    assert violations_log is not None and len(violations_log) == 1
-    violation_entry = violations_log[0]
-    assert violation_entry.minc_file is not None
+    assert violations is not None and len(violations) == 1
+    violation_entry = violations[0]
+    assert violation_entry.file_rel_path is not None
     assert violation_entry.severity == 'warning'
 
     # Check that all files related to that image have been properly linked in the database
     file_base_rel_path = 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi'
-    assert str(violation_entry.minc_file) \
+    assert str(violation_entry.file_rel_path) \
            == str(file.file_name) \
            == f'{file_base_rel_path}.nii.gz'
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')

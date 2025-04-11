@@ -19,7 +19,7 @@ class DbMriProtocolViolatedScan(Base):
     dicom_archive_id         : Mapped[int | None]      = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
     time_run                 : Mapped[datetime | None] = mapped_column('time_run')
     series_description       : Mapped[str | None]      = mapped_column('series_description')
-    minc_location            : Mapped[str | None]      = mapped_column('minc_location')
+    file_rel_path            : Mapped[str | None]      = mapped_column('minc_location')
     patient_name             : Mapped[str | None]      = mapped_column('PatientName')
     tr_range                 : Mapped[str | None]      = mapped_column('TR_range')
     te_range                 : Mapped[str | None]      = mapped_column('TE_range')

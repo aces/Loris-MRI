@@ -19,7 +19,7 @@ class DbMriViolationLog(Base):
     series_uid              : Mapped[str | None]       = mapped_column('SeriesUID')
     dicom_archive_id        : Mapped[int | None]       \
         = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    minc_file               : Mapped[str | None]       = mapped_column('MincFile')
+    file_rel_path           : Mapped[str | None]       = mapped_column('MincFile')
     patient_name            : Mapped[str | None]       = mapped_column('PatientName')
     candidate_id            : Mapped[int | None]       = mapped_column('CandidateID', ForeignKey('candidate.ID'))
     visit_label             : Mapped[str | None]       = mapped_column('Visit_label')

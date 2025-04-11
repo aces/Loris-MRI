@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session as Database
 from lib.db.models.mri_violation_log import DbMriViolationLog
 
 
-def try_get_violations_log_with_unique_series_combination(
+def get_all_violations_log_with_unique_series_combination(
         db: Database,
         series_uid: str,
         echo_time: str | None,
