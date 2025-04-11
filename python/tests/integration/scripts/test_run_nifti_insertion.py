@@ -377,7 +377,6 @@ def test_nifti_mri_protocol_violated_scans_features():
     )
 
     # Check return code, STDOUT and STDERR
-    expected_stderr = f"ERROR: {new_nifti_path}'s acquisition protocol is 'unknown'."
     assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
@@ -548,8 +547,7 @@ def test_nifti_mri_violations_log_exclude_features():
         ]
     )
 
-    expected_stderr = f"ERROR: {new_nifti_path} violates exclusionary checks listed in mri_protocol_checks." \
-                      f" List of violations are: {expected_violation}"
+    # Check return code, STDOUT and STDERR
     assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
@@ -626,6 +624,9 @@ def test_nifti_mri_violations_log_exclude_features():
 
 
 def test_dwi_insertion_with_mri_violations_log_warning():
+    """
+    Test insertion of DWI file into files table with a warning protocol violation.
+    """
     db = get_integration_database_session()
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116492064679881426.0.0.0'
