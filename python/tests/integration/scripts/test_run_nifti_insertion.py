@@ -377,7 +377,7 @@ def test_nifti_mri_violations_log_exclude_insertion():
     # Check that the NIfTI file can be found in the filesystem
     assert violations_log.minc_file is not None \
            and os.path.exists(os.path.join('/data/loris/', str(violations_log.minc_file)))
-    # Check that the expected files have been created
+    # Check that the rest of the expected files have been created
     path_parts = os.path.split(str(violations_log.minc_file))
     file_name = path_parts[-1]
     assert check_file_tree('/data/loris/trashbin/', {
