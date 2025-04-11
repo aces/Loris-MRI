@@ -164,8 +164,8 @@ class NiftiInsertionPipeline(BasePipeline):
             log_error_exit(
                 self.env,
                 (
-                    f"{self.nifti_path} violates exclusionary checks listed in mri_protocol_checks. "
-                    f"  List of violations are: {self.exclude_violations_list}"
+                    f"{self.nifti_path} violates exclusionary checks listed in mri_protocol_checks."
+                    f" List of violations are: {self.exclude_violations_list}"
                 ),
                 lib.exitcode.UNKNOWN_PROTOCOL,
             )
