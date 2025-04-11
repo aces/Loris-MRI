@@ -26,7 +26,7 @@ from tests.util.run_integration_script import run_integration_script
 def test_invalid_arg():
 
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--invalid_arg',
@@ -43,7 +43,7 @@ def test_missing_nifti_path_argument():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
         ]
@@ -61,7 +61,7 @@ def test_invalid_nifti_path():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -81,7 +81,7 @@ def test_missing_upload_id_or_tarchive_path():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -104,7 +104,7 @@ def test_missing_json_path():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -128,7 +128,7 @@ def test_incorrect_json_path():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -152,7 +152,7 @@ def test_invalid_upload_id():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -176,7 +176,7 @@ def test_invalid_tarchive_path():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -201,7 +201,7 @@ def test_tarchive_path_and_upload_id_provided():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -228,7 +228,7 @@ def test_nifti_and_tarchive_patient_name_differ():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -253,7 +253,7 @@ def test_nifti_already_uploaded():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -284,7 +284,7 @@ def test_nifti_mri_protocol_violated_scans_insertion():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,
@@ -310,11 +310,12 @@ def test_nifti_mri_protocol_violated_scans_insertion():
     )
     # Check that the NIfTI file was not inserted in files table (still only one file in the files table)
     assert mri_upload.session and len(mri_upload.session.files) == 1
-    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
-    # can be found on the disk
+    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table
     assert violated_scans is not None
-    assert violated_scans.minc_location is not None
-    assert os.path.exists(os.path.join('/data/loris/', str(violated_scans.minc_location)))
+
+    # Check that the NIfTI file can be found on the disk
+    assert violated_scans.minc_location is not None \
+           and os.path.exists(os.path.join('/data/loris/', str(violated_scans.minc_location)))
 
 
 # def test_nifti_mri_violations_log_exclude_insertion():
@@ -338,7 +339,7 @@ def test_nifti_mri_protocol_violated_scans_insertion():
 #
 #     # Run the script to test
 #     process = run_integration_script(
-#         command=[
+#         [
 #             'run_nifti_insertion.py',
 #             '--profile', 'database_config.py',
 #             '--nifti_path', nifti_path,
@@ -385,7 +386,7 @@ def test_nifti_mri_protocol_violated_scans_insertion():
 #     })
 
 
-def test_nifti_mri_violations_log_warning_insertion():
+def test_dwi_insertion_with_mri_violations_log_warning():
     db = get_integration_database_session()
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116492064679881426.0.0.0'
@@ -400,7 +401,7 @@ def test_nifti_mri_violations_log_warning_insertion():
 
     # Run the script to test
     process = run_integration_script(
-        command=[
+        [
             'run_nifti_insertion.py',
             '--profile', 'database_config.py',
             '--nifti_path', nifti_path,

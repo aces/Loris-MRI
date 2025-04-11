@@ -32,11 +32,11 @@ def try_get_parameter_value_with_file_id_parameter_name(
         parameter_name: str
 ) -> DbParameterFile | None:
     """
-    Get parameter value from file_id and parameter_name, or return `None` if no entry was found
+    Get parameter value from file ID and parameter name, or return `None` if no entry was found
     """
 
     return db.execute(select(DbParameterFile)
-        .join(DbParameterFile.parameter_type)
+        .join(DbParameterFile.type)
         .where(DbParameterType.name == parameter_name)
         .where(DbParameterFile.file_id == file_id)
     ).scalar_one_or_none()

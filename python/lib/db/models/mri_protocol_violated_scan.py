@@ -10,7 +10,7 @@ import lib.db.models.mri_protocol_group as db_mri_protocol_group
 from lib.db.base import Base
 
 
-class DbMriProtocolViolatedScans(Base):
+class DbMriProtocolViolatedScan(Base):
     __tablename__ = 'mri_protocol_violated_scans'
 
     id                       : Mapped[int]             = mapped_column('ID', primary_key=True)
@@ -20,7 +20,7 @@ class DbMriProtocolViolatedScans(Base):
     time_run                 : Mapped[datetime | None] = mapped_column('time_run')
     series_description       : Mapped[str | None]      = mapped_column('series_description')
     minc_location            : Mapped[str | None]      = mapped_column('minc_location')
-    PatientName              : Mapped[str | None]      = mapped_column('PatientName')
+    patient_name             : Mapped[str | None]      = mapped_column('PatientName')
     tr_range                 : Mapped[str | None]      = mapped_column('TR_range')
     te_range                 : Mapped[str | None]      = mapped_column('TE_range')
     ti_range                 : Mapped[str | None]      = mapped_column('TI_range')
@@ -36,7 +36,7 @@ class DbMriProtocolViolatedScans(Base):
     image_type               : Mapped[str | None]      = mapped_column('image_type')
     phase_encoding_direction : Mapped[str | None]      = mapped_column('PhaseEncodingDirection')
     echo_number              : Mapped[str | None]      = mapped_column('EchoNumber')
-    mri_protocol_group_id    : Mapped[int | None]      \
+    protocol_group_id        : Mapped[int | None]      \
         = mapped_column('MriProtocolGroupID', ForeignKey('mri_protocol_group.MriProtocolGroupID'))
 
     candidate     : Mapped[Optional['db_candidate.DbCandidate']] \

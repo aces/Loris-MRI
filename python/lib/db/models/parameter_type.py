@@ -18,7 +18,7 @@ class DbParameterType(Base):
     source_from      : Mapped[str | None]   = mapped_column('SourceFrom')
     source_condition : Mapped[str | None]   = mapped_column('SourceCondition')
     queryable        : Mapped[bool | None]  = mapped_column('Queryable')
-    isfile           : Mapped[bool | None]  = mapped_column('IsFile')
+    is_file          : Mapped[bool | None]  = mapped_column('IsFile')
 
-    parameter_file: Mapped['db_parameter_file.DbParameterFile'] \
-        = relationship('DbParameterFile', back_populates='parameter_type')
+    parameter_file: Mapped[list['db_parameter_file.DbParameterFile']] \
+        = relationship('DbParameterFile', back_populates='type')

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.models.mri_protocol_checks as db_mri_protocol_checks
-import lib.db.models.mri_violations_log as db_mri_violations_log
+import lib.db.models.mri_protocol_check as db_mri_protocol_check
+import lib.db.models.mri_violation_log as db_mri_violation_log
 from lib.db.base import Base
 
 
@@ -11,7 +11,7 @@ class DbMriScanType(Base):
     id   : Mapped[int] = mapped_column('MriScanTypeID', primary_key=True)
     name : Mapped[str] = mapped_column('MriScanTypeName')
 
-    protocol_checks : Mapped['db_mri_protocol_checks.DbMriProtocolChecks'] \
-        = relationship('DbMriProtocolChecks', back_populates='scan_type')
-    violations_log  : Mapped['db_mri_violations_log.DbMriViolationsLog'] \
-        = relationship('DbMriViolationsLog', back_populates='scan_type')
+    protocol_checks : Mapped[list['db_mri_protocol_check.DbMriProtocolCheck']] \
+        = relationship('DbMriProtocolCheck', back_populates='scan_type')
+    violations_log  : Mapped[list['db_mri_violation_log.DbMriViolationLog']] \
+        = relationship('DbMriViolationLog', back_populates='scan_type')
