@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
@@ -10,10 +12,10 @@ def try_get_violations_log_with_unique_series_combination(
         echo_time: str | None,
         echo_number: str | None,
         phase_encoding_direction: str | None
-) -> DbMriViolationLog | None:
+) -> Sequence[DbMriViolationLog]:
     """
-    Get the violations log from the database using its SeriesInstanceUID, or return `None` if
-    no violations log was found.
+    Get all violations log from the database using the file's SeriesInstanceUID,
+    echo time, echo number and phase encoding direction.
     """
 
     return db.execute(select(DbMriViolationLog)
@@ -21,4 +23,4 @@ def try_get_violations_log_with_unique_series_combination(
         .where(DbMriViolationLog.echo_time == echo_time)
         .where(DbMriViolationLog.echo_number == echo_number)
         .where(DbMriViolationLog.phase_encoding_direction == phase_encoding_direction)
-    ).scalar_one_or_none()
+    ).scalars().all()
