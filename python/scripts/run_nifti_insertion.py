@@ -117,7 +117,7 @@ def input_error_checking(loris_getopt_obj):
     if not json_path and not scan_type:
         print(
             "[ERROR   ] a json_path or a loris_scan_type need to be provided in order"
-            "to determine the image file protocol.\n"
+            " to determine the image file protocol.\n"
         )
         sys.exit(lib.exitcode.MISSING_ARG)
 
