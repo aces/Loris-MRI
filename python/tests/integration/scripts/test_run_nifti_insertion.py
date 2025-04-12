@@ -603,6 +603,7 @@ def test_nifti_mri_violations_log_exclude_features():
     assert file_bvec_data is not None and file_bvec_data.value == f'{file_base_rel_path}.bvec'
     assert file_pic_data is not None
     print(file_pic_data.value)
+    assert False == True
 
     assert check_file_tree('/data/loris/', {
         'assembly_bids': {
