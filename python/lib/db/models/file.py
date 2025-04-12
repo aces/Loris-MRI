@@ -35,6 +35,7 @@ class DbFile(Base):
     acquisition_order_per_modality : Mapped[int | None]   = mapped_column('AcqOrderPerModality')
     acquisition_date               : Mapped[date | None]  = mapped_column('AcquisitionDate')
 
-    session   : Mapped['db_session.DbSession'] = relationship('DbSession', back_populates='files')
-    parameters: Mapped[list['db_parameter_file.DbParameterFile']] \
+    session    : Mapped['db_session.DbSession'] \
+        = relationship('DbSession', back_populates='files')
+    parameters : Mapped[list['db_parameter_file.DbParameterFile']] \
         = relationship('DbParameterFile', back_populates='file')

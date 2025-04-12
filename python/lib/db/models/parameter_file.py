@@ -15,5 +15,7 @@ class DbParameterFile(Base):
     value       : Mapped[str | None] = mapped_column('Value')
     insert_time : Mapped[int]        = mapped_column('InsertTime')
 
-    file: Mapped[list['db_file.DbFile']]              = relationship('DbFile', back_populates='parameters')
-    type: Mapped['db_parameter_type.DbParameterType'] = relationship('DbParameterType', back_populates='parameter_file')
+    file: Mapped['db_file.DbFile'] \
+        = relationship('DbFile', back_populates='parameters')
+    type: Mapped['db_parameter_type.DbParameterType'] \
+        = relationship('DbParameterType', back_populates='parameter_files')

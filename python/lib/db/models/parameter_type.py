@@ -20,5 +20,5 @@ class DbParameterType(Base):
     queryable        : Mapped[bool | None]  = mapped_column('Queryable')
     is_file          : Mapped[bool | None]  = mapped_column('IsFile')
 
-    parameter_file: Mapped[list['db_parameter_file.DbParameterFile']] \
+    parameter_files: Mapped[list['db_parameter_file.DbParameterFile']] \
         = relationship('DbParameterFile', back_populates='type')
