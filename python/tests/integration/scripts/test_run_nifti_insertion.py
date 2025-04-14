@@ -6,9 +6,9 @@ from lib.db.queries.file import (
     try_get_file_with_unique_combination,
     try_get_parameter_value_with_file_id_parameter_name,
 )
-from lib.db.queries.mri_protocol_violated_scan import get_all_protocol_violated_scans_with_unique_series_combination
+from lib.db.queries.mri_protocol_violated_scan import get_protocol_violated_scans_with_unique_series_combination
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
-from lib.db.queries.mri_violation_log import get_all_violations_log_with_unique_series_combination
+from lib.db.queries.mri_violation_log import get_violations_log_with_unique_series_combination
 from lib.exitcode import (
     FILE_NOT_UNIQUE,
     FILENAME_MISMATCH,
@@ -344,7 +344,7 @@ def test_nifti_mri_protocol_violated_scans_features():
 
     # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
-    violated_scans = get_all_protocol_violated_scans_with_unique_series_combination(
+    violated_scans = get_protocol_violated_scans_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
@@ -383,14 +383,14 @@ def test_nifti_mri_protocol_violated_scans_features():
     assert process.stdout == ""
 
     # Check that there is still only 1 entry matching in violated scans
-    violated_scans = get_all_protocol_violated_scans_with_unique_series_combination(
+    violated_scans = get_protocol_violated_scans_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
         echo_number,
         phase_encoding_direction
     )
-    assert violated_scans is not None and len(violated_scans) == 1
+    assert len(violated_scans) == 1
 
     # Rerun the script and specify the scan type as an argument
     # Note: need to recopy the violated file into incoming to rerun the script
@@ -497,7 +497,7 @@ def test_nifti_mri_violations_log_exclude_features():
 
     # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
-    violations = get_all_violations_log_with_unique_series_combination(
+    violations = get_violations_log_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
@@ -508,7 +508,7 @@ def test_nifti_mri_violations_log_exclude_features():
     assert mri_upload.session and len(mri_upload.session.files) == 2
     # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
     # can be found on the disk
-    assert violations is not None and len(violations) == 1
+    assert len(violations) == 1
     violation_entry = violations[0]
     assert violation_entry.file_rel_path is not None
     assert violation_entry.severity == 'exclude'
@@ -548,14 +548,14 @@ def test_nifti_mri_violations_log_exclude_features():
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
-    violations = get_all_violations_log_with_unique_series_combination(
+    violations = get_violations_log_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
         echo_number,
         phase_encoding_direction
     )
-    assert violations is not None and len(violations) == 1
+    assert len(violations) == 1
 
     # Rerun the script with bypassing the extra checks
     # Note: need to recopy the violation file into incoming to rerun the script
@@ -662,7 +662,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
         echo_number,
         phase_encoding_direction
     )
-    violations = get_all_violations_log_with_unique_series_combination(
+    violations = get_violations_log_with_unique_series_combination(
         db,
         series_uid,
         echo_time,
@@ -672,7 +672,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
 
     # Check that the NIfTI file was inserted in `files` and `mri_violations_log` tables
     assert file is not None
-    assert violations is not None and len(violations) == 1
+    assert len(violations) == 1
     violation_entry = violations[0]
     assert violation_entry.file_rel_path is not None
     assert violation_entry.severity == 'warning'

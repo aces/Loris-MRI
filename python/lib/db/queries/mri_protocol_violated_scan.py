@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session as Database
 from lib.db.models.mri_protocol_violated_scan import DbMriProtocolViolatedScan
 
 
-def get_all_protocol_violated_scans_with_unique_series_combination(
+def get_protocol_violated_scans_with_unique_series_combination(
         db: Database,
         series_uid: str,
         echo_time: str | None,
