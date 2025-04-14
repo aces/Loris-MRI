@@ -53,6 +53,7 @@ class NiftiInsertionPipeline(BasePipeline):
         self.bvec_blake2 = compute_file_blake2b_hash(self.bvec_path) if self.bval_path else None
         self.loris_scan_type = self.options_dict["loris_scan_type"]["value"]
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
+        self.create_pic_bool = self.options_dict["create_pic"]["value"]
 
         # ---------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
@@ -164,8 +165,8 @@ class NiftiInsertionPipeline(BasePipeline):
             log_error_exit(
                 self.env,
                 (
-                    f"{self.nifti_path} violates exclusionary checks listed in mri_protocol_checks. "
-                    f"  List of violations are: {self.exclude_violations_list}"
+                    f"{self.nifti_path} violates exclusionary checks listed in mri_protocol_checks."
+                    f" List of violations are: {self.exclude_violations_list}"
                 ),
                 lib.exitcode.UNKNOWN_PROTOCOL,
             )
@@ -175,7 +176,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Create the pic images
         # ---------------------------------------------------------------------------------------------
-        self._create_pic_image()
+        if self.create_pic_bool:
+            self._create_pic_image()
 
         # ---------------------------------------------------------------------------------------------
         # Remove the tmp directory from the file system

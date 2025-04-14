@@ -6,6 +6,7 @@ INSERT INTO `bids_mri_scan_type_rel` (`MRIScanTypeID`, `BIDSCategoryID`, `BIDSSc
 INSERT INTO `bids_mri_scan_type_rel` (`MRIScanTypeID`, `BIDSCategoryID`, `BIDSScanTypeSubCategoryID`, `BIDSScanTypeID`, `BIDSEchoNumber`, `BIDSPhaseEncodingDirectionID`) VALUES (44,1,NULL,3,NULL,NULL);
 INSERT INTO `bids_mri_scan_type_rel` (`MRIScanTypeID`, `BIDSCategoryID`, `BIDSScanTypeSubCategoryID`, `BIDSScanTypeID`, `BIDSEchoNumber`, `BIDSPhaseEncodingDirectionID`) VALUES (45,1,NULL,4,NULL,NULL);
 INSERT INTO `bids_mri_scan_type_rel` (`MRIScanTypeID`, `BIDSCategoryID`, `BIDSScanTypeSubCategoryID`, `BIDSScanTypeID`, `BIDSEchoNumber`, `BIDSPhaseEncodingDirectionID`) VALUES (48,3,NULL,5,NULL,NULL);
+INSERT INTO `bids_mri_scan_type_rel` (`MRIScanTypeID`, `BIDSCategoryID`, `BIDSScanTypeSubCategoryID`, `BIDSScanTypeID`, `BIDSEchoNumber`, `BIDSPhaseEncodingDirectionID`) VALUES (65,3,3,5,NULL,4);
 INSERT INTO `bids_mri_scan_type_rel` (`MRIScanTypeID`, `BIDSCategoryID`, `BIDSScanTypeSubCategoryID`, `BIDSScanTypeID`, `BIDSEchoNumber`, `BIDSPhaseEncodingDirectionID`) VALUES (66,3,2,5,NULL,4);
 UNLOCK TABLES;
 SET FOREIGN_KEY_CHECKS=1;
