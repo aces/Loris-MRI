@@ -40,3 +40,17 @@ def try_get_parameter_value_with_file_id_parameter_name(
         .where(DbParameterType.name == parameter_name)
         .where(DbParameterFile.file_id == file_id)
     ).scalar_one_or_none()
+
+
+def try_get_file_with_hash(db: Database, file_hash: str) -> DbFile | None:
+    """
+    Get an imaging file from the database using its BLAKE2b or MD5 hash, or return `None` if no
+    imaging file is found.
+    """
+
+    return db.execute(select(DbFile)
+        .join(DbFile.parameters)
+        .join(DbParameterFile.type)
+        .where(DbParameterType.name.in_(['file_blake2b_hash', 'md5hash']))
+        .where(DbParameterFile.value == file_hash)
+    ).scalar_one_or_none()

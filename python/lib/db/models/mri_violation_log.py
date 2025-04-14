@@ -43,5 +43,5 @@ class DbMriViolationLog(Base):
         = relationship('DbCandidate', back_populates='violations_log')
     scan_type            : Mapped[Optional['db_mri_scan_type.DbMriScanType']] \
         = relationship('DbMriScanType', back_populates='violations_log')
-    protocol_check_group: Mapped[Optional['db_mri_protocol_check_group.DbMriProtocolCheckGroup']] \
+    protocol_check_group : Mapped[Optional['db_mri_protocol_check_group.DbMriProtocolCheckGroup']] \
         = relationship('DbMriProtocolCheckGroup', back_populates='violations_log')
