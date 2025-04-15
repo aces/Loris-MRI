@@ -358,12 +358,12 @@ def test_nifti_mri_protocol_violated_scans_features():
     violated_scan_entry = violated_scans[0]
 
     # Check that the NIfTI file can be found on the disk
-    assert violated_scan_entry.file_rel_path is not None \
-           and os.path.exists(os.path.join('/data/loris/', str(violated_scan_entry.file_rel_path)))
+    assert violated_scan_entry.file_rel_path is not None
+    assert os.path.exists(os.path.join('/data/loris/', violated_scan_entry.file_rel_path))
 
     # Rerun the script to test that it did not duplicate the entry in MRI protocol violated scans
     # Note: need to copy the violated file into incoming to rerun the script
-    new_nifti_path = os.path.join('/data/loris/', str(violated_scan_entry.file_rel_path))
+    new_nifti_path = os.path.join('/data/loris/', violated_scan_entry.file_rel_path)
     new_json_path = new_nifti_path.replace('.nii.gz', '.json')
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
@@ -426,7 +426,7 @@ def test_nifti_mri_protocol_violated_scans_features():
 
     # Check that all files related to that image have been properly linked in the database
     file_base_rel_path = 'assembly_bids/sub-400184/ses-V3/anat/sub-400184_ses-V3_run-1_T1w'
-    assert str(file.file_name) == f'{file_base_rel_path}.nii.gz'
+    assert file.rel_path == f'{file_base_rel_path}.nii.gz'
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_pic_filename')
     assert file_json_data is not None and file_json_data.value == f'{file_base_rel_path}.json'
@@ -437,7 +437,7 @@ def test_nifti_mri_protocol_violated_scans_features():
             'sub-400184': {
                 'ses-V3': {
                     'anat': {
-                        basename(str(file.file_name)): None,
+                        basename(file.rel_path): None,
                         basename(str(file_json_data.value)): None,
                     }
                 }
@@ -514,10 +514,9 @@ def test_nifti_mri_violations_log_exclude_features():
     assert violation_entry.severity == 'exclude'
 
     # Check that the NIfTI file can be found in the filesystem
-    assert violation_entry.file_rel_path is not None \
-           and os.path.exists(os.path.join('/data/loris/', str(violation_entry.file_rel_path)))
+    assert os.path.exists(os.path.join('/data/loris/', violation_entry.file_rel_path))
     # Check that the rest of the expected files have been created
-    new_nifti_path = os.path.join('/data/loris/', str(violation_entry.file_rel_path))
+    new_nifti_path = os.path.join('/data/loris/', violation_entry.file_rel_path)
     new_json_path = new_nifti_path.replace('.nii.gz', '.json')
     new_bval_path = new_nifti_path.replace('.nii.gz', '.bval')
     new_bvec_path = new_nifti_path.replace('.nii.gz', '.bvec')
@@ -593,7 +592,7 @@ def test_nifti_mri_violations_log_exclude_features():
 
     # Check that all files related to that image have been properly linked in the database
     file_base_rel_path = 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-65dir_run-1_dwi'
-    assert str(file.file_name) == f'{file_base_rel_path}.nii.gz'
+    assert file.rel_path == f'{file_base_rel_path}.nii.gz'
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
     file_bval_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bval_filename')
     file_bvec_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bvec_filename')
@@ -608,7 +607,7 @@ def test_nifti_mri_violations_log_exclude_features():
             'sub-400184': {
                 'ses-V3': {
                     'dwi': {
-                        basename(str(file.file_name)): None,
+                        basename(file.rel_path): None,
                         basename(str(file_bval_data.value)): None,
                         basename(str(file_bvec_data.value)): None,
                         basename(str(file_json_data.value)): None,
@@ -679,8 +678,8 @@ def test_dwi_insertion_with_mri_violations_log_warning():
 
     # Check that all files related to that image have been properly linked in the database
     file_base_rel_path = 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi'
-    assert str(violation_entry.file_rel_path) \
-           == str(file.file_name) \
+    assert violation_entry.file_rel_path \
+           == file.rel_path \
            == f'{file_base_rel_path}.nii.gz'
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
     file_bval_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'check_bval_filename')
@@ -696,7 +695,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
             'sub-400184': {
                 'ses-V3': {
                     'dwi': {
-                        basename(str(file.file_name)): None,
+                        basename(file.rel_path): None,
                         basename(str(file_bval_data.value)): None,
                         basename(str(file_bvec_data.value)): None,
                         basename(str(file_json_data.value)): None,

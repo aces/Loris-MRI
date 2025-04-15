@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.models.parameter_file as db_parameter_file
+import lib.db.models.file_parameter as db_file_parameter
 import lib.db.models.session as db_session
 from lib.db.base import Base
 
@@ -13,7 +13,7 @@ class DbFile(Base):
 
     id                             : Mapped[int]          = mapped_column('FileID', primary_key=True)
     session_id                     : Mapped[int]          = mapped_column('SessionID', ForeignKey('session.ID'))
-    file_name                      : Mapped[str]          = mapped_column('File')
+    rel_path                       : Mapped[str]          = mapped_column('File')
     series_uid                     : Mapped[str | None]   = mapped_column('SeriesUID')
     echo_time                      : Mapped[float | None] = mapped_column('EchoTime')
     phase_encoding_direction       : Mapped[str | None]   = mapped_column('PhaseEncodingDirection')
@@ -37,5 +37,5 @@ class DbFile(Base):
 
     session    : Mapped['db_session.DbSession'] \
         = relationship('DbSession', back_populates='files')
-    parameters : Mapped[list['db_parameter_file.DbParameterFile']] \
-        = relationship('DbParameterFile', back_populates='file')
+    parameters : Mapped[list['db_file_parameter.DbFileParameter']] \
+        = relationship('DbFileParameter', back_populates='file')
