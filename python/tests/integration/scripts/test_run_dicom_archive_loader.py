@@ -8,13 +8,11 @@ from tests.util.run_integration_script import run_integration_script
 
 def test_invalid_arg():
 
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_loader.py',
-            '--profile', 'database_config.py',
-            '--invalid_arg',
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_loader.py',
+        '--profile', 'database_config.py',
+        '--invalid_arg',
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == GETOPT_FAILURE
@@ -27,13 +25,11 @@ def test_non_existent_upload_id():
     invalid_upload_id = '16666'
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_loader.py',
-            '--profile', 'database_config.py',
-            '--upload_id', invalid_upload_id,
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_loader.py',
+        '--profile', 'database_config.py',
+        '--upload_id', invalid_upload_id,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: Did not find an entry in mri_upload associated with 'UploadID' {invalid_upload_id}"
@@ -47,13 +43,11 @@ def test_invalid_tarchive_path_arg():
     invalid_tarchive_path = "/data/tmp/invalid_path"
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_loader.py',
-            '--profile', 'database_config.py',
-            '--tarchive_path', invalid_tarchive_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_loader.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', invalid_tarchive_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = f"[ERROR   ] {invalid_tarchive_path} does not exist." \
@@ -71,13 +65,11 @@ def test_successful_run_on_valid_tarchive_path():
     db.commit()
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_loader.py',
-            '--profile', 'database_config.py',
-            '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar',
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_loader.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', '/data/loris/tarchive/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar',
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == SUCCESS
