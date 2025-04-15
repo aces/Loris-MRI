@@ -13,13 +13,11 @@ def test_missing_upload_id_arg():
     db = get_integration_database_session()
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_validation.py',
-            '--profile', 'database_config.py',
-            '--tarchive_path', VALID_TARCHIVE_PATH,
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', VALID_TARCHIVE_PATH,
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == MISSING_ARG
@@ -38,13 +36,11 @@ def test_missing_tarchive_path_arg():
     db = get_integration_database_session()
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_validation.py',
-            '--profile', 'database_config.py',
-            '--upload_id', VALID_UPLOAD_ID,
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--upload_id', VALID_UPLOAD_ID,
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == MISSING_ARG
@@ -62,13 +58,11 @@ def test_missing_tarchive_path_arg():
 def test_invalid_arg():
     db = get_integration_database_session()
 
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_validation.py',
-            '--profile', 'database_config.py',
-            '--invalid_arg',
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--invalid_arg',
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == GETOPT_FAILURE
@@ -87,14 +81,12 @@ def test_invalid_tarchive_path_arg():
     db = get_integration_database_session()
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_validation.py',
-            '--profile', 'database_config.py',
-            '--tarchive_path', INVALID_TARCHIVE_PATH,
-            '--upload_id', VALID_UPLOAD_ID,
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', INVALID_TARCHIVE_PATH,
+        '--upload_id', VALID_UPLOAD_ID,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = f"[ERROR   ] {INVALID_TARCHIVE_PATH} does not exist." \
@@ -114,14 +106,12 @@ def test_invalid_tarchive_path_arg():
 def test_non_existent_upload_id():
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_validation.py',
-            '--profile', 'database_config.py',
-            '--tarchive_path', VALID_TARCHIVE_PATH,
-            '--upload_id', INVALID_UPLOAD_ID,
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', VALID_TARCHIVE_PATH,
+        '--upload_id', INVALID_UPLOAD_ID,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: Did not find an entry in mri_upload associated with 'UploadID' {INVALID_UPLOAD_ID}"
@@ -133,14 +123,12 @@ def test_non_existent_upload_id():
 def test_mixed_up_upload_id_tarchive_path():
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_validation.py',
-            '--profile', 'database_config.py',
-            '--tarchive_path', VALID_TARCHIVE_PATH,
-            '--upload_id', '126',
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', VALID_TARCHIVE_PATH,
+        '--upload_id', '126',
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: UploadID 126 and ArchiveLocation {VALID_TARCHIVE_PATH} do not refer to the same upload"
@@ -153,14 +141,12 @@ def test_successful_validation():
     db = get_integration_database_session()
 
     # Run the script to test
-    process = run_integration_script(
-        command=[
-            'run_dicom_archive_validation.py',
-            '--profile', 'database_config.py',
-            '--tarchive_path', VALID_TARCHIVE_PATH,
-            '--upload_id', VALID_UPLOAD_ID,
-        ]
-    )
+    process = run_integration_script([
+        'run_dicom_archive_validation.py',
+        '--profile', 'database_config.py',
+        '--tarchive_path', VALID_TARCHIVE_PATH,
+        '--upload_id', VALID_UPLOAD_ID,
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == SUCCESS

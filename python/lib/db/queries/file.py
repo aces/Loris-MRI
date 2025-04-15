@@ -7,11 +7,11 @@ from lib.db.models.parameter_type import DbParameterType
 
 
 def try_get_file_with_unique_combination(
-        db: Database,
-        series_uid: str,
-        echo_time: str | None,
-        echo_number: str | None,
-        phase_encoding_direction: str | None
+    db: Database,
+    series_uid: str,
+    echo_time: str | None,
+    echo_number: str | None,
+    phase_encoding_direction: str | None
 ) -> DbFile | None:
     """
     Get a file from the database using its SeriesInstanceUID, or return `None` if
@@ -27,9 +27,9 @@ def try_get_file_with_unique_combination(
 
 
 def try_get_parameter_value_with_file_id_parameter_name(
-        db: Database,
-        file_id: int,
-        parameter_name: str
+    db: Database,
+    file_id: int,
+    parameter_name: str
 ) -> DbParameterFile | None:
     """
     Get parameter value from file ID and parameter name, or return `None` if no entry was found

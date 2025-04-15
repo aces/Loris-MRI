@@ -7,11 +7,11 @@ from lib.db.models.mri_protocol_violated_scan import DbMriProtocolViolatedScan
 
 
 def get_protocol_violated_scans_with_unique_series_combination(
-        db: Database,
-        series_uid: str,
-        echo_time: str | None,
-        echo_number: str | None,
-        phase_encoding_direction: str | None
+    db: Database,
+    series_uid: str,
+    echo_time: str | None,
+    echo_number: str | None,
+    phase_encoding_direction: str | None
 ) -> Sequence[DbMriProtocolViolatedScan]:
     """
     Get all protocol violated scans from the database using the file's SeriesInstanceUID,
