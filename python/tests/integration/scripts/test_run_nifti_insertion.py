@@ -29,13 +29,11 @@ def test_invalid_arg():
     Test providing an invalid argument to the script.
     """
 
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--invalid_arg',
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--invalid_arg',
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == GETOPT_FAILURE
@@ -49,12 +47,10 @@ def test_missing_nifti_path_argument():
     """
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == MISSING_ARG
@@ -70,13 +66,11 @@ def test_invalid_nifti_path():
     nifti_path = '/data/tmp/non-existent-file.nii.gz'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = f"[ERROR   ] {nifti_path} does not exist. Please provide a valid path for --nifti_path"
@@ -94,13 +88,11 @@ def test_missing_upload_id_or_tarchive_path():
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = "[ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
@@ -120,14 +112,12 @@ def test_missing_json_path():
     upload_id = '128'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = "[ERROR   ] a json_path or a loris_scan_type need to be provided" \
@@ -147,15 +137,13 @@ def test_invalid_json_path():
     upload_id = '128'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = f"[ERROR   ] {json_path} does not exist. Please provide a valid path for --json_path"
@@ -174,15 +162,13 @@ def test_invalid_upload_id():
     upload_id = '166666'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: Did not find an entry in mri_upload associated with 'UploadID' {upload_id}"
@@ -201,15 +187,13 @@ def test_invalid_tarchive_path():
     tarchive_path = '/data/tmp/non-existent-tarchive.tgz'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--tarchive_path', tarchive_path,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--tarchive_path', tarchive_path,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = f"[ERROR   ] {tarchive_path} does not exist. Please provide a valid path for --tarchive_path"
@@ -229,16 +213,14 @@ def test_tarchive_path_and_upload_id_provided():
     upload_id = '128'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--tarchive_path', tarchive_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--tarchive_path', tarchive_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stdout = "[ERROR   ] You should either specify an upload_id or a tarchive_path or use the -force option" \
@@ -259,15 +241,13 @@ def test_nifti_and_tarchive_patient_name_differ():
     upload_id = '128'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stderr = "ERROR: PatientName in DICOM and NIfTI files differ."
@@ -287,15 +267,13 @@ def test_nifti_already_inserted():
     upload_id = '128'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: There is already a file registered in the files table with SeriesUID {series_uid}," \
@@ -326,15 +304,13 @@ def test_nifti_mri_protocol_violated_scans_features():
     upload_id = '128'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: {nifti_path}'s acquisition protocol is 'unknown'."
@@ -367,15 +343,13 @@ def test_nifti_mri_protocol_violated_scans_features():
     new_json_path = new_nifti_path.replace('.nii.gz', '.json')
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == UNKNOWN_PROTOCOL
@@ -396,16 +370,14 @@ def test_nifti_mri_protocol_violated_scans_features():
     # Note: need to recopy the violated file into incoming to rerun the script
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-            '--loris_scan_type', 't1'
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+        '--loris_scan_type', 't1'
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == SUCCESS
@@ -530,17 +502,15 @@ def test_nifti_mri_violations_log_exclude_features():
     shutil.copyfile(new_json_path, json_path)
     shutil.copyfile(new_bval_path, bval_path)
     shutil.copyfile(new_bvec_path, bvec_path)
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-            '--bval_path', bval_path,
-            '--bvec_path', bvec_path
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+        '--bval_path', bval_path,
+        '--bvec_path', bvec_path
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == UNKNOWN_PROTOCOL
@@ -562,18 +532,16 @@ def test_nifti_mri_violations_log_exclude_features():
     shutil.copyfile(new_json_path, json_path)
     shutil.copyfile(new_bval_path, bval_path)
     shutil.copyfile(new_bvec_path, bvec_path)
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-            '--bval_path', bval_path,
-            '--bvec_path', bvec_path,
-            '--bypass_extra_checks'
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+        '--bval_path', bval_path,
+        '--bvec_path', bvec_path,
+        '--bypass_extra_checks'
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == SUCCESS
@@ -635,18 +603,16 @@ def test_dwi_insertion_with_mri_violations_log_warning():
     upload_id = '128'
 
     # Run the script to test
-    process = run_integration_script(
-        [
-            'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
-            '--nifti_path', nifti_path,
-            '--upload_id', upload_id,
-            '--json_path', json_path,
-            '--bval_path', bval_path,
-            '--bvec_path', bvec_path,
-            '--create_pic'
-        ]
-    )
+    process = run_integration_script([
+        'run_nifti_insertion.py',
+        '--profile', 'database_config.py',
+        '--nifti_path', nifti_path,
+        '--upload_id', upload_id,
+        '--json_path', json_path,
+        '--bval_path', bval_path,
+        '--bvec_path', bvec_path,
+        '--create_pic'
+    ])
 
     # Check return code, STDOUT and STDERR
     assert process.returncode == SUCCESS
