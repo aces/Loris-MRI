@@ -4,7 +4,7 @@ get\_dicom\_files.pl - extracts DICOM files for specific patient names/scan type
 
 # SYNOPSIS
 
-perl get\_dicom\_files.pl \[-name patient\_name\_patterns\] \[-type scan\_type\_patterns\] \[-outdir tmp\_dir\] \[-outfile tarBasename\] 
+perl get\_dicom\_files.pl \[-name patient\_name\_patterns\] \[-type scan\_type\_patterns\] \[-outdir tmp\_dir\] \[-outfile tarBasename\]
            \[-id candid|pscid|candid\_pscid|pscid\_candid\] -profile profile
 
 Available options are:
@@ -12,8 +12,8 @@ Available options are:
 \-profile : name of the config file in `../dicom-archive/.loris_mri` (typically `prod`)
 
 \-name    : comma separated list of MySQL patterns for the patient names that a DICOM file
-           has to have in order to be extracted. A DICOM file only has to match one of the 
-           patterns to be extracted. If no pattern is specified, then the patient name is 
+           has to have in order to be extracted. A DICOM file only has to match one of the
+           patterns to be extracted. If no pattern is specified, then the patient name is
            not used to determine which DICOM files to extract. This option must be used if
            no scan type patterns were specified with `-type` (see below).
 
@@ -34,7 +34,7 @@ Available options are:
            `get_dicom_files.pl` failing. Note that this argument has no impact on the location of the
            final `.tar.gz` file. Use option `-outfile` to control that.
 
-\-outfile : basename of the final `tar.gz` file to produce, in the current directory (defaults to 
+\-outfile : basename of the final `tar.gz` file to produce, in the current directory (defaults to
            `dicoms.tar.gz`).
 
 \-id      : how to name the subdirectory identifying the candidate to which the DICOM files belong:
@@ -44,16 +44,16 @@ Available options are:
 
 This script first connects to the database to build the list of DICOM archives for which
 the patient names match the list of patterns specified as argument, or all DICOM archives if
-no patterns were specified. The script will then examine these DICOM archives and look for the 
-MINC files whose scan types (acquisition protocol names) match the list of patterns passed as 
+no patterns were specified. The script will then examine these DICOM archives and look for the
+MINC files whose scan types (acquisition protocol names) match the list of patterns passed as
 argument, or all MINC files for that archive if `-type` was not used. It then extracts the DICOM files
-associated to each MINC file and writes them in the extraction directory (see `-outdir` option), in a 
+associated to each MINC file and writes them in the extraction directory (see `-outdir` option), in a
 subdirectory with name
 
 `<dccid>/<visit_label>/<acquisition_date>/<protocol>_<minc_index>_<series_description`
 
-where `<minc_index>` is the index number of the MINC file to which the DICOMs are associated: 
-e.g. for file `loris_300001_V4_DtiSA_002.mnc`, the MINC index is 2 (i.e. the second MINC file with 
+where `<minc_index>` is the index number of the MINC file to which the DICOMs are associated:
+e.g. for file `loris_300001_V4_DtiSA_002.mnc`, the MINC index is 2 (i.e. the second MINC file with
 scan type `DtiSA`). Note that the `dccid` subdirectory in the file path can be changed to another
 identifier with option `-id`. Finally, a `.tar.gz` that contains all the DICOM files that were extracted
 is created.
