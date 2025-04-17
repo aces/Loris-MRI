@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session as Database
 
 from lib.db.models.file import DbFile
@@ -54,3 +54,12 @@ def try_get_file_with_hash(db: Database, file_hash: str) -> DbFile | None:
         .where(DbParameterType.name.in_(['file_blake2b_hash', 'md5hash']))
         .where(DbFileParameter.value == file_hash)
     ).scalar_one_or_none()
+
+
+def delete_file(db: Database, file_id: int):
+    """
+    Delete from the database a file entry based on a file ID.
+    """
+
+    db.execute(delete(DbFile)
+       .where(DbFile.id == file_id))
