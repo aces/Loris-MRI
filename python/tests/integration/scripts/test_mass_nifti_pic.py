@@ -128,8 +128,6 @@ def test_force_option():
         if os.path.exists(pic_to_remove):
             os.remove(pic_to_remove)
 
-    current_time = time.time()
-
     process = run_integration_script([
         'mass_nifti_pic.py',
         '--profile', 'database_config.py',
@@ -149,7 +147,9 @@ def test_force_option():
     assert process.stderr == message
 
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
-    assert file_pic_data is not None and file_pic_data.insert_time >= current_time
+    assert file_pic_data is not None
+    assert file_pic_data.value is not None
+    assert os.path.exists(os.path.join('/data/loris/pic/', str(file_pic_data.value)))
 
 
 def test_running_on_non_nifti_file():
