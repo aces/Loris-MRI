@@ -139,9 +139,14 @@ def test_force_option():
     ])
 
     # Check return code, STDOUT and STDERR
+    # The NIfTI file is printing a warning when the pic gets created so check that the
+    # STDERR is exactly that error message.
+    message = '/usr/local/lib/python3.11/site-packages/nilearn/image/resampling.py:867: UserWarning:' \
+              ' Casting data from int32 to float32' \
+              '\n  return resample_img(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""
-    assert process.stderr == ""
+    assert process.stderr == message
 
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     assert file_pic_data is not None and file_pic_data.insert_time >= current_time
@@ -210,7 +215,7 @@ def test_successful_run():
     # STDERR is exactly that error message.
     message = '/usr/local/lib/python3.11/site-packages/nilearn/image/resampling.py:867: UserWarning:' \
               ' Casting data from int32 to float32' \
-              '\n  return resample_img('
+              '\n  return resample_img(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""
     assert process.stderr == message
