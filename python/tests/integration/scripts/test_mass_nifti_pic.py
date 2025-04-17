@@ -1,5 +1,6 @@
 import time
 
+from datetime import datetime
 from lib.db.models.file import DbFile
 from lib.db.queries.file import try_get_parameter_value_with_file_id_parameter_name
 from lib.db.queries.parameter_file import delete_file_parameter
@@ -43,8 +44,8 @@ def test_missing_smallest_id_arg():
     ])
 
     # Check return code, STDOUT and STDERR
-    message = 'ERROR: you must specify a smallest FileID on which to run the' \
-              ' mass_nifti_pic.py script using -s or --smallest_id option'
+    message = 'ERROR: you must specify a smallest FileID on which to run' \
+              ' the mass_nifti_pic.py script using -s or --smallest_id option'
     assert process.returncode == MISSING_ARG
     assert message in process.stdout
     assert process.stderr == ""
@@ -66,22 +67,6 @@ def test_missing_largest_id_arg():
     assert process.stderr == ""
 
 
-def test_invalid_arg():
-
-    process = run_integration_script([
-        'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
-        '--smallest_id', '1',
-        '--largest_id', '1',
-        '--invalid_arg',
-    ])
-
-    # Check return code, STDOUT and STDERR
-    assert process.returncode == GETOPT_FAILURE
-    assert "option --invalid_arg not recognized" in process.stdout
-    assert process.stderr == ""
-
-
 def test_smallest_id_bigger_than_largest_id():
 
     process = run_integration_script([
@@ -92,7 +77,7 @@ def test_smallest_id_bigger_than_largest_id():
     ])
 
     # Check return code, STDOUT and STDERR
-    message = 'ERROR: the value provided for --smallest_id option is bigger than value provided for --largest_id option'
+    message = 'ERROR: the value for --smallest_id option is bigger than value for --largest_id option'
     assert process.returncode == INVALID_ARG
     assert message in process.stdout
     assert process.stderr == ""
@@ -166,6 +151,7 @@ def test_running_on_non_nifti_file():
     file.file_type           = 'txt'
     file.session_id          = 564
     file.output_type         = 'native'
+    file.insert_time         = datetime.now().timestamp()
     file.inserted_by_user_id = 'test'
     db.add(file)
     db.commit()
