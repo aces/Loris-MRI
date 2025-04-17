@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime
 
@@ -180,8 +181,10 @@ def test_successful_run():
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     if file_pic_data:
         # delete pic entry based on it parameter file ID
+        os.remove(file_pic_data.value)
         delete_file_parameter(db, file_pic_data.id)
         db.commit()
+
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     assert file_pic_data is None
 
