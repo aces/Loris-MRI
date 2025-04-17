@@ -310,11 +310,10 @@ def read_and_insert_bids(
         # copy the event file to the LORIS BIDS import directory
         copy_file = str.replace(
             root_event_metadata_file.path,
-            data_dir,
+            bids_layout.root,
             ""
         ).lstrip('/')
 
-        event_metadata_path = copy_file
         if not nocopy:
             event_metadata_path = loris_bids_root_dir + copy_file
             lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
