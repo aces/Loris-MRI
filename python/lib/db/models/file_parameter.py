@@ -6,7 +6,7 @@ import lib.db.models.parameter_type as db_parameter_type
 from lib.db.base import Base
 
 
-class DbParameterFile(Base):
+class DbFileParameter(Base):
     __tablename__ = 'parameter_file'
 
     id          : Mapped[int]        = mapped_column('ParameterFileID', primary_key=True)
@@ -18,4 +18,4 @@ class DbParameterFile(Base):
     file: Mapped['db_file.DbFile'] \
         = relationship('DbFile', back_populates='parameters')
     type: Mapped['db_parameter_type.DbParameterType'] \
-        = relationship('DbParameterType', back_populates='parameter_files')
+        = relationship('DbParameterType', back_populates='file_parameters')

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import lib.db.models.parameter_file as db_parameter_file
+import lib.db.models.file_parameter as db_file_parameter
 from lib.db.base import Base
 
 
@@ -20,5 +20,5 @@ class DbParameterType(Base):
     queryable        : Mapped[bool | None]  = mapped_column('Queryable')
     is_file          : Mapped[bool | None]  = mapped_column('IsFile')
 
-    parameter_files: Mapped[list['db_parameter_file.DbParameterFile']] \
-        = relationship('DbParameterFile', back_populates='type')
+    file_parameters: Mapped[list['db_file_parameter.DbFileParameter']] \
+        = relationship('DbFileParameter', back_populates='type')
