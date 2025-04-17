@@ -127,7 +127,7 @@ def main():
         if os.path.isdir(
             os.path.join(assembly_bids_path, 'sub-' + str(candid))
         ):
-            subjectid = 'sub-{}'.format(candid)
+            subjectid = f'sub-{candid}'
 
         # Try the pscid, case insensitive
         if not subjectid:
