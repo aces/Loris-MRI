@@ -127,13 +127,13 @@ def main():
         if os.path.isdir(
             os.path.join(assembly_bids_path, 'sub-' + str(candid))
         ):
-            subjectid = str(candid)
+            subjectid = f'sub-{candid}'
 
         # Try the pscid, case insensitive
         if not subjectid:
             gen = (
                 dir for dir in os.listdir(assembly_bids_path)
-                if dir.lower() == 'sub-' + pscid.lower()
+                if dir.lower() == ('sub-' + pscid.lower())
             )
             subjectid = next(gen, None)
 
@@ -143,7 +143,8 @@ def main():
             continue
 
         # Visit
-        path = os.path.join(assembly_bids_path, 'sub-' + subjectid, 'ses-' + visit)
+        path = os.path.join(assembly_bids_path, subjectid, 'ses-' + visit)
+
         if not os.path.isdir(path):
             print(f'No BIDS dataset matching visit {visit} for candidate {pscid} {candid} found.')
             continue
@@ -174,7 +175,7 @@ def main():
 
             if result.returncode == 0:
                 db.update(
-                    "UPDATE electrophysiology_uploader SET Status = 'Ingested' WHERE UploadID = %s",
+                    "UPDATE electrophysiology_uploader SET Status = 'Complete' WHERE UploadID = %s",
                     (uploadid,)
                 )
                 print('EEG Dataset with uploadID ' + uploadid + ' successfully ingested')
@@ -185,7 +186,7 @@ def main():
             print('ERROR: error while executing bids_import.py')
 
         db.update(
-            "UPDATE electrophysiology_uploader SET Status = 'Failed Ingestion' WHERE UploadID = %s",
+            "UPDATE electrophysiology_uploader SET Status = 'Failed' WHERE UploadID = %s",
             (uploadid,)
         )
 
