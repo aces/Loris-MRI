@@ -108,7 +108,6 @@ INPUTS:
        Field3 => undef
      }
 
-
 RETURNS:
    - a reference to an array of hash references. Every hash contains the values
      for a given row returned by the method call: the key/value pairs contain
@@ -134,7 +133,6 @@ INPUTS:
        Field2 => { NOT => 3 },
        Field3 => undef
      }
-
 
 RETURNS:
    - the number of records found.

@@ -96,6 +96,7 @@ use constant BIDS_VALIDATOR_OPTIONS_TO_IGNORE => 'bids_validator_options_to_igno
 use constant CREATE_VISIT                => 'createVisit';
 use constant DEFAULT_PROJECT             => 'default_project';
 use constant DEFAULT_COHORT              => 'default_cohort';
+use constant USE_LEGACY_DICOM_STUDY_IMPORTER => 'use_legacy_dicom_study_importer';
 
 =pod
 
@@ -115,7 +116,7 @@ has 'db'     => (is  => 'rw', isa => 'NeuroDB::Database', required => 1);
 
 =head3 &$getConfigSettingRef($setting)
 
-Private method. This method fetches setting C<$setting> from the LORIS table 
+Private method. This method fetches setting C<$setting> from the LORIS table
 Config. It will throw a C<NeuroDB::objectBroker::ObjectBrokerException> if either
 the database transaction failed for some reason or it succeeded but returned no
 results (i.e. setting C<$setting> does not exist).
@@ -159,7 +160,7 @@ my $getConfigSettingRef = sub {
             ? ()
             : map { $_->{'value'} } @$result;
     }
-    
+
     return $result->[0]->{'value'};
 };
 
@@ -610,6 +611,21 @@ sub getBidsValidatorOptionsToIgnore {
 1;
 
 
+=head3 getUseLegacyDicomStudyImporter()
+
+Get the use_legacy_dicom_study_importer Config setting
+
+RETURN: (boolean) 1 if use_legacy_dicom_study_importer is set to Yes in the Config module, 0
+otherwise
+
+=cut
+sub getUseLegacyDicomStudyImporter {
+    my $self = shift;
+
+    my $value = &$getConfigSettingRef($self, USE_LEGACY_DICOM_STUDY_IMPORTER);
+
+    return $getBooleanRef->($value);
+}
 
 
 __END__

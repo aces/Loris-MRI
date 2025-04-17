@@ -10,11 +10,11 @@ batch\_uploads\_tarchive - upload a batch of DICOM archives using script
 # DESCRIPTION
 
 This script uploads a list of DICOM archives to the database by calling script
-`tarchiveLoader.pl` on each file in succession. The list of files to process is read 
+`tarchiveLoader.pl` on each file in succession. The list of files to process is read
 from `STDIN`, one file name per line. Each file name is assumed to be a path
 relative to `tarchiveLibraryDir` (see below).
 
-The following settings of file `$ENV{LORIS_CONFIG}/.loris-mri/prod` affect the 
+The following settings of file `$ENV{LORIS_CONFIG}/.loris-mri/prod` affect the
 behvaviour of `batch_uploads_tarchive` (where `$ENV{LORIS_CONFIG}` is the
 value of the Unix environment variable `LORIS_CONFIG`):
 

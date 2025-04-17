@@ -61,7 +61,7 @@ RETURN: new instance of this class.
 
 ### &$getConfigSettingRef($setting)
 
-Private method. This method fetches setting `$setting` from the LORIS table 
+Private method. This method fetches setting `$setting` from the LORIS table
 Config. It will throw a `NeuroDB::objectBroker::ObjectBrokerException` if either
 the database transaction failed for some reason or it succeeded but returned no
 results (i.e. setting `$setting` does not exist).
@@ -261,6 +261,13 @@ Get the bids\_validator\_options\_to\_ignore Config setting
 
 RETURN: an array of the BIDS validator options to ignore
 to use when creating a BIDS dataset
+
+### getUseLegacyDicomStudyImporter()
+
+Get the use\_legacy\_dicom\_study\_importer Config setting
+
+RETURN: (boolean) 1 if use\_legacy\_dicom\_study\_importer is set to Yes in the Config module, 0
+otherwise
 
 # TO DO
 

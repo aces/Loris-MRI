@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # J-Sebastian Muehlboeck 2006
 # sebas@bic.mni.mcgill.ca
-# Archive your dicom data using DICOM::DCMSUM 
+# Archive your dicom data using DICOM::DCMSUM
 # Tar and gzip dicom files and retar them with pertaining summary and creation log
 # @VERSION : $Id: dicomTar.pl 9 2007-12-18 22:26:00Z jharlap $
 
@@ -133,6 +133,10 @@ my @arg_table =
      exit."],
      );
 
+print STDERR "WARNING: `dicomTar.pl` is deprecated and may eventually be removed. Please use the"
+             . " new `import_dicom_study.py` script instead, which also comes with new features"
+             . " like support for enhanced DICOMs, multi-echo series, and more.\n\n";
+
 GetOptions(\@arg_table, \@ARGV) ||  exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 
 if ($version) { print "Version: $versionInfo\n"; exit; }
@@ -171,7 +175,7 @@ if ($mri_upload_update && !$dbase) {
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
 
-# The tar target 
+# The tar target
 my $totar = basename($dcm_source);
 print "Source: ". $dcm_source . "\nTarget: ".  $targetlocation . "\n\n"
     if $verbose;
@@ -187,7 +191,7 @@ if ($dbase) {
     print "Database is available.\n\n" if $verbose;
 }
 
-# ***************************************    main    *************************************** 
+# ***************************************    main    ***************************************
 #### get some info about who created the archive and where and when
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 my $date            = sprintf("%4d-%02d-%02d %02d:%02d:%02d\n",
@@ -217,7 +221,7 @@ my $sumTypeVersion = $summary->{'sumTypeVersion'};
 # get the unique study ID
 my $studyUnique = $summary->{'studyuid'};
 my $creator         = $summary->{user};
-my $sumTypeVersion  = $summary->{sumTypeVersion}; 
+my $sumTypeVersion  = $summary->{sumTypeVersion};
 
 # check if the study is already uploaded in the tarchive tables
 if ($dbase) {
@@ -246,7 +250,7 @@ if (-e $finalTarget && !$clobber) {
     exit $NeuroDB::ExitCodes::TARGET_EXISTS_NO_CLOBBER;
 }
 
-# read acquisition metadata into variable 
+# read acquisition metadata into variable
 my $metafile = "$targetlocation/$metaname.meta";
 open META, ">$metafile";
 META->autoflush(1);
@@ -260,7 +264,7 @@ select(STDOUT);
 # get rid of newline
 chomp($hostname,$system);
 
-#### create tar from rigt above the source 
+#### create tar from rigt above the source
 chdir(dirname($dcm_source));
 print "You will archive the dir\t\t: $totar\n" if $verbose;
 # tar contents into tarball
@@ -283,7 +287,7 @@ select(TARINFO);
 &archive_head;
 close TARINFO;
 select(STDOUT);
-my $tarinfo = &read_file("$totar.log"); 
+my $tarinfo = &read_file("$totar.log");
 
 my $retar = "tar cvf DCM\_$byDate\_$totar.tar $totar.meta $totar.log $totar.tar.gz";
 `$retar`;
@@ -295,7 +299,7 @@ select(TARINFO);
 &archive_head;
 close TARINFO;
 select(STDOUT);
-$tarinfo = &read_file("$totar.log"); 
+$tarinfo = &read_file("$totar.log");
 print  $tarinfo if $verbose;
 
 
@@ -343,7 +347,7 @@ if ($mri_upload_update) {
 
 exit $NeuroDB::ExitCodes::SUCCESS;
 
-=pod 
+=pod
 
 =head3 archive_head()
 
@@ -363,11 +367,11 @@ format FORMAT_HEADER =
 * Archive target location          :    @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                                       $finalTarget,
 * Name of creating host            :    @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                                      $hostname,                                
+                                      $hostname,
 * Name of host OS                  :    @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                                       $system,
 * Created by user                  :    @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                                      $creator,                                
+                                      $creator,
 * Archived on                      :    @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                                       $date,
 * dicomSummary version             :    @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -382,7 +386,7 @@ format FORMAT_HEADER =
                                       $ARCHIVEmd5sum,
 .
 
-=pod 
+=pod
 
 =head3 read_file($file)
 

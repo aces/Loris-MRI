@@ -56,10 +56,10 @@ exists, the method will try to create it using the supplied parameters.
 INPUTS:
   - $subjectIDref: hash reference of subject IDs
   - $studyDate   : study date
-  - $dbh         : database handle 
+  - $dbh         : database handle
   - $db          : database object
 
-RETURNS: an array of 2 elements: 
+RETURNS: an array of 2 elements:
   - A reference to a hash containing the session properties:
     `ID` => session ID.
     `ProjectID` => project ID for the session.
@@ -429,7 +429,6 @@ that could not be deleted.
 INPUTS:
 
     - @files: list of files to delete.
-    
 
 # TO DO
 
