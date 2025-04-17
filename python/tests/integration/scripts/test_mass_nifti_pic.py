@@ -185,6 +185,7 @@ def test_running_on_non_nifti_file():
 
     # Clean up the file that was inserted before this test
     delete_file(db, 1)
+    db.commit()
 
 
 def test_successful_run():
