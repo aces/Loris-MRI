@@ -5,7 +5,7 @@ from datetime import datetime
 from lib.db.models.file import DbFile
 from lib.db.queries.file import try_get_parameter_value_with_file_id_parameter_name
 from lib.db.queries.parameter_file import delete_file_parameter
-from lib.exitcode import INVALID_ARG, MISSING_ARG, SUCCESS
+from lib.exitcode import INVALID_ARG, INVALID_PATH, MISSING_ARG, SUCCESS
 from tests.util.database import get_integration_database_session
 from tests.util.run_integration_script import run_integration_script
 
@@ -32,7 +32,7 @@ def test_invalid_profile_arg():
 
     # Check return code, STDOUT and STDERR
     message = 'ERROR: you must specify a valid profile file.\ninvalid_profile.py does not exist!'
-    assert process.returncode == MISSING_ARG
+    assert process.returncode == INVALID_PATH
     assert message in process.stdout
     assert process.stderr == ""
 
@@ -180,8 +180,11 @@ def test_successful_run():
     db = get_integration_database_session()
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     if file_pic_data:
-        # delete pic entry based on it parameter file ID
-        os.remove(file_pic_data.value)
+        # remove file from the file system before recreating it
+        pic_to_remove = os.path.join('/data/loris/pic/', str(file_pic_data.value))
+        if os.path.exists(pic_to_remove):
+            os.remove(pic_to_remove)
+        # delete pic entry based on its parameter file ID
         delete_file_parameter(db, file_pic_data.id)
         db.commit()
 
