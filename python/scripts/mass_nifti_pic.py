@@ -102,9 +102,18 @@ def input_error_checking(profile, smallest_id, largest_id, usage):
         print(usage)
         sys.exit(lib.exitcode.MISSING_ARG)
 
+    if os.path.isfile(profile):
+        sys.path.append(os.path.dirname(profile))
+        config_file = __import__(os.path.basename(profile[:-3]))
+    else:
+        message = f'\n\tERROR: you must specify a valid profile file.\n{profile} does not exist!'
+        print(message)
+        print(usage)
+        sys.exit(lib.exitcode.INVALID_PATH)
+
     if not smallest_id:
-        message = '\n\tERROR: you must specify a smallest FileID on which to run the ' \
-                  'the mass_nifti_pic.py script using -s or --smallest_id option'
+        message = '\n\tERROR: you must specify a smallest FileID on which to run the' \
+                  ' mass_nifti_pic.py script using -s or --smallest_id option'
         print(message)
         print(usage)
         sys.exit(lib.exitcode.MISSING_ARG)
@@ -122,16 +131,6 @@ def input_error_checking(profile, smallest_id, largest_id, usage):
         print(message)
         print(usage)
         sys.exit(lib.exitcode.INVALID_ARG)
-
-    if os.path.isfile(profile):
-        sys.path.append(os.path.dirname(profile))
-        config_file = __import__(os.path.basename(profile[:-3]))
-    else:
-        message = '\n\tERROR: you must specify a valid profile file.\n' + \
-                  profile + ' does not exist!'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.INVALID_PATH)
 
     return config_file
 
