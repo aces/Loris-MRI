@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 from lib.db.models.file import DbFile
-from lib.db.queries.file import try_get_parameter_value_with_file_id_parameter_name
+from lib.db.queries.file import delete_file, try_get_parameter_value_with_file_id_parameter_name
 from lib.db.queries.parameter_file import delete_file_parameter
 from lib.exitcode import INVALID_ARG, INVALID_PATH, MISSING_ARG, SUCCESS
 from tests.util.database import get_integration_database_session
@@ -182,6 +182,9 @@ def test_running_on_non_nifti_file():
     assert process.returncode == SUCCESS
     assert message in process.stdout
     assert process.stderr == ""
+
+    # Clean up the file that was inserted before this test
+    delete_file(db, 1)
 
 
 def test_successful_run():
