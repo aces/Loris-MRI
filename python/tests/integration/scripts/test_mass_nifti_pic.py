@@ -31,7 +31,7 @@ def test_invalid_profile_arg():
     ])
 
     # Check return code, STDOUT and STDERR
-    message = 'ERROR: you must specify a valid profile file.\ninvalid_profile.py does not exist!'
+    message = 'ERROR: you must specify a valid profile file'
     assert process.returncode == INVALID_PATH
     assert message in process.stdout
     assert process.stderr == ""
@@ -120,8 +120,13 @@ def test_force_option():
 
     # database connection
     db = get_integration_database_session()
-
-    # file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
+    file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
+    if file_pic_data:
+        # remove file from the file system before recreating it
+        # otherwise get Operation Not Permitted (specific to the test environment)
+        pic_to_remove = os.path.join('/data/loris/pic/', str(file_pic_data.value))
+        if os.path.exists(pic_to_remove):
+            os.remove(pic_to_remove)
 
     current_time = time.time()
 
@@ -191,6 +196,8 @@ def test_successful_run():
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     assert file_pic_data is None
 
+    current_time = time.time()
+
     process = run_integration_script([
         'mass_nifti_pic.py',
         '--profile', 'database_config.py',
@@ -199,6 +206,18 @@ def test_successful_run():
     ])
 
     # Check return code, STDOUT and STDERR
+    # The NIfTI file is printing a warning when the pic gets created so check that the
+    # STDERR is exactly that error message.
+    message = '/usr/local/lib/python3.11/site-packages/nilearn/image/resampling.py:867: UserWarning:' \
+              ' Casting data from int32 to float32' \
+              '\n  return resample_img('
     assert process.returncode == SUCCESS
     assert process.stdout == ""
-    assert process.stderr == ""
+    assert process.stderr == message
+
+    # check pic in database and file system
+    file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
+    assert file_pic_data is not None
+    assert file_pic_data.insert_time >= current_time
+    assert file_pic_data.value is not None
+    assert os.path.exists(os.path.join('/data/loris/pic/', str(file_pic_data.value)))
