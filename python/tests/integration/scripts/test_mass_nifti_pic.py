@@ -11,6 +11,9 @@ from tests.util.run_integration_script import run_integration_script
 
 
 def test_missing_profile_arg():
+    """
+    Test running the script without the --profile argument.
+    """
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -24,6 +27,9 @@ def test_missing_profile_arg():
 
 
 def test_invalid_profile_arg():
+    """
+    Test running the script with an invalid --profile argument.
+    """
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -38,6 +44,9 @@ def test_invalid_profile_arg():
 
 
 def test_missing_smallest_id_arg():
+    """
+    Test running the script without the --smallest_id argument.
+    """
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -53,6 +62,9 @@ def test_missing_smallest_id_arg():
 
 
 def test_missing_largest_id_arg():
+    """
+    Test running the script without the --largest_id argument.
+    """
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -69,6 +81,9 @@ def test_missing_largest_id_arg():
 
 
 def test_smallest_id_bigger_than_largest_id():
+    """
+    Test running the script with a --smallest_id higher than the --largest_id.
+    """
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -85,6 +100,9 @@ def test_smallest_id_bigger_than_largest_id():
 
 
 def test_on_invalid_file_id():
+    """
+    Test running the script on an invalid file ID.
+    """
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -101,6 +119,9 @@ def test_on_invalid_file_id():
 
 
 def test_on_file_id_that_already_has_a_pic():
+    """
+    Test running the script on a file that already has a pic.
+    """
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -117,6 +138,9 @@ def test_on_file_id_that_already_has_a_pic():
 
 
 def test_force_option():
+    """
+    Test running the script on a file that already has the pic with option --force.
+    """
 
     # database connection
     db = get_integration_database_session()
@@ -152,7 +176,10 @@ def test_force_option():
     assert os.path.exists(os.path.join('/data/loris/pic/', str(file_pic_data.value)))
 
 
-def test_running_on_non_nifti_file():
+def test_running_on_a_text_file():
+    """
+    Test running the script on a text file (a non-NIfTI file type).
+    """
 
     # database connection
     db = get_integration_database_session()
@@ -189,9 +216,14 @@ def test_running_on_non_nifti_file():
 
 
 def test_successful_run():
+    """
+    Test successful run of the script.
+    """
 
     # database connection
     db = get_integration_database_session()
+
+    # Remove file ID 2 pic from the database and filesystem
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     if file_pic_data:
         # remove file from the file system before recreating it
