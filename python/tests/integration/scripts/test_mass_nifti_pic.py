@@ -1,7 +1,6 @@
 import time
 
-from sqlalchemy.sql.functions import now
-
+from datetime import datetime
 from lib.db.models.file import DbFile
 from lib.db.queries.file import try_get_parameter_value_with_file_id_parameter_name
 from lib.db.queries.parameter_file import delete_file_parameter
@@ -121,7 +120,7 @@ def test_force_option():
     # database connection
     db = get_integration_database_session()
 
-    file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
+    # file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
 
     current_time = time.time()
 
@@ -154,7 +153,7 @@ def test_running_on_non_nifti_file():
     file.file_type           = 'txt'
     file.session_id          = 564
     file.output_type         = 'native'
-    file.insert_time         = now()
+    file.insert_time         = int(datetime.now().timestamp())
     file.inserted_by_user_id = 'test'
     db.add(file)
     db.commit()
