@@ -15,7 +15,7 @@ class DbSession(Base):
     __tablename__ = 'session'
 
     id                       : Mapped[int]             = mapped_column('ID', primary_key=True)
-    candidate_id             : Mapped[int]             = mapped_column('CandidateID', ForeignKey('candidate.ID'))
+    cand_id                  : Mapped[int]             = mapped_column('CandID', ForeignKey('candidate.CandID'))
     site_id                  : Mapped[int]             = mapped_column('CenterID', ForeignKey('psc.CenterID'))
     project_id               : Mapped[int]             = mapped_column('ProjectID', ForeignKey('Project.ProjectID'))
     visit_number             : Mapped[int | None]      = mapped_column('VisitNo')

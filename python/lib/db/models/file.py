@@ -20,7 +20,7 @@ class DbFile(Base):
     echo_number                    : Mapped[str | None]   = mapped_column('EchoNumber')
     coordinate_space               : Mapped[str | None]   = mapped_column('CoordinateSpace')
     output_type                    : Mapped[str]          = mapped_column('OutputType')
-    scan_type_id                   : Mapped[int | None]   = mapped_column('MriScanTypeID')
+    scan_type_id                   : Mapped[int | None]   = mapped_column('AcquisitionProtocolID')
     file_type                      : Mapped[str | None]   = mapped_column('FileType')
     inserted_by_user_id            : Mapped[str]          = mapped_column('InsertedByUserID')
     insert_time                    : Mapped[int]          = mapped_column('InsertTime')

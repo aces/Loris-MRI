@@ -13,7 +13,7 @@ class DbMriProtocolCheck(Base):
 
     id                      : Mapped[int]            = mapped_column('ID', primary_key=True)
     scan_type_id            : Mapped[int | None] \
-        = mapped_column('MriScanTypeID', ForeignKey('mri_scan_type.MriScanTypeID'))
+        = mapped_column('Scan_type', ForeignKey('mri_scan_type.ID'))
     severity                : Mapped[str | None]     = mapped_column('Severity')
     header                  : Mapped[str | None]     = mapped_column('Header')
     valid_min               : Mapped[Decimal | None] = mapped_column('ValidMin')

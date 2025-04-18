@@ -14,7 +14,7 @@ class DbMriProtocolViolatedScan(Base):
     __tablename__ = 'mri_protocol_violated_scans'
 
     id                       : Mapped[int]             = mapped_column('ID', primary_key=True)
-    candidate_id             : Mapped[int | None]      = mapped_column('CandidateID', ForeignKey('candidate.ID'))
+    cand_id                  : Mapped[int | None]      = mapped_column('CandID', ForeignKey('candidate.ID'))
     pscid                    : Mapped[str | None]      = mapped_column('PSCID')
     dicom_archive_id         : Mapped[int | None]      = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
     time_run                 : Mapped[datetime | None] = mapped_column('time_run')

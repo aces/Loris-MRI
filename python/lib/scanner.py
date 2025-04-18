@@ -68,7 +68,7 @@ def get_or_create_scanner(
         model            = scanner_info.model,
         serial_number    = scanner_info.serial_number,
         software_version = scanner_info.software_version,
-        candidate_id     = candidate.id,
+        cand_id          = candidate.cand_id,
     )
 
     env.db.add(mri_scanner)

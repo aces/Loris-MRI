@@ -219,7 +219,7 @@ def create_bids_session(env: Env, candidate: DbCandidate, cohort: DbCohort, visi
     )
 
     session = DbSession(
-        candidate_id  = candidate.id,
+        cand_id       = candidate.cand_id,
         visit_label   = visit_label,
         current_stage = 'Not Started',
         site_id       = candidate.registration_site_id,

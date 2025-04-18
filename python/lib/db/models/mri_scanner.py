@@ -13,6 +13,6 @@ class DbMriScanner(Base):
     model            : Mapped[str | None] = mapped_column('Model')
     serial_number    : Mapped[str | None] = mapped_column('Serial_number')
     software_version : Mapped[str | None] = mapped_column('Software')
-    candidate_id     : Mapped[int | None] = mapped_column('CandidateID', ForeignKey('candidate.ID'))
+    cand_id          : Mapped[int | None] = mapped_column('CandID', ForeignKey('candidate.CandID'))
 
     candidate : Mapped['db_candidate.DbCandidate'] = relationship('DbCandidate')
