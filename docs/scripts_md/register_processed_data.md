@@ -72,7 +72,7 @@ RETURNS: scanner ID
 ### getAcqProtID($scanType, $dbh)
 
 This function returns the `MriScanTypeID` of the file to register in
-the database based on `scanType` in the `mri_scan_type` table.
+the database based on `ScanType` in the `mri_scan_type` table.
 
 INPUTS:
   - $scanType: scan type
