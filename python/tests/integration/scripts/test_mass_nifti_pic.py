@@ -3,8 +3,8 @@ import time
 from datetime import datetime
 
 from lib.db.models.file import DbFile
-from lib.db.queries.file import delete_file, try_get_parameter_value_with_file_id_parameter_name
-from lib.db.queries.parameter_file import delete_file_parameter
+from lib.db.queries.file import delete_file
+from lib.db.queries.file_parameter import delete_file_parameter, try_get_parameter_value_with_file_id_parameter_name
 from lib.exitcode import INVALID_ARG, INVALID_PATH, MISSING_ARG, SUCCESS
 from tests.util.database import get_integration_database_session
 from tests.util.run_integration_script import run_integration_script
@@ -145,12 +145,13 @@ def test_force_option():
     # database connection
     db = get_integration_database_session()
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
-    if file_pic_data:
-        # remove file from the file system before recreating it
-        # otherwise get Operation Not Permitted (specific to the test environment)
-        pic_to_remove = os.path.join('/data/loris/pic/', str(file_pic_data.value))
-        if os.path.exists(pic_to_remove):
-            os.remove(pic_to_remove)
+    assert file_pic_data is not None
+    # remove file from the file system before recreating it
+    # otherwise get Operation Not Permitted (specific to the test environment)
+    # TODO: Investigate
+    pic_to_remove = os.path.join('/data/loris/pic/', str(file_pic_data.value))
+    if os.path.exists(pic_to_remove):
+        os.remove(pic_to_remove)
 
     process = run_integration_script([
         'mass_nifti_pic.py',
@@ -185,14 +186,14 @@ def test_running_on_a_text_file():
     db = get_integration_database_session()
 
     # insert fake text file with file ID 1
-    file = DbFile()
-    file.id                  = 1
-    file.rel_path            = 'test.txt'
-    file.file_type           = 'txt'
-    file.session_id          = 564
-    file.output_type         = 'native'
-    file.insert_time         = int(datetime.now().timestamp())
-    file.inserted_by_user_id = 'test'
+    file = DbFile(
+        rel_path            = 'test.txt',
+        file_type           = 'txt',
+        session_id          = 564,
+        output_type         = 'native',
+        insert_time         = int(datetime.now().timestamp()),
+        inserted_by_user_id = 'test'
+    )
     db.add(file)
     db.commit()
 
@@ -211,7 +212,7 @@ def test_running_on_a_text_file():
     assert process.stderr == ""
 
     # Clean up the file that was inserted before this test
-    delete_file(db, 1)
+    delete_file(db, file.id)
     db.commit()
 
 
@@ -225,14 +226,16 @@ def test_successful_run():
 
     # Remove file ID 2 pic from the database and filesystem
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
-    if file_pic_data:
-        # remove file from the file system before recreating it
-        pic_to_remove = os.path.join('/data/loris/pic/', str(file_pic_data.value))
-        if os.path.exists(pic_to_remove):
-            os.remove(pic_to_remove)
-        # delete pic entry based on its parameter file ID
-        delete_file_parameter(db, file_pic_data.id)
-        db.commit()
+    assert file_pic_data is not None
+    # remove file from the file system before recreating it
+    # otherwise get Operation Not Permitted (specific to the test environment)
+    # TODO: Investigate
+    pic_to_remove = os.path.join('/data/loris/pic/', str(file_pic_data.value))
+    if os.path.exists(pic_to_remove):
+        os.remove(pic_to_remove)
+    # delete pic entry based on its parameter file ID
+    delete_file_parameter(db, file_pic_data.id)
+    db.commit()
 
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     assert file_pic_data is None

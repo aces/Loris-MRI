@@ -26,22 +26,6 @@ def try_get_file_with_unique_combination(
     ).scalar_one_or_none()
 
 
-def try_get_parameter_value_with_file_id_parameter_name(
-    db: Database,
-    file_id: int,
-    parameter_name: str
-) -> DbFileParameter | None:
-    """
-    Get parameter value from file ID and parameter name, or return `None` if no entry was found
-    """
-
-    return db.execute(select(DbFileParameter)
-        .join(DbFileParameter.type)
-        .where(DbParameterType.name == parameter_name)
-        .where(DbFileParameter.file_id == file_id)
-    ).scalar_one_or_none()
-
-
 def try_get_file_with_hash(db: Database, file_hash: str) -> DbFile | None:
     """
     Get an imaging file from the database using its BLAKE2b or MD5 hash, or return `None` if no

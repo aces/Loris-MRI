@@ -2,10 +2,8 @@ import os.path
 import shutil
 from os.path import basename
 
-from lib.db.queries.file import (
-    try_get_file_with_unique_combination,
-    try_get_parameter_value_with_file_id_parameter_name,
-)
+from lib.db.queries.file import try_get_file_with_unique_combination
+from lib.db.queries.file_parameter import try_get_parameter_value_with_file_id_parameter_name
 from lib.db.queries.mri_protocol_violated_scan import get_protocol_violated_scans_with_unique_series_combination
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.db.queries.mri_violation_log import get_violations_log_with_unique_series_combination
