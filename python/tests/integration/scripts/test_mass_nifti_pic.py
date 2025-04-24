@@ -185,7 +185,7 @@ def test_running_on_a_text_file():
     # database connection
     db = get_integration_database_session()
 
-    # insert fake text file with file ID 1
+    # insert fake text file
     file = DbFile(
         rel_path            = 'test.txt',
         file_type           = 'txt',
@@ -201,8 +201,8 @@ def test_running_on_a_text_file():
     process = run_integration_script([
         'mass_nifti_pic.py',
         '--profile', 'database_config.py',
-        '--smallest_id', '1',
-        '--largest_id', '1'
+        '--smallest_id', str(file.id),
+        '--largest_id', str(file.id)
     ])
 
     # Check return code, STDOUT and STDERR
