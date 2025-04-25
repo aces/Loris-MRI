@@ -38,7 +38,9 @@ def create_imaging_pic(env: Env, file: DbFile, is_4d_data: bool) -> str:
     if not os.path.exists(pic_dir_path):
         os.mkdir(pic_dir_path)
 
-    volume = image.index_img(file_path, 0) if is_4d_data else file_path  # type: ignore
+    volume = image.load_img(file_path, dtype='float32')  # type: ignore
+    if is_4d_data:
+        volume = image.index_img(volume, 0)  # type: ignore
 
     plotting.plot_anat(  # type: ignore
         anat_img=volume,

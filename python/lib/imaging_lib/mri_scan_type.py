@@ -3,7 +3,7 @@ from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
 
 
-def get_or_create_scan_type(env: Env, name: str) -> DbMriScanType:
+def get_or_create_mri_scan_type(env: Env, name: str) -> DbMriScanType:
     """
     Get an MRI scan type from the database using its name, or create it if it does not already
     exist.

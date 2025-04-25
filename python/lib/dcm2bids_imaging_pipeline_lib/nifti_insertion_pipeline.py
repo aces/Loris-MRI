@@ -10,7 +10,7 @@ import lib.exitcode
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
-from lib.imaging_lib.bids import get_bids_json_session_info
+from lib.imaging_lib.bids.json import get_bids_json_session_info
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 

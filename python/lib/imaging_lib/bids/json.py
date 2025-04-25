@@ -1,11 +1,12 @@
-import re
+import json
 from typing import Any
 
 from lib.config import get_patient_id_dicom_header_config
-from lib.db.queries.imaging_file_type import get_all_imaging_file_types
 from lib.env import Env
 from lib.get_session_info import SessionInfo, get_session_info
+from lib.import_bids_dataset.imaging import map_bids_param_to_loris_param
 from lib.scanner import MriScannerInfo
+from lib.util.crypto import compute_file_blake2b_hash
 
 
 def get_bids_json_scanner_info(bids_json: dict[str, Any]) -> MriScannerInfo:
@@ -40,17 +41,16 @@ def get_bids_json_session_info(env: Env, bids_json: dict[str, Any]) -> SessionIn
     return get_session_info(env, patient_id, scanner_info)
 
 
-def determine_bids_file_type(env: Env, file_name: str) -> str | None:
+def add_bids_json_file_parameters(env: Env, bids_json_path: str, rel_json_path: str, file_parameters: dict[str, Any]):
     """
-    Determine the file type of a BIDS file from the database using its name, or return `None` if no
-    corresponding file type is found.
+    Read a BIDS JSON sidecar file and add its parameters to a LORIS file parameters dictionary.
     """
 
-    imaging_file_types = get_all_imaging_file_types(env.db)
+    with open(bids_json_path) as data_file:
+        file_parameters.update(json.load(data_file))
+        map_bids_param_to_loris_param(env, file_parameters)
 
-    for imaging_file_type in imaging_file_types:
-        regex = re.escape(imaging_file_type.type) + r'(\.gz)?$'
-        if re.search(regex, file_name):
-            return imaging_file_type.type
+    json_blake2 = compute_file_blake2b_hash(bids_json_path)
 
-    return None
+    file_parameters['bids_json_file']              = rel_json_path
+    file_parameters['bids_json_file_blake2b_hash'] = json_blake2

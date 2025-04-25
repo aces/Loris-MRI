@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import lib.db.models.file_parameter as db_file_parameter
 import lib.db.models.session as db_session
 from lib.db.base import Base
+from lib.db.decorators.int_datetime import IntDatetime
 
 
 class DbFile(Base):
@@ -23,7 +24,7 @@ class DbFile(Base):
     scan_type_id                   : Mapped[int | None]   = mapped_column('MriScanTypeID')
     file_type                      : Mapped[str | None]   = mapped_column('FileType')
     inserted_by_user_id            : Mapped[str]          = mapped_column('InsertedByUserID')
-    insert_time                    : Mapped[int]          = mapped_column('InsertTime')
+    insert_time                    : Mapped[datetime]     = mapped_column('InsertTime', IntDatetime)
     source_pipeline                : Mapped[str | None]   = mapped_column('SourcePipeline')
     pipeline_date                  : Mapped[date | None]  = mapped_column('PipelineDate')
     source_file_id                 : Mapped[int | None]   = mapped_column('SourceFileID')
