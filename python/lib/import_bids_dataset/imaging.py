@@ -20,10 +20,11 @@ def map_bids_param_to_loris_param(env: Env, file_parameters: dict[str, Any]):
 
     parameter_types_mapping = get_bids_to_minc_parameter_types_mapping(env)
 
-    # map BIDS parameters with the LORIS ones
-    for file_parameter in file_parameters.keys():
-        if file_parameter in parameter_types_mapping.keys():
-            file_parameters[parameter_types_mapping[file_parameter]] = file_parameters[file_parameter]
+    # Map BIDS parameters with the LORIS ones.
+    for file_parameter in list(file_parameters.keys()):
+        file_parameter_type = parameter_types_mapping.get(file_parameter)
+        if file_parameter_type is not None:
+            file_parameters[file_parameter_type] = file_parameters[file_parameter]
 
 
 def get_bids_to_minc_parameter_types_mapping(env: Env) -> dict[str, str]:

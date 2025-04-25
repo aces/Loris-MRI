@@ -1,10 +1,6 @@
 """This class gather functions for candidate handling."""
 
 import random
-import sys
-
-import lib.exitcode
-from lib.import_bids_dataset.participant import BidsParticipant
 
 __license__ = "GPLv3"
 
@@ -57,127 +53,6 @@ class Candidate:
         self.age        = None
         self.center_id  = None
         self.project_id = None
-
-    def create_candidate(self, db, bids_participants: list[BidsParticipant]):
-        """
-        Creates a candidate using BIDS information provided in the
-        bids_participants's list.
-
-        :param db               : database handler object
-         :type db               : object
-        :param bids_participants: list of dictionary with participants
-                                  information from BIDS
-
-        :return: dictionary with candidate info from the candidate's table
-         :rtype: dict
-        """
-
-        if not self.psc_id:
-            print("Cannot create a candidate without a PSCID.\n")
-            sys.exit(lib.exitcode.CANDIDATE_CREATION_FAILURE)
-
-        if not self.cand_id:
-            self.cand_id = self.generate_cand_id(db)
-
-        for bids_participant in bids_participants:
-            if bids_participant.id != self.psc_id:
-                continue
-
-            self.dob = bids_participant.birth_date
-            if bids_participant.sex is not None:
-                self.map_sex(bids_participant.sex)
-            if bids_participant.age is not None:
-                self.age = bids_participant.age
-
-            # three steps to find site:
-            #   1. try matching full name from 'site' column in participants.tsv in db
-            #   2. try extracting alias from pscid
-            #   3. try finding previous site in candidate table
-
-            if bids_participant.site is not None and bids_participant.site.lower() not in ('', 'null'):
-                # search site id in psc table by its full name
-                site_info = db.pselect(
-                    "SELECT CenterID FROM psc WHERE Name = %s",
-                    [bids_participant.site, ]
-                )
-                if len(site_info) > 0:
-                    self.center_id = site_info[0]['CenterID']
-
-            if self.center_id is None:
-                # search site id in psc table by its alias extracted from pscid
-                db_sites = db.pselect("SELECT CenterID, Alias FROM psc")
-                for site in db_sites:
-                    if site['Alias'] in bids_participant.id:
-                        self.center_id = site['CenterID']
-
-            if self.center_id is None:
-                # try to find participant site in db
-                candidate_site_project = db.pselect(
-                    "SELECT RegistrationCenterID FROM candidate WHERE pscid = %s",
-                    [self.psc_id, ]
-                )
-                if len(candidate_site_project) > 0:
-                    self.center_id = candidate_site_project[0]['RegistrationCenterID']
-
-            # two steps to find project:
-            #   1. find full name in 'project' column in participants.tsv
-            #   2. find previous in candidate table
-
-            if bids_participant.project is not None and bids_participant.project.lower() not in ('', 'null'):
-                # search project id in Project table by its full name
-                project_info = db.pselect(
-                    "SELECT ProjectID FROM Project WHERE Name = %s",
-                    [bids_participant.project, ]
-                )
-                if len(project_info) > 0:
-                    self.project_id = project_info[0]['ProjectID']
-
-            if self.project_id is None:
-                # try to find participant project
-                candidate_site_project = db.pselect(
-                    "SELECT RegistrationProjectID FROM candidate WHERE pscid = %s",
-                    [self.psc_id, ]
-                )
-                if len(candidate_site_project) > 0:
-                    self.center_id = candidate_site_project[0]['RegistrationProjectID']
-
-        if not self.center_id:
-            print("ERROR: could not determine site for " + self.psc_id + "."
-                  + " Please check that your psc table contains a site with an"
-                  + " alias matching the BIDS participant_id or a name matching the site mentioned in"
-                  + " participants.tsv's site column")
-            sys.exit(lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
-
-        if not self.project_id:
-            print("ERROR: could not determine project for " + self.psc_id + "."
-                  + " Please check that your project table contains a project with a"
-                  + " name matching the participants.tsv's project column")
-            sys.exit(lib.exitcode.PROJECT_CUSTOMIZATION_FAILURE)
-
-        if self.verbose:
-            print("Creating candidate with \n"
-                  + "PSCID     = " + self.psc_id + ",\n"
-                  + "CandID    = " + str(self.cand_id) + ",\n"
-                  + "CenterID  = " + str(self.center_id)  + ",\n"
-                  + "ProjectID = " + str(self.project_id))
-
-        insert_col = ('PSCID', 'CandID', 'RegistrationCenterID', 'RegistrationProjectID')
-        insert_val = (self.psc_id, str(self.cand_id), str(self.center_id), str(self.project_id))
-
-        if self.sex:
-            insert_col = insert_col + ('Sex',)
-            insert_val = insert_val + (self.sex,)
-        if self.dob:
-            insert_col = insert_col + ('DoB',)
-            insert_val = insert_val + (self.dob,)
-
-        db.insert(
-            table_name='candidate',
-            column_names=insert_col,
-            values=insert_val
-        )
-
-        return self.get_candidate_info_from_loris(db)
 
     def get_candidate_info_from_loris(self, db):
         """

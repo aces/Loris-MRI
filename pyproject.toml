@@ -30,6 +30,7 @@ include = [
     "python/lib/logging.py",
     "python/lib/make_env.py",
     "python/lib/scanner.py",
+    "python/scripts/import_bids_dataset.py",
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
 ]

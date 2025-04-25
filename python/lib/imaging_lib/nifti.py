@@ -1,55 +1,40 @@
-from dataclasses import dataclass
-from typing import cast
+import os
+from collections.abc import Iterator
+from typing import Any, cast
 
 import nibabel as nib
 
 
-@dataclass
-class ImageStepParameters:
-    x_step: float
-    y_step: float
-    z_step: float
-
-
-def get_nifti_image_step_parameters(nifti_path: str) -> ImageStepParameters:
+def add_nifti_file_parameters(nifti_path: str, nifti_file_hash: str, file_parameters: dict[str, Any]):
     """
-    Get the step information (xstep, ystep, zstep and number of volumes for a 4D dataset) of a
-    NIfTI image.
+    Read a NIfTI image and add some of its properties to the file parameters.
     """
 
     img = nib.load(nifti_path)  # type: ignore
 
-    # Get the voxel step/time step of the image.
+    # Add the voxel step parameters from the NIfTI file header.
     zooms = cast(tuple[float, ...], img.header.get_zooms())  # type: ignore
+    file_parameters['xstep'] = zooms[0]
+    file_parameters['ystep'] = zooms[1]
+    file_parameters['zstep'] = zooms[2]
 
-    return ImageStepParameters(
-        x_step = zooms[0],
-        y_step = zooms[1],
-        z_step = zooms[1],
-    )
-
-
-@dataclass
-class ImageLengthParameters:
-    x_space: int
-    y_space: int
-    z_space: int
-    time: int | None
-
-
-def get_nifti_image_length_parameters(nifti_path: str) -> ImageLengthParameters:
-    """
-    Get the length dimensions (x, y, z and time for a 4D dataset) of a NIfTI image.
-    """
-
-    img = nib.load(nifti_path)  # type: ignore
-
-    # Get the voxel/time length array of the image.
+    # Add the time length parameters from the NIfTI file header.
     shape = cast(tuple[int, ...], img.shape)  # type: ignore
+    file_parameters['xspace'] = shape[0]
+    file_parameters['yspace'] = shape[1]
+    file_parameters['zspace'] = shape[2]
+    if len(shape) == 4:
+        file_parameters['time'] = shape[3]
 
-    return ImageLengthParameters(
-        x_space = shape[0],
-        y_space = shape[1],
-        z_space = shape[2],
-        time = shape[3] if len(shape) == 4 else None
-    )
+    # Add the file BLAKE2b hash.
+    file_parameters['file_blake2b_hash'] = nifti_file_hash
+
+
+def find_dir_nifti_names(dir_path: str) -> Iterator[str]:
+    """
+    Iterate over the names of the NIfTI files found in a directory.
+    """
+
+    for file_name in os.listdir(dir_path):
+        if file_name.endswith(('.nii', '.nii.gz')):
+            yield file_name
