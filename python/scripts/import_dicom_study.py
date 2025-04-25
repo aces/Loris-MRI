@@ -76,7 +76,6 @@ def main() -> None:
         "Required options: \n"
         "\t--profile\n"
         "\t--source\n"
-        "\t--target\n"
     )
 
     # NOTE: Some options do not have short options but LorisGetOpt does not support that, so we
