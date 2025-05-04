@@ -401,10 +401,11 @@ sub runDicomTar {
     my $configOB = $this->{configOB};
     my $use_legacy_dicom_study_importer = $configOB->getUseLegacyDicomStudyImporter();
 
+    my $command;
     if ($use_legacy_dicom_study_importer) {
         my $tarchive_location = $configOB->getTarchiveLibraryDir();
 
-        my $command = sprintf(
+        $command = sprintf(
             "dicomTar.pl %s %s -database -profile %s",
             quotemeta($this->{'uploaded_temp_folder'}),
             quotemeta($tarchive_location),
@@ -415,7 +416,7 @@ sub runDicomTar {
     } else {
         my $python_config = $configOB->getPythonConfigFile();
 
-        my $command = sprintf(
+        $command = sprintf(
             "import_dicom_study.py --profile %s --insert --source %s",
             quotemeta($python_config),
             quotemeta($this->{'uploaded_temp_folder'}),
