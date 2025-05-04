@@ -87,7 +87,7 @@ INPUTS:
 
 RETURNS: textual name of scan type from the `mri_scan_type` table
 
-### insert\_violated\_scans($dbhr, $series\_desc, $minc\_location, $patient\_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $echo\_numbers, $phase\_enc\_dir, $data\_dir, $mriProtocolGroupID)
+### insert\_violated\_scans($db, $series\_desc, $minc\_location, $patient\_name, $candidateID, $pscid, $visit, $tr, $te, $ti, $slice\_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $echo\_numbers, $phase\_enc\_dir, $data\_dir, $mriProtocolGroupID)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 `mri_protocol` table into the `mri_protocol_violated_scans` table of the
@@ -98,7 +98,7 @@ INPUTS:
   - $series\_desc    : series description of the scan
   - $minc\_location  : location of the MINC file
   - $patient\_name   : patient name of the scan
-  - $candid         : candidate's `CandID`
+  - $candidateID    : candidate's `ID`
   - $pscid          : candidate's `PSCID`
   - $visit          : visit of the scan
   - $tr             : repetition time of the scan
