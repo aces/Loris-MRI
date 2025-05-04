@@ -71,7 +71,7 @@ use File::Basename;
 use TryCatch;
 
 my @MRIPROTOCOLVIOLATEDSCANS_FIELDS = qw(
-    ID CandID PSCID TarchiveID time_run series_description minc_location
+    ID CandidateID PSCID TarchiveID time_run series_description minc_location
     PatientName TR_range TE_range TI_range slice_thickness_range
     xspace_range yspace_range zspace_range xstep_range ystep_range zstep_range
     time_range SeriesUID image_type PhaseEncodingDirection EchoNumber
