@@ -2173,7 +2173,6 @@ sub updateSQLBackupFile {
         quotemeta($Settings::db[0]),
         $table
     );
-    print "$cmd\n";
 
 
     # Execute the command and read the file containing the warnings+errors of the mysqldump command
