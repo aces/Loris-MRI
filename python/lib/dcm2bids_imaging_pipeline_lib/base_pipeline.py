@@ -366,10 +366,7 @@ class BasePipeline:
             self.log_error_and_exit(message, lib.exitcode.CREATE_SESSION_FAILURE, is_error="Y", is_verbose="N")
 
         # check that the project ID and cohort ID refers to an existing row in project_cohort_rel table
-        print(project_id)
-        print(cohort_id)
         self.session_obj.create_proj_cohort_rel_info_dict(project_id, cohort_id)
-        print(self.session_obj.proj_cohort_rel_info_dict)
         if not self.session_obj.proj_cohort_rel_info_dict.keys():
             message = f"Cannot create visit with project ID {project_id} and cohort ID {cohort_id}:" \
                       f" no such association in table project_cohort_rel"
