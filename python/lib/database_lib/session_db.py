@@ -114,7 +114,7 @@ class SessionDB:
 
         session_id = self.db.insert(
             table_name="session",
-            column_names=fields,
+            column_names=tuple(fields),
             values=values,
             get_last_id=True
         )
