@@ -389,13 +389,13 @@ class BasePipeline:
             {
                 'CandID': cand_id,
                 'Visit_label': visit_label,
-                'CenterID': center_id,
-                'VisitNo': visit_nb,
+                'CenterID': str(center_id),
+                'VisitNo': str(visit_nb),
                 'Current_stage': 'Not Started',
                 'Scan_done': 'Y',
                 'Submitted': 'N',
-                'CohortID': cohort_id,
-                'ProjectID': project_id
+                'CohortID': str(cohort_id),
+                'ProjectID': str(project_id)
             }
         )
         if session_id:
