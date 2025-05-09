@@ -145,7 +145,7 @@ sub getSessionInformation {
 
     # find a matching timepoint
     $query = "SELECT s.ID, s.ProjectID, s.CohortID, c.CandID, s.Visit_label "
-           . "FROM session s"
+           . "FROM session s "
            . "JOIN candidate c ON (s.CandidateID=c.ID) "
            . "WHERE c.CandID=? "
            . "AND LOWER(s.Visit_label)=LOWER(?) "
