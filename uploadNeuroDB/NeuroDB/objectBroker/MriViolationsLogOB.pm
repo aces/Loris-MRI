@@ -71,7 +71,7 @@ use File::Basename;
 use TryCatch;
 
 my @MRIVIOLATIONSLOG_FIELDS = qw(
-    LogID TimeRun SeriesUID TarchiveID MincFile PatientName CandID Visit_label
+    LogID TimeRun SeriesUID TarchiveID MincFile PatientName CandidateID Visit_label
     CheckID MriScanTypeID Severity Header Value ValidRange ValidRegex
     EchoTime PhaseEncodingDirection EchoNumber MriProtocolChecksGroupID
 );
