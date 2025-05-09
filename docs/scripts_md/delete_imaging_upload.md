@@ -6,7 +6,7 @@ delete\_imaging\_upload.pl -- Delete everything that was produced (or part of wh
 # SYNOPSIS
 
 perl delete\_imaging\_upload.pl \[-profile file\] \[-ignore\] \[-backup\_path basename\] \[-protocol\] \[-form\] \[-uploadID list\_of\_uploadIDs\]
-            \[-type list\_of\_scan\_types\] \[-defaced\] \[-basename fileBaseName\] \[-nosqlbk\] \[-nofilesbk\] \[-extra\_mysqlcnf file\]
+            \[-type list\_of\_scan\_types\] \[-defaced\] \[-basename fileBaseName\] \[-nosqlbk\] \[-nofilesbk\] \[-mysql-defaults-file file\]
 
 Available options are:
 
@@ -65,14 +65,14 @@ Available options are:
                          Example of additional option: `--column-statistics=0` to disable column statistics flag in
                          mysqldump 8.
 
-\-extra\_mysqlcnf &lt;file> : MySql config file containing the password to log in the database (see
-                         `https://dev.mysql.com/doc/refman/8.0/en/option-files.html` for a description of this file's format).
-                         This file should only contain the password stored in the `@db` array defined in your `prod` file.
-                         You should use that option if you do not have a default `.mysql.cnf` config file containing the credentials
-                         to log in the database. If this option is used, `delete_imaging_upload.pl` will pass the option
-                         `--defaults-extra-file=file` to the `mysqldump` command when creating a backup of the SQL tables. Note that
-                         only the password is fetched in this file, the host name and user name used to access the database are actually
-                         retrieved from the `prod` file.
+\-mysql-defaults-file &lt;file> : MySQL config file containing the password to log in the database (see
+                              `https://dev.mysql.com/doc/refman/8.0/en/option-files.html` for a description of this file's format).
+                              This file should only contain the password stored in the `@db` array defined in your `prod` file.
+                              You should use that option if you do not have a MySQL config file containing the credentials
+                              to log in the database. If this option is used, `delete_imaging_upload.pl` will pass the option
+                              `--defaults-file=file` to the `mysqldump` command when creating a backup of the SQL tables. Note that
+                              only the password is fetched in this file, the host name and user name used to access the database are
+                              actually retrieved from the `prod` file.
 
 # DESCRIPTION
 
@@ -119,9 +119,9 @@ one must use `tar` with option `--absolute-names`.
 
 The script will also create a file that contains a backup of all the information that was deleted or modified from the
 database tables. This backup is created using `mysqldump` and contains an `INSERT` statement for every record erased.
-When running `mysqldump` the script uses the database credentials in file `~/.my.cnf` to connect to the database. Option
-`-extra_mysqlcnf` has to be used to specify an alternate credentials file when the default credential file does not exist
-(see `https://dev.mysql.com/doc/refman/8.0/en/option-files.html` for a descrption of MySQL option files format).
+When running `mysqldump` the script uses the database credentials in the MySQL config file to connect to the database. Option
+`-mysql-defaults-file` has to be used to specify a credential file when the standard credential file does not exist
+(see `https://dev.mysql.com/doc/refman/8.0/en/option-files.html` for a description of MySQL option files format).
 The backup produced by `mysqldump` will be part of the backup archive mentioned above unless option `-nosqlbk` is used.
 If sourced back into the database with `mysql`, it should allow the database to be exactly like it was before
 `delete_imaging_upload.pl` was invoked, provided the database was not modified in the meantime. The SQL backup file will

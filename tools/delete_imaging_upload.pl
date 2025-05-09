@@ -10,7 +10,7 @@ delete_imaging_upload.pl -- Delete everything that was produced (or part of what
 =head1 SYNOPSIS
 
 perl delete_imaging_upload.pl [-profile file] [-ignore] [-backup_path basename] [-protocol] [-form] [-uploadID list_of_uploadIDs]
-            [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk] [-extra_mysqlcnf file]
+            [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk] [-mysql-defaults-file file]
 
 Available options are:
 
@@ -69,14 +69,14 @@ Available options are:
                          Example of additional option: C<--column-statistics=0> to disable column statistics flag in
                          mysqldump 8.
 
--extra_mysqlcnf <file> : MySql config file containing the password to log in the database (see
-                         C<https://dev.mysql.com/doc/refman/8.0/en/option-files.html> for a description of this file's format).
-                         This file should only contain the password stored in the C<@db> array defined in your C<prod> file.
-                         You should use that option if you do not have a default C<.mysql.cnf> config file containing the credentials
-                         to log in the database. If this option is used, C<delete_imaging_upload.pl> will pass the option
-                         C<--defaults-extra-file=file> to the C<mysqldump> command when creating a backup of the SQL tables. Note that
-                         only the password is fetched in this file, the host name and user name used to access the database are actually
-                         retrieved from the C<prod> file.
+-mysql-defaults-file <file> : MySQL config file containing the password to log in the database (see
+                              C<https://dev.mysql.com/doc/refman/8.0/en/option-files.html> for a description of this file's format).
+                              This file should only contain the password stored in the C<@db> array defined in your C<prod> file.
+                              You should use that option if you do not have a MySQL config file containing the credentials
+                              to log in the database. If this option is used, C<delete_imaging_upload.pl> will pass the option
+                              C<--defaults-file=file> to the C<mysqldump> command when creating a backup of the SQL tables. Note that
+                              only the password is fetched in this file, the host name and user name used to access the database are
+                              actually retrieved from the C<prod> file.
 
 =head1 DESCRIPTION
 
@@ -123,9 +123,9 @@ one must use C<tar> with option C<--absolute-names>.
 
 The script will also create a file that contains a backup of all the information that was deleted or modified from the
 database tables. This backup is created using C<mysqldump> and contains an C<INSERT> statement for every record erased.
-When running C<mysqldump> the script uses the database credentials in file C<~/.my.cnf> to connect to the database. Option
-C<-extra_mysqlcnf> has to be used to specify an alternate credentials file when the default credential file does not exist
-(see C<https://dev.mysql.com/doc/refman/8.0/en/option-files.html> for a descrption of MySQL option files format).
+When running C<mysqldump> the script uses the database credentials in the MySQL config file to connect to the database. Option
+C<-mysql-defaults-file> has to be used to specify a credential file when the standard credential file does not exist
+(see C<https://dev.mysql.com/doc/refman/8.0/en/option-files.html> for a description of MySQL option files format).
 The backup produced by C<mysqldump> will be part of the backup archive mentioned above unless option C<-nosqlbk> is used.
 If sourced back into the database with C<mysql>, it should allow the database to be exactly like it was before
 C<delete_imaging_upload.pl> was invoked, provided the database was not modified in the meantime. The SQL backup file will
@@ -180,9 +180,6 @@ use NeuroDB::DatabaseException;
 use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
 
-# Default credentials file used when running mysqldump
-use constant DEFAULT_MYSQLDUMP_CNF_FILE        => '~/.my.cnf';
-
 # Default values for various options
 use constant DEFAULT_PROFILE                   => 'prod';
 use constant DEFAULT_DIE_ON_FILE_ERROR         => 1;
@@ -232,7 +229,7 @@ my %options = (
     UPLOAD_ID                 => '',
     BASENAME                  => '',
     DUMP_ADDITIONAL_OPTIONS   => '',
-    EXTRA_MYSQLCNF            => ''
+    MYSQL_DEFAULTS_FILE       => ''
 );
 
 my $scanTypeList           = undef;
@@ -267,8 +264,8 @@ my @opt_table = (
      'Additional options to use with the mysqldump command. By default, the following options are used when running'
      . 'mysqldump: --no-create-info --compact --skip-extended-insert --no-tablespaces.'
      . 'Example of additional option: \'--column-statistics=0\' to disable column statistics flag in mysqldump 8.'],
-    ['-extra_mysqlcnf', 'string'    , 1, \$options{'EXTRA_MYSQLCNF'},
-     '(OPTIONAL) Path of the extra MySQL configuration file to use'],
+    ['-mysql-defaults-file', 'string'    , 1, \$options{'MYSQL_DEFAULTS_FILE'},
+     '(OPTIONAL) Path of MySQL configuration file to use'],
 
 );
 
@@ -278,7 +275,7 @@ HELP
 my $usage = <<USAGE;
 Usage: $0 [-profile file] [-ignore] [-backup_path path] [-protocol] [-form] [-uploadID list_of_uploadIDs]
             [-type list_of_scan_types] [-defaced] [-basename fileBaseName] [-nosqlbk] [-nofilesbk]
-            [-dumpOptions 'dumpOption'] [-extra_mysqlcnf file]
+            [-dumpOptions 'dumpOption'] [-mysql-defaults-file file]
 USAGE
 
 &Getopt::Tabular::SetHelp($Help, $usage);
@@ -338,15 +335,11 @@ if($options{'BACKUP_PATH'} ne '' && -e "$options{'BACKUP_PATH'}.tar.gz") {
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
-if($options{'EXTRA_MYSQLCNF'} ne '' && !-e "$options{'EXTRA_MYSQLCNF'}") {
-    printf STDERR "Invalid argument to -extra_mysqlcnf: file $options{'EXTRA_MYSQLCNF'} does not exist. Aborting.\n";
+if($options{'MYSQL_DEFAULTS_FILE'} ne '' && !-e "$options{'MYSQL_DEFAULTS_FILE'}") {
+    printf STDERR "Invalid argument to -mysql-defaults-file: file $options{'MYSQL_DEFAULTS_FILE'} does not exist. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
-if($options{'EXTRA_MYSQLCNF'} eq '' && !-r DEFAULT_MYSQLDUMP_CNF_FILE) {
-    printf STDERR "You must use option -extra_mysqlcnf since file %s does not exist or is not readable. Aborting.\n", DEFAULT_MYSQLDUMP_CNF_FILE;
-    exit $NeuroDB::ExitCodes::INVALID_ARG;
-}
 # Split the comma-separated string into a list of numbers
 $options{'UPLOAD_ID'} = [ split(',', $options{'UPLOAD_ID'}) ];
 
@@ -2159,9 +2152,9 @@ sub updateSQLBackupFile {
 
     # Run the mysqldump command for the current table and store the
     # result in $tmpSqlBackupFile (overwrite contents)
-    # Note that --defaults-extra-file has to be the first option (it it is provided)
-    my $mySqldumpOptions = $optionsRef->{'EXTRA_MYSQLCNF'} ne ''
-        ? sprintf("--defaults-extra-file=%s", quotemeta($optionsRef->{'EXTRA_MYSQLCNF'}))
+    # Note that --defaults-file has to be the first option (if it is provided)
+    my $mySqldumpOptions = $optionsRef->{'MYSQL_DEFAULTS_FILE'} ne ''
+        ? sprintf("--defaults-file=%s", quotemeta($optionsRef->{'MYSQL_DEFAULTS_FILE'}))
         : '';
     $mySqldumpOptions .= sprintf(
         " %s --no-create-info --compact --skip-extended-insert --no-tablespaces",
