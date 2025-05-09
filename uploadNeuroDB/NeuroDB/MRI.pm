@@ -507,12 +507,16 @@ sub identify_scan_db {
         }  # if(keys %mriProtocolGroupIDs > 1)...else...
     }   # if (@rows==0)....else...
 
+    $query = "SELECT ID FROM candidate WHERE CandID=?";
+    my $rowsref = $$dbhr->selectall_arrayref($query, { Slice=> {} }, $candid);
+    my $candidateID = $rowsRef->[0]->{'ID'};
+
     # if we got here, we're really clueless: insert scan in mri_protocol_violated_scans
     # table. Note that $mriProtocolGroupID will be undef unless exactly one protocol
     # group was used to try to identify the scan
     insert_violated_scans(
         $db,           $series_description, $minc_location,   $patient_name,
-        $candid,       $pscid,              $tr,              $te,
+        $candidateID,  $pscid,              $tr,              $te,
         $ti,           $slice_thickness,    $xstep,           $ystep,
         $zstep,        $xspace,             $yspace,          $zspace,
         $time,         $seriesUID,          $tarchiveID,      $image_type,
@@ -524,7 +528,7 @@ sub identify_scan_db {
 
 =pod
 
-=head3 insert_violated_scans($dbhr, $series_desc, $minc_location, $patient_name, $candid, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $echo_numbers, $phase_enc_dir, $data_dir, $mriProtocolGroupID)
+=head3 insert_violated_scans($db, $series_desc, $minc_location, $patient_name, $candidateID, $pscid, $visit, $tr, $te, $ti, $slice_thickness, $xstep, $ystep, $zstep, $xspace, $yspace, $zspace, $time, $seriesUID, $echo_numbers, $phase_enc_dir, $data_dir, $mriProtocolGroupID)
 
 Inserts scans that do not correspond to any of the defined protocol from the
 C<mri_protocol> table into the C<mri_protocol_violated_scans> table of the
@@ -535,7 +539,7 @@ INPUTS:
   - $series_desc    : series description of the scan
   - $minc_location  : location of the MINC file
   - $patient_name   : patient name of the scan
-  - $candid         : candidate's C<CandID>
+  - $candidateID    : candidate's C<ID>
   - $pscid          : candidate's C<PSCID>
   - $visit          : visit of the scan
   - $tr             : repetition time of the scan
@@ -562,7 +566,7 @@ INPUTS:
 sub insert_violated_scans {
 
     my ($db,          $series_description, $minc_location, $patient_name,
-        $candid,      $pscid,              $tr,            $te,
+        $candidateID, $pscid,              $tr,            $te,
         $ti,          $slice_thickness,    $xstep,         $ystep,
         $zstep,       $xspace,             $yspace,        $zspace,
         $time,        $seriesUID,          $tarchiveID,    $image_type,
@@ -577,7 +581,7 @@ sub insert_violated_scans {
     my $time_run = sprintf("%4d-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec);
 
     my %newMriProtocolViolatedScans = (
-        'CandID'                 => $candid,
+        'CandidateID'            => $candidateID,
         'PSCID'                  => $pscid,
         'TarchiveID'             => $tarchiveID,
         'time_run'               => $time_run,
