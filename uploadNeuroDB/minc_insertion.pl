@@ -403,7 +403,7 @@ QUERY
     $is_valid = 1; # if it is HRRT datasets, mark study as valid
 }
 
-if (($is_valid == 0) && ($force==0)) {
+if (!$is_valid && !$force) {
     $message = "\n ERROR: The validation has failed. ".
                "Either run the validation again and fix ".
                "the problem. Or use -force to force the ".
