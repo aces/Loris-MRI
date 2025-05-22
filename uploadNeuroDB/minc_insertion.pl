@@ -355,9 +355,6 @@ QUERY
     $is_valid        = $array[0];
     $ArchiveLocation = $array[1];
 
-    # create the studyInfo object
-    %studyInfo = $utility->createTarchiveArray($ArchiveLocation);
-
 } elsif ($tarchive) {
     my $mriUploadOB = NeuroDB::objectBroker::MriUploadOB->new(db => $db);
     my $mriUploadsRef = $mriUploadOB->getWithTarchive(GET_COLUMNS, $tarchive);
@@ -383,6 +380,8 @@ QUERY
         my %row          = %{ $mriUploadsRef->[0] };
         $is_valid        = $row{'isTarchiveValidated'};
         $upload_id       = $row{'UploadID'};
+        $ArchiveLocation = $tarchive;
+        $ArchiveLocation =~ s/$tarchiveLibraryDir//;
     }
 
 } elsif ($hrrt) {
@@ -419,8 +418,11 @@ if (!$is_valid && !$force) {
 
 ## Construct the tarchiveinfo Array and the MINC file object
 
-# Create the study info array
-%studyInfo = $utility->createTarchiveArray($ArchiveLocation, $hrrt);
+# Create the study info array if ArchiveLocation is defined, otherwise, will populate
+# with MINC file header later on
+if (defined $ArchiveLocation) {
+    %studyInfo = $utility->createTarchiveArray($ArchiveLocation, $hrrt);
+}
 
 # Create the MINC file object and maps DICOM fields
 my $file = $utility->loadAndCreateObjectFile($minc, $upload_id);
