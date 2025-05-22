@@ -479,11 +479,13 @@ QUERY
         $utility->writeErrorLog(
             $message, $NeuroDB::ExitCodes::INVALID_ARG, $logfile
         );
-        $notifier->spool(
-            'tarchive validation', $message,   0,
-            'minc_insertion.pl',   $upload_id, 'Y',
-            $notify_notsummary
-        );
+        if (defined $upload_id) {
+            $notifier->spool(
+                'tarchive validation', $message,   0,
+                'minc_insertion.pl',   $upload_id, 'Y',
+                $notify_notsummary
+            );
+        }
         exit $NeuroDB::ExitCodes::INVALID_ARG;
     }
 }
@@ -557,9 +559,14 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
     }
     $mriCandidateErrorsOB->insert(\%newMriCandidateErrors) unless defined $already_inserted;
 
-    $notifier->spool('tarchive validation', $message, 0,
-        'minc_insertion.pl', $upload_id, 'Y',
-        $notify_notsummary);
+    if (defined $upload_id) {
+        $notifier->spool(
+            'tarchive validation', $message,   0,
+            'minc_insertion.pl',   $upload_id, 'Y',
+            $notify_notsummary
+        );
+    }
+
 
     exit $NeuroDB::ExitCodes::CANDIDATE_MISMATCH;
 }
@@ -582,11 +589,14 @@ my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
 if (!$sessionRef) {
     print STDERR $errMsg if $verbose;
     print LOG $errMsg;
-    $notifier->spool(
-        'tarchive validation', "$errMsg. Minc insertion failed.", 0,
-        'minc_insertion.pl', $upload_id, 'Y',
-        $notify_notsummary
-    );
+    if (defined $upload_id) {
+        $notifier->spool(
+            'tarchive validation', "$errMsg. Minc insertion failed.", 0,
+            'minc_insertion.pl', $upload_id, 'Y',
+            $notify_notsummary
+        );
+    }
+
     exit ($subjectIDsref->{'createVisitLabel'} == 1
         ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
         : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
@@ -608,11 +618,13 @@ my $not_unique_message = $utility->is_file_unique( $file, $upload_id );
 if ($not_unique_message) {
     print STDERR $not_unique_message if $verbose;
     print LOG $not_unique_message;
-    $notifier->spool(
-        'tarchive validation', $not_unique_message, 0,
-        'minc_insertion.pl',   $upload_id,          'Y',
-        $notify_notsummary
-    );
+    if (defined $upload_id) {
+        $notifier->spool(
+            'tarchive validation', $not_unique_message, 0,
+            'minc_insertion.pl',   $upload_id,          'Y',
+            $notify_notsummary
+        );
+    }
     exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
 } 
 
@@ -657,15 +669,19 @@ $file->setFileData('Caveat', $caveat);
     );
 
 if($acquisitionProtocol =~ /unknown/ && !defined $acquisitionProtocolID) {
-   $message = "\n  --> The MINC file cannot be registered since the ".
-              "AcquisitionProtocol is unknown and AcquisitionProtocol ID is undefined \n";
+    $message = "\n  --> The MINC file cannot be registered since the ".
+               "AcquisitionProtocol is unknown and AcquisitionProtocol ID is undefined \n";
 
-   print LOG $message;
-   print $message;
-   $notifier->spool('minc insertion', $message, 0,
-                   'minc_insertion.pl', $upload_id, 'Y', 
-                   $notify_notsummary);
-   exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
+    print LOG $message;
+    print $message;
+    if (defined $upload_id) {
+        $notifier->spool(
+            'minc insertion',    $message,   0,
+            'minc_insertion.pl', $upload_id, 'Y',
+            $notify_notsummary
+        );
+    }
+    exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }
 
 ################################################################
@@ -690,15 +706,19 @@ if (defined $success && defined $extra_validation_status && $extra_validation_st
 if ((!defined$success)
    && (defined(&Settings::isFileToBeRegisteredGivenProtocol))
    ) {
-   $message = "\n  --> The minc file cannot be registered ".
-                "since $acquisitionProtocol ".
-                "does not exist in $profile ".
-                "or it did not pass the extra_file_checks\n";
-   print LOG $message;
-   print $message;
-   $notifier->spool('minc insertion', $message, 0,
-                   'minc_insertion', $upload_id, 'Y',
-                   $notify_notsummary);
+    $message = "\n  --> The minc file cannot be registered ".
+                 "since $acquisitionProtocol ".
+                 "does not exist in $profile ".
+                 "or it did not pass the extra_file_checks\n";
+    print LOG $message;
+    print $message;
+    if (defined $upload_id) {
+        $notifier->spool(
+            'minc insertion', $message,   0,
+            'minc_insertion', $upload_id, 'Y',
+            $notify_notsummary
+        );
+    }
     exit $NeuroDB::ExitCodes::PROJECT_CUSTOMIZATION_FAILURE;
 }
 ################################################################
@@ -718,11 +738,14 @@ $message = sprintf(
 
 
 my $spool_type = $hrrt ? 'hrrt pet new series' : 'mri new series';
-$notifier->spool(
-    $spool_type,         $message,   0,
-    'minc_insertion.pl', $upload_id, 'N',
-    $notify_detailed
-);
+if (defined $upload_id) {
+    $notifier->spool(
+        $spool_type,         $message,   0,
+        'minc_insertion.pl', $upload_id, 'N',
+        $notify_detailed
+    );
+}
+
 if ($verbose) {
     print "\nFinished file:  ".$file->getFileDatum('File')." \n";
 }
