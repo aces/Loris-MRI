@@ -1148,12 +1148,32 @@ sub insert_into_mri_violations_log {
     my $move_file        = $severity eq 'exclude' ? 1 : undef;
     my $file_rel_path    = NeuroDB::MRI::get_trashbin_file_rel_path($file_path, $data_dir, $move_file);
 
+
+    #------------------------------------------#
+    # Find the CandidateID of candidate with   #
+    # CandID=$candID                           #
+    #------------------------------------------#
+    my $query = "SELECT ID FROM candidate WHERE CandID=?";
+    my $rowsref = ${$this->{'dbhr'}}->selectall_arrayref($query, { Slice=> {} }, $candID);
+
+    if (@$rowsref != 1) {
+        NeuroDB::UnexpectedValueException->throw(
+            errorMessage => sprintf(
+                "Unexpected number of candidates with CandID set to %s (should be 1 but was %d)",
+                 $candID,
+                 scalar(@$rowsref)
+            )
+        );
+    }
+
+    my $candidateID = $rowsref->[0]->{'ID'};
+
     my %newViolationsLog = (
         'TarchiveID'             => $tarchiveID,
         'SeriesUID'              => $file->getFileDatum('SeriesUID'),
         'MincFile'               => $file_rel_path,
         'PatientName'            => $pname,
-        'CandID'                 => $candID,
+        'CandidateID'            => $candidateID,
         'Visit_label'            => $visit_label,
         'MriScanTypeID'          => $scan_type,
         'Severity'               => $severity,
