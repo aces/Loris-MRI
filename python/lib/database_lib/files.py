@@ -133,7 +133,7 @@ class Files:
 
         query += ' WHERE FileID = %s'
 
-        args = values + (file_id,)
+        args = (*values, file_id)
 
         self.db.update(query=query, args=args)
 

@@ -90,6 +90,6 @@ class MriViolationsLog:
 
         query += ' WHERE LogID = %s'
 
-        args = values + (log_id,)
+        args = (*values, log_id)
 
         self.db.update(query=query, args=args)
