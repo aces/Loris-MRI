@@ -84,6 +84,6 @@ class Tarchive:
 
         query += " WHERE TarchiveID = %s"
 
-        args = values + (tarchive_id,)
+        args = (*values, tarchive_id)
 
         self.db.update(query=query, args=args)

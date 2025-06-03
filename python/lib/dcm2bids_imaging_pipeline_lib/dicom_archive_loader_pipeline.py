@@ -337,7 +337,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         acq_date = self.dicom_archive.date_acquired
         archive_location = self.dicom_archive.archive_location
 
-        pattern = re.compile("^[0-9]{4}/")
+        pattern = re.compile(r"^[0-9]{4}/")
         if acq_date and not pattern.match(archive_location):
             # move the DICOM archive into a year subfolder
             year_subfolder = acq_date.strftime("%Y")

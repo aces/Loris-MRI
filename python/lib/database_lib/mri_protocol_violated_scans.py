@@ -83,6 +83,6 @@ class MriProtocolViolatedScans:
 
         query += ' WHERE ID = %s'
 
-        args = values + (file_id,)
+        args = (*values, file_id)
 
         self.db.update(query=query, args=args)

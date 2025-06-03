@@ -83,8 +83,8 @@ class Notification:
         )
 
         if center_id:
-            col_names = col_names + ('CenterID',)
-            values = values + (center_id,)
+            col_names = (*col_names, 'CenterID')
+            values = (*values, center_id)
 
         self.db.insert(
             table_name='notification_spool',

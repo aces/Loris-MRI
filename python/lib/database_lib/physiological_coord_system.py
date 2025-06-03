@@ -125,8 +125,8 @@ class PhysiologicalCoordSystem:
         )
         return c_mod[0]['PhysiologicalModalityID'] if c_mod else None
 
-    def grep_coord_system(self, coord_mod_id: int, coord_name_id: int = None,
-                          coord_unit_id: int = None, coord_type_id: int = None):
+    def grep_coord_system(self, coord_mod_id: int, coord_name_id: int | None = None,
+                          coord_unit_id: int | None = None, coord_type_id: int | None = None):
         """
         Get a coordinate system by ID.
         Requires at least the modality.
