@@ -772,7 +772,7 @@ class Imaging:
             True for v in valid_ranges if self.in_range(scan_param, v[0], v[1])]
         )) if valid_ranges else True
         passes_regex_check = bool(len([
-            True for r in valid_regexs if re.match(r, scan_param, re.IGNORECASE)
+            True for r in valid_regexs if re.search(r, scan_param, re.IGNORECASE)
         ])) if valid_regexs else True
 
         if passes_regex_check and passes_range_check:
@@ -956,9 +956,9 @@ class Imaging:
                     'json_file_path': json_file_path,
                     'acq_time': acq_time
                 }
-                if re.match(r'dir-AP', bids_info['BIDSScanTypeSubCategory']):
+                if re.search(r'dir-AP', bids_info['BIDSScanTypeSubCategory']):
                     fmap_files_dir_ap.append(file_dict)
-                elif re.match(r'dir-PA', bids_info['BIDSScanTypeSubCategory']):
+                elif re.search(r'dir-PA', bids_info['BIDSScanTypeSubCategory']):
                     fmap_files_dir_pa.append(file_dict)
                 else:
                     fmap_files_no_dir.append(file_dict)
