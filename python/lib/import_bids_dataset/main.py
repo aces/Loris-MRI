@@ -11,6 +11,7 @@ from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.eeg import Eeg
 from lib.env import Env
 from lib.imaging_lib.bids.dataset import BidsDataset, BidsDataType, BidsSession
+from lib.imaging_lib.bids.dataset_description import BidsDatasetDescriptionError
 from lib.imaging_lib.bids.tsv_participants import (
     BidsTsvParticipant,
     merge_bids_tsv_participants,
@@ -71,7 +72,10 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     # Get the LORIS BIDS import directory path and create the directory if needed.
 
-    loris_bids_path = get_loris_bids_path(bids, data_dir_path)
+    if args.copy:
+        loris_bids_path = get_loris_bids_path(env, bids, data_dir_path)
+    else:
+        loris_bids_path = None
 
     # Get the BIDS events metadata.
 
@@ -79,7 +83,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     # Copy the `participants.tsv` file rows.
 
-    if args.copy and bids.tsv_participants is not None:
+    if loris_bids_path is not None and bids.tsv_participants is not None:
         loris_participants_tsv_path = os.path.join(loris_bids_path, 'participants.tsv')
         copy_bids_tsv_participants(bids.tsv_participants, loris_participants_tsv_path)
 
@@ -96,7 +100,8 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     # Copy the static BIDS files.
 
-    copy_static_dataset_files(bids.path, loris_bids_path)
+    if loris_bids_path is not None:
+        copy_static_dataset_files(bids.path, loris_bids_path)
 
     # Print import summary.
 
@@ -143,7 +148,7 @@ def import_bids_session(
         # Read the scans.tsv property to raise an exception if the file is incorrect.
         tsv_scans = bids_session.tsv_scans
 
-        if args.copy and tsv_scans is not None:
+        if import_env.loris_bids_path is not None and tsv_scans is not None:
             loris_scans_tsv_path = os.path.join(
                 import_env.loris_bids_path,
                 f'sub-{bids_session.subject.label}',
@@ -287,15 +292,26 @@ def copy_static_dataset_files(source_bids_path: str, loris_bids_path: str):
         shutil.copyfile(source_file_path, loris_file_path)
 
 
-def get_loris_bids_path(bids: BidsDataset, data_dir_path: str) -> str:
+def get_loris_bids_path(env: Env, bids: BidsDataset, data_dir_path: str) -> str:
     """
     Get the LORIS BIDS directory path for the BIDS dataset to import, and create that directory if
     it does not exist yet.
     """
 
+    try:
+        dataset_description = bids.get_dataset_description()
+    except BidsDatasetDescriptionError as error:
+        log_error_exit(env, str(error))
+
+    if dataset_description is None:
+        log_error_exit(
+            env,
+            "No file 'dataset_description.json' found in the input BIDS dataset.",
+        )
+
     # Sanitize the dataset metadata to have a usable name for the directory.
-    dataset_name    = re.sub(r'[^0-9a-zA-Z]+',   '_', bids.dataset_description['Name'])
-    dataset_version = re.sub(r'[^0-9a-zA-Z\.]+', '_', bids.dataset_description['BIDSVersion'])
+    dataset_name    = re.sub(r'[^0-9a-zA-Z]+',   '_', dataset_description.name)
+    dataset_version = re.sub(r'[^0-9a-zA-Z\.]+', '_', dataset_description.bids_version)
 
     loris_bids_path = os.path.join(data_dir_path, 'bids_imports', f'{dataset_name}_BIDSVersion_{dataset_version}')
 

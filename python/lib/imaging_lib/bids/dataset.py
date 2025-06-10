@@ -1,12 +1,11 @@
-import json
 import os
 import re
 from collections.abc import Iterator
 from functools import cached_property
-from typing import Any
 
 from bids import BIDSLayout
 
+from lib.imaging_lib.bids.dataset_description import BidsDatasetDescription
 from lib.imaging_lib.bids.tsv_participants import BidsTsvParticipant, read_bids_participants_tsv_file
 from lib.imaging_lib.bids.tsv_scans import BidsTsvScan, read_bids_scans_tsv_file
 from lib.imaging_lib.nifti import find_dir_nifti_names
@@ -62,30 +61,18 @@ class BidsDataset:
 
         return subjects
 
-    @cached_property
-    def dataset_description(self) -> dict[str, Any]:
+    def get_dataset_description(self) -> 'BidsDatasetDescription | None':
         """
-        The parsed 'dataset_description.json' file of this BIDS dataset. This property might raise
-        an exception if the file is absent or incorrect.
+        Read the BIDS dataset description file of this BIDS dataset. Return `None` if no dataset
+        description file is present in the dataset, or raise an exeption if the file is present but
+        does contains incorrect data.
         """
 
         dataset_description_path = os.path.join(self.path, 'dataset_description.json')
         if not os.path.exists(dataset_description_path):
-            raise Exception("The BIDS 'dataset_description.json' file is missing.")
+            return None
 
-        with open(dataset_description_path) as dataset_description_file:
-            try:
-                dataset_description_json = json.load(dataset_description_file)
-            except ValueError:
-                raise Exception("The BIDS 'dataset_description.json' file is not correct JSON.")
-
-        if "Name" not in dataset_description_json:
-            raise Exception("The BIDS 'dataset_description.json' file is missing the 'Name' property.")
-
-        if "BIDSVersion" not in dataset_description_json:
-            raise Exception("The BIDS 'dataset_description.json' file is missing the 'BIDSVersion' property.")
-
-        return dataset_description_json
+        return BidsDatasetDescription(dataset_description_path)
 
     @cached_property
     def tsv_participants(self) -> dict[str, BidsTsvParticipant] | None:

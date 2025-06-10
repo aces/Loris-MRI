@@ -8,13 +8,13 @@ class BidsImportEnv:
     """
 
     data_dir_path         : str
-    loris_bids_path       : str
+    loris_bids_path       : str | None
     total_files_count     : int
     imported_files_count  : int
     ignored_files_count   : int
     failed_files_count    : int
 
-    def __init__(self, data_dir_path: str, loris_bids_path: str, total_files_count: int):
+    def __init__(self, data_dir_path: str, loris_bids_path: str | None, total_files_count: int):
         self.data_dir_path         = data_dir_path
         self.loris_bids_path       = loris_bids_path
         self.total_files_count     = total_files_count

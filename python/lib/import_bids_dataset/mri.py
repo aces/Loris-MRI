@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Any
+from typing import Any, cast
 
 from lib.db.models.mri_scan_type import DbMriScanType
 from lib.db.models.session import DbSession
@@ -59,7 +59,7 @@ def import_bids_nifti(env: Env, import_env: BidsImportEnv, session: DbSession, n
     # Get the path at which to copy the file.
 
     loris_file_dir_path = os.path.join(
-        import_env.loris_bids_path,
+        cast(str, import_env.loris_bids_path),
         f'sub-{session.candidate.psc_id}',
         f'ses-{session.visit_label}',
         nifti.data_type.name,

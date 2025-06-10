@@ -17,7 +17,7 @@ def get_events_metadata(
     args: Args,
     bids: BidsDataset,
     legacy_db: Database,
-    loris_bids_path: str,
+    loris_bids_path: str | None,
     project_id: int,
 ) -> dict[Any, Any]:
     """
@@ -43,7 +43,7 @@ def get_events_metadata(
 
     copy_file = str.replace(root_event_metadata_file.path, bids.layout.root, '')  # type: ignore
 
-    if args.copy:
+    if loris_bids_path is not None:
         event_metadata_path = os.path.join(loris_bids_path, copy_file)
         lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, args.verbose)  # type: ignore
 
