@@ -32,6 +32,7 @@ from lib.import_bids_dataset.check_subjects_sessions import (
 from lib.import_bids_dataset.env import BidsImportEnv
 from lib.import_bids_dataset.events import get_events_metadata
 from lib.import_bids_dataset.mri import import_bids_nifti
+from lib.import_bids_dataset.print import print_bids_import_summary
 from lib.logging import log, log_error, log_error_exit, log_warning
 from lib.util.iter import count
 
@@ -105,14 +106,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     # Print import summary.
 
-    log(
-        env,
-        (
-            f"Processed {import_env.processed_files_count} MRI files, including {import_env.imported_files_count}"
-            f" imported files, {import_env.ignored_files_count} ignored files, and {import_env.failed_files_count}"
-            " errors."
-        ),
-    )
+    print_bids_import_summary(env, import_env)
 
 
 def import_bids_session(

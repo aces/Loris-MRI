@@ -5,6 +5,7 @@ from typing import Any, cast
 from lib.db.models.mri_scan_type import DbMriScanType
 from lib.db.models.session import DbSession
 from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_rel_path
+from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
 from lib.imaging_lib.bids.dataset import BidsNifti
 from lib.imaging_lib.bids.json import add_bids_json_file_parameters
@@ -12,7 +13,7 @@ from lib.imaging_lib.bids.tsv_scans import add_scan_tsv_file_parameters
 from lib.imaging_lib.bids.util import determine_bids_file_type
 from lib.imaging_lib.file import register_imaging_file
 from lib.imaging_lib.file_parameter import register_file_parameter, register_file_parameters
-from lib.imaging_lib.mri_scan_type import get_or_create_mri_scan_type
+from lib.imaging_lib.mri_scan_type import create_mri_scan_type
 from lib.imaging_lib.nifti import add_nifti_file_parameters
 from lib.imaging_lib.nifti_pic import create_imaging_pic
 from lib.import_bids_dataset.env import BidsImportEnv
@@ -81,7 +82,7 @@ def import_bids_nifti(env: Env, import_env: BidsImportEnv, session: DbSession, n
 
     file_type = get_check_nifti_imaging_file_type(env, nifti)
     file_hash = get_check_nifti_file_hash(env, nifti)
-    mri_scan_type = get_nifti_mri_scan_type(env, nifti)
+    mri_scan_type = get_nifti_mri_scan_type(env, import_env, nifti)
 
     # Get the auxiliary files.
 
@@ -185,17 +186,27 @@ def get_check_nifti_file_hash(env: Env, nifti: BidsNifti) -> str:
     return file_hash
 
 
-def get_nifti_mri_scan_type(env: Env, nifti: BidsNifti) -> DbMriScanType | None:
+def get_nifti_mri_scan_type(env: Env, import_env: BidsImportEnv, nifti: BidsNifti) -> DbMriScanType | None:
     """
-    Get the MRI scan type corresponding to a NIfTI file if it is known, and insert it in the
-    database if needed.
+    Get the MRI scan type corresponding to a NIfTI file using its BIDS suffix. Create the MRI scan
+    type in the database the suffix is a standard BIDS suffix and the scan type does not already
+    exist in the database, or raise an exception if no known scan type is found.
     """
+
+    if nifti.suffix is None:
+        raise Exception("No BIDS suffix found in the NIfTI file name, cannot infer the file data type.")
+
+    mri_scan_type = try_get_mri_scan_type_with_name(env.db, nifti.suffix)
+    if mri_scan_type is not None:
+        return mri_scan_type
 
     if nifti.suffix not in KNOWN_SUFFIXES_PER_MRI_DATA_TYPE[nifti.data_type.name]:
-        log_warning(env, f"Unknown MRI file suffix '{nifti.suffix}'.")
-        return None
+        if nifti.suffix not in import_env.unknown_scan_types:
+            import_env.unknown_scan_types.append(nifti.suffix)
 
-    return get_or_create_mri_scan_type(env, nifti.suffix)
+        raise Exception(f"Found unknown MRI file suffix '{nifti.suffix}'.")
+
+    return create_mri_scan_type(env, nifti.suffix)
 
 
 def copy_bids_file(loris_file_dir_path: str, file_path: str):

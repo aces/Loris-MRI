@@ -13,6 +13,7 @@ class BidsImportEnv:
     imported_files_count  : int
     ignored_files_count   : int
     failed_files_count    : int
+    unknown_scan_types    : list[str]
 
     def __init__(self, data_dir_path: str, loris_bids_path: str | None, total_files_count: int):
         self.data_dir_path         = data_dir_path
@@ -21,6 +22,7 @@ class BidsImportEnv:
         self.imported_files_count  = 0
         self.ignored_files_count   = 0
         self.failed_files_count    = 0
+        self.unknown_scan_types    = []
 
     @property
     def processed_files_count(self) -> int:
