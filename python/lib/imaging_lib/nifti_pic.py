@@ -1,7 +1,10 @@
 import os
 import re
 
-from nilearn import image, plotting
+import nibabel as nib
+import numpy as np
+from nibabel.nifti1 import Nifti1Image
+from nilearn import plotting
 
 from lib.config import get_data_dir_path_config
 from lib.db.models.file import DbFile
@@ -38,9 +41,19 @@ def create_imaging_pic(env: Env, file: DbFile, is_4d_data: bool) -> str:
     if not os.path.exists(pic_dir_path):
         os.mkdir(pic_dir_path)
 
-    volume = image.load_img(file_path, dtype='float32')  # type: ignore
+    img = nib.load(file_path)  # type: ignore
+
     if is_4d_data:
-        volume = image.index_img(volume, 0)  # type: ignore
+        # Only load the first slice of a 4D image.
+        data = img.dataobj[..., 0]  # type: ignore
+    else:
+        data = img.dataobj[...]  # type: ignore
+
+    # Load the image as float32 for plotting.
+    volume = Nifti1Image(
+        data.astype(np.float32, copy=False),  # type: ignore
+        img.affine,  # type: ignore
+    )
 
     plotting.plot_anat(  # type: ignore
         anat_img=volume,

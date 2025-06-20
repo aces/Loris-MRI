@@ -60,7 +60,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     for subject_label in bids.subject_labels:
         log(env, f"- {subject_label}")
 
-    log(env, f"Found {len(bids.subject_labels)} sessions:")
+    log(env, f"Found {len(bids.session_labels)} sessions:")
     for session_label in bids.session_labels:
         log(env, f"- {session_label}")
 
