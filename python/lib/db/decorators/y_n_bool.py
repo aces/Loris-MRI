@@ -14,7 +14,7 @@ class YNBool(TypeDecorator[bool]):
 
     impl = Enum('Y', 'N')
 
-    def process_bind_param(self, value: bool | None, dialect: Dialect):
+    def process_bind_param(self, value: bool | None, dialect: Dialect) -> Literal['Y', 'N'] | None:
         match value:
             case True:
                 return 'Y'
@@ -23,7 +23,7 @@ class YNBool(TypeDecorator[bool]):
             case None:
                 return None
 
-    def process_result_value(self, value: Literal['Y', 'N'] | None, dialect: Dialect):
+    def process_result_value(self, value: Literal['Y', 'N'] | None, dialect: Dialect) -> bool | None:
         match value:
             case 'Y':
                 return True
