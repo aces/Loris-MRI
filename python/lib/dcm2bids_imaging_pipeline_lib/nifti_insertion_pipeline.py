@@ -397,7 +397,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # add TaskName to the JSON file if the file's BIDS scan type subcategory contains task-*
         bids_subcategories = self.bids_categories_dict['BIDSScanTypeSubCategory']
-        if self.json_path and bids_subcategories and re.search(r'task-', bids_subcategories):
+        if self.json_path and bids_subcategories and 'task-' in bids_subcategories:
             with open(self.json_path) as json_file:
                 json_data = json.load(json_file)
             json_data['TaskName'] = re.search(r'task-([a-zA-Z0-9]*)', bids_subcategories).group(1)

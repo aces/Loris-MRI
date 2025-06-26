@@ -96,12 +96,12 @@ class Session:
         values = (candidate_id, self.visit_label, str(self.center_id), 'Not Started')
 
         if self.project_id:
-            column_names = column_names + ('ProjectID',)
-            values = values + (str(self.project_id),)
+            column_names = (*column_names, 'ProjectID')
+            values = (*values, str(self.project_id))
 
         if self.cohort_id:
-            column_names = column_names + ('CohortID',)
-            values = values + (str(self.cohort_id),)
+            column_names = (*column_names, 'CohortID')
+            values = (*values, str(self.cohort_id))
 
         self.db.insert(
             table_name='session',

@@ -315,20 +315,18 @@ class Eeg:
             files_to_archive = (os.path.join(self.data_dir, eeg_file_path),)
 
             if eegjson_file_path:
-                files_to_archive = files_to_archive + (os.path.join(self.data_dir, eegjson_file_path),)
+                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, eegjson_file_path))
             if fdt_file_path:
-                files_to_archive = files_to_archive + (os.path.join(self.data_dir, fdt_file_path),)
+                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, fdt_file_path))
             if electrode_file_path:
-                files_to_archive = files_to_archive + (os.path.join(self.data_dir, electrode_file_path),)
+                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, electrode_file_path))
             if event_file_paths:
                 # archive all event files in a tar ball for event download
                 event_files_to_archive = ()
 
                 for event_file_path in event_file_paths:
-                    files_to_archive = files_to_archive + (os.path.join(self.data_dir, event_file_path),)
-                    event_files_to_archive = event_files_to_archive + (
-                        os.path.join(self.data_dir, event_file_path),
-                    )
+                    files_to_archive = (*files_to_archive, os.path.join(self.data_dir, event_file_path))
+                    event_files_to_archive = (*event_files_to_archive, os.path.join(self.data_dir, event_file_path))
 
                 event_archive_rel_name = os.path.splitext(event_file_paths[0])[0] + ".tgz"
                 self.create_and_insert_event_archive(
@@ -336,7 +334,7 @@ class Eeg:
                 )
 
             if channel_file_path:
-                files_to_archive = files_to_archive + (os.path.join(self.data_dir, channel_file_path),)
+                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, channel_file_path))
 
             archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
             self.create_and_insert_archive(
