@@ -1180,9 +1180,9 @@ class Imaging:
             anat_img=volume,
             output_file=os.path.join(file_info['data_dir_path'], 'pic', pic_rel_path),
             display_mode='ortho',
-            black_bg=1,
-            draw_cross=0,
-            annotate=0
+            black_bg=True,
+            draw_cross=False,
+            annotate=False,
         )
 
         return pic_rel_path
