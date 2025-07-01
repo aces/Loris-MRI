@@ -9,6 +9,7 @@ import lib.db.models.project as db_project
 import lib.db.models.session as db_session
 import lib.db.models.site as db_site
 from lib.db.base import Base
+from lib.db.decorators.true_false_bool import TrueFalseBool
 from lib.db.decorators.y_n_bool import YNBool
 
 
@@ -32,7 +33,7 @@ class DbCandidate(Base):
     registered_by           : Mapped[str | None]  = mapped_column('RegisteredBy')
     user_id                 : Mapped[str]         = mapped_column('UserID')
     date_registered         : Mapped[date | None] = mapped_column('Date_registered')
-    flagged_caveatemptor    : Mapped[str | None]  = mapped_column('flagged_caveatemptor')
+    flagged_caveatemptor    : Mapped[bool | None] = mapped_column('flagged_caveatemptor', TrueFalseBool)
     flagged_reason          : Mapped[int | None]  = mapped_column('flagged_reason')
     flagged_other           : Mapped[str | None]  = mapped_column('flagged_other')
     flagged_other_status    : Mapped[str | None]  = mapped_column('flagged_other_status')
