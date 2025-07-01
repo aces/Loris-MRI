@@ -26,6 +26,17 @@ def try_get_file_with_unique_combination(
     ).scalar_one_or_none()
 
 
+def try_get_file_with_rel_path(db: Database, rel_path: str) -> DbFile | None:
+    """
+    Get an imaging file from the database using its relative path, or return `None` if no imaging
+    file is found.
+    """
+
+    return db.execute(select(DbFile)
+        .where(DbFile.rel_path == rel_path)
+    ).scalar_one_or_none()
+
+
 def try_get_file_with_hash(db: Database, file_hash: str) -> DbFile | None:
     """
     Get an imaging file from the database using its BLAKE2b or MD5 hash, or return `None` if no
