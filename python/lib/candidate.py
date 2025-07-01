@@ -166,11 +166,11 @@ class Candidate:
         insert_val = (self.psc_id, str(self.cand_id), str(self.center_id), str(self.project_id))
 
         if self.sex:
-            insert_col = insert_col + ('Sex',)
-            insert_val = insert_val + (self.sex,)
+            insert_col = (*insert_col, 'Sex')
+            insert_val = (*insert_val, self.sex)
         if self.dob:
-            insert_col = insert_col + ('DoB',)
-            insert_val = insert_val + (self.dob,)
+            insert_col = (*insert_col, 'DoB')
+            insert_val = (*insert_val, self.dob)
 
         db.insert(
             table_name='candidate',

@@ -956,9 +956,9 @@ class Imaging:
                     'json_file_path': json_file_path,
                     'acq_time': acq_time
                 }
-                if re.search(r'dir-AP', bids_info['BIDSScanTypeSubCategory']):
+                if 'dir-AP' in bids_info['BIDSScanTypeSubCategory']:
                     fmap_files_dir_ap.append(file_dict)
-                elif re.search(r'dir-PA', bids_info['BIDSScanTypeSubCategory']):
+                elif 'dir-PA' in bids_info['BIDSScanTypeSubCategory']:
                     fmap_files_dir_pa.append(file_dict)
                 else:
                     fmap_files_no_dir.append(file_dict)
@@ -1132,7 +1132,7 @@ class Imaging:
         """
         tar = tarfile.open(dicom_archive_path)
         tar.extractall(path=extract_location_dir)
-        inner_tar_file_name = [f.name for f in tar.getmembers() if f.name.endswith('.tar.gz')][0]
+        inner_tar_file_name = next(f.name for f in tar.getmembers() if f.name.endswith('.tar.gz'))
         tar.close()
 
         inner_tar_path = os.path.join(extract_location_dir, inner_tar_file_name)
@@ -1166,7 +1166,7 @@ class Imaging:
         file_id = file_info['file_id']
 
         pic_name = os.path.basename(file_path)
-        pic_name = re.sub(r"\.nii(\.gz)?$", f'_{str(file_id)}_check.png', pic_name)
+        pic_name = re.sub(r"\.nii(\.gz)?$", f'_{file_id}_check.png', pic_name)
         pic_rel_path = os.path.join(str(cand_id), pic_name)
 
         # create the candID directory where the pic will go if it does not already exist
