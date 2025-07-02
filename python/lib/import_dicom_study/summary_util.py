@@ -1,8 +1,8 @@
 from lib.config import get_patient_id_dicom_header_config
 from lib.env import Env
 from lib.get_session_info import SessionInfo, get_session_info
+from lib.imaging_lib.mri_scanner import MriScannerInfo
 from lib.import_dicom_study.summary_type import DicomStudySummary
-from lib.scanner import MriScannerInfo
 
 
 def get_dicom_study_summary_scanner_info(dicom_summary: DicomStudySummary) -> MriScannerInfo:
