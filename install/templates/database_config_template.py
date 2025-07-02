@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import re
 
 from sqlalchemy.orm import Session as Database
