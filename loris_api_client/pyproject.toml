@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "loris_api_client"
+version = "26.0.0"
+readme = "README.md"
+requires-python = ">= 3.11"
+dependencies = [
+    "pydantic",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyright",
+    "ruff",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/loris_api_client"]
+
+[tool.pyright]
+include = ["src"]
+strict = ["src"]
+
+[tool.ruff]
+include = ["src/**/*.py"]
+line-length = 120
+preview = true
+
+[tool.ruff.lint]
+ignore = ["E203", "E221", "E241", "E251", "E271"]
+select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
