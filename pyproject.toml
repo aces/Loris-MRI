@@ -1,5 +1,13 @@
 [project]
+name = "loris-mri"
+version = "27.0.0"
+description = "The LORIS Python scripts"
+readme = "README.md"
+license = "GPL-3.0-or-later"
 requires-python = ">= 3.11"
+
+[project.urls]
+Homepage = "https://github.com/aces/loris-mri"
 
 [tool.ruff]
 src = ["python"]
