@@ -10,8 +10,6 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.lorisgetopt import LorisGetOpt
 
-__license__ = 'GPLv3'
-
 
 def main():
     usage = (

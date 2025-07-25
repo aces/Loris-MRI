@@ -9,8 +9,6 @@ from lib.aws_s3 import AwsS3
 from lib.database import Database
 from lib.database_lib.config import Config
 
-__license__ = "GPLv3"
-
 
 class LorisGetOpt:
     """

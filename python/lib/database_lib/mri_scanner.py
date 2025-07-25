@@ -6,8 +6,6 @@ from typing_extensions import deprecated
 
 from lib.candidate import Candidate
 
-__license__ = "GPLv3"
-
 
 @deprecated('Use `lib.scanner` instead')
 class MriScanner:

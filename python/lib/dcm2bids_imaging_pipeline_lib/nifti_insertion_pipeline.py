@@ -14,8 +14,6 @@ from lib.get_session_info import SessionConfigError, get_dicom_archive_session_i
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
-__license__ = "GPLv3"
-
 
 class NiftiInsertionPipeline(BasePipeline):
     """

@@ -9,8 +9,6 @@ import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.logging import log_error_exit, log_verbose
 
-__license__ = "GPLv3"
-
 
 class DicomArchiveLoaderPipeline(BasePipeline):
     """

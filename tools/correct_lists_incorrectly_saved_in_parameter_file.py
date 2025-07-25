@@ -6,9 +6,6 @@ from lib.database import Database
 from lib.lorisgetopt import LorisGetOpt
 
 
-__license__ = 'GPLv3'
-
-
 def main():
     usage = (
         "\n"

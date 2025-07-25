@@ -1,9 +1,6 @@
 """This class performs database queries for the mri_violations_log table"""
 
 
-__license__ = "GPLv3"
-
-
 class MriViolationsLog:
     """
     This class performs database queries for imaging dataset stored in the mri_violations_log table.

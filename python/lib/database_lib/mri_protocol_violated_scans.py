@@ -1,9 +1,6 @@
 """This class performs database queries for the mri_protocol_violated_scans table"""
 
 
-__license__ = "GPLv3"
-
-
 class MriProtocolViolatedScans:
     """
     This class performs database queries for imaging dataset stored in the mri_protocol_violated_scans table.
