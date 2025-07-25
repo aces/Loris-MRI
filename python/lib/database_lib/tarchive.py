@@ -2,8 +2,6 @@
 
 from typing_extensions import deprecated
 
-__license__ = "GPLv3"
-
 
 @deprecated('Use `lib.db.models.dicom_archive.DbDicomArchive` instead')
 class Tarchive:

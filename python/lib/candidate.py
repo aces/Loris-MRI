@@ -7,8 +7,6 @@ from dateutil.parser import parse
 
 import lib.exitcode
 
-__license__ = "GPLv3"
-
 
 class Candidate:
     """

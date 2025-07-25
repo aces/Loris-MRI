@@ -1,9 +1,6 @@
 """This class performs database queries for the physiological_modality table"""
 
 
-__license__ = "GPLv3"
-
-
 class PhysiologicalModality:
 
     def __init__(self, db, verbose):

@@ -2,8 +2,6 @@
 
 from lib.point_3d import Point3D
 
-__license__ = "GPLv3"
-
 
 class Point3DDB:
     def __init__(self, db, verbose):

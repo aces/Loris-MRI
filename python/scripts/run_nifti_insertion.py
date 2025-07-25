@@ -10,8 +10,6 @@ import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.nifti_insertion_pipeline import NiftiInsertionPipeline
 from lib.lorisgetopt import LorisGetOpt
 
-__license__ = "GPLv3"
-
 sys.path.append('/home/user/python')
 
 

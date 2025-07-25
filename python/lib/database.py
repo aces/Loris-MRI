@@ -7,8 +7,6 @@ import MySQLdb
 import lib.exitcode
 from lib.config_file import DatabaseConfig
 
-__license__ = "GPLv3"
-
 
 class Database:
     """

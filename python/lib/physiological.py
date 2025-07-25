@@ -21,8 +21,6 @@ from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEvent
 from lib.database_lib.point_3d import Point3DDB
 from lib.point_3d import Point3D
 
-__license__ = "GPLv3"
-
 
 class Physiological:
     """

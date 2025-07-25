@@ -1,9 +1,6 @@
 """This class performs database queries for the site mri_scan_type table"""
 
 
-__license__ = "GPLv3"
-
-
 class MriScanType:
     """
     This class performs database queries for imaging dataset stored in the mri_scan_type table.

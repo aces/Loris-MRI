@@ -20,9 +20,6 @@ from lib.mri import Mri
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
 
-__license__ = "GPLv3"
-
-
 sys.path.append('/home/user/python')
 
 

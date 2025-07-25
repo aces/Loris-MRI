@@ -6,8 +6,6 @@ from typing_extensions import deprecated
 
 from lib.database_lib.notification import Notification
 
-__license__ = "GPLv3"
-
 
 @deprecated('Use `lib.logging` instead')
 class Log:

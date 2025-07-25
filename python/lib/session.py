@@ -7,8 +7,6 @@ from lib.database_lib.project_cohort_rel import ProjectCohortRel
 from lib.database_lib.session_db import SessionDB
 from lib.database_lib.site import Site
 
-__license__ = "GPLv3"
-
 
 class Session:
     """

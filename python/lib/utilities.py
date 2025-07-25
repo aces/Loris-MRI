@@ -20,8 +20,6 @@ from typing_extensions import deprecated
 import lib.exitcode
 import lib.util.crypto
 
-__license__ = "GPLv3"
-
 
 def read_tsv_file(tsv_file):
     """

@@ -1,9 +1,6 @@
 """This class performs database queries for the physiological_output_type table"""
 
 
-__license__ = "GPLv3"
-
-
 class PhysiologicalOutputType:
 
     def __init__(self, db, verbose):

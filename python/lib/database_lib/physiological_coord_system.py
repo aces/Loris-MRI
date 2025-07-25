@@ -11,8 +11,6 @@
 # from lib.point_3d import Point3D
 # from lib.database_lib.point_3d import Point3DDB
 
-__license__ = "GPLv3"
-
 
 class PhysiologicalCoordSystem:
 

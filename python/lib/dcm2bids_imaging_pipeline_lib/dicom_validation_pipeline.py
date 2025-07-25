@@ -8,8 +8,6 @@ from lib.env import Env
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_md5_hash
 
-__license__ = "GPLv3"
-
 
 class DicomValidationPipeline(BasePipeline):
     """

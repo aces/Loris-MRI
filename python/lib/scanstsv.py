@@ -7,8 +7,6 @@ from dateutil.parser import parse
 import lib
 import lib.utilities as utilities
 
-__license__ = "GPLv3"
-
 
 class ScansTSV:
     """
