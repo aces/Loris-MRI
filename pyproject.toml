@@ -38,6 +38,10 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/aces/loris-mri"
 
+# TODO: Remove this statement once a real build backend has been configured.
+[tool.setuptools]
+py-modules = []
+
 [tool.ruff]
 src = ["python"]
 include = ["python/**/*.py"]
