@@ -102,7 +102,7 @@ sudo -S su $USER -c "mkdir -m 770 -p $mridir/python_virtualenvs/loris-mri-python
 python3.11 -m venv $mridir/python_virtualenvs/loris-mri-python
 source $mridir/python_virtualenvs/loris-mri-python/bin/activate
 echo "Installing the Python libraries into the loris-mri virtualenv..."
-pip3 install -r "$installdir/requirements/requirements.txt"
+pip3 install $mridir
 # deactivate the virtualenv for now
 deactivate
 
