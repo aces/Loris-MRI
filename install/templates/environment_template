@@ -13,7 +13,7 @@ export LORIS_CONFIG=/opt/${PROJECT}/bin/mri/config
 
 # for the Python scripts
 export LORIS_MRI=/opt/${PROJECT}/bin/mri
-source /opt/${PROJECT}/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
+source /opt/${PROJECT}/bin/mri/.venv/bin/activate
 
 # for the defacing scripts
 export BEASTLIB=${MINC_TOOLKIT_DIR}/../share/beast-library-1.1

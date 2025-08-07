@@ -210,7 +210,7 @@ run `bids_import.py`, you need to be in the loris-mri Python virtual
 environment. It should have been sourced when sourcing your LORIS-MRI
 environment file. If this is not sourced, then simply run the following:
 ```bash
-source /opt/%PROJECT%/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
+source /opt/%PROJECT%/bin/mri/.venv/bin/activate
 ```
 To deactivate a Python virtual environment, simply type `deactivate` in the
 terminal.
