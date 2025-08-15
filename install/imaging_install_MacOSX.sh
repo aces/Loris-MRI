@@ -1,12 +1,12 @@
 #!/bin/bash
 
 ##################################
-# This script is not actively maintained. 
+# This script is not actively maintained.
 # and has not been supported since 15.10
 ##################################
 echo "NOTE: Mac is no longer supported as of 15.10."
 echo "This script is not actively maintained."
-echo 
+echo
 
 ##################################
 ###WHAT THIS SCRIPT WILL NOT DO###
@@ -16,7 +16,7 @@ echo
 #4)It doesn't install DICOM toolkit
 
 
-#Create a temporary log for installation and delete it on completion 
+#Create a temporary log for installation and delete it on completion
 #@TODO make sure that /tmp is writable
 LOGFILE="/tmp/$(basename $0).$$.tmp"
 touch $LOGFILE
@@ -33,8 +33,8 @@ read -p "What is the project name? " PROJ   ##this will be used to create all th
 read -p "What prod file name would you like to use? default: prod " prodfilename
 if [ -z "$prodfilename" ]; then
     prodfilename="prod"
-fi 
- 
+fi
+
 # determine the mridir
 installdir=`pwd`
 mridir=${installdir%"/install"}
@@ -76,7 +76,7 @@ echo
 ######################Add the proper Apache group user #############################
 ####################################################################################
 if egrep ^www-data: /etc/group > $LOGFILE 2>&1;
-then 
+then
     group=www-data
 elif egrep ^www: /etc/group  > $LOGFILE 2>&1;
 then
@@ -124,10 +124,10 @@ sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#
 echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
-echo "Creating python database config file with database credentials"
-cp $installdir/templates/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
-sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
-sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
-echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/database_config.py"
+echo "Creating python config file with database credentials"
+cp $installdir/templates/config_template.py $mridir/dicom-archive/.loris_mri/config.py
+sudo chmod 640 $mridir/dicom-archive/.loris_mri/config.py
+sudo chgrp $group $mridir/dicom-archive/.loris_mri/config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/database_config_template.py > $mridir/dicom-archive/.loris_mri/config.py
+echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/config.py"
 echo

@@ -197,7 +197,7 @@ Under the `Imaging Pipeline` section:
     on which the defacing algorithm should be run; typically any scan showing the
     face of the candidate
  * `Name of the Python MRI config file`: name of the python-based MRI config file to use
-    when running the Python insertion scripts (typically `database_config.py`)
+    when running the Python insertion scripts (typically `config.py`)
 
 Under the `MINC to BIDS Converter Tool Options` section:
  * `BIDS Dataset Authors`: list of authors who should be included in the
@@ -329,7 +329,7 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
     Routine to determine the acquisition protocol to use to register an HRRT derived
     file.
 
-#### Customizable routines in the Python config file (`database_config.py` under `dicom-archive/.loris_mri`)
+#### Customizable routines in the Python config file (`config.py` under `dicom-archive/.loris_mri`)
 
 - `get_subject_ids`
 

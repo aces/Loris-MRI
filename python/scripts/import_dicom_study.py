@@ -61,7 +61,7 @@ def main() -> None:
         "\n"
         "Options: \n"
         "\t-p, --profile   : Name of the LORIS Python configuration file (usually\n"
-        "\t                  'database_config.py')\n"
+        "\t                  'config.py')\n"
         "\t-s, --source    : Path of the source directory containing the DICOM files of the"
         "\t                  study.\n"
         "\t    --overwrite : Overwrite the DICOM archive file if it already exists.\n"

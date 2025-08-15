@@ -189,7 +189,7 @@ class LorisGetOpt:
         if not config_file.endswith(".py"):
             print(
                 f"\n[ERROR   ] {config_file} does not appear to be the python configuration file."
-                f" Try using 'database_config.py' instead.\n"
+                f" Try using 'config.py' instead.\n"
             )
             sys.exit(lib.exitcode.INVALID_ARG)
 
