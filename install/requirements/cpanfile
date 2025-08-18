@@ -9,7 +9,6 @@ requires 'DateTime';
 requires 'Date::Parse';
 requires 'DBI';
 requires 'Getopt::Tabular';
-requires 'Time::JulianDay';
 requires 'Path::Class';
 requires 'Archive::Extract';
 requires 'Archive::Zip';
