@@ -37,7 +37,6 @@ all of its children.
 
 use Exporter();
 use Math::Round;
-use Time::JulianDay;
 use File::Temp qw(tempdir);
 use File::Basename;
 use File::Copy;
@@ -140,7 +139,7 @@ RETURNS: an array of 2 elements:
 
 sub getSessionInformation {
     my ($subjectIDref, $studyDate, $dbh, $db) = @_;
-    my ($sessionID, $studyDateJD);
+    my ($sessionID);
     my ($query, $sth);
 
     # find a matching timepoint
