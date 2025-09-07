@@ -12,7 +12,7 @@ perl minc_insertion.pl C<[options]>
 
 Available options are:
 
--profile     : name of the config file in C<../dicom-archive/.loris_mri>
+-profile     : name of the config file in C<../config>
 
 -uploadID    : The upload ID from which this MINC was created
 
@@ -95,15 +95,15 @@ use NeuroDB::objectBroker::MriUploadOB;
 
 use constant GET_COLUMNS => 0;
 
-my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
+my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
     =~ /: (\d+)\.(\d+)/;
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) 
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)
     =localtime(time);
 my $date = sprintf(
                 "%4d-%02d-%02d %02d:%02d:%02d",
                 $year+1900,$mon+1,$mday,$hour,$min,$sec
            );
-my $debug                    = 0;  
+my $debug                    = 0;
 my $message                  = '';
 my $upload_id;
 my $hrrt                     = 0;
@@ -111,14 +111,14 @@ my $NewScanner               = 1;
 
 my $verbose                  = 0;     # default, overwritten if scripts are run with -verbose
 my $notify_detailed          = 'Y';   # notification_spool message flag for messages to be displayed
-                                      # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary        = 'N';   # notification_spool message flag for messages to be displayed 
-                                      # with SUMMARY Option in the front-end/imaging_uploader 
-my $profile                  = undef; # this should never be set unless you are in a 
+                                      # with DETAILED OPTION in the front-end/imaging_uploader
+my $notify_notsummary        = 'N';   # notification_spool message flag for messages to be displayed
+                                      # with SUMMARY Option in the front-end/imaging_uploader
+my $profile                  = undef; # this should never be set unless you are in a
                                       # stable production environment
-my $reckless                 = 0;     # this is only for playing and testing. Don't 
+my $reckless                 = 0;     # this is only for playing and testing. Don't
                                       # set it to 1!!!
-my $force                    = 0;     # This is a flag to force the script to run  
+my $force                    = 0;     # This is a flag to force the script to run
                                       # Even if the validation has failed
 my $xlog                     = 0;     # default should be 0
 my $bypass_extra_file_checks = 0;     # If you need to bypass the extra_file_checks, set to 1.
@@ -137,25 +137,25 @@ my $User = getpwuid($>);
 my @opt_table = (
                  ["Basic options","section"],
 
-                 ["-profile","string",1, \$profile, "name of config file". 
-                 " in ../dicom-archive/.loris_mri"],
+                 ["-profile","string",1, \$profile, "name of config file".
+                 " in ../config"],
 
                  ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
                   "from which this MINC was created"],
 
                  ["Advanced options","section"],
 
-                 ["-reckless", "boolean", 1, \$reckless,"Upload data to". 
+                 ["-reckless", "boolean", 1, \$reckless,"Upload data to".
                  " database even if study protocol is not ".
                  "defined or violated."],
 
-                 ["-force", "boolean", 1, \$force,"Forces the script to run". 
+                 ["-force", "boolean", 1, \$force,"Forces the script to run".
                  " even if the DICOM archive validation has failed."],
-  
-                 ["-mincPath","string",1, \$minc, "The absolute path". 
+
+                 ["-mincPath","string",1, \$minc, "The absolute path".
                   " to minc-file"],
 
-                 ["-tarchivePath","string",1, \$tarchive, "The absolute path". 
+                 ["-tarchivePath","string",1, \$tarchive, "The absolute path".
                   " to tarchive-file"],
 
                  ["-uploadID", "string", 1, \$upload_id, "The upload ID " .
@@ -189,11 +189,11 @@ my @opt_table = (
 
 my $Help = <<HELP;
 *******************************************************************************
-Minc Insertion 
+Minc Insertion
 *******************************************************************************
 
-Author  :   
-Date    :   
+Author  :
+Date    :
 Version :   $versionInfo
 
 
@@ -221,12 +221,12 @@ USAGE
 
 if (!$ENV{LORIS_CONFIG}) {
     print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
-    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
+    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
 }
 
-if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-    print $Help; 
-    print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";  
+if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/$profile") {
+    print $Help;
+    print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
@@ -246,16 +246,16 @@ if ( !($tarchive xor $upload_id xor $force) ) {
 
 if (!defined $minc || !-e $minc) {
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing "
-        . "MINC file with -minc.\n\n";  
+        . "MINC file with -minc.\n\n";
     exit $NeuroDB::ExitCodes::INVALID_PATH;
 }
 
 # input option error checking
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -297,8 +297,8 @@ my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
 my $LogDir   = "$data_dir/logs";
 
-if (!-d $LogDir) { 
-    mkdir($LogDir, 0770); 
+if (!-d $LogDir) {
+    mkdir($LogDir, 0770);
 }
 my $logfile  = "$LogDir/$templog.log";
 print "\nlog dir is $LogDir and log file is $logfile \n" if $verbose;
@@ -408,7 +408,7 @@ if (!$is_valid && !$force) {
                "the problem. Or use -force to force the ".
                "execution.\n\n";
     print $message;
-    $utility->writeErrorLog($message,6,$logfile); 
+    $utility->writeErrorLog($message,6,$logfile);
     $notifier->spool('tarchive validation', $message, 0,
                     'minc_insertion.pl', $upload_id, 'Y',
                     $notify_notsummary);
@@ -571,7 +571,7 @@ if (defined($subjectIDsref->{'CandMismatchError'})) {
 ####### Get the $sessionID  ####################################
 ################################################################
 my($sessionRef, $errMsg) = NeuroDB::MRI::getSessionInformation(
-    $subjectIDsref, 
+    $subjectIDsref,
     $studyInfo{'DateAcquired'},
     $dbh,
     $db
@@ -614,7 +614,7 @@ if ($not_unique_message) {
         $notify_notsummary
     );
     exit $NeuroDB::ExitCodes::FILE_NOT_UNIQUE;
-} 
+}
 
 ################################################################
 ## at this point things will appear in the database ############
@@ -663,7 +663,7 @@ if($acquisitionProtocol =~ /unknown/ && !defined $acquisitionProtocolID) {
    print LOG $message;
    print $message;
    $notifier->spool('minc insertion', $message, 0,
-                   'minc_insertion.pl', $upload_id, 'Y', 
+                   'minc_insertion.pl', $upload_id, 'Y',
                    $notify_notsummary);
    exit $NeuroDB::ExitCodes::UNKNOWN_PROTOCOL;
 }

@@ -8,7 +8,7 @@ perl DTIPrepRegister.pl `[options]`
 
 Available options are:
 
-\-profile        : name of the config file in `../dicom-archive/.loris-mri`
+\-profile        : name of the config file in `../config`
 
 \-DTIPrep\_subdir : `DTIPrep` subdirectory storing the processed files to
                    be registered

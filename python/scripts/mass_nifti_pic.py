@@ -33,8 +33,8 @@ def main():
         '\n'
         'usage  : mass_nifti_pic.py -p <profile> -s <smallest_id> -l <largest_id>\n\n'
         'options: \n'
-        '\t-p, --profile    : name of the python database config file in '
-                              'dicom-archive/.loris-mri\n'
+        '\t-p, --profile    : name of the python database config file in the config'
+                              ' directory\n'
         '\t-s, --smallest_id: smallest FileID for which the pic will be created\n'
         '\t-l, --largest_id : largest FileID for which the pic will be created\n'
         '\t-f, --force      : overwrite the pic already present in the filesystem with new pic\n'
@@ -52,7 +52,7 @@ def main():
             print(usage)
             sys.exit()
         elif opt in ('-p', '--profile'):
-            profile = os.environ['LORIS_CONFIG'] + "/.loris_mri/" + arg
+            profile = os.path.join(os.environ['LORIS_CONFIG'], arg)
         elif opt in ('-s', '--smallest_id'):
             smallest_id = int(arg)
         elif opt in ('-l', '--largest_id'):

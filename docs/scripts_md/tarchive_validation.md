@@ -9,7 +9,7 @@ perl tarchive\_validation.pl `[options]`
 
 Available options are:
 
-\-profile     : name of the config file in `../dicom-archive/.loris-mri`
+\-profile     : name of the config file in `../config`
 
 \-uploadID    : UploadID associated to the DICOM archive to validate
 

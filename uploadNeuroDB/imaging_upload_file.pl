@@ -13,7 +13,7 @@ perl imaging_upload_file.pl </path/to/UploadedFile> C<[options]>
 
 Available options are:
 
--profile      : name of the config file in C<../dicom-archive/.loris_mri>
+-profile      : name of the config file in C<../config>
 
 -upload_id    : The Upload ID of the given scan uploaded
 
@@ -100,7 +100,7 @@ my @opt_table           = (
     [ "Basic options", "section" ],
     [
         "-profile", "string", 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"
+        "name of config file in ../config"
     ],
     [
         "-upload_id", "string", 1, \$upload_id,
@@ -113,11 +113,11 @@ my @opt_table           = (
 
 my $Help = <<HELP;
 ******************************************************************************
-Dicom Validator 
+Dicom Validator
 ******************************************************************************
 
-Author  :   
-Date    :   
+Author  :
+Date    :
 Version :   $versionInfo
 
 The program does the following
@@ -131,7 +131,7 @@ The program does the following
    2) Run C<dicomtar.pl> on the file  (set the dicomtar to true)
    3) Run C<tarchiveLoader.pl> on the file (set the minc-created to true)
    4) Removes the uploaded file once the previous steps have completed
-   5) Update the C<mri_upload> table 
+   5) Update the C<mri_upload> table
 
 Documentation: perldoc imaging_upload_file.pl
 
@@ -155,10 +155,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 if ( !$ARGV[0] ) {
@@ -237,7 +237,7 @@ if ( basename($expected_file) ne basename($uploaded_file)) {
         $mail_user,
         $mail_subject,
         $mail_message,
-    ); 
+    );
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
@@ -262,11 +262,11 @@ my $pname = getPnameUsingUploadID($upload_id);
 my $imaging_upload =
   NeuroDB::ImagingUpload->new( \$dbh,
                                $db,
-                               $TmpDir_decompressed_folder, 
+                               $TmpDir_decompressed_folder,
                                $upload_id,
-                               $pname, 
+                               $pname,
                                $profile,
-                               $verbose 
+                               $verbose
                              );
 
 ################################################################
@@ -293,7 +293,7 @@ if ( !($is_candinfovalid) ) {
         $mail_user,
         $mail_subject,
         $mail_message,
-    ); 
+    );
     exit $NeuroDB::ExitCodes::INVALID_DICOM;
 }
 
@@ -427,7 +427,7 @@ $message = "\n$minc_created minc file(s) created, "
         $mail_user,
         $mail_subject,
         $mail_message,
-    ); 
+    );
 
 ################################################################
 ############### getPnameUsingUploadID###########################
@@ -566,9 +566,9 @@ INPUTS:
 
 sub spool  {
     my ( $message, $error, $verb) = @_;
-    $Notify->spool('mri upload runner', 
-                   $message, 
-                   0, 
+    $Notify->spool('mri upload runner',
+                   $message,
+                   0,
         	   'imaging_upload_file.pl',
                    $upload_id,$error, $verb
     );

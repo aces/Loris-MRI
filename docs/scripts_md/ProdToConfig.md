@@ -10,7 +10,7 @@ perl tools/ProdToConfig.pl \`\[options\]\`
 The available option is:
 
 \-profile      : name of the config file in
-                `../dicom-archive/.loris_mri`
+                `../config`
 
 # DESCRIPTION
 

@@ -54,7 +54,7 @@ echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/assembly_bids"     #holds the BIDS files derived from DICOMs
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/batch_output"      #contains the result of the SGE (queue)
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/data/bids_imports"      #contains imported BIDS studies
-  sudo -S su $USER -c "mkdir -m 770 -p $mridir/dicom-archive/.loris_mri"
+  sudo -S su $USER -c "mkdir -m 770 -p $mridir/config"
 echo
 #####################################################################################
 ###############incoming directory ###################################################
@@ -93,7 +93,7 @@ fi
 ####################################################################################
 #echo "Changing permissions"
 
-sudo chmod -R 770 $mridir/.loris_mri/
+sudo chmod -R 770 $mridir/config/
 sudo chmod -R 770 /data/$PROJ/
 sudo chmod -R 770 /data/incoming/
 
@@ -116,18 +116,18 @@ echo
 #####################################################################################
 echo "Creating MRI config file"
 
-cp $installdir/templates/profileTemplate.pl $mridir/dicom-archive/.loris_mri/$prodfilename
-sudo chmod 640 $mridir/dicom-archive/.loris_mri/$prodfilename
-sudo chgrp $group $mridir/dicom-archive/.loris_mri/$prodfilename
+cp $installdir/templates/profileTemplate.pl $mridir/config/$prodfilename
+sudo chmod 640 $mridir/config/$prodfilename
+sudo chgrp $group $mridir/config/$prodfilename
 
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/profileTemplate.pl > $mridir/dicom-archive/.loris_mri/$prodfilename
-echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/profileTemplate.pl > $mridir/config/$prodfilename
+echo "config file is located at $mridir/config/$prodfilename"
 echo
 
 echo "Creating python config file with database credentials"
-cp $installdir/templates/config_template.py $mridir/dicom-archive/.loris_mri/config.py
-sudo chmod 640 $mridir/dicom-archive/.loris_mri/config.py
-sudo chgrp $group $mridir/dicom-archive/.loris_mri/config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/database_config_template.py > $mridir/dicom-archive/.loris_mri/config.py
-echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/config.py"
+cp $installdir/templates/config_template.py $mridir/config/config.py
+sudo chmod 640 $mridir/config/config.py
+sudo chgrp $group $mridir/config/config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/database_config_template.py > $mridir/config/config.py
+echo "config file for python import scripts is located at $mridir/config/config.py"
 echo

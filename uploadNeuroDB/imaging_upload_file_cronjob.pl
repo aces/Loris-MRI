@@ -14,7 +14,7 @@ perl imaging_upload_file_cronjob.pl C<[options]>
 
 Available options are:
 
--profile      : Name of the config file in C<../dicom-archive/.loris_mri>
+-profile      : Name of the config file in C<../config>
 
 -verbose      : If set, be verbose
 
@@ -63,18 +63,18 @@ my @opt_table           = (
     [ "Basic options", "section" ],
     [
         "-profile", "string", 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"
+        "name of config file in ../config"
     ],
     ["-verbose", "boolean", 1,    \$verbose, "Be verbose."]
 );
 
 my $Help = <<HELP;
 ******************************************************************************
-Imaging_upload_file Cronjob script 
+Imaging_upload_file Cronjob script
 ******************************************************************************
 
-Author  :   
-Date    :   
+Author  :
+Date    :
 Version :   $versionInfo
 
 The program does the following
@@ -98,10 +98,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -111,14 +111,14 @@ if ( !@Settings::db ) {
 my $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my @row=();
 (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT UploadID, UploadLocation FROM mri_upload 
-    WHERE Inserting IS NULL AND InsertionComplete <> 1 
+SELECT UploadID, UploadLocation FROM mri_upload
+    WHERE Inserting IS NULL AND InsertionComplete <> 1
         AND (TarchiveID IS NULL AND number_of_mincInserted IS NULL);
 QUERY
 print "\n" . $query . "\n" if $debug;
 my $sth = $dbh->prepare($query);
 $sth->execute();
-while(@row = $sth->fetchrow_array()) { 
+while(@row = $sth->fetchrow_array()) {
 
     if ( -e $row[1] ) {
 	my $command = "imaging_upload_file.pl -upload_id $row[0] -profile $profile $row[1]";
@@ -130,7 +130,7 @@ while(@row = $sth->fetchrow_array()) {
     } else {
     	print "\nERROR: Could not find the uploaded file
 	       $row[1] for uploadID  $row[0] . \nPlease, make sure "
-	      . "the path to the uploaded file exists. 
+	      . "the path to the uploaded file exists.
 	      Upload will exit now.\n\n\n";
     }
 }

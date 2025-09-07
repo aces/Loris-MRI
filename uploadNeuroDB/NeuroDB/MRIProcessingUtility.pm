@@ -125,7 +125,7 @@ sub new {
     ############################################################
     {
      package Settings;
-     do "$ENV{LORIS_CONFIG}/.loris_mri/$profile";
+     do "$ENV{LORIS_CONFIG}/$profile";
     }
 
     # ----------------------------------------------------------

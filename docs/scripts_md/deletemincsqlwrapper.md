@@ -12,7 +12,7 @@ perl tools/example\_scripts/deletemincsqlqrapper.pl `[options]`
 Available options are:
 
 \-profile      : Name of the config file in
-                `../../dicom-archive/.loris_mri`
+                `../../config`
 
 \-insertminc   : Re-insert the deleted MINC
 

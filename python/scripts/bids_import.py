@@ -47,7 +47,7 @@ def main():
         '\n'
         'usage  : bids_import -d <bids_directory> -p <profile> \n\n'
         'options: \n'
-        '\t-p, --profile          : name of the python database config file in dicom-archive/.loris-mri\n'
+        '\t-p, --profile          : name of the python database config file in the config directory\n'
         '\t-d, --directory        : BIDS directory to parse & insert into LORIS\n'
                                     'If directory is within $data_dir/assembly_bids, no copy will be performed'
         '\t-c, --createcandidate  : to create BIDS candidates in LORIS (optional)\n'
@@ -72,7 +72,7 @@ def main():
             print(usage)
             sys.exit()
         elif opt in ('-p', '--profile'):
-            profile = os.environ['LORIS_CONFIG'] + "/.loris_mri/" + arg
+            profile = os.path.join(os.environ['LORIS_CONFIG'], arg)
         elif opt in ('-d', '--directory'):
             bids_dir = arg
         elif opt in ('-v', '--verbose'):

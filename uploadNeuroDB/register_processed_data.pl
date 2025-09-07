@@ -13,7 +13,7 @@ perl register_processed_data.pl C<[options]>
 
 Available options are:
 
--profile        : name of config file in C<../dicom-archive/.loris_mri>
+-profile        : name of config file in C<../config>
 
 -file           : file that will be registered in the database
                    (full path from the root directory is required)
@@ -100,7 +100,7 @@ Documentation: perldoc register_processed_data.pl
 USAGE
 
 my  @args_table = (
-    ["-profile",            "string",   1,  \$profile,          "name of config file in ../dicom-archive/.loris_mri."],
+    ["-profile",            "string",   1,  \$profile,          "name of config file in ../config."],
     ["-file",               "string",   1,  \$filename,         "file that will be registered in the database (full path from the root directory is required)"],
     ["-sourceFileID",       "string",   1,  \$sourceFileID,     "FileID of the raw input dataset that was processed to obtain the file to be registered in the database"],
     ["-sourcePipeline",     "string",   1,  \$sourcePipeline,   "Pipeline name that was used to obtain the file to be registered (example: DTIPrep_pipeline)"],
@@ -122,10 +122,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if  ( !@Settings::db )    {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 

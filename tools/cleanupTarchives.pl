@@ -12,7 +12,7 @@ perl cleanupTarchives.pl C<[options]>
 
 Available options are:
 
--profile: name of the config file in C<../dicom-archive/.loris-mri>
+-profile: name of the config file in C<../config>
 
 =head1 DESCRIPTION
 
@@ -59,7 +59,7 @@ use NeuroDB::objectBroker::ConfigOB;
 ####   Initiate program   ####
 ##############################
 my $profile;
-my $profile_desc = "name of config file in ../dicom-archive/.loris_mri";
+my $profile_desc = "name of config file in ../config";
 
 my @opt_table =  (
     [ "-profile", "string", 1, \$profile, $profile_desc ]
@@ -90,10 +90,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+        . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -160,7 +160,7 @@ foreach my $tarchive_db (keys %$tarchivesList_db) {
     # Get tarchive basename
     my ($tarBasename_db) = &getTarchiveBasename($tarchive_db);
 
-    # Get the list of tarchives in the tarchive library folder that matches 
+    # Get the list of tarchives in the tarchive library folder that matches
     # the basename of the tarchive stored in the year subfolder.
     my ($tarFileList) = &getTarList($tarchiveLibraryDir, $tarBasename_db);
 
@@ -170,7 +170,7 @@ foreach my $tarchive_db (keys %$tarchivesList_db) {
                   . "to the database entry $tarchive_db\n";
         next;
     }
-    
+
     # Identify duplicate DICOM archives in the file system and remove them
     my ($duplicateTarFiles, $realTarFileFound)  = &identifyDuplicates(
         $tarchive_db, $tarchivesList_db, $tarFileList
@@ -206,7 +206,7 @@ RETURNS: the list of matching DICOM archives into a dereferenced array
 sub readTarDir {
     my ($tarDir, $match) = @_;
 
-    # Read tarchive directory 
+    # Read tarchive directory
     opendir (DIR, "$tarDir") || die "Cannot open $tarDir\n";
     my @entries = readdir(DIR);
     closedir (DIR);
@@ -214,7 +214,7 @@ sub readTarDir {
     ## Keep only files that match string stored in $match
     my @tar_list = grep(/^$match/i, @entries);
     @tar_list    = map  {"$tarDir/" . $_} @tar_list;
-    
+
     return (\@tar_list);
 }
 
@@ -254,12 +254,12 @@ sub getTarList {
     foreach my $YearDir (@$YearDirList) {
 
         my ($yearList) = readTarDir("$YearDir", $match);
-        ## Add year subfolder in front of each element (file) of the array 
+        ## Add year subfolder in front of each element (file) of the array
 
         ## Push the list of tarchives in the year subfolder to the overall list of tarchives
         push (@$tar_list, @$yearList) if (@$yearList >= 0);
-    
-    }    
+
+    }
 
     return ($tar_list);
 }
@@ -303,7 +303,7 @@ sub selectTarchives {
         exit $NeuroDB::ExitCodes::SELECT_FAILURE;
     }
 
-    return (\%tarchiveInfo); 
+    return (\%tarchiveInfo);
 }
 
 
@@ -389,16 +389,16 @@ sub identifyDuplicates {
         }
     }
 
-    # If no real tarchive file found return undef, 
+    # If no real tarchive file found return undef,
     ## else return table with list of duplicates and real file found
     if (!$realTarFileFound) {
         print LOG "No tarchive file matching $tarchive_db was found in the filesystem\n";
         return undef;
     } else {
-        print LOG "Duplicate tarchive(s) found for $tarchive_db.\n"; 
+        print LOG "Duplicate tarchive(s) found for $tarchive_db.\n";
         return (\@duplicateTarFiles, $realTarFileFound);
     }
-}    
+}
 
 
 

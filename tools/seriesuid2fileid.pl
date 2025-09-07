@@ -47,7 +47,7 @@ use Getopt::Tabular;
 use NeuroDB::DBI;
 
 my $profile = undef;
-my $profile_desc = "name of config file in ../dicom-archive/.loris_mri";
+my $profile_desc = "name of config file in ../config";
 
 my @opt_table = (
  [ "-profile", "string", 1, \$profile, $profile_desc ]
@@ -98,11 +98,11 @@ if (!$profile ) {
   exit 3;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( $profile && !@Settings::db ) {
   print "\n\tERROR: You don't have a
     configuration file named '$profile' in:
-    $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
+    $ENV{LORIS_CONFIG} \n\n";
   exit 2;
 }
 
@@ -210,7 +210,7 @@ while (<STDIN>) {
   printf ("%-16s",'| '. $FileID . $ZxT);
   printf ("%-36s",'| '. $FileName);
   print  "|\n";
- 
+
 }
 
 

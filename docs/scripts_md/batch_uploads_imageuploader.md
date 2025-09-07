@@ -9,7 +9,7 @@ batch mode
 
 Available options are:
 
-\-profile: name of the config file in `../dicom-archive/.loris_mri`
+\-profile: name of the config file in `../config`
 
 \-verbose: if set, be verbose
 

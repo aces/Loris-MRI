@@ -22,7 +22,7 @@ perl uploadNeuroDB/tarchiveLoader.pl </path/to/DICOM-tarchive> C<[options]>
 
 Available options are:
 
--profile                 : Name of the config file in C<../dicom-archive/.loris_mri>
+-profile                 : Name of the config file in C<../config>
 
 -uploadID                : UploadID associated to this upload
 
@@ -90,33 +90,33 @@ use NeuroDB::objectBroker::ConfigOB;
 
 
 
-# Turn on autoflush for standard output buffer so that we immediately see 
+# Turn on autoflush for standard output buffer so that we immediately see
 #the results of print statements.
 $|++;
 
 ## Starting the program
-my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
+my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
 =~ /: (\d+)\.(\d+)/;
 ## needed for log and template
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) 
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)
     =localtime(time);
 my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                      $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 0;  
+my $debug       = 0;
 my $message     = '';
 my $upload_id;
 my $verbose     = 0;           # default, overwritten if the scripts are run with -verbose
-my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed 
-                               # with DETAILED OPTION in the front-end/imaging_uploader 
-my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed 
-                               # with SUMMARY Option in the front-end/imaging_uploader 
+my $notify_detailed   = 'Y';   # notification_spool message flag for messages to be displayed
+                               # with DETAILED OPTION in the front-end/imaging_uploader
+my $notify_notsummary = 'N';   # notification_spool message flag for messages to be displayed
+                               # with SUMMARY Option in the front-end/imaging_uploader
 my $profile     = undef;       # this should never be set unless you are in a
                                # stable production environment
-my $reckless    = 0;           # this is only for playing and testing. Don't 
+my $reckless    = 0;           # this is only for playing and testing. Don't
                                #set it to 1!!!
-my $force       = 0;           # This is a flag to force the script to run  
+my $force       = 0;           # This is a flag to force the script to run
                                # Even if the validation has failed
 my $xlog        = 0;           # default should be 0
 my $valid_study = 0;
@@ -129,7 +129,7 @@ my $acquisitionProtocol;       # Specify the acquisition Protocol also bypasses
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile     ","string",1, \$profile,
-                  "Name of config file in ../dicom-archive/.loris_mri"
+                  "Name of config file in ../config"
                  ],
                  ["-uploadID", "string", 1, \$upload_id, "UploadID associated to ".
                  "this upload."],
@@ -156,22 +156,22 @@ my @opt_table = (
 
 my $Help = <<HELP;
 ******************************************************************************
-TARCHIVE LOADER 
+TARCHIVE LOADER
 ******************************************************************************
 
-Author  :   J-Sebastian Muehlboeck based on Jonathan Harlap\'s process_uploads 
-            using the all singing and dancing (eierlegende Wollmilchsau) 
+Author  :   J-Sebastian Muehlboeck based on Jonathan Harlap\'s process_uploads
+            using the all singing and dancing (eierlegende Wollmilchsau)
             NeuroDB lib
 Date    :   2006/12/20
 Version :   $versionInfo
 
-This takes a [dicom{T(ar}]chive) as an argument and 
-performs a lot of magic on the acquisitions within it.  
+This takes a [dicom{T(ar}]chive) as an argument and
+performs a lot of magic on the acquisitions within it.
 
 - archive verification
 - candidate id extraction and/or neurodb candidate creation
 - study site determination
-- scanner identity check  
+- scanner identity check
 - dicom to minc conversion
 - miscellaneous header data extraction
 - file relocation (to the MRI repository)
@@ -203,14 +203,14 @@ if ( !$upload_id ) {
     print STDERR "$Usage\n\tERROR: missing -uploadID argument\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 if ( !$ARGV[0] ) {
-    print $Help; 
+    print $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid tarchive.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
@@ -271,18 +271,18 @@ my $pic_dir = $data_dir.'/pic';
 my $template       = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my $User           = getpwuid($>);
 
-# fixme there are better ways 
+# fixme there are better ways
 my @progs = ("convert", "Mincinfo_wrapper.pl", "mincpik.pl", $converter);
 # create the temp dir
 my $TmpDir = tempdir(
-                 $template, TMPDIR => 1, CLEANUP => 1 
+                 $template, TMPDIR => 1, CLEANUP => 1
              );
 # create logdir(if !exists) and logfile
-my @temp     = split(/\//, $TmpDir); 
+my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
-my $LogDir   = "$data_dir/logs"; 
-if (!-d $LogDir) { 
-    mkdir($LogDir, 0770); 
+my $LogDir   = "$data_dir/logs";
+if (!-d $LogDir) {
+    mkdir($LogDir, 0770);
 }
 my $logfile  = "$LogDir/$templog.log";
 open LOG, ">$logfile";
@@ -294,9 +294,9 @@ print LOG $message;
 ################################################################
 ############### If xlog is set, fork a tail on log file. #######
 ################################################################
-my $childPID; 
-if ($xlog) { 
-    $childPID = fork(); 
+my $childPID;
+if ($xlog) {
+    $childPID = fork();
     if ($childPID == 0) {
         my $command = "xterm -geometry 130x70 -e tail -f $logfile";
         exec($command) or die "Command $command failed: $!\n";
@@ -353,7 +353,7 @@ $script .= " -verbose " if ($verbose);
 ###### To the actual exit value, shift right by ################
 ###### eight as done below #####################################
 ################################################################
-my $output = system($script); 
+my $output = system($script);
 $output = $output >> 8;
 
 ################################################################
@@ -366,7 +366,7 @@ if (($output != 0)  && ($force==0)) {
  $utility->writeErrorLog(
      $message, $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE, $logfile
  );
- $notifier->spool('tarchive validation', $message, 0, 
+ $notifier->spool('tarchive validation', $message, 0,
 		'tarchiveLoader.pl', $upload_id, 'Y',
 		$notify_notsummary);
  exit $NeuroDB::ExitCodes::PROGRAM_EXECUTION_FAILURE;
@@ -397,7 +397,7 @@ my ($subjectIDsref) = $utility->determineSubjectID(
 ###### Extract the tarchive and feed the dicom data ############
 ###### Dir to the uploader #####################################
 ################################################################
-my ($ExtractSuffix,$study_dir,$header) = 
+my ($ExtractSuffix,$study_dir,$header) =
     $utility->extractAndParseTarchive($tarchive, $upload_id, $seriesuid);
 
 
@@ -454,13 +454,13 @@ foreach my $minc (@minc_files) {
     # ($valid_study undefined)-> move the tarchive from the ####
     # inbox into the tarchive library ##########################
     ############################################################
-    if ((!defined($tarchivePath)) || 
-        (defined($tarchivePath) &&    
-        ($tarchive =~ m/$tarchivePath\/\d\d\d\d\//i))) { 
-            $newTarchiveLocation = $tarchive; 
+    if ((!defined($tarchivePath)) ||
+        (defined($tarchivePath) &&
+        ($tarchive =~ m/$tarchivePath\/\d\d\d\d\//i))) {
+            $newTarchiveLocation = $tarchive;
     }
     elsif (!$valid_study) {
-        $newTarchiveLocation = 
+        $newTarchiveLocation =
             $utility->moveAndUpdateTarchive(
                 $tarchive, \%tarchiveInfo, $upload_id
             );
@@ -528,7 +528,7 @@ if ($valid_study) {
 
     my $mri_upload_update = $dbh->prepare($query);
     $mri_upload_update->execute($newCount, $mcount, $upload_id);
- 
+
     ############################################################
     ############# Create minc-pics #############################
     ############################################################
@@ -537,9 +537,9 @@ if ($valid_study) {
                                   $tarchiveInfo{TarchiveID},
                                   $profile,
                                   0, # minFileID $row[0], maxFileID $row[1]
-                                  $debug, 
+                                  $debug,
                                   $verbose);
-    
+
     ############################################################
     # spool a new study message ################################
     ############################################################
@@ -575,7 +575,7 @@ if ($valid_study) {
             ? $NeuroDB::ExitCodes::CREATE_SESSION_FAILURE
             : $NeuroDB::ExitCodes::GET_SESSION_ID_FAILURE);
     }
-     
+
     $query = "UPDATE tarchive SET SessionID=? WHERE TarchiveID=?";
     $sth   = $dbh->prepare($query);
     print $query . "\n" if $debug;

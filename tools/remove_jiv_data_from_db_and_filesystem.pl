@@ -14,7 +14,7 @@ perl remove_jiv_data_from_db_and_filesystem.pl C<[options]>
 
 Available option is:
 
--profile: name of the config file in ../dicom-archive/.loris_mri
+-profile: name of the config file in ../config
 
 =head1 DESCRIPTION
 
@@ -46,11 +46,11 @@ use NeuroDB::objectBroker::ConfigOB;
 
 
 my $profile;
-my $profile_desc = "name of config file in ../dicom-archive/.loris_mri";
+my $profile_desc = "name of config file in ../config";
 
 my @opt_table = (
     [ "-profile", "string", 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"
+        "name of config file in ../config"
     ]
 );
 
@@ -81,10 +81,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+        . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -173,7 +173,7 @@ my $jiv_dir  = $data_dir . "/jiv";
 my $jiv_bkp  = $data_dir . "/archive/bkp_jiv_produced_before_LORIS_20.0";
 if (-d $jiv_dir) {
     move($jiv_dir, $jiv_bkp) or die "Cannot move $jiv_dir to $jiv_bkp: $!\n";
-    print "\n==> Successfully backed up the jiv directory to $jiv_bkp.\n";   
+    print "\n==> Successfully backed up the jiv directory to $jiv_bkp.\n";
 }
 
 

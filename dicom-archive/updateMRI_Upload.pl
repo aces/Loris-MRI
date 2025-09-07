@@ -17,46 +17,46 @@ updateMRI_Upload.pl [options] -profile prod -tarchivePath tarchivePath -source_l
 =over 2
 
 =item *
-B<-profile prod> : (mandatory) path (absolute or relative to the current directory) of the 
+B<-profile prod> : (mandatory) path (absolute or relative to the current directory) of the
     profile file
 
 =item *
 B<-tarchivePath tarchivePath> : (mandatory) absolute path to the DICOM archive
 
 =item *
-B<-source_location source_location> : (mandatory) value to set column 
+B<-source_location source_location> : (mandatory) value to set column
     C<DecompressedLocation> for the newly created record in table C<mri_upload> (see below)
 
 =item *
 B<-verbose> : be verbose
 
-=back 
+=back
 
 =head1 DESCRIPTION
 
 This script first starts by reading the F<prod> file (argument passed to the C<-profile> switch)
 to fetch the C<@db> variable, a Perl array containing four elements: the database
-name, the database user name used to connect to the database, the password and the 
-database hostname. It then checks for an entry in the C<tarchive> table with the same 
-C<ArchiveLocation> as the DICOM archive passed on the command line. Let C<T> be the 
-DICOM archive record found in the C<tarchive> table. The script will then proceed to scan table 
-C<mri_upload> for a record with the same C<tarchiveID> as C<T>'s. If there is none (which is the 
+name, the database user name used to connect to the database, the password and the
+database hostname. It then checks for an entry in the C<tarchive> table with the same
+C<ArchiveLocation> as the DICOM archive passed on the command line. Let C<T> be the
+DICOM archive record found in the C<tarchive> table. The script will then proceed to scan table
+C<mri_upload> for a record with the same C<tarchiveID> as C<T>'s. If there is none (which is the
 expected outcome), it will insert a record in C<mri_upload> with the following properties/values:
 
 =over 2
 
 =item *
 C<UploadedBy> : Unix username of the person currently running F<updateMRI_upload.pl>
-   
-=item * 
+
+=item *
 C<uploadDate>: timestamp representing the moment at which F<updateMRI_upload.pl> was run
-  
+
 =item *
 C<tarchiveID>: value of C<tarchiveID> for record C<T> in table C<tarchive>
-  
+
 =item *
 C<DecompressedLocation>: argument of the C<-source_location> switch passed on the command line
-  
+
 =back
 
 If there already is an entry in C<mri_upload> with the same C<ArchiveLocation> as C<T>'s, the script
@@ -119,8 +119,8 @@ my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
 my $Help = <<HELP;
 *******************************************************************************
 
-Author  :   
-Date    :   
+Author  :
+Date    :
 Version :   $versionInfo
 
 
@@ -142,7 +142,7 @@ my @arg_table =
 	 (
 	  ["Main options", "section"],
 	  ["-profile","string",1, \$profile, "Specify the name of the config file
-          which resides in .loris_mri in the current directory."],
+          which resides in the config directory directory."],
 	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
       ["-sourceLocation", "string", 1, \$source_location, "The location".
        " where the uploaded file exists."],
@@ -173,17 +173,17 @@ if ( !$profile ) {
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-	{ 
-        package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" 
+if (-f "$ENV{LORIS_CONFIG}/$profile") {
+	{
+        package Settings; do "$ENV{LORIS_CONFIG}/$profile"
     }
 }
 
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
-} 
+}
 
 
 ################################################################

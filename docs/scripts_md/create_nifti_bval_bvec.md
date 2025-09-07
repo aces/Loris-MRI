@@ -9,7 +9,7 @@ perl tools/create\_nifti\_bval\_bvec.pl `[options]`
 
 Available options are:
 
-\-profile: name of the config file in `../dicom-archive/.loris_mri`
+\-profile: name of the config file in `../config`
 \-verbose: be verbose
 
 # DESCRIPTION

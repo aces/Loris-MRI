@@ -14,7 +14,7 @@ C<perl tools/run_defacing_script.pl [options]>
 
 Available options are:
 
-C<-profile>     : name of the config file in C<../dicom-archive/.loris_mri>
+C<-profile>     : name of the config file in C<../config>
 
 C<-tarchive_ids>: comma-separated list of MySQL C<TarchiveID>s
 
@@ -95,7 +95,7 @@ my @MULTI_CONTRAST_ACQUISITIONS_BASE_NAMES = ( "fieldmap", "MP2RAGE", "qT2star" 
 my $profile;
 my $session_ids;
 my $verbose          = 0;
-my $profile_desc     = "Name of the config file in ../dicom-archive/.loris_mri";
+my $profile_desc     = "Name of the config file in ../config";
 my $session_ids_desc = "Comma-separated list of SessionIDs on which to run the "
                        . "defacing algorithm (if not set, will deface images for "
                        . "all SessionIDs present in the database)";
@@ -142,17 +142,17 @@ if (!$ENV{LORIS_CONFIG}) {
     exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
 }
 
-if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/$profile") {
     print $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 

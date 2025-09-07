@@ -9,7 +9,7 @@ perl database\_files\_update.pl `[options]`
 
 Available option is:
 
-\-profile: name of the config file in `../dicom-archive/.loris_mri`
+\-profile: name of the config file in `../config`
 
 # DESCRIPTION
 

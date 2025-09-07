@@ -14,7 +14,7 @@ perl get_dicom_files.pl [-name patient_name_patterns] [-type scan_type_patterns]
 
 Available options are:
 
--profile : name of the config file in C<../dicom-archive/.loris_mri> (typically C<prod>)
+-profile : name of the config file in C<../config> (typically C<prod>)
 
 -name    : comma separated list of MySQL patterns for the patient names that a DICOM file
            has to have in order to be extracted. A DICOM file only has to match one of the
@@ -100,7 +100,7 @@ my $candidateIdentifier = 'candid';
 
 my @opt_table           = (
     ["-profile", "string"              , 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"],
+        "name of config file in ../config"],
     ["-name"   , "string"              , 1, \$patientNames,
         "comma-separated list of MySQL patterns for the patient name"],
     ["-type"   , "string"              , 1, \$scanTypes,
@@ -165,9 +165,9 @@ if ( !$profile ) {
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if(!@Settings::db) {
-    die "No database settings in file $ENV{LORIS_CONFIG}/.loris_mri/$profile\n";
+    die "No database settings in file $ENV{LORIS_CONFIG}/$profile\n";
 }
 
 my @patientNames       = defined $patientNames ? split(',', $patientNames) : ();

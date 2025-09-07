@@ -17,7 +17,7 @@ use NeuroDB::objectBroker::ConfigOB;
 
 
 my $profile;
-my $profile_desc = "name of config file in ../dicom-archive/.loris_mri";
+my $profile_desc = "name of config file in ../config";
 
 my @opt_table = (
     ["-profile", "string", 1, \$profile, $profile_desc]
@@ -55,17 +55,17 @@ if (!$ENV{LORIS_CONFIG}) {
     exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
 }
 
-if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+if (!defined $profile || !-e "$ENV{LORIS_CONFIG}/$profile") {
     print $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+        . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
