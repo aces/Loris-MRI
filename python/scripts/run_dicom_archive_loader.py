@@ -36,13 +36,12 @@ def main():
         "\t-v, --verbose            : If set, be verbose\n\n"
 
         "required options are: \n"
-        "\t--profile\n"
         "\t--tarchive_path OR --upload_id\n"
     )
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "tarchive_path": {
             "value": None, "required": False, "expect_arg": True, "short_opt": "t", "is_path": True

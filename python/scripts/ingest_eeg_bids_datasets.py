@@ -30,14 +30,11 @@ def main():
         "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-u, --upload_id          : ID of the upload (from electrophysiology_uploader) of the EEG dataset\n"
         "\t-v, --verbose            : If set, be verbose\n\n"
-
-        "required options are: \n"
-        "\t--profile\n"
     )
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "upload_id": {
             "value": None, "required": False, "expect_arg": True, "short_opt": "u", "is_path": False

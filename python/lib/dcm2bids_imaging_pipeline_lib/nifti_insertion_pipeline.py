@@ -706,9 +706,10 @@ class NiftiInsertionPipeline(BasePipeline):
 
         push_to_s3_cmd = [
             "run_push_imaging_files_to_s3_pipeline.py",
-            "-p", self.options_dict["profile"]["value"],
             "-u", str(self.mri_upload.id),
         ]
+        if self.options_dict["profile"]["value"] is not None:
+            push_to_s3_cmd.extend(['-p', self.options_dict["profile"]["value"]])
         if self.verbose:
             push_to_s3_cmd.append("-v")
 

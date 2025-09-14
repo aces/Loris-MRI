@@ -9,22 +9,6 @@ from tests.util.database import get_integration_database_session
 from tests.util.run_integration_script import run_integration_script
 
 
-def test_missing_profile_arg():
-    """
-    Test running the script without the --profile argument.
-    """
-
-    process = run_integration_script([
-        'mass_nifti_pic.py',
-    ])
-
-    # Check return code, STDOUT and STDERR
-    message = 'ERROR: you must specify a profile file using -p or --profile option'
-    assert process.returncode == MISSING_ARG
-    assert message in process.stdout
-    assert process.stderr == ""
-
-
 def test_invalid_profile_arg():
     """
     Test running the script with an invalid --profile argument.
@@ -36,10 +20,10 @@ def test_invalid_profile_arg():
     ])
 
     # Check return code, STDOUT and STDERR
-    message = 'ERROR: you must specify a valid profile file'
+    message = "ERROR: No configuration file 'invalid_profile.py' found in the '/opt/loris/bin/mri/config' directory.\n"
     assert process.returncode == INVALID_PATH
-    assert message in process.stdout
-    assert process.stderr == ""
+    assert process.stdout == ""
+    assert process.stderr == message
 
 
 def test_missing_smallest_id_arg():
@@ -49,7 +33,6 @@ def test_missing_smallest_id_arg():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
     ])
 
     # Check return code, STDOUT and STDERR
@@ -67,7 +50,6 @@ def test_missing_largest_id_arg():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
         '--smallest_id', '2',
     ])
 
@@ -86,7 +68,6 @@ def test_smallest_id_bigger_than_largest_id():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
         '--smallest_id', '6',
         '--largest_id', '2'
     ])
@@ -105,7 +86,6 @@ def test_on_invalid_file_id():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
         '--smallest_id', '999',
         '--largest_id', '999'
     ])
@@ -124,7 +104,6 @@ def test_on_file_id_that_already_has_a_pic():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
         '--smallest_id', '2',
         '--largest_id', '2'
     ])
@@ -154,7 +133,6 @@ def test_force_option():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
         '--smallest_id', '2',
         '--largest_id', '2',
         '--force'
@@ -199,7 +177,6 @@ def test_running_on_a_text_file():
     # run NIfTI pic script on the inserted file
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
         '--smallest_id', str(file.id),
         '--largest_id', str(file.id)
     ])
@@ -243,7 +220,6 @@ def test_successful_run():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'config.py',
         '--smallest_id', '2',
         '--largest_id', '2'
     ])

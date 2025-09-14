@@ -3,10 +3,10 @@
 """Script to mass chunk electrophysiology datasets."""
 
 import getopt
-import os
 import sys
 
 import lib.exitcode
+from lib.config_file import load_config
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.physiological import Physiological
@@ -18,7 +18,7 @@ sys.path.append('/home/user/python')
 # sys.tracebacklimit = 0
 
 def main():
-    profile     = ''
+    profile     = None
     verbose     = False
     smallest_id = None
     largest_id  = None
@@ -50,7 +50,7 @@ def main():
             print(usage)
             sys.exit()
         elif opt in ('-p', '--profile'):
-            profile = os.path.join(os.environ['LORIS_CONFIG'], arg)
+            profile = arg
         elif opt in ('-s', '--smallest_id'):
             smallest_id = int(arg)
         elif opt in ('-l', '--largest_id'):
@@ -59,7 +59,8 @@ def main():
             verbose = True
 
     # input error checking and load config_file file
-    config_file = input_error_checking(profile, smallest_id, largest_id, usage)
+    config_file = load_config(profile)
+    input_error_checking(smallest_id, largest_id, usage)
 
     # run chunking script on electrophysiology datasets with a PhysiologicalFileID
     # between smallest_id and largest_id
@@ -70,31 +71,17 @@ def main():
             make_chunks(file_id, config_file, verbose)
 
 
-def input_error_checking(profile, smallest_id, largest_id, usage):
+def input_error_checking(smallest_id, largest_id, usage):
     """
-    Checks whether the required inputs are correctly set. If
-    the path to the config_file file valid, then it will import the file as a
-    module so the database connection information can be used to connect.
+    Checks whether the required inputs are correctly set.
 
-    :param profile    : path to the profile file with MySQL credentials
-     :type profile    : str
     :param smallest_id: smallest PhysiologicalFileID on which to run the chunking script
      :type smallest_id: int
     :param largest_id : largest PhysiologicalFileID on which to run the chunking script
      :type largest_id : int
     :param usage      : script usage to be displayed when encountering an error
      :type usage      : str
-
-    :return: config_file module with database credentials (config_file.mysql)
-     :rtype: module
     """
-
-    if not profile:
-        message = '\n\tERROR: you must specify a profile file using -p or ' \
-                  '--profile option'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.MISSING_ARG)
 
     if not smallest_id:
         message = '\n\tERROR: you must specify a smallest PhysiologyFileID on ' \
@@ -116,18 +103,6 @@ def input_error_checking(profile, smallest_id, largest_id, usage):
         print(message)
         print(usage)
         sys.exit(lib.exitcode.INVALID_ARG)
-
-    if os.path.isfile(profile):
-        sys.path.append(os.path.dirname(profile))
-        config_file = __import__(os.path.basename(profile[:-3]))
-    else:
-        message = '\n\tERROR: you must specify a valid profile file.\n' + \
-                  profile + ' does not exist!'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.INVALID_PATH)
-
-    return config_file
 
 
 def make_chunks(physiological_file_id, config_file, verbose):
