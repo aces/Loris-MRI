@@ -2,6 +2,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.file_parameter as db_file_parameter
 from lib.db.base import Base
+from lib.db.decorators.int_bool import IntBool
 
 
 class DbParameterType(Base):
@@ -17,8 +18,8 @@ class DbParameterType(Base):
     source_field     : Mapped[str | None]   = mapped_column('SourceField')
     source_from      : Mapped[str | None]   = mapped_column('SourceFrom')
     source_condition : Mapped[str | None]   = mapped_column('SourceCondition')
-    queryable        : Mapped[bool | None]  = mapped_column('Queryable')
-    is_file          : Mapped[bool | None]  = mapped_column('IsFile')
+    queryable        : Mapped[bool | None]  = mapped_column('Queryable', IntBool)
+    is_file          : Mapped[bool | None]  = mapped_column('IsFile', IntBool)
 
     file_parameters: Mapped[list['db_file_parameter.DbFileParameter']] \
         = relationship('DbFileParameter', back_populates='type')

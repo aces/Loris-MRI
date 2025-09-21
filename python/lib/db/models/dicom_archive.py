@@ -11,6 +11,7 @@ import lib.db.models.mri_upload as db_mri_upload
 import lib.db.models.mri_violation_log as db_mri_violation_log
 import lib.db.models.session as db_session
 from lib.db.base import Base
+from lib.db.decorators.int_bool import IntBool
 
 
 class DbDicomArchive(Base):
@@ -47,7 +48,7 @@ class DbDicomArchive(Base):
     create_info              : Mapped[str | None]      = mapped_column('CreateInfo')
     acquisition_metadata     : Mapped[str]             = mapped_column('AcquisitionMetadata')
     date_sent                : Mapped[datetime | None] = mapped_column('DateSent')
-    pending_transfer         : Mapped[bool]            = mapped_column('PendingTransfer')
+    pending_transfer         : Mapped[bool]            = mapped_column('PendingTransfer', IntBool)
 
     series      : Mapped[list['db_dicom_archive_series.DbDicomArchiveSeries']] \
         = relationship('DbDicomArchiveSeries', back_populates='archive')
