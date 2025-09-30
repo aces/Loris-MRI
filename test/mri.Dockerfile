@@ -91,7 +91,6 @@ ENV PERL5LIB=/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/dicom
 ENV TMPDIR=/tmp
 ENV LORIS_CONFIG=/opt/${PROJECT}/bin/mri/dicom-archive
 ENV LORIS_MRI=/opt/${PROJECT}/bin/mri
-ENV PYTHONPATH=/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
 ENV BEASTLIB=${MINC_TOOLKIT_DIR}/../share/beast-library-1.1
 ENV MNI_MODELS=${MINC_TOOLKIT_DIR}/../share/icbm152_model_09c
 
