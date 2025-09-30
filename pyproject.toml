@@ -46,6 +46,7 @@ Homepage = "https://github.com/aces/loris-mri"
 packages = [
     "python/lib",
     "python/react-series-data-viewer",
+    "python/tests",
 ]
 
 [project.urls]
