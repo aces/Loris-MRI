@@ -13,6 +13,7 @@ import lib.physiological
 import lib.utilities
 from lib.bidsreader import BidsReader
 from lib.candidate import Candidate
+from lib.config_file import load_config
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.eeg import Eeg
@@ -34,7 +35,7 @@ def main():
     idsvalidation    = False
     nobidsvalidation = False
     type             = None
-    profile          = ''
+    profile          = None
     nocopy           = False
 
     long_options = [
@@ -72,7 +73,7 @@ def main():
             print(usage)
             sys.exit()
         elif opt in ('-p', '--profile'):
-            profile = os.path.join(os.environ['LORIS_CONFIG'], arg)
+            profile = arg
         elif opt in ('-d', '--directory'):
             bids_dir = arg
         elif opt in ('-v', '--verbose'):
@@ -91,7 +92,8 @@ def main():
             type = arg
 
     # input error checking and load config_file file
-    config_file = input_error_checking(profile, bids_dir, usage)
+    config_file = load_config(profile)
+    input_error_checking(bids_dir, usage)
 
     dataset_json = bids_dir + "/dataset_description.json"
     if not os.path.isfile(dataset_json) and not type:
@@ -128,29 +130,15 @@ def main():
     )
 
 
-def input_error_checking(profile, bids_dir, usage):
+def input_error_checking(bids_dir, usage):
     """
-    Checks whether the required inputs are set and that paths are valid. If
-    the path to the config_file file valid, then it will import the file as a
-    module so the database connection information can be used to connect.
+    Checks whether the required inputs are set and that paths are valid.
 
-    :param profile : path to the profile file with MySQL credentials
-     :type profile : str
     :param bids_dir: path to the BIDS directory to parse and insert into LORIS
      :type bids_dir: str
     :param usage   : script usage to be displayed when encountering an error
      :type usage   : st
-
-    :return: config_file module with database credentials (config_file.mysql)
-     :rtype: module
     """
-
-    if not profile:
-        message = '\n\tERROR: you must specify a profile file using -p or ' \
-                  '--profile option'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.MISSING_ARG)
 
     if not bids_dir:
         message = '\n\tERROR: you must specify a BIDS directory using -d or ' \
@@ -159,24 +147,12 @@ def input_error_checking(profile, bids_dir, usage):
         print(usage)
         sys.exit(lib.exitcode.MISSING_ARG)
 
-    if os.path.isfile(profile):
-        sys.path.append(os.path.dirname(profile))
-        config_file = __import__(os.path.basename(profile[:-3]))
-    else:
-        message = '\n\tERROR: you must specify a valid profile file.\n' + \
-                  profile + ' does not exist!'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.INVALID_PATH)
-
     if not os.path.isdir(bids_dir):
         message = '\n\tERROR: you must specify a valid BIDS directory.\n' + \
                   bids_dir + ' does not exist!'
         print(message)
         print(usage)
         sys.exit(lib.exitcode.INVALID_PATH)
-
-    return config_file
 
 
 def read_and_insert_bids(

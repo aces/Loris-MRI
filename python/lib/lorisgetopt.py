@@ -6,6 +6,7 @@ import sys
 import lib.exitcode
 import lib.utilities
 from lib.aws_s3 import AwsS3
+from lib.config_file import load_config
 from lib.database import Database
 from lib.database_lib.config import Config
 
@@ -36,7 +37,6 @@ class LorisGetOpt:
         "\t-v, --verbose   : If set, be verbose\n\n"
 
         "required options are: \n"
-        "\t--profile\n"
         "\t--file_path\n"
     )
 
@@ -179,26 +179,7 @@ class LorisGetOpt:
         with a proper error message.
         """
 
-        profile_value = self.options_dict["profile"]["value"]
-
-        if "LORIS_CONFIG" not in os.environ.keys():
-            print("\n[ERROR   ] Environment variable 'LORIS_CONFIG' not set\n")
-            sys.exit(lib.exitcode.INVALID_ENVIRONMENT_VAR)
-
-        config_file = os.path.join(os.environ["LORIS_CONFIG"], profile_value)
-        if not config_file.endswith(".py"):
-            print(
-                f"\n[ERROR   ] {config_file} does not appear to be the python configuration file."
-                f" Try using 'config.py' instead.\n"
-            )
-            sys.exit(lib.exitcode.INVALID_ARG)
-
-        if os.path.isfile(config_file):
-            sys.path.append(os.path.dirname(config_file))
-            self.config_info = __import__(os.path.basename(config_file[:-3]))
-        else:
-            print(f"\n[ERROR   ] {profile_value} does not exist in {os.environ['LORIS_CONFIG']}.")
-            sys.exit(lib.exitcode.INVALID_PATH)
+        self.config_info = load_config(self.options_dict["profile"]["value"])
 
     def check_required_options_are_set(self):
         """
