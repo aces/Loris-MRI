@@ -1,8 +1,9 @@
 import os
+import re
 import shutil
 import tarfile
 import tempfile
-from collections.abc import Generator
+from collections.abc import Iterator
 from datetime import datetime
 
 import lib.exitcode
@@ -25,7 +26,7 @@ def extract_archive(env: Env, tar_path: str, prefix: str, dir_path: str) -> str:
     return extract_path
 
 
-def iter_all_dir_files(dir_path: str) -> Generator[str, None, None]:
+def iter_all_dir_files(dir_path: str) -> Iterator[str]:
     """
     Iterate through all the files in a directory recursively, and yield the path of each file
     relative to that directory.
@@ -77,3 +78,39 @@ def remove_empty_directories(dir_path: str):
     for subdir_path, _, _ in os.walk(dir_path, topdown=False):
         if is_directory_empty(subdir_path):
             os.rmdir(subdir_path)
+
+
+def get_file_extension(file_name: str) -> str:
+    """
+    Get the extension (including multiple extensions) of a file name or path without the leading
+    dot.
+    """
+
+    parts = file_name.split('.', maxsplit=1)
+    if len(parts) == 1:
+        return ''
+
+    return parts[1]
+
+
+def replace_file_extension(file_name: str, extension: str) -> str:
+    """
+    Replace the extension (including multiple extensions) of a file name or path by another
+    extension.
+    """
+
+    parts = file_name.split('.')
+    return f'{parts[0]}.{extension}'
+
+
+def search_dir_file_with_regex(dir_path: str, regex: str) -> str | None:
+    """
+    Search for a file within a directory whose name matches a regular expression, or return `None`
+    if no such file is found.
+    """
+
+    for file in os.scandir(dir_path):
+        if re.search(regex, file.name):
+            return file.name
+
+    return None
