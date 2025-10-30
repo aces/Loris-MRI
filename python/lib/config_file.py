@@ -2,7 +2,6 @@
 This module stores the classes used in the Python configuration file of LORIS-MRI.
 """
 
-import importlib
 import importlib.util
 import os
 import sys
