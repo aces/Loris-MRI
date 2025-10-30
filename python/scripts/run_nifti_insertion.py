@@ -6,7 +6,6 @@ import os
 import sys
 
 import lib.exitcode
-import lib.utilities
 from lib.dcm2bids_imaging_pipeline_lib.nifti_insertion_pipeline import NiftiInsertionPipeline
 from lib.lorisgetopt import LorisGetOpt
 
