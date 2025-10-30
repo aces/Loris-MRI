@@ -105,8 +105,8 @@ echo "config file is located at $mridir/dicom-archive/.loris_mri/$prodfilename"
 echo
 
 echo "Creating python database config file with database credentials"
-cp $mridir/install/templates/database_config_template.py $mridir/dicom-archive/.loris_mri/database_config.py
-sudo chmod 640 $mridir/dicom-archive/.loris_mri/database_config.py
-sudo chgrp $group $mridir/dicom-archive/.loris_mri/database_config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/templates/database_config_template.py > $mridir/dicom-archive/.loris_mri/database_config.py
-echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/database_config.py"
+cp $mridir/install/templates/config_template.py $mridir/dicom-archive/.loris_mri/config.py
+sudo chmod 640 $mridir/dicom-archive/.loris_mri/config.py
+sudo chgrp $group $mridir/dicom-archive/.loris_mri/config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/templates/config_template.py > $mridir/dicom-archive/.loris_mri/config.py
+echo "config file for python import scripts is located at $mridir/dicom-archive/.loris_mri/config.py"

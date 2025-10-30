@@ -2,8 +2,8 @@
 
 ## 4.1 - Perl documentation
 
-All the perl scripts in the LORIS-MRI repository are documented. Users are 
-invited to consult the documentation 
+All the perl scripts in the LORIS-MRI repository are documented. Users are
+invited to consult the documentation
 
 - at the terminal by typing:
 ```angular2html
@@ -73,8 +73,8 @@ License: GPLv3
 
 =head1 AUTHORS
 
-LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative 
-Neuroscience 
+LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative
+Neuroscience
 
 =cut
 
@@ -84,35 +84,35 @@ Neuroscience
 
 ### 4.2.1 - DICOM to MINC pipeline flow
 
-A very brief illustration summarizing the main outcomes at different steps in 
-the execution of the pipeline are shown below. 
+A very brief illustration summarizing the main outcomes at different steps in
+the execution of the pipeline are shown below.
 
 ![pipeline_flow](images/pipeline_schematic_dcm2mnc.png)
 
-This figure highlights the few 
-key scripts in the pipeline execution, the order in which they call each other, 
-and their interactions with the diverse libraries and utility classes. It 
+This figure highlights the few
+key scripts in the pipeline execution, the order in which they call each other,
+and their interactions with the diverse libraries and utility classes. It
 therefore serves as a tool to help project developers understand the pipeline
 quickly, and develop independently project customizations and debugging skills.
 
 ### 4.2.2 - DICOM to BIDS pipeline flow
 
 A very brief illustration of the key and expected outcomes at different steps in
-the execution of the pipeline is shown below. 
+the execution of the pipeline is shown below.
 
 ![pipeline_flow_dcm2bids](images/pipeline_schematic_dcm2bids.png)
 
-The DICOM insertion steps are quire similar to the DICOM to MINC pipeline flow. After the 
+The DICOM insertion steps are quire similar to the DICOM to MINC pipeline flow. After the
 `dicomTar.pl` step, a python script is executed. That python script will perform
-the DICOM archive validation, dcm2niix conversion to generate the BIDS files, 
+the DICOM archive validation, dcm2niix conversion to generate the BIDS files,
 protocol identification and pic creation.
 
 ## 4.3 - Common insertion scripts re-run
 
-The flow in the diagram above corresponds to a new upload. Occasionally, 
-however, projects might need to modify (partially or in full) the outcome of an 
-inserted scan. The next section highlights the "how-to" of the most commonly 
-encountered cases. 
+The flow in the diagram above corresponds to a new upload. Occasionally,
+however, projects might need to modify (partially or in full) the outcome of an
+inserted scan. The next section highlights the "how-to" of the most commonly
+encountered cases.
 
 ### 4.3.1 Bypassing protocol violation checks
 
@@ -140,7 +140,7 @@ See also: [MRI-PR#141](https://github.com/aces/Loris-MRI/pull/141) for more
 NIfTI volumes with their JSON sidecar files can be **force-loaded** into LORIS by running:
 
 ```
-python/run_nifti_insertion.py --loris_scan_type t2w --bypass_extra_checks --create_pic --profile database_config.py --force  --tarchive_path /data/project/dataTransfer/library/2009/DCM_2009-09-25_project_20110214_185904581.tar --nifti_path /data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.nii.gz --json_path /data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.json
+python/run_nifti_insertion.py --loris_scan_type t2w --bypass_extra_checks --create_pic --profile config.py --force  --tarchive_path /data/project/dataTransfer/library/2009/DCM_2009-09-25_project_20110214_185904581.tar --nifti_path /data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.nii.gz --json_path /data/project/data/trashbin/TarLoad-3-34-pVzGC5/xxx0067_703739_v12_20090925_222403_18e1_mri.json
 ```
 
 Note carefully the following arguments:
@@ -153,15 +153,15 @@ Note carefully the following arguments:
 
 - If one of the final steps such as the MINC (or BIDS) conversion is failing, you may
     wish to just re-run the `tarchiveLoader.pl` (or `run_dicom_archive_loader.py`) script.
-    
+
 > When the need arises to re-load imaging data in LORIS, it is generally not
    sufficient to just re-run the MINC/NIfTI loading step (`tarchiveLoader.pl` or
     `batch_uploads_tarchive`). The pipeline steps must be re-run starting
     with `dicomTar.pl` (see section 5.4 of
    [Pipeline Triggering Options documentation](05-PipelineLaunchOptions.md)).
 
-In general, to re-load an imaging dataset through the pipeline from the start 
-   (from `dicomTar.pl`) -- Ensure entries from the previous attempt to load the 
+In general, to re-load an imaging dataset through the pipeline from the start
+   (from `dicomTar.pl`) -- Ensure entries from the previous attempt to load the
    dataset have been removed from the following database tables:
 
 - `parameter_file`
@@ -187,20 +187,20 @@ For backing up, re-labelling and re-loading MRI datasets with QC information,
 ### 4.3.3 Multiple scanner datasets per session
 
 In cases where a subject was scanned in two scanner sessions as part of the same
-  study Timepoint, anonymize both DICOM datasets using the same Visit Label in 
-  the Patient Name (or Patient ID) field of the DICOM, and upload as two 
-  separate DICOM datasets. The insertion pipeline will automatically 
-  associate and display both sets of images acquired in both scanner sessions 
-  under the same `session` table record. 
-  
+  study Timepoint, anonymize both DICOM datasets using the same Visit Label in
+  the Patient Name (or Patient ID) field of the DICOM, and upload as two
+  separate DICOM datasets. The insertion pipeline will automatically
+  associate and display both sets of images acquired in both scanner sessions
+  under the same `session` table record.
+
 ## 4.4 - MRI upload deletion script
 
-As of release 21.0 of LORIS-MRI, a deletion script has been added to the tools 
-directory of the repository. This deletion script allows to delete completely an MRI 
-upload from the filesystem and database or remove specific MINC files derived 
+As of release 21.0 of LORIS-MRI, a deletion script has been added to the tools
+directory of the repository. This deletion script allows to delete completely an MRI
+upload from the filesystem and database or remove specific MINC files derived
 from the MRI upload. Note that by default, all removed data will be backed up.
 
-Detailed information about the script can be found in: 
+Detailed information about the script can be found in:
 https://github.com/aces/Loris-MRI/blob/21.0-dev/docs/scripts_md/delete_imaging_upload.md
 
 > Accordng to chosen options, deleting values can generate backup files with `mysqldump`.

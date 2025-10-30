@@ -49,7 +49,7 @@ def test_missing_smallest_id_arg():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
     ])
 
     # Check return code, STDOUT and STDERR
@@ -67,7 +67,7 @@ def test_missing_largest_id_arg():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--smallest_id', '2',
     ])
 
@@ -86,7 +86,7 @@ def test_smallest_id_bigger_than_largest_id():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--smallest_id', '6',
         '--largest_id', '2'
     ])
@@ -105,7 +105,7 @@ def test_on_invalid_file_id():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--smallest_id', '999',
         '--largest_id', '999'
     ])
@@ -124,7 +124,7 @@ def test_on_file_id_that_already_has_a_pic():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--smallest_id', '2',
         '--largest_id', '2'
     ])
@@ -154,7 +154,7 @@ def test_force_option():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--smallest_id', '2',
         '--largest_id', '2',
         '--force'
@@ -199,7 +199,7 @@ def test_running_on_a_text_file():
     # run NIfTI pic script on the inserted file
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--smallest_id', str(file.id),
         '--largest_id', str(file.id)
     ])
@@ -243,7 +243,7 @@ def test_successful_run():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--smallest_id', '2',
         '--largest_id', '2'
     ])
