@@ -24,7 +24,7 @@ def get_integration_database_engine():
     Python configuration file.
     """
 
-    config_file = os.path.join(os.environ['LORIS_CONFIG'], '.loris_mri', 'database_config.py')
+    config_file = os.path.join(os.environ['LORIS_CONFIG'], '.loris_mri', 'config.py')
     sys.path.append(os.path.dirname(config_file))
     config = __import__(os.path.basename(config_file[:-3]))
     return get_database_engine(config.mysql)

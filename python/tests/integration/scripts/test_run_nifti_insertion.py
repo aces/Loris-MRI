@@ -29,7 +29,7 @@ def test_invalid_arg():
 
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--invalid_arg',
     ])
 
@@ -47,7 +47,7 @@ def test_missing_nifti_path_argument():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
     ])
 
     # Check return code, STDOUT and STDERR
@@ -66,7 +66,7 @@ def test_invalid_nifti_path():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
     ])
 
@@ -88,7 +88,7 @@ def test_missing_upload_id_or_tarchive_path():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
     ])
 
@@ -112,7 +112,7 @@ def test_missing_json_path():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
     ])
@@ -137,7 +137,7 @@ def test_invalid_json_path():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -162,7 +162,7 @@ def test_invalid_upload_id():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -187,7 +187,7 @@ def test_invalid_tarchive_path():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--tarchive_path', tarchive_path,
         '--json_path', json_path,
@@ -213,7 +213,7 @@ def test_tarchive_path_and_upload_id_provided():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--tarchive_path', tarchive_path,
         '--upload_id', upload_id,
@@ -241,7 +241,7 @@ def test_nifti_and_tarchive_patient_name_differ():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -267,7 +267,7 @@ def test_nifti_already_inserted():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -304,7 +304,7 @@ def test_nifti_mri_protocol_violated_scans_features():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -343,7 +343,7 @@ def test_nifti_mri_protocol_violated_scans_features():
     shutil.copyfile(new_json_path, json_path)
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -370,7 +370,7 @@ def test_nifti_mri_protocol_violated_scans_features():
     shutil.copyfile(new_json_path, json_path)
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -449,7 +449,7 @@ def test_nifti_mri_violations_log_exclude_features():
     process = run_integration_script(
         [
             'run_nifti_insertion.py',
-            '--profile', 'database_config.py',
+            '--profile', 'config.py',
             '--nifti_path', nifti_path,
             '--upload_id', upload_id,
             '--json_path', json_path,
@@ -502,7 +502,7 @@ def test_nifti_mri_violations_log_exclude_features():
     shutil.copyfile(new_bvec_path, bvec_path)
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -532,7 +532,7 @@ def test_nifti_mri_violations_log_exclude_features():
     shutil.copyfile(new_bvec_path, bvec_path)
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
@@ -603,7 +603,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
     # Run the script to test
     process = run_integration_script([
         'run_nifti_insertion.py',
-        '--profile', 'database_config.py',
+        '--profile', 'config.py',
         '--nifti_path', nifti_path,
         '--upload_id', upload_id,
         '--json_path', json_path,
