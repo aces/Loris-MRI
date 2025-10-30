@@ -11,9 +11,6 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.physiological import Physiological
 
-__license__ = "GPLv3"
-
-
 sys.path.append('/home/user/python')
 
 

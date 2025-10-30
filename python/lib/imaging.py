@@ -24,8 +24,6 @@ from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
 from lib.util.crypto import compute_file_blake2b_hash
 
-__license__ = "GPLv3"
-
 
 class Imaging:
     """

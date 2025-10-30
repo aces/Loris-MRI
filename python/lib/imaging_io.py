@@ -11,8 +11,6 @@ from lib.exitcode import COPY_FAILURE
 
 """Set of io functions."""
 
-__license__ = "GPLv3"
-
 
 @deprecated('Use `lib.logging` and `lib.util.fs` instead')
 class ImagingIO:

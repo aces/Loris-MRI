@@ -15,8 +15,6 @@ from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
-__license__ = "GPLv3"
-
 
 class NiftiInsertionPipeline(BasePipeline):
     """

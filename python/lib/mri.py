@@ -14,8 +14,6 @@ from lib.scanstsv import ScansTSV
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
 
-__license__ = "GPLv3"
-
 
 class Mri:
     """
