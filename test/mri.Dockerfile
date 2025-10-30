@@ -69,18 +69,17 @@ RUN cpan App::cpanminus && \
     cpanm --installdeps ./install/requirements/ && \
     cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
 
-# Install the Python libraries
-COPY pyproject.toml pyproject.toml
-RUN pip install --no-cache-dir --editable .[dev]
-
 # Get the database credentials as parameters
 ARG DATABASE_NAME
 ARG DATABASE_USER
 ARG DATABASE_PASS
 
-# Checkout the LORIS-MRI repository
-COPY . /opt/loris/bin/mri
+# Install LORIS-MRI Python
 WORKDIR /opt/loris/bin/mri
+COPY . .
+RUN pip install -e .[dev]
+
+# Run the test LORIS-MRI installer
 RUN bash ./test/imaging_install_test.sh $DATABASE_NAME $DATABASE_USER $DATABASE_PASS
 
 # Setup the LORIS-MRI environment variables
@@ -91,7 +90,6 @@ ENV PERL5LIB=/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/dicom
 ENV TMPDIR=/tmp
 ENV LORIS_CONFIG=/opt/${PROJECT}/bin/mri/dicom-archive
 ENV LORIS_MRI=/opt/${PROJECT}/bin/mri
-ENV PYTHONPATH=/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
 ENV BEASTLIB=${MINC_TOOLKIT_DIR}/../share/beast-library-1.1
 ENV MNI_MODELS=${MINC_TOOLKIT_DIR}/../share/icbm152_model_09c
 

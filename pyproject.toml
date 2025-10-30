@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "loris-mri"
 version = "27.0.0"
@@ -38,9 +42,12 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/aces/loris-mri"
 
-# TODO: Remove this statement once a real build backend has been configured.
-[tool.setuptools]
-py-modules = []
+[tool.hatch.build.targets.wheel]
+packages = [
+    "python/lib",
+    "python/react-series-data-viewer",
+    "python/tests",
+]
 
 [tool.ruff]
 src = ["python"]
