@@ -259,7 +259,7 @@ def create_session(
         hardcopy_request = '-',
         mri_qc_status    = '',
         mri_qc_pending   = False,
-        mri_caveat       = 'true',
+        mri_caveat       = True,
     )
 
     env.db.add(session)

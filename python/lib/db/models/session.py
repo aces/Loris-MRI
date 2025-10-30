@@ -8,6 +8,7 @@ import lib.db.models.file as db_file
 import lib.db.models.project as db_project
 import lib.db.models.site as db_site
 from lib.db.base import Base
+from lib.db.decorators.true_false_bool import TrueFalseBool
 from lib.db.decorators.y_n_bool import YNBool
 
 
@@ -47,7 +48,7 @@ class DbSession(Base):
     mri_qc_pending           : Mapped[bool]            = mapped_column('MRIQCPending', YNBool)
     mri_qc_first_change_time : Mapped[datetime | None] = mapped_column('MRIQCFirstChangeTime')
     mri_qc_last_change_time  : Mapped[datetime | None] = mapped_column('MRIQCLastChangeTime')
-    mri_caveat               : Mapped[str]             = mapped_column('MRICaveat')
+    mri_caveat               : Mapped[bool]            = mapped_column('MRICaveat', TrueFalseBool)
     language_id              : Mapped[int | None]      = mapped_column('languageID')
 
     candidate : Mapped['db_candidate.DbCandidate'] = relationship('DbCandidate', back_populates='sessions')
