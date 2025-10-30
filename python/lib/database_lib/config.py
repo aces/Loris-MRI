@@ -1,9 +1,6 @@
 """This class performs database queries for the config table"""
 
 
-__license__ = "GPLv3"
-
-
 class Config:
     """
     This class performs database queries for the Config* tables.

@@ -1,7 +1,5 @@
 """This class performs parameter_file related database queries and common checks"""
 
-__license__ = "GPLv3"
-
 
 class ParameterFile:
     """

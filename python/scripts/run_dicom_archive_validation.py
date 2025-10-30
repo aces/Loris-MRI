@@ -8,9 +8,6 @@ import sys
 from lib.dcm2bids_imaging_pipeline_lib.dicom_validation_pipeline import DicomValidationPipeline
 from lib.lorisgetopt import LorisGetOpt
 
-__license__ = "GPLv3"
-
-
 sys.path.append('/home/user/python')
 
 # to limit the traceback when raising exceptions.

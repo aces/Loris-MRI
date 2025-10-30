@@ -18,8 +18,6 @@ import lib.utilities as utilities
 
 # from bids import BIDSLayoutIndexer
 
-__license__ = "GPLv3"
-
 
 class BidsReader:
     """

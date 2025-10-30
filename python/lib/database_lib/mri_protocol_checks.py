@@ -1,9 +1,6 @@
 """This class performs database queries for the mri_protocol_checks tables"""
 
 
-__license__ = "GPLv3"
-
-
 class MriProtocolChecks:
     """
     This class performs database queries for imaging dataset stored in the mri_protocol_checks table.

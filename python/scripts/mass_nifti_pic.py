@@ -12,9 +12,6 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.imaging import Imaging
 
-__license__ = "GPLv3"
-
-
 sys.path.append('/home/user/python')
 
 

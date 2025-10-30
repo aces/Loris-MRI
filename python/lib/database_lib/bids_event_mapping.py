@@ -1,9 +1,6 @@
 """This class performs bids_event_*_mapping related database queries"""
 
 
-__license__ = "GPLv3"
-
-
 class BidsEventMapping:
 
     def __init__(self, db, verbose):

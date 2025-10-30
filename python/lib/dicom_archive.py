@@ -6,8 +6,6 @@ import lib.utilities as utilities
 from lib.database_lib.tarchive import Tarchive
 from lib.database_lib.tarchive_series import TarchiveSeries
 
-__license__ = "GPLv3"
-
 
 @deprecated('Use `lib.db.models.dicom_archive.DbDicomArchive` instead')
 class DicomArchive:

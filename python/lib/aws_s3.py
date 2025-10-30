@@ -7,8 +7,6 @@ from botocore.exceptions import ClientError, EndpointConnectionError
 
 from lib.util.crypto import compute_file_md5_hash
 
-__license__ = "GPLv3"
-
 
 class AwsS3:
 
