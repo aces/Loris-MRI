@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import lib.db.models.file_parameter as db_file_parameter
 import lib.db.models.session as db_session
 from lib.db.base import Base
+from lib.db.decorators.int_bool import IntBool
 from lib.db.decorators.int_datetime import IntDatetime
 
 
@@ -29,7 +30,7 @@ class DbFile(Base):
     pipeline_date                  : Mapped[date | None]  = mapped_column('PipelineDate')
     source_file_id                 : Mapped[int | None]   = mapped_column('SourceFileID')
     process_protocol_id            : Mapped[int | None]   = mapped_column('ProcessProtocolID')
-    caveat                         : Mapped[bool | None]  = mapped_column('Caveat')
+    caveat                         : Mapped[bool | None]  = mapped_column('Caveat', IntBool)
     dicom_archive_id               : Mapped[int | None]   = mapped_column('TarchiveSource')
     hrrt_archive_id                : Mapped[int | None]   = mapped_column('HrrtArchiveID')
     scanner_id                     : Mapped[int | None]   = mapped_column('ScannerID')

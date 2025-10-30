@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import MetaData
-from sqlalchemy.dialects.mysql.types import DOUBLE, TINYINT
+from sqlalchemy.dialects.mysql.types import DOUBLE
 from sqlalchemy.types import TypeDecorator, TypeEngine
 
 from lib.db.base import Base
@@ -59,9 +59,6 @@ def get_orm_python_type(orm_type: TypeEngine[Any]):
 
 
 def get_sql_python_type(sql_type: TypeEngine[Any]):
-    if isinstance(sql_type, TINYINT) and sql_type.display_width == 1:  # type: ignore
-        return bool
-
     if isinstance(sql_type, DOUBLE):
         return float
 
