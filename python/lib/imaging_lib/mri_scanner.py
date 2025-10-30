@@ -14,7 +14,7 @@ from lib.env import Env
 @dataclass
 class MriScannerInfo:
     """
-    Information about an MRI scanner extracted from DICOM data.
+    Information about an MRI scanner.
     """
 
     manufacturer:     str | None

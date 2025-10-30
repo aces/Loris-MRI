@@ -3,7 +3,7 @@ from typing import Any
 from lib.config import get_patient_id_dicom_header_config
 from lib.env import Env
 from lib.get_session_info import SessionInfo, get_session_info
-from lib.scanner import MriScannerInfo
+from lib.imaging_lib.mri_scanner import MriScannerInfo
 
 
 def get_bids_json_scanner_info(bids_json: dict[str, Any]) -> MriScannerInfo:

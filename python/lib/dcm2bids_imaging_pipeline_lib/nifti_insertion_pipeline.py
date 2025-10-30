@@ -11,6 +11,7 @@ from lib.bids import get_bids_json_session_info
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
+from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
@@ -75,7 +76,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Load the JSON file object with scan parameters if a JSON file was provided
         # ---------------------------------------------------------------------------------------------
         self.json_file_dict = self._load_json_sidecar_file()
-        self._add_step_and_space_params_to_json_file_dict()
+        add_nifti_spatial_file_parameters(self.nifti_path, self.json_file_dict)
 
         # ---------------------------------------------------------------------------------
         # Determine subject IDs based on DICOM headers and validate the IDs against the DB
@@ -372,20 +373,6 @@ class NiftiInsertionPipeline(BasePipeline):
         log_verbose(self.env, protocol_info['error_message'])
 
         return protocol_info['scan_type_id'], protocol_info['mri_protocol_group_id']
-
-    def _add_step_and_space_params_to_json_file_dict(self):
-        """
-        Adds step and space information to the JSON file dictionary listing NIfTI file acquisition parameters.
-        """
-        step_params = self.imaging_obj.get_nifti_image_step_parameters(self.nifti_path)
-        length_params = self.imaging_obj.get_nifti_image_length_parameters(self.nifti_path)
-        self.json_file_dict['xstep'] = step_params[0]
-        self.json_file_dict['ystep'] = step_params[1]
-        self.json_file_dict['zstep'] = step_params[2]
-        self.json_file_dict['xspace'] = length_params[0]
-        self.json_file_dict['yspace'] = length_params[1]
-        self.json_file_dict['zspace'] = length_params[2]
-        self.json_file_dict['time'] = length_params[3] if len(length_params) == 4 else None
 
     def _move_to_assembly_and_insert_file_info(self):
         """
@@ -706,7 +693,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'cand_id': self.session.candidate.cand_id,
             'data_dir_path': self.data_dir,
             'file_rel_path': self.assembly_nifti_rel_path,
-            'is_4D_dataset': True if self.json_file_dict['time'] else False,
+            'is_4D_dataset': self.json_file_dict['time'] is not None,
             'file_id': self.file_id
         }
         pic_rel_path = self.imaging_obj.create_imaging_pic(file_info)
