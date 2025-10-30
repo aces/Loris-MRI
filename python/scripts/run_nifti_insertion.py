@@ -30,7 +30,7 @@ def main():
         "usage  : run_nifti_insertion.py -p <profile> -n <nifti_path> -j <json_path> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-n, --nifti_path         : Absolute path to the NIfTI file to insert\n"
         "\t-j, --json_path          : Absolute path to the BIDS JSON sidecar file with scan parameters\n"
         "\t-l, --bval_path          : Absolute path to the NIfTI BVAL file for DWI acquisitions\n"

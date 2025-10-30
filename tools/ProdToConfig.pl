@@ -14,7 +14,7 @@ perl tools/ProdToConfig.pl `[options]`
 The available option is:
 
 -profile      : name of the config file in
-                C<../dicom-archive/.loris_mri>
+                C<../config>
 
 
 =head1 DESCRIPTION
@@ -45,7 +45,7 @@ my @opt_table           = (
     [ "Basic options", "section" ],
     [
         "-profile", "string", 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"
+        "name of config file in ../config"
     ]
 );
 
@@ -81,10 +81,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -130,7 +130,7 @@ my @config_value_arr = ($data_dir, $prefix, $mail_user, $get_dicom_info,
 
 
 my ($config_name, $config_value);
-    ## Populate the mri_upload table with necessary entries and get an upload_id 
+    ## Populate the mri_upload table with necessary entries and get an upload_id
 for my $index (0 .. $#config_name_arr) {
     $config_name = $config_name_arr[$index];
     ## This value was called if_sge in the default profileTemplate.pl, but should be called is_qsub
@@ -177,7 +177,7 @@ sub updateConfigFromProd {
         my $config_select = $dbh->prepare($query_select);
         $config_select->execute($config_name);
         my $config_default = $config_select->fetchrow_array;
-        print "*** WARNING *** " . 
+        print "*** WARNING *** " .
               "The Configuration Setting value for " . $config_name . " is kept at its default value of " . $config_default .
               " because " . $config_name . " is not found in the " . $profile . " file \n";
     }

@@ -13,7 +13,7 @@ dataset from the MINC files present in the C<assembly/> directory.
 perl tools/minc_to_bids_converter.pl C<[options]>
 
 Available options are:
--profile             : name of the config file in C<../dicom-archive/.loris_mri>
+-profile             : name of the config file in C<../config>
 -tarchive_id         : The ID of the DICOM archive to be converted into a BIDS
                        dataset (optional, if not set, convert all DICOM archives)
 -dataset_name        : Name/Description of the dataset to be generated in BIDS
@@ -113,7 +113,7 @@ my $dataset_name;
 my $verbose;
 my $slice_order_philips = "Not Supplied";
 
-my $profile_desc      = "Name of the config file in ../dicom-archive/.loris_mri (typically 'prod')";
+my $profile_desc      = "Name of the config file in ../config (typically 'prod')";
 my $tarchive_id_desc  = "TarchiveID from the tarchive table of the .tar archive to be processed.";
 my $dataset_name_desc = "Name/Description of the BIDS dataset to be generated";
 my $slice_order_desc  = "Slice order for Philips acquisition: 'ascending', 'descending' or 'Not Supplied'";
@@ -190,10 +190,10 @@ unless ( defined $profile ) {
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+        . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 

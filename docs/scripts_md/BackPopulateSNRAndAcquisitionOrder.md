@@ -11,7 +11,7 @@ perl tools/BackPopulateSNRAndAcquisitionOrder.pl `[options]`
 
 Available options are:
 
-\-profile    : name of the config file in `../dicom-archive/.loris_mri`
+\-profile    : name of the config file in `../config`
 
 \-tarchive\_id: ID of the DICOM archive (.tar file) to be processed from the
                `tarchive` table

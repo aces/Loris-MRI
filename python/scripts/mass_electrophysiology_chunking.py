@@ -32,8 +32,8 @@ def main():
         'usage  : mass_electrophysiology_chunking.py -p <profile> -s <smallest_id> '
                   '-l <largest_id>\n\n'
         'options: \n'
-        '\t-p, --profile    : name of the python database config file in '
-                              'dicom-archive/.loris-mri\n'
+        '\t-p, --profile    : name of the python database config file in the config'
+                              ' directory\n'
         '\t-s, --smallest_id: smallest PhyiologicalFileID to chunk\n'
         '\t-l, --largest_id : largest PhysiologicalFileID to chunk\n'
         '\t-v, --verbose    : be verbose\n'
@@ -50,7 +50,7 @@ def main():
             print(usage)
             sys.exit()
         elif opt in ('-p', '--profile'):
-            profile = os.environ['LORIS_CONFIG'] + "/.loris_mri/" + arg
+            profile = os.path.join(os.environ['LORIS_CONFIG'], arg)
         elif opt in ('-s', '--smallest_id'):
             smallest_id = int(arg)
         elif opt in ('-l', '--largest_id'):

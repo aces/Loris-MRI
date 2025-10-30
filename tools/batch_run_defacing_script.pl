@@ -12,7 +12,7 @@ perl batch_run_defacing_script.pl [-profile file] < list_of_session_IDs.txt
 
 Available options are:
 
--profile: name of config file in ../dicom-archive/.loris_mri (typically called prod)
+-profile: name of config file in ../config (typically called prod)
 
 =head1 DESCRIPTION
 
@@ -60,7 +60,7 @@ use NeuroDB::objectBroker::ConfigOB;
 my $profile;
 
 my @opt_table = (
-    [ '-profile', 'string', 1, \$profile, 'name of config file in ../dicom-archive/.loris_mri' ]
+    [ '-profile', 'string', 1, \$profile, 'name of config file in ../config' ]
 );
 
 my $Help = <<HELP;
@@ -68,8 +68,8 @@ my $Help = <<HELP;
 Run run_defacing_script.pl in batch mode
 *******************************************************************************
 
-This script runs the defacing pipeline on multiple sessions. The list of 
-session IDs are provided through a text file (e.g. C<list_of_session_IDs.txt> 
+This script runs the defacing pipeline on multiple sessions. The list of
+session IDs are provided through a text file (e.g. C<list_of_session_IDs.txt>
 with one sessionID per line).
 
 An example of what a C<list_of_session_IDs.txt> might contain for 3 session IDs
@@ -100,19 +100,19 @@ USAGE
 
 if (!$ENV{LORIS_CONFIG}) {
     print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
-    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
+    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
 }
 
-if ( !defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+if ( !defined $profile || !-e "$ENV{LORIS_CONFIG}/$profile") {
     print $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -166,7 +166,7 @@ my @session_ids_list = <STDIN>;
 #################################################################
 
 my $counter    = 0;
-my $stdoutbase = "$data_dir/batch_output/defacingstdout.log"; 
+my $stdoutbase = "$data_dir/batch_output/defacingstdout.log";
 my $stderrbase = "$data_dir/batch_output/defacingstderr.log";
 
 foreach my $session_id (@session_ids_list) {
@@ -184,11 +184,7 @@ foreach my $session_id (@session_ids_list) {
     } else {
         system($command);
     }
-} 
+}
 
 
 exit $NeuroDB::ExitCodes::SUCCESS;
-
-
-
-

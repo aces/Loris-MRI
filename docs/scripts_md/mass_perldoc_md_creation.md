@@ -9,7 +9,7 @@ perl mass\_perldoc\_md\_creation.pl `[options]`
 
 Available options are:
 
-\-profile: name of the config file in `../dicom-archive/.loris_mri`
+\-profile: name of the config file in `../config`
 
 \-verbose: be verbose (boolean)
 

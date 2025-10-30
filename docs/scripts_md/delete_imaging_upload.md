@@ -10,7 +10,7 @@ perl delete\_imaging\_upload.pl \[-profile file\] \[-ignore\] \[-backup\_path ba
 
 Available options are:
 
-\-profile               : name of the config file in `../dicom-archive/.loris_mri` (defaults to `prod`).
+\-profile               : name of the config file in `../config` (defaults to `prod`).
 
 \-ignore                : ignore files whose paths exist in the database but do not exist on the file system.
                          Default is to abort if such a file is found, irrespective of whether a backup file will

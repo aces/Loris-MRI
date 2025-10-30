@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 # Jonathan Harlap 2006
 # jharlap@bic.mni.mcgill.ca
 # Perl tool to update headers in a dicomTar archive en masse.
@@ -30,7 +30,7 @@ Available options are:
 
 -database: Enable C<dicomTar>'s database features
 
--profile : Name of the config file in C<../dicom-archive/.loris_mri>
+-profile : Name of the config file in C<../config>
 
 -verbose : Be verbose
 
@@ -100,8 +100,8 @@ my @arg_table =
 
 	  ["General options", "section"],
 	  ["-database", "boolean", 1, \$database, "Enable dicomTar's database features"],
-	  ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory"],
-	 
+	  ["-profile","string",1, \$profile, "Specify the name of the config file which resides in the config directory"],
+
 	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
 	  ["-version", "call", undef, \&handle_version_option, "Print version and revision number and exit"],
 		);
@@ -123,10 +123,10 @@ if ( !$profile ) {
 	print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
 	exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
 	print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-		. "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+		. "$ENV{LORIS_CONFIG}/$profile \n\n";
 	exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -174,18 +174,18 @@ my $dcmdir = &extract_tarchive($tarchive, $tempdir);
 my $find_handler = sub {
     my $file = $File::Find::name;
     if(-f $file) {
-        
+
         # read the file, assuming it is dicom
         my $dicom = DICOM->new();
         $dicom->fill($file);
         my $fileIsDicom = 1;
         my $studyUID = $dicom->value('0020','000D');
-        
+
         # see if the file was really dicom
         if($studyUID eq "") {
             $fileIsDicom = 0;
         }
-        
+
         if($fileIsDicom) {
             my $keyhash = "";
             for(my $i = 0; $i < $keyCols; $i++) {
@@ -245,7 +245,7 @@ sub parse_specfile {
                     my @keyList = ($1, $2);
                     push @$keyListRef, \@keyList;
                 }
-                
+
                 $key .= $bits[$i+1] . "---";
             }
         }
@@ -258,7 +258,7 @@ sub parse_specfile {
         $setTableRef->{$key} = \@setList;
     }
 }
-    
+
 
 sub extract_tarchive {
 	 my ($tarchive, $tempdir) = @_;
@@ -281,13 +281,13 @@ sub extract_tarchive {
 	 $dcmdir =~ s/\.tar\.gz$//;
 
 	 `cd $tempdir ; tar -xzf $dcmtar`;
-	 
+
 	 return $dcmdir;
 }
 
 sub update_file_headers {
 	 my ($file, $setRef) = @_;
-	 
+
 	 # if there was already a backup file, dcmodify would crush it...
 	 my $protectedFile;
 	 my $backupFile = "${file}.bak";
@@ -301,7 +301,7 @@ sub update_file_headers {
 		  $cmd .= " --insert-tag '".$set->[0]."=".$set->[1]."' ";
 	 }
 	 $cmd .= "'${file}' 2>&1";
-	 
+
 	 `$cmd`;
 
 	 if(defined($protectedFile)) {

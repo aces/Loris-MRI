@@ -14,7 +14,7 @@ This script uploads a list of DICOM archives to the database by calling script
 from `STDIN`, one file name per line. Each file name is assumed to be a path
 relative to `tarchiveLibraryDir` (see below).
 
-The following settings of file `$ENV{LORIS_CONFIG}/.loris-mri/prod` affect the
+The following settings of file `$ENV{LORIS_CONFIG}/prod` affect the
 behvaviour of `batch_uploads_tarchive` (where `$ENV{LORIS_CONFIG}` is the
 value of the Unix environment variable `LORIS_CONFIG`):
 

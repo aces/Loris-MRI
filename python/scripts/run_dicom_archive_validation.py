@@ -32,7 +32,7 @@ def main():
         "usage  : dicom_archive_validation -p <profile> -t <tarchive_path> -u <upload_id>\n\n"
 
         "options: \n"
-        "\t-p, --profile      : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile      : Name of the python database config file in config\n"
         "\t-t, --tarchive_path: Absolute path to the DICOM archive to validate\n"
         "\t-u, --upload_id    : ID of the upload (from mri_upload) associated with the DICOM archive to validate\n"
         "\t-v, --verbose      : If set, be verbose\n\n"

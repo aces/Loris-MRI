@@ -21,7 +21,7 @@ Available options are:
 
 \-database: Enable `dicomTar`'s database features
 
-\-profile : Name of the config file in `../dicom-archive/.loris_mri`
+\-profile : Name of the config file in `../config`
 
 \-verbose : Be verbose
 

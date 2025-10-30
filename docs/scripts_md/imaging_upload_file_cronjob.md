@@ -10,7 +10,7 @@ perl imaging\_upload\_file\_cronjob.pl `[options]`
 
 Available options are:
 
-\-profile      : Name of the config file in `../dicom-archive/.loris_mri`
+\-profile      : Name of the config file in `../config`
 
 \-verbose      : If set, be verbose
 

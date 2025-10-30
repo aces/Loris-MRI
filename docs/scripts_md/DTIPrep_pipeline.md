@@ -8,7 +8,7 @@ database.
 perl DTIPrep\_pipeline.p `[options]`
 
 \-profile             : name of config file in
-                        `../dicom-archive/.loris_mri`
+                        `../config`
 
 \-list                : file containing the list of raw diffusion MINC
                         files (in `assembly/DCCID/Visit/mri/native`)
@@ -297,7 +297,7 @@ database.
 INPUT:
   - $DTIs\_list      : list of native DTI files processed
   - $DTIrefs        : hash containing the processed filenames
-  - $profile        : config file (in `../dicom-archive/.loris_mri`)
+  - $profile        : config file (in `../config`)
   - $QCoutdir       : output directory containing the processed files
   - $DTIPrepVersion : `DTIPrep` version used to obtain QCed files
   - $mincdiffVersion: `mincdiffusion` tool version used

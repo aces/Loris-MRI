@@ -30,7 +30,7 @@ Available options are:
                           resulting tarball!
 
 -profile                : Specify the name of the config file which resides in
-                          C<.loris_mri> in the current directory
+                          the config directory
 
 -centerName             : Specify the symbolic center name to be stored
                           alongside the DICOM institution
@@ -124,7 +124,7 @@ my @arg_table =
      ["-clobber", "boolean", 1,   \$clobber, "Use this option only if you want
      to replace the resulting tarball!"],
      ["-profile","string",1, \$profile, "Specify the name of the config file
-     which resides in .loris_mri in the current directory."],
+     which resides in the config directory."],
      ["-centerName","string",1, \$neurodbCenterName, "Specify the symbolic
      center name to be stored alongside the DICOM institution."],
      ["General options", "section"],
@@ -146,12 +146,12 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if(-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if(-f "$ENV{LORIS_CONFIG}/$profile") {
+	{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 # The source and the target dir have to be present and must be directories.

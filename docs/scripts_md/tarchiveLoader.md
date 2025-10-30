@@ -15,7 +15,7 @@ perl uploadNeuroDB/tarchiveLoader.pl &lt;/path/to/DICOM-tarchive> `[options]`
 
 Available options are:
 
-\-profile                 : Name of the config file in `../dicom-archive/.loris_mri`
+\-profile                 : Name of the config file in `../config`
 
 \-uploadID                : UploadID associated to this upload
 

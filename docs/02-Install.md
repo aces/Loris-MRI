@@ -301,7 +301,7 @@ scripts (in the `python` directory). It accesses data stored in the
     by the Apache linux user. It may also help to ensure the `/data/` and `/opt/` mount is
     executable. After any modifications, ensure you restart apache.
 
-#### Customizable routines in the Perl config file (a.k.a. `prod` under `dicom-archive/.loris_mri`)
+#### Customizable routines in the Perl config file (a.k.a. `prod` under `config`)
 
 - `isFileToBeRegisteredGivenProtocol()`
 
@@ -329,7 +329,7 @@ if($acquisitionProtocol eq 't1' or $acquisitionProtocol eq 't2' or $acquisitionP
     Routine to determine the acquisition protocol to use to register an HRRT derived
     file.
 
-#### Customizable routines in the Python config file (`config.py` under `dicom-archive/.loris_mri`)
+#### Customizable routines in the Python config file (`config.py` under `config`)
 
 - `get_subject_ids`
 
@@ -375,7 +375,7 @@ The following must be recursively owned by the `lorisadmin` user and Apache grou
 /data/$PROJECT/bin/mri/
 /data/incoming/
 /opt/$PROJECT/
-/opt/$PROJECT/bin/mri/dicom-archive/.loris_mri/prod
+/opt/$PROJECT/bin/mri/config/prod
 ```
 
 #### 2.3.4 Verify Configuration module settings for Imaging Pipeline

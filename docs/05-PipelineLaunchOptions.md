@@ -178,7 +178,8 @@ This will display the following help section:
 usage  : bids_import -d <bids_directory> -p <profile>
 
 options:
-	-p, --profile        : name of the python database config file in dicom-archive/.loris-mri
+	-p, --profile        : name of the python database config file in the config
+    directory
 	-d, --directory      : BIDS directory to parse & insert into LORIS
 	-c, --createcandidate: to create BIDS candidates in LORIS (optional)
 	-s, --createsession  : to create BIDS sessions in LORIS (optional)

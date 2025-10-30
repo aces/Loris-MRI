@@ -8,7 +8,7 @@ perl minc\_insertion.pl `[options]`
 
 Available options are:
 
-\-profile     : name of the config file in `../dicom-archive/.loris_mri`
+\-profile     : name of the config file in `../config`
 
 \-uploadID    : The upload ID from which this MINC was created
 

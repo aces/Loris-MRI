@@ -18,7 +18,7 @@ C<tarchiveLoader.pl> on each file in succession. The list of files to process is
 from C<STDIN>, one file name per line. Each file name is assumed to be a path
 relative to C<tarchiveLibraryDir> (see below).
 
-The following settings of file F<$ENV{LORIS_CONFIG}/.loris-mri/prod> affect the
+The following settings of file F<$ENV{LORIS_CONFIG}/prod> affect the
 behvaviour of C<batch_uploads_tarchive> (where C<$ENV{LORIS_CONFIG}> is the
 value of the Unix environment variable C<LORIS_CONFIG>):
 
@@ -100,7 +100,7 @@ use NeuroDB::objectBroker::ConfigOB;
 
 my $profile = undef;
 my $verbose = 0;
-my $profile_desc = "name of the config file in ../dicom-archive/.loris_mri";
+my $profile_desc = "name of the config file in ../config";
 
 my @opt_table = (
   [ "Basic options", "section" ],
@@ -148,10 +148,10 @@ if (!$profile ) {
     exit 3;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named ".
-        "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
+        "'$profile' in:  $ENV{LORIS_CONFIG}/ \n\n";
     exit 2;
 }
 
