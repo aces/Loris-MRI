@@ -15,7 +15,7 @@ runs:
       cache: 'pip'
 
   - name: Install Python dependencies
-    run: pip install -r install/requirements/requirements.txt
+    run: pip install .[dev]
     shell: bash
 
   - name: Set up environment variables

@@ -6,6 +6,41 @@ readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 requires-python = ">= 3.11"
+dependencies = [
+    "boto3==1.35.99",
+    "google",
+    "mat73",
+    "matplotlib",
+    "mne",
+    "mne-bids>=0.14",
+    "mysqlclient",
+    "nibabel",
+    "nilearn",
+    "nose",
+    "numpy",
+    "protobuf>=3.0.0",
+    "pybids==0.17.0",
+    "pydicom",
+    "python-dateutil",
+    "scikit-learn",
+    "scipy",
+    "sqlalchemy>=2.0.0",
+    "virtualenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyright",
+    "pytest",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/aces/loris-mri"
+
+# TODO: Remove this statement once a real build backend has been configured.
+[tool.setuptools]
+py-modules = []
 
 [project.urls]
 Homepage = "https://github.com/aces/loris-mri"
