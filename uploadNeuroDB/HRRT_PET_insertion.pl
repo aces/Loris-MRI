@@ -57,7 +57,7 @@ Usage: perl HRRT_PET_archive.pl [options]
 USAGE
 
 # Set the variable descriptions to be used by Getopt::Tabular
-my $profile_desc   = "Name of config file in ./dicom-archive/.loris_mri.";
+my $profile_desc   = "Name of config file in ./config.";
 my $upload_id_desc = "ID of the uploaded imaging archive";
 my $bic_desc       = "whether the datasets comes from the BIC HRRT scanner";
 my $clobber_desc   = "Use this option only if you want to replace the resulting tarball!";
@@ -96,10 +96,10 @@ if (!$profile) {
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ($profile && !@Settings::db)    {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 

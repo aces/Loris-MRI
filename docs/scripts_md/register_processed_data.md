@@ -9,7 +9,7 @@ perl register\_processed\_data.pl `[options]`
 
 Available options are:
 
-\-profile        : name of config file in `../dicom-archive/.loris_mri`
+\-profile        : name of config file in `../config`
 
 \-file           : file that will be registered in the database
                    (full path from the root directory is required)

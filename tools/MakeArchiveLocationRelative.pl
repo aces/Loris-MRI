@@ -14,7 +14,7 @@ perl MakeArchiveLocationRelative.pl C<[options]>
 
 Available option is:
 
--profile: name of the config file in C<../dicom-archive/.loris_mri>
+-profile: name of the config file in C<../config>
 
 =head1 DESCRIPTION
 
@@ -45,14 +45,14 @@ my $profile = undef;
 
 my @opt_table = (
     [ "-profile", "string", 1, \$profile,
-      "name of config file in ../dicom-archive/.loris_mri"
+      "name of config file in ../config"
     ]
-); 
+);
 
 my $Help = <<HELP;
 
 This script will remove the root directory from the ArchiveLocation field
-in the tarchive table to make path to the tarchive relative. This should 
+in the tarchive table to make path to the tarchive relative. This should
 be used once, when updating the LORIS-MRI code.
 
 Documentation: perldoc MakeArchiveLocationRelative.pl
@@ -71,10 +71,10 @@ USAGE
 ################################################################
 ################### input option error checking ################
 ################################################################
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ($profile && !@Settings::db) {
     print "\n\tERROR: You don't have a configuration file named ".
-          "'$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n";
+          "'$profile' in:  $ENV{LORIS_CONFIG} \n\n";
     exit 2;
 }
 
@@ -165,21 +165,21 @@ QUERY
     # Prepare and execute query
     my $sth = $dbh->prepare($query);
     $sth->execute();
-    
+
     # Create tarchive list hash with old and new location
     my %tarchive_list;
     while ( my $rowhr = $sth->fetchrow_hashref()) {
-    
+
         my $TarchiveID = $rowhr->{'TarchiveID'};
         my $ArchLoc    = $rowhr->{'ArchiveLocation'};
         my $newArchLoc = $ArchLoc;
         $newArchLoc    =~ s/$tarchiveLibraryDir\/?//g;
-    
+
         $tarchive_list{$TarchiveID}{'ArchiveLocation'}    = $ArchLoc;
         $tarchive_list{$TarchiveID}{'NewArchiveLocation'} = $newArchLoc;
-        
+
     }
-    
+
     return %tarchive_list;
 
 }
@@ -198,11 +198,11 @@ INPUTS:
 =cut
 
 sub updateArchiveLocation {
-    
+
     my ( $dbh, %tarchive_list ) = @_;
 
     # Update query
-    (my $query = <<QUERY ) =~ s/\n/ /g; 
+    (my $query = <<QUERY ) =~ s/\n/ /g;
 UPDATE
   tarchive
 SET
@@ -214,9 +214,9 @@ QUERY
     foreach my $TarID ( keys %tarchive_list ) {
 
         # values to use to execute the query
-        my @query_values = ( 
+        my @query_values = (
                              $tarchive_list{$TarID}{'NewArchiveLocation'},
-                             $TarID 
+                             $TarID
                            );
 
         # execute query

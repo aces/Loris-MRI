@@ -9,7 +9,7 @@ acquisitions specified in the Config module of LORIS.
 
 Available options are:
 
-`-profile`     : name of the config file in `../dicom-archive/.loris_mri`
+`-profile`     : name of the config file in `../config`
 
 `-tarchive_ids`: comma-separated list of MySQL `TarchiveID`s
 

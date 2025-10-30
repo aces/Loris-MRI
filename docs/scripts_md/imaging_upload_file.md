@@ -9,7 +9,7 @@ perl imaging\_upload\_file.pl &lt;/path/to/UploadedFile> `[options]`
 
 Available options are:
 
-\-profile      : name of the config file in `../dicom-archive/.loris_mri`
+\-profile      : name of the config file in `../config`
 
 \-upload\_id    : The Upload ID of the given scan uploaded
 

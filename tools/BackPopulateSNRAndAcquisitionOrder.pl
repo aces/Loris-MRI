@@ -16,7 +16,7 @@ perl tools/BackPopulateSNRAndAcquisitionOrder.pl C<[options]>
 
 Available options are:
 
--profile    : name of the config file in C<../dicom-archive/.loris_mri>
+-profile    : name of the config file in C<../config>
 
 -tarchive_id: ID of the DICOM archive (.tar file) to be processed from the
                C<tarchive> table
@@ -66,12 +66,12 @@ my $query;
 
 my @opt_table = (
     [ "-profile", "string", 1, \$profile,
-      "name of config file in ../dicom-archive/.loris_mri"
+      "name of config file in ../config"
     ],
     [ "-tarchive_id", "string", 1, \$TarchiveID,
       "tarchive_id of the DICOM archive (.tar files) to be processed from tarchive table"
     ]
-); 
+);
 
 my $Help = <<HELP;
 
@@ -107,10 +107,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -146,17 +146,17 @@ my $data_dir = $configOB->getDataDirPath();
 ################################################################
 ######### Initialize variables #################################
 ################################################################
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) 
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)
     =localtime(time);
 my $template = "TarLoad-$hour-$min-XXXXXX"; # for tempdir
 my $TmpDir = tempdir(
-                 $template, TMPDIR => 1, CLEANUP => 1 
+                 $template, TMPDIR => 1, CLEANUP => 1
              );
-my @temp     = split(/\//, $TmpDir); 
+my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
-my $LogDir   = "$data_dir/logs"; 
-if (!-d $LogDir) { 
-    mkdir($LogDir, 0770); 
+my $LogDir   = "$data_dir/logs";
+if (!-d $LogDir) {
+    mkdir($LogDir, 0770);
 }
 my $logfile  = "$LogDir/$templog.log";
 
@@ -187,10 +187,10 @@ else {
 
 my $sth = $dbh->prepare($query);
 $sth->execute();
-    
+
 if($sth->rows > 0) {
 	# Create tarchive list hash with old and new location
-    while ( my $rowhr = $sth->fetchrow_hashref()) {    
+    while ( my $rowhr = $sth->fetchrow_hashref()) {
         $TarchiveID        = $rowhr->{'TarchiveID'};
         my $ArchLoc        = $rowhr->{'ArchiveLocation'};
         my $SourceLocation = $rowhr->{'SourceLocation'};
@@ -199,9 +199,9 @@ if($sth->rows > 0) {
             $SourceLocation
         );
 		print "Currently updating the SNR for applicable files in parameter_file table ".
-            "for tarchiveID $TarchiveID at location $ArchLoc\n";    
+            "for tarchiveID $TarchiveID at location $ArchLoc\n";
         $utility->computeSNR($TarchiveID, $upload_id);
-		print "Currently updating the Acquisition Order per modality in files table\n";    
+		print "Currently updating the Acquisition Order per modality in files table\n";
         $utility->orderModalitiesByAcq($TarchiveID, $upload_id);
 
 		print "Finished updating back-populating SNR and Acquisition Order ".
@@ -209,7 +209,7 @@ if($sth->rows > 0) {
 	}
 }
 else {
-	print "No tarchives to be updated \n";	
+	print "No tarchives to be updated \n";
 }
 
 $db->disconnect();

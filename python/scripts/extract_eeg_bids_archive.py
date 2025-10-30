@@ -31,7 +31,7 @@ def main():
         "usage  : extract_eeg_bids_archive.py -p <profile> -u <upload_id> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-u, --upload_id          : ID of the upload (from electrophysiology_uploader) of the EEG archive\n"
         "\t-v, --verbose            : If set, be verbose\n\n"
 

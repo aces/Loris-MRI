@@ -8,7 +8,7 @@ perl mass\_pic.pl `[options]`
 
 Available options are:
 
-\-profile   : name of the config file in `../dicom-archive/.loris_mri`
+\-profile   : name of the config file in `../config`
 
 \-mincFileID: integer, minimum `FileID` to operate on
 

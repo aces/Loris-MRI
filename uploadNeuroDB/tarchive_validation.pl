@@ -13,7 +13,7 @@ perl tarchive_validation.pl C<[options]>
 
 Available options are:
 
--profile     : name of the config file in C<../dicom-archive/.loris-mri>
+-profile     : name of the config file in C<../config>
 
 -uploadID    : UploadID associated to the DICOM archive to validate
 
@@ -86,14 +86,14 @@ use NeuroDB::objectBroker::ObjectBrokerException;
 use NeuroDB::objectBroker::ConfigOB;
 
 
-my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $ 
+my $versionInfo = sprintf "%d revision %2d", q$Revision: 1.24 $
                 =~ /: (\d+)\.(\d+)/;
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =localtime(time);
 my $date        = sprintf(
                     "%4d-%02d-%02d %02d:%02d:%02d",
                     $year+1900,$mon+1,$mday,$hour,$min,$sec
                   );
-my $debug       = 0 ;  
+my $debug       = 0 ;
 my $where       = '';
 my $sth         = undef;
 my $query       = '';
@@ -111,7 +111,7 @@ my $User             = getpwuid($>);
 my @opt_table = (
                  ["Basic options","section"],
                  ["-profile","string",1, \$profile,
-                  "name of config file in ../dicom-archive/.loris_mri"],
+                  "name of config file in ../config"],
                  ["-uploadID", "string", 1, \$upload_id, "UploadID associated to ".
                   "the DICOM archive to validate."],
                  ["-reckless", "boolean", 1, \$reckless,
@@ -127,11 +127,11 @@ my @opt_table = (
 
 my $Help = <<HELP;
 ******************************************************************************
-Dicom Validator 
+Dicom Validator
 ******************************************************************************
 
-Author  :   
-Date    :   
+Author  :
+Date    :
 Version :   $versionInfo
 
 The program does the following validation
@@ -146,7 +146,7 @@ The program does the following validation
 - Optionally create candidates as needed Standardize sex (DICOM uses M/F,
   DB uses Male/Female)
 
-- Check the CandID/PSCID Match It's possible that the CandID exists, but 
+- Check the CandID/PSCID Match It's possible that the CandID exists, but
   doesn't match the PSCID. This will fail further
   down silently, so we explicitly check that the data is correct here.
 
@@ -181,14 +181,14 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 if ( !$ARGV[0] ) {
-    print $Help; 
+    print $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid tarchive.\n\n";
     exit $NeuroDB::ExitCodes::MISSING_ARG;
 }
@@ -234,9 +234,9 @@ my $tarchiveLibraryDir = $configOB->getTarchiveLibraryDir();
 my $TmpDir = tempdir($template, TMPDIR => 1, CLEANUP => 1 );
 my @temp     = split(/\//, $TmpDir);
 my $templog  = $temp[$#temp];
-my $LogDir   = "$data_dir/logs"; 
-if (!-d $LogDir) { 
-    mkdir($LogDir, 0770); 
+my $LogDir   = "$data_dir/logs";
+if (!-d $LogDir) {
+    mkdir($LogDir, 0770);
 }
 my $logfile  = "$LogDir/$templog.log";
 open LOG, ">>", $logfile or die "Error Opening $logfile";
@@ -279,14 +279,14 @@ $utility->validate_tarchive_id_against_upload_id(\%tarchiveInfo, \%mriUploadInfo
 $utility->validateArchive($tarchive, \%tarchiveInfo, $upload_id);
 
 ################################################################
-### Verify PSC information using whatever field ################ 
+### Verify PSC information using whatever field ################
 ### contains site string #######################################
 ################################################################
 my ($center_name, $centerID) = $utility->determinePSC(\%tarchiveInfo, 1, $upload_id);
 
 ################################################################
 ################################################################
-### Determine the ScannerID (optionally create a ############### 
+### Determine the ScannerID (optionally create a ###############
 ### new one if necessary) ######################################
 ################################################################
 ################################################################
@@ -352,4 +352,3 @@ License: GPLv3
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
-

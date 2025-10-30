@@ -1,6 +1,6 @@
 **/__pycache__/*
 *.pyc
-.loris_mri/
+config/
 python_virtualenvs/
 environment
 **/.DS_Store

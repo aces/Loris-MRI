@@ -28,7 +28,7 @@ def main():
         "usage  : run_dicom_archive_loader.py -p <profile> -u <upload_id> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-t, --tarchive_path      : Absolute path to the DICOM archive to process\n"
         "\t-u, --upload_id          : ID of the upload (from mri_upload) related to the DICOM archive to process\n"
         "\t-s, --series_uid         : Only insert the provided SeriesUID\n"

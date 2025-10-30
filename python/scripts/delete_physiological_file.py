@@ -24,7 +24,7 @@ def main():
         "usage  : delete_physiological_file.py -f file_id -p <profile> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile      : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile      : Name of the python database config file in config\n"
         "\t-f, --fileid       : Id of the file (PhysiologicalFileID) to delete\n"
         "\t-c, --confirm      : After a trial run, perform the deletion\n"
         "\t-d, --deleteondisk : Delete files on disk\n"

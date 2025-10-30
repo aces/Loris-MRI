@@ -26,7 +26,7 @@ def main():
         "usage  : run_push_imaging_files_to_s3_pipeline.py -p <profile> -u <upload_id> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-u, --upload_id          : ID of the upload (from mri_upload) related to the DICOM archive to process\n"
         "\t-v, --verbose            : If set, be verbose\n\n"
 

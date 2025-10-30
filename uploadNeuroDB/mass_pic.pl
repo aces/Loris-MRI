@@ -13,7 +13,7 @@ perl mass_pic.pl C<[options]>
 
 Available options are:
 
--profile   : name of the config file in C<../dicom-archive/.loris_mri>
+-profile   : name of the config file in C<../config>
 
 -mincFileID: integer, minimum C<FileID> to operate on
 
@@ -68,13 +68,13 @@ my $Usage = "mass_pic.pl generates pic images for NeuroDB for those ".
 my @arg_table =
     (
          ["Database options", "section"],
-         ["-profile","string",1, \$profile, "Specify the name of the ".   
-          "config file which resides in ../dicom-archive/.loris_mri"],
+         ["-profile","string",1, \$profile, "Specify the name of the ".
+          "config file which resides in ../config"],
          ["File control", "section"],
-         ["-minFileID", "integer", 1, \$minFileID, 
-          "Specify the minimum FileID to operate on."], 
-         ["-maxFileID", "integer", 1, \$maxFileID, 
-          "Specify the maximum FileID to operate on."], 
+         ["-minFileID", "integer", 1, \$minFileID,
+          "Specify the minimum FileID to operate on."],
+         ["-maxFileID", "integer", 1, \$maxFileID,
+          "Specify the maximum FileID to operate on."],
          ["General options", "section"],
          ["-verbose", "boolean", 1,   \$verbose, "Be verbose."],
     );
@@ -88,14 +88,14 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if (-f "$ENV{LORIS_CONFIG}/$profile") {
+	{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-          . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+          . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
-} 
+}
 
 
 
@@ -154,7 +154,7 @@ if ($debug) {
 }
 
 $query = "INSERT INTO check_pic_filenames SELECT FileID, Value FROM ".
-          "parameter_file WHERE ParameterTypeID=\@checkPicID AND ".    
+          "parameter_file WHERE ParameterTypeID=\@checkPicID AND ".
           "Value IS NOT NULL";
 $dbh->do($query);
 
@@ -184,7 +184,7 @@ while(my $rowhr = $sth->fetchrow_hashref()) {
 
     unless(
         &NeuroDB::MRI::make_pics(
-            \$file, $data_dir, 
+            \$file, $data_dir,
             $pic_dir, $horizontalPics, $db
         )
     ) {
@@ -211,4 +211,3 @@ License: GPLv3
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
-

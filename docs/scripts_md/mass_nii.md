@@ -9,7 +9,7 @@ perl mass\_nii.pl `[options]`
 
 Available options are:
 
-\-profile  : name of the config file in `../dicom-archive/.loris_mri`
+\-profile  : name of the config file in `../config`
 
 \-minFileID: specifies the minimum `FileID` to operate on
 

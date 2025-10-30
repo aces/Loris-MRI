@@ -12,7 +12,7 @@ perl DTIPrepRegister.pl C<[options]>
 
 Available options are:
 
--profile        : name of the config file in C<../dicom-archive/.loris-mri>
+-profile        : name of the config file in C<../config>
 
 -DTIPrep_subdir : C<DTIPrep> subdirectory storing the processed files to
                    be registered
@@ -114,7 +114,7 @@ USAGE
 
 # Define the table describing the command-line options
 my  @args_table = (
-    ["-profile",              "string", 1,  \$profile,          "name of the config file in ../dicom-archive/.loris_mri."],
+    ["-profile",              "string", 1,  \$profile,          "name of the config file in ../config."],
     ["-DTIPrep_subdir",       "string", 1,  \$DTIPrep_subdir,   "DTIPrep subdirectory storing the processed files to be registered"],
     ["-DTIPrepProtocol",      "string", 1,  \$DTIPrepProtocol,  "DTIPrep protocol used to obtain the output files"],
     ["-DTI_file",             "string", 1,  \$dti_file,         "Native DWI dataset used to obtain the output files"],
@@ -132,10 +132,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if  ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 if (!$DTIPrep_subdir) {

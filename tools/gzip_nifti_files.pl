@@ -12,7 +12,7 @@ perl gzip_nifti_files.pl C<[options]>
 
 Available options are:
 
--profile: name of the config file in C<../dicom-archive/.loris_mri>
+-profile: name of the config file in C<../config>
 
 
 =head1 DESCRIPTION
@@ -52,7 +52,7 @@ my $profile;
 
 my @opt_table = (
     [ "-profile", "string", 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"
+        "name of config file in ../config"
     ]
 );
 
@@ -86,11 +86,11 @@ if ( !$profile ) {
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+        . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 

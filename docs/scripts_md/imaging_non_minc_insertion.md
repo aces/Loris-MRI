@@ -8,7 +8,7 @@ perl imaging\_non\_minc\_insertion.pl `[options]`
 
 Available options are:
 
-\-profile       : name of the config file in `../dicom-archive/.loris-mri` (required)
+\-profile       : name of the config file in `../config` (required)
 
 \-file\_path     : file to register into the database (full path from the root
                  directory is required) (required)

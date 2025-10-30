@@ -27,7 +27,7 @@ def main():
         "usage  : ingest_eeg_bids_datasets.py -p <profile> -d <directory> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-u, --upload_id          : ID of the upload (from electrophysiology_uploader) of the EEG dataset\n"
         "\t-v, --verbose            : If set, be verbose\n\n"
 

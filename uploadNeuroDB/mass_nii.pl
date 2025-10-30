@@ -13,7 +13,7 @@ perl mass_nii.pl C<[options]>
 
 Available options are:
 
--profile  : name of the config file in C<../dicom-archive/.loris_mri>
+-profile  : name of the config file in C<../config>
 
 -minFileID: specifies the minimum C<FileID> to operate on
 
@@ -69,8 +69,8 @@ Author  :   Cécile Madjar based on mass_pic.pl.
                         Date    :   2015/07/28
                         Version :   $versionInfo
 
-                        This script generates NIfTI images 
-                        for the inserted MINC images that 
+                        This script generates NIfTI images
+                        for the inserted MINC images that
                         are missing NIfTIs.
 
 Documentation: perldoc mass_nii.pl
@@ -85,15 +85,15 @@ USAGE
 
 my @arg_table = (
 ["Database options", "section"],
-    ["-profile", "string", 1, \$profile, 
+    ["-profile", "string", 1, \$profile,
         "Specify the name of the config file which resides " .
-        "in ../dicom-archive/.loris_mri"],
+        "in ../config"],
 
 ["File control", "section"],
-    ["-minFileID", "integer", 1, \$minFileID, 
-        "Specify the minimum FileID to operate on."], 
-    ["-maxFileID", "integer", 1, \$maxFileID, 
-        "Specify the maximum FileID to operate on."], 
+    ["-minFileID", "integer", 1, \$minFileID,
+        "Specify the minimum FileID to operate on."],
+    ["-maxFileID", "integer", 1, \$maxFileID,
+        "Specify the maximum FileID to operate on."],
 
 ["General options", "section"],
     ["-verbose", "boolean", 1, \$verbose, "Be verbose."]
@@ -111,13 +111,13 @@ if ( !$profile ) {
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-if (-f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
-	{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+if (-f "$ENV{LORIS_CONFIG}/$profile") {
+	{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 }
 
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -159,17 +159,17 @@ my $data_dir = $configOB->getDataDirPath();
 
 # Base of the query
 my $query = <<QUERY;
-SELECT 
-    f.FileID 
-FROM 
-    files AS f 
-LEFT OUTER JOIN 
-    (SELECT pf.FileID, pf.Value 
-     FROM parameter_file AS pf 
-     JOIN parameter_type AS pt USING (ParameterTypeID) 
+SELECT
+    f.FileID
+FROM
+    files AS f
+LEFT OUTER JOIN
+    (SELECT pf.FileID, pf.Value
+     FROM parameter_file AS pf
+     JOIN parameter_type AS pt USING (ParameterTypeID)
      WHERE pt.Name=?
-    ) AS NIfTI USING (FileID) 
-WHERE 
+    ) AS NIfTI USING (FileID)
+WHERE
     Value IS NULL AND f.FileType=?
 QUERY
 

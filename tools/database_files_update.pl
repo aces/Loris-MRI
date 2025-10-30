@@ -13,7 +13,7 @@ perl database_files_update.pl C<[options]>
 
 Available option is:
 
--profile: name of the config file in C<../dicom-archive/.loris_mri>
+-profile: name of the config file in C<../config>
 
 =head1 DESCRIPTION
 
@@ -54,20 +54,20 @@ Documentation: perldoc database_files_update.pl
 
 USAGE
 
-my @args_table  =   (["-profile",   "string",   1,  \$profile,  "name of config file in ../dicom-archive/.loris_mri."]
+my @args_table  =   (["-profile",   "string",   1,  \$profile,  "name of config file in ../config."]
                     );
 
 Getopt::Tabular::SetHelp ($Usage, '');
 GetOptions(\@args_table, \@ARGV, \@args)    ||  exit 1;
 
 # Input option error checking
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
-if  ($profile && !@Settings::db)    { 
-        print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; 
-            exit 33; 
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
+if  ($profile && !@Settings::db)    {
+        print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG} \n\n";
+            exit 33;
 }
-if  (!$profile) { 
-        print "$Usage\n\tERROR: You must specify a profile.\n\n";  
+if  (!$profile) {
+        print "$Usage\n\tERROR: You must specify a profile.\n\n";
             exit 33;
 }
 
@@ -119,7 +119,7 @@ if  ($minc_location_refs) {
         my  $new_minc_location  =   $minc_location_refs->{$fileID};
         $new_minc_location      =~  s/$data_dir\///i;
         my  ($rows_affected)    =   update_minc_location($fileID, $new_minc_location, $dbh); # update minc location in files table.
-        if  ($rows_affected ==  1)  { 
+        if  ($rows_affected ==  1)  {
             print LOG "Updated location of minc with $fileID FileID to $new_minc_location.\n";
         } else {
             print LOG "ERROR: $rows_affected while updating minc with $fileID FileID to $new_minc_location.\n";
@@ -137,7 +137,7 @@ if  ($pic_location_refs) {
         my  $new_pic_location  =   $pic_location_refs->{$fileID};
         $new_pic_location      =~  s/$data_dir\///i;
         my  ($rows_affected)   =   update_parameter_file_location($fileID, $new_pic_location, 'check_pic_filename', $dbh); # update pic location in parameter_file table.
-        if  ($rows_affected ==  1)  { 
+        if  ($rows_affected ==  1)  {
             print LOG "Updated pic location with $fileID FileID to $new_pic_location.\n";
         } else {
             print LOG "ERROR: $rows_affected while updating pic location with $fileID FileID to $new_pic_location.\n";
@@ -156,7 +156,7 @@ if  ($tarchive_location_refs) {
         my  $new_tarchive_location  =   $tarchive_location_refs->{$fileID};
         $new_tarchive_location      =~  s/$data_dir\///i;
         my  ($rows_affected)   =   update_parameter_file_location($fileID, $new_tarchive_location, 'tarchiveLocation', $dbh); # update tarchive location in parameter_file table.
-        if  ($rows_affected ==  1)  { 
+        if  ($rows_affected ==  1)  {
             print LOG "Updated tarchive location in parameter_file with $fileID FileID to $new_tarchive_location.\n";
         } else {
             print LOG "ERROR: $rows_affected while updating tarchive location in parameter_file with $fileID FileID to $new_tarchive_location.\n";
@@ -197,9 +197,9 @@ sub get_minc_files {
     $sth->execute($like);
 
     if  ($sth->rows > 0) {
-        while (my $row  = $sth->fetchrow_hashref()) { 
+        while (my $row  = $sth->fetchrow_hashref()) {
             my  $fileID =   $row->{'FileID'};
-            push    (@fileIDs, $fileID); 
+            push    (@fileIDs, $fileID);
             $minc_locations{$fileID}    =   $row->{'File'};
         }
     } else {
@@ -300,13 +300,13 @@ RETURNS: number of rows affected by the update (should always be 1)
 =cut
 
 sub update_parameter_file_location {
-    my  ($fileID, $new_file_location, $parameter_type, $dbh) =   @_; 
+    my  ($fileID, $new_file_location, $parameter_type, $dbh) =   @_;
 
     my  $select         =   "SELECT ParameterTypeID " .
                             "FROM parameter_type "    .
                             "WHERE Name=?";
     my  $sth            =   $dbh->prepare($select);
-    $sth->execute($parameter_type);    
+    $sth->execute($parameter_type);
 
     my  $ParameterTypeID;
     if  ($sth->rows > 0) {
@@ -321,7 +321,7 @@ sub update_parameter_file_location {
     my  $sth_update     =   $dbh->prepare($query);
     my  $rows_affected  =   $sth_update->execute($new_file_location,$fileID,$ParameterTypeID);
 
-    return  ($rows_affected);   
+    return  ($rows_affected);
 }
 
 

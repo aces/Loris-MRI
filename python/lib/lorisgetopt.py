@@ -31,7 +31,7 @@ class LorisGetOpt:
         "usage  : example.py -p <profile> -f <file_path> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile   : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile   : Name of the python database config file in config\n"
         "\t-n, --file_path : Absolute file path to process\n"
         "\t-v, --verbose   : If set, be verbose\n\n"
 
@@ -185,7 +185,7 @@ class LorisGetOpt:
             print("\n[ERROR   ] Environment variable 'LORIS_CONFIG' not set\n")
             sys.exit(lib.exitcode.INVALID_ENVIRONMENT_VAR)
 
-        config_file = os.path.join(os.environ["LORIS_CONFIG"], ".loris_mri", profile_value)
+        config_file = os.path.join(os.environ["LORIS_CONFIG"], profile_value)
         if not config_file.endswith(".py"):
             print(
                 f"\n[ERROR   ] {config_file} does not appear to be the python configuration file."
