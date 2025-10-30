@@ -2,7 +2,7 @@
 
 ## Virtual environment
 
-LORIS-MRI uses a Python virtual environment to manage its execution context and dependencies. To activate the virtual environment, use the command `source environment` in the LORIS-MRI root directory. The dependencies of the virtual environment are listed in the `install/requirements/requirements.txt` file.
+LORIS-MRI uses a Python virtual environment to manage its execution context and dependencies. To activate the virtual environment, use the command `source environment` in the LORIS-MRI root directory. The dependencies of the virtual environment are listed in the `pyproject.toml` file.
 
 ## Configuration
 
