@@ -706,7 +706,8 @@ class Eeg:
                 self.bids_layout.root,
                 ""
             )
-            copy_file = self.loris_bids_root_dir + copy_file
+
+            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
 
             # create derivative directories
             lib.utilities.create_dir(
@@ -728,7 +729,8 @@ class Eeg:
                     "sub-" + self.data_type.subject.label,
                     "sub-" + self.data_type.subject.label + "_ses-" + self.default_vl
                 )
-            copy_file = self.loris_bids_root_dir + copy_file
+
+            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
 
         # copy the file
         utilities.copy_file(file, copy_file, self.verbose)
