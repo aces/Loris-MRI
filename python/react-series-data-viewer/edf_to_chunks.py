@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+
 import argparse
+import sys
+
 import mne.io
 import mne.io.edf.edf as mne_edf
 from chunking import write_chunk_directory
-import sys
 
 
 def load_channels(exclude):
@@ -67,7 +70,7 @@ if __name__ == '__main__':
             if len(stim_channel_idxs) == 1:
                 continue
 
-            print('Creating chunk for channel {} for {}'.format(i, path))
+            print(f'Creating chunk for channel {i} for {path}')
 
             # excluding channels in the loader reduce the time required to read the file
             # and avoid memory issues

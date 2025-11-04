@@ -2,12 +2,12 @@ import errno
 import json
 import math
 import os
-from collections import OrderedDict
-import numpy as np
-from scipy import signal
 import sys
+from collections import OrderedDict
 
+import numpy as np
 from protocol_buffers import chunk_pb2 as chunk_pb
+from scipy import signal
 
 
 def pad_values(values, chunk_size):
