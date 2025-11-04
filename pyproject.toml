@@ -4,7 +4,6 @@ requires-python = ">= 3.11"
 [tool.ruff]
 src = ["python"]
 include = ["python/**/*.py"]
-exclude = ["python/react-series-data-viewer"]
 line-length = 120
 preview = true
 
