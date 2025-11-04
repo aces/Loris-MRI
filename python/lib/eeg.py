@@ -720,7 +720,8 @@ class Eeg:
                         "sub-" + self.data_type.subject.label + "_ses-" + self.default_vl
                     )
                 )
-            copy_file = self.loris_bids_root_dir + copy_file
+
+            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
 
         # create the directory if it does not exist
         lib.utilities.create_dir(
