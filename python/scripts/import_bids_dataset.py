@@ -49,7 +49,7 @@ def main():
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "directory": {
             "value": None, "required": True, "expect_arg": True, "short_opt": "d", "is_path": True
