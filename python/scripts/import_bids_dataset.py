@@ -39,7 +39,6 @@ def main():
         "\t                         If directory is within $data_dir/assembly_bids, no copy will be performed\n"
         "\t-c, --createcandidate  : to create BIDS candidates in LORIS (optional)\n"
         "\t-s, --createsession    : to create BIDS sessions in LORIS (optional)\n"
-        "\t-i, --idsvalidation    : to validate BIDS directory for a matching pscid/candid pair (optional)\n"
         "\t-b, --nobidsvalidation : to disable BIDS validation for BIDS compliance\n"
         "\t-a, --nocopy           : to disable dataset copy in data assembly_bids\n"
         "\t-t, --type             : raw | derivative. Specify the dataset type.\n"
@@ -56,16 +55,16 @@ def main():
             "value": None, "required": True, "expect_arg": True, "short_opt": "d", "is_path": True
         },
         "createcandidate": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "cc", "is_path": False
+            "value": False, "required": False, "expect_arg": False, "short_opt": "c", "is_path": False
         },
         "createsession": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "cc", "is_path": False
+            "value": False, "required": False, "expect_arg": False, "short_opt": "s", "is_path": False
         },
         "nobidsvalidation": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "nv", "is_path": False
+            "value": False, "required": False, "expect_arg": False, "short_opt": "b", "is_path": False
         },
         "nocopy": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "nc", "is_path": False
+            "value": False, "required": False, "expect_arg": False, "short_opt": "a", "is_path": False
         },
         "type": {
             "value": None, "required": False, "expect_arg": True, "short_opt": "t", "is_path": False
