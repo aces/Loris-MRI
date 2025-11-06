@@ -10,8 +10,6 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.lorisgetopt import LorisGetOpt
 
-__license__ = 'GPLv3'
-
 
 def main():
     usage = (
@@ -27,7 +25,7 @@ def main():
         "usage  : correct_blake2b_and_md5_hashes_in_database.py -p <profile> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile  : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile  : Name of the python database config file in config\n"
         "\t-v, --verbose  : If set, be verbose\n\n"
 
         "required options are: \n"

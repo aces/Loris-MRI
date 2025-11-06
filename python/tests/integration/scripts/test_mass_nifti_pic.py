@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime
 
 from lib.db.models.file import DbFile
@@ -8,22 +7,6 @@ from lib.db.queries.file_parameter import delete_file_parameter, try_get_paramet
 from lib.exitcode import INVALID_ARG, INVALID_PATH, MISSING_ARG, SUCCESS
 from tests.util.database import get_integration_database_session
 from tests.util.run_integration_script import run_integration_script
-
-
-def test_missing_profile_arg():
-    """
-    Test running the script without the --profile argument.
-    """
-
-    process = run_integration_script([
-        'mass_nifti_pic.py',
-    ])
-
-    # Check return code, STDOUT and STDERR
-    message = 'ERROR: you must specify a profile file using -p or --profile option'
-    assert process.returncode == MISSING_ARG
-    assert message in process.stdout
-    assert process.stderr == ""
 
 
 def test_invalid_profile_arg():
@@ -37,10 +20,10 @@ def test_invalid_profile_arg():
     ])
 
     # Check return code, STDOUT and STDERR
-    message = 'ERROR: you must specify a valid profile file'
+    message = "ERROR: No configuration file 'invalid_profile.py' found in the '/opt/loris/bin/mri/config' directory.\n"
     assert process.returncode == INVALID_PATH
-    assert message in process.stdout
-    assert process.stderr == ""
+    assert process.stdout == ""
+    assert process.stderr == message
 
 
 def test_missing_smallest_id_arg():
@@ -50,7 +33,6 @@ def test_missing_smallest_id_arg():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
     ])
 
     # Check return code, STDOUT and STDERR
@@ -68,7 +50,6 @@ def test_missing_largest_id_arg():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
         '--smallest_id', '2',
     ])
 
@@ -87,7 +68,6 @@ def test_smallest_id_bigger_than_largest_id():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
         '--smallest_id', '6',
         '--largest_id', '2'
     ])
@@ -106,7 +86,6 @@ def test_on_invalid_file_id():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
         '--smallest_id', '999',
         '--largest_id', '999'
     ])
@@ -125,7 +104,6 @@ def test_on_file_id_that_already_has_a_pic():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
         '--smallest_id', '2',
         '--largest_id', '2'
     ])
@@ -155,7 +133,6 @@ def test_force_option():
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
         '--smallest_id', '2',
         '--largest_id', '2',
         '--force'
@@ -164,7 +141,7 @@ def test_force_option():
     # Check return code, STDOUT and STDERR
     # The NIfTI file is printing a warning when the pic gets created so check that the
     # STDERR is exactly that error message.
-    message = '/opt/loris/bin/mri/python/lib/imaging.py:1179: UserWarning: Casting data from int32 to float32' \
+    message = '/opt/loris/bin/mri/python/lib/imaging.py:1177: UserWarning: Casting data from int32 to float32' \
               '\n  plotting.plot_anat(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""
@@ -190,16 +167,16 @@ def test_running_on_a_text_file():
         file_type           = 'txt',
         session_id          = 564,
         output_type         = 'native',
-        insert_time         = int(datetime.now().timestamp()),
+        insert_time         = datetime.now(),
         inserted_by_user_id = 'test'
     )
+
     db.add(file)
     db.commit()
 
     # run NIfTI pic script on the inserted file
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
         '--smallest_id', str(file.id),
         '--largest_id', str(file.id)
     ])
@@ -239,11 +216,10 @@ def test_successful_run():
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     assert file_pic_data is None
 
-    current_time = time.time()
+    current_time = datetime.now()
 
     process = run_integration_script([
         'mass_nifti_pic.py',
-        '--profile', 'database_config.py',
         '--smallest_id', '2',
         '--largest_id', '2'
     ])
@@ -251,7 +227,7 @@ def test_successful_run():
     # Check return code, STDOUT and STDERR
     # The NIfTI file is printing a warning when the pic gets created so check that the
     # STDERR is exactly that error message.
-    message = '/opt/loris/bin/mri/python/lib/imaging.py:1179: UserWarning: Casting data from int32 to float32' \
+    message = '/opt/loris/bin/mri/python/lib/imaging.py:1177: UserWarning: Casting data from int32 to float32' \
               '\n  plotting.plot_anat(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""

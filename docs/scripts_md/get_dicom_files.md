@@ -9,7 +9,7 @@ perl get\_dicom\_files.pl \[-name patient\_name\_patterns\] \[-type scan\_type\_
 
 Available options are:
 
-\-profile : name of the config file in `../dicom-archive/.loris_mri` (typically `prod`)
+\-profile : name of the config file in `../config` (typically `prod`)
 
 \-name    : comma separated list of MySQL patterns for the patient names that a DICOM file
            has to have in order to be extracted. A DICOM file only has to match one of the

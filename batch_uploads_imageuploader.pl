@@ -13,7 +13,7 @@ batch mode
 
 Available options are:
 
--profile: name of the config file in C<../dicom-archive/.loris_mri>
+-profile: name of the config file in C<../config>
 
 -verbose: if set, be verbose
 
@@ -63,7 +63,7 @@ use NeuroDB::objectBroker::ConfigOB;
 
 
 my $profile   = '';
-my $upload_id = undef; 
+my $upload_id = undef;
 my ($debug, $verbose) = (0,1);
 my $stdout = '';
 my $stderr = '';
@@ -72,7 +72,7 @@ my @opt_table           = (
     [ "Basic options", "section" ],
     [
         "-profile", "string", 1, \$profile,
-        "name of config file in ../dicom-archive/.loris_mri"
+        "name of config file in ../config"
     ],
     ["-verbose", "boolean", 1,   \$verbose, "Be verbose."]
 );
@@ -119,10 +119,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -158,7 +158,7 @@ my $is_qsub   = $configOB->getIsQsub();
 
 
 
-my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/imuploadstdout.log", 
+my ($stdoutbase, $stderrbase) = ("$data_dir/batch_output/imuploadstdout.log",
 				 "$data_dir/batch_output/imuploadstderr.log");
 
 while($_ = $ARGV[0] // '', /^-/) {
@@ -201,7 +201,7 @@ foreach my $input (@fullpatharray)
     my $phantom     = $phantomarray[$counter-1];
     my $patientname = $patientnamearray[$counter-1];
 
-    ## Ensure that 
+    ## Ensure that
     ## 1) the uploaded file is of type .tgz or .tar.gz or .zip
     ## 2) check that input file provides phantom details (Y for phantom, N for real candidates)
     ## 3) for non-phantoms, the patient name and path entries are identical; this mimics the imaging uploader in the front-end
@@ -235,7 +235,7 @@ foreach my $input (@fullpatharray)
 	}
     }
 
-    ## Populate the mri_upload table with necessary entries and get an upload_id 
+    ## Populate the mri_upload table with necessary entries and get an upload_id
 
     $upload_id = insertIntoMRIUpload(\$dbh,
 				     $patientname,

@@ -9,8 +9,6 @@ import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.nifti_insertion_pipeline import NiftiInsertionPipeline
 from lib.lorisgetopt import LorisGetOpt
 
-__license__ = "GPLv3"
-
 sys.path.append('/home/user/python')
 
 
@@ -32,7 +30,7 @@ def main():
         "usage  : run_nifti_insertion.py -p <profile> -n <nifti_path> -j <json_path> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-n, --nifti_path         : Absolute path to the NIfTI file to insert\n"
         "\t-j, --json_path          : Absolute path to the BIDS JSON sidecar file with scan parameters\n"
         "\t-l, --bval_path          : Absolute path to the NIfTI BVAL file for DWI acquisitions\n"
@@ -46,7 +44,6 @@ def main():
         "\t-v, --verbose            : If set, be verbose\n\n"
 
         "required options are: \n"
-        "\t--profile\n"
         "\t--nifti_path\n"
         "\t--json_path OR --loris_scan_type\n"
         "\t--tarchive_path OR --upload_id\n"
@@ -55,7 +52,7 @@ def main():
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "nifti_path": {
             "value": None, "required": True, "expect_arg": True, "short_opt": "n", "is_path": True

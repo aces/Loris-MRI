@@ -13,7 +13,7 @@ perl mass_perldoc_md_creation.pl C<[options]>
 
 Available options are:
 
--profile: name of the config file in C<../dicom-archive/.loris_mri>
+-profile: name of the config file in C<../config>
 
 -verbose: be verbose (boolean)
 
@@ -129,7 +129,7 @@ my @script_list = (
 my $profile;
 my $verbose = 0;
 
-my $profile_desc = "name of config file in ../dicom-archive/.loris_mri";
+my $profile_desc = "name of config file in ../config";
 
 my @opt_table = (
     [ "-profile", "string",  1, \$profile, $profile_desc ],
@@ -165,10 +165,10 @@ if ( !$profile ) {
     print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-        . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+        . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 

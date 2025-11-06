@@ -15,8 +15,6 @@ from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env
 from lib.util.fs import copy_file, extract_archive, remove_directory
 
-__license__ = "GPLv3"
-
 sys.path.append('/home/user/python')
 
 
@@ -33,17 +31,14 @@ def main():
         "usage  : extract_eeg_bids_archive.py -p <profile> -u <upload_id> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-u, --upload_id          : ID of the upload (from electrophysiology_uploader) of the EEG archive\n"
         "\t-v, --verbose            : If set, be verbose\n\n"
-
-        "required options are: \n"
-        "\t--profile\n"
     )
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "upload_id": {
             "value": None, "required": False, "expect_arg": True, "short_opt": "u", "is_path": False

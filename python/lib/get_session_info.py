@@ -17,7 +17,7 @@ from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.db.queries.site import try_get_site_with_alias
 from lib.db.queries.visit import try_get_visit_window_with_visit_label, try_get_visit_with_visit_label
 from lib.env import Env
-from lib.scanner import MriScannerInfo, get_or_create_scanner
+from lib.imaging_lib.mri_scanner import MriScannerInfo, get_or_create_scanner
 
 
 @dataclass
@@ -259,7 +259,7 @@ def create_session(
         hardcopy_request = '-',
         mri_qc_status    = '',
         mri_qc_pending   = False,
-        mri_caveat       = 'true',
+        mri_caveat       = True,
     )
 
     env.db.add(session)

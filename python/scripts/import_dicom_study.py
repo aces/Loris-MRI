@@ -60,8 +60,8 @@ def main() -> None:
         "Usage: import_dicom_study.py -p <profile> -s <source_dir> ...\n"
         "\n"
         "Options: \n"
-        "\t-p, --profile   : Name of the LORIS Python configuration file (usually\n"
-        "\t                  'database_config.py')\n"
+        "\t-p, --profile   : Name of the LORIS Python configuration file (default:\n"
+        "\t                  'config.py')\n"
         "\t-s, --source    : Path of the source directory containing the DICOM files of the"
         "\t                  study.\n"
         "\t    --overwrite : Overwrite the DICOM archive file if it already exists.\n"
@@ -74,7 +74,6 @@ def main() -> None:
         "\t-v, --verbose   : If set, be verbose\n"
         "\n"
         "Required options: \n"
-        "\t--profile\n"
         "\t--source\n"
     )
 
@@ -82,7 +81,7 @@ def main() -> None:
     # repeat the long names.
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "source": {
             "value": None, "required": True,  "expect_arg": True, "short_opt": "s", "is_path": True,

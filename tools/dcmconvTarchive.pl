@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 # Jonathan Harlap 2006
 # jharlap@bic.mni.mcgill.ca
 # Perl tool to run dcmconv on all the dicom files in a dicomTar archive.
@@ -38,8 +38,8 @@ my @arg_table =
 	 (
 	  ["General options", "section"],
 	  ["-database", "boolean", 1, \$database, "Enable dicomTar's database features"],
-	  ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory"],
-	 
+	  ["-profile","string",1, \$profile, "Specify the name of the config file which resides in the config directory"],
+
 	  ["-verbose", "boolean", 1, \$verbose, "Be verbose."],
 	  ["-version", "call", undef, \&handle_version_option, "Print version and revision number and exit"],
 		);
@@ -61,10 +61,10 @@ if ( !$profile ) {
 	print STDERR "$Usage\n\tERROR: missing -profile argument\n\n";
 	exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
 	print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-		. "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+		. "$ENV{LORIS_CONFIG}/$profile \n\n";
 	exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -121,12 +121,12 @@ my $find_handler = sub {
 		  $dicom->fill($file);
 		  my $fileIsDicom = 1;
 		  my $studyUID = $dicom->value('0020','000D');
-		  
+
 		  # see if the file was really dicom
 		  if($studyUID eq "") {
 				$fileIsDicom = 0;
 		  }
-		  
+
 		  if($fileIsDicom) {
               dcmconv($file);
 		  }
@@ -180,13 +180,13 @@ sub extract_tarchive {
 	 $dcmdir =~ s/\.tar\.gz$//;
 
 	 `cd $tempdir ; tar -xzf $dcmtar`;
-	 
+
 	 return $dcmdir;
 }
 
 sub dcmconv {
 	 my ($file) = @_;
-	 
+
 	 my $cmd = "dcmconv '${file}' '${file}'";
 	 `$cmd`;
 }

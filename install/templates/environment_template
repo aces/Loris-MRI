@@ -9,11 +9,10 @@ umask 0002
 export PATH=/opt/${PROJECT}/bin/mri:/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/uploadNeuroDB/bin:/opt/${PROJECT}/bin/mri/dicom-archive:/opt/${PROJECT}/bin/mri/python/scripts:/opt/${PROJECT}/bin/mri/tools:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer:${MINC_TOOLKIT_DIR}/bin:/usr/local/bin/tpcclib:$PATH
 export PERL5LIB=/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/dicom-archive:$PERL5LIB
 export TMPDIR=/tmp
-export LORIS_CONFIG=/opt/${PROJECT}/bin/mri/dicom-archive
+export LORIS_CONFIG=/opt/${PROJECT}/bin/mri/config
 
 # for the Python scripts
 export LORIS_MRI=/opt/${PROJECT}/bin/mri
-export PYTHONPATH=$PYTHONPATH:/opt/${PROJECT}/bin/mri/python:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer
 source /opt/${PROJECT}/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
 
 # for the defacing scripts

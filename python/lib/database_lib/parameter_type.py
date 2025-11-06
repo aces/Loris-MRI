@@ -1,7 +1,5 @@
 """This class performs parameter_type* related database queries"""
 
-__license__ = "GPLv3"
-
 
 class ParameterType:
     """

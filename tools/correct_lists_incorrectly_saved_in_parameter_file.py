@@ -6,9 +6,6 @@ from lib.database import Database
 from lib.lorisgetopt import LorisGetOpt
 
 
-__license__ = 'GPLv3'
-
-
 def main():
     usage = (
         "\n"
@@ -24,7 +21,7 @@ def main():
         "usage  : correct_lists_incorrectly_saved_in_parameter_file.py -p <profile> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile  : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile  : Name of the python database config file in config\n"
         "\t-v, --verbose  : If set, be verbose\n\n"
 
         "required options are: \n"

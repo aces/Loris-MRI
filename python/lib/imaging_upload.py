@@ -4,8 +4,6 @@ from typing_extensions import deprecated
 
 from lib.database_lib.mri_upload_db import MriUploadDB
 
-__license__ = "GPLv3"
-
 
 @deprecated('Use `lib.db.models.mri_upload.DbMriUpload` instead')
 class ImagingUpload:

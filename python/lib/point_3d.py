@@ -1,7 +1,5 @@
 """This class represents a Point with 3D coordinates"""
 
-__license__ = "GPLv3"
-
 
 class Point3D:
     def __init__(self, pid: int, x: float, y: float, z: float):

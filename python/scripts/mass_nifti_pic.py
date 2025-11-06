@@ -8,12 +8,10 @@ import re
 import sys
 
 import lib.exitcode
+from lib.config_file import load_config
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.imaging import Imaging
-
-__license__ = "GPLv3"
-
 
 sys.path.append('/home/user/python')
 
@@ -22,7 +20,7 @@ sys.path.append('/home/user/python')
 # sys.tracebacklimit = 0
 
 def main():
-    profile     = ''
+    profile     = None
     verbose     = False
     force       = False
     smallest_id = None
@@ -36,8 +34,8 @@ def main():
         '\n'
         'usage  : mass_nifti_pic.py -p <profile> -s <smallest_id> -l <largest_id>\n\n'
         'options: \n'
-        '\t-p, --profile    : name of the python database config file in '
-                              'dicom-archive/.loris-mri\n'
+        '\t-p, --profile    : name of the python database config file in the config'
+                              ' directory\n'
         '\t-s, --smallest_id: smallest FileID for which the pic will be created\n'
         '\t-l, --largest_id : largest FileID for which the pic will be created\n'
         '\t-f, --force      : overwrite the pic already present in the filesystem with new pic\n'
@@ -55,7 +53,7 @@ def main():
             print(usage)
             sys.exit()
         elif opt in ('-p', '--profile'):
-            profile = os.environ['LORIS_CONFIG'] + "/.loris_mri/" + arg
+            profile = arg
         elif opt in ('-s', '--smallest_id'):
             smallest_id = int(arg)
         elif opt in ('-l', '--largest_id'):
@@ -66,7 +64,8 @@ def main():
             verbose = True
 
     # input error checking and load config_file file
-    config_file = input_error_checking(profile, smallest_id, largest_id, usage)
+    config_file = load_config(profile)
+    input_error_checking(smallest_id, largest_id, usage)
 
     # create pic for NIfTI files with a FileID between smallest_id and largest_id
     if (smallest_id == largest_id):
@@ -76,40 +75,17 @@ def main():
             make_pic(file_id, config_file, force, verbose)
 
 
-def input_error_checking(profile, smallest_id, largest_id, usage):
+def input_error_checking(smallest_id, largest_id, usage):
     """
-    Checks whether the required inputs are correctly set. If
-    the path to the config_file file valid, then it will import the file as a
-    module so the database connection information can be used to connect.
+    Checks whether the required inputs are correctly set.
 
-    :param profile    : path to the profile file with MySQL credentials
-     :type profile    : str
     :param smallest_id: smallest FileID for which to create the pic
      :type smallest_id: int
     :param largest_id : largest FileID for which to create the pic
      :type largest_id : int
     :param usage      : script usage to be displayed when encountering an error
      :type usage      : str
-
-    :return: config_file module with database credentials (config_file.mysql)
-     :rtype: module
     """
-
-    if not profile:
-        message = '\n\tERROR: you must specify a profile file using -p or ' \
-                  '--profile option'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.MISSING_ARG)
-
-    if os.path.isfile(profile):
-        sys.path.append(os.path.dirname(profile))
-        config_file = __import__(os.path.basename(profile[:-3]))
-    else:
-        message = f'\n\tERROR: you must specify a valid profile file.\n{profile} does not exist!'
-        print(message)
-        print(usage)
-        sys.exit(lib.exitcode.INVALID_PATH)
 
     if not smallest_id:
         message = '\n\tERROR: you must specify a smallest FileID on which to run the' \
@@ -131,8 +107,6 @@ def input_error_checking(profile, smallest_id, largest_id, usage):
         print(message)
         print(usage)
         sys.exit(lib.exitcode.INVALID_ARG)
-
-    return config_file
 
 
 def make_pic(file_id, config_file, force, verbose):

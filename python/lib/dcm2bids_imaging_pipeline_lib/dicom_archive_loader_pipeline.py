@@ -8,8 +8,6 @@ import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.logging import log_error_exit, log_verbose
 
-__license__ = "GPLv3"
-
 
 class DicomArchiveLoaderPipeline(BasePipeline):
     """
@@ -112,10 +110,11 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         validation_command = [
             "run_dicom_archive_validation.py",
-            "-p", self.options_dict["profile"]["value"],
             "-t", self.tarchive_path,
             "-u", str(self.mri_upload.id)
         ]
+        if self.options_dict["profile"]["value"] is not None:
+            validation_command.extend(['-p', self.options_dict["profile"]["value"]])
         if self.verbose:
             validation_command.append("-v")
 
@@ -300,12 +299,13 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         nifti_insertion_command = [
             "run_nifti_insertion.py",
-            "-p", self.options_dict["profile"]["value"],
             "-u", str(self.mri_upload.id),
             "-n", nifti_file_path,
             "-j", json_file_path,
             "-c"
         ]
+        if self.options_dict["profile"]["value"] is not None:
+            nifti_insertion_command.extend(['-p', self.options_dict["profile"]["value"]])
         if bval_file_path:
             nifti_insertion_command.extend(["-l", bval_file_path])
         if bvec_file_path:

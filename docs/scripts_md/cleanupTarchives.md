@@ -8,7 +8,7 @@ perl cleanupTarchives.pl `[options]`
 
 Available options are:
 
-\-profile: name of the config file in `../dicom-archive/.loris-mri`
+\-profile: name of the config file in `../config`
 
 # DESCRIPTION
 

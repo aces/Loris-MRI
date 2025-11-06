@@ -10,7 +10,6 @@ def test_import_dicom_study():
 
     process = run_integration_script([
         'import_dicom_study.py',
-        '--profile', 'database_config.py',
         '--source', '/data/loris/incoming/ROM168_400168_V2',
         '--insert', '--session',
     ])

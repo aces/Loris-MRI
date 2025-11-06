@@ -2,9 +2,6 @@
 Perl ones that are in uploadNeuroDB/NeuroDB/ExitCodes.pm"""
 
 
-__license__ = "GPLv3"
-
-
 # -- Script ran successfully
 SUCCESS = 0  # yeah!! Success!!
 

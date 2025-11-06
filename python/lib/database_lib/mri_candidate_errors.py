@@ -1,9 +1,6 @@
 """This class performs database queries for the MRICandidateErrors table"""
 
 
-__license__ = "GPLv3"
-
-
 class MriCandidateErrors:
     """
     This class performs database queries for imaging dataset stored in the MRICandidateErrors table.

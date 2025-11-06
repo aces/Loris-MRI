@@ -2,8 +2,6 @@
 
 from lib.database_lib.parameter_type import ParameterType
 
-__license__ = "GPLv3"
-
 
 class Files:
     """

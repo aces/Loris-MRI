@@ -1,9 +1,6 @@
 """This class performs database queries for the physiological_event_archive table"""
 
 
-__license__ = "GPLv3"
-
-
 class PhysiologicalEventArchive:
 
     def __init__(self, db, verbose):

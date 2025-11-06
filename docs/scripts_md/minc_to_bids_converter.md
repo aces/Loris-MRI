@@ -8,7 +8,7 @@ dataset from the MINC files present in the `assembly/` directory.
 perl tools/minc\_to\_bids\_converter.pl `[options]`
 
 Available options are:
-\-profile             : name of the config file in `../dicom-archive/.loris_mri`
+\-profile             : name of the config file in `../config`
 \-tarchive\_id         : The ID of the DICOM archive to be converted into a BIDS
                        dataset (optional, if not set, convert all DICOM archives)
 \-dataset\_name        : Name/Description of the dataset to be generated in BIDS

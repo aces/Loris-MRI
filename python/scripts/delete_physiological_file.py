@@ -24,20 +24,19 @@ def main():
         "usage  : delete_physiological_file.py -f file_id -p <profile> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile      : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile      : Name of the python database config file in config\n"
         "\t-f, --fileid       : Id of the file (PhysiologicalFileID) to delete\n"
         "\t-c, --confirm      : After a trial run, perform the deletion\n"
         "\t-d, --deleteondisk : Delete files on disk\n"
         "\t-v, --verbose      : If set, be verbose\n\n"
 
         "required options are: \n"
-        "\t--profile\n"
         "\t--fileid\n"
     )
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "fileid": {
             "value": None, "required": True, "expect_arg": True, "short_opt": "f", "is_path": False

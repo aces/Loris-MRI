@@ -17,8 +17,7 @@ Available options are:
 \-dbreplace : use this option only if the DICOM data changed and need to be updated
              in the database
 
-\-profile   : specify the name of the config file residing in `.loris_mri` of the
-             current directory
+\-profile   : specify the name of the config file residing in the config directory
 
 \-tmp       : to specify a temporary directory. It will contain the summaries if
              used with -noscreen option

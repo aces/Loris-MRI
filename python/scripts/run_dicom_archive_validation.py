@@ -8,9 +8,6 @@ import sys
 from lib.dcm2bids_imaging_pipeline_lib.dicom_validation_pipeline import DicomValidationPipeline
 from lib.lorisgetopt import LorisGetOpt
 
-__license__ = "GPLv3"
-
-
 sys.path.append('/home/user/python')
 
 # to limit the traceback when raising exceptions.
@@ -35,20 +32,19 @@ def main():
         "usage  : dicom_archive_validation -p <profile> -t <tarchive_path> -u <upload_id>\n\n"
 
         "options: \n"
-        "\t-p, --profile      : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile      : Name of the python database config file in config\n"
         "\t-t, --tarchive_path: Absolute path to the DICOM archive to validate\n"
         "\t-u, --upload_id    : ID of the upload (from mri_upload) associated with the DICOM archive to validate\n"
         "\t-v, --verbose      : If set, be verbose\n\n"
 
         "required options are: \n"
-        "\t--profile\n"
         "\t--tarchive_path\n"
         "\t--upload_id\n\n"
     )
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "tarchive_path": {
             "value": None, "required": True, "expect_arg": True, "short_opt": "t", "is_path": True

@@ -12,7 +12,7 @@ perl batch_run_pipeline_qc_face_script.pl [-profile file] [-out_basedir director
 
 Available options are:
 
--profile: name of config file in ../dicom-archive/.loris_mri (typically called prod)
+-profile: name of config file in ../config (typically called prod)
 
 -out_basedir: path to the output base directory where the jpg will be created
 
@@ -65,8 +65,8 @@ my $profile;
 my $out_basedir;
 
 my @opt_table = (
-    [ '-profile',     'string', 1, \$profile,     'name of config file in ../dicom-archive/.loris_mri'              ],
-    [ '-out_basedir', 'string', 1, \$out_basedir, 'path to the output base directory where the jpg will be created' ] 
+    [ '-profile',     'string', 1, \$profile,     'name of config file in ../config'              ],
+    [ '-out_basedir', 'string', 1, \$out_basedir, 'path to the output base directory where the jpg will be created' ]
 );
 
 my $Help = <<HELP;
@@ -74,11 +74,11 @@ my $Help = <<HELP;
 Run pipeline_qc_face.pl in batch mode
 *******************************************************************************
 
-This script creates the 3D rendering QC images on multiple MINC files. 
-The list of MINC files to use to generate those 3D JPEG images are provided 
+This script creates the 3D rendering QC images on multiple MINC files.
+The list of MINC files to use to generate those 3D JPEG images are provided
 through a text file (e.g. C<list_of_files.txt> with one file path per line.
 
-An example of what a C<list_of_files.txt> might contain for 3 files to use to 
+An example of what a C<list_of_files.txt> might contain for 3 files to use to
 create a 3D JPEG rendering of a scan to be defaced:
 
  /data/project/data/assembly/123456/V01/mri/processed/MINC_deface/project_123456_V01_t1w_001_t1w-defaced_001.mnc
@@ -90,7 +90,7 @@ Documentation: perldoc batch_run_pipeline_qc_face_script.pl
 HELP
 
 my $Usage = <<USAGE;
-usage: ./batch_run_pipeline_qc_deface_script.pl -profile prod -out_basedir /PATH/FOR/JPEG < list_of_files.txt 
+usage: ./batch_run_pipeline_qc_deface_script.pl -profile prod -out_basedir /PATH/FOR/JPEG < list_of_files.txt
        $0 -help to list options
 USAGE
 
@@ -106,19 +106,19 @@ USAGE
 
 if (!$ENV{LORIS_CONFIG}) {
     print STDERR "\n\tERROR: Environment variable 'LORIS_CONFIG' not set\n\n";
-    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR; 
+    exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
 }
 
-if ( !defined $profile || !-e "$ENV{LORIS_CONFIG}/.loris_mri/$profile") {
+if ( !defined $profile || !-e "$ENV{LORIS_CONFIG}/$profile") {
     print STDERR $Help;
     print STDERR "$Usage\n\tERROR: You must specify a valid and existing profile.\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if ( !@Settings::db ) {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -177,7 +177,7 @@ my @files_list = <STDIN>;
 #################################################################
 
 my $counter    = 0;
-my $stdoutbase = "$data_dir/batch_output/defaceqcstdout.log"; 
+my $stdoutbase = "$data_dir/batch_output/defaceqcstdout.log";
 my $stderrbase = "$data_dir/batch_output/defaceqcstderr.log";
 
 foreach my $file_in (@files_list) {
@@ -201,11 +201,7 @@ foreach my $file_in (@files_list) {
     } else {
         system($command);
     }
-} 
+}
 
 
 exit $NeuroDB::ExitCodes::SUCCESS;
-
-
-
-

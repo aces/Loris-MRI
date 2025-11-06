@@ -21,7 +21,7 @@ Available options are:
                           resulting tarball!
 
 \-profile                : Specify the name of the config file which resides in
-                          `.loris_mri` in the current directory
+                          the config directory
 
 \-centerName             : Specify the symbolic center name to be stored
                           alongside the DICOM institution

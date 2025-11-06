@@ -14,7 +14,7 @@ perl delete_imaging_upload.pl [-profile file] [-ignore] [-backup_path basename] 
 
 Available options are:
 
--profile               : name of the config file in C<../dicom-archive/.loris_mri> (defaults to C<prod>).
+-profile               : name of the config file in C<../config> (defaults to C<prod>).
 
 -ignore                : ignore files whose paths exist in the database but do not exist on the file system.
                          Default is to abort if such a file is found, irrespective of whether a backup file will
@@ -236,7 +236,7 @@ my $scanTypeList           = undef;
 
 my @opt_table = (
     ['-profile'    , 'string'       , 1, \$options{'PROFILE'},
-     'Name of config file in ../dicom-archive/.loris_mri (defaults to "prod")'],
+     'Name of config file in ../config (defaults to "prod")'],
     ['-backup_path', 'string'       , 1, \$options{'BACKUP_PATH'},
      'Path of the backup file (defaults to "imaging_upload_backup", in the current directory)'],
     ['-ignore'     , 'const'        , 0, \$options{'DIE_ON_FILE_ERROR'},
@@ -356,18 +356,18 @@ if (!$ENV{LORIS_CONFIG}) {
     exit $NeuroDB::ExitCodes::INVALID_ENVIRONMENT_VAR;
 }
 
-if (!-e "$ENV{LORIS_CONFIG}/.loris_mri/$options{'PROFILE'}") {
+if (!-e "$ENV{LORIS_CONFIG}/$options{'PROFILE'}") {
     print $Help;
-    print STDERR "Cannot read profile file '$ENV{LORIS_CONFIG}/.loris_mri/$options{'PROFILE'}'\n";
+    print STDERR "Cannot read profile file '$ENV{LORIS_CONFIG}/$options{'PROFILE'}'\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
 
 # Incorporate contents of profile file
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$options{'PROFILE'}" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$options{'PROFILE'}" }
 
 if ( !@Settings::db ) {
     print STDERR "ERROR: You don't have a \@db setting in file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$options{'PROFILE'}";
+                 . "$ENV{LORIS_CONFIG}/$options{'PROFILE'}";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 

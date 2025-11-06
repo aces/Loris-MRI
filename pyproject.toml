@@ -1,5 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
+name = "loris-mri"
+version = "27.0.0"
+description = "The LORIS Python scripts"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">= 3.11"
+dependencies = [
+    "boto3==1.35.99",
+    "google",
+    "mat73",
+    "matplotlib",
+    "mne",
+    "mne-bids>=0.14",
+    "mysqlclient",
+    "nibabel",
+    "nilearn",
+    "nose",
+    "numpy",
+    "protobuf>=3.0.0",
+    "pybids==0.17.0",
+    "pydicom",
+    "python-dateutil",
+    "scikit-learn",
+    "scipy",
+    "sqlalchemy>=2.0.0",
+    "virtualenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyright",
+    "pytest",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/aces/loris-mri"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "python/lib",
+    "python/react-series-data-viewer",
+    "python/tests",
+]
 
 [tool.ruff]
 src = ["python"]
@@ -19,6 +67,7 @@ select = ["E", "EXE", "F", "I", "N", "UP", "W"]
 include = [
     "python/tests",
     "python/lib/db",
+    "python/lib/imaging_lib",
     "python/lib/import_dicom_study",
     "python/lib/util",
     "python/lib/bids.py",
@@ -28,7 +77,6 @@ include = [
     "python/lib/get_session_info.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
-    "python/lib/scanner.py",
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
 ]

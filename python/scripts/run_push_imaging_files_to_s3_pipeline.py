@@ -8,8 +8,6 @@ import sys
 from lib.dcm2bids_imaging_pipeline_lib.push_imaging_files_to_s3_pipeline import PushImagingFilesToS3Pipeline
 from lib.lorisgetopt import LorisGetOpt
 
-__license__ = "GPLv3"
-
 sys.path.append('/home/user/python')
 
 
@@ -28,18 +26,17 @@ def main():
         "usage  : run_push_imaging_files_to_s3_pipeline.py -p <profile> -u <upload_id> ...\n\n"
 
         "options: \n"
-        "\t-p, --profile            : Name of the python database config file in dicom-archive/.loris_mri\n"
+        "\t-p, --profile            : Name of the python database config file in config\n"
         "\t-u, --upload_id          : ID of the upload (from mri_upload) related to the DICOM archive to process\n"
         "\t-v, --verbose            : If set, be verbose\n\n"
 
         "required options are: \n"
-        "\t--profile\n"
         "\t--upload_id\n"
     )
 
     options_dict = {
         "profile": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "p", "is_path": False
+            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
         },
         "upload_id": {
             "value": None, "required": True, "expect_arg": True, "short_opt": "u", "is_path": False

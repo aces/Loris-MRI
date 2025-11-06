@@ -3,8 +3,6 @@
 
 from typing_extensions import deprecated
 
-__license__ = "GPLv3"
-
 
 @deprecated('Use `lib.db.models.visit_window.DbVisitWindow` instead')
 class VisitWindows:

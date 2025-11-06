@@ -12,7 +12,7 @@ perl imaging_non_minc_insertion.pl C<[options]>
 
 Available options are:
 
--profile       : name of the config file in C<../dicom-archive/.loris-mri> (required)
+-profile       : name of the config file in C<../config> (required)
 
 -file_path     : file to register into the database (full path from the root
                  directory is required) (required)
@@ -121,7 +121,7 @@ Usage: perl imaging_non_minc_insertion.pl [options]
 USAGE
 
 # Set the variable descriptions to be used by Getopt::Tabular
-my $profile_desc       = "name of config file in ./dicom-archive/.loris_mri.";
+my $profile_desc       = "name of config file in ./config.";
 my $file_path_desc     = "file to register into the database (full path from "
                          . "the root directory is required)";
 my $upload_id_desc     = "ID of the uploaded imaging archive containing the "
@@ -174,10 +174,10 @@ if  ( !$profile ) {
     print STDERR "$Usage\n\tERROR: You must specify a profile.\n\n";
     exit $NeuroDB::ExitCodes::PROFILE_FAILURE;
 }
-{ package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" }
+{ package Settings; do "$ENV{LORIS_CONFIG}/$profile" }
 if  ( !@Settings::db )    {
     print STDERR "\n\tERROR: You don't have a \@db setting in the file "
-                 . "$ENV{LORIS_CONFIG}/.loris_mri/$profile \n\n";
+                 . "$ENV{LORIS_CONFIG}/$profile \n\n";
     exit $NeuroDB::ExitCodes::DB_SETTINGS_FAILURE;
 }
 
@@ -593,4 +593,3 @@ License: GPLv3
 LORIS community <loris.info@mcin.ca> and McGill Centre for Integrative Neuroscience
 
 =cut
-

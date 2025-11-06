@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 # Jonathan Harlap
 # jharlap@bic.mni.mcgill.ca
 # Perl tool based on DCMSUM.pm and DICOM.pm to populate the series and file tables for a tarchive
@@ -41,7 +41,7 @@ Usage:\n\t $0 </PATH/TO/TARCHIVE.tar> [options]
 my @arg_table =
     (
      ["Main options","section"],
-     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in .loris_mri in the current directory."],
+     ["-profile","string",1, \$profile, "Specify the name of the config file which resides in the config directory."],
 
      ["General options", "section"],
      ["-verbose","boolean",1,  \$verbose, "Be verbose."],
@@ -54,8 +54,8 @@ GetOptions(\@arg_table, \@ARGV) || exit 1;
 if ($version) { print "$versionInfo\n"; exit; }
 
 # checking for profile settings
-if($profile && -f "$ENV{LORIS_CONFIG}/.loris_mri/$profile") { { package Settings; do "$ENV{LORIS_CONFIG}/.loris_mri/$profile" } }    
-if ($profile && !@Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/.loris_mri/ \n\n"; exit 33; }
+if($profile && -f "$ENV{LORIS_CONFIG}/$profile") { { package Settings; do "$ENV{LORIS_CONFIG}/$profile" } }
+if ($profile && !@Settings::db) { print "\n\tERROR: You don't have a configuration file named '$profile' in:  $ENV{LORIS_CONFIG}/ \n\n"; exit 33; }
 
 
 # basic error checking on tarchive
@@ -66,7 +66,7 @@ my $tarchive = abs_path($ARGV[0]);
 my $dbh;
 $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db); print "Testing for database connectivity. \n" if $verbose; $dbh->disconnect(); print "Database is available.\n\n" if $verbose;
 
-####################### main ########################################### main ########################################### 
+####################### main ########################################### main ###########################################
 
 my ($studyUnique, $metaname, @metaFiles, $dcmdir, $sumTypeVersion);
 
@@ -97,11 +97,11 @@ $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
 my $tarchiveID;
 my $tarchiveBasename = basename($tarchive);
 (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT 
-  TarchiveID 
-FROM 
-  tarchive 
-WHERE 
+SELECT
+  TarchiveID
+FROM
+  tarchive
+WHERE
   DicomArchiveID=?
   AND ArchiveLocation like ?
 QUERY
@@ -137,17 +137,17 @@ $dbh->execute($tarchiveID);
 
 # now create the tarchive_series records
 ($query = <<QUERY) =~ s/\n/ /gm;
-INSERT INTO 
-  tarchive_series 
+INSERT INTO
+  tarchive_series
     (
-     TarchiveID,    SeriesNumber,   SeriesDescription, SequenceName, 
-     EchoTime,      RepetitionTime, InversionTime,     SliceThickness, 
+     TarchiveID,    SeriesNumber,   SeriesDescription, SequenceName,
+     EchoTime,      RepetitionTime, InversionTime,     SliceThickness,
      PhaseEncoding, NumberOfFiles,  SeriesUID
-    ) 
+    )
   VALUES
     (
-     ?,             ?,              ?,                 ?, 
-     ?,             ?,              ?,                 ?, 
+     ?,             ?,              ?,                 ?,
+     ?,             ?,              ?,                 ?,
      ?,             ?,              ?
     )
 QUERY
@@ -155,10 +155,10 @@ my $insert_series = $dbh->prepare($query);
 foreach my $acq (@{$summary->{acqu_List}}) {
     # insert the series
     my ($seriesNum, $sequName,  $echoT, $repT, $invT, $seriesName, $sl_thickness, $phaseEncode, $seriesUID, $num) = split(':::',$acq);
-    my @values = 
+    my @values =
       (
-       $tarchiveID,  $seriesNum, $seriesName, $sequName,  
-       $echoT,       $repT,      $invT,       $sl_thickness, 
+       $tarchiveID,  $seriesNum, $seriesName, $sequName,
+       $echoT,       $repT,      $invT,       $sl_thickness,
        $phaseEncode, $num,       $seriesUID
       );
     $insert_series->execute(@values);
@@ -166,15 +166,15 @@ foreach my $acq (@{$summary->{acqu_List}}) {
 
 # now create the tarchive_files records
 ($query = <<QUERY) =~ s/\n/ /gm;
-INSERT INTO 
-  tarchive_files 
+INSERT INTO
+  tarchive_files
     (
-     TarchiveID,        SeriesNumber, FileNumber, EchoNumber, 
+     TarchiveID,        SeriesNumber, FileNumber, EchoNumber,
      SeriesDescription, Md5Sum,       FileName
-    ) 
-  VALUES 
+    )
+  VALUES
     (
-     ?,                 ?,            ?,          ?, 
+     ?,                 ?,            ?,          ?,
      ?,                 ?,            ?
     )
 QUERY
@@ -185,17 +185,17 @@ foreach my $file (@{$summary->{'dcminfo'}}) {
     $filename =~ s/^${TmpDir}\///;
     my @values;
     if($file->[21]) { # file is dicom
-        @values = 
+        @values =
           (
-           $tarchiveID, $file->[1],  $file->[3], $file->[2], 
+           $tarchiveID, $file->[1],  $file->[3], $file->[2],
            $file->[12], $file->[20], $filename
           );
         $insert_file->execute(@values);
     } else {
         @values =
           (
-           $tarchiveID, undef,       undef,     undef, 
-           undef,       $file->[20], $filename 
+           $tarchiveID, undef,       undef,     undef,
+           undef,       $file->[20], $filename
           );
         $insert_file->execute(@values);
     }
@@ -207,11 +207,11 @@ exit;
 
 
 ######################################################################### end main ####################
-=pod 
+=pod
 ################################################
 Extract a tarchive into a temp dir
 ################################################
-=cut 
+=cut
 sub extract_tarchive {
 	 my ($tarchive, $tempdir) = @_;
 
@@ -233,7 +233,6 @@ sub extract_tarchive {
 	 $dcmdir =~ s/\.tar\.gz$//;
 
 	 `cd $tempdir ; tar -xzf $dcmtar`;
-	 
+
 	 return $dcmdir;
 }
-
