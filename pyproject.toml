@@ -58,7 +58,7 @@ preview = true
 
 [tool.ruff.lint]
 ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
-select = ["E", "EXE", "F", "I", "N", "UP", "W"]
+select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
 
 # The strict type checking configuration is used to type check only the modern (typed) modules. An
 # additional basic type checking configuration to type check legacy modules can be found in the

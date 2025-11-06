@@ -519,10 +519,10 @@ class Physiological:
 
         # define modality (MEG, iEEG, EEG)
         try:
-            modality = [
+            modality = next(
                 k for k in electrode_metadata.keys()
                 if k.endswith('CoordinateSystem')
-            ][0].rstrip('CoordinateSystem')
+            ).rstrip('CoordinateSystem')
             modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name(modality.lower())
             if modality_id is None:
                 print(f"Modality {modality} unknown in DB")
@@ -533,10 +533,10 @@ class Physiological:
 
         # type (Fiducials, AnatomicalLandmark, HeadCoil, DigitizedHeapPoints)
         try:
-            coord_system_type = [
+            coord_system_type = next(
                 k for k in electrode_metadata.keys()
                 if k.endswith('CoordinateSystem') and not k.startswith(modality)
-            ][0].rstrip('CoordinateSystem')
+            ).rstrip('CoordinateSystem')
             type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name(coord_system_type)
             if type_id is None:
                 print(f"Type {coord_system_type} unknown in DB")
@@ -1120,8 +1120,8 @@ class Physiological:
         archive_fields = ()
         archive_values = ()
         for key, value in archive_info.items():
-            archive_fields = archive_fields + (key,)
-            archive_values = archive_values + (value,)
+            archive_fields = (*archive_fields, key)
+            archive_values = (*archive_values, value)
         self.db.insert(
             table_name   = 'physiological_archive',
             column_names = archive_fields,

@@ -55,7 +55,7 @@ class MriUploadDB:
 
         query += ' WHERE UploadID = %s'
 
-        args = values + (upload_id,)
+        args = (*values, upload_id)
 
         self.db.update(query=query, args=args)
 
