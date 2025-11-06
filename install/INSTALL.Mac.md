@@ -68,16 +68,16 @@ brew install python3
 pip install virtualenv
 ```
 
-- Create the LORIS-MRI virtual python environment
+- Create the LORIS-MRI Python virtual environment
 
 ```
-virtualenv /data/$PROJECT/bin/mri/python_virtualenvs/loris-mri-python
+virtualenv /data/$PROJECT/bin/mri/.venv
 ```
 
-- Source the `loris-mri-python` virtual environment to install python library dependencies
+- Source the LORIS-MRI Python virtual environment to install python library dependencies
 
 ```
-source /data/$PROJECT/bin/mri/python_virtualenvs/loris-mri-python/bin/activate
+source /data/$PROJECT/bin/mri/.venv/bin/activate
 ```
 
 - Install all python library dependencies
@@ -128,4 +128,3 @@ cd /data/$PROJ/bin/mri/install
 sh imaging_install_MacOSX.sh
 ```
 Note: $PROJ = project name. By default we recommend `loris`
-

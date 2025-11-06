@@ -1,6 +1,6 @@
 **/__pycache__/*
 *.pyc
+.venv
 config/
-python_virtualenvs/
 environment
 **/.DS_Store
