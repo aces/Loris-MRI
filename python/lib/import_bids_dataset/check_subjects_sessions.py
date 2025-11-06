@@ -271,7 +271,7 @@ def create_bids_session(env: Env, candidate: DbCandidate, cohort: DbCohort | Non
         env,
         (
             "Creating session with:\n"
-            f"  PSCID       = {candidate.cand_id}\n"
+            f"  PSCID       = {candidate.psc_id}\n"
             f"  Visit label = {visit_label}"
         )
     )
