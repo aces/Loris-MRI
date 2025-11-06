@@ -210,6 +210,8 @@ def create_bids_candidate(env: Env, tsv_participant: BidsTsvParticipant) -> DbCa
         )
     )
 
+    now = datetime.now()
+
     candidate = DbCandidate(
         cand_id                 = cand_id,
         psc_id                  = psc_id,
@@ -217,6 +219,11 @@ def create_bids_candidate(env: Env, tsv_participant: BidsTsvParticipant) -> DbCa
         sex                     = sex,
         registration_site_id    = site.id,
         registration_project_id = project.id,
+        user_id                 = 'imaging.py',
+        entity_type             = 'Human',
+        date_active             = now,
+        date_registered         = now,
+        active                  = True,
     )
 
     env.db.add(candidate)
@@ -270,12 +277,20 @@ def create_bids_session(env: Env, candidate: DbCandidate, cohort: DbCohort | Non
     )
 
     session = DbSession(
-        candidate_id  = candidate.id,
-        visit_label   = visit_label,
-        current_stage = 'Not Started',
-        site_id       = candidate.registration_site_id,
-        project_id    = candidate.registration_project_id,
-        cohort_id     = cohort.id,
+        candidate_id     = candidate.id,
+        visit_label      = visit_label,
+        current_stage    = 'Not Started',
+        site_id          = candidate.registration_site_id,
+        project_id       = candidate.registration_project_id,
+        cohort_id        = cohort.id,
+        scan_done        = True,
+        submitted        = False,
+        active           = True,
+        user_id          = '',
+        hardcopy_request = '-',
+        mri_qc_status    = '',
+        mri_qc_pending   = False,
+        mri_caveat       = True,
     )
 
     env.db.add(session)
