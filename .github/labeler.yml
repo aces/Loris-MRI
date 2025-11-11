@@ -1,0 +1,7 @@
+"Language: Perl":
+- changed-files:
+  - any-glob-to-any-file: ['**/*.pl', '**/*.pm']
+
+"Language: Python":
+- changed-files:
+  - any-glob-to-any-file: '**/*.py'
