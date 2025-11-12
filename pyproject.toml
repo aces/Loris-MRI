@@ -45,7 +45,7 @@ Homepage = "https://github.com/aces/loris-mri"
 [tool.hatch.build.targets.wheel]
 packages = [
     "python/lib",
-    "python/react-series-data-viewer",
+    "python/loris_eeg_chunker",
     "python/tests",
 ]
 

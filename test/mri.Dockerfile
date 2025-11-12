@@ -85,7 +85,7 @@ RUN bash ./test/imaging_install_test.sh $DATABASE_NAME $DATABASE_USER $DATABASE_
 # Setup the LORIS-MRI environment variables
 ENV PROJECT=loris
 ENV MINC_TOOLKIT_DIR=/opt/minc/1.9.18
-ENV PATH=/opt/${PROJECT}/bin/mri:/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/uploadNeuroDB/bin:/opt/${PROJECT}/bin/mri/dicom-archive:/opt/${PROJECT}/bin/mri/python/scripts:/opt/${PROJECT}/bin/mri/tools:/opt/${PROJECT}/bin/mri/python/react-series-data-viewer:${MINC_TOOLKIT_DIR}/bin:/usr/local/bin/tpcclib:$PATH
+ENV PATH=/opt/${PROJECT}/bin/mri:/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/uploadNeuroDB/bin:/opt/${PROJECT}/bin/mri/dicom-archive:/opt/${PROJECT}/bin/mri/python/scripts:/opt/${PROJECT}/bin/mri/tools:/opt/${PROJECT}/bin/mri/python/loris_eeg_chunker:${MINC_TOOLKIT_DIR}/bin:/usr/local/bin/tpcclib:$PATH
 ENV PERL5LIB=/opt/${PROJECT}/bin/mri/uploadNeuroDB:/opt/${PROJECT}/bin/mri/dicom-archive:$PERL5LIB
 ENV TMPDIR=/tmp
 ENV LORIS_CONFIG=/opt/${PROJECT}/bin/mri/config

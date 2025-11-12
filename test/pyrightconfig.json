@@ -1,6 +1,6 @@
 {
     "include": ["../python"],
-    "exclude": ["../python/react-series-data-viewer"],
+    "exclude": ["../python/loris_eeg_chunker"],
     "typeCheckingMode": "off",
     "reportDeprecated": "warning",
     "reportAbstractUsage": "error",

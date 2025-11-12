@@ -19,5 +19,5 @@ runs:
     shell: bash
 
   - name: Set up environment variables
-    run: echo PYTHONPATH=$PYTHONPATH:/`pwd`/python:/`pwd`/python/react-series-data-viewer >> $GITHUB_ENV
+    run: echo PYTHONPATH=$PYTHONPATH:/`pwd`/python:/`pwd`/python/loris_eeg_chunker >> $GITHUB_ENV
     shell: bash
