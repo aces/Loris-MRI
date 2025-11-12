@@ -1,6 +1,6 @@
 {
     "include": ["../python"],
-    "exclude": ["../python/loris_eeg_chunker"],
+    "exclude": ["../python/loris_eeg_chunker/protocol_buffers"],
     "typeCheckingMode": "off",
     "reportDeprecated": "warning",
     "reportAbstractUsage": "error",
