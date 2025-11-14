@@ -17,7 +17,3 @@ runs:
   - name: Install Python dependencies
     run: pip install .[dev]
     shell: bash
-
-  - name: Set up environment variables
-    run: echo PYTHONPATH=$PYTHONPATH:/`pwd`/python:/`pwd`/python/loris_eeg_chunker >> $GITHUB_ENV
-    shell: bash
