@@ -6,8 +6,9 @@ import sys
 from collections import OrderedDict
 
 import numpy as np
-from protocol_buffers import chunk_pb2 as chunk_pb
 from scipy import signal
+
+from loris_eeg_chunker.protocol_buffers import chunk_pb2 as chunk_pb
 
 
 def pad_values(values, chunk_size):
