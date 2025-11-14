@@ -21,11 +21,6 @@ from lib.mri import Mri
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
 
-sys.path.append('/home/user/python')
-
-
-# to limit the traceback when raising exceptions.
-# sys.tracebacklimit = 0
 
 def main():
     bids_dir         = ''
