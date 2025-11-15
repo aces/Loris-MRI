@@ -88,6 +88,15 @@ def get_dicom_archive_dir_path_config(env: Env) -> Path:
     return dicom_archive_dir_path
 
 
+def get_eeg_viz_enabled_config(env: Env) -> bool:
+    """
+    Get whether the EEG visualization is enabled from the in-database configuration.
+    """
+
+    eeg_viz_enabled = _try_get_config_value(env, 'useEEGBrowserVisualizationComponents')
+    return eeg_viz_enabled == 'true' or eeg_viz_enabled == '1'
+
+
 def _get_config_value(env: Env, setting_name: str) -> str:
     """
     Get a configuration value from the database using a configuration setting name, or exit the
@@ -108,3 +117,13 @@ def _get_config_value(env: Env, setting_name: str) -> str:
         )
 
     return config.value
+
+
+def _try_get_config_value(env: Env, setting_name: str) -> str | None:
+    """
+    Get a configuration value from the database using a configuration setting name, or exit the
+    program with an error that value does not exist or is not a string.
+    """
+
+    config = try_get_config_with_setting_name(env.db, setting_name)
+    return config.value if config is not None else None

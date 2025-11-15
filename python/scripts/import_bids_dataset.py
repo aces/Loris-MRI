@@ -2,7 +2,7 @@
 
 """Script to import BIDS structure into LORIS."""
 
-import os
+from pathlib import Path
 from typing import Any
 
 import lib.exitcode
@@ -15,7 +15,7 @@ from lib.make_env import make_env
 
 def pack_args(options_dict: dict[str, Any]) -> Args:
     return Args(
-        source_bids_path = os.path.normpath(options_dict['directory']['value']),
+        source_bids_path = Path(options_dict['directory']['value']),
         type             = options_dict['type']['value'],
         bids_validation  = not options_dict['nobidsvalidation']['value'],
         create_candidate = options_dict['createcandidate']['value'],
@@ -79,7 +79,7 @@ def main():
 
     # Get the CLI arguments and initiate the environment.
 
-    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
+    loris_getopt_obj = LorisGetOpt(usage, options_dict, 'import_bids_dataset')
 
     env = make_env(loris_getopt_obj)
 

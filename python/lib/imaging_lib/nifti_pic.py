@@ -1,5 +1,5 @@
-import os
 import re
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -11,7 +11,7 @@ from lib.db.models.file import DbFile
 from lib.env import Env
 
 
-def create_imaging_pic(env: Env, file: DbFile, is_4d_data: bool) -> str:
+def create_imaging_pic(env: Env, file: DbFile, is_4d_data: bool) -> Path:
     """
     Creates the preview pic that will show in the imaging browser view session
     page. This pic will be stored in the data_dir/pic folder
@@ -30,16 +30,16 @@ def create_imaging_pic(env: Env, file: DbFile, is_4d_data: bool) -> str:
     data_dir_path = get_data_dir_path_config(env)
 
     cand_id = file.session.candidate.cand_id
-    file_path = os.path.join(data_dir_path, file.rel_path)
+    file_path = data_dir_path / file.path
 
-    pic_name = re.sub(r"\.nii(\.gz)?$", f'_{file.id}_check.png', os.path.basename(file.rel_path))
-    pic_rel_path = os.path.join(str(cand_id), pic_name)
-    pic_dir_path = os.path.join(data_dir_path, 'pic', str(cand_id))
-    pic_path = os.path.join(data_dir_path, 'pic', pic_rel_path)
+    pic_name = re.sub(r"\.nii(\.gz)?$", f'_{file.id}_check.png', file.path.name)
+    pic_rel_path = Path(str(cand_id)) / pic_name
+    pic_dir_path = data_dir_path / 'pic' / str(cand_id)
+    pic_path = data_dir_path / 'pic' / pic_rel_path
 
     # create the candID directory where the pic will go if it does not already exist
-    if not os.path.exists(pic_dir_path):
-        os.mkdir(pic_dir_path)
+    if not pic_dir_path.exists():
+        pic_dir_path.mkdir()
 
     img = nib.load(file_path)  # type: ignore
 

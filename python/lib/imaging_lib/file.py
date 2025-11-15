@@ -1,5 +1,6 @@
 import getpass
 from datetime import datetime
+from pathlib import Path
 
 from lib.db.models.file import DbFile
 from lib.db.models.mri_scan_type import DbMriScanType
@@ -10,7 +11,7 @@ from lib.env import Env
 def register_imaging_file(
     env: Env,
     file_type: str,
-    file_rel_path: str,
+    file_rel_path: Path,
     session: DbSession,
     mri_scan_type: DbMriScanType | None,
     echo_time: float | None,
@@ -26,7 +27,7 @@ def register_imaging_file(
 
     file = DbFile(
         file_type                = file_type,
-        rel_path                 = file_rel_path,
+        rel_path                 = str(file_rel_path),
         session_id               = session.id,
         inserted_by_user_id      = user,
         insert_time              = time,

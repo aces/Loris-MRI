@@ -181,8 +181,9 @@ def mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_coun
         else:
             selected_channels = channel_names[from_channel_index:]
 
+    channels_count = len(selected_channels)
     for i, channel_name in enumerate(selected_channels):
-        print("Processing channel " + channel_name)
+        print(f"Processing channel {channel_name} ({i} / {channels_count})")
         channel = parsed.get_data(channel_name)
         channel_min = np.amin(channel)
         channel_max = np.amax(channel)

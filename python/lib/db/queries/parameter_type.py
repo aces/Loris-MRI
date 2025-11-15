@@ -15,14 +15,17 @@ def get_all_parameter_types(db: Database) -> Sequence[DbParameterType]:
     return db.execute(select(DbParameterType)).scalars().all()
 
 
-def try_get_parameter_type_with_name(db: Database, name: str) -> DbParameterType | None:
+def try_get_parameter_type_with_name_source(db: Database, name: str, source: str) -> DbParameterType | None:
     """
-    Get a parameter type from the database using its name, or return `None` if no parameter type is
-    found.
+    Get a parameter type from the database using its name and source, or return `None` if no
+    parameter type is found.
     """
 
     return db.execute(select(DbParameterType)
-        .where(DbParameterType.name == name)
+        .where(
+            DbParameterType.name        == name,
+            DbParameterType.source_from == source,
+        )
     ).scalar_one_or_none()
 
 
