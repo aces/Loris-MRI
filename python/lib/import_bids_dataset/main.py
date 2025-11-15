@@ -14,6 +14,7 @@ from lib.env import Env
 from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSSession
 from lib.imaging_lib.bids.dataset_description import BidsDatasetDescriptionError
 from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
+from lib.imaging_lib.bids.meg.dataset import BIDSMEGDataType
 from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
 from lib.imaging_lib.bids.tsv_participants import (
     BidsTsvParticipant,
@@ -38,10 +39,6 @@ from lib.import_bids_dataset.mri import import_bids_nifti
 from lib.import_bids_dataset.print import print_bids_import_summary
 from lib.logging import log, log_error, log_error_exit, log_warning
 from lib.util.iter import count
-
-BIDS_EEG_DATA_TYPES = ['eeg', 'ieeg']
-
-BIDS_MRI_DATA_TYPES = ['anat', 'dwi', 'fmap', 'func']
 
 
 def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
@@ -184,6 +181,8 @@ def import_bids_data_type_files(
             import_bids_mri_data_type_files(env, import_env, args, session, data_type)
         case BIDSEEGDataType():
             import_bids_eeg_data_type_files(env, import_env, args, session, data_type, events_metadata, legacy_db)
+        case BIDSMEGDataType():
+            import_bids_meg_data_type_files(env, import_env, args, session, data_type)
         case _:
             log_warning(env, f"Unknown data type '{data_type.name}'. Skipping.")
 
@@ -250,6 +249,21 @@ def import_bids_eeg_data_type_files(
         dataset_tag_dict       = events_metadata,
         dataset_type           = args.type,
     )
+
+
+def import_bids_meg_data_type_files(
+    env: Env,
+    import_env: BIDSImportEnv,
+    args: Args,
+    session: DbSession,
+    data_type: BIDSMEGDataType,
+):
+    """
+    Read the BIDS MEG data type directory and import its files into LORIS.
+    """
+
+    for acquisition in data_type.acquisitions:
+        log(env, f"Found MEG acquisition '{acquisition.name}'.")
 
 
 def copy_bids_tsv_participants(tsv_participants: dict[str, BidsTsvParticipant], loris_participants_tsv_path: Path):

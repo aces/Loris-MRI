@@ -24,6 +24,7 @@ dependencies = [
     "numpy",
     "protobuf>=3.0.0",
     "pybids==0.17.0",
+    "pydantic",
     "pydicom",
     "python-dateutil",
     "scikit-learn",
@@ -56,7 +57,7 @@ line-length = 120
 preview = true
 
 [tool.ruff.lint]
-ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
+ignore = ["E202", "E203", "E221", "E241", "E251", "E271", "E272"]
 select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
 
 # The strict type checking configuration is used to type check only the modern (typed) modules. An

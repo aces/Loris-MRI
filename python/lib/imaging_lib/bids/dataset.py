@@ -14,6 +14,7 @@ from lib.util.iter import find
 
 if TYPE_CHECKING:
     from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
+    from lib.imaging_lib.bids.meg.dataset import BIDSMEGDataType
     from lib.imaging_lib.bids.mri.dataset import BIDSMRIAcquisition, BIDSMRIDataType
 
 
@@ -269,6 +270,22 @@ class BIDSSession:
 
         yield from self.mri_data_types
         yield from self.eeg_data_types
+        if self.meg is not None:
+            yield self.meg
+
+    @cached_property
+    def meg(self) -> 'BIDSMEGDataType | None':
+        """
+        The MEG data type directory found in this session directory, if there is one.
+        """
+
+        from lib.imaging_lib.bids.meg.dataset import BIDSMEGDataType
+
+        meg_data_type_path = self.path / 'meg'
+        if not meg_data_type_path.exists():
+            return None
+
+        return BIDSMEGDataType(self, 'meg')
 
     @cached_property
     def tsv_scans(self) -> dict[str, BidsTsvScan] | None:
