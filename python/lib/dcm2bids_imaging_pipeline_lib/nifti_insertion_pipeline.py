@@ -11,11 +11,11 @@ from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_serie
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_mri_scan_type_with_name
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
-from lib.imaging_lib.bids.json import get_bids_json_session_info
 from lib.imaging_lib.file import register_mri_file
 from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
+from lib.import_bids_dataset.json import get_bids_json_session_info
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 

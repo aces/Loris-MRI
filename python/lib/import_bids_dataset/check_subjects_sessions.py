@@ -18,9 +18,9 @@ from lib.db.queries.sex import try_get_sex_with_name
 from lib.db.queries.site import try_get_site_with_alias, try_get_site_with_name
 from lib.db.queries.visit import try_get_visit_with_visit_label
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSSubject
-from lib.imaging_lib.bids.tsv_participants import BidsTsvParticipant
 from lib.logging import log, log_error, log_error_exit
+from loris_bids_reader.dataset import BIDSDataset, BIDSSubject
+from loris_bids_reader.participants import BIDSParticipantRow
 
 
 class CheckBidsSubjectSessionError(Exception):
@@ -123,7 +123,7 @@ def check_or_create_bids_subject_and_sessions(
     the candidate corresponding to the BIDS subject.
     """
 
-    tsv_participant = subject.root_dataset.get_tsv_participant(subject.label)
+    tsv_participant = subject.root_dataset.tsv_participants and subject.root_dataset.tsv_participants.get(subject.label)
     if tsv_participant is None:
         raise CheckBidsSubjectSessionError(
             f"No participants.tsv entry found for subject label '{subject.label}' in the BIDS  dataset. The BIDS"
@@ -148,7 +148,7 @@ def check_or_create_bids_subject_and_sessions(
     return candidate
 
 
-def check_or_create_bids_subject(env: Env, tsv_participant: BidsTsvParticipant, create_candidate: bool) -> DbCandidate:
+def check_or_create_bids_subject(env: Env, tsv_participant: BIDSParticipantRow, create_candidate: bool) -> DbCandidate:
     """
     Check that the subject of a BIDS participants.tsv row exists in LORIS, or create them using the
     information of that row if the relevant argument is passed. Raise an exception if the candidate
@@ -156,38 +156,40 @@ def check_or_create_bids_subject(env: Env, tsv_participant: BidsTsvParticipant, 
     """
 
     try:
-        cand_id = int(tsv_participant.id)
+        cand_id = int(tsv_participant.participant_id)
         candidate = try_get_candidate_with_cand_id(env.db, cand_id)
         if candidate is None:
             raise CheckBidsSubjectSessionError(
-                f"No LORIS candidate found for the BIDS participant ID '{tsv_participant.id}' (identified as a CandID)."
+                f"No LORIS candidate found for the BIDS participant ID '{tsv_participant.participant_id}' (identified"
+                " as a CandID)."
             )
 
         return candidate
     except ValueError:
         pass
 
-    candidate = try_get_candidate_with_psc_id(env.db, tsv_participant.id)
+    candidate = try_get_candidate_with_psc_id(env.db, tsv_participant.participant_id)
     if candidate is not None:
         return candidate
 
     if not create_candidate:
         raise CheckBidsSubjectSessionError(
-            f"No LORIS candidate found for the BIDS participant ID '{tsv_participant.id}' (identified as a PSCID)."
+            f"No LORIS candidate found for the BIDS participant ID '{tsv_participant.participant_id}' (identified as a"
+            " PSCID)."
         )
 
     return create_bids_candidate(env, tsv_participant)
 
 
-def create_bids_candidate(env: Env, tsv_participant: BidsTsvParticipant) -> DbCandidate:
+def create_bids_candidate(env: Env, tsv_participant: BIDSParticipantRow) -> DbCandidate:
     """
     Check a candidate using the information of a BIDS participants.tsv row, or raise an exception
     if that candidate cannot be created.
     """
 
-    log(env, f"Creating LORIS candidate for BIDS subject '{tsv_participant.id}'...")
+    log(env, f"Creating LORIS candidate for BIDS subject '{tsv_participant.participant_id}'...")
 
-    psc_id = tsv_participant.id
+    psc_id = tsv_participant.participant_id
 
     cand_id = generate_new_cand_id(env.db)
 
@@ -299,7 +301,7 @@ def create_bids_session(env: Env, candidate: DbCandidate, cohort: DbCohort | Non
     return session
 
 
-def get_tsv_participant_birth_date(tsv_participant: BidsTsvParticipant) -> datetime | None:
+def get_tsv_participant_birth_date(tsv_participant: BIDSParticipantRow) -> datetime | None:
     """
     Get the birth date of a BIDS participants.tsv row, or return `None` if no birth date is
     specified. Raise an exception if a birth date is specified but cannot be parsed.
@@ -316,7 +318,7 @@ def get_tsv_participant_birth_date(tsv_participant: BidsTsvParticipant) -> datet
         )
 
 
-def get_tsv_participant_sex(env: Env, tsv_participant: BidsTsvParticipant) -> str | None:
+def get_tsv_participant_sex(env: Env, tsv_participant: BIDSParticipantRow) -> str | None:
     """
     Get the sex of a BIDS participants.tsv row, or return `None` if no sex is specified. Raise an
     exception if a sex is specified but does not exist in LORIS.
@@ -345,7 +347,7 @@ def get_tsv_participant_sex(env: Env, tsv_participant: BidsTsvParticipant) -> st
     return sex.name
 
 
-def get_tsv_participant_site(env: Env, tsv_participant: BidsTsvParticipant) -> DbSite:
+def get_tsv_participant_site(env: Env, tsv_participant: BIDSParticipantRow) -> DbSite:
     """
     Get the site of a BIDS participants.tsv row, or raise an exception if no site is specified or
     the site does not exist in LORIS.
@@ -370,7 +372,7 @@ def get_tsv_participant_site(env: Env, tsv_participant: BidsTsvParticipant) -> D
     )
 
 
-def get_tsv_participant_project(env: Env, tsv_participant: BidsTsvParticipant) -> DbProject:
+def get_tsv_participant_project(env: Env, tsv_participant: BIDSParticipantRow) -> DbProject:
     """
     Get the project of a BIDS participants.tsv row, or raise an exception if no project is
     specified or the project does not exist in LORIS.
@@ -395,7 +397,7 @@ def get_tsv_participant_project(env: Env, tsv_participant: BidsTsvParticipant) -
     )
 
 
-def get_tsv_participant_cohort(env: Env, tsv_participant: BidsTsvParticipant) -> DbCohort:
+def get_tsv_participant_cohort(env: Env, tsv_participant: BIDSParticipantRow) -> DbCohort:
     """
     Get the cohort of a BIDS participants.tsv row, or raise an exception if no cohort is specified
     or the cohort does not exist in LORIS.

@@ -1,7 +1,5 @@
 import os
-import re
-import shutil
-from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 from lib.config import get_data_dir_path_config, get_default_bids_visit_label_config
@@ -11,37 +9,28 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.eeg import Eeg
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSSession
-from lib.imaging_lib.bids.dataset_description import BidsDatasetDescriptionError
-from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
-from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
-from lib.imaging_lib.bids.tsv_participants import (
-    BidsTsvParticipant,
-    merge_bids_tsv_participants,
-    read_bids_participants_tsv_file,
-    write_bids_participants_tsv_file,
-)
-from lib.imaging_lib.bids.tsv_scans import (
-    BidsTsvScan,
-    merge_bids_tsv_scans,
-    read_bids_scans_tsv_file,
-    write_bids_scans_tsv_file,
-)
 from lib.import_bids_dataset.args import Args
 from lib.import_bids_dataset.check_subjects_sessions import (
     check_bids_session_labels,
     check_or_create_bids_subjects_and_sessions,
 )
-from lib.import_bids_dataset.env import BIDSImportEnv
-from lib.import_bids_dataset.events import get_events_metadata
-from lib.import_bids_dataset.mri import import_bids_nifti
+from lib.import_bids_dataset.copy_files import (
+    copy_bids_tsv_participants,
+    copy_bids_tsv_scans,
+    copy_static_dataset_files,
+    get_loris_bids_path,
+)
+from lib.import_bids_dataset.env import BidsImportEnv
+from lib.import_bids_dataset.events import get_root_events_metadata
+from lib.import_bids_dataset.meg import import_bids_meg_acquisition
+from lib.import_bids_dataset.mri import import_bids_mri_acquisition
 from lib.import_bids_dataset.print import print_bids_import_summary
 from lib.logging import log, log_error, log_error_exit, log_warning
 from lib.util.iter import count
-
-BIDS_EEG_DATA_TYPES = ['eeg', 'ieeg']
-
-BIDS_MRI_DATA_TYPES = ['anat', 'dwi', 'fmap', 'func']
+from loris_bids_reader.dataset import BIDSAcquisition, BIDSDataset, BIDSDataType, BIDSSession
+from loris_bids_reader.eeg.data_type import BIDSEEGDataType
+from loris_bids_reader.meg.data_type import BIDSMEGAcquisition, BIDSMEGDataType
+from loris_bids_reader.mri.data_type import BIDSMRIAcquisition, BIDSMRIDataType
 
 
 def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
@@ -49,15 +38,15 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     Read the provided BIDS dataset and import it into LORIS.
     """
 
-    data_dir_path = Path(get_data_dir_path_config(env))
+    data_dir_path = get_data_dir_path_config(env)
 
     log(env, "Parsing BIDS dataset...")
 
-    bids = BIDSDataset(Path(args.source_bids_path), args.bids_validation)
+    bids = BIDSDataset(args.source_bids_path, args.bids_validation)
 
-    niftis_count = count(bids.niftis)
+    acquisitions_count = count(bids.acquisitions)
 
-    log(env, f"Found {niftis_count} NIfTI files.")
+    log(env, f"Found {acquisitions_count} acquisitions.")
 
     log(env, f"Found {len(bids.subject_labels)} subjects:")
     for subject_label in bids.subject_labels:
@@ -83,7 +72,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     # Get the BIDS events metadata.
 
-    events_metadata = get_events_metadata(env, args, bids, legacy_db, loris_bids_path, project_id)
+    events_metadata = get_root_events_metadata(env, args, bids, loris_bids_path, project_id)
 
     # Copy the `participants.tsv` file rows.
 
@@ -93,10 +82,10 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     # Process each session directory.
 
-    import_env = BIDSImportEnv(
+    import_env = BidsImportEnv(
         data_dir_path     = data_dir_path,
         loris_bids_path   = loris_bids_path,
-        total_files_count = niftis_count,
+        total_files_count = acquisitions_count,
     )
 
     for bids_session in bids.sessions:
@@ -114,7 +103,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
 def import_bids_session(
     env: Env,
-    import_env: BIDSImportEnv,
+    import_env: BidsImportEnv,
     args: Args,
     bids_session: BIDSSession,
     events_metadata: dict[Any, Any],
@@ -163,12 +152,12 @@ def import_bids_session(
     # Process each data type directory.
 
     for data_type in bids_session.data_types:
-        import_bids_data_type_files(env, import_env, args, session, data_type, events_metadata, legacy_db)
+        import_bids_data_type(env, import_env, args, session, data_type, events_metadata, legacy_db)
 
 
-def import_bids_data_type_files(
+def import_bids_data_type(
     env: Env,
-    import_env: BIDSImportEnv,
+    import_env: BidsImportEnv,
     args: Args,
     session: DbSession,
     data_type: BIDSDataType,
@@ -180,49 +169,100 @@ def import_bids_data_type_files(
     """
 
     match data_type:
-        case BIDSMRIDataType():
-            import_bids_mri_data_type_files(env, import_env, args, session, data_type)
+        case BIDSMRIDataType() | BIDSMEGDataType():
+            import_bids_data_type_acquisitions(
+                env,
+                import_env,
+                data_type,
+                lambda acquisition: import_bids_acquisition(env, import_env, args, session, acquisition),
+            )
         case BIDSEEGDataType():
             import_bids_eeg_data_type_files(env, import_env, args, session, data_type, events_metadata, legacy_db)
         case _:
             log_warning(env, f"Unknown data type '{data_type.name}'. Skipping.")
 
 
-def import_bids_mri_data_type_files(
+def import_bids_data_type_acquisitions(
     env: Env,
-    import_env: BIDSImportEnv,
-    args: Args,
-    session: DbSession,
-    data_type: BIDSMRIDataType,
+    import_env: BidsImportEnv,
+    data_type: BIDSDataType,
+    import_acquisition: Callable[[BIDSAcquisition[BIDSDataType]], None],
 ):
     """
     Read the BIDS MRI data type directory and import its files into LORIS.
+    Read a BIDS data type directory and import its acquisitions into LORIS.
     """
 
-    if args.type == 'derivative':
-        log_error_exit(env, "Derivative data is not support for BIDS MRI import yet.")
+    log(env, f"Importing data type {data_type.name}")
 
-    if not args.copy:
-        log_error_exit(env, "No copy import is not support for BIDS MRI import yet.")
+    if data_type.session.tsv_scans is None:
+        log_warning(env, "No 'scans.tsv' file found, 'scans.tsv' data will be ignored.")
 
-    for nifti in data_type.niftis:
+    for acquisition in data_type.acquisitions:
         try:
-            import_bids_nifti(env, import_env, session, nifti)
+            import_acquisition(acquisition)
         except Exception as exception:
             import_env.failed_files_count += 1
             log_error(
                 env,
                 (
-                    f"Error while importing MRI file '{nifti.name}'. Error message:\n"
+                    f"Error while importing acquisition '{acquisition.name}'. Error message:\n"
                     f"{exception}\n"
                     "Skipping."
                 )
             )
+            import traceback
+            print(traceback.format_exc())
+
+
+def import_bids_acquisition(
+    env: Env,
+    import_env: BidsImportEnv,
+    args: Args,
+    session: DbSession,
+    acquisition: BIDSAcquisition[BIDSDataType],
+):
+    """
+    Import a BIDS acquisition and its associated files in LORIS.
+    """
+
+    log(
+        env,
+        (
+            f"Importing {acquisition.data_type.name} acquisition '{acquisition.name}'..."
+            f" ({import_env.processed_files_count + 1} / {import_env.total_files_count})"
+        ),
+    )
+
+    # Get the relevant `scans.tsv` row if there is one.
+
+    if acquisition.session.tsv_scans is not None:
+        tsv_scan = acquisition.session.tsv_scans.get(acquisition.name)
+        if tsv_scan is None:
+            log_warning(
+                env,
+                f"No row for acquisition '{acquisition.name}' found in 'scans.tsv', 'scans.tsv' data will be ignored.",
+            )
+
+    else:
+        tsv_scan = None
+
+    # Get the path at which to copy the file.
+
+    match acquisition:
+        case BIDSMRIAcquisition():
+            import_bids_mri_acquisition(env, import_env, session, acquisition, tsv_scan)
+        case BIDSMEGAcquisition():
+            import_bids_meg_acquisition(env, import_env, args, session, acquisition, tsv_scan)
+        case _:
+            log_warning(env, f"Unknown acquisition type '{acquisition.name}'. Skipping.")
+
+    print(f"Successfully imported acquisition '{acquisition.name}'.")
 
 
 def import_bids_eeg_data_type_files(
     env: Env,
-    import_env: BIDSImportEnv,
+    import_env: BidsImportEnv,
     args: Args,
     session: DbSession,
     data_type: BIDSEEGDataType,
@@ -250,70 +290,3 @@ def import_bids_eeg_data_type_files(
         dataset_tag_dict       = events_metadata,
         dataset_type           = args.type,
     )
-
-
-def copy_bids_tsv_participants(tsv_participants: dict[str, BidsTsvParticipant], loris_participants_tsv_path: Path):
-    """
-    Copy some participants.tsv rows into the LORIS participants.tsv file, creating it if necessary.
-    """
-
-    if loris_participants_tsv_path.exists():
-        loris_tsv_participants = read_bids_participants_tsv_file(loris_participants_tsv_path)
-        merge_bids_tsv_participants(tsv_participants, loris_tsv_participants)
-
-    write_bids_participants_tsv_file(tsv_participants, loris_participants_tsv_path)
-
-
-def copy_bids_tsv_scans(tsv_scans: dict[str, BidsTsvScan], loris_scans_tsv_path: Path):
-    """
-    Copy some scans.tsv rows into a LORIS scans.tsv file, creating it if necessary.
-    """
-
-    if loris_scans_tsv_path.exists():
-        loris_tsv_scans = read_bids_scans_tsv_file(loris_scans_tsv_path)
-        merge_bids_tsv_scans(tsv_scans, loris_tsv_scans)
-
-    write_bids_scans_tsv_file(tsv_scans, loris_scans_tsv_path)
-
-
-def copy_static_dataset_files(source_bids_path: Path, loris_bids_path: Path):
-    """
-    Copy the static files of the source BIDS dataset to the LORIS BIDS dataset.
-    """
-
-    for file_name in ['README', 'dataset_description.json']:
-        source_file_path = os.path.join(source_bids_path, file_name)
-        if not os.path.isfile(source_file_path):
-            continue
-
-        loris_file_path = os.path.join(loris_bids_path, file_name)
-        shutil.copyfile(source_file_path, loris_file_path)
-
-
-def get_loris_bids_path(env: Env, bids: BIDSDataset, data_dir_path: Path) -> Path:
-    """
-    Get the LORIS BIDS directory path for the BIDS dataset to import, and create that directory if
-    it does not exist yet.
-    """
-
-    try:
-        dataset_description = bids.get_dataset_description()
-    except BidsDatasetDescriptionError as error:
-        log_error_exit(env, str(error))
-
-    if dataset_description is None:
-        log_error_exit(
-            env,
-            "No file 'dataset_description.json' found in the input BIDS dataset.",
-        )
-
-    # Sanitize the dataset metadata to have a usable name for the directory.
-    dataset_name    = re.sub(r'[^0-9a-zA-Z]+',   '_', dataset_description.name)
-    dataset_version = re.sub(r'[^0-9a-zA-Z\.]+', '_', dataset_description.bids_version)
-
-    loris_bids_path = data_dir_path / 'bids_imports' / f'{dataset_name}_BIDSVersion_{dataset_version}'
-
-    if not loris_bids_path.exists():
-        loris_bids_path.mkdir()
-
-    return loris_bids_path
