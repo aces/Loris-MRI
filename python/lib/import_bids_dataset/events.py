@@ -6,11 +6,11 @@ from typing import Any
 import lib.utilities
 from lib.database import Database
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BIDSDataset
 from lib.import_bids_dataset.args import Args
 from lib.logging import log_warning
 from lib.physiological import Physiological
 from lib.util.crypto import compute_file_blake2b_hash
+from loris_bids_reader.dataset import BIDSDataset
 
 
 def get_events_metadata(

@@ -7,10 +7,6 @@ from lib.db.models.session import DbSession
 from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_rel_path
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
-from lib.imaging_lib.bids.json import add_bids_json_file_parameters
-from lib.imaging_lib.bids.mri.dataset import BIDSMRIAcquisition
-from lib.imaging_lib.bids.tsv_scans import add_scan_tsv_file_parameters
-from lib.imaging_lib.bids.util import determine_bids_file_type
 from lib.imaging_lib.file import register_imaging_file
 from lib.imaging_lib.file_parameter import register_file_parameter, register_file_parameters
 from lib.imaging_lib.mri_scan_type import create_mri_scan_type
@@ -20,6 +16,10 @@ from lib.import_bids_dataset.env import BIDSImportEnv
 from lib.logging import log, log_warning
 from lib.util.crypto import compute_file_blake2b_hash
 from lib.util.fs import get_path_extension
+from loris_bids_reader.json import add_bids_json_file_parameters
+from loris_bids_reader.mri.data_type import BIDSMRIAcquisition
+from loris_bids_reader.tsv_scans import add_scan_tsv_file_parameters
+from loris_bids_reader.util import determine_bids_file_type
 
 KNOWN_SUFFIXES_PER_MRI_DATA_TYPE = {
     'anat': [
@@ -53,7 +53,12 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, a
 
     # Get the relevant `scans.tsv` row if there is one.
 
-    tsv_scan = acquisition.session.get_tsv_scan(acquisition.nifti_path.name)
+    tsv_scan = (
+        acquisition.session.tsv_scans.get(acquisition.nifti_path.name)
+        if acquisition.session.tsv_scans is not None
+        else None
+    )
+
     if tsv_scan is None:
         log_warning(
             env,
@@ -109,8 +114,8 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, a
 
     add_nifti_file_parameters(acquisition.nifti_path, file_hash, file_parameters)
 
-    if acquisition.session.tsv_scans_path is not None and tsv_scan is not None:
-        add_scan_tsv_file_parameters(tsv_scan, acquisition.session.tsv_scans_path, file_parameters)
+    if acquisition.session.tsv_scans is not None and tsv_scan is not None:
+        add_scan_tsv_file_parameters(tsv_scan, acquisition.session.tsv_scans.path, file_parameters)
 
     for aux_file_path in aux_file_paths:
         aux_file_type = get_path_extension(aux_file_path)

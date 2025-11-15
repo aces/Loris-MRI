@@ -5,6 +5,8 @@ from pathlib import Path
 
 from dateutil.parser import ParserError, parse
 
+from loris_bids_reader.participants import BIDSParticipantsFile
+
 
 @dataclass
 class BidsTsvParticipant:
@@ -71,7 +73,7 @@ def read_bids_participants_tsv_row(
     )
 
 
-def write_bids_participants_tsv_file(tsv_participants: dict[str, BidsTsvParticipant], participants_file_path: Path):
+def write_bids_participants_tsv_file(tsv_participants: BIDSParticipantsFile, participants_file_path: Path):
     """
     Write the `participants.tsv` file based from a set of participant rows.
     """
@@ -80,21 +82,8 @@ def write_bids_participants_tsv_file(tsv_participants: dict[str, BidsTsvParticip
         writer = csv.writer(participants_file, delimiter='\t')
         writer.writerow(['participant_id'])
 
-        for tsv_participant in sorted(tsv_participants.values(), key=lambda tsv_participant: tsv_participant.id):
-            writer.writerow([tsv_participant.id])
-
-
-def merge_bids_tsv_participants(
-    tsv_participants: dict[str, BidsTsvParticipant],
-    new_tsv_participants: dict[str, BidsTsvParticipant],
-):
-    """
-    Copy a set of participants.tsv rows into another one. The rows of the first set are replaced by
-    those of these second if there are duplicates.
-    """
-
-    for new_tsv_participant in new_tsv_participants.values():
-        tsv_participants[new_tsv_participant.id] = new_tsv_participant
+        for tsv_participant in sorted(tsv_participants.rows, key=lambda row: row.participant_id):
+            writer.writerow([tsv_participant.participant_id])
 
 
 def _read_birth_date(tsv_participant_row: dict[str, str]) -> str | None:

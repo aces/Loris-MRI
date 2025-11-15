@@ -6,15 +6,16 @@ from typing import TYPE_CHECKING
 
 from bids import BIDSLayout
 
-from lib.imaging_lib.bids.dataset_description import BidsDatasetDescription
-from lib.imaging_lib.bids.tsv_participants import BidsTsvParticipant, read_bids_participants_tsv_file
-from lib.imaging_lib.bids.tsv_scans import BidsTsvScan, read_bids_scans_tsv_file
 from lib.util.fs import search_dir_file_with_regex
 from lib.util.iter import find
+from loris_bids_reader.dataset_description import BIDSDatasetDescriptionFile
+from loris_bids_reader.participants import BIDSParticipantsFile
+from loris_bids_reader.scans import BIDSScansFile
 
 if TYPE_CHECKING:
-    from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
-    from lib.imaging_lib.bids.mri.dataset import BIDSMRIAcquisition, BIDSMRIDataType
+    from loris_bids_reader.eeg.data_type import BIDSEEGDataType
+    from loris_bids_reader.meg.data_type import BIDSMEGDataType
+    from loris_bids_reader.mri.data_type import BIDSMRIAcquisition, BIDSMRIDataType
 
 
 PYBIDS_IGNORE = ['code', 'sourcedata', 'log', '.git']
@@ -42,7 +43,7 @@ class BIDSDataset:
 
     @property
     def niftis(self) -> Iterator['BIDSMRIAcquisition']:
-        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
+        from loris_bids_reader.mri.data_type import BIDSMRIDataType
         for data_type in self.data_types:
             if isinstance(data_type, BIDSMRIDataType):
                 yield from data_type.niftis
@@ -68,7 +69,7 @@ class BIDSDataset:
 
         return subjects
 
-    def get_dataset_description(self) -> 'BidsDatasetDescription | None':
+    def get_dataset_description(self) -> BIDSDatasetDescriptionFile | None:
         """
         Read the BIDS dataset description file of this BIDS dataset. Return `None` if no dataset
         description file is present in the dataset, or raise an exeption if the file is present but
@@ -79,20 +80,15 @@ class BIDSDataset:
         if not dataset_description_path.exists():
             return None
 
-        return BidsDatasetDescription(dataset_description_path)
+        return BIDSDatasetDescriptionFile(dataset_description_path)
 
     @cached_property
-    def tsv_participants(self) -> dict[str, BidsTsvParticipant] | None:
-        """
-        The set of participants in the 'participants.tsv' file of this BIDS dataset if it is
-        present. This property might raise an exception if the file is present but incorrect.
-        """
-
-        tsv_participants_path = self.path / 'participants.tsv'
-        if not tsv_participants_path.exists():
+    def tsv_participants(self) -> BIDSParticipantsFile | None:
+        participants_tsv_path = self.path / 'participants.tsv'
+        if not participants_tsv_path.exists():
             return None
 
-        return read_bids_participants_tsv_file(tsv_participants_path)
+        return BIDSParticipantsFile(participants_tsv_path)
 
     @cached_property
     def subject_labels(self) -> list[str]:
@@ -121,17 +117,6 @@ class BIDSDataset:
         """
 
         return find(lambda subject: subject.label == subject_label, self.subjects)
-
-    def get_tsv_participant(self, participant_id: str) -> 'BidsTsvParticipant | None':
-        """
-        Get the `participants.tsv` record corresponding to a participant ID in this BIDS dataset
-        or `None` if it does not exist.
-        """
-
-        if self.tsv_participants is None:
-            return None
-
-        return self.tsv_participants.get(participant_id)
 
     @cached_property
     def layout(self) -> BIDSLayout:
@@ -165,7 +150,7 @@ class BIDSSubject:
 
     @property
     def niftis(self) -> Iterator['BIDSMRIAcquisition']:
-        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
+        from loris_bids_reader.mri.data_type import BIDSMRIDataType
         for data_type in self.data_types:
             if isinstance(data_type, BIDSMRIDataType):
                 yield from data_type.niftis
@@ -206,7 +191,6 @@ class BIDSSession:
     subject: BIDSSubject
     path: Path
     label: str | None
-    tsv_scans_path: Path | None
 
     def __init__(self, subject: BIDSSubject, label: str | None):
         self.subject = subject
@@ -215,8 +199,6 @@ class BIDSSession:
             self.path = subject.path / f'ses-{self.label}'
         else:
             self.path = subject.path
-
-        self.tsv_scans_path = search_dir_file_with_regex(self.path, r'scans.tsv$')
 
     @property
     def root_dataset(self) -> BIDSDataset:
@@ -233,7 +215,7 @@ class BIDSSession:
         The MRI data type directories found in this session directory.
         """
 
-        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
+        from loris_bids_reader.mri.data_type import BIDSMRIDataType
 
         data_types: list[BIDSMRIDataType] = []
 
@@ -250,7 +232,7 @@ class BIDSSession:
         The MRI data type directories found in this session directory.
         """
 
-        from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
+        from loris_bids_reader.eeg.data_type import BIDSEEGDataType
 
         data_types: list[BIDSEEGDataType] = []
 
@@ -269,29 +251,30 @@ class BIDSSession:
 
         yield from self.mri_data_types
         yield from self.eeg_data_types
+        if self.meg is not None:
+            yield self.meg
 
     @cached_property
-    def tsv_scans(self) -> dict[str, BidsTsvScan] | None:
+    def meg(self) -> 'BIDSMEGDataType | None':
         """
-        The set of scans in the 'scans.tsv' file of this BIDS directory if it is present. This
-        property might raise an exception if the file is present but incorrect.
+        The MEG data type directory found in this session directory, if there is one.
         """
 
-        if self.tsv_scans_path is None:
+        from loris_bids_reader.meg.data_type import BIDSMEGDataType
+
+        meg_data_type_path = self.path / 'meg'
+        if not meg_data_type_path.exists():
             return None
 
-        return read_bids_scans_tsv_file(self.tsv_scans_path)
+        return BIDSMEGDataType(self, 'meg')
 
-    def get_tsv_scan(self, file_name: str) -> 'BidsTsvScan | None':
-        """
-        Get the `scans.tsv` record corresponding to a file name of this session directory or `None`
-        if it does not exist.
-        """
-
-        if self.tsv_scans is None:
+    @cached_property
+    def tsv_scans(self) -> BIDSScansFile | None:
+        tsv_scans_path = search_dir_file_with_regex(self.path, r'scans.tsv$')
+        if tsv_scans_path is None:
             return None
 
-        return self.tsv_scans.get(file_name)
+        return BIDSScansFile(tsv_scans_path)
 
 
 class BIDSDataType:

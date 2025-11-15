@@ -2,8 +2,8 @@ import re
 from functools import cached_property
 from pathlib import Path
 
-from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSSession, BIDSSubject
 from lib.util.fs import remove_path_extension, replace_path_extension
+from loris_bids_reader.dataset import BIDSDataset, BIDSDataType, BIDSSession, BIDSSubject
 
 
 class BIDSMRIDataType(BIDSDataType):
