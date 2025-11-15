@@ -17,7 +17,3 @@ runs:
   - name: Install Python dependencies
     run: pip install .[dev]
     shell: bash
-
-  - name: Set up environment variables
-    run: echo PYTHONPATH=$PYTHONPATH:/`pwd`/python:/`pwd`/python/react-series-data-viewer >> $GITHUB_ENV
-    shell: bash

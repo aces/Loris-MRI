@@ -5,7 +5,8 @@ import sys
 
 import mne.io
 import mne.io.edf.edf as mne_edf
-from chunking import write_chunk_directory
+
+from loris_eeg_chunker.chunking import write_chunk_directory
 
 
 def load_channels(exclude):

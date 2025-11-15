@@ -3,9 +3,10 @@
 import argparse
 import sys
 
-import chunking
 import mne.io
 import mne.io.eeglab.eeglab as mne_eeglab
+
+from loris_eeg_chunker.chunking import write_chunk_directory
 
 
 def load_channels(path):
@@ -46,7 +47,7 @@ if __name__ == '__main__':
             sys.exit("Channel count must be a positive integer")
 
         print(f'Creating chunks for {path}')
-        chunking.write_chunk_directory(
+        write_chunk_directory(
             path=path,
             from_channel_index=args.channel_index,
             from_channel_name=channel_names[args.channel_index],
