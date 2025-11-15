@@ -14,9 +14,9 @@ from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_modality import PhysiologicalModality
 from lib.database_lib.physiological_output_type import PhysiologicalOutputType
 from lib.db.models.session import DbSession
-from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
 from lib.physiological import Physiological
 from lib.util.crypto import compute_file_blake2b_hash
+from loris_bids_reader.eeg.data_type import BIDSEEGDataType
 
 
 class Eeg:
@@ -708,7 +708,7 @@ class Eeg:
             copy_file = ""
             if not inheritance:
                 copy_file = self.loris_bids_eeg_rel_dir
-            if self.bids_ses_id:
+            if self.data_type.session.label:
                 copy_file = os.path.join(copy_file, os.path.basename(file))
             else:
                 # make sure the ses- is included in the new filename if using
@@ -795,16 +795,9 @@ class Eeg:
         }
         physiological.insert_archive_file(archive_info)
 
-<<<<<<< HEAD
     def create_and_insert_event_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id: int):
         """
         Create an archive with all event files associated to a specific recording
-=======
-    def create_and_insert_event_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id):
-        """
-        Create an archive with all event files associated to a specific recording
-
->>>>>>> 2af7b5ba (use lists instead of tuples for eeg paths)
         :param files_to_archive: list of files to include in the archive
         :param archive_rel_name: path to the archive relative to data_dir
         :param eeg_file_id     : PhysiologicalFileID

@@ -1,20 +1,23 @@
 import re
-from collections.abc import Iterator
+from abc import ABC, abstractmethod
+from collections.abc import Iterator, Sequence
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, Self, TypeVar
 
 from bids import BIDSLayout
 
-from lib.imaging_lib.bids.dataset_description import BidsDatasetDescription
-from lib.imaging_lib.bids.tsv_participants import BidsTsvParticipant, read_bids_participants_tsv_file
-from lib.imaging_lib.bids.tsv_scans import BidsTsvScan, read_bids_scans_tsv_file
 from lib.util.fs import search_dir_file_with_regex
 from lib.util.iter import find
+from loris_bids_reader.data_dictionary import BIDSDataDictFile
+from loris_bids_reader.dataset_description import BIDSDatasetDescriptionFile
+from loris_bids_reader.participants import BIDSParticipantsFile
+from loris_bids_reader.scans import BIDSScansFile
 
 if TYPE_CHECKING:
-    from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
-    from lib.imaging_lib.bids.mri.dataset import BIDSMRIAcquisition, BIDSMRIDataType
+    from loris_bids_reader.eeg.data_type import BIDSEEGDataType
+    from loris_bids_reader.meg.data_type import BIDSMEGDataType
+    from loris_bids_reader.mri.data_type import BIDSMRIDataType
 
 
 PYBIDS_IGNORE = ['code', 'sourcedata', 'log', '.git']
@@ -41,11 +44,9 @@ class BIDSDataset:
             yield from session.data_types
 
     @property
-    def niftis(self) -> Iterator['BIDSMRIAcquisition']:
-        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
+    def acquisitions(self) -> Iterator['BIDSAcquisition[BIDSDataType]']:
         for data_type in self.data_types:
-            if isinstance(data_type, BIDSMRIDataType):
-                yield from data_type.niftis
+            yield from data_type.acquisitions
 
     @cached_property
     def subjects(self) -> list['BIDSSubject']:
@@ -68,7 +69,7 @@ class BIDSDataset:
 
         return subjects
 
-    def get_dataset_description(self) -> 'BidsDatasetDescription | None':
+    def get_dataset_description(self) -> BIDSDatasetDescriptionFile | None:
         """
         Read the BIDS dataset description file of this BIDS dataset. Return `None` if no dataset
         description file is present in the dataset, or raise an exeption if the file is present but
@@ -79,20 +80,23 @@ class BIDSDataset:
         if not dataset_description_path.exists():
             return None
 
-        return BidsDatasetDescription(dataset_description_path)
+        return BIDSDatasetDescriptionFile(dataset_description_path)
 
     @cached_property
-    def tsv_participants(self) -> dict[str, BidsTsvParticipant] | None:
-        """
-        The set of participants in the 'participants.tsv' file of this BIDS dataset if it is
-        present. This property might raise an exception if the file is present but incorrect.
-        """
-
-        tsv_participants_path = self.path / 'participants.tsv'
-        if not tsv_participants_path.exists():
+    def tsv_participants(self) -> BIDSParticipantsFile | None:
+        participants_tsv_path = self.path / 'participants.tsv'
+        if not participants_tsv_path.exists():
             return None
 
-        return read_bids_participants_tsv_file(tsv_participants_path)
+        return BIDSParticipantsFile(participants_tsv_path)
+
+    @cached_property
+    def json_events(self) -> BIDSDataDictFile | None:
+        events_json_path = self.path / 'events.json'
+        if not events_json_path.exists():
+            return None
+
+        return BIDSDataDictFile(events_json_path)
 
     @cached_property
     def subject_labels(self) -> list[str]:
@@ -121,17 +125,6 @@ class BIDSDataset:
         """
 
         return find(lambda subject: subject.label == subject_label, self.subjects)
-
-    def get_tsv_participant(self, participant_id: str) -> 'BidsTsvParticipant | None':
-        """
-        Get the `participants.tsv` record corresponding to a participant ID in this BIDS dataset
-        or `None` if it does not exist.
-        """
-
-        if self.tsv_participants is None:
-            return None
-
-        return self.tsv_participants.get(participant_id)
 
     @cached_property
     def layout(self) -> BIDSLayout:
@@ -164,11 +157,9 @@ class BIDSSubject:
             yield from session.data_types
 
     @property
-    def niftis(self) -> Iterator['BIDSMRIAcquisition']:
-        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
+    def acquisitions(self) -> Iterator['BIDSAcquisition[BIDSDataType]']:
         for data_type in self.data_types:
-            if isinstance(data_type, BIDSMRIDataType):
-                yield from data_type.niftis
+            yield from data_type.acquisitions
 
     @cached_property
     def sessions(self) -> list['BIDSSession']:
@@ -206,7 +197,6 @@ class BIDSSession:
     subject: BIDSSubject
     path: Path
     label: str | None
-    tsv_scans_path: Path | None
 
     def __init__(self, subject: BIDSSubject, label: str | None):
         self.subject = subject
@@ -216,16 +206,14 @@ class BIDSSession:
         else:
             self.path = subject.path
 
-        self.tsv_scans_path = search_dir_file_with_regex(self.path, r'scans.tsv$')
-
     @property
     def root_dataset(self) -> BIDSDataset:
         return self.subject.root_dataset
 
     @property
-    def niftis(self) -> Iterator['BIDSMRIAcquisition']:
+    def acquisitions(self) -> Iterator['BIDSAcquisition[BIDSDataType]']:
         for data_type in self.mri_data_types:
-            yield from data_type.niftis
+            yield from data_type.acquisitions
 
     @cached_property
     def mri_data_types(self) -> list['BIDSMRIDataType']:
@@ -233,7 +221,7 @@ class BIDSSession:
         The MRI data type directories found in this session directory.
         """
 
-        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
+        from loris_bids_reader.mri.data_type import BIDSMRIDataType
 
         data_types: list[BIDSMRIDataType] = []
 
@@ -250,7 +238,7 @@ class BIDSSession:
         The MRI data type directories found in this session directory.
         """
 
-        from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
+        from loris_bids_reader.eeg.data_type import BIDSEEGDataType
 
         data_types: list[BIDSEEGDataType] = []
 
@@ -269,38 +257,44 @@ class BIDSSession:
 
         yield from self.mri_data_types
         yield from self.eeg_data_types
+        if self.meg is not None:
+            yield self.meg
 
     @cached_property
-    def tsv_scans(self) -> dict[str, BidsTsvScan] | None:
+    def meg(self) -> 'BIDSMEGDataType | None':
         """
-        The set of scans in the 'scans.tsv' file of this BIDS directory if it is present. This
-        property might raise an exception if the file is present but incorrect.
+        The MEG data type directory found in this session directory, if there is one.
         """
 
-        if self.tsv_scans_path is None:
+        from loris_bids_reader.meg.data_type import BIDSMEGDataType
+
+        meg_data_type_path = self.path / 'meg'
+        if not meg_data_type_path.exists():
             return None
 
-        return read_bids_scans_tsv_file(self.tsv_scans_path)
+        return BIDSMEGDataType(self, 'meg')
 
-    def get_tsv_scan(self, file_name: str) -> 'BidsTsvScan | None':
-        """
-        Get the `scans.tsv` record corresponding to a file name of this session directory or `None`
-        if it does not exist.
-        """
-
-        if self.tsv_scans is None:
+    @cached_property
+    def tsv_scans(self) -> BIDSScansFile | None:
+        tsv_scans_path = search_dir_file_with_regex(self.path, r'scans.tsv$')
+        if tsv_scans_path is None:
             return None
 
-        return self.tsv_scans.get(file_name)
+        return BIDSScansFile(tsv_scans_path)
 
 
-class BIDSDataType:
+class BIDSDataType(ABC):
     session: BIDSSession
     path: Path
 
     def __init__(self, session: BIDSSession, name: str):
         self.session = session
         self.path    = session.path / name
+
+    @cached_property
+    @abstractmethod
+    def acquisitions(self) -> Sequence['BIDSAcquisition[Self]']:
+        ...
 
     @property
     def name(self) -> str:
@@ -313,3 +307,31 @@ class BIDSDataType:
     @property
     def subject(self) -> BIDSSubject:
         return self.session.subject
+
+
+T = TypeVar('T', bound=BIDSDataType, covariant=True)
+
+
+class BIDSAcquisition(ABC, Generic[T]):
+    data_type: T
+    path: Path
+
+    def __init__(self, data_type: T, name: str):
+        self.data_type = data_type
+        self.path      = data_type.path / name
+
+    @property
+    def name(self) -> str:
+        return self.path.name
+
+    @property
+    def root_dataset(self) -> BIDSDataset:
+        return self.data_type.root_dataset
+
+    @property
+    def subject(self) -> BIDSSubject:
+        return self.data_type.subject
+
+    @property
+    def session(self) -> BIDSSession:
+        return self.data_type.session
