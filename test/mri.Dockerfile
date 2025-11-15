@@ -1,32 +1,34 @@
 FROM python:3.11
 
 RUN cat /etc/os-release
-RUN apt-get update
 
-#####################
-# Install utilities #
-#####################
+###############################
+# Install system dependencies #
+###############################
 
-# Install the dependencies of LORIS-MRI
-RUN apt-get install -y build-essential checkinstall cmake dcmtk dcm2niix libzip-dev mariadb-client perl
-
-# Install utilities
-# - `sudo` is used by the imaging install script
-# - `wget` is used by some installation commands
-RUN apt-get install -y sudo wget
+RUN apt-get update && \
+    apt-get install -y \
+    # MINC Toolkit dependencies
+    libc6 libstdc++6 imagemagick perl \
+    # LORIS-MRI general dependencies
+    build-essential checkinstall cmake dcmtk dcm2niix libzip-dev mariadb-client perl \
+    # LORIS-MRI SQL client dependencies
+    libmariadb-dev libmariadb-dev-compat \
+    # LORIS-MRI installation dependencies
+    sudo wget && \
+    # Cleanup
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ########################
 # Install MINC Toolkit #
 ########################
 
-# Install MINC Toolkit dependencies
-RUN apt-get install -y libc6 libstdc++6 imagemagick perl
-
-# Download the MINC Toolkit package
-RUN wget -q -P /tmp http://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/minc-toolkit-1.9.18-20200813-Debian_10-x86_64.deb
-
-# Install the MINC Toolkit package
-RUN dpkg -i /tmp/minc-toolkit-1.9.18-20200813-Debian_10-x86_64.deb
+# Download and install the MINC Toolkit package
+RUN wget -q -P /tmp http://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/minc-toolkit-1.9.18-20200813-Debian_10-x86_64.deb && \
+    dpkg -i /tmp/minc-toolkit-1.9.18-20200813-Debian_10-x86_64.deb && \
+    # Cleanup
+    rm -rf /tmp/*.deb
 
 # Run the MINC Toolkit configuration script
 # Usually this would be done with the command `source /opt/minc/1.9.18/minc-toolkit-config.sh`
@@ -44,22 +46,19 @@ ENV VOLUME_CACHE_THRESHOLD=-1
 ENV MANPATH=${MINC_TOOLKIT}/man
 ENV ANTSPATH=${MINC_TOOLKIT}/bin
 
-# Download MINC Toolkit auxiliary packages
+# Download and install MINC Toolkit auxiliary packages
 RUN wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/minc-toolkit-testsuite-0.1.3-20131212.deb && \
     wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/bic-mni-models-0.1.1-20120421.deb && \
-    wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/beast-library-1.1.0-20121212.deb
-
-# Install MINC Toolkit auxiliary packages
-RUN dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb && \
+    wget -q -P /tmp https://packages.bic.mni.mcgill.ca/minc-toolkit/Debian/beast-library-1.1.0-20121212.deb && \
+    dpkg -i /tmp/minc-toolkit-testsuite-0.1.3-20131212.deb && \
     dpkg -i /tmp/bic-mni-models-0.1.1-20120421.deb && \
-    dpkg -i /tmp/beast-library-1.1.0-20121212.deb
+    dpkg -i /tmp/beast-library-1.1.0-20121212.deb && \
+    # Cleanup
+    rm -rf /tmp/*.deb
 
 #####################
 # Install LORIS-MRI #
 #####################
-
-# Install the Python SQL client extensions
-RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 
 # Install the Perl libraries
 # NOTES:
@@ -67,7 +66,9 @@ RUN apt-get install -y libmariadb-dev libmariadb-dev-compat
 COPY install/requirements/cpanfile ./install/requirements/cpanfile
 RUN cpan App::cpanminus && \
     cpanm --installdeps ./install/requirements/ && \
-    cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz
+    cpanm https://github.com/aces/Loris-MRI/raw/main/install/Digest-BLAKE2-0.02.tar.gz && \
+    # Cleanup
+    rm -rf /root/.cpanm
 
 # Get the database credentials as parameters
 ARG DATABASE_NAME
@@ -77,7 +78,7 @@ ARG DATABASE_PASS
 # Install LORIS-MRI Python
 WORKDIR /opt/loris/bin/mri
 COPY . .
-RUN pip install -e .[dev]
+RUN pip install --no-cache-dir --editable .[dev]
 
 # Run the test LORIS-MRI installer
 RUN bash ./test/imaging_install_test.sh $DATABASE_NAME $DATABASE_USER $DATABASE_PASS
