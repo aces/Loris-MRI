@@ -18,7 +18,7 @@ from lib.db.queries.sex import try_get_sex_with_name
 from lib.db.queries.site import try_get_site_with_alias, try_get_site_with_name
 from lib.db.queries.visit import try_get_visit_with_visit_label
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BidsDataset, BidsSubject
+from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSSubject
 from lib.imaging_lib.bids.tsv_participants import BidsTsvParticipant
 from lib.logging import log, log_error, log_error_exit
 
@@ -34,7 +34,7 @@ class CheckBidsSubjectSessionError(Exception):
 
 def check_bids_session_labels(
     env: Env,
-    bids: BidsDataset,
+    bids: BIDSDataset,
 ):
     """
     Check that all the session labels in a BIDS dataset correspond to a LORIS visit, or exit the
@@ -61,7 +61,7 @@ def check_bids_session_labels(
 
 def check_or_create_bids_subjects_and_sessions(
     env: Env,
-    bids: BidsDataset,
+    bids: BIDSDataset,
     create_candidate: bool,
     create_session: bool,
 ) -> int:
@@ -110,7 +110,7 @@ def check_or_create_bids_subjects_and_sessions(
 
 def check_or_create_bids_subject_and_sessions(
     env: Env,
-    subject: BidsSubject,
+    subject: BIDSSubject,
     create_candidate: bool,
     create_session: bool,
 ) -> DbCandidate:
