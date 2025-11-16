@@ -8,7 +8,7 @@ from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_rel_pa
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
 from lib.imaging_lib.bids.json import add_bids_json_file_parameters
-from lib.imaging_lib.bids.mri.dataset import BIDSNifti
+from lib.imaging_lib.bids.mri.dataset import BIDSMRIAcquisition
 from lib.imaging_lib.bids.tsv_scans import add_scan_tsv_file_parameters
 from lib.imaging_lib.bids.util import determine_bids_file_type
 from lib.imaging_lib.file import register_imaging_file
@@ -19,7 +19,7 @@ from lib.imaging_lib.nifti_pic import create_imaging_pic
 from lib.import_bids_dataset.env import BIDSImportEnv
 from lib.logging import log, log_warning
 from lib.util.crypto import compute_file_blake2b_hash
-from lib.util.fs import get_file_extension
+from lib.util.fs import get_path_extension
 
 KNOWN_SUFFIXES_PER_MRI_DATA_TYPE = {
     'anat': [
@@ -38,7 +38,7 @@ KNOWN_SUFFIXES_PER_MRI_DATA_TYPE = {
 }
 
 
-def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, nifti: BIDSNifti):
+def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, acquisition: BIDSMRIAcquisition):
     """
     Import a BIDS NIfTI file and its associated files in LORIS.
     """
@@ -46,16 +46,19 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
     log(
         env,
         (
-            f"Importing MRI file '{nifti.name}'... ({import_env.processed_files_count + 1}"
+            f"Importing MRI acquisition '{acquisition.name}'... ({import_env.processed_files_count + 1}"
             f" / {import_env.total_files_count})"
         ),
     )
 
     # Get the relevant `scans.tsv` row if there is one.
 
-    tsv_scan = nifti.session.get_tsv_scan(nifti.name)
+    tsv_scan = acquisition.session.get_tsv_scan(acquisition.nifti_path.name)
     if tsv_scan is None:
-        log_warning(env, f"No scans.tsv row found for file '{nifti.name}', scans.tsv data will be ignored.")
+        log_warning(
+            env,
+            f"No scans.tsv row found for acquisition '{acquisition.name}', scans.tsv data will be ignored.",
+        )
 
     # Get the path at which to copy the file.
 
@@ -64,10 +67,10 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
         cast(Path, import_env.loris_bids_path)
         / f'sub-{session.candidate.psc_id}'
         / f'ses-{session.visit_label}'
-        / nifti.data_type.name
+        / acquisition.data_type.name
     )
 
-    loris_file_path = loris_file_dir_path / nifti.name
+    loris_file_path = loris_file_dir_path / acquisition.nifti_path.name
 
     loris_file_rel_path = loris_file_path.relative_to(import_env.data_dir_path)
 
@@ -81,40 +84,36 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
 
     # Get information about the file.
 
-    file_type = get_check_nifti_imaging_file_type(env, nifti)
-    file_hash = get_check_nifti_file_hash(env, nifti)
-    mri_scan_type = get_nifti_mri_scan_type(env, import_env, nifti)
+    file_type = get_check_nifti_imaging_file_type(env, acquisition)
+    file_hash = get_check_nifti_file_hash(env, acquisition)
+    mri_scan_type = get_nifti_mri_scan_type(env, import_env, acquisition)
 
     # Get the auxiliary files.
 
     aux_file_paths: list[Path] = []
 
-    json_path = nifti.get_json_path()
+    if acquisition.bval_path is not None:
+        aux_file_paths.append(acquisition.bval_path)
 
-    bval_path = nifti.get_bval_path()
-    if bval_path is not None:
-        aux_file_paths.append(bval_path)
-
-    bvec_path = nifti.get_bvec_path()
-    if bvec_path is not None:
-        aux_file_paths.append(bvec_path)
+    if acquisition.bvec_path is not None:
+        aux_file_paths.append(acquisition.bvec_path)
 
     # Get the file parameters.
 
     file_parameters: dict[str, Any] = {}
 
-    if json_path is not None:
-        json_loris_path = loris_file_dir_path / json_path.name
+    if acquisition.sidecar_path is not None:
+        json_loris_path = loris_file_dir_path / acquisition.sidecar_path.name
         json_loris_rel_path = json_loris_path.relative_to(import_env.data_dir_path)
-        add_bids_json_file_parameters(env, json_path, json_loris_rel_path, file_parameters)
+        add_bids_json_file_parameters(env, acquisition.sidecar_path, json_loris_rel_path, file_parameters)
 
-    add_nifti_file_parameters(nifti.path, file_hash, file_parameters)
+    add_nifti_file_parameters(acquisition.nifti_path, file_hash, file_parameters)
 
-    if nifti.session.tsv_scans_path is not None and tsv_scan is not None:
-        add_scan_tsv_file_parameters(tsv_scan, nifti.session.tsv_scans_path, file_parameters)
+    if acquisition.session.tsv_scans_path is not None and tsv_scan is not None:
+        add_scan_tsv_file_parameters(tsv_scan, acquisition.session.tsv_scans_path, file_parameters)
 
     for aux_file_path in aux_file_paths:
-        aux_file_type = get_file_extension(aux_file_path.name)
+        aux_file_type = get_path_extension(aux_file_path)
         aux_file_hash = compute_file_blake2b_hash(aux_file_path)
         aux_file_loris_path = loris_file_dir_path / aux_file_path.name
         aux_file_loris_rel_path = aux_file_loris_path.relative_to(import_env.data_dir_path)
@@ -123,10 +122,10 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
 
     # Copy the files on the file system.
 
-    copy_bids_file(loris_file_dir_path, nifti.path)
+    copy_bids_file(loris_file_dir_path, acquisition.nifti_path)
 
-    if json_path is not None:
-        copy_bids_file(loris_file_dir_path, json_path)
+    if acquisition.sidecar_path is not None:
+        copy_bids_file(loris_file_dir_path, acquisition.sidecar_path)
 
     for aux_file_path in aux_file_paths:
         copy_bids_file(loris_file_dir_path, aux_file_path)
@@ -159,26 +158,26 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
     import_env.imported_files_count += 1
 
 
-def get_check_nifti_imaging_file_type(env: Env, nifti: BIDSNifti) -> str:
+def get_check_nifti_imaging_file_type(env: Env, acqusition: BIDSMRIAcquisition) -> str:
     """
     Get the BIDS file type of a NIfTI file and raise an exception if that file type is not
     registered in the database.
     """
 
-    file_type = determine_bids_file_type(env, nifti.name)
+    file_type = determine_bids_file_type(env, acqusition.nifti_path.name)
     if file_type is None:
         raise Exception("No matching file type found in the database.")
 
     return file_type
 
 
-def get_check_nifti_file_hash(env: Env, nifti: BIDSNifti) -> str:
+def get_check_nifti_file_hash(env: Env, acquisition: BIDSMRIAcquisition) -> str:
     """
     Compute the BLAKE2b hash of a NIfTI file and raise an exception if that hash is already
     registered in the database.
     """
 
-    file_hash = compute_file_blake2b_hash(nifti.path)
+    file_hash = compute_file_blake2b_hash(acquisition.nifti_path)
 
     file = try_get_file_with_hash(env.db, file_hash)
     if file is not None:
@@ -187,27 +186,31 @@ def get_check_nifti_file_hash(env: Env, nifti: BIDSNifti) -> str:
     return file_hash
 
 
-def get_nifti_mri_scan_type(env: Env, import_env: BIDSImportEnv, nifti: BIDSNifti) -> DbMriScanType | None:
+def get_nifti_mri_scan_type(
+    env: Env,
+    import_env: BIDSImportEnv,
+    acquisition: BIDSMRIAcquisition,
+) -> DbMriScanType | None:
     """
-    Get the MRI scan type corresponding to a NIfTI file using its BIDS suffix. Create the MRI scan
-    type in the database the suffix is a standard BIDS suffix and the scan type does not already
-    exist in the database, or raise an exception if no known scan type is found.
+    Get the MRI scan type corresponding to a BIDS MRI acquisition using its BIDS suffix. Create the
+    MRI scan type in the database the suffix is a standard BIDS suffix and the scan type does not
+    already exist in the database, or raise an exception if no known scan type is found.
     """
 
-    if nifti.suffix is None:
+    if acquisition.suffix is None:
         raise Exception("No BIDS suffix found in the NIfTI file name, cannot infer the file data type.")
 
-    mri_scan_type = try_get_mri_scan_type_with_name(env.db, nifti.suffix)
+    mri_scan_type = try_get_mri_scan_type_with_name(env.db, acquisition.suffix)
     if mri_scan_type is not None:
         return mri_scan_type
 
-    if nifti.suffix not in KNOWN_SUFFIXES_PER_MRI_DATA_TYPE[nifti.data_type.name]:
-        if nifti.suffix not in import_env.unknown_scan_types:
-            import_env.unknown_scan_types.append(nifti.suffix)
+    if acquisition.suffix not in KNOWN_SUFFIXES_PER_MRI_DATA_TYPE[acquisition.data_type.name]:
+        if acquisition.suffix not in import_env.unknown_scan_types:
+            import_env.unknown_scan_types.append(acquisition.suffix)
 
-        raise Exception(f"Found unknown MRI file suffix '{nifti.suffix}'.")
+        raise Exception(f"Found unknown MRI file suffix '{acquisition.suffix}'.")
 
-    return create_mri_scan_type(env, nifti.suffix)
+    return create_mri_scan_type(env, acquisition.suffix)
 
 
 def copy_bids_file(loris_file_dir_path: Path, file_path: Path):

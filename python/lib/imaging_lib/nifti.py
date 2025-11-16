@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,13 +31,3 @@ def add_nifti_file_parameters(nifti_path: Path, nifti_file_hash: str, file_param
 
     # Add the file BLAKE2b hash.
     file_parameters['file_blake2b_hash'] = nifti_file_hash
-
-
-def find_dir_nifti_files(dir_path: Path) -> Iterator[Path]:
-    """
-    Iterate over the Path objects of the NIfTI files found in a directory.
-    """
-
-    for item_path in dir_path.iterdir():
-        if item_path.name.endswith(('.nii', '.nii.gz')):
-            yield item_path
