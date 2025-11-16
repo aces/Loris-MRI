@@ -2,15 +2,20 @@ import re
 from collections.abc import Iterator
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bids import BIDSLayout
 
 from lib.imaging_lib.bids.dataset_description import BidsDatasetDescription
 from lib.imaging_lib.bids.tsv_participants import BidsTsvParticipant, read_bids_participants_tsv_file
 from lib.imaging_lib.bids.tsv_scans import BidsTsvScan, read_bids_scans_tsv_file
-from lib.imaging_lib.nifti import find_dir_nifti_files
-from lib.util.fs import replace_file_extension, search_dir_file_with_regex
+from lib.util.fs import search_dir_file_with_regex
 from lib.util.iter import find
+
+if TYPE_CHECKING:
+    from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
+    from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType, BIDSNifti
+
 
 PYBIDS_IGNORE = ['code', 'sourcedata', 'log', '.git']
 
@@ -37,6 +42,7 @@ class BIDSDataset:
 
     @property
     def niftis(self) -> Iterator['BIDSNifti']:
+        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
         for data_type in self.data_types:
             if isinstance(data_type, BIDSMRIDataType):
                 yield from data_type.niftis
@@ -159,6 +165,7 @@ class BIDSSubject:
 
     @property
     def niftis(self) -> Iterator['BIDSNifti']:
+        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
         for data_type in self.data_types:
             if isinstance(data_type, BIDSMRIDataType):
                 yield from data_type.niftis
@@ -226,6 +233,8 @@ class BIDSSession:
         The MRI data type directories found in this session directory.
         """
 
+        from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
+
         data_types: list[BIDSMRIDataType] = []
 
         for data_type_name in ['anat', 'dwi', 'fmap', 'func']:
@@ -240,6 +249,8 @@ class BIDSSession:
         """
         The MRI data type directories found in this session directory.
         """
+
+        from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
 
         data_types: list[BIDSEEGDataType] = []
 
@@ -302,91 +313,3 @@ class BIDSDataType:
     @property
     def subject(self) -> BIDSSubject:
         return self.session.subject
-
-
-# TODO: Complete with EEG-specific content.
-class BIDSEEGDataType(BIDSDataType):
-    pass
-
-
-class BIDSMRIDataType(BIDSDataType):
-    @cached_property
-    def niftis(self) -> list['BIDSNifti']:
-        """
-        The NIfTI files found in this MRI data type directory.
-        """
-
-        niftis: list[BIDSNifti] = []
-
-        for nifti_path in find_dir_nifti_files(self.path):
-            niftis.append(BIDSNifti(self, nifti_path.name))
-
-        return niftis
-
-
-class BIDSNifti:
-    data_type: BIDSDataType
-    path: Path
-    suffix: str | None
-
-    def __init__(self, data_type: BIDSDataType, name: str):
-        self.data_type = data_type
-        self.path      = data_type.path / name
-
-        suffix_match = re.search(r'_([a-zA-Z0-9]+)\.nii(\.gz)?$', self.name)
-        if suffix_match is not None:
-            self.suffix = suffix_match.group(1)
-        else:
-            self.suffix = None
-
-    @property
-    def name(self) -> str:
-        return self.path.name
-
-    @property
-    def root_dataset(self) -> BIDSDataset:
-        return self.data_type.root_dataset
-
-    @property
-    def subject(self) -> BIDSSubject:
-        return self.data_type.subject
-
-    @property
-    def session(self) -> BIDSSession:
-        return self.data_type.session
-
-    def get_json_path(self) -> Path | None:
-        """
-        Get the JSON sidecar file path of this NIfTI file if it exists.
-        """
-
-        json_name = replace_file_extension(self.name, 'json')
-        json_path = self.data_type.path / json_name
-        if not json_path.exists():
-            return None
-
-        return json_path
-
-    def get_bval_path(self) -> Path | None:
-        """
-        Get the BVAL file path of this NIfTI file if it exists.
-        """
-
-        bval_name = replace_file_extension(self.name, 'bval')
-        bval_path = self.data_type.path / bval_name
-        if not bval_path.exists():
-            return None
-
-        return bval_path
-
-    def get_bvec_path(self) -> Path | None:
-        """
-        Get the BVEC file path of this NIfTI file if it exists.
-        """
-
-        bvec_name = replace_file_extension(self.name, 'bvec')
-        bvec_path = self.data_type.path / bvec_name
-        if not bvec_path.exists():
-            return None
-
-        return bvec_path
