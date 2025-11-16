@@ -11,7 +11,7 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.eeg import Eeg
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSSession
+from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSEEGDataType, BIDSMRIDataType, BIDSSession
 from lib.imaging_lib.bids.dataset_description import BidsDatasetDescriptionError
 from lib.imaging_lib.bids.tsv_participants import (
     BidsTsvParticipant,
@@ -177,12 +177,13 @@ def import_bids_data_type_files(
     Read the provided BIDS data type directory and import it into LORIS.
     """
 
-    if data_type.name in BIDS_MRI_DATA_TYPES:
-        import_bids_mri_data_type_files(env, import_env, args, session, data_type)
-    elif data_type.name in BIDS_EEG_DATA_TYPES:
-        import_bids_eeg_data_type_files(env, import_env, args, session, data_type, events_metadata, legacy_db)
-    else:
-        log_warning(env, f"Unknown data type '{data_type.name}'. Skipping.")
+    match data_type:
+        case BIDSMRIDataType():
+            import_bids_mri_data_type_files(env, import_env, args, session, data_type)
+        case BIDSEEGDataType():
+            import_bids_eeg_data_type_files(env, import_env, args, session, data_type, events_metadata, legacy_db)
+        case _:
+            log_warning(env, f"Unknown data type '{data_type.name}'. Skipping.")
 
 
 def import_bids_mri_data_type_files(
@@ -190,7 +191,7 @@ def import_bids_mri_data_type_files(
     import_env: BIDSImportEnv,
     args: Args,
     session: DbSession,
-    data_type: BIDSDataType,
+    data_type: BIDSMRIDataType,
 ):
     """
     Read the BIDS MRI data type directory and import its files into LORIS.
@@ -222,7 +223,7 @@ def import_bids_eeg_data_type_files(
     import_env: BIDSImportEnv,
     args: Args,
     session: DbSession,
-    data_type: BIDSDataType,
+    data_type: BIDSEEGDataType,
     events_metadata: dict[Any, Any],
     legacy_db: Database,
 ):
