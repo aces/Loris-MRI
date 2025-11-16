@@ -172,21 +172,21 @@ class Eeg:
             )
 
             # archive all files in a tar ball for downloading all files at once
-            files_to_archive = (os.path.join(self.data_dir, eeg_file_path),)
+            files_to_archive: list[str] = [os.path.join(self.data_dir, eeg_file_path)]
 
             if eegjson_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, eegjson_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, eegjson_file_path))
             if fdt_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, fdt_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, fdt_file_path))
             if electrode_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, electrode_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, electrode_file_path))
             if event_file_paths:
                 # archive all event files in a tar ball for event download
-                event_files_to_archive = ()
+                event_files_to_archive: list[str] = []
 
                 for event_file_path in event_file_paths:
-                    files_to_archive = (*files_to_archive, os.path.join(self.data_dir, event_file_path))
-                    event_files_to_archive = (*event_files_to_archive, os.path.join(self.data_dir, event_file_path))
+                    files_to_archive.append(os.path.join(self.data_dir, event_file_path))
+                    event_files_to_archive.append(os.path.join(self.data_dir, event_file_path))
 
                 event_archive_rel_name = os.path.splitext(event_file_paths[0])[0] + ".tgz"
                 self.create_and_insert_event_archive(
@@ -194,7 +194,7 @@ class Eeg:
                 )
 
             if channel_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, channel_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, channel_file_path))
 
             archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
             self.create_and_insert_archive(
@@ -740,17 +740,13 @@ class Eeg:
 
         return relative_path
 
-    def create_and_insert_archive(self, files_to_archive, archive_rel_name,
-                                  eeg_file_id):
+    def create_and_insert_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id):
         """
         Create an archive with all electrophysiology files associated to a
         specific recording (including electrodes.tsv, channels.tsv etc...)
 
-        :param files_to_archive: tuple with the list of files to include in
-                                 the archive
-         :type files_to_archive: tuple
+        :param files_to_archive: list of files to include in the archive
         :param archive_rel_name: path to the archive relative to data_dir
-         :type archive_rel_name: str
         :param eeg_file_id     : PhysiologicalFileID
          :type eeg_file_id     : int
         """
@@ -798,15 +794,12 @@ class Eeg:
         }
         physiological.insert_archive_file(archive_info)
 
-    def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
+    def create_and_insert_event_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id):
         """
         Create an archive with all event files associated to a specific recording
 
-        :param files_to_archive: tuple with the list of files to include in
-                                 the archive
-         :type files_to_archive: tuple
+        :param files_to_archive: list of files to include in the archive
         :param archive_rel_name: path to the archive relative to data_dir
-         :type archive_rel_name: str
         :param eeg_file_id     : PhysiologicalFileID
          :type eeg_file_id     : int
         """
