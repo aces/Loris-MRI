@@ -7,8 +7,8 @@ from lib.db.models.session import DbSession
 from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_rel_path
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BIDSNifti
 from lib.imaging_lib.bids.json import add_bids_json_file_parameters
+from lib.imaging_lib.bids.mri.dataset import BIDSNifti
 from lib.imaging_lib.bids.tsv_scans import add_scan_tsv_file_parameters
 from lib.imaging_lib.bids.util import determine_bids_file_type
 from lib.imaging_lib.file import register_imaging_file
