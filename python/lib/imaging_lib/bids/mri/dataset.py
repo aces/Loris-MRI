@@ -3,42 +3,53 @@ from functools import cached_property
 from pathlib import Path
 
 from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSSession, BIDSSubject
-from lib.imaging_lib.nifti import find_dir_nifti_files
-from lib.util.fs import replace_file_extension
+from lib.util.fs import remove_path_extension, replace_path_extension
 
 
 class BIDSMRIDataType(BIDSDataType):
     @cached_property
-    def niftis(self) -> list['BIDSNifti']:
+    def niftis(self) -> list['BIDSMRIAcquisition']:
         """
         The NIfTI files found in this MRI data type directory.
         """
 
-        niftis: list[BIDSNifti] = []
+        acquisitions: list[BIDSMRIAcquisition] = []
 
-        for nifti_path in find_dir_nifti_files(self.path):
-            niftis.append(BIDSNifti(self, nifti_path.name))
+        for file_path in self.path.iterdir():
+            if file_path.name.endswith(('.nii', '.nii.gz')):
+                acquisitions.append(BIDSMRIAcquisition(self, file_path))
 
-        return niftis
+        return acquisitions
 
 
-class BIDSNifti:
+class BIDSMRIAcquisition:
     data_type: BIDSDataType
     path: Path
+    nifti_path: Path
+    sidecar_path: Path | None
+    bval_path: Path | None
+    bvec_path: Path | None
     suffix: str | None
 
-    def __init__(self, data_type: BIDSDataType, name: str):
-        self.data_type = data_type
-        self.path      = data_type.path / name
+    def __init__(self, data_type: BIDSDataType, nifti_path: Path):
+        self.data_type  = data_type
+        self.path       = remove_path_extension(nifti_path)
+        self.nifti_path = data_type.path / nifti_path
 
-        suffix_match = re.search(r'_([a-zA-Z0-9]+)\.nii(\.gz)?$', self.name)
-        if suffix_match is not None:
-            self.suffix = suffix_match.group(1)
-        else:
-            self.suffix = None
+        sidecar_path = replace_path_extension(self.path, 'json')
+        self.sidecar_path = sidecar_path if sidecar_path.exists() else None
+
+        bval_path = replace_path_extension(self.path, 'bval')
+        self.bval_path = bval_path if bval_path.exists() else None
+
+        bvec_path = replace_path_extension(self.path, 'bvec')
+        self.bvec_path = bvec_path if bvec_path.exists() else None
+
+        suffix_match = re.search(r'_([a-zA-Z0-9]+)$', self.name)
+        self.suffix = suffix_match.group(1) if suffix_match is not None else None
 
     @property
-    def name(self) -> str:
+    def name(self):
         return self.path.name
 
     @property
@@ -52,39 +63,3 @@ class BIDSNifti:
     @property
     def session(self) -> BIDSSession:
         return self.data_type.session
-
-    def get_json_path(self) -> Path | None:
-        """
-        Get the JSON sidecar file path of this NIfTI file if it exists.
-        """
-
-        json_name = replace_file_extension(self.name, 'json')
-        json_path = self.data_type.path / json_name
-        if not json_path.exists():
-            return None
-
-        return json_path
-
-    def get_bval_path(self) -> Path | None:
-        """
-        Get the BVAL file path of this NIfTI file if it exists.
-        """
-
-        bval_name = replace_file_extension(self.name, 'bval')
-        bval_path = self.data_type.path / bval_name
-        if not bval_path.exists():
-            return None
-
-        return bval_path
-
-    def get_bvec_path(self) -> Path | None:
-        """
-        Get the BVEC file path of this NIfTI file if it exists.
-        """
-
-        bvec_name = replace_file_extension(self.name, 'bvec')
-        bvec_path = self.data_type.path / bvec_name
-        if not bvec_path.exists():
-            return None
-
-        return bvec_path

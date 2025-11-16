@@ -14,7 +14,7 @@ from lib.util.iter import find
 
 if TYPE_CHECKING:
     from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
-    from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType, BIDSNifti
+    from lib.imaging_lib.bids.mri.dataset import BIDSMRIAcquisition, BIDSMRIDataType
 
 
 PYBIDS_IGNORE = ['code', 'sourcedata', 'log', '.git']
@@ -41,7 +41,7 @@ class BIDSDataset:
             yield from session.data_types
 
     @property
-    def niftis(self) -> Iterator['BIDSNifti']:
+    def niftis(self) -> Iterator['BIDSMRIAcquisition']:
         from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
         for data_type in self.data_types:
             if isinstance(data_type, BIDSMRIDataType):
@@ -164,7 +164,7 @@ class BIDSSubject:
             yield from session.data_types
 
     @property
-    def niftis(self) -> Iterator['BIDSNifti']:
+    def niftis(self) -> Iterator['BIDSMRIAcquisition']:
         from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
         for data_type in self.data_types:
             if isinstance(data_type, BIDSMRIDataType):
@@ -223,7 +223,7 @@ class BIDSSession:
         return self.subject.root_dataset
 
     @property
-    def niftis(self) -> Iterator['BIDSNifti']:
+    def niftis(self) -> Iterator['BIDSMRIAcquisition']:
         for data_type in self.mri_data_types:
             yield from data_type.niftis
 
