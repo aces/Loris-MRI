@@ -795,9 +795,16 @@ class Eeg:
         }
         physiological.insert_archive_file(archive_info)
 
+<<<<<<< HEAD
     def create_and_insert_event_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id: int):
         """
         Create an archive with all event files associated to a specific recording
+=======
+    def create_and_insert_event_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id):
+        """
+        Create an archive with all event files associated to a specific recording
+
+>>>>>>> 2af7b5ba (use lists instead of tuples for eeg paths)
         :param files_to_archive: list of files to include in the archive
         :param archive_rel_name: path to the archive relative to data_dir
         :param eeg_file_id     : PhysiologicalFileID
