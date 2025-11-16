@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from pathlib import Path
 from typing import Any
 
 from lib.config import get_data_dir_path_config, get_default_bids_visit_label_config
@@ -46,11 +47,11 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     Read the provided BIDS dataset and import it into LORIS.
     """
 
-    data_dir_path = get_data_dir_path_config(env)
+    data_dir_path = Path(get_data_dir_path_config(env))
 
     log(env, "Parsing BIDS dataset...")
 
-    bids = BIDSDataset(args.source_bids_path, args.bids_validation)
+    bids = BIDSDataset(Path(args.source_bids_path), args.bids_validation)
 
     niftis_count = count(bids.niftis)
 
@@ -85,14 +86,14 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     # Copy the `participants.tsv` file rows.
 
     if loris_bids_path is not None and bids.tsv_participants is not None:
-        loris_participants_tsv_path = os.path.join(loris_bids_path, 'participants.tsv')
+        loris_participants_tsv_path = loris_bids_path / 'participants.tsv'
         copy_bids_tsv_participants(bids.tsv_participants, loris_participants_tsv_path)
 
     # Process each session directory.
 
     import_env = BIDSImportEnv(
-        data_dir_path = data_dir_path,
-        loris_bids_path = loris_bids_path,
+        data_dir_path     = data_dir_path,
+        loris_bids_path   = loris_bids_path,
         total_files_count = niftis_count,
     )
 
@@ -143,11 +144,11 @@ def import_bids_session(
         tsv_scans = bids_session.tsv_scans
 
         if import_env.loris_bids_path is not None and tsv_scans is not None:
-            loris_scans_tsv_path = os.path.join(
-                import_env.loris_bids_path,
-                f'sub-{bids_session.subject.label}',
-                f'ses-{bids_session.label}',
-                f'sub-{bids_session.subject.label}_ses-{bids_session.label}_scans.tsv',
+            loris_scans_tsv_path = (
+                import_env.loris_bids_path
+                / f'sub-{bids_session.subject.label}'
+                / f'ses-{bids_session.label}'
+                / f'sub-{bids_session.subject.label}_ses-{bids_session.label}_scans.tsv'
             )
 
             copy_bids_tsv_scans(tsv_scans, loris_scans_tsv_path)
@@ -239,40 +240,40 @@ def import_bids_eeg_data_type_files(
         data_type              = data_type,
         db                     = legacy_db,
         verbose                = env.verbose,
-        data_dir               = import_env.data_dir_path,
+        data_dir               = str(import_env.data_dir_path),
         session                = session,
         loris_bids_eeg_rel_dir = loris_data_type_dir_rel_path,
-        loris_bids_root_dir    = import_env.loris_bids_path,
+        loris_bids_root_dir    = str(import_env.loris_bids_path),
         dataset_tag_dict       = events_metadata,
         dataset_type           = args.type,
     )
 
 
-def copy_bids_tsv_participants(tsv_participants: dict[str, BidsTsvParticipant], loris_participants_tsv_path: str):
+def copy_bids_tsv_participants(tsv_participants: dict[str, BidsTsvParticipant], loris_participants_tsv_path: Path):
     """
     Copy some participants.tsv rows into the LORIS participants.tsv file, creating it if necessary.
     """
 
-    if os.path.exists(loris_participants_tsv_path):
+    if loris_participants_tsv_path.exists():
         loris_tsv_participants = read_bids_participants_tsv_file(loris_participants_tsv_path)
         merge_bids_tsv_participants(tsv_participants, loris_tsv_participants)
 
     write_bids_participants_tsv_file(tsv_participants, loris_participants_tsv_path)
 
 
-def copy_bids_tsv_scans(tsv_scans: dict[str, BidsTsvScan], loris_scans_tsv_path: str):
+def copy_bids_tsv_scans(tsv_scans: dict[str, BidsTsvScan], loris_scans_tsv_path: Path):
     """
     Copy some scans.tsv rows into a LORIS scans.tsv file, creating it if necessary.
     """
 
-    if os.path.exists(loris_scans_tsv_path):
+    if loris_scans_tsv_path.exists():
         loris_tsv_scans = read_bids_scans_tsv_file(loris_scans_tsv_path)
         merge_bids_tsv_scans(tsv_scans, loris_tsv_scans)
 
     write_bids_scans_tsv_file(tsv_scans, loris_scans_tsv_path)
 
 
-def copy_static_dataset_files(source_bids_path: str, loris_bids_path: str):
+def copy_static_dataset_files(source_bids_path: Path, loris_bids_path: Path):
     """
     Copy the static files of the source BIDS dataset to the LORIS BIDS dataset.
     """
@@ -286,7 +287,7 @@ def copy_static_dataset_files(source_bids_path: str, loris_bids_path: str):
         shutil.copyfile(source_file_path, loris_file_path)
 
 
-def get_loris_bids_path(env: Env, bids: BIDSDataset, data_dir_path: str) -> str:
+def get_loris_bids_path(env: Env, bids: BIDSDataset, data_dir_path: Path) -> Path:
     """
     Get the LORIS BIDS directory path for the BIDS dataset to import, and create that directory if
     it does not exist yet.
@@ -307,9 +308,9 @@ def get_loris_bids_path(env: Env, bids: BIDSDataset, data_dir_path: str) -> str:
     dataset_name    = re.sub(r'[^0-9a-zA-Z]+',   '_', dataset_description.name)
     dataset_version = re.sub(r'[^0-9a-zA-Z\.]+', '_', dataset_description.bids_version)
 
-    loris_bids_path = os.path.join(data_dir_path, 'bids_imports', f'{dataset_name}_BIDSVersion_{dataset_version}')
+    loris_bids_path = data_dir_path / 'bids_imports' / f'{dataset_name}_BIDSVersion_{dataset_version}'
 
-    if not os.path.exists(loris_bids_path):
-        os.mkdir(loris_bids_path)
+    if not loris_bids_path.exists():
+        loris_bids_path.mkdir()
 
     return loris_bids_path
