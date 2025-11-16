@@ -38,7 +38,8 @@ class BIDSDataset:
     @property
     def niftis(self) -> Iterator['BIDSNifti']:
         for data_type in self.data_types:
-            yield from data_type.niftis
+            if isinstance(data_type, BIDSMRIDataType):
+                yield from data_type.niftis
 
     @cached_property
     def subjects(self) -> list['BIDSSubject']:
@@ -159,7 +160,8 @@ class BIDSSubject:
     @property
     def niftis(self) -> Iterator['BIDSNifti']:
         for data_type in self.data_types:
-            yield from data_type.niftis
+            if isinstance(data_type, BIDSMRIDataType):
+                yield from data_type.niftis
 
     @cached_property
     def sessions(self) -> list['BIDSSession']:
@@ -215,24 +217,47 @@ class BIDSSession:
 
     @property
     def niftis(self) -> Iterator['BIDSNifti']:
-        for data_type in self.data_types:
+        for data_type in self.mri_data_types:
             yield from data_type.niftis
 
     @cached_property
-    def data_types(self) -> list['BIDSDataType']:
+    def mri_data_types(self) -> list['BIDSMRIDataType']:
+        """
+        The MRI data type directories found in this session directory.
+        """
+
+        data_types: list[BIDSMRIDataType] = []
+
+        for data_type_name in ['anat', 'dwi', 'fmap', 'func']:
+            data_type_path = self.path / data_type_name
+            if data_type_path.is_dir():
+                data_types.append(BIDSMRIDataType(self, data_type_name))
+
+        return data_types
+
+    @cached_property
+    def eeg_data_types(self) -> list['BIDSEEGDataType']:
+        """
+        The MRI data type directories found in this session directory.
+        """
+
+        data_types: list[BIDSEEGDataType] = []
+
+        for data_type_name in ['eeg', 'ieeg']:
+            data_type_path = self.path / data_type_name
+            if data_type_path.is_dir():
+                data_types.append(BIDSEEGDataType(self, data_type_name))
+
+        return data_types
+
+    @property
+    def data_types(self) -> Iterator['BIDSDataType']:
         """
         The data type directories found in this session directory.
         """
 
-        data_types: list[BIDSDataType] = []
-
-        for file in self.path.iterdir():
-            if not file.is_dir():
-                continue
-
-            data_types.append(BIDSDataType(self, file.name))
-
-        return data_types
+        yield from self.mri_data_types
+        yield from self.eeg_data_types
 
     @cached_property
     def tsv_scans(self) -> dict[str, BidsTsvScan] | None:
@@ -278,10 +303,17 @@ class BIDSDataType:
     def subject(self) -> BIDSSubject:
         return self.session.subject
 
+
+# TODO: Complete with EEG-specific content.
+class BIDSEEGDataType(BIDSDataType):
+    pass
+
+
+class BIDSMRIDataType(BIDSDataType):
     @cached_property
     def niftis(self) -> list['BIDSNifti']:
         """
-        The NIfTI files found in this data type directory.
+        The NIfTI files found in this MRI data type directory.
         """
 
         niftis: list[BIDSNifti] = []
