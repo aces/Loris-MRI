@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import Any
 
 from lib.config import get_patient_id_dicom_header_config
@@ -41,7 +42,7 @@ def get_bids_json_session_info(env: Env, bids_json: dict[str, Any]) -> SessionIn
     return get_session_info(env, patient_id, scanner_info)
 
 
-def add_bids_json_file_parameters(env: Env, bids_json_path: str, rel_json_path: str, file_parameters: dict[str, Any]):
+def add_bids_json_file_parameters(env: Env, bids_json_path: Path, rel_json_path: Path, file_parameters: dict[str, Any]):
     """
     Read a BIDS JSON sidecar file and add its parameters to a LORIS file parameters dictionary.
     """
@@ -52,5 +53,5 @@ def add_bids_json_file_parameters(env: Env, bids_json_path: str, rel_json_path: 
 
     json_blake2 = compute_file_blake2b_hash(bids_json_path)
 
-    file_parameters['bids_json_file']              = rel_json_path
+    file_parameters['bids_json_file']              = str(rel_json_path)
     file_parameters['bids_json_file_blake2b_hash'] = json_blake2
