@@ -11,8 +11,10 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.eeg import Eeg
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSEEGDataType, BIDSMRIDataType, BIDSSession
+from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSSession
 from lib.imaging_lib.bids.dataset_description import BidsDatasetDescriptionError
+from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
+from lib.imaging_lib.bids.mri.dataset import BIDSMRIDataType
 from lib.imaging_lib.bids.tsv_participants import (
     BidsTsvParticipant,
     merge_bids_tsv_participants,

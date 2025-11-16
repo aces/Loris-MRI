@@ -14,7 +14,7 @@ from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_modality import PhysiologicalModality
 from lib.database_lib.physiological_output_type import PhysiologicalOutputType
 from lib.db.models.session import DbSession
-from lib.imaging_lib.bids.dataset import BIDSEEGDataType
+from lib.imaging_lib.bids.eeg.dataset import BIDSEEGDataType
 from lib.physiological import Physiological
 from lib.util.crypto import compute_file_blake2b_hash
 
