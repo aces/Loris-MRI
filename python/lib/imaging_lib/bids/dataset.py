@@ -1,14 +1,14 @@
-import os
 import re
 from collections.abc import Iterator
 from functools import cached_property
+from pathlib import Path
 
 from bids import BIDSLayout
 
 from lib.imaging_lib.bids.dataset_description import BidsDatasetDescription
 from lib.imaging_lib.bids.tsv_participants import BidsTsvParticipant, read_bids_participants_tsv_file
 from lib.imaging_lib.bids.tsv_scans import BidsTsvScan, read_bids_scans_tsv_file
-from lib.imaging_lib.nifti import find_dir_nifti_names
+from lib.imaging_lib.nifti import find_dir_nifti_files
 from lib.util.fs import replace_file_extension, search_dir_file_with_regex
 from lib.util.iter import find
 
@@ -18,10 +18,10 @@ PYBIDS_FORCE = [re.compile(r"_annotations\.(tsv|json)$")]
 
 
 class BIDSDataset:
-    path: str
+    path: Path
     validate: bool
 
-    def __init__(self, bids_path: str, validate: bool):
+    def __init__(self, bids_path: Path, validate: bool):
         self.path     = bids_path
         self.validate = validate
 
@@ -48,12 +48,12 @@ class BIDSDataset:
 
         subjects: list[BIDSSubject] = []
 
-        for file in os.scandir(self.path):
+        for file in self.path.iterdir():
             subject_match = re.match(r'sub-([a-zA-Z0-9]+)', file.name)
             if subject_match is None:
                 continue
 
-            if not os.path.isdir(file):
+            if not file.is_dir():
                 continue
 
             subject_label = subject_match.group(1)
@@ -68,8 +68,8 @@ class BIDSDataset:
         does contains incorrect data.
         """
 
-        dataset_description_path = os.path.join(self.path, 'dataset_description.json')
-        if not os.path.exists(dataset_description_path):
+        dataset_description_path = self.path / 'dataset_description.json'
+        if not dataset_description_path.exists():
             return None
 
         return BidsDatasetDescription(dataset_description_path)
@@ -81,8 +81,8 @@ class BIDSDataset:
         present. This property might raise an exception if the file is present but incorrect.
         """
 
-        tsv_participants_path = os.path.join(self.path, 'participants.tsv')
-        if not os.path.exists(tsv_participants_path):
+        tsv_participants_path = self.path / 'participants.tsv'
+        if not tsv_participants_path.exists():
             return None
 
         return read_bids_participants_tsv_file(tsv_participants_path)
@@ -143,13 +143,13 @@ class BIDSDataset:
 
 class BIDSSubject:
     root_dataset: BIDSDataset
+    path: Path
     label: str
-    path: str
 
     def __init__(self, root_dataset: BIDSDataset, label: str):
         self.root_dataset = root_dataset
         self.label = label
-        self.path = os.path.join(self.root_dataset.path, f'sub-{self.label}')
+        self.path  = self.root_dataset.path / f'sub-{self.label}'
 
     @property
     def data_types(self) -> Iterator['BIDSDataType']:
@@ -169,8 +169,8 @@ class BIDSSubject:
 
         sessions: list[BIDSSession] = []
 
-        for file in os.scandir(self.path):
-            if not os.path.isdir(file):
+        for file in self.path.iterdir():
+            if not file.is_dir():
                 continue
 
             session_match = re.match(r'ses-([a-zA-Z0-9]+)', file.name)
@@ -195,23 +195,19 @@ class BIDSSubject:
 
 class BIDSSession:
     subject: BIDSSubject
+    path: Path
     label: str | None
-    path: str
-    tsv_scans_path: str | None
+    tsv_scans_path: Path | None
 
     def __init__(self, subject: BIDSSubject, label: str | None):
         self.subject = subject
         self.label = label
-        if label is None:
-            self.path = self.subject.path
+        if label is not None:
+            self.path = subject.path / f'ses-{self.label}'
         else:
-            self.path = os.path.join(self.subject.path, f'ses-{self.label}')
+            self.path = subject.path
 
-        tsv_scans_name = search_dir_file_with_regex(self.path, r'scans.tsv$')
-        if tsv_scans_name is not None:
-            self.tsv_scans_path = os.path.join(self.path, tsv_scans_name)
-        else:
-            self.tsv_scans_path = None
+        self.tsv_scans_path = search_dir_file_with_regex(self.path, r'scans.tsv$')
 
     @property
     def root_dataset(self) -> BIDSDataset:
@@ -230,8 +226,8 @@ class BIDSSession:
 
         data_types: list[BIDSDataType] = []
 
-        for file in os.scandir(self.path):
-            if not os.path.isdir(file):
+        for file in self.path.iterdir():
+            if not file.is_dir():
                 continue
 
             data_types.append(BIDSDataType(self, file.name))
@@ -264,13 +260,15 @@ class BIDSSession:
 
 class BIDSDataType:
     session: BIDSSession
-    name: str
-    path: str
+    path: Path
 
     def __init__(self, session: BIDSSession, name: str):
         self.session = session
-        self.name = name
-        self.path = os.path.join(self.session.path, self.name)
+        self.path    = session.path / name
+
+    @property
+    def name(self) -> str:
+        return self.path.name
 
     @property
     def root_dataset(self) -> BIDSDataset:
@@ -288,28 +286,30 @@ class BIDSDataType:
 
         niftis: list[BIDSNifti] = []
 
-        for nifti_name in find_dir_nifti_names(self.path):
-            niftis.append(BIDSNifti(self, nifti_name))
+        for nifti_path in find_dir_nifti_files(self.path):
+            niftis.append(BIDSNifti(self, nifti_path.name))
 
         return niftis
 
 
 class BIDSNifti:
     data_type: BIDSDataType
-    name: str
-    path: str
+    path: Path
     suffix: str | None
 
     def __init__(self, data_type: BIDSDataType, name: str):
         self.data_type = data_type
-        self.path = os.path.join(self.data_type.path, name)
-        self.name = name
+        self.path      = data_type.path / name
 
         suffix_match = re.search(r'_([a-zA-Z0-9]+)\.nii(\.gz)?$', self.name)
         if suffix_match is not None:
             self.suffix = suffix_match.group(1)
         else:
             self.suffix = None
+
+    @property
+    def name(self) -> str:
+        return self.path.name
 
     @property
     def root_dataset(self) -> BIDSDataset:
@@ -323,38 +323,38 @@ class BIDSNifti:
     def session(self) -> BIDSSession:
         return self.data_type.session
 
-    def get_json_path(self) -> str | None:
+    def get_json_path(self) -> Path | None:
         """
         Get the JSON sidecar file path of this NIfTI file if it exists.
         """
 
         json_name = replace_file_extension(self.name, 'json')
-        json_path = os.path.join(self.data_type.path, json_name)
-        if not os.path.exists(json_path):
+        json_path = self.data_type.path / json_name
+        if not json_path.exists():
             return None
 
         return json_path
 
-    def get_bval_path(self) -> str | None:
+    def get_bval_path(self) -> Path | None:
         """
         Get the BVAL file path of this NIfTI file if it exists.
         """
 
         bval_name = replace_file_extension(self.name, 'bval')
-        bval_path = os.path.join(self.data_type.path, bval_name)
-        if not os.path.exists(bval_path):
+        bval_path = self.data_type.path / bval_name
+        if not bval_path.exists():
             return None
 
         return bval_path
 
-    def get_bvec_path(self) -> str | None:
+    def get_bvec_path(self) -> Path | None:
         """
         Get the BVEC file path of this NIfTI file if it exists.
         """
 
         bvec_name = replace_file_extension(self.name, 'bvec')
-        bvec_path = os.path.join(self.data_type.path, bvec_name)
-        if not os.path.exists(bvec_path):
+        bvec_path = self.data_type.path / bvec_name
+        if not bvec_path.exists():
             return None
 
         return bvec_path

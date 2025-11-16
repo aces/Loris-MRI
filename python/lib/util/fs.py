@@ -5,6 +5,7 @@ import tarfile
 import tempfile
 from collections.abc import Iterator
 from datetime import datetime
+from pathlib import Path
 
 import lib.exitcode
 from lib.env import Env
@@ -103,14 +104,14 @@ def replace_file_extension(file_name: str, extension: str) -> str:
     return f'{parts[0]}.{extension}'
 
 
-def search_dir_file_with_regex(dir_path: str, regex: str) -> str | None:
+def search_dir_file_with_regex(dir_path: Path, regex: str) -> Path | None:
     """
-    Search for a file within a directory whose name matches a regular expression, or return `None`
-    if no such file is found.
+    Search for a file or directory within a directory whose name matches a regular expression, or
+    return `None` if no such file is found.
     """
 
-    for file in os.scandir(dir_path):
-        if re.search(regex, file.name):
-            return file.name
+    for file_path in dir_path.iterdir():
+        if re.search(regex, file_path.name):
+            return file_path
 
     return None

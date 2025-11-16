@@ -1,5 +1,5 @@
-import os
 import shutil
+from pathlib import Path
 from typing import Any, cast
 
 from lib.db.models.mri_scan_type import DbMriScanType
@@ -59,20 +59,21 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
 
     # Get the path at which to copy the file.
 
-    loris_file_dir_path = os.path.join(
-        cast(str, import_env.loris_bids_path),
-        f'sub-{session.candidate.psc_id}',
-        f'ses-{session.visit_label}',
-        nifti.data_type.name,
+    loris_file_dir_path = (
+        # The LORIS BIDS path should not be `None` since `--no-copy` is not supported for MRI acquisitions yet.
+        cast(Path, import_env.loris_bids_path)
+        / f'sub-{session.candidate.psc_id}'
+        / f'ses-{session.visit_label}'
+        / nifti.data_type.name
     )
 
-    loris_file_path = os.path.join(loris_file_dir_path, nifti.name)
+    loris_file_path = loris_file_dir_path / nifti.name
 
-    loris_file_rel_path = os.path.relpath(loris_file_path, import_env.data_dir_path)
+    loris_file_rel_path = loris_file_path.relative_to(import_env.data_dir_path)
 
     # Check whether the file is already registered in LORIS.
 
-    loris_file = try_get_file_with_rel_path(env.db, loris_file_rel_path)
+    loris_file = try_get_file_with_rel_path(env.db, str(loris_file_rel_path))
     if loris_file is not None:
         import_env.ignored_files_count += 1
         log(env, f"File '{loris_file_rel_path}' is already registered in LORIS. Skipping.")
@@ -86,7 +87,7 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
 
     # Get the auxiliary files.
 
-    aux_file_paths: list[str] = []
+    aux_file_paths: list[Path] = []
 
     json_path = nifti.get_json_path()
 
@@ -103,8 +104,8 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
     file_parameters: dict[str, Any] = {}
 
     if json_path is not None:
-        json_loris_path = os.path.join(loris_file_dir_path, os.path.basename(json_path))
-        json_loris_rel_path = os.path.relpath(json_loris_path, import_env.data_dir_path)
+        json_loris_path = loris_file_dir_path / json_path.name
+        json_loris_rel_path = json_loris_path.relative_to(import_env.data_dir_path)
         add_bids_json_file_parameters(env, json_path, json_loris_rel_path, file_parameters)
 
     add_nifti_file_parameters(nifti.path, file_hash, file_parameters)
@@ -113,11 +114,11 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
         add_scan_tsv_file_parameters(tsv_scan, nifti.session.tsv_scans_path, file_parameters)
 
     for aux_file_path in aux_file_paths:
-        aux_file_type = get_file_extension(aux_file_path)
+        aux_file_type = get_file_extension(aux_file_path.name)
         aux_file_hash = compute_file_blake2b_hash(aux_file_path)
-        aux_file_loris_path = os.path.join(loris_file_dir_path, os.path.basename(aux_file_path))
-        aux_file_loris_rel_path = os.path.relpath(aux_file_loris_path, import_env.data_dir_path)
-        file_parameters[f'bids_{aux_file_type}']              = aux_file_loris_rel_path
+        aux_file_loris_path = loris_file_dir_path / aux_file_path.name
+        aux_file_loris_rel_path = aux_file_loris_path.relative_to(import_env.data_dir_path)
+        file_parameters[f'bids_{aux_file_type}']              = str(aux_file_loris_rel_path)
         file_parameters[f'bids_{aux_file_type}_blake2b_hash'] = aux_file_hash
 
     # Copy the files on the file system.
@@ -139,7 +140,7 @@ def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, n
     file = register_imaging_file(
         env,
         file_type,
-        loris_file_rel_path,
+        str(loris_file_rel_path),
         session,
         mri_scan_type,
         echo_time,
@@ -209,16 +210,15 @@ def get_nifti_mri_scan_type(env: Env, import_env: BIDSImportEnv, nifti: BIDSNift
     return create_mri_scan_type(env, nifti.suffix)
 
 
-def copy_bids_file(loris_file_dir_path: str, file_path: str):
+def copy_bids_file(loris_file_dir_path: Path, file_path: Path):
     """
     Copy a BIDS file to a directory.
     """
 
-    file_name = os.path.basename(file_path)
-    loris_file_path = os.path.join(loris_file_dir_path, file_name)
+    loris_file_path = loris_file_dir_path / file_path.name
 
-    if os.path.exists(loris_file_path):
+    if loris_file_path.exists():
         raise Exception(f"File '{loris_file_path}' already exists in LORIS.")
 
-    os.makedirs(loris_file_dir_path, exist_ok=True)
+    loris_file_dir_path.mkdir(exist_ok=True)
     shutil.copyfile(file_path, loris_file_path)

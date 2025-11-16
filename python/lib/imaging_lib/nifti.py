@@ -1,11 +1,11 @@
-import os
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any, cast
 
 import nibabel as nib
 
 
-def add_nifti_file_parameters(nifti_path: str, nifti_file_hash: str, file_parameters: dict[str, Any]):
+def add_nifti_file_parameters(nifti_path: Path, nifti_file_hash: str, file_parameters: dict[str, Any]):
     """
     Read a NIfTI image and add some of its properties to the file parameters.
     """
@@ -34,11 +34,11 @@ def add_nifti_file_parameters(nifti_path: str, nifti_file_hash: str, file_parame
     file_parameters['file_blake2b_hash'] = nifti_file_hash
 
 
-def find_dir_nifti_names(dir_path: str) -> Iterator[str]:
+def find_dir_nifti_files(dir_path: Path) -> Iterator[Path]:
     """
-    Iterate over the names of the NIfTI files found in a directory.
+    Iterate over the Path objects of the NIfTI files found in a directory.
     """
 
-    for file_name in os.listdir(dir_path):
-        if file_name.endswith(('.nii', '.nii.gz')):
-            yield file_name
+    for item_path in dir_path.iterdir():
+        if item_path.name.endswith(('.nii', '.nii.gz')):
+            yield item_path

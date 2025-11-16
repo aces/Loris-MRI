@@ -1,6 +1,7 @@
 import csv
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from dateutil.parser import ParserError, parse
 
@@ -21,7 +22,7 @@ class BidsTsvParticipant:
     project:    str | None = None
 
 
-def read_bids_participants_tsv_file(participants_tsv_path: str) -> dict[str, BidsTsvParticipant]:
+def read_bids_participants_tsv_file(participants_tsv_path: Path) -> dict[str, BidsTsvParticipant]:
     """
     Read the `participants.tsv` file of a BIDS dataset and get the participant rows indexed by
     participant ID. Raise an exception if the `participants.tsv` file is incorrect.
@@ -42,7 +43,7 @@ def read_bids_participants_tsv_file(participants_tsv_path: str) -> dict[str, Bid
 
 def read_bids_participants_tsv_row(
     tsv_participant_row: dict[str, str],
-    participants_tsv_path: str,
+    participants_tsv_path: Path,
 ) -> BidsTsvParticipant:
     """
     Read a `participants.tsv` row, or raise an exception if that row is incorrect.
@@ -70,7 +71,7 @@ def read_bids_participants_tsv_row(
     )
 
 
-def write_bids_participants_tsv_file(tsv_participants: dict[str, BidsTsvParticipant], participants_file_path: str):
+def write_bids_participants_tsv_file(tsv_participants: dict[str, BidsTsvParticipant], participants_file_path: Path):
     """
     Write the `participants.tsv` file based from a set of participant rows.
     """
