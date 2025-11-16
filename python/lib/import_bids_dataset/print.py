@@ -1,9 +1,9 @@
 from lib.env import Env
-from lib.import_bids_dataset.env import BidsImportEnv
+from lib.import_bids_dataset.env import BIDSImportEnv
 from lib.logging import log
 
 
-def print_bids_import_summary(env: Env, import_env: BidsImportEnv):
+def print_bids_import_summary(env: Env, import_env: BIDSImportEnv):
     """
     Print a summary of this BIDS import process.
     """

@@ -10,7 +10,7 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.eeg import Eeg
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BidsDataset, BidsDataType, BidsSession
+from lib.imaging_lib.bids.dataset import BIDSDataset, BIDSDataType, BIDSSession
 from lib.imaging_lib.bids.dataset_description import BidsDatasetDescriptionError
 from lib.imaging_lib.bids.tsv_participants import (
     BidsTsvParticipant,
@@ -29,7 +29,7 @@ from lib.import_bids_dataset.check_subjects_sessions import (
     check_bids_session_labels,
     check_or_create_bids_subjects_and_sessions,
 )
-from lib.import_bids_dataset.env import BidsImportEnv
+from lib.import_bids_dataset.env import BIDSImportEnv
 from lib.import_bids_dataset.events import get_events_metadata
 from lib.import_bids_dataset.mri import import_bids_nifti
 from lib.import_bids_dataset.print import print_bids_import_summary
@@ -50,7 +50,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     log(env, "Parsing BIDS dataset...")
 
-    bids = BidsDataset(args.source_bids_path, args.bids_validation)
+    bids = BIDSDataset(args.source_bids_path, args.bids_validation)
 
     niftis_count = count(bids.niftis)
 
@@ -90,7 +90,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
     # Process each session directory.
 
-    import_env = BidsImportEnv(
+    import_env = BIDSImportEnv(
         data_dir_path = data_dir_path,
         loris_bids_path = loris_bids_path,
         total_files_count = niftis_count,
@@ -111,9 +111,9 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
 
 def import_bids_session(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BIDSImportEnv,
     args: Args,
-    bids_session: BidsSession,
+    bids_session: BIDSSession,
     events_metadata: dict[Any, Any],
     legacy_db: Database,
 ):
@@ -165,10 +165,10 @@ def import_bids_session(
 
 def import_bids_data_type_files(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BIDSImportEnv,
     args: Args,
     session: DbSession,
-    data_type: BidsDataType,
+    data_type: BIDSDataType,
     events_metadata: dict[Any, Any],
     legacy_db: Database,
 ):
@@ -186,10 +186,10 @@ def import_bids_data_type_files(
 
 def import_bids_mri_data_type_files(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BIDSImportEnv,
     args: Args,
     session: DbSession,
-    data_type: BidsDataType,
+    data_type: BIDSDataType,
 ):
     """
     Read the BIDS MRI data type directory and import its files into LORIS.
@@ -218,10 +218,10 @@ def import_bids_mri_data_type_files(
 
 def import_bids_eeg_data_type_files(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BIDSImportEnv,
     args: Args,
     session: DbSession,
-    data_type: BidsDataType,
+    data_type: BIDSDataType,
     events_metadata: dict[Any, Any],
     legacy_db: Database,
 ):
@@ -286,7 +286,7 @@ def copy_static_dataset_files(source_bids_path: str, loris_bids_path: str):
         shutil.copyfile(source_file_path, loris_file_path)
 
 
-def get_loris_bids_path(env: Env, bids: BidsDataset, data_dir_path: str) -> str:
+def get_loris_bids_path(env: Env, bids: BIDSDataset, data_dir_path: str) -> str:
     """
     Get the LORIS BIDS directory path for the BIDS dataset to import, and create that directory if
     it does not exist yet.

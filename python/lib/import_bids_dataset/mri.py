@@ -7,7 +7,7 @@ from lib.db.models.session import DbSession
 from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_rel_path
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
-from lib.imaging_lib.bids.dataset import BidsNifti
+from lib.imaging_lib.bids.dataset import BIDSNifti
 from lib.imaging_lib.bids.json import add_bids_json_file_parameters
 from lib.imaging_lib.bids.tsv_scans import add_scan_tsv_file_parameters
 from lib.imaging_lib.bids.util import determine_bids_file_type
@@ -16,7 +16,7 @@ from lib.imaging_lib.file_parameter import register_file_parameter, register_fil
 from lib.imaging_lib.mri_scan_type import create_mri_scan_type
 from lib.imaging_lib.nifti import add_nifti_file_parameters
 from lib.imaging_lib.nifti_pic import create_imaging_pic
-from lib.import_bids_dataset.env import BidsImportEnv
+from lib.import_bids_dataset.env import BIDSImportEnv
 from lib.logging import log, log_warning
 from lib.util.crypto import compute_file_blake2b_hash
 from lib.util.fs import get_file_extension
@@ -38,7 +38,7 @@ KNOWN_SUFFIXES_PER_MRI_DATA_TYPE = {
 }
 
 
-def import_bids_nifti(env: Env, import_env: BidsImportEnv, session: DbSession, nifti: BidsNifti):
+def import_bids_nifti(env: Env, import_env: BIDSImportEnv, session: DbSession, nifti: BIDSNifti):
     """
     Import a BIDS NIfTI file and its associated files in LORIS.
     """
@@ -158,7 +158,7 @@ def import_bids_nifti(env: Env, import_env: BidsImportEnv, session: DbSession, n
     import_env.imported_files_count += 1
 
 
-def get_check_nifti_imaging_file_type(env: Env, nifti: BidsNifti) -> str:
+def get_check_nifti_imaging_file_type(env: Env, nifti: BIDSNifti) -> str:
     """
     Get the BIDS file type of a NIfTI file and raise an exception if that file type is not
     registered in the database.
@@ -171,7 +171,7 @@ def get_check_nifti_imaging_file_type(env: Env, nifti: BidsNifti) -> str:
     return file_type
 
 
-def get_check_nifti_file_hash(env: Env, nifti: BidsNifti) -> str:
+def get_check_nifti_file_hash(env: Env, nifti: BIDSNifti) -> str:
     """
     Compute the BLAKE2b hash of a NIfTI file and raise an exception if that hash is already
     registered in the database.
@@ -186,7 +186,7 @@ def get_check_nifti_file_hash(env: Env, nifti: BidsNifti) -> str:
     return file_hash
 
 
-def get_nifti_mri_scan_type(env: Env, import_env: BidsImportEnv, nifti: BidsNifti) -> DbMriScanType | None:
+def get_nifti_mri_scan_type(env: Env, import_env: BIDSImportEnv, nifti: BIDSNifti) -> DbMriScanType | None:
     """
     Get the MRI scan type corresponding to a NIfTI file using its BIDS suffix. Create the MRI scan
     type in the database the suffix is a standard BIDS suffix and the scan type does not already

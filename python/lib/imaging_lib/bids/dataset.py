@@ -17,7 +17,7 @@ PYBIDS_IGNORE = ['code', 'sourcedata', 'log', '.git']
 PYBIDS_FORCE = [re.compile(r"_annotations\.(tsv|json)$")]
 
 
-class BidsDataset:
+class BIDSDataset:
     path: str
     validate: bool
 
@@ -26,27 +26,27 @@ class BidsDataset:
         self.validate = validate
 
     @property
-    def sessions(self) -> Iterator['BidsSession']:
+    def sessions(self) -> Iterator['BIDSSession']:
         for subject in self.subjects:
             yield from subject.sessions
 
     @property
-    def data_types(self) -> Iterator['BidsDataType']:
+    def data_types(self) -> Iterator['BIDSDataType']:
         for session in self.sessions:
             yield from session.data_types
 
     @property
-    def niftis(self) -> Iterator['BidsNifti']:
+    def niftis(self) -> Iterator['BIDSNifti']:
         for data_type in self.data_types:
             yield from data_type.niftis
 
     @cached_property
-    def subjects(self) -> list['BidsSubject']:
+    def subjects(self) -> list['BIDSSubject']:
         """
         The subject directories found in the BIDS dataset.
         """
 
-        subjects: list[BidsSubject] = []
+        subjects: list[BIDSSubject] = []
 
         for file in os.scandir(self.path):
             subject_match = re.match(r'sub-([a-zA-Z0-9]+)', file.name)
@@ -57,7 +57,7 @@ class BidsDataset:
                 continue
 
             subject_label = subject_match.group(1)
-            subjects.append(BidsSubject(self, subject_label))
+            subjects.append(BIDSSubject(self, subject_label))
 
         return subjects
 
@@ -107,7 +107,7 @@ class BidsDataset:
         session_labels.sort()
         return session_labels
 
-    def get_subject(self, subject_label: str) -> 'BidsSubject | None':
+    def get_subject(self, subject_label: str) -> 'BIDSSubject | None':
         """
         Get the subject directory corresponding to a subject label in this BIDS dataset or `None`
         if it does not exist.
@@ -141,33 +141,33 @@ class BidsDataset:
         )
 
 
-class BidsSubject:
-    root_dataset: BidsDataset
+class BIDSSubject:
+    root_dataset: BIDSDataset
     label: str
     path: str
 
-    def __init__(self, root_dataset: BidsDataset, label: str):
+    def __init__(self, root_dataset: BIDSDataset, label: str):
         self.root_dataset = root_dataset
         self.label = label
         self.path = os.path.join(self.root_dataset.path, f'sub-{self.label}')
 
     @property
-    def data_types(self) -> Iterator['BidsDataType']:
+    def data_types(self) -> Iterator['BIDSDataType']:
         for session in self.sessions:
             yield from session.data_types
 
     @property
-    def niftis(self) -> Iterator['BidsNifti']:
+    def niftis(self) -> Iterator['BIDSNifti']:
         for data_type in self.data_types:
             yield from data_type.niftis
 
     @cached_property
-    def sessions(self) -> list['BidsSession']:
+    def sessions(self) -> list['BIDSSession']:
         """
         The session directories found in this subject directory.
         """
 
-        sessions: list[BidsSession] = []
+        sessions: list[BIDSSession] = []
 
         for file in os.scandir(self.path):
             if not os.path.isdir(file):
@@ -178,14 +178,14 @@ class BidsSubject:
                 continue
 
             session_label = session_match.group(1)
-            sessions.append(BidsSession(self, session_label))
+            sessions.append(BIDSSession(self, session_label))
 
         if sessions == []:
-            sessions.append(BidsSession(self, None))
+            sessions.append(BIDSSession(self, None))
 
         return sessions
 
-    def get_session(self, session_label: str) -> 'BidsSession | None':
+    def get_session(self, session_label: str) -> 'BIDSSession | None':
         """
         Get a session directory of this subject directory or `None` if it does not exist.
         """
@@ -193,13 +193,13 @@ class BidsSubject:
         return find(lambda session: session.label == session_label, self.sessions)
 
 
-class BidsSession:
-    subject: BidsSubject
+class BIDSSession:
+    subject: BIDSSubject
     label: str | None
     path: str
     tsv_scans_path: str | None
 
-    def __init__(self, subject: BidsSubject, label: str | None):
+    def __init__(self, subject: BIDSSubject, label: str | None):
         self.subject = subject
         self.label = label
         if label is None:
@@ -214,27 +214,27 @@ class BidsSession:
             self.tsv_scans_path = None
 
     @property
-    def root_dataset(self) -> BidsDataset:
+    def root_dataset(self) -> BIDSDataset:
         return self.subject.root_dataset
 
     @property
-    def niftis(self) -> Iterator['BidsNifti']:
+    def niftis(self) -> Iterator['BIDSNifti']:
         for data_type in self.data_types:
             yield from data_type.niftis
 
     @cached_property
-    def data_types(self) -> list['BidsDataType']:
+    def data_types(self) -> list['BIDSDataType']:
         """
         The data type directories found in this session directory.
         """
 
-        data_types: list[BidsDataType] = []
+        data_types: list[BIDSDataType] = []
 
         for file in os.scandir(self.path):
             if not os.path.isdir(file):
                 continue
 
-            data_types.append(BidsDataType(self, file.name))
+            data_types.append(BIDSDataType(self, file.name))
 
         return data_types
 
@@ -262,45 +262,45 @@ class BidsSession:
         return self.tsv_scans.get(file_name)
 
 
-class BidsDataType:
-    session: BidsSession
+class BIDSDataType:
+    session: BIDSSession
     name: str
     path: str
 
-    def __init__(self, session: BidsSession, name: str):
+    def __init__(self, session: BIDSSession, name: str):
         self.session = session
         self.name = name
         self.path = os.path.join(self.session.path, self.name)
 
     @property
-    def root_dataset(self) -> BidsDataset:
+    def root_dataset(self) -> BIDSDataset:
         return self.session.root_dataset
 
     @property
-    def subject(self) -> BidsSubject:
+    def subject(self) -> BIDSSubject:
         return self.session.subject
 
     @cached_property
-    def niftis(self) -> list['BidsNifti']:
+    def niftis(self) -> list['BIDSNifti']:
         """
         The NIfTI files found in this data type directory.
         """
 
-        niftis: list[BidsNifti] = []
+        niftis: list[BIDSNifti] = []
 
         for nifti_name in find_dir_nifti_names(self.path):
-            niftis.append(BidsNifti(self, nifti_name))
+            niftis.append(BIDSNifti(self, nifti_name))
 
         return niftis
 
 
-class BidsNifti:
-    data_type: BidsDataType
+class BIDSNifti:
+    data_type: BIDSDataType
     name: str
     path: str
     suffix: str | None
 
-    def __init__(self, data_type: BidsDataType, name: str):
+    def __init__(self, data_type: BIDSDataType, name: str):
         self.data_type = data_type
         self.path = os.path.join(self.data_type.path, name)
         self.name = name
@@ -312,15 +312,15 @@ class BidsNifti:
             self.suffix = None
 
     @property
-    def root_dataset(self) -> BidsDataset:
+    def root_dataset(self) -> BIDSDataset:
         return self.data_type.root_dataset
 
     @property
-    def subject(self) -> BidsSubject:
+    def subject(self) -> BIDSSubject:
         return self.data_type.subject
 
     @property
-    def session(self) -> BidsSession:
+    def session(self) -> BIDSSession:
         return self.data_type.session
 
     def get_json_path(self) -> str | None:

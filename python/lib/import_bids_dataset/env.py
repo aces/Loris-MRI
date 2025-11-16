@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class BidsImportEnv:
+class BIDSImportEnv:
     """
     Pipeline-specific variables of the BIDS dataset import pipeline.
     """
