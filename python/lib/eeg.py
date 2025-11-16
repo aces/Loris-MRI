@@ -14,7 +14,7 @@ from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_modality import PhysiologicalModality
 from lib.database_lib.physiological_output_type import PhysiologicalOutputType
 from lib.db.models.session import DbSession
-from lib.imaging_lib.bids.dataset import BIDSDataType
+from lib.imaging_lib.bids.dataset import BIDSEEGDataType
 from lib.physiological import Physiological
 from lib.util.crypto import compute_file_blake2b_hash
 
@@ -26,7 +26,7 @@ class Eeg:
     """
 
     def __init__(
-        self, data_type: BIDSDataType, session: DbSession, db: Database, verbose: bool, data_dir: str,
+        self, data_type: BIDSEEGDataType, session: DbSession, db: Database, verbose: bool, data_dir: str,
         loris_bids_eeg_rel_dir: str, loris_bids_root_dir: str | None, dataset_tag_dict: dict[Any, Any],
         dataset_type: Literal['raw', 'derivative'] | None,
     ):
