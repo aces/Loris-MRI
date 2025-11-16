@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import Any
 
 
@@ -31,7 +32,7 @@ class BidsDatasetDescription:
     The BIDS dataset description JSON data.
     """
 
-    def __init__(self, dataset_descrption_path: str):
+    def __init__(self, dataset_descrption_path: Path):
         """
         Read a BIDS dataset description file, or raise an exception if that file contains incorrect
         data.

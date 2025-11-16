@@ -1,6 +1,7 @@
 import csv
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from dateutil.parser import ParserError, parse
@@ -19,7 +20,7 @@ class BidsTsvScan:
     age_at_scan      : str | None
 
 
-def read_bids_scans_tsv_file(scans_tsv_path: str) -> dict[str, BidsTsvScan]:
+def read_bids_scans_tsv_file(scans_tsv_path: Path) -> dict[str, BidsTsvScan]:
     """
     Read a `scans.tsv` file of a BIDS dataset and get the scan rows indexed by file name. Raise an
     exception if the `scans.tsv` file is incorrect.
@@ -38,7 +39,7 @@ def read_bids_scans_tsv_file(scans_tsv_path: str) -> dict[str, BidsTsvScan]:
     return tsv_scans
 
 
-def read_bids_scans_tsv_row(tsv_scan_row: dict[str, str], scans_tsv_path: str) -> BidsTsvScan:
+def read_bids_scans_tsv_row(tsv_scan_row: dict[str, str], scans_tsv_path: Path) -> BidsTsvScan:
     """
     Read a `scans.tsv` row, or raise an exception if that row is incorrect.
     """
@@ -57,7 +58,7 @@ def read_bids_scans_tsv_row(tsv_scan_row: dict[str, str], scans_tsv_path: str) -
     )
 
 
-def write_bids_scans_tsv_file(tsv_scans: dict[str, BidsTsvScan], scans_tsv_path: str):
+def write_bids_scans_tsv_file(tsv_scans: dict[str, BidsTsvScan], scans_tsv_path: Path):
     """
     Write the `scans.tsv` file from a set of scan rows.
     """
@@ -115,7 +116,7 @@ def _read_age_at_scan(tsv_scan_row: dict[str, str]) -> str | None:
     return None
 
 
-def add_scan_tsv_file_parameters(scan_tsv: BidsTsvScan, scans_tsv_path: str, file_parameters: dict[str, Any]):
+def add_scan_tsv_file_parameters(scan_tsv: BidsTsvScan, scans_tsv_path: Path, file_parameters: dict[str, Any]):
     """
     Add a scans.tsv file and row parameters to a LORIS file parameters dictionary.
     """

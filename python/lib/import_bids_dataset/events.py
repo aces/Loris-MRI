@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 import lib.utilities
@@ -17,7 +18,7 @@ def get_events_metadata(
     args: Args,
     bids: BIDSDataset,
     legacy_db: Database,
-    loris_bids_path: str | None,
+    loris_bids_path: Path | None,
     project_id: int,
 ) -> dict[Any, Any]:
     """
