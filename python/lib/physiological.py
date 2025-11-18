@@ -1226,16 +1226,18 @@ class Physiological:
                 # the bids_rel_dir is the first two directories in file_path (
                 # bids_imports/BIDS_dataset_name_BIDSVersion)
                 bids_rel_dir   = file_path.split('/')[0] + '/' + file_path.split('/')[1]
-                chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
+                chunk_root_dir = os.path.join(data_dir, f'{bids_rel_dir}_chunks')
+
+            full_file_path = os.path.join(data_dir, file_path)
 
             # determine which script to run based on the file type
             file_type = self.grep_file_type_from_file_id(physio_file_id)
             if file_type == 'set':
                 script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/eeglab_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
+                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
             elif file_type == 'edf':
                 script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/edf_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
+                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
 
             # chunk the electrophysiology dataset if a command was determined above
             try:
