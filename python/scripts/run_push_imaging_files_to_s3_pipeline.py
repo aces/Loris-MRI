@@ -3,16 +3,10 @@
 """Script that takes file paths in the database and push them to an S3 bucket"""
 
 import os
-import sys
 
 from lib.dcm2bids_imaging_pipeline_lib.push_imaging_files_to_s3_pipeline import PushImagingFilesToS3Pipeline
 from lib.lorisgetopt import LorisGetOpt
 
-sys.path.append('/home/user/python')
-
-
-# to limit the traceback when raising exceptions.
-# sys.tracebacklimit = 0
 
 def main():
     usage = (

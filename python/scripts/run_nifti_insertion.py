@@ -9,12 +9,6 @@ import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.nifti_insertion_pipeline import NiftiInsertionPipeline
 from lib.lorisgetopt import LorisGetOpt
 
-sys.path.append('/home/user/python')
-
-
-# to limit the traceback when raising exceptions.
-# sys.tracebacklimit = 0
-
 
 def main():
     usage = (

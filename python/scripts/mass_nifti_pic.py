@@ -13,11 +13,6 @@ from lib.database import Database
 from lib.database_lib.config import Config
 from lib.imaging import Imaging
 
-sys.path.append('/home/user/python')
-
-
-# to limit the traceback when raising exceptions.
-# sys.tracebacklimit = 0
 
 def main():
     profile     = None

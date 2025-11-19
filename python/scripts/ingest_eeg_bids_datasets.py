@@ -12,8 +12,6 @@ from lib.exitcode import INVALID_ARG, SUCCESS
 from lib.lorisgetopt import LorisGetOpt
 from scripts.delete_physiological_file import delete_physiological_file_in_db
 
-sys.path.append('/home/user/python')
-
 
 def main():
     usage = (

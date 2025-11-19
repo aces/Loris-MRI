@@ -15,8 +15,6 @@ from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env
 from lib.util.fs import copy_file, extract_archive, remove_directory
 
-sys.path.append('/home/user/python')
-
 
 def main():
     usage = (
