@@ -99,7 +99,7 @@ echo
 echo "Creating loris-mri Python virtualenv in $mridir/.venv/"
 # create a directory in $mridir that will store python 3 virtualenv
 sudo -S su $USER -c "mkdir -m 770 -p $mridir/.venv"
-python3.11 -m venv $mridir/.venv --prompt loris-python
+python3.11 -m venv $mridir/.venv --prompt loris
 source $mridir/.venv/bin/activate
 echo "Installing the Python libraries into the loris-mri virtualenv..."
 pip3 install $mridir
