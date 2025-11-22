@@ -125,8 +125,8 @@ class Candidate:
             if 'project' in row and row['project'].lower() not in ("null", ""):
                 # search project id in Project table by its full name
                 project_info = db.pselect(
-                    "SELECT ProjectID FROM Project WHERE Name = %s",
-                    [row['project'], ]
+                    "SELECT ProjectID FROM Project WHERE Name = %s OR Alias = %s",
+                    [row['project'], row['project']]
                 )
                 if len(project_info) > 0:
                     self.project_id = project_info[0]['ProjectID']
