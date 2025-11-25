@@ -9,20 +9,17 @@ Type that represents a file hierarchy relative to a path.
 """
 
 
-def check_file_tree(path: str, file_tree: FileTree):
+def assert_files_exist(path: str, file_tree: FileTree):
     """
-    Check that a path has at least all the directories and files of a file tree.
+    Assert that all the directories and files specified in a path exist.
     """
 
     if file_tree is None:
-        return os.path.isfile(path)
+        assert os.path.isfile(path)
+        return
 
-    if not os.path.isdir(path):
-        return False
+    assert os.path.isdir(path)
 
     for sub_dir_name, sub_file_tree in file_tree.items():
         sub_dir_path = os.path.join(path, sub_dir_name)
-        if not check_file_tree(sub_dir_path, sub_file_tree):
-            return False
-
-    return True
+        assert_files_exist(sub_dir_path, sub_file_tree)

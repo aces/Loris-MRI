@@ -2,7 +2,7 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from tests.util.database import get_integration_database_session
-from tests.util.file_system import check_file_tree
+from tests.util.file_system import assert_files_exist
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -31,7 +31,7 @@ def test_import_eeg_bids_dataset():
     # TODO: Add EEG-specific database checks once the EEG-specific ORM models have been created.
 
     # Check that the BIDS files have been copied.
-    assert check_file_tree('/data/loris/bids_imports/', {
+    assert_files_exist('/data/loris/bids_imports', {
         'Face13_BIDSVersion_1.1.0': {
             'dataset_description.json': None,
             'participants.tsv': None,
@@ -51,7 +51,7 @@ def test_import_eeg_bids_dataset():
     })
 
     # Check that the chunk files have been created.
-    assert check_file_tree('/data/loris/bids_imports/', {
+    assert_files_exist('/data/loris/bids_imports', {
         'Face13_BIDSVersion_1.1.0_chunks': {
             'sub-OTT166_ses-V1_task-faceO_eeg.chunks': {
                 'index.json': None,

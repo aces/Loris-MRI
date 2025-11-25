@@ -2,7 +2,7 @@ from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, SELECT_FAILURE, SUCCESS
 from tests.util.database import get_integration_database_session
-from tests.util.file_system import check_file_tree
+from tests.util.file_system import assert_files_exist
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -73,7 +73,7 @@ def test_successful_run_on_valid_tarchive_path():
     assert process.stderr == ""
 
     # Check that the expected files have been created
-    assert check_file_tree('/data/loris/assembly_bids', {
+    assert_files_exist('/data/loris/assembly_bids', {
         'sub-300001': {
             'ses-V2': {
                 'anat': {
