@@ -18,7 +18,7 @@ from lib.exitcode import (
     UNKNOWN_PROTOCOL,
 )
 from tests.util.database import get_integration_database_session
-from tests.util.file_system import check_file_tree
+from tests.util.file_system import assert_files_exist
 from tests.util.run_integration_script import run_integration_script
 
 
@@ -388,7 +388,7 @@ def test_nifti_mri_protocol_violated_scans_features():
     assert file_json_data is not None and file_json_data.value == f'{file_base_rel_path}.json'
     assert file_pic_data is None
 
-    assert check_file_tree('/data/loris/', {
+    assert_files_exist('/data/loris', {
         'assembly_bids': {
             'sub-400184': {
                 'ses-V3': {
@@ -549,7 +549,7 @@ def test_nifti_mri_violations_log_exclude_features():
     assert file_bvec_data is not None and file_bvec_data.value == f'{file_base_rel_path}.bvec'
     assert file_pic_data is None
 
-    assert check_file_tree('/data/loris/', {
+    assert_files_exist('/data/loris', {
         'assembly_bids': {
             'sub-400184': {
                 'ses-V3': {
@@ -634,7 +634,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
     assert file_bvec_data is not None and file_bvec_data.value == f'{file_base_rel_path}.bvec'
     assert file_pic_data is not None
 
-    assert check_file_tree('/data/loris/', {
+    assert_files_exist('/data/loris', {
         'assembly_bids': {
             'sub-400184': {
                 'ses-V3': {
