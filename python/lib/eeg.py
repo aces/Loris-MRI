@@ -310,21 +310,21 @@ class Eeg:
             )
 
             # archive all files in a tar ball for downloading all files at once
-            files_to_archive = (os.path.join(self.data_dir, eeg_file_path),)
+            files_to_archive: list[str] = [os.path.join(self.data_dir, eeg_file_path)]
 
             if eegjson_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, eegjson_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, eegjson_file_path))
             if fdt_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, fdt_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, fdt_file_path))
             if electrode_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, electrode_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, electrode_file_path))
             if event_file_paths:
                 # archive all event files in a tar ball for event download
-                event_files_to_archive = ()
+                event_files_to_archive: list[str] = []
 
                 for event_file_path in event_file_paths:
-                    files_to_archive = (*files_to_archive, os.path.join(self.data_dir, event_file_path))
-                    event_files_to_archive = (*event_files_to_archive, os.path.join(self.data_dir, event_file_path))
+                    files_to_archive.append(os.path.join(self.data_dir, event_file_path))
+                    event_files_to_archive.append(os.path.join(self.data_dir, event_file_path))
 
                 event_archive_rel_name = os.path.splitext(event_file_paths[0])[0] + ".tgz"
                 self.create_and_insert_event_archive(
@@ -332,7 +332,7 @@ class Eeg:
                 )
 
             if channel_file_path:
-                files_to_archive = (*files_to_archive, os.path.join(self.data_dir, channel_file_path))
+                files_to_archive.append(os.path.join(self.data_dir, channel_file_path))
 
             archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
             self.create_and_insert_archive(
@@ -416,7 +416,7 @@ class Eeg:
                 with open(eegjson_file.path) as data_file:
                     eeg_file_data = json.load(data_file)
 
-                eegjson_file_path = eegjson_file.path.replace(self.data_dir, '')
+                eegjson_file_path = os.path.relpath(eegjson_file.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the JSON file to the LORIS BIDS import directory
                     eegjson_file_path = self.copy_file_to_loris_bids_dir(
@@ -456,7 +456,7 @@ class Eeg:
             # eeg_file_data dictionary
             fdt_file_path = None
             if file_type == 'set' and fdt_file:
-                fdt_file_path = fdt_file.path.replace(self.data_dir, '')
+                fdt_file_path = os.path.relpath(fdt_file, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the fdt file to the LORIS BIDS import directory
                     fdt_file_path = self.copy_file_to_loris_bids_dir(
@@ -483,7 +483,7 @@ class Eeg:
                 # grep the modality ID from physiological_modality table
                 modality_id = physiological_modality.grep_id_from_modality_value(self.bids_modality)
 
-                eeg_path = eeg_file.path.replace(self.data_dir, '')
+                eeg_path = os.path.relpath(eeg_file.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the eeg_file to the LORIS BIDS import directory
                     eeg_path = self.copy_file_to_loris_bids_dir(
@@ -577,7 +577,7 @@ class Eeg:
                 )
                 if not result:
                     electrode_data = utilities.read_tsv_file(electrode_file.path)
-                    electrode_path = electrode_file.path.replace(self.data_dir, '')
+                    electrode_path = os.path.relpath(electrode_file.path, self.data_dir)
                     if self.loris_bids_root_dir:
                         # copy the electrode file to the LORIS BIDS import directory
                         electrode_path = self.copy_file_to_loris_bids_dir(
@@ -617,7 +617,7 @@ class Eeg:
                             electrode_ids
                         )
                     else:
-                        electrode_metadata_path = coordsystem_metadata_file.path.replace(self.data_dir, '')
+                        electrode_metadata_path = os.path.relpath(coordsystem_metadata_file, self.data_dir)
                         if self.loris_bids_root_dir:
                             # copy the electrode metadata file to the LORIS BIDS import directory
                             electrode_metadata_path = self.copy_file_to_loris_bids_dir(
@@ -686,7 +686,7 @@ class Eeg:
             channel_path = result[0]['FilePath'] if result else None
             channel_data = utilities.read_tsv_file(channel_file.path)
             if not result:
-                channel_path = channel_file.path.replace(self.data_dir, '')
+                channel_path = os.path.relpath(channel_file.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the channel file to the LORIS BIDS import directory
                     channel_path = self.copy_file_to_loris_bids_dir(
@@ -771,7 +771,7 @@ class Eeg:
                               'with physiological file ID ' + str(physiological_file_id)
                     print(message)
                 else:
-                    event_metadata_path = event_metadata_file.path.replace(self.data_dir, '')
+                    event_metadata_path = os.path.relpath(event_metadata_file.path, self.data_dir)
                     if self.loris_bids_root_dir:
                         # copy the event file to the LORIS BIDS import directory
                         event_metadata_path = self.copy_file_to_loris_bids_dir(
@@ -796,7 +796,7 @@ class Eeg:
 
             # get events.tsv file and insert
             event_data = utilities.read_tsv_file(event_data_file.path)
-            event_path = event_data_file.path.replace(self.data_dir, '')
+            event_path = event_path = os.path.relpath(event_data_file.path, self.data_dir)
             if self.loris_bids_root_dir:
                 # copy the event file to the LORIS BIDS import directory
                 event_path = self.copy_file_to_loris_bids_dir(
@@ -840,56 +840,48 @@ class Eeg:
         # Handle derivatives differently
         # Data path structure is unpredictable, so keep the same relative path
         if derivatives:
-            copy_file = str.replace(
-                file,
-                self.bids_layout.root,
-                ""
-            )
-            copy_file = self.loris_bids_root_dir + copy_file
-
-            # create derivative directories
-            lib.utilities.create_dir(
-                os.path.dirname(copy_file),
-                self.verbose
-            )
+            copy_file = os.path.relpath(file, self.bids_layout.root)
+            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
         else :
             # determine the path of the copied file
             copy_file = ""
             if not inheritance:
                 copy_file = self.loris_bids_eeg_rel_dir
             if self.bids_ses_id:
-                copy_file += os.path.basename(file)
+                copy_file = os.path.join(copy_file, os.path.basename(file))
             else:
                 # make sure the ses- is included in the new filename if using
                 # default visit label from the LORIS config
-                copy_file += str.replace(
-                    os.path.basename(file),
-                    "sub-" + self.bids_sub_id,
-                    "sub-" + self.bids_sub_id + "_ses-" + self.default_vl
+                copy_file = os.path.join(
+                    copy_file,
+                    os.path.basename(file).replace(
+                        "sub-" + self.data_type.subject.label,
+                        "sub-" + self.data_type.subject.label + "_ses-" + self.default_vl
+                    )
                 )
             copy_file = self.loris_bids_root_dir + copy_file
+
+        # create the directory if it does not exist
+        lib.utilities.create_dir(
+            os.path.dirname(copy_file),
+            self.verbose
+        )
 
         # copy the file
         utilities.copy_file(file, copy_file, self.verbose)
 
         # determine the relative path and return it
-        relative_path = copy_file.replace(self.data_dir, "")
+        relative_path = os.path.relpath(copy_file, self.data_dir)
 
         return relative_path
 
-    def create_and_insert_archive(self, files_to_archive, archive_rel_name,
-                                  eeg_file_id):
+    def create_and_insert_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id: int):
         """
         Create an archive with all electrophysiology files associated to a
         specific recording (including electrodes.tsv, channels.tsv etc...)
-
-        :param files_to_archive: tuple with the list of files to include in
-                                 the archive
-         :type files_to_archive: tuple
+        :param files_to_archive: list of files to include in the archive
         :param archive_rel_name: path to the archive relative to data_dir
-         :type archive_rel_name: str
         :param eeg_file_id     : PhysiologicalFileID
-         :type eeg_file_id     : int
         """
 
         # load the Physiological object that will be used to insert the
@@ -923,6 +915,12 @@ class Eeg:
             else:
                 return
 
+        # create the archive directory if it does not exist
+        lib.utilities.create_dir(
+            os.path.dirname(archive_full_path),
+            self.verbose
+        )
+
         # create the archive file
         utilities.create_archive(files_to_archive, archive_full_path)
 
@@ -935,17 +933,12 @@ class Eeg:
         }
         physiological.insert_archive_file(archive_info)
 
-    def create_and_insert_event_archive(self, files_to_archive, archive_rel_name, eeg_file_id):
+    def create_and_insert_event_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file_id: int):
         """
         Create an archive with all event files associated to a specific recording
-
-        :param files_to_archive: tuple with the list of files to include in
-                                 the archive
-         :type files_to_archive: tuple
+        :param files_to_archive: list of files to include in the archive
         :param archive_rel_name: path to the archive relative to data_dir
-         :type archive_rel_name: str
         :param eeg_file_id     : PhysiologicalFileID
-         :type eeg_file_id     : int
         """
 
         # check if archive is on the filesystem
@@ -977,6 +970,12 @@ class Eeg:
                 exit(lib.exitcode.CORRUPTED_FILE)
             else:
                 return
+
+        # create the archive directory if it does not exist
+        lib.utilities.create_dir(
+            os.path.dirname(archive_full_path),
+            self.verbose
+        )
 
         # create the archive file
         utilities.create_archive(files_to_archive, archive_full_path)

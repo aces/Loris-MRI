@@ -6,6 +6,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from functools import reduce
+from pathlib import Path
 
 import lib.exitcode
 from lib.database_lib.bids_event_mapping import BidsEventMapping
@@ -1225,17 +1226,20 @@ class Physiological:
             if not chunk_root_dir:
                 # the bids_rel_dir is the first two directories in file_path (
                 # bids_imports/BIDS_dataset_name_BIDSVersion)
-                bids_rel_dir   = file_path.split('/')[0] + '/' + file_path.split('/')[1]
-                chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
+                file_path_components = Path(file_path).parts
+                bids_rel_dir   = os.path.join(file_path_components[0], file_path_components[1])
+                chunk_root_dir = os.path.join(data_dir, f'{bids_rel_dir}_chunks')
+
+            full_file_path = os.path.join(data_dir, file_path)
 
             # determine which script to run based on the file type
             file_type = self.grep_file_type_from_file_id(physio_file_id)
             if file_type == 'set':
                 script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/eeglab_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
+                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
             elif file_type == 'edf':
                 script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/edf_to_chunks.py'
-                command = 'python ' + script + ' ' + data_dir + file_path + ' --destination ' + chunk_root_dir
+                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
 
             # chunk the electrophysiology dataset if a command was determined above
             try:
@@ -1251,11 +1255,11 @@ class Physiological:
                 print('ERROR: ' + script + ' not found')
                 sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
 
-            chunk_path = chunk_root_dir + os.path.splitext(os.path.basename(file_path))[0] + '.chunks'
+            chunk_path = os.path.join(chunk_root_dir, os.path.splitext(os.path.basename(file_path))[0] + '.chunks')
             if os.path.isdir(chunk_path):
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
                     parameter_name = 'electrophysiology_chunked_dataset_path',
-                    value = chunk_path.replace(chunk_root_dir_config, '') if chunk_root_dir_config
-                        else chunk_path.replace(data_dir, '')
+                    value = os.path.relpath(chunk_path, chunk_root_dir_config) if chunk_root_dir_config
+                        else os.path.relpath(chunk_path, data_dir)
                 )
