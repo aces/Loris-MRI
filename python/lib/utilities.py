@@ -15,10 +15,8 @@ import mat73
 import numpy
 import requests
 import scipy.io
-from typing_extensions import deprecated
 
 import lib.exitcode
-import lib.util.crypto
 
 
 def read_tsv_file(tsv_file):
@@ -211,32 +209,6 @@ def update_set_file_path_info(set_file, with_fdt_file):
     return True
 
 
-@deprecated('Use `lib.util.crypto.compute_file_blake2b_hash` instead.')
-def compute_blake2b_hash(file_path):
-    """
-    Compute the blake2b hash of a file and returns it.
-    :param file_path: path to the file on which to compute the blake2b hash
-     :type file_path: str
-    :return: the blake2b hash of the file
-     :rtype: str
-    """
-    if os.path.exists(file_path):
-        return lib.util.crypto.compute_file_blake2b_hash(file_path)
-
-
-@deprecated('Use `lib.util.crypto.compute_file_md5_hash` instead.')
-def compute_md5_hash(file_path):
-    """
-    Compute the md5 hash of a file and returns it.
-    :param file_path: path to the file on which to compute the md5 hash
-     :type file_path: str
-    :return: the md5 hash of the file
-     :rtype: str
-    """
-    if os.path.exists(file_path):
-        return lib.util.crypto.compute_file_md5_hash(file_path)
-
-
 def create_processing_tmp_dir(template_prefix):
     """
     Creates a temporary directory with a name based on the concatenation of the
@@ -261,15 +233,6 @@ def create_processing_tmp_dir(template_prefix):
     tmp_dir = tempfile.mkdtemp(prefix=template_prefix, dir=env_tmp_dir)
 
     return tmp_dir
-
-
-@deprecated('Use `lib.util.fs.remove_empty_subdirectories` instead')
-def remove_empty_folders(path_abs):
-
-    walk = list(os.walk(path_abs))
-    for path, _, _ in walk[::-1]:
-        if len(os.listdir(path)) == 0:
-            os.rmdir(path)
 
 
 def assemble_hed_service(data_dir, event_tsv_path, event_json_path):
