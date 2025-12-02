@@ -24,6 +24,7 @@ dependencies = [
     "numpy",
     "protobuf>=3.0.0",
     "pybids==0.17.0",
+    "pydantic",
     "pydicom",
     "python-dateutil",
     "scikit-learn",
@@ -45,6 +46,7 @@ Homepage = "https://github.com/aces/loris-mri"
 [tool.hatch.build.targets.wheel]
 packages = [
     "python/lib",
+    "python/loris_bids_reader",
     "python/loris_eeg_chunker",
     "python/tests",
 ]
@@ -56,8 +58,12 @@ line-length = 120
 preview = true
 
 [tool.ruff.lint]
-ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
+ignore = ["E202", "E203", "E221", "E241", "E251", "E271", "E272"]
 select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
+
+[tool.ruff.per-file-ignores]
+# Ignore line length in ORM models.
+"python/lib/db/models/*.py" = ["E501"]
 
 # The strict type checking configuration is used to type check only the modern (typed) modules. An
 # additional basic type checking configuration to type check legacy modules can be found in the
@@ -67,15 +73,17 @@ include = [
     "python/tests",
     "python/lib/db",
     "python/lib/imaging_lib",
+    "python/lib/import_bids_dataset",
     "python/lib/import_dicom_study",
     "python/lib/util",
-    "python/lib/bids.py",
     "python/lib/config.py",
     "python/lib/config_file.py",
     "python/lib/env.py",
     "python/lib/get_session_info.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
+    "python/loris_bids_reader",
+    "python/scripts/import_bids_dataset.py",
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
 ]
