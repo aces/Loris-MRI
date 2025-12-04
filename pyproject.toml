@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "loris-mri"
+name = "loris"
 version = "27.0.0"
-description = "The LORIS Python scripts"
+description = "The LORIS Python package"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
