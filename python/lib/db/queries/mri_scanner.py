@@ -8,9 +8,9 @@ from lib.db.models.mri_scanner import DbMriScanner
 def try_get_scanner_with_info(
     db: Database,
     manufacturer: str | None,
-    software_version: str | None,
-    serial_number: str | None,
     model: str | None,
+    serial_number: str | None,
+    software_version: str | None,
 ) -> DbMriScanner | None:
     """
     Get an MRI scanner from the database using the provided information, or return `None` if no
