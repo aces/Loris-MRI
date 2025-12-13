@@ -3,6 +3,7 @@
 import argparse
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import lib.exitcode
 from lib.import_dicom_study.summary_get import get_dicom_study_summary
@@ -15,6 +16,7 @@ parser = argparse.ArgumentParser(description=(
 
 parser.add_argument(
     'directory',
+    type=Path,
     help='The DICOM directory')
 
 parser.add_argument(
@@ -25,7 +27,7 @@ parser.add_argument(
 
 @dataclass
 class Args:
-    directory: str
+    directory: Path
     verbose: bool
 
 

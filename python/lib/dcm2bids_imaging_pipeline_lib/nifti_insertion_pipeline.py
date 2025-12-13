@@ -689,7 +689,7 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         file_info = {
             'cand_id': self.session.candidate.cand_id,
-            'data_dir_path': self.data_dir,
+            'data_dir_path': str(self.data_dir),
             'file_rel_path': self.assembly_nifti_rel_path,
             'is_4D_dataset': self.json_file_dict['time'] is not None,
             'file_id': self.file_id

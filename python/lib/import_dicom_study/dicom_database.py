@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import cmp_to_key
+from pathlib import Path
 
 from sqlalchemy.orm import Session as Database
 
@@ -17,14 +18,14 @@ def insert_dicom_archive(
     db: Database,
     dicom_summary: DicomStudySummary,
     dicom_import_log: DicomStudyImportLog,
-    archive_location: str,
+    archive_path: Path,
 ):
     """
     Insert a DICOM archive in the database.
     """
 
     dicom_archive = DbDicomArchive()
-    populate_dicom_archive(dicom_archive, dicom_summary, dicom_import_log, archive_location)
+    populate_dicom_archive(dicom_archive, dicom_summary, dicom_import_log, archive_path)
     dicom_archive.date_first_archived = datetime.now()
     db.add(dicom_archive)
     db.commit()
@@ -37,7 +38,7 @@ def update_dicom_archive(
     dicom_archive: DbDicomArchive,
     dicom_summary: DicomStudySummary,
     dicom_import_log: DicomStudyImportLog,
-    archive_location: str,
+    archive_path: Path,
 ):
     """
     Update a DICOM archive in the database.
@@ -47,7 +48,7 @@ def update_dicom_archive(
     delete_dicom_archive_file_series(db, dicom_archive)
 
     # Update the database record with the new DICOM information.
-    populate_dicom_archive(dicom_archive, dicom_summary, dicom_import_log, archive_location)
+    populate_dicom_archive(dicom_archive, dicom_summary, dicom_import_log, archive_path)
     db.commit()
 
     # Insert the new DICOM files and series.
@@ -58,7 +59,7 @@ def populate_dicom_archive(
     dicom_archive: DbDicomArchive,
     dicom_summary: DicomStudySummary,
     dicom_import_log: DicomStudyImportLog,
-    archive_location: str,
+    archive_path: Path,
 ):
     """
     Populate a DICOM archive database object with information from its DICOM summary and DICOM
@@ -83,8 +84,8 @@ def populate_dicom_archive(
     dicom_archive.creating_user            = dicom_import_log.creator_name
     dicom_archive.sum_type_version         = dicom_import_log.summary_version
     dicom_archive.tar_type_version         = dicom_import_log.archive_version
-    dicom_archive.source_location          = dicom_import_log.source_path
-    dicom_archive.archive_location         = archive_location
+    dicom_archive.source_location          = str(dicom_import_log.source_path)
+    dicom_archive.archive_location         = str(archive_path)
     dicom_archive.scanner_manufacturer     = dicom_summary.info.scanner.manufacturer or ''
     dicom_archive.scanner_model            = dicom_summary.info.scanner.model or ''
     dicom_archive.scanner_serial_number    = dicom_summary.info.scanner.serial_number or ''

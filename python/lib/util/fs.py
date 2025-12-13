@@ -5,6 +5,7 @@ import tarfile
 import tempfile
 from collections.abc import Iterator
 from datetime import datetime
+from pathlib import Path
 
 import lib.exitcode
 from lib.env import Env
@@ -26,16 +27,17 @@ def extract_archive(env: Env, tar_path: str, prefix: str, dir_path: str) -> str:
     return extract_path
 
 
-def iter_all_dir_files(dir_path: str) -> Iterator[str]:
+def iter_all_dir_files(dir_path: Path) -> Iterator[Path]:
     """
     Iterate through all the files in a directory recursively, and yield the path of each file
     relative to that directory.
     """
 
-    for sub_dir_path, _, file_names in os.walk(dir_path):
-        for file_name in file_names:
-            file_path = os.path.join(sub_dir_path, file_name)
-            yield os.path.relpath(file_path, start=dir_path)
+    for item_path in dir_path.iterdir():
+        if item_path.is_dir():
+            yield from iter_all_dir_files(item_path)
+        elif item_path.is_file():
+            yield item_path.relative_to(dir_path)
 
 
 def remove_directory(env: Env, path: str):

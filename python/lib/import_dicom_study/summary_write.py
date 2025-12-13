@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 from functools import cmp_to_key
+from pathlib import Path
 
 from lib.import_dicom_study.summary_type import (
     DicomStudyDicomFile,
@@ -14,14 +15,14 @@ from lib.import_dicom_study.text_table import TableWriter
 from lib.util.iter import count, flatten
 
 
-def write_dicom_study_summary_to_file(dicom_summary: DicomStudySummary, filename: str):
+def write_dicom_study_summary_to_file(dicom_summary: DicomStudySummary, file_path: Path):
     """
     Serialize a DICOM study summary object into a text file.
     """
 
-    string = write_dicom_study_summary(dicom_summary)
-    with open(filename, 'w') as file:
-        file.write(string)
+    summary = write_dicom_study_summary(dicom_summary)
+    with open(file_path, 'w') as file:
+        file.write(summary)
 
 
 def write_dicom_study_summary(dicom_summary: DicomStudySummary) -> str:
