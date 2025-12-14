@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session as Database
 
-from lib.db.queries.physio_file import get_physio_file_parameters
+from lib.db.queries.physio_parameter import get_physio_file_parameters
 
 
 def get_physio_file_parameters_dict(db: Database, physio_file_id: int) -> dict[str, str | None]:
