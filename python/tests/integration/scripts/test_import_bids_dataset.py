@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.physio_file import try_get_physio_file_with_path
@@ -33,7 +35,7 @@ def test_import_eeg_bids_dataset():
     # Check that the physiological file has been inserted in the database.
     file = try_get_physio_file_with_path(
         db,
-        'bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.edf',
+        Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.edf'),
     )
     assert file is not None
 

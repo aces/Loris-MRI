@@ -328,7 +328,7 @@ class NiftiInsertionPipeline(BasePipeline):
                     error_msg = f"Found a DICOM archive containing DICOM files with the same SeriesUID ({series_uid})" \
                                 f" and EchoTime ({tar_echo_time}) as the one present in the JSON side car file. " \
                                 f" The DICOM archive location containing those DICOM files is " \
-                                f" {self.dicom_archive.archive_location}. Please, rerun " \
+                                f" {self.dicom_archive.archive_path}. Please, rerun " \
                                 f" <run_nifti_insertion.py> with either --upload_id or --tarchive_path option."
 
         # verify that a file with the same MD5 or blake2b hash has not already been inserted

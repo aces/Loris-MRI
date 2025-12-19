@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 from lib.db.models.file import DbFile
 from lib.db.queries.file import delete_file
@@ -163,7 +164,7 @@ def test_running_on_a_text_file():
 
     # insert fake text file
     file = DbFile(
-        rel_path            = 'test.txt',
+        path                = Path('test.txt'),
         file_type           = 'txt',
         session_id          = 564,
         output_type         = 'native',

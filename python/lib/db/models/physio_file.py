@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -7,6 +8,7 @@ import lib.db.models.physio_file_parameter as db_phyiso_file_parameter
 import lib.db.models.physio_modality as db_physio_modality
 import lib.db.models.physio_output_type as db_physio_output_type
 from lib.db.base import Base
+from lib.db.decorators.string_path import StringPath
 
 
 class DbPhysioFile(Base):
@@ -20,7 +22,7 @@ class DbPhysioFile(Base):
     file_type        : Mapped[str | None]      = mapped_column('FileType')
     acquisition_time : Mapped[datetime | None] = mapped_column('AcquisitionTime')
     inserted_by_user : Mapped[str]             = mapped_column('InsertedByUser')
-    path             : Mapped[str]             = mapped_column('FilePath')
+    path             : Mapped[Path]            = mapped_column('FilePath', StringPath)
     index            : Mapped[int | None]      = mapped_column('Index')
     parent_id        : Mapped[int | None]      = mapped_column('ParentID')
 

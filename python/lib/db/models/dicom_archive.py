@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import ForeignKey
@@ -12,6 +13,7 @@ import lib.db.models.mri_violation_log as db_mri_violation_log
 import lib.db.models.session as db_session
 from lib.db.base import Base
 from lib.db.decorators.int_bool import IntBool
+from lib.db.decorators.string_path import StringPath
 
 
 class DbDicomArchive(Base):
@@ -37,8 +39,8 @@ class DbDicomArchive(Base):
     creating_user            : Mapped[str]             = mapped_column('CreatingUser')
     sum_type_version         : Mapped[int]             = mapped_column('sumTypeVersion')
     tar_type_version         : Mapped[int | None]      = mapped_column('tarTypeVersion')
-    source_location          : Mapped[str]             = mapped_column('SourceLocation')
-    archive_location         : Mapped[str | None]      = mapped_column('ArchiveLocation')
+    source_path              : Mapped[Path]            = mapped_column('SourceLocation', StringPath)
+    archive_path             : Mapped[Path | None]     = mapped_column('ArchiveLocation', StringPath)
     scanner_manufacturer     : Mapped[str]             = mapped_column('ScannerManufacturer')
     scanner_model            : Mapped[str]             = mapped_column('ScannerModel')
     scanner_serial_number    : Mapped[str]             = mapped_column('ScannerSerialNumber')

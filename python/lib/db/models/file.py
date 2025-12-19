@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from pathlib import Path
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,6 +9,7 @@ import lib.db.models.session as db_session
 from lib.db.base import Base
 from lib.db.decorators.int_bool import IntBool
 from lib.db.decorators.int_datetime import IntDatetime
+from lib.db.decorators.string_path import StringPath
 
 
 class DbFile(Base):
@@ -15,7 +17,7 @@ class DbFile(Base):
 
     id                             : Mapped[int]          = mapped_column('FileID', primary_key=True)
     session_id                     : Mapped[int]          = mapped_column('SessionID', ForeignKey('session.ID'))
-    rel_path                       : Mapped[str]          = mapped_column('File')
+    path                           : Mapped[Path]         = mapped_column('File', StringPath)
     series_uid                     : Mapped[str | None]   = mapped_column('SeriesUID')
     echo_time                      : Mapped[float | None] = mapped_column('EchoTime')
     phase_encoding_direction       : Mapped[str | None]   = mapped_column('PhaseEncodingDirection')
