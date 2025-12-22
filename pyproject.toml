@@ -12,17 +12,13 @@ license-files = ["LICENSE"]
 requires-python = ">= 3.11"
 dependencies = [
     "boto3==1.35.99",
-    "google",
     "mat73",
     "matplotlib",
-    "mne",
-    "mne-bids>=0.14",
     "mysqlclient",
     "nibabel",
     "nilearn",
     "nose",
     "numpy",
-    "protobuf>=3.0.0",
     "pybids==0.17.0",
     "pydicom",
     "python-dateutil",
@@ -30,6 +26,7 @@ dependencies = [
     "scipy",
     "sqlalchemy>=2.0.0",
     "virtualenv",
+    "loris-eeg-chunker @ {root:uri}/python/loris_eeg_chunker",
 ]
 
 [project.optional-dependencies]
@@ -42,10 +39,12 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/aces/loris-mri"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
 packages = [
     "python/lib",
-    "python/loris_eeg_chunker",
     "python/tests",
 ]
 

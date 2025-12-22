@@ -1234,12 +1234,13 @@ class Physiological:
 
             # determine which script to run based on the file type
             file_type = self.grep_file_type_from_file_id(physio_file_id)
-            if file_type == 'set':
-                script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/eeglab_to_chunks.py'
-                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
-            elif file_type == 'edf':
-                script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/edf_to_chunks.py'
-                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
+            match file_type:
+                case 'set':
+                    script = 'eeglab-to-chunks'
+                case 'edf':
+                    script = 'edf-to-chunks'
+
+            command = script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
 
             # chunk the electrophysiology dataset if a command was determined above
             try:

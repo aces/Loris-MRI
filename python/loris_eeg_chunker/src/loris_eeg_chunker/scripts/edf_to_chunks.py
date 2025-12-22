@@ -13,7 +13,7 @@ def load_channels(exclude):
     return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         description='Convert .edf files to chunks for browser based visualisation.')
     parser.add_argument('files', metavar='FILE', type=str, nargs='+',
@@ -87,3 +87,7 @@ if __name__ == '__main__':
                 destination=args.destination,
                 prefix=args.prefix
             )
+
+
+if __name__ == '__main__':
+    main()

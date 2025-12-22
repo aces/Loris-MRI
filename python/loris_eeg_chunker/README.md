@@ -1,3 +1,5 @@
+# LORIS EEG chunker
+
 Set of scripts to chunk EEG data in smaller bits for the React viewer of LORIS.
 
 These scripts were extracted on July 8th, 2019 from the master branch of the

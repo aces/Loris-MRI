@@ -13,7 +13,7 @@ def load_channels(path):
     return mne.io.read_raw_eeglab(path, preload=False)
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         description='Convert .set files to chunks for browser based visualisation.')
     parser.add_argument('files', metavar='FILE', type=str, nargs='+',
@@ -57,3 +57,7 @@ if __name__ == '__main__':
             destination=args.destination,
             prefix=args.prefix
         )
+
+
+if __name__ == '__main__':
+    main()
