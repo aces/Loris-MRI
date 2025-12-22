@@ -1224,11 +1224,13 @@ class Physiological:
 
             chunk_root_dir_config = self.config_db_obj.get_config("EEGChunksPath")
             chunk_root_dir = chunk_root_dir_config
-            if not chunk_root_dir:
-                # the bids_rel_dir is the first two directories in file_path (
-                # bids_imports/BIDS_dataset_name_BIDSVersion)
-                bids_rel_dir   = file_path.split('/')[0] + '/' + file_path.split('/')[1]
-                chunk_root_dir = data_dir + bids_rel_dir + '_chunks' + '/'
+            file_path_parts = file_path.split('/')
+            if chunk_root_dir_config:
+                chunk_root_dir = chunk_root_dir_config
+            else:
+                chunk_root_dir = data_dir + file_path_parts[0] + '/'
+
+            chunk_root_dir = chunk_root_dir + file_path_parts[1] + '_chunks' + '/'
 
             # determine which script to run based on the file type
             file_type = self.grep_file_type_from_file_id(physio_file_id)
@@ -1258,6 +1260,5 @@ class Physiological:
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
                     parameter_name = 'electrophysiology_chunked_dataset_path',
-                    value = chunk_path.replace(chunk_root_dir_config, '') if chunk_root_dir_config
-                        else chunk_path.replace(data_dir, '')
+                    value = chunk_path.replace(data_dir, '')
                 )
