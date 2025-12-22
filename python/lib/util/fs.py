@@ -82,37 +82,54 @@ def remove_empty_directories(dir_path: str):
             os.rmdir(subdir_path)
 
 
-def get_file_extension(file_name: str) -> str:
+def get_path_stem(path: Path) -> str:
     """
-    Get the extension (including multiple extensions) of a file name or path without the leading
-    dot.
+    Get the stem of a path, that is, the name of the file without its extension (including multiple
+    extensions).
     """
 
-    parts = file_name.split('.', maxsplit=1)
+    parts = path.name.split('.')
+    return parts[0]
+
+
+def get_path_extension(path: Path) -> str:
+    """
+    Get the extension (including multiple extensions) of a path without the leading dot.
+    """
+
+    parts = path.name.split('.', maxsplit=1)
     if len(parts) == 1:
         return ''
 
     return parts[1]
 
 
-def replace_file_extension(file_name: str, extension: str) -> str:
+def remove_path_extension(path: Path) -> Path:
     """
-    Replace the extension (including multiple extensions) of a file name or path by another
-    extension.
-    """
-
-    parts = file_name.split('.')
-    return f'{parts[0]}.{extension}'
-
-
-def search_dir_file_with_regex(dir_path: str, regex: str) -> str | None:
-    """
-    Search for a file within a directory whose name matches a regular expression, or return `None`
-    if no such file is found.
+    Remove the extension (including multiple extensions) of a path.
     """
 
-    for file in os.scandir(dir_path):
-        if re.search(regex, file.name):
-            return file.name
+    parts = path.name.split('.')
+    return path.parent / parts[0]
+
+
+def replace_path_extension(path: Path, extension: str) -> Path:
+    """
+    Replace the extension (including multiple extensions) of a path by another extension.
+    """
+
+    parts = path.name.split('.')
+    return path.parent / f'{parts[0]}.{extension}'
+
+
+def search_dir_file_with_regex(dir_path: Path, regex: str) -> Path | None:
+    """
+    Search for a file or directory within a directory whose name matches a regular expression, or
+    return `None` if no such file is found.
+    """
+
+    for file_path in dir_path.iterdir():
+        if re.search(regex, file_path.name):
+            return file_path
 
     return None
