@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pydicom
 import pydicom.errors
@@ -17,7 +18,7 @@ from lib.util.crypto import compute_file_md5_hash
 from lib.util.fs import iter_all_dir_files
 
 
-def get_dicom_study_summary(dicom_study_dir_path: str, verbose: bool):
+def get_dicom_study_summary(dicom_study_dir_path: Path, verbose: bool):
     """
     Get information about a DICOM study by reading the files in the DICOM study directory.
     """
@@ -31,7 +32,7 @@ def get_dicom_study_summary(dicom_study_dir_path: str, verbose: bool):
         if verbose:
             print(f"Processing file '{file_rel_path}' ({i}/{len(file_rel_paths)})")
 
-        file_path = os.path.join(dicom_study_dir_path, file_rel_path)
+        file_path = dicom_study_dir_path / file_rel_path
 
         try:
             dicom = pydicom.dcmread(file_path)  # type: ignore
@@ -112,13 +113,13 @@ def get_dicom_file_info(dicom: pydicom.Dataset) -> DicomStudyDicomFile:
     )
 
 
-def get_other_file_info(file_path: str) -> DicomStudyOtherFile:
+def get_other_file_info(file_path: Path) -> DicomStudyOtherFile:
     """
     Get information about a non-DICOM file within a DICOM study.
     """
 
     return DicomStudyOtherFile(
-        os.path.basename(file_path),
+        file_path.name,
         compute_file_md5_hash(file_path),
     )
 

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Literal
 
 from lib.db.queries.config import try_get_config_with_setting_name
@@ -26,15 +27,15 @@ def get_patient_id_dicom_header_config(env: Env) -> Literal['PatientID', 'Patien
     return patient_id_dicom_header
 
 
-def get_data_dir_path_config(env: Env) -> str:
+def get_data_dir_path_config(env: Env) -> Path:
     """
     Get the LORIS base data directory path from the in-database configuration, or exit the program
     with an error if that configuration value does not exist or is incorrect.
     """
 
-    data_dir_path = os.path.normpath(_get_config_value(env, 'dataDirBasepath'))
+    data_dir_path = Path(_get_config_value(env, 'dataDirBasepath'))
 
-    if not os.path.isdir(data_dir_path):
+    if not data_dir_path.is_dir():
         log_error_exit(
             env,
             (
@@ -52,20 +53,20 @@ def get_data_dir_path_config(env: Env) -> str:
     return data_dir_path
 
 
-def get_dicom_archive_dir_path_config(env: Env) -> str:
+def get_dicom_archive_dir_path_config(env: Env) -> Path:
     """
     Get the LORIS DICOM archive directory path from the in-database configuration, or exit the
     program with an error if that configuration value does not exist or is incorrect.
     """
 
-    dicom_archive_dir_path = os.path.normpath(_get_config_value(env, 'tarchiveLibraryDir'))
+    dicom_archive_dir_path = Path(_get_config_value(env, 'tarchiveLibraryDir'))
 
-    if not os.path.isdir(dicom_archive_dir_path):
+    if not dicom_archive_dir_path.is_dir():
         log_error_exit(
             env,
             (
                 f"The LORIS DICOM archive directory path configuration value '{dicom_archive_dir_path}' does not refer"
-                " to an existing diretory."
+                " to an existing directory."
             ),
         )
 

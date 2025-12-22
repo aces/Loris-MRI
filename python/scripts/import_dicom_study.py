@@ -5,6 +5,7 @@ import os
 import shutil
 import tarfile
 import tempfile
+from pathlib import Path
 from typing import Any, cast
 
 import lib.exitcode
@@ -30,7 +31,7 @@ from lib.util.fs import iter_all_dir_files
 
 class Args:
     profile:   str
-    source:    str
+    source:    Path
     insert:    bool
     update:    bool
     session:   bool
@@ -39,7 +40,7 @@ class Args:
 
     def __init__(self, options_dict: dict[str, Any]):
         self.profile   = options_dict['profile']['value']
-        self.source    = os.path.normpath(options_dict['source']['value'])
+        self.source    = Path(options_dict['source']['value'])
         self.overwrite = options_dict['overwrite']['value']
         self.insert    = options_dict['insert']['value']
         self.update    = options_dict['update']['value']
@@ -108,13 +109,13 @@ def main() -> None:
 
     # Get the CLI arguments and connect to the database.
 
-    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
+    loris_getopt_obj = LorisGetOpt(usage, options_dict, 'import_dicom_study')
     env = make_env(loris_getopt_obj)
     args = Args(loris_getopt_obj.options_dict)
 
     # Check arguments.
 
-    if not os.path.isdir(args.source) or not os.access(args.source, os.R_OK):
+    if not args.source.is_dir() or not os.access(args.source, os.R_OK):
         log_error_exit(
             env,
             "Argument '--source' must be a readable directory path.",
@@ -141,7 +142,7 @@ def main() -> None:
 
     # Utility variables.
 
-    dicom_study_name = os.path.basename(args.source)
+    dicom_study_name = args.source.name
 
     log(env, "Extracting DICOM information... (may take a long time)")
 
@@ -193,24 +194,24 @@ def main() -> None:
     if dicom_summary.info.scan_date is None:
         log_warning(env, "No DICOM scan date found in the DICOM files.")
 
-        dicom_archive_rel_path = f'DCM_{dicom_study_name}.tar'
+        dicom_archive_rel_path = Path(f'DCM_{dicom_study_name}.tar')
     else:
         log(env, f"Found DICOM scan date: {dicom_summary.info.scan_date}")
 
         scan_date_string = lib.import_dicom_study.text.write_date(dicom_summary.info.scan_date)
-        dicom_archive_rel_path = os.path.join(
-            str(dicom_summary.info.scan_date.year),
-            f'DCM_{scan_date_string}_{dicom_study_name}.tar',
+        dicom_archive_rel_path = (
+            Path(str(dicom_summary.info.scan_date.year))
+            / f'DCM_{scan_date_string}_{dicom_study_name}.tar'
         )
 
-        dicom_archive_year_dir_path = os.path.join(dicom_archive_dir_path, str(dicom_summary.info.scan_date.year))
-        if not os.path.exists(dicom_archive_year_dir_path):
+        dicom_archive_year_dir_path = dicom_archive_dir_path / str(dicom_summary.info.scan_date.year)
+        if not dicom_archive_year_dir_path.exists():
             log(env, f"Creating year directory '{dicom_archive_year_dir_path}'...")
-            os.mkdir(dicom_archive_year_dir_path)
+            dicom_archive_year_dir_path.mkdir()
 
-    dicom_archive_path = os.path.join(dicom_archive_dir_path, dicom_archive_rel_path)
+    dicom_archive_path = dicom_archive_dir_path / dicom_archive_rel_path
 
-    if os.path.exists(dicom_archive_path):
+    if dicom_archive_path.exists():
         if not args.overwrite:
             log_error_exit(
                 env,
@@ -219,20 +220,21 @@ def main() -> None:
 
         log_warning(env, f"Overwriting file '{dicom_archive_path}'...")
 
-        os.remove(dicom_archive_path)
+        dicom_archive_path.unlink()
 
-    with tempfile.TemporaryDirectory() as tmp_dir_path:
-        tar_path     = os.path.join(tmp_dir_path, f'{dicom_study_name}.tar')
-        zip_path     = os.path.join(tmp_dir_path, f'{dicom_study_name}.tar.gz')
-        summary_path = os.path.join(tmp_dir_path, f'{dicom_study_name}.meta')
-        log_path     = os.path.join(tmp_dir_path, f'{dicom_study_name}.log')
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir_path = Path(tmp_dir)
+        tar_path     = tmp_dir_path / f'{dicom_study_name}.tar'
+        zip_path     = tmp_dir_path / f'{dicom_study_name}.tar.gz'
+        summary_path = tmp_dir_path / f'{dicom_study_name}.meta'
+        log_path     = tmp_dir_path / f'{dicom_study_name}.log'
 
         log(env, "Copying the DICOM files into a new tar archive...")
 
         with tarfile.open(tar_path, 'w') as tar:
             for file_rel_path in iter_all_dir_files(args.source):
-                file_path = os.path.join(args.source, file_rel_path)
-                file_tar_path = os.path.join(os.path.basename(args.source), file_rel_path)
+                file_path = args.source / file_rel_path
+                file_tar_path = Path(args.source.name) / file_rel_path
                 tar.add(file_path, arcname=file_tar_path)
 
         log(env, "Calculating the tar archive MD5 sum...")
@@ -270,9 +272,9 @@ def main() -> None:
         log(env, 'Copying files into the final DICOM study archive...')
 
         with tarfile.open(dicom_archive_path, 'w') as tar:
-            tar.add(zip_path,     os.path.basename(zip_path))
-            tar.add(summary_path, os.path.basename(summary_path))
-            tar.add(log_path,     os.path.basename(log_path))
+            tar.add(zip_path,     zip_path.name)
+            tar.add(summary_path, summary_path.name)
+            tar.add(log_path,     log_path.name)
 
     log(env, "Calculating final DICOM study archive MD5 sum...")
 
