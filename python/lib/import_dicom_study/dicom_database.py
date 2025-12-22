@@ -84,8 +84,8 @@ def populate_dicom_archive(
     dicom_archive.creating_user            = dicom_import_log.creator_name
     dicom_archive.sum_type_version         = dicom_import_log.summary_version
     dicom_archive.tar_type_version         = dicom_import_log.archive_version
-    dicom_archive.source_location          = str(dicom_import_log.source_path)
-    dicom_archive.archive_location         = str(archive_path)
+    dicom_archive.source_path              = dicom_import_log.source_path
+    dicom_archive.archive_path             = archive_path
     dicom_archive.scanner_manufacturer     = dicom_summary.info.scanner.manufacturer or ''
     dicom_archive.scanner_model            = dicom_summary.info.scanner.model or ''
     dicom_archive.scanner_serial_number    = dicom_summary.info.scanner.serial_number or ''

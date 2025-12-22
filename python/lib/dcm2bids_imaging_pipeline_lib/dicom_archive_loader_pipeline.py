@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
@@ -35,7 +36,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         self.init_session_info()
         self.series_uid = self.options_dict["series_uid"]["value"]
         self.tarchive_path = os.path.join(
-            self.data_dir, "tarchive", self.dicom_archive.archive_location
+            self.data_dir, "tarchive", self.dicom_archive.archive_path
         )
 
         # ---------------------------------------------------------------------------------------------
@@ -47,7 +48,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # Extract DICOM files from the tarchive
         # ---------------------------------------------------------------------------------------------
         self.extracted_dicom_dir = self.imaging_obj.extract_files_from_dicom_archive(
-            os.path.join(self.data_dir, 'tarchive', self.dicom_archive.archive_location),
+            os.path.join(self.data_dir, 'tarchive', self.dicom_archive.archive_path),
             self.tmp_dir
         )
 
@@ -334,7 +335,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         """
 
         acq_date = self.dicom_archive.date_acquired
-        archive_location = self.dicom_archive.archive_location
+        archive_location = str(self.dicom_archive.archive_path)
 
         pattern = re.compile(r"^[0-9]{4}/")
         if acq_date and not pattern.match(archive_location):
@@ -349,7 +350,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             os.replace(self.tarchive_path, new_tarchive_path)
             self.tarchive_path = new_tarchive_path
             # add the new archive location to the list of fields to update in the tarchive table
-            self.dicom_archive.archive_location = new_archive_location
+            self.dicom_archive.archive_path = Path(new_archive_location)
 
         self.dicom_archive.session = self.session
 

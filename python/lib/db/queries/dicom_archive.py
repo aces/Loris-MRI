@@ -1,4 +1,6 @@
 
+from pathlib import Path
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session as Database
 
@@ -29,14 +31,14 @@ def try_get_dicom_archive_with_patient_name(db: Database, patient_name: str) -> 
     ).scalar_one_or_none()
 
 
-def try_get_dicom_archive_with_archive_location(db: Database, archive_location: str) -> DbDicomArchive | None:
+def try_get_dicom_archive_with_archive_path(db: Database, archive_path: Path) -> DbDicomArchive | None:
     """
-    Get a DICOM archive from the database using its archive location, or return `None` if no DICOM
+    Get a DICOM archive from the database using its archive path, or return `None` if no DICOM
     archive is found.
     """
 
     return db.execute(select(DbDicomArchive)
-        .where(DbDicomArchive.archive_location.like(f'%{archive_location}%'))
+        .where(DbDicomArchive.archive_path.like(f'%{archive_path}%'))
     ).scalar_one_or_none()
 
 

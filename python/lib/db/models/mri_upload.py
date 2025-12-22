@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import ForeignKey
@@ -8,6 +9,7 @@ import lib.db.models.dicom_archive as db_dicom_archive
 import lib.db.models.session as db_session
 from lib.db.base import Base
 from lib.db.decorators.int_bool import IntBool
+from lib.db.decorators.string_path import StringPath
 from lib.db.decorators.y_n_bool import YNBool
 
 
@@ -17,8 +19,8 @@ class DbMriUpload(Base):
     id                          : Mapped[int]             = mapped_column('UploadID', primary_key=True)
     uploaded_by                 : Mapped[str]             = mapped_column('UploadedBy')
     upload_date                 : Mapped[datetime | None] = mapped_column('UploadDate')
-    upload_location             : Mapped[str]             = mapped_column('UploadLocation')
-    decompressed_location       : Mapped[str]             = mapped_column('DecompressedLocation')
+    upload_path                 : Mapped[Path]            = mapped_column('UploadLocation', StringPath)
+    decompressed_path           : Mapped[Path]            = mapped_column('DecompressedLocation', StringPath)
     insertion_complete          : Mapped[bool]            = mapped_column('InsertionComplete', IntBool)
     inserting                   : Mapped[bool | None]     = mapped_column('Inserting', IntBool)
     patient_name                : Mapped[str]             = mapped_column('PatientName')

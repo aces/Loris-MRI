@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session as Database
 
@@ -26,14 +28,14 @@ def try_get_file_with_unique_combination(
     ).scalar_one_or_none()
 
 
-def try_get_file_with_rel_path(db: Database, rel_path: str) -> DbFile | None:
+def try_get_file_with_path(db: Database, path: Path) -> DbFile | None:
     """
-    Get an imaging file from the database using its relative path, or return `None` if no imaging
-    file is found.
+    Get an imaging file from the database using its path, or return `None` if no imaging file is
+    found.
     """
 
     return db.execute(select(DbFile)
-        .where(DbFile.rel_path == rel_path)
+        .where(DbFile.path == path)
     ).scalar_one_or_none()
 
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import ForeignKey
@@ -9,6 +10,7 @@ import lib.db.models.dicom_archive as db_dicom_archive
 import lib.db.models.mri_protocol_check_group as db_mri_protocol_check_group
 import lib.db.models.mri_scan_type as db_mri_scan_type
 from lib.db.base import Base
+from lib.db.decorators.string_path import StringPath
 
 
 class DbMriViolationLog(Base):
@@ -19,7 +21,7 @@ class DbMriViolationLog(Base):
     series_uid              : Mapped[str | None]       = mapped_column('SeriesUID')
     dicom_archive_id        : Mapped[int | None]       \
         = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    file_rel_path           : Mapped[str | None]       = mapped_column('MincFile')
+    file_path               : Mapped[Path | None]      = mapped_column('MincFile', StringPath)
     patient_name            : Mapped[str | None]       = mapped_column('PatientName')
     candidate_id            : Mapped[int | None]       = mapped_column('CandidateID', ForeignKey('candidate.ID'))
     visit_label             : Mapped[str | None]       = mapped_column('Visit_label')
