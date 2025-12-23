@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import ForeignKey
@@ -8,6 +9,7 @@ import lib.db.models.candidate as db_candidate
 import lib.db.models.dicom_archive as db_dicom_archive
 import lib.db.models.mri_protocol_group as db_mri_protocol_group
 from lib.db.base import Base
+from lib.db.decorators.string_path import StringPath
 
 
 class DbMriProtocolViolatedScan(Base):
@@ -19,7 +21,7 @@ class DbMriProtocolViolatedScan(Base):
     dicom_archive_id         : Mapped[int | None]      = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
     time_run                 : Mapped[datetime | None] = mapped_column('time_run')
     series_description       : Mapped[str | None]      = mapped_column('series_description')
-    file_rel_path            : Mapped[str | None]      = mapped_column('minc_location')
+    file_path                : Mapped[Path | None]     = mapped_column('minc_location', StringPath)
     patient_name             : Mapped[str | None]      = mapped_column('PatientName')
     tr_range                 : Mapped[str | None]      = mapped_column('TR_range')
     te_range                 : Mapped[str | None]      = mapped_column('TE_range')

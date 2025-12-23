@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
 from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, SELECT_FAILURE, SUCCESS
@@ -85,7 +87,7 @@ def test_successful_run_on_valid_tarchive_path():
     })
 
     # Check that the expected data has been inserted in the database
-    archive_new_path = '2015/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar'
+    archive_new_path = Path('2015/DCM_2015-07-07_MTL001_300001_V2_localizer_t1w.tar')
     mri_upload = get_mri_upload_with_patient_name(db, 'MTL001_300001_V2')
     # check mri_upload flags
     assert mri_upload.inserting is False
@@ -97,7 +99,7 @@ def test_successful_run_on_valid_tarchive_path():
     assert mri_upload.dicom_archive is not None
     assert mri_upload.dicom_archive.session is not None
     # check that archive location has been updated
-    assert mri_upload.dicom_archive.archive_location == archive_new_path
+    assert mri_upload.dicom_archive.archive_path == archive_new_path
     # check series/files counts
     # notes: - tarchive_series should have 2 series for this upload (localizer + T1W)
     #        - localizer is skipped from conversion because of config settings `excluded_series_description`

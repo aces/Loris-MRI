@@ -5,3 +5,7 @@
 "Language: Python":
 - changed-files:
   - any-glob-to-any-file: '**/*.py'
+
+"Package: EEG chunker":
+- changed-files:
+  - any-glob-to-any-file: 'python/loris_eeg_chunker/**'

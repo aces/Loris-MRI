@@ -53,7 +53,7 @@ class DicomValidationPipeline(BasePipeline):
 
         log_verbose(self.env, "Verifying DICOM archive md5sum (checksum)")
 
-        dicom_archive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive.archive_location)
+        dicom_archive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive.archive_path)
         result = _validate_dicom_archive_md5sum(self.env, self.dicom_archive, dicom_archive_path)
         if not result:
             # Update the MRI upload.

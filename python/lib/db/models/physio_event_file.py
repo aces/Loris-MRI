@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -9,18 +10,19 @@ import lib.db.models.physio_file as db_physio_file
 import lib.db.models.physio_task_event as db_physio_task_event
 import lib.db.models.project as db_project
 from lib.db.base import Base
+from lib.db.decorators.string_path import StringPath
 
 
 class DbPhysioEventFile(Base):
     __tablename__ = 'physiological_event_file'
 
-    id             : Mapped[int]        = mapped_column('EventFileID', primary_key=True)
-    physio_file_id : Mapped[int | None] = mapped_column('PhysiologicalFileID', ForeignKey('physiological_file.PhysiologicalFileID'))
-    project_id     : Mapped[int | None] = mapped_column('ProjectID', ForeignKey('Project.ProjectID'))
-    file_type      : Mapped[str]        = mapped_column('FileType', ForeignKey('ImagingFileTypes.type'))
-    file_path      : Mapped[str | None] = mapped_column('FilePath')
-    last_update    : Mapped[datetime]   = mapped_column('LastUpdate')
-    last_written   : Mapped[datetime]   = mapped_column('LastWritten')
+    id             : Mapped[int]         = mapped_column('EventFileID', primary_key=True)
+    physio_file_id : Mapped[int | None]  = mapped_column('PhysiologicalFileID', ForeignKey('physiological_file.PhysiologicalFileID'))
+    project_id     : Mapped[int | None]  = mapped_column('ProjectID', ForeignKey('Project.ProjectID'))
+    file_type      : Mapped[str]         = mapped_column('FileType', ForeignKey('ImagingFileTypes.type'))
+    file_path      : Mapped[Path | None] = mapped_column('FilePath', StringPath)
+    last_update    : Mapped[datetime]    = mapped_column('LastUpdate')
+    last_written   : Mapped[datetime]    = mapped_column('LastWritten')
 
     physio_file       : Mapped['db_physio_file.DbPhysioFile | None']                     = relationship('PhysiologicalFile')
     project           : Mapped['db_project.DbProject | None']                            = relationship('Project')

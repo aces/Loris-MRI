@@ -1223,23 +1223,25 @@ class Physiological:
 
             chunk_root_dir_config = self.config_db_obj.get_config("EEGChunksPath")
             chunk_root_dir = chunk_root_dir_config
-            if not chunk_root_dir:
-                # the bids_rel_dir is the first two directories in file_path (
-                # bids_imports/BIDS_dataset_name_BIDSVersion)
-                file_path_components = Path(file_path).parts
-                bids_rel_dir   = os.path.join(file_path_components[0], file_path_components[1])
-                chunk_root_dir = os.path.join(data_dir, f'{bids_rel_dir}_chunks')
+            file_path_parts = Path(file_path).parts
+            if chunk_root_dir_config:
+                chunk_root_dir = chunk_root_dir_config
+            else:
+                chunk_root_dir = os.path.join(data_dir, file_path_parts[0])
+
+            chunk_root_dir = os.path.join(chunk_root_dir, f'{file_path_parts[1]}_chunks')
 
             full_file_path = os.path.join(data_dir, file_path)
 
             # determine which script to run based on the file type
             file_type = self.grep_file_type_from_file_id(physio_file_id)
-            if file_type == 'set':
-                script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/eeglab_to_chunks.py'
-                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
-            elif file_type == 'edf':
-                script = os.environ['LORIS_MRI'] + '/python/loris_eeg_chunker/edf_to_chunks.py'
-                command = 'python ' + script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
+            match file_type:
+                case 'set':
+                    script = 'eeglab-to-chunks'
+                case 'edf':
+                    script = 'edf-to-chunks'
+
+            command = script + ' ' + full_file_path + ' --destination ' + chunk_root_dir
 
             # chunk the electrophysiology dataset if a command was determined above
             try:
@@ -1260,6 +1262,5 @@ class Physiological:
                 self.insert_physio_parameter_file(
                     physiological_file_id = physio_file_id,
                     parameter_name = 'electrophysiology_chunked_dataset_path',
-                    value = os.path.relpath(chunk_path, chunk_root_dir_config) if chunk_root_dir_config
-                        else os.path.relpath(chunk_path, data_dir)
+                    value = os.path.relpath(chunk_path, data_dir)
                 )

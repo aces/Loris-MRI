@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,6 +9,7 @@ import lib.db.models.physio_channel_type as db_physio_channel_type
 import lib.db.models.physio_file as db_physio_file
 import lib.db.models.physio_status_type as db_physio_status_type
 from lib.db.base import Base
+from lib.db.decorators.string_path import StringPath
 
 
 class DbPhysioChannel(Base):
@@ -28,7 +30,7 @@ class DbPhysioChannel(Base):
     reference          : Mapped[str | None]     = mapped_column('Reference')
     status_description : Mapped[str | None]     = mapped_column('StatusDescription')
     unit               : Mapped[str | None]     = mapped_column('Unit')
-    file_path          : Mapped[str | None]     = mapped_column('FilePath')
+    file_path          : Mapped[Path | None]    = mapped_column('FilePath', StringPath)
 
     physio_file  : Mapped['db_physio_file.DbPhysioFile']                = relationship('DbPhysioFile', back_populates='channels')
     channel_type : Mapped['db_physio_channel_type.DbPhysioChannelType'] = relationship('DbPhysioChannelType')

@@ -3,6 +3,7 @@ import os
 import socket
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 from lib.import_dicom_study.text_dict import DictWriter
 
@@ -13,8 +14,8 @@ class DicomStudyImportLog:
     Information about the past import of a DICOM study.
     """
 
-    source_path: str
-    target_path: str
+    source_path: Path
+    target_path: Path
     creator_host: str
     creator_os: str
     creator_name: str
@@ -32,8 +33,8 @@ def write_dicom_study_import_log_to_string(import_log: DicomStudyImportLog):
     """
 
     return DictWriter([
-        ("Taken from dir",                   import_log.source_path),
-        ("Archive target location",          import_log.target_path),
+        ("Taken from dir",                   str(import_log.source_path)),
+        ("Archive target location",          str(import_log.target_path)),
         ("Name of creating host",            import_log.creator_host),
         ("Name of host OS",                  import_log.creator_os),
         ("Created by user",                  import_log.creator_name),
@@ -46,7 +47,7 @@ def write_dicom_study_import_log_to_string(import_log: DicomStudyImportLog):
     ]).write()
 
 
-def write_dicom_study_import_log_to_file(import_log: DicomStudyImportLog, file_path: str):
+def write_dicom_study_import_log_to_file(import_log: DicomStudyImportLog, file_path: Path):
     """
     Serialize a DICOM study import log into a text file.
     """
@@ -56,7 +57,7 @@ def write_dicom_study_import_log_to_file(import_log: DicomStudyImportLog, file_p
         file.write(string)
 
 
-def make_dicom_study_import_log(source: str, target: str, tarball_md5_sum: str, zipball_md5_sum: str):
+def make_dicom_study_import_log(source: Path, target: Path, tarball_md5_sum: str, zipball_md5_sum: str):
     """
     Create a DICOM study import log from the provided arguments about a DICOM study, as well as the
     current execution environment.
