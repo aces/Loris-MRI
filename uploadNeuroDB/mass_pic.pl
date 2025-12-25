@@ -167,7 +167,7 @@ $extraWhere .= " AND f.FileID <= $maxFileID" if defined $maxFileID;
 $extraWhere .= " AND f.FileID >= $minFileID" if defined $minFileID;
 
 $query = "SELECT f.FileID FROM files AS f LEFT OUTER JOIN check_pic_filenames ".
-         "AS c USING (FileID) WHERE c.FileID IS NULL AND f.FileType='mnc' ".
+         "AS c USING (FileID) WHERE c.FileID IS NOT NULL AND f.FileType='mnc' ".
          $extraWhere;
 if ($debug) {
     print $query . "\n";
