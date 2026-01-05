@@ -2,7 +2,6 @@ import os
 import shutil
 
 import lib.exitcode
-import lib.utilities
 from lib.config import get_data_dir_path_config, get_dicom_archive_dir_path_config
 from lib.database import Database
 from lib.database_lib.config import Config
