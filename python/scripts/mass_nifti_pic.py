@@ -3,15 +3,20 @@
 """Script to mass create the pic images of inserted NIfTI files."""
 
 import getopt
-import os
 import re
 import sys
 
 import lib.exitcode
+import lib.utilities
+from lib.config import get_data_dir_path_config
 from lib.config_file import load_config
 from lib.database import Database
-from lib.database_lib.config import Config
+from lib.db.queries.file import try_get_file_with_id
+from lib.env import Env
 from lib.imaging import Imaging
+from lib.imaging_lib.file_parameter import register_mri_file_parameter
+from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
+from lib.make_env import make_env
 
 
 def main():
@@ -59,15 +64,17 @@ def main():
             verbose = True
 
     # input error checking and load config_file file
-    config_file = load_config(profile)
+    config_info = load_config(profile)
     input_error_checking(smallest_id, largest_id, usage)
+    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
+    env = make_env('mass_nifti_pic', {}, config_info, tmp_dir_path, verbose)
 
     # create pic for NIfTI files with a FileID between smallest_id and largest_id
     if (smallest_id == largest_id):
-        make_pic(smallest_id, config_file, force, verbose)
+        make_pic(env, smallest_id, config_info, force, verbose)
     else:
         for file_id in range(smallest_id, largest_id + 1):
-            make_pic(file_id, config_file, force, verbose)
+            make_pic(env, file_id, config_info, force, verbose)
 
 
 def input_error_checking(smallest_id, largest_id, usage):
@@ -104,7 +111,7 @@ def input_error_checking(smallest_id, largest_id, usage):
         sys.exit(lib.exitcode.INVALID_ARG)
 
 
-def make_pic(file_id, config_file, force, verbose):
+def make_pic(env: Env, file_id, config_file, force, verbose):
     """
     Call the function create_imaging_pic of the Imaging class on
     the FileID provided as argument to this function.
@@ -124,26 +131,21 @@ def make_pic(file_id, config_file, force, verbose):
     db = Database(config_file.mysql, verbose)
     db.connect()
 
-    # grep config settings from the Config module
-    config_obj = Config(db, verbose)
-    data_dir = config_obj.get_config('dataDirBasepath')
-
-    # making sure that there is a final / in data_dir
-    data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
+    data_dir_path = get_data_dir_path_config(env)
 
     # load the Imaging object
     imaging = Imaging(db, verbose)
 
     # grep the NIfTI file path
-    nii_file_path = imaging.grep_file_path_from_file_id(file_id)
-    if not nii_file_path:
-        print('WARNING: no file in the database with FileID = ' + str(file_id))
+    nifti_file = try_get_file_with_id(env.db, file_id)
+    if nifti_file is None:
+        print(f'WARNING: no file in the database with FileID = {file_id}')
         return
-    if not re.search(r'.nii.gz$', nii_file_path):
-        print('WARNING: wrong file type. File ' + nii_file_path + ' is not a .nii.gz file')
+    if not re.search(r'.nii.gz$', str(nifti_file.path)):
+        print(f'WARNING: wrong file type. File {nifti_file.path} is not a .nii.gz file')
         return
-    if not os.path.exists(data_dir + nii_file_path):
-        print('WARNING: file ' + nii_file_path + ' not found on the filesystem')
+    if not (data_dir_path / nifti_file.path).exists():
+        print(f'WARNING: file {nifti_file.path} not found on the filesystem')
         return
 
     # checks if there is already a pic for the NIfTI file
@@ -151,38 +153,21 @@ def make_pic(file_id, config_file, force, verbose):
         file_id, 'check_pic_filename'
     )
     if existing_pic_file_in_db and not force:
-        print('WARNING: there is already a pic for FileID ' + str(file_id) + '. Use -f or --force to overwrite it')
+        print(f'WARNING: there is already a pic for FileID {nifti_file.id}. Use -f or --force to overwrite it')
         return
 
-    # grep the time length from the NIfTI file header
-    is_4d_dataset = False
-    length_parameters = imaging.get_nifti_image_length_parameters(data_dir + nii_file_path)
-    if len(length_parameters) == 4:
-        is_4d_dataset = True
-
-    # grep the CandID of the file
-    cand_id = imaging.grep_cand_id_from_file_id(file_id)
-    if not cand_id:
-        print('WARNING: CandID not found for FileID ' + str(file_id))
-
     # create the pic
-    pic_rel_path = imaging.create_imaging_pic(
-        {
-            'cand_id'      : cand_id,
-            'data_dir_path': data_dir,
-            'file_rel_path': nii_file_path,
-            'is_4D_dataset': is_4d_dataset,
-            'file_id'      : file_id
-        },
-        existing_pic_file_in_db
-    )
-    if not os.path.exists(data_dir + 'pic/' + pic_rel_path):
-        print('WARNING: the pic ' + data_dir + 'pic/' + pic_rel_path + 'was not created')
+    pic_rel_path = create_nifti_preview_picture(env, nifti_file)
+
+    pic_path = data_dir_path / 'pic' / pic_rel_path
+    if not pic_path.exists():
+        print(f'WARNING: the pic {pic_path} was not created')
         return
 
     # insert the relative path to the pic in the parameter_file table
     if not existing_pic_file_in_db:
-        imaging.insert_parameter_file(file_id, 'check_pic_filename', pic_rel_path)
+        register_mri_file_parameter(env, nifti_file, 'check_pic_filename', pic_rel_path)
+        env.db.commit()
 
 
 if __name__ == "__main__":

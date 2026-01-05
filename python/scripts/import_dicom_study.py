@@ -25,7 +25,7 @@ from lib.import_dicom_study.summary_util import get_dicom_study_summary_session_
 from lib.import_dicom_study.summary_write import write_dicom_study_summary_to_file
 from lib.logging import log, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
-from lib.make_env import make_env
+from lib.make_env import make_env_from_opts
 from lib.util.fs import iter_all_dir_files
 
 
@@ -110,7 +110,7 @@ def main() -> None:
     # Get the CLI arguments and connect to the database.
 
     loris_getopt_obj = LorisGetOpt(usage, options_dict, 'import_dicom_study')
-    env = make_env(loris_getopt_obj)
+    env = make_env_from_opts(loris_getopt_obj)
     args = Args(loris_getopt_obj.options_dict)
 
     # Check arguments.

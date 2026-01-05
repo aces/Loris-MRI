@@ -11,7 +11,7 @@ from lib.db.queries.mri_upload import try_get_mri_upload_with_id
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.imaging import Imaging
 from lib.logging import log_error_exit, log_verbose, log_warning
-from lib.make_env import make_env
+from lib.make_env import make_env_from_opts
 
 
 class BasePipeline:
@@ -64,7 +64,7 @@ class BasePipeline:
         # Create tmp dir and log file (their basename being the name of the script run)
         # ---------------------------------------------------------------------------------------------
         self.tmp_dir = self.loris_getopt_obj.tmp_dir
-        self.env = make_env(self.loris_getopt_obj)
+        self.env = make_env_from_opts(self.loris_getopt_obj)
         self.env.add_cleanup(self.remove_tmp_dir)
 
         # ---------------------------------------------------------------------------------------------

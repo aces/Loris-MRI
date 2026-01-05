@@ -12,8 +12,9 @@ from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_serie
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.imaging_lib.file import register_mri_file
-from lib.imaging_lib.file_parameter import register_mri_file_parameters
+from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
+from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
@@ -686,16 +687,10 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         Creates the pic image of the NIfTI file.
         """
-        file_info = {
-            'cand_id': self.session.candidate.cand_id,
-            'data_dir_path': str(self.data_dir),
-            'file_rel_path': self.assembly_nifti_rel_path,
-            'is_4D_dataset': self.json_file_dict['time'] is not None,
-            'file_id': self.file.id
-        }
-        pic_rel_path = self.imaging_obj.create_imaging_pic(file_info)
 
-        self.imaging_obj.insert_parameter_file(self.file.id, 'check_pic_filename', pic_rel_path)
+        pic_rel_path = create_nifti_preview_picture(self.env, self.file)
+        register_mri_file_parameter(self.env, self.file, 'check_pic_filename', str(pic_rel_path))
+        self.env.db.commit()
 
     def _run_push_to_s3_pipeline(self):
         """

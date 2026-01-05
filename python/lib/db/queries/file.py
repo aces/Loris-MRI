@@ -28,6 +28,17 @@ def try_get_file_with_unique_combination(
     ).scalar_one_or_none()
 
 
+def try_get_file_with_id(db: Database, id: int) -> DbFile | None:
+    """
+    Get an imaging file from the database using its ID, or return `None` if no imaging file is
+    found.
+    """
+
+    return db.execute(select(DbFile)
+        .where(DbFile.id == id)
+    ).scalar_one_or_none()
+
+
 def try_get_file_with_path(db: Database, path: Path) -> DbFile | None:
     """
     Get an imaging file from the database using its path, or return `None` if no imaging file is
