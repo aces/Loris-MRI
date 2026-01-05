@@ -1,8 +1,11 @@
 """This class performs files/param_file related database queries and common checks"""
 
+from typing_extensions import deprecated
+
 from lib.database_lib.parameter_type import ParameterType
 
 
+@deprecated('Use `lib.db.models.file.DbFile` instead.')
 class Files:
     """
     This class performs database queries for imaging dataset stored in the files tables (MRI, PET...).
@@ -95,6 +98,7 @@ class Files:
 
         return results[0] if results else None
 
+    @deprecated('Use `lib.db.models.file.DbFile` instead.')
     def insert_files(self, field_value_dict):
         """
         Inserts into the `files` table a new row with file information.
@@ -113,6 +117,7 @@ class Files:
             get_last_id=True
         )
 
+    @deprecated('Use `lib.db.models.file.DbFile` instead.')
     def update_files(self, file_id, fields, values):
         """
         Inserts into the `files` table a new row with file information.

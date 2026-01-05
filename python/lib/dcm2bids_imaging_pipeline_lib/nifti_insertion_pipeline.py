@@ -1,17 +1,19 @@
 import datetime
-import getpass
 import json
 import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 import lib.exitcode
 from lib.bids import get_bids_json_session_info
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
-from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
+from lib.imaging_lib.file import register_mri_file
+from lib.imaging_lib.file_parameter import register_mri_file_parameters
+from lib.imaging_lib.nifti import add_nifti_file_parameters
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
@@ -74,7 +76,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Load the JSON file object with scan parameters if a JSON file was provided
         # ---------------------------------------------------------------------------------------------
         self.json_file_dict = self._load_json_sidecar_file()
-        add_nifti_spatial_file_parameters(self.nifti_path, self.json_file_dict)
+        add_nifti_file_parameters(self.nifti_path, self.nifti_blake2, self.json_file_dict)
 
         # ---------------------------------------------------------------------------------
         # Determine subject IDs based on DICOM headers and validate the IDs against the DB
@@ -394,10 +396,10 @@ class NiftiInsertionPipeline(BasePipeline):
         self._create_destination_dir_and_move_image_files('assembly_bids')
 
         # register the files in the database (files and parameter_file tables)
-        self.file_id = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
+        self.file = self._register_into_files_and_parameter_file(self.assembly_nifti_rel_path)
         log_verbose(
             self.env,
-            f"Registered file {self.assembly_nifti_rel_path} into the files table with FileID {self.file_id}"
+            f"Registered file {self.assembly_nifti_rel_path} into the files table with FileID {self.file.id}"
         )
 
         # add an entry in the violations log table if there is a warning violation associated to the file
@@ -560,7 +562,6 @@ class NiftiInsertionPipeline(BasePipeline):
             self.move_file(original_file_path, new_file_path)
 
         if destination == 'assembly_bids':
-            self.json_file_dict['file_blake2b_hash'] = self.nifti_blake2
             if self.json_path:
                 self.json_file_dict['bids_json_file'] = json_rel_path
                 self.json_file_dict['bids_json_file_blake2b_hash'] = self.json_blake2
@@ -641,17 +642,15 @@ class NiftiInsertionPipeline(BasePipeline):
         :param nifti_rel_path: relative path to the imaging file to use for the File column of the files table
          :type nifti_rel_path: str
 
-        :return: file ID of the inserted image
-         :rtype: int
+        :return: file of the inserted image
         """
 
         scan_param = self.json_file_dict
         acquisition_date = None
-        phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys() else None
         if "AcquisitionDateTime" in scan_param.keys():
             acquisition_date = datetime.datetime.strptime(
                 scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
-            ).strftime("%Y-%m-%d")
+            ).date()
         file_type = self.imaging_obj.determine_file_type(nifti_rel_path)
         if not file_type:
             log_error_exit(
@@ -660,28 +659,27 @@ class NiftiInsertionPipeline(BasePipeline):
                 lib.exitcode.SELECT_FAILURE,
             )
 
-        files_insert_info_dict = {
-            'SessionID': self.session.id,
-            'File': nifti_rel_path,
-            'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
-            'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
-            'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
-            'PhaseEncodingDirection': phase_enc_dir,
-            'CoordinateSpace': 'native',
-            'OutputType': 'native',
-            'MriScanTypeID': self.scan_type_id,
-            'FileType': file_type,
-            'InsertedByUserID': getpass.getuser(),
-            'InsertTime': datetime.datetime.now().timestamp(),
-            'Caveat': 1 if self.warning_violations_list else 0,
-            'TarchiveSource': self.dicom_archive.id,
-            'ScannerID': self.mri_scanner.id,
-            'AcquisitionDate': acquisition_date,
-            'SourceFileID': None
-        }
-        file_id = self.imaging_obj.insert_imaging_file(files_insert_info_dict, self.json_file_dict)
+        file = register_mri_file(
+            self.env,
+            file_type,
+            Path(nifti_rel_path),
+            self.session,
+            self.scan_type_id,
+            self.mri_scanner,
+            self.dicom_archive,
+            scan_param.get('SeriesInstanceUID'),
+            scan_param.get('EchoTime'),
+            scan_param.get('EchoNumber'),
+            scan_param.get('PhaseEncodingDirection'),
+            acquisition_date,
+            len(self.warning_violations_list) != 0,
+        )
 
-        return file_id
+        register_mri_file_parameters(self.env, file, scan_param)
+
+        self.env.db.commit()
+
+        return file
 
     def _create_pic_image(self):
         """
@@ -692,11 +690,11 @@ class NiftiInsertionPipeline(BasePipeline):
             'data_dir_path': str(self.data_dir),
             'file_rel_path': self.assembly_nifti_rel_path,
             'is_4D_dataset': self.json_file_dict['time'] is not None,
-            'file_id': self.file_id
+            'file_id': self.file.id
         }
         pic_rel_path = self.imaging_obj.create_imaging_pic(file_info)
 
-        self.imaging_obj.insert_parameter_file(self.file_id, 'check_pic_filename', pic_rel_path)
+        self.imaging_obj.insert_parameter_file(self.file.id, 'check_pic_filename', pic_rel_path)
 
     def _run_push_to_s3_pipeline(self):
         """
