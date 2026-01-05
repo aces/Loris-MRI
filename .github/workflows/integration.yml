@@ -6,6 +6,8 @@ on:
     branches:
     - 'main'
     - '*-release'
+  schedule:
+    - cron: '30 0 * * *'
 
 env:
   DATABASE_NAME: TestDatabase
