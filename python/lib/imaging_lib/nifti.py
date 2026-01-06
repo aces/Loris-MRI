@@ -4,10 +4,9 @@ from typing import Any, cast
 import nibabel as nib
 
 
-def add_nifti_file_parameters(nifti_path: Path, nifti_file_hash: str, file_parameters: dict[str, Any]):
+def add_nifti_spatial_file_parameters(nifti_path: Path, file_parameters: dict[str, Any]):
     """
-    Read a NIfTI image and add its spatial and cryptographic properties to the file parameters
-    dictionary.
+    Read a NIfTI image and add its spatial properties to the file parameters dictionary.
     """
 
     img = nib.load(nifti_path)  # type: ignore
@@ -29,6 +28,3 @@ def add_nifti_file_parameters(nifti_path: Path, nifti_file_hash: str, file_param
         file_parameters['time'] = shape[3]
     else:
         file_parameters['time'] = None
-
-    # Add the file BLAKE2b hash.
-    file_parameters['file_blake2b_hash'] = nifti_file_hash
