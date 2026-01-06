@@ -80,5 +80,7 @@ jobs:
         echo ${{ env.BUCKET_ACCESS_KEY }}:${{ env.BUCKET_SECRET_KEY }} > .passwd-s3fs
         sudo s3fs ${{ env.BUCKET_NAME }} /data-imaging -o url=${{ env.BUCKET_URL }} -o passwd_file=.passwd-s3fs -o use_path_request_style -o allow_other
 
+    # FIXME: The Python warning is a bug in nilearn 0.13.0, remove when the library is updated.
+    # https://github.com/nilearn/nilearn/issues/5927
     - name: Run integration tests
-      run: docker compose --file ./test/docker-compose.yml run mri pytest python/tests/integration
+      run: docker compose --file ./test/docker-compose.yml run -e PYTHONWARNINGS="ignore:You are using the 'agg' matplotlib backend that is non-interactive.:UserWarning" mri pytest python/tests/integration

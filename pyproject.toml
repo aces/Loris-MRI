@@ -13,7 +13,6 @@ requires-python = ">= 3.11"
 dependencies = [
     "boto3==1.35.99",
     "mat73",
-    "matplotlib",
     "mysqlclient",
     "nibabel",
     "nilearn",
