@@ -142,7 +142,7 @@ def test_force_option():
     # Check return code, STDOUT and STDERR
     # The NIfTI file is printing a warning when the pic gets created so check that the
     # STDERR is exactly that error message.
-    message = '/opt/loris/bin/mri/python/lib/imaging.py:1177: UserWarning: Casting data from int32 to float32' \
+    message = '/opt/loris/bin/mri/python/lib/imaging.py:1179: UserWarning: Casting data from int32 to float32' \
               '\n  plotting.plot_anat(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""
@@ -228,7 +228,7 @@ def test_successful_run():
     # Check return code, STDOUT and STDERR
     # The NIfTI file is printing a warning when the pic gets created so check that the
     # STDERR is exactly that error message.
-    message = '/opt/loris/bin/mri/python/lib/imaging.py:1177: UserWarning: Casting data from int32 to float32' \
+    message = '/opt/loris/bin/mri/python/lib/imaging.py:1179: UserWarning: Casting data from int32 to float32' \
               '\n  plotting.plot_anat(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""

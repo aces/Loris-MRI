@@ -132,6 +132,7 @@ class Imaging:
             series_uid, echo_time, phase_enc_dir, echo_number
         )
 
+    @deprecated('Use `lib.imaging_lib.file.register_mri_file` instead.')
     def insert_imaging_file(self, file_info_dict, parameter_file_data_dict):
         """
         Inserts the imaging file and its information into the files and parameter_file tables.
@@ -332,6 +333,7 @@ class Imaging:
 
         self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
+    @deprecated('Use `lib.imaging_lib.parameter.get_or_create_parameter_type` instead.')
     def get_parameter_type_id(self, parameter_name):
         """
         Greps ParameterTypeID from parameter_type table using parameter_name.
@@ -785,7 +787,7 @@ class Imaging:
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
 
-    @deprecated('Use `lib.scanner.get_or_create_scanner` instead')
+    @deprecated('Use `lib.imaging_lib.mri_scanner.get_or_create_scanner` instead')
     def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id, project_id):
         """
         Get the scanner ID based on the scanner information provided as input.

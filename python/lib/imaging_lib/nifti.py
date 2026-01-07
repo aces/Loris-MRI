@@ -1,13 +1,12 @@
-import os
-from collections.abc import Iterator
+from pathlib import Path
 from typing import Any, cast
 
 import nibabel as nib
 
 
-def add_nifti_spatial_file_parameters(nifti_path: str, file_parameters: dict[str, Any]):
+def add_nifti_spatial_file_parameters(nifti_path: Path, file_parameters: dict[str, Any]):
     """
-    Read a NIfTI image and add its spatial metadata to the file parameters.
+    Read a NIfTI image and add its spatial properties to the file parameters dictionary.
     """
 
     img = nib.load(nifti_path)  # type: ignore
@@ -29,13 +28,3 @@ def add_nifti_spatial_file_parameters(nifti_path: str, file_parameters: dict[str
         file_parameters['time'] = shape[3]
     else:
         file_parameters['time'] = None
-
-
-def find_dir_nifti_names(dir_path: str) -> Iterator[str]:
-    """
-    Iterate over the names of the NIfTI files found in a directory.
-    """
-
-    for file_name in os.listdir(dir_path):
-        if file_name.endswith(('.nii', '.nii.gz')):
-            yield file_name
