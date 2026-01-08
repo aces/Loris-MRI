@@ -140,13 +140,9 @@ def test_force_option():
     ])
 
     # Check return code, STDOUT and STDERR
-    # The NIfTI file is printing a warning when the pic gets created so check that the
-    # STDERR is exactly that error message.
-    message = '/opt/loris/bin/mri/python/lib/imaging.py:1179: UserWarning: Casting data from int32 to float32' \
-              '\n  plotting.plot_anat(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""
-    assert process.stderr == message
+    assert process.stderr == ""
 
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     assert file_pic_data is not None
@@ -226,13 +222,9 @@ def test_successful_run():
     ])
 
     # Check return code, STDOUT and STDERR
-    # The NIfTI file is printing a warning when the pic gets created so check that the
-    # STDERR is exactly that error message.
-    message = '/opt/loris/bin/mri/python/lib/imaging.py:1179: UserWarning: Casting data from int32 to float32' \
-              '\n  plotting.plot_anat(\n'
     assert process.returncode == SUCCESS
     assert process.stdout == ""
-    assert process.stderr == message
+    assert process.stderr == ""
 
     # check pic in database and file system
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')

@@ -9,11 +9,13 @@ from pathlib import Path
 import lib.exitcode
 from lib.bids import get_bids_json_session_info
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
+from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_mri_scan_type_with_name
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.imaging_lib.file import register_mri_file
-from lib.imaging_lib.file_parameter import register_mri_file_parameters
+from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
+from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
@@ -93,9 +95,10 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
         # ---------------------------------------------------------------------------------------------
-        self.scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
+        scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
+        self.scan_type = try_get_mri_scan_type_with_id(self.env.db, scan_type_id)
         if not self.loris_scan_type:
-            if not self.scan_type_id:
+            if self.scan_type is None:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
                 if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
@@ -105,11 +108,9 @@ class NiftiInsertionPipeline(BasePipeline):
                     f"{self.nifti_path}'s acquisition protocol is 'unknown'.",
                     lib.exitcode.UNKNOWN_PROTOCOL,
                 )
-            else:
-                self.loris_scan_type = self.imaging_obj.get_scan_type_name_from_id(self.scan_type_id)
         else:
-            self.scan_type_id = self.imaging_obj.get_scan_type_id_from_scan_type_name(self.loris_scan_type)
-            if not self.scan_type_id:
+            self.scan_type = try_get_mri_scan_type_with_name(self.env.db, self.loris_scan_type)
+            if self.scan_type is None:
                 self._move_to_trashbin()
                 self._register_protocol_violated_scan()
                 if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
@@ -126,7 +127,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Determine BIDS scan type info based on scan_type_id
         # ---------------------------------------------------------------------------------------------
-        self.bids_categories_dict = self.imaging_obj.get_bids_categories_mapping_for_scan_type_id(self.scan_type_id)
+        self.bids_categories_dict = self.imaging_obj.get_bids_categories_mapping_for_scan_type_id(self.scan_type.id)
         if not self.bids_categories_dict:
             self._move_to_trashbin()
             self._register_protocol_violated_scan()
@@ -134,7 +135,7 @@ class NiftiInsertionPipeline(BasePipeline):
                 self._run_push_to_s3_pipeline()
             log_error_exit(
                 self.env,
-                f"Scan type {self.loris_scan_type} does not have BIDS tables set up.",
+                f"Scan type {self.scan_type.name} does not have BIDS tables set up.",
                 lib.exitcode.UNKNOWN_PROTOCOL,
             )
 
@@ -148,7 +149,7 @@ class NiftiInsertionPipeline(BasePipeline):
                 self.session.project_id,
                 self.session.cohort_id,
                 self.session.visit_label,
-                self.scan_type_id,
+                self.scan_type.id,
                 self.json_file_dict
             )
             self.warning_violations_list = self.violations_summary['warning']
@@ -626,7 +627,7 @@ class NiftiInsertionPipeline(BasePipeline):
             'PatientName': self.json_file_dict['PatientName'],
             'CandidateID': self.session.candidate.id,
             'Visit_label': self.session.visit_label,
-            'MriScanTypeID': self.scan_type_id,
+            'MriScanTypeID': self.scan_type.id,
             'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
             'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
             'PhaseEncodingDirection': phase_enc_dir,
@@ -665,7 +666,7 @@ class NiftiInsertionPipeline(BasePipeline):
             file_type,
             Path(nifti_rel_path),
             self.session,
-            self.scan_type_id,
+            self.scan_type,
             self.mri_scanner,
             self.dicom_archive,
             scan_param.get('SeriesInstanceUID'),
@@ -686,16 +687,10 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         Creates the pic image of the NIfTI file.
         """
-        file_info = {
-            'cand_id': self.session.candidate.cand_id,
-            'data_dir_path': str(self.data_dir),
-            'file_rel_path': self.assembly_nifti_rel_path,
-            'is_4D_dataset': self.json_file_dict['time'] is not None,
-            'file_id': self.file.id
-        }
-        pic_rel_path = self.imaging_obj.create_imaging_pic(file_info)
 
-        self.imaging_obj.insert_parameter_file(self.file.id, 'check_pic_filename', pic_rel_path)
+        pic_rel_path = create_nifti_preview_picture(self.env, self.file)
+        register_mri_file_parameter(self.env, self.file, 'check_pic_filename', str(pic_rel_path))
+        self.env.db.commit()
 
     def _run_push_to_s3_pipeline(self):
         """

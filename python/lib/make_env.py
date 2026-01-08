@@ -13,18 +13,32 @@ from lib.logging import log_verbose, write_to_log_file
 from lib.lorisgetopt import LorisGetOpt
 
 
-def make_env(loris_get_opt: LorisGetOpt):
+def make_env_from_opts(loris_get_opt: LorisGetOpt) -> Env:
     """
     Create a new script environment using the provided LORIS options object.
     """
 
-    config_info = cast(Any, loris_get_opt.config_info)
+    script_name = loris_get_opt.script_name
+    script_options = loris_get_opt.options_dict
+    config_info = loris_get_opt.config_info
+    tmp_dir = loris_get_opt.tmp_dir
+    verbose = loris_get_opt.options_dict['verbose']['value']   # type: ignore
+    return make_env(script_name, script_options, config_info, tmp_dir, verbose)  # type: ignore
 
-    verbose = cast(bool, loris_get_opt.options_dict['verbose']['value'])
-    db_config = cast(DatabaseConfig, config_info.mysql)
-    script_name = cast(str, loris_get_opt.script_name)
+
+def make_env(
+    script_name: str,
+    script_options: dict[str, Any],
+    config_info: Any,
+    tmp_dir_path: str,
+    verbose: bool,
+) -> Env:
+    """
+    Create a new script environment using the provided arguments.
+    """
 
     # Connect to the database
+    db_config = cast(DatabaseConfig, config_info.mysql)
 
     if verbose:
         print(
@@ -47,12 +61,11 @@ def make_env(loris_get_opt: LorisGetOpt):
         sys.exit(lib.exitcode.BAD_CONFIG_SETTING)
 
     data_dir = data_dir_config.value
-    tmp_dir = os.path.basename(loris_get_opt.tmp_dir)
     log_dir = os.path.join(data_dir, 'logs', script_name)
     if not os.path.isdir(log_dir):
         os.makedirs(log_dir)
 
-    log_file = os.path.join(log_dir, f'{tmp_dir}.log')
+    log_file = os.path.join(log_dir, f'{os.path.basename(tmp_dir_path)}.log')
 
     env = Env(
         engine,
@@ -64,7 +77,7 @@ def make_env(loris_get_opt: LorisGetOpt):
         [],
     )
 
-    log_file_header = get_log_file_header(env, loris_get_opt.options_dict)  # type: ignore
+    log_file_header = get_log_file_header(env, script_options)
     write_to_log_file(env, log_file_header)
 
     log_verbose(env, 'Successfully connected to the database')

@@ -155,6 +155,7 @@ class Imaging:
 
         return file_id
 
+    @deprecated('Use `lib.imaging_lib.file_parameter.register_mri_file_parameter` instead.')
     def insert_parameter_file(self, file_id, parameter_name, value):
         """
         Insert a row into the parameter_file table for the provided FileID,
@@ -1143,6 +1144,7 @@ class Imaging:
         extracted_dicom_dir_path = inner_tar_path.replace(".tar.gz", "")
         return extracted_dicom_dir_path
 
+    @deprecated('Use `lib.imaging_lib.nifti_pic.create_nifti_preview_picture` instead.')
     @staticmethod
     def create_imaging_pic(file_info, pic_rel_path=None):
         """

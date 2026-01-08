@@ -12,7 +12,7 @@ from lib.database_lib.config import Config
 from lib.exitcode import BAD_CONFIG_SETTING, SUCCESS
 from lib.logging import log, log_error, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
-from lib.make_env import make_env
+from lib.make_env import make_env_from_opts
 from lib.util.fs import copy_file, extract_archive, remove_directory
 
 
@@ -74,7 +74,7 @@ def main():
     # and create the log object (their basename being the name of the script run)
     # ---------------------------------------------------------------------------------------------
     tmp_dir = loris_getopt_obj.tmp_dir
-    env = make_env(loris_getopt_obj)
+    env = make_env_from_opts(loris_getopt_obj)
 
     # ---------------------------------------------------------------------------------------------
     # Grep config settings from the Config module
