@@ -13,10 +13,13 @@ import lib.physiological
 import lib.utilities
 from lib.bidsreader import BidsReader
 from lib.candidate import Candidate
+from lib.config import get_default_bids_visit_label_config
 from lib.config_file import load_config
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.eeg import Eeg
+from lib.env import Env
+from lib.make_env import make_env
 from lib.mri import Mri
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
@@ -89,6 +92,8 @@ def main():
     # input error checking and load config_file file
     config_file = load_config(profile)
     input_error_checking(bids_dir, usage)
+    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
+    env = make_env('bids_import', {}, config_file, tmp_dir_path, verbose)
 
     dataset_json = bids_dir + "/dataset_description.json"
     if not os.path.isfile(dataset_json) and not type:
@@ -112,6 +117,7 @@ def main():
 
     # read and insert BIDS data
     read_and_insert_bids(
+        env,
         bids_dir,
         data_dir,
         verbose,
@@ -151,7 +157,7 @@ def input_error_checking(bids_dir, usage):
 
 
 def read_and_insert_bids(
-    bids_dir,      data_dir,      verbose, createcand, createvisit,
+    env: Env, bids_dir,      data_dir,      verbose, createcand, createvisit,
     idsvalidation, nobidsvalidation, type,    nocopy,  db
 ):
     """
@@ -181,8 +187,7 @@ def read_and_insert_bids(
     """
 
     # grep config settings from the Config module
-    config_obj      = Config(db, verbose)
-    default_bids_vl = config_obj.get_config('default_bids_vl')
+    default_bids_vl = get_default_bids_visit_label_config(env)
 
     # Validate that pscid and candid matches
     if idsvalidation:
@@ -294,7 +299,7 @@ def read_and_insert_bids(
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)
         blake2 = compute_file_blake2b_hash(root_event_metadata_file.path)
-        physio = lib.physiological.Physiological(db, verbose)
+        physio = lib.physiological.Physiological(env, db, verbose)
         _, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,
             event_metadata_file=event_metadata_path,
@@ -318,6 +323,7 @@ def read_and_insert_bids(
 
             if modality == 'eeg' or modality == 'ieeg':
                 Eeg(
+                    env,
                     bids_reader   = bids_reader,
                     bids_sub_id   = row['bids_sub_id'],
                     bids_ses_id   = row['bids_ses_id'],
