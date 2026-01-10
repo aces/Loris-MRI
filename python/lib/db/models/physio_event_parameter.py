@@ -19,5 +19,5 @@ class DbPhysioEventParameter(Base):
     is_categorical : Mapped[bool | None] = mapped_column('isCategorical', YNBool)
     hed            : Mapped[str | None]  = mapped_column('HED')
 
-    event_file      : Mapped['db_physio_event_file.DbPhysioEventFile']                                             = relationship('PhysiologicalEventFile')
-    category_levels : Mapped[list['db_physio_event_parameter_category_level.DbPhysioEventParameterCategoryLevel']] = relationship('PhysiologicalEventParameterCategoryLevel', back_populates='event_parameter')
+    event_file      : Mapped['db_physio_event_file.DbPhysioEventFile']                                             = relationship('DbPhysioEventFile')
+    category_levels : Mapped[list['db_physio_event_parameter_category_level.DbPhysioEventParameterCategoryLevel']] = relationship('DbPhysioEventParameterCategoryLevel', back_populates='event_parameter')
