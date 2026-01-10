@@ -16,7 +16,7 @@ def get_patient_id_dicom_header_config(env: Env) -> Literal['PatientID', 'Patien
     patient_id_dicom_header = _get_config_value(env, 'lookupCenterNameUsing')
 
     if patient_id_dicom_header not in ('PatientID', 'PatientName'):
-        log_error_exit(
+        return log_error_exit(
             env,
             (
                 "Unexpected patient ID DICOM header configuration value, expected 'PatientID' or 'PatientName' but"
@@ -25,6 +25,15 @@ def get_patient_id_dicom_header_config(env: Env) -> Literal['PatientID', 'Patien
         )
 
     return patient_id_dicom_header
+
+
+def get_default_bids_visit_label_config(env: Env) -> str:
+    """
+    Get the default BIDS visit label from the in-database configuration, or exit the program with
+    an error if that configuration value does not exist.
+    """
+
+    return _get_config_value(env, 'default_bids_vl')
 
 
 def get_data_dir_path_config(env: Env) -> Path:
@@ -79,6 +88,44 @@ def get_dicom_archive_dir_path_config(env: Env) -> Path:
     return dicom_archive_dir_path
 
 
+def get_eeg_viz_enabled_config(env: Env) -> bool:
+    """
+    Get whether the EEG visualization is enabled from the in-database configuration.
+    """
+
+    eeg_viz_enabled = _try_get_config_value(env, 'useEEGBrowserVisualizationComponents')
+    return eeg_viz_enabled == 'true' or eeg_viz_enabled == '1'
+
+
+def get_eeg_chunks_dir_path_config(env: Env) -> Path | None:
+    """
+    Get the EEG chunks directory path configuration value.
+    """
+
+    eeg_chunks_path = _try_get_config_value(env, "EEGChunksPath")
+    if eeg_chunks_path is None:
+        return None
+
+    eeg_chunks_path = Path(eeg_chunks_path)
+
+    if not eeg_chunks_path.is_dir():
+        log_error_exit(
+            env,
+            (
+                f"The EEG chunks directory path LORIS configuration value '{eeg_chunks_path}' does not refer to an "
+                " existing directory."
+            ),
+        )
+
+    if not os.access(eeg_chunks_path, os.R_OK) or not os.access(eeg_chunks_path, os.W_OK):
+        log_error_exit(
+            env,
+            f"Missing read or write permission on the LORIS EEG chunks directory '{eeg_chunks_path}'.",
+        )
+
+    return eeg_chunks_path
+
+
 def _get_config_value(env: Env, setting_name: str) -> str:
     """
     Get a configuration value from the database using a configuration setting name, or exit the
@@ -99,3 +146,13 @@ def _get_config_value(env: Env, setting_name: str) -> str:
         )
 
     return config.value
+
+
+def _try_get_config_value(env: Env, setting_name: str) -> str | None:
+    """
+    Get a configuration value from the database using a configuration setting name, or exit the
+    program with an error that value does not exist or is not a string.
+    """
+
+    config = try_get_config_with_setting_name(env.db, setting_name)
+    return config.value if config is not None else None
