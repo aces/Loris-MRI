@@ -20,7 +20,9 @@ from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
 from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
 from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
+from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
+from lib.logging import log_error_exit
 from lib.point_3d import Point3D
 
 
@@ -431,22 +433,22 @@ class Physiological:
         )
         channel_values = []
         for row in channel_data:
-            physio_channel_type_id = self.db.grep_id_from_lookup_table(
-                id_field_name       = 'PhysiologicalChannelTypeID',
-                table_name          = 'physiological_channel_type',
-                where_field_name    = 'ChannelTypeName',
-                where_value         = row['type'],
-                insert_if_not_found = False
-            )
-            physio_status_type_id = None
-            if 'status' in row.keys():
-                physio_status_type_id = self.db.grep_id_from_lookup_table(
-                    id_field_name       = 'PhysiologicalStatusTypeID',
-                    table_name          = 'physiological_status_type',
-                    where_field_name    = 'ChannelStatus',
-                    where_value         = row['status'],
-                    insert_if_not_found = False
+            physio_channel_type = try_get_channel_type_with_name(self.env.db, row['type'])
+            if physio_channel_type is None:
+                log_error_exit(
+                    self.env,
+                    f"No channel type found in the database for channel type name '{row['type']}'.",
                 )
+
+            physio_status_type = None
+            if 'status' in row.keys():
+                physio_status_type = try_get_status_type_with_name(self.env.db, row['status'])
+                if physio_status_type is None:
+                    log_error_exit(
+                        self.env,
+                        f"No status type found in the database for status type name '{row['status']}'.",
+                    )
+
             optional_fields = (
                 'description',        'sampling_frequency', 'low_cutoff',
                 'high_cutoff',        'manual',             'notch',
@@ -472,8 +474,8 @@ class Physiological:
 
             values_tuple = (
                 str(physiological_file_id),
-                str(physio_channel_type_id),
-                physio_status_type_id,
+                physio_channel_type.id,
+                physio_status_type.id if physio_status_type is not None else None,
                 row['name'],
                 row['description'],
                 row['sampling_frequency'],
