@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
 
+from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
+
 import lib.exitcode
 from lib.config import get_eeg_chunks_dir_path_config
 from lib.database_lib.bids_event_mapping import BidsEventMapping
@@ -943,7 +945,7 @@ class Physiological:
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id
 
-    def insert_event_file(self, event_data, event_file, physiological_file_id,
+    def insert_event_file(self, events_file: BidsEventsTsvFile, event_file, physiological_file_id,
                           project_id, blake2, dataset_tag_dict, file_tag_dict,
                           hed_union):
         """
@@ -984,89 +986,35 @@ class Physiological:
             'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
             'EventType',           'FilePath',  'EventFileID'
         )
-        # known opt fields
-        optional_fields = (
-            'trial_type', 'response_time', 'event_code',
-            'event_value', 'event_sample', 'event_type',
-            'value', 'sample', 'duration', 'onset', 'HED'
-        )
         # all listed fields
-        known_fields = {*event_fields, *optional_fields}
+        known_fields = {*event_fields, *OPTIONAL_EVENT_FIELDS}
 
-        for row in event_data:
-            # nullify not present optional cols
-            for field in optional_fields:
-                if field not in row.keys():
-                    row[field] = None
-
+        for row in events_file.rows:
             # has additional fields?
             additional_fields = {}
-            for field in row:
-                if field not in known_fields and row[field].lower() != 'nan':
-                    additional_fields[field] = row[field]
-
-            # get values of present optional cols
-            onset = 0
-            if isinstance(row['onset'], int | float):
-                onset = row['onset']
-            else:
-                # try casting to float, cannot be n/a
-                # should raise an error if not a number
-                onset = float(row['onset'])
-
-            duration = 0
-            if isinstance(row['duration'], int | float):
-                duration = row['duration']
-            else:
-                try:
-                    # try casting to float
-                    duration = float(row['duration'])
-                except ValueError:
-                    # value could be 'n/a',
-                    # should not raise
-                    # let default value (0)
-                    pass
-            assert duration >= 0
-
-            sample = None
-            if isinstance(row['event_sample'], int | float):
-                sample = row['event_sample']
-            if row['sample'] and isinstance(row['sample'], int | float):
-                sample = row['sample']
-
-            response_time = None
-            if isinstance(row['response_time'], int | float):
-                response_time = row['response_time']
-
-            event_value = None
-            if row['event_value']:
-                event_value = str(row['event_value'])
-            elif row['value']:
-                event_value = str(row['value'])
-
-            trial_type = None
-            if row['trial_type']:
-                trial_type = str(row['trial_type'])
+            for field in row.data:
+                if field not in known_fields and row.data[field].lower() != 'nan':
+                    additional_fields[field] = row.data[field]
 
             # insert one event and get its db id
             last_task_id = self.physiological_task_event.insert(
-                physiological_file_id=physiological_file_id,
-                event_file_id=event_file_id,
-                onset=onset,
-                duration=duration,
-                event_code=row['event_code'],
-                event_value=event_value,
-                event_sample=sample,
-                event_type=row['event_type'],
-                trial_type=trial_type,
-                response_time=response_time,
+                physiological_file_id = physiological_file_id,
+                event_file_id         = event_file_id,
+                onset                 = row.onset,
+                duration              = row.duration,
+                event_code            = row.data['event_code'],
+                event_value           = row.event_value,
+                event_sample          = row.event_sample,
+                event_type            = row.data['event_type'],
+                trial_type            = row.trial_type,
+                response_time         = row.response_time,
             )
 
             # Insert HED tags after filtering out inherited tags from events.json, so that they are not "duplicated"
-            if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
-                tag_groups = Physiological.build_hed_tag_groups(hed_union, row['HED'])
+            if row.data['HED'] and len(row.data['HED']) > 0 and row.data['HED'] != 'n/a':
+                tag_groups = Physiological.build_hed_tag_groups(hed_union, row.data['HED'])
                 tag_groups_without_inherited = Physiological.filter_inherited_tags(
-                    row, tag_groups, dataset_tag_dict, file_tag_dict
+                    row.data, tag_groups, dataset_tag_dict, file_tag_dict
                 )
                 for tag_group in tag_groups_without_inherited:
                     self.insert_hed_tag_group(tag_group, last_task_id)

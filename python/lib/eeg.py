@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
+from loris_bids_reader.files.events import BidsEventsTsvFile
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -731,7 +732,7 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.env, self.db, self.verbose)
 
-        event_data_file = self.bids_layout.get_nearest(
+        bids_events_data_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
@@ -740,8 +741,9 @@ class Eeg:
             all_ = False,
             full_search = False,
         )
+        events_data_file = BidsEventsTsvFile(Path(bids_events_data_file.path)) if bids_events_data_file else None
 
-        if not event_data_file:
+        if events_data_file is None:
             message = "WARNING: no events file associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -758,7 +760,7 @@ class Eeg:
                 # get events.json file and insert
                 # subject-specific metadata
                 event_metadata_file = self.bids_layout.get_nearest(
-                    event_data_file.path,
+                    events_data_file.path,
                     return_type = 'tuple',
                     strict = False,
                     extension = 'json',
@@ -798,19 +800,18 @@ class Eeg:
                     event_paths.extend([event_metadata_path])
 
             # get events.tsv file and insert
-            event_data = utilities.read_tsv_file(event_data_file.path)
-            event_path = event_path = os.path.relpath(event_data_file.path, self.data_dir)
+            event_path = os.path.relpath(events_data_file.path, self.data_dir)
             if self.loris_bids_root_dir:
                 # copy the event file to the LORIS BIDS import directory
                 event_path = self.copy_file_to_loris_bids_dir(
-                    event_data_file.path, derivatives
+                    events_data_file.path, derivatives
                 )
             # get the blake2b hash of the task events file
-            blake2 = compute_file_blake2b_hash(event_data_file.path)
+            blake2 = compute_file_blake2b_hash(events_data_file.path)
 
             # insert event data in the database
             physiological.insert_event_file(
-                event_data=event_data,
+                events_file=events_data_file,
                 event_file=event_path,
                 physiological_file_id=physiological_file_id,
                 project_id=self.project_id,
