@@ -4,6 +4,10 @@ import getpass
 import json
 import os
 import sys
+from pathlib import Path
+
+from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
+from loris_bids_reader.files.events import BidsEventsTsvFile
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -390,7 +394,7 @@ class Eeg:
             return None
 
         for eeg_file in eeg_files:
-            eegjson_file = self.bids_layout.get_nearest(
+            sidecar_file = self.bids_layout.get_nearest(
                 eeg_file.path,
                 return_type = 'tuple',
                 strict=False,
@@ -399,6 +403,7 @@ class Eeg:
                 all_ = False,
                 full_search = False,
             )
+            sidecar = BidsEegSidecarJsonFile(Path(sidecar_file.path)) if sidecar_file else None
 
             fdt_file = self.bids_layout.get_nearest(
                 eeg_file.path,
@@ -411,20 +416,19 @@ class Eeg:
 
             # read the json file if it exists
             eeg_file_data = {}
-            eegjson_file_path = None
-            if eegjson_file:
-                with open(eegjson_file.path) as data_file:
-                    eeg_file_data = json.load(data_file)
+            sidecar_file = None
+            if sidecar is not None:
+                eeg_file_data = sidecar.data
 
-                eegjson_file_path = os.path.relpath(eegjson_file.path, self.data_dir)
+                sidecar_file = os.path.relpath(sidecar.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the JSON file to the LORIS BIDS import directory
-                    eegjson_file_path = self.copy_file_to_loris_bids_dir(
-                        eegjson_file.path, derivatives
+                    sidecar_file = self.copy_file_to_loris_bids_dir(
+                        sidecar.path, derivatives
                     )
 
-                eeg_file_data['eegjson_file'] = eegjson_file_path
-                json_blake2 = compute_file_blake2b_hash(eegjson_file.path)
+                eeg_file_data['eegjson_file'] = sidecar_file
+                json_blake2 = compute_file_blake2b_hash(sidecar.path)
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
             # greps the file type from the ImagingFileTypes table
@@ -522,7 +526,7 @@ class Eeg:
                 inserted_eegs.append({
                     'file_id': physio_file_id,
                     'file_path': eeg_path,
-                    'eegjson_file_path': eegjson_file_path,
+                    'eegjson_file_path': sidecar_file,
                     'fdt_file_path': fdt_file_path,
                     'original_file_data': eeg_file,
                 })
@@ -728,7 +732,7 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.db, self.verbose)
 
-        event_data_file = self.bids_layout.get_nearest(
+        bids_events_data_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
@@ -737,8 +741,9 @@ class Eeg:
             all_ = False,
             full_search = False,
         )
+        events_data_file = BidsEventsTsvFile(Path(bids_events_data_file.path)) if bids_events_data_file else None
 
-        if not event_data_file:
+        if events_data_file is None:
             message = "WARNING: no events file associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -755,7 +760,7 @@ class Eeg:
                 # get events.json file and insert
                 # subject-specific metadata
                 event_metadata_file = self.bids_layout.get_nearest(
-                    event_data_file.path,
+                    events_data_file.path,
                     return_type = 'tuple',
                     strict = False,
                     extension = 'json',
@@ -795,19 +800,18 @@ class Eeg:
                     event_paths.extend([event_metadata_path])
 
             # get events.tsv file and insert
-            event_data = utilities.read_tsv_file(event_data_file.path)
-            event_path = event_path = os.path.relpath(event_data_file.path, self.data_dir)
+            event_path = os.path.relpath(events_data_file.path, self.data_dir)
             if self.loris_bids_root_dir:
                 # copy the event file to the LORIS BIDS import directory
                 event_path = self.copy_file_to_loris_bids_dir(
-                    event_data_file.path, derivatives
+                    events_data_file.path, derivatives
                 )
             # get the blake2b hash of the task events file
-            blake2 = compute_file_blake2b_hash(event_data_file.path)
+            blake2 = compute_file_blake2b_hash(events_data_file.path)
 
             # insert event data in the database
             physiological.insert_event_file(
-                event_data=event_data,
+                events_file=events_data_file,
                 event_file=event_path,
                 physiological_file_id=physiological_file_id,
                 project_id=self.project_id,

@@ -25,6 +25,7 @@ dependencies = [
     "scipy",
     "sqlalchemy>=2.0.0",
     "virtualenv",
+    "loris-bids-reader @ {root:uri}/python/loris_bids_reader",
     "loris-eeg-chunker @ {root:uri}/python/loris_eeg_chunker",
 ]
 
@@ -80,6 +81,7 @@ include = [
     "python/lib/make_env.py",
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
+    "python/loris_bids_reader",
 ]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
