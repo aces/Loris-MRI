@@ -1,10 +1,11 @@
 """Reads a BIDS structure into a data dictionary using bids.grabbids."""
 
-import json
 import re
 import sys
+from pathlib import Path
 
 from bids import BIDSLayout
+from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJsonFile
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -53,14 +54,11 @@ class BidsReader:
         self.dataset_name = None
         self.bids_version = None
         try:
-            dataset_json = bids_dir + "/dataset_description.json"
-            dataset_description = {}
-            with open(dataset_json) as json_file:
-                dataset_description = json.load(json_file)
-            self.dataset_name = dataset_description['Name']
-            self.bids_version = dataset_description['BIDSVersion']
-        except Exception:
-            print("WARNING: Cannot read dataset_description.json")
+            dataset_description = BidsDatasetDescriptionJsonFile(Path(bids_dir) / "dataset_description.json")
+            self.dataset_name = dataset_description.data['Name']
+            self.bids_version = dataset_description.data['BIDSVersion']
+        except Exception as error:
+            print(f"WARNING: Error while reading dataset_description.json: {error}")
 
         # load BIDS candidates information
         self.participants_info = self.load_candidates_from_bids()
