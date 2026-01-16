@@ -1,10 +1,12 @@
 """Deals with MRI BIDS datasets and register them into the database."""
 
 import getpass
-import json
 import os
 import re
 import sys
+from pathlib import Path
+
+from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -275,12 +277,12 @@ class Mri:
         scan_type = entities['suffix']
 
         # loop through the associated files to grep JSON, bval, bvec...
-        json_file = None
+        sidecar_json = None
         other_assoc_files = {}
         for assoc_file in associated_files:
             file_info = assoc_file.get_entities()
             if re.search(r'json$', file_info['extension']):
-                json_file = assoc_file.path
+                sidecar_json = BidsMriSidecarJsonFile(Path(assoc_file.path))
             elif re.search(r'bvec$', file_info['extension']):
                 other_assoc_files['bvec_file'] = assoc_file.path
             elif re.search(r'bval$', file_info['extension']):
@@ -292,14 +294,12 @@ class Mri:
 
         # read the json file if it exists
         file_parameters = {}
-        if json_file:
-            with open(json_file) as data_file:
-                file_parameters = json.load(data_file)
-                file_parameters = imaging.map_bids_param_to_loris_param(file_parameters)
+        if sidecar_json is not None:
+            file_parameters = imaging.map_bids_param_to_loris_param(sidecar_json.data)
             # copy the JSON file to the LORIS BIDS import directory
-            json_path = self.copy_file_to_loris_bids_dir(json_file)
+            json_path = self.copy_file_to_loris_bids_dir(sidecar_json.path)
             file_parameters['bids_json_file'] = json_path
-            json_blake2 = compute_file_blake2b_hash(json_file)
+            json_blake2 = compute_file_blake2b_hash(sidecar_json.path)
             file_parameters['bids_json_file_blake2b_hash'] = json_blake2
 
         # grep the file type from the ImagingFileTypes table
