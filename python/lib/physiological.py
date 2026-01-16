@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
 
+from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
 
 import lib.exitcode
@@ -405,17 +406,17 @@ class Physiological:
         )
         return electrode_ids
 
-    def insert_channel_file(self, channel_data, channel_file,
+    def insert_channel_file(self, channels_file: BidsEegChannelsTsvFile, channel_file,
                             physiological_file_id, blake2):
         """
         Inserts the channel information read from the file *channels.tsv
         into the physiological_channel table, linking it to the
         physiological file ID already inserted in physiological_file.
 
-        :param channel_data         : list with dictionaries of channels
+        :param channels_file        : list with dictionaries of channels
                                       information to insert into
                                       physiological_channel
-         :type channel_data         : list
+         :type channels_file        : list
         :param channel_file         : name of the channel file
          :type channel_file         : str
         :param physiological_file_id: PhysiologicalFileID to link the channel info to
@@ -434,60 +435,37 @@ class Physiological:
             'Reference',                 'FilePath'
         )
         channel_values = []
-        for row in channel_data:
-            physio_channel_type = try_get_channel_type_with_name(self.env.db, row['type'])
+        for row in channels_file.rows:
+            physio_channel_type = try_get_channel_type_with_name(self.env.db, row.data['type'])
             if physio_channel_type is None:
                 log_error_exit(
                     self.env,
-                    f"No channel type found in the database for channel type name '{row['type']}'.",
+                    f"No channel type found in the database for channel type name '{row.data['type']}'.",
                 )
 
             physio_status_type = None
-            if 'status' in row.keys():
-                physio_status_type = try_get_status_type_with_name(self.env.db, row['status'])
+            if 'status' in row.data.keys():
+                physio_status_type = try_get_status_type_with_name(self.env.db, row.data['status'])
                 if physio_status_type is None:
                     log_error_exit(
                         self.env,
-                        f"No status type found in the database for status type name '{row['status']}'.",
+                        f"No status type found in the database for status type name '{row.data['status']}'.",
                     )
-
-            optional_fields = (
-                'description',        'sampling_frequency', 'low_cutoff',
-                'high_cutoff',        'manual',             'notch',
-                'status_description', 'units',              'reference'
-            )
-            for field in optional_fields:
-                if field not in row.keys():
-                    row[field] = None
-                if field == 'manual' and row[field] == 'TRUE':
-                    row[field] = 1
-                elif field == 'manual' and row[field] == 'FALSE':
-                    row[field] = 0
-                if field == 'high_cutoff' and row[field] == 'Inf':
-                    # replace 'Inf' by the maximum float value to be stored in the
-                    # physiological_channel table (a.k.a. 99999.999)
-                    row[field] = 99999.999
-                if field == 'notch' and row[field] and re.match(r"n.?a",
-                                                                row[field],
-                                                                re.IGNORECASE):
-                    # replace n/a, N/A, na, NA by None which will translate to NULL
-                    # in the physiological_channel table
-                    row[field] = None
 
             values_tuple = (
                 str(physiological_file_id),
                 physio_channel_type.id,
                 physio_status_type.id if physio_status_type is not None else None,
-                row['name'],
-                row['description'],
-                row['sampling_frequency'],
-                row['low_cutoff'],
-                row['high_cutoff'],
-                row['manual'],
-                row['notch'],
-                row['status_description'],
-                row['units'],
-                row['reference'],
+                row.data['name'],
+                row.data['description'],
+                row.data['sampling_frequency'],
+                row.data['low_cutoff'],
+                row.data['high_cutoff'],
+                row.data['manual'],
+                row.data['notch'],
+                row.data['status_description'],
+                row.data['units'],
+                row.data['reference'],
                 channel_file
             )
             channel_values.append(values_tuple)
