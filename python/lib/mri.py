@@ -6,13 +6,14 @@ import re
 import sys
 from pathlib import Path
 
+from loris_bids_reader.files.scans import BidsScansTsvFile
 from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
 
 import lib.exitcode
 import lib.utilities as utilities
 from lib.candidate import Candidate
 from lib.imaging import Imaging
-from lib.scanstsv import ScansTSV
+from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
 
@@ -139,8 +140,9 @@ class Mri:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id,
+            scans_file_path = self.bids_layout.get(suffix='scans', subject=self.psc_id,
                                                    return_type='filename', extension='tsv')[0]
+            self.scans_file = BidsScansTsvFile(Path(scans_file_path))
 
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
@@ -316,17 +318,27 @@ class Mri:
             coordinate_space = 'native'
 
         # get the acquisition date of the MRI or the age at the time of acquisition
-        if self.scans_file:
-            scan_info = ScansTSV(self.scans_file, nifti_file.filename, self.verbose)
-            file_parameters['scan_acquisition_time'] = scan_info.get_acquisition_time()
-            file_parameters['age_at_scan'] = scan_info.get_age_at_scan()
-            # copy the scans.tsv file to the LORIS BIDS import directory
-            scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
-                self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
-            )
-            file_parameters['scans_tsv_file'] = scans_path
-            scans_blake2 = compute_file_blake2b_hash(self.scans_file)
-            file_parameters['scans_tsv_file_bake2hash'] = scans_blake2
+        if self.scans_file is not None:
+            scan_info = self.scans_file.get_row(Path(nifti_file.path))
+            if scan_info is not None:
+                try:
+                    file_parameters['scan_acquisition_time'] = scan_info.get_acquisition_time()
+                    file_parameters['age_at_scan'] = scan_info.get_age_at_scan()
+                except Exception as error:
+                    print(f"ERROR: {error}")
+                    sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
+
+                # copy the scans.tsv file to the LORIS BIDS import directory
+                scans_path = copy_scans_tsv_file_to_loris_bids_dir(
+                    self.scans_file,
+                    self.bids_sub_id,
+                    self.loris_bids_root_dir,
+                    self.data_dir,
+                )
+
+                file_parameters['scans_tsv_file'] = scans_path
+                scans_blake2 = compute_file_blake2b_hash(self.scans_file.path)
+                file_parameters['scans_tsv_file_bake2hash'] = scans_blake2
 
         # grep voxel step from the NIfTI file header
         step_parameters = imaging.get_nifti_image_step_parameters(nifti_file.path)

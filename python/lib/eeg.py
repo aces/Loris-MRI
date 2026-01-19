@@ -9,6 +9,7 @@ from pathlib import Path
 from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
 from loris_bids_reader.files.events import BidsEventsTsvFile
+from loris_bids_reader.files.scans import BidsScansTsvFile
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -19,8 +20,8 @@ from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_modality import PhysiologicalModality
 from lib.database_lib.physiological_output_type import PhysiologicalOutputType
 from lib.env import Env
+from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.physiological import Physiological
-from lib.scanstsv import ScansTSV
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
 
@@ -167,7 +168,8 @@ class Eeg:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename')[0]
+            scans_file_path = self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename')[0]
+            self.scans_file = BidsScansTsvFile(Path(scans_file_path))
 
         # register the data into LORIS
         if (dataset_type and dataset_type == 'raw'):
@@ -442,20 +444,28 @@ class Eeg:
 
             # get the acquisition date of the EEG file or the age at the time of the EEG recording
             eeg_acq_time = None
-            if self.scans_file:
-                scan_info = ScansTSV(self.scans_file, eeg_file.path, self.verbose)
-                eeg_acq_time = scan_info.get_acquisition_time()
-                eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
+            if self.scans_file is not None:
+                scan_info = self.scans_file.get_row(Path(eeg_file.path))
+                if scan_info is not None:
+                    try:
+                        eeg_acq_time = scan_info.get_acquisition_time()
+                        eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
+                    except Exception as error:
+                        print(f"ERROR: {error}")
+                        sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
 
-                if self.loris_bids_root_dir:
-                    # copy the scans.tsv file to the LORIS BIDS import directory
-                    scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
-                        self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
-                    )
+                    if self.loris_bids_root_dir:
+                        # copy the scans.tsv file to the LORIS BIDS import directory
+                        scans_path = copy_scans_tsv_file_to_loris_bids_dir(
+                            self.scans_file,
+                            self.bids_sub_id,
+                            self.loris_bids_root_dir,
+                            self.data_dir,
+                        )
 
-                eeg_file_data['scans_tsv_file'] = scans_path
-                scans_blake2 = compute_file_blake2b_hash(self.scans_file)
-                eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
+                    eeg_file_data['scans_tsv_file'] = scans_path
+                    scans_blake2 = compute_file_blake2b_hash(self.scans_file.path)
+                    eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 
             # if file type is set and fdt file exists, append fdt path to the
             # eeg_file_data dictionary
