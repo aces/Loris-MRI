@@ -151,17 +151,15 @@ class Eeg:
         self.hed_union = self.db.pselect(query=hed_query, args=())
 
         self.cohort_id   = None
-        for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.bids_sub_id:
-                continue
-            if 'cohort' in row:
+        if bids_reader.participants_info is not None:
+            row = bids_reader.participants_info.get_row(self.bids_sub_id)
+            if 'cohort' in row.data:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    [row['cohort'], ]
+                    [row.data['cohort'], ]
                 )
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
-            break
 
         self.session_id      = self.get_loris_session_id()
 
