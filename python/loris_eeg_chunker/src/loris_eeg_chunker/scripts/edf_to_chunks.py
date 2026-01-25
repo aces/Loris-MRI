@@ -2,15 +2,18 @@
 
 import argparse
 import sys
+from collections.abc import Callable
+from typing import cast
 
 import mne.io
 import mne.io.edf.edf as mne_edf
+from mne.io.edf.edf import RawEDF
 
 from loris_eeg_chunker.chunking import write_chunk_directory
 
 
-def load_channels(exclude):
-    return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)
+def load_channels(exclude: list[str]) -> Callable[[str], RawEDF]:
+    return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)  # type: ignore
 
 
 def main():
@@ -33,7 +36,7 @@ def main():
 
     args = parser.parse_args()
     for path in args.files:
-        _, edf_info, _ = mne_edf._get_info(
+        _, edf_info, _ = mne_edf._get_info(  # type: ignore
             path,
             stim_channel='auto',
             eog=None,
@@ -42,7 +45,7 @@ def main():
             infer_types=False,
             file_type=mne_edf.FileType.EDF,
         )
-        channel_names = edf_info['ch_names']
+        channel_names = cast(list[str], edf_info['ch_names'])
 
         if args.channel_index < 0:
             sys.exit("Channel index must be a positive integer")
@@ -60,12 +63,12 @@ def main():
             args.channel_count = len(channel_names) - args.channel_index
 
         for i in range(args.channel_count):
-            channel_index = args.channel_index + i
+            channel_index: int = args.channel_index + i
 
             # check if channel_index is a stim channel
             # to avoid a bug in mne.io.edf.edf
             # (see issue https://github.com/mne-tools/mne-python/issues/9811)
-            stim_channel_idxs, _ = mne_edf._check_stim_channel(
+            stim_channel_idxs, _ = mne_edf._check_stim_channel(  # type: ignore
                 'auto', [channel_names[channel_index]]
             )
             if len(stim_channel_idxs) == 1:
