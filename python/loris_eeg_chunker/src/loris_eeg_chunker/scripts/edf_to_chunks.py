@@ -3,6 +3,7 @@
 import argparse
 import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import cast
 
 import mne.io
@@ -12,14 +13,14 @@ from mne.io.edf.edf import RawEDF
 from loris_eeg_chunker.chunking import write_chunk_directory
 
 
-def load_channels(exclude: list[str]) -> Callable[[str], RawEDF]:
+def load_channels(exclude: list[str]) -> Callable[[Path], RawEDF]:
     return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)  # type: ignore
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Convert .edf files to chunks for browser based visualisation.')
-    parser.add_argument('files', metavar='FILE', type=str, nargs='+',
+    parser.add_argument('files', metavar='FILE', type=Path, nargs='+',
                         help='one or more .edf files to convert to a directory of chunks next to the input file')
     parser.add_argument('--channel_index', '-i', dest='channel_index', type=int, default=0,
                         help='Starting index of the channels to process')
@@ -29,7 +30,7 @@ def main():
                         help='1 dimensional chunk size')
     parser.add_argument('--downsamplings', '-r', dest='downsamplings', type=int,
                         help='How many downsampling levels to write to disk starting from the coarsest level.')
-    parser.add_argument('--destination', '-d', dest='destination', type=str,
+    parser.add_argument('--destination', '-d', dest='destination', type=Path,
                         help='optional destination for all the chunk directories')
     parser.add_argument('--prefix', '-p', dest="prefix", type=str,
                         help='optional prefixing parent folder name each directory of chunks gets placed under')

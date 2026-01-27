@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 from typing import cast
 
 import mne.io
@@ -11,14 +12,14 @@ from mne.io.eeglab.eeglab import RawEEGLAB
 from loris_eeg_chunker.chunking import write_chunk_directory
 
 
-def load_channels(path: str) -> RawEEGLAB:
+def load_channels(path: Path) -> RawEEGLAB:
     return mne.io.read_raw_eeglab(path, preload=False)  # type: ignore
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Convert .set files to chunks for browser based visualisation.')
-    parser.add_argument('files', metavar='FILE', type=str, nargs='+',
+    parser.add_argument('files', metavar='FILE', type=Path, nargs='+',
                         help='one or more .set files to convert to a directory of chunks next to the input file')
     parser.add_argument('--channel_index', '-i', dest='channel_index', type=int, default=0,
                         help='Starting index of the channels to process')
@@ -28,7 +29,7 @@ def main():
                         help='1 dimensional chunk size')
     parser.add_argument('--downsamplings', '-r', dest='downsamplings', type=int,
                         help='How many downsampling levels to write to disk starting from the coarsest level.')
-    parser.add_argument('--destination', '-d', dest='destination', type=str,
+    parser.add_argument('--destination', '-d', dest='destination', type=Path,
                         help='optional destination for all the chunk directories')
     parser.add_argument('--prefix', '-p', dest="prefix", type=str,
                         help='optional prefixing parent folder name each directory of chunks gets placed under')

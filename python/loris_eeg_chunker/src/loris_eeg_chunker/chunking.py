@@ -1,10 +1,9 @@
-import errno
 import json
 import math
-import os
 import sys
 from collections import OrderedDict
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
@@ -73,25 +72,14 @@ def create_downsampled_values_lists(channel: ChannelArray, chunk_size: int) -> l
     return unique_sized
 
 
-def chunk_dir_path(input_path: str, prefix: str | None = None, destination: str | None = None) -> str:
-    base_path, _ = os.path.splitext(input_path)
-    root, chunk_dir_name = os.path.split(base_path)
-    root = root if destination is None else destination
+def chunk_dir_path(input_path: Path, prefix: str | None = None, destination: Path | None = None) -> Path:
+    root = input_path.parent if destination is None else destination
     prefix = '' if prefix is None else prefix
-    chunk_dir = os.path.join(root, prefix, chunk_dir_name)
-    return chunk_dir + '.chunks'
-
-
-def create_path_dirs(path: str):
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    return (root / prefix / f'{input_path.stem}.chunks')
 
 
 def write_index_json(
-    chunk_dir: str,
+    chunk_dir: Path,
     time_interval: tuple[np.float64, np.float64],
     series_range: tuple[float, float],
     channel_metadata: list[dict[str, Any]],
@@ -101,11 +89,11 @@ def write_index_json(
     shapes: list[list[int]],
     trace_types: dict[Any, Any] = {},
 ):
-    create_path_dirs(chunk_dir)
+    chunk_dir.mkdir(parents=True, exist_ok=True)
 
     data = None
     try:
-        with open(os.path.join(chunk_dir, 'index.json'), 'r+') as index_json:
+        with open(chunk_dir / 'index.json', 'r+') as index_json:
             data = json.load(index_json)
             if chunk_size != data['chunkSize']:
                 sys.exit("Chunk size does not match the one found in index.json.")
@@ -139,8 +127,8 @@ def write_index_json(
         ('channelMetadata', channel_metadata)
     ])
 
-    with open(os.path.join(chunk_dir, 'index.json'), 'w+') as index_json:
-        json.dump(json_dict, index_json, indent=2, separators=(',', ': '))
+    with open(chunk_dir / 'index.json', 'w+') as index_json:
+        json.dump(json_dict, index_json, indent=2)
 
 
 def encode_chunk(chunk: ChannelArray, index: int, downsampling: int) -> bytes:
@@ -150,31 +138,29 @@ def encode_chunk(chunk: ChannelArray, index: int, downsampling: int) -> bytes:
     return encoded.SerializeToString()  # type: ignore
 
 
-def write_chunks(chunk_dir: str, channel_chunks_list: list[ChannelArray], channel_index: int):
+def write_chunks(chunk_dir: Path, channel_chunks_list: list[ChannelArray], channel_index: int):
     for downsampling, channels in enumerate(channel_chunks_list):
         for channel_offset, channel in enumerate(channels):
             for trace_index, trace in enumerate(channel):
-                trace_path = os.path.join(
-                    chunk_dir,
-                    'raw',
-                    str(downsampling),
-                    str(channel_index + channel_offset),
-                    str(trace_index)
+                trace_path = (
+                    chunk_dir
+                    / 'raw'
+                    / str(downsampling)
+                    / str(channel_index + channel_offset)
+                    / str(trace_index)
                 )
-                create_path_dirs(trace_path)
+
+                trace_path.mkdir(parents=True)
                 for chunk_index, chunk in enumerate(trace):
-                    chunk_path = os.path.join(
-                        trace_path, str(chunk_index)) + '.buf'
-                    encoded_chunk = encode_chunk(
-                        chunk, chunk_index, downsampling)
-                    with open(chunk_path, 'w+b') as chunk_file:
+                    encoded_chunk = encode_chunk(chunk, chunk_index, downsampling)
+                    with open(trace_path / f'{chunk_index}.buf', 'w+b') as chunk_file:
                         chunk_file.write(encoded_chunk)
 
 
 def mne_file_to_chunks(
-    path: str,
+    path: Path,
     chunk_size: int,
-    loader: Callable[[str], BaseRaw],
+    loader: Callable[[Path], BaseRaw],
     from_channel_name: str | None,
     channel_count: int | None,
 ) -> tuple[
@@ -201,8 +187,8 @@ def mne_file_to_chunks(
         else:
             selected_channels = channel_names[from_channel_index:]
 
-    for _, channel_name in enumerate(selected_channels):
-        print("Processing channel " + channel_name)
+    for i, channel_name in enumerate(selected_channels, start=1):
+        print(f"Processing channel {channel_name} ({i} / {len(selected_channels)})")
         channel = cast(ChannelArray, parsed.get_data(channel_name))  # type: ignore
         channel_min = np.amin(channel)
         channel_max = np.amax(channel)
@@ -228,15 +214,15 @@ def mne_file_to_chunks(
 
 
 def write_chunk_directory(
-    path: str,
+    path: Path,
     chunk_size: int,
-    loader: Callable[[str], BaseRaw],
+    loader: Callable[[Path], BaseRaw],
     from_channel_index: int = 0,
     from_channel_name: str | None = None,
     channel_count: int | None = None,
     downsamplings: int | None = None,
     prefix: str | None = None,
-    destination: str | None = None,
+    destination: Path | None = None,
 ):
     chunk_dir = chunk_dir_path(path, prefix=prefix, destination=destination)
     channel_chunks_list, time_interval, signal_range, \
