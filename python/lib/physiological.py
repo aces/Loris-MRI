@@ -12,8 +12,8 @@ from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
 
 import lib.exitcode
+from lib.config import get_eeg_chunks_dir_path_config
 from lib.database_lib.bids_event_mapping import BidsEventMapping
-from lib.database_lib.config import Config
 from lib.database_lib.parameter_type import ParameterType
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
@@ -23,6 +23,9 @@ from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
 from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
 from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
+from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
+from lib.env import Env
+from lib.logging import log_error_exit
 from lib.point_3d import Point3D
 
 
@@ -40,7 +43,7 @@ class Physiological:
         db = Database(config.mysql, verbose)
         db.connect()
 
-        physiological = Physiological(db, verbose)
+        physiological = Physiological(env, db, verbose)
 
         # Get file type for the physiological file
         file_type = physiological.get_file_type(eeg_file)
@@ -56,7 +59,7 @@ class Physiological:
         ...
     """
 
-    def __init__(self, db, verbose):
+    def __init__(self, env: Env, db, verbose):
         """
         Constructor method for the Physiological class.
 
@@ -66,9 +69,9 @@ class Physiological:
          :type verbose: bool
         """
 
+        self.env     = env
         self.db      = db
         self.verbose = verbose
-        self.config_db_obj = Config(self.db, self.verbose)
 
         self.physiological_event_file_obj                   = PhysiologicalEventFile(self.db, self.verbose)
         self.physiological_task_event                       = PhysiologicalTaskEvent(self.db, self.verbose)
@@ -432,28 +435,28 @@ class Physiological:
             'Reference',                 'FilePath'
         )
         channel_values = []
+
         for row in channels_file.rows:
-            physio_channel_type_id = self.db.grep_id_from_lookup_table(
-                id_field_name       = 'PhysiologicalChannelTypeID',
-                table_name          = 'physiological_channel_type',
-                where_field_name    = 'ChannelTypeName',
-                where_value         = row.data['type'],
-                insert_if_not_found = False
-            )
-            physio_status_type_id = None
-            if row.data['status'] is not None:
-                physio_status_type_id = self.db.grep_id_from_lookup_table(
-                    id_field_name       = 'PhysiologicalStatusTypeID',
-                    table_name          = 'physiological_status_type',
-                    where_field_name    = 'ChannelStatus',
-                    where_value         = row.data['status'],
-                    insert_if_not_found = False
+            physio_channel_type = try_get_channel_type_with_name(self.env.db, row.data['type'])
+            if physio_channel_type is None:
+                log_error_exit(
+                    self.env,
+                    f"No channel type found in the database for channel type name '{row.data['type']}'.",
                 )
+
+            physio_status_type = None
+            if 'status' in row.keys():
+                physio_status_type = try_get_status_type_with_name(self.env.db, row.data['status'])
+                if physio_status_type is None:
+                    log_error_exit(
+                        self.env,
+                        f"No status type found in the database for status type name '{row.data['status']}'.",
+                    )
 
             values_tuple = (
                 str(physiological_file_id),
-                str(physio_channel_type_id),
-                physio_status_type_id,
+                physio_channel_type.id,
+                physio_status_type.id if physio_status_type is not None else None,
                 row.data['name'],
                 row.data['description'],
                 row.data['sampling_frequency'],
@@ -1148,7 +1151,7 @@ class Physiological:
             script    = None
             file_path = self.grep_file_path_from_file_id(physio_file_id)
 
-            chunk_root_dir_config = self.config_db_obj.get_config("EEGChunksPath")
+            chunk_root_dir_config = get_eeg_chunks_dir_path_config(self.env)
             chunk_root_dir = chunk_root_dir_config
             file_path_parts = Path(file_path).parts
             if chunk_root_dir_config:

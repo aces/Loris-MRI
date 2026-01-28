@@ -14,11 +14,12 @@ from loris_bids_reader.files.scans import BidsScansTsvFile
 import lib.exitcode
 import lib.utilities as utilities
 from lib.candidate import Candidate
-from lib.database_lib.config import Config
+from lib.config import get_eeg_pre_package_download_dir_path_config, get_eeg_viz_enabled_config
 from lib.database_lib.physiological_event_archive import PhysiologicalEventArchive
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_modality import PhysiologicalModality
 from lib.database_lib.physiological_output_type import PhysiologicalOutputType
+from lib.env import Env
 from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.physiological import Physiological
 from lib.session import Session
@@ -81,7 +82,7 @@ class Eeg:
         db.disconnect()
     """
 
-    def __init__(self, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
+    def __init__(self, env: Env, bids_reader, bids_sub_id, bids_ses_id, bids_modality, db,
                  verbose, data_dir, default_visit_label, loris_bids_eeg_rel_dir,
                  loris_bids_root_dir, dataset_tag_dict, dataset_type):
         """
@@ -114,8 +115,7 @@ class Eeg:
          :type dataset_type          : string
         """
 
-        # config
-        self.config_db_obj = Config(db, verbose)
+        self.env = env
 
         # load bids objects
         self.bids_reader   = bids_reader
@@ -286,7 +286,7 @@ class Eeg:
         if not inserted_eegs:
             return
 
-        physiological = Physiological(self.db, self.verbose)
+        physiological = Physiological(self.env, self.db, self.verbose)
 
         for inserted_eeg in inserted_eegs:
             eeg_file_id        = inserted_eeg['file_id']
@@ -345,8 +345,8 @@ class Eeg:
             )
 
             # create data chunks for React visualization
-            eeg_viz_enabled = self.config_db_obj.get_config("useEEGBrowserVisualizationComponents")
-            if eeg_viz_enabled == 'true' or eeg_viz_enabled == '1':
+            eeg_viz_enabled = get_eeg_viz_enabled_config(self.env)
+            if eeg_viz_enabled:
                 physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
 
     def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
@@ -371,7 +371,7 @@ class Eeg:
         inserted_eegs = []
         # load the Physiological object that will be used to insert the
         # physiological data into the database
-        physiological = Physiological(self.db, self.verbose)
+        physiological = Physiological(self.env, self.db, self.verbose)
 
         if detect:
             # TODO if derivatives, grep the source file as well as the input file ID???
@@ -565,7 +565,7 @@ class Eeg:
 
         # load the Physiological object that will be used to insert the
         # physiological data into the database
-        physiological = Physiological(self.db, self.verbose)
+        physiological = Physiological(self.env, self.db, self.verbose)
 
         electrode_files = self.bids_layout.get_nearest(
             original_physiological_file_path,
@@ -675,7 +675,7 @@ class Eeg:
 
         # load the Physiological object that will be used to insert the
         # physiological data into the database
-        physiological = Physiological(self.db, self.verbose)
+        physiological = Physiological(self.env, self.db, self.verbose)
 
         bids_channels_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
@@ -739,7 +739,7 @@ class Eeg:
 
         # load the Physiological object that will be used to insert the
         # physiological data into the database
-        physiological = Physiological(self.db, self.verbose)
+        physiological = Physiological(self.env, self.db, self.verbose)
 
         bids_events_data_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
@@ -899,7 +899,7 @@ class Eeg:
 
         # load the Physiological object that will be used to insert the
         # physiological archive into the database
-        physiological = Physiological(self.db, self.verbose)
+        physiological = Physiological(self.env, self.db, self.verbose)
 
         # check if archive is on the filesystem
         (archive_rel_name, archive_full_path) = self.get_archive_paths(archive_rel_name)
@@ -998,7 +998,7 @@ class Eeg:
         physiological_event_archive_obj.insert(eeg_file_id, blake2, archive_rel_name)
 
     def get_archive_paths(self, archive_rel_name):
-        package_path = self.config_db_obj.get_config("prePackagedDownloadPath")
+        package_path = get_eeg_pre_package_download_dir_path_config(self.env)
         if package_path:
             raw_package_dir = os.path.join(package_path, 'raw')
             os.makedirs(raw_package_dir, exist_ok=True)
