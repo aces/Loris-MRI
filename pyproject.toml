@@ -25,6 +25,7 @@ dependencies = [
     "scipy",
     "sqlalchemy>=2.0.0",
     "virtualenv",
+    "loris-bids-reader @ {root:uri}/python/loris_bids_reader",
     "loris-eeg-chunker @ {root:uri}/python/loris_eeg_chunker",
 ]
 
@@ -66,20 +67,27 @@ select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
 # `test` directory.
 [tool.pyright]
 include = [
+    "python/loris_eeg_chunker",
     "python/tests",
     "python/lib/db",
     "python/lib/imaging_lib",
+    "python/lib/import_bids_dataset",
     "python/lib/import_dicom_study",
+    "python/lib/physio",
     "python/lib/util",
-    "python/lib/bids.py",
     "python/lib/config.py",
     "python/lib/config_file.py",
     "python/lib/env.py",
     "python/lib/get_session_info.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
+    "python/scripts/import_bids_dataset.py",
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
+    "python/loris_bids_reader",
+]
+exclude = [
+    "python/loris_eeg_chunker/src/loris_eeg_chunker/protocol_buffers",
 ]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
