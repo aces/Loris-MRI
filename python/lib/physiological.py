@@ -9,8 +9,8 @@ from functools import reduce
 from pathlib import Path
 
 import lib.exitcode
+from lib.config import get_eeg_chunks_dir_path_config
 from lib.database_lib.bids_event_mapping import BidsEventMapping
-from lib.database_lib.config import Config
 from lib.database_lib.parameter_type import ParameterType
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
@@ -20,6 +20,7 @@ from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
 from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
 from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
+from lib.env import Env
 from lib.point_3d import Point3D
 
 
@@ -37,7 +38,7 @@ class Physiological:
         db = Database(config.mysql, verbose)
         db.connect()
 
-        physiological = Physiological(db, verbose)
+        physiological = Physiological(env, db, verbose)
 
         # Get file type for the physiological file
         file_type = physiological.get_file_type(eeg_file)
@@ -53,7 +54,7 @@ class Physiological:
         ...
     """
 
-    def __init__(self, db, verbose):
+    def __init__(self, env: Env, db, verbose):
         """
         Constructor method for the Physiological class.
 
@@ -63,9 +64,9 @@ class Physiological:
          :type verbose: bool
         """
 
+        self.env     = env
         self.db      = db
         self.verbose = verbose
-        self.config_db_obj = Config(self.db, self.verbose)
 
         self.physiological_event_file_obj                   = PhysiologicalEventFile(self.db, self.verbose)
         self.physiological_task_event                       = PhysiologicalTaskEvent(self.db, self.verbose)
@@ -1221,7 +1222,7 @@ class Physiological:
             script    = None
             file_path = self.grep_file_path_from_file_id(physio_file_id)
 
-            chunk_root_dir_config = self.config_db_obj.get_config("EEGChunksPath")
+            chunk_root_dir_config = get_eeg_chunks_dir_path_config(self.env)
             chunk_root_dir = chunk_root_dir_config
             file_path_parts = Path(file_path).parts
             if chunk_root_dir_config:
