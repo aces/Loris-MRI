@@ -4,6 +4,12 @@ import getpass
 import json
 import os
 import sys
+from pathlib import Path
+
+from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
+from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
+from loris_bids_reader.files.events import BidsEventsTsvFile
+from loris_bids_reader.files.scans import BidsScansTsvFile
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -14,8 +20,8 @@ from lib.database_lib.physiological_event_file import PhysiologicalEventFile
 from lib.database_lib.physiological_modality import PhysiologicalModality
 from lib.database_lib.physiological_output_type import PhysiologicalOutputType
 from lib.env import Env
+from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.physiological import Physiological
-from lib.scanstsv import ScansTSV
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
 
@@ -145,24 +151,23 @@ class Eeg:
         self.hed_union = self.db.pselect(query=hed_query, args=())
 
         self.cohort_id   = None
-        for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.bids_sub_id:
-                continue
-            if 'cohort' in row:
+        if bids_reader.participants_info is not None:
+            row = bids_reader.participants_info.get_row(self.bids_sub_id)
+            if 'cohort' in row.data:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    [row['cohort'], ]
+                    [row.data['cohort'], ]
                 )
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
-            break
 
         self.session_id      = self.get_loris_session_id()
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename')[0]
+            scans_file_path = self.bids_layout.get(suffix='scans', subject=self.bids_sub_id, return_type='filename')[0]
+            self.scans_file = BidsScansTsvFile(Path(scans_file_path))
 
         # register the data into LORIS
         if (dataset_type and dataset_type == 'raw'):
@@ -390,7 +395,7 @@ class Eeg:
             return None
 
         for eeg_file in eeg_files:
-            eegjson_file = self.bids_layout.get_nearest(
+            bids_sidecar_json = self.bids_layout.get_nearest(
                 eeg_file.path,
                 return_type = 'tuple',
                 strict=False,
@@ -399,6 +404,7 @@ class Eeg:
                 all_ = False,
                 full_search = False,
             )
+            sidecar_json = BidsEegSidecarJsonFile(Path(bids_sidecar_json.path)) if bids_sidecar_json else None
 
             fdt_file = self.bids_layout.get_nearest(
                 eeg_file.path,
@@ -411,20 +417,19 @@ class Eeg:
 
             # read the json file if it exists
             eeg_file_data = {}
-            eegjson_file_path = None
-            if eegjson_file:
-                with open(eegjson_file.path) as data_file:
-                    eeg_file_data = json.load(data_file)
+            sidecar_json_path = None
+            if sidecar_json is not None:
+                eeg_file_data = sidecar_json.data
 
-                eegjson_file_path = os.path.relpath(eegjson_file.path, self.data_dir)
+                sidecar_json_path = os.path.relpath(sidecar_json.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the JSON file to the LORIS BIDS import directory
-                    eegjson_file_path = self.copy_file_to_loris_bids_dir(
-                        eegjson_file.path, derivatives
+                    sidecar_json_path = self.copy_file_to_loris_bids_dir(
+                        sidecar_json.path, derivatives
                     )
 
-                eeg_file_data['eegjson_file'] = eegjson_file_path
-                json_blake2 = compute_file_blake2b_hash(eegjson_file.path)
+                eeg_file_data['eegjson_file'] = sidecar_json_path
+                json_blake2 = compute_file_blake2b_hash(sidecar_json.path)
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
             # greps the file type from the ImagingFileTypes table
@@ -437,20 +442,28 @@ class Eeg:
 
             # get the acquisition date of the EEG file or the age at the time of the EEG recording
             eeg_acq_time = None
-            if self.scans_file:
-                scan_info = ScansTSV(self.scans_file, eeg_file.path, self.verbose)
-                eeg_acq_time = scan_info.get_acquisition_time()
-                eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
+            if self.scans_file is not None:
+                scan_info = self.scans_file.get_row(Path(eeg_file.path))
+                if scan_info is not None:
+                    try:
+                        eeg_acq_time = scan_info.get_acquisition_time()
+                        eeg_file_data['age_at_scan'] = scan_info.get_age_at_scan()
+                    except Exception as error:
+                        print(f"ERROR: {error}")
+                        sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
 
-                if self.loris_bids_root_dir:
-                    # copy the scans.tsv file to the LORIS BIDS import directory
-                    scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
-                        self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
-                    )
+                    if self.loris_bids_root_dir:
+                        # copy the scans.tsv file to the LORIS BIDS import directory
+                        scans_path = copy_scans_tsv_file_to_loris_bids_dir(
+                            self.scans_file,
+                            self.bids_sub_id,
+                            self.loris_bids_root_dir,
+                            self.data_dir,
+                        )
 
-                eeg_file_data['scans_tsv_file'] = scans_path
-                scans_blake2 = compute_file_blake2b_hash(self.scans_file)
-                eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
+                    eeg_file_data['scans_tsv_file'] = scans_path
+                    scans_blake2 = compute_file_blake2b_hash(self.scans_file.path)
+                    eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 
             # if file type is set and fdt file exists, append fdt path to the
             # eeg_file_data dictionary
@@ -522,7 +535,7 @@ class Eeg:
                 inserted_eegs.append({
                     'file_id': physio_file_id,
                     'file_path': eeg_path,
-                    'eegjson_file_path': eegjson_file_path,
+                    'eegjson_file_path': sidecar_json_path,
                     'fdt_file_path': fdt_file_path,
                     'original_file_data': eeg_file,
                 })
@@ -664,7 +677,7 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.env, self.db, self.verbose)
 
-        channel_file = self.bids_layout.get_nearest(
+        bids_channels_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
@@ -673,8 +686,9 @@ class Eeg:
             all_ = False,
             full_search = False,
         )
+        channels_file = BidsEegChannelsTsvFile(Path(bids_channels_file.path)) if bids_channels_file else None
 
-        if not channel_file:
+        if channels_file is None:
             message = "WARNING: no channel file associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -684,19 +698,18 @@ class Eeg:
                 physiological_file_id
             )
             channel_path = result[0]['FilePath'] if result else None
-            channel_data = utilities.read_tsv_file(channel_file.path)
             if not result:
-                channel_path = os.path.relpath(channel_file.path, self.data_dir)
+                channel_path = os.path.relpath(channels_file.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the channel file to the LORIS BIDS import directory
                     channel_path = self.copy_file_to_loris_bids_dir(
-                        channel_file.path, derivatives
+                        channels_file.path, derivatives
                     )
                 # get the blake2b hash of the channel file
-                blake2 = compute_file_blake2b_hash(channel_file.path)
+                blake2 = compute_file_blake2b_hash(channels_file.path)
                 # insert the channel data in the database
                 physiological.insert_channel_file(
-                    channel_data, channel_path, physiological_file_id, blake2
+                    channels_file, channel_path, physiological_file_id, blake2
                 )
 
         return channel_path
@@ -728,7 +741,7 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.env, self.db, self.verbose)
 
-        event_data_file = self.bids_layout.get_nearest(
+        bids_events_data_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
@@ -737,8 +750,9 @@ class Eeg:
             all_ = False,
             full_search = False,
         )
+        events_data_file = BidsEventsTsvFile(Path(bids_events_data_file.path)) if bids_events_data_file else None
 
-        if not event_data_file:
+        if events_data_file is None:
             message = "WARNING: no events file associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -755,7 +769,7 @@ class Eeg:
                 # get events.json file and insert
                 # subject-specific metadata
                 event_metadata_file = self.bids_layout.get_nearest(
-                    event_data_file.path,
+                    events_data_file.path,
                     return_type = 'tuple',
                     strict = False,
                     extension = 'json',
@@ -795,19 +809,18 @@ class Eeg:
                     event_paths.extend([event_metadata_path])
 
             # get events.tsv file and insert
-            event_data = utilities.read_tsv_file(event_data_file.path)
-            event_path = event_path = os.path.relpath(event_data_file.path, self.data_dir)
+            event_path = os.path.relpath(events_data_file.path, self.data_dir)
             if self.loris_bids_root_dir:
                 # copy the event file to the LORIS BIDS import directory
                 event_path = self.copy_file_to_loris_bids_dir(
-                    event_data_file.path, derivatives
+                    events_data_file.path, derivatives
                 )
             # get the blake2b hash of the task events file
-            blake2 = compute_file_blake2b_hash(event_data_file.path)
+            blake2 = compute_file_blake2b_hash(events_data_file.path)
 
             # insert event data in the database
             physiological.insert_event_file(
-                event_data=event_data,
+                events_file=events_data_file,
                 event_file=event_path,
                 physiological_file_id=physiological_file_id,
                 project_id=self.project_id,

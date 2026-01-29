@@ -198,9 +198,7 @@ def read_and_insert_bids(
         bids_reader = BidsReader(bids_dir, verbose, False)
     else:
         bids_reader = BidsReader(bids_dir, verbose)
-    if not bids_reader.participants_info          \
-            or not bids_reader.cand_sessions_list \
-            or not bids_reader.cand_session_modalities_list:
+    if not bids_reader.cand_sessions_list or not bids_reader.cand_session_modalities_list:
         message = '\n\tERROR: could not properly parse the following' \
                   'BIDS directory:' + bids_dir + '\n'
         print(message)
@@ -217,10 +215,9 @@ def read_and_insert_bids(
     single_project_id = None
 
     # loop through subjects
-    for bids_subject_info in bids_reader.participants_info:
+    for bids_id in bids_reader.bids_layout.get_subjects():
 
         # greps BIDS information for the candidate
-        bids_id       = bids_subject_info['participant_id']
         bids_sessions = bids_reader.cand_sessions_list[bids_id]
 
         # greps BIDS candidate's info from LORIS (creates the candidate if it
@@ -239,10 +236,11 @@ def read_and_insert_bids(
         single_project_id = project_id
 
         cohort_id = None
+        bids_subject_info = bids_reader.participants_info.get_row(bids_id) if bids_reader.participants_info else None
         # TODO: change subproject -> cohort in participants.tsv?
-        if 'subproject' in bids_subject_info:
+        if bids_subject_info and 'subproject' in bids_subject_info.data:
             # TODO: change subproject -> cohort in participants.tsv?
-            cohort = bids_subject_info['subproject']
+            cohort = bids_subject_info.data['subproject']
             cohort_info = db.pselect(
                 "SELECT CohortID FROM cohort WHERE title = %s",
                 [cohort, ]
@@ -479,6 +477,10 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id, db, createcand, verbo
         loris_cand_info = candidate.get_candidate_info_from_loris(db)
 
     if not loris_cand_info and createcand:
+        if bids_reader.participants_info is None:
+            print("No participants.tsv file found in the BIDS directory. Cannot create candidate.")
+            sys.exit(lib.exitcode.CANDIDATE_CREATION_FAILURE)
+
         loris_cand_info = candidate.create_candidate(
             db, bids_reader.participants_info
         )
