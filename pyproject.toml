@@ -67,6 +67,7 @@ select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
 # `test` directory.
 [tool.pyright]
 include = [
+    "python/loris_eeg_chunker",
     "python/tests",
     "python/lib/db",
     "python/lib/imaging_lib",
@@ -83,6 +84,9 @@ include = [
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
     "python/loris_bids_reader",
+]
+exclude = [
+    "python/loris_eeg_chunker/src/loris_eeg_chunker/protocol_buffers",
 ]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
