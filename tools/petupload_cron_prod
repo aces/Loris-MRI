@@ -75,5 +75,5 @@ fi
 mv ${tmpDir}tmp.txt ${uploadList} &&
 echo "#### BATCH UPLOAD IMAGING ####" >&2 &&
 source ${lorisMRIDir}environment &&
-perl ${lorisMRIDir}batch_uploads_imageuploader.pl -profile prod < ${uploadList} &&
+batch_uploads_imageuploader.pl -profile prod < ${uploadList} &&
 echo "Successfully executed batch_uploads_imageuploader." >&2
