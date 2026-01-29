@@ -4,7 +4,7 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
-from lib.imaging_lib.physio import get_physio_file_parameters_dict
+from lib.physio.file_parameters import get_physio_file_parameters_dict
 from tests.util.database import get_integration_database_session
 from tests.util.file_system import assert_files_exist
 from tests.util.run_integration_script import run_integration_script
@@ -18,7 +18,7 @@ def test_import_eeg_bids_dataset():
     db.commit()
 
     process = run_integration_script([
-        'bids_import.py',
+        'import_bids_dataset.py',
         '--createcandidate', '--createsession',
         '--directory', '/data/loris/incoming/Face13',
     ])

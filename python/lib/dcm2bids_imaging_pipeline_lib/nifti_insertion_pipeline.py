@@ -6,8 +6,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
+
 import lib.exitcode
-from lib.bids import get_bids_json_session_info
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_mri_scan_type_with_name
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
@@ -16,6 +17,7 @@ from lib.imaging_lib.file import register_mri_file
 from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
+from lib.import_bids_dataset.json import get_bids_json_session_info
 from lib.logging import log_error_exit, log_verbose
 from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
@@ -47,9 +49,13 @@ class NiftiInsertionPipeline(BasePipeline):
             if 's3_url' in self.options_dict["nifti_path"].keys() else None
         self.nifti_blake2 = compute_file_blake2b_hash(self.nifti_path)
         self.nifti_md5 = compute_file_md5_hash(self.nifti_path)
-        self.json_path = self.options_dict["json_path"]["value"]
-        self.json_blake2 = compute_file_blake2b_hash(self.json_path) if self.json_path else None
-        self.json_md5 = compute_file_md5_hash(self.json_path) if self.json_path else None
+        self.sidecar_json = self._load_json_sidecar_file()
+        if self.sidecar_json is not None:
+            self.json_blake2 = compute_file_blake2b_hash(self.sidecar_json.path)
+            self.json_md5 = compute_file_md5_hash(self.sidecar_json.path)
+        else:
+            self.json_blake2 = None
+            self.json_md5 = None
         self.bval_path = self.options_dict["bval_path"]["value"]
         self.bval_blake2 = compute_file_blake2b_hash(self.bval_path) if self.bval_path else None
         self.bvec_path = self.options_dict["bvec_path"]["value"]
@@ -77,7 +83,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------------------
         # Load the JSON file object with scan parameters if a JSON file was provided
         # ---------------------------------------------------------------------------------------------
-        self.json_file_dict = self._load_json_sidecar_file()
+        self.json_file_dict = self.sidecar_json.data if self.sidecar_json is not None else dict()
         add_nifti_spatial_file_parameters(self.nifti_path, self.json_file_dict)
 
         # ---------------------------------------------------------------------------------
@@ -251,15 +257,12 @@ class NiftiInsertionPipeline(BasePipeline):
         :return: dictionary with the information present in the JSON file
          :rtype: dict
         """
-        json_path = self.options_dict["json_path"]["value"]
+        sidecar_json_path = Path(self.options_dict["json_path"]["value"])
 
-        if not json_path:
-            return dict()
+        if not sidecar_json_path:
+            return None
 
-        with open(json_path) as json_file:
-            json_data_dict = json.load(json_file)
-
-        return json_data_dict
+        return BidsMriSidecarJsonFile(sidecar_json_path)
 
     def _validate_nifti_patient_name_with_dicom_patient_name(self):
         """
@@ -385,12 +388,11 @@ class NiftiInsertionPipeline(BasePipeline):
 
         # add TaskName to the JSON file if the file's BIDS scan type subcategory contains task-*
         bids_subcategories = self.bids_categories_dict['BIDSScanTypeSubCategory']
-        if self.json_path and bids_subcategories and 'task-' in bids_subcategories:
-            with open(self.json_path) as json_file:
-                json_data = json.load(json_file)
-            json_data['TaskName'] = re.search(r'task-([a-zA-Z0-9]*)', bids_subcategories).group(1)
-            with open(self.json_path, 'w') as json_file:
-                json_file.write(json.dumps(json_data, indent=4))
+        if self.sidecar_json is not None and bids_subcategories and 'task-' in bids_subcategories:
+            # FIXME: This code writes data in the input files, this should be avoided.
+            self.sidecar_json.data['TaskName'] = re.search(r'task-([a-zA-Z0-9]*)', bids_subcategories).group(1)
+            with open(self.sidecar_json.path, 'w') as json_file:
+                json_file.write(json.dumps(self.sidecar_json.data, indent=4))
 
         # determine the new file paths and move the files in assembly_bids
         self.assembly_nifti_rel_path = self._determine_new_nifti_assembly_rel_path()
@@ -519,7 +521,7 @@ class NiftiInsertionPipeline(BasePipeline):
          :type destination: str
         """
         nii_rel_path = self.assembly_nifti_rel_path if destination == 'assembly_bids' else self.trashbin_nifti_rel_path
-        json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', nii_rel_path) if self.json_path else None
+        json_rel_path = re.sub(r"\.nii(\.gz)?$", '.json', nii_rel_path) if self.sidecar_json is not None else None
         bval_rel_path = re.sub(r"\.nii(\.gz)?$", '.bval', nii_rel_path) if self.bval_path else None
         bvec_rel_path = re.sub(r"\.nii(\.gz)?$", '.bvec', nii_rel_path) if self.bvec_path else None
 
@@ -532,10 +534,10 @@ class NiftiInsertionPipeline(BasePipeline):
                 'new_file_path': os.path.join(self.data_dir, nii_rel_path)
             }
         ]
-        if self.json_path:
+        if self.sidecar_json is not None:
             file_type_to_move_list.append(
                 {
-                    'original_file_path': self.json_path,
+                    'original_file_path': self.sidecar_json.path,
                     'new_file_path': os.path.join(self.data_dir, json_rel_path)
                 }
             )
@@ -564,7 +566,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
         if destination == 'assembly_bids':
             self.json_file_dict['file_blake2b_hash'] = self.nifti_blake2
-            if self.json_path:
+            if self.sidecar_json is not None:
                 self.json_file_dict['bids_json_file'] = json_rel_path
                 self.json_file_dict['bids_json_file_blake2b_hash'] = self.json_blake2
             if self.bval_path:

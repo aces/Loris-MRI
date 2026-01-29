@@ -4,9 +4,11 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
+
+from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
+from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
 
 import lib.exitcode
 from lib.config import get_eeg_chunks_dir_path_config
@@ -20,7 +22,10 @@ from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
 from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
 from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
+from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
+from lib.logging import log_error_exit
+from lib.physio.hed import TagGroupMember
 from lib.point_3d import Point3D
 
 
@@ -401,17 +406,17 @@ class Physiological:
         )
         return electrode_ids
 
-    def insert_channel_file(self, channel_data, channel_file,
+    def insert_channel_file(self, channels_file: BidsEegChannelsTsvFile, channel_file,
                             physiological_file_id, blake2):
         """
         Inserts the channel information read from the file *channels.tsv
         into the physiological_channel table, linking it to the
         physiological file ID already inserted in physiological_file.
 
-        :param channel_data         : list with dictionaries of channels
+        :param channels_file        : list with dictionaries of channels
                                       information to insert into
                                       physiological_channel
-         :type channel_data         : list
+         :type channels_file        : list
         :param channel_file         : name of the channel file
          :type channel_file         : str
         :param physiological_file_id: PhysiologicalFileID to link the channel info to
@@ -430,60 +435,37 @@ class Physiological:
             'Reference',                 'FilePath'
         )
         channel_values = []
-        for row in channel_data:
-            physio_channel_type_id = self.db.grep_id_from_lookup_table(
-                id_field_name       = 'PhysiologicalChannelTypeID',
-                table_name          = 'physiological_channel_type',
-                where_field_name    = 'ChannelTypeName',
-                where_value         = row['type'],
-                insert_if_not_found = False
-            )
-            physio_status_type_id = None
-            if 'status' in row.keys():
-                physio_status_type_id = self.db.grep_id_from_lookup_table(
-                    id_field_name       = 'PhysiologicalStatusTypeID',
-                    table_name          = 'physiological_status_type',
-                    where_field_name    = 'ChannelStatus',
-                    where_value         = row['status'],
-                    insert_if_not_found = False
+        for row in channels_file.rows:
+            physio_channel_type = try_get_channel_type_with_name(self.env.db, row.data['type'])
+            if physio_channel_type is None:
+                log_error_exit(
+                    self.env,
+                    f"No channel type found in the database for channel type name '{row.data['type']}'.",
                 )
-            optional_fields = (
-                'description',        'sampling_frequency', 'low_cutoff',
-                'high_cutoff',        'manual',             'notch',
-                'status_description', 'units',              'reference'
-            )
-            for field in optional_fields:
-                if field not in row.keys():
-                    row[field] = None
-                if field == 'manual' and row[field] == 'TRUE':
-                    row[field] = 1
-                elif field == 'manual' and row[field] == 'FALSE':
-                    row[field] = 0
-                if field == 'high_cutoff' and row[field] == 'Inf':
-                    # replace 'Inf' by the maximum float value to be stored in the
-                    # physiological_channel table (a.k.a. 99999.999)
-                    row[field] = 99999.999
-                if field == 'notch' and row[field] and re.match(r"n.?a",
-                                                                row[field],
-                                                                re.IGNORECASE):
-                    # replace n/a, N/A, na, NA by None which will translate to NULL
-                    # in the physiological_channel table
-                    row[field] = None
+
+            physio_status_type = None
+            if 'status' in row.data.keys():
+                physio_status_type = try_get_status_type_with_name(self.env.db, row.data['status'])
+                if physio_status_type is None:
+                    log_error_exit(
+                        self.env,
+                        f"No status type found in the database for status type name '{row.data['status']}'.",
+                    )
 
             values_tuple = (
                 str(physiological_file_id),
-                str(physio_channel_type_id),
-                physio_status_type_id,
-                row['name'],
-                row['description'],
-                row['sampling_frequency'],
-                row['low_cutoff'],
-                row['high_cutoff'],
-                row['manual'],
-                row['notch'],
-                row['status_description'],
-                row['units'],
-                row['reference'],
+                physio_channel_type.id,
+                physio_status_type.id if physio_status_type is not None else None,
+                row.data['name'],
+                row.data['description'],
+                row.data['sampling_frequency'],
+                row.data['low_cutoff'],
+                row.data['high_cutoff'],
+                row.data['manual'],
+                row.data['notch'],
+                row.data['status_description'],
+                row.data['units'],
+                row.data['reference'],
                 channel_file
             )
             channel_values.append(values_tuple)
@@ -736,18 +718,6 @@ class Physiological:
                 return additional_members
         return 0
 
-    @dataclass
-    class TagGroupMember:
-        hed_tag_id: int | None
-        has_pairing: bool
-        additional_members: int
-        tag_value: str | None = None
-
-        def __eq__(self, other):
-            return self.hed_tag_id == other.hed_tag_id and \
-                self.has_pairing == other.has_pairing and \
-                self.additional_members == other.additional_members
-
     @staticmethod
     def build_hed_tag_groups(hed_union, hed_string):
         """
@@ -795,7 +765,7 @@ class Physiological:
                     Physiological.get_additional_members_from_parenthesis_index(string_split, 1, element_index)
 
             hed_tag_id = Physiological.get_hed_tag_id_from_name(left_stripped, hed_union)
-            tag_group.append(Physiological.TagGroupMember(hed_tag_id, has_pairing, additional_members))
+            tag_group.append(TagGroupMember(hed_tag_id, has_pairing, additional_members))
 
             for i in range(
                 0 if group_depth > 0 and element.startswith('(') and element.endswith(')') else 1,
@@ -804,7 +774,7 @@ class Physiological:
                 has_pairing = True
                 additional_members = \
                     Physiological.get_additional_members_from_parenthesis_index(string_split, i + 1, element_index)
-                tag_group.append(Physiological.TagGroupMember(None, has_pairing, additional_members))
+                tag_group.append(TagGroupMember(None, has_pairing, additional_members))
             group_depth += (len(element) - len(right_stripped))
             group_depth -= num_opening_parentheses
         if len(tag_group) > 0:
@@ -943,7 +913,7 @@ class Physiological:
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id
 
-    def insert_event_file(self, event_data, event_file, physiological_file_id,
+    def insert_event_file(self, events_file: BidsEventsTsvFile, event_file, physiological_file_id,
                           project_id, blake2, dataset_tag_dict, file_tag_dict,
                           hed_union):
         """
@@ -984,89 +954,35 @@ class Physiological:
             'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
             'EventType',           'FilePath',  'EventFileID'
         )
-        # known opt fields
-        optional_fields = (
-            'trial_type', 'response_time', 'event_code',
-            'event_value', 'event_sample', 'event_type',
-            'value', 'sample', 'duration', 'onset', 'HED'
-        )
         # all listed fields
-        known_fields = {*event_fields, *optional_fields}
+        known_fields = {*event_fields, *OPTIONAL_EVENT_FIELDS}
 
-        for row in event_data:
-            # nullify not present optional cols
-            for field in optional_fields:
-                if field not in row.keys():
-                    row[field] = None
-
+        for row in events_file.rows:
             # has additional fields?
             additional_fields = {}
-            for field in row:
-                if field not in known_fields and row[field].lower() != 'nan':
-                    additional_fields[field] = row[field]
-
-            # get values of present optional cols
-            onset = 0
-            if isinstance(row['onset'], int | float):
-                onset = row['onset']
-            else:
-                # try casting to float, cannot be n/a
-                # should raise an error if not a number
-                onset = float(row['onset'])
-
-            duration = 0
-            if isinstance(row['duration'], int | float):
-                duration = row['duration']
-            else:
-                try:
-                    # try casting to float
-                    duration = float(row['duration'])
-                except ValueError:
-                    # value could be 'n/a',
-                    # should not raise
-                    # let default value (0)
-                    pass
-            assert duration >= 0
-
-            sample = None
-            if isinstance(row['event_sample'], int | float):
-                sample = row['event_sample']
-            if row['sample'] and isinstance(row['sample'], int | float):
-                sample = row['sample']
-
-            response_time = None
-            if isinstance(row['response_time'], int | float):
-                response_time = row['response_time']
-
-            event_value = None
-            if row['event_value']:
-                event_value = str(row['event_value'])
-            elif row['value']:
-                event_value = str(row['value'])
-
-            trial_type = None
-            if row['trial_type']:
-                trial_type = str(row['trial_type'])
+            for field in row.data:
+                if field not in known_fields and row.data[field].lower() != 'nan':
+                    additional_fields[field] = row.data[field]
 
             # insert one event and get its db id
             last_task_id = self.physiological_task_event.insert(
-                physiological_file_id=physiological_file_id,
-                event_file_id=event_file_id,
-                onset=onset,
-                duration=duration,
-                event_code=row['event_code'],
-                event_value=event_value,
-                event_sample=sample,
-                event_type=row['event_type'],
-                trial_type=trial_type,
-                response_time=response_time,
+                physiological_file_id = physiological_file_id,
+                event_file_id         = event_file_id,
+                onset                 = row.onset,
+                duration              = row.duration,
+                event_code            = row.data['event_code'],
+                event_value           = row.event_value,
+                event_sample          = row.event_sample,
+                event_type            = row.data['event_type'],
+                trial_type            = row.trial_type,
+                response_time         = row.response_time,
             )
 
             # Insert HED tags after filtering out inherited tags from events.json, so that they are not "duplicated"
-            if row['HED'] and len(row['HED']) > 0 and row['HED'] != 'n/a':
-                tag_groups = Physiological.build_hed_tag_groups(hed_union, row['HED'])
+            if row.data['HED'] and len(row.data['HED']) > 0 and row.data['HED'] != 'n/a':
+                tag_groups = Physiological.build_hed_tag_groups(hed_union, row.data['HED'])
                 tag_groups_without_inherited = Physiological.filter_inherited_tags(
-                    row, tag_groups, dataset_tag_dict, file_tag_dict
+                    row.data, tag_groups, dataset_tag_dict, file_tag_dict
                 )
                 for tag_group in tag_groups_without_inherited:
                     self.insert_hed_tag_group(tag_group, last_task_id)
