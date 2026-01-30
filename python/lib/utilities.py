@@ -99,19 +99,16 @@ def copy_file(file_orig, file_copy, verbose):
 
     if not os.path.exists(file_copy):
         if verbose:
-            print("Copying file " + file_orig + " to " + file_copy)
+            print(f"Copying file {file_orig} to {file_copy}")
         shutil.copyfile(file_orig, file_copy)
     elif not filecmp.cmp(file_orig, file_copy):
         # if files are not identical, then return file path to the copy and
         # a flag set to False to say that files were different
-        message = '\n\tERROR: ' + file_orig + ' and ' + file_copy + ' differ\n'
-        print(message)
+        print(f"ERROR: {file_orig} and {file_copy} differ")
         sys.exit(lib.exitcode.COPY_FAILURE)
 
     if not os.path.exists(file_copy):
-        message = '\n\tERROR: failed copying ' + file_orig + \
-                  ' to ' + file_copy + '\n'
-        print(message)
+        print(f"ERROR: failed copying {file_orig} to {file_copy}")
         sys.exit(lib.exitcode.COPY_FAILURE)
 
 
@@ -129,12 +126,11 @@ def create_dir(dir_name, verbose):
 
     if not os.path.exists(dir_name):
         if verbose:
-            print("Creating directory " + dir_name)
+            print(f"Creating directory {dir_name}")
         os.makedirs(dir_name)
 
     if not os.path.exists(dir_name):
-        message = '\n\tERROR: could not create directory ' + dir_name + '\n'
-        print(message)
+        print(f"ERROR: could not create directory {dir_name}")
         sys.exit(lib.exitcode.CREATE_DIR_FAILURE)
 
     return dir_name
