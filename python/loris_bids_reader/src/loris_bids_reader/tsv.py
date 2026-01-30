@@ -31,7 +31,7 @@ class BidsTsvFile(Generic[T]):
         self.path = path
         self.rows = []
 
-        with open(self.path) as file:
+        with open(self.path, encoding='utf-8-sig') as file:
             reader = csv.DictReader(file, delimiter='\t')
             for row in reader:
                 self.rows.append(model(row))
