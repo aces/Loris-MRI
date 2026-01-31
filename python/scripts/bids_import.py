@@ -8,6 +8,8 @@ import os
 import re
 import sys
 
+from loris_utils.crypto import compute_file_blake2b_hash
+
 import lib.exitcode
 import lib.physiological
 import lib.utilities
@@ -22,7 +24,6 @@ from lib.env import Env
 from lib.make_env import make_env
 from lib.mri import Mri
 from lib.session import Session
-from lib.util.crypto import compute_file_blake2b_hash
 
 
 def main():

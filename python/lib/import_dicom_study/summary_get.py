@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pydicom
 import pydicom.errors
+from loris_utils.crypto import compute_file_md5_hash
+from loris_utils.fs import iter_all_dir_files
 
 from lib.import_dicom_study.summary_type import (
     DicomStudyDicomFile,
@@ -14,8 +16,6 @@ from lib.import_dicom_study.summary_type import (
     DicomStudySummary,
 )
 from lib.import_dicom_study.text import read_dicom_date_none
-from lib.util.crypto import compute_file_md5_hash
-from lib.util.fs import iter_all_dir_files
 
 
 def get_dicom_study_summary(dicom_study_dir_path: Path, verbose: bool):

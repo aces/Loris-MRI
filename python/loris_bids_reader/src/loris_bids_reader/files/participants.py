@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from lib.util.iter import find
+from loris_utils.iter import find
 
 from loris_bids_reader.tsv import BidsTsvFile, BidsTsvRow
 

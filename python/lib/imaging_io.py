@@ -12,13 +12,13 @@ from lib.exitcode import COPY_FAILURE
 """Set of io functions."""
 
 
-@deprecated('Use `lib.logging` and `lib.util.fs` instead')
+@deprecated('Use `lib.logging` and `loris_utils.fs` instead')
 class ImagingIO:
     def __init__(self, log_obj, verbose):
         self.log_obj = log_obj
         self.verbose = verbose
 
-    @deprecated('Use `lib.util.fs.extract_archive` instead')
+    @deprecated('Use `loris_utils.fs.extract_archive` instead')
     def extract_archive(self, location, prefix, tmp_dir):
         """
         Extract Archive in the temporary directory

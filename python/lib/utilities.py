@@ -11,6 +11,7 @@ import tarfile
 import tempfile
 from datetime import datetime
 
+import loris_utils.crypto
 import mat73
 import numpy
 import requests
@@ -18,7 +19,6 @@ import scipy.io
 from typing_extensions import deprecated
 
 import lib.exitcode
-import lib.util.crypto
 
 
 def read_tsv_file(tsv_file):
@@ -207,7 +207,7 @@ def update_set_file_path_info(set_file, with_fdt_file):
     return True
 
 
-@deprecated('Use `lib.util.crypto.compute_file_blake2b_hash` instead.')
+@deprecated('Use `loris_utils.crypto.compute_file_blake2b_hash` instead.')
 def compute_blake2b_hash(file_path):
     """
     Compute the blake2b hash of a file and returns it.
@@ -217,10 +217,10 @@ def compute_blake2b_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        return lib.util.crypto.compute_file_blake2b_hash(file_path)
+        return loris_utils.crypto.compute_file_blake2b_hash(file_path)
 
 
-@deprecated('Use `lib.util.crypto.compute_file_md5_hash` instead.')
+@deprecated('Use `loris_utils.crypto.compute_file_md5_hash` instead.')
 def compute_md5_hash(file_path):
     """
     Compute the md5 hash of a file and returns it.
@@ -230,7 +230,7 @@ def compute_md5_hash(file_path):
      :rtype: str
     """
     if os.path.exists(file_path):
-        return lib.util.crypto.compute_file_md5_hash(file_path)
+        return loris_utils.crypto.compute_file_md5_hash(file_path)
 
 
 def create_processing_tmp_dir(template_prefix):
@@ -259,7 +259,7 @@ def create_processing_tmp_dir(template_prefix):
     return tmp_dir
 
 
-@deprecated('Use `lib.util.fs.remove_empty_subdirectories` instead')
+@deprecated('Use `loris_utils.fs.remove_empty_subdirectories` instead')
 def remove_empty_folders(path_abs):
 
     walk = list(os.walk(path_abs))

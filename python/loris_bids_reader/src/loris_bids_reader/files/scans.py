@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import dateutil.parser
-from lib.util.iter import find
+from loris_utils.iter import find
 
 from loris_bids_reader.tsv import BidsTsvFile, BidsTsvRow
 

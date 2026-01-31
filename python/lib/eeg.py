@@ -10,6 +10,7 @@ from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
 from loris_bids_reader.files.events import BidsEventsTsvFile
 from loris_bids_reader.files.scans import BidsScansTsvFile
+from loris_utils.crypto import compute_file_blake2b_hash
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -23,7 +24,6 @@ from lib.env import Env
 from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.physiological import Physiological
 from lib.session import Session
-from lib.util.crypto import compute_file_blake2b_hash
 
 
 class Eeg:

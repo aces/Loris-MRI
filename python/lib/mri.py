@@ -8,6 +8,7 @@ from pathlib import Path
 
 from loris_bids_reader.files.scans import BidsScansTsvFile
 from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
+from loris_utils.crypto import compute_file_blake2b_hash
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -15,7 +16,6 @@ from lib.candidate import Candidate
 from lib.imaging import Imaging
 from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.session import Session
-from lib.util.crypto import compute_file_blake2b_hash
 
 
 class Mri:

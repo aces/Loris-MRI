@@ -7,14 +7,17 @@ import re
 import shutil
 import sys
 
+from loris_utils.fs import extract_archive
+
+import lib.exitcode
 import lib.utilities as utilities
 from lib.database import Database
 from lib.database_lib.config import Config
+from lib.env import Env
 from lib.exitcode import BAD_CONFIG_SETTING, SUCCESS
 from lib.logging import log, log_error, log_error_exit, log_verbose, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env_from_opts
-from lib.util.fs import extract_archive
 
 
 def main():
@@ -212,14 +215,11 @@ def main():
                     # If the suject/session/modality BIDS data already exists
                     # on the destination folder, delete if first
                     # copying the data
-                    if os.path.exists(data_eeg_modality_path):
-                        shutil.rmtree(data_eeg_modality_path)
-                    log_verbose(env, f"Moving {tmp_eeg_modality_path} to {data_eeg_modality_path}")
-                    shutil.copytree(tmp_eeg_modality_path, data_eeg_modality_path, dirs_exist_ok=True)
+                    remove_directory(env, data_eeg_modality_path)
+                    copy_file(env, tmp_eeg_modality_path, data_eeg_modality_path)
 
         # Delete tmp location
-        if os.path.exists(tmp_dir):
-            shutil.rmtree(tmp_dir)
+        remove_directory(env, tmp_dir)
 
         if not error:
             # Set Status = Extracted
@@ -233,6 +233,29 @@ def main():
                 "UPDATE electrophysiology_uploader SET Status = 'Failed Extraction' WHERE UploadLocation = %s",
                 (eeg_archive_filename,)
             )
+
+
+def remove_directory(env: Env, path: str):
+    """
+    Delete a directory and its content.
+    """
+
+    if os.path.exists(path):
+        try:
+            shutil.rmtree(path)
+        except PermissionError as error:
+            log_warning(env, f"Could not delete {path}. Error was: {error}")
+
+
+def copy_file(env: Env, old_path: str, new_path: str):
+    """
+    Copy a file on the file system.
+    """
+
+    log_verbose(env, f"Moving {old_path} to {new_path}")
+    shutil.copytree(old_path, new_path, dirs_exist_ok=True)
+    if not os.path.exists(new_path):
+        log_error_exit(env, f"Could not copy {old_path} to {new_path}", lib.exitcode.COPY_FAILURE)
 
 
 if __name__ == "__main__":
