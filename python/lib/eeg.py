@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 
+from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
 from loris_bids_reader.files.events import BidsEventsTsvFile
 
@@ -668,7 +669,7 @@ class Eeg:
         # physiological data into the database
         physiological = Physiological(self.env, self.db, self.verbose)
 
-        channel_file = self.bids_layout.get_nearest(
+        bids_channels_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
@@ -677,8 +678,9 @@ class Eeg:
             all_ = False,
             full_search = False,
         )
+        channels_file = BidsEegChannelsTsvFile(Path(bids_channels_file.path)) if bids_channels_file else None
 
-        if not channel_file:
+        if channels_file is None:
             message = "WARNING: no channel file associated with " \
                       "physiological file ID " + str(physiological_file_id)
             print(message)
@@ -688,19 +690,18 @@ class Eeg:
                 physiological_file_id
             )
             channel_path = result[0]['FilePath'] if result else None
-            channel_data = utilities.read_tsv_file(channel_file.path)
             if not result:
-                channel_path = os.path.relpath(channel_file.path, self.data_dir)
+                channel_path = os.path.relpath(channels_file.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the channel file to the LORIS BIDS import directory
                     channel_path = self.copy_file_to_loris_bids_dir(
-                        channel_file.path, derivatives
+                        channels_file.path, derivatives
                     )
                 # get the blake2b hash of the channel file
-                blake2 = compute_file_blake2b_hash(channel_file.path)
+                blake2 = compute_file_blake2b_hash(channels_file.path)
                 # insert the channel data in the database
                 physiological.insert_channel_file(
-                    channel_data, channel_path, physiological_file_id, blake2
+                    channels_file, channel_path, physiological_file_id, blake2
                 )
 
         return channel_path
