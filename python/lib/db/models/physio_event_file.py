@@ -24,8 +24,8 @@ class DbPhysioEventFile(Base):
     last_update    : Mapped[datetime]    = mapped_column('LastUpdate')
     last_written   : Mapped[datetime]    = mapped_column('LastWritten')
 
-    physio_file       : Mapped['db_physio_file.DbPhysioFile | None']                     = relationship('PhysiologicalFile')
-    project           : Mapped['db_project.DbProject | None']                            = relationship('Project')
-    imaging_file_type : Mapped['db_imaging_file_type.DbImagingFileType | None']          = relationship('ImagingFileTypes')
-    task_events       : Mapped[list['db_physio_task_event.DbPhysioTaskEvent']]           = relationship('PhysiologicalTaskEvent', back_populates='event_file')
-    event_parameters  : Mapped[list['db_physio_event_parameter.DbPhysioEventParameter']] = relationship('PhysiologicalEventParameter', back_populates='event_file')
+    physio_file       : Mapped['db_physio_file.DbPhysioFile | None']                     = relationship('DbPhysioFile')
+    project           : Mapped['db_project.DbProject | None']                            = relationship('DbProject')
+    imaging_file_type : Mapped['db_imaging_file_type.DbImagingFileType | None']          = relationship('DbImagingFileType')
+    task_events       : Mapped[list['db_physio_task_event.DbPhysioTaskEvent']]           = relationship('DbPhysioTaskEvent', back_populates='event_file')
+    event_parameters  : Mapped[list['db_physio_event_parameter.DbPhysioEventParameter']] = relationship('DbPhysioEventParameter', back_populates='event_file')

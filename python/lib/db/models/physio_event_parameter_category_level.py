@@ -14,4 +14,4 @@ class DbPhysioEventParameterCategoryLevel(Base):
     description        : Mapped[str | None] = mapped_column('Description')
     hed                : Mapped[str | None] = mapped_column('HED')
 
-    event_parameter: Mapped['db_physio_event_parameter.DbPhysioEventParameter'] = relationship('PhysiologicalEventParameter', back_populates='category_levels')
+    event_parameter: Mapped['db_physio_event_parameter.DbPhysioEventParameter'] = relationship('DbPhysioEventParameter', back_populates='category_levels')
