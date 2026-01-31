@@ -35,7 +35,7 @@ class ImagingIO:
         tar_file.close()
         return extract_location
 
-    @deprecated('Use `lib.util.fs.remove_directory` instead')
+    @deprecated('Use `shutil.rmtree` instead')
     def remove_dir(self, dir):
         """
         Removes a directory and its content
@@ -47,7 +47,7 @@ class ImagingIO:
             except PermissionError as err:
                 self.log_info(f"Could not delete {dir}. Error was: {err}", is_error=True, is_verbose=False)
 
-    @deprecated('Use `lib.util.fs.copy_file` instead')
+    @deprecated('Use `shutil.copytree` instead')
     def copy_file(self, old_file_path, new_file_path):
         """
         Move a file on the file system.

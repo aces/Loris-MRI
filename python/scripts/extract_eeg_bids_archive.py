@@ -4,16 +4,17 @@
 
 import os
 import re
+import shutil
 import sys
 
 import lib.utilities as utilities
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.exitcode import BAD_CONFIG_SETTING, SUCCESS
-from lib.logging import log, log_error, log_error_exit, log_warning
+from lib.logging import log, log_error, log_error_exit, log_verbose, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env_from_opts
-from lib.util.fs import copy_file, extract_archive, remove_directory
+from lib.util.fs import extract_archive
 
 
 def main():
@@ -134,7 +135,7 @@ def main():
         if not error:
             try:
                 # Uncompress archive in tmp location
-                eeg_collection_path = extract_archive(env, eeg_archive_path, 'EEG', tmp_dir)
+                eeg_collection_path = extract_archive(eeg_archive_path, 'EEG', tmp_dir)
             except Exception as err:
                 log_error(env, f"Could not extract {eeg_archive_path} - {format(err)}")
                 error = True
@@ -211,11 +212,14 @@ def main():
                     # If the suject/session/modality BIDS data already exists
                     # on the destination folder, delete if first
                     # copying the data
-                    remove_directory(env, data_eeg_modality_path)
-                    copy_file(env, tmp_eeg_modality_path, data_eeg_modality_path)
+                    if os.path.exists(data_eeg_modality_path):
+                        shutil.rmtree(data_eeg_modality_path)
+                    log_verbose(env, f"Moving {tmp_eeg_modality_path} to {data_eeg_modality_path}")
+                    shutil.copytree(tmp_eeg_modality_path, data_eeg_modality_path, dirs_exist_ok=True)
 
         # Delete tmp location
-        remove_directory(env, tmp_dir)
+        if os.path.exists(tmp_dir):
+            shutil.rmtree(tmp_dir)
 
         if not error:
             # Set Status = Extracted
