@@ -1,16 +1,19 @@
 """Deals with MRI BIDS datasets and register them into the database."""
 
 import getpass
-import json
 import os
 import re
 import sys
+from pathlib import Path
+
+from loris_bids_reader.files.scans import BidsScansTsvFile
+from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
 
 import lib.exitcode
 import lib.utilities as utilities
 from lib.candidate import Candidate
 from lib.imaging import Imaging
-from lib.scanstsv import ScansTSV
+from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
 
@@ -117,17 +120,15 @@ class Mri:
         self.center_id       = self.loris_cand_info['RegistrationCenterID']
         self.project_id      = self.loris_cand_info['RegistrationProjectID']
         self.cohort_id       = None
-        for row in bids_reader.participants_info:
-            if not row['participant_id'] == self.psc_id:
-                continue
-            if 'cohort' in row:
+        if bids_reader.participants_info is not None:
+            row = bids_reader.participants_info.get_row(self.bids_sub_id)
+            if 'cohort' in row.data:
                 cohort_info = db.pselect(
                     "SELECT CohortID FROM cohort WHERE title = %s",
-                    [row['cohort'], ]
+                    [row.data['cohort'], ]
                 )
                 if len(cohort_info) > 0:
                     self.cohort_id = cohort_info[0]['CohortID']
-            break
 
         self.session_id      = self.get_loris_session_id()
 
@@ -137,8 +138,9 @@ class Mri:
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
         if self.bids_layout.get(suffix='scans', subject=self.psc_id, return_type='filename'):
-            self.scans_file = self.bids_layout.get(suffix='scans', subject=self.psc_id,
+            scans_file_path = self.bids_layout.get(suffix='scans', subject=self.psc_id,
                                                    return_type='filename', extension='tsv')[0]
+            self.scans_file = BidsScansTsvFile(Path(scans_file_path))
 
         # loop through NIfTI files and register them in the DB
         for nifti_file in self.nifti_files:
@@ -275,12 +277,12 @@ class Mri:
         scan_type = entities['suffix']
 
         # loop through the associated files to grep JSON, bval, bvec...
-        json_file = None
+        sidecar_json = None
         other_assoc_files = {}
         for assoc_file in associated_files:
             file_info = assoc_file.get_entities()
             if re.search(r'json$', file_info['extension']):
-                json_file = assoc_file.path
+                sidecar_json = BidsMriSidecarJsonFile(Path(assoc_file.path))
             elif re.search(r'bvec$', file_info['extension']):
                 other_assoc_files['bvec_file'] = assoc_file.path
             elif re.search(r'bval$', file_info['extension']):
@@ -292,14 +294,12 @@ class Mri:
 
         # read the json file if it exists
         file_parameters = {}
-        if json_file:
-            with open(json_file) as data_file:
-                file_parameters = json.load(data_file)
-                file_parameters = imaging.map_bids_param_to_loris_param(file_parameters)
+        if sidecar_json is not None:
+            file_parameters = imaging.map_bids_param_to_loris_param(sidecar_json.data)
             # copy the JSON file to the LORIS BIDS import directory
-            json_path = self.copy_file_to_loris_bids_dir(json_file)
+            json_path = self.copy_file_to_loris_bids_dir(sidecar_json.path)
             file_parameters['bids_json_file'] = json_path
-            json_blake2 = compute_file_blake2b_hash(json_file)
+            json_blake2 = compute_file_blake2b_hash(sidecar_json.path)
             file_parameters['bids_json_file_blake2b_hash'] = json_blake2
 
         # grep the file type from the ImagingFileTypes table
@@ -316,17 +316,27 @@ class Mri:
             coordinate_space = 'native'
 
         # get the acquisition date of the MRI or the age at the time of acquisition
-        if self.scans_file:
-            scan_info = ScansTSV(self.scans_file, nifti_file.filename, self.verbose)
-            file_parameters['scan_acquisition_time'] = scan_info.get_acquisition_time()
-            file_parameters['age_at_scan'] = scan_info.get_age_at_scan()
-            # copy the scans.tsv file to the LORIS BIDS import directory
-            scans_path = scan_info.copy_scans_tsv_file_to_loris_bids_dir(
-                self.bids_sub_id, self.loris_bids_root_dir, self.data_dir
-            )
-            file_parameters['scans_tsv_file'] = scans_path
-            scans_blake2 = compute_file_blake2b_hash(self.scans_file)
-            file_parameters['scans_tsv_file_bake2hash'] = scans_blake2
+        if self.scans_file is not None:
+            scan_info = self.scans_file.get_row(Path(nifti_file.path))
+            if scan_info is not None:
+                try:
+                    file_parameters['scan_acquisition_time'] = scan_info.get_acquisition_time()
+                    file_parameters['age_at_scan'] = scan_info.get_age_at_scan()
+                except Exception as error:
+                    print(f"ERROR: {error}")
+                    sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
+
+                # copy the scans.tsv file to the LORIS BIDS import directory
+                scans_path = copy_scans_tsv_file_to_loris_bids_dir(
+                    self.scans_file,
+                    self.bids_sub_id,
+                    self.loris_bids_root_dir,
+                    self.data_dir,
+                )
+
+                file_parameters['scans_tsv_file'] = scans_path
+                scans_blake2 = compute_file_blake2b_hash(self.scans_file.path)
+                file_parameters['scans_tsv_file_bake2hash'] = scans_blake2
 
         # grep voxel step from the NIfTI file header
         step_parameters = imaging.get_nifti_image_step_parameters(nifti_file.path)

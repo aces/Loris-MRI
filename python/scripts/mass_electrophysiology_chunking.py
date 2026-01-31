@@ -6,9 +6,12 @@ import getopt
 import sys
 
 import lib.exitcode
+import lib.utilities
+from lib.config import get_data_dir_path_config
 from lib.config_file import load_config
 from lib.database import Database
-from lib.database_lib.config import Config
+from lib.env import Env
+from lib.make_env import make_env
 from lib.physiological import Physiological
 
 
@@ -56,14 +59,16 @@ def main():
     # input error checking and load config_file file
     config_file = load_config(profile)
     input_error_checking(smallest_id, largest_id, usage)
+    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
+    env = make_env('mass_nifti_pic', {}, config_file, tmp_dir_path, verbose)
 
     # run chunking script on electrophysiology datasets with a PhysiologicalFileID
     # between smallest_id and largest_id
     if (smallest_id == largest_id):
-        make_chunks(smallest_id, config_file, verbose)
+        make_chunks(env, smallest_id, config_file, verbose)
     else:
         for file_id in range(smallest_id, largest_id + 1):
-            make_chunks(file_id, config_file, verbose)
+            make_chunks(env, file_id, config_file, verbose)
 
 
 def input_error_checking(smallest_id, largest_id, usage):
@@ -100,7 +105,7 @@ def input_error_checking(smallest_id, largest_id, usage):
         sys.exit(lib.exitcode.INVALID_ARG)
 
 
-def make_chunks(physiological_file_id, config_file, verbose):
+def make_chunks(env: Env, physiological_file_id, config_file, verbose):
     """
     Call the function create_chunks_for_visualization of the Physiology class on
     the PhysiologicalFileID provided as argument to this function.
@@ -118,14 +123,10 @@ def make_chunks(physiological_file_id, config_file, verbose):
     db.connect()
 
     # grep config settings from the Config module
-    config_obj = Config(db, verbose)
-    data_dir   = config_obj.get_config('dataDirBasepath')
-
-    # making sure that there is a final / in data_dir
-    data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
+    data_dir = get_data_dir_path_config(env)
 
     # load the Physiological object
-    physiological = Physiological(db, verbose)
+    physiological = Physiological(env, db, verbose)
 
     # create the chunked dataset
     if physiological.grep_file_path_from_file_id(physiological_file_id):

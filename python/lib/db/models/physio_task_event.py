@@ -26,5 +26,5 @@ class DbPhysioTaskEvent(Base):
     trial_type     : Mapped[str | None]     = mapped_column('TrialType')
     response_time  : Mapped[time | None]    = mapped_column('ResponseTime')
 
-    physio_file : Mapped['db_physio_file.DbPhysioFile']            = relationship('PhysiologicalFile')
-    event_file  : Mapped['db_physio_event_file.DbPhysioEventFile'] = relationship('PhysiologicalEventFile', back_populates='task_events')
+    physio_file : Mapped['db_physio_file.DbPhysioFile']            = relationship('DbPhysioFile')
+    event_file  : Mapped['db_physio_event_file.DbPhysioEventFile'] = relationship('DbPhysioEventFile', back_populates='task_events')

@@ -13,10 +13,13 @@ import lib.physiological
 import lib.utilities
 from lib.bidsreader import BidsReader
 from lib.candidate import Candidate
+from lib.config import get_default_bids_visit_label_config
 from lib.config_file import load_config
 from lib.database import Database
 from lib.database_lib.config import Config
 from lib.eeg import Eeg
+from lib.env import Env
+from lib.make_env import make_env
 from lib.mri import Mri
 from lib.session import Session
 from lib.util.crypto import compute_file_blake2b_hash
@@ -89,6 +92,8 @@ def main():
     # input error checking and load config_file file
     config_file = load_config(profile)
     input_error_checking(bids_dir, usage)
+    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
+    env = make_env('bids_import', {}, config_file, tmp_dir_path, verbose)
 
     dataset_json = bids_dir + "/dataset_description.json"
     if not os.path.isfile(dataset_json) and not type:
@@ -112,6 +117,7 @@ def main():
 
     # read and insert BIDS data
     read_and_insert_bids(
+        env,
         bids_dir,
         data_dir,
         verbose,
@@ -151,7 +157,7 @@ def input_error_checking(bids_dir, usage):
 
 
 def read_and_insert_bids(
-    bids_dir,      data_dir,      verbose, createcand, createvisit,
+    env: Env, bids_dir,      data_dir,      verbose, createcand, createvisit,
     idsvalidation, nobidsvalidation, type,    nocopy,  db
 ):
     """
@@ -181,8 +187,7 @@ def read_and_insert_bids(
     """
 
     # grep config settings from the Config module
-    config_obj      = Config(db, verbose)
-    default_bids_vl = config_obj.get_config('default_bids_vl')
+    default_bids_vl = get_default_bids_visit_label_config(env)
 
     # Validate that pscid and candid matches
     if idsvalidation:
@@ -193,9 +198,7 @@ def read_and_insert_bids(
         bids_reader = BidsReader(bids_dir, verbose, False)
     else:
         bids_reader = BidsReader(bids_dir, verbose)
-    if not bids_reader.participants_info          \
-            or not bids_reader.cand_sessions_list \
-            or not bids_reader.cand_session_modalities_list:
+    if not bids_reader.cand_sessions_list or not bids_reader.cand_session_modalities_list:
         message = '\n\tERROR: could not properly parse the following' \
                   'BIDS directory:' + bids_dir + '\n'
         print(message)
@@ -212,10 +215,9 @@ def read_and_insert_bids(
     single_project_id = None
 
     # loop through subjects
-    for bids_subject_info in bids_reader.participants_info:
+    for bids_id in bids_reader.bids_layout.get_subjects():
 
         # greps BIDS information for the candidate
-        bids_id       = bids_subject_info['participant_id']
         bids_sessions = bids_reader.cand_sessions_list[bids_id]
 
         # greps BIDS candidate's info from LORIS (creates the candidate if it
@@ -234,10 +236,11 @@ def read_and_insert_bids(
         single_project_id = project_id
 
         cohort_id = None
+        bids_subject_info = bids_reader.participants_info.get_row(bids_id) if bids_reader.participants_info else None
         # TODO: change subproject -> cohort in participants.tsv?
-        if 'subproject' in bids_subject_info:
+        if bids_subject_info and 'subproject' in bids_subject_info.data:
             # TODO: change subproject -> cohort in participants.tsv?
-            cohort = bids_subject_info['subproject']
+            cohort = bids_subject_info.data['subproject']
             cohort_info = db.pselect(
                 "SELECT CohortID FROM cohort WHERE title = %s",
                 [cohort, ]
@@ -294,7 +297,7 @@ def read_and_insert_bids(
         with open(root_event_metadata_file.path) as metadata_file:
             event_metadata = json.load(metadata_file)
         blake2 = compute_file_blake2b_hash(root_event_metadata_file.path)
-        physio = lib.physiological.Physiological(db, verbose)
+        physio = lib.physiological.Physiological(env, db, verbose)
         _, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,
             event_metadata_file=event_metadata_path,
@@ -318,6 +321,7 @@ def read_and_insert_bids(
 
             if modality == 'eeg' or modality == 'ieeg':
                 Eeg(
+                    env,
                     bids_reader   = bids_reader,
                     bids_sub_id   = row['bids_sub_id'],
                     bids_ses_id   = row['bids_ses_id'],
@@ -473,6 +477,10 @@ def grep_or_create_candidate_db_info(bids_reader, bids_id, db, createcand, verbo
         loris_cand_info = candidate.get_candidate_info_from_loris(db)
 
     if not loris_cand_info and createcand:
+        if bids_reader.participants_info is None:
+            print("No participants.tsv file found in the BIDS directory. Cannot create candidate.")
+            sys.exit(lib.exitcode.CANDIDATE_CREATION_FAILURE)
+
         loris_cand_info = candidate.create_candidate(
             db, bids_reader.participants_info
         )
