@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
+from loris_utils.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
 import lib.exitcode
 from lib.bids import get_bids_json_session_info
@@ -19,7 +20,6 @@ from lib.imaging_lib.file_parameter import register_mri_file_parameter, register
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.logging import log_error_exit, log_verbose
-from lib.util.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
 
 class NiftiInsertionPipeline(BasePipeline):

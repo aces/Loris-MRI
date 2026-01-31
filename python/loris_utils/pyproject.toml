@@ -1,23 +1,17 @@
 [project]
-name = "loris-bids-reader"
+name = "loris-utils"
 version = "27.0.0"
-description = "The LORIS BIDS reader library"
+description = "The LORIS utilities library"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">= 3.11"
-dependencies = [
-    "loris-utils",
-]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [tool.hatch.build.targets.wheel]
-packages = ["src/loris_bids_reader"]
+packages = ["src/loris_utils"]
 
 [tool.ruff]
 extend = "../../pyproject.toml"

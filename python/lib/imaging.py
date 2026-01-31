@@ -7,6 +7,7 @@ import re
 import tarfile
 
 import nibabel as nib
+from loris_utils.crypto import compute_file_blake2b_hash
 from nilearn import image, plotting
 from typing_extensions import deprecated
 
@@ -22,7 +23,6 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
-from lib.util.crypto import compute_file_blake2b_hash
 
 
 class Imaging:

@@ -1,12 +1,13 @@
 import os
 import sys
 
+from loris_utils.crypto import compute_file_md5_hash
+
 import lib.exitcode
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.env import Env
 from lib.logging import log_error_exit, log_verbose
-from lib.util.crypto import compute_file_md5_hash
 
 
 class DicomValidationPipeline(BasePipeline):

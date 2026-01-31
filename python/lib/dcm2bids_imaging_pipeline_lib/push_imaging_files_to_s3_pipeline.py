@@ -2,10 +2,11 @@ import os
 import re
 import sys
 
+from loris_utils.fs import remove_empty_directories
+
 import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.logging import log_error_exit
-from lib.util.fs import remove_empty_directories
 
 
 class PushImagingFilesToS3Pipeline(BasePipeline):

@@ -4,16 +4,20 @@
 
 import os
 import re
+import shutil
 import sys
 
+from loris_utils.fs import extract_archive
+
+import lib.exitcode
 import lib.utilities as utilities
 from lib.database import Database
 from lib.database_lib.config import Config
+from lib.env import Env
 from lib.exitcode import BAD_CONFIG_SETTING, SUCCESS
-from lib.logging import log, log_error, log_error_exit, log_warning
+from lib.logging import log, log_error, log_error_exit, log_verbose, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env_from_opts
-from lib.util.fs import copy_file, extract_archive, remove_directory
 
 
 def main():
@@ -134,7 +138,7 @@ def main():
         if not error:
             try:
                 # Uncompress archive in tmp location
-                eeg_collection_path = extract_archive(env, eeg_archive_path, 'EEG', tmp_dir)
+                eeg_collection_path = extract_archive(eeg_archive_path, 'EEG', tmp_dir)
             except Exception as err:
                 log_error(env, f"Could not extract {eeg_archive_path} - {format(err)}")
                 error = True
@@ -229,6 +233,29 @@ def main():
                 "UPDATE electrophysiology_uploader SET Status = 'Failed Extraction' WHERE UploadLocation = %s",
                 (eeg_archive_filename,)
             )
+
+
+def remove_directory(env: Env, path: str):
+    """
+    Delete a directory and its content.
+    """
+
+    if os.path.exists(path):
+        try:
+            shutil.rmtree(path)
+        except PermissionError as error:
+            log_warning(env, f"Could not delete {path}. Error was: {error}")
+
+
+def copy_file(env: Env, old_path: str, new_path: str):
+    """
+    Copy a file on the file system.
+    """
+
+    log_verbose(env, f"Moving {old_path} to {new_path}")
+    shutil.copytree(old_path, new_path, dirs_exist_ok=True)
+    if not os.path.exists(new_path):
+        log_error_exit(env, f"Could not copy {old_path} to {new_path}", lib.exitcode.COPY_FAILURE)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any, cast
 
+from loris_utils.fs import iter_all_dir_files
+
 import lib.exitcode
 import lib.import_dicom_study.text
 from lib.config import get_dicom_archive_dir_path_config
@@ -26,7 +28,6 @@ from lib.import_dicom_study.summary_write import write_dicom_study_summary_to_fi
 from lib.logging import log, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
 from lib.make_env import make_env_from_opts
-from lib.util.fs import iter_all_dir_files
 
 
 class Args:
