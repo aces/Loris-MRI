@@ -4,6 +4,9 @@ import getpass
 import json
 import os
 import sys
+from pathlib import Path
+
+from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
 
 import lib.exitcode
 import lib.utilities as utilities
@@ -390,7 +393,7 @@ class Eeg:
             return None
 
         for eeg_file in eeg_files:
-            eegjson_file = self.bids_layout.get_nearest(
+            bids_sidecar_json = self.bids_layout.get_nearest(
                 eeg_file.path,
                 return_type = 'tuple',
                 strict=False,
@@ -399,6 +402,7 @@ class Eeg:
                 all_ = False,
                 full_search = False,
             )
+            sidecar_json = BidsEegSidecarJsonFile(Path(bids_sidecar_json.path)) if bids_sidecar_json else None
 
             fdt_file = self.bids_layout.get_nearest(
                 eeg_file.path,
@@ -411,20 +415,19 @@ class Eeg:
 
             # read the json file if it exists
             eeg_file_data = {}
-            eegjson_file_path = None
-            if eegjson_file:
-                with open(eegjson_file.path) as data_file:
-                    eeg_file_data = json.load(data_file)
+            sidecar_json_path = None
+            if sidecar_json is not None:
+                eeg_file_data = sidecar_json.data
 
-                eegjson_file_path = os.path.relpath(eegjson_file.path, self.data_dir)
+                sidecar_json_path = os.path.relpath(sidecar_json.path, self.data_dir)
                 if self.loris_bids_root_dir:
                     # copy the JSON file to the LORIS BIDS import directory
-                    eegjson_file_path = self.copy_file_to_loris_bids_dir(
-                        eegjson_file.path, derivatives
+                    sidecar_json_path = self.copy_file_to_loris_bids_dir(
+                        sidecar_json.path, derivatives
                     )
 
-                eeg_file_data['eegjson_file'] = eegjson_file_path
-                json_blake2 = compute_file_blake2b_hash(eegjson_file.path)
+                eeg_file_data['eegjson_file'] = sidecar_json_path
+                json_blake2 = compute_file_blake2b_hash(sidecar_json.path)
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
             # greps the file type from the ImagingFileTypes table
@@ -522,7 +525,7 @@ class Eeg:
                 inserted_eegs.append({
                     'file_id': physio_file_id,
                     'file_path': eeg_path,
-                    'eegjson_file_path': eegjson_file_path,
+                    'eegjson_file_path': sidecar_json_path,
                     'fdt_file_path': fdt_file_path,
                     'original_file_data': eeg_file,
                 })
